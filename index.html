@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code2027 - Board Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f5f5f5;
+        }
+
+        #root {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 18px;
+            color: #666;
+        }
+
+        /* Error fallback */
+        .error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #dc3545;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error h1 {
+            margin-bottom: 10px;
+        }
+
+        .error button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .error button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">
+            Loading Code2027 Game...
+        </div>
+    </div>
+
+    <!-- Error fallback (will be hidden when React loads) -->
+    <div id="error-fallback" class="error" style="display: none;">
+        <h1>Failed to Load Application</h1>
+        <p>There was an error loading the Code2027 game.</p>
+        <p>Please check the console for more details.</p>
+        <button onclick="window.location.reload()">Reload Page</button>
+    </div>
+
+    <!-- Load the React application -->
+    <script type="module" src="src/main.tsx"></script>
+
+    <script>
+        // Error handler for module loading failures
+        window.addEventListener('error', function(e) {
+            console.error('Application loading error:', e);
+            document.getElementById('root').style.display = 'none';
+            document.getElementById('error-fallback').style.display = 'flex';
+        });
+
+        // Check if React loaded properly after a timeout
+        setTimeout(() => {
+            const root = document.getElementById('root');
+            if (root && root.innerHTML.includes('Loading Code2027 Game...')) {
+                console.warn('React application may have failed to load');
+                // Don't show error immediately, React might be slow to load
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

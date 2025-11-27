@@ -1,0 +1,49 @@
+/* Import centralized animations */
+@import '../../styles/animations.css';
+
+.next-step-button {
+  /* Normal flow positioning within player-panel__bottom */
+  flex: 1;
+
+  /* Button styling */
+  padding: 10px 16px;
+  background: var(--primary-color, #28a745);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+
+  /* Visual effects */
+  /* Consistent button transition: 200ms ease (from animationConstants.ts) */
+  transition: all 0.2s ease;
+
+  /* Touch-friendly size */
+  min-height: 44px;
+}
+
+.next-step-button:hover:not(:disabled) {
+  background: #218838;
+  /* Consistent hover elevation: translateY(-1px) (from animationConstants.ts) */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.next-step-button:active:not(:disabled) {
+  transform: translateY(0);
+  /* Faster transition for active state for immediate feedback */
+  transition: all 0.15s ease;
+}
+
+.next-step-button:disabled {
+  background: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.next-step-button:focus {
+  outline: 2px solid #80bdff;
+  outline-offset: 2px;
+}

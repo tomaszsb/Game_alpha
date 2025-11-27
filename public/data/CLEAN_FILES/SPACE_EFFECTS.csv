@@ -1,0 +1,128 @@
+space_name,visit_type,effect_type,effect_action,effect_value,condition,description,trigger_type
+START-QUICK-PLAY-GUIDE,First,cards,draw_W,The scope of work is W cards. Here you learn how to add remove or change scope. Just remember 20% design fee is the max.,,The scope of work is W cards. Here you learn how to add remove or change scope. Just remember 20% design fee is the max. W cards,manual
+START-QUICK-PLAY-GUIDE,First,cards,draw_B,You can not build if you do not have $ - Bank will lend you a little $ rather quickly and at a low rate.,,You can not build if you do not have $ - Bank will lend you a little $ rather quickly and at a low rate. B cards,manual
+START-QUICK-PLAY-GUIDE,First,cards,draw_I,You can not build if you do not have $ - Investor will lend you a lot of $ rather slowly and at a higher rate.,,You can not build if you do not have $ - Investor will lend you a lot of $ rather slowly and at a higher rate. I cards,manual
+START-QUICK-PLAY-GUIDE,First,cards,draw_L,In real life shit happens all the time. In this game it only happens here.,,In real life shit happens all the time. In this game it only happens here. L cards,manual
+START-QUICK-PLAY-GUIDE,First,cards,draw_E,Once in a while you may want specialized help. It is available in this row. But will it help you or hinder you.,,Once in a while you may want specialized help. It is available in this row. But will it help you or hinder you. E cards,manual
+START-QUICK-PLAY-GUIDE,First,fee,deduct,Of course to get things unstuck or get things done at all - you have to pay people up front. Watch this trickle so it does not become a flood.,,Pay Of course to get things unstuck or get things done at all - you have to pay people up front. Watch this trickle so it does not become a flood. fees,auto
+START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_W,while being aware of the 20% design fee limit.,,while being aware of the 20% design fee limit. W cards,manual
+START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_B,Watch out how much you borrow,,Watch out how much you borrow B cards,manual
+START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_I,and from whom. Bank offers quick small loans at low rates.,,and from whom. Bank offers quick small loans at low rates. I cards,manual
+START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_L,Beware that in the meantime life happens,,Beware that in the meantime life happens L cards,manual
+START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_E,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer.,,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer. E cards,manual
+START-QUICK-PLAY-GUIDE,Subsequent,fee,deduct,Pay attention to fees - they accumulate quickly,,Pay Pay attention to fees - they accumulate quickly fees,auto
+OWNER-SCOPE-INITIATION,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
+OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto
+OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Draw 3 E cards,manual
+OWNER-SCOPE-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
+OWNER-FUND-INITIATION,First,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
+OWNER-FUND-INITIATION,First,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
+OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto
+OWNER-FUND-INITIATION,Subsequent,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
+OWNER-FUND-INITIATION,Subsequent,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
+OWNER-FUND-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
+PM-DECISION-CHECK,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,auto
+PM-DECISION-CHECK,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+PM-DECISION-CHECK,First,time,add,5,,Spend 5 days,auto
+PM-DECISION-CHECK,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,auto
+PM-DECISION-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual
+PM-DECISION-CHECK,Subsequent,time,add,5,,Spend 5 days,auto
+LEND-SCOPE-CHECK,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+LEND-SCOPE-CHECK,First,cards,draw_E,Draw 1,,Draw 1 E cards,manual
+LEND-SCOPE-CHECK,First,time,add,5,,Spend 5 days,auto
+LEND-SCOPE-CHECK,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+LEND-SCOPE-CHECK,Subsequent,cards,draw_E,Return 1,,Return 1 E cards,manual
+LEND-SCOPE-CHECK,Subsequent,time,add,5,,Spend 5 days,auto
+BANK-FUND-REVIEW,First,cards,draw_B,Draw 1,,Draw 1 B cards,manual
+BANK-FUND-REVIEW,First,cards,draw_E,Draw 2,,Draw 2 E cards,manual
+BANK-FUND-REVIEW,First,fee,deduct,1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M,,Pay 1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M fees,auto
+BANK-FUND-REVIEW,Subsequent,cards,draw_B,Draw 1,,Draw 1 B cards,manual
+BANK-FUND-REVIEW,Subsequent,cards,draw_E,Return 1,,Return 1 E cards,manual
+BANK-FUND-REVIEW,Subsequent,fee,deduct,1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M,,Pay 1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M fees,auto
+INVESTOR-FUND-REVIEW,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,manual
+INVESTOR-FUND-REVIEW,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+INVESTOR-FUND-REVIEW,First,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto
+INVESTOR-FUND-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 6,,Draw 1 if you roll a 6 L cards,manual
+INVESTOR-FUND-REVIEW,Subsequent,cards,draw_E,The person to your left takes a card.,,The person to your left takes a card. E cards,manual
+INVESTOR-FUND-REVIEW,Subsequent,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto
+ARCH-INITIATION,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,manual
+ARCH-INITIATION,First,time,add,5,,Spend 5 days,auto
+ARCH-INITIATION,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,manual
+ARCH-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto
+ARCH-FEE-REVIEW,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+ARCH-FEE-REVIEW,First,cards,draw_E,Return 1,,Return 1 E cards,manual
+ARCH-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto
+ARCH-FEE-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+ARCH-FEE-REVIEW,Subsequent,cards,draw_E,Draw 1,,Draw 1 E cards,manual
+ARCH-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto
+ARCH-SCOPE-CHECK,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,manual
+ARCH-SCOPE-CHECK,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+ARCH-SCOPE-CHECK,First,time,add,50,,Spend 50 days,auto
+ARCH-SCOPE-CHECK,Subsequent,cards,draw_L,Draw 1 if you roll a 6,,Draw 1 if you roll a 6 L cards,manual
+ARCH-SCOPE-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual
+ARCH-SCOPE-CHECK,Subsequent,time,add,15,,Spend 15 days,auto
+ENG-INITIATION,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,manual
+ENG-INITIATION,First,time,add,5,,Spend 5 days,auto
+ENG-INITIATION,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,manual
+ENG-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto
+ENG-FEE-REVIEW,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+ENG-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto
+ENG-FEE-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+ENG-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto
+ENG-SCOPE-CHECK,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,manual
+ENG-SCOPE-CHECK,First,time,add,50,,Spend 50 days,auto
+ENG-SCOPE-CHECK,Subsequent,cards,draw_L,Draw 1 if you roll a 6,,Draw 1 if you roll a 6 L cards,manual
+ENG-SCOPE-CHECK,Subsequent,time,add,15,,Spend 15 days,auto
+OWNER-DECISION-REVIEW,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,manual
+OWNER-DECISION-REVIEW,First,time,add,10,,Spend 10 days,auto
+OWNER-DECISION-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,manual
+OWNER-DECISION-REVIEW,Subsequent,time,add,5,,Spend 5 days,auto
+CHEAT-BYPASS,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+CHEAT-BYPASS,First,cards,draw_E,Return 1,,Return 1 E cards,manual
+CHEAT-BYPASS,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+CHEAT-BYPASS,Subsequent,cards,draw_E,Return 1,,Return 1 E cards,manual
+REG-DOB-FEE-REVIEW,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,manual
+REG-DOB-FEE-REVIEW,First,cards,draw_E,Draw 2,,Draw 2 E cards,manual
+REG-DOB-FEE-REVIEW,First,time,add,10,,Spend 10 days,auto
+REG-DOB-FEE-REVIEW,First,fee,deduct,1%,,Pay 1% fees,auto
+REG-DOB-FEE-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 6,,Draw 1 if you roll a 6 L cards,manual
+REG-DOB-FEE-REVIEW,Subsequent,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+REG-DOB-FEE-REVIEW,Subsequent,time,add,10,,Spend 10 days,auto
+REG-DOB-FEE-REVIEW,Subsequent,fee,deduct,Based on dice roll,,Pay Based on dice roll fees,auto
+REG-DOB-TYPE-SELECT,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,manual
+REG-DOB-TYPE-SELECT,First,time,add,10,,Spend 10 days,auto
+REG-DOB-TYPE-SELECT,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,manual
+REG-DOB-TYPE-SELECT,Subsequent,time,add,10,,Spend 10 days,auto
+REG-DOB-PLAN-EXAM,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+REG-DOB-PLAN-EXAM,First,time,add,10,,Spend 10 days,auto
+REG-DOB-PLAN-EXAM,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+REG-DOB-PLAN-EXAM,Subsequent,time,add,10,,Spend 10 days,auto
+REG-DOB-PROF-CERT,First,time,add,1,,Spend 1 day,auto
+REG-DOB-PROF-CERT,Subsequent,time,add,1,,Spend 1 day,auto
+REG-DOB-AUDIT,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,manual
+REG-DOB-AUDIT,First,time,add,10,,Spend 10 days,auto
+REG-DOB-AUDIT,Subsequent,cards,draw_L,Draw 1 if you roll a 6,,Draw 1 if you roll a 6 L cards,manual
+REG-DOB-AUDIT,Subsequent,time,add,10,,Spend 10 days,auto
+REG-FDNY-FEE-REVIEW,First,time,add,1,,Spend 1 day,auto
+REG-FDNY-FEE-REVIEW,First,fee,deduct,1%,,Pay 1% fees,auto
+REG-FDNY-FEE-REVIEW,Subsequent,time,add,1,,Spend 1 day,auto
+REG-FDNY-PLAN-EXAM,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,manual
+REG-FDNY-PLAN-EXAM,First,time,add,10,,Spend 10 days,auto
+REG-FDNY-PLAN-EXAM,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,manual
+REG-FDNY-PLAN-EXAM,Subsequent,time,add,5,,Spend 5 days,auto
+CON-INITIATION,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+CON-INITIATION,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
+CON-INITIATION,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+CON-INITIATION,Subsequent,cards,draw_E,Draw 1,,Draw 1 E cards,manual
+CON-ISSUES,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,manual
+CON-ISSUES,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+CON-ISSUES,Subsequent,cards,draw_L,Draw 1 if you roll a 6,,Draw 1 if you roll a 6 L cards,manual
+CON-ISSUES,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual
+CON-INSPECT,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,manual
+CON-INSPECT,First,cards,draw_E,Return 1,,Return 1 E cards,manual
+CON-INSPECT,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,manual
+CON-INSPECT,Subsequent,cards,draw_E,Draw 2,,Draw 2 E cards,manual
+REG-DOB-FINAL-REVIEW,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,manual
+REG-DOB-FINAL-REVIEW,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
+REG-DOB-FINAL-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,manual
+REG-DOB-FINAL-REVIEW,Subsequent,cards,draw_E,Draw 1,,Draw 1 E cards,manual

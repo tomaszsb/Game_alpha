@@ -1,0 +1,140 @@
+.project-scope-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1rem;
+  color: #212529;
+  font-weight: bold;
+}
+
+.stat-value--large {
+  font-size: 1.2rem;
+  color: #28a745;
+}
+
+.work-types-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.work-type-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.work-type-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  color: #2c3e50;
+}
+
+.work-type-header:hover {
+  color: #1a252f;
+}
+
+.work-type-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.work-type-header .expand-icon {
+  font-size: 10px;
+  color: #7f8c8d;
+}
+
+.work-type-name {
+  color: inherit;
+  font-size: 0.95rem;
+}
+
+.work-type-subtotal {
+  font-weight: 700;
+  color: #27ae60;
+  font-size: 1rem;
+}
+
+.work-type-cards {
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.work-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.card-name {
+  color: #7f8c8d;
+  font-weight: 400;
+}
+
+.card-cost {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 12px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.project-scope-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  margin-top: 8px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.total-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.total-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #27ae60;
+}

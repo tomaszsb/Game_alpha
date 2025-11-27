@@ -1,0 +1,97 @@
+/* Import centralized animations */
+@import '../../styles/animations.css';
+
+/* Modal overlay with fade-in animation */
+.dice-result-modal__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  /* Using centralized fadeIn animation: 200ms ease-out */
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal content with slide-in animation */
+.dice-result-modal__content {
+  background-color: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  transform: scale(1);
+  /* Using centralized slideIn animation: 300ms cubic-bezier (from animationConstants.ts) */
+  animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Modal header */
+.dice-result-modal__header {
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--border-light, #e9ecef);
+  text-align: center;
+}
+
+/* Modal body */
+.dice-result-modal__body {
+  padding: 12px 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Modal footer */
+.dice-result-modal__footer {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Dice/action icon with bounce animation */
+.dice-result-modal__icon {
+  font-size: 36px;
+  /* Using centralized bounceIn animation: 600ms elastic (from animationConstants.ts) */
+  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Button base styles */
+.dice-result-modal__button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  /* Consistent button transition: 200ms ease (from animationConstants.ts) */
+  transition: all 0.2s ease;
+}
+
+.dice-result-modal__button:hover {
+  opacity: 0.8;
+  /* Consistent hover elevation: translateY(-1px) (from animationConstants.ts) */
+  transform: translateY(-1px);
+}
+
+.dice-result-modal__button:active {
+  transform: translateY(0);
+}
+
+/* Primary button variant */
+.dice-result-modal__button--primary {
+  background-color: var(--primary-color, #007bff);
+  color: white;
+}
+
+/* Secondary button variant */
+.dice-result-modal__button--secondary {
+  background-color: var(--secondary-color, #6c757d);
+  color: white;
+}

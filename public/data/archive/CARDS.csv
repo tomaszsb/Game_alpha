@@ -1,0 +1,406 @@
+card_id,card_name,card_type,description,effects_on_play,cost,phase_restriction,is_transferable
+B001,Small Business Loan,B,Low interest loan for initial funding,Apply Loan,500000,Any,false
+B002,Startup Capital Loan,B,Low interest loan for initial project expenses,Apply Loan,600000,Any,false
+B003,New Venture Loan,B,Low interest loan for growing projects,Apply Loan,700000,Any,false
+B004,Small Building Fund,B,Low interest loan for small construction projects,Apply Loan,800000,Any,false
+B005,Retail Space Loan,B,Low interest loan for retail development,Apply Loan,900000,Any,false
+B006,Office Project Loan,B,Low interest loan for office renovation,Apply Loan,1000000,Any,false
+B007,Residential Renovation Loan,B,Low interest loan for residential renovation,Apply Loan,1100000,Any,false
+B008,Commercial Space Loan,B,Low interest loan for commercial properties,Apply Loan,1200000,Any,false
+B009,Small Multifamily Loan,B,Low interest loan for small multifamily projects,Apply Loan,1300000,Any,false
+B010,Mixed-Use Development Loan,B,Low interest loan for mixed-use development,Apply Loan,1400000,Any,false
+B011,Community Bank Loan,B,Low interest loan from community bank,Apply Loan,500000,Any,false
+B012,Local Developer Funding,B,Low interest loan from local development group,Apply Loan,600000,Any,false
+B013,Family Office Investment,B,Low interest funding from family office,Apply Loan,700000,Any,false
+B014,Private Lender Loan,B,Low interest financing from private lender,Apply Loan,800000,Any,false
+B015,Small Business Administration Loan,B,Low interest SBA backed loan,Apply Loan,900000,Any,false
+B016,Local Credit Union Financing,B,Low interest credit union loan,Apply Loan,1000000,Any,false
+B017,Regional Bank Loan,B,Low interest regional bank financing,Apply Loan,1100000,Any,false
+B018,Project Seed Funding,B,Low interest early project funding,Apply Loan,1200000,Any,false
+B019,Hometown Bank Loan,B,Low interest hometown bank loan,Apply Loan,1300000,Any,false
+B020,Neighborhood Development Loan,B,Low interest neighborhood development financing,Apply Loan,1400000,Any,false
+B021,Facade Improvement Loan,B,Low interest loan for building facade updates,Apply Loan,500000,Any,false
+B022,Historic Preservation Loan,B,Low interest historic building renovation loan,Apply Loan,600000,Any,false
+B023,Green Building Incentive Loan,B,Low interest loan for sustainable building features,Apply Loan,700000,Any,false
+B024,Brownfield Redevelopment Loan,B,Low interest loan for brownfield site cleanup and development,Apply Loan,800000,Any,false
+B025,Main Street Revitalization Loan,B,Low interest loan for main street property improvements,Apply Loan,900000,Any,false
+B026,Urban Infill Development Loan,B,Low interest loan for urban infill projects,Apply Loan,1000000,Any,false
+B027,Affordable Housing Loan,B,Low interest loan for affordable housing components,Apply Loan,1100000,Any,false
+B028,Mixed-Income Development Loan,B,Low interest loan for mixed-income projects,Apply Loan,1200000,Any,false
+B029,Transit-Oriented Development Loan,B,Low interest loan for transit-adjacent development,Apply Loan,1300000,Any,false
+B030,Adaptive Reuse Loan,B,Low interest loan for adaptive reuse projects,Apply Loan,1400000,Any,false
+B031,Mid-Size Development Loan,B,Medium interest loan for larger development projects,Apply Loan,1500000,Any,false
+B032,Commercial Construction Loan,B,Medium interest loan for commercial construction,Apply Loan,1750000,Any,false
+B033,Mid-Market Office Loan,B,Medium interest loan for office building development,Apply Loan,2000000,Any,false
+B034,Community Center Financing,B,Medium interest loan for community center construction,Apply Loan,2250000,Any,false
+B035,Mid-Size Retail Complex Loan,B,Medium interest loan for retail development,Apply Loan,2500000,Any,false
+B036,Multifamily Housing Loan,B,Medium interest loan for multifamily housing,Apply Loan,2750000,Any,false
+B037,Class B Office Renovation Loan,B,Medium interest loan for Class B office renovation,Apply Loan,1500000,Any,false
+B038,Mid-Market Hotel Loan,B,Medium interest loan for hotel development,Apply Loan,1750000,Any,false
+B039,Medical Office Building Loan,B,Medium interest loan for medical office space,Apply Loan,2000000,Any,false
+B040,Professional Office Building Loan,B,Medium interest loan for professional offices,Apply Loan,2250000,Any,false
+B041,Shopping Plaza Loan,B,Medium interest loan for shopping plaza development,Apply Loan,2500000,Any,false
+B042,Restaurant Development Loan,B,Medium interest loan for restaurant space,Apply Loan,2750000,Any,false
+B043,Warehouse Conversion Loan,B,Medium interest loan for warehouse conversions,Apply Loan,1500000,Any,false
+B044,Industrial Park Loan,B,Medium interest loan for industrial park development,Apply Loan,1750000,Any,false
+B045,Entertainment Venue Loan,B,Medium interest loan for entertainment venues,Apply Loan,2000000,Any,false
+B046,Sports Facility Loan,B,Medium interest loan for sports facilities,Apply Loan,2250000,Any,false
+B047,Assisted Living Facility Loan,B,Medium interest loan for assisted living development,Apply Loan,2500000,Any,false
+B048,Education Building Loan,B,Medium interest loan for educational facilities,Apply Loan,2750000,Any,false
+B049,Cultural Center Loan,B,Medium interest loan for cultural centers,Apply Loan,1500000,Any,false
+B050,Tourism Development Loan,B,Medium interest loan for tourism-related projects,Apply Loan,1750000,Any,false
+B051,Major Project Financing,B,High interest loan for major development projects,Apply Loan,3000000,Any,false
+B052,Luxury Development Loan,B,High interest loan for luxury real estate development,Apply Loan,3250000,Any,false
+B053,Class A Office Building Loan,B,High interest loan for Class A office construction,Apply Loan,3500000,Any,false
+B054,Mixed-Use Tower Financing,B,High interest loan for high-rise mixed-use development,Apply Loan,3750000,Any,false
+B055,Urban Mega-Project Loan,B,High interest loan for urban mega-projects,Apply Loan,4000000,Any,false
+B056,High-Rise Condominium Loan,B,High interest loan for high-rise condominiums,Apply Loan,3000000,Any,false
+B057,Major Retail Development Loan,B,High interest loan for major retail centers,Apply Loan,3250000,Any,false
+B058,Convention Center Loan,B,High interest loan for convention center development,Apply Loan,3500000,Any,false
+B059,Airport Expansion Loan,B,High interest loan for airport-related development,Apply Loan,3750000,Any,false
+B060,Stadium Development Loan,B,High interest loan for stadium projects,Apply Loan,4000000,Any,false
+I001,Investment: Local real estate developer seeking to diversify portfolio,I,Local real estate developer seeking to diversify portfolio,Apply Investment,4000000,Any,false
+I002,Investment: Tech entrepreneur looking for tangible investments,I,Tech entrepreneur looking for tangible investments,Apply Investment,4500000,Any,false
+I003,Investment: Family office interested in long-term stable returns,I,Family office interested in long-term stable returns,Apply Investment,5000000,Any,false
+I004,Investment: Private equity firm specializing in urban development,I,Private equity firm specializing in urban development,Apply Investment,5500000,Any,false
+I005,Investment: Retired CEO investing personal wealth,I,Retired CEO investing personal wealth,Apply Investment,6000000,Any,false
+I006,Investment: Foreign investment group exploring US market,I,Foreign investment group exploring US market,Apply Investment,6500000,Any,false
+I007,Investment: Consortium of local businesses supporting community growth,I,Consortium of local businesses supporting community growth,Apply Investment,7000000,Any,false
+I008,Investment: Green energy fund investing in sustainable projects,I,Green energy fund investing in sustainable projects,Apply Investment,7500000,Any,false
+I009,Investment: Angel investor network pooling resources,I,Angel investor network pooling resources,Apply Investment,4000000,Any,false
+I010,Investment: Hospitality chain expanding into new markets,I,Hospitality chain expanding into new markets,Apply Investment,4500000,Any,false
+I011,Investment: Hedge fund diversifying into real estate,I,Hedge fund diversifying into real estate,Apply Investment,5000000,Any,false
+I012,Investment: Philanthropic foundation with focus on urban renewal,I,Philanthropic foundation with focus on urban renewal,Apply Investment,5500000,Any,false
+I013,Investment: Professional sports team owner branching into development,I,Professional sports team owner branching into development,Apply Investment,6000000,Any,false
+I014,Investment: Celebrity entrepreneur building personal brand,I,Celebrity entrepreneur building personal brand,Apply Investment,6500000,Any,false
+I015,Investment: Sovereign wealth fund seeking stable US investments,I,Sovereign wealth fund seeking stable US investments,Apply Investment,7000000,Any,false
+I016,Investment: Healthcare REIT expanding portfolio,I,Healthcare REIT expanding portfolio,Apply Investment,7500000,Any,false
+I017,Investment: Crowdfunding platform aggregating small investors,I,Crowdfunding platform aggregating small investors,Apply Investment,4000000,Any,false
+I018,Investment: University endowment fund diversifying investments,I,University endowment fund diversifying investments,Apply Investment,4500000,Any,false
+I019,Investment: Insurance company investing surplus funds,I,Insurance company investing surplus funds,Apply Investment,5000000,Any,false
+I020,Investment: Venture capital firm exploring built environment tech,I,Venture capital firm exploring built environment tech,Apply Investment,5500000,Any,false
+I021,Investment: Major bank's real estate investment arm,I,Major bank's real estate investment arm,Apply Investment,8000000,Any,false
+I022,Investment: International construction conglomerate,I,International construction conglomerate,Apply Investment,8500000,Any,false
+I023,Investment: Tech giant investing in smart city initiatives,I,Tech giant investing in smart city initiatives,Apply Investment,9000000,Any,false
+I024,Investment: National pension fund seeking long-term stable returns,I,National pension fund seeking long-term stable returns,Apply Investment,9500000,Any,false
+I025,Investment: Luxury goods company expanding into branded residences,I,Luxury goods company expanding into branded residences,Apply Investment,10000000,Any,false
+I026,Investment: Energy company diversifying into real estate,I,Energy company diversifying into real estate,Apply Investment,8000000,Any,false
+I027,Investment: Automotive manufacturer investing in future mobility hubs,I,Automotive manufacturer investing in future mobility hubs,Apply Investment,8500000,Any,false
+I028,Investment: Media conglomerate creating entertainment districts,I,Media conglomerate creating entertainment districts,Apply Investment,9000000,Any,false
+I029,Investment: Aerospace company developing vertiport infrastructure,I,Aerospace company developing vertiport infrastructure,Apply Investment,9500000,Any,false
+I030,Investment: E-commerce giant investing in logistics real estate,I,E-commerce giant investing in logistics real estate,Apply Investment,10000000,Any,false
+I031,Investment: Global hotel chain funding mixed-use developments,I,Global hotel chain funding mixed-use developments,Apply Investment,8000000,Any,false
+I032,Investment: Social media company creating collaborative workspaces,I,Social media company creating collaborative workspaces,Apply Investment,8500000,Any,false
+I033,Investment: Major league sports association developing sports districts,I,Major league sports association developing sports districts,Apply Investment,10500000,Any,false
+I034,Investment: Global investment bank's real estate fund,I,Global investment bank's real estate fund,Apply Investment,11000000,Any,false
+I035,Investment: International airport operator expanding commercial holdings,I,International airport operator expanding commercial holdings,Apply Investment,11500000,Any,false
+I036,Investment: Multinational tech consortium building smart city,I,Multinational tech consortium building smart city,Apply Investment,12000000,Any,false
+I037,Investment: National railway company developing transit-oriented projects,I,National railway company developing transit-oriented projects,Apply Investment,10500000,Any,false
+I038,Investment: Global theme park operator expanding into urban entertainment,I,Global theme park operator expanding into urban entertainment,Apply Investment,11000000,Any,false
+I039,Investment: International expo committee funding legacy project,I,International expo committee funding legacy project,Apply Investment,11500000,Any,false
+L001,Neighborly Complaints,L,The next inspection takes 3 additional ticks.,Apply Legal,0,CONSTRUCTION,false
+L002,Economic Downturn,L,All permit and inspection times increase by 2 ticks for the next 3 turns.,Apply Legal,0,Any,false
+L003,New Safety Regulations,L,All players must discard 1 Expeditor card. All inspections take 3 additional ticks this turn.,Apply Legal,0,CONSTRUCTION,false
+L004,Labor Strike,L,All construction times increase by 4 ticks for the next 2 turns.,Apply Legal,0,Any,false
+L005,Positive Press,L,The current high-profile client filing takes 3 ticks less time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L006,Unexpected Archeological Find,L,If a filing involves excavation increase its time by 6 ticks.,Apply Legal,0,Any,false
+L007,Zoning Variance Required,L,The current filing takes 4 ticks more time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L008,Materials Shortage,L,All players' current construction phase takes 3 ticks more time.,Apply Legal,0,CONSTRUCTION,false
+L009,NIMBY Lawsuit,L,Roll a die. On 1-3 the project is high-profile; increase the current filing time by 5 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L010,City Council Allies,L,The current permit filing takes 2 ticks less time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L011,Holiday Rush,L,All filing times increase by 2 ticks this turn.,Apply Legal,0,Any,false
+L012,Soil Contamination,L,If the current project involves groundwork increase the filing time by 4 ticks.,Apply Legal,0,Any,false
+L013,Endangered Species Habitat,L,Roll a die. On 1-3 the project is in a designated habitat area; increase the permit filing time by 6 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L014,Funding Delay,L,Skip your next turn.,Apply Legal,0,Any,false
+L015,Annexation,L,The current filing takes 5 ticks more time but the player's next turn takes 2 ticks less time.,Apply Legal,0,Any,false
+L016,Expeditor Lobbying,L,The next inspection takes 2 ticks less time. Discard 1 Expeditor card.,Apply Legal,0,CONSTRUCTION,false
+L017,Neighborhood Revitalization,L,Roll a die. On 1-3 the project is in a targeted revitalization area; reduce the permit filing time by 3 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L018,Bribery Scandal,L,All permit filing times increase by 2 ticks for the next 3 turns.,Apply Legal,0,Any,false
+L019,Planning Department Backlog,L,The current filing takes 3 ticks more time.,Apply Legal,0,Any,false
+L020,Building Code Update,L,All inspection times increase by 2 ticks for the next 2 turns.,Apply Legal,0,CONSTRUCTION,false
+L021,High-Profile Client,L,The current filing time is reduced by 4 ticks. All other players' current filing time increases by 1 tick.,Apply Legal,0,Any,false
+L022,Economic Boom,L,All construction times decrease by 2 ticks for the next 3 turns.,Apply Legal,0,CONSTRUCTION,false
+L023,Project Redesign,L,The current filing is delayed indefinitely. Discard 2 Expeditor cards.,Apply Legal,0,Any,false
+L024,Expeditor Conference,L,Skip this turn. Draw 2 Expeditor Cards.,Apply Legal,0,Any,false
+L025,Celebrity Endorsement,L,Roll a die. On 1-3 the project is high-profile; reduce the permit filing time by 4 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L026,Community Outreach,L,All permit filing times decrease by 1 tick this turn.,Apply Legal,0,Any,false
+L027,Permit Office Upgrade,L,All players' current filing times decrease by 2 ticks.,Apply Legal,0,Any,false
+L028,Surprise Inspection,L,The next inspection takes 4 ticks more time.,Apply Legal,0,CONSTRUCTION,false
+L029,Utility Delay,L,If the project requires utility hookups increase the filing time by 3 ticks.,Apply Legal,0,Any,false
+L030,Cybersecurity Breach,L,All filing times increase by 1 tick for the next 2 turns.,Apply Legal,0,Any,false
+L031,Permit Fee Hike,L,The current permit filing costs 2 extra resources but takes 2 ticks less time.,Apply Legal,0,Any,false
+L032,Diversity Initiative,L,Roll a die. On 1-3 the project team is diverse; reduce the inspection time by 2 ticks. On 4-6 no effect.,Apply Legal,0,CONSTRUCTION,false
+L033,Worksite Injury,L,All construction times increase by 3 ticks this turn.,Apply Legal,0,Any,false
+L034,Natural Disaster,L,All filing and inspection times increase by 4 ticks for the next 2 turns.,Apply Legal,0,Any,false
+L035,Expeditor Quits,L,Skip your next turn. Discard 2 Expeditor cards.,Apply Legal,0,Any,false
+L036,City Budget Surplus,L,All permit filing times decrease by 2 ticks this turn.,Apply Legal,0,Any,false
+L037,Affordable Housing Initiative,L,Roll a die. On 1-3 the project includes affordable housing; reduce the permit filing time by 5 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L038,Intern Error,L,The current filing time increases by 2 ticks.,Apply Legal,0,Any,false
+L039,Rezoning Request,L,The current filing time increases by 3 ticks. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L040,Historical Preservation,L,Roll a die. On 1-3 the project involves a historic building; increase the filing time by 4 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L041,Competing Projects,L,Ask each other player about their current worktypes. If any player has the same worktype as you increase your filing time by 2 ticks.,Apply Legal,0,Any,false
+L042,Sister City Collaboration,L,All players' current filing times decrease by 1 tick.,Apply Legal,0,Any,false
+L043,Green Building Bonus,L,Roll a die. On 1-3 the project is LEED certified; reduce the total filing time by 3 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L044,State Funding,L,The current high-profile project filing time is reduced by 4 ticks.,Apply Legal,0,Any,false
+L045,Mayor's Pet Project,L,Roll a die. On 1-3 the mayor expresses interest in the project; reduce its filing time by 5 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L046,Expeditor Awards,L,The player with the most completed projects reduces their current filing time by 4 ticks.,Apply Legal,0,Any,false
+L047,Political Gridlock,L,All filing times increase by 1 tick for the next 5 turns.,Apply Legal,0,Any,false
+L048,Graft Investigation,L,All permit filings are halted for 1 turn while players discard half their Expeditor cards.,Apply Legal,0,Any,false
+L049,Permitting Process Overhaul,L,All filing times are reduced by 2 ticks for the remainder of the game. Each player draws 1 Expeditor Card.,Apply Legal,0,Any,false
+W001,Lobby renovation and security upgrade for corporate headquarters,W,Lobby renovation and security upgrade for corporate headquarters,Apply Work,150000,Any,false
+W002,Conversion of attic space into habitable loft in single-family home,W,Conversion of attic space into habitable loft in single-family home,Apply Work,80000,Any,false
+W003,Installation of green wall and rooftop garden for eco-friendly office building,W,Installation of green wall and rooftop garden for eco-friendly office building,Apply Work,200000,Any,false
+W004,Renovation of historic theater including restoration of ornate plasterwork,W,Renovation of historic theater including restoration of ornate plasterwork,Apply Work,950000,Any,false
+W005,Construction of new emergency department addition to existing hospital,W,Construction of new emergency department addition to existing hospital,Apply Work,4500000,Any,false
+W006,Adaptive reuse of abandoned warehouse into mixed-use development,W,Adaptive reuse of abandoned warehouse into mixed-use development,Apply Work,3000000,Any,false
+W007,Energy-efficient retrofit of 1960s office building,W,Energy-efficient retrofit of 1960s office building,Apply Work,1200000,Any,false
+W008,Expansion of public library with new children's wing,W,Expansion of public library with new children's wing,Apply Work,2500000,Any,false
+W009,Conversion of strip mall into senior living community,W,Conversion of strip mall into senior living community,Apply Work,5000000,Any,false
+W010,Restoration of fire-damaged apartment building,W,Restoration of fire-damaged apartment building,Apply Work,800000,Any,false
+W011,Construction of rooftop amenity space for luxury condominium,W,Construction of rooftop amenity space for luxury condominium,Apply Work,600000,Any,false
+W012,Renovation of industrial space into trendy restaurant,W,Renovation of industrial space into trendy restaurant,Apply Work,450000,Any,false
+W013,Accessibility upgrades for historic courthouse,W,Accessibility upgrades for historic courthouse,Apply Work,350000,Any,false
+W014,Conversion of former school into affordable housing units,W,Conversion of former school into affordable housing units,Apply Work,4000000,Any,false
+W015,Facade restoration of Art Deco skyscraper,W,Facade restoration of Art Deco skyscraper,Apply Work,1800000,Any,false
+W016,Construction of new visitor center for national park,W,Construction of new visitor center for national park,Apply Work,2000000,Any,false
+W017,Renovation of airport terminal for improved passenger flow,W,Renovation of airport terminal for improved passenger flow,Apply Work,7500000,Any,false
+W018,Conversion of big box store into indoor vertical farm,W,Conversion of big box store into indoor vertical farm,Apply Work,3500000,Any,false
+W019,Seismic retrofit and renovation of city hall,W,Seismic retrofit and renovation of city hall,Apply Work,6000000,Any,false
+W020,Construction of new performing arts center on university campus,W,Construction of new performing arts center on university campus,Apply Work,12000000,Any,false
+W021,Renovation of historic hotel into boutique accommodation,W,Renovation of historic hotel into boutique accommodation,Apply Work,5500000,Any,false
+W022,Construction of new fire station with training facilities,W,Construction of new fire station with training facilities,Apply Work,3800000,Any,false
+W023,Installation of gray water recycling system for large apartment complex,W,Installation of gray water recycling system for large apartment complex,Apply Work,350000,Any,false
+W024,Replacement of lead service lines for entire city block of rowhouses,W,Replacement of lead service lines for entire city block of rowhouses,Apply Work,500000,Any,false
+W025,New cryogenic piping system for research laboratory,W,New cryogenic piping system for research laboratory,Apply Work,180000,Any,false
+W026,Installation of solar thermal hot water system for hotel,W,Installation of solar thermal hot water system for hotel,Apply Work,120000,Any,false
+W027,Upgrade of plumbing fixtures to low-flow models in university dormitory,W,Upgrade of plumbing fixtures to low-flow models in university dormitory,Apply Work,90000,Any,false
+W028,Installation of rainwater harvesting system for office park,W,Installation of rainwater harvesting system for office park,Apply Work,280000,Any,false
+W029,Replacement of corroded plumbing stack in high-rise condominium,W,Replacement of corroded plumbing stack in high-rise condominium,Apply Work,200000,Any,false
+W030,New medical gas system for hospital expansion,W,New medical gas system for hospital expansion,Apply Work,450000,Any,false
+W031,Installation of greywater system for public park irrigation,W,Installation of greywater system for public park irrigation,Apply Work,150000,Any,false
+W032,Upgrade of storm drainage system for large industrial site,W,Upgrade of storm drainage system for large industrial site,Apply Work,320000,Any,false
+W033,New plumbing system for food processing facility,W,New plumbing system for food processing facility,Apply Work,380000,Any,false
+W034,Installation of water treatment system for brewery,W,Installation of water treatment system for brewery,Apply Work,110000,Any,false
+W035,Replacement of aging sewer lines in historic district,W,Replacement of aging sewer lines in historic district,Apply Work,600000,Any,false
+W036,New plumbing for green building with composting toilets,W,New plumbing for green building with composting toilets,Apply Work,85000,Any,false
+W037,Installation of snowmelt system for pedestrian plaza,W,Installation of snowmelt system for pedestrian plaza,Apply Work,95000,Any,false
+W038,Upgrade of plumbing systems in century-old apartment building,W,Upgrade of plumbing systems in century-old apartment building,Apply Work,250000,Any,false
+W039,Installation of geothermal heating and cooling system for new school campus,W,Installation of geothermal heating and cooling system for new school campus,Apply Work,2500000,Any,false
+W040,Retrofit of existing HVAC system with UV air purification for medical facility,W,Retrofit of existing HVAC system with UV air purification for medical facility,Apply Work,400000,Any,false
+W041,New clean room HVAC system for semiconductor manufacturing plant,W,New clean room HVAC system for semiconductor manufacturing plant,Apply Work,1800000,Any,false
+W042,Installation of heat recovery ventilation system in passive house project,W,Installation of heat recovery ventilation system in passive house project,Apply Work,75000,Any,false
+W043,Upgrade to variable refrigerant flow (VRF) system in boutique office building,W,Upgrade to variable refrigerant flow (VRF) system in boutique office building,Apply Work,350000,Any,false
+W044,Installation of district heating system for university campus,W,Installation of district heating system for university campus,Apply Work,3000000,Any,false
+W045,New HVAC system for data center with hot aisle containment,W,New HVAC system for data center with hot aisle containment,Apply Work,1200000,Any,false
+W046,Upgrade of mechanical systems in historic theater for improved acoustics,W,Upgrade of mechanical systems in historic theater for improved acoustics,Apply Work,500000,Any,false
+W047,Installation of energy-efficient HVAC system in green office tower,W,Installation of energy-efficient HVAC system in green office tower,Apply Work,2000000,Any,false
+W048,New mechanical systems for pharmaceutical clean room facility,W,New mechanical systems for pharmaceutical clean room facility,Apply Work,1500000,Any,false
+W049,Retrofit of chiller plant for improved energy efficiency in hospital,W,Retrofit of chiller plant for improved energy efficiency in hospital,Apply Work,800000,Any,false
+W050,Installation of water mist fire suppression system in data center,W,Installation of water mist fire suppression system in data center,Apply Work,250000,Any,false
+W051,Upgrade of sprinkler system to accommodate new mezzanine in warehouse,W,Upgrade of sprinkler system to accommodate new mezzanine in warehouse,Apply Work,80000,Any,false
+W052,Installation of foam sprinkler system in aircraft hangar,W,Installation of foam sprinkler system in aircraft hangar,Apply Work,400000,Any,false
+W053,Retrofit of residential high-rise with new NFPA 13R sprinkler system,W,Retrofit of residential high-rise with new NFPA 13R sprinkler system,Apply Work,1200000,Any,false
+W054,Installation of specialized sprinkler system for art storage facility,W,Installation of specialized sprinkler system for art storage facility,Apply Work,150000,Any,false
+W055,New sprinkler system for renovated historic theater,W,New sprinkler system for renovated historic theater,Apply Work,300000,Any,false
+W056,Upgrade of sprinkler system in college dormitory to meet current codes,W,Upgrade of sprinkler system in college dormitory to meet current codes,Apply Work,180000,Any,false
+W057,Installation of pre-action sprinkler system in museum exhibit hall,W,Installation of pre-action sprinkler system in museum exhibit hall,Apply Work,220000,Any,false
+W058,New sprinkler system for high-pile storage warehouse,W,New sprinkler system for high-pile storage warehouse,Apply Work,500000,Any,false
+W059,Retrofit of sprinkler system in parking garage,W,Retrofit of sprinkler system in parking garage,Apply Work,160000,Any,false
+W060,Seismic retrofit of unreinforced masonry building,W,Seismic retrofit of unreinforced masonry building,Apply Work,800000,Any,false
+W061,Installation of tuned mass damper in slender high-rise building,W,Installation of tuned mass damper in slender high-rise building,Apply Work,1500000,Any,false
+W062,Structural reinforcement for rooftop helipad on hospital,W,Structural reinforcement for rooftop helipad on hospital,Apply Work,600000,Any,false
+W063,Carbon fiber reinforcement of concrete beams in parking structure,W,Carbon fiber reinforcement of concrete beams in parking structure,Apply Work,250000,Any,false
+W064,Foundation stabilization using helical piers for settling historic building,W,Foundation stabilization using helical piers for settling historic building,Apply Work,180000,Any,false
+W065,Structural modifications to accommodate new atrium in office building,W,Structural modifications to accommodate new atrium in office building,Apply Work,400000,Any,false
+W066,Strengthening of bridge structure for increased load capacity,W,Strengthening of bridge structure for increased load capacity,Apply Work,1200000,Any,false
+W067,Installation of moment frames for open floor plan in retail space,W,Installation of moment frames for open floor plan in retail space,Apply Work,150000,Any,false
+W068,Installation of branded construction fence with public art for museum expansion,W,Installation of branded construction fence with public art for museum expansion,Apply Work,40000,Any,false
+W069,Noise-reducing acoustic fence for urban construction site,W,Noise-reducing acoustic fence for urban construction site,Apply Work,55000,Any,false
+W070,Temporary fence with integrated security cameras for high-security project,W,Temporary fence with integrated security cameras for high-security project,Apply Work,75000,Any,false
+W071,Installation of living green construction fence for eco-friendly development,W,Installation of living green construction fence for eco-friendly development,Apply Work,45000,Any,false
+W072,Modular reusable fencing system for multi-phase campus construction,W,Modular reusable fencing system for multi-phase campus construction,Apply Work,90000,Any,false
+W073,Wind-resistant fencing for high-rise construction in coastal area,W,Wind-resistant fencing for high-rise construction in coastal area,Apply Work,65000,Any,false
+W074,Custom-designed construction fence for high-profile urban project,W,Custom-designed construction fence for high-profile urban project,Apply Work,80000,Any,false
+W075,Installation of sidewalk shed with solar-powered lighting for long-term project,W,Installation of sidewalk shed with solar-powered lighting for long-term project,Apply Work,85000,Any,false
+W076,Heavy-duty sidewalk shed for demolition of 30-story building,W,Heavy-duty sidewalk shed for demolition of 30-story building,Apply Work,200000,Any,false
+W077,Sidewalk shed with heat tracing for winter construction project,W,Sidewalk shed with heat tracing for winter construction project,Apply Work,110000,Any,false
+W078,Custom-designed sidewalk shed to maintain retail visibility during construction,W,Custom-designed sidewalk shed to maintain retail visibility during construction,Apply Work,95000,Any,false
+W079,Sidewalk shed with integrated public art installation,W,Sidewalk shed with integrated public art installation,Apply Work,70000,Any,false
+W080,High-capacity sidewalk shed for major facade restoration project,W,High-capacity sidewalk shed for major facade restoration project,Apply Work,150000,Any,false
+W081,Installation of suspended scaffold system for bridge maintenance,W,Installation of suspended scaffold system for bridge maintenance,Apply Work,120000,Any,false
+W082,Multi-point suspended scaffold for high-rise window replacement,W,Multi-point suspended scaffold for high-rise window replacement,Apply Work,180000,Any,false
+W083,Cantilever scaffold system for overhanging structure renovation,W,Cantilever scaffold system for overhanging structure renovation,Apply Work,95000,Any,false
+W084,Interior scaffold system for cathedral ceiling restoration,W,Interior scaffold system for cathedral ceiling restoration,Apply Work,85000,Any,false
+W085,Scaffold system with debris netting for facade cleaning project,W,Scaffold system with debris netting for facade cleaning project,Apply Work,70000,Any,false
+W086,Installation of 5G small cell antennas on utility poles throughout downtown,W,Installation of 5G small cell antennas on utility poles throughout downtown,Apply Work,200000,Any,false
+W087,Upgrade of television broadcast antenna on skyscraper,W,Upgrade of television broadcast antenna on skyscraper,Apply Work,350000,Any,false
+W088,New rooftop cellular antenna array for improved coverage in suburban area,W,New rooftop cellular antenna array for improved coverage in suburban area,Apply Work,120000,Any,false
+W089,Installation of long-range Wi-Fi antennas for rural broadband project,W,Installation of long-range Wi-Fi antennas for rural broadband project,Apply Work,180000,Any,false
+W090,Replacement of coal-fired boiler with high-efficiency natural gas system,W,Replacement of coal-fired boiler with high-efficiency natural gas system,Apply Work,600000,Any,false
+W091,Installation of biomass boiler for district heating system,W,Installation of biomass boiler for district heating system,Apply Work,800000,Any,false
+W092,Upgrade of industrial boiler to meet new emissions standards,W,Upgrade of industrial boiler to meet new emissions standards,Apply Work,450000,Any,false
+W093,Installation of condensing boilers for large office complex,W,Installation of condensing boilers for large office complex,Apply Work,350000,Any,false
+W094,Design and installation of digital billboard on highway,W,Design and installation of digital billboard on highway,Apply Work,250000,Any,false
+W095,Custom neon sign creation for historic theater restoration,W,Custom neon sign creation for historic theater restoration,Apply Work,75000,Any,false
+W096,Installation of wayfinding signage system for university campus,W,Installation of wayfinding signage system for university campus,Apply Work,120000,Any,false
+W097,Large-scale solar array installation for shopping center,W,Large-scale solar array installation for shopping center,Apply Work,500000,Any,false
+W098,Integrated solar roof tiles for new residential development,W,Integrated solar roof tiles for new residential development,Apply Work,350000,Any,false
+W099,Installation of new standpipe system in high-rise residential building,W,Installation of new standpipe system in high-rise residential building,Apply Work,280000,Any,false
+W100,Installation of hydraulic shores for deep excavation support,W,Installation of hydraulic shores for deep excavation support,Apply Work,80000,Any,false
+W101,Creation of ADA-compliant curb cut with tactile warning surface,W,Creation of ADA-compliant curb cut with tactile warning surface,Apply Work,18000,Any,false
+W102,Site preparation and terracing for hillside vineyard development,W,Site preparation and terracing for hillside vineyard development,Apply Work,95000,Any,false
+W103,Implosion of obsolete 20-story office tower in urban center,W,Implosion of obsolete 20-story office tower in urban center,Apply Work,1500000,Any,false
+W104,Installation of secant pile wall for below-grade parking structure,W,Installation of secant pile wall for below-grade parking structure,Apply Work,450000,Any,false
+W105,Construction of mat foundation for new wind turbine,W,Construction of mat foundation for new wind turbine,Apply Work,750000,Any,false
+W106,Conversion of former industrial loft into co-working space,W,Conversion of former industrial loft into co-working space,Apply Work,280000,Any,false
+W107,Installation of FM-200 fire suppression system in server room,W,Installation of FM-200 fire suppression system in server room,Apply Work,85000,Any,false
+W108,Surgical demolition of interior for historical building adaptive reuse,W,Surgical demolition of interior for historical building adaptive reuse,Apply Work,110000,Any,false
+W109,Installation of biodiesel fuel storage and dispensing system for fleet vehicles,W,Installation of biodiesel fuel storage and dispensing system for fleet vehicles,Apply Work,95000,Any,false
+W110,Implementation of smart grid technology for university campus,W,Implementation of smart grid technology for university campus,Apply Work,500000,Any,false
+W111,Setup of gantry crane system for precast concrete installation,W,Setup of gantry crane system for precast concrete installation,Apply Work,350000,Any,false
+W112,Installation of automated waste sorting and recycling chute system,W,Installation of automated waste sorting and recycling chute system,Apply Work,70000,Any,false
+W113,Installation of wildlife exclusion fence for airport runway,W,Installation of wildlife exclusion fence for airport runway,Apply Work,120000,Any,false
+W114,Creation of artificial wetland for stormwater management,W,Creation of artificial wetland for stormwater management,Apply Work,180000,Any,false
+W115,Installation of acoustic movable partitions in conference center,W,Installation of acoustic movable partitions in conference center,Apply Work,110000,Any,false
+W116,Design and installation of interactive LED marquee for arts center,W,Design and installation of interactive LED marquee for arts center,Apply Work,150000,Any,false
+W117,Implementation of permeable paving system for eco-friendly streetscape,W,Implementation of permeable paving system for eco-friendly streetscape,Apply Work,200000,Any,false
+W118,Construction of net-zero energy certified office building,W,Construction of net-zero energy certified office building,Apply Work,15000000,Any,false
+W119,Installation of automated material handling system in distribution center,W,Installation of automated material handling system in distribution center,Apply Work,800000,Any,false
+W120,Implementation of voice evacuation system in large shopping mall,W,Implementation of voice evacuation system in large shopping mall,Apply Work,250000,Any,false
+W121,Comprehensive life safety upgrade package for university dormitory complex,W,Comprehensive life safety upgrade package for university dormitory complex,Apply Work,2000000,Any,false
+W122,Installation of energy-efficient lighting system in retail store,W,Installation of energy-efficient lighting system in retail store,Apply Work,25000,Any,false
+W123,Setup of temporary ice skating rink with associated structures in public park,W,Setup of temporary ice skating rink with associated structures in public park,Apply Work,180000,Any,false
+W124,Installation of destination dispatch elevator system in office high-rise,W,Installation of destination dispatch elevator system in office high-rise,Apply Work,1200000,Any,false
+W125,Conversion of abandoned factory into multi-use performance arts center,W,Conversion of abandoned factory into multi-use performance arts center,Apply Work,5000000,Any,false
+W126,Installation of cogeneration system for district heating and power,W,Installation of cogeneration system for district heating and power,Apply Work,3500000,Any,false
+W127,Renovation of subway station for improved accessibility,W,Renovation of subway station for improved accessibility,Apply Work,8500000,Any,false
+W128,Construction of green roof on existing convention center,W,Construction of green roof on existing convention center,Apply Work,1500000,Any,false
+W129,Conversion of parking garage into urban farming facility,W,Conversion of parking garage into urban farming facility,Apply Work,2800000,Any,false
+W130,Restoration of historic lighthouse and keeper's quarters,W,Restoration of historic lighthouse and keeper's quarters,Apply Work,950000,Any,false
+W131,Construction of net-zero energy public library,W,Construction of net-zero energy public library,Apply Work,6500000,Any,false
+W132,Renovation of sports arena for improved spectator experience,W,Renovation of sports arena for improved spectator experience,Apply Work,12000000,Any,false
+W133,Adaptive reuse of power plant into contemporary art museum,W,Adaptive reuse of power plant into contemporary art museum,Apply Work,9000000,Any,false
+W134,Construction of wildlife crossing bridge over highway,W,Construction of wildlife crossing bridge over highway,Apply Work,4500000,Any,false
+W135,Renovation of cruise ship terminal for increased capacity,W,Renovation of cruise ship terminal for increased capacity,Apply Work,7000000,Any,false
+W136,Construction of modular affordable housing development,W,Construction of modular affordable housing development,Apply Work,5500000,Any,false
+W137,Retrofit of office tower for post-pandemic workplace design,W,Retrofit of office tower for post-pandemic workplace design,Apply Work,3200000,Any,false
+W138,Renovation of former post office into food hall,W,Renovation of former post office into food hall,Apply Work,2500000,Any,false
+W139,Construction of disaster-resistant community center,W,Construction of disaster-resistant community center,Apply Work,3800000,Any,false
+W140,Adaptive reuse of grain silo into rock climbing facility,W,Adaptive reuse of grain silo into rock climbing facility,Apply Work,1800000,Any,false
+W141,Renovation of historic train station into boutique hotel,W,Renovation of historic train station into boutique hotel,Apply Work,6800000,Any,false
+W142,Construction of floating pedestrian bridge in city park,W,Construction of floating pedestrian bridge in city park,Apply Work,4200000,Any,false
+W143,Conversion of big box store into e-commerce fulfillment center,W,Conversion of big box store into e-commerce fulfillment center,Apply Work,3500000,Any,false
+W144,Renovation of former church into community arts center,W,Renovation of former church into community arts center,Apply Work,2200000,Any,false
+W145,Construction of eco-friendly car wash facility,W,Construction of eco-friendly car wash facility,Apply Work,950000,Any,false
+W146,Adaptive reuse of shipping containers for retail pop-up village,W,Adaptive reuse of shipping containers for retail pop-up village,Apply Work,1500000,Any,false
+W147,Renovation of zoo exhibits for improved animal welfare,W,Renovation of zoo exhibits for improved animal welfare,Apply Work,5800000,Any,false
+W148,Installation of water reclamation system for car wash facility,W,Installation of water reclamation system for car wash facility,Apply Work,180000,Any,false
+W149,New plumbing systems for floating home community,W,New plumbing systems for floating home community,Apply Work,420000,Any,false
+W150,Installation of vacuum waste collection system for airport terminal,W,Installation of vacuum waste collection system for airport terminal,Apply Work,750000,Any,false
+W151,Upgrade of plumbing fixtures in sports stadium for water conservation,W,Upgrade of plumbing fixtures in sports stadium for water conservation,Apply Work,280000,Any,false
+W152,New hot water distribution system for large hospital complex,W,New hot water distribution system for large hospital complex,Apply Work,550000,Any,false
+W153,Installation of radiant floor heating system in luxury home,W,Installation of radiant floor heating system in luxury home,Apply Work,95000,Any,false
+W154,Replacement of aging water mains in downtown business district,W,Replacement of aging water mains in downtown business district,Apply Work,1200000,Any,false
+W155,Installation of displacement ventilation system in lecture hall,W,Installation of displacement ventilation system in lecture hall,Apply Work,250000,Any,false
+W156,New HVAC system with thermal energy storage for office complex,W,New HVAC system with thermal energy storage for office complex,Apply Work,1800000,Any,false
+W157,Installation of radiant cooling system in airport terminal,W,Installation of radiant cooling system in airport terminal,Apply Work,2200000,Any,false
+W158,Upgrade of mechanical systems in high-security government facility,W,Upgrade of mechanical systems in high-security government facility,Apply Work,1500000,Any,false
+W159,New HVAC system for indoor vertical farming facility,W,New HVAC system for indoor vertical farming facility,Apply Work,900000,Any,false
+W160,Installation of deluge sprinkler system in aircraft maintenance hangar,W,Installation of deluge sprinkler system in aircraft maintenance hangar,Apply Work,550000,Any,false
+W161,New sprinkler system for high-ceiling atrium in shopping mall,W,New sprinkler system for high-ceiling atrium in shopping mall,Apply Work,320000,Any,false
+W162,Upgrade of sprinkler system in historic library with rare book collection,W,Upgrade of sprinkler system in historic library with rare book collection,Apply Work,280000,Any,false
+W163,Installation of dry pipe sprinkler system in cold storage warehouse,W,Installation of dry pipe sprinkler system in cold storage warehouse,Apply Work,420000,Any,false
+W164,New sprinkler system for multi-story car park,W,New sprinkler system for multi-story car park,Apply Work,380000,Any,false
+W165,Structural reinforcement of dam for increased water capacity,W,Structural reinforcement of dam for increased water capacity,Apply Work,2800000,Any,false
+W166,Installation of base isolation system for earthquake protection in hospital,W,Installation of base isolation system for earthquake protection in hospital,Apply Work,3500000,Any,false
+W167,Structural modifications to support green roof on existing building,W,Structural modifications to support green roof on existing building,Apply Work,750000,Any,false
+W168,Installation of digital display construction fence for public information,W,Installation of digital display construction fence for public information,Apply Work,110000,Any,false
+W169,Blast-resistant temporary fencing for demolition project,W,Blast-resistant temporary fencing for demolition project,Apply Work,95000,Any,false
+W170,Sidewalk shed with integrated public seating and planters,W,Sidewalk shed with integrated public seating and planters,Apply Work,130000,Any,false
+W171,Temporary work platforms for clock tower restoration,W,Temporary work platforms for clock tower restoration,Apply Work,140000,Any,false
+W172,Installation of emergency communication antenna system for first responders,W,Installation of emergency communication antenna system for first responders,Apply Work,280000,Any,false
+W173,Installation of dual-fuel boiler system for increased resilience,W,Installation of dual-fuel boiler system for increased resilience,Apply Work,520000,Any,false
+W174,Creation of kinetic facade signage for entertainment district,W,Creation of kinetic facade signage for entertainment district,Apply Work,420000,Any,false
+W175,Installation of solar canopy over parking lot with EV charging stations,W,Installation of solar canopy over parking lot with EV charging stations,Apply Work,680000,Any,false
+W176,Upgrade of standpipe system in high-rise to support higher pressure requirements,W,Upgrade of standpipe system in high-rise to support higher pressure requirements,Apply Work,350000,Any,false
+TEST001,Finance Combo Master,B,Master loan that gets better with investor backing,Apply Loan,0,Any,false
+TEST002,Strategic Investment Fund,I,Investment that chains into more opportunities,Apply Investment,0,Any,false
+TEST003,Master Project Coordination,W,Work project that benefits from team diversity,Apply Work,0,Any,false
+TEST004,Efficiency Accelerator,E,Expeditor that amplifies all other cards this turn,Apply Equipment,0,Any,false
+TEST005,Work-Life Synergist,L,Life card that creates powerful combinations,Apply Legal,0,Any,false
+TEST006,Cascade Funding,B,Bank card that triggers investment opportunities,Apply Loan,0,Any,false
+E008,Overtime,E,Pay a junior expeditor ($1000) to reduce the current filing time by 2 ticks.,Apply Equipment,0,Any,false
+E020,Expeditor Training,E,Reduce the current filing time by 1 tick for each Expeditor Card played this turn.,Apply Equipment,0,Any,false
+E024,Return to Sender,E,Return target Expeditor Card to its owner's hand.,Apply Equipment,0,Any,false
+E029,Weekend Work,E,Reduce the current filing time by 3 ticks but skip your next turn.,Apply Equipment,0,Any,false
+E030,Time Crunch,E,Skip your next turn. Then reduce your current filing time by 5 ticks.,Apply Equipment,0,Any,false
+E032,Team Effort,E,You and target player each reduce your current filing times by 2 ticks then discard 1 Expeditor Card.,Apply Equipment,0,Any,false
+E037,Expeditor Mentor,E,Reduce the current filing time by 1 tick for each Expeditor Card played this turn.,Apply Equipment,0,Any,false
+E038,Surge Pricing,E,Pay three junior expeditors ($3000) to reduce the current filing time by 3 ticks.,Apply Equipment,0,Any,false
+E041,Process Improvement,E,Reduce your current filing time by 6 ticks.,Apply Equipment,0,Any,false
+E046,Expeditor's Assistant,E,Reduce the current filing time by 1 tick. Draw 1 Expeditor Card.,Apply Equipment,0,Any,false
+E047,Final Push,E,Reduce the time for the final inspection by 3 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E048,Streamlined Closeout,E,Reduce the time for project closeout paperwork by 2 ticks and draw 1 Expeditor Card.,Apply Equipment,0,CONSTRUCTION,false
+E049,Safety Inspection Prep,E,Reduce time for next safety inspection by 2 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E050,Equipment Rush Order,E,Pay $2000 to reduce construction time by 4 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E051,Permit Extension,E,Extend current construction permit by 10 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E052,Site Logistics Optimization,E,Reduce construction time by 3 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E053,Overtime Approval,E,Pay $3000 to reduce construction time by 6 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E054,Inspection Scheduling,E,Advance your place in the inspection queue by 5 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E055,Change Order Expedite,E,Reduce time for processing a change order by 3 ticks.,Apply Equipment,0,CONSTRUCTION,false
+E056,Weather Mitigation Plan,E,Prevent a 2-tick delay due to adverse weather conditions.,Apply Equipment,0,CONSTRUCTION,false
+E028,Fact Checking,E,Skip this turn. Reduce the current filing time by 4 ticks.,Apply Equipment,0,DESIGN,false
+E045,Permit Pre-Approval,E,Choose a permit type. The current permit filing of that type takes 4 ticks less time.,Apply Equipment,0,DESIGN,false
+E057,Zoning Variance Fast Track,E,Reduce time for zoning variance approval by 4 ticks.,Apply Equipment,0,DESIGN,false
+E058,Design Team Coordination,E,Reduce design phase time by 3 ticks.,Apply Equipment,0,DESIGN,false
+E059,Code Compliance Review,E,Prevent a potential 3-tick delay from code violations.,Apply Equipment,0,DESIGN,false
+E060,Sustainable Design Incentive,E,Reduce design time by 2 ticks for incorporating green features.,Apply Equipment,0,DESIGN,false
+E061,Historic Preservation Consult,E,Reduce design review time by 3 ticks for projects in historic districts.,Apply Equipment,0,DESIGN,false
+E062,BIM Integration,E,Reduce overall design time by 4 ticks.,Apply Equipment,0,DESIGN,false
+E063,Value Engineering Session,E,Reduce design costs by $2000 and design time by 2 ticks.,Apply Equipment,0,DESIGN,false
+E064,Peer Review Acceleration,E,Reduce peer review process time by 3 ticks.,Apply Equipment,0,DESIGN,false
+E065,Grant Application Expedite,E,Reduce time for grant application processing by 3 ticks.,Apply Equipment,0,FUNDING,false
+E066,Investor Pitch Preparation,E,Gain 1 extra die throw this turn if you do not like the outcome of first throw.,Apply Equipment,0,FUNDING,false
+E067,Tax Incentive Research,E,Reduce project costs by 10% through identified tax incentives.,Apply Equipment,0,FUNDING,false
+E068,Loan Approval Acceleration,E,Reduce loan approval time by 4 ticks.,Apply Equipment,0,FUNDING,false
+E069,Crowdfunding Campaign Boost,E,Gain an extra $10000 in funding this turn.,Apply Equipment,0,FUNDING,false
+E070,Escrow Resolution,E,Release $5000 from escrow immediately.,Apply Equipment,0,FUNDING,false
+E071,Capital Stack Optimization,E,Reduce interest payments by $2000.,Apply Equipment,0,FUNDING,false
+E072,Brownfield Remediation Fund,E,Secure an additional $4000 for site cleanup.,Apply Equipment,0,FUNDING,false
+E073,Historic Tax Credit Application,E,Reduce renovation costs by $3000 for qualifying historic buildings.,Apply Equipment,0,FUNDING,false
+E074,Public-Private Partnership,E,Secure $5000 in public funds for the project.,Apply Equipment,0,FUNDING,false
+E005,Rush Processing,E,Complete the current filing immediately skipping up to 5 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E007,Expeditor's Insight,E,Draw 2 Expeditor Cards then discard 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E009,Favor Called In,E,Choose an opponent. Their current filing takes 2 ticks more time. your current filing takes 2 ticks less time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E011,Permit Expedited,E,Roll a die. On 1-3 reduce processing time by 4 ticks. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E016,Routine Procedure,E,Roll a die. On 1-3 the last filing was the same type; reduce the current filing time by 1 tick. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E023,On the Radar,E,Roll a die. On 1-3 the current filing is for a high-profile client; reduce its time by 2 ticks. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E026,Benefit Verification,E,Roll a die. On 1-3 reduce your current filing time by 2 ticks. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E033,Audit Preparation,E,Roll a die. On 1-3 reduce your current filing time by 2 ticks. On 4-6 increase your current filing time by 2 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E036,Press Release,E,If the current client is high-profile reduce the filing time by 3 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E040,Bulk Discount,E,If 3+ permits are filed this turn,Apply Equipment,0,REGULATORY_REVIEW,false
+E044,Appeal Process,E,If your filing was previously rejected,Apply Equipment,0,REGULATORY_REVIEW,false
+E001,Expedited Review,E,The current review phase takes 1 tick less time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E002,Filing Error,E,Increase the time for the current filing by 3 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E003,Efficiency Boost,E,Reduce your current filing time by 3 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E004,Extended Wait Time,E,Increase your current filing time by 4 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E006,Regulatory Slowdown,E,Your current filing takes 2 ticks more time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E010,Batch Processing,E,Reduce your current filing time by 2 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E012,Paperwork Snag,E,Discard 1 Expeditor Card or the current filing takes 1 tick more time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E013,Redundant Requests,E,All players' current filing takes 2 ticks more time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E014,Express Delivery,E,Reduce the current filing time by 2 ticks but skip your next turn.,Apply Equipment,0,REGULATORY_REVIEW,false
+E015,Canceled Appointment,E,Increase the current filing time by 1 tick and draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E017,Double Check,E,Pay a junior expeditor ($1000) to reduce the chance of a random filing error by 50% this turn.,Apply Equipment,0,REGULATORY_REVIEW,false
+E018,Inside Connection,E,Reduce the current filing time by 2 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E019,Complex Filing,E,Increase the current filing time by 4 ticks but pay two subject matter experts ($4000).,Apply Equipment,0,REGULATORY_REVIEW,false
+E021,Delayed Expeditor,E,Increase your current filing time by 4 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E022,Expeditor Lunch Meeting,E,Reduce your current filing time by 1 tick and the next player's current filing time by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
+E025,Red Tape Reduction,E,Your current filing takes 1 tick less time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E027,Early Submission,E,Reduce the current filing time by 1 tick. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E031,Review Request,E,All players must increase their current filing time by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
+E034,Approved Template,E,Reduce your current filing time by 2 ticks. All other players may reduce their current filing time by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
+E035,Electronic Submission,E,Reduce the current filing time by 1 tick. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E039,Policy Change,E,Increase all players' current filing times by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
+E042,Courier Delay,E,Increase the current filing time by 2 ticks. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E043,Rejected Filing,E,Increase the current filing time by 4 ticks. Discard 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+L-TAX-DEDUCTION,Tax Deduction,L,It's tax time and you want to get a deduction - you can give this card to an opponent of your choosing.,,0,Any,true

@@ -1,0 +1,366 @@
+// E2E-06_LoanAndInterest.test.ts
+//
+// PURPOSE: Validate the per_200K calculation fix for BANK-FUND-REVIEW space
+//
+// BUG FIXED: TurnService.ts:1198 and 1231 were adding fixed value (1 time)
+// instead of scaling by loan amount (1 time per $200K borrowed)
+//
+// TEST SCENARIO:
+// 1. Player takes out $600K in loans ($400K + $200K)
+// 2. Player visits BANK-FUND-REVIEW space
+// 3. Expected: Player gains 3 time (1 per $200K * 3 = 3)
+// 4. Bug behavior: Player would gain 1 time (fixed value)
+
+import { describe, it, expect, beforeAll } from 'vitest';
+import { StateService } from '../src/services/StateService';
+import { TurnService } from '../src/services/TurnService';
+import { DataService } from '../src/services/DataService';
+import { MovementService } from '../src/services/MovementService';
+import { EffectEngineService } from '../src/services/EffectEngineService';
+import { CardService } from '../src/services/CardService';
+import { ResourceService } from '../src/services/ResourceService';
+import { LoggingService } from '../src/services/LoggingService';
+import { GameRulesService } from '../src/services/GameRulesService';
+import { ChoiceService } from '../src/services/ChoiceService';
+import { NegotiationService } from '../src/services/NegotiationService';
+import { IDataService, IStateService, ITurnService } from '../src/types/ServiceContracts';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Node.js compatible DataService for E2E testing
+class NodeDataService extends DataService {
+  // Override the loadData method to use filesystem instead of fetch
+  async loadData(): Promise<void> {
+    if ((this as any).loaded) return;
+
+    try {
+      const dataDir = join(process.cwd(), 'public', 'data', 'CLEAN_FILES');
+
+      // Load all CSV files using filesystem
+      const gameConfigCsv = readFileSync(join(dataDir, 'GAME_CONFIG.csv'), 'utf-8');
+      const movementCsv = readFileSync(join(dataDir, 'MOVEMENT.csv'), 'utf-8');
+      const diceOutcomesCsv = readFileSync(join(dataDir, 'DICE_OUTCOMES.csv'), 'utf-8');
+      const spaceEffectsCsv = readFileSync(join(dataDir, 'SPACE_EFFECTS.csv'), 'utf-8');
+      const diceEffectsCsv = readFileSync(join(dataDir, 'DICE_EFFECTS.csv'), 'utf-8');
+      const spaceContentsCsv = readFileSync(join(dataDir, 'SPACE_CONTENT.csv'), 'utf-8');
+      const cardsCsv = readFileSync(join(dataDir, 'CARDS_EXPANDED.csv'), 'utf-8');
+
+      // Parse CSV data using existing methods
+      (this as any).gameConfigs = (this as any).parseGameConfigCsv(gameConfigCsv);
+      (this as any).movements = (this as any).parseMovementCsv(movementCsv);
+      (this as any).diceOutcomes = (this as any).parseDiceOutcomesCsv(diceOutcomesCsv);
+      (this as any).spaceEffects = (this as any).parseSpaceEffectsCsv(spaceEffectsCsv);
+      (this as any).diceEffects = (this as any).parseDiceEffectsCsv(diceEffectsCsv);
+      (this as any).spaceContents = (this as any).parseSpaceContentCsv(spaceContentsCsv);
+      (this as any).cards = (this as any).parseCardsCsv(cardsCsv);
+
+      (this as any).buildSpaces();
+      (this as any).loaded = true;
+    } catch (error) {
+      console.error('Error loading CSV data from filesystem:', error);
+      throw new Error('Failed to load game data from filesystem');
+    }
+  }
+}
+
+describe('E2E-06: Loan and Interest - Per_200K Calculation Fix', () => {
+  let dataService: IDataService;
+  let stateService: IStateService;
+  let turnService: ITurnService;
+  let resourceService: ResourceService;
+
+  beforeAll(async () => {
+    // Load data once (shared across all tests)
+    dataService = new NodeDataService();
+    await dataService.loadData();
+  });
+
+  beforeEach(() => {
+    // Create fresh service instances for each test
+    stateService = new StateService(dataService);
+    const loggingService = new LoggingService(stateService);
+    resourceService = new ResourceService(stateService);
+    const cardService = new CardService(dataService, stateService, resourceService, loggingService);
+    const choiceService = new ChoiceService(stateService);
+    const movementService = new MovementService(dataService, stateService, choiceService, loggingService);
+    const gameRulesService = new GameRulesService(dataService, stateService);
+
+    // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
+    const effectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any); // targetingService
+    const negotiationService = new NegotiationService(stateService, effectEngine);
+    const turnServiceInstance = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService);
+
+    // Complete the circular dependency wiring
+    turnServiceInstance.setEffectEngineService(effectEngine);
+    effectEngine.setTurnService(turnServiceInstance);
+
+    turnService = turnServiceInstance;
+  });
+
+  it('should correctly calculate time added based on loan amount (per_200K fix)', async () => {
+    // Setup: Add a player and start the game
+    stateService.addPlayer('TestPlayer');
+    stateService.startGame();
+
+    const player = stateService.getGameState().players[0];
+    const playerId = player.id;
+
+    // STEP 1: Take out two loans totaling $600K
+    console.log('\n=== STEP 1: Taking out loans ===');
+
+    // First loan: $400K at 5% interest
+    const loan1Success = resourceService.takeOutLoan(playerId, 400000, 0.05);
+    expect(loan1Success).toBe(true);
+
+    // Second loan: $200K at 5% interest
+    const loan2Success = resourceService.takeOutLoan(playerId, 200000, 0.05);
+    expect(loan2Success).toBe(true);
+
+    // Verify player has $600K in total loans
+    const playerAfterLoans = stateService.getPlayer(playerId);
+    expect(playerAfterLoans?.loans.length).toBe(2);
+    const totalBorrowed = playerAfterLoans!.loans.reduce((sum, loan) => sum + loan.principal, 0);
+    expect(totalBorrowed).toBe(600000);
+
+    console.log(`✅ Player has ${playerAfterLoans?.loans.length} loans totaling $${totalBorrowed.toLocaleString()}`);
+
+    // STEP 2: Prepare player for custom movement
+    console.log('\n=== STEP 2: Setting up for BANK-FUND-REVIEW test ===');
+
+    const timeBeforeEffect = playerAfterLoans!.timeSpent;
+    console.log(`Player time before BANK-FUND-REVIEW effect: ${timeBeforeEffect}`);
+
+    // Manually set player position for test purposes
+    // (In real game, player would move via dice roll and MovementService)
+    stateService.updatePlayer({
+      id: playerId,
+      currentSpace: 'BANK-FUND-REVIEW',
+      visitedSpaces: ['OWNER-SCOPE-INITIATION'], // First visit
+      visitType: 'First',
+      hasRolled: false // Reset turn flags for testing
+    });
+
+    // NOTE: No need to clear snapshot anymore - the TurnService fix now saves
+    // snapshots AFTER processing effects, so first-visit effects will process correctly
+
+    // Verify loans still exist
+    const playerBeforeStartTurn = stateService.getPlayer(playerId);
+    expect(playerBeforeStartTurn?.loans.length).toBe(2);
+
+    // STEP 3: Start turn at BANK-FUND-REVIEW (processes arrival effects)
+    console.log('\n=== STEP 3: Starting turn at BANK-FUND-REVIEW ===');
+    await turnService.startTurn(playerId);
+
+    // STEP 4: End turn to process leaving-space effects (where time effects trigger)
+    console.log('\n=== STEP 4: Ending turn to trigger leaving-space time effects ===');
+    await turnService.endTurnWithMovement();
+
+    // STEP 5: Verify time was correctly calculated
+    console.log('\n=== STEP 5: Verifying per_200K calculation ===');
+
+    const playerAfterEffect = stateService.getPlayer(playerId);
+    const timeAfterEffect = playerAfterEffect!.timeSpent;
+    const timeAdded = timeAfterEffect - timeBeforeEffect;
+
+    console.log(`Player time after BANK-FUND-REVIEW effect: ${timeAfterEffect}`);
+    console.log(`Time added: ${timeAdded}`);
+
+    // Expected calculation:
+    // Total borrowed: $600,000
+    // Per $200K: $600,000 / $200,000 = 3
+    // Expected time added: 1 time × 3 = 3 time
+    const expectedMultiplier = Math.floor(totalBorrowed / 200000);
+    const expectedTimeAdded = 1 * expectedMultiplier;
+
+    console.log(`Expected calculation: ${totalBorrowed} / 200000 = ${expectedMultiplier} multiplier`);
+    console.log(`Expected time added: 1 × ${expectedMultiplier} = ${expectedTimeAdded}`);
+
+    // ASSERTION: Time added should be 3 (not 1 as in the bug)
+    expect(timeAdded).toBe(expectedTimeAdded);
+    expect(timeAdded).toBe(3); // Explicit check for this scenario
+
+    console.log(`✅ VERIFIED: Player gained ${timeAdded} time (correct per_200K calculation)`);
+    console.log(`✅ BUG FIXED: Old behavior would have added only 1 time`);
+  });
+
+  it('should handle edge case: no loans means no time added', async () => {
+    // Setup: Add a player and start the game
+    stateService.addPlayer('TestPlayer2');
+    stateService.startGame();
+
+    const player = stateService.getGameState().players[0];
+    const playerId = player.id;
+
+    console.log('\n=== EDGE CASE: No loans ===');
+
+    // Verify player has no loans
+    expect(player.loans.length).toBe(0);
+
+    const timeBeforeEffect = player.timeSpent;
+
+    // Move player to BANK-FUND-REVIEW
+    stateService.updatePlayer({
+      id: playerId,
+      currentSpace: 'BANK-FUND-REVIEW',
+      visitedSpaces: ['OWNER-SCOPE-INITIATION'],
+      visitType: 'First'
+    });
+
+    // Process arrival effects (snapshot will be saved AFTER effects per TurnService fix)
+    await turnService.startTurn(playerId);
+
+    // End turn to trigger leaving-space time effects (force=true to bypass action requirements)
+    await turnService.endTurnWithMovement(true);
+
+    const playerAfterEffect = stateService.getPlayer(playerId);
+    const timeAfterEffect = playerAfterEffect!.timeSpent;
+    const timeAdded = timeAfterEffect - timeBeforeEffect;
+
+    console.log(`Time added with no loans: ${timeAdded}`);
+
+    // Expected: 0 time added (0 loans × 1 = 0)
+    expect(timeAdded).toBe(0);
+
+    console.log(`✅ VERIFIED: No time added when player has no loans`);
+  });
+
+  it('should handle edge case: $199K loan means 0 time added', async () => {
+    // Setup: Add a player and start the game
+    stateService.addPlayer('TestPlayer3');
+    stateService.startGame();
+
+    const player = stateService.getGameState().players[0];
+    const playerId = player.id;
+
+    console.log('\n=== EDGE CASE: Loan under $200K threshold ===');
+
+    // Take out a loan just under the threshold
+    const loanSuccess = resourceService.takeOutLoan(playerId, 199000, 0.05);
+    expect(loanSuccess).toBe(true);
+
+    const playerAfterLoan = stateService.getPlayer(playerId);
+    const totalBorrowed = playerAfterLoan!.loans.reduce((sum, loan) => sum + loan.principal, 0);
+    console.log(`Total borrowed: $${totalBorrowed.toLocaleString()}`);
+
+    const timeBeforeEffect = playerAfterLoan!.timeSpent;
+
+    // Move to BANK-FUND-REVIEW
+    stateService.updatePlayer({
+      id: playerId,
+      currentSpace: 'BANK-FUND-REVIEW',
+      visitedSpaces: ['OWNER-SCOPE-INITIATION'],
+      visitType: 'First'
+    });
+
+    // Process arrival effects (snapshot will be saved AFTER effects per TurnService fix)
+    await turnService.startTurn(playerId);
+
+    // End turn to trigger leaving-space time effects (force=true to bypass action requirements)
+    await turnService.endTurnWithMovement(true);
+
+    const playerAfterEffect = stateService.getPlayer(playerId);
+    const timeAfterEffect = playerAfterEffect!.timeSpent;
+    const timeAdded = timeAfterEffect - timeBeforeEffect;
+
+    console.log(`Time added with $199K loan: ${timeAdded}`);
+
+    // Expected: 0 time added (Math.floor(199000 / 200000) = 0)
+    expect(timeAdded).toBe(0);
+
+    console.log(`✅ VERIFIED: No time added for loans under $200K threshold`);
+  });
+
+  it('should handle edge case: $200K exactly means 1 time added', async () => {
+    // Setup: Add a player and start the game
+    stateService.addPlayer('TestPlayer4');
+    stateService.startGame();
+
+    const player = stateService.getGameState().players[0];
+    const playerId = player.id;
+
+    console.log('\n=== EDGE CASE: Loan exactly at $200K threshold ===');
+
+    // Take out exactly $200K
+    const loanSuccess = resourceService.takeOutLoan(playerId, 200000, 0.05);
+    expect(loanSuccess).toBe(true);
+
+    const playerAfterLoan = stateService.getPlayer(playerId);
+    const totalBorrowed = playerAfterLoan!.loans.reduce((sum, loan) => sum + loan.principal, 0);
+    console.log(`Total borrowed: $${totalBorrowed.toLocaleString()}`);
+
+    const timeBeforeEffect = playerAfterLoan!.timeSpent;
+
+    // Move to BANK-FUND-REVIEW
+    stateService.updatePlayer({
+      id: playerId,
+      currentSpace: 'BANK-FUND-REVIEW',
+      visitedSpaces: ['OWNER-SCOPE-INITIATION'],
+      visitType: 'First'
+    });
+
+    // Process arrival effects (snapshot will be saved AFTER effects per TurnService fix)
+    await turnService.startTurn(playerId);
+
+    // End turn to trigger leaving-space time effects (force=true to bypass action requirements)
+    await turnService.endTurnWithMovement(true);
+
+    const playerAfterEffect = stateService.getPlayer(playerId);
+    const timeAfterEffect = playerAfterEffect!.timeSpent;
+    const timeAdded = timeAfterEffect - timeBeforeEffect;
+
+    console.log(`Time added with $200K loan: ${timeAdded}`);
+
+    // Expected: 1 time added (Math.floor(200000 / 200000) = 1)
+    expect(timeAdded).toBe(1);
+
+    console.log(`✅ VERIFIED: 1 time added for exactly $200K loan`);
+  });
+
+  it('should handle large loan amounts correctly', async () => {
+    // Setup: Add a player and start the game
+    stateService.addPlayer('TestPlayer5');
+    stateService.startGame();
+
+    const player = stateService.getGameState().players[0];
+    const playerId = player.id;
+
+    console.log('\n=== EDGE CASE: Large loan amount ===');
+
+    // Take out a large loan: $1.4M (maximum for 1% fee tier)
+    const loanSuccess = resourceService.takeOutLoan(playerId, 1400000, 0.05);
+    expect(loanSuccess).toBe(true);
+
+    const playerAfterLoan = stateService.getPlayer(playerId);
+    const totalBorrowed = playerAfterLoan!.loans.reduce((sum, loan) => sum + loan.principal, 0);
+    console.log(`Total borrowed: $${totalBorrowed.toLocaleString()}`);
+
+    const timeBeforeEffect = playerAfterLoan!.timeSpent;
+
+    // Move to BANK-FUND-REVIEW
+    stateService.updatePlayer({
+      id: playerId,
+      currentSpace: 'BANK-FUND-REVIEW',
+      visitedSpaces: ['OWNER-SCOPE-INITIATION'],
+      visitType: 'First'
+    });
+
+    // Process arrival effects (snapshot will be saved AFTER effects per TurnService fix)
+    await turnService.startTurn(playerId);
+
+    // End turn to trigger leaving-space time effects (force=true to bypass action requirements)
+    await turnService.endTurnWithMovement(true);
+
+    const playerAfterEffect = stateService.getPlayer(playerId);
+    const timeAfterEffect = playerAfterEffect!.timeSpent;
+    const timeAdded = timeAfterEffect - timeBeforeEffect;
+
+    console.log(`Time added with $1.4M loan: ${timeAdded}`);
+
+    // Expected: 7 time added (Math.floor(1400000 / 200000) = 7)
+    const expectedMultiplier = Math.floor(totalBorrowed / 200000);
+    expect(timeAdded).toBe(expectedMultiplier);
+    expect(timeAdded).toBe(7);
+
+    console.log(`✅ VERIFIED: ${timeAdded} time added for $1.4M loan`);
+  });
+});

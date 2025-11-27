@@ -1,0 +1,90 @@
+/* Import centralized animations */
+@import '../../styles/animations.css';
+
+.action-button {
+  padding: 4px 12px; /* Reduced vertical padding */
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  /* Consistent transition: 200ms ease (from animationConstants.ts) */
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.action-button:hover:not(:disabled) {
+  /* Consistent hover elevation: translateY(-1px) (from animationConstants.ts) */
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:active:not(:disabled) {
+  transform: translateY(0);
+  /* Faster transition for active state for immediate feedback */
+  transition: all 0.15s ease;
+}
+
+.action-button:focus {
+  outline: 2px solid var(--primary-color, #007bff);
+  outline-offset: 2px;
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary button - main actions */
+.action-button--primary {
+  background: var(--primary-color, #007bff);
+  color: white;
+}
+
+.action-button--primary:hover:not(:disabled) {
+  background: var(--primary-hover, #0056b3);
+}
+
+/* Secondary button - less prominent actions */
+.action-button--secondary {
+  background: var(--secondary-color, #6c757d);
+  color: white;
+}
+
+.action-button--secondary:hover:not(:disabled) {
+  background: var(--secondary-hover, #5a6268);
+}
+
+/* Danger button - destructive or negative actions */
+.action-button--danger {
+  background: var(--error-red, #dc3545);
+  color: white;
+}
+
+.action-button--danger:hover:not(:disabled) {
+  background: var(--error-hover, #c82333);
+}
+
+/* Loading spinner - uses centralized spin animation */
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  /* Using centralized spin animation: 800ms linear infinite */
+  animation: spin 0.8s linear infinite;
+}
+
+/* Responsive adjustments */
+@media (min-width: 480px) {
+  .action-button {
+    width: auto;
+    min-width: 120px;
+  }
+}
