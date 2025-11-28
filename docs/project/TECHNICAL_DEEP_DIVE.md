@@ -76,6 +76,15 @@ The `CardService` is the heart of the card system. It is responsible for all bus
 *   **`CardPortfolioDashboard.tsx`:** This component provides a comprehensive view of the player's card portfolio, including their available, active, and discarded cards.
 *   **`CardDetailsModal.tsx`:** This modal component displays the full details of a selected card, including its name, description, effects, cost, duration, and phase restriction. It also provides the UI for the card transfer functionality.
 
+### Automatic Funding at OWNER-FUND-INITIATION
+
+A key feature of the card system is the automatic funding mechanic at the **OWNER-FUND-INITIATION** space. When a player lands on this space, the game automatically draws a funding card for them based on their project scope, streamlining the funding process.
+
+*   **Project Scope ≤ $4M:** The player automatically draws a **B (Bank Loan)** card.
+*   **Project Scope > $4M:** The player automatically draws an **I (Investor Loan)** card.
+
+This mechanic is handled by the `TurnService` and `EffectEngineService`, which check the player's `currentSpace` and `projectScope` to determine the correct card to draw.
+
 ### Game Log & Action Feedback System
 
 *   **`GameLog.tsx`:** A persistent scrollable component at the bottom of the game layout that displays all player actions in real-time. Features player-specific color coding, timestamps, and comprehensive action formatting with icons.
@@ -522,9 +531,9 @@ The default view of the game log for a student will **only** show entries where 
 
 ---
 
-## 🎯 Turn Numbering System Fix (September 2025)
+## 🎯 Turn Numbering System Fix (October 2025)
 
-**STATUS: 📋 PLANNED - Architecture Designed, Implementation Pending**
+**STATUS: ✅ COMPLETED - Implementation and Testing Complete**
 
 This section outlines the comprehensive solution to fix the confusing and incorrect turn numbering system in the game log.
 

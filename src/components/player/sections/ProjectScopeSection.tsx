@@ -14,12 +14,6 @@ export interface ProjectScopeSectionProps {
   /** ID of the player whose project scope to display */
   playerId: string;
 
-  /** Whether the section is currently expanded */
-  isExpanded: boolean;
-
-  /** Callback fired when the section header is clicked */
-  onToggle: () => void;
-
   /** Callback to handle dice roll action */
   onRollDice?: () => Promise<void>;
 
@@ -60,11 +54,10 @@ export interface ProjectScopeSectionProps {
 export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   gameServices,
   playerId,
-  isExpanded,
-  onToggle,
   onRollDice,
   completedActions = { manualActions: {} }
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRollingDice, setIsRollingDice] = useState(false);
@@ -258,7 +251,7 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
       icon="📐"
       hasAction={hasWCardActions}
       isExpanded={isExpanded}
-      onToggle={onToggle}
+      onToggle={() => setIsExpanded(!isExpanded)}
       ariaControls="project-scope-content"
       isLoading={isLoading}
       error={error || undefined}

@@ -196,6 +196,8 @@ export interface Player {
   costHistory: CostEntry[]; // Detailed log of all costs incurred
   costs: CostBreakdown; // Summary of costs by category
   moveIntent?: string | null; // Player's intended destination (set before move execution)
+  currentCard?: string | null; // The card the player is currently interacting with
+  role?: string; // Player's assigned role (e.g., "Explorer", "Strategist")
   pathChoiceMemory?: {
     'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT'; // DOB path choice (locked for application)
     // Future: Other spaces that need choice memory can be added here
@@ -245,6 +247,23 @@ export interface Card {
 
   // Turn control mechanics
   turn_skip?: string;
+
+  // UI display properties (for enhanced card display)
+  name?: string;              // Alternative to card_name for display
+  story?: string;             // Narrative text for the card
+  actionRequired?: string;    // What the player must do
+  potentialOutcomes?: string; // Possible results of choices
+  duration_turns?: number;    // Numeric version of duration_count
+
+  // Structured effect data (for choice-based cards)
+  effect?: {
+    type: string;
+    choices?: Array<{
+      id: string;
+      label: string;
+      description: string;
+    }>;
+  };
 }
 
 export interface ActiveCard {

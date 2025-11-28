@@ -2,14 +2,32 @@ import React from 'react';
 import { colors, theme } from '../../styles/theme';
 import { Space, Player } from '../../types/DataTypes';
 
+/**
+ * Props for the GameSpace component.
+ */
 interface GameSpaceProps {
+  /** The Space object containing details about the game space. */
   space: Space;
+  /** An array of Player objects currently on this space. */
   playersOnSpace: Player[];
+  /** True if this space is a valid destination for the current player's move. */
   isValidMoveDestination?: boolean;
+  /** True if the current player is on this space. */
   isCurrentPlayerSpace?: boolean;
+  /** True if movement indicators (e.g., valid move targets) should be shown. */
   showMovementIndicators?: boolean;
 }
 
+/**
+ * GameSpace Component
+ *
+ * Renders an individual game space on the board, displaying its name,
+ * players currently on it, and visual indicators for movement or current player status.
+ * It also displays a player's role as a badge if available.
+ *
+ * @param {GameSpaceProps} props - The props for the component.
+ * @returns {JSX.Element} The rendered GameSpace component.
+ */
 export function GameSpace({ 
   space, 
   playersOnSpace,
@@ -194,44 +212,65 @@ export function GameSpace({
         }}
       >
         {playersOnSpace.map((player) => (
-          <div
-            key={player.id}
-            title={player.name}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: player.color || colors.primary.main,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: colors.white,
-              fontSize: '16px',
-              fontWeight: 'bold',
-              border: `2px solid ${colors.white}`,
-              boxShadow: theme.shadows.sm,
-              // Animation properties
-              animation: 'playerTokenAppear 0.5s ease-out',
-              transition: 'all 0.3s ease-in-out',
-              transform: 'scale(1)',
-              zIndex: 1
-            }}
-            // Add hover effect for interactivity
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.zIndex = '10';
-              e.currentTarget.style.boxShadow = theme.shadows.md;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.zIndex = '1';
-              e.currentTarget.style.boxShadow = theme.shadows.sm;
-            }}
-          >
-            {player.avatar || player.name.charAt(0).toUpperCase()}
-          </div>
-        ))}
-      </div>
+                      <div
+                        key={player.id}
+                        title={player.name + (player.role ? ` (${player.role})` : '')} // Add role to tooltip
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: player.color || colors.primary.main,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: colors.white,
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          border: `2px solid ${colors.white}`,
+                          boxShadow: theme.shadows.sm,
+                          // Animation properties
+                          animation: 'playerTokenAppear 0.5s ease-out',
+                          transition: 'all 0.3s ease-in-out',
+                          transform: 'scale(1)',
+                          zIndex: 1,
+                          position: 'relative' // Needed for role badge positioning
+                        }}
+                        // Add hover effect for interactivity
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.1)';
+                          e.currentTarget.style.zIndex = '10';
+                          e.currentTarget.style.boxShadow = theme.shadows.md;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.zIndex = '1';
+                          e.currentTarget.style.boxShadow = theme.shadows.sm;
+                        }}
+                      >
+                        {player.avatar || player.name.charAt(0).toUpperCase()}
+                        {player.role && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              bottom: '-4px',
+                              right: '-4px',
+                              backgroundColor: colors.info.main,
+                              color: colors.white,
+                              borderRadius: '4px',
+                              padding: '2px 4px',
+                              fontSize: '8px',
+                              fontWeight: 'normal',
+                              lineHeight: '1',
+                              whiteSpace: 'nowrap',
+                              textTransform: 'uppercase',
+                              boxShadow: theme.shadows.xs,
+                            }}
+                          >
+                            {player.role.substring(0, 3)}
+                          </span>
+                        )}
+                      </div>
+                    ))}      </div>
     </div>
   );
 }

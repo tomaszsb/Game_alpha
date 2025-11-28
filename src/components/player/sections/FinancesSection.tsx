@@ -14,12 +14,6 @@ export interface FinancesSectionProps {
   /** ID of the player whose finances to display */
   playerId: string;
 
-  /** Whether the section is currently expanded */
-  isExpanded: boolean;
-
-  /** Callback fired when the section header is clicked */
-  onToggle: () => void;
-
   /** Callback to handle dice roll / Get Funding action (deprecated - use onAutomaticFunding for OWNER-FUND-INITIATION) */
   onRollDice?: () => Promise<void>;
 
@@ -74,13 +68,12 @@ export interface FinancesSectionProps {
 export const FinancesSection: React.FC<FinancesSectionProps> = ({
   gameServices,
   playerId,
-  isExpanded,
-  onToggle,
   onRollDice,
   onAutomaticFunding,
   onManualEffectResult,
   completedActions = { manualActions: {} }
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
@@ -277,7 +270,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       icon="💰"
       hasAction={hasMoneyActions}
       isExpanded={isExpanded}
-      onToggle={onToggle}
+      onToggle={() => setIsExpanded(!isExpanded)}
       ariaControls="finances-content"
       isLoading={isLoading}
       error={error || undefined}

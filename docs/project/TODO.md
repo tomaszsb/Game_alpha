@@ -164,6 +164,40 @@ A full-stack refactor of the game logging system and core turn logic.
 
 ---
 
+## ✅ **PHASE COMPLETION: Player Panel Button Fixes & Development Workflow**
+*Status: COMPLETED - November 27-28, 2025*
+
+**Objective**: Fix button positioning issues in Player Panel and streamline development workflow.
+
+### **UI Bug Fixes**
+- **✅ Button Positioning Fix**: NextStepButton and TryAgainButton were floating on top of game board due to `position: fixed` CSS. Added CSS overrides in `PlayerPanel.css` to set `position: static` within player panel context
+- **✅ NextStepButton Simplification**: Removed roll-to-move logic from NextStepButton - now only handles "End Turn" action. Roll actions delegated to section-specific buttons (ProjectScopeSection, FinancesSection, TimeSection, CardsSection)
+
+### **Development Workflow Enhancement**
+- **✅ Concurrently Setup**: Installed `concurrently` package to run both Vite (port 3000) and Express backend (port 3001) servers with single `npm run dev` command
+- **✅ Color-Coded Output**: Frontend (cyan) and backend (magenta) console output for easy identification
+- **✅ Backend Requirement Documentation**: Updated CLAUDE.md to emphasize that backend server is REQUIRED for multi-device state persistence
+
+### **TypeScript Progress**
+- **✅ Error Reduction**: Reduced TypeScript strict mode errors from 28+ to 12 remaining
+- **✅ Service Interface Fixes**: Updated IResourceService, ITurnService, IStateService with correct method signatures
+- **✅ Component Interface Updates**: Removed deprecated isExpanded/onToggle props from section components
+
+### **Documentation Cleanup**
+- **✅ Archive System Created**: Created `docs/archive/` directory for obsolete documentation
+- **✅ AI Workflow Docs Archived**: Moved 3 obsolete AI collaboration workflow documents to archive with proper banners
+- **✅ CLAUDE.md Updated**: Added Development Commands section documenting concurrently setup and recent work log for Nov 27-28
+
+### **Files Changed**
+- `src/components/player/PlayerPanel.css`: Button positioning overrides (lines 98-151)
+- `src/components/player/NextStepButton.tsx`: Simplified to end-turn only (lines 14-56, 85-98)
+- `package.json`: Updated dev scripts to use concurrently (line 32-33)
+- `docs/project/CLAUDE.md`: Development Commands + November 27-28 work log
+
+**Result**: Cleaner UI with properly positioned buttons, simplified development workflow with single command startup, and reduced TypeScript errors moving toward full strict mode compliance.
+
+---
+
 # Current Tasks - Code2027 Project
 
 **Last Updated**: November 24, 2025
@@ -422,3 +456,12 @@ Here is a list of discrepancies and potential issues I have identified in the pr
     *   The `TODO.md` file, under the "Player Panel UI Redesign - Phase 1" section, mentions a bug fix: "Resolved incorrect 'Get Funding' button error (funding is now an automatic, direct cash deposit based on project scope at OWNER-FUND-INITIATION)".
     *   The file `data/USER_FIXES_VERIFICATION.md` might contain more information on this.
     *   **Conclusion:** This is not a discrepancy, but it's a significant change in game logic that should be clearly documented in the core project documents (`PRODUCT_CHARTER.md` and `TECHNICAL_DEEP_DIVE.md`). I will need to investigate this further.
+
+4.  **Test Coverage:**
+    *   `docs/project/TODO.md` lists "Test Coverage Improvement" as **COMPLETED**, and claims ">90% test coverage achieved across all critical services".
+    *   The actual test coverage for the services is:
+        *   **Statements:** 21.22%
+        *   **Branches:** 70.08%
+        *   **Functions:** 61.86%
+        *   **Lines:** 21.22%
+    *   **Conclusion:** This is a major discrepancy. The test coverage is significantly lower than documented. This represents a potential quality risk and should be addressed.

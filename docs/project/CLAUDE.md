@@ -64,8 +64,18 @@ npm test tests/services/TurnService.test.tsx
 # Install dependencies
 npm install
 
-# Start development server
+# Start development servers (both Vite + Backend)
 npm run dev
+# Note: Uses concurrently to run both:
+#   - Vite dev server (frontend) on port 3000
+#   - Express backend server (state sync) on port 3001
+# Backend server is REQUIRED for multi-device state persistence
+
+# Start only frontend (for testing without persistence)
+npm run dev:vite
+
+# Start only backend server
+npm run server
 
 # Build for production
 npm run build
@@ -231,3 +241,108 @@ Comprehensive test suite stabilization to eliminate worker thread crashes, asser
 - **Compliance**: DOB path choice rules enforced via pathChoiceMemory
 - **Tests**: All E2E tests passing including E2E-01_HappyPath and E2E-MultiPathMovement (both were failing before fix)
 - **Test Coverage**: Added 7 new pathChoiceMemory tests to MovementService (32→39 tests)
+
+---
+
+## Recent Work Log (November 27-28, 2025)
+
+### 1. Player Panel UI Button Positioning Fix
+
+**Objective**: Fix floating button issue where NextStepButton and TryAgainButton were overlaying game board instead of being integrated into player panel.
+
+#### Bug Fixed:
+- **Problem**: NextStepButton and TryAgainButton had `position: fixed` CSS from animations.css, causing them to float on top of game board
+- **Root Cause**: Global CSS rules in `animations.css` (lines 510-543) applying fixed positioning to all instances
+- **Solution**: Added CSS overrides in `PlayerPanel.css` using `.player-panel .next-step-button` selector to set `position: static` within player panel context
+- **Impact**: Buttons now properly integrated into player panel bottom area with flex layout (2:1 ratio)
+
+#### Files Changed:
+- `src/components/player/PlayerPanel.css` (lines 98-151): Added overrides for `.player-panel .next-step-button` and `.try-again-button`
+
+---
+
+### 2. NextStepButton Logic Simplification
+
+**Objective**: Simplify NextStepButton to only handle "End Turn" action, removing roll-to-move logic.
+
+#### Bug Fixed:
+- **Problem**: Button was handling both roll-to-move and end-turn actions, incorrectly showing "Roll to Move" label during gameplay
+- **Root Cause**: `getNextStepState()` function included `ROLL_TO_MOVE` action type that conflicted with section-specific roll buttons
+- **Solution**:
+  - Removed roll-to-move logic entirely from NextStepButton
+  - Updated `NextStepState` interface to only include `'end-turn'` action type
+  - Delegated all roll actions to section-specific buttons (ProjectScopeSection, FinancesSection, TimeSection, CardsSection)
+- **Impact**: Clear single-purpose button - only shows "End Turn" label, only appears when player can end turn
+
+#### Files Changed:
+- `src/components/player/NextStepButton.tsx`:
+  - Lines 14-19: Simplified `NextStepState` interface (removed 'roll-movement' action type)
+  - Lines 22-56: Refactored `getNextStepState()` to only return end-turn states
+  - Lines 85-98: Simplified `handleNextStep()` to only handle end-turn action
+
+---
+
+### 3. Development Workflow Enhancement
+
+**Objective**: Streamline development workflow to automatically start both frontend and backend servers with single command.
+
+#### Implementation:
+- **Problem**: Required two separate terminal windows to run frontend (Vite on port 3000) and backend (Express on port 3001) servers
+- **Solution**:
+  - Installed `concurrently` package (npm devDependency)
+  - Updated `npm run dev` script to use concurrently with color-coded output
+  - Created separate `npm run dev:vite` and `npm run server` for individual server startup
+- **Impact**:
+  - Single `npm run dev` command starts complete development environment
+  - Color-coded console output (cyan for Vite, magenta for server)
+  - Backend state persistence automatically available for multi-device testing
+
+#### Files Changed:
+- `package.json`:
+  - Line 32: Updated `dev` script to use concurrently: `"dev": "concurrently --names \"VITE,SERVER\" --prefix-colors \"cyan,magenta\" \"npm:dev:vite\" \"npm:server\""`
+  - Line 33: Added `dev:vite` script for standalone Vite server
+  - Added `concurrently` to devDependencies
+
+#### Documentation Impact:
+- Updated CLAUDE.md Development Commands section to document new workflow
+- Emphasized that backend server is REQUIRED for multi-device state persistence
+
+---
+
+### 4. TypeScript Strict Mode Progress
+
+**Objective**: Continue progress toward 0 TypeScript errors with strict mode enabled.
+
+#### Progress:
+- **Starting Point**: 28+ TypeScript errors across codebase
+- **Current Status**: 12 errors remaining
+- **Fixed**:
+  - Service interface definitions in ServiceContracts.ts (IResourceService, ITurnService, IStateService)
+  - Section component interfaces (removed deprecated isExpanded/onToggle props)
+  - Card type definitions (extended with optional UI properties)
+- **Remaining Errors**:
+  - Legacy component files: App.tsx, ErrorBoundary.tsx, DataEditor.tsx, GameSpace.tsx
+  - Primarily related to event handler types and state initialization
+
+#### Files Changed:
+- `src/types/ServiceContracts.ts`: Updated service interfaces with correct method signatures
+- `src/types/DataTypes.ts`: Extended Card type with optional UI properties
+- Multiple section components: Updated prop interfaces
+
+---
+
+### 5. Documentation Organization & Cleanup
+
+**Objective**: Archive obsolete documentation and improve docs structure.
+
+#### Implementation:
+- **Created**: `docs/archive/` directory for historical documentation
+- **Archived**: 3 obsolete AI collaboration workflow documents from early development (October 2025):
+  - `AI_COLLABORATION_WORKFLOW-ARCHIVED-20251007.md` (Gemini-Claude IPC communication system)
+  - `GEMINI-ARCHIVED-20251007.md` (Gemini PM charter)
+  - `HANDOVER_REPORT-20251003.md` (Historical transition document)
+- **Added**: Archive banners to all archived files with:
+  - Archive date (November 28, 2025)
+  - Reason for archival
+  - Historical context
+- **Impact**: Cleaner documentation structure with historical context preserved for reference

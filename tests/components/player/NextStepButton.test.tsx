@@ -1,563 +1,175 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
-import { NextStepButton, getNextStepState } from '../../../src/components/player/NextStepButton';
-import { createAllMockServices } from '../../mocks/mockServices';
-import { GameState, Player } from '../../../src/types/StateTypes';
+import { NextStepButton } from '../../../src/components/player/NextStepButton';
+import { IServiceContainer, IStateService, ITurnService, IMovementService } from '../../../../src/types/ServiceContracts';
+import { createMockStateService, createMockTurnService, createMockMovementService } from '../../mocks/mockServices'; // Assuming mock services exist
 
 describe('NextStepButton', () => {
-  beforeEach(() => {
-    cleanup();
-    vi.clearAllMocks();
-  });
-
-  const mockServices = createAllMockServices();
-  const playerId = 'player-1';
-
-  const createMockPlayer = (overrides?: Partial<Player>): Player => ({
-    id: playerId,
-    name: 'Test Player',
-    color: '#ff0000',
-    avatar: '👤',
-    currentSpace: 'START',
-    money: 1000,
-    timeSpent: 12,
-    projectScope: 0,
-    hand: [],
-    visitType: 'First',
-    visitedSpaces: [],
-    activeCards: [],
-    activeEffects: [],
-    loans: [],
-    score: 0,
-    ...overrides
-  });
-
-  const createMockGameState = (overrides?: Partial<GameState>): GameState => ({
-    players: [createMockPlayer()],
-    currentPlayerId: playerId,
-    gamePhase: 'PLAY',
-    turn: 1,
-    gameRound: 1,
-    turnWithinRound: 1,
-    globalTurnCount: 1,
-    playerTurnCounts: { [playerId]: 1 },
-    activeModal: null,
-    awaitingChoice: null,
-    hasPlayerMovedThisTurn: false,
-    hasPlayerRolledDice: false,
-    isGameOver: false,
-    isMoving: false,
-    isProcessingArrival: false,
-    isInitialized: true,
-    currentExplorationSessionId: null,
-    requiredActions: 0,
-    completedActionCount: 0,
-    availableActionTypes: [],
-    completedActions: {
-      diceRoll: undefined,
-      manualActions: {}
-    },
-    activeNegotiation: null,
-    selectedDestination: null,
-    globalActionLog: [],
-    playerSnapshots: {},
-    decks: { W: [], B: [], E: [], L: [], I: [] },
-    discardPiles: { W: [], B: [], E: [], L: [], I: [] },
-    ...overrides
-  });
-
-  describe('Button Visibility', () => {
-    it('should be hidden when not current player', () => {
-      const gameState = createMockGameState({ currentPlayerId: 'other-player' });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      expect(screen.queryByRole('button')).toBeNull();
-    });
-
-    it('should be visible when current player (always visible on turn)', () => {
-      const gameState = createMockGameState();
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      expect(screen.getByRole('button')).toBeInTheDocument();
-      expect(screen.getByText('End Turn')).toBeInTheDocument();
-    });
-
-    it('should be visible when player can end turn', () => {
-      const gameState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 2,
-        completedActionCount: 2
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      expect(screen.getByRole('button')).toBeInTheDocument();
-      expect(screen.getByText('End Turn')).toBeInTheDocument();
-    });
-  });
-
-  describe('Button States', () => {
-    it('should show enabled End Turn button when turn is complete', () => {
-      const gameState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 1,
-        completedActionCount: 1,
-        availableActionTypes: []
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveTextContent('End Turn');
-      expect(button).not.toBeDisabled();
-    });
-
-    it('should show disabled End Turn button when player has pending choice', () => {
-      const gameState = createMockGameState({
-        awaitingChoice: {
-          id: 'choice-1',
-          playerId: playerId,
-          type: 'CHOICE',
-          prompt: 'Choose an option',
-          options: [
-            { id: 'opt1', label: 'Option 1' },
-            { id: 'opt2', label: 'Option 2' }
-          ]
-        }
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveTextContent('End Turn');
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute('title', 'Complete current action first');
-    });
-
-    it('should show disabled End Turn with action count when actions are incomplete', () => {
-      const gameState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 3,
-        completedActionCount: 1,
-        availableActionTypes: []
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveTextContent('End Turn (2 actions remaining)');
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute('title', 'Complete 2 more actions before ending turn');
-    });
-
-    it('should show singular "action" when one action remaining', () => {
-      const gameState = createMockGameState({
-        requiredActions: 2,
-        completedActionCount: 1
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveTextContent('End Turn (1 action remaining)');
-      expect(button).toHaveAttribute('title', 'Complete 1 more action before ending turn');
-    });
-  });
-
-  describe('Button Actions', () => {
-    it('should call endTurn when End Turn is clicked', async () => {
-      const gameState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 1,
-        completedActionCount: 1
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-      mockServices.turnService.endTurnWithMovement.mockResolvedValue(undefined);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      await userEvent.click(button);
-
-      expect(mockServices.turnService.endTurnWithMovement).toHaveBeenCalled();
-    });
-
-    it('should not call actions when button is disabled', async () => {
-      const gameState = createMockGameState({
-        awaitingChoice: {
-          id: 'choice-1',
-          playerId: playerId,
-          type: 'CHOICE',
-          prompt: 'Choose',
-          options: [{ id: 'opt1', label: 'Option 1' }]
-        }
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      await userEvent.click(button);
-
-      expect(mockServices.turnService.endTurnWithMovement).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Loading State', () => {
-    it('should show loading text while processing End Turn', async () => {
-      const gameState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 1,
-        completedActionCount: 1
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      let resolveEndTurn: () => void;
-      const endTurnPromise = new Promise<void>((resolve) => {
-        resolveEndTurn = resolve;
-      });
-      mockServices.turnService.endTurnWithMovement.mockReturnValue(endTurnPromise);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      await userEvent.click(button);
-
-      // Should show loading text
-      await waitFor(() => {
-        expect(button).toHaveTextContent('Processing...');
-        expect(button).toBeDisabled();
-      });
-
-      // Resolve and check it returns to normal
-      resolveEndTurn!();
-      await waitFor(() => {
-        expect(button).toHaveTextContent('End Turn');
-        expect(button).not.toBeDisabled();
-      });
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle errors from endTurn gracefully', async () => {
-      const gameState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 1,
-        completedActionCount: 1
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-      mockServices.turnService.endTurnWithMovement.mockRejectedValue(new Error('End turn failed'));
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      await userEvent.click(button);
-
-      await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('🔘 NextStepButton: Error in handleNextStep:', expect.any(Error));
-        expect(button).not.toBeDisabled();
-      });
-
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('State Subscription', () => {
-    it('should update button state when game state changes', async () => {
-      const initialState = createMockGameState({
-        requiredActions: 2,
-        completedActionCount: 0
-      });
-      mockServices.stateService.getGameState.mockReturnValue(initialState);
-
-      let stateListener: ((state: GameState) => void) | null = null;
-      mockServices.stateService.subscribe.mockImplementation((callback) => {
-        stateListener = callback;
-        return () => {};
-      });
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      expect(screen.getByText('End Turn (2 actions remaining)')).toBeInTheDocument();
-
-      // Update state to all actions complete
-      const updatedState = createMockGameState({
-        hasPlayerRolledDice: true,
-        requiredActions: 2,
-        completedActionCount: 2,
-        availableActionTypes: []
-      });
-      mockServices.stateService.getGameState.mockReturnValue(updatedState);
-
-      // Trigger state change
-      if (stateListener) {
-        stateListener(updatedState);
-      }
-
-      await waitFor(() => {
-        const button = screen.getByRole('button');
-        expect(button).toHaveTextContent('End Turn');
-        expect(button).not.toHaveTextContent('actions remaining');
-        expect(button).not.toBeDisabled();
-      });
-    });
-
-    it('should hide button when player is no longer current', async () => {
-      const initialState = createMockGameState();
-      mockServices.stateService.getGameState.mockReturnValue(initialState);
-
-      let stateListener: ((state: GameState) => void) | null = null;
-      mockServices.stateService.subscribe.mockImplementation((callback) => {
-        stateListener = callback;
-        return () => {};
-      });
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      expect(screen.getByText('End Turn')).toBeInTheDocument();
-
-      // Change current player
-      const updatedState = createMockGameState({
-        currentPlayerId: 'other-player'
-      });
-      mockServices.stateService.getGameState.mockReturnValue(updatedState);
-
-      // Trigger state change
-      if (stateListener) {
-        stateListener(updatedState);
-      }
-
-      await waitFor(() => {
-        expect(screen.queryByRole('button')).toBeNull();
-      });
-    });
-
-    it('should unsubscribe on unmount', () => {
-      const unsubscribe = vi.fn();
-      mockServices.stateService.subscribe.mockReturnValue(unsubscribe);
-
-      const gameState = createMockGameState();
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      const { unmount } = render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      unmount();
-
-      expect(unsubscribe).toHaveBeenCalled();
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('should have proper aria-label for enabled button', () => {
-      const gameState = createMockGameState({
-        requiredActions: 1,
-        completedActionCount: 1
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-label', 'End Turn');
-    });
-
-    it('should have proper aria-label when actions remaining', () => {
-      const gameState = createMockGameState({
-        requiredActions: 2,
-        completedActionCount: 0
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-label', 'End Turn (2 actions remaining)');
-    });
-
-    it('should have tooltip for disabled state', () => {
-      const gameState = createMockGameState({
-        awaitingChoice: {
-          id: 'choice-1',
-          playerId: playerId,
-          type: 'CHOICE',
-          prompt: 'Choose',
-          options: [{ id: 'opt1', label: 'Option 1' }]
-        }
-      });
-      mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-      render(
-        <NextStepButton gameServices={mockServices} playerId={playerId} />
-      );
-
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title', 'Complete current action first');
-    });
-  });
-});
-
-describe('getNextStepState helper', () => {
-  const mockServices = createAllMockServices();
-  const playerId = 'player-1';
-
-  const createMockGameState = (overrides?: Partial<GameState>): GameState => ({
-    players: [],
-    currentPlayerId: playerId,
-    gamePhase: 'PLAY',
-    turn: 1,
-    gameRound: 1,
-    turnWithinRound: 1,
-    globalTurnCount: 1,
-    playerTurnCounts: { [playerId]: 1 },
-    activeModal: null,
-    awaitingChoice: null,
-    hasPlayerMovedThisTurn: false,
-    hasPlayerRolledDice: false,
-    isGameOver: false,
-    isMoving: false,
-    isProcessingArrival: false,
-    isInitialized: true,
-    currentExplorationSessionId: null,
-    requiredActions: 0,
-    completedActionCount: 0,
-    availableActionTypes: [],
-    completedActions: {
-      diceRoll: undefined,
-      manualActions: {}
-    },
-    activeNegotiation: null,
-    selectedDestination: null,
-    globalActionLog: [],
-    playerSnapshots: {},
-    decks: { W: [], B: [], E: [], L: [], I: [] },
-    discardPiles: { W: [], B: [], E: [], L: [], I: [] },
-    ...overrides
-  });
+  let mockStateService: IStateService;
+  let mockTurnService: ITurnService;
+  let mockMovementService: IMovementService;
+  let mockGameServices: IServiceContainer;
+
+  const PLAYER_ID = 'player1';
+  const OTHER_PLAYER_ID = 'player2';
 
   beforeEach(() => {
     vi.clearAllMocks();
-  });
 
-  it('should return hidden state when not current player', () => {
-    const gameState = createMockGameState({ currentPlayerId: 'other-player' });
-    mockServices.stateService.getGameState.mockReturnValue(gameState);
+    mockStateService = createMockStateService();
+    mockTurnService = createMockTurnService();
+    mockMovementService = createMockMovementService();
 
-    const state = getNextStepState(mockServices, playerId);
+    mockGameServices = {
+      stateService: mockStateService,
+      turnService: mockTurnService,
+      movementService: mockMovementService,
+      // Add other services as needed by getNextStepState or handleNextStep
+      cardService: {} as any, // Placeholder
+      choiceService: {} as any, // Placeholder
+      dataService: {} as any, // Placeholder
+      effectEngineService: {} as any, // Placeholder
+      gameRulesService: {} as any, // Placeholder
+      loggingService: {} as any, // Placeholder
+      negotiationService: {} as any, // Placeholder
+      notificationService: {} as any, // Placeholder
+      playerActionService: {} as any, // Placeholder
+      resourceService: {} as any,
+      targetingService: {} as any,
+    };
 
-    expect(state.visible).toBe(false);
-  });
-
-  it('should return disabled End Turn state when awaiting choice', () => {
-    const gameState = createMockGameState({
-      awaitingChoice: {
-        id: 'choice-1',
-        playerId: playerId,
-        type: 'CHOICE',
-        prompt: 'Choose',
-        options: [{ id: 'opt1', label: 'Option 1' }]
-      }
+    // Default mocks for common scenarios
+    mockStateService.getGameState.mockReturnValue({
+      players: [{ id: PLAYER_ID, name: 'Player 1' }, { id: OTHER_PLAYER_ID, name: 'Player 2' }],
+      currentPlayerId: PLAYER_ID,
+      awaitingChoice: null,
+    } as any);
+    mockStateService.getPlayer.mockImplementation((id) => {
+      if (id === PLAYER_ID) return { id: PLAYER_ID, name: 'Player 1' } as any;
+      if (id === OTHER_PLAYER_ID) return { id: OTHER_PLAYER_ID, name: 'Player 2' } as any;
+      return undefined;
     });
-    mockServices.stateService.getGameState.mockReturnValue(gameState);
+    mockStateService.subscribe.mockReturnValue(vi.fn()); // Mock subscription
 
-    const state = getNextStepState(mockServices, playerId);
+    mockTurnService.isCurrentPlayer.mockReturnValue(true);
+    mockTurnService.getAvailableActions.mockReturnValue([]);
+    mockTurnService.canEndTurn.mockReturnValue(true);
+    mockTurnService.endTurn.mockResolvedValue(undefined); // Mock successful endTurn
 
-    expect(state.visible).toBe(true);
-    expect(state.label).toBe('End Turn');
-    expect(state.disabled).toBe(true);
-    expect(state.tooltip).toBe('Complete current action first');
+    mockMovementService.rollAndMove.mockResolvedValue(undefined); // Mock successful rollAndMove
   });
 
-  it('should return disabled End Turn with action count when actions incomplete', () => {
-    const gameState = createMockGameState({
-      requiredActions: 3,
-      completedActionCount: 1
-    });
-    mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-    const state = getNextStepState(mockServices, playerId);
-
-    expect(state.visible).toBe(true);
-    expect(state.label).toBe('End Turn (2 actions remaining)');
-    expect(state.disabled).toBe(true);
-    expect(state.tooltip).toBe('Complete 2 more actions before ending turn');
+  test('is hidden on other players turn', () => {
+    mockTurnService.isCurrentPlayer.mockReturnValue(false);
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('should return End Turn state when all actions complete', () => {
-    const gameState = createMockGameState({
-      hasPlayerRolledDice: true,
-      requiredActions: 2,
-      completedActionCount: 2
-    });
-    mockServices.stateService.getGameState.mockReturnValue(gameState);
-
-    const state = getNextStepState(mockServices, playerId);
-
-    expect(state.visible).toBe(true);
-    expect(state.label).toBe('End Turn');
-    expect(state.disabled).toBe(false);
-    expect(state.action).toBe('end-turn');
+  test('shows "Roll to Move" when movement needed', () => {
+    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    expect(screen.getByText('Roll to Move')).toBeInTheDocument();
   });
 
-  it('should return enabled End Turn state when no actions required', () => {
-    const gameState = createMockGameState({
-      requiredActions: 0,
-      completedActionCount: 0
+  test('calls movementService.rollAndMove when "Roll to Move" is clicked', async () => {
+    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+
+    fireEvent.click(screen.getByText('Roll to Move'));
+
+    await waitFor(() => {
+      expect(mockMovementService.rollAndMove).toHaveBeenCalledWith(PLAYER_ID);
     });
-    mockServices.stateService.getGameState.mockReturnValue(gameState);
+  });
 
-    const state = getNextStepState(mockServices, playerId);
+  test('shows "End Turn" when actions complete', () => {
+    mockTurnService.getAvailableActions.mockReturnValue([]); // No movement needed
+    mockTurnService.canEndTurn.mockReturnValue(true);
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    expect(screen.getByText('End Turn')).toBeInTheDocument();
+  });
 
-    expect(state.visible).toBe(true);
-    expect(state.label).toBe('End Turn');
-    expect(state.disabled).toBe(false);
-    expect(state.action).toBe('end-turn');
+  test('calls turnService.endTurn when "End Turn" is clicked', async () => {
+    mockTurnService.getAvailableActions.mockReturnValue([]); // No movement needed
+    mockTurnService.canEndTurn.mockReturnValue(true);
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+
+    fireEvent.click(screen.getByText('End Turn'));
+
+    await waitFor(() => {
+      expect(mockTurnService.endTurn).toHaveBeenCalledWith(PLAYER_ID);
+    });
+  });
+
+  test('is disabled when choice pending', () => {
+    mockStateService.getGameState.mockReturnValue({
+      players: [{ id: PLAYER_ID, name: 'Player 1' }],
+      currentPlayerId: PLAYER_ID,
+      awaitingChoice: { id: 'choice1', type: 'MOVEMENT', prompt: 'Choose' }
+    } as any);
+    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']); // Even if movement available, choice takes precedence
+
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    const button = screen.getByRole('button');
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('End Turn'); // Default label when disabled due to choice
+    expect(button).toHaveAttribute('title', 'Complete current action first');
+  });
+
+  test('shows "Processing..." when an action is loading', async () => {
+    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
+    mockMovementService.rollAndMove.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100))); // Simulate loading
+
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    const button = screen.getByText('Roll to Move');
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Processing...');
+    });
+
+    // After loading, it should revert to original label
+    await waitFor(() => {
+      expect(button).toHaveTextContent('Roll to Move');
+    });
+  });
+
+  test('handles errors during action execution gracefully', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console error
+
+    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
+    mockMovementService.rollAndMove.mockRejectedValue(new Error('Movement failed'));
+
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    const button = screen.getByText('Roll to Move');
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Next step error:', expect.any(Error));
+      expect(button).not.toBeDisabled(); // Button should be re-enabled
+      expect(button).toHaveTextContent('Roll to Move'); // Label should revert
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  // New test case for "Ensure End Turn never hidden"
+  test('shows "End Turn" button when canEndTurn is true and no other actions', () => {
+    mockTurnService.getAvailableActions.mockReturnValue([]); // No other actions
+    mockTurnService.canEndTurn.mockReturnValue(true); // Can end turn
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    const endTurnButton = screen.getByText('End Turn');
+    expect(endTurnButton).toBeInTheDocument();
+    expect(endTurnButton).not.toBeDisabled();
+  });
+
+  test('hides button when canEndTurn is false and no other actions', () => {
+    mockTurnService.getAvailableActions.mockReturnValue([]); // No other actions
+    mockTurnService.canEndTurn.mockReturnValue(false); // Cannot end turn
+    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
+    expect(screen.queryByText('End Turn')).not.toBeInTheDocument();
+    expect(screen.queryByText('Roll to Move')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

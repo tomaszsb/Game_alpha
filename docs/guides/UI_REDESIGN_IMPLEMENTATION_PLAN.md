@@ -1080,8 +1080,10 @@ test('player panel has no accessibility violations', async () => {
 
 ---
 
-### Phase 2: Current Card & ChoiceEffect (Week 1-2)
+### Phase 2: Current Card & ChoiceEffect (COMPLETED - Nov 27, 2025)
 **Goal:** Dynamic card choices rendering
+
+**Status:** ✅ **COMPLETED**
 
 **Tasks:**
 1. Implement `CurrentCardSection` component
@@ -1095,7 +1097,7 @@ test('player panel has no accessibility violations', async () => {
 
 ---
 
-### Phase 3: Next Step Button (Week 2)
+### Phase 3: Next Step Button (COMPLETED - Nov 27, 2025)
 **Goal:** Persistent context-aware action button
 
 **Tasks:**
@@ -1110,31 +1112,33 @@ test('player panel has no accessibility violations', async () => {
 
 ---
 
-### Phase 4: Information Redistribution (Week 2-3)
+### Phase 4: Information Redistribution (COMPLETED - Nov 27, 2025)
 **Goal:** Move elements to appropriate UI areas
 
+**Status:** ✅ **COMPLETED**
+
 **Tasks:**
-1. Move Rules button to Progress Overview
-2. Show player roles on Game Board active space
-3. Implement "View Discarded" drawer in Cards section
-4. Remove old Player Panel portfolio elements
-5. Update navigation flows
-6. Test across all game phases
+1. ✅ Move Rules button to Progress Overview
+2. ✅ Show player roles on Game Board active space
+3. ✅ Implement "View Discarded" drawer in Cards section
+4. ✅ Remove old Player Panel portfolio elements
+5. ✅ Update navigation flows
+6. ✅ Test across all game phases
 
 **Deliverable:** Clean Player Panel with redistributed information.
 
 ---
 
-### Phase 5: Edge Cases & Polish (Week 3)
+### Phase 5: Edge Cases & Polish (COMPLETED - Nov 27, 2025)
 **Goal:** Handle all identified edge cases
 
 **Tasks:**
-1. Verify Try Again state reset behavior
-2. Test complex ChoiceEffect cards (3+ choices)
-3. Ensure End Turn never hidden
-4. Verify accessibility (screen reader, keyboard nav)
-5. Performance optimization (re-render reduction)
-6. Cross-browser testing
+1. ✅ Verify Try Again state reset behavior
+2. ✅ Test complex ChoiceEffect cards (3+ choices)
+3. ✅ Ensure End Turn never hidden
+4. ✅ Verify accessibility (screen reader, keyboard nav)
+5. ✅ Performance optimization (re-render reduction)
+6. ✅ Cross-browser testing
 
 **Deliverable:** Production-ready UI with all edge cases handled.
 
@@ -1144,8 +1148,8 @@ test('player panel has no accessibility violations', async () => {
 **Goal:** Document and deploy
 
 **Tasks:**
-1. Update component documentation
-2. Create user guide for new UI
+1. ✅ Update component documentation
+2. ✅ Create user guide for new UI
 3. Update E2E test suite
 4. Code review + QA testing
 5. Deploy to staging

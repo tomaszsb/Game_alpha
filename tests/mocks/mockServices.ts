@@ -49,11 +49,11 @@ export const createMockDataService = (): any => ({
   getAllDiceOutcomes: vi.fn(),
   
   // Space effects methods
-  getSpaceEffects: vi.fn(),
+  getSpaceEffects: vi.fn().mockReturnValue([]),
   getAllSpaceEffects: vi.fn(),
   
   // Dice effects methods
-  getDiceEffects: vi.fn(),
+  getDiceEffects: vi.fn().mockReturnValue([]), // Added missing mock
   getAllDiceEffects: vi.fn(),
   
   // Content methods
@@ -73,18 +73,22 @@ export const createMockDataService = (): any => ({
 
 export const createMockStateService = (): any => ({
   // State access methods
-  getGameState: vi.fn(),
+  getGameState: vi.fn().mockReturnValue({
+    players: [],
+    currentPlayerId: 'player1',
+    awaitingChoice: null,
+  }),
   getGameStateDeepCopy: vi.fn(),
   isStateLoaded: vi.fn(),
   
   // Subscription methods
-  subscribe: vi.fn(),
+  subscribe: vi.fn().mockReturnValue(vi.fn()),
   
   // Player management methods
   addPlayer: vi.fn(),
   updatePlayer: vi.fn(),
   removePlayer: vi.fn(),
-  getPlayer: vi.fn(),
+  getPlayer: vi.fn().mockReturnValue({ id: 'player1', name: 'Player 1' }),
   getAllPlayers: vi.fn(),
   
   // Game flow methods
@@ -119,6 +123,7 @@ export const createMockStateService = (): any => ({
   clearPlayerHasRolledDice: vi.fn(),
   updateActionCounts: vi.fn(),
   clearTurnActions: vi.fn(),
+  setPlayerMoveIntent: vi.fn(),
   
   // Modal management methods
   showCardModal: vi.fn(),
@@ -181,7 +186,7 @@ export const createMockGameRulesService = (): any => ({
   canPlayerTakeAction: vi.fn(),
   
   // Project scope calculation methods
-  calculateProjectScope: vi.fn(),
+  calculateProjectScope: vi.fn().mockReturnValue(0), // Added missing mock
 
   // Condition evaluation methods
   evaluateCondition: vi.fn().mockReturnValue(true),
@@ -221,6 +226,7 @@ export const createMockCardService = (): any => ({
   getPlayerCards: vi.fn(),
   getPlayerCardCount: vi.fn(),
   getCardToDiscard: vi.fn(),
+  getCardById: vi.fn(), // Added missing mock
   
   // Card effect methods
   applyCardEffects: vi.fn(),
@@ -258,6 +264,7 @@ export const createMockMovementService = (): any => ({
   
   // Movement execution methods
   movePlayer: vi.fn(),
+  rollAndMove: vi.fn(), // Added missing mock
   
   // Dice-based movement methods
   getDiceDestination: vi.fn(),
@@ -303,7 +310,7 @@ export const createMockChoiceService = (): any => ({
 export const createMockTurnService = (): any => ({
   // Turn management methods
   takeTurn: vi.fn(),
-  endTurn: vi.fn(),
+  endTurn: vi.fn().mockResolvedValue(undefined),
   rollDice: vi.fn(),
 
   // Separate dice and movement methods
@@ -313,6 +320,10 @@ export const createMockTurnService = (): any => ({
   // Turn validation methods
   canPlayerTakeTurn: vi.fn(),
   getCurrentPlayerTurn: vi.fn(),
+  isCurrentPlayer: vi.fn().mockReturnValue(true), // Default mock
+  getAvailableActions: vi.fn().mockReturnValue([]), // Default mock
+  canEndTurn: vi.fn().mockReturnValue(true), // Default mock
+  hasPendingChoice: vi.fn().mockReturnValue(false), // Default mock
 
   // Turn effects processing
   processTurnEffects: vi.fn(),

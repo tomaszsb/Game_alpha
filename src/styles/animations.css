@@ -5,6 +5,23 @@
  */
 
 /* ============================================
+   CSS VARIABLES FOR COMPONENT STYLES
+   ============================================ */
+:root {
+  --border-color: #dee2e6;
+  --background-color: #ffffff;
+  --hover-bg: #f8f9fa;
+  --error-red: #dc3545;
+  --error-bg: #f8d7da;
+  --primary-color: #2c5530;
+  --secondary-color: #6c757d;
+  --text-color: #212529;
+  --primary-hover: #1e3d21;
+  --secondary-hover: #5a6268;
+  --disabled-gray: #adb5bd;
+}
+
+/* ============================================
    ENTRANCE ANIMATIONS
    ============================================ */
 
@@ -387,4 +404,228 @@
 
 .animation-delay-300 {
   animation-delay: 300ms;
+}
+
+/* ============================================
+   EXPANDABLE SECTION
+   ============================================ */
+
+.expandable-section {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background-color: var(--background-color);
+}
+
+.expandable-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.expandable-section__header:hover {
+  background: var(--hover-bg);
+}
+
+.section-title {
+  font-weight: bold;
+}
+
+.action-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error-red);
+  animation: pulse 3s ease-out;
+}
+
+.expandable-section__content {
+  padding: 0 12px 12px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.expandable-section__content.--expanded {
+  max-height: 500px;
+}
+
+.expandable-section__content--loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line {
+  height: 20px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.expandable-section__error {
+  padding: 12px;
+  color: var(--error-red);
+  background: var(--error-bg);
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+/* ============================================
+   ACTION BUTTON
+   ============================================ */
+
+.action-button {
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.action-button--primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.action-button--secondary {
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+}
+
+.action-button--danger {
+  background-color: var(--error-red);
+  color: white;
+}
+
+/* ============================================
+   NEXT STEP & TRY AGAIN BUTTONS
+   ============================================ */
+
+.next-step-button {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: bold;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.next-step-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+.next-step-button:disabled {
+  background: var(--disabled-gray);
+  cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .next-step-button {
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+.try-again-button {
+  position: fixed;
+  bottom: 16px;
+  right: 140px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: normal;
+  background: var(--secondary-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.try-again-button::before {
+  content: '↶';
+  font-size: 16px;
+}
+
+.try-again-button:hover:not(:disabled) {
+  background: var(--secondary-hover);
+  transform: translateY(-1px);
+}
+
+.try-again-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .try-again-button {
+    bottom: 24px;
+    right: 160px;
+  }
+}
+
+
+/* ============================================
+   CARD CONTENT STYLES
+   ============================================ */
+
+.card-content {
+  padding: 12px;
+}
+
+.card-story {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  color: var(--text-color);
+}
+
+.card-action-required {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #e8f5e9;
+  border-left: 3px solid var(--primary-color);
+  border-radius: 4px;
+}
+
+.card-outcomes {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  color: #495057;
+  font-style: italic;
+}
+
+.card-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@media (min-width: 768px) {
+  .card-choices {
+    flex-direction: row;
+  }
 }

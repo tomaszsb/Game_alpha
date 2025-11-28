@@ -234,10 +234,10 @@ export function PlayerSetup({
           
           {/* Player count summary */}
           <p style={{
-            color: colors.secondary.main,
-            fontSize: '1rem',
-            margin: '0 0 1.5rem 0',
-            fontStyle: 'italic'
+            color: colors.text.primary,
+            fontSize: '1.1rem',
+            fontWeight: '500',
+            margin: '0 0 1.5rem 0'
           }}>
             {validation.getPlayerCountSummary()}
           </p>

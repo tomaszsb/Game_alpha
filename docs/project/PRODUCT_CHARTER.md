@@ -54,6 +54,15 @@ The card system is a central part of the game, providing a wide range of strateg
 *   **Card Playing:** Players can play cards from their hand to trigger their effects. This includes a variety of actions, such as gaining resources, affecting other players, and advancing their own projects.
 *   **Card Transfer:** "E" (Expeditor) and "L" (Life Events) cards can be transferred between players, adding another layer of strategic depth to the game.
 
+### Automatic Funding
+
+At the **OWNER-FUND-INITIATION** space, the game features an automatic funding mechanic. Instead of a manual "Get Funding" button, the game automatically draws a funding card for the player based on their current project scope.
+
+*   If the project scope is less than or equal to $4M, the player receives a **B (Bank Loan)** card.
+*   If the project scope is greater than $4M, the player receives an **I (Investor Loan)** card.
+
+This mechanic streamlines the gameplay and integrates the funding process directly into the game's narrative.
+
 ## 4. Implementation Standards Achieved ✅
 
 *   **Workspace Management:**

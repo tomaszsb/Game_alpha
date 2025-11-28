@@ -14,12 +14,6 @@ export interface TimeSectionProps {
   /** ID of the player whose time information to display */
   playerId: string;
 
-  /** Whether the section is currently expanded */
-  isExpanded: boolean;
-
-  /** Callback fired when the section header is clicked */
-  onToggle: () => void;
-
   /** Completed actions tracking */
   completedActions?: {
     diceRoll?: string;
@@ -64,10 +58,9 @@ export interface TimeSectionProps {
 export const TimeSection: React.FC<TimeSectionProps> = ({
   gameServices,
   playerId,
-  isExpanded,
-  onToggle,
   completedActions = { manualActions: {} }
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,7 +137,7 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
       icon="⏱️"
       hasAction={hasTimeActions}
       isExpanded={isExpanded}
-      onToggle={onToggle}
+      onToggle={() => setIsExpanded(!isExpanded)}
       ariaControls="time-content"
       isLoading={isLoading}
       error={error || undefined}

@@ -419,6 +419,29 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
+   * Check if the current player can end their turn.
+   * This involves checking if all required actions are completed.
+   * @param playerId - The ID of the player to check
+   * @returns true if the player can end their turn, false otherwise.
+   */
+  canEndTurn(playerId: string): boolean {
+    // Player must exist and be current player
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || !this.isPlayerTurn(playerId) || !this.isGameInProgress()) {
+      return false;
+    }
+
+    // No pending choices should exist
+    if (this.stateService.getGameState().awaitingChoice) {
+      return false;
+    }
+
+    // All required actions for the turn must be completed
+    const gameState = this.stateService.getGameState();
+    return gameState.requiredActions <= gameState.completedActionCount;
+  }
+
+  /**
    * Calculates the total project scope for a player based on their Work (W) cards
    * @param playerId - The ID of the player
    * @returns The total cost/value of all W cards owned by the player

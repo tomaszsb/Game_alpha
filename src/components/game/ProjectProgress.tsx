@@ -6,10 +6,15 @@ import { Player } from '../../types/StateTypes';
 import { IDataService } from '../../types/ServiceContracts';
 
 interface ProjectProgressProps {
+  /** An array of Player objects participating in the game. */
   players: Player[];
+  /** The ID of the current player. */
   currentPlayerId: string | null;
+  /** The DataService instance for accessing game data. */
   dataService: IDataService;
+  /** Callback function to toggle the visibility of the game log. */
   onToggleGameLog: () => void;
+  /** Callback function to open the game rules modal. */
   onOpenRulesModal: () => void;
 }
 
@@ -158,56 +163,53 @@ export function ProjectProgress({ players, currentPlayerId, dataService, onToggl
 
   return (
     <div style={containerStyle}>
-      <div style={titleStyle}>
-        🚀 Project Progress Overview
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={titleStyle}>
+          🚀 Project Progress Overview
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={onOpenRulesModal} style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            backgroundColor: colors.purple.main,
+            color: colors.white,
+            border: `2px solid ${colors.white}`,
+            borderRadius: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <span>📋</span>
+            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Rules</span>
+          </button>
+          <button onClick={onToggleGameLog} style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            backgroundColor: colors.primary.main,
+            color: colors.white,
+            border: `2px solid ${colors.white}`,
+            borderRadius: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <span>📜</span>
+            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Log</span>
+          </button>
+        </div>
       </div>
 
-      {/* Overall Progress Bar with Action Buttons */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '12px'
-      }}>
-        <div style={{ ...progressBarContainerStyle, flex: 1, marginBottom: 0 }}>
-          <div style={progressBarFillStyle}></div>
-        </div>
-        <button onClick={onOpenRulesModal} style={{
-          padding: '6px 12px',
-          fontSize: '11px',
-          fontWeight: 'bold',
-          backgroundColor: colors.purple.main,
-          color: colors.white,
-          border: `2px solid ${colors.white}`,
-          borderRadius: '8px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          whiteSpace: 'nowrap',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          <span>📋</span>
-          <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Rules</span>
-        </button>
-        <button onClick={onToggleGameLog} style={{
-          padding: '6px 12px',
-          fontSize: '11px',
-          fontWeight: 'bold',
-          backgroundColor: colors.primary.main,
-          color: colors.white,
-          border: `2px solid ${colors.white}`,
-          borderRadius: '8px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          whiteSpace: 'nowrap',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          <span>📜</span>
-          <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Log</span>
-        </button>
+      {/* Overall Progress Bar */}
+      <div style={{ ...progressBarContainerStyle, marginBottom: '12px' }}>
+        <div style={progressBarFillStyle}></div>
       </div>
 
       {/* Phase Indicators */}

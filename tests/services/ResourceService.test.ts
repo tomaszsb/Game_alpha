@@ -112,10 +112,9 @@ describe('ResourceService', () => {
         expect(result).toBe(false);
       });
 
-      it('should return false when player is not found', () => {
+      it('should throw an error when player is not found', () => {
         mockStateService.getPlayer.mockReturnValue(undefined);
-        const result = resourceService.canAfford('nonexistent', 100);
-        expect(result).toBe(false);
+        expect(() => resourceService.canAfford('nonexistent', 100)).toThrow(/Player nonexistent not found/);
       });
     });
   });
@@ -387,22 +386,14 @@ describe('ResourceService', () => {
       it('should fail when player is not found', () => {
         mockStateService.getPlayer.mockReturnValue(undefined);
         
-        const result = resourceService.takeOutLoan('nonexistent', 1000, 0.05);
+        expect(() => resourceService.takeOutLoan('nonexistent', 1000, 0.05)).toThrow(/Player nonexistent not found/);
         
-        expect(result).toBe(false);
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
       });
 
       it('should rollback loan if money addition fails', () => {
-        // Mock updatePlayer to fail on the second call (money addition)
-        let callCount = 0;
-        mockStateService.updatePlayer.mockImplementation(() => {
-          callCount++;
-          if (callCount === 2) {
-            throw new Error('Failed to add money');
-          }
-          return mockGameState;
-        });
+        // Mock addMoney to return false
+        vi.spyOn(resourceService, 'addMoney').mockReturnValue(false);
 
         const result = resourceService.takeOutLoan('player1', 1000, 0.05);
         
@@ -507,7 +498,7 @@ describe('ResourceService', () => {
       it('should do nothing when player is not found', () => {
         mockStateService.getPlayer.mockReturnValue(undefined);
         
-        resourceService.applyInterest('nonexistent');
+        expect(() => resourceService.applyInterest('nonexistent')).toThrow(/Player nonexistent not found/);
         
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
       });
@@ -735,9 +726,8 @@ describe('ResourceService', () => {
       it('should fail when player is not found', () => {
         mockStateService.getPlayer.mockReturnValue(undefined);
 
-        const result = resourceService.recordCost('nonexistent', 'bank', 100, 'Fee', 'TEST');
+        expect(() => resourceService.recordCost('nonexistent', 'bank', 100, 'Fee', 'TEST')).toThrow(/Player nonexistent not found/);
 
-        expect(result).toBe(false);
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
       });
 

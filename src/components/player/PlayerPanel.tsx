@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
+import { Card } from '../../types/DataTypes';
 import { FinancesSection } from './sections/FinancesSection';
 import { TimeSection } from './sections/TimeSection';
 import { CardsSection } from './sections/CardsSection';
@@ -32,7 +33,7 @@ export interface PlayerPanelProps {
   isMovementPathVisible?: boolean;
 
   /** Callback to handle Try Again action */
-  onTryAgain?: () => Promise<void>;
+  onTryAgain?: (playerId: string) => Promise<void>;
 
   /** Player notification message */
   playerNotification?: string;
@@ -101,15 +102,42 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   completedActions = { manualActions: {} }
 }) => {
   // Section expand/collapse state
-  const [isCurrentCardExpanded, setIsCurrentCardExpanded] = useState(true);
-  const [isProjectScopeExpanded, setIsProjectScopeExpanded] = useState(false);
-  const [isFinancesExpanded, setIsFinancesExpanded] = useState(false);
-  const [isTimeExpanded, setIsTimeExpanded] = useState(false);
-  const [isCardsExpanded, setIsCardsExpanded] = useState(false);
+  const [currentCard, setCurrentCard] = useState<Card | null>(null);
 
   // Movement choice state
   const [movementChoice, setMovementChoice] = useState<Choice | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = gameServices.stateService.subscribe((gameState) => {
+      const player = gameState.players.find(p => p.id === playerId);
+      if (player) {
+        const card = player.currentCard
+          ? gameServices.dataService.getCardById(player.currentCard)
+          : null;
+        setCurrentCard(card || null);
+      }
+    });
+
+    // Initialize with current state
+    const player = gameServices.stateService.getPlayer(playerId);
+    if (player) {
+      const card = player.currentCard
+        ? gameServices.dataService.getCardById(player.currentCard)
+        : null;
+      setCurrentCard(card || null);
+    }
+
+    return unsubscribe;
+  }, [gameServices.stateService, gameServices.dataService, playerId]);
+
+  const handleChoice = async (choiceId: string) => {
+    const choice = gameServices.stateService.getGameState().awaitingChoice;
+    if (choice) {
+      await gameServices.choiceService.resolveChoice(choice.id, choiceId);
+    }
+  };
+
 
   // Subscribe to game state for movement choices
   useEffect(() => {
@@ -181,18 +209,16 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           </div>
         )}
       </div>
-      <CurrentCardSection
-        gameServices={gameServices}
-        playerId={playerId}
-        isExpanded={isCurrentCardExpanded}
-        onToggle={() => setIsCurrentCardExpanded(!isCurrentCardExpanded)}
-      />
+      {currentCard && (
+        <CurrentCardSection
+          card={currentCard}
+          onChoice={handleChoice}
+        />
+      )}
 
       <ProjectScopeSection
         gameServices={gameServices}
         playerId={playerId}
-        isExpanded={isProjectScopeExpanded}
-        onToggle={() => setIsProjectScopeExpanded(!isProjectScopeExpanded)}
         onRollDice={onRollDice}
         completedActions={completedActions}
       />
@@ -200,8 +226,6 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       <FinancesSection
         gameServices={gameServices}
         playerId={playerId}
-        isExpanded={isFinancesExpanded}
-        onToggle={() => setIsFinancesExpanded(!isFinancesExpanded)}
         onRollDice={onRollDice}
         onAutomaticFunding={onAutomaticFunding}
         completedActions={completedActions}
@@ -210,16 +234,12 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       <TimeSection
         gameServices={gameServices}
         playerId={playerId}
-        isExpanded={isTimeExpanded}
-        onToggle={() => setIsTimeExpanded(!isTimeExpanded)}
         completedActions={completedActions}
       />
 
       <CardsSection
         gameServices={gameServices}
         playerId={playerId}
-        isExpanded={isCardsExpanded}
-        onToggle={() => setIsCardsExpanded(!isCardsExpanded)}
         onRollDice={onRollDice}
         onManualEffectResult={onManualEffectResult}
         completedActions={completedActions}
@@ -277,22 +297,22 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       )}
 
-      {/* Bottom Row - Try Again (left) and End Turn (right) */}
+      {/* Bottom Row - Try Again Button (NextStepButton handles End Turn) */}
       <div className="player-panel__bottom">
         {onTryAgain && (
           <button
-            onClick={onTryAgain}
+            onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
             className="try-again-button"
             aria-label="Try Again on current space"
           >
             🔄 Try Again
           </button>
         )}
-        <NextStepButton
-          gameServices={gameServices}
-          playerId={playerId}
-        />
       </div>
+      <NextStepButton
+        gameServices={gameServices}
+        playerId={playerId}
+      />
     </div>
   );
 };

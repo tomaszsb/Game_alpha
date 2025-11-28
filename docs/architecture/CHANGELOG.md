@@ -46,6 +46,51 @@ All notable changes to this project will be documented in this file.
   - Deleted superseded branches: debug-stuck-session, fix-qr-player-routing, smart-layout-adaptation
   - Main work consolidated in claude/server-state-sync-015vguQHiYncpGAGktxqnAPQ
 
+### Player Panel Button Fixes & Development Workflow (November 27-28, 2025)
+- **UI Bug Fixes:**
+  - Fixed NextStepButton and TryAgainButton floating on top of game board
+  - Root cause: `position: fixed` CSS in animations.css applied globally
+  - Solution: Added CSS overrides in PlayerPanel.css (`.player-panel .next-step-button { position: static; }`)
+  - Buttons now properly integrated into player panel bottom area with 2:1 flex ratio
+
+- **NextStepButton Simplification:**
+  - Removed roll-to-move logic from NextStepButton
+  - Button now only handles "End Turn" action
+  - Roll actions delegated to section-specific buttons (ProjectScopeSection, FinancesSection, TimeSection, CardsSection)
+  - Simplified `NextStepState` interface from `'roll-movement' | 'end-turn'` to just `'end-turn'`
+  - Clear single-purpose button behavior
+
+- **Development Workflow Enhancement:**
+  - Installed `concurrently` package for multi-server startup
+  - Updated `npm run dev` to automatically start both Vite (port 3000) and Express backend (port 3001)
+  - Added color-coded console output: cyan for frontend, magenta for backend
+  - Created separate `npm run dev:vite` and `npm run server` scripts for individual startup
+  - Backend server now REQUIRED for multi-device state persistence (documented in CLAUDE.md)
+
+- **TypeScript Strict Mode Progress:**
+  - Reduced errors from 28+ to 12 remaining
+  - Fixed service interface definitions in ServiceContracts.ts (IResourceService, ITurnService, IStateService)
+  - Updated section component interfaces (removed deprecated isExpanded/onToggle props)
+  - Extended Card type with optional UI properties
+  - Remaining errors in legacy files: App.tsx, ErrorBoundary.tsx, DataEditor.tsx, GameSpace.tsx
+
+- **Documentation Organization:**
+  - Created `docs/archive/` directory for obsolete documentation
+  - Archived 3 AI collaboration workflow documents from October 2025:
+    - AI_COLLABORATION_WORKFLOW-ARCHIVED-20251007.md
+    - GEMINI-ARCHIVED-20251007.md
+    - HANDOVER_REPORT-20251003.md
+  - Added archive banners with date, reason, and historical context
+  - Updated CLAUDE.md with Development Commands section and November 27-28 work log
+  - Updated TODO.md with new completion section for button fixes
+
+- **Files Modified:**
+  - `src/components/player/PlayerPanel.css` - Button positioning overrides (lines 98-151)
+  - `src/components/player/NextStepButton.tsx` - Simplified to end-turn only (lines 14-56, 85-98)
+  - `package.json` - Updated dev scripts to use concurrently (lines 32-33)
+  - `docs/project/CLAUDE.md` - Development Commands + work log
+  - `docs/project/TODO.md` - Added completion section
+
 ### Smart Layout Adaptation - Architecture Redesign (November 19, 2025)
 - **Problem Identified:**
   - Initial implementation used continuous heartbeat polling (every 3 seconds)

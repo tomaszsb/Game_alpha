@@ -1,3 +1,10 @@
+---
+**⚠️ ARCHIVED DOCUMENT**
+**Archived Date:** November 28, 2025
+**Reason:** AI-to-AI collaboration workflow superseded by current development practices
+**Historical Context:** This documented the Gemini-Claude IPC communication system used during initial development (code2027 project)
+---
+
 # AI Collaboration Workflow: Hybrid Model
 
 **Version:** 3.0

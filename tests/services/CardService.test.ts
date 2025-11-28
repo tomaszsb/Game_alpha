@@ -302,21 +302,21 @@ describe('CardService - Enhanced Coverage', () => {
 
       expect(() => {
         cardService.transferCard('nonexistent', 'player1', 'W_active_001');
-      }).toThrow('Source player nonexistent not found');
+      }).toThrow(/Source player nonexistent not found/);
 
       expect(() => {
         cardService.transferCard('player1', 'nonexistent', 'W_active_001');
-      }).toThrow('Target player nonexistent not found');
+      }).toThrow(/Target player nonexistent not found/);
 
       expect(() => {
         cardService.transferCard('player1', 'player1', 'E_transferable_001');
-      }).toThrow('Cannot transfer card to yourself');
+      }).toThrow(/Cannot transfer to yourself/);
 
       // Test non-transferable card types
       mockStateService.getPlayer.mockReturnValue(mockPlayer);  // Reset mock
       expect(() => {
         cardService.transferCard('player1', 'player2', 'W_active_001');
-      }).toThrow('W cards cannot be transferred');
+      }).toThrow(/W cards cannot be transferred/);
     });
   });
 

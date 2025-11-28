@@ -3,7 +3,7 @@ import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { CardType } from '../../../types/DataTypes';
-import { DiscardedCardsModal } from '../../modals/DiscardedCardsModal';
+import { DiscardPileModal } from '../../modals/DiscardPileModal';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import './CardsSection.css';
 
@@ -16,12 +16,6 @@ export interface CardsSectionProps {
 
   /** ID of the player whose card portfolio to display */
   playerId: string;
-
-  /** Whether the section is currently expanded */
-  isExpanded: boolean;
-
-  /** Callback fired when the section header is clicked */
-  onToggle: () => void;
 
   /** Callback to handle dice roll action */
   onRollDice?: () => Promise<void>;
@@ -78,12 +72,11 @@ export interface CardsSectionProps {
 export const CardsSection: React.FC<CardsSectionProps> = ({
   gameServices,
   playerId,
-  isExpanded,
-  onToggle,
   onRollDice,
   onManualEffectResult,
   completedActions = { manualActions: {} }
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRollingDice, setIsRollingDice] = useState(false);
@@ -316,9 +309,8 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
         title="CARDS"
         icon="🎴"
         hasAction={hasCardActions}
-        isExpanded={isExpanded}
-        onToggle={onToggle}
-        ariaControls="cards-content"
+              isExpanded={isExpanded}
+              onToggle={() => setIsExpanded(!isExpanded)}        ariaControls="cards-content"
         isLoading={isLoading}
         error={error || undefined}
         onRetry={error ? handleRetry : undefined}
@@ -469,11 +461,11 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
     </ExpandableSection>
 
       {/* Discarded Cards Modal */}
-      <DiscardedCardsModal
-        player={player}
-        isVisible={showDiscardedModal}
+      <DiscardPileModal
+        gameServices={gameServices}
+        playerId={playerId}
+        isOpen={showDiscardedModal}
         onClose={() => setShowDiscardedModal(false)}
-        onOpenCardDetailsModal={handleCardDetailsOpen}
       />
 
       {/* Card Details Modal */}

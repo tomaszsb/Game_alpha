@@ -1,0 +1,277 @@
+import { describe, it, expect, beforeAll, vi, beforeEach } from 'vitest';
+import React from 'react'; // Added missing React import
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { StateService } from '../src/services/StateService';
+import { DataService } from '../src/services/DataService';
+import { CardService } from '../src/services/CardService';
+import { LoggingService } from '../src/services/LoggingService';
+import { ChoiceService } from '../src/services/ChoiceService';
+import { EffectEngineService } from '../src/services/EffectEngineService';
+import { GameRulesService } from '../src/services/GameRulesService';
+import { MovementService } from '../src/services/MovementService';
+import { ResourceService } from '../src/services/ResourceService';
+import { TurnService } from '../src/services/TurnService';
+import { NegotiationService } from '../src/services/NegotiationService';
+import { NotificationService } from '../src/services/NotificationService';
+import { IDataService, IStateService, ITurnService, IServiceContainer } from '../src/types/ServiceContracts';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { PlayerPanel } from '../src/components/player/PlayerPanel'; // Import PlayerPanel
+import { GameState, Player } from '../src/types/StateTypes';
+import { Card } from '../src/types/DataTypes';
+
+// Node.js compatible DataService for E2E testing
+class NodeDataService extends DataService {
+  // Override the loadData method to use filesystem instead of fetch
+  async loadData(): Promise<void> {
+    if ((this as any).loaded) return;
+
+    try {
+      const dataDir = join(process.cwd(), 'public', 'data', 'CLEAN_FILES');
+      
+      // Load all CSV files using filesystem
+      const gameConfigCsv = readFileSync(join(dataDir, 'GAME_CONFIG.csv'), 'utf-8');
+      const movementCsv = readFileSync(join(dataDir, 'MOVEMENT.csv'), 'utf-8');
+      const diceOutcomesCsv = readFileSync(join(dataDir, 'DICE_OUTCOMES.csv'), 'utf-8');
+      const spaceEffectsCsv = readFileSync(join(dataDir, 'SPACE_EFFECTS.csv'), 'utf-8');
+      const diceEffectsCsv = readFileSync(join(dataDir, 'DICE_EFFECTS.csv'), 'utf-8');
+      const spaceContentsCsv = readFileSync(join(dataDir, 'SPACE_CONTENT.csv'), 'utf-8');
+      const cardsCsv = readFileSync(join(dataDir, 'CARDS_EXPANDED.csv'), 'utf-8');
+      
+      // Parse CSV data using existing methods
+      (this as any).gameConfigs = (this as any).parseGameConfigCsv(gameConfigCsv);
+      (this as any).movements = (this as any).parseMovementCsv(movementCsv);
+      (this as any).diceOutcomes = (this as any).parseDiceOutcomesCsv(diceOutcomesCsv);
+      (this as any).spaceEffects = (this as any).parseSpaceEffectsCsv(spaceEffectsCsv);
+      (this as any).diceEffects = (this as any).parseDiceEffectsCsv(diceEffectsCsv);
+      (this as any).spaceContents = (this as any).parseSpaceContentCsv(spaceContentsCsv);
+      (this as any).cards = (this as any).parseCardsCsv(cardsCsv);
+      
+      (this as any).buildSpaces();
+      (this as any).loaded = true;
+    } catch (error) {
+      console.error('Error loading CSV data from filesystem:', error);
+      throw new Error('Failed to load game data from filesystem');
+    }
+  }
+}
+
+// Global service instances for E2E tests
+let globalDataService: IDataService;
+let globalStateService: StateService;
+let globalTurnService: TurnService;
+let globalCardService: CardService;
+let globalResourceService: ResourceService;
+let globalMovementService: MovementService;
+let globalChoiceService: ChoiceService;
+let globalGameRulesService: GameRulesService;
+let globalEffectEngineService: EffectEngineService;
+let globalNegotiationService: NegotiationService;
+let globalLoggingService: LoggingService;
+let globalNotificationService: NotificationService;
+
+// Mock PlayerPanel props
+interface MockPlayerPanelProps {
+  gameServices: IServiceContainer;
+  playerId: string;
+}
+
+// Helper function to set up game services and render PlayerPanel
+const setupPlayerPanelE2E = (initialPlayerName: string = 'Alice', initialGameState?: Partial<GameState>, initialPlayer?: Partial<Player>) => {
+  // Use actual services for E2E
+  const gameServices: IServiceContainer = {
+    dataService: globalDataService,
+    stateService: globalStateService,
+    turnService: globalTurnService, // Use globalTurnService
+    cardService: globalCardService,
+    resourceService: globalResourceService,
+    movementService: globalMovementService,
+    choiceService: globalChoiceService,
+    gameRulesService: globalGameRulesService,
+    effectEngineService: globalEffectEngineService,
+    negotiationService: globalNegotiationService,
+    loggingService: globalLoggingService,
+    notificationService: globalNotificationService,
+    playerActionService: {} as any, // Not used directly by PlayerPanel
+  };
+
+  // Reset state to initial before each test
+  globalStateService.resetGame();
+  globalStateService.addPlayer(initialPlayerName);
+  
+  // Get the actual player ID that was generated by addPlayer
+  const actualPlayer = globalStateService.getAllPlayers()[0];
+  const actualPlayerId = actualPlayer.id;
+
+  // Set the actual player as the current player and start the game
+  globalStateService.setCurrentPlayer(actualPlayerId);
+  globalStateService.startGame();
+
+  if (initialGameState) {
+    globalStateService.setGameState({ ...globalStateService.getGameState(), ...initialGameState });
+  }
+  if (initialPlayer) {
+    globalStateService.updatePlayer({ id: actualPlayerId, ...initialPlayer });
+  }
+
+  // Render the PlayerPanel
+  const { rerender } = render(<PlayerPanel gameServices={gameServices} playerId={actualPlayerId} />);
+
+  return { gameServices, actualPlayerId, rerender };
+};
+
+
+
+describe('E2E-01: Happy Path with New UI', () => {
+
+  beforeAll(async () => {
+    // 1. Initialize all the real services in correct dependency order
+    globalDataService = new NodeDataService();
+    await globalDataService.loadData();
+
+    globalStateService = new StateService(globalDataService);
+    globalLoggingService = new LoggingService(globalStateService); // Initialize globalLoggingService
+    globalResourceService = new ResourceService(globalStateService); // Initialize globalResourceService
+    globalCardService = new CardService(globalDataService, globalStateService, globalResourceService, globalLoggingService, globalGameRulesService);
+    globalChoiceService = new ChoiceService(globalStateService);
+    globalMovementService = new MovementService(globalDataService, globalStateService, globalChoiceService, globalLoggingService);
+    globalGameRulesService = new GameRulesService(globalDataService, globalStateService); // Needs dataService and stateService
+    globalStateService.setGameRulesService(globalGameRulesService); // Set GameRulesService on StateService (circular dep)
+    globalNotificationService = new NotificationService(globalStateService, globalLoggingService);
+
+    // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
+    globalEffectEngineService = new EffectEngineService(
+      globalResourceService,
+      globalCardService,
+      globalChoiceService,
+      globalStateService,
+      globalMovementService,
+      {} as ITurnService, // Temporary placeholder for TurnService
+      globalGameRulesService,
+      {} as any, // Temporary placeholder for TargetingService
+      globalLoggingService,
+      globalNotificationService
+    );
+    globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService);
+    const turnServiceInstance = new TurnService(
+      globalDataService,
+      globalStateService,
+      globalGameRulesService,
+      globalCardService,
+      globalResourceService,
+      globalMovementService,
+      globalNegotiationService,
+      globalLoggingService,
+      globalChoiceService, // Pass choiceService
+      globalNotificationService
+    );
+
+    // Complete the circular dependency wiring
+    turnServiceInstance.setEffectEngineService(globalEffectEngineService);
+    globalEffectEngineService.setTurnService(turnServiceInstance);
+
+    globalTurnService = turnServiceInstance;
+  });
+
+  beforeEach(() => {
+    vi.restoreAllMocks(); // Ensure mocks are clean for each test
+
+    // Mock globalDataService.getCardById to return the mockWCard for any W card ID
+    vi.spyOn(globalDataService, 'getCardById').mockImplementation((cardId) => {
+      if (cardId.startsWith('W_TEST')) { // Specific ID for our test mock card
+        return mockWCard;
+      }
+      // Fallback to original implementation for other card types if necessary
+      // For this E2E test, we primarily care about W cards, so returning undefined for others is fine.
+      return undefined;
+    });
+
+    // Mock globalCardService.drawCards to simulate adding card to player's hand and returning its ID
+    vi.spyOn(globalCardService, 'drawCards').mockImplementation((playerId, cardType, count) => {
+      const player = globalStateService.getPlayer(playerId);
+      if (player && cardType === 'W') {
+        const drawnCardId = 'W_TEST_DYNAMIC_ID'; // Use a consistent dynamic ID
+        const updatedHand = [...player.hand, drawnCardId];
+        globalStateService.updatePlayer({ id: playerId, hand: updatedHand });
+        // Manually set currentCard for this specific test scenario
+        globalStateService.updatePlayer({ id: playerId, currentCard: drawnCardId });
+        return [drawnCardId];
+      }
+      return [];
+    });
+  });
+
+
+  it('should allow a single player to start a game and take one turn via UI interaction', async () => {
+    console.log('🔥🔥🔥 [E2E TEST] Happy Path with New UI started!');
+    const PLAYER_ID = 'player1';
+
+    const { gameServices, actualPlayerId } = setupPlayerPanelE2E('Alice');
+
+    // Assert Phase 1: Initial UI state and player info
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('OWNER-SCOPE-INITIATION')).toBeInTheDocument();
+
+    // Mock dice roll to return 4 consistently for controlled movement
+    const rollDiceSpy = vi.spyOn(gameServices.turnService, 'rollDice').mockReturnValue(4);
+
+    // UI Interaction 1: Click "Roll to Move" button
+    const rollToMoveButton = screen.getByRole('button', { name: /Roll to Move/i });
+    expect(rollToMoveButton).toBeInTheDocument();
+    fireEvent.click(rollToMoveButton);
+
+    // After rolling, the UI should show the choices from OWNER-SCOPE-INITIATION
+    // which lead to OWNER-FUND-INITIATION and a choice for a card
+    await waitFor(() => {
+      // Expect a card to be currentCard, and choices to appear
+      // Card name is now in an ExpandableSection header, use flexible selector
+      expect(screen.getByText(/Test W Card/)).toBeInTheDocument(); // CurrentCardSection title
+      expect(screen.getByText('Accept')).toBeInTheDocument(); // Choice button
+      expect(screen.getByText('Negotiate')).toBeInTheDocument(); // Choice button
+    }, { timeout: 3000 });
+
+    // We don't need to call gameServices.cardService.playCard here because drawCards mock now sets currentCard
+    // And the subsequent expect for "Test W Card" should pass based on this.
+
+    // UI Interaction 2: Make a choice (e.g., "Accept")
+    const acceptButton = screen.getByText('Accept');
+    fireEvent.click(acceptButton);
+
+    await waitFor(() => {
+      // After choice, choices should disappear and "End Turn" button should be enabled
+      expect(screen.queryByText('Accept')).not.toBeInTheDocument();
+      expect(screen.queryByText('Negotiate')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /End Turn/i })).toBeEnabled();
+    });
+
+    // Assert Phase 2: Check the underlying game state after UI interactions
+    const intermediateGameState = gameServices.stateService.getGameState();
+    const intermediatePlayer = intermediateGameState.players.find(p => p.id === actualPlayerId);
+    expect(intermediatePlayer?.currentSpace).toBe('OWNER-FUND-INITIATION'); // Moved by rollAndMove
+    expect(intermediatePlayer?.hand).toContain('W_TEST_DYNAMIC_ID'); // Card was drawn and currentCard set
+
+
+    // UI Interaction 3: Click "End Turn" button
+    const endTurnButton = screen.getByRole('button', { name: /End Turn/i });
+    fireEvent.click(endTurnButton);
+
+    await waitFor(() => {
+      // After End Turn, current player should change (or turn advanced)
+      // and UI should reflect next state (e.g., Roll to Move for next player, or hidden for current)
+      expect(gameServices.stateService.getGameState().globalTurnCount).toBe(1);
+      expect(screen.getByRole('button', { name: /Roll to Move/i })).toBeEnabled();
+    });
+
+    // Check final player state relevant to the turn's effects
+    const finalPlayer = gameServices.stateService.getPlayer(actualPlayerId);
+    expect(finalPlayer?.currentSpace).toBe('OWNER-FUND-INITIATION');
+    expect(finalPlayer?.timeSpent).toBe(1); // from OWNER-FUND-INITIATION space effect
+    expect(finalPlayer?.hand.length).toBeGreaterThan(0);
+    expect(finalPlayer?.hand).toContain('W_TEST_DYNAMIC_ID'); // Card was kept after choice
+
+    // Cleanup
+    rollDiceSpy.mockRestore();
+
+    console.log(`E2E test success: Player completed a turn via new UI`);
+  });
+});

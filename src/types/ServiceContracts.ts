@@ -57,6 +57,18 @@ import { Choice } from './CommonTypes';
 
 import { Effect, EffectContext, EffectResult, BatchEffectResult } from './EffectTypes';
 
+// Action types that can be performed during a player's turn
+export type ActionType =
+  | 'ROLL_TO_MOVE'
+  | 'ROLL_FOR_MONEY'
+  | 'ROLL_FOR_TIME'
+  | 'ROLL_FOR_CARDS_W'
+  | 'ROLL_FOR_CARDS_B'
+  | 'ROLL_FOR_CARDS_E'
+  | 'ROLL_FOR_CARDS_L'
+  | 'ROLL_FOR_CARDS_I'
+  | 'END_TURN';
+
 import { CardType } from './DataTypes';
 
 // Resource Management Interfaces
@@ -105,6 +117,9 @@ export interface IResourceService {
   // Loan operations
   takeOutLoan(playerId: string, amount: number, interestRate: number): boolean;
   applyInterest(playerId: string): void;
+
+  // Cost tracking
+  recordCost(playerId: string, category: import('./DataTypes').CostCategory, amount: number, description: string, source: string): boolean;
 }
 
 // Phase 1 Services
@@ -201,6 +216,7 @@ export interface IStateService {
   clearTurnActions(): GameState;
   clearPlayerHasRolledDice(): GameState;
   updateActionCounts(): void;
+  setPlayerMoveIntent(playerId: string, destination: string | null): GameState;
   
   // Modal management methods
   showCardModal(cardId: string): GameState;
@@ -257,10 +273,14 @@ export interface ITurnService {
   rollDiceAndProcessEffects(playerId: string): Promise<{ diceRoll: number }>;
   endTurnWithMovement(force?: boolean, skipAutoMove?: boolean): Promise<{ nextPlayerId: string }>;
   
-  // Turn validation methods  
+  // Turn validation methods
   canPlayerTakeTurn(playerId: string): boolean;
   getCurrentPlayerTurn(): string | null;
-  
+  canEndTurn(playerId: string): boolean;
+
+  // Available actions for UI
+  getAvailableActions(playerId: string): ActionType[];
+
   // Turn effects processing
   processTurnEffects(playerId: string, diceRoll: number): Promise<GameState>;
   
@@ -385,6 +405,7 @@ export interface IGameRulesService {
     reason: 'win' | 'turn_limit' | null;
     winnerId?: string;
   }>;
+  canEndTurn(playerId: string): boolean;
 }
 
 export interface IChoiceService {

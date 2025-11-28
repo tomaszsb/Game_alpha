@@ -527,6 +527,7 @@ export class ResourceService implements IResourceService {
       };
 
       // Add loan to player's loans array
+      const originalLoans = player.loans;
       const updatedLoans = [...player.loans, newLoan];
       
       // Update player with new loan
@@ -545,7 +546,7 @@ export class ResourceService implements IResourceService {
         // Rollback loan if money addition failed
         this.stateService.updatePlayer({
           id: playerId,
-          loans: player.loans
+          loans: originalLoans
         });
         return false;
       }

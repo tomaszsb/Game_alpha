@@ -42,6 +42,87 @@ export class TurnService implements ITurnService {
   }
 
   /**
+   * Get a list of available actions for the current player based on game state.
+   * This is used by UI components to determine which buttons to display.
+   *
+   * @param playerId - The ID of the player to get actions for.
+   * @returns An array of ActionType strings.
+   */
+  public getAvailableActions(playerId: string): import('../types/ServiceContracts').ActionType[] {
+    const actions: import('../types/ServiceContracts').ActionType[] = [];
+    const gameState = this.stateService.getGameState();
+    const player = this.stateService.getPlayer(playerId);
+
+    if (!player || !this.gameRulesService.isPlayerTurn(playerId)) {
+      return actions;
+    }
+
+    // If player hasn't moved and is on a space that requires dice roll for movement
+    const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
+    if (spaceConfig?.requires_dice_roll && !gameState.hasPlayerRolledDice) {
+      actions.push('ROLL_TO_MOVE');
+    }
+
+    // Add other actions based on available manual effects
+    // For now, hardcode some common manual actions
+    const spaceEffects = this.dataService.getSpaceEffects(player.currentSpace, player.visitType);
+    const manualSpaceEffects = spaceEffects.filter(effect => effect.trigger_type === 'manual');
+    
+    manualSpaceEffects.forEach(effect => {
+      if (effect.effect_type === 'money') {
+        actions.push('ROLL_FOR_MONEY');
+      } else if (effect.effect_type === 'time') {
+        actions.push('ROLL_FOR_TIME');
+      } else if (effect.effect_type === 'cards') {
+        if (effect.effect_action === 'draw_w') actions.push('ROLL_FOR_CARDS_W');
+        if (effect.effect_action === 'draw_b') actions.push('ROLL_FOR_CARDS_B');
+        if (effect.effect_action === 'draw_e') actions.push('ROLL_FOR_CARDS_E');
+        if (effect.effect_action === 'draw_l') actions.push('ROLL_FOR_CARDS_L');
+        if (effect.effect_action === 'draw_i') actions.push('ROLL_FOR_CARDS_I');
+      }
+    });
+
+    // If the player can end their turn, add 'END_TURN'
+    if (this.gameRulesService.canEndTurn(playerId)) {
+      actions.push('END_TURN');
+    }
+
+    return actions;
+  }
+
+  /**
+   * Check if a player can end their turn
+   *
+   * A player can end their turn if:
+   * - It is their turn
+   * - There are no pending choices to resolve
+   * - All required actions have been completed
+   *
+   * @param playerId - The ID of the player to check
+   * @returns true if player can end turn, false otherwise
+   */
+  public canEndTurn(playerId: string): boolean {
+    const gameState = this.stateService.getGameState();
+    const player = this.stateService.getPlayer(playerId);
+
+    // Must be the player's turn
+    if (!player || gameState.currentPlayerId !== playerId) {
+      return false;
+    }
+
+    // Cannot end turn if there's a pending choice
+    if (gameState.awaitingChoice) {
+      return false;
+    }
+
+    // Check if all required actions are completed
+    const required = gameState.requiredActions || 0;
+    const completed = gameState.completedActionCount || 0;
+
+    return completed >= required;
+  }
+
+  /**
    * Generate dynamic card IDs that reference actual cards from the CSV data
    * Format: STATIC_ID_timestamp_random_index
    */
@@ -242,16 +323,20 @@ export class TurnService implements ITurnService {
           // Use dice roll to determine destination from DICE_ROLL_INFO.csv
           const diceRoll = currentPlayer.lastDiceRoll.total;
 
-          // Try new DICE_ROLL_INFO.csv first (for spaces like CHEAT-BYPASS)
-          const destinations = this.dataService.getDiceRollDestinations(currentPlayer.currentSpace, currentPlayer.visitType);
+          // Use DICE_OUTCOMES.csv for dice-based movement
+          // TODO: Implement getDiceRollDestinations in DataService if DICE_ROLL_INFO.csv is needed
+          // const destinations = this.dataService.getDiceRollDestinations(currentPlayer.currentSpace, currentPlayer.visitType);
           let destination: string | null = null;
 
-          if (destinations.length >= diceRoll) {
-            destination = destinations[diceRoll - 1];
-          } else {
-            // Fallback to old DICE_OUTCOMES.csv for backward compatibility
-            destination = this.movementService.getDiceDestination(currentPlayer.currentSpace, currentPlayer.visitType, diceRoll);
-          }
+          // Use existing dice outcome logic
+          destination = this.movementService.getDiceDestination(currentPlayer.currentSpace, currentPlayer.visitType, diceRoll);
+
+          // Original code commented out for future implementation:
+          // if (destinations.length >= diceRoll) {
+          //   destination = destinations[diceRoll - 1];
+          // } else {
+          //   destination = this.movementService.getDiceDestination(currentPlayer.currentSpace, currentPlayer.visitType, diceRoll);
+          // }
 
           if (destination) {
             console.log(`🎲 Dice-determined movement: ${currentPlayer.name} rolled ${diceRoll}, moving to ${destination}`);
@@ -1523,12 +1608,14 @@ export class TurnService implements ITurnService {
 
     // Step 5: Calculate and charge 5% fee on NEW investment only
     const updatedPlayer = this.stateService.getPlayer(playerId);
+    if (!updatedPlayer) return;
+
     const investmentAfter = updatedPlayer.moneySources?.investmentDeals || 0;
     const newInvestment = investmentAfter - investmentBefore;
     const feeAmount = Math.floor((newInvestment * 5) / 100);
 
     if (feeAmount > 0) {
-      this.resourceService.recordCost(playerId, 'investor', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`);
+      this.resourceService.recordCost(playerId, 'investor', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding');
       console.log(`💸 Charged 5% investment fee: $${feeAmount.toLocaleString()} on new investment of $${newInvestment.toLocaleString()}`);
     }
 
@@ -2350,15 +2437,16 @@ export class TurnService implements ITurnService {
         }
     } else if (movementRule && movementRule.movement_type === 'dice_outcome') {
         // Handle dice-based movement (e.g., CHEAT-BYPASS)
-        // Get destinations from DiceRoll Info.csv based on the dice roll
-        const destinations = this.dataService.getDiceRollDestinations(
+        // Use existing dice destination logic
+        // TODO: Implement getDiceRollDestinations in DataService if DICE_ROLL_INFO.csv is needed
+        const destination = this.movementService.getDiceDestination(
             currentPlayer.currentSpace,
-            currentPlayer.visitType
+            currentPlayer.visitType,
+            diceRoll
         );
 
-        if (destinations.length >= diceRoll) {
-            // Get the destination for this specific dice roll (1-indexed)
-            const destination = destinations[diceRoll - 1];
+        if (destination) {
+            // Get the destination for this specific dice roll
 
             if (destination) {
                 effects.push({
