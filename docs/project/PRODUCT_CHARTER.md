@@ -1,4 +1,4 @@
-# Code2027 Project Charter
+# Game Alpha Project Charter
 
 **Status**: PRODUCTION READY - Mobile UI Optimization Planned
 **Core Game Complete**: Fully playable multi-player board game with comprehensive features and optimizations
@@ -7,7 +7,7 @@
 
 ## 1. Mission Progress - Major Milestones Achieved
 
-The comprehensive 6-week refactoring effort outlined in `REFACTORING_ROADMAP.md` achieved **major architectural improvements**. The code2027 project represents a significant transformation from a critically broken prototype to an advanced application with modern patterns and comprehensive testing coverage.
+The comprehensive 6-week refactoring effort outlined in `REFACTORING_ROADMAP.md` achieved **major architectural improvements**. The Game Alpha project represents a significant transformation from a critically broken prototype to an advanced application with modern patterns and comprehensive testing coverage.
 
 **📋 Important Note**: Initial "Mission Accomplished" declaration (Sept 7) was premature - a critical architecture flaw in card drawing was discovered the same day, requiring additional refinements to achieve true production readiness.
 
@@ -66,7 +66,7 @@ This mechanic streamlines the gameplay and integrates the funding process direct
 ## 4. Implementation Standards Achieved ✅
 
 *   **Workspace Management:**
-    *   ✅ Complete refactored codebase delivered in `/mnt/d/unravel/current_game/code2027/` directory
+    *   ✅ Complete refactored codebase delivered in `/mnt/d/unravel/current_game/game_alpha/` directory
     *   ✅ Successfully migrated all business logic from `code2026` reference while eliminating anti-patterns
 *   **Project Execution:**
     1.  ✅ Systematic weekly goal achievement aligned with roadmap milestones
@@ -86,7 +86,7 @@ This mechanic streamlines the gameplay and integrates the funding process direct
 ## 6. Current Status & Next Steps
 
 ### **Near Production Ready - Final Stabilization**
-The code2027 application is **approaching production readiness** with:
+The Game Alpha application is **approaching production readiness** with:
 - Complete gameplay functionality from start to win condition
 - Robust error handling and graceful degradation
 - Modern web standards compliance and cross-browser compatibility

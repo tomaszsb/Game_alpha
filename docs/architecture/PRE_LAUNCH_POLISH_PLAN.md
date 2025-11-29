@@ -1,5 +1,5 @@
 # Pre-Launch Polish Plan
-## Code2027 - Production Readiness Checklist
+## Game Alpha - Production Readiness Checklist
 
 **Timeline:** 2-3 days (16-20 hours)
 **Goal:** Remove debug code, add error handling, prepare for production release
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document outlines the minimal changes required to move Code2027 from development to production-ready state. All core functionality is working (617 tests passing), but debug code and development artifacts need removal before public release.
+This document outlines the minimal changes required to move Game Alpha from development to production-ready state. All core functionality is working (617 tests passing), but debug code and development artifacts need removal before public release.
 
 **Success Criteria:**
 - Zero console.log statements in production code
@@ -472,7 +472,7 @@ export const ErrorNotifications = {
 
 1. **docs/RELEASE_NOTES_v1.0.md**
    ```markdown
-   # Code2027 v1.0 Release Notes
+   # Game Alpha v1.0 Release Notes
 
    ## Features
    - Full game implementation with 55+ board spaces
@@ -517,7 +517,7 @@ export const ErrorNotifications = {
 
 3. **docs/USER_GUIDE.md**
    ```markdown
-   # Code2027 User Guide
+   # Game Alpha User Guide
 
    ## Getting Started
    - Add 2-4 players

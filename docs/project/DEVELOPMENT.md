@@ -1,6 +1,6 @@
 ## 🚨 Before You Start
 
-**IMPORTANT**: Read [TESTING_REQUIREMENTS.md](../TESTING_REQUIREMENTS.md) for mandatory pre-commit rules.
+**IMPORTANT**: Read [TESTING_REQUIREMENTS.md](../architecture/TESTING_REQUIREMENTS.md) for mandatory pre-commit rules.
 
 **Key Rule**: Always run tests before committing. No exceptions.
 

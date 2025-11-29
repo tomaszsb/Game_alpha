@@ -3,7 +3,7 @@
 **Last Updated**: November 14, 2025
 **Current Phase**: Production Polish & Feature Development
 
-This document provides a high-level overview of the current work status for the `code2027` project.
+This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 

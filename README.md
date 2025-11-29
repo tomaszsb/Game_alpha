@@ -151,7 +151,7 @@ Game_Alpha/
 - **Project Status:** `docs/project/TODO.md` - Current tasks and completion history
 
 ### Architecture
-- **Technical Deep Dive:** `docs/architecture/TECHNICAL_DEEP_DIVE.md` - System architecture
+- **Technical Deep Dive:** `docs/project/TECHNICAL_DEEP_DIVE.md` - System architecture
 - **Testing Guide:** `docs/architecture/TESTING_REQUIREMENTS.md` - Test strategy and patterns
 - **Changelog:** `docs/architecture/CHANGELOG.md` - Version history and changes
 

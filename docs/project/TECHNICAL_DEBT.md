@@ -1,6 +1,6 @@
 # Technical Debt Log
 
-This document tracks identified technical debt in the `code2027` codebase.
+This document tracks identified technical debt in the Game Alpha codebase.
 
 ## Recently Resolved ✅
 

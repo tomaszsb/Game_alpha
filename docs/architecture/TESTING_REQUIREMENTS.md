@@ -1,4 +1,4 @@
-# Testing Guide - Code2027
+# Testing Guide - Game Alpha
 
 ## ⚠️ MANDATORY: Before Every Commit
 

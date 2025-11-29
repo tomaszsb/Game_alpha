@@ -1,4 +1,4 @@
-# Code2027 UI Style Guide
+# Game Alpha UI Style Guide
 
 **Version:** 1.0
 **Last Updated:** November 2025

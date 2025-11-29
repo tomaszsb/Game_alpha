@@ -1,6 +1,6 @@
-# Technical Deep Dive: Code2027 Project
+# Technical Deep Dive: Game Alpha Project
 
-**Objective:** Transform the critically broken `code2026` prototype into a robust, scalable, and maintainable application (`code2027`) by eliminating severe technical debt and implementing modern software architecture patterns.
+**Objective:** Transform the critically broken `code2026` prototype into a robust, scalable, and maintainable application (Game Alpha) by eliminating severe technical debt and implementing modern software architecture patterns.
 
 **CRITICAL PRINCIPLE**: Build clean, service-oriented architecture with dependency injection. The `code2026` reference codebase contains anti-patterns - study it to understand what NOT to do.
 
@@ -226,7 +226,7 @@ The **Unified Effect Engine** is the crown achievement of the code2027 refactor.
 
 ### Core Concept
 
-All game events in code2027 - whether triggered by cards, spaces, dice rolls, or player actions - are translated into standardized `Effect` objects. This creates a single, unified pipeline for processing all game logic, eliminating code duplication and ensuring consistent behavior across all game mechanics.
+All game events in Game Alpha - whether triggered by cards, spaces, dice rolls, or player actions - are translated into standardized `Effect` objects. This creates a single, unified pipeline for processing all game logic, eliminating code duplication and ensuring consistent behavior across all game mechanics.
 
 ```typescript
 // Data Flow: Event Source -> EffectFactory -> Effect[] -> EffectEngineService -> State Change

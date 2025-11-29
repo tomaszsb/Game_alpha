@@ -198,7 +198,7 @@ A full-stack refactor of the game logging system and core turn logic.
 
 ---
 
-# Current Tasks - Code2027 Project
+# Current Tasks - Game Alpha Project
 
 **Last Updated**: November 24, 2025
 **Current Phase**: PRODUCTION READY - Multi-Device Features Complete

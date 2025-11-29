@@ -82,71 +82,15 @@ End Turn button becomes available
 - `"cards:draw_b"` - Draw B card (bank loan)
 - `"cards:draw_i"` - Draw I card (investment)
 
-## Root Cause and Solution
+## Test Architecture Notes
 
-### The Original Problem (November 4, 2025)
-Initial test failures (8/14 tests) were caused by **inconsistent project scope calculation** between services:
+**Current Testing Approach:**
+- Tests use `GameRulesService` as single source of truth for project scope calculation
+- Mock W cards with IDs like `W_MOCK_2000000` to represent $2M scope
+- Inject `gameRulesService` into StateService via `setGameRulesService()`
+- No need to set the deprecated `player.projectScope` field
 
-- **TurnService**: Calculated project scope by summing the `cost` field of all W (work) cards
-- **StateService**: Read the `player.projectScope` field directly for condition evaluation
-
-This created a double-mocking problem: tests had to set BOTH W cards AND the projectScope field.
-
-### The Refactoring Solution (November 5, 2025) ✅
-
-**A major refactoring established a single source of truth for project scope calculation:**
-
-1. **`GameRulesService.calculateProjectScope()`** is now the ONLY method that calculates project scope
-2. All services (TurnService, StateService, MovementService) delegate to GameRulesService
-3. The deprecated `player.projectScope` field is now **ignored** throughout the codebase
-
-**After refactoring, tests now:**
-- ✅ Only mock W cards (single source of truth)
-- ✅ Inject `gameRulesService` into StateService via `setGameRulesService()`
-- ✅ Configure `mockGameRulesService.calculateProjectScope()` to calculate from W card mock IDs
-- ✅ No longer need to set the `player.projectScope` field
-
-```typescript
-// Current approach (November 5, 2025):
-beforeEach(() => {
-  stateService = new StateService(mockDataService);
-  mockGameRulesService = createMockGameRulesService();
-
-  // IMPORTANT: Inject gameRulesService into StateService
-  stateService.setGameRulesService(mockGameRulesService);
-
-  // Configure calculateProjectScope to work with mock W cards
-  mockGameRulesService.calculateProjectScope.mockImplementation((playerId: string) => {
-    const player = stateService.getPlayer(playerId);
-    if (!player || !player.hand) return 0;
-    const wCards = player.hand.filter(cardId => cardId.startsWith('W'));
-    let totalScope = 0;
-    for (const cardId of wCards) {
-      const match = cardId.match(/W_MOCK_(\d+)/);
-      if (match) {
-        totalScope += parseInt(match[1], 10);
-      }
-    }
-    return totalScope;
-  });
-});
-
-// Tests now only need to set W cards:
-stateService.updatePlayer({
-  id: playerId,
-  hand: ['W_MOCK_2000000'] // W card representing $2M scope
-  // No projectScope field needed!
-});
-```
-
-### Architectural Impact
-The refactoring eliminated:
-- ✅ Duplicate calculation methods in TurnService and MovementService
-- ✅ Incorrect $500k assumption in MovementService
-- ✅ Stale cache issues with `player.projectScope` field
-- ✅ Complex double-mocking in tests
-
-**See full details:** `docs/PROJECT_SCOPE_REFACTORING_COMPLETE.md`
+For historical context on the test refactoring, see: `docs/archive/MANUAL_FUNDING_TEST_REFACTORING-20251105.md`
 
 ## Future Test Coverage
 
