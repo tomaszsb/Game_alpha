@@ -3,9 +3,10 @@
 
 ### **⚠️ CRITICAL: Read This First**
 Before making ANY code changes or commits:
-1. Read [../architecture/TESTING_REQUIREMENTS.md](../architecture/TESTING_REQUIREMENTS.md)
-2. **Golden Rule**: Run all tests before committing. No exceptions.
-3. If tests fail, stop and fix them. Never commit broken tests.
+1. **BRANCH RULE**: Work ONLY on `xenodochial-brown` branch. Do NOT create new branches. Push all work to this branch.
+2. Read [../architecture/TESTING_REQUIREMENTS.md](../architecture/TESTING_REQUIREMENTS.md)
+3. **Golden Rule**: Run all tests before committing. No exceptions.
+4. If tests fail, stop and fix them. Never commit broken tests.
 
 ---
 
