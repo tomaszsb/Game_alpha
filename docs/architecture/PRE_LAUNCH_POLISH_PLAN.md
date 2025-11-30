@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document outlines the minimal changes required to move Game Alpha from development to production-ready state. All core functionality is working (617 tests passing), but debug code and development artifacts need removal before public release.
+This document outlines the minimal changes required to move Game Alpha from development to production-ready state. All core functionality is working (958 tests passing), but debug code and development artifacts need removal before public release.
 
 **Success Criteria:**
 - Zero console.log statements in production code
@@ -488,7 +488,7 @@ export const ErrorNotifications = {
    - Local play only (no online multiplayer)
 
    ## Technical Notes
-   - 617 tests passing
+   - 958 tests passing
    - React 18 + TypeScript 5
    - Data-driven design (CSV configuration)
    ```
@@ -584,11 +584,11 @@ npm run test:components
 # Run service tests
 npm run test:services
 
-# Verify all 617 tests pass
+# Verify all 958 tests pass
 ```
 
 **Acceptance Criteria:**
-- [ ] All 617 tests passing
+- [ ] All 958 tests passing
 - [ ] No test failures
 - [ ] No test warnings
 - [ ] Test coverage maintained
@@ -742,7 +742,7 @@ npm run preview
 ### Code Quality
 - [ ] Zero console.log statements (except critical errors)
 - [ ] Zero debug components in production
-- [ ] All 617 tests passing
+- [ ] All 958 tests passing
 - [ ] No TypeScript errors
 - [ ] No ESLint warnings
 

@@ -45,6 +45,8 @@ If modifying any CSV files in `public/data/CLEAN_FILES/`:
 
 Our test suite runs in **seconds, not minutes** thanks to the Vitest migration and performance optimizations.
 
+> **Note**: The project was migrated from Jest to Vitest for superior performance. All references to Jest in this document are historical—the codebase uses Vitest exclusively.
+
 ### **Essential Commands**
 ```bash
 npm test                    # Run full test suite (<30 seconds)
@@ -63,7 +65,7 @@ npm run test:isolated       # Ultra-fast pure logic tests
 | Service Tests | 90+ tests | ~300ms | ⚡ Lightning fast |
 | Transactional Tests | 11 tests | ~96ms | 🔄 Logging architecture |
 | Isolated Tests | 22 tests | ~50ms | 🚀 Ultra-fast |
-| Full Suite | 95+ test files | <30 seconds | ✅ Production ready |
+| Full Suite | 91 test files (958 tests) | <30 seconds | ✅ Production ready |
 
 ## 🛠️ Writing Tests
 
@@ -227,7 +229,7 @@ const mockFn = jest.fn(); // This will fail
 The test suite has been completely migrated from Jest to Vitest with incredible performance improvements:
 
 - **✅ 91 test files** converted and working
-- **✅ 295+ tests** running in seconds
+- **✅ 958 tests** running in seconds
 - **✅ Real-time feedback** for TDD workflow
 - **✅ Zero compilation hangs** with native TypeScript support
 

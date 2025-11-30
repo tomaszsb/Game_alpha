@@ -2,7 +2,7 @@
 
 **Status:** Production Ready (November 2025)
 **Version:** 1.0.0
-**Test Coverage:** 617 tests passing (100% success rate)
+**Test Coverage:** 958 tests passing across 91 test files (100% success rate)
 
 ## Overview
 
@@ -76,7 +76,7 @@ npm test tests/E2E-
 npm test tests/services/TurnService.test.tsx
 ```
 
-**Note:** Running all 617 tests together (`npm test`) may hang due to test isolation issues with module-level mocks. Use batch execution for best results.
+**Note:** Running all tests together (`npm test`) may hang due to test isolation issues with module-level mocks. Use batch execution (see [Testing Guide](docs/architecture/TESTING_REQUIREMENTS.md)) for best results.
 
 ## Project Structure
 
@@ -84,7 +84,7 @@ npm test tests/services/TurnService.test.tsx
 Game_Alpha/
 ├── src/                          # Application source code
 │   ├── components/              # React UI components (expandable sections, modals, etc.)
-│   ├── services/                # Business logic services (8 core services)
+│   ├── services/                # Business logic services (14+ core services)
 │   │   ├── DataService.ts       # CSV data loading and access
 │   │   ├── StateService.ts      # Immutable state management
 │   │   ├── TurnService.ts       # Turn sequence and player progression
@@ -92,12 +92,18 @@ Game_Alpha/
 │   │   ├── MovementService.ts   # Space transitions and pathfinding
 │   │   ├── EffectEngineService.ts  # Card effects and duration-based mechanics
 │   │   ├── ResourceService.ts   # Money and time tracking
-│   │   └── GameRulesService.ts  # Validation and win conditions
+│   │   ├── GameRulesService.ts  # Validation and win conditions
+│   │   ├── ChoiceService.ts     # Player choice handling
+│   │   ├── NegotiationService.ts # Player interactions
+│   │   ├── NotificationService.ts # Unified notifications
+│   │   ├── TargetingService.ts  # Multi-player targeting
+│   │   ├── LoggingService.ts    # Centralized logging
+│   │   └── PlayerActionService.ts # Command orchestration
 │   ├── types/                   # TypeScript interfaces and contracts
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
 │   └── styles/                  # CSS and styling (animations.css, theme constants)
-├── tests/                        # Test suite (617 tests)
+├── tests/                        # Test suite (958 tests across 91 test files)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -122,7 +128,7 @@ Game_Alpha/
 ### Gameplay Features
 - **Dynamic Movement System:** Players navigate through construction phases with fixed paths, dice-based movement, and conditional choices
 - **Resource Management:** Track money (from bank loans, investments, owner funding) and time (project duration)
-- **Card System:** Five card types (W-Work, B-Bank, E-Extra, L-Loan, I-Investment) with 100+ unique cards
+- **Card System:** Five card types (W-Work, B-Bank, E-Expeditor, L-Life Events, I-Investment) with 404 unique cards
 - **Multi-Player Effects:** Cards that affect other players, requiring negotiation and strategic interactions
 - **Try Again Mechanic:** Snapshot-based undo system for exploring different choices
 
@@ -130,8 +136,8 @@ Game_Alpha/
 - **Service-Oriented Architecture:** Clean separation of concerns with dependency injection
 - **Immutable State Management:** Predictable state updates with snapshot support
 - **Transactional Logging:** 100% accurate game log with exploration session tracking
-- **Real-Time Synchronization:** WebSocket-based state sync for multi-device play
-- **Comprehensive Testing:** 617 tests covering services, components, and E2E scenarios
+- **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play
+- **Comprehensive Testing:** 958 tests covering services, components, and E2E scenarios
 - **TypeScript Strict Mode:** Type-safe codebase with 12 remaining errors (down from 28+)
 
 ## Technology Stack
@@ -145,19 +151,39 @@ Game_Alpha/
 
 ## Documentation
 
-### Getting Started
-- **Quick Start:** This README
-- **Development Guide:** `docs/project/CLAUDE.md` - Developer charter and workflows
-- **Project Status:** `docs/project/TODO.md` - Current tasks and completion history
+### Quick Navigation
+- **This File (README.md):** Project overview, quick start, technology stack
+- **[Project Status](docs/project/PROJECT_STATUS.md):** Current phase and recent completions
+- **[Product Charter](docs/project/PRODUCT_CHARTER.md):** Vision, objectives, and production readiness
+- **[Technical Deep Dive](docs/project/TECHNICAL_DEEP_DIVE.md):** System architecture and design patterns
+- **[Technical Debt](docs/project/TECHNICAL_DEBT.md):** Known issues, refactoring candidates, and resolved problems
+- **[Game Actions Guide](docs/architecture/GAME_ACTIONS_GUIDE.md):** How actions, effects, and notifications work
+- **[UI Style Guide](docs/architecture/UI_STYLE_GUIDE.md):** UI standards, components, and design patterns
+- **[Testing Guide](docs/architecture/TESTING_REQUIREMENTS.md):** Test strategy, commands, and patterns
+- **[Changelog](docs/architecture/CHANGELOG.md):** Version history and feature timeline
+- **[Archive Index](docs/archive/README.md):** Historical documentation and design decisions
 
-### Architecture
-- **Technical Deep Dive:** `docs/project/TECHNICAL_DEEP_DIVE.md` - System architecture
-- **Testing Guide:** `docs/architecture/TESTING_REQUIREMENTS.md` - Test strategy and patterns
-- **Changelog:** `docs/architecture/CHANGELOG.md` - Version history and changes
+### For Different Audiences
 
-### Project Management
-- **Product Charter:** `docs/project/PRODUCT_CHARTER.md` - Vision and objectives
-- **Technical Debt:** `docs/project/TECHNICAL_DEBT.md` - Known issues and limitations
+**👨‍💻 Developers**
+- Start: README.md (you are here)
+- Next: [Technical Deep Dive](docs/project/TECHNICAL_DEEP_DIVE.md) for architecture overview
+- Reference: [Game Actions Guide](docs/architecture/GAME_ACTIONS_GUIDE.md) to understand game mechanics
+- Reference: [UI Style Guide](docs/architecture/UI_STYLE_GUIDE.md) for component patterns and styling
+- Reference: [Testing Guide](docs/architecture/TESTING_REQUIREMENTS.md) before committing changes
+- Check: [Technical Debt](docs/project/TECHNICAL_DEBT.md) for known issues and refactoring opportunities
+
+**👀 Project Managers**
+- Start: [Project Status](docs/project/PROJECT_STATUS.md) for current phase and recent work
+- Next: [Product Charter](docs/project/PRODUCT_CHARTER.md) for vision, objectives, and readiness
+- Track: [Changelog](docs/architecture/CHANGELOG.md) for feature timeline and progress
+- Reference: [Technical Debt](docs/project/TECHNICAL_DEBT.md) for issues and risk assessment
+
+**📚 Learning Architecture (New Developers)**
+- Start: [Product Charter](docs/project/PRODUCT_CHARTER.md) for the big picture
+- Then: [Technical Deep Dive](docs/project/TECHNICAL_DEEP_DIVE.md) for system architecture
+- Understand: [Game Actions Guide](docs/architecture/GAME_ACTIONS_GUIDE.md) for how systems interact
+- Reference: [Archive Index](docs/archive/README.md) for design rationale and lessons learned from past work
 
 ## Development Workflow
 

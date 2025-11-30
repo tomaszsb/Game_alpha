@@ -5,6 +5,15 @@
 
 ---
 
+## 📚 Related Documentation
+
+- **Recent Refactoring (Nov 14, 2025)**: See [Movement Refactor Plan](../archive/MOVEMENT_REFACTOR_PLAN-20251114.md) for design decisions and problem analysis
+- **Implementation Details**: See [Movement Implementation Summary](../archive/MOVEMENT_IMPLEMENTATION_SUMMARY-20251114.md) for technical details
+- **Post-Refactor Verification**: See [Post Refactor Cleanup](../archive/POST_REFACTOR_CLEANUP-20251114.md) and [User Fixes Verification](../archive/USER_FIXES_VERIFICATION-20251114.md)
+- **Action Patterns**: See [Game Actions Guide](../architecture/GAME_ACTIONS_GUIDE.md) for how movement fits into overall action system
+
+---
+
 ## Overview
 
 The Movement System manages player navigation through game spaces using CSV-based configuration. It supports four movement types: fixed paths, player choices, dice-based outcomes, and terminal spaces.

@@ -2,6 +2,17 @@
 
 This guide explains the different types of actions in the game, what triggers them, and how they are processed by the unified service-oriented architecture.
 
+---
+
+## 📚 Related Documentation
+
+- **Card Mechanics Design**: For detailed analysis of how the card system was architected, see [Card Structure Expansion Analysis](../archive/CARD_STRUCTURE_EXPANSION-ANALYSIS.md)
+- **Architecture Patterns**: See [Technical Deep Dive](../project/TECHNICAL_DEEP_DIVE.md) for service-oriented architecture details
+- **Movement System**: See [Movement System Documentation](../systems/MOVEMENT_SYSTEM.md) for movement action details
+- **Current Status**: See [Project Status](../project/PROJECT_STATUS.md) for recent improvements
+
+---
+
 ## 1. The Core Concept: Actions, Effects, and Notifications
 
 Every game event follows a standardized pattern:

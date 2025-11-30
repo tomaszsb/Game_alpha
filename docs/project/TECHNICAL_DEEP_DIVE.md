@@ -4,6 +4,18 @@
 
 **CRITICAL PRINCIPLE**: Build clean, service-oriented architecture with dependency injection. The `code2026` reference codebase contains anti-patterns - study it to understand what NOT to do.
 
+---
+
+## 📚 Historical Context
+
+> **How We Got Here**: For detailed background on the architectural decisions and design patterns chosen during the initial refactoring effort, see [Handover Report](../archive/HANDOVER_REPORT-20251003.md).
+
+This document describes the **current production architecture**. For historical analysis of how specific systems (like card mechanics and movement logic) were designed and refined, consult the relevant archive documents:
+
+- **Movement System Design**: See [Card Structure Expansion Analysis](../archive/CARD_STRUCTURE_EXPANSION-ANALYSIS.md) for detailed design rationale
+- **Movement Refactoring (Nov 2025)**: See [Movement Refactor Plan](../archive/MOVEMENT_REFACTOR_PLAN-20251114.md) and [Implementation Summary](../archive/MOVEMENT_IMPLEMENTATION_SUMMARY-20251114.md)
+- **Project Evolution**: See [Archive Index](../archive/README.md) for complete historical record
+
 ## ✅ Architecture Patterns (Current Implementation)
 
 ### Core Services (ALL 14 IMPLEMENTED):
