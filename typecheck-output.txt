@@ -1,0 +1,14 @@
+src/App.tsx(153,52): error TS2353: Object literal may only specify known properties, and 'deviceType' does not exist in type 'PlayerUpdateData'.
+src/App.tsx(172,21): error TS2322: Type '{ viewPlayerId: string; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'viewPlayerId' does not exist on type 'IntrinsicAttributes'.
+src/components/common/ErrorBoundary.tsx(149,33): error TS2339: Property 'error' does not exist on type '{ primary: { main: string; dark: string; light: string; lighter: string; bg: string; text: string; }; secondary: { main: string; dark: string; darker: string; light: string; bg: string; border: string; }; success: { ...; }; ... 13 more ...; status: { ...; }; }'.
+src/components/common/ErrorBoundary.tsx(221,36): error TS2339: Property 'tertiary' does not exist on type '{ primary: string; secondary: string; muted: string; light: string; white: string; dark: string; darkSlate: string; mediumGray: string; lightGray: string; slate: { 500: string; 600: string; 700: string; 800: string; }; success: string; successDark: string; info: string; danger: string; }'.
+src/components/editor/DataEditor.tsx(81,36): error TS2339: Property 'id' does not exist on type 'Space'.
+src/components/editor/DataEditor.tsx(81,53): error TS2339: Property 'id' does not exist on type 'Space'.
+src/components/editor/DataEditor.tsx(82,26): error TS2339: Property 'id' does not exist on type 'Space'.
+src/components/editor/DataEditor.tsx(82,38): error TS2339: Property 'title' does not exist on type 'Space'.
+src/components/game/GameSpace.tsx(266,56): error TS2339: Property 'xs' does not exist on type '{ readonly sm: "0 2px 4px rgba(0, 0, 0, 0.1)"; readonly md: "0 4px 8px rgba(0, 0, 0, 0.15)"; readonly lg: "0 10px 25px rgba(0, 0, 0, 0.25)"; readonly xl: "0 20px 60px rgba(0, 0, 0, 0.3)"; }'.
+src/services/ResourceService.ts(186,7): error TS2353: Object literal may only specify known properties, and 'costHistory' does not exist in type 'PlayerUpdateData'.
+src/services/TurnService.ts(1611,25): error TS2322: Type 'undefined' is not assignable to type 'GameState'.
+src/utils/getAppScreen.ts(108,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
