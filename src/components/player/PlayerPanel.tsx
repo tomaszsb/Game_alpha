@@ -6,6 +6,7 @@ import { TimeSection } from './sections/TimeSection';
 import { CardsSection } from './sections/CardsSection';
 import { CurrentCardSection } from './sections/CurrentCardSection';
 import { ProjectScopeSection } from './sections/ProjectScopeSection';
+import { StorySection } from './sections/StorySection';
 import { NextStepButton } from './NextStepButton';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { Choice } from '../../types/CommonTypes';
@@ -115,6 +116,9 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   const [movementTransition, setMovementTransition] = useState<{ from: string; to: string } | null>(null);
   const [previousSpace, setPreviousSpace] = useState<string | null>(null);
 
+  // Story state
+  const [spaceStory, setSpaceStory] = useState<string>('');
+
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
       const player = gameState.players.find(p => p.id === playerId);
@@ -123,6 +127,16 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           ? gameServices.dataService.getCardById(player.currentCard)
           : null;
         setCurrentCard(card || null);
+
+        // Get space story
+        const space = gameServices.dataService.getSpaceByName(player.currentSpace);
+        if (space && space.content && space.content.length > 0) {
+          // Get the appropriate content based on visit type
+          const visitContent = space.content.find(c => c.visit_type === player.visitType);
+          setSpaceStory(visitContent?.story || '');
+        } else {
+          setSpaceStory('');
+        }
 
         // Detect space changes and show transition
         if (previousSpace && previousSpace !== player.currentSpace) {
@@ -151,6 +165,13 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         : null;
       setCurrentCard(card || null);
       setPreviousSpace(player.currentSpace);
+
+      // Initialize space story
+      const space = gameServices.dataService.getSpaceByName(player.currentSpace);
+      if (space && space.content && space.content.length > 0) {
+        const visitContent = space.content.find(c => c.visit_type === player.visitType);
+        setSpaceStory(visitContent?.story || '');
+      }
     }
 
     return unsubscribe;
@@ -304,6 +325,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           onChoice={handleChoice}
         />
       )}
+
+      <StorySection
+        story={spaceStory}
+        spaceName={player.currentSpace}
+      />
 
       <ProjectScopeSection
         gameServices={gameServices}
