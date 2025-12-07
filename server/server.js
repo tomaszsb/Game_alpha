@@ -104,10 +104,7 @@ app.delete('/api/gamestate', (req, res) => {
   gameState = null;
   stateVersion = 0;
 
-  // Only log if helpful for debugging
-  if (hadState) {
-    console.log(`🗑️ Game state reset (was v${previousVersion})`);
-  }
+  if (hadState) console.log(`🗑️ Game state reset (was v${previousVersion})`);
 
   res.json({
     success: true,
@@ -182,23 +179,7 @@ function startServer(port, maxAttempts = 10) {
 
   server.listen(port, '0.0.0.0', () => {
     const actualPort = server.address().port;
-    console.log('🚀 Code2027 Multi-Device Server Started');
-    console.log('');
-    console.log(`   Port: ${actualPort}`);
-    console.log(`   Local: http://localhost:${actualPort}`);
-    console.log(`   Network: http://0.0.0.0:${actualPort}`);
-    console.log('');
-    console.log('📋 Available Endpoints:');
-    console.log(`   GET    /health              - Health check`);
-    console.log(`   GET    /api/gamestate       - Get current state`);
-    console.log(`   POST   /api/gamestate       - Update state`);
-    console.log(`   DELETE /api/gamestate       - Reset state`);
-    console.log(`   GET    /api/debug/state     - Debug state dump`);
-    console.log('');
-    console.log('🔄 Features enabled:');
-    console.log('   ✅ Multi-device state synchronization');
-    console.log('   ✅ Version tracking (last-write-wins)');
-    console.log('');
+    console.log(`🚀 Server started on port ${actualPort} | http://localhost:${actualPort} | Multi-device sync enabled`);
   });
 
   return server;
@@ -208,7 +189,6 @@ const server = startServer(DEFAULT_PORT);
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('');
   console.log('🛑 Shutting down server...');
   server.close(() => {
     console.log('✅ Server shut down gracefully');
