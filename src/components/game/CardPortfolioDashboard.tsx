@@ -67,7 +67,7 @@ export function CardPortfolioDashboard({ player, isCurrentPlayer, onOpenCardDeta
   const handlePlayCard = async (cardId: string, cardName: string) => {
     try {
       console.log(`Playing card ${cardId} for player ${player.name}`);
-      cardService.playCard(player.id, cardId);
+      await cardService.playCard(player.id, cardId);
       
       // Show success feedback
       setFeedbackType('success');

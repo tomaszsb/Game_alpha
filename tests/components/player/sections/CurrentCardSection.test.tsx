@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react';
+import { render, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { CurrentCardSection } from '../../../../src/components/player/sections/CurrentCardSection';
 import { Card } from '../../../../src/types/DataTypes';
@@ -20,6 +20,10 @@ const mockCard: Card = {
 };
 
 describe('CurrentCardSection', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
   it('should render the card details', () => {
     const { getByText } = render(
       <CurrentCardSection card={mockCard} onChoice={vi.fn()} />

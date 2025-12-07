@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChoiceModal } from '../../src/components/modals/ChoiceModal';
@@ -16,6 +16,10 @@ import { Choice } from '../../src/types/CommonTypes';
 import { createAllMockServices } from '../mocks/mockServices';
 
 describe('ChoiceModal', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
   let mockServices: any;
   let mockPlayer: Player;
   let mockGameState: any;

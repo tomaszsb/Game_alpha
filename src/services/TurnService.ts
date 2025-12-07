@@ -440,10 +440,66 @@ export class TurnService implements ITurnService {
     return await this.nextPlayer();
   }
 
+  /**
+   * Advances to the next player in turn order.
+   *
+   * TURN END SEQUENCE TIMING (Critical for correctness):
+   * =====================================================
+   * The order of operations during turn end is carefully designed to ensure:
+   * 1. Card expirations work correctly (turnsRemaining counter)
+   * 2. Logging displays correct turn numbers
+   * 3. Turn counter advances at the right time
+   *
+   * SEQUENCE BREAKDOWN:
+   * -------------------
+   * Step 1: Process card expirations (line 459)
+   *   - Decrements turnsRemaining for active cards
+   *   - Expires cards with turnsRemaining <= 0
+   *   - MUST happen BEFORE turn advances
+   *   - Why: Card activated turn 5 with duration=3 should expire end of turn 7
+   *          If we advanced turn first, expiration check would be wrong
+   *
+   * Step 2: Process active effects (line 464)
+   *   - Applies duration-based card effects for all players
+   *   - Happens at end of current turn (before advance)
+   *
+   * Step 3: Reset re-roll flags (line 471)
+   *   - Clears one-time use flags for current player
+   *
+   * Step 4: Log turn end (line 481)
+   *   - Uses globalTurnCount + 1 to match turn start numbering
+   *   - Why +1? Turn start logs "Turn N started", turn end should log "Turn N ended"
+   *   - But globalTurnCount hasn't advanced yet (still N-1)
+   *   - So we add +1 to get N
+   *   - This is intentional and correct!
+   *
+   * Step 5: Advance turn counter (line 525)
+   *   - Increments globalTurnCount (N-1 → N)
+   *   - Happens AFTER all turn-end processing
+   *   - Happens BEFORE setting next player
+   *
+   * Step 6: Set next player and start their turn (line 528, 556)
+   *   - Changes currentPlayerId
+   *   - Calls startTurn() to process arrival effects
+   *
+   * TIMING EXAMPLE:
+   * ---------------
+   * Turn 7 ends for Player A:
+   * 1. endOfTurn() - Card with turnsRemaining=1 decrements to 0, expires ✅
+   * 2. processActiveEffects() - Turn 7 effects applied ✅
+   * 3. Log "Turn 8 ended" (globalTurnCount=7, so 7+1=8) ✅
+   * 4. advanceTurn() - globalTurnCount: 7 → 8
+   * 5. setCurrentPlayer(Player B)
+   * 6. startTurn(Player B) - "Turn 8 started" logged ✅
+   *
+   * NOTE: Loan interest is NO LONGER applied here (changed to upfront fee model)
+   *       Interest is charged once when loan is taken, not every turn.
+   *       See ResourceService.takeOutLoan() for upfront fee implementation.
+   */
   private async nextPlayer(): Promise<{ nextPlayerId: string }> {
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
-    
+
     if (allPlayers.length === 0) {
       throw new Error('No players in the game');
     }
@@ -454,20 +510,26 @@ export class TurnService implements ITurnService {
       throw new Error('Current player not found in player list');
     }
 
-    // Process card expirations before ending turn
-    // Processing card expirations
+    // STEP 1: Process card expirations BEFORE turn advances
+    // This ensures turnsRemaining counter works correctly:
+    // - Card activated turn 5 with duration=3
+    // - Turn 5 ends: turnsRemaining-- (now 2), turn advances to 6
+    // - Turn 6 ends: turnsRemaining-- (now 1), turn advances to 7
+    // - Turn 7 ends: turnsRemaining-- (now 0), EXPIRE, turn advances to 8
+    // Result: Card active for turns 5, 6, 7 = 3 turns ✅
     this.cardService.endOfTurn();
 
-    // Process active effects for all players at turn end
+    // STEP 2: Process active effects for all players at turn end
+    // This happens at end of current turn (before turn counter advances)
     console.log(`🕒 Processing active effects for all players at end of turn ${gameState.turn}`);
     if (this.effectEngineService) {
       await this.effectEngineService.processActiveEffectsForAllPlayers();
     }
 
-    // Reset re-roll flag for the current player ending their turn
+    // STEP 3: Reset re-roll flags for current player ending their turn
+    // One-time use flags are cleared before next turn begins
     const currentPlayer = allPlayers[currentPlayerIndex];
     if (currentPlayer.turnModifiers?.canReRoll) {
-      // Re-roll flag reset
       this.stateService.updatePlayer({
         id: currentPlayer.id,
         turnModifiers: {
@@ -477,7 +539,11 @@ export class TurnService implements ITurnService {
       });
     }
 
-    // Log turn end for current player (use globalTurnCount + 1 to match turn_start numbering)
+    // STEP 4: Log turn end for current player
+    // TIMING NOTE: Uses globalTurnCount + 1 to match turn_start numbering
+    // Why +1? Turn hasn't advanced yet (still N-1), but we want to log "Turn N ended"
+    // to match "Turn N started" from the beginning of this turn.
+    // This is intentional and ensures turn start/end logs have matching numbers.
     this.loggingService.info(`Turn ${gameState.globalTurnCount + 1} ended`, {
       playerId: currentPlayer.id,
       playerName: currentPlayer.name,
@@ -485,10 +551,6 @@ export class TurnService implements ITurnService {
       turn: gameState.globalTurnCount + 1,
       space: currentPlayer.currentSpace
     });
-
-    // Apply loan interest for the player ending their turn
-    // Applying loan interest
-    this.resourceService.applyInterest(currentPlayer.id);
 
     // Determine next player (wrap around to first player if at end)
     let nextPlayerIndex = (currentPlayerIndex + 1) % allPlayers.length;
@@ -523,13 +585,18 @@ export class TurnService implements ITurnService {
       nextPlayer = this.stateService.getGameState().players[nextPlayerIndex]; // Get fresh player data
     }
 
-    // Advance turn counter BEFORE changing current player (so turn increments for correct player)
+    // STEP 5: Advance turn counter
+    // TIMING NOTE: This happens AFTER all turn-end processing (expirations, effects, logging)
+    // but BEFORE changing current player. This ensures:
+    // - Turn-end processing uses the correct turn number (the turn that's ending)
+    // - Next player's turn starts with the new turn number
     this.stateService.advanceTurn();
 
-    // Update the current player in the game state
+    // STEP 6: Set next player and prepare for their turn
+    // Update current player in game state
     this.stateService.setCurrentPlayer(nextPlayer.id);
 
-    // Reset turn flags
+    // Reset turn flags for the new turn
     this.stateService.clearPlayerHasMoved();
     this.stateService.clearPlayerHasRolledDice();
     this.stateService.clearTurnActions();
@@ -553,8 +620,8 @@ export class TurnService implements ITurnService {
       );
     }
 
-    // Process turn start with unified function (handles all arrival logic and movement choices)
-    // Note: startTurn will handle the turn start logging
+    // Start next player's turn with unified function
+    // This handles all arrival logic, movement choices, and turn start logging
     await this.startTurn(nextPlayer.id);
 
     return { nextPlayerId: nextPlayer.id };
@@ -629,6 +696,15 @@ export class TurnService implements ITurnService {
 
   /**
    * Handles movement choice logic after arrival effects are processed
+   *
+   * ARCHITECTURE NOTE: This is 1 of 3 paths that create movement choices:
+   * 1. handleMovementChoices() - Called at turn start (THIS METHOD)
+   * 2. processTurnEffectsWithTracking() - Called after dice roll for dice_outcome spaces
+   * 3. restoreMovementChoiceIfNeeded() - Called after manual effects clear choice state
+   *
+   * Duplicate prevention: dice_outcome guard ensures paths 1 & 3 skip dice spaces,
+   * while path 2 only handles dice spaces. Guards are mutually exclusive.
+   *
    * @private
    */
   private async handleMovementChoices(playerId: string): Promise<void> {
@@ -642,8 +718,9 @@ export class TurnService implements ITurnService {
         return;
       }
 
-      // Check movement type - skip choice creation for dice_outcome spaces
+      // GUARD: Skip choice creation for dice_outcome spaces
       // Those choices are created AFTER dice roll in processTurnEffectsWithTracking()
+      // This prevents duplicate choice creation between this method and path #2
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       if (movement?.movement_type === 'dice_outcome') {
         console.log(`🎬 TurnService.handleMovementChoices - Skipping choice for dice_outcome space ${player.currentSpace} (choice created after dice roll)`);
@@ -700,6 +777,15 @@ export class TurnService implements ITurnService {
   /**
    * Restores movement choice if the current space requires one
    * Used after completing manual effects that clear the choice state
+   *
+   * ARCHITECTURE NOTE: This is 1 of 3 paths that create movement choices:
+   * 1. handleMovementChoices() - Called at turn start
+   * 2. processTurnEffectsWithTracking() - Called after dice roll for dice_outcome spaces
+   * 3. restoreMovementChoiceIfNeeded() - Called after manual effects (THIS METHOD)
+   *
+   * Duplicate prevention: Same dice_outcome guard as path #1 ensures we don't conflict
+   * with path #2. State protection via awaitingChoice flag prevents race conditions.
+   *
    * @private
    */
   private async restoreMovementChoiceIfNeeded(playerId: string): Promise<void> {
@@ -713,8 +799,9 @@ export class TurnService implements ITurnService {
         return;
       }
 
-      // Check movement type - skip choice restoration for dice_outcome spaces
+      // GUARD: Skip choice restoration for dice_outcome spaces
       // Those choices are created ONLY in processTurnEffectsWithTracking() after dice roll
+      // This prevents duplicate choice creation between this method and path #2
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       if (movement?.movement_type === 'dice_outcome') {
         console.log(`🔄 TurnService.restoreMovementChoiceIfNeeded - Skipping restore for dice_outcome space ${player.currentSpace} (choice created after dice roll)`);
@@ -1166,7 +1253,7 @@ export class TurnService implements ITurnService {
 
     // Use unified ResourceService for money changes
     if (moneyChange > 0) {
-      this.resourceService.addMoney(playerId, moneyChange, 'turn_effect', `Space effect: +$${moneyChange.toLocaleString()}`);
+      this.resourceService.addMoney(playerId, moneyChange, 'turn_effect', `Space effect: +$${moneyChange.toLocaleString()}`, 'other');
     } else if (moneyChange < 0) {
       this.resourceService.spendMoney(playerId, Math.abs(moneyChange), 'turn_effect', `Space effect: -$${Math.abs(moneyChange).toLocaleString()}`);
     }
@@ -1608,14 +1695,14 @@ export class TurnService implements ITurnService {
 
     // Step 5: Calculate and charge 5% fee on NEW investment only
     const updatedPlayer = this.stateService.getPlayer(playerId);
-    if (!updatedPlayer) return;
+    if (!updatedPlayer) return this.stateService.getGameState();
 
     const investmentAfter = updatedPlayer.moneySources?.investmentDeals || 0;
     const newInvestment = investmentAfter - investmentBefore;
     const feeAmount = Math.floor((newInvestment * 5) / 100);
 
     if (feeAmount > 0) {
-      this.resourceService.recordCost(playerId, 'investor', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding');
+      this.resourceService.recordCost(playerId, 'investmentFee', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding');
       console.log(`💸 Charged 5% investment fee: $${feeAmount.toLocaleString()} on new investment of $${newInvestment.toLocaleString()}`);
     }
 

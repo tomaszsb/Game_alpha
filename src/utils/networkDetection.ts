@@ -44,7 +44,8 @@ export function getServerURL(playerId?: string, shortId?: string): string {
 
 /**
  * Get the backend server URL for API calls
- * Backend runs on port 3001, frontend on port 3000
+ * Backend typically runs on port 3001, but may use a different port if 3001 is taken
+ * This function will try to detect the actual backend port
  *
  * @returns Backend server URL
  *
@@ -55,9 +56,62 @@ export function getServerURL(playerId?: string, shortId?: string): string {
 export function getBackendURL(): string {
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
+  const frontendPort = parseInt(window.location.port || '80');
 
-  // Backend always runs on port 3001
-  return `${protocol}//${hostname}:3001`;
+  // Try ports in this order:
+  // 1. Frontend port + 1 (most common case: frontend=3000, backend=3001)
+  // 2. 3001 (default backend port)
+  // 3. Frontend port + 2 (if both 3000 and 3001 were taken, backend might be on 3002)
+  // We'll return the first guess and let the caller handle retries if needed
+  const backendPort = frontendPort + 1;
+
+  return `${protocol}//${hostname}:${backendPort}`;
+}
+
+/**
+ * Detect the actual backend port by trying common ports
+ * Call this once at app startup and cache the result
+ *
+ * @returns Promise that resolves to the backend URL
+ */
+export async function detectBackendURL(): Promise<string> {
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const frontendPort = parseInt(window.location.port || '80');
+
+  // Ports to try in order of likelihood
+  const portsToTry = [
+    frontendPort + 1,  // Most likely: frontend + 1
+    3001,              // Default backend port
+    frontendPort + 2,  // If frontend is on 3001, backend might be on 3002
+    3002,              // Backend's second choice
+    3003               // Backend's third choice
+  ];
+
+  // Remove duplicates
+  const uniquePorts = [...new Set(portsToTry)];
+
+  for (const port of uniquePorts) {
+    const url = `${protocol}//${hostname}:${port}`;
+    try {
+      const response = await fetch(`${url}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(1000) // 1 second timeout
+      });
+
+      if (response.ok) {
+        console.log(`✅ Detected backend server at ${url}`);
+        return url;
+      }
+    } catch (e) {
+      // Port didn't respond, try next one
+      continue;
+    }
+  }
+
+  // Fallback to best guess if detection failed
+  console.warn('⚠️  Could not detect backend server, using default');
+  return `${protocol}//${hostname}:${frontendPort + 1}`;
 }
 
 /**

@@ -6,25 +6,21 @@ CLAUDE_MANAGER="$SCRIPT_DIR/ai-collab.sh"
 GEMINI_MANAGER="$SCRIPT_DIR/ai-collab-gemini.sh"
 
 start_all() {
-    echo "Starting Claude's communication client..."
-    "$CLAUDE_MANAGER" start
-    echo "Starting Gemini's communication client..."
-    "$GEMINI_MANAGER" start
-    echo "All AI communication clients started."
+    printf "🔄 Claude..."
+    "$CLAUDE_MANAGER" start >/dev/null 2>&1 && printf " ✅ | 🔄 Gemini..." || printf " ❌ | 🔄 Gemini..."
+    "$GEMINI_MANAGER" start >/dev/null 2>&1 && printf " ✅\n" || printf " ❌\n"
 }
 
 stop_all() {
-    echo "Stopping Claude's communication client..."
-    "$CLAUDE_MANAGER" stop
-    echo "Stopping Gemini's communication client..."
-    "$GEMINI_MANAGER" stop
-    echo "All AI communication clients stopped."
+    printf "🛑 Claude..."
+    "$CLAUDE_MANAGER" stop >/dev/null 2>&1 && printf " ✅ | 🛑 Gemini..." || printf " ❌ | 🛑 Gemini..."
+    "$GEMINI_MANAGER" stop >/dev/null 2>&1 && printf " ✅\n" || printf " ❌\n"
 }
 
 status_all() {
-    echo "--- Claude's Client Status ---"
+    printf "📊 Claude: "
     "$CLAUDE_MANAGER" status
-    echo "--- Gemini's Client Status ---"
+    printf "📊 Gemini: "
     "$GEMINI_MANAGER" status
 }
 

@@ -568,34 +568,7 @@ export function TurnControlsWithActions({
         )}
 
         {/* Space and Time Effects are now shown in the GameLog component */}
-
-        {/* Try Again Button - show if re-roll is available on current space */}
-        {isCurrentPlayersTurn && canNegotiate && (
-          <button
-            onClick={onNegotiate}
-            disabled={isProcessingTurn || isProcessingArrival}
-            style={{
-              padding: '4px 8px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              color: !isProcessingTurn ? colors.white : colors.secondary.main,
-              backgroundColor: !isProcessingTurn ? colors.warning.main : colors.secondary.light,
-              border: 'none',
-              borderRadius: '4px',
-              cursor: !isProcessingTurn ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              transition: 'all 0.2s ease',
-              transform: isProcessingTurn ? 'scale(0.95)' : 'scale(1)',
-              opacity: isProcessingTurn ? 0.7 : 1,
-            }}
-          >
-            <span>🔄</span>
-            <span>Try Again</span>
-          </button>
-        )}
+        {/* Try Again Button has been moved to PlayerPanel next to End Turn button */}
 
         {/* End Turn - always show for current player, but disable when actions incomplete */}
         {isCurrentPlayersTurn && (

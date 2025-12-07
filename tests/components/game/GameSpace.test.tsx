@@ -1,10 +1,13 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { GameSpace } from '../../../src/components/game/GameSpace';
 import { Space, Player } from '../../../../src/types/DataTypes';
 
 describe('GameSpace', () => {
+  beforeEach(() => {
+    cleanup();
+  });
   const mockSpace: Space = {
     name: 'Test Space',
     config: {} as any, // Mock as needed

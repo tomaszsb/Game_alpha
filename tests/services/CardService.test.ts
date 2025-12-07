@@ -948,9 +948,9 @@ describe('CardService - Enhanced Coverage', () => {
       expect(mockEffectEngineService.processCardEffects).not.toHaveBeenCalled();
     });
 
-    it('should handle EffectEngine processing failures gracefully', () => {
+    it('should handle EffectEngine processing failures gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
-      
+
       const testCard = {
         card_id: 'FAIL001',
         card_name: 'Failing Card',
@@ -960,7 +960,7 @@ describe('CardService - Enhanced Coverage', () => {
       };
 
       mockDataService.getCardById.mockReturnValue(testCard);
-      
+
       // Mock EffectEngine to return failure
       mockEffectEngineService.processCardEffects.mockResolvedValueOnce({
         success: false,
@@ -971,17 +971,15 @@ describe('CardService - Enhanced Coverage', () => {
         errors: ['Effect processing failed']
       });
 
-      const result = cardService.applyCardEffects('player1', 'FAIL001');
+      // applyCardEffects now throws on failure, so we expect it to throw
+      await expect(cardService.applyCardEffects('player1', 'FAIL001')).rejects.toThrow('Effect processing failed');
 
-      // Should still return a game state (legacy processing continues)
-      expect(result).toEqual(mockGameState);
-      
       consoleSpy.mockRestore();
     });
 
-    it('should handle EffectEngine exceptions gracefully', () => {
+    it('should handle EffectEngine exceptions gracefully', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
-      
+
       const testCard = {
         card_id: 'ERROR001',
         card_name: 'Error Card',
@@ -991,19 +989,17 @@ describe('CardService - Enhanced Coverage', () => {
       };
 
       mockDataService.getCardById.mockReturnValue(testCard);
-      
+
       // Mock EffectEngine to throw exception
       mockEffectEngineService.processCardEffects.mockRejectedValueOnce(new Error('Engine crashed'));
 
-      const result = cardService.applyCardEffects('player1', 'ERROR001');
+      // applyCardEffects now propagates exceptions, so we expect it to throw
+      await expect(cardService.applyCardEffects('player1', 'ERROR001')).rejects.toThrow('Engine crashed');
 
-      // Should still return a game state (legacy processing continues)
-      expect(result).toEqual(mockGameState);
-      
       consoleSpy.mockRestore();
     });
 
-    it('should integrate playCard() with UnifiedEffectEngine', () => {
+    it('should integrate playCard() with UnifiedEffectEngine', async () => {
       const testCard = {
         card_id: 'PLAY001',
         card_name: 'Playable Card',
@@ -1014,7 +1010,7 @@ describe('CardService - Enhanced Coverage', () => {
       };
 
       mockDataService.getCardById.mockReturnValue(testCard);
-      
+
       // Mock player with the card in hand
       const playerWithCard = {
         ...mockPlayer,
@@ -1023,7 +1019,7 @@ describe('CardService - Enhanced Coverage', () => {
       };
       mockStateService.getPlayer.mockReturnValue(playerWithCard);
 
-      const result = cardService.playCard('player1', 'PLAY001');
+      const result = await cardService.playCard('player1', 'PLAY001');
 
       // Verify that the UnifiedEffectEngine was called as part of playCard
       expect(mockEffectEngineService.processCardEffects).toHaveBeenCalledWith(

@@ -31,15 +31,16 @@ import { Choice } from './CommonTypes';
  */
 
 export type Effect =
-  | { 
-      effectType: 'RESOURCE_CHANGE'; 
-      payload: { 
-        playerId: string; 
-        resource: 'MONEY' | 'TIME'; 
-        amount: number; 
+  | {
+      effectType: 'RESOURCE_CHANGE';
+      payload: {
+        playerId: string;
+        resource: 'MONEY' | 'TIME';
+        amount: number;
         source?: string;
         reason?: string;
-      }; 
+        sourceType?: 'bank' | 'investment' | 'owner' | 'other';  // Money source category
+      };
     }
   | { 
       effectType: 'CARD_DRAW'; 

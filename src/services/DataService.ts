@@ -435,7 +435,9 @@ export class DataService implements IDataService {
       const diceOutcomes = this.diceOutcomes.filter(o => o.space_name === spaceName);
       
       return {
+        id: spaceName,
         name: spaceName,
+        title: content[0]?.title || spaceName,
         config,
         content,
         movement,

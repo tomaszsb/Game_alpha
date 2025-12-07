@@ -58,6 +58,16 @@ export const colors = {
     text: '#c62828',        // Danger text color
   },
 
+  // Error Colors (Red - similar to danger)
+  error: {
+    main: '#dc3545',        // Bootstrap error red
+    primary: '#dc3545',     // Primary error color
+    dark: '#c53030',        // Dark error
+    light: '#ffebee',       // Light error background
+    bg: '#f8d7da',          // Error background variant
+    text: '#c62828',        // Error text color
+  },
+
   // Info Colors (Cyan/Light Blue)
   info: {
     main: '#17a2b8',        // Bootstrap info cyan
@@ -123,6 +133,7 @@ export const colors = {
   text: {
     primary: '#212529',     // Primary text
     secondary: '#6c757d',   // Secondary text
+    tertiary: '#9ca3af',    // Tertiary text (lighter than secondary)
     muted: '#6b7280',       // Muted text
     light: '#9ca3af',       // Light text
     white: '#ffffff',       // White text
@@ -283,6 +294,7 @@ export const theme = {
 
   // Shadows - Consistent shadow scale
   shadows: {
+    xs: '0 1px 2px rgba(0, 0, 0, 0.05)',
     sm: '0 2px 4px rgba(0, 0, 0, 0.1)',
     md: '0 4px 8px rgba(0, 0, 0, 0.15)',
     lg: '0 10px 25px rgba(0, 0, 0, 0.25)',
@@ -366,6 +378,7 @@ export const {
   success,
   warning,
   danger,
+  error,
   info,
   neutral,
   background,

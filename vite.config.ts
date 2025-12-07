@@ -49,16 +49,14 @@ function getWindowsIp(): string | null {
 
 // WSL Port Forwarding Plugin
 function wslPortForwardingPlugin(): Plugin {
-  const PORT = 3000;
-
-  function setupPortForwarding(wslIp: string, windowsIp: string): void {
+  function setupPortForwarding(port: number, wslIp: string, windowsIp: string): void {
     try {
-      console.log(`\n🔧 Setting up Windows port forwarding for port ${PORT}...`);
+      console.log(`\n🔧 Setting up Windows port forwarding for port ${port}...`);
 
       // Delete existing rule (ignore errors if it doesn't exist)
       try {
         execSync(
-          `powershell.exe -Command "Start-Process powershell -Verb RunAs -ArgumentList '-Command', 'netsh interface portproxy delete v4tov4 listenport=${PORT} listenaddress=0.0.0.0' -Wait"`,
+          `powershell.exe -Command "Start-Process powershell -Verb RunAs -ArgumentList '-Command', 'netsh interface portproxy delete v4tov4 listenport=${port} listenaddress=0.0.0.0' -Wait"`,
           { encoding: 'utf-8', stdio: 'pipe' }
         );
       } catch {
@@ -67,15 +65,15 @@ function wslPortForwardingPlugin(): Plugin {
 
       // Add new port forwarding rule
       execSync(
-        `powershell.exe -Command "Start-Process powershell -Verb RunAs -ArgumentList '-Command', 'netsh interface portproxy add v4tov4 listenport=${PORT} listenaddress=0.0.0.0 connectport=${PORT} connectaddress=${wslIp}' -Wait"`,
+        `powershell.exe -Command "Start-Process powershell -Verb RunAs -ArgumentList '-Command', 'netsh interface portproxy add v4tov4 listenport=${port} listenaddress=0.0.0.0 connectport=${port} connectaddress=${wslIp}' -Wait"`,
         { encoding: 'utf-8', stdio: 'pipe' }
       );
 
       console.log(`✅ Port forwarding configured!`);
       console.log(`   WSL IP: ${wslIp}`);
       console.log(`   Windows IP: ${windowsIp}`);
-      console.log(`\n📱 Access from your phone: http://${windowsIp}:${PORT}`);
-      console.log(`   Local access: http://localhost:${PORT}\n`);
+      console.log(`\n📱 Access from your phone: http://${windowsIp}:${port}`);
+      console.log(`   Local access: http://localhost:${port}\n`);
     } catch (e) {
       console.error('⚠️  Failed to set up port forwarding (requires admin):', e);
       console.log('   You may need to run the command manually as administrator.');
@@ -88,11 +86,15 @@ function wslPortForwardingPlugin(): Plugin {
       server.httpServer?.once('listening', () => {
         if (!isWSL()) return;
 
+        // Get the actual port the server is listening on
+        const address = server.httpServer?.address();
+        const port = typeof address === 'object' && address !== null ? address.port : 3000;
+
         const wslIp = getWslIp();
         const windowsIp = getWindowsIp();
 
         if (wslIp && windowsIp) {
-          setupPortForwarding(wslIp, windowsIp);
+          setupPortForwarding(port, wslIp, windowsIp);
         } else {
           console.warn('⚠️  Could not detect IP addresses for port forwarding');
         }
@@ -101,10 +103,8 @@ function wslPortForwardingPlugin(): Plugin {
   };
 }
 
-// Detect network IP for browser opening
+// Detect if running in WSL for server configuration
 const runningInWSL = isWSL();
-const networkIP = runningInWSL ? getWindowsIp() : null;
-const openURL = networkIP ? `http://${networkIP}:3000` : true;
 
 export default defineConfig({
   plugins: [react(), wslPortForwardingPlugin()],
@@ -112,7 +112,7 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true, // Bind to all interfaces for network access
-    open: openURL, // Open network IP in WSL, localhost otherwise
+    open: true, // Let Vite handle opening the browser with the correct port
   },
   build: {
     outDir: 'dist',

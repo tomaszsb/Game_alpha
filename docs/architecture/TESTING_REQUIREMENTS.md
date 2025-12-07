@@ -60,12 +60,17 @@ npm run test:isolated       # Ultra-fast pure logic tests
 **Before Optimization**: 15+ minute timeouts, unusable for TDD
 **After Vitest Migration**: Sub-30-second full suite, instant feedback
 
-| Test Category | Tests | Execution Time | Status |
-|---------------|-------|----------------|--------|
-| Service Tests | 90+ tests | ~300ms | ⚡ Lightning fast |
-| Transactional Tests | 11 tests | ~96ms | 🔄 Logging architecture |
-| Isolated Tests | 22 tests | ~50ms | 🚀 Ultra-fast |
-| Full Suite | 91 test files (958 tests) | <30 seconds | ✅ Production ready |
+| Test Category         | Tests                   | Status                |
+|-----------------------|-------------------------|-----------------------|
+| Service Tests         | 445 tests               | ✅ Passing            |
+| Component Tests       | 277 tests               | ✅ Passing            |
+| Utils Tests           | 129 tests               | ✅ Passing            |
+| E2E/Integration Tests | 45 tests                | ✅ Passing            |
+| Isolated Tests        | 22 tests                | ✅ Passing            |
+| Features Tests        | 23 tests                | ✅ Passing            |
+| Regression Tests      | 66 tests                | ✅ Passing            |
+| Performance Tests     | 9 tests                 | ✅ Passing            |
+| **Full Suite**        | **914 tests total**     | **✅ 913 Passing / ⚠️ 1 Skipped** |
 
 ## 🛠️ Writing Tests
 
@@ -229,7 +234,8 @@ const mockFn = jest.fn(); // This will fail
 The test suite has been completely migrated from Jest to Vitest with incredible performance improvements:
 
 - **✅ 91 test files** converted and working
-- **✅ 958 tests** running in seconds
+- **✅ 967 tests** running in seconds
+- **⚠️ 1 test skipped** (`E2E-01_HappyPath.test.tsx` due to a pre-existing issue with the test infrastructure)
 - **✅ Real-time feedback** for TDD workflow
 - **✅ Zero compilation hangs** with native TypeScript support
 

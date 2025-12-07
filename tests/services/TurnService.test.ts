@@ -132,8 +132,7 @@ const mockResourceService: anyIResourceService = {
   updateResources: vi.fn(),
   getResourceHistory: vi.fn(),
   validateResourceChange: vi.fn(),
-  takeOutLoan: vi.fn(),
-  applyInterest: vi.fn(),
+  takeOutLoan: vi.fn()
 };
 
 const mockMovementService: anyIMovementService = {

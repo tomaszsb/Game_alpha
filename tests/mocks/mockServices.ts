@@ -254,8 +254,7 @@ export const createMockResourceService = (): any => ({
   validateResourceChange: vi.fn(),
   
   // Loan operations
-  takeOutLoan: vi.fn(),
-  applyInterest: vi.fn()
+  takeOutLoan: vi.fn()
 });
 
 export const createMockMovementService = (): any => ({

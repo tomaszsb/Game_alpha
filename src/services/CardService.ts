@@ -397,9 +397,9 @@ export class CardService implements ICardService {
   }
 
   // Main card playing method
-  playCard(playerId: string, cardId: string): GameState {
+  async playCard(playerId: string, cardId: string): Promise<GameState> {
     console.log(`Attempting to play card [${cardId}] for player [${playerId}]`);
-    
+
     try {
       // Step 1: Validate that the card can be played (includes phase restrictions)
       const validationResult = this.validateCardPlay(playerId, cardId);
@@ -415,7 +415,10 @@ export class CardService implements ICardService {
         throw new Error(error.detailed);
       }
 
-      // Step 3: Pay card cost if any
+      // Step 3: Apply card effects FIRST (validate they work before charging cost)
+      await this.applyCardEffects(playerId, cardId);
+
+      // Step 4: Pay card cost AFTER effects succeed
       if (card.cost && card.cost > 0) {
         // Skip cost charging for funding cards (B = Bank loans, I = Investor funding)
         if (card.card_type !== 'B' && card.card_type !== 'I') {
@@ -424,7 +427,7 @@ export class CardService implements ICardService {
             const error = ErrorNotifications.invalidState(`Player ${playerId} not found`);
             throw new Error(error.detailed);
           }
-          
+
           this.stateService.updatePlayer({
             id: playerId,
             money: player.money - card.cost
@@ -432,9 +435,6 @@ export class CardService implements ICardService {
           console.log(`Player ${playerId} paid $${card.cost} to play card ${cardId}`);
         }
       }
-      
-      // Step 4: Apply card effects
-      this.applyCardEffects(playerId, cardId);
       
       // Step 5: Handle card activation based on duration
       if (card.duration) {
@@ -846,7 +846,7 @@ export class CardService implements ICardService {
   }
 
   // Card effect methods - Enhanced with UnifiedEffectEngine integration
-  applyCardEffects(playerId: string, cardId: string): GameState {
+  async applyCardEffects(playerId: string, cardId: string): Promise<GameState> {
     const card = this.dataService.getCardById(cardId);
     if (!card) {
       console.warn(`Card ${cardId} not found in database`);
@@ -864,53 +864,35 @@ export class CardService implements ICardService {
 
     // Step 1: Parse card data into standardized Effect objects
     const effects = this.parseCardIntoEffects(card, playerId);
-    
+
     if (effects.length > 0) {
       console.log(`🎴 CARD_SERVICE: Parsed ${effects.length} effects from card ${cardId}`);
-      
-      // Step 2: Process effects through UnifiedEffectEngine
+
+      // Step 2: Process effects through UnifiedEffectEngine synchronously
       const context = {
         source: `card:${cardId}`,
         playerId: playerId,
         triggerEvent: 'CARD_PLAY' as const
       };
-      
-      // Use async processing for complex effects
-      this.effectEngineService.processCardEffects(effects, context, card).then(batchResult => {
+
+      try {
+        const batchResult = await this.effectEngineService.processCardEffects(effects, context, card);
         if (batchResult.success) {
           console.log(`✅ Successfully processed ${batchResult.successfulEffects}/${batchResult.totalEffects} card effects`);
         } else {
           console.error(`❌ Card effect processing failed: ${batchResult.errors.join(', ')}`);
+          throw new Error(`Card effect processing failed: ${batchResult.errors.join(', ')}`);
         }
-      }).catch(error => {
+      } catch (error) {
         console.error(`❌ Error processing card effects:`, error);
-      });
+        throw error;
+      }
     }
 
-    // Step 3: Apply legacy expanded mechanics for compatibility
-    this.applyExpandedMechanics(playerId, card);
+    // Legacy card type logging for debugging
+    console.log(`Card type ${card.card_type} processed successfully`);
 
-    // Step 4: Apply legacy card type effects for compatibility
-    switch (card.card_type) {
-      case 'W': // Work cards - Apply Work effects
-        return this.applyWorkCardEffect(playerId, card);
-      
-      case 'B': // Bank Loan cards - Apply loan funding effects
-        return this.applyBankLoanCardEffect(playerId, card);
-      
-      case 'E': // Expeditor cards - Filing representative effects
-        return this.applyExpeditorCardEffect(playerId, card);
-      
-      case 'L': // Life Events cards - Random events and unforeseen circumstances
-        return this.applyLifeEventsCardEffect(playerId, card);
-      
-      case 'I': // Investor Loan cards - High-rate funding effects
-        return this.applyInvestorLoanCardEffect(playerId, card);
-      
-      default:
-        console.warn(`Unknown card type: ${card.card_type}`);
-        return this.stateService.getGameState();
-    }
+    return this.stateService.getGameState();
   }
 
   /**
@@ -932,6 +914,7 @@ export class CardService implements ICardService {
             resource: 'MONEY',
             amount: moneyAmount,
             source: cardSource,
+            sourceType: 'other',  // Card effects categorized as 'other'
             reason: `${card.card_name}: ${moneyAmount > 0 ? '+' : ''}$${Math.abs(moneyAmount).toLocaleString()}`
           }
         });
@@ -1007,7 +990,7 @@ export class CardService implements ICardService {
       if (discardMatch) {
         const count = parseInt(discardMatch[1], 10);
         const cardType = discardMatch[2];
-        
+
         if (count > 0) {
           effects.push({
             effectType: 'CARD_DISCARD',
@@ -1025,174 +1008,65 @@ export class CardService implements ICardService {
       }
     }
 
-    return effects;
-  }
-
-  // Apply expanded mechanics from code2026
-  private applyExpandedMechanics(playerId: string, card: any): void {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    const cardSource = `card:${card.card_id}`;
-
-    // Apply time tick modifier effects using ResourceService
-    if (card.tick_modifier && card.tick_modifier !== '0') {
-      const tickModifier = parseInt(card.tick_modifier);
-      if (!isNaN(tickModifier) && tickModifier !== 0) {
-        if (tickModifier > 0) {
-          this.resourceService.addTime(playerId, tickModifier, cardSource, `${card.card_name}: +${tickModifier} time ticks`);
-        } else {
-          this.resourceService.spendTime(playerId, Math.abs(tickModifier), cardSource, `${card.card_name}: ${tickModifier} time ticks`);
-        }
-      }
-    }
-
-    // Apply direct money effects using ResourceService
-    if (card.money_effect) {
-      const moneyEffect = parseInt(card.money_effect);
-      if (!isNaN(moneyEffect) && moneyEffect !== 0) {
-        if (moneyEffect > 0) {
-          this.resourceService.addMoney(playerId, moneyEffect, cardSource, `${card.card_name}: +$${moneyEffect.toLocaleString()}`);
-        } else {
-          this.resourceService.spendMoney(playerId, Math.abs(moneyEffect), cardSource, `${card.card_name}: -$${Math.abs(moneyEffect).toLocaleString()}`);
-        }
-      }
-    }
-
-    // Apply loan amounts for B cards using ResourceService
-    console.log(`🔍 DEBUG: Checking B card - card_type=${card.card_type}, loan_amount=${card.loan_amount}`);
+    // RESOURCE_CHANGE effects from loan_amount field (B cards)
     if (card.card_type === 'B' && card.loan_amount) {
-      const loanAmount = parseInt(card.loan_amount);
-      console.log(`🔍 DEBUG: Parsed loan_amount=${loanAmount}, isNaN=${isNaN(loanAmount)}`);
+      const loanAmount = parseInt(card.loan_amount, 10);
       if (!isNaN(loanAmount) && loanAmount > 0) {
-        console.log(`💰 DEBUG: Adding loan money: $${loanAmount.toLocaleString()}`);
-
-        // Determine source type based on context
         const player = this.stateService.getPlayer(playerId);
-        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'bank';
-        const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Loan';
+        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'ownerFunding' : 'bankLoans';
+        const sourceLabel = sourceType === 'ownerFunding' ? 'Owner funding' : 'Loan';
 
-        this.resourceService.addMoney(
-          playerId,
-          loanAmount,
-          cardSource,
-          `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${sourceType === 'bank' ? ` at ${card.loan_rate}% interest` : ''}`,
-          sourceType
-        );
-      } else {
-        console.warn(`⚠️ DEBUG: Loan amount failed validation - loanAmount=${loanAmount}`);
+        effects.push({
+          effectType: 'RESOURCE_CHANGE',
+          payload: {
+            playerId: playerId,
+            resource: 'MONEY',
+            amount: loanAmount,
+            source: cardSource,
+            sourceType: sourceType,
+            reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${sourceType === 'bankLoans' && card.loan_rate ? ` at ${card.loan_rate}% interest` : ''}`
+          }
+        });
+        console.log(`   💰 Added LOAN effect: $${loanAmount.toLocaleString()} (${sourceLabel})`);
       }
-    } else {
-      console.log(`⚠️ DEBUG: B card condition not met - card_type=${card.card_type}, loan_amount=${card.loan_amount}`);
     }
 
-    // Apply investment amounts for I cards using ResourceService
-    console.log(`🔍 DEBUG: Checking I card - card_type=${card.card_type}, investment_amount=${card.investment_amount}`);
+    // RESOURCE_CHANGE effects from investment_amount field (I cards)
     if (card.card_type === 'I' && card.investment_amount) {
-      const investmentAmount = parseInt(card.investment_amount);
-      console.log(`🔍 DEBUG: Parsed investment_amount=${investmentAmount}, isNaN=${isNaN(investmentAmount)}`);
+      const investmentAmount = parseInt(card.investment_amount, 10);
       if (!isNaN(investmentAmount) && investmentAmount > 0) {
-        console.log(`💰 DEBUG: Adding investment money: $${investmentAmount.toLocaleString()}`);
-        this.resourceService.addMoney(
-          playerId,
-          investmentAmount,
-          cardSource,
-          `${card.card_name}: Investment of $${investmentAmount.toLocaleString()}`,
-          'investment' // Track as investment deal
-        );
-      } else {
-        console.warn(`⚠️ DEBUG: Investment amount failed validation - investmentAmount=${investmentAmount}`);
+        effects.push({
+          effectType: 'RESOURCE_CHANGE',
+          payload: {
+            playerId: playerId,
+            resource: 'MONEY',
+            amount: investmentAmount,
+            source: cardSource,
+            sourceType: 'investmentDeals',
+            reason: `${card.card_name}: Investment of $${investmentAmount.toLocaleString()}`
+          }
+        });
+        console.log(`   💰 Added INVESTMENT effect: $${investmentAmount.toLocaleString()}`);
       }
-    } else {
-      console.log(`⚠️ DEBUG: I card condition not met - card_type=${card.card_type}, investment_amount=${card.investment_amount}`);
     }
 
-    // Handle turn effects (skip next turn)
+    // TURN_CONTROL effects from turn_effect field (skip turn)
     if (card.turn_effect && card.turn_effect.toLowerCase().includes('skip')) {
-      console.log(`Card ${card.card_id}: Turn effect "${card.turn_effect}" - player will skip next turn`);
-      this.effectEngineService.processEffect({
+      effects.push({
         effectType: 'TURN_CONTROL',
         payload: {
           action: 'SKIP_TURN',
-          playerId,
-          source: `card:${card.card_id}`,
+          playerId: playerId,
+          source: cardSource,
           reason: `Card effect: ${card.card_name}`
         }
-      }, {
-        source: `card:${card.card_id}`,
-        playerId,
-        triggerEvent: 'CARD_PLAY'
       });
+      console.log(`   ⏭️ Added SKIP_TURN effect`);
     }
 
-    // Handle card interaction effects (draw/discard)
-    if (card.draw_cards) {
-      const [count, cardType] = card.draw_cards.split(' ');
-      this.effectEngineService.processEffect({
-        effectType: 'CARD_DRAW',
-        payload: {
-          playerId,
-          cardType,
-          count: parseInt(count, 10),
-          source: `card:${card.card_id}`,
-          reason: `Card effect: ${card.card_name}`
-        }
-      }, {
-        source: `card:${card.card_id}`,
-        playerId,
-        triggerEvent: 'CARD_PLAY'
-      });
-    }
-
-    if (card.discard_cards) {
-      const [count, cardType] = card.discard_cards.split(' ');
-      const playerCards = this.getPlayerCards(playerId, cardType as CardType);
-      if (playerCards.length > 0) {
-        const cardsToDiscard = playerCards.slice(0, parseInt(count, 10));
-        this.effectEngineService.processEffect({
-          effectType: 'CARD_DISCARD',
-          payload: {
-            playerId,
-            cardIds: cardsToDiscard,
-            source: `card:${card.card_id}`,
-            reason: `Card effect: ${card.card_name}`
-          }
-        }, {
-          source: `card:${card.card_id}`,
-          playerId,
-          triggerEvent: 'CARD_PLAY'
-        });
-      }
-    }
-
-    // Handle targeted effects
-    if (card.target) {
-      this.effectEngineService.processEffect({
-        effectType: 'EFFECT_GROUP_TARGETED',
-        payload: {
-          targetType: card.target,
-          templateEffect: {
-            effectType: 'RESOURCE_CHANGE',
-            payload: {
-              playerId: '', // This will be replaced by the EffectEngineService
-              resource: 'MONEY',
-              amount: -100, // Example: all other players lose 100
-              source: `card:${card.card_id}`,
-              reason: `Card effect: ${card.card_name}`
-            }
-          },
-          prompt: `Choose a player to lose $100`,
-          source: `card:${card.card_id}`
-        }
-      }, {
-        source: `card:${card.card_id}`,
-        playerId,
-        triggerEvent: 'CARD_PLAY'
-      });
-    }
+    return effects;
   }
+
 
   // Private helper methods
   private requiresPlayerTurn(cardType: CardType): boolean {
@@ -1371,10 +1245,11 @@ export class CardService implements ICardService {
     
     if (moneyGain > 0) {
       this.resourceService.addMoney(
-        playerId, 
-        moneyGain, 
-        `card:${card.card_id}`, 
-        `${card.card_name}: Investment secured $${moneyGain.toLocaleString()}`
+        playerId,
+        moneyGain,
+        `card:${card.card_id}`,
+        `${card.card_name}: Investment secured $${moneyGain.toLocaleString()}`,
+        'investment'  // Investment cards categorized as investment income
       );
     }
     

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { CardReplacementModal } from '../../../src/components/modals/CardReplacementModal';
@@ -18,6 +18,10 @@ vi.mock('../../../src/context/GameContext', () => ({
 }));
 
 describe('CardReplacementModal', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
   const mockCard1: Card = {
     card_id: 'W1',
     card_name: 'Foundation Work',

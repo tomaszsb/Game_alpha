@@ -101,7 +101,7 @@ export function getAppScreen(
 
   // Invalid player ID → show game view (default fallback)
   if (!isValidPlayer) {
-    const requestedId = shortId || fullPlayerId;
+    const requestedId = shortId || fullPlayerId || undefined;
     console.warn(`Invalid player ID in URL: ${requestedId}. Available players:`, players.map(p => ({ id: p.id, shortId: p.shortId })));
     return {
       screen: 'game',

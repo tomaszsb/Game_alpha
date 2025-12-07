@@ -94,7 +94,9 @@ export interface SpaceContent {
 }
 
 export interface Space {
+  id: string;
   name: string;
+  title: string;
   config: GameConfig;
   content: SpaceContent[];
   movement: Movement[];
@@ -123,7 +125,14 @@ export interface Expenditures {
   construction: number; // Cost of work from 'W' cards (work_cost field)
 }
 
-export type CostCategory = 'bank' | 'investor' | 'expeditor' | 'architectural' | 'engineering' | 'regulatory' | 'miscellaneous';
+// Expense categories (costs/fees paid OUT)
+export type ExpenseCategory = 'expeditor' | 'architectural' | 'engineering' | 'regulatory' | 'investmentFee' | 'miscellaneous';
+
+// Income sources (funds received IN) - matches money source types
+export type IncomeCategory = 'bank' | 'investor' | 'owner' | 'other';
+
+// Legacy type for backward compatibility - use ExpenseCategory for new code
+export type CostCategory = ExpenseCategory | IncomeCategory;
 
 export interface CostEntry {
   id: string;

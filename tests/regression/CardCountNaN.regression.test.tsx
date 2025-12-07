@@ -95,8 +95,7 @@ describe('CardCountNaN Regression Tests', () => {
       updateResources: vi.fn(),
       getResourceHistory: vi.fn(),
       validateResourceChange: vi.fn(),
-      takeOutLoan: vi.fn(),
-      applyInterest: vi.fn(),
+      takeOutLoan: vi.fn()
     };
 
     mockMovementService = {

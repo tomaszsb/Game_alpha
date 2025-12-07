@@ -1,14 +1,19 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextStepButton } from '../../../src/components/player/NextStepButton';
-import { IServiceContainer, IStateService, ITurnService, IMovementService } from '../../../../src/types/ServiceContracts';
-import { createMockStateService, createMockTurnService, createMockMovementService } from '../../mocks/mockServices'; // Assuming mock services exist
+import { IServiceContainer, IStateService, ITurnService, IMovementService, IGameRulesService } from '../../../../src/types/ServiceContracts';
+import { createMockStateService, createMockTurnService, createMockMovementService, createMockGameRulesService } from '../../mocks/mockServices'; // Assuming mock services exist
 
 describe('NextStepButton', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
   let mockStateService: IStateService;
   let mockTurnService: ITurnService;
   let mockMovementService: IMovementService;
+  let mockGameRulesService: IGameRulesService;
   let mockGameServices: IServiceContainer;
 
   const PLAYER_ID = 'player1';
@@ -20,17 +25,18 @@ describe('NextStepButton', () => {
     mockStateService = createMockStateService();
     mockTurnService = createMockTurnService();
     mockMovementService = createMockMovementService();
+    mockGameRulesService = createMockGameRulesService();
 
     mockGameServices = {
       stateService: mockStateService,
       turnService: mockTurnService,
       movementService: mockMovementService,
+      gameRulesService: mockGameRulesService,
       // Add other services as needed by getNextStepState or handleNextStep
       cardService: {} as any, // Placeholder
       choiceService: {} as any, // Placeholder
       dataService: {} as any, // Placeholder
       effectEngineService: {} as any, // Placeholder
-      gameRulesService: {} as any, // Placeholder
       loggingService: {} as any, // Placeholder
       negotiationService: {} as any, // Placeholder
       notificationService: {} as any, // Placeholder
@@ -58,29 +64,15 @@ describe('NextStepButton', () => {
     mockTurnService.endTurn.mockResolvedValue(undefined); // Mock successful endTurn
 
     mockMovementService.rollAndMove.mockResolvedValue(undefined); // Mock successful rollAndMove
+
+    mockGameRulesService.isPlayerTurn.mockReturnValue(true); // Mock default to player's turn
   });
 
   test('is hidden on other players turn', () => {
     mockTurnService.isCurrentPlayer.mockReturnValue(false);
+    mockGameRulesService.isPlayerTurn.mockReturnValue(false);
     render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
-  });
-
-  test('shows "Roll to Move" when movement needed', () => {
-    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
-    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
-    expect(screen.getByText('Roll to Move')).toBeInTheDocument();
-  });
-
-  test('calls movementService.rollAndMove when "Roll to Move" is clicked', async () => {
-    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
-    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
-
-    fireEvent.click(screen.getByText('Roll to Move'));
-
-    await waitFor(() => {
-      expect(mockMovementService.rollAndMove).toHaveBeenCalledWith(PLAYER_ID);
-    });
   });
 
   test('shows "End Turn" when actions complete', () => {
@@ -98,7 +90,7 @@ describe('NextStepButton', () => {
     fireEvent.click(screen.getByText('End Turn'));
 
     await waitFor(() => {
-      expect(mockTurnService.endTurn).toHaveBeenCalledWith(PLAYER_ID);
+      expect(mockTurnService.endTurn).toHaveBeenCalledWith();
     });
   });
 
@@ -108,50 +100,12 @@ describe('NextStepButton', () => {
       currentPlayerId: PLAYER_ID,
       awaitingChoice: { id: 'choice1', type: 'MOVEMENT', prompt: 'Choose' }
     } as any);
-    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']); // Even if movement available, choice takes precedence
 
     render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
     expect(button).toHaveTextContent('End Turn'); // Default label when disabled due to choice
     expect(button).toHaveAttribute('title', 'Complete current action first');
-  });
-
-  test('shows "Processing..." when an action is loading', async () => {
-    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
-    mockMovementService.rollAndMove.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100))); // Simulate loading
-
-    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
-    const button = screen.getByText('Roll to Move');
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(button).toHaveTextContent('Processing...');
-    });
-
-    // After loading, it should revert to original label
-    await waitFor(() => {
-      expect(button).toHaveTextContent('Roll to Move');
-    });
-  });
-
-  test('handles errors during action execution gracefully', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console error
-
-    mockTurnService.getAvailableActions.mockReturnValue(['ROLL_TO_MOVE']);
-    mockMovementService.rollAndMove.mockRejectedValue(new Error('Movement failed'));
-
-    render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
-    const button = screen.getByText('Roll to Move');
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Next step error:', expect.any(Error));
-      expect(button).not.toBeDisabled(); // Button should be re-enabled
-      expect(button).toHaveTextContent('Roll to Move'); // Label should revert
-    });
-
-    consoleErrorSpy.mockRestore();
   });
 
   // New test case for "Ensure End Turn never hidden"

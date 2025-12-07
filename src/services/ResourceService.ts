@@ -116,7 +116,7 @@ export class ResourceService implements IResourceService {
    */
   recordCost(
     playerId: string,
-    category: import('../types/DataTypes').CostCategory,
+    category: import('../types/DataTypes').ExpenseCategory,
     amount: number,
     description: string,
     source: string
@@ -200,16 +200,17 @@ export class ResourceService implements IResourceService {
   /**
    * Map cost category to expenditure category for backward compatibility
    */
-  private mapCostToExpenditure(category: import('../types/DataTypes').CostCategory): keyof import('../types/DataTypes').Expenditures | null {
+  private mapCostToExpenditure(category: import('../types/DataTypes').ExpenseCategory): keyof import('../types/DataTypes').Expenditures | null {
     switch (category) {
       case 'architectural':
       case 'engineering':
         return 'design';
-      case 'bank':
-      case 'investor':
       case 'expeditor':
       case 'regulatory':
+      case 'investmentFee':  // Fee charged for receiving investment
         return 'fees';
+      case 'miscellaneous':
+        return null;  // Miscellaneous costs don't map to expenditures
       default:
         return null;
     }
@@ -276,26 +277,22 @@ export class ResourceService implements IResourceService {
     if (changes.money && changes.money > 0) {
       const amount = changes.money;
 
-      // Use explicit sourceType if provided (preferred method)
-      if (changes.moneySourceType) {
-        switch (changes.moneySourceType) {
-          case 'bank':
-            updatedMoneySources.bankLoans = (updatedMoneySources.bankLoans || 0) + amount;
-            break;
-          case 'investment':
-            updatedMoneySources.investmentDeals = (updatedMoneySources.investmentDeals || 0) + amount;
-            break;
-          case 'owner':
-            updatedMoneySources.ownerFunding = (updatedMoneySources.ownerFunding || 0) + amount;
-            break;
-          case 'other':
-            updatedMoneySources.other = (updatedMoneySources.other || 0) + amount;
-            break;
-        }
-      } else {
-        // Fallback to categorization for backward compatibility
-        const category = this.categorizeMoneySource(changes.source, player.currentSpace);
-        updatedMoneySources[category] += changes.money;
+      // Use explicit sourceType (defaults to 'other' if not provided)
+      const sourceType = changes.moneySourceType || 'other';
+
+      switch (sourceType) {
+        case 'bank':
+          updatedMoneySources.bankLoans = (updatedMoneySources.bankLoans || 0) + amount;
+          break;
+        case 'investment':
+          updatedMoneySources.investmentDeals = (updatedMoneySources.investmentDeals || 0) + amount;
+          break;
+        case 'owner':
+          updatedMoneySources.ownerFunding = (updatedMoneySources.ownerFunding || 0) + amount;
+          break;
+        case 'other':
+          updatedMoneySources.other = (updatedMoneySources.other || 0) + amount;
+          break;
       }
     }
 
@@ -456,34 +453,6 @@ export class ResourceService implements IResourceService {
     return description;
   }
 
-  /**
-   * Categorize money source into one of the tracked categories
-   * @param source - Source string from ResourceChange
-   * @param currentSpace - Player's current space
-   * @returns Category key for moneySources
-   */
-  private categorizeMoneySource(source: string, currentSpace: string): 'ownerFunding' | 'bankLoans' | 'investmentDeals' | 'other' {
-    const sourceLower = source.toLowerCase();
-
-    // Owner funding from OWNER-FUND-INITIATION space
-    if (currentSpace === 'OWNER-FUND-INITIATION' || sourceLower.includes('owner') || sourceLower.includes('funding')) {
-      return 'ownerFunding';
-    }
-
-    // Bank loans
-    if (sourceLower.includes('loan') || sourceLower.includes('bank')) {
-      return 'bankLoans';
-    }
-
-    // Investment deals
-    if (sourceLower.includes('invest') || sourceLower.includes('investor')) {
-      return 'investmentDeals';
-    }
-
-    // Everything else (cards, space effects, etc.)
-    return 'other';
-  }
-
   // === LOAN OPERATIONS ===
 
   /**
@@ -536,13 +505,19 @@ export class ResourceService implements IResourceService {
         loans: updatedLoans
       });
 
-      // Add the loan amount to player's money
-      const success = this.addMoney(playerId, amount, 'loan', `Loan ${loanId}: $${amount.toLocaleString()} at ${(interestRate * 100).toFixed(1)}%`);
-      
-      if (success) {
-        console.log(`💰 LOAN: Player ${player.name} took loan ${loanId} for $${amount.toLocaleString()} at ${(interestRate * 100).toFixed(1)}% interest`);
-        return true;
-      } else {
+      // Calculate interest fee (charged upfront, not recurring)
+      const interestFee = amount * interestRate;
+
+      // Transaction 1: Add the full loan amount to player's money
+      const loanSuccess = this.addMoney(
+        playerId,
+        amount,
+        'loan',
+        `Loan disbursement: $${amount.toLocaleString()}`,
+        'bank'  // Explicitly mark as bank loan for money source tracking
+      );
+
+      if (!loanSuccess) {
         // Rollback loan if money addition failed
         this.stateService.updatePlayer({
           id: playerId,
@@ -550,6 +525,29 @@ export class ResourceService implements IResourceService {
         });
         return false;
       }
+
+      // Transaction 2: Deduct interest fee (separate transaction for clarity)
+      const feeSuccess = this.spendMoney(
+        playerId,
+        interestFee,
+        'loan_interest',
+        `Loan interest fee (${(interestRate * 100).toFixed(1)}%): $${interestFee.toLocaleString()}`
+      );
+
+      if (!feeSuccess) {
+        // Rollback both loan and money if fee deduction failed
+        this.addMoney(playerId, -amount, 'loan', `Rollback loan disbursement`);
+        this.stateService.updatePlayer({
+          id: playerId,
+          loans: originalLoans
+        });
+        return false;
+      }
+
+      console.log(`💰 LOAN: Player ${player.name} took loan for $${amount.toLocaleString()} at ${(interestRate * 100).toFixed(1)}% interest`);
+      console.log(`💸 INTEREST FEE: Charged upfront fee of $${interestFee.toLocaleString()}`);
+      console.log(`💵 NET RECEIVED: Player receives $${(amount - interestFee).toLocaleString()}`);
+      return true;
       
     } catch (error) {
       const errorNotification = ErrorNotifications.resourceOperationFailed(
@@ -559,70 +557,6 @@ export class ResourceService implements IResourceService {
       );
       console.error(errorNotification.detailed);
       throw new Error(errorNotification.detailed);
-    }
-  }
-
-  /**
-   * Apply interest to all of a player's active loans
-   * @param playerId - Player to apply interest to
-   */
-  applyInterest(playerId: string): void {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      const error = ErrorNotifications.invalidState(`Player ${playerId} not found`);
-      throw new Error(error.detailed);
-    }
-
-    if (!player.loans || player.loans.length === 0) {
-      // No loans, nothing to do
-      return;
-    }
-
-    let totalInterest = 0;
-    const interestDetails: string[] = [];
-
-    // Calculate total interest from all loans
-    for (const loan of player.loans) {
-      const interest = loan.principal * loan.interestRate;
-      totalInterest += interest;
-      interestDetails.push(`${loan.id}: $${interest.toLocaleString()}`);
-    }
-
-    if (totalInterest <= 0) {
-      return;
-    }
-
-    console.log(`💸 INTEREST: Player ${player.name} owes $${totalInterest.toLocaleString()} in loan interest`);
-    console.log(`   Breakdown: ${interestDetails.join(', ')}`);
-
-    // Check if player can afford the interest
-    if (player.money < totalInterest) {
-      console.warn(`⚠️ INTEREST: Player ${player.name} cannot afford $${totalInterest.toLocaleString()} interest (has $${player.money.toLocaleString()})`);
-      
-      // Handle insufficient funds - for now, we'll deduct what they can afford and log the shortfall
-      const affordableAmount = player.money;
-      const shortfall = totalInterest - affordableAmount;
-      
-      if (affordableAmount > 0) {
-        this.spendMoney(playerId, affordableAmount, 'interest', `Partial interest payment (shortfall: $${shortfall.toLocaleString()})`);
-      }
-      
-      console.warn(`💸 INTEREST SHORTFALL: Player ${player.name} owes additional $${shortfall.toLocaleString()} in unpaid interest`);
-      
-      // NOTE: Interest shortfalls are forgiven (intentional game design)
-      // This makes loans more accessible to struggling players
-      // If harsher penalties are desired, consider:
-      // - Adding unpaid interest to loan principal
-      // - Applying late payment penalties
-      // - Tracking payment history
-      
-    } else {
-      // Player can afford full interest payment
-      const success = this.spendMoney(playerId, totalInterest, 'interest', `Interest payment on ${player.loans.length} loan(s)`);
-      
-      if (success) {
-        console.log(`✅ INTEREST: Player ${player.name} paid $${totalInterest.toLocaleString()} in loan interest`);
-      }
     }
   }
 

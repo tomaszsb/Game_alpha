@@ -1,11 +1,15 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DiscardPileModal } from '../../../src/components/modals/DiscardPileModal';
 import { IServiceContainer, IDataService, IStateService } from '../../../../src/types/ServiceContracts';
 import { Card } from '../../../../src/types/DataTypes';
 
 describe('DiscardPileModal', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
   let mockDataService: IDataService;
   let mockStateService: IStateService;
   let mockGameServices: IServiceContainer;

@@ -35,6 +35,17 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
   const headerId = `${ariaControls}-header`;
   const contentId = ariaControls;
 
+  // Handle keyboard navigation for arrow keys
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown' && !isExpanded) {
+      event.preventDefault();
+      onToggle();
+    } else if (event.key === 'ArrowUp' && isExpanded) {
+      event.preventDefault();
+      onToggle();
+    }
+  };
+
   return (
     <div className="expandable-section" data-default-expanded={defaultExpandedOnDesktop}>
       <div className="expandable-section__header-container">
@@ -42,6 +53,7 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
           id={headerId}
           className="expandable-section__header"
           onClick={onToggle}
+          onKeyDown={handleKeyDown}
           aria-expanded={isExpanded}
           aria-controls={contentId}
           type="button"

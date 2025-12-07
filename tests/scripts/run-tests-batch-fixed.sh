@@ -78,28 +78,97 @@ run_batch "isolated" \
     "tests/isolated/gameLogic.test.ts" \
     "tests/isolated/utils.test.ts"
 
-# Batch 8: E2E Tests
-run_batch "e2e-tests" \
+# Batch 8: E2E Tests (Group 1)
+run_batch "e2e-tests-1" \
     "tests/E2E-05_MultiPlayerEffects.test.ts" \
     "tests/E2E-01_HappyPath.test.ts" \
     "tests/E2E-04_EdgeCases.test.ts"
 
-# Batch 9: Integration Tests
+# Batch 9: E2E Tests (Group 2)
+run_batch "e2e-tests-2" \
+    "tests/E2E-02_ComplexCard.test.ts" \
+    "tests/E2E-03_ComplexSpace.test.ts" \
+    "tests/E2E-04_SpaceTryAgain.test.ts"
+
+# Batch 10: Integration Tests
 run_batch "integration-tests" \
     "tests/E012-integration.test.ts" \
     "tests/E066-reroll-integration.test.ts" \
     "tests/E066-simple.test.ts" \
     "tests/E2E-Lightweight.test.ts"
 
-# Batch 10: Component Tests (smaller batches)
+# Batch 11: Component Tests - Core
 run_batch "core-components" \
     "tests/components/game/CardPortfolioDashboard.test.tsx" \
     "tests/components/TurnControlsWithActions.test.tsx"
 
-run_batch "modal-components" \
+# Batch 12: Component Tests - Game Components
+run_batch "game-components" \
+    "tests/components/game/DiceRoller.test.tsx" \
+    "tests/components/game/GameSpace.test.tsx" \
+    "tests/components/game/MovementPathVisualization.test.tsx"
+
+# Batch 13: Component Tests - Game Components (Group 2)
+run_batch "game-components-2" \
+    "tests/components/game/ProjectProgress.test.tsx" \
+    "tests/components/game/SpaceExplorerPanel.test.tsx"
+
+# Batch 14: Component Tests - Modal Components (Group 1)
+run_batch "modal-components-1" \
     "tests/components/modals/CardActions.test.tsx" \
     "tests/components/modals/DiceResultModal.test.tsx" \
     "tests/components/modals/EndGameModal.test.tsx"
+
+# Batch 15: Component Tests - Modal Components (Group 2)
+run_batch "modal-components-2" \
+    "tests/components/CardDetailsModal.test.tsx" \
+    "tests/components/ChoiceModal.test.tsx" \
+    "tests/components/NegotiationModal.test.tsx"
+
+# Batch 16: Component Tests - Modal Components (Group 3)
+run_batch "modal-components-3" \
+    "tests/components/modals/CardReplacementModal.test.tsx" \
+    "tests/components/modals/DiscardPileModal.test.tsx" \
+    "tests/components/modals/DiscardedCardsModal.test.tsx"
+
+# Batch 17: Component Tests - Player Panel (Group 1)
+run_batch "player-components-1" \
+    "tests/components/player/PlayerPanel.test.tsx" \
+    "tests/components/player/PlayerPanel.integration.test.tsx" \
+    "tests/components/player/ExpandableSection.test.tsx"
+
+# Batch 18: Component Tests - Player Panel (Group 2)
+run_batch "player-components-2" \
+    "tests/components/player/CardsSection.test.tsx" \
+    "tests/components/player/FinancesSection.test.tsx" \
+    "tests/components/player/TimeSection.test.tsx"
+
+# Batch 19: Component Tests - Player Panel (Group 3)
+run_batch "player-components-3" \
+    "tests/components/player/NextStepButton.test.tsx" \
+    "tests/components/player/sections/CurrentCardSection.test.tsx"
+
+# Batch 20: Regression Tests (Group 1)
+run_batch "regression-tests-1" \
+    "tests/regression/ButtonNesting.regression.test.tsx" \
+    "tests/regression/CardCountNaN.regression.test.tsx" \
+    "tests/services/ActionSequenceRegression.test.ts"
+
+# Batch 21: Regression Tests (Group 2)
+run_batch "regression-tests-2" \
+    "tests/services/GameLogRegression.test.ts" \
+    "tests/services/SpaceProgressionRegression.test.ts" \
+    "tests/services/TransactionalLogging.test.ts"
+
+# Batch 22: Feature Tests
+run_batch "feature-tests" \
+    "tests/features/E2E-MultiPathMovement.test.tsx" \
+    "tests/features/ManualFunding.test.ts" \
+    "tests/P1_AutomaticFunding_Fix.test.ts"
+
+# Batch 23: Performance Tests
+run_batch "performance-tests" \
+    "tests/performance/LoadTimeOptimization.test.ts"
 
 # Summary
 echo ""

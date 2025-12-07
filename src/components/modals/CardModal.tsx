@@ -88,12 +88,12 @@ export function CardModal(): JSX.Element | null {
   /**
    * Handle play card action
    */
-  const handlePlay = () => {
+  const handlePlay = async () => {
     if (canPlay && cardData) {
       const currentPlayer = stateService.getGameState().currentPlayerId;
       if (currentPlayer) {
         try {
-          cardService.playCard(currentPlayer, cardData.card_id);
+          await cardService.playCard(currentPlayer, cardData.card_id);
           
           // Mark card play as an action taken (increment action counter)
           console.log('🃏 CardModal.handlePlay - Marking card play action taken');

@@ -6,9 +6,10 @@
 
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
 
 const app = express();
-const PORT = 3001;
+const DEFAULT_PORT = 3001;
 
 // Middleware
 app.use(cors()); // Allow all origins for development
@@ -170,35 +171,69 @@ app.use((err, req, res, next) => {
 });
 
 // ===== START SERVER =====
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('🚀 Code2027 Multi-Device Server Started');
-  console.log('');
-  console.log(`   Port: ${PORT}`);
-  console.log(`   Local: http://localhost:${PORT}`);
-  console.log(`   Network: http://0.0.0.0:${PORT}`);
-  console.log('');
-  console.log('📋 Available Endpoints:');
-  console.log(`   GET    /health              - Health check`);
-  console.log(`   GET    /api/gamestate       - Get current state`);
-  console.log(`   POST   /api/gamestate       - Update state`);
-  console.log(`   DELETE /api/gamestate       - Reset state`);
-  console.log(`   GET    /api/debug/state     - Debug state dump`);
-  console.log('');
-  console.log('🔄 Features enabled:');
-  console.log('   ✅ Multi-device state synchronization');
-  console.log('   ✅ Version tracking (last-write-wins)');
-  console.log('');
-});
+/**
+ * Try to start server on a port, and try next port if it fails
+ */
+function startServer(port, maxAttempts = 10) {
+  const server = createServer(app);
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is in use, trying ${port + 1}...`);
+      if (maxAttempts > 1) {
+        server.close();
+        startServer(port + 1, maxAttempts - 1);
+      } else {
+        console.error('❌ Could not find an available port after multiple attempts');
+        process.exit(1);
+      }
+    } else {
+      console.error('❌ Server error:', err);
+      process.exit(1);
+    }
+  });
+
+  server.listen(port, '0.0.0.0', () => {
+    const actualPort = server.address().port;
+    console.log('🚀 Code2027 Multi-Device Server Started');
+    console.log('');
+    console.log(`   Port: ${actualPort}`);
+    console.log(`   Local: http://localhost:${actualPort}`);
+    console.log(`   Network: http://0.0.0.0:${actualPort}`);
+    console.log('');
+    console.log('📋 Available Endpoints:');
+    console.log(`   GET    /health              - Health check`);
+    console.log(`   GET    /api/gamestate       - Get current state`);
+    console.log(`   POST   /api/gamestate       - Update state`);
+    console.log(`   DELETE /api/gamestate       - Reset state`);
+    console.log(`   GET    /api/debug/state     - Debug state dump`);
+    console.log('');
+    console.log('🔄 Features enabled:');
+    console.log('   ✅ Multi-device state synchronization');
+    console.log('   ✅ Version tracking (last-write-wins)');
+    console.log('');
+  });
+
+  return server;
+}
+
+const server = startServer(DEFAULT_PORT);
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('');
   console.log('🛑 Shutting down server...');
-  process.exit(0);
+  server.close(() => {
+    console.log('✅ Server shut down gracefully');
+    process.exit(0);
+  });
 });
 
 process.on('SIGTERM', () => {
   console.log('');
   console.log('🛑 Shutting down server...');
-  process.exit(0);
+  server.close(() => {
+    console.log('✅ Server shut down gracefully');
+    process.exit(0);
+  });
 });

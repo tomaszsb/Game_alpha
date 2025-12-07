@@ -24,11 +24,15 @@ import { NotificationUtils } from '../../utils/NotificationUtils';
 import { GamePhase, Player } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 
+interface GameLayoutProps {
+  viewPlayerId?: string;
+}
+
 /**
  * GameLayout component replicates the high-level structure of the legacy FixedApp.js
  * This provides the main grid-based layout for the game application.
  */
-export function GameLayout(): JSX.Element {
+export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element {
   const {
     stateService,
     dataService,
@@ -102,8 +106,11 @@ export function GameLayout(): JSX.Element {
   const [playerNotifications, setPlayerNotifications] = useState<{ [playerId: string]: string }>({});
 
   // Smart layout adaptation - track view mode for mobile players
-  // Initialize synchronously from URL to prevent desktop layout flash on mobile
-  const [viewPlayerId, setViewPlayerId] = useState<string | null>(() => {
+  // Use prop if provided, otherwise check URL params
+  const [viewPlayerIdFromState, setViewPlayerId] = useState<string | null>(() => {
+    if (viewPlayerId) {
+      return viewPlayerId;
+    }
     const urlParams = new URLSearchParams(window.location.search);
     const playerIdParam = urlParams.get('playerId');
     if (playerIdParam) {
@@ -111,6 +118,9 @@ export function GameLayout(): JSX.Element {
     }
     return playerIdParam;
   });
+
+  // Use prop if provided, otherwise use state
+  const effectiveViewPlayerId = viewPlayerId || viewPlayerIdFromState;
 
   // Use actual game state completed actions for UI display
   const completedActions = gameStateCompletedActions;
@@ -139,7 +149,7 @@ export function GameLayout(): JSX.Element {
   // Helper function to determine if a player panel should be shown
   const shouldShowPlayerPanel = (playerId: string): boolean => {
     // In mobile view mode, don't show any panels in the main area
-    if (viewPlayerId) return false;
+    if (effectiveViewPlayerId) return false;
 
     // Check user's display settings first (explicit visibility toggle)
     // visiblePanels[playerId] === false means user explicitly hid it
@@ -159,11 +169,11 @@ export function GameLayout(): JSX.Element {
   };
 
   // Check if any player panels should be shown
-  const shouldShowAnyPanel = !viewPlayerId && players.length > 0 &&
+  const shouldShowAnyPanel = !effectiveViewPlayerId && players.length > 0 &&
     players.some(p => shouldShowPlayerPanel(p.id));
 
   // If no panels should be shown, hide the entire panel column
-  const hidePanelColumn = !viewPlayerId && !shouldShowAnyPanel;
+  const hidePanelColumn = !effectiveViewPlayerId && !shouldShowAnyPanel;
 
   // Add responsive CSS styles to document head
   React.useEffect(() => {
@@ -507,7 +517,7 @@ export function GameLayout(): JSX.Element {
       }}
     >
       {/* Mobile View Mode - Show only player panel */}
-      {viewPlayerId && gamePhase === 'PLAY' && (
+      {effectiveViewPlayerId && gamePhase === 'PLAY' && (
         <div
           style={{
             gridColumn: '1 / -1',
@@ -519,16 +529,16 @@ export function GameLayout(): JSX.Element {
             position: 'relative'
           }}
         >
-          {players.find(p => p.id === viewPlayerId) ? (
+          {players.find(p => p.id === effectiveViewPlayerId) ? (
             <PlayerPanel
               gameServices={gameServices}
-              playerId={viewPlayerId}
+              playerId={effectiveViewPlayerId}
               onToggleSpaceExplorer={handleToggleSpaceExplorer}
               onToggleMovementPath={handleToggleMovementPath}
               isSpaceExplorerVisible={isSpaceExplorerVisible}
               isMovementPathVisible={isMovementPathVisible}
               onTryAgain={handleTryAgain}
-              playerNotification={playerNotifications[viewPlayerId]}
+              playerNotification={playerNotifications[effectiveViewPlayerId]}
               onRollDice={handleRollDice}
               onAutomaticFunding={handleAutomaticFunding}
               onManualEffectResult={(result) => {
@@ -548,7 +558,7 @@ export function GameLayout(): JSX.Element {
       )}
 
       {/* Desktop View Mode - Show progress, player panels (filtered), and board */}
-      {!viewPlayerId && (
+      {!effectiveViewPlayerId && (
         <>
           {/* Top Panel - Project Progress (only in PLAY phase) */}
           {gamePhase === 'PLAY' && (
@@ -763,7 +773,7 @@ export function GameLayout(): JSX.Element {
       {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
 
       {/* Display Settings Button (show in desktop view during setup and play) */}
-      {!viewPlayerId && (
+      {!effectiveViewPlayerId && (
         <button
           onClick={() => setIsDisplaySettingsOpen(true)}
           style={{

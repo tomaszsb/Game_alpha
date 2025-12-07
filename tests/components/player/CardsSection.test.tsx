@@ -317,9 +317,9 @@ describe('CardsSection', () => {
       const viewDiscardedButton = screen.getByText('View Discarded');
       fireEvent.click(viewDiscardedButton);
 
-      // Modal should appear
+      // Modal should appear showing player's discard pile
       await waitFor(() => {
-        expect(screen.getByText(/All Discarded Cards/i)).toBeInTheDocument();
+        expect(screen.getByText(/Discard Pile for Test Player/i)).toBeInTheDocument();
       });
     });
   });

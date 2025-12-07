@@ -35,8 +35,7 @@ describe('EffectEngineService', () => {
       updateResources: vi.fn(),
       getResourceHistory: vi.fn(),
       validateResourceChange: vi.fn(),
-      takeOutLoan: vi.fn(),
-      applyInterest: vi.fn()
+      takeOutLoan: vi.fn()
     };
 
     mockCardService = {
@@ -207,7 +206,7 @@ describe('EffectEngineService', () => {
 
     // Assert - Verify ResourceService.addMoney was called with correct parameters
     expect(mockResourceService.addMoney).toHaveBeenCalledTimes(1);
-    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player1', 100, 'test', 'Unit test');
+    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player1', 100, 'test', 'Unit test', 'other');
     expect(result.success).toBe(true);
   });
 
@@ -470,8 +469,8 @@ describe('EffectEngineService', () => {
 
     // Verify addMoney was called for each target player (excluding the source player)
     expect(mockResourceService.addMoney).toHaveBeenCalledTimes(2);
-    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player2', 50, 'group_effect', 'Group bonus');
-    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player3', 50, 'group_effect', 'Group bonus');
+    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player2', 50, 'group_effect', 'Group bonus', 'other');
+    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player3', 50, 'group_effect', 'Group bonus', 'other');
 
     expect(result.success).toBe(true);
   });
@@ -535,10 +534,10 @@ describe('EffectEngineService', () => {
 
     // Assert - Verify the low roll effect (1-3 range) was processed
     expect(mockResourceService.addMoney).toHaveBeenCalledTimes(1);
-    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player1', 100, 'low_roll', 'Low dice roll bonus');
+    expect(mockResourceService.addMoney).toHaveBeenCalledWith('player1', 100, 'low_roll', 'Low dice roll bonus', 'other');
 
     // Verify the high roll effect (4-6 range) was NOT processed by checking call count
-    expect(mockResourceService.addMoney).not.toHaveBeenCalledWith('player1', 200, 'high_roll', 'High dice roll bonus');
+    expect(mockResourceService.addMoney).not.toHaveBeenCalledWith('player1', 200, 'high_roll', 'High dice roll bonus', 'other');
 
     expect(result.success).toBe(true);
   });
@@ -853,7 +852,7 @@ describe('EffectEngineService', () => {
 
       // Assert - Verify effects were processed immediately, not stored
       expect(result.success).toBe(true);
-      expect(mockResourceService.addMoney).toHaveBeenCalledWith('player1', 200, 'I001', 'Immediate investment return');
+      expect(mockResourceService.addMoney).toHaveBeenCalledWith('player1', 200, 'I001', 'Immediate investment return', 'other');
 
       // Verify no active effects were stored
       expect(mockStateService.updatePlayer).not.toHaveBeenCalled();

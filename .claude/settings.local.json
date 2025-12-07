@@ -5,7 +5,22 @@
       "Bash(find:*)",
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__claude-ipc__register",
+      "mcp__claude-ipc__check",
+      "mcp__claude-ipc__send",
+      "Bash(npm test:*)",
+      "Bash(xargs:*)",
+      "Bash(./tests/scripts/run-tests-batch-fixed.sh:*)",
+      "Bash(tee:*)",
+      "Bash(cat:*)",
+      "Bash(comm:*)",
+      "Bash(timeout 30s npm test:*)",
+      "Bash(timeout 60s npm test:*)",
+      "Bash(bash:*)",
+      "Bash(timeout 10s npm test:*)",
+      "Bash(timeout 20s npm test -- --testNamePattern=\"should not render toggle button\")",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

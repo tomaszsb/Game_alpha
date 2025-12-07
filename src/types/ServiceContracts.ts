@@ -116,10 +116,9 @@ export interface IResourceService {
   
   // Loan operations
   takeOutLoan(playerId: string, amount: number, interestRate: number): boolean;
-  applyInterest(playerId: string): void;
 
   // Cost tracking
-  recordCost(playerId: string, category: import('./DataTypes').CostCategory, amount: number, description: string, source: string): boolean;
+  recordCost(playerId: string, category: import('./DataTypes').ExpenseCategory, amount: number, description: string, source: string): boolean;
 }
 
 // Phase 1 Services
@@ -312,7 +311,7 @@ export interface ICardService {
   playerOwnsCard(playerId: string, cardId: string): boolean;
   
   // Card management methods with source tracking
-  playCard(playerId: string, cardId: string): GameState;
+  playCard(playerId: string, cardId: string): Promise<GameState>;
   drawCards(playerId: string, cardType: CardType, count: number, source?: string, reason?: string): string[];
   drawAndApplyCard(playerId: string, cardType: CardType, source: string, reason: string): { drawnCardId: string | null; success: boolean };
   discardCards(playerId: string, cardIds: string[], source?: string, reason?: string): boolean;
@@ -357,10 +356,7 @@ export interface IMovementService {
   // Movement execution methods
   movePlayer(playerId: string, destinationSpace: string): Promise<GameState>;
   endMove(playerId: string): Promise<GameState>;
-  
-  // Dice-based movement methods
-  getDiceDestination(spaceName: string, visitType: VisitType, diceRoll: number): string | null;
-  
+
   // Choice-based movement methods
   handleMovementChoice(playerId: string): Promise<GameState>;
   handleMovementChoiceV2(playerId: string): Promise<GameState>;

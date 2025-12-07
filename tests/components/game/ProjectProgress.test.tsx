@@ -1,11 +1,22 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProjectProgress } from '../../../src/components/game/ProjectProgress';
 import { IDataService } from '../../../../src/types/ServiceContracts';
 import { Player } from '../../../../src/types/StateTypes';
 
 describe('ProjectProgress', () => {
+  beforeEach(() => {
+    cleanup();
+
+    // Mock window.innerWidth for responsive display logic
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 1024
+    });
+  });
+
   let mockDataService: IDataService;
   let mockOnToggleGameLog: () => void;
   let mockOnOpenRulesModal: () => void;

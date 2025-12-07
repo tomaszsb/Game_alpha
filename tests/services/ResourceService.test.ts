@@ -326,8 +326,24 @@ describe('ResourceService', () => {
     };
 
     beforeEach(() => {
+      // Reset mockPlayer to initial state for loan tests
+      mockPlayer.money = 1000;
+      mockPlayer.timeSpent = 5;
+      mockPlayer.loans = [];
+      mockPlayer.moneySources = {
+        ownerFunding: 0,
+        bankLoans: 0,
+        investmentDeals: 0,
+        other: 0
+      };
+
       mockStateService.getGameState.mockReturnValue(mockGameState);
-      mockStateService.updatePlayer.mockImplementation((updates) => mockGameState);
+
+      // Make mock stateful: update mockPlayer when updatePlayer is called
+      mockStateService.updatePlayer.mockImplementation((updates) => {
+        Object.assign(mockPlayer, updates);
+        return mockGameState;
+      });
     });
 
     describe('takeOutLoan', () => {
@@ -348,18 +364,29 @@ describe('ResourceService', () => {
           ])
         });
         
-        // Check that money was added via updateResources call
-        expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-          id: 'player1',
-          money: 6000, // 1000 + 5000 loan amount
-          timeSpent: 5,
-          moneySources: {
-            ownerFunding: 0,
-            bankLoans: 5000,
-            investmentDeals: 0,
-            other: 0
-          }
-        });
+        // Check that money was added via updateResources call (loan amount)
+        expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'player1',
+            money: 6000, // 1000 + 5000 loan amount
+            timeSpent: 5,
+            moneySources: expect.objectContaining({
+              bankLoans: 5000
+            })
+          })
+        );
+
+        // Check that interest fee was deducted (two-transaction model)
+        expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'player1',
+            money: 5750, // 6000 - 250 interest fee (5000 * 0.05)
+            timeSpent: 5,
+            moneySources: expect.objectContaining({
+              bankLoans: 5000  // Money sources don't change when spending
+            })
+          })
+        );
       });
 
       it('should fail with invalid amount (zero)', () => {
@@ -407,122 +434,6 @@ describe('ResourceService', () => {
       });
     });
 
-    describe('applyInterest', () => {
-      const playerWithLoans: Player = {
-        ...mockPlayer,
-        money: 2000,
-        loans: [
-          {
-            id: 'loan1',
-            principal: 5000,
-            interestRate: 0.05,
-            startTurn: 5
-          },
-          {
-            id: 'loan2',
-            principal: 3000,
-            interestRate: 0.03,
-            startTurn: 8
-          }
-        ]
-      };
-
-      it('should apply interest when player has sufficient funds', () => {
-        mockStateService.getPlayer.mockReturnValue(playerWithLoans);
-        
-        resourceService.applyInterest('player1');
-        
-        // Total interest: 5000 * 0.05 + 3000 * 0.03 = 250 + 90 = 340
-        expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-          id: 'player1',
-          money: 1660, // 2000 - 340
-          timeSpent: 5,
-          moneySources: {
-            ownerFunding: 0,
-            bankLoans: 0,
-            investmentDeals: 0,
-            other: 0
-          }
-        });
-      });
-
-      it('should handle partial payment when player has insufficient funds', () => {
-        const poorPlayer = {
-          ...playerWithLoans,
-          money: 200 // Not enough for full interest payment of 340
-        };
-        mockStateService.getPlayer.mockReturnValue(poorPlayer);
-        
-        resourceService.applyInterest('player1');
-        
-        // Should deduct what player can afford (200)
-        expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-          id: 'player1',
-          money: 0, // 200 - 200 (all available money)
-          timeSpent: 5,
-          moneySources: {
-            ownerFunding: 0,
-            bankLoans: 0,
-            investmentDeals: 0,
-            other: 0
-          }
-        });
-      });
-
-      it('should handle player with no funds for interest', () => {
-        const brokePlayer = {
-          ...playerWithLoans,
-          money: 0
-        };
-        mockStateService.getPlayer.mockReturnValue(brokePlayer);
-        
-        resourceService.applyInterest('player1');
-        
-        // Should not attempt any money deduction
-        expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
-      });
-
-      it('should do nothing when player has no loans', () => {
-        const playerWithoutLoans = {
-          ...mockPlayer,
-          loans: []
-        };
-        mockStateService.getPlayer.mockReturnValue(playerWithoutLoans);
-        
-        resourceService.applyInterest('player1');
-        
-        // Should not make any updates
-        expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
-      });
-
-      it('should do nothing when player is not found', () => {
-        mockStateService.getPlayer.mockReturnValue(undefined);
-        
-        expect(() => resourceService.applyInterest('nonexistent')).toThrow(/Player nonexistent not found/);
-        
-        expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
-      });
-
-      it('should handle loans with zero interest rate', () => {
-        const playerWithZeroInterest = {
-          ...mockPlayer,
-          loans: [
-            {
-              id: 'loan1',
-              principal: 1000,
-              interestRate: 0, // Zero interest
-              startTurn: 5
-            }
-          ]
-        };
-        mockStateService.getPlayer.mockReturnValue(playerWithZeroInterest);
-        
-        resourceService.applyInterest('player1');
-        
-        // Should not make any updates for zero interest
-        expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
-      });
-    });
   });
 
   describe('Cost Tracking Operations', () => {
@@ -577,7 +488,7 @@ describe('ResourceService', () => {
 
     describe('recordCost', () => {
       it('should successfully record a bank fee cost', () => {
-        const result = resourceService.recordCost('player1', 'bank', 500, 'Bank processing fee', 'BANK-FEE');
+        const result = resourceService.recordCost('player1', 'regulatory', 500, 'Bank processing fee', 'BANK-FEE');
 
         expect(result).toBe(true);
 
@@ -588,7 +499,7 @@ describe('ResourceService', () => {
             money: 9500, // 10000 - 500
             costHistory: expect.arrayContaining([
               expect.objectContaining({
-                category: 'bank',
+                category: 'regulatory',
                 amount: 500,
                 description: 'Bank processing fee',
                 turn: 15,
@@ -596,11 +507,11 @@ describe('ResourceService', () => {
               })
             ]),
             costs: expect.objectContaining({
-              bank: 500,
+              regulatory: 500,
               total: 500
             }),
             expenditures: expect.objectContaining({
-              fees: 500 // bank maps to fees
+              fees: 500 // regulatory maps to fees
             })
           })
         );
@@ -703,21 +614,21 @@ describe('ResourceService', () => {
         const poorPlayer = { ...playerWithFinances, money: 100 };
         mockStateService.getPlayer.mockReturnValue(poorPlayer);
 
-        const result = resourceService.recordCost('player1', 'bank', 500, 'Expensive fee', 'BANK-FEE');
+        const result = resourceService.recordCost('player1', 'regulatory', 500, 'Expensive fee', 'BANK-FEE');
 
         expect(result).toBe(false);
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
       });
 
       it('should fail with invalid amount (zero)', () => {
-        const result = resourceService.recordCost('player1', 'bank', 0, 'Invalid cost', 'TEST');
+        const result = resourceService.recordCost('player1', 'regulatory', 0, 'Invalid cost', 'TEST');
 
         expect(result).toBe(false);
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
       });
 
       it('should fail with invalid amount (negative)', () => {
-        const result = resourceService.recordCost('player1', 'bank', -100, 'Invalid cost', 'TEST');
+        const result = resourceService.recordCost('player1', 'regulatory', -100, 'Invalid cost', 'TEST');
 
         expect(result).toBe(false);
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
@@ -726,7 +637,7 @@ describe('ResourceService', () => {
       it('should fail when player is not found', () => {
         mockStateService.getPlayer.mockReturnValue(undefined);
 
-        expect(() => resourceService.recordCost('nonexistent', 'bank', 100, 'Fee', 'TEST')).toThrow(/Player nonexistent not found/);
+        expect(() => resourceService.recordCost('nonexistent', 'regulatory', 100, 'Fee', 'TEST')).toThrow(/Player nonexistent not found/);
 
         expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
       });
@@ -739,7 +650,7 @@ describe('ResourceService', () => {
         };
         mockStateService.getPlayer.mockReturnValue(legacyPlayer);
 
-        const result = resourceService.recordCost('player1', 'bank', 100, 'Fee', 'BANK-FEE');
+        const result = resourceService.recordCost('player1', 'regulatory', 100, 'Fee', 'BANK-FEE');
 
         expect(result).toBe(true);
 
@@ -748,17 +659,17 @@ describe('ResourceService', () => {
           expect.objectContaining({
             costHistory: expect.arrayContaining([
               expect.objectContaining({
-                category: 'bank',
+                category: 'regulatory',
                 amount: 100
               })
             ]),
             costs: expect.objectContaining({
-              bank: 100,
+              bank: 0,
               investor: 0,
               expeditor: 0,
               architectural: 0,
               engineering: 0,
-              regulatory: 0,
+              regulatory: 100,
               miscellaneous: 0,
               total: 100
             })

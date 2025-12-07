@@ -181,6 +181,9 @@ export interface PlayerUpdateData {
   score?: number;
   moneySources?: import('./DataTypes').MoneySources;
   expenditures?: import('./DataTypes').Expenditures;
+  deviceType?: 'mobile' | 'desktop';
+  costHistory?: import('./DataTypes').CostEntry[];
+  costs?: import('./DataTypes').CostBreakdown;
   moveIntent?: string | null;
 }
 

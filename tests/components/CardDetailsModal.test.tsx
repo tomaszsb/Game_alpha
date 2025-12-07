@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CardDetailsModal } from '../../src/components/modals/CardDetailsModal';
@@ -16,6 +16,10 @@ import { Card } from '../../src/types/DataTypes';
 import { createAllMockServices } from '../mocks/mockServices';
 
 describe('CardDetailsModal', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
   let mockServices: any;
   let mockCurrentPlayer: Player;
   let mockOtherPlayers: Player[];

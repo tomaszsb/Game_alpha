@@ -456,11 +456,18 @@ export class GameRulesService implements IGameRulesService {
 
       let totalScope = 0;
 
-      // Get all W cards for this player
-      const workCards = player.hand.filter(cardId => cardId.startsWith('W'));
+      // Get all W cards for this player from BOTH hand and activeCards
+      const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
+      const activeWorkCards = (player.activeCards || [])
+        .map(ac => ac.cardId)
+        .filter(cardId => cardId.startsWith('W'));
+
+      const allWorkCards = [...handWorkCards, ...activeWorkCards];
+
+      console.log(`📊 Calculating project scope: ${handWorkCards.length} in hand + ${activeWorkCards.length} active = ${allWorkCards.length} total W cards`);
 
       // Calculate total scope by summing up card costs
-      for (const cardId of workCards) {
+      for (const cardId of allWorkCards) {
         // Extract base card ID from generated ID (e.g., W111_1756274803252_sezfko0rc_0 -> W111)
         const baseCardId = cardId.split('_')[0];
         const cardData = this.dataService.getCardById(baseCardId);
@@ -595,25 +602,23 @@ export class GameRulesService implements IGameRulesService {
       // Project scope conditions - USE SINGLE SOURCE OF TRUTH
       if (conditionLower === 'scope_le_4m') {
         const projectScope = this.calculateProjectScope(playerId);
-        // Store projectScope on player if not already set
-        if (player.projectScope === 0 || player.projectScope === undefined) {
-          this.stateService.updatePlayer({
-            id: playerId,
-            projectScope: projectScope
-          });
-        }
+        // Always update projectScope to keep cache fresh for UI components
+        // (FinancesSection.tsx displays this value)
+        this.stateService.updatePlayer({
+          id: playerId,
+          projectScope: projectScope
+        });
         return projectScope <= 4000000; // $4M
       }
 
       if (conditionLower === 'scope_gt_4m') {
         const projectScope = this.calculateProjectScope(playerId);
-        // Store projectScope on player if not already set
-        if (player.projectScope === 0 || player.projectScope === undefined) {
-          this.stateService.updatePlayer({
-            id: playerId,
-            projectScope: projectScope
-          });
-        }
+        // Always update projectScope to keep cache fresh for UI components
+        // (FinancesSection.tsx displays this value)
+        this.stateService.updatePlayer({
+          id: playerId,
+          projectScope: projectScope
+        });
         return projectScope > 4000000; // $4M
       }
 

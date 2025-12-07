@@ -73,6 +73,12 @@ export interface IEffectEngineService {
 }
 
 export class EffectEngineService implements IEffectEngineService {
+  // Recursion safety limits to prevent infinite effect loops
+  private static readonly MAX_EFFECT_DEPTH = 10;          // Maximum nesting depth for resulting effects
+  private static readonly MAX_EFFECTS_PER_BATCH = 100;    // Maximum total effects in single batch
+  private static readonly DEPTH_WARNING_THRESHOLD = 7;     // Warn when approaching depth limit
+  private static readonly BATCH_WARNING_THRESHOLD = 80;    // Warn when approaching batch limit
+
   private resourceService: IResourceService;
   private cardService: ICardService;
   private choiceService: IChoiceService;
@@ -142,6 +148,26 @@ export class EffectEngineService implements IEffectEngineService {
 
     // Process each effect in sequence
     for (let i = 0; i < effects.length; i++) {
+      // SAFETY CHECK: Prevent infinite effect loops by limiting total effects
+      if (effects.length > EffectEngineService.MAX_EFFECTS_PER_BATCH) {
+        const errorMsg = `Effect batch limit exceeded: ${effects.length} effects generated (max: ${EffectEngineService.MAX_EFFECTS_PER_BATCH}). Possible infinite loop detected.`;
+        console.error(`🚨 ${errorMsg}`);
+        errors.push(errorMsg);
+        return {
+          success: false,
+          totalEffects: i,
+          successfulEffects,
+          failedEffects: failedEffects + 1,
+          results,
+          errors
+        };
+      }
+
+      // Warning when approaching batch limit
+      if (effects.length >= EffectEngineService.BATCH_WARNING_THRESHOLD && i === EffectEngineService.BATCH_WARNING_THRESHOLD) {
+        console.warn(`⚠️ Effect batch size approaching limit: ${effects.length}/${EffectEngineService.MAX_EFFECTS_PER_BATCH}`);
+      }
+
       const effect = effects[i];
       console.log(`  Processing effect ${i + 1}/${effects.length}: ${effect.effectType}`);
 
@@ -223,12 +249,13 @@ export class EffectEngineService implements IEffectEngineService {
             const { payload } = effect;
             const source = payload.source || context.source;
             const reason = payload.reason || 'Effect processing';
-            
+            const sourceType = payload.sourceType || 'other';  // Default to 'other' if not specified
+
             console.log(`🔧 EFFECT_ENGINE: Processing ${payload.resource} change for player ${payload.playerId} by ${payload.amount}`);
-            
+
             if (payload.resource === 'MONEY') {
               if (payload.amount > 0) {
-                success = this.resourceService.addMoney(payload.playerId, payload.amount, source, reason);
+                success = this.resourceService.addMoney(payload.playerId, payload.amount, source, reason, sourceType);
               } else if (payload.amount < 0) {
                 success = this.resourceService.spendMoney(payload.playerId, Math.abs(payload.amount), source, reason);
               } else {
