@@ -270,7 +270,10 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       icon="💰"
       hasAction={hasMoneyActions}
       isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
+      onToggle={() => {
+        console.log('FINANCES toggle clicked, isExpanded:', isExpanded, '-> will be:', !isExpanded);
+        setIsExpanded(!isExpanded);
+      }}
       ariaControls="finances-content"
       isLoading={isLoading}
       error={error || undefined}
