@@ -452,3 +452,73 @@ All project documentation now accurately reflects:
 ---
 
 **Project Status**: PRODUCTION READY - All development objectives achieved and documented.
+
+---
+
+## 📦 **FUTURE: Production Deployment Tasks**
+*Status: NOT STARTED - Complete when choosing hosting platform*
+
+**Objective**: Deploy application to production hosting platform with proper security, performance, and monitoring.
+
+### **✅ Completed (Universal - Works on Any Platform)**
+- **Environment Variables**: Added `VITE_SERVER_URL` support with fallback to auto-detection
+- **Connection Status**: Created `ConnectionStatus` component for real-time server monitoring
+- **Error Handling**: Graceful degradation to local state when server unavailable
+- **Documentation**: Deployment guide created with platform-specific instructions
+
+### **Infrastructure Setup (Platform-Specific)**
+
+**When choosing hosting platform, complete these tasks:**
+
+#### **1. Reverse Proxy Configuration**
+- [ ] Choose hosting platform (Vercel/Netlify/AWS/VPS)
+- [ ] Configure reverse proxy (automatic on Vercel/Netlify, nginx/Apache on VPS)
+- [ ] Set up domain routing
+
+#### **2. HTTPS/SSL Configuration**
+- [ ] Enable HTTPS (automatic on Vercel/Netlify, Let's Encrypt on VPS)
+- [ ] Verify SSL certificate
+- [ ] Redirect HTTP to HTTPS
+- [ ] Update app URLs to use HTTPS
+
+#### **3. CORS Configuration**
+- [ ] Update CORS from `*` to specific production domains
+- [ ] Configure CORS in server.js for production domain
+- [ ] Test CORS from production frontend
+
+#### **4. Rate Limiting**
+- [ ] Install rate limiting middleware (express-rate-limit)
+- [ ] Configure limits per endpoint
+- [ ] Add rate limit headers
+- [ ] Test rate limiting
+
+#### **5. Environment Variables**
+- [ ] Set `VITE_SERVER_URL` in hosting platform
+- [ ] Set `NODE_ENV=production` for backend
+- [ ] Configure API keys/secrets
+- [ ] Verify env vars loaded correctly
+
+#### **6. Database/State Persistence**
+- [ ] Choose database (PostgreSQL/MongoDB/Redis)
+- [ ] Set up database on hosting platform
+- [ ] Migrate from in-memory to database
+- [ ] Add connection pooling
+- [ ] Set up automated backups
+
+#### **7. Monitoring & Logging**
+- [ ] Set up error tracking (Sentry/Rollbar)
+- [ ] Configure logging service
+- [ ] Set up uptime monitoring
+- [ ] Configure alerts
+- [ ] Add performance monitoring
+
+#### **8. Performance Optimization**
+- [ ] Enable gzip compression
+- [ ] Set up CDN for static assets
+- [ ] Optimize bundle size
+- [ ] Add caching headers
+- [ ] Implement lazy loading for routes
+
+**Platform Guides**: See `.env.example` for platform-specific environment variable examples.
+
+---
