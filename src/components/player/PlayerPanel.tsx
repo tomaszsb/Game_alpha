@@ -160,8 +160,9 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           setSpaceStory('');
         }
 
-        // Detect space changes and show transition
-        if (previousSpace && previousSpace !== player.currentSpace) {
+        // Detect space changes and show transition ONLY at start of player's turn
+        const isPlayersTurn = gameState.currentPlayerId === playerId;
+        if (previousSpace && previousSpace !== player.currentSpace && isPlayersTurn) {
           setMovementTransition({
             from: previousSpace,
             to: player.currentSpace
@@ -285,12 +286,12 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
 
   return (
     <div className="player-panel">
-      {/* Movement Transition Overlay */}
+      {/* Movement Transition Overlay - Only shows on this player's panel at start of their turn */}
       {showMovementTransition && movementTransition && (
         <div
           onClick={handleDismissTransition}
           style={{
-            position: 'fixed',
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
@@ -303,7 +304,8 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             zIndex: 9999,
             cursor: 'pointer',
             padding: '20px',
-            textAlign: 'center'
+            textAlign: 'center',
+            borderRadius: '8px'
           }}
         >
           <div style={{
