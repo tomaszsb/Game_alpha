@@ -471,6 +471,41 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
     }
   };
 
+  const handleNegotiate = async () => {
+    if (!currentPlayerId) return;
+    const currentPlayer = players.find(p => p.id === currentPlayerId);
+    if (!currentPlayer) return;
+
+    const spaceContent = dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+
+    if (spaceContent && spaceContent.can_negotiate === true) {
+      try {
+        setIsProcessingTurn(true);
+        const result = await turnService.performNegotiation(currentPlayer.id);
+        alert(result.message);
+
+        if (result.success) {
+          notificationService.notify(
+            NotificationUtils.createSuccessNotification('Negotiation', 'State restored successfully!', currentPlayer.name),
+            { playerId: currentPlayer.id, playerName: currentPlayer.name, actionType: 'negotiation' }
+          );
+        } else {
+          notificationService.notify(
+            NotificationUtils.createErrorNotification('Negotiation', 'Failed. Time penalty applied.', currentPlayer.name),
+            { playerId: currentPlayer.id, playerName: currentPlayer.name, actionType: 'negotiation' }
+          );
+        }
+      } catch (error: any) {
+        console.error('Error during negotiation:', error);
+        alert(`Negotiation failed: ${error.message}`);
+      } finally {
+        setIsProcessingTurn(false);
+      }
+    } else {
+      alert('Negotiation not available on this space.');
+    }
+  };
+
   const handleStartGame = async () => {
     try {
       const gameState = stateService.getGameState();
@@ -538,6 +573,7 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
               isSpaceExplorerVisible={isSpaceExplorerVisible}
               isMovementPathVisible={isMovementPathVisible}
               onTryAgain={handleTryAgain}
+              onNegotiate={handleNegotiate}
               playerNotification={playerNotifications[effectiveViewPlayerId]}
               onRollDice={handleRollDice}
               onAutomaticFunding={handleAutomaticFunding}
@@ -605,6 +641,7 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
                       isSpaceExplorerVisible={isSpaceExplorerVisible}
                       isMovementPathVisible={isMovementPathVisible}
                       onTryAgain={handleTryAgain}
+                      onNegotiate={handleNegotiate}
                       playerNotification={playerNotifications[player.id]}
                       onRollDice={handleRollDice}
                       onAutomaticFunding={handleAutomaticFunding}

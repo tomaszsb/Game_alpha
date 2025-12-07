@@ -62,6 +62,7 @@ describe('NextStepButton', () => {
     mockTurnService.getAvailableActions.mockReturnValue([]);
     mockTurnService.canEndTurn.mockReturnValue(true);
     mockTurnService.endTurn.mockResolvedValue(undefined); // Mock successful endTurn
+    mockTurnService.endTurnWithMovement.mockResolvedValue({ nextPlayerId: OTHER_PLAYER_ID }); // Mock successful endTurnWithMovement
 
     mockMovementService.rollAndMove.mockResolvedValue(undefined); // Mock successful rollAndMove
 
@@ -82,7 +83,7 @@ describe('NextStepButton', () => {
     expect(screen.getByText('End Turn')).toBeInTheDocument();
   });
 
-  test('calls turnService.endTurn when "End Turn" is clicked', async () => {
+  test('calls turnService.endTurnWithMovement when "End Turn" is clicked', async () => {
     mockTurnService.getAvailableActions.mockReturnValue([]); // No movement needed
     mockTurnService.canEndTurn.mockReturnValue(true);
     render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
@@ -90,7 +91,7 @@ describe('NextStepButton', () => {
     fireEvent.click(screen.getByText('End Turn'));
 
     await waitFor(() => {
-      expect(mockTurnService.endTurn).toHaveBeenCalledWith();
+      expect(mockTurnService.endTurnWithMovement).toHaveBeenCalledWith();
     });
   });
 

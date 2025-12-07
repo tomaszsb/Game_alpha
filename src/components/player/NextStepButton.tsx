@@ -86,7 +86,7 @@ export function NextStepButton({ gameServices, playerId }: NextStepButtonProps) 
     setIsLoading(true);
     try {
       if (stepState.action === 'end-turn') {
-        await gameServices.turnService.endTurn();
+        await gameServices.turnService.endTurnWithMovement();
       }
     } catch (err) {
       console.error('Next step error:', err);

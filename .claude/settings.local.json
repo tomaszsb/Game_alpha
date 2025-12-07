@@ -22,7 +22,8 @@
       "Bash(timeout 20s npm test -- --testNamePattern=\"should not render toggle button\")",
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

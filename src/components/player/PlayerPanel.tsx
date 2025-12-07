@@ -35,6 +35,9 @@ export interface PlayerPanelProps {
   /** Callback to handle Try Again action */
   onTryAgain?: (playerId: string) => Promise<void>;
 
+  /** Callback to handle Negotiate action */
+  onNegotiate?: () => Promise<void>;
+
   /** Player notification message */
   playerNotification?: string;
 
@@ -95,6 +98,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   isSpaceExplorerVisible = false,
   isMovementPathVisible = false,
   onTryAgain,
+  onNegotiate,
   playerNotification,
   onRollDice,
   onAutomaticFunding,
@@ -297,7 +301,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       )}
 
-      {/* Bottom Row - Try Again Button (NextStepButton handles End Turn) */}
+      {/* Bottom Row - Try Again and Negotiate Buttons (NextStepButton handles End Turn) */}
       <div className="player-panel__bottom">
         {onTryAgain && (
           <button
@@ -306,6 +310,15 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             aria-label="Try Again on current space"
           >
             🔄 Try Again
+          </button>
+        )}
+        {onNegotiate && (
+          <button
+            onClick={onNegotiate}
+            className="negotiate-button"
+            aria-label="Negotiate on current space"
+          >
+            🤝 Negotiate
           </button>
         )}
       </div>
