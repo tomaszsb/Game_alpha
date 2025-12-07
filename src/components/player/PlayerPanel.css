@@ -111,6 +111,12 @@
   box-shadow: none; /* Remove heavy shadow */
 }
 
+/* Override animations.css fixed positioning for TryAgainButton when inside PlayerPanel */
+.player-panel .try-again-button {
+  position: static; /* Override position: fixed from animations.css */
+  box-shadow: none; /* Remove heavy shadow */
+}
+
 .player-panel .next-step-button:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-1px);
