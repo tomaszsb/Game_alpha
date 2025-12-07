@@ -22,6 +22,9 @@ export interface ProjectScopeSectionProps {
     diceRoll?: string;
     manualActions: { [effectType: string]: string };
   };
+
+  /** Whether it's this player's turn */
+  isMyTurn?: boolean;
 }
 
 /**
@@ -55,7 +58,8 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   gameServices,
   playerId,
   onRollDice,
-  completedActions = { manualActions: {} }
+  completedActions = { manualActions: {} },
+  isMyTurn = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -210,12 +214,12 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
         const isDiceCompleted = completedActions.diceRoll !== undefined;
         return wCardDiceEffects.length > 0 && onRollDice && !isDiceCompleted && (
           <ActionButton
-            label="Roll for W Cards"
+            label={isMyTurn ? "Roll for W Cards" : "⏳ Wait for your turn"}
             variant="primary"
             onClick={handleDiceRoll}
-            disabled={isLoading || isRollingDice}
+            disabled={!isMyTurn || isLoading || isRollingDice}
             isLoading={isRollingDice}
-            ariaLabel="Roll dice to gain W type work cards"
+            ariaLabel={isMyTurn ? "Roll dice to gain W type work cards" : "Wait for your turn"}
           />
         );
       })()}

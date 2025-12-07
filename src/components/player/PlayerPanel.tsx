@@ -345,55 +345,22 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       )}
 
-      {/* Wait Screen - Show when it's not this player's turn */}
+      {/* Turn indicator banner - Show when it's not this player's turn */}
       {!isMyTurn && (
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(156, 39, 176, 0.92)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
+            padding: '12px',
+            backgroundColor: 'rgba(156, 39, 176, 0.9)',
+            color: 'white',
             textAlign: 'center',
-            borderRadius: '8px'
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            borderRadius: '8px',
+            marginBottom: '8px',
+            border: '2px solid #ab47bc'
           }}
         >
-          <div style={{
-            fontSize: '4rem',
-            marginBottom: '20px',
-            animation: 'pulse 2s infinite'
-          }}>
-            ⏳
-          </div>
-          <div style={{
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: 'white',
-            marginBottom: '15px'
-          }}>
-            Please Wait
-          </div>
-          <div style={{
-            fontSize: '1.3rem',
-            color: 'white',
-            marginBottom: '10px'
-          }}>
-            It's <strong>{currentPlayerName}'s</strong> turn
-          </div>
-          <div style={{
-            fontSize: '1rem',
-            color: 'rgba(255, 255, 255, 0.8)',
-            marginTop: '20px'
-          }}>
-            You'll be notified when it's your turn
-          </div>
+          ⏳ It's {currentPlayerName}'s turn - Please wait
         </div>
       )}
 
@@ -429,6 +396,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         playerId={playerId}
         onRollDice={onRollDice}
         completedActions={completedActions}
+        isMyTurn={isMyTurn}
       />
 
       <FinancesSection
@@ -437,12 +405,14 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         onRollDice={onRollDice}
         onAutomaticFunding={onAutomaticFunding}
         completedActions={completedActions}
+        isMyTurn={isMyTurn}
       />
 
       <TimeSection
         gameServices={gameServices}
         playerId={playerId}
         completedActions={completedActions}
+        isMyTurn={isMyTurn}
       />
 
       <CardsSection
@@ -451,6 +421,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         onRollDice={onRollDice}
         onManualEffectResult={onManualEffectResult}
         completedActions={completedActions}
+        isMyTurn={isMyTurn}
       />
 
       {/* Movement Choice Buttons */}
