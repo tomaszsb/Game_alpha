@@ -50,10 +50,7 @@ app.get('/api/gamestate', (req, res) => {
     });
   }
 
-  console.log(`📤 GET /api/gamestate - Sending state (v${stateVersion})`);
-  console.log(`   Players: ${gameState.players?.length || 0}`);
-  console.log(`   Phase: ${gameState.gamePhase || 'UNKNOWN'}`);
-  console.log(`   Current Player: ${gameState.currentPlayerId || 'none'}`);
+  // Removed verbose logging - only log errors, not every GET request
 
   res.json({
     state: gameState,
@@ -87,18 +84,7 @@ app.post('/api/gamestate', (req, res) => {
   gameState = state;
   stateVersion++;
 
-  // Detailed logging
-  console.log(`✅ POST /api/gamestate - State updated (v${stateVersion})`);
-  console.log(`   Players: ${state.players?.length || 0}`);
-  console.log(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
-  console.log(`   Current Player: ${state.currentPlayerId || 'none'}`);
-
-  if (state.players && state.players.length > 0) {
-    console.log(`   Player Details:`);
-    state.players.forEach(p => {
-      console.log(`     - ${p.name} (${p.id.slice(0, 8)}...): ${p.currentSpace} [${p.visitType}]`);
-    });
-  }
+  // Silent on success - only log errors
 
   res.json({
     success: true,
@@ -118,9 +104,10 @@ app.delete('/api/gamestate', (req, res) => {
   gameState = null;
   stateVersion = 0;
 
-  console.log(`🗑️  DELETE /api/gamestate - State reset`);
-  console.log(`   Previous version: ${previousVersion}`);
-  console.log(`   Had state: ${hadState}`);
+  // Only log if helpful for debugging
+  if (hadState) {
+    console.log(`🗑️ Game state reset (was v${previousVersion})`);
+  }
 
   res.json({
     success: true,
