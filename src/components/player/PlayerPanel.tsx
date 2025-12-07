@@ -119,9 +119,19 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   // Story state
   const [spaceStory, setSpaceStory] = useState<string>('');
 
+  // Current player tracking for wait screen
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
+
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
       const player = gameState.players.find(p => p.id === playerId);
+
+      // Track current player for wait screen
+      setCurrentPlayerId(gameState.currentPlayerId);
+      const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+      setCurrentPlayerName(currentPlayer?.name || '');
+
       if (player) {
         const card = player.currentCard
           ? gameServices.dataService.getCardById(player.currentCard)
@@ -158,7 +168,14 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     });
 
     // Initialize with current state
+    const gameState = gameServices.stateService.getGameState();
     const player = gameServices.stateService.getPlayer(playerId);
+
+    // Initialize current player tracking
+    setCurrentPlayerId(gameState.currentPlayerId);
+    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+    setCurrentPlayerName(currentPlayer?.name || '');
+
     if (player) {
       const card = player.currentCard
         ? gameServices.dataService.getCardById(player.currentCard)
@@ -244,6 +261,9 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     setShowMovementTransition(false);
   };
 
+  // Check if this player is currently active
+  const isMyTurn = playerId === currentPlayerId;
+
   return (
     <div className="player-panel">
       {/* Movement Transition Overlay */}
@@ -300,6 +320,58 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             marginTop: '30px'
           }}>
             Tap anywhere to continue
+          </div>
+        </div>
+      )}
+
+      {/* Wait Screen - Show when it's not this player's turn */}
+      {!isMyTurn && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(156, 39, 176, 0.92)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            textAlign: 'center',
+            borderRadius: '8px'
+          }}
+        >
+          <div style={{
+            fontSize: '4rem',
+            marginBottom: '20px',
+            animation: 'pulse 2s infinite'
+          }}>
+            ⏳
+          </div>
+          <div style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '15px'
+          }}>
+            Please Wait
+          </div>
+          <div style={{
+            fontSize: '1.3rem',
+            color: 'white',
+            marginBottom: '10px'
+          }}>
+            It's <strong>{currentPlayerName}'s</strong> turn
+          </div>
+          <div style={{
+            fontSize: '1rem',
+            color: 'rgba(255, 255, 255, 0.8)',
+            marginTop: '20px'
+          }}>
+            You'll be notified when it's your turn
           </div>
         </div>
       )}
