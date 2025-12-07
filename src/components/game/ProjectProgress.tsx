@@ -4,6 +4,8 @@ import React from 'react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService } from '../../types/ServiceContracts';
+import { ConnectionStatus } from '../common/ConnectionStatus';
+import { getBackendURL } from '../../utils/networkDetection';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -16,13 +18,17 @@ interface ProjectProgressProps {
   onToggleGameLog: () => void;
   /** Callback function to open the game rules modal. */
   onOpenRulesModal: () => void;
+  /** Callback function to open the display settings modal. */
+  onOpenDisplaySettings?: () => void;
+  /** Callback function to open the data editor. */
+  onOpenDataEditor?: () => void;
 }
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, onToggleGameLog, onOpenRulesModal }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
   
   // Get dynamic phase order from data service
@@ -164,8 +170,11 @@ export function ProjectProgress({ players, currentPlayerId, dataService, onToggl
   return (
     <div style={containerStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={titleStyle}>
-          🚀 Project Progress Overview
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={titleStyle}>
+            🚀 Project Progress Overview
+          </div>
+          <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={onOpenRulesModal} style={{
@@ -204,6 +213,46 @@ export function ProjectProgress({ players, currentPlayerId, dataService, onToggl
             <span>📜</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Log</span>
           </button>
+          {onOpenDisplaySettings && (
+            <button onClick={onOpenDisplaySettings} style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              backgroundColor: colors.success.main,
+              color: colors.white,
+              border: `2px solid ${colors.white}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>👁️</span>
+              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>View</span>
+            </button>
+          )}
+          {onOpenDataEditor && (
+            <button onClick={onOpenDataEditor} style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              backgroundColor: colors.secondary.main,
+              color: colors.white,
+              border: `2px solid ${colors.white}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>⚙️</span>
+              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Edit</span>
+            </button>
+          )}
         </div>
       </div>
 

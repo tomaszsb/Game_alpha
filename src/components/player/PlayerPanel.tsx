@@ -7,7 +7,9 @@ import { CardsSection } from './sections/CardsSection';
 import { CurrentCardSection } from './sections/CurrentCardSection';
 import { ProjectScopeSection } from './sections/ProjectScopeSection';
 import { NextStepButton } from './NextStepButton';
+import { ConnectionStatus } from '../common/ConnectionStatus';
 import { Choice } from '../../types/CommonTypes';
+import { getBackendURL } from '../../utils/networkDetection';
 import './PlayerPanel.css';
 
 /**
@@ -195,13 +197,14 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
 
   return (
     <div className="player-panel">
-      {/* Player Header - Avatar, Name, Location, and Notification */}
+      {/* Player Header - Avatar, Name, Location, Connection Status, and Notification */}
       <div className="player-panel__header">
         <div className="player-avatar">{player.avatar}</div>
         <div className="player-info">
           <div className="player-name">{player.name}</div>
           <div className="player-location">📍 {player.currentSpace}</div>
         </div>
+        <ConnectionStatus serverUrl={getBackendURL()} />
         {playerNotification && (
           <div className="player-notification-inline">
             <span className="notification-icon">📢</span>

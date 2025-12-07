@@ -572,6 +572,8 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
                 dataService={dataService}
                 onToggleGameLog={handleToggleGameLog}
                 onOpenRulesModal={handleOpenRulesModal}
+                onOpenDisplaySettings={() => setIsDisplaySettingsOpen(true)}
+                onOpenDataEditor={() => setIsDataEditorOpen(true)}
               />
             </div>
           )}
@@ -771,54 +773,6 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
       />
       
       {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
-
-      {/* Display Settings Button (show in desktop view during setup and play) */}
-      {!effectiveViewPlayerId && (
-        <button
-          onClick={() => setIsDisplaySettingsOpen(true)}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '60px',
-            zIndex: 1000,
-            background: colors.primary.main,
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            fontSize: '24px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-          }}
-          title="Display Settings"
-        >
-          👁️
-        </button>
-      )}
-
-      {/* Data Editor Button */}
-      <button
-        onClick={() => setIsDataEditorOpen(true)}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          zIndex: 1000,
-          background: colors.secondary.main,
-          color: 'white',
-          border: 'none',
-          borderRadius: '50%',
-          width: '40px',
-          height: '40px',
-          fontSize: '24px',
-          cursor: 'pointer',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-        }}
-        title="Open Data Editor"
-      >
-        ⚙️
-      </button>
 
       {/* Display Settings Modal */}
       {isDisplaySettingsOpen && (
