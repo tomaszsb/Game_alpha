@@ -143,8 +143,20 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         if (space && space.content && space.content.length > 0) {
           // Get the appropriate content based on visit type
           const visitContent = space.content.find(c => c.visit_type === player.visitType);
+          console.log('📖 Story Debug:', {
+            spaceName: player.currentSpace,
+            visitType: player.visitType,
+            contentLength: space.content.length,
+            visitContent,
+            story: visitContent?.story
+          });
           setSpaceStory(visitContent?.story || '');
         } else {
+          console.log('📖 Story Debug: No space or content', {
+            spaceName: player.currentSpace,
+            hasSpace: !!space,
+            hasContent: space?.content?.length
+          });
           setSpaceStory('');
         }
 
@@ -187,6 +199,13 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       const space = gameServices.dataService.getSpaceByName(player.currentSpace);
       if (space && space.content && space.content.length > 0) {
         const visitContent = space.content.find(c => c.visit_type === player.visitType);
+        console.log('📖 Story Init Debug:', {
+          spaceName: player.currentSpace,
+          visitType: player.visitType,
+          contentLength: space.content.length,
+          visitContent,
+          story: visitContent?.story
+        });
         setSpaceStory(visitContent?.story || '');
       }
     }
@@ -485,17 +504,19 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       )}
 
       {/* Bottom Row - Try Again Button (NextStepButton handles End Turn) */}
-      <div className="player-panel__bottom">
-        {onTryAgain && (
-          <button
-            onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
-            className="try-again-button"
-            aria-label="Try Again on current space"
-          >
-            🔄 Try Again
-          </button>
-        )}
-      </div>
+      {isMyTurn && (
+        <div className="player-panel__bottom">
+          {onTryAgain && (
+            <button
+              onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
+              className="try-again-button"
+              aria-label="Try Again on current space"
+            >
+              🔄 Try Again
+            </button>
+          )}
+        </div>
+      )}
       <NextStepButton
         gameServices={gameServices}
         playerId={playerId}
