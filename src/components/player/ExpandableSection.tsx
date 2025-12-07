@@ -54,7 +54,14 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
           className="expandable-section__header"
           onClick={(e) => {
             console.log('🔘 ExpandableSection button clicked!', title, e.target);
-            onToggle();
+            console.log('🔘 onToggle is:', typeof onToggle, onToggle);
+            console.log('🔘 Calling onToggle()...');
+            try {
+              onToggle();
+              console.log('🔘 onToggle() completed successfully');
+            } catch (error) {
+              console.error('🔘 Error calling onToggle:', error);
+            }
           }}
           onKeyDown={handleKeyDown}
           aria-expanded={isExpanded}
