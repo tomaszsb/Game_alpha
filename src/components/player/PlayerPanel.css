@@ -89,22 +89,22 @@
 /* Bottom Row - Next Step and Try Again */
 .player-panel__bottom {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: stretch;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 /* Override animations.css fixed positioning for NextStepButton when inside PlayerPanel */
 .player-panel .next-step-button {
   position: static; /* Override position: fixed */
   flex: 2; /* Take more space than try-again button */
-  padding: 12px 20px;
-  font-size: 1rem;
+  padding: 6px 12px;
+  font-size: 0.85rem;
   font-weight: bold;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -131,13 +131,13 @@
 
 .try-again-button {
   flex: 1;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  font-weight: bold;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: normal;
   color: #000;
   background-color: #ffc107;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
