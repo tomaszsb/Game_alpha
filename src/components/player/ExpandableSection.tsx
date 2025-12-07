@@ -104,6 +104,11 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
         className={`expandable-section__content ${isExpanded ? 'expandable-section__content--expanded' : ''}`}
         role="region"
         aria-labelledby={headerId}
+        style={{
+          maxHeight: isExpanded ? '5000px' : '0',
+          overflow: isExpanded ? 'visible' : 'hidden',
+          paddingBottom: isExpanded ? '12px' : '0'
+        }}
       >
         {isLoading ? (
           <div className="expandable-section__content--loading">
