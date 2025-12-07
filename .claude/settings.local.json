@@ -23,7 +23,11 @@
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
       "Bash(git pull:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

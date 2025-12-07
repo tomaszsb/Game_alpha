@@ -32,6 +32,8 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
   headerActions,
   summary
 }) => {
+  console.log(`📦 ${title} - isExpanded:`, isExpanded);
+
   const headerId = `${ariaControls}-header`;
   const contentId = ariaControls;
 
