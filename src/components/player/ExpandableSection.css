@@ -106,7 +106,7 @@
 
 .expandable-section__content--expanded {
   padding-bottom: 12px;
-  max-height: 500px; /* Adjust as needed */
+  max-height: 2000px; /* Increased to accommodate larger content */
 }
 
 /* Other styles (loading, error, etc.) can remain as they were */

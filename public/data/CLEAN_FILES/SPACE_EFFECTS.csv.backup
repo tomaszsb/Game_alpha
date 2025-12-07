@@ -15,11 +15,11 @@ OWNER-SCOPE-INITIATION,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
 OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto
 OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Draw 3 E cards,manual
 OWNER-SCOPE-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
-OWNER-FUND-INITIATION,First,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,manual
-OWNER-FUND-INITIATION,First,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,manual
+OWNER-FUND-INITIATION,First,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
+OWNER-FUND-INITIATION,First,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
 OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto
-OWNER-FUND-INITIATION,Subsequent,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,manual
-OWNER-FUND-INITIATION,Subsequent,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,manual
+OWNER-FUND-INITIATION,Subsequent,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
+OWNER-FUND-INITIATION,Subsequent,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
 OWNER-FUND-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
 PM-DECISION-CHECK,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,auto
 PM-DECISION-CHECK,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
