@@ -110,6 +110,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   const [movementChoice, setMovementChoice] = useState<Choice | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
 
+  // Movement transition state
+  const [showMovementTransition, setShowMovementTransition] = useState(false);
+  const [movementTransition, setMovementTransition] = useState<{ from: string; to: string } | null>(null);
+  const [previousSpace, setPreviousSpace] = useState<string | null>(null);
+
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
       const player = gameState.players.find(p => p.id === playerId);
@@ -118,6 +123,23 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           ? gameServices.dataService.getCardById(player.currentCard)
           : null;
         setCurrentCard(card || null);
+
+        // Detect space changes and show transition
+        if (previousSpace && previousSpace !== player.currentSpace) {
+          setMovementTransition({
+            from: previousSpace,
+            to: player.currentSpace
+          });
+          setShowMovementTransition(true);
+
+          // Auto-dismiss after 5 seconds
+          setTimeout(() => {
+            setShowMovementTransition(false);
+          }, 5000);
+        }
+
+        // Update previous space
+        setPreviousSpace(player.currentSpace);
       }
     });
 
@@ -128,10 +150,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         ? gameServices.dataService.getCardById(player.currentCard)
         : null;
       setCurrentCard(card || null);
+      setPreviousSpace(player.currentSpace);
     }
 
     return unsubscribe;
-  }, [gameServices.stateService, gameServices.dataService, playerId]);
+  }, [gameServices.stateService, gameServices.dataService, playerId, previousSpace]);
 
   const handleChoice = async (choiceId: string) => {
     const choice = gameServices.stateService.getGameState().awaitingChoice;
@@ -195,8 +218,71 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return null;
 
+  // Handle movement transition dismiss
+  const handleDismissTransition = () => {
+    setShowMovementTransition(false);
+  };
+
   return (
     <div className="player-panel">
+      {/* Movement Transition Overlay */}
+      {showMovementTransition && movementTransition && (
+        <div
+          onClick={handleDismissTransition}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(33, 150, 243, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            cursor: 'pointer',
+            padding: '20px',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{
+            fontSize: '3rem',
+            marginBottom: '20px',
+            animation: 'bounce 1s infinite'
+          }}>
+            🚶
+          </div>
+          <div style={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: '10px'
+          }}>
+            You have moved!
+          </div>
+          <div style={{
+            fontSize: '1.2rem',
+            color: 'white',
+            maxWidth: '600px'
+          }}>
+            <div style={{ marginBottom: '10px' }}>
+              <strong>From:</strong> {movementTransition.from}
+            </div>
+            <div>
+              <strong>To:</strong> {movementTransition.to}
+            </div>
+          </div>
+          <div style={{
+            fontSize: '0.9rem',
+            color: 'rgba(255, 255, 255, 0.8)',
+            marginTop: '30px'
+          }}>
+            Tap anywhere to continue
+          </div>
+        </div>
+      )}
+
       {/* Player Header - Avatar, Name, Location, Connection Status, and Notification */}
       <div className="player-panel__header">
         <div className="player-avatar">{player.avatar}</div>
