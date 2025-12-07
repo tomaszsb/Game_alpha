@@ -47,13 +47,23 @@ export function getServerURL(playerId?: string, shortId?: string): string {
  * Backend typically runs on port 3001, but may use a different port if 3001 is taken
  * This function will try to detect the actual backend port
  *
+ * Priority:
+ * 1. Environment variable VITE_SERVER_URL (production)
+ * 2. Auto-detect based on frontend port (development)
+ *
  * @returns Backend server URL
  *
  * @example
  * getBackendURL()
- * // => "http://192.168.1.100:3001"
+ * // => "http://192.168.1.100:3001" (dev) or "https://api.yourdomain.com" (production)
  */
 export function getBackendURL(): string {
+  // 1. Check environment variable first (production)
+  if (import.meta.env.VITE_SERVER_URL) {
+    return import.meta.env.VITE_SERVER_URL as string;
+  }
+
+  // 2. Auto-detect for development
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
   const frontendPort = parseInt(window.location.port || '80');
