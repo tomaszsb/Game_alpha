@@ -27,6 +27,10 @@
   cursor: pointer;
   /* Consistent background transition: 200ms ease (from animationConstants.ts) */
   transition: background-color 0.2s ease;
+  /* DEBUG: Ensure button is clickable */
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 10;
 }
 
 .expandable-section__header:hover {

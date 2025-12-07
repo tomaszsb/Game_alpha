@@ -52,7 +52,10 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
         <button
           id={headerId}
           className="expandable-section__header"
-          onClick={onToggle}
+          onClick={(e) => {
+            console.log('🔘 ExpandableSection button clicked!', title, e.target);
+            onToggle();
+          }}
           onKeyDown={handleKeyDown}
           aria-expanded={isExpanded}
           aria-controls={contentId}
