@@ -101,12 +101,13 @@
   max-height: 0;
   overflow: hidden;
   /* Consistent expand/collapse transition: 300ms ease (from animationConstants.ts) */
-  transition: max-height 0.3s ease;
+  transition: max-height 0.3s ease, padding 0.3s ease;
 }
 
 .expandable-section__content--expanded {
   padding-bottom: 12px;
-  max-height: 2000px; /* Increased to accommodate larger content */
+  max-height: none; /* Allow unlimited height when expanded */
+  overflow: visible; /* Show all content */
 }
 
 /* Other styles (loading, error, etc.) can remain as they were */
