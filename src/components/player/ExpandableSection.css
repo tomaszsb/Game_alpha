@@ -106,7 +106,7 @@
 
 .expandable-section__content--expanded {
   padding-bottom: 12px;
-  max-height: none; /* Allow unlimited height when expanded */
+  max-height: 5000px; /* Large enough for any realistic content */
   overflow: visible; /* Show all content */
 }
 
