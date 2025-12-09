@@ -28,7 +28,13 @@
       "Bash(pkill:*)",
       "Bash(kill:*)",
       "Bash(npm run dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(mkdir:*)",
+      "Bash(__NEW_LINE__ echo '🎉 FINAL DOCUMENTATION STRUCTURE' echo ================================ echo echo '📁 ROOT (3 files):' ls -1 *.md)",
+      "Bash(head -10 echo \"\" echo \"📁 docs/core/ (3 files):\" ls -1 docs/core/*.md echo \"\" echo \"📁 docs/technical/ (5 files):\" ls -1 docs/technical/*.md echo \"\" echo \"📁 docs/user/ (2 files):\" ls -1 docs/user/*.md echo \"\" echo \"📁 docs/archive/ (11 milestones):\" ls -1 docs/archive/*.md)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

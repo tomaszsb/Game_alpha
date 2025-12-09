@@ -28,6 +28,9 @@ export interface CardsSectionProps {
     diceRoll?: string;
     manualActions: { [effectType: string]: string };
   };
+
+  /** Whether it's this player's turn */
+  isMyTurn?: boolean;
 }
 
 /**
@@ -74,7 +77,8 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   playerId,
   onRollDice,
   onManualEffectResult,
-  completedActions = { manualActions: {} }
+  completedActions = { manualActions: {} },
+  isMyTurn = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -196,12 +200,12 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
         return onRollDice && !isDiceCompleted && (
           <ActionButton
             key={`dice-${index}`}
-            label={getDiceButtonLabel(effect.card_type || '')}
+            label={isMyTurn ? getDiceButtonLabel(effect.card_type || '') : "⏳ Wait for your turn"}
             variant="primary"
             onClick={handleDiceRoll}
-            disabled={isLoading || isRollingDice}
+            disabled={!isMyTurn || isLoading || isRollingDice}
             isLoading={isRollingDice}
-            ariaLabel={`Roll dice to gain ${effect.card_type} type cards`}
+            ariaLabel={isMyTurn ? `Roll dice to gain ${effect.card_type} type cards` : "Wait for your turn"}
           />
         );
       })}
@@ -214,12 +218,12 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
         return !isEffectCompleted && (
           <ActionButton
             key={`manual-${index}`}
-            label={getManualEffectButtonLabel(effect)}
+            label={isMyTurn ? getManualEffectButtonLabel(effect) : "⏳ Wait for your turn"}
             variant="primary"
             onClick={() => handleManualEffect(effect.effect_type)}
-            disabled={isLoading}
+            disabled={!isMyTurn || isLoading}
             isLoading={isLoading}
-            ariaLabel={`Perform ${effect.effect_action} action`}
+            ariaLabel={isMyTurn ? `Perform ${effect.effect_action} action` : "Wait for your turn"}
           />
         );
       })}

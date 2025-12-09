@@ -1,4 +1,144 @@
-# UI Release Notes - Game Alpha v2.0
+# UI Release Notes - Game Alpha
+
+---
+
+## v2.1 - Turn-Based Interaction & Polish (December 8, 2025)
+
+**Release Date:** December 8, 2025
+**Version:** 2.1
+**Status:** Production Ready
+**Type:** Feature Enhancement & Bug Fixes
+
+### 🎮 Major Features
+
+#### 1. Turn-Based Button Disabling
+All action buttons now respect turn-based gameplay. Only the active player can interact with buttons while other players see wait messages.
+
+**Affected Sections:**
+- 📐 Project Scope - "Roll for W Cards"
+- 💰 Finances - "Accept Owner Funding", money actions
+- ⏱️ Time - "Roll for Time"
+- 🎴 Cards - "Roll for Cards", manual card actions
+
+**Wait State Message:** `⏳ Wait for your turn`
+
+#### 2. Non-Intrusive Wait Screen
+**Before:** Full-screen overlay blocked all content during waiting
+**After:** Compact purple banner at top of player panel
+
+**Benefits:**
+- Players can view their information while waiting
+- Scroll through finances, cards, and project scope
+- Only action buttons are disabled
+- Clear indication: "⏳ It's [Player Name]'s turn - Please wait"
+
+#### 3. Movement Transition Timing Fix
+**Before:** Movement screen showed at END of turn (when movement happened)
+**After:** Movement screen shows at START of next turn for that player
+
+**Behavior:**
+- Displays when player's turn begins (if they moved last turn)
+- Shows "You have moved! From: [X] To: [Y]"
+- Auto-dismisses after 5 seconds
+- Click/tap to dismiss immediately
+- Only appears on that player's panel (not PC screen)
+
+#### 4. Connection Status Indicators
+Real-time server connection monitoring added to:
+- **Player Panel Header:** Shows connection status for each player
+- **Project Progress Overview:** Shows overall server status
+
+**Status:**
+- 🟢 Connected - Server online
+- 🔴 Offline - Server unreachable
+- 🟡 Checking... - Connection test in progress
+
+**Update Interval:** 30 seconds (configurable)
+
+#### 5. Story Section Restoration
+Re-added narrative content display for immersive gameplay:
+- Shows above Project Scope section
+- Larger font (1.1rem) for prominence
+- Green border for visual distinction
+- Default expanded state
+- Fetches story based on visit type (First/Subsequent)
+- Hides completely when no story available
+
+#### 6. Unified Button Styling
+ProjectProgress control buttons now have consistent styling:
+- 📋 Rules
+- 📜 Log
+- 👁️ View (Display Settings)
+- ⚙️ Edit (Data Editor)
+
+**Before:** Mix of inline and floating circular buttons
+**After:** Unified button row with consistent padding, size, and style
+
+### 🔧 Technical Improvements
+
+#### Turn Detection System
+```typescript
+// Tracks turn transitions to trigger movement screen at correct time
+const turnJustStartedForThisPlayer =
+  previousCurrentPlayerId !== null &&
+  previousCurrentPlayerId !== playerId &&
+  newCurrentPlayerId === playerId;
+```
+
+#### Props Pattern
+All sections now accept `isMyTurn?: boolean` prop:
+```typescript
+<ActionButton
+  label={isMyTurn ? "Normal Action" : "⏳ Wait for your turn"}
+  disabled={!isMyTurn || otherConditions}
+/>
+```
+
+### 📝 Files Modified
+- `src/components/player/PlayerPanel.tsx`
+- `src/components/player/PlayerPanel.css`
+- `src/components/player/sections/ProjectScopeSection.tsx`
+- `src/components/player/sections/FinancesSection.tsx`
+- `src/components/player/sections/TimeSection.tsx`
+- `src/components/player/sections/CardsSection.tsx`
+- `src/components/player/sections/StorySection.tsx` (**NEW**)
+- `src/components/game/ProjectProgress.tsx`
+- `src/components/layout/GameLayout.tsx`
+
+### 🐛 Bug Fixes
+- Fixed movement transition showing at wrong time (end vs start of turn)
+- Fixed floating buttons inconsistent styling
+- Restored missing Story section for narrative display
+- Fixed full-screen wait overlay blocking information view
+
+### 📚 Documentation
+- Updated: `docs/guides/UI_RELEASE_NOTES.md` (this file)
+- Updated: `docs/architecture/CHANGELOG.md`
+
+### ⚡ Performance
+- Minimal impact (+2 state variables for turn tracking)
+- ConnectionStatus checks optimized (30s interval)
+- No rendering performance degradation
+
+### ♿ Accessibility
+- All wait state buttons maintain ARIA labels
+- Clear indication of interactive state
+- Screen readers announce button state changes
+
+### 🔍 Debug Features
+Added comprehensive logging for troubleshooting:
+- `🎯 PlayerPanel wait banner debug` - Turn state tracking
+- `🚶 Movement transition triggered` - Movement timing verification
+- `📖 Story Debug` - Story content loading verification
+
+### 🎯 Backwards Compatibility
+- All `isMyTurn` props default to `true`
+- No breaking changes to component APIs
+- Existing functionality preserved
+
+---
+
+## v2.0 - Complete UI Redesign (October-November 2025)
 
 **Release Date:** October-November 2025
 **Version:** 2.0 (UI Redesign Complete)

@@ -122,15 +122,26 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   // Current player tracking for wait screen
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
+  const [previousCurrentPlayerId, setPreviousCurrentPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
       const player = gameState.players.find(p => p.id === playerId);
 
       // Track current player for wait screen
-      setCurrentPlayerId(gameState.currentPlayerId);
-      const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+      const newCurrentPlayerId = gameState.currentPlayerId;
+      const currentPlayer = gameState.players.find(p => p.id === newCurrentPlayerId);
       setCurrentPlayerName(currentPlayer?.name || '');
+
+      // Detect turn transition TO this player
+      const turnJustStartedForThisPlayer =
+        previousCurrentPlayerId !== null &&
+        previousCurrentPlayerId !== playerId &&
+        newCurrentPlayerId === playerId;
+
+      // Update current player ID tracking
+      setPreviousCurrentPlayerId(currentPlayerId);
+      setCurrentPlayerId(newCurrentPlayerId);
 
       if (player) {
         const card = player.currentCard
@@ -160,9 +171,14 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           setSpaceStory('');
         }
 
-        // Detect space changes and show transition ONLY at start of player's turn
-        const isPlayersTurn = gameState.currentPlayerId === playerId;
-        if (previousSpace && previousSpace !== player.currentSpace && isPlayersTurn) {
+        // Show movement transition at START of player's turn if space changed
+        if (turnJustStartedForThisPlayer && previousSpace && previousSpace !== player.currentSpace) {
+          console.log('🚶 Movement transition triggered:', {
+            from: previousSpace,
+            to: player.currentSpace,
+            reason: 'Turn just started for this player and space is different'
+          });
+
           setMovementTransition({
             from: previousSpace,
             to: player.currentSpace
@@ -185,8 +201,10 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     const player = gameServices.stateService.getPlayer(playerId);
 
     // Initialize current player tracking
-    setCurrentPlayerId(gameState.currentPlayerId);
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+    const initialCurrentPlayerId = gameState.currentPlayerId;
+    setCurrentPlayerId(initialCurrentPlayerId);
+    setPreviousCurrentPlayerId(initialCurrentPlayerId); // Initialize to current so first turn doesn't trigger transition
+    const currentPlayer = gameState.players.find(p => p.id === initialCurrentPlayerId);
     setCurrentPlayerName(currentPlayer?.name || '');
 
     if (player) {
@@ -212,7 +230,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     }
 
     return unsubscribe;
-  }, [gameServices.stateService, gameServices.dataService, playerId, previousSpace]);
+  }, [gameServices.stateService, gameServices.dataService, playerId, previousSpace, currentPlayerId, previousCurrentPlayerId]);
 
   const handleChoice = async (choiceId: string) => {
     const choice = gameServices.stateService.getGameState().awaitingChoice;
@@ -283,6 +301,15 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
 
   // Check if this player is currently active
   const isMyTurn = playerId === currentPlayerId;
+
+  // Debug logging for wait banner
+  console.log('🎯 PlayerPanel wait banner debug:', {
+    playerId,
+    currentPlayerId,
+    isMyTurn,
+    currentPlayerName,
+    shouldShowBanner: !isMyTurn
+  });
 
   return (
     <div className="player-panel">

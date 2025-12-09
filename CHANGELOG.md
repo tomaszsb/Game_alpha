@@ -4,6 +4,61 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Turn-Based UI Improvements & Polish (December 8, 2025)
+- **Turn-Based Button Disabling**:
+  - All section action buttons now respect turn-based gameplay
+  - Added `isMyTurn?: boolean` prop to ProjectScopeSection, FinancesSection, TimeSection, CardsSection
+  - Buttons show "⏳ Wait for your turn" message when disabled
+  - Only active player can interact with action buttons
+  - Other players can view all information but cannot take actions
+- **Wait State UX Improvement**:
+  - Replaced full-screen wait overlay with compact purple banner
+  - Banner shows: "⏳ It's [Player Name]'s turn - Please wait"
+  - Players can now scroll and view all sections while waiting
+  - Non-intrusive design improves player experience
+- **Movement Transition Timing Fix**:
+  - Fixed movement screen showing at END of turn instead of START
+  - Implemented turn transition detection using `previousCurrentPlayerId` tracking
+  - Movement screen now shows when player's turn begins (if space changed)
+  - Screen appears only on that player's panel, not PC screen
+  - Auto-dismisses after 5 seconds or on click/tap
+- **Connection Status Integration**:
+  - Added ConnectionStatus component to PlayerPanel header
+  - Added ConnectionStatus component to ProjectProgress overview
+  - Real-time server connection monitoring (🟢 Connected / 🔴 Offline / 🟡 Checking...)
+  - 30-second update interval (configurable)
+- **Story Section Restoration**:
+  - Re-added StorySection component for narrative content display
+  - Positioned above ProjectScopeSection for prominence
+  - Larger font (1.1rem), green border, medium-bold weight
+  - Default expanded state
+  - Fetches story based on visit type (First/Subsequent)
+  - Hides completely when no story available
+- **Button Styling Unification**:
+  - Unified all ProjectProgress control buttons (📋 Rules, 📜 Log, 👁️ View, ⚙️ Edit)
+  - Removed floating circular button style
+  - Consistent padding (6px 12px), font size (11px), and border styling
+  - All buttons now in horizontal row with consistent appearance
+- **Debug Logging**:
+  - Added wait banner debug logging: `🎯 PlayerPanel wait banner debug`
+  - Added movement transition logging: `🚶 Movement transition triggered`
+  - Added story section logging: `📖 Story Debug`
+  - Helps troubleshoot turn state and content loading issues
+- **Files Modified**:
+  - `src/components/player/PlayerPanel.tsx` - Turn tracking, wait banner, movement timing
+  - `src/components/player/PlayerPanel.css` - Banner styling
+  - `src/components/player/sections/ProjectScopeSection.tsx` - Turn-based control
+  - `src/components/player/sections/FinancesSection.tsx` - Turn-based control
+  - `src/components/player/sections/TimeSection.tsx` - Turn-based control
+  - `src/components/player/sections/CardsSection.tsx` - Turn-based control
+  - `src/components/player/sections/StorySection.tsx` - **NEW** Story display
+  - `src/components/game/ProjectProgress.tsx` - Button unification, ConnectionStatus
+  - `src/components/layout/GameLayout.tsx` - Removed floating buttons
+- **Documentation**:
+  - Updated `docs/guides/UI_RELEASE_NOTES.md` - Added v2.1 release notes
+  - Updated `docs/architecture/CHANGELOG.md` - This entry
+- **Backwards Compatibility**: All new props default to original behavior, no breaking changes
+
 ### Component Test Fixes & Suite Stabilization (December 7, 2025)
 - **ProjectProgress Tests Fixed**:
   - Added `window.innerWidth` mock to prevent timeout issues in responsive component tests
@@ -324,3 +379,111 @@ All notable changes to this project will be documented in this file.
     - `hasCompletedPrimaryAction` now uses `!requiresManualDiceRoll` instead of checking space name
   - All space-specific behaviors now driven by CSV configuration rather than hardcoded logic
   - Improves maintainability and makes it easier to add new special spaces without code changes
+
+---
+
+## [1.0.0] - November 2025
+
+### Documentation Consolidation (December 9, 2025)
+- **Documentation Structure Overhaul**:
+  - Reduced from 36 files to 12 focused documents (67% reduction)
+  - Created consolidated docs: ARCHITECTURE.md, API_REFERENCE.md, CODE_STYLE.md, USER_MANUAL.md
+  - Reorganized into clear taxonomy: docs/core/, docs/technical/, docs/user/
+  - Updated CLAUDE.md with enforcement rules to prevent future sprawl
+  - Trimmed CLAUDE.md from 444 to 249 lines (removed historical bloat)
+  - Updated README.md with clear navigation paths
+  - Deleted 10 obsolete source files
+  - **Result**: Single source of truth for each topic, easy navigation, reduced duplication
+
+### Performance Optimization (November 30, 2025)
+- **Load Time Improvements**: 75-85% improvement in initial load time
+- **Service Initialization**: Optimized DataService caching
+- **Component Optimization**: Lazy loading for modals and sections
+- **Bundle Size**: Code splitting for improved performance
+
+### Movement System Refactor (November 14, 2025)
+- **CSV Processing Fixes**:
+  - Fixed REG-FDNY-FEE-REVIEW corruption (LOGIC movement parser)
+  - Fixed dice detection false positives (41→18 dice spaces, 4→20 fixed paths)
+  - Implemented stricter space name validation
+- **Path Choice Memory**: Added pathChoiceMemory for DOB compliance
+- **Data Validation**: Created validate_movement_data.py script
+- **Test Coverage**: Added 7 pathChoiceMemory tests
+- **Result**: All E2E tests passing, movement system fully functional
+
+### Branch Cleanup (November 15, 2025)
+- **Git Repository Cleanup**:
+  - Removed stale development branches
+  - Consolidated to single production branch: `xenodochial-brown`
+  - Cleaned up orphaned commits
+  - **Result**: Cleaner git history, simpler branch management
+
+### TypeScript Strict Mode (November 27-30, 2025)
+- **Phase 1 Completion**: Resolved all 12 TypeScript strict mode errors
+- **Zero Errors**: Achieved 100% TypeScript strict mode compliance
+- **Type Safety**: Full type coverage across all services and components
+- **Result**: Production-ready codebase with maximum type safety
+
+### Player Panel UI Redesign (October-November 2025)
+- **Phase 1-5 Complete**: Full mobile-first redesign
+- **Expandable Sections**: CollapsibleSection component with action indicators
+- **NextStepButton**: Context-aware "End Turn" button
+- **Multi-Device Support**: QR codes and short URLs for device joining
+- **Accessibility**: WCAG 2.1 AA compliance
+- **Result**: Modern, responsive UI optimized for all devices
+
+---
+
+## [0.9.0] - October 2025
+
+### Technical Debt Cleanup (December 6, 2025)
+- **Critical Issues Resolved**:
+  - Card effect double-application (removed 164 lines of duplicate code)
+  - Cost charged before effects (reversed order, made atomic)
+- **Moderate Issues**:
+  - Removed dice mapping dead code (30 lines)
+  - Fixed loan interest model (upfront fee instead of recurring)
+  - Fixed project scope calculation (include active W cards)
+  - Removed money source heuristics (explicit sourceType parameter)
+- **Documentation**: Added 125+ lines of architecture comments
+- **Result**: 257+ lines removed, cleaner codebase, 99.5% test pass rate
+
+### Transactional Logging System (September 28, 2025)
+- **Dual-Layer Logging**: isCommitted flag + explorationSessionId tracking
+- **Try Again Support**: Abandoned sessions preserved but excluded from canonical history
+- **Session Lifecycle**: startNewExplorationSession, commitCurrentSession, cleanupAbandonedSessions
+- **Result**: 100% accurate game log with Try Again mechanic fully supported
+
+### Turn Numbering System Fix (October 3, 2025)
+- **Turn Tracking Overhaul**:
+  - Added gameRound, turnWithinRound, globalTurnCount fields
+  - Fixed turn display (1-based instead of 0-based)
+  - System logs now collapsed by default
+- **Result**: Clear, intuitive turn numbering system
+
+### Communication System (September 30 - October 7, 2025)
+- **IPC System Deployment**: claude-ipc-mcp for AI-to-AI messaging
+- **Deprecated File-Based Polling**: Simplified to MCP-only approach
+- **Automatic Message Checking**: Both AIs check messages at session start
+- **Result**: Reliable, industry-standard AI communication
+
+---
+
+## [0.8.0] - September 2025
+
+### Effect Engine System (September 2025)
+- **Unified Effect Pipeline**: All game events standardized as Effect objects
+- **10 Core Effect Types**: Resource, Card, Movement, TurnControl, Choice, Conditional, etc.
+- **EffectFactory**: Data-independent effect creation
+- **EffectEngineService**: Central orchestration of all game logic
+- **Result**: Eliminated Service Locator anti-patterns, clean architecture
+
+### Test Suite Stabilization (September 23-29, 2025)
+- **966/967 Tests Passing**: 99.9% success rate
+- **Worker Thread Fixes**: Switched to stable single-fork execution
+- **Component Test Cleanup**: Proper DOM cleanup between tests
+- **Result**: Reliable CI/CD-ready test suite
+
+---
+
+**Note**: For detailed historical context, see `docs/archive/` for major milestone documents.

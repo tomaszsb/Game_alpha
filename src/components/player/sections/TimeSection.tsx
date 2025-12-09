@@ -19,6 +19,9 @@ export interface TimeSectionProps {
     diceRoll?: string;
     manualActions: { [effectType: string]: string };
   };
+
+  /** Whether it's this player's turn */
+  isMyTurn?: boolean;
 }
 
 /**
@@ -58,7 +61,8 @@ export interface TimeSectionProps {
 export const TimeSection: React.FC<TimeSectionProps> = ({
   gameServices,
   playerId,
-  completedActions = { manualActions: {} }
+  completedActions = { manualActions: {} },
+  isMyTurn = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -116,12 +120,12 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
         return !isEffectCompleted && (
           <ActionButton
             key={index}
-            label={getButtonLabel(effect)}
+            label={isMyTurn ? getButtonLabel(effect) : "⏳ Wait for your turn"}
             variant="primary"
             onClick={() => handleManualEffect(effect.effect_type)}
-            disabled={isLoading}
+            disabled={!isMyTurn || isLoading}
             isLoading={isLoading}
-            ariaLabel={`Perform ${effect.effect_type} action`}
+            ariaLabel={isMyTurn ? `Perform ${effect.effect_type} action` : "Wait for your turn"}
           />
         );
       })}

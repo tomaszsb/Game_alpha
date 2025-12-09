@@ -152,38 +152,43 @@ Game_Alpha/
 ## Documentation
 
 ### Quick Navigation
-- **This File (README.md):** Project overview, quick start, technology stack
-- **[Project Status](docs/project/PROJECT_STATUS.md):** Current phase and recent completions
-- **[Product Charter](docs/project/PRODUCT_CHARTER.md):** Vision, objectives, and production readiness
-- **[Technical Deep Dive](docs/project/TECHNICAL_DEEP_DIVE.md):** System architecture and design patterns
-- **[Technical Debt](docs/project/TECHNICAL_DEBT.md):** Known issues, refactoring candidates, and resolved problems
-- **[Game Actions Guide](docs/architecture/GAME_ACTIONS_GUIDE.md):** How actions, effects, and notifications work
-- **[UI Style Guide](docs/architecture/UI_STYLE_GUIDE.md):** UI standards, components, and design patterns
-- **[Testing Guide](docs/architecture/TESTING_REQUIREMENTS.md):** Test strategy, commands, and patterns
-- **[Changelog](docs/architecture/CHANGELOG.md):** Version history and feature timeline
-- **[Archive Index](docs/archive/README.md):** Historical documentation and design decisions
 
-### For Different Audiences
+**📖 Start Here:**
+- **[README.md](README.md)** (this file) - Project overview, quick start
+- **[TODO.md](TODO.md)** - Current goals and active tasks
+- **[CHANGELOG.md](CHANGELOG.md)** - Complete technical history
 
-**👨‍💻 Developers**
-- Start: README.md (you are here)
-- Next: [Technical Deep Dive](docs/project/TECHNICAL_DEEP_DIVE.md) for architecture overview
-- Reference: [Game Actions Guide](docs/architecture/GAME_ACTIONS_GUIDE.md) to understand game mechanics
-- Reference: [UI Style Guide](docs/architecture/UI_STYLE_GUIDE.md) for component patterns and styling
-- Reference: [Testing Guide](docs/architecture/TESTING_REQUIREMENTS.md) before committing changes
-- Check: [Technical Debt](docs/project/TECHNICAL_DEBT.md) for known issues and refactoring opportunities
+**👨‍💻 For Developers:**
+- **[ARCHITECTURE.md](docs/technical/ARCHITECTURE.md)** - System design, patterns, services
+- **[API_REFERENCE.md](docs/technical/API_REFERENCE.md)** - Component and service APIs
+- **[TESTING_GUIDE.md](docs/technical/TESTING_GUIDE.md)** - Test strategy and patterns
+- **[CODE_STYLE.md](docs/technical/CODE_STYLE.md)** - Code conventions and standards
 
-**👀 Project Managers**
-- Start: [Project Status](docs/project/PROJECT_STATUS.md) for current phase and recent work
-- Next: [Product Charter](docs/project/PRODUCT_CHARTER.md) for vision, objectives, and readiness
-- Track: [Changelog](docs/architecture/CHANGELOG.md) for feature timeline and progress
-- Reference: [Technical Debt](docs/project/TECHNICAL_DEBT.md) for issues and risk assessment
+**👥 For Users:**
+- **[USER_MANUAL.md](docs/user/USER_MANUAL.md)** - How to play the game
+- **[RELEASE_NOTES.md](docs/user/RELEASE_NOTES.md)** - New features and changes
 
-**📚 Learning Architecture (New Developers)**
-- Start: [Product Charter](docs/project/PRODUCT_CHARTER.md) for the big picture
-- Then: [Technical Deep Dive](docs/project/TECHNICAL_DEEP_DIVE.md) for system architecture
-- Understand: [Game Actions Guide](docs/architecture/GAME_ACTIONS_GUIDE.md) for how systems interact
-- Reference: [Archive Index](docs/archive/README.md) for design rationale and lessons learned from past work
+**📊 Project Management:**
+- **[PROJECT_STATUS.md](docs/core/PROJECT_STATUS.md)** - Current health metrics
+- **[CLAUDE.md](docs/core/CLAUDE.md)** - AI assistant charter (for Claude)
+
+### Documentation By Audience
+
+**New Developers:**
+1. Start with [README.md](README.md) for project overview
+2. Read [ARCHITECTURE.md](docs/technical/ARCHITECTURE.md) for system design
+3. Review [API_REFERENCE.md](docs/technical/API_REFERENCE.md) for component/service APIs
+4. Check [CODE_STYLE.md](docs/technical/CODE_STYLE.md) before writing code
+5. Follow [TESTING_GUIDE.md](docs/technical/TESTING_GUIDE.md) for testing
+
+**Project Managers:**
+1. Check [PROJECT_STATUS.md](docs/core/PROJECT_STATUS.md) for current state
+2. Review [TODO.md](TODO.md) for active work and priorities
+3. Track progress in [CHANGELOG.md](CHANGELOG.md)
+
+**End Users:**
+1. Read [USER_MANUAL.md](docs/user/USER_MANUAL.md) to learn how to play
+2. Check [RELEASE_NOTES.md](docs/user/RELEASE_NOTES.md) for latest features
 
 ## Development Workflow
 

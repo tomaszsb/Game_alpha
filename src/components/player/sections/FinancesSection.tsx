@@ -28,6 +28,9 @@ export interface FinancesSectionProps {
     diceRoll?: string;
     manualActions: { [effectType: string]: string };
   };
+
+  /** Whether it's this player's turn */
+  isMyTurn?: boolean;
 }
 
 /**
@@ -71,7 +74,8 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   onRollDice,
   onAutomaticFunding,
   onManualEffectResult,
-  completedActions = { manualActions: {} }
+  completedActions = { manualActions: {} },
+  isMyTurn = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -233,12 +237,12 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
         return !isEffectCompleted && (
           <ActionButton
             key={`funding-${index}`}
-            label={getButtonLabel(effect)}
+            label={isMyTurn ? getButtonLabel(effect) : "⏳ Wait for your turn"}
             variant="primary"
             onClick={() => handleManualEffect(effectKey)}
-            disabled={isLoading}
+            disabled={!isMyTurn || isLoading}
             isLoading={isLoading}
-            ariaLabel="Accept owner funding"
+            ariaLabel={isMyTurn ? "Accept owner funding" : "Wait for your turn"}
           />
         );
       })}
@@ -249,12 +253,12 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
         return !isEffectCompleted && (
           <ActionButton
             key={`money-${index}`}
-            label={getButtonLabel(effect)}
+            label={isMyTurn ? getButtonLabel(effect) : "⏳ Wait for your turn"}
             variant="primary"
             onClick={() => handleManualEffect(effect.effect_type)}
-            disabled={isLoading}
+            disabled={!isMyTurn || isLoading}
             isLoading={isLoading}
-            ariaLabel={`Perform ${effect.effect_type} action`}
+            ariaLabel={isMyTurn ? `Perform ${effect.effect_type} action` : "Wait for your turn"}
           />
         );
       })}
