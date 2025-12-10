@@ -85,47 +85,58 @@ export class ChoiceService implements IChoiceService {
    * Resolve an active choice with the player's selection
    */
   resolveChoice(choiceId: string, selection: string): boolean {
-    console.log(`🎯 Resolving Choice [${choiceId}]: Selection = "${selection}"`);
+    console.log(`🎯 [CHOICE] Resolving Choice [${choiceId}]: Selection = "${selection}"`);
+    console.log(`🎯 [CHOICE] Pending choices in map:`, Array.from(this.pendingChoices.keys()));
 
     // Get the active choice from game state
     const activeChoice = this.getActiveChoice();
-    
+
     if (!activeChoice) {
-      console.error(`ChoiceService.resolveChoice: No active choice found`);
+      console.error(`❌ [CHOICE] No active choice found in state`);
+      console.error(`❌ [CHOICE] Pending choices map:`, this.pendingChoices.size);
       return false;
     }
 
+    console.log(`🎯 [CHOICE] Active choice ID: ${activeChoice.id}, Type: ${activeChoice.type}`);
+
     if (activeChoice.id !== choiceId) {
-      console.error(`ChoiceService.resolveChoice: Choice ID mismatch. Expected ${activeChoice.id}, got ${choiceId}`);
+      console.error(`❌ [CHOICE] Choice ID mismatch. Expected ${activeChoice.id}, got ${choiceId}`);
       return false;
     }
 
     // Validate the selection against available options
     const validOption = activeChoice.options.find(option => option.id === selection);
     if (!validOption) {
-      console.error(`ChoiceService.resolveChoice: Invalid selection "${selection}". Valid options: ${activeChoice.options.map(opt => opt.id).join(', ')}`);
+      console.error(`❌ [CHOICE] Invalid selection "${selection}". Valid options: ${activeChoice.options.map(opt => opt.id).join(', ')}`);
       return false;
     }
+
+    console.log(`✅ [CHOICE] Valid option found: ${validOption.label}`);
 
     // Get the pending promise for this choice
     const pendingChoice = this.pendingChoices.get(choiceId);
     if (!pendingChoice) {
-      console.error(`ChoiceService.resolveChoice: No pending promise found for choice ${choiceId}`);
+      console.error(`❌ [CHOICE] No pending promise found for choice ${choiceId}`);
+      console.error(`❌ [CHOICE] This usually means the choice was created as display-only`);
+      console.error(`❌ [CHOICE] All choices must be created via createChoice() to be resolvable`);
       return false;
     }
+
+    console.log(`✅ [CHOICE] Pending promise found, resolving...`);
 
     try {
       // Remove from pending choices
       this.pendingChoices.delete(choiceId);
+      console.log(`🎯 [CHOICE] Removed from pending map. Remaining: ${this.pendingChoices.size}`);
 
       // Resolve the promise with the selection
       pendingChoice.resolve(selection);
 
-      console.log(`✅ Choice Resolved [${choiceId}]: "${validOption.label}" selected`);
+      console.log(`✅ [CHOICE] Promise resolved successfully: "${validOption.label}" selected`);
       return true;
 
     } catch (error) {
-      console.error(`ChoiceService.resolveChoice: Error resolving choice ${choiceId}:`, error);
+      console.error(`❌ [CHOICE] Error resolving choice ${choiceId}:`, error);
       pendingChoice.reject(error);
       return false;
     }

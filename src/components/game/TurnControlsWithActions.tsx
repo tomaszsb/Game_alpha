@@ -317,6 +317,45 @@ export function TurnControlsWithActions({
                     !isProcessingTurn && !isProcessingArrival && hasPlayerRolledDice && actionCounts.completed >= actionCounts.required &&
                     (!movementChoice || selectedDestination !== null); // Allow end turn if destination is selected
 
+  // Comprehensive End Turn button state logging
+  if (isCurrentPlayersTurn) {
+    console.log('🔴 [END TURN] Button State Check:', {
+      canEndTurn,
+      reasons: {
+        gamePhase: gamePhase === 'PLAY' ? '✅' : `❌ (${gamePhase})`,
+        isCurrentPlayersTurn: isCurrentPlayersTurn ? '✅' : '❌',
+        isProcessingTurn: !isProcessingTurn ? '✅' : '❌ (processing)',
+        isProcessingArrival: !isProcessingArrival ? '✅' : '❌ (arrival)',
+        hasPlayerRolledDice: hasPlayerRolledDice ? '✅' : '❌ (need to roll)',
+        actionsComplete: actionCounts.completed >= actionCounts.required ?
+          `✅ (${actionCounts.completed}/${actionCounts.required})` :
+          `❌ (${actionCounts.completed}/${actionCounts.required})`,
+        movementChoice: !movementChoice ? '✅ (no choice)' :
+          selectedDestination !== null ? '✅ (destination selected)' : '❌ (need to select destination)'
+      },
+      currentSpace: currentPlayer.currentSpace,
+      manualEffectsCount: manualEffects.length,
+      completedManualActions: completedActions.manualActions
+    });
+  }
+
+  // Get reason why End Turn button is disabled
+  const getEndTurnDisabledReason = (): string => {
+    if (canEndTurn) return "Click to end your turn";
+    if (gamePhase !== 'PLAY') return `Game phase: ${gamePhase} - Cannot end turn yet`;
+    if (!isCurrentPlayersTurn) return "Wait for your turn";
+    if (isProcessingTurn) return "Turn is processing - please wait";
+    if (isProcessingArrival) return "Arrival is processing - please wait";
+    if (!hasPlayerRolledDice) return "You must roll the dice first";
+    if (actionCounts.completed < actionCounts.required) {
+      const remaining = actionCounts.required - actionCounts.completed;
+      return `Complete ${remaining} more action(s) before ending turn (${actionCounts.completed}/${actionCounts.required})`;
+    }
+    if (movementChoice && selectedDestination === null) {
+      return "Select a destination to move before ending turn";
+    }
+    return "Cannot end turn - check requirements";
+  };
 
   // Get contextual dice roll button text using centralized utility
   const getDiceRollButtonText = (): string => {
@@ -363,14 +402,28 @@ export function TurnControlsWithActions({
           animation: 'fadeIn 0.3s ease-in-out'
         }}>
           <div style={{
-            fontSize: '10px',
-            fontWeight: 'bold',
-            color: colors.primary.main,
-            textAlign: 'center',
-            marginBottom: '6px',
-            transition: 'color 0.2s ease'
+            padding: '8px',
+            backgroundColor: colors.info.light,
+            borderRadius: '6px',
+            border: `2px solid ${colors.info.main}`,
+            marginBottom: '8px'
           }}>
-            🚶 Choose Your Destination
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: colors.info.main,
+              textAlign: 'center',
+              marginBottom: '4px'
+            }}>
+              📍 Select ONE Destination to Continue
+            </div>
+            <div style={{
+              fontSize: '9px',
+              color: colors.text.secondary,
+              textAlign: 'center'
+            }}>
+              Choose your next space - you can only select one path
+            </div>
           </div>
           {movementChoice.options.map((option, index) => {
             const feedbackKey = `move_${option.id}`;
@@ -622,6 +675,7 @@ export function TurnControlsWithActions({
           <button
             onClick={canEndTurn ? handleEndTurnWithMovement : undefined}
             disabled={!canEndTurn}
+            title={getEndTurnDisabledReason()}
             style={{
               padding: '4px 8px',
               fontSize: '10px',

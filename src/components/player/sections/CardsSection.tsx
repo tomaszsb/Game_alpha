@@ -452,6 +452,31 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
           </div>
         )}
 
+        {/* Card Type Legend */}
+        <div style={{
+          padding: '8px',
+          backgroundColor: '#f0f0f0',
+          borderRadius: '4px',
+          marginTop: '12px',
+          marginBottom: '8px'
+        }}>
+          <div style={{
+            fontSize: '10px',
+            fontWeight: 'bold',
+            color: '#666',
+            marginBottom: '4px'
+          }}>
+            💡 Card Types:
+          </div>
+          <div style={{
+            fontSize: '9px',
+            color: '#666',
+            lineHeight: '1.4'
+          }}>
+            <strong>W</strong>=Work (project scope) | <strong>B</strong>=Bank Loan | <strong>E</strong>=Expeditor (can play) | <strong>L</strong>=Life Event | <strong>I</strong>=Investor Loan
+          </div>
+        </div>
+
         <div className="card-actions">
           <ActionButton
             label="View Discarded"

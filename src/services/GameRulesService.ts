@@ -332,22 +332,43 @@ export class GameRulesService implements IGameRulesService {
    */
   async checkWinCondition(playerId: string): Promise<boolean> {
     try {
+      console.log(`🏆 [WIN CHECK] Checking win condition for player ${playerId}`);
+
       // Get the player's current state
       const player = this.stateService.getPlayer(playerId);
       if (!player) {
+        console.log(`❌ [WIN CHECK] Player not found: ${playerId}`);
         return false;
       }
+
+      console.log(`🏆 [WIN CHECK] Player ${player.name} at space: ${player.currentSpace}`);
 
       // Get the space configuration for the player's current space
       const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
       if (!spaceConfig) {
+        console.log(`❌ [WIN CHECK] Space config not found for: ${player.currentSpace}`);
         return false;
       }
 
+      console.log(`🏆 [WIN CHECK] Space config:`, {
+        space: player.currentSpace,
+        phase: spaceConfig.phase,
+        is_ending_space: spaceConfig.is_ending_space,
+        is_starting_space: spaceConfig.is_starting_space
+      });
+
       // Check if the current space is marked as an ending space
-      return spaceConfig.is_ending_space === true;
+      const hasWon = spaceConfig.is_ending_space === true;
+
+      if (hasWon) {
+        console.log(`🎉🎉🎉 [WIN CHECK] PLAYER HAS WON! ${player.name} reached ${player.currentSpace}!`);
+      } else {
+        console.log(`🏆 [WIN CHECK] Not a winning space yet (is_ending_space: ${spaceConfig.is_ending_space})`);
+      }
+
+      return hasWon;
     } catch (error) {
-      console.error(`Error checking win condition for player ${playerId}:`, error);
+      console.error(`❌ [WIN CHECK] Error checking win condition for player ${playerId}:`, error);
       return false;
     }
   }
