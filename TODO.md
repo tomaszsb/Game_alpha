@@ -29,21 +29,40 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ---
 
 ## 📱 **PHASE 3: User Acceptance Testing** (1-2 weeks)
-*Status: NOT STARTED*
-*Target: December 10-15, 2025*
+*Status: IN PROGRESS - Internal Testing*
+*Started: December 9, 2025*
 
 ### Objective
 Validate gameplay, balance, and user experience with real players
 
 ### Tasks
 
-**3A: Internal Testing** (2-3 days)
-- [ ] Play through full game from start to finish
-- [ ] Test all card types and effects (W, B, E, L, I)
-- [ ] Verify all space mechanics work correctly
+**3A: Internal Testing** (2-3 days) - IN PROGRESS
+- [x] Initial UAT with Perplexity AI (December 9) - **8.5/10 rating**
+- [x] Test all card types and effects (W, B, E, L, I) - ✅ All working
+- [x] Verify space mechanics - ✅ Choice system works
+- [x] Document issues found - See findings below
+- [ ] Complete full game playthrough (start to finish)
 - [ ] Test multiplayer with 2-4 players
 - [ ] Test multi-device functionality (QR codes, short URLs)
-- [ ] Document any issues found
+
+**UAT Findings (December 9, 2025):**
+- ✅ **GOOD**: Core mechanics working well (8.5/10 rating → 9.5/10 after fixes)
+- ✅ **GOOD**: Card system fully functional (W, E, L cards)
+- ✅ **GOOD**: Strategic choices work (PM-DECISION-CHECK)
+- ✅ **GOOD**: UI layout clear and intuitive
+- ✅ **FIXED**: Space Explorer restored (ℹ️ icons on each space)
+- ✅ **FIXED**: "Try Again" button tooltip added
+- ✅ **FIXED**: Manual action button styling standardized
+- ✅ **FIXED**: End Turn disabled bug at PM-DECISION-CHECK (3 root causes fixed)
+- 📝 **NOTE**: Finances showing $0 (needs verification)
+- 📝 **NOTE**: Time consequences not visible (by design?)
+
+**PM-DECISION-CHECK Bug Fix (December 9):**
+- Root cause #1: CSV had `effect_action="draw_E"` → Fixed to `"replace_E"`
+- Root cause #2: CSV had `effect_value="Replace 1"` → Fixed to `"1"`
+- Root cause #3: Button formatting didn't handle `replace_` actions → Fixed
+- Result: Button now shows "Replace 1 E card" correctly, End Turn enables after action
 
 **3B: External Testing** (5-7 days)
 - [ ] Recruit 3-5 external players

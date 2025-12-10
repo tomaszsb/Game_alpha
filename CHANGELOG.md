@@ -4,6 +4,64 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### UAT Phase 2 & Critical Bug Fixes (December 9, 2025)
+**Critical Bug Fixes:**
+- **🐛 BLOCKING: Movement Choice Buttons Don't Work** ✅ FIXED
+  - Root cause: `restoreMovementChoiceIfNeeded()` created "display-only" choices without promises
+  - Effect: Clicking destination buttons (ARCH-INITIATION, etc.) showed error: "No pending promise found"
+  - Impact: Game appeared frozen - choices visible but unresponsive
+  - Fix: Removed "display-only" path, always use `ChoiceService.createChoice()` to create proper promises
+  - File: `TurnService.ts` lines 820-857
+  - Result: **Movement choices now work correctly - game progresses after destination selection**
+
+- **🐛 CRITICAL: End Turn Still Disabled After Card Replacement** ✅ FIXED
+  - Root cause #2: CSV `effect_value` was "Replace 1" instead of just "1"
+  - Root cause #3: Button formatting didn't handle `replace_` actions properly
+  - Effect: Button text was "Pick up Replace 1 REPLACE_E cards" instead of "Replace 1 E card"
+  - Fix #2: Changed `SPACE_EFFECTS.csv` PM-DECISION-CHECK line: effect_value from "Replace 1" → "1"
+  - Fix #3: Updated `buttonFormatting.ts` to properly parse replace_ actions
+  - Fix #4: Added comprehensive debug logging to `StateService` for action count tracking
+  - Impact: **Resolves persistent End Turn disabled issue completely**
+  - Now properly displays "Replace 1 E card" button
+  - Action completion is correctly tracked after card replacement modal
+  - End Turn enables immediately after manual action completes
+
+### UAT Phase 1 & Critical Bug Fix (December 9, 2025)
+**Bug Fixes:**
+- **🐛 CRITICAL: PM-DECISION-CHECK End Turn Button** ✅ FIXED
+  - Root cause: CSV data error - `effect_action` was "draw_E" instead of "replace_E"
+  - Effect: Manual action not recognized as completed, End Turn stayed disabled
+  - Fix: Changed `SPACE_EFFECTS.csv` line 25 from `draw_E` to `replace_E`
+  - Impact: **Resolves Perplexity's "stuck state" issue completely**
+  - Players can now complete "Replace 1 E card" and End Turn properly
+
+### UAT Phase 1 & UX Improvements (December 9, 2025)
+- **User Acceptance Testing**:
+  - ✅ First UAT completed with Perplexity AI - **8.5/10 rating**
+  - ✅ Confirmed all card types (W, E, L) functional
+  - ✅ Strategic decision points working (PM-DECISION-CHECK)
+  - ✅ Identified UX clarity issues (not bugs)
+- **Space Info Icons**:
+  - Added ℹ️ icon to every space on GameBoard
+  - Click to view detailed space information modal
+  - Shows: story, effects (manual/auto), movement options, players on space
+  - Addresses UAT feedback: "spaces aren't clickable"
+  - New file: `src/components/modals/SpaceInfoModal.tsx`
+- **Try Again Tooltip**:
+  - Added explanatory tooltip to Try Again button
+  - Explains snapshot/negotiation mechanic
+  - Addresses UAT feedback: "Try Again button purpose unclear"
+- **Manual Action Button Prominence**:
+  - Added ⚠️ "Manual Actions Required" banner above pending actions
+  - Enhanced button styling: warning color, larger size, pulse animation
+  - Added tooltips showing full effect descriptions
+  - Addresses UAT feedback: "manual actions not prominently displayed"
+  - **Fixes perceived "stuck state"** - now crystal clear what's blocking End Turn
+- **Documentation**:
+  - Updated `TODO.md` with UAT findings and Phase 3A status
+  - Fixed `CLAUDE.md` references (code2027 → game_alpha)
+  - Removed references to non-existent documentation files
+
 ### Turn-Based UI Improvements & Polish (December 8, 2025)
 - **Turn-Based Button Disabling**:
   - All section action buttons now respect turn-based gameplay

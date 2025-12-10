@@ -511,6 +511,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
               onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
               className="try-again-button"
               aria-label="Try Again on current space"
+              title="Restore to snapshot saved when you arrived at this space. Use this if you want to undo actions and try different choices. (Also called 'Negotiation')"
             >
               🔄 Try Again
             </button>

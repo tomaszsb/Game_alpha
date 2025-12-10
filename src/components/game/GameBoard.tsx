@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
 import { GameSpace } from './GameSpace';
+import { SpaceInfoModal } from '../modals/SpaceInfoModal';
 import { useGameContext } from '../../context/GameContext';
 import { Space, Player } from '../../types/DataTypes';
 
@@ -17,6 +18,8 @@ export function GameBoard(): JSX.Element {
   const [highlightedMoves, setHighlightedMoves] = useState<string[]>([]);
   const [gamePhase, setGamePhase] = useState<string>('SETUP');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [selectedSpaceForInfo, setSelectedSpaceForInfo] = useState<string | null>(null);
+  const [isSpaceInfoModalOpen, setIsSpaceInfoModalOpen] = useState(false);
 
   // Subscribe to state changes for live updates with smooth transitions
   useEffect(() => {
@@ -99,6 +102,39 @@ export function GameBoard(): JSX.Element {
     return currentPlayer?.currentSpace === spaceName;
   };
 
+  // Handler for space info icon click
+  const handleSpaceInfoClick = (spaceName: string) => {
+    setSelectedSpaceForInfo(spaceName);
+    setIsSpaceInfoModalOpen(true);
+  };
+
+  // Get space details for modal
+  const getSpaceDetails = () => {
+    if (!selectedSpaceForInfo) {
+      return {
+        space: null,
+        content: null,
+        effects: [],
+        diceEffects: [],
+        connections: []
+      };
+    }
+
+    const space = spaces.find(s => s.name === selectedSpaceForInfo);
+    const content = dataService.getSpaceContent(selectedSpaceForInfo, 'First');
+    const effects = dataService.getSpaceEffects(selectedSpaceForInfo, 'First');
+    const diceEffects = dataService.getDiceEffects(selectedSpaceForInfo, 'First');
+    const connections = movementService.getValidMoves(selectedSpaceForInfo, 'First');
+
+    return {
+      space: space || null,
+      content,
+      effects,
+      diceEffects,
+      connections
+    };
+  };
+
   return (
     <div
       style={{
@@ -141,6 +177,7 @@ export function GameBoard(): JSX.Element {
               isValidMoveDestination={isValidMove}
               isCurrentPlayerSpace={isCurrentPlayer}
               showMovementIndicators={highlightedMoves.length > 0}
+              onInfoClick={handleSpaceInfoClick}
             />
           );
         })}
@@ -158,6 +195,18 @@ export function GameBoard(): JSX.Element {
           Loading game spaces...
         </div>
       )}
+
+      {/* Space Info Modal */}
+      <SpaceInfoModal
+        isOpen={isSpaceInfoModalOpen}
+        onClose={() => {
+          setIsSpaceInfoModalOpen(false);
+          setSelectedSpaceForInfo(null);
+        }}
+        spaceName={selectedSpaceForInfo || ''}
+        {...getSpaceDetails()}
+        playersOnSpace={selectedSpaceForInfo ? getPlayersOnSpace(selectedSpaceForInfo) : []}
+      />
     </div>
   );
 }

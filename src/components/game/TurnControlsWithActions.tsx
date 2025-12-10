@@ -295,6 +295,24 @@ export function TurnControlsWithActions({
                      !(awaitingChoice && movementChoice?.type !== 'MOVEMENT') &&
                      currentPlayer.currentSpace !== 'OWNER-FUND-INITIATION' && // Hide dice roll for funding space
                      requiresManualDiceRoll; // Hide dice roll for automatic dice roll spaces
+
+  // Debug logging for dice roll button visibility
+  if (currentPlayer.currentSpace === 'PM-DECISION-CHECK' && isCurrentPlayersTurn) {
+    console.log('🎲 DICE ROLL BUTTON DEBUG:', {
+      canRollDice,
+      gamePhase,
+      isCurrentPlayersTurn,
+      isProcessingTurn,
+      isProcessingArrival,
+      hasPlayerRolledDice,
+      hasPlayerMovedThisTurn,
+      awaitingChoice,
+      movementChoiceType: movementChoice?.type,
+      isNonMovementChoiceBlocking: !!(awaitingChoice && movementChoice?.type !== 'MOVEMENT'),
+      currentSpace: currentPlayer.currentSpace,
+      requiresManualDiceRoll
+    });
+  }
   const canEndTurn = gamePhase === 'PLAY' && isCurrentPlayersTurn &&
                     !isProcessingTurn && !isProcessingArrival && hasPlayerRolledDice && actionCounts.completed >= actionCounts.required &&
                     (!movementChoice || selectedDestination !== null); // Allow end turn if destination is selected
@@ -504,6 +522,34 @@ export function TurnControlsWithActions({
         )}
 
         {/* Manual Effect Buttons - show if available, replace with actions when completed */}
+        {isCurrentPlayersTurn && manualEffects.length > 0 && !manualEffects.every(e => completedActions.manualActions[e.effect_type]) && (
+          <div style={{
+            padding: '8px',
+            backgroundColor: colors.warning.light,
+            borderRadius: '6px',
+            border: `2px solid ${colors.warning.main}`,
+            marginBottom: '4px'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: colors.warning.main,
+              marginBottom: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              ⚠️ Manual Actions Required
+            </div>
+            <div style={{
+              fontSize: '9px',
+              color: colors.text.secondary,
+              marginBottom: '6px'
+            }}>
+              Complete these actions before ending turn
+            </div>
+          </div>
+        )}
         {isCurrentPlayersTurn && manualEffects.map((effect, index) => {
           // Use centralized button formatting
           const { text: buttonText, icon: buttonIcon } = formatManualEffectButton(effect);
@@ -517,12 +563,13 @@ export function TurnControlsWithActions({
           // Check if effect should be displayed based on state
           
           if (!isButtonDisabled) {
-            // Show active button
+            // Show active button with standard styling (matching other action buttons)
             return (
               <button
                 key={index}
                 onClick={() => onManualEffect(effect.effect_type)}
                 style={getManualEffectButtonStyle(isButtonDisabled, colors)}
+                title={effect.effect_description || buttonText}
               >
                 <span>{buttonIcon}</span>
                 <span>{buttonText}</span>

@@ -820,36 +820,10 @@ export class TurnService implements ITurnService {
       if (validMoves.length > 1) {
         const playerName = player.name || 'Unknown Player';
 
-        // Check if player already has a move intent set
-        if (player.moveIntent) {
-          console.log(`🔄 Player ${playerName} already has move intent: ${player.moveIntent} - restoring choice for UI display only`);
-
-          // Restore the choice to UI state so buttons show, but don't wait for resolution
-          // since the intent is already set
-          const options = validMoves.map(destination => ({
-            id: destination,
-            label: destination
-          }));
-
-          const prompt = `Choose your destination from ${player.currentSpace}:`;
-
-          // Create the choice in state for UI display (the moveIntent is already set)
-          const choice = {
-            id: `choice_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            playerId,
-            type: 'MOVEMENT' as const,
-            prompt,
-            options
-          };
-
-          this.stateService.setAwaitingChoice(choice);
-          console.log(`🔄 Movement choice restored to UI state (intent already set to ${player.moveIntent})`);
-          return;
-        }
-
-        console.log(`🔄 Restoring movement choice for ${playerName} (${validMoves.length} options)`);
+        console.log(`🔄 Restoring movement choice for ${playerName} (${validMoves.length} options)${player.moveIntent ? ` - current intent: ${player.moveIntent}` : ''}`);
 
         // Create choice for player to set their movement intent
+        // Even if moveIntent is already set, create a proper choice so player can change it
         const options = validMoves.map(destination => ({
           id: destination,
           label: destination
@@ -859,6 +833,7 @@ export class TurnService implements ITurnService {
 
         // Create the choice (don't await - just set it in state)
         // The UI will show the choice and wait for player selection
+        // This creates a proper promise that can be resolved when player clicks
         this.choiceService.createChoice(
           playerId,
           'MOVEMENT',

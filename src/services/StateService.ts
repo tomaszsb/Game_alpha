@@ -556,7 +556,8 @@ export class StateService implements IStateService {
   }
 
   setPlayerCompletedManualAction(effectType: string, message: string): GameState {
-    console.log(`🎯 Recording completed manual action: ${effectType}`);
+    console.log(`🎯 Recording completed manual action: ${effectType}, message: "${message}"`);
+    console.log(`🎯 Current manual actions before:`, this.currentState.completedActions.manualActions);
     const newCompletedActions = {
       ...this.currentState.completedActions,
       manualActions: {
@@ -564,6 +565,7 @@ export class StateService implements IStateService {
         [effectType]: message,
       },
     };
+    console.log(`🎯 New manual actions after:`, newCompletedActions.manualActions);
 
     const newState: GameState = {
       ...this.currentState,
@@ -571,7 +573,9 @@ export class StateService implements IStateService {
     };
 
     this.currentState = newState;
+    console.log(`🎯 About to call updateActionCounts after recording ${effectType}`);
     this.updateActionCounts(); // This remains the same
+    console.log(`🎯 updateActionCounts completed. State now has requiredActions=${this.currentState.requiredActions}, completedActionCount=${this.currentState.completedActionCount}`);
     return { ...this.currentState };
   }
 
@@ -774,6 +778,10 @@ export class StateService implements IStateService {
       // Count manual effects (require separate player action)
       // Exclude 'turn' effects since they duplicate the regular End Turn button
       const countableManualEffects = manualEffects.filter(effect => effect.effect_type !== 'turn');
+      console.log(`🎯 calculateRequiredActions: Found ${countableManualEffects.length} countable manual effects:`,
+        countableManualEffects.map(e => `${e.effect_type}:${e.effect_action}`));
+      console.log(`🎯 Current completed manual actions:`, this.currentState.completedActions.manualActions);
+
       countableManualEffects.forEach(effect => {
         // Generic handling for ALL manual effect types
         const actionType = `${effect.effect_type}_manual`;
@@ -786,14 +794,18 @@ export class StateService implements IStateService {
         // Support both simple keys ("cards") and compound keys ("cards:draw_b")
         const simpleKey = effect.effect_type;
         const compoundKey = `${effect.effect_type}:${effect.effect_action}`;
-        const isCompleted = !!(
-          this.currentState.completedActions.manualActions[simpleKey] ||
-          this.currentState.completedActions.manualActions[compoundKey]
-        );
+        const simpleMatch = this.currentState.completedActions.manualActions[simpleKey];
+        const compoundMatch = this.currentState.completedActions.manualActions[compoundKey];
+        const isCompleted = !!(simpleMatch || compoundMatch);
+
+        console.log(`  🎯 Manual effect ${effect.effect_type}:${effect.effect_action}:`);
+        console.log(`     - simpleKey="${simpleKey}", simpleMatch="${simpleMatch}"`);
+        console.log(`     - compoundKey="${compoundKey}", compoundMatch="${compoundMatch}"`);
+        console.log(`     - isCompleted=${isCompleted}`);
+
         if (isCompleted) {
           completed++;
         }
-        console.log(`  🎯 Manual effect ${effect.effect_type}: ${isCompleted ? 'completed' : 'pending'}`);
       });
       
     } catch (error) {

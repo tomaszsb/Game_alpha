@@ -45,13 +45,38 @@ export function getManualEffectButtonStyle(
  */
 export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
   const isCardEffect = effect.effect_type === 'cards';
-  const cardType = isCardEffect ? effect.effect_action.replace('draw_', '').toUpperCase() : '';
-  const count = effect.effect_value;
+
+  // Extract card type from effect_action (e.g., "draw_W" → "W", "replace_E" → "E")
+  let cardType = '';
+  if (isCardEffect) {
+    const actionLower = effect.effect_action.toLowerCase();
+    if (actionLower.startsWith('draw_')) {
+      cardType = effect.effect_action.replace(/^draw_/i, '').toUpperCase();
+    } else if (actionLower.startsWith('replace_')) {
+      cardType = effect.effect_action.replace(/^replace_/i, '').toUpperCase();
+    } else {
+      cardType = effect.effect_action.toUpperCase();
+    }
+  }
+
+  // Parse numeric value from effect_value
+  let count = 0;
+  if (typeof effect.effect_value === 'string') {
+    const match = effect.effect_value.match(/\d+/);
+    count = match ? parseInt(match[0]) : 0;
+  } else {
+    count = effect.effect_value;
+  }
 
   // Generate appropriate button text based on effect type
   let text = '';
   if (isCardEffect) {
-    text = `Pick up ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+    const actionLower = effect.effect_action.toLowerCase();
+    if (actionLower.startsWith('replace_')) {
+      text = `Replace ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+    } else {
+      text = `Pick up ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+    }
   } else if (effect.effect_type === 'dice_roll_chance') {
     // Parse card type from effect_action (e.g., "draw_l_on_1" -> "L")
     const match = effect.effect_action.match(/draw_([a-z])_on_/i);

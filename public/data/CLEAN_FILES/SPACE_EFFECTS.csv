@@ -22,7 +22,7 @@ OWNER-FUND-INITIATION,Subsequent,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do
 OWNER-FUND-INITIATION,Subsequent,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
 OWNER-FUND-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
 PM-DECISION-CHECK,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,auto
-PM-DECISION-CHECK,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+PM-DECISION-CHECK,First,cards,replace_E,1,,Replace 1 E cards,manual
 PM-DECISION-CHECK,First,time,add,5,,Spend 5 days,auto
 PM-DECISION-CHECK,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,auto
 PM-DECISION-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual

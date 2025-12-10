@@ -16,6 +16,8 @@ interface GameSpaceProps {
   isCurrentPlayerSpace?: boolean;
   /** True if movement indicators (e.g., valid move targets) should be shown. */
   showMovementIndicators?: boolean;
+  /** Callback when space info icon is clicked */
+  onInfoClick?: (spaceName: string) => void;
 }
 
 /**
@@ -28,12 +30,13 @@ interface GameSpaceProps {
  * @param {GameSpaceProps} props - The props for the component.
  * @returns {JSX.Element} The rendered GameSpace component.
  */
-export function GameSpace({ 
-  space, 
+export function GameSpace({
+  space,
   playersOnSpace,
   isValidMoveDestination = false,
   isCurrentPlayerSpace = false,
-  showMovementIndicators = false
+  showMovementIndicators = false,
+  onInfoClick
 }: GameSpaceProps): JSX.Element {
   // Add CSS animation styles to document head if not already present
   React.useEffect(() => {
@@ -186,7 +189,7 @@ export function GameSpace({
         </div>
       )}
 
-      {/* Space name */}
+      {/* Space name with info icon */}
       <div
         style={{
           fontWeight: 'bold',
@@ -194,10 +197,46 @@ export function GameSpace({
           color: colors.text.primary,
           textAlign: 'center',
           marginBottom: '8px',
-          lineHeight: '1.2'
+          lineHeight: '1.2',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
         }}
       >
-        {space.name}
+        <span>{space.name}</span>
+        {onInfoClick && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onInfoClick(space.name);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              padding: '2px 4px',
+              borderRadius: '4px',
+              opacity: 0.6,
+              transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.backgroundColor = colors.info.light;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.6';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title="View space details"
+          >
+            ℹ️
+          </button>
+        )}
       </div>
 
       {/* Players on this space */}

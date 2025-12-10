@@ -34,7 +34,16 @@
       "Bash(mkdir:*)",
       "Bash(__NEW_LINE__ echo '🎉 FINAL DOCUMENTATION STRUCTURE' echo ================================ echo echo '📁 ROOT (3 files):' ls -1 *.md)",
       "Bash(head -10 echo \"\" echo \"📁 docs/core/ (3 files):\" ls -1 docs/core/*.md echo \"\" echo \"📁 docs/technical/ (5 files):\" ls -1 docs/technical/*.md echo \"\" echo \"📁 docs/user/ (2 files):\" ls -1 docs/user/*.md echo \"\" echo \"📁 docs/archive/ (11 milestones):\" ls -1 docs/archive/*.md)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run test:e2e:*)",
+      "Bash(npm run test:uat:*)",
+      "Bash(chmod:*)",
+      "Bash(./tests/uat/run-uat.sh:*)",
+      "Bash(node tests/uat/puppeteer-simple.js:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

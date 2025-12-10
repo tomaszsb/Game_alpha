@@ -167,7 +167,7 @@ export function CardReplacementModal({
 
   const selectedCardStyle: React.CSSProperties = {
     ...cardItemStyle,
-    borderColor: colors.primary.main,
+    border: `2px solid ${colors.primary.main}`,
     backgroundColor: colors.primary.lighter,
     boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
   };
