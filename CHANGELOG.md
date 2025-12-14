@@ -4,6 +4,82 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fix Sprint & Regression Tests (December 14, 2025)
+**Critical Bug Fixes - 5 Bugs Resolved:**
+
+- **🐛 Bug #1: Story text not displaying on player panels** ✅ FIXED
+  - Root cause: StorySection importing wrong ExpandableSection component
+  - `common/ExpandableSection` uses `hidden` HTML attribute (hides content from DOM)
+  - `player/ExpandableSection` uses CSS classes (proper visibility control)
+  - Effect: Story section rendered but content was invisible when expanded
+  - Fix: Changed import from `../../common/ExpandableSection` to `../ExpandableSection`
+  - File: `src/components/player/sections/StorySection.tsx` line 2
+  - Result: **Story text now displays correctly when section is expanded**
+
+- **🐛 Bug #2: Drawing both B and I funding cards at OWNER-FUND-INITIATION** ✅ FIXED
+  - Root cause: Missing condition values in SPACE_EFFECTS.csv
+  - Empty conditions default to `true`, causing both effects to execute
+  - Effect: Players received BOTH B card (small projects) AND I card (large projects)
+  - Also caused "Finances showing $0" issue from UAT findings
+  - Fix: Added `scope_le_4M` and `scope_gt_4M` conditions to draw_B and draw_I effects
+  - File: `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` lines 18-22
+  - Result: **Only ONE card drawn based on project scope (B if ≤$4M, I if >$4M)**
+
+- **🐛 Bug #3: Infinite loop causing "Maximum update depth exceeded"** ✅ FIXED
+  - Root cause: `GameRulesService.evaluateCondition()` updating projectScope every render
+  - Triggered when evaluating scope-based conditions (scope_le_4M, scope_gt_4M)
+  - Caused state update during render → component re-render → infinite loop
+  - Effect: Browser console filled with warnings, UI became unresponsive
+  - Fix: Only update projectScope when value has actually changed
+  - File: `src/services/GameRulesService.ts` lines 624-648
+  - Result: **No more infinite loops, game remains responsive**
+
+- **🐛 Bug #4: Space Explorer Panel crash when clicking info button** ✅ FIXED
+  - Root cause: `GameBoard.getSpaceDetails()` calling `getValidMoves()` with space name instead of player ID
+  - Effect: Error "Player with ID START-QUICK-PLAY-GUIDE not found"
+  - Fix: Replaced incorrect getValidMoves() call with proper connection calculation logic
+  - File: `src/components/game/GameBoard.tsx` lines 111-158
+  - Also fixed: DataServiceOptimized Space interface structure (content field)
+  - Result: **Space info modal opens without crashes, connections displayed correctly**
+
+- **🐛 Bug #5: START-QUICK-PLAY-GUIDE instruction space showing on game board** ✅ FIXED
+  - Root cause: GameBoard filter only excluded Tutorial spaces, not instruction spaces
+  - Instruction spaces have `path_type === 'none'` in GAME_CONFIG.csv
+  - Effect: Non-playable instruction space visible on game board
+  - Fix: Added filter condition `config?.path_type !== 'none'`
+  - File: `src/components/game/GameBoard.tsx` lines 77-87
+  - Result: **Only playable game spaces shown on board**
+
+**Regression Test Suite Added:**
+- **GameRulesService Tests** (+66 lines):
+  - 3 new tests for Bug #3 (infinite loop prevention)
+  - Tests evaluateCondition() behavior with scope conditions
+  - Verifies projectScope only updated when value changes
+  - File: `tests/services/GameRulesService.test.ts` lines 903-992
+
+- **GameBoard Component Tests** (NEW FILE, +381 lines):
+  - 8 comprehensive tests for Bugs #4 & #5
+  - Bug #5 regression: 3 tests for space filtering
+    * Filters instruction spaces (path_type === 'none')
+    * Filters tutorial spaces (path_type === 'Tutorial')
+    * Only shows main game spaces
+  - Bug #4 regression: 2 tests for Space Explorer
+    * Prevents crash on info button click
+    * Validates connection calculation logic
+  - 3 basic rendering tests
+  - File: `tests/components/game/GameBoard.test.tsx`
+
+- **Bug #2 Documentation**:
+  - Documented multi-layered regression coverage
+  - Layer 1: GameRulesService unit tests verify condition evaluation
+  - Layer 2: Git tracks SPACE_EFFECTS.csv changes
+  - Layer 3: User manual testing verified functionality
+  - File: `tests/services/EffectEngineService.test.ts` lines 1237-1241
+
+**Test Suite Status**: 90 tests passing (60 GameRulesService, 22 EffectEngine, 8 GameBoard)
+
+**User Verification**: All 5 bug fixes tested and confirmed working by user
+
 ### UAT Phase 2 & Critical Bug Fixes (December 9, 2025)
 **Critical Bug Fixes:**
 - **🐛 BLOCKING: Movement Choice Buttons Don't Work** ✅ FIXED
