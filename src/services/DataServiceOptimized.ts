@@ -224,12 +224,22 @@ export class DataServiceOptimized implements IDataService {
   }
 
   // Space effect methods
-  getSpaceEffects(): SpaceEffect[] {
+  getAllSpaceEffects(): SpaceEffect[] {
     if (!this.cache.spaceEffects) {
       this.loadSpaceEffects();
       return [];
     }
     return [...this.cache.spaceEffects];
+  }
+
+  getSpaceEffects(spaceName: string, visitType: VisitType): SpaceEffect[] {
+    if (!this.cache.spaceEffects) {
+      this.loadSpaceEffects();
+      return [];
+    }
+    return this.cache.spaceEffects.filter(
+      effect => effect.space_name === spaceName && effect.visit_type === visitType
+    );
   }
 
   getSpaceEffect(spaceName: string, visitType: VisitType): SpaceEffect | undefined {
@@ -243,12 +253,22 @@ export class DataServiceOptimized implements IDataService {
   }
 
   // Dice effect methods
-  getDiceEffects(): DiceEffect[] {
+  getAllDiceEffects(): DiceEffect[] {
     if (!this.cache.diceEffects) {
       this.loadDiceEffects();
       return [];
     }
     return [...this.cache.diceEffects];
+  }
+
+  getDiceEffects(spaceName: string, visitType: VisitType): DiceEffect[] {
+    if (!this.cache.diceEffects) {
+      this.loadDiceEffects();
+      return [];
+    }
+    return this.cache.diceEffects.filter(
+      effect => effect.space_name === spaceName
+    );
   }
 
   getDiceEffect(spaceName: string, diceValue: number): DiceEffect | undefined {
@@ -262,7 +282,7 @@ export class DataServiceOptimized implements IDataService {
   }
 
   // Space content methods
-  getSpaceContents(): SpaceContent[] {
+  getAllSpaceContent(): SpaceContent[] {
     if (!this.cache.spaceContents) {
       this.loadSpaceContents();
       return [];
@@ -270,12 +290,14 @@ export class DataServiceOptimized implements IDataService {
     return [...this.cache.spaceContents];
   }
 
-  getSpaceContent(spaceName: string): SpaceContent | undefined {
+  getSpaceContent(spaceName: string, visitType: VisitType): SpaceContent | undefined {
     if (!this.cache.spaceContents) {
       this.loadSpaceContents();
       return undefined;
     }
-    return this.cache.spaceContents.find(content => content.space_name === spaceName);
+    return this.cache.spaceContents.find(
+      content => content.space_name === spaceName && content.visit_type === visitType
+    );
   }
 
   // Private loading methods with caching
@@ -388,13 +410,15 @@ export class DataServiceOptimized implements IDataService {
     this.cache.movements.forEach(movement => spaceNames.add(movement.space_name));
 
     this.cache.spaces = Array.from(spaceNames).map(name => ({
+      id: name,
       name,
-      gameConfig: this.cache.gameConfigs!.find(config => config.space_name === name),
-      movements: this.cache.movements!.filter(movement => movement.space_name === name),
+      title: this.cache.gameConfigs!.find(config => config.space_name === name)?.space_name || name,
+      config: this.cache.gameConfigs!.find(config => config.space_name === name)!,
+      movement: this.cache.movements!.filter(movement => movement.space_name === name),
       spaceEffects: [], // Will be populated later
       diceOutcomes: [], // Will be populated later
       diceEffects: [], // Will be populated later
-      spaceContent: undefined // Will be populated later
+      content: [] // Will be populated later
     }));
   }
 
@@ -407,13 +431,15 @@ export class DataServiceOptimized implements IDataService {
     this.cache.movements.forEach(movement => spaceNames.add(movement.space_name));
 
     this.cache.spaces = Array.from(spaceNames).map(name => ({
+      id: name,
       name,
-      gameConfig: this.cache.gameConfigs!.find(config => config.space_name === name),
-      movements: this.cache.movements!.filter(movement => movement.space_name === name),
+      title: this.cache.gameConfigs!.find(config => config.space_name === name)?.space_name || name,
+      config: this.cache.gameConfigs!.find(config => config.space_name === name)!,
+      movement: this.cache.movements!.filter(movement => movement.space_name === name),
       spaceEffects: this.cache.spaceEffects?.filter(effect => effect.space_name === name) || [],
       diceOutcomes: this.cache.diceOutcomes?.filter(outcome => outcome.space_name === name) || [],
       diceEffects: this.cache.diceEffects?.filter(effect => effect.space_name === name) || [],
-      spaceContent: this.cache.spaceContents?.find(content => content.space_name === name)
+      content: this.cache.spaceContents?.filter(content => content.space_name === name) || []
     }));
   }
 
@@ -519,11 +545,12 @@ export class DataServiceOptimized implements IDataService {
       const values = this.parseCsvLine(line);
       return {
         space_name: values[0] || '',
-        title: values[1] || '',
-        story_text: values[2] || '',
-        action_text: values[3] || '',
-        outcome_text: values[4] || '',
-        flavor_text: values[5] || ''
+        visit_type: (values[1] as 'First' | 'Subsequent') || 'First',
+        title: values[2] || '',
+        story: values[3] || '',
+        action_description: values[4] || '',
+        outcome_description: values[5] || '',
+        can_negotiate: values[6]?.toLowerCase() === 'true'
       };
     });
   }

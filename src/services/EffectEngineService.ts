@@ -308,10 +308,15 @@ export class EffectEngineService implements IEffectEngineService {
             try {
               const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
               console.log(`    ✅ Drew ${drawnCards.length} card(s): ${drawnCards.join(', ')}`);
-              
+
               // Special handling for OWNER-FUND-INITIATION: automatically play drawn funding cards
+              console.log(`🔍 BUG #2 DEBUG: Checking OWNER-FUND-INITIATION auto-play condition`);
+              console.log(`    - context.metadata?.spaceName = "${context.metadata?.spaceName}"`);
+              console.log(`    - drawnCards.length = ${drawnCards.length}`);
+              console.log(`    - Card type = ${payload.cardType}`);
+
               if (context.metadata?.spaceName === 'OWNER-FUND-INITIATION' && drawnCards.length > 0) {
-                console.log(`    ✅ OWNER-FUND-INITIATION: Automatically playing drawn funding card.`);
+                console.log(`    💰 OWNER-FUND-INITIATION: Automatically playing drawn funding card: ${drawnCards[0]}`);
                 const playCardEffects = drawnCards.map(cardId => ({
                   effectType: 'PLAY_CARD' as const,
                   payload: {
@@ -321,12 +326,15 @@ export class EffectEngineService implements IEffectEngineService {
                   }
                 }));
 
+                console.log(`    💰 Created ${playCardEffects.length} PLAY_CARD effect(s) to auto-apply funding`);
                 return {
                   success: true,
                   effectType: effect.effectType,
                   resultingEffects: playCardEffects,
                   data: { cardIds: drawnCards }
                 };
+              } else {
+                console.log(`    ⚠️ OWNER-FUND-INITIATION auto-play NOT triggered (condition not met)`);
               }
               
               // Log to action log if available
@@ -736,11 +744,20 @@ export class EffectEngineService implements IEffectEngineService {
           if (isPlayCardEffect(effect)) {
             const { payload } = effect;
             try {
-              console.log(`🎴 EFFECT_ENGINE: Finalizing card ${payload.cardId} for player ${payload.playerId}`);
+              console.log(`🎴 EFFECT_ENGINE: Processing PLAY_CARD for ${payload.cardId} (player ${payload.playerId})`);
+              console.log(`    Source: ${payload.source}`);
 
-              // IMPORTANT: Card effects have already been processed by PlayerActionService.playCard()
-              // This handler ONLY finalizes the card lifecycle (move to active or discard based on duration)
-              // Do NOT call applyCardEffects here - it would double-process effects!
+              // Check if this is an auto-play scenario (e.g., OWNER-FUND-INITIATION)
+              const isAutoPlay = payload.source?.startsWith('auto_play:');
+
+              if (isAutoPlay) {
+                console.log(`    💰 Auto-play detected - applying card effects before finalizing`);
+                // For auto-play, we need to apply card effects (they haven't been applied yet)
+                await this.cardService.applyCardEffects(payload.playerId, payload.cardId);
+                console.log(`    ✅ Card effects applied for ${payload.cardId}`);
+              } else {
+                console.log(`    ℹ️  Manual play - effects already applied by PlayerActionService`);
+              }
 
               // Finalize card (move to active or discard based on duration)
               this.cardService.finalizePlayedCard(payload.playerId, payload.cardId);

@@ -1016,6 +1016,11 @@ export class CardService implements ICardService {
         const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'ownerFunding' : 'bankLoans';
         const sourceLabel = sourceType === 'ownerFunding' ? 'Owner funding' : 'Loan';
 
+        console.log(`🔍 BUG #2 DEBUG: Parsing B card ${card.card_id}`);
+        console.log(`   - loan_amount: $${loanAmount.toLocaleString()}`);
+        console.log(`   - player.currentSpace: ${player?.currentSpace}`);
+        console.log(`   - sourceType: ${sourceType}`);
+
         effects.push({
           effectType: 'RESOURCE_CHANGE',
           payload: {
@@ -1027,7 +1032,7 @@ export class CardService implements ICardService {
             reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${sourceType === 'bankLoans' && card.loan_rate ? ` at ${card.loan_rate}% interest` : ''}`
           }
         });
-        console.log(`   💰 Added LOAN effect: $${loanAmount.toLocaleString()} (${sourceLabel})`);
+        console.log(`   💰 Added LOAN RESOURCE_CHANGE effect: +$${loanAmount.toLocaleString()} (${sourceLabel})`);
       }
     }
 
@@ -1035,6 +1040,9 @@ export class CardService implements ICardService {
     if (card.card_type === 'I' && card.investment_amount) {
       const investmentAmount = parseInt(card.investment_amount, 10);
       if (!isNaN(investmentAmount) && investmentAmount > 0) {
+        console.log(`🔍 BUG #2 DEBUG: Parsing I card ${card.card_id}`);
+        console.log(`   - investment_amount: $${investmentAmount.toLocaleString()}`);
+
         effects.push({
           effectType: 'RESOURCE_CHANGE',
           payload: {
@@ -1046,7 +1054,7 @@ export class CardService implements ICardService {
             reason: `${card.card_name}: Investment of $${investmentAmount.toLocaleString()}`
           }
         });
-        console.log(`   💰 Added INVESTMENT effect: $${investmentAmount.toLocaleString()}`);
+        console.log(`   💰 Added INVESTMENT RESOURCE_CHANGE effect: +$${investmentAmount.toLocaleString()}`);
       }
     }
 

@@ -742,13 +742,33 @@ export class StateService implements IStateService {
     const availableTypes: string[] = [];
     let required = 0;
     let completed = 0;
-    
-    try {
-      // Check if dice roll is required for this space
-      const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
-      const requiresDiceRoll = spaceConfig?.requires_dice_roll ?? true; // Default to true if not specified
 
-      if (requiresDiceRoll) {
+    try {
+      // Check if dice roll is REQUIRED for this space
+      // A dice roll is only required if:
+      // 1. Movement type is 'dice' (dice_outcome spaces like CHEAT-BYPASS), OR
+      // 2. There are unconditional dice effects (not "if you roll" effects)
+      const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
+      const requiresDiceRollConfig = spaceConfig?.requires_dice_roll ?? true; // Default to true if not specified
+
+      // Check movement type to see if dice determines destination
+      const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
+      const isDiceMovement = movement?.movement_type === 'dice';
+
+      // Check if there are unconditional dice effects
+      // Conditional effects have descriptions like "Draw 1 if you roll a 1"
+      const spaceEffects = this.dataService.getSpaceEffects(player.currentSpace, player.visitType);
+      const hasUnconditionalDiceEffect = spaceEffects.some(effect => {
+        const desc = effect.description?.toLowerCase() || '';
+        const value = String(effect.effect_value || '').toLowerCase();
+        // Check if this effect requires a dice roll but is NOT conditional
+        return (desc.includes('roll') || value.includes('roll')) && !desc.includes('if you roll');
+      });
+
+      // Only count dice as required if movement is dice-based OR there are unconditional dice effects
+      const isDiceRequired = requiresDiceRollConfig && (isDiceMovement || hasUnconditionalDiceEffect);
+
+      if (isDiceRequired) {
         availableTypes.push('dice');
         required++;
         // Check if dice has been rolled
@@ -756,9 +776,6 @@ export class StateService implements IStateService {
           completed++;
         }
       }
-
-      // Check for space effects on this space
-      const spaceEffects = this.dataService.getSpaceEffects(player.currentSpace, player.visitType);
 
       // Filter effects by condition (e.g., scope_le_4M, scope_gt_4M)
       const conditionFilteredEffects = spaceEffects.filter(effect =>

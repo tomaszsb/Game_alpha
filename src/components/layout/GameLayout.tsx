@@ -774,6 +774,14 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
       
       {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
 
+      {/* Space Explorer Panel */}
+      {isSpaceExplorerVisible && (
+        <SpaceExplorerPanel
+          isVisible={isSpaceExplorerVisible}
+          onToggle={handleToggleSpaceExplorer}
+        />
+      )}
+
       {/* Display Settings Modal */}
       {isDisplaySettingsOpen && (
         <GameDisplaySettings

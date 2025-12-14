@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** December 9, 2025
+**Last Updated:** December 14, 2025
 **Status:** Production Ready - UAT Pending
 
 ---
@@ -55,7 +55,7 @@ Validate gameplay, balance, and user experience with real players
 - ✅ **FIXED**: "Try Again" button tooltip added
 - ✅ **FIXED**: Manual action button styling standardized
 - ✅ **FIXED**: End Turn disabled bug at PM-DECISION-CHECK (3 root causes fixed)
-- 📝 **NOTE**: Finances showing $0 (needs verification)
+- ✅ **FIXED**: Finances showing $0 (fixed via conditional funding - Dec 14)
 - 📝 **NOTE**: Time consequences not visible (by design?)
 
 **PM-DECISION-CHECK Bug Fix (December 9):**
@@ -63,6 +63,23 @@ Validate gameplay, balance, and user experience with real players
 - Root cause #2: CSV had `effect_value="Replace 1"` → Fixed to `"1"`
 - Root cause #3: Button formatting didn't handle `replace_` actions → Fixed
 - Result: Button now shows "Replace 1 E card" correctly, End Turn enables after action
+
+**Bug Fix Sprint (December 14):**
+- ✅ **Bug #1**: Story text not showing on player panels
+  - Root cause: StorySection using wrong ExpandableSection component (common/ vs player/)
+  - Fix: Changed import from `../../common/ExpandableSection` to `../ExpandableSection`
+- ✅ **Bug #2**: Drawing both B and I cards at OWNER-FUND-INITIATION
+  - Root cause: Missing condition values in SPACE_EFFECTS.csv (empty conditions default to true)
+  - Fix: Added `scope_le_4M` and `scope_gt_4M` conditions to draw_B and draw_I effects
+- ✅ **Bug #3**: Infinite loop causing "Maximum update depth exceeded"
+  - Root cause: GameRulesService.evaluateCondition() updating projectScope every render
+  - Fix: Added check to only update projectScope if value changed
+- ✅ **Bug #4**: Space Explorer Panel crash on info button click
+  - Root cause: GameBoard.getSpaceDetails() calling getValidMoves() with space name instead of player ID
+  - Fix: Replaced with proper connection calculation logic iterating through spaces
+- ✅ **Bug #5**: START-QUICK-PLAY-GUIDE showing on game board
+  - Root cause: GameBoard filter only excluded Tutorial spaces, not instruction spaces
+  - Fix: Added filter condition `config?.path_type !== 'none'`
 
 **3B: External Testing** (5-7 days)
 - [ ] Recruit 3-5 external players
@@ -197,4 +214,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** December 9, 2025
+**Last Updated:** December 14, 2025

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExpandableSection } from '../../common/ExpandableSection';
+import { ExpandableSection } from '../ExpandableSection';
 
 /**
  * Props for the StorySection component.
@@ -32,10 +32,12 @@ export function StorySection({ story, spaceName }: StorySectionProps) {
 
   return (
     <ExpandableSection
-      title="📖 Story"
+      title="Story"
+      icon="📖"
+      hasAction={false}
       isExpanded={isExpanded}
       onToggle={() => setIsExpanded(!isExpanded)}
-      actionIndicator={null}
+      ariaControls={`story-section-${spaceName}`}
     >
       <div style={{
         fontSize: '1.1rem', // Slightly larger font as requested

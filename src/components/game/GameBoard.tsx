@@ -74,13 +74,14 @@ export function GameBoard(): JSX.Element {
     return unsubscribe;
   }, [stateService, movementService]);
 
-  // Load all spaces on mount (excluding tutorial spaces)
+  // Load all spaces on mount (excluding tutorial/instruction spaces)
   useEffect(() => {
     const allSpaces = dataService.getAllSpaces();
-    // Filter out tutorial spaces that shouldn't appear on the game board
+    // Filter out tutorial and instruction spaces that shouldn't appear on the game board
     const gameSpaces = allSpaces.filter(space => {
       const config = dataService.getGameConfigBySpace(space.name);
-      return config?.path_type !== 'Tutorial';
+      // Exclude Tutorial spaces and instruction spaces (path_type === 'none')
+      return config?.path_type !== 'Tutorial' && config?.path_type !== 'none';
     });
     setSpaces(gameSpaces);
   }, [dataService]);
@@ -124,7 +125,29 @@ export function GameBoard(): JSX.Element {
     const content = dataService.getSpaceContent(selectedSpaceForInfo, 'First');
     const effects = dataService.getSpaceEffects(selectedSpaceForInfo, 'First');
     const diceEffects = dataService.getDiceEffects(selectedSpaceForInfo, 'First');
-    const connections = movementService.getValidMoves(selectedSpaceForInfo, 'First');
+
+    // Calculate incoming connections by checking which spaces can move to this space
+    const connections: string[] = [];
+    try {
+      spaces.forEach(otherSpace => {
+        const movement = dataService.getMovement(otherSpace.name, 'First');
+        if (movement) {
+          const destinations = [
+            movement.destination_1,
+            movement.destination_2,
+            movement.destination_3,
+            movement.destination_4,
+            movement.destination_5
+          ].filter(dest => dest && dest === selectedSpaceForInfo);
+
+          if (destinations.length > 0 && !connections.includes(otherSpace.name)) {
+            connections.push(otherSpace.name);
+          }
+        }
+      });
+    } catch (error) {
+      console.warn('Error loading space connections:', error);
+    }
 
     return {
       space: space || null,
