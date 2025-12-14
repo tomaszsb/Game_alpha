@@ -64,13 +64,14 @@ Validate gameplay, balance, and user experience with real players
 - Root cause #3: Button formatting didn't handle `replace_` actions → Fixed
 - Result: Button now shows "Replace 1 E card" correctly, End Turn enables after action
 
-**Bug Fix Sprint (December 14):**
+**Bug Fix Sprint (December 14) - ✅ COMPLETED:**
 - ✅ **Bug #1**: Story text not showing on player panels
   - Root cause: StorySection using wrong ExpandableSection component (common/ vs player/)
   - Fix: Changed import from `../../common/ExpandableSection` to `../ExpandableSection`
 - ✅ **Bug #2**: Drawing both B and I cards at OWNER-FUND-INITIATION
   - Root cause: Missing condition values in SPACE_EFFECTS.csv (empty conditions default to true)
   - Fix: Added `scope_le_4M` and `scope_gt_4M` conditions to draw_B and draw_I effects
+  - Impact: Also fixed "Finances showing $0" issue from UAT findings
 - ✅ **Bug #3**: Infinite loop causing "Maximum update depth exceeded"
   - Root cause: GameRulesService.evaluateCondition() updating projectScope every render
   - Fix: Added check to only update projectScope if value changed
@@ -80,6 +81,13 @@ Validate gameplay, balance, and user experience with real players
 - ✅ **Bug #5**: START-QUICK-PLAY-GUIDE showing on game board
   - Root cause: GameBoard filter only excluded Tutorial spaces, not instruction spaces
   - Fix: Added filter condition `config?.path_type !== 'none'`
+
+**Regression Tests Added (December 14):**
+- ✅ GameRulesService: 3 new tests for Bug #3 (infinite loop prevention)
+- ✅ GameBoard: 8 new tests for Bugs #4 & #5 (NEW FILE: GameBoard.test.tsx)
+- ✅ Bug #2 coverage: Multi-layered (unit tests + CSV tracking + manual verification)
+- ✅ Test suite status: 90/90 tests passing
+- ✅ All fixes user-verified and working correctly
 
 **3B: External Testing** (5-7 days)
 - [ ] Recruit 3-5 external players
