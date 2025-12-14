@@ -1233,4 +1233,10 @@ describe('EffectEngineService', () => {
       expect(responseEffect.payload.response).toBe('ACCEPT');
     });
   });
+
+  // Bug #2 Regression Tests: Conditional funding at OWNER-FUND-INITIATION
+  // These are covered by:
+  // 1. tests/data/space-effects-regression.test.ts - Validates CSV has correct conditions
+  // 2. tests/services/GameRulesService.test.ts - Tests evaluateCondition logic
+  // 3. User manual testing - Verified only one card (B or I) is drawn based on scope
 });

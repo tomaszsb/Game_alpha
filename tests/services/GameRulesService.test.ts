@@ -601,7 +601,7 @@ describe('GameRulesService', () => {
       // Assert
       expect(result).toBe(false);
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Error checking win condition for player player1:',
+        '❌ [WIN CHECK] Error checking win condition for player player1:',
         expect.any(Error)
       );
 
@@ -896,6 +896,97 @@ describe('GameRulesService', () => {
         expect(result.shouldEnd).toBe(true);
         expect(result.reason).toBe('win');
         expect(result.winnerId).toBe('player1');
+      });
+    });
+  });
+
+  describe('Bug Regression Tests', () => {
+    describe('Bug #3: Infinite loop prevention (evaluateCondition)', () => {
+      it('should not update projectScope when value has not changed', () => {
+        // Arrange - player already has correct projectScope
+        const playerWithScope: Player = {
+          ...mockPlayer,
+          projectScope: 5000000, // Already $5M
+          hand: [] // No E cards, so calculateProjectScope will return 0
+        };
+
+        // Mock getPlayer to return player with projectScope already set
+        let getPlayerCallCount = 0;
+        mockStateService.getPlayer.mockImplementation(() => {
+          getPlayerCallCount++;
+          // Return same player state both times it's called
+          return playerWithScope;
+        });
+        mockStateService.updatePlayer.mockClear();
+
+        // Mock calculateProjectScope by spying before evaluateCondition is called
+        const calculateSpy = vi.spyOn(gameRulesService, 'calculateProjectScope');
+        calculateSpy.mockReturnValue(5000000); // Same as current value
+
+        // Act
+        const result = gameRulesService.evaluateCondition('player1', 'scope_gt_4M');
+
+        // Assert
+        expect(result).toBe(true); // 5M > 4M
+        expect(mockStateService.updatePlayer).not.toHaveBeenCalled(); // Should NOT update
+
+        // Cleanup
+        calculateSpy.mockRestore();
+      });
+
+      it('should update projectScope when value HAS changed', () => {
+        // Arrange - player has outdated projectScope
+        const playerWithScope: Player = {
+          ...mockPlayer,
+          projectScope: 3000000, // Old value: $3M
+          hand: [] // No E cards
+        };
+
+        mockStateService.getPlayer.mockReturnValue(playerWithScope);
+        mockStateService.updatePlayer.mockClear();
+
+        // Mock calculateProjectScope to return DIFFERENT value
+        const calculateSpy = vi.spyOn(gameRulesService, 'calculateProjectScope');
+        calculateSpy.mockReturnValue(6000000); // Different from current 3M
+
+        // Act
+        const result = gameRulesService.evaluateCondition('player1', 'scope_gt_4M');
+
+        // Assert
+        expect(result).toBe(true); // 6M > 4M
+        expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
+          id: 'player1',
+          projectScope: 6000000
+        });
+
+        // Cleanup
+        calculateSpy.mockRestore();
+      });
+
+      it('should not update projectScope when evaluating scope_le_4M and value unchanged', () => {
+        // Arrange
+        const playerWithScope: Player = {
+          ...mockPlayer,
+          projectScope: 2000000, // Already $2M
+          hand: []
+        };
+
+        mockStateService.getPlayer.mockReturnValue(playerWithScope);
+        mockStateService.updatePlayer.mockClear();
+
+        // Mock calculateProjectScope to return SAME value
+        const calculateSpy = vi.spyOn(gameRulesService, 'calculateProjectScope');
+        calculateSpy.mockReturnValue(2000000); // Same as current
+
+        // Act
+        const result = gameRulesService.evaluateCondition('player1', 'scope_le_4M');
+
+        // Assert
+        expect(result).toBe(true); // 2M <= 4M
+        expect(mockStateService.updatePlayer).not.toHaveBeenCalled();
+
+        // Cleanup
+        calculateSpy.mockRestore();
       });
     });
   });
