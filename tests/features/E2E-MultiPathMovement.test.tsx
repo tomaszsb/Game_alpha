@@ -6,9 +6,9 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { TurnControlsWithActions } from '../../src/components/game/TurnControlsWithActions';
 import { GameContext } from '../../src/context/GameContext';
 import { GamePhase } from '../../src/types/StateTypes';
@@ -78,6 +78,10 @@ describe('E2E Feature: Multi-Path Movement with Real Services', () => {
     services = { dataService, stateService, turnService, choiceService, movementService };
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it('should handle multi-path movement flow correctly', async () => {
     // 1. Setup Game State - Use PM-DECISION-CHECK which has real choice movement
     services.stateService.addPlayer('Test Player');
@@ -137,8 +141,9 @@ describe('E2E Feature: Multi-Path Movement with Real Services', () => {
     const destinationButton = screen.getByText('🎯 LEND-SCOPE-CHECK');
     fireEvent.click(destinationButton);
 
-    const endTurnButton = screen.getByRole('button', { name: /End Turn/ });
-    fireEvent.click(endTurnButton);
+    // Use getAllByRole and select the first End Turn button (handles multiple renders)
+    const endTurnButtons = screen.getAllByRole('button', { name: /End Turn/ });
+    fireEvent.click(endTurnButtons[0]);
 
     // 6. Assert the results - player should move to LEND-SCOPE-CHECK
     await waitFor(() => {

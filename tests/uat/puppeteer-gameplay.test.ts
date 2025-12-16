@@ -117,8 +117,10 @@ function stopServer() {
 
 /**
  * Test Suite: Full Gameplay
+ * NOTE: Skipped by default - this test requires manual execution with `npm run test:uat`
+ * It spawns its own dev server and runs a real browser for end-to-end testing.
  */
-describe('UAT: Full Gameplay Test', () => {
+describe.skip('UAT: Full Gameplay Test', () => {
 
   beforeAll(async () => {
     console.log('\n' + '='.repeat(60));

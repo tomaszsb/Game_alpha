@@ -264,6 +264,100 @@ describe('EffectFactory', () => {
     });
   });
 
+  describe('createEffectsFromSpaceEntry - fee effects', () => {
+    it('should create FEE_DEDUCTION effect for loan percentage fee', () => {
+      // Arrange
+      const spaceEffects = [{
+        space_name: 'BANK-FUND-REVIEW',
+        visit_type: 'First' as const,
+        effect_type: 'fee' as const,
+        effect_action: 'deduct',
+        effect_value: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
+        condition: '',
+        description: 'Pay fees'
+      }];
+
+      // Act
+      const effects = EffectFactory.createEffectsFromSpaceEntry(
+        spaceEffects,
+        mockPlayerId,
+        'BANK-FUND-REVIEW',
+        'First',
+        undefined,
+        'Test Player',
+        true // skip logging
+      );
+
+      // Assert
+      const feeEffect = effects.find(e => e.effectType === 'FEE_DEDUCTION');
+      expect(feeEffect).toBeDefined();
+      expect(feeEffect?.effectType).toBe('FEE_DEDUCTION');
+      expect(feeEffect?.payload.playerId).toBe(mockPlayerId);
+      expect(feeEffect?.payload.feeType).toBe('LOAN_PERCENTAGE');
+      expect(feeEffect?.payload.feeDescription).toContain('1%');
+    });
+
+    it('should create FEE_DEDUCTION effect for fixed percentage fee', () => {
+      // Arrange
+      const spaceEffects = [{
+        space_name: 'INVESTOR-FUND-REVIEW',
+        visit_type: 'First' as const,
+        effect_type: 'fee' as const,
+        effect_action: 'deduct',
+        effect_value: '5% of amount borrowed',
+        condition: '',
+        description: 'Pay investor fees'
+      }];
+
+      // Act
+      const effects = EffectFactory.createEffectsFromSpaceEntry(
+        spaceEffects,
+        mockPlayerId,
+        'INVESTOR-FUND-REVIEW',
+        'First',
+        undefined,
+        'Test Player',
+        true
+      );
+
+      // Assert
+      const feeEffect = effects.find(e => e.effectType === 'FEE_DEDUCTION');
+      expect(feeEffect).toBeDefined();
+      expect(feeEffect?.payload.feeType).toBe('LOAN_PERCENTAGE');
+      expect(feeEffect?.payload.feeDescription).toBe('5% of amount borrowed');
+    });
+
+    it('should create FEE_DEDUCTION effect for dice-based fee', () => {
+      // Arrange
+      const spaceEffects = [{
+        space_name: 'REG-DOB-FEE-REVIEW',
+        visit_type: 'Subsequent' as const,
+        effect_type: 'fee' as const,
+        effect_action: 'deduct',
+        effect_value: 'Based on dice roll',
+        condition: '',
+        description: 'Pay based on dice roll'
+      }];
+
+      // Act
+      const effects = EffectFactory.createEffectsFromSpaceEntry(
+        spaceEffects,
+        mockPlayerId,
+        'REG-DOB-FEE-REVIEW',
+        'Subsequent',
+        undefined,
+        'Test Player',
+        true
+      );
+
+      // Assert
+      const feeEffect = effects.find(e => e.effectType === 'FEE_DEDUCTION');
+      expect(feeEffect).toBeDefined();
+      expect(feeEffect?.payload.feeType).toBe('DICE_BASED');
+      expect(feeEffect?.payload.feeDescription).toBe('Based on dice roll');
+    });
+  });
+
   describe('utility methods', () => {
     it('should validate card objects correctly', () => {
       // Valid card

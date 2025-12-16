@@ -199,6 +199,16 @@ export type Effect =
         prompt: string;
         source?: string;
       };
+    }
+  | {
+      effectType: 'FEE_DEDUCTION';
+      payload: {
+        playerId: string;
+        feeType: 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+        feeDescription: string; // e.g., "1% for loan of up to $1.4M..."
+        source?: string;
+        reason?: string;
+      };
     };
 
 /**
@@ -317,4 +327,8 @@ export function isNegotiationResponseEffect(effect: Effect): effect is Extract<E
 
 export function isPlayerAgreementRequiredEffect(effect: Effect): effect is Extract<Effect, { effectType: 'PLAYER_AGREEMENT_REQUIRED' }> {
   return effect.effectType === 'PLAYER_AGREEMENT_REQUIRED';
+}
+
+export function isFeeDeductionEffect(effect: Effect): effect is Extract<Effect, { effectType: 'FEE_DEDUCTION' }> {
+  return effect.effectType === 'FEE_DEDUCTION';
 }

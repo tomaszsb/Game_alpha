@@ -50,6 +50,8 @@ describe('NextStepButton', () => {
       players: [{ id: PLAYER_ID, name: 'Player 1' }, { id: OTHER_PLAYER_ID, name: 'Player 2' }],
       currentPlayerId: PLAYER_ID,
       awaitingChoice: null,
+      requiredActions: 0,        // No actions required by default
+      completedActionCount: 0,   // No actions completed (but none required, so button is enabled)
     } as any);
     mockStateService.getPlayer.mockImplementation((id) => {
       if (id === PLAYER_ID) return { id: PLAYER_ID, name: 'Player 1' } as any;
@@ -99,7 +101,9 @@ describe('NextStepButton', () => {
     mockStateService.getGameState.mockReturnValue({
       players: [{ id: PLAYER_ID, name: 'Player 1' }],
       currentPlayerId: PLAYER_ID,
-      awaitingChoice: { id: 'choice1', type: 'MOVEMENT', prompt: 'Choose' }
+      awaitingChoice: { id: 'choice1', type: 'MOVEMENT', prompt: 'Choose' },
+      requiredActions: 0,
+      completedActionCount: 0,
     } as any);
 
     render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
@@ -119,12 +123,26 @@ describe('NextStepButton', () => {
     expect(endTurnButton).not.toBeDisabled();
   });
 
-  test('hides button when canEndTurn is false and no other actions', () => {
-    mockTurnService.getAvailableActions.mockReturnValue([]); // No other actions
-    mockTurnService.canEndTurn.mockReturnValue(false); // Cannot end turn
+  test('shows disabled button when actions not complete', () => {
+    // Button is VISIBLE but DISABLED when actions aren't complete
+    // This lets player see the button exists, but they can't use it until ready
+    mockTurnService.getAvailableActions.mockReturnValue([]);
+    mockTurnService.canEndTurn.mockReturnValue(false);
+
+    // Set up state where actions are not complete
+    mockStateService.getGameState.mockReturnValue({
+      players: [{ id: PLAYER_ID, name: 'Player 1' }],
+      currentPlayerId: PLAYER_ID,
+      awaitingChoice: null,
+      requiredActions: 2,
+      completedActionCount: 0  // Actions not complete
+    } as any);
+
     render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
-    expect(screen.queryByText('End Turn')).not.toBeInTheDocument();
-    expect(screen.queryByText('Roll to Move')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    // Button should be visible but disabled
+    const button = screen.getByText('End Turn');
+    expect(button).toBeInTheDocument();
+    expect(button).toBeDisabled();
   });
 });

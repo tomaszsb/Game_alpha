@@ -75,7 +75,8 @@ export function ChoiceModal(): JSX.Element {
 
     // Extract card type from first option ID (e.g., "E001" -> "E")
     const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
-    const maxReplacements = awaitingChoice.options.length;
+    // Get maxReplacements from metadata if available, otherwise default to 1
+    const maxReplacements = (awaitingChoice.metadata?.replaceCount as number) || 1;
     const newCardType = awaitingChoice.metadata?.newCardType as CardType | undefined;
 
     return (
@@ -86,14 +87,41 @@ export function ChoiceModal(): JSX.Element {
         maxReplacements={maxReplacements}
         newCardType={newCardType}
         onReplace={(selectedCardIds, replacementType) => {
-          // Handle single card selection (current system supports one at a time)
+          // Handle card selection
           if (selectedCardIds.length > 0) {
-            handleChoiceClick(selectedCardIds[0]);
+            console.log(`🔄 CardReplacement: Attempting to replace cards: ${selectedCardIds.join(', ')}`);
+            console.log(`🔄 CardReplacement: Choice ID: ${awaitingChoice.id}`);
+            console.log(`🔄 CardReplacement: Valid options: ${awaitingChoice.options.map(o => o.id).join(', ')}`);
+
+            // Process each selected card
+            selectedCardIds.forEach((cardId, index) => {
+              if (index === 0) {
+                // First card uses handleChoiceClick to resolve the choice
+                handleChoiceClick(cardId);
+              }
+            });
           }
         }}
         onCancel={() => {
-          // For now, we require a selection - can't cancel
-          console.log('Card replacement cancelled (not supported yet)');
+          // Allow skipping card replacement - it's optional
+          console.log('Card replacement skipped by user');
+
+          // Use skipChoice to properly resolve the pending promise
+          choiceService.skipChoice(awaitingChoice.id);
+
+          // Notify user
+          notificationService.notify(
+            NotificationUtils.createSuccessNotification(
+              'Skipped',
+              'Card replacement skipped',
+              currentPlayerName
+            ),
+            {
+              playerId: awaitingChoice.playerId,
+              playerName: currentPlayerName,
+              actionType: 'skip_card_replacement'
+            }
+          );
         }}
       />
     );

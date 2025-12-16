@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DiceResultModal, DiceRollResult } from '../../../src/components/modals/DiceResultModal';
 import { GameContext } from '../../../src/context/GameContext';
 import { createAllMockServices } from '../../mocks/mockServices';
@@ -11,6 +11,10 @@ describe('DiceResultModal', () => {
 
   beforeEach(() => {
     mockServices = createAllMockServices();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
   const mockResult: DiceRollResult = {
     diceValue: 4,

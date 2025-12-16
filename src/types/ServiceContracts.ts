@@ -334,7 +334,7 @@ export interface ICardService {
   getCardToDiscard(playerId: string, cardType: CardType): string | null;
   
   // Card effect methods
-  applyCardEffects(playerId: string, cardId: string): GameState;
+  applyCardEffects(playerId: string, cardId: string): Promise<GameState>;
   effectEngineService: IEffectEngineService;
   
   // Circular dependency resolution methods
@@ -352,10 +352,13 @@ export interface IPlayerActionService {
 export interface IMovementService {
   // Movement validation methods
   getValidMoves(playerId: string): string[];
-  
+
   // Movement execution methods
   movePlayer(playerId: string, destinationSpace: string): Promise<GameState>;
   endMove(playerId: string): Promise<GameState>;
+
+  // Dice-based movement methods
+  getDiceDestination(spaceName: string, visitType: VisitType, diceRoll: number): string | null;
 
   // Choice-based movement methods
   handleMovementChoice(playerId: string): Promise<GameState>;
@@ -408,6 +411,7 @@ export interface IChoiceService {
   // Choice creation and resolution methods
   createChoice(playerId: string, type: Choice['type'], prompt: string, options: Choice['options'], metadata?: Choice['metadata']): Promise<string>;
   resolveChoice(choiceId: string, selection: string): boolean;
+  skipChoice(choiceId: string): boolean;
 
   // Choice query methods
   getActiveChoice(): Choice | null;

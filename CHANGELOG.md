@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fee Effect Type Support (December 16, 2025)
+**Feature Addition:**
+- **Added `FEE_DEDUCTION` effect type** for loan-based percentage fees
+  - Supports tiered fee structures (1%/2%/3% based on loan size)
+  - Supports fixed percentage fees (e.g., "5% of amount borrowed")
+  - Supports dice-based fees (logged as pending, requires dice roll context)
+  - Calculates fees from sum of all player loans
+  - Skips fee deduction if player has no loans
+- **Updated SpaceEffect interface** to include 'fee' as valid effect_type
+- **Added comprehensive tests** for EffectFactory and EffectEngineService
+- **Updated ARCHITECTURE.md** to document FeeDeductionEffect
+
+**Files Modified:**
+- `src/types/DataTypes.ts` - Added 'fee' to SpaceEffect.effect_type
+- `src/types/EffectTypes.ts` - Added FEE_DEDUCTION effect type
+- `src/utils/EffectFactory.ts` - Added fee case in parseSpaceEffect()
+- `src/services/EffectEngineService.ts` - Added FEE_DEDUCTION handler
+- `tests/utils/EffectFactory.test.ts` - Added 3 fee effect tests
+- `tests/services/EffectEngineService.test.ts` - Added 6 FEE_DEDUCTION tests
+- `docs/technical/ARCHITECTURE.md` - Documented FeeDeductionEffect
+
 ### Bug Fix Sprint & Regression Tests (December 14, 2025)
 **Critical Bug Fixes - 5 Bugs Resolved:**
 

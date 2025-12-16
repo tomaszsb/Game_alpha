@@ -2,7 +2,7 @@ space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_pla
 START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No
 OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes
 OWNER-FUND-INITIATION,SETUP,Main,Yes,No,1,4,No
-PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes
+PM-DECISION-CHECK,OWNER,Special,No,No,1,4,No
 LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes
 BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No
 INVESTOR-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,Yes

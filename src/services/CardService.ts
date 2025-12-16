@@ -1013,8 +1013,8 @@ export class CardService implements ICardService {
       const loanAmount = parseInt(card.loan_amount, 10);
       if (!isNaN(loanAmount) && loanAmount > 0) {
         const player = this.stateService.getPlayer(playerId);
-        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'ownerFunding' : 'bankLoans';
-        const sourceLabel = sourceType === 'ownerFunding' ? 'Owner funding' : 'Loan';
+        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'bank';
+        const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Loan';
 
         console.log(`🔍 BUG #2 DEBUG: Parsing B card ${card.card_id}`);
         console.log(`   - loan_amount: $${loanAmount.toLocaleString()}`);
@@ -1029,7 +1029,7 @@ export class CardService implements ICardService {
             amount: loanAmount,
             source: cardSource,
             sourceType: sourceType,
-            reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${sourceType === 'bankLoans' && card.loan_rate ? ` at ${card.loan_rate}% interest` : ''}`
+            reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${sourceType === 'bank' && card.loan_rate ? ` at ${card.loan_rate}% interest` : ''}`
           }
         });
         console.log(`   💰 Added LOAN RESOURCE_CHANGE effect: +$${loanAmount.toLocaleString()} (${sourceLabel})`);
@@ -1050,7 +1050,7 @@ export class CardService implements ICardService {
             resource: 'MONEY',
             amount: investmentAmount,
             source: cardSource,
-            sourceType: 'investmentDeals',
+            sourceType: 'investment',
             reason: `${card.card_name}: Investment of $${investmentAmount.toLocaleString()}`
           }
         });

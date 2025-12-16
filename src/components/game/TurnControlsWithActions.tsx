@@ -313,9 +313,16 @@ export function TurnControlsWithActions({
       requiresManualDiceRoll
     });
   }
+  // Allow end turn if: dice rolled OR space doesn't require dice roll
+  const diceRequirementMet = hasPlayerRolledDice || !requiresManualDiceRoll;
+
+  // Use moveIntent from player state (set by PlayerPanel) instead of local selectedDestination
+  // This syncs the destination selection across components
+  const hasDestinationSelected = selectedDestination !== null || currentPlayer.moveIntent !== undefined;
+
   const canEndTurn = gamePhase === 'PLAY' && isCurrentPlayersTurn &&
-                    !isProcessingTurn && !isProcessingArrival && hasPlayerRolledDice && actionCounts.completed >= actionCounts.required &&
-                    (!movementChoice || selectedDestination !== null); // Allow end turn if destination is selected
+                    !isProcessingTurn && !isProcessingArrival && diceRequirementMet && actionCounts.completed >= actionCounts.required &&
+                    (!movementChoice || hasDestinationSelected); // Allow end turn if destination is selected
 
   // Comprehensive End Turn button state logging
   if (isCurrentPlayersTurn) {
@@ -326,14 +333,19 @@ export function TurnControlsWithActions({
         isCurrentPlayersTurn: isCurrentPlayersTurn ? '✅' : '❌',
         isProcessingTurn: !isProcessingTurn ? '✅' : '❌ (processing)',
         isProcessingArrival: !isProcessingArrival ? '✅' : '❌ (arrival)',
-        hasPlayerRolledDice: hasPlayerRolledDice ? '✅' : '❌ (need to roll)',
+        diceRequirement: diceRequirementMet ?
+          (hasPlayerRolledDice ? '✅ (rolled)' : '✅ (not required)') :
+          '❌ (need to roll)',
         actionsComplete: actionCounts.completed >= actionCounts.required ?
           `✅ (${actionCounts.completed}/${actionCounts.required})` :
           `❌ (${actionCounts.completed}/${actionCounts.required})`,
         movementChoice: !movementChoice ? '✅ (no choice)' :
-          selectedDestination !== null ? '✅ (destination selected)' : '❌ (need to select destination)'
+          hasDestinationSelected ? '✅ (destination selected)' : '❌ (need to select destination)'
       },
       currentSpace: currentPlayer.currentSpace,
+      requiresManualDiceRoll,
+      selectedDestination,
+      moveIntent: currentPlayer.moveIntent,
       manualEffectsCount: manualEffects.length,
       completedManualActions: completedActions.manualActions
     });
@@ -346,12 +358,12 @@ export function TurnControlsWithActions({
     if (!isCurrentPlayersTurn) return "Wait for your turn";
     if (isProcessingTurn) return "Turn is processing - please wait";
     if (isProcessingArrival) return "Arrival is processing - please wait";
-    if (!hasPlayerRolledDice) return "You must roll the dice first";
+    if (!diceRequirementMet) return "You must roll the dice first";
     if (actionCounts.completed < actionCounts.required) {
       const remaining = actionCounts.required - actionCounts.completed;
       return `Complete ${remaining} more action(s) before ending turn (${actionCounts.completed}/${actionCounts.required})`;
     }
-    if (movementChoice && selectedDestination === null) {
+    if (movementChoice && !hasDestinationSelected) {
       return "Select a destination to move before ending turn";
     }
     return "Cannot end turn - check requirements";
@@ -622,7 +634,7 @@ export function TurnControlsWithActions({
                 key={index}
                 onClick={() => onManualEffect(effect.effect_type)}
                 style={getManualEffectButtonStyle(isButtonDisabled, colors)}
-                title={effect.effect_description || buttonText}
+                title={effect.description || buttonText}
               >
                 <span>{buttonIcon}</span>
                 <span>{buttonText}</span>

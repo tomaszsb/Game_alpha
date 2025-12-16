@@ -453,8 +453,15 @@ export class GameRulesService implements IGameRulesService {
     }
 
     // No pending choices should exist
-    if (this.stateService.getGameState().awaitingChoice) {
-      return false;
+    // EXCEPTION: MOVEMENT choices are allowed if player has selected a destination (moveIntent)
+    const awaitingChoice = this.stateService.getGameState().awaitingChoice;
+    if (awaitingChoice) {
+      const isMovementWithIntent =
+        awaitingChoice.type === 'MOVEMENT' &&
+        player.moveIntent !== undefined;
+      if (!isMovementWithIntent) {
+        return false;
+      }
     }
 
     // All required actions for the turn must be completed

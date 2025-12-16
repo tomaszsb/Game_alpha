@@ -12,14 +12,18 @@
  * Date: 2025-11-07
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { ExpandableSection } from '../../src/components/player/ExpandableSection';
 import { ActionButton } from '../../src/components/player/ActionButton';
 
 describe('ButtonNesting Regression Tests', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   describe('ExpandableSection with headerActions', () => {
     it('should not nest buttons inside header button', () => {
       const mockAction = vi.fn();

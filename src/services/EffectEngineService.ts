@@ -33,7 +33,8 @@ import {
   isDurationStoredEffect,
   isInitiateNegotiationEffect,
   isNegotiationResponseEffect,
-  isPlayerAgreementRequiredEffect
+  isPlayerAgreementRequiredEffect,
+  isFeeDeductionEffect
 } from '../types/EffectTypes';
 
 /**
@@ -948,6 +949,111 @@ export class EffectEngineService implements IEffectEngineService {
                 success: false,
                 effectType: effect.effectType,
                 error: `Failed to process player agreement: ${error instanceof Error ? error.message : 'Unknown error'}`
+              };
+            }
+          }
+          break;
+
+        case 'FEE_DEDUCTION':
+          if (isFeeDeductionEffect(effect)) {
+            const { payload } = effect;
+            console.log(`💰 EFFECT_ENGINE: Processing FEE_DEDUCTION`);
+            console.log(`    Player: ${payload.playerId}`);
+            console.log(`    Fee Type: ${payload.feeType}`);
+            console.log(`    Description: ${payload.feeDescription}`);
+
+            try {
+              const player = this.stateService.getPlayer(payload.playerId);
+              if (!player) {
+                console.warn(`Player ${payload.playerId} not found for fee deduction`);
+                return {
+                  success: false,
+                  effectType: effect.effectType,
+                  error: `Player ${payload.playerId} not found`
+                };
+              }
+
+              // Calculate total loan amount from player's loans array
+              let feeAmount = 0;
+              const totalLoanAmount = (player.loans || []).reduce((sum, loan) => sum + loan.principal, 0);
+              console.log(`    Total loan amount: $${totalLoanAmount}`);
+
+              if (payload.feeType === 'LOAN_PERCENTAGE' && totalLoanAmount > 0) {
+                // Parse percentage from description
+                const feeDesc = payload.feeDescription.toLowerCase();
+
+                // Check for tiered fee structure (e.g., BANK-FUND-REVIEW)
+                // "1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M"
+                if (feeDesc.includes('1.4m') || feeDesc.includes('2.75m')) {
+                  if (totalLoanAmount <= 1400000) {
+                    feeAmount = Math.round(totalLoanAmount * 0.01);
+                  } else if (totalLoanAmount <= 2750000) {
+                    feeAmount = Math.round(totalLoanAmount * 0.02);
+                  } else {
+                    feeAmount = Math.round(totalLoanAmount * 0.03);
+                  }
+                  console.log(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+                }
+                // Check for fixed percentage (e.g., "5% of amount borrowed")
+                else {
+                  const percentMatch = feeDesc.match(/(\d+)%/);
+                  if (percentMatch) {
+                    const percent = parseInt(percentMatch[1]) / 100;
+                    feeAmount = Math.round(totalLoanAmount * percent);
+                    console.log(`    ${percentMatch[1]}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+                  }
+                }
+              } else if (payload.feeType === 'DICE_BASED') {
+                // Dice-based fees require a dice roll - for now log and skip
+                console.log(`    Dice-based fee - requires dice roll context, skipping calculation`);
+                // Log that this fee type is encountered but not yet implemented
+                this.loggingService.info(`Fee deduction pending: ${payload.feeDescription} (dice roll required)`, {
+                  playerId: payload.playerId,
+                  action: 'fee_pending',
+                  source: payload.source || context.source
+                });
+                success = true;
+                break;
+              } else if (payload.feeType === 'FIXED') {
+                // Fixed fees - try to parse amount from description
+                const amountMatch = payload.feeDescription.match(/\$?([\d,]+)/);
+                if (amountMatch) {
+                  feeAmount = parseInt(amountMatch[1].replace(/,/g, ''));
+                }
+              }
+
+              // Apply the fee deduction if we have an amount
+              if (feeAmount > 0) {
+                this.resourceService.spendMoney(payload.playerId, feeAmount, payload.source || context.source, payload.feeDescription);
+                console.log(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
+
+                // Log the fee deduction
+                this.loggingService.info(`Fee paid: $${feeAmount.toLocaleString()} (${payload.feeDescription})`, {
+                  playerId: payload.playerId,
+                  action: 'fee_deducted',
+                  source: payload.source || context.source
+                });
+
+                success = true;
+              } else if (totalLoanAmount === 0 && payload.feeType === 'LOAN_PERCENTAGE') {
+                // No loan means no fee to pay
+                console.log(`    ℹ️  No loan amount - fee does not apply`);
+                this.loggingService.info(`Fee not applicable: No loan to charge against`, {
+                  playerId: payload.playerId,
+                  action: 'fee_skipped',
+                  source: payload.source || context.source
+                });
+                success = true;
+              } else {
+                console.warn(`    ⚠️  Could not calculate fee amount from: ${payload.feeDescription}`);
+                success = true; // Don't fail on unparseable fee descriptions
+              }
+            } catch (error) {
+              console.error(`❌ Error processing fee deduction:`, error);
+              return {
+                success: false,
+                effectType: effect.effectType,
+                error: `Failed to process fee deduction: ${error instanceof Error ? error.message : 'Unknown error'}`
               };
             }
           }

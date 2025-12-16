@@ -132,6 +132,9 @@ export class ChoiceService implements IChoiceService {
       // Resolve the promise with the selection
       pendingChoice.resolve(selection);
 
+      // Clear the choice from state (so End Turn button becomes enabled)
+      this.stateService.clearAwaitingChoice();
+
       console.log(`✅ [CHOICE] Promise resolved successfully: "${validOption.label}" selected`);
       return true;
 
@@ -140,6 +143,34 @@ export class ChoiceService implements IChoiceService {
       pendingChoice.reject(error);
       return false;
     }
+  }
+
+  /**
+   * Skip/cancel an active choice without making a selection
+   * Used when the action is optional and the player wants to skip it
+   */
+  skipChoice(choiceId: string): boolean {
+    console.log(`🎯 [CHOICE] Skipping Choice [${choiceId}]`);
+
+    const activeChoice = this.getActiveChoice();
+    if (!activeChoice || activeChoice.id !== choiceId) {
+      console.warn(`⚠️ [CHOICE] Cannot skip - no matching active choice`);
+      return false;
+    }
+
+    const pendingChoice = this.pendingChoices.get(choiceId);
+    if (pendingChoice) {
+      // Remove from pending choices
+      this.pendingChoices.delete(choiceId);
+
+      // Resolve with empty string to indicate skip
+      pendingChoice.resolve('');
+      console.log(`✅ [CHOICE] Choice skipped successfully`);
+    }
+
+    // Clear the choice from state
+    this.stateService.clearAwaitingChoice();
+    return true;
   }
 
   /**

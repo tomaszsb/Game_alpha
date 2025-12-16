@@ -339,6 +339,50 @@ export class MovementService implements IMovementService {
   }
 
   /**
+   * Gets the specific destination for a dice roll result
+   * @param spaceName - The current space name
+   * @param visitType - The visit type (First/Subsequent)
+   * @param diceRoll - The dice roll result (1-6)
+   * @returns The destination space name or null if no destination for this roll
+   */
+  getDiceDestination(spaceName: string, visitType: VisitType, diceRoll: number): string | null {
+    // Validate dice roll range (single die: 1-6)
+    if (diceRoll < 1 || diceRoll > 6) {
+      console.warn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
+      return null;
+    }
+
+    const diceOutcome = this.dataService.getDiceOutcome(spaceName, visitType);
+    if (!diceOutcome) {
+      console.warn(`No dice outcome data for ${spaceName} (${visitType})`);
+      return null;
+    }
+
+    // Map dice roll (1-6) directly to roll fields
+    let destination: string | null = null;
+    switch (diceRoll) {
+      case 1: destination = diceOutcome.roll_1 || null; break;
+      case 2: destination = diceOutcome.roll_2 || null; break;
+      case 3: destination = diceOutcome.roll_3 || null; break;
+      case 4: destination = diceOutcome.roll_4 || null; break;
+      case 5: destination = diceOutcome.roll_5 || null; break;
+      case 6: destination = diceOutcome.roll_6 || null; break;
+      default: destination = null;
+    }
+
+    // Handle "or" choices - return first option (caller should present choice if needed)
+    if (destination && destination.includes(' or ')) {
+      const choices = destination.split(' or ').map(d => d.trim()).filter(d => d);
+      destination = choices[0] || null;
+      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: "${diceOutcome[`roll_${diceRoll}` as keyof typeof diceOutcome]}" → choosing first: ${destination}`);
+    } else {
+      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName} → ${destination}`);
+    }
+
+    return destination && destination.trim() !== '' ? destination : null;
+  }
+
+  /**
    * Handles movement choices by presenting options and awaiting player selection
    * @param playerId - The ID of the player making the choice
    * @returns Promise that resolves with the updated game state after movement

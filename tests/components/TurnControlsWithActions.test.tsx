@@ -185,7 +185,7 @@ describe('TurnControlsWithActions', () => {
     );
 
     // Verify movement choice section is displayed
-    expect(screen.getAllByText('🚶 Choose Your Destination')[0]).toBeInTheDocument();
+    expect(screen.getByText('📍 Select ONE Destination to Continue')).toBeInTheDocument();
 
     // Verify both movement option buttons are displayed
     expect(screen.getByText((content, node) => {

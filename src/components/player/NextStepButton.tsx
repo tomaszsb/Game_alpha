@@ -20,39 +20,70 @@ interface NextStepState {
 }
 
 // Function to determine the state of the Next Step Button
+// LOGIC:
+// - VISIBLE: Always show on your turn (so player knows it exists)
+// - DISABLED: If actions not complete OR blocking choice pending
+// - ENABLED: Only when all required actions are complete
 function getNextStepState(gameServices: IServiceContainer, playerId: string): NextStepState {
-  const turnService = gameServices.turnService;
-  const stateService = gameServices.stateService; // Add stateService
-  const gameRulesService = gameServices.gameRulesService; // Add gameRulesService
+  const stateService = gameServices.stateService;
+  const gameRulesService = gameServices.gameRulesService;
   const currentPlayer = stateService.getPlayer(playerId);
 
+  // Not your turn? Button is hidden
   if (!currentPlayer || !gameRulesService.isPlayerTurn(playerId)) {
     return { visible: false };
   }
 
-  // If there's a pending choice, disable the button
-  if (stateService.getGameState().awaitingChoice) {
+  const gameState = stateService.getGameState();
+  const awaitingChoice = gameState.awaitingChoice;
+  const actionsComplete = gameState.requiredActions <= gameState.completedActionCount;
+
+  // Debug logging
+  console.log('🔵 [NextStepButton] getNextStepState:', {
+    playerId,
+    awaitingChoice: awaitingChoice?.type || null,
+    moveIntent: currentPlayer.moveIntent,
+    requiredActions: gameState.requiredActions,
+    completedActions: gameState.completedActionCount,
+    actionsComplete
+  });
+
+  // Check 1: Is there a blocking choice?
+  if (awaitingChoice) {
+    // MOVEMENT choices with a selected destination don't block
+    if (awaitingChoice.type === 'MOVEMENT' && currentPlayer.moveIntent) {
+      // Fall through to action completion check
+    } else {
+      // Other pending choices block - show disabled with tooltip
+      console.log('🟡 [NextStepButton] Pending choice - DISABLED');
+      return {
+        visible: true,
+        label: 'End Turn',
+        disabled: true,
+        tooltip: 'Complete current action first'
+      };
+    }
+  }
+
+  // Check 2: Are all required actions complete?
+  if (!actionsComplete) {
+    console.log('🟡 [NextStepButton] Actions not complete - DISABLED');
     return {
       visible: true,
       label: 'End Turn',
       disabled: true,
-      tooltip: 'Complete current action first'
+      tooltip: `Complete required actions (${gameState.completedActionCount}/${gameState.requiredActions})`
     };
   }
 
-  // NextStepButton only handles "End Turn" - roll actions are handled by section buttons
-  // (ProjectScopeSection, FinancesSection, TimeSection, CardsSection each have their own roll buttons)
-  if (turnService.canEndTurn(playerId)) {
-    return {
-      visible: true,
-      label: 'End Turn',
-      disabled: false,
-      action: 'end-turn'
-    };
-  }
-
-  // If player cannot end turn yet, hide the button (actions must be completed first)
-  return { visible: false };
+  // All checks passed - button is enabled
+  console.log('🟢 [NextStepButton] All actions complete - ENABLED');
+  return {
+    visible: true,
+    label: 'End Turn',
+    disabled: false,
+    action: 'end-turn' as const
+  };
 }
 
 /**
@@ -71,15 +102,22 @@ export function NextStepButton({ gameServices, playerId }: NextStepButtonProps) 
 
   // Subscribe to game state changes to update button state
   React.useEffect(() => {
-    const unsubscribe = gameServices.stateService.subscribe(() => {
-      setStepState(getNextStepState(gameServices, playerId));
-    });
+    const updateState = () => {
+      const newState = getNextStepState(gameServices, playerId);
+      console.log('🟣 [NextStepButton] Setting stepState:', newState);
+      setStepState(newState);
+    };
+
+    const unsubscribe = gameServices.stateService.subscribe(updateState);
 
     // Initialize state
-    setStepState(getNextStepState(gameServices, playerId));
+    updateState();
 
     return unsubscribe;
   }, [gameServices, playerId]);
+
+  // Log render decision
+  console.log(`🟠 [NextStepButton] RENDER for ${playerId} - stepState.visible:`, stepState.visible, 'stepState:', stepState);
 
 
   const handleNextStep = async () => {

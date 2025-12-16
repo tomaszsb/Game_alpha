@@ -517,6 +517,33 @@ export class EffectFactory {
         }
         break;
 
+      case 'fee':
+        // Fee effects are percentage-based loan fees that require player state to calculate
+        // Determine fee type from description
+        const feeDesc = String(spaceEffect.effect_value).toLowerCase();
+        let feeType: 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED' = 'LOAN_PERCENTAGE';
+
+        if (feeDesc.includes('dice') || feeDesc.includes('roll')) {
+          feeType = 'DICE_BASED';
+        } else if (feeDesc.includes('%')) {
+          feeType = 'LOAN_PERCENTAGE';
+        } else {
+          feeType = 'FIXED';
+        }
+
+        effects.push({
+          effectType: 'FEE_DEDUCTION',
+          payload: {
+            playerId,
+            feeType,
+            feeDescription: String(spaceEffect.effect_value),
+            source,
+            reason: `${spaceEffect.description || 'Space effect'}: ${spaceEffect.effect_action} ${spaceEffect.effect_value}`
+          }
+        });
+        console.log(`   Created FEE_DEDUCTION effect: ${feeType} - "${spaceEffect.effect_value}"`);
+        break;
+
       default:
         console.warn(`Unknown space effect type: ${spaceEffect.effect_type}`);
         break;

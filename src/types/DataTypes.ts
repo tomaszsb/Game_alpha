@@ -55,7 +55,7 @@ export interface DiceRollInfo {
 export interface SpaceEffect {
   space_name: string;
   visit_type: 'First' | 'Subsequent';
-  effect_type: 'time' | 'cards' | 'money' | 'dice_roll_chance' | 'turn';
+  effect_type: 'time' | 'cards' | 'money' | 'dice_roll_chance' | 'turn' | 'fee';
   effect_action: string;
   effect_value: string | number;
   condition: string;
@@ -151,6 +151,7 @@ export interface CostBreakdown {
   architectural: number;
   engineering: number;
   regulatory: number;
+  investmentFee: number;
   miscellaneous: number;
   total: number;
 }

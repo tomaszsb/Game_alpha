@@ -45,8 +45,9 @@ describe('ExpandableSection', () => {
     it('should not show children when collapsed', () => {
       render(<ExpandableSection {...defaultProps} isExpanded={false} />);
       const content = screen.getByText('Test Content');
-      // Content is hidden but still in DOM
-      expect(content.closest('[role="region"]')).toHaveAttribute('hidden');
+      // Content is hidden via CSS classes (not hidden attribute) but still in DOM
+      const region = content.closest('[role="region"]');
+      expect(region).not.toHaveClass('expandable-section__content--expanded');
     });
   });
 

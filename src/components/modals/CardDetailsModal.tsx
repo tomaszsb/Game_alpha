@@ -118,7 +118,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
+          zIndex: 2000,
           padding: '20px'
         }}
         onClick={handleBackdropClick}

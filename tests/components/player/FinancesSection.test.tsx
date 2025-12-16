@@ -321,9 +321,9 @@ describe('FinancesSection', () => {
   describe('Expansion State', () => {
     it('should start collapsed by default', () => {
       const { container } = render(<FinancesSection {...defaultProps} />);
-      // Find the content div by ID since hidden regions are not queryable
+      // Find the content div by ID - uses CSS classes for visibility, not hidden attribute
       const content = container.querySelector('#finances-content');
-      expect(content).toHaveAttribute('hidden');
+      expect(content).not.toHaveClass('expandable-section__content--expanded');
     });
 
     it('should expand section when header clicked', () => {
@@ -332,9 +332,9 @@ describe('FinancesSection', () => {
       const header = screen.getByRole('button', { name: /FINANCES/i });
       fireEvent.click(header);
 
-      // Section should now be expanded
+      // Section should now be expanded (has expanded CSS class)
       const content = container.querySelector('#finances-content');
-      expect(content).not.toHaveAttribute('hidden');
+      expect(content).toHaveClass('expandable-section__content--expanded');
     });
   });
 

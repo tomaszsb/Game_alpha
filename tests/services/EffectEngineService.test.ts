@@ -1239,4 +1239,277 @@ describe('EffectEngineService', () => {
   // 1. tests/data/space-effects-regression.test.ts - Validates CSV has correct conditions
   // 2. tests/services/GameRulesService.test.ts - Tests evaluateCondition logic
   // 3. User manual testing - Verified only one card (B or I) is drawn based on scope
+
+  describe('FEE_DEDUCTION Effect Processing', () => {
+    let mockLoggingService: any;
+
+    beforeEach(() => {
+      // Add logging service mock
+      mockLoggingService = {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        log: vi.fn(),
+        startPerformanceTimer: vi.fn(),
+        endPerformanceTimer: vi.fn(),
+        startNewExplorationSession: vi.fn(),
+        commitCurrentSession: vi.fn(),
+        getCurrentSessionId: vi.fn(),
+        cleanupAbandonedSessions: vi.fn()
+      };
+
+      // Create new service instance with logging service
+      effectEngineService = new EffectEngineService(
+        mockResourceService,
+        mockCardService,
+        mockChoiceService,
+        mockStateService,
+        mockMovementService,
+        mockTurnService,
+        mockGameRulesService,
+        mockTargetingService,
+        mockLoggingService
+      );
+    });
+
+    it('should deduct loan percentage fee based on tiered rates', async () => {
+      // Arrange - Player with $1M loan (should get 1% fee = $10,000)
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'LOAN_PERCENTAGE',
+          feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
+          source: 'space:BANK-FUND-REVIEW',
+          reason: 'Bank fund review fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:BANK-FUND-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      // Mock player with loan
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        loans: [{ id: 'loan1', principal: 1000000, interestRate: 0.05, startTurn: 1 }]
+      });
+
+      mockResourceService.spendMoney.mockReturnValue(true);
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - 1% of $1M = $10,000
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1',
+        10000,
+        'space:BANK-FUND-REVIEW',
+        expect.any(String)
+      );
+      expect(mockLoggingService.info).toHaveBeenCalled();
+    });
+
+    it('should deduct higher tier fee for large loans', async () => {
+      // Arrange - Player with $2M loan (should get 2% fee = $40,000)
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'LOAN_PERCENTAGE',
+          feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
+          source: 'space:BANK-FUND-REVIEW',
+          reason: 'Bank fund review fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:BANK-FUND-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        loans: [{ id: 'loan1', principal: 2000000, interestRate: 0.05, startTurn: 1 }]
+      });
+
+      mockResourceService.spendMoney.mockReturnValue(true);
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - 2% of $2M = $40,000
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1',
+        40000,
+        'space:BANK-FUND-REVIEW',
+        expect.any(String)
+      );
+    });
+
+    it('should deduct fixed percentage fee', async () => {
+      // Arrange - Player with $500K loan at 5% fee = $25,000
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'LOAN_PERCENTAGE',
+          feeDescription: '5% of amount borrowed',
+          source: 'space:INVESTOR-FUND-REVIEW',
+          reason: 'Investor fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:INVESTOR-FUND-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        loans: [{ id: 'loan1', principal: 500000, interestRate: 0.08, startTurn: 1 }]
+      });
+
+      mockResourceService.spendMoney.mockReturnValue(true);
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - 5% of $500K = $25,000
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1',
+        25000,
+        'space:INVESTOR-FUND-REVIEW',
+        expect.any(String)
+      );
+    });
+
+    it('should skip fee when player has no loans', async () => {
+      // Arrange - Player with no loans
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'LOAN_PERCENTAGE',
+          feeDescription: '1% for loan of up to $1.4M',
+          source: 'space:BANK-FUND-REVIEW',
+          reason: 'Bank fund review fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:BANK-FUND-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        loans: [] // No loans
+      });
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - No fee deducted
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+      expect(mockLoggingService.info).toHaveBeenCalledWith(
+        expect.stringContaining('No loan to charge against'),
+        expect.any(Object)
+      );
+    });
+
+    it('should handle dice-based fee gracefully', async () => {
+      // Arrange - Dice-based fee
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'DICE_BASED',
+          feeDescription: 'Based on dice roll',
+          source: 'space:REG-DOB-FEE-REVIEW',
+          reason: 'Dice-based fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:REG-DOB-FEE-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        loans: [{ id: 'loan1', principal: 1000000, interestRate: 0.05, startTurn: 1 }]
+      });
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - Logged as pending, no deduction
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+      expect(mockLoggingService.info).toHaveBeenCalledWith(
+        expect.stringContaining('dice roll required'),
+        expect.any(Object)
+      );
+    });
+
+    it('should sum multiple loans for fee calculation', async () => {
+      // Arrange - Player with multiple loans totaling $1.5M (2% tier = $30,000)
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'LOAN_PERCENTAGE',
+          feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
+          source: 'space:BANK-FUND-REVIEW',
+          reason: 'Bank fund review fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:BANK-FUND-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        loans: [
+          { id: 'loan1', principal: 1000000, interestRate: 0.05, startTurn: 1 },
+          { id: 'loan2', principal: 500000, interestRate: 0.05, startTurn: 2 }
+        ]
+      });
+
+      mockResourceService.spendMoney.mockReturnValue(true);
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - 2% of $1.5M = $30,000
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1',
+        30000,
+        'space:BANK-FUND-REVIEW',
+        expect.any(String)
+      );
+    });
+  });
 });

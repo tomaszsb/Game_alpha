@@ -162,7 +162,7 @@ export function CardModal(): JSX.Element | null {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: theme.modal.overlay.zIndex,
+          zIndex: 2000, // Higher than ChoiceModal (1000) so card details appear above replacement modal
           padding: theme.modal.overlay.padding,
           animation: `fadeIn ${theme.transitions.normal}`
         }}

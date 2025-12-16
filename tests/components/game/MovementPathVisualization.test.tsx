@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MovementPathVisualization } from '../../../src/components/game/MovementPathVisualization';
 import { MovementService } from '../../../src/services/MovementService';
 import { StateService } from '../../../src/services/StateService';
@@ -124,6 +124,9 @@ describe('MovementPathVisualization', () => {
   });
 
   afterEach(() => {
+    // Clean up rendered components first
+    cleanup();
+
     // Ultra-comprehensive cleanup to prevent resource leaks
 
     // Force cleanup of all subscriptions

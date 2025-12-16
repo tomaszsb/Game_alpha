@@ -278,6 +278,7 @@ type Effect =
   | EffectGroupTargeted      // Multi-player targeting
   | ConditionalEffect       // Dice roll conditional logic
   | RecalculateScopeEffect   // Project scope recalculation
+  | FeeDeductionEffect       // Loan fee deductions (percentage-based)
   | LogEffect               // Game logging
 ```
 

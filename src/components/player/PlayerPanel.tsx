@@ -133,11 +133,15 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       const currentPlayer = gameState.players.find(p => p.id === newCurrentPlayerId);
       setCurrentPlayerName(currentPlayer?.name || '');
 
-      // Detect turn transition TO this player
+      // Detect turn transition TO this player (multi-player scenario)
       const turnJustStartedForThisPlayer =
         previousCurrentPlayerId !== null &&
         previousCurrentPlayerId !== playerId &&
         newCurrentPlayerId === playerId;
+
+      // Also detect same-player movement (single-player or turn continuation)
+      const isCurrentPlayer = newCurrentPlayerId === playerId;
+      const spaceChanged = previousSpace !== null && previousSpace !== player?.currentSpace;
 
       // Update current player ID tracking
       setPreviousCurrentPlayerId(currentPlayerId);
@@ -171,12 +175,20 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           setSpaceStory('');
         }
 
-        // Show movement transition at START of player's turn if space changed
-        if (turnJustStartedForThisPlayer && previousSpace && previousSpace !== player.currentSpace) {
+        // Show movement transition when:
+        // 1. Turn just started for this player (multi-player), OR
+        // 2. Space changed while it's this player's turn (single-player or same-turn movement)
+        const shouldShowTransition =
+          (turnJustStartedForThisPlayer || (isCurrentPlayer && spaceChanged)) &&
+          previousSpace &&
+          previousSpace !== player.currentSpace;
+
+        if (shouldShowTransition) {
           console.log('🚶 Movement transition triggered:', {
             from: previousSpace,
             to: player.currentSpace,
-            reason: 'Turn just started for this player and space is different'
+            turnJustStarted: turnJustStartedForThisPlayer,
+            samePlayerMove: isCurrentPlayer && spaceChanged
           });
 
           setMovementTransition({

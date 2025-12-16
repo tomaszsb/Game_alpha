@@ -8,7 +8,7 @@ interface SpaceInfoModalProps {
   onClose: () => void;
   spaceName: string;
   space: Space | null;
-  content: SpaceContent | null;
+  content: SpaceContent | null | undefined;
   effects: SpaceEffect[];
   diceEffects: DiceEffect[];
   playersOnSpace: Player[];
@@ -72,19 +72,19 @@ export function SpaceInfoModal({
           }}>
             {spaceName}
           </h2>
-          {space?.phase && (
+          {space?.config?.phase && (
             <div style={{
               color: colors.text.secondary,
               fontSize: '14px',
               marginTop: '4px'
             }}>
-              Phase: {space.phase}
+              Phase: {space.config.phase}
             </div>
           )}
         </div>
 
         {/* Story/Description */}
-        {content?.story_text && (
+        {content?.story && (
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{
               fontSize: '16px',
@@ -103,7 +103,7 @@ export function SpaceInfoModal({
               lineHeight: '1.6',
               fontStyle: 'italic'
             }}>
-              {content.story_text}
+              {content.story}
             </p>
           </div>
         )}
@@ -135,7 +135,7 @@ export function SpaceInfoModal({
                 >
                   <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
                     {effect.trigger_type === 'manual' ? '👆 ' : '⚙️ '}
-                    {effect.effect_description || `${effect.effect_type}: ${effect.effect_action} ${effect.effect_value || ''}`}
+                    {effect.description || `${effect.effect_type}: ${effect.effect_action} ${effect.effect_value || ''}`}
                     {effect.trigger_type === 'manual' && (
                       <span style={{
                         color: colors.warning.main,
@@ -183,7 +183,7 @@ export function SpaceInfoModal({
                     border: `1px solid ${colors.info.main}`
                   }}
                 >
-                  Roll {effect.roll_number}: {effect.description}
+                  {effect.effect_type}: {effect.description || effect.effect_action || 'See dice roll results'}
                 </div>
               ))}
             </div>

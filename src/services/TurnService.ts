@@ -102,24 +102,8 @@ export class TurnService implements ITurnService {
    * @returns true if player can end turn, false otherwise
    */
   public canEndTurn(playerId: string): boolean {
-    const gameState = this.stateService.getGameState();
-    const player = this.stateService.getPlayer(playerId);
-
-    // Must be the player's turn
-    if (!player || gameState.currentPlayerId !== playerId) {
-      return false;
-    }
-
-    // Cannot end turn if there's a pending choice
-    if (gameState.awaitingChoice) {
-      return false;
-    }
-
-    // Check if all required actions are completed
-    const required = gameState.requiredActions || 0;
-    const completed = gameState.completedActionCount || 0;
-
-    return completed >= required;
+    // Delegate to GameRulesService to avoid duplicate logic
+    return this.gameRulesService.canEndTurn(playerId);
   }
 
   /**
@@ -1435,10 +1419,15 @@ export class TurnService implements ITurnService {
           { newCardType: 'E', replaceCount: replaceCount } // Pass the new card type and count as metadata
         );
 
-        console.log(`Player selected card ${selectedCardId} for replacement`);
+        // Check if user skipped the replacement (empty string)
+        if (selectedCardId && selectedCardId !== '') {
+          console.log(`Player selected card ${selectedCardId} for replacement`);
 
-        // Perform the actual card replacement
-        this.cardService.replaceCard(playerId, selectedCardId, 'E');
+          // Perform the actual card replacement
+          this.cardService.replaceCard(playerId, selectedCardId, 'E');
+        } else {
+          console.log(`Player skipped card replacement`);
+        }
 
         // Clear the choice from state after resolution
         this.stateService.clearAwaitingChoice();
