@@ -10,7 +10,9 @@ import {
   IGameRulesService,
   ITargetingService,
   ILoggingService,
-  LogPayload
+  IDataService,
+  LogPayload,
+  INotificationService
 } from '../types/ServiceContracts';
 import { NegotiationService } from './NegotiationService';
 import { 
@@ -89,7 +91,9 @@ export class EffectEngineService implements IEffectEngineService {
   private gameRulesService: IGameRulesService;
   private targetingService: ITargetingService;
   private loggingService: ILoggingService;
+  private dataService?: IDataService;
   private negotiationService?: NegotiationService;
+  private notificationService?: INotificationService;
 
   constructor(
     resourceService: IResourceService,
@@ -121,6 +125,14 @@ export class EffectEngineService implements IEffectEngineService {
 
   public setTurnService(turnService: ITurnService): void {
     this.turnService = turnService;
+  }
+
+  public setNotificationService(notificationService: INotificationService): void {
+    this.notificationService = notificationService;
+  }
+
+  public setDataService(dataService: IDataService): void {
+    this.dataService = dataService;
   }
 
   /**
@@ -257,6 +269,37 @@ export class EffectEngineService implements IEffectEngineService {
             if (payload.resource === 'MONEY') {
               if (payload.amount > 0) {
                 success = this.resourceService.addMoney(payload.playerId, payload.amount, source, reason, sourceType);
+
+                // Show notification for significant money additions (funding from owner)
+                if (success && this.notificationService) {
+                  const player = this.stateService.getPlayer(payload.playerId);
+                  if (player) {
+                    // Check if this is owner funding (from B card or OWNER-FUND-INITIATION)
+                    const isFunding = source.includes('card:B') ||
+                                     source.includes('OWNER-FUND') ||
+                                     sourceType === 'owner' ||
+                                     reason.toLowerCase().includes('funding');
+
+                    const formattedAmount = payload.amount.toLocaleString();
+                    const notificationMessage = isFunding
+                      ? `💰 Owner Funding: +$${formattedAmount}`
+                      : `💵 Received: +$${formattedAmount}`;
+
+                    this.notificationService.notify(
+                      {
+                        short: `+$${formattedAmount}`,
+                        medium: notificationMessage,
+                        detailed: `${player.name} received $${formattedAmount} (${reason})`
+                      },
+                      {
+                        playerId: payload.playerId,
+                        playerName: player.name,
+                        actionType: 'money_received',
+                        notificationDuration: 4000
+                      }
+                    );
+                  }
+                }
               } else if (payload.amount < 0) {
                 success = this.resourceService.spendMoney(payload.playerId, Math.abs(payload.amount), source, reason);
               } else {
@@ -309,6 +352,36 @@ export class EffectEngineService implements IEffectEngineService {
             try {
               const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
               console.log(`    ✅ Drew ${drawnCards.length} card(s): ${drawnCards.join(', ')}`);
+
+              // Show notification for L (Life Event) card draws - these are important!
+              if (payload.cardType === 'L' && drawnCards.length > 0 && this.notificationService) {
+                const player = this.stateService.getPlayer(payload.playerId);
+                if (player) {
+                  // Get the card name(s) for a more informative notification
+                  const cardNames = drawnCards.map(cardId => {
+                    const card = this.dataService?.getCardById(cardId);
+                    return card?.name || cardId;
+                  });
+
+                  const notificationMessage = drawnCards.length === 1
+                    ? `🎲 Life Event: ${cardNames[0]}`
+                    : `🎲 Life Events: ${cardNames.join(', ')}`;
+
+                  this.notificationService.notify(
+                    {
+                      short: 'Life Event!',
+                      medium: notificationMessage,
+                      detailed: `Drew ${drawnCards.length} Life Event card(s): ${cardNames.join(', ')}`
+                    },
+                    {
+                      playerId: payload.playerId,
+                      playerName: player.name,
+                      actionType: 'card_draw_L',
+                      notificationDuration: 5000  // Show for 5 seconds since it's important
+                    }
+                  );
+                }
+              }
 
               // Special handling for OWNER-FUND-INITIATION: automatically play drawn funding cards
               console.log(`🔍 BUG #2 DEBUG: Checking OWNER-FUND-INITIATION auto-play condition`);

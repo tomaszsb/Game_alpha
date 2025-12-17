@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### UI/UX Improvements (December 16, 2025)
+
+**End Turn Button Layout Fix:**
+- Fixed NextStepButton positioning in PlayerPanel
+- Moved button inside `.player-panel__bottom` flex container for proper layout
+- Button now reliably appears after all actions are completed
+
+**Automatic Action Notifications:**
+- Added visible notifications for automatic game actions
+- **Life Event (L card) draws**: Shows `🎲 Life Event: [Card Name]` for 5 seconds
+- **Money received**: Shows `💰 Owner Funding: +$X` or `💵 Received: +$X` for 4 seconds
+- No notification when L card is NOT drawn (avoids unnecessary interruption)
+
+**Technical Changes:**
+- Added NotificationService and DataService to EffectEngineService
+- Added `setNotificationService()` and `setDataService()` setter methods
+- Notifications triggered in CARD_DRAW (L type) and RESOURCE_CHANGE (money) handlers
+
+**Files Modified:**
+- `src/components/player/PlayerPanel.tsx` - Fixed NextStepButton placement
+- `src/services/EffectEngineService.ts` - Added notification logic
+- `src/context/ServiceProvider.tsx` - Wired notification/data services
+
 ### Fee Effect Type Support (December 16, 2025)
 **Feature Addition:**
 - **Added `FEE_DEDUCTION` effect type** for loan-based percentage fees

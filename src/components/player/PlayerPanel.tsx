@@ -551,25 +551,23 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       )}
 
-      {/* Bottom Row - Try Again Button (NextStepButton handles End Turn) */}
-      {isMyTurn && (
-        <div className="player-panel__bottom">
-          {onTryAgain && (
-            <button
-              onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
-              className="try-again-button"
-              aria-label="Try Again on current space"
-              title="Restore to snapshot saved when you arrived at this space. Use this if you want to undo actions and try different choices. (Also called 'Negotiation')"
-            >
-              🔄 Try Again
-            </button>
-          )}
-        </div>
-      )}
-      <NextStepButton
-        gameServices={gameServices}
-        playerId={playerId}
-      />
+      {/* Bottom Row - Next Step Button and Try Again Button */}
+      <div className="player-panel__bottom">
+        <NextStepButton
+          gameServices={gameServices}
+          playerId={playerId}
+        />
+        {isMyTurn && onTryAgain && (
+          <button
+            onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
+            className="try-again-button"
+            aria-label="Try Again on current space"
+            title="Restore to snapshot saved when you arrived at this space. Use this if you want to undo actions and try different choices. (Also called 'Negotiation')"
+          >
+            🔄 Try Again
+          </button>
+        )}
+      </div>
     </div>
   );
 };
