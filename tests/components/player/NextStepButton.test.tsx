@@ -110,7 +110,7 @@ describe('NextStepButton', () => {
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
     expect(button).toHaveTextContent('End Turn'); // Default label when disabled due to choice
-    expect(button).toHaveAttribute('title', 'Complete current action first');
+    expect(button).toHaveAttribute('title', 'Select a destination'); // Contextual tooltip for MOVEMENT choice
   });
 
   // New test case for "Ensure End Turn never hidden"
