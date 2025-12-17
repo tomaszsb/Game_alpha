@@ -794,7 +794,10 @@ export class StateService implements IStateService {
 
       // Count manual effects (require separate player action)
       // Exclude 'turn' effects since they duplicate the regular End Turn button
-      const countableManualEffects = manualEffects.filter(effect => effect.effect_type !== 'turn');
+      // Exclude 'dice' effects since they're handled by the dice required check above
+      const countableManualEffects = manualEffects.filter(effect =>
+        effect.effect_type !== 'turn' && effect.effect_type !== 'dice'
+      );
       console.log(`🎯 calculateRequiredActions: Found ${countableManualEffects.length} countable manual effects:`,
         countableManualEffects.map(e => `${e.effect_type}:${e.effect_action}`));
       console.log(`🎯 Current completed manual actions:`, this.currentState.completedActions.manualActions);

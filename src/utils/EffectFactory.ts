@@ -567,6 +567,42 @@ export class EffectFactory {
     }
 
     console.log(`   Dice effect for roll ${diceRoll}: ${diceEffect.effect_type} = "${rollEffect}"`);
+
+    // Handle "X Cards" format in effect_type (e.g., "W Cards", "B Cards")
+    // This is used in DICE_ROLL_INFO.csv where the effect_type column contains the card type
+    const cardTypeMatch = diceEffect.effect_type.match(/^([WBELI])\s*Cards?$/i);
+    if (cardTypeMatch) {
+      const cardType = cardTypeMatch[1].toUpperCase() as CardType;
+      const countMatch = rollEffect.match(/(\d+)/);
+      if (countMatch) {
+        const count = parseInt(countMatch[1]);
+        effects.push({
+          effectType: 'CARD_DRAW' as const,
+          payload: {
+            playerId,
+            cardType: cardType,
+            count: count,
+            source,
+            reason: `Dice effect: Draw ${count} ${cardType} card${count > 1 ? 's' : ''} (rolled ${diceRoll})`
+          }
+        });
+
+        // Add scope recalculation if W cards are drawn
+        if (cardType === 'W') {
+          effects.push({
+            effectType: 'RECALCULATE_SCOPE',
+            payload: {
+              playerId
+            }
+          });
+        }
+        console.log(`   ✅ Created CARD_DRAW effect for ${count} ${cardType} card(s)`);
+      } else {
+        console.warn(`   ⚠️ Could not parse card count from: "${rollEffect}"`);
+      }
+      return effects;
+    }
+
     switch (diceEffect.effect_type) {
       case 'cards':
         if (diceEffect.card_type) {

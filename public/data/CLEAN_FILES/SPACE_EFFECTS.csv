@@ -12,8 +12,10 @@ START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_L,Beware that in the meantime life 
 START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_E,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer.,,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer. E cards,manual
 START-QUICK-PLAY-GUIDE,Subsequent,fee,deduct,Pay attention to fees - they accumulate quickly,,Pay Pay attention to fees - they accumulate quickly fees,auto
 OWNER-SCOPE-INITIATION,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
+OWNER-SCOPE-INITIATION,First,dice,dice_outcome,W Cards,,Roll for W cards,manual
 OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto
 OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Draw 3 E cards,manual
+OWNER-SCOPE-INITIATION,Subsequent,dice,dice_outcome,W Cards,,Roll for W cards,manual
 OWNER-SCOPE-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
 OWNER-FUND-INITIATION,First,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),scope_le_4M,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
 OWNER-FUND-INITIATION,First,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),scope_gt_4M,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
