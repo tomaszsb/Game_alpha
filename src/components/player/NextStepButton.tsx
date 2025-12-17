@@ -23,8 +23,8 @@ interface NextStepState {
 function formatActionType(actionType: string): string {
   const formatMap: { [key: string]: string } = {
     'dice': 'Roll Dice',
-    'cards_manual': 'Card Action',
-    'money_manual': 'Money Action',
+    'cards_manual': 'Draw Card',
+    'money_manual': 'Get Funding',
     'time_manual': 'Time Action',
     'movement': 'Select Destination'
   };
@@ -67,11 +67,17 @@ function buildRemainingActionsTooltip(
     }
   }
 
+  // Format tooltip with count and action types
   if (pendingActions.length === 0) {
-    return `Complete ${remaining} more action${remaining > 1 ? 's' : ''}`;
+    return `Complete ${remaining} action${remaining > 1 ? 's' : ''} to end turn`;
   }
 
-  return `Remaining: ${pendingActions.join(', ')}`;
+  // Show count and list of pending actions
+  const uniqueActions = [...new Set(pendingActions)]; // Remove duplicates
+  if (remaining === 1) {
+    return `Complete: ${uniqueActions.join(', ')}`;
+  }
+  return `Complete ${remaining} action${remaining > 1 ? 's' : ''}: ${uniqueActions.join(', ')}`;
 }
 
 // Function to determine the state of the Next Step Button

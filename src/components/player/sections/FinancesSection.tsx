@@ -134,20 +134,25 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   }, [playerMoneySources, expenditures, player.money, player.projectScope]);
 
   // Get ALL manual effects for money from current space, filtered by conditions
-  const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
-  const conditionFilteredEffects = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
+  // Wrapped in useMemo to prevent state updates during render (evaluateCondition may update projectScope)
+  const { moneyManualEffects, fundingCardEffects } = useMemo(() => {
+    const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
+    const conditionFilteredEffects = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
 
-  const moneyManualEffects = conditionFilteredEffects.filter(
-    effect => effect.trigger_type === 'manual' && effect.effect_type === 'money'
-  );
+    const moneyEffects = conditionFilteredEffects.filter(
+      effect => effect.trigger_type === 'manual' && effect.effect_type === 'money'
+    );
 
-  // Get manual card effects that represent funding (B/I cards at OWNER-FUND-INITIATION)
-  // These are condition-filtered, so only ONE will show (B for scope ≤ $4M, I for scope > $4M)
-  const fundingCardEffects = conditionFilteredEffects.filter(
-    effect => effect.trigger_type === 'manual' &&
-              effect.effect_type === 'cards' &&
-              (effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i')
-  );
+    // Get manual card effects that represent funding (B/I cards at OWNER-FUND-INITIATION)
+    // These are condition-filtered, so only ONE will show (B for scope ≤ $4M, I for scope > $4M)
+    const fundingEffects = conditionFilteredEffects.filter(
+      effect => effect.trigger_type === 'manual' &&
+                effect.effect_type === 'cards' &&
+                (effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i')
+    );
+
+    return { moneyManualEffects: moneyEffects, fundingCardEffects: fundingEffects };
+  }, [gameServices, player.currentSpace, player.visitType, player.id]);
 
   // Check if there are any money manual actions available (including funding via cards)
   const hasMoneyActions = moneyManualEffects.length > 0 || fundingCardEffects.length > 0;
