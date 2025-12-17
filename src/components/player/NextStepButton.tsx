@@ -140,7 +140,7 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
     if (awaitingChoice.type === 'MOVEMENT' && currentPlayer.moveIntent) {
       // Fall through to action completion check
     } else {
-      // Other pending choices block - show disabled with tooltip
+      // Build tooltip showing choice AND other pending actions
       console.log('🟡 [NextStepButton] Pending choice - DISABLED');
       const choiceTypeMap: { [key: string]: string } = {
         'MOVEMENT': 'Select a destination',
@@ -149,11 +149,23 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
         'DICE_OUTCOME': 'Roll the dice first'
       };
       const choiceHint = choiceTypeMap[awaitingChoice.type] || 'Complete current action';
+
+      // Get other pending actions besides the choice
+      const otherActionsTooltip = buildRemainingActionsTooltip(gameServices, playerId, gameState);
+
+      // Combine choice hint with other actions if there are more
+      let tooltip = choiceHint;
+      if (otherActionsTooltip && !otherActionsTooltip.includes('Ready to end turn') &&
+          !otherActionsTooltip.includes('0 action')) {
+        // Add other pending actions to the tooltip
+        tooltip = `${choiceHint}; Also: ${otherActionsTooltip}`;
+      }
+
       return {
         visible: true,
         label: 'End Turn',
         disabled: true,
-        tooltip: choiceHint
+        tooltip
       };
     }
   }

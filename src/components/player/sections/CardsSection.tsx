@@ -171,10 +171,14 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   // Helper to format button label from manual effect
   const getManualEffectButtonLabel = (effect: any): string => {
     if (effect.description) return effect.description;
-    if (effect.effect_action === 'draw_e') return 'Pick up E Cards';
-    if (effect.effect_action === 'draw_l') return 'Get L Cards';
-    if (effect.effect_action === 'draw_i') return 'Get I Cards';
-    if (effect.effect_action === 'draw_b') return 'Get B Cards';
+    const action = effect.effect_action?.toLowerCase();
+    if (action === 'draw_e') return 'Pick up E Cards';
+    if (action === 'draw_l') return 'Get L Cards';
+    if (action === 'draw_i') return 'Get I Cards';
+    if (action === 'draw_b') return 'Get B Cards';
+    if (action === 'draw_w') return 'Get W Cards';
+    if (action === 'replace_e') return 'Replace E Card';
+    if (action?.startsWith('replace_')) return 'Replace Card';
     return 'Get Cards';
   };
 
@@ -212,15 +216,21 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
 
       {/* Manual effect buttons */}
       {cardManualEffects.map((effect, index) => {
-        // Check if this specific manual effect is completed
-        const isEffectCompleted = completedActions.manualActions[effect.effect_type] !== undefined;
+        // Use compound key (e.g., "cards:replace_E") for specific effect identification
+        const effectKey = effect.effect_action
+          ? `${effect.effect_type}:${effect.effect_action}`
+          : effect.effect_type;
+
+        // Check if this specific manual effect is completed using compound key OR simple key
+        const isEffectCompleted = completedActions.manualActions[effectKey] !== undefined ||
+                                   completedActions.manualActions[effect.effect_type] !== undefined;
 
         return !isEffectCompleted && (
           <ActionButton
             key={`manual-${index}`}
             label={isMyTurn ? getManualEffectButtonLabel(effect) : "⏳ Wait for your turn"}
             variant="primary"
-            onClick={() => handleManualEffect(effect.effect_type)}
+            onClick={() => handleManualEffect(effectKey)}
             disabled={!isMyTurn || isLoading}
             isLoading={isLoading}
             ariaLabel={isMyTurn ? `Perform ${effect.effect_action} action` : "Wait for your turn"}
