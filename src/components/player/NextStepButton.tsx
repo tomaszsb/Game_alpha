@@ -19,26 +19,40 @@ interface NextStepState {
   tooltip?: string;
 }
 
-// Helper to format action type for display
-function formatActionType(actionType: string): string {
-  const formatMap: { [key: string]: string } = {
+// Helper to format effect action for user-friendly display
+function formatEffectAction(effectType: string, effectAction?: string): string {
+  // Card draw actions - show specific card type
+  if (effectType === 'cards' && effectAction) {
+    const cardTypeMap: { [key: string]: string } = {
+      'draw_b': 'Draw B Card (Bank Funding)',
+      'draw_i': 'Draw I Card (Investor Deal)',
+      'draw_w': 'Draw W Card (Work Package)',
+      'draw_l': 'Draw L Card (Life Event)',
+      'draw_e': 'Draw E Card (Event)',
+      'draw_n': 'Draw N Card (Negotiation)'
+    };
+    return cardTypeMap[effectAction] || `Draw ${effectAction.replace('draw_', '').toUpperCase()} Card`;
+  }
+
+  // Other effect types
+  const typeMap: { [key: string]: string } = {
     'dice': 'Roll Dice',
-    'cards_manual': 'Draw Card',
-    'money_manual': 'Get Funding',
-    'time_manual': 'Time Action',
+    'cards': 'Draw Card',
+    'money': 'Get Funding',
+    'time': 'Time Action',
     'movement': 'Select Destination'
   };
-  return formatMap[actionType] || actionType.replace('_manual', '').replace('_', ' ');
+  return typeMap[effectType] || effectType.replace('_', ' ');
 }
 
-// Build tooltip showing remaining actions
+// Build tooltip showing remaining actions with specific details
 function buildRemainingActionsTooltip(
+  gameServices: IServiceContainer,
+  playerId: string,
   gameState: {
     requiredActions: number;
     completedActionCount: number;
-    availableActionTypes?: string[];
-    hasPlayerRolledDice?: boolean;
-    completedActions: { manualActions: { [key: string]: string } };
+    completedActions: { diceRoll?: string; manualActions: { [key: string]: string } };
   }
 ): string {
   const remaining = gameState.requiredActions - gameState.completedActionCount;
@@ -47,37 +61,47 @@ function buildRemainingActionsTooltip(
     return 'Ready to end turn';
   }
 
-  const availableTypes = gameState.availableActionTypes || [];
+  // Get player and space effects for more specific tooltip
+  const player = gameServices.stateService.getPlayer(playerId);
+  if (!player) {
+    return `Complete ${remaining} action${remaining > 1 ? 's' : ''} to end turn`;
+  }
 
-  // Determine which actions are still pending
+  // Get space effects and filter for manual actions
+  const spaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
+  const manualEffects = spaceEffects.filter(effect => effect.trigger_type === 'manual');
+
+  // Find pending actions (not yet completed)
   const pendingActions: string[] = [];
 
-  for (const actionType of availableTypes) {
-    if (actionType === 'dice' && !gameState.hasPlayerRolledDice) {
-      pendingActions.push(formatActionType('dice'));
-    } else if (actionType.endsWith('_manual')) {
-      // Check if this manual action type has been completed
-      const baseType = actionType.replace('_manual', '');
-      const isCompleted = Object.keys(gameState.completedActions.manualActions).some(
-        key => key === baseType || key.startsWith(baseType + ':')
-      );
-      if (!isCompleted) {
-        pendingActions.push(formatActionType(actionType));
-      }
+  for (const effect of manualEffects) {
+    // Create the effect key as used in completedActions
+    const effectKey = effect.effect_action
+      ? `${effect.effect_type}:${effect.effect_action}`
+      : effect.effect_type;
+
+    // Check if this effect has been completed
+    const isCompleted = Object.keys(gameState.completedActions.manualActions).some(
+      key => key === effectKey || key === effect.effect_type || key.startsWith(effect.effect_type + ':')
+    );
+
+    if (!isCompleted) {
+      // Use effect description if available, otherwise format the action
+      const actionLabel = effect.description || formatEffectAction(effect.effect_type, effect.effect_action);
+      pendingActions.push(actionLabel);
     }
   }
 
-  // Format tooltip with count and action types
+  // If no specific actions found, show generic message
   if (pendingActions.length === 0) {
     return `Complete ${remaining} action${remaining > 1 ? 's' : ''} to end turn`;
   }
 
   // Show count and list of pending actions
-  const uniqueActions = [...new Set(pendingActions)]; // Remove duplicates
-  if (remaining === 1) {
-    return `Complete: ${uniqueActions.join(', ')}`;
+  if (remaining === 1 || pendingActions.length === 1) {
+    return `Complete: ${pendingActions.join(', ')}`;
   }
-  return `Complete ${remaining} action${remaining > 1 ? 's' : ''}: ${uniqueActions.join(', ')}`;
+  return `Complete ${remaining} actions: ${pendingActions.join(', ')}`;
 }
 
 // Function to determine the state of the Next Step Button
@@ -137,7 +161,7 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
   // Check 2: Are all required actions complete?
   if (!actionsComplete) {
     console.log('🟡 [NextStepButton] Actions not complete - DISABLED');
-    const tooltip = buildRemainingActionsTooltip(gameState);
+    const tooltip = buildRemainingActionsTooltip(gameServices, playerId, gameState);
     return {
       visible: true,
       label: 'End Turn',

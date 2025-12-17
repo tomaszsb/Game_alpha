@@ -934,8 +934,8 @@ describe('GameRulesService', () => {
         calculateSpy.mockRestore();
       });
 
-      it('should update projectScope when value HAS changed', () => {
-        // Arrange - player has outdated projectScope
+      it('should evaluate condition without updating state (pure function)', () => {
+        // Arrange - player has outdated projectScope, but evaluateCondition should not update it
         const playerWithScope: Player = {
           ...mockPlayer,
           projectScope: 3000000, // Old value: $3M
@@ -952,12 +952,9 @@ describe('GameRulesService', () => {
         // Act
         const result = gameRulesService.evaluateCondition('player1', 'scope_gt_4M');
 
-        // Assert
-        expect(result).toBe(true); // 6M > 4M
-        expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-          id: 'player1',
-          projectScope: 6000000
-        });
+        // Assert - should use calculated value for evaluation but NOT update state
+        expect(result).toBe(true); // 6M > 4M (uses calculated, not stored)
+        expect(mockStateService.updatePlayer).not.toHaveBeenCalled(); // Pure function - no side effects
 
         // Cleanup
         calculateSpy.mockRestore();

@@ -627,30 +627,16 @@ export class GameRulesService implements IGameRulesService {
         return true;
       }
 
-      // Project scope conditions - USE SINGLE SOURCE OF TRUTH
+      // Project scope conditions - PURE EVALUATION (no state updates during condition check)
+      // Always calculate fresh to ensure correctness - state updates happen elsewhere
+      // (e.g., when W cards are drawn, at OWNER-FUND-INITIATION via TurnService.handleAutomaticFunding)
       if (conditionLower === 'scope_le_4m') {
         const projectScope = this.calculateProjectScope(playerId);
-        // Only update projectScope if it has changed to avoid infinite loops
-        const currentProjectScope = player.projectScope;
-        if (currentProjectScope !== projectScope) {
-          this.stateService.updatePlayer({
-            id: playerId,
-            projectScope: projectScope
-          });
-        }
         return projectScope <= 4000000; // $4M
       }
 
       if (conditionLower === 'scope_gt_4m') {
         const projectScope = this.calculateProjectScope(playerId);
-        // Only update projectScope if it has changed to avoid infinite loops
-        const currentProjectScope = player.projectScope;
-        if (currentProjectScope !== projectScope) {
-          this.stateService.updatePlayer({
-            id: playerId,
-            projectScope: projectScope
-          });
-        }
         return projectScope > 4000000; // $4M
       }
 

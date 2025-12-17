@@ -35,7 +35,9 @@ describe('NextStepButton', () => {
       // Add other services as needed by getNextStepState or handleNextStep
       cardService: {} as any, // Placeholder
       choiceService: {} as any, // Placeholder
-      dataService: {} as any, // Placeholder
+      dataService: {
+        getSpaceEffects: vi.fn().mockReturnValue([]) // Mock for tooltip building
+      } as any,
       effectEngineService: {} as any, // Placeholder
       loggingService: {} as any, // Placeholder
       negotiationService: {} as any, // Placeholder
@@ -52,10 +54,11 @@ describe('NextStepButton', () => {
       awaitingChoice: null,
       requiredActions: 0,        // No actions required by default
       completedActionCount: 0,   // No actions completed (but none required, so button is enabled)
+      completedActions: { manualActions: {} }, // For tooltip building
     } as any);
     mockStateService.getPlayer.mockImplementation((id) => {
-      if (id === PLAYER_ID) return { id: PLAYER_ID, name: 'Player 1' } as any;
-      if (id === OTHER_PLAYER_ID) return { id: OTHER_PLAYER_ID, name: 'Player 2' } as any;
+      if (id === PLAYER_ID) return { id: PLAYER_ID, name: 'Player 1', currentSpace: 'START', visitType: 'first' } as any;
+      if (id === OTHER_PLAYER_ID) return { id: OTHER_PLAYER_ID, name: 'Player 2', currentSpace: 'START', visitType: 'first' } as any;
       return undefined;
     });
     mockStateService.subscribe.mockReturnValue(vi.fn()); // Mock subscription
@@ -135,7 +138,8 @@ describe('NextStepButton', () => {
       currentPlayerId: PLAYER_ID,
       awaitingChoice: null,
       requiredActions: 2,
-      completedActionCount: 0  // Actions not complete
+      completedActionCount: 0,  // Actions not complete
+      completedActions: { manualActions: {} }
     } as any);
 
     render(<NextStepButton gameServices={mockGameServices} playerId={PLAYER_ID} />);
