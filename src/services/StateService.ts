@@ -812,15 +812,28 @@ export class StateService implements IStateService {
 
         // Check if this specific manual action has been completed
         // Support both simple keys ("cards") and compound keys ("cards:draw_b")
+        // Also support case-insensitive matching for robustness
         const simpleKey = effect.effect_type;
         const compoundKey = `${effect.effect_type}:${effect.effect_action}`;
+        const completedKeys = Object.keys(this.currentState.completedActions.manualActions);
+
+        // Direct match (exact key)
         const simpleMatch = this.currentState.completedActions.manualActions[simpleKey];
         const compoundMatch = this.currentState.completedActions.manualActions[compoundKey];
-        const isCompleted = !!(simpleMatch || compoundMatch);
+
+        // Case-insensitive fallback matching
+        const caseInsensitiveMatch = completedKeys.find(key =>
+          key.toLowerCase() === compoundKey.toLowerCase() ||
+          key.toLowerCase() === simpleKey.toLowerCase()
+        );
+
+        const isCompleted = !!(simpleMatch || compoundMatch || caseInsensitiveMatch);
 
         console.log(`  🎯 Manual effect ${effect.effect_type}:${effect.effect_action}:`);
         console.log(`     - simpleKey="${simpleKey}", simpleMatch="${simpleMatch}"`);
         console.log(`     - compoundKey="${compoundKey}", compoundMatch="${compoundMatch}"`);
+        console.log(`     - caseInsensitiveMatch="${caseInsensitiveMatch}"`);
+        console.log(`     - completedKeys:`, completedKeys);
         console.log(`     - isCompleted=${isCompleted}`);
 
         if (isCompleted) {

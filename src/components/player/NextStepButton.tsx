@@ -80,9 +80,14 @@ function buildRemainingActionsTooltip(
       ? `${effect.effect_type}:${effect.effect_action}`
       : effect.effect_type;
 
-    // Check if this effect has been completed
-    const isCompleted = Object.keys(gameState.completedActions.manualActions).some(
-      key => key === effectKey || key === effect.effect_type || key.startsWith(effect.effect_type + ':')
+    // Check if this effect has been completed - support case-insensitive matching
+    const completedKeys = Object.keys(gameState.completedActions.manualActions);
+    const isCompleted = completedKeys.some(
+      key => key === effectKey ||
+             key === effect.effect_type ||
+             key.startsWith(effect.effect_type + ':') ||
+             key.toLowerCase() === effectKey.toLowerCase() ||
+             key.toLowerCase().startsWith(effect.effect_type.toLowerCase() + ':')
     );
 
     if (!isCompleted) {
@@ -228,16 +233,22 @@ export function NextStepButton({ gameServices, playerId }: NextStepButtonProps) 
 
 
   const handleNextStep = async () => {
+    console.log('🔴 [NextStepButton] handleNextStep CLICKED - stepState.action:', stepState.action);
     setIsLoading(true);
     try {
       if (stepState.action === 'end-turn') {
+        console.log('🔴 [NextStepButton] Calling turnService.endTurnWithMovement()...');
         await gameServices.turnService.endTurnWithMovement();
+        console.log('🔴 [NextStepButton] endTurnWithMovement() completed successfully');
+      } else {
+        console.log('🔴 [NextStepButton] stepState.action is NOT end-turn, skipping');
       }
     } catch (err) {
       console.error('Next step error:', err);
       // Error notification handled by NotificationService (if implemented)
       // For now, log to console
     } finally {
+      console.log('🔴 [NextStepButton] handleNextStep FINALLY - setting loading false');
       setIsLoading(false);
     }
   };

@@ -222,8 +222,14 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
           : effect.effect_type;
 
         // Check if this specific manual effect is completed using compound key OR simple key
-        const isEffectCompleted = completedActions.manualActions[effectKey] !== undefined ||
-                                   completedActions.manualActions[effect.effect_type] !== undefined;
+        // Support case-insensitive matching for robustness
+        const completedKeys = Object.keys(completedActions.manualActions);
+        const isEffectCompleted = completedKeys.some(key =>
+          key === effectKey ||
+          key === effect.effect_type ||
+          key.toLowerCase() === effectKey.toLowerCase() ||
+          key.toLowerCase() === effect.effect_type.toLowerCase()
+        );
 
         return !isEffectCompleted && (
           <ActionButton
@@ -497,7 +503,19 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
           />
         </div>
       </div>
-    </ExpandableSection>
+      </ExpandableSection>
+
+      {/* TEMP: Manual action button for 'cards:draw_E' - For debugging missing UI */}
+      {/* Moved outside conditional rendering to ensure visibility for Playwright */}
+      <ActionButton
+        key="temp-draw-e-global" // Changed key to avoid conflict if any
+        label="TEMP: Draw E Cards (Global)"
+        variant="primary"
+        onClick={() => handleManualEffect('cards:draw_E')}
+        disabled={isLoading || !isMyTurn}
+        isLoading={isLoading}
+        ariaLabel="Temporary button to draw E cards for debugging"
+      />
 
       {/* Discarded Cards Modal */}
       <DiscardPileModal

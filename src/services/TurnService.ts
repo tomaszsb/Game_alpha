@@ -265,8 +265,11 @@ export class TurnService implements ITurnService {
    * This is for the "End Turn" button
    */
   async endTurnWithMovement(force: boolean = false, skipAutoMove: boolean = false): Promise<{ nextPlayerId: string }> {
+    console.log('🔴 [TurnService] endTurnWithMovement ENTERED - force:', force, 'skipAutoMove:', skipAutoMove);
     try {
+      console.log('🔴 [TurnService] Getting game state...');
       const gameState = this.stateService.getGameState();
+      console.log('🔴 [TurnService] Got game state - gamePhase:', gameState.gamePhase, 'currentPlayerId:', gameState.currentPlayerId);
       
       // Validation: Game must be in PLAY phase
       if (gameState.gamePhase !== 'PLAY') {
@@ -297,12 +300,16 @@ export class TurnService implements ITurnService {
 
       // Process leaving space effects BEFORE movement (time spent on current space)
       console.log(`🚪 Processing leaving space effects for ${currentPlayer.name} leaving ${currentPlayer.currentSpace}`);
+      console.log('🔴 [TurnService] About to call processLeavingSpaceEffects...');
       await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
+      console.log('🔴 [TurnService] processLeavingSpaceEffects completed');
 
       // Handle movement - check for player's move intent first
+      console.log('🔴 [TurnService] About to handle movement - moveIntent:', currentPlayer.moveIntent, 'skipAutoMove:', skipAutoMove);
       if (!skipAutoMove) {
         // Check for dice_outcome movement first
         const movement = this.dataService.getMovement(currentPlayer.currentSpace, currentPlayer.visitType);
+        console.log('🔴 [TurnService] Movement data:', movement?.movement_type, 'lastDiceRoll:', currentPlayer.lastDiceRoll?.total);
         if (movement?.movement_type === 'dice_outcome' && currentPlayer.lastDiceRoll) {
           // Use dice roll to determine destination from DICE_ROLL_INFO.csv
           const diceRoll = currentPlayer.lastDiceRoll.total;
@@ -331,10 +338,13 @@ export class TurnService implements ITurnService {
         } else if (currentPlayer.moveIntent) {
           // Execute the intended move
           console.log(`🎯 Executing player's intended move to: ${currentPlayer.moveIntent}`);
+          console.log('🔴 [TurnService] About to call movementService.movePlayer...');
           await this.movementService.movePlayer(currentPlayer.id, currentPlayer.moveIntent);
+          console.log('🔴 [TurnService] movementService.movePlayer completed');
 
           // Clear the move intent after execution
           this.stateService.setPlayerMoveIntent(currentPlayer.id, null);
+          console.log('🔴 [TurnService] Cleared moveIntent');
         } else {
           // No intent set - fall back to auto-move for single destinations
           const validMoves = this.movementService.getValidMoves(currentPlayer.id);
@@ -347,9 +357,12 @@ export class TurnService implements ITurnService {
       } else {
         console.log(`🔄 Skipping auto-movement for ${currentPlayer.name} - skip requested`);
       }
+      console.log('🔴 [TurnService] Movement handling completed');
 
       // Check for win condition before ending turn
+      console.log('🔴 [TurnService] About to check win condition...');
       const hasWon = await this.gameRulesService.checkWinCondition(gameState.currentPlayerId);
+      console.log('🔴 [TurnService] Win condition check result:', hasWon);
       if (hasWon) {
         // Player has won - end the game
         this.stateService.endGame(gameState.currentPlayerId);
@@ -357,10 +370,14 @@ export class TurnService implements ITurnService {
       }
 
       // Commit current exploration session before advancing to next player
+      console.log('🔴 [TurnService] Committing logging session...');
       this.loggingService.commitCurrentSession();
+      console.log('🔴 [TurnService] Session committed');
 
       // Advance to next player
+      console.log('🔴 [TurnService] About to call nextPlayer()...');
       const nextPlayerResult = await this.nextPlayer();
+      console.log('🔴 [TurnService] nextPlayer() completed - nextPlayerId:', nextPlayerResult.nextPlayerId);
 
       return nextPlayerResult;
     } catch (error) {
@@ -481,8 +498,10 @@ export class TurnService implements ITurnService {
    *       See ResourceService.takeOutLoan() for upfront fee implementation.
    */
   private async nextPlayer(): Promise<{ nextPlayerId: string }> {
+    console.log('🔴 [TurnService] nextPlayer() ENTERED');
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
+    console.log('🔴 [TurnService] nextPlayer() - players:', allPlayers.length, 'currentPlayerId:', gameState.currentPlayerId);
 
     if (allPlayers.length === 0) {
       throw new Error('No players in the game');
@@ -506,9 +525,11 @@ export class TurnService implements ITurnService {
     // STEP 2: Process active effects for all players at turn end
     // This happens at end of current turn (before turn counter advances)
     console.log(`🕒 Processing active effects for all players at end of turn ${gameState.turn}`);
+    console.log('🔴 [TurnService] nextPlayer() - About to process active effects...');
     if (this.effectEngineService) {
       await this.effectEngineService.processActiveEffectsForAllPlayers();
     }
+    console.log('🔴 [TurnService] nextPlayer() - Active effects processed');
 
     // STEP 3: Reset re-roll flags for current player ending their turn
     // One-time use flags are cleared before next turn begins
@@ -574,10 +595,12 @@ export class TurnService implements ITurnService {
     // but BEFORE changing current player. This ensures:
     // - Turn-end processing uses the correct turn number (the turn that's ending)
     // - Next player's turn starts with the new turn number
+    console.log('🔴 [TurnService] nextPlayer() - Advancing turn counter...');
     this.stateService.advanceTurn();
 
     // STEP 6: Set next player and prepare for their turn
     // Update current player in game state
+    console.log('🔴 [TurnService] nextPlayer() - Setting current player to:', nextPlayer.id);
     this.stateService.setCurrentPlayer(nextPlayer.id);
 
     // Reset turn flags for the new turn
@@ -606,7 +629,9 @@ export class TurnService implements ITurnService {
 
     // Start next player's turn with unified function
     // This handles all arrival logic, movement choices, and turn start logging
+    console.log('🔴 [TurnService] nextPlayer() - About to call startTurn for:', nextPlayer.id);
     await this.startTurn(nextPlayer.id);
+    console.log('🔴 [TurnService] nextPlayer() - startTurn completed');
 
     return { nextPlayerId: nextPlayer.id };
   }
@@ -619,6 +644,7 @@ export class TurnService implements ITurnService {
    * 4. Unlock UI and handle movement choices
    */
   public async startTurn(playerId: string): Promise<void> {
+    console.log('🔴 [TurnService] startTurn() ENTERED for:', playerId);
     // Clear any old choices from the previous turn
     this.stateService.clearAwaitingChoice();
 
@@ -629,6 +655,7 @@ export class TurnService implements ITurnService {
       }
 
       const gameState = this.stateService.getGameState();
+      console.log('🔴 [TurnService] startTurn() - player at space:', player.currentSpace);
 
       // Log turn start for this player using simplified turn numbering
       const playerTurnNumber = (gameState.playerTurnCounts[player.id] || 0) + 1;
@@ -658,7 +685,9 @@ export class TurnService implements ITurnService {
       }
 
       // 4. Process space effects (including space entry logging as first effect)
+      console.log('🔴 [TurnService] startTurn() - About to process space effects...');
       await this.processSpaceEffectsAfterMovement(player.id, player.currentSpace, player.visitType, false);
+      console.log('🔴 [TurnService] startTurn() - Space effects processed');
 
       // 5. Save snapshot for Try Again feature AFTER processing effects
       // This ensures the snapshot captures state after first-visit effects have been applied
@@ -668,7 +697,9 @@ export class TurnService implements ITurnService {
       this.stateService.updateGameState({ isProcessingArrival: false });
 
       // Handle movement choices after effects are processed
+      console.log('🔴 [TurnService] startTurn() - About to handle movement choices...');
       await this.handleMovementChoices(player.id);
+      console.log('🔴 [TurnService] startTurn() - Movement choices handled');
 
     } catch (error) {
       // Ensure UI is unlocked if there's an error
@@ -692,6 +723,7 @@ export class TurnService implements ITurnService {
    * @private
    */
   private async handleMovementChoices(playerId: string): Promise<void> {
+    console.log('🔴 [TurnService] handleMovementChoices() ENTERED for:', playerId);
     console.log(`🎬 TurnService.handleMovementChoices - Checking movement choices for player ${playerId}`);
 
     try {
