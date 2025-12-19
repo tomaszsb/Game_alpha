@@ -163,9 +163,14 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             visitType: player.visitType,
             contentLength: space.content.length,
             visitContent,
-            story: visitContent?.story
+            story: visitContent?.story,
+            action_description: visitContent?.action_description
           });
-          setSpaceStory(visitContent?.story || '');
+          // Combine story and action_description for full context
+          const storyText = visitContent?.story || '';
+          const actionText = visitContent?.action_description || '';
+          const fullStory = [storyText, actionText].filter(Boolean).join(' ');
+          setSpaceStory(fullStory);
         } else {
           console.log('📖 Story Debug: No space or content', {
             spaceName: player.currentSpace,
@@ -235,9 +240,14 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           visitType: player.visitType,
           contentLength: space.content.length,
           visitContent,
-          story: visitContent?.story
+          story: visitContent?.story,
+          action_description: visitContent?.action_description
         });
-        setSpaceStory(visitContent?.story || '');
+        // Combine story and action_description for full context
+        const storyText = visitContent?.story || '';
+        const actionText = visitContent?.action_description || '';
+        const fullStory = [storyText, actionText].filter(Boolean).join(' ');
+        setSpaceStory(fullStory);
       }
     }
 

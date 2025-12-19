@@ -51,9 +51,11 @@ ARCH-INITIATION,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 
 ARCH-INITIATION,First,time,add,5,,Spend 5 days,auto
 ARCH-INITIATION,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,auto
 ARCH-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto
+ARCH-FEE-REVIEW,First,dice,dice_outcome,Design Fee,,Roll for architect design fee (8-12% of scope),manual
 ARCH-FEE-REVIEW,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,auto
 ARCH-FEE-REVIEW,First,cards,return_E,1,,Return 1 E cards,manual
 ARCH-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto
+ARCH-FEE-REVIEW,Subsequent,dice,dice_outcome,Design Fee,,Roll for architect design fee (0-2% of scope),manual
 ARCH-FEE-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,auto
 ARCH-FEE-REVIEW,Subsequent,cards,draw_E,Draw 1,,Draw 1 E cards,manual
 ARCH-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto
@@ -67,8 +69,10 @@ ENG-INITIATION,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1
 ENG-INITIATION,First,time,add,5,,Spend 5 days,auto
 ENG-INITIATION,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,auto
 ENG-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto
+ENG-FEE-REVIEW,First,dice,dice_outcome,Design Fee,,Roll for engineer design fee (2-6% of scope),manual
 ENG-FEE-REVIEW,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,auto
 ENG-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto
+ENG-FEE-REVIEW,Subsequent,dice,dice_outcome,Design Fee,,Roll for engineer design fee (0-2% of scope),manual
 ENG-FEE-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 4,,Draw 1 if you roll a 4 L cards,auto
 ENG-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto
 ENG-SCOPE-CHECK,First,cards,draw_L,Draw 1 if you roll a 5,,Draw 1 if you roll a 5 L cards,auto

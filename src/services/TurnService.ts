@@ -1232,21 +1232,40 @@ export class TurnService implements ITurnService {
     }
 
     let moneyChange = 0;
+    let description = '';
 
     if (effect.includes('%')) {
       // Percentage-based effect
       const percentage = this.parseNumericValue(effect);
-      moneyChange = Math.floor((player.money * percentage) / 100);
+
+      // Check if this is a design fee space (ARCH-FEE-REVIEW or ENG-FEE-REVIEW)
+      // Design fees are calculated as percentage of project scope, not player's money
+      const isDesignFeeSpace = player.currentSpace.includes('ARCH-FEE-REVIEW') ||
+                               player.currentSpace.includes('ENG-FEE-REVIEW');
+
+      if (isDesignFeeSpace) {
+        // Calculate fee based on project scope
+        const projectScope = player.projectScope || 0;
+        moneyChange = -Math.floor((projectScope * percentage) / 100);
+        const feeType = player.currentSpace.includes('ARCH') ? 'Architect' : 'Engineer';
+        description = `${feeType} design fee: ${percentage}% of $${projectScope.toLocaleString()} = $${Math.abs(moneyChange).toLocaleString()}`;
+        console.log(`💸 ${description}`);
+      } else {
+        // Default: percentage of current money (for other effects)
+        moneyChange = Math.floor((player.money * percentage) / 100);
+        description = `Space effect: ${percentage}% = $${Math.abs(moneyChange).toLocaleString()}`;
+      }
     } else {
       // Fixed amount effect
       moneyChange = this.parseNumericValue(effect);
+      description = `Space effect: $${Math.abs(moneyChange).toLocaleString()}`;
     }
 
     // Use unified ResourceService for money changes
     if (moneyChange > 0) {
-      this.resourceService.addMoney(playerId, moneyChange, 'turn_effect', `Space effect: +$${moneyChange.toLocaleString()}`, 'other');
+      this.resourceService.addMoney(playerId, moneyChange, 'turn_effect', description, 'other');
     } else if (moneyChange < 0) {
-      this.resourceService.spendMoney(playerId, Math.abs(moneyChange), 'turn_effect', `Space effect: -$${Math.abs(moneyChange).toLocaleString()}`);
+      this.resourceService.spendMoney(playerId, Math.abs(moneyChange), 'turn_effect', description);
     }
 
     // Return current state since ResourceService handles state updates
