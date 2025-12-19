@@ -505,18 +505,6 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
       </div>
       </ExpandableSection>
 
-      {/* TEMP: Manual action button for 'cards:draw_E' - For debugging missing UI */}
-      {/* Moved outside conditional rendering to ensure visibility for Playwright */}
-      <ActionButton
-        key="temp-draw-e-global" // Changed key to avoid conflict if any
-        label="TEMP: Draw E Cards (Global)"
-        variant="primary"
-        onClick={() => handleManualEffect('cards:draw_E')}
-        disabled={isLoading || !isMyTurn}
-        isLoading={isLoading}
-        ariaLabel="Temporary button to draw E cards for debugging"
-      />
-
       {/* Discarded Cards Modal */}
       <DiscardPileModal
         gameServices={gameServices}
