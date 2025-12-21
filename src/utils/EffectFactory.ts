@@ -33,6 +33,14 @@ export class EffectFactory {
 
     console.log(`🏭 EFFECT_FACTORY: Creating effects from card: ${cardName} (${card.card_id})`);
 
+    // Determine sourceType based on card type (B = owner, L = bank, I = investment)
+    const sourceTypeMap: { [key: string]: 'owner' | 'bank' | 'investment' | 'other' } = {
+      'B': 'owner',      // B cards = Owner funding (including seed money)
+      'L': 'bank',       // L cards = Bank loans
+      'I': 'investment', // I cards = Investment deals
+    };
+    const sourceType = sourceTypeMap[card.card_type] || 'other';
+
     // === RE-ROLL MECHANICS (E066 Specific) ===
     // Check if this is E066 - Investor Pitch Preparation
     if (card.card_id === 'E066') {
@@ -95,6 +103,7 @@ export class EffectFactory {
             resource: 'MONEY',
             amount: moneyAmount,
             source: cardSource,
+            sourceType,  // Track money source based on card type (B=owner, L=bank, I=investment)
             reason: `${cardName}: ${card.money_effect}`
           }
         });
@@ -178,6 +187,7 @@ export class EffectFactory {
             resource: 'MONEY',
             amount: loanAmount,
             source: cardSource,
+            sourceType,  // Track money source based on card type (B=owner, L=bank, I=investment)
             reason: `${cardName}: Loan of $${loanAmount.toLocaleString()}`
           }
         });
@@ -490,6 +500,20 @@ export class EffectFactory {
         break;
 
       case 'cards':
+        // Check if this is a dice-conditional card effect (e.g., "Draw 1 if you roll a 1")
+        // These effects should NOT be processed here - they're handled by dice roll logic
+        const effectValueStr = String(spaceEffect.effect_value || '').toLowerCase();
+        const descriptionStr = String(spaceEffect.description || '').toLowerCase();
+        const diceConditionMatch = effectValueStr.match(/if you roll a (\d+)/) ||
+                                   descriptionStr.match(/if you roll a (\d+)/);
+
+        if (diceConditionMatch) {
+          // This is a dice-conditional card effect - skip it here
+          // It will be processed when the dice is actually rolled
+          console.log(`   ⏭️ Skipping dice-conditional card effect: "${spaceEffect.effect_value}" - requires dice roll ${diceConditionMatch[1]}`);
+          break;
+        }
+
         const cardEffect = this.parseCardEffect(spaceEffect.effect_action, spaceEffect.effect_value);
         if (cardEffect) {
           if (cardEffect.action === 'draw') {
@@ -641,18 +665,40 @@ export class EffectFactory {
         break;
 
       case 'money':
-        const moneyAmount = this.parseMoneyEffect(rollEffect);
-        if (moneyAmount !== 0) {
-          effects.push({
-            effectType: 'RESOURCE_CHANGE',
-            payload: {
-              playerId,
-              resource: 'MONEY',
-              amount: moneyAmount,
-              source,
-              reason: `Dice effect: ${rollEffect} (rolled ${diceRoll})`
-            }
-          });
+        // Check if this is a percentage-based fee effect
+        if (rollEffect.includes('%')) {
+          const percentage = parseFloat(rollEffect.replace('%', '').trim());
+          if (!isNaN(percentage) && percentage > 0) {
+            // Determine fee category based on source (space name)
+            const feeCategory: 'architectural' | 'engineering' = source.includes('ARCH') ? 'architectural' : 'engineering';
+            effects.push({
+              effectType: 'RESOURCE_CHANGE',
+              payload: {
+                playerId,
+                resource: 'MONEY',
+                amount: 0,  // Will be calculated in EffectEngineService based on project scope
+                percentageOfScope: percentage,
+                feeCategory,
+                source,
+                reason: `Design fee: ${rollEffect} of project scope (rolled ${diceRoll})`
+              }
+            });
+            console.log(`   ✅ Created design fee effect: ${percentage}% of project scope (${feeCategory})`);
+          }
+        } else {
+          const moneyAmount = this.parseMoneyEffect(rollEffect);
+          if (moneyAmount !== 0) {
+            effects.push({
+              effectType: 'RESOURCE_CHANGE',
+              payload: {
+                playerId,
+                resource: 'MONEY',
+                amount: moneyAmount,
+                source,
+                reason: `Dice effect: ${rollEffect} (rolled ${diceRoll})`
+              }
+            });
+          }
         }
         break;
 

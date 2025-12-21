@@ -25,6 +25,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
   };
 
   const handleClearData = async () => {
+    console.log('🗑️ Clear Game Data button clicked');
+
     const confirmed = window.confirm(
       '⚠️ Clear All Game Data?\n\n' +
       'This will permanently delete:\n' +
@@ -35,7 +37,12 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       'Continue?'
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      console.log('🗑️ Clear Game Data cancelled by user');
+      return;
+    }
+
+    console.log('🗑️ User confirmed - clearing game data...');
 
     try {
       // Get backend URL using window.location to match network setup
@@ -43,19 +50,27 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       const hostname = window.location.hostname;
       const backendURL = `${protocol}//${hostname}:3001`;
 
+      console.log(`🗑️ Sending DELETE to: ${backendURL}/api/gamestate`);
+
       const response = await fetch(`${backendURL}/api/gamestate`, {
         method: 'DELETE'
       });
 
+      console.log(`🗑️ Response status: ${response.status}`);
+
       if (response.ok) {
+        const result = await response.json();
+        console.log('🗑️ Clear successful:', result);
         alert('✅ Game data cleared successfully!\n\nPage will reload...');
         window.location.reload();
       } else {
-        alert('❌ Failed to clear game data. Please try again.');
+        const errorText = await response.text();
+        console.error('🗑️ Clear failed:', response.status, errorText);
+        alert(`❌ Failed to clear game data (${response.status}). Please try again.`);
       }
     } catch (error) {
-      console.error('Error clearing game data:', error);
-      alert('❌ Error connecting to server. Make sure the backend is running on port 3001.');
+      console.error('🗑️ Error clearing game data:', error);
+      alert('❌ Error connecting to server. Make sure the backend is running on port 3001.\n\nError: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 

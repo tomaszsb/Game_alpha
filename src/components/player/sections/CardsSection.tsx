@@ -178,7 +178,9 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
     if (action === 'draw_b') return 'Get B Cards';
     if (action === 'draw_w') return 'Get W Cards';
     if (action === 'replace_e') return 'Replace E Card';
+    if (action === 'give_e') return 'Select E card to give opponent';
     if (action?.startsWith('replace_')) return 'Replace Card';
+    if (action?.startsWith('give_')) return 'Select card to give opponent';
     return 'Get Cards';
   };
 

@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: December 14, 2025
+**Last Updated**: December 21, 2025
 **Current Phase**: User Acceptance Testing (UAT Phase 3)
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
@@ -9,7 +9,71 @@ This document provides a high-level overview of the current work status for the 
 
 ## Recently Completed
 
-### 1. UAT Bug Fix Sprint - 5 Critical Bugs Resolved (December 14, 2025) ✅
+### 1. UI Consolidation & Per-Player Metrics (December 21, 2025) ✅
+- **Status**: ✅ Complete
+- **Objectives**:
+  - Move Project Timeline to per-player display
+  - Consolidate Design Fee Cap to single location
+  - Improve color scheme consistency
+- **Achievements**:
+  - **Project Timeline Per Player**: Moved from global to individual player cards
+    - Shows days spent / estimated days, progress %, work types
+    - Color coding: green (<75%), orange (75-100%), red (>100%)
+  - **Design Fee Cap Consolidation**: Removed from FinancesSection, consolidated to ProjectProgress
+    - Summary badge still shown in FinancesSection header
+    - Detailed visualization only in ProjectProgress (reduces redundancy)
+  - **4-Tier Color Scheme**: Design fee now uses 10%/15%/20% thresholds
+  - **Tests Updated**: 4 new ProjectProgress tests, 6 obsolete tests removed
+  - **Test Suite**: 720+ tests passing across all suites
+- **Files Modified**: ProjectProgress.tsx, FinancesSection.tsx, ProjectProgress.test.tsx, FinancesSection.test.tsx
+
+### 2. Bug Fix Sprint Part 2 - 5 Bugs Resolved (December 20, 2025) ✅
+- **Status**: ✅ Complete
+- **Objectives**:
+  - Fix remaining bugs from UAT testing
+  - Improve card selection UX
+  - Add per-player financial metrics
+- **Achievements**:
+  - **Bug #7**: REG-DOB-PROF-CERT now skips choice for dice-based movement
+  - **Bug #8**: Try Again button works in single player mode (skip leaving effects, preserve snapshot)
+  - **Bug #9**: Movement overlay uses player color and appears at start of move
+  - **Bug #10**: Return card button allows player to choose which card (CARD_SELECTION choice type)
+  - **Bug #11**: Design fee cap bar added to Project Progress per player
+- **Files Modified**: TurnService.ts, StateService.ts, CommonTypes.ts, PlayerPanel.tsx, ProjectProgress.tsx
+
+### 3. Bug Fix Sprint Part 1 - 6 Bugs Resolved (December 20, 2025) ✅
+- **Status**: ✅ Complete
+- **Achievements**:
+  - **Bug #1**: Owner seed money tracked correctly (uses 'owner' sourceType at OWNER-FUND-INITIATION)
+  - **Bug #2**: Bankruptcy check added when spending exceeds project scope
+  - **Bug #3**: Timeline bar moved from modals to Project Progress section
+  - **Bug #4**: Phase bar never regresses (uses max phase from visited spaces)
+  - **Bug #5**: PM-DECISION-CHECK E card uses give_E action with selection modal
+  - **Bug #6**: Journey timeline shows days spent per space (uses spaceVisitLog)
+
+### 4. Bug Fix Sprint - L Card Dice Logic & UI Improvements (December 19, 2025) ✅
+- **Status**: ✅ Complete
+- **Objectives**:
+  - Fix L card always being drawn (dice check not working)
+  - Add modal notifications for automatic actions
+  - Fix End Turn stuck on "Processing..." issue
+  - Add financial health indicators
+- **Achievements**:
+  - **L Card Dice Bug**: Fixed dice-conditional L card effects to properly roll and check dice
+    - EffectFactory now skips "if you roll a X" effects (handled by TurnService)
+    - TurnService rolls dice and only draws L card if roll matches required number
+    - Result: 1-in-6 chance per space, as designed
+  - **Modal Notifications**: Added event system for automatic L card draws
+    - StateService emits AutoActionEvent when L card drawn
+    - GameLayout subscribes and displays DiceResultModal
+    - No modal for misses (life events are surprises)
+  - **End Turn Timeout**: Added 15-second timeout with error notification
+  - **Money Source Tracking**: B=owner, L=bank, I=investment
+  - **Money vs Scope Color**: Red when money < scope, green otherwise
+  - **Tests Added**: 4 new tests for dice-conditional L card logic
+- **Files Modified**: StateService.ts, TurnService.ts, EffectFactory.ts, GameLayout.tsx, NextStepButton.tsx, FinancesSection.tsx, ServiceContracts.ts
+
+### 2. UAT Bug Fix Sprint - 5 Critical Bugs Resolved (December 14, 2025) ✅
 - **Status**: ✅ Complete
 - **Objectives**:
   - Fix bugs discovered during internal UAT testing

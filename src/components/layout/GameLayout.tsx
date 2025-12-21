@@ -21,8 +21,9 @@ import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
 import { NotificationUtils } from '../../utils/NotificationUtils';
-import { GamePhase, Player } from '../../types/StateTypes';
+import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
+import { AutoActionEvent } from '../../services/StateService';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -136,6 +137,61 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
       }
     );
   }, [notificationService]);
+
+  // Subscribe to auto-action events for modal display
+  useEffect(() => {
+    const unsubscribe = stateService.subscribeToAutoActions((event: AutoActionEvent) => {
+      console.log(`🎬 Received auto-action event:`, event);
+
+      // Convert AutoActionEvent to TurnEffectResult format for DiceResultModal
+      const result: TurnEffectResult = {
+        diceValue: event.diceValue || 0,
+        spaceName: event.spaceName,
+        summary: event.message,
+        hasChoices: false,
+        effects: []
+      };
+
+      // Add effect based on event type
+      if (event.type === 'life_event' || event.type === 'dice_conditional_card') {
+        if (event.success && event.cardType) {
+          result.effects.push({
+            type: 'cards',
+            description: event.success
+              ? `Drew ${event.cardName || event.cardType + ' card'} (needed ${event.requiredRoll})`
+              : `No ${event.cardType} card drawn (needed ${event.requiredRoll})`,
+            cardType: event.cardType,
+            cardCount: event.success ? 1 : 0,
+            cardAction: 'draw',
+            cardIds: event.cardId ? [event.cardId] : []
+          });
+        } else if (!event.success) {
+          // For misses, show a "no effect" style message
+          result.effects.push({
+            type: 'cards',
+            description: `Safe! No ${event.cardType || 'Life Event'} card (needed ${event.requiredRoll})`,
+            cardType: event.cardType,
+            cardCount: 0,
+            cardAction: 'draw'
+          });
+        }
+      } else if (event.type === 'seed_money' || event.type === 'automatic_funding') {
+        result.effects.push({
+          type: 'money',
+          description: event.message,
+          value: event.moneyAmount || 0
+        });
+      }
+
+      // Set the dice result and open the modal
+      setDiceResult(result);
+      setIsDiceResultModalOpen(true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [stateService]);
 
   // Persist visiblePanels to localStorage whenever it changes
   useEffect(() => {
@@ -570,6 +626,7 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
                 players={players}
                 currentPlayerId={currentPlayerId}
                 dataService={dataService}
+                gameRulesService={gameRulesService}
                 onToggleGameLog={handleToggleGameLog}
                 onOpenRulesModal={handleOpenRulesModal}
                 onOpenDisplaySettings={() => setIsDisplaySettingsOpen(true)}

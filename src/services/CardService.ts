@@ -1040,8 +1040,15 @@ export class CardService implements ICardService {
     if (card.card_type === 'I' && card.investment_amount) {
       const investmentAmount = parseInt(card.investment_amount, 10);
       if (!isNaN(investmentAmount) && investmentAmount > 0) {
+        const player = this.stateService.getPlayer(playerId);
+        // At OWNER-FUND-INITIATION, seed money from I cards counts as owner funding
+        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'investment';
+        const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Investment';
+
         console.log(`🔍 BUG #2 DEBUG: Parsing I card ${card.card_id}`);
         console.log(`   - investment_amount: $${investmentAmount.toLocaleString()}`);
+        console.log(`   - player.currentSpace: ${player?.currentSpace}`);
+        console.log(`   - sourceType: ${sourceType}`);
 
         effects.push({
           effectType: 'RESOURCE_CHANGE',
@@ -1050,11 +1057,11 @@ export class CardService implements ICardService {
             resource: 'MONEY',
             amount: investmentAmount,
             source: cardSource,
-            sourceType: 'investment',
-            reason: `${card.card_name}: Investment of $${investmentAmount.toLocaleString()}`
+            sourceType: sourceType,
+            reason: `${card.card_name}: ${sourceLabel} of $${investmentAmount.toLocaleString()}`
           }
         });
-        console.log(`   💰 Added INVESTMENT RESOURCE_CHANGE effect: +$${investmentAmount.toLocaleString()}`);
+        console.log(`   💰 Added ${sourceType.toUpperCase()} RESOURCE_CHANGE effect: +$${investmentAmount.toLocaleString()} (${sourceLabel})`);
       }
     }
 

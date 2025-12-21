@@ -399,4 +399,130 @@ describe('EffectFactory', () => {
       });
     });
   });
+
+  describe('createEffectsFromDiceRoll - design fee percentage effects', () => {
+    it('should create RESOURCE_CHANGE with percentageOfScope for percentage money effects', () => {
+      // Arrange - Simulating ARCH-FEE-REVIEW dice effect
+      const diceEffects = [{
+        space_name: 'ARCH-FEE-REVIEW',
+        visit_type: 'First' as const,
+        effect_type: 'money' as const,
+        card_type: '',
+        roll_1: '8%',
+        roll_2: '8%',
+        roll_3: '10%',
+        roll_4: '10%',
+        roll_5: '12%',
+        roll_6: '12%'
+      }];
+
+      // Act - Roll a 3 (should get 10%)
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects,
+        mockPlayerId,
+        'ARCH-FEE-REVIEW',
+        3,
+        'Test Player'
+      );
+
+      // Assert
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      expect(moneyEffect).toBeDefined();
+      expect(moneyEffect?.payload.resource).toBe('MONEY');
+      expect(moneyEffect?.payload.amount).toBe(0); // Amount calculated at runtime
+      expect(moneyEffect?.payload.percentageOfScope).toBe(10);
+      expect(moneyEffect?.payload.feeCategory).toBe('architectural');
+    });
+
+    it('should set engineering fee category for ENG-FEE-REVIEW', () => {
+      // Arrange
+      const diceEffects = [{
+        space_name: 'ENG-FEE-REVIEW',
+        visit_type: 'First' as const,
+        effect_type: 'money' as const,
+        card_type: '',
+        roll_1: '2%',
+        roll_2: '2%',
+        roll_3: '4%',
+        roll_4: '4%',
+        roll_5: '6%',
+        roll_6: '6%'
+      }];
+
+      // Act - Roll a 5 (should get 6%)
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects,
+        mockPlayerId,
+        'ENG-FEE-REVIEW',
+        5,
+        'Test Player'
+      );
+
+      // Assert
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      expect(moneyEffect).toBeDefined();
+      expect(moneyEffect?.payload.percentageOfScope).toBe(6);
+      expect(moneyEffect?.payload.feeCategory).toBe('engineering');
+    });
+
+    it('should handle 0% fee (subsequent visit with low roll)', () => {
+      // Arrange
+      const diceEffects = [{
+        space_name: 'ARCH-FEE-REVIEW',
+        visit_type: 'Subsequent' as const,
+        effect_type: 'money' as const,
+        card_type: '',
+        roll_1: '0%',
+        roll_2: '0%',
+        roll_3: '1%',
+        roll_4: '1%',
+        roll_5: '2%',
+        roll_6: '2%'
+      }];
+
+      // Act - Roll a 1 (should get 0%)
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects,
+        mockPlayerId,
+        'ARCH-FEE-REVIEW',
+        1,
+        'Test Player'
+      );
+
+      // Assert - 0% should not create a RESOURCE_CHANGE effect
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      expect(moneyEffect).toBeUndefined();
+    });
+
+    it('should still handle fixed money amounts (non-percentage)', () => {
+      // Arrange
+      const diceEffects = [{
+        space_name: 'SOME-SPACE',
+        visit_type: 'First' as const,
+        effect_type: 'money' as const,
+        card_type: '',
+        roll_1: '1000',
+        roll_2: '2000',
+        roll_3: '3000',
+        roll_4: '4000',
+        roll_5: '5000',
+        roll_6: '6000'
+      }];
+
+      // Act - Roll a 4 (should get 4000)
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects,
+        mockPlayerId,
+        'SOME-SPACE',
+        4,
+        'Test Player'
+      );
+
+      // Assert
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      expect(moneyEffect).toBeDefined();
+      expect(moneyEffect?.payload.amount).toBe(4000);
+      expect(moneyEffect?.payload.percentageOfScope).toBeUndefined();
+    });
+  });
 });

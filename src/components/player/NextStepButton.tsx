@@ -150,6 +150,7 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
       const choiceTypeMap: { [key: string]: string } = {
         'MOVEMENT': 'Select a destination',
         'CARD_REPLACEMENT': 'Complete card replacement',
+        'CARD_GIVE': 'Select card to give opponent',
         'CARD_SELECTION': 'Select a card',
         'DICE_OUTCOME': 'Roll the dice first'
       };
@@ -235,18 +236,46 @@ export function NextStepButton({ gameServices, playerId }: NextStepButtonProps) 
   const handleNextStep = async () => {
     console.log('🔴 [NextStepButton] handleNextStep CLICKED - stepState.action:', stepState.action);
     setIsLoading(true);
+
+    // Create a timeout promise to prevent indefinite "Processing..." state
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('End turn timed out after 15 seconds'));
+      }, 15000);
+    });
+
     try {
       if (stepState.action === 'end-turn') {
         console.log('🔴 [NextStepButton] Calling turnService.endTurnWithMovement()...');
-        await gameServices.turnService.endTurnWithMovement();
+        // Race between the actual operation and a timeout
+        await Promise.race([
+          gameServices.turnService.endTurnWithMovement(),
+          timeoutPromise
+        ]);
         console.log('🔴 [NextStepButton] endTurnWithMovement() completed successfully');
       } else {
         console.log('🔴 [NextStepButton] stepState.action is NOT end-turn, skipping');
       }
     } catch (err) {
       console.error('Next step error:', err);
-      // Error notification handled by NotificationService (if implemented)
-      // For now, log to console
+      // Show error notification if available
+      if (gameServices.notificationService) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        const player = gameServices.stateService.getPlayer(playerId);
+        gameServices.notificationService.notify(
+          {
+            short: 'Error',
+            medium: `⚠️ ${errorMessage}`,
+            detailed: `End turn failed: ${errorMessage}. Try refreshing the page if the issue persists.`
+          },
+          {
+            playerId: playerId,
+            playerName: player?.name || 'Unknown',
+            actionType: 'error',
+            notificationDuration: 5000
+          }
+        );
+      }
     } finally {
       console.log('🔴 [NextStepButton] handleNextStep FINALLY - setting loading false');
       setIsLoading(false);

@@ -216,4 +216,12 @@ export interface TurnEffectResult {
   summary: string;
   hasChoices: boolean;
   canReRoll?: boolean; // True if player can re-roll dice this turn
+  // Project time tracking (optional - included when time effects are present)
+  projectTime?: {
+    actionDays: number;        // Days spent on this action
+    totalDays: number;         // Total project time so far
+    estimatedDays: number;     // Estimated total project length
+    progressPercent: number;   // Progress percentage (0-100)
+    uniqueWorkTypes: number;   // Number of unique work types
+  };
 }

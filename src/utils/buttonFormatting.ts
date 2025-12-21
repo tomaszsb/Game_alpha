@@ -46,7 +46,7 @@ export function getManualEffectButtonStyle(
 export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
   const isCardEffect = effect.effect_type === 'cards';
 
-  // Extract card type from effect_action (e.g., "draw_W" → "W", "replace_E" → "E")
+  // Extract card type from effect_action (e.g., "draw_W" → "W", "replace_E" → "E", "give_E" → "E")
   let cardType = '';
   if (isCardEffect) {
     const actionLower = effect.effect_action.toLowerCase();
@@ -54,6 +54,8 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
       cardType = effect.effect_action.replace(/^draw_/i, '').toUpperCase();
     } else if (actionLower.startsWith('replace_')) {
       cardType = effect.effect_action.replace(/^replace_/i, '').toUpperCase();
+    } else if (actionLower.startsWith('give_')) {
+      cardType = effect.effect_action.replace(/^give_/i, '').toUpperCase();
     } else {
       cardType = effect.effect_action.toUpperCase();
     }
@@ -74,6 +76,8 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     const actionLower = effect.effect_action.toLowerCase();
     if (actionLower.startsWith('replace_')) {
       text = `Replace ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+    } else if (actionLower.startsWith('give_')) {
+      text = `Select ${cardType} card to give opponent`;
     } else {
       text = `Pick up ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
     }

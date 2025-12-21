@@ -517,6 +517,64 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
+   * Calculate the estimated project length based on work types
+   * Formula: Base path time (300 days) + 100 days per unique work type
+   * @param playerId - The ID of the player
+   * @returns Object with estimated length and breakdown
+   */
+  calculateEstimatedProjectLength(playerId: string): {
+    estimatedDays: number;
+    basePathDays: number;
+    workTypeDays: number;
+    uniqueWorkTypes: string[];
+  } {
+    const BASE_PATH_DAYS = 300; // Minimum project path time estimate
+    const DAYS_PER_WORK_TYPE = 100; // Additional days per work type
+
+    try {
+      const player = this.stateService.getPlayer(playerId);
+      if (!player) {
+        console.error(`Player ${playerId} not found when calculating project length`);
+        return { estimatedDays: BASE_PATH_DAYS, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, uniqueWorkTypes: [] };
+      }
+
+      // Get all W cards for this player from BOTH hand and activeCards
+      const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
+      const activeWorkCards = (player.activeCards || [])
+        .map(ac => ac.cardId)
+        .filter(cardId => cardId.startsWith('W'));
+
+      const allWorkCards = [...handWorkCards, ...activeWorkCards];
+
+      // Get unique work types from W cards
+      const workTypes = new Set<string>();
+      for (const cardId of allWorkCards) {
+        const baseCardId = cardId.split('_')[0];
+        const cardData = this.dataService.getCardById(baseCardId);
+        if (cardData && cardData.work_type_restriction) {
+          workTypes.add(cardData.work_type_restriction);
+        }
+      }
+
+      const uniqueWorkTypes = Array.from(workTypes);
+      const workTypeDays = uniqueWorkTypes.length * DAYS_PER_WORK_TYPE;
+      const estimatedDays = BASE_PATH_DAYS + workTypeDays;
+
+      console.log(`📅 Project length estimate: ${estimatedDays} days (${BASE_PATH_DAYS} base + ${uniqueWorkTypes.length} work types × ${DAYS_PER_WORK_TYPE})`);
+
+      return {
+        estimatedDays,
+        basePathDays: BASE_PATH_DAYS,
+        workTypeDays,
+        uniqueWorkTypes
+      };
+    } catch (error) {
+      console.error(`Error calculating project length for player ${playerId}:`, error);
+      return { estimatedDays: BASE_PATH_DAYS, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, uniqueWorkTypes: [] };
+    }
+  }
+
+  /**
    * Calculate a player's final score based on their assets and liabilities
    * @param playerId - The ID of the player
    * @returns The calculated score

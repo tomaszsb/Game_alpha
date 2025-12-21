@@ -81,6 +81,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
+  const [isRollingDice, setIsRollingDice] = useState(false);
 
   // Get player state
   const player = gameServices.stateService.getPlayer(playerId);
@@ -107,7 +108,8 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     const totalBudget = Object.values(playerMoneySources).reduce((sum, val) => sum + val, 0);
     const totalExpenditures = Object.values(expenditures).reduce((sum, val) => sum + val, 0);
     const cashOnHand = player.money;
-    const projectScope = player.projectScope;
+    // Calculate project scope dynamically from W cards (not stored value which may be stale)
+    const projectScope = gameServices.gameRulesService.calculateProjectScope(playerId);
 
     // Design cost ratio (20% threshold is industry standard)
     const designCostRatio = projectScope > 0 ? (expenditures.design / projectScope) * 100 : 0;
@@ -131,11 +133,11 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       ownerFundingPct,
       externalFundingPct
     };
-  }, [playerMoneySources, expenditures, player.money, player.projectScope]);
+  }, [playerMoneySources, expenditures, player.money, player.hand, player.activeCards, playerId, gameServices]);
 
   // Get ALL manual effects for money from current space, filtered by conditions
   // Wrapped in useMemo to prevent state updates during render (evaluateCondition may update projectScope)
-  const { moneyManualEffects, fundingCardEffects } = useMemo(() => {
+  const { moneyManualEffects, fundingCardEffects, moneyDiceEffects } = useMemo(() => {
     const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
     const conditionFilteredEffects = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
 
@@ -151,11 +153,17 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                 (effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i')
     );
 
-    return { moneyManualEffects: moneyEffects, fundingCardEffects: fundingEffects };
+    // Get dice effects for money (design fees at ARCH-FEE-REVIEW, ENG-FEE-REVIEW)
+    const allDiceEffects = gameServices.dataService.getDiceEffects(player.currentSpace, player.visitType) || [];
+    const diceMoneyEffects = allDiceEffects.filter(
+      effect => effect.effect_type === 'money'
+    );
+
+    return { moneyManualEffects: moneyEffects, fundingCardEffects: fundingEffects, moneyDiceEffects: diceMoneyEffects };
   }, [gameServices, player.currentSpace, player.visitType, player.id]);
 
-  // Check if there are any money manual actions available (including funding via cards)
-  const hasMoneyActions = moneyManualEffects.length > 0 || fundingCardEffects.length > 0;
+  // Check if there are any money manual actions available (including funding via cards and dice)
+  const hasMoneyActions = moneyManualEffects.length > 0 || fundingCardEffects.length > 0 || moneyDiceEffects.length > 0;
 
   const handleManualEffect = async (effectType: string) => {
     setIsLoading(true);
@@ -178,6 +186,23 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
 
   const handleRetry = () => {
     setError(null);
+  };
+
+  // Handler for dice roll (design fees)
+  const handleDiceRoll = async () => {
+    if (!onRollDice) return;
+
+    setIsRollingDice(true);
+    setError(null);
+
+    try {
+      await onRollDice();
+    } catch (err) {
+      setError('Failed to roll dice. Please try again.');
+      console.error('Dice roll error:', err);
+    } finally {
+      setIsRollingDice(false);
+    }
   };
 
   const toggleSource = (sourceName: string) => {
@@ -231,9 +256,34 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     return effect.effect_type;
   };
 
+  // Helper to get dice roll button label based on space
+  const getDiceButtonLabel = (): string => {
+    if (player.currentSpace.includes('ARCH')) {
+      return 'Roll for Architect Fee';
+    } else if (player.currentSpace.includes('ENG')) {
+      return 'Roll for Engineer Fee';
+    }
+    return 'Roll for Fee';
+  };
+
   // Create header actions (action buttons always visible)
-  const headerActions = (moneyManualEffects.length > 0 || fundingCardEffects.length > 0) ? (
+  const headerActions = (moneyManualEffects.length > 0 || fundingCardEffects.length > 0 || moneyDiceEffects.length > 0) ? (
     <>
+      {/* Dice roll button for design fees (ARCH-FEE-REVIEW, ENG-FEE-REVIEW) */}
+      {(() => {
+        const isDiceCompleted = completedActions.diceRoll !== undefined;
+        return moneyDiceEffects.length > 0 && onRollDice && !isDiceCompleted && (
+          <ActionButton
+            label={isMyTurn ? getDiceButtonLabel() : "⏳ Wait for your turn"}
+            variant="primary"
+            onClick={handleDiceRoll}
+            disabled={!isMyTurn || isLoading || isRollingDice}
+            isLoading={isRollingDice}
+            ariaLabel={isMyTurn ? "Roll dice to determine design fee percentage" : "Wait for your turn"}
+          />
+        );
+      })()}
+
       {/* Render funding card effects (B/I cards for owner funding) */}
       {fundingCardEffects.map((effect, index) => {
         // Use compound key: "cards:draw_b" or "cards:draw_i" to identify specific effect
@@ -270,8 +320,42 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     </>
   ) : undefined;
 
-  // Summary content - always visible, shows cash on hand
-  const summary = <span>Cash: ${financialMetrics.cashOnHand.toLocaleString()}</span>;
+  // Summary content - always visible, shows cash on hand and design fee status
+  const designFeeColor = financialMetrics.designCostRatio >= 20 ? '#f44336' :
+                         financialMetrics.designCostRatio >= 15 ? '#ff5722' :
+                         financialMetrics.designCostRatio >= 10 ? '#ff9800' : '#4caf50';
+
+  // Money vs Scope color: red when money < scope, green otherwise
+  const moneyVsScopeColor = financialMetrics.cashOnHand < financialMetrics.projectScope ? '#f44336' : '#4caf50';
+  const moneyVsScopeIcon = financialMetrics.cashOnHand < financialMetrics.projectScope ? '⚠️' : '✅';
+
+  const summary = (
+    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      <span style={{
+        color: financialMetrics.projectScope > 0 ? moneyVsScopeColor : 'inherit',
+        fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : 'normal'
+      }}>
+        {financialMetrics.projectScope > 0 && moneyVsScopeIcon} Cash: ${financialMetrics.cashOnHand.toLocaleString()}
+      </span>
+      {financialMetrics.projectScope > 0 && (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '2px 6px',
+          backgroundColor: designFeeColor,
+          color: 'white',
+          borderRadius: '4px',
+          fontSize: '9px',
+          fontWeight: 'bold'
+        }}>
+          {financialMetrics.designCostRatio >= 20 ? '🚨' :
+           financialMetrics.designCostRatio >= 15 ? '⚠️' : '📐'}
+          {financialMetrics.designCostRatio.toFixed(0)}%/20%
+        </span>
+      )}
+    </span>
+  );
 
   return (
     <ExpandableSection
@@ -305,7 +389,15 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
             </div>
             <div className="stat-item">
               <span className="stat-label">Cash on Hand</span>
-              <span className="stat-value stat-highlight">${financialMetrics.cashOnHand.toLocaleString()}</span>
+              <span
+                className="stat-value stat-highlight"
+                style={{
+                  color: financialMetrics.projectScope > 0 ? moneyVsScopeColor : undefined,
+                  fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : undefined
+                }}
+              >
+                {financialMetrics.projectScope > 0 && moneyVsScopeIcon} ${financialMetrics.cashOnHand.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>

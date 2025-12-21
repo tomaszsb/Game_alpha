@@ -113,6 +113,9 @@ describe('FinancesSection', () => {
 
     // Mock filterSpaceEffectsByCondition to pass-through effects
     mockServices.turnService.filterSpaceEffectsByCondition.mockImplementation((effects: any[]) => effects);
+
+    // Mock calculateProjectScope to return 0 by default (override in specific tests as needed)
+    mockServices.gameRulesService.calculateProjectScope.mockReturnValue(0);
   });
 
   describe('Basic Rendering', () => {
@@ -397,6 +400,8 @@ describe('FinancesSection', () => {
 
     beforeEach(() => {
       mockServices.stateService.getPlayer.mockReturnValue(playerWithCosts);
+      // Mock calculateProjectScope to return 100000 for design cost ratio calculations
+      mockServices.gameRulesService.calculateProjectScope.mockReturnValue(100000);
     });
 
     it('should display total costs when player has cost history', () => {
@@ -486,7 +491,9 @@ describe('FinancesSection', () => {
       fireEvent.click(header);
 
       // Design costs ($25,000) / Project scope ($100,000) = 25%
-      expect(screen.getByText(/25\.0%/)).toBeInTheDocument();
+      // Now displayed in multiple places - check that at least one exists
+      const percentageElements = screen.getAllByText(/25\.0%/);
+      expect(percentageElements.length).toBeGreaterThan(0);
     });
 
     it('should display warning when design costs exceed 20% threshold', () => {
@@ -542,7 +549,8 @@ describe('FinancesSection', () => {
 
       // Should render without crashing
       expect(screen.getByText('FINANCES')).toBeInTheDocument();
-      expect(screen.getByText('$1,000')).toBeInTheDocument();
+      // Money is displayed as "Cash: $1,000" in the summary
+      expect(screen.getByText(/Cash: \$1,000/)).toBeInTheDocument();
 
       // Expand the section to check content
       const header = screen.getByRole('button', { name: /FINANCES/i });
@@ -628,6 +636,47 @@ describe('FinancesSection', () => {
       // Use getAllByText for amounts that might appear multiple times
       const amounts = screen.getAllByText(/\$[0-9,]+/);
       expect(amounts.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Design Fee Summary Badge', () => {
+    // Player with projectScope for design fee summary tests
+    const playerWithScope: Player = {
+      ...mockPlayer,
+      projectScope: 100000,
+      expenditures: {
+        design: 25000,  // 25% of scope
+        fees: 0,
+        construction: 0
+      }
+    };
+
+    beforeEach(() => {
+      mockServices.stateService.getPlayer.mockReturnValue(playerWithScope);
+      // Mock calculateProjectScope to return the projectScope value
+      mockServices.gameRulesService.calculateProjectScope.mockReturnValue(100000);
+    });
+
+    it('should show percentage badge in summary line', () => {
+      render(<FinancesSection {...defaultProps} />);
+
+      // The badge should be visible even when collapsed
+      // Design cost is 25% (25000/100000)
+      expect(screen.getByText(/25%\/20%/)).toBeInTheDocument();
+    });
+
+    it('should not show percentage badge when project scope is 0', () => {
+      const playerWithNoScope = {
+        ...mockPlayer,
+        projectScope: 0
+      };
+      mockServices.stateService.getPlayer.mockReturnValue(playerWithNoScope);
+      mockServices.gameRulesService.calculateProjectScope.mockReturnValue(0);
+
+      render(<FinancesSection {...defaultProps} />);
+
+      // Should NOT show the percentage badge
+      expect(screen.queryByText(/%\/20%/)).not.toBeInTheDocument();
     });
   });
 });

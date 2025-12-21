@@ -80,9 +80,11 @@ export const createMockStateService = (): any => ({
   }),
   getGameStateDeepCopy: vi.fn(),
   isStateLoaded: vi.fn(),
-  
+
   // Subscription methods
   subscribe: vi.fn().mockReturnValue(vi.fn()),
+  subscribeToAutoActions: vi.fn().mockReturnValue(vi.fn()),
+  emitAutoAction: vi.fn(),
   
   // Player management methods
   addPlayer: vi.fn(),
@@ -166,27 +168,30 @@ export const createMockStateService = (): any => ({
 export const createMockGameRulesService = (): any => ({
   // Movement validation methods
   isMoveValid: vi.fn(),
-  
+
   // Card validation methods
   canPlayCard: vi.fn(),
   canDrawCard: vi.fn(),
-  
+
   // Player resource validation methods
   canPlayerAfford: vi.fn(),
-  
+
   // Turn validation methods
   isPlayerTurn: vi.fn(),
-  
+
   // Game state validation methods
   isGameInProgress: vi.fn(),
-  
+
   // Win condition methods
   checkWinCondition: vi.fn(),
-  
+
   canPlayerTakeAction: vi.fn(),
-  
+
   // Project scope calculation methods
-  calculateProjectScope: vi.fn().mockReturnValue(0), // Added missing mock
+  calculateProjectScope: vi.fn().mockReturnValue(0),
+
+  // Project timeline calculation methods
+  calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 100, uniqueWorkTypes: [] }),
 
   // Condition evaluation methods
   evaluateCondition: vi.fn().mockReturnValue(true),

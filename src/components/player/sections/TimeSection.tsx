@@ -150,8 +150,37 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
       summary={summary}
     >
       <div className="time-content" id="time-content">
-        {/* Visited Spaces Timeline */}
-        {player.visitedSpaces && player.visitedSpaces.length > 0 ? (
+        {/* Visited Spaces Timeline - using spaceVisitLog for time spent details */}
+        {player.spaceVisitLog && player.spaceVisitLog.length > 0 ? (
+          <div className="visited-spaces-timeline">
+            <div className="timeline-header">Journey Timeline</div>
+            <div className="timeline-list">
+              {player.spaceVisitLog.map((visit, index) => {
+                const isCurrent = visit.spaceName === player.currentSpace && visit.exitTime === undefined;
+                return (
+                  <div
+                    key={`${visit.spaceName}-${index}`}
+                    className={`timeline-item ${isCurrent ? 'timeline-item--current' : ''}`}
+                  >
+                    <div className="timeline-marker">
+                      {isCurrent ? '📍' : '✓'}
+                    </div>
+                    <div className="timeline-content">
+                      <div className="timeline-space-name">{visit.spaceName}</div>
+                      <div className="timeline-days" style={{ fontSize: '12px', color: '#666' }}>
+                        {visit.daysSpent > 0 ? `${visit.daysSpent} days` : '0 days'}
+                      </div>
+                      {isCurrent && (
+                        <div className="timeline-badge">Current</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : player.visitedSpaces && player.visitedSpaces.length > 0 ? (
+          // Fallback to visitedSpaces if spaceVisitLog is not available
           <div className="visited-spaces-timeline">
             <div className="timeline-header">Journey Timeline</div>
             <div className="timeline-list">

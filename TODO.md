@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
-**Last Updated:** December 14, 2025
-**Status:** Production Ready - UAT Pending
+**Last Updated:** December 21, 2025
+**Status:** Production Ready - UAT In Progress
 
 ---
 
@@ -89,6 +89,20 @@ Validate gameplay, balance, and user experience with real players
 - ✅ Test suite status: 90/90 tests passing
 - ✅ All fixes user-verified and working correctly
 
+**Bug Fix Sprint (December 19) - ✅ COMPLETED:**
+- ✅ **L Card Dice Bug**: L cards were always drawn (1-in-6 dice check not working)
+  - Root cause: EffectFactory drew cards unconditionally, ignoring "if you roll a X" condition
+  - Fix: EffectFactory skips dice-conditional effects, TurnService handles dice roll logic
+  - Result: L cards now properly have 1-in-6 chance per space configuration
+- ✅ **Modal Notifications**: Added modals for automatic L card draws
+  - Event system: StateService.emitAutoAction() triggers modal in GameLayout
+  - No modal for misses (life events are surprises)
+- ✅ **End Turn Stuck**: Button stayed on "Processing..." indefinitely
+  - Fix: Added 15-second timeout with error notification
+- ✅ **Money Source Tracking**: Added sourceType to RESOURCE_CHANGE effects
+  - B cards = 'owner', L cards = 'bank', I cards = 'investment'
+- ✅ **Money vs Scope Color**: Red when money < scope, green otherwise
+
 **3B: External Testing** (5-7 days)
 - [ ] Recruit 3-5 external players
 - [ ] Run controlled gameplay sessions
@@ -106,6 +120,67 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Minor UI adjustments based on feedback
 - [ ] Re-test fixes
 - [ ] Update CHANGELOG.md with fixes
+
+**Bug Fix Sprint (December 20) - ✅ COMPLETED:**
+- [x] **Bug #1**: Owner seed money tracked as external (should be owner funding)
+  - Root cause: I cards at OWNER-FUND-INITIATION used 'investment' sourceType
+  - Fix: Check if currentSpace === 'OWNER-FUND-INITIATION' and use 'owner' sourceType
+- [x] **Bug #2**: No bankruptcy check when spending exceeds project scope
+  - Fix: Added check after money spending in EffectEngineService - triggers game over
+- [x] **Bug #3**: Move timeline bar from modals to Project Progress section
+  - Added Project Timeline tracker to ProjectProgress component
+  - Removed timeline from DiceResultModal
+  - Shows total time, estimated project length, and progress percentage
+- [x] **Bug #4**: Phase bar should never regress (side quests don't change phase)
+  - Modified calculatePlayerProgress to use max phase from all visited spaces
+  - Phase bar now tracks highest phase reached, not current space
+- [x] **Bug #5**: PM-DECISION-CHECK E card button text and modal behavior
+  - Changed effect_action from draw_E to give_E in SPACE_EFFECTS.csv
+  - Added give_e action handler in TurnService with card selection modal
+  - Updated button formatting to display "Select E card to give opponent"
+- [x] **Bug #6**: Journey timeline should show days spent per space
+  - Updated TimeSection to use spaceVisitLog instead of visitedSpaces
+  - Now displays daysSpent for each visited space in the timeline
+- [x] **Note**: B cards at OWNER-FUND-INITIATION already fixed (uses 'owner' sourceType)
+
+**Bug Fix Sprint (December 20 - Part 2) - ✅ COMPLETED:**
+- [x] **Bug #7**: REG-DOB-PROF-CERT should not give player choice
+  - Fixed: Added 'dice' to movement type guards (same as 'dice_outcome')
+  - Now skips choice creation for dice-based movement spaces
+- [x] **Bug #8**: Try Again button not working in single player mode
+  - Fixed: Skip leaving space effects when skipAutoMove=true
+  - Fixed: Preserve original snapshot instead of overwriting after Try Again
+- [x] **Bug #9**: Change space modal should show player color and appear at start of move
+  - Fixed: Uses player.color for overlay background instead of hardcoded blue
+  - Fixed: Added 'movement' type to AutoActionEvent, emitted BEFORE movePlayer
+  - Added subscribeToAutoActions in PlayerPanel to show overlay immediately
+- [x] **Bug #10**: Return one card button should allow player to choose which card
+  - Added CARD_SELECTION choice type to CommonTypes.ts
+  - Updated return_e and return_l handlers in TurnService to use choiceService
+  - Now shows selection modal when multiple cards available to return
+- [x] **Bug #11**: Design fee cap bar should be in Project Progress per player
+  - Added design fee ratio calculation using player.expenditures.design and projectScope
+  - Shows visual bar scaled to 20% threshold with color coding (green/orange/red)
+  - Displays current design fees and cap amount in dollars
+
+**UI Consolidation (December 21) - ✅ COMPLETED:**
+- [x] **Project Timeline Per Player**: Moved timeline from global to per-player cards
+  - Each player shows days spent / estimated days, progress %, work types
+  - Color coding: green (<75%), orange (75-100%), red (>100%)
+- [x] **Design Fee Cap Consolidation**: Removed from FinancesSection, kept in ProjectProgress
+  - Detailed view consolidated to ProjectProgress component
+  - Summary badge (X%/20%) still shown in FinancesSection header
+- [x] **4-Tier Color Scheme**: Design fee colors now match 10%/15%/20% thresholds
+  - Green (0-10%), Orange (10-15%), Deep Orange (15-20%), Red (20%+)
+- [x] **Tests Updated**: 4 new ProjectProgress tests, 6 obsolete tests removed
+- [x] **Test Suite Status**: 720+ tests passing
+
+**Game Rule Enhancements (December 19) - ✅ COMPLETED:**
+- [x] **20% Design Fee Cap Rule**
+  - If design fees reach 20% of project scope during DESIGN phase → Game Over (loss)
+  - If 20% cap reached during CONSTRUCTION phase → Time penalty (+2 weeks)
+  - Affects: ARCH-FEE-REVIEW, ENG-FEE-REVIEW spaces
+  - Implemented in EffectEngineService after design fee is applied
 
 ### Success Criteria
 - ✅ No critical bugs found
@@ -222,4 +297,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** December 14, 2025
+**Last Updated:** December 21, 2025

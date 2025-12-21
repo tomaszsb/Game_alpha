@@ -4,6 +4,101 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### UI Consolidation & Per-Player Metrics (December 21, 2025)
+
+**Project Timeline Per Player:**
+- Moved Project Timeline from global display to per-player cards in ProjectProgress
+- Each player now shows their own timeline with:
+  - Days spent / estimated days
+  - Progress percentage (% elapsed)
+  - Number of unique work types
+  - Color coding: green (<75%), orange (75-100%), red (>100%)
+- Changed `getProjectTimeline()` to `getPlayerTimeline(player)` for individual calculations
+
+**Design Fee Cap Consolidation:**
+- **Removed** Design Fee Cap Tracker section from FinancesSection (expanded view)
+- **Kept** Design fee percentage badge in FinancesSection summary header
+- **Consolidated** detailed design fee visualization to ProjectProgress component
+- Reduces UI redundancy - detailed view in one place, quick badge elsewhere
+
+**Enhanced Color Scheme for Design Fee:**
+- Updated ProjectProgress to use 4-tier color scheme (matching original FinancesSection):
+  - Green (#4caf50): 0-10% of project scope
+  - Orange (#ff9800): 10-15% of project scope
+  - Deep Orange (#ff5722): 15-20% of project scope
+  - Red (#f44336): 20%+ of project scope (cap exceeded)
+
+**Test Updates:**
+- Added 4 new tests for ProjectProgress:
+  - Design fee cap bar display per player
+  - Project timeline display per player
+  - Timeline color based on progress percentage
+  - Multiple players with individual timelines
+- Updated FinancesSection tests:
+  - Removed 6 obsolete tests for removed Design Fee Cap Tracker section
+  - Kept 2 tests for summary badge functionality
+
+**Files Modified:**
+- `src/components/game/ProjectProgress.tsx` - Per-player timeline, 4-tier color scheme
+- `src/components/player/sections/FinancesSection.tsx` - Removed Design Fee Cap section
+- `tests/components/game/ProjectProgress.test.tsx` - Added 4 new tests
+- `tests/components/player/FinancesSection.test.tsx` - Updated test suite
+
+**Test Results:** 720+ tests passing across all test suites
+
+### Bug Fixes & Improvements (December 19, 2025)
+
+**L Card Dice Roll Bug Fix:**
+- **Problem**: L cards were always being drawn when landing on spaces with L card effects, regardless of dice roll
+- **Root Cause**: The condition "Draw 1 if you roll a 1" in SPACE_EFFECTS.csv was not being evaluated - cards were drawn unconditionally
+- **Fix**:
+  - EffectFactory now detects dice-conditional card effects and skips immediate processing
+  - TurnService now properly rolls dice and only draws L card if roll matches required number
+  - Each space has specific trigger roll (e.g., PM-DECISION-CHECK First=1, Subsequent=2)
+- **Result**: L cards now correctly have 1-in-6 chance based on space configuration
+
+**Modal Notifications for Automatic Actions:**
+- Added event system for automatic actions (dice rolls, L card draws)
+- Modal now displays when L card is drawn showing dice roll and card details
+- No modal for dice misses (life events are surprises - no surprise = no notification)
+
+**End Turn Timeout Fix:**
+- Added 15-second timeout to prevent "Processing..." stuck state
+- Shows error notification if end turn fails
+- Button always resets via finally block
+
+**Money Source Tracking:**
+- Added `sourceType` field to RESOURCE_CHANGE effects
+- B cards tracked as 'owner' funding, L cards as 'bank', I cards as 'investment'
+
+**Money vs Scope Color Indicator:**
+- Added color coding to FinancesSection: red when money < scope, green otherwise
+- Visual indicator helps players track financial health
+
+**20% Design Fee Cap Rule:**
+- Implemented rule: If design fees reach 20% of project scope during DESIGN phase → Game Over (loss)
+- If 20% cap reached during CONSTRUCTION phase → Time penalty (+2 weeks)
+- Check performed after each design fee is applied at ARCH-FEE-REVIEW and ENG-FEE-REVIEW spaces
+- Shows modal notification and ends game appropriately
+
+**Technical Changes:**
+- Added `AutoActionEvent` interface to StateService
+- Added `subscribeToAutoActions()` and `emitAutoAction()` methods for event-driven UI updates
+- Updated IStateService interface with new methods
+- GameLayout subscribes to auto-action events and displays DiceResultModal
+
+**Files Modified:**
+- `src/services/StateService.ts` - Added auto-action event system
+- `src/services/TurnService.ts` - Fixed L card dice logic, emit auto-action events
+- `src/services/EffectEngineService.ts` - Added 20% design fee cap rule enforcement
+- `src/utils/EffectFactory.ts` - Skip dice-conditional card effects
+- `src/components/layout/GameLayout.tsx` - Subscribe to auto-action events
+- `src/components/player/NextStepButton.tsx` - Added timeout and error handling
+- `src/components/player/sections/FinancesSection.tsx` - Added money vs scope color
+- `src/types/ServiceContracts.ts` - Added auto-action methods to IStateService
+- `docs/technical/ARCHITECTURE.md` - Documented auto-action event system
+- `tests/services/TurnService.test.ts` - Added 4 tests for dice-conditional L card logic
+
 ### UI/UX Improvements (December 16, 2025)
 
 **End Turn Button Layout Fix:**

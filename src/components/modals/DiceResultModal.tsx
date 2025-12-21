@@ -361,6 +361,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
                 No special effects this turn
               </div>
             )}
+
           </div>
 
           {/* Footer */}

@@ -2,6 +2,103 @@
 
 ---
 
+## v2.2 - Per-Player Metrics & Card Selection (December 20-21, 2025)
+
+**Release Date:** December 21, 2025
+**Version:** 2.2
+**Status:** Production Ready
+**Type:** Feature Enhancement & Bug Fixes
+
+### 🎮 Major Features
+
+#### 1. Per-Player Project Timeline
+Each player now has their own project timeline displayed in the Project Progress Overview.
+
+**What's Shown:**
+- ⏱️ Days spent / estimated days
+- Progress percentage (% elapsed)
+- Number of unique work types
+- Color-coded progress bar:
+  - 🟢 Green: <75% elapsed (on track)
+  - 🟠 Orange: 75-100% elapsed (nearing deadline)
+  - 🔴 Red: >100% elapsed (over schedule)
+
+**Benefits:**
+- Track each player's progress at a glance
+- Compare timelines across players
+- Visual warning when approaching deadlines
+
+#### 2. Per-Player Design Fee Cap
+Design fee tracking now appears for each player in the Project Progress Overview.
+
+**What's Shown:**
+- 📐 Design fee percentage vs 20% cap
+- Visual progress bar scaled to cap
+- Dollar amounts (current fees / cap)
+
+**Color Coding:**
+- 🟢 Green: 0-10% (safe zone)
+- 🟠 Orange: 10-15% (caution)
+- 🟠 Deep Orange: 15-20% (warning)
+- 🔴 Red: 20%+ (cap exceeded!)
+
+#### 3. Card Selection Modal
+When returning cards (E or L), players can now choose which card to return.
+
+**Before:** First card was auto-selected
+**After:** Modal appears with all eligible cards for selection
+
+**Benefits:**
+- Strategic card management
+- Player agency in decisions
+- Clear visual selection
+
+#### 4. Player-Colored Movement Overlay
+Movement transition overlay now uses the player's color instead of default blue.
+
+**Benefits:**
+- Clear visual identification of whose turn it is
+- Consistent color theming
+- Better multi-player experience
+
+### 🐛 Bug Fixes (December 20)
+
+#### Bug Fix Sprint Part 1
+- **Owner Seed Money**: Now correctly tracked as 'owner' funding (not external)
+- **Bankruptcy Check**: Game ends if spending exceeds project scope
+- **Phase Bar**: Never regresses (always shows max phase reached)
+- **Journey Timeline**: Shows days spent per space in visit history
+- **Give E Card**: PM-DECISION-CHECK now uses card selection modal
+
+#### Bug Fix Sprint Part 2
+- **REG-DOB-PROF-CERT**: Dice-based movement no longer shows choice modal
+- **Try Again Button**: Works correctly in single-player mode
+- **Return Card**: Players can now select which card to return
+
+### 🔧 UI Consolidation
+
+#### Design Fee Cap Display
+- **Removed:** Detailed tracker from Finances section (expanded view)
+- **Kept:** Quick badge in Finances header (X%/20%)
+- **Consolidated:** Detailed view now only in Project Progress
+
+**Why:** Reduces redundancy - one place for detailed view, summary badge elsewhere
+
+### 📝 Files Modified
+- `src/components/game/ProjectProgress.tsx` - Per-player timeline and design fee
+- `src/components/player/sections/FinancesSection.tsx` - Removed redundant tracker
+- `src/components/player/PlayerPanel.tsx` - Player color overlay
+- `src/services/TurnService.ts` - Card selection, movement events
+- `src/services/StateService.ts` - Movement event type
+- `src/types/CommonTypes.ts` - CARD_SELECTION choice type
+
+### 🎯 Backwards Compatibility
+- All changes are additive or improved replacements
+- No breaking changes to component APIs
+- Existing saved games compatible
+
+---
+
 ## v2.1 - Turn-Based Interaction & Polish (December 8, 2025)
 
 **Release Date:** December 8, 2025

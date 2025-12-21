@@ -10,6 +10,7 @@ import { StorySection } from './sections/StorySection';
 import { NextStepButton } from './NextStepButton';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { Choice } from '../../types/CommonTypes';
+import { AutoActionEvent } from '../../services/StateService';
 import { getBackendURL } from '../../utils/networkDetection';
 import './PlayerPanel.css';
 
@@ -180,16 +181,18 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           setSpaceStory('');
         }
 
-        // Show movement transition when:
-        // 1. Turn just started for this player (multi-player), OR
-        // 2. Space changed while it's this player's turn (single-player or same-turn movement)
+        // NOTE: Movement transition is now primarily handled via auto-action events
+        // (see the subscribeToAutoActions useEffect below). This state-based fallback
+        // is kept for multi-player turn transitions where the event may not fire.
+        // Only trigger if overlay is not already showing to avoid duplicates.
         const shouldShowTransition =
+          !showMovementTransition && // Don't trigger if already showing
           (turnJustStartedForThisPlayer || (isCurrentPlayer && spaceChanged)) &&
           previousSpace &&
           previousSpace !== player.currentSpace;
 
         if (shouldShowTransition) {
-          console.log('🚶 Movement transition triggered:', {
+          console.log('🚶 Movement transition (fallback) triggered:', {
             from: previousSpace,
             to: player.currentSpace,
             turnJustStarted: turnJustStartedForThisPlayer,
@@ -253,6 +256,37 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
 
     return unsubscribe;
   }, [gameServices.stateService, gameServices.dataService, playerId, previousSpace, currentPlayerId, previousCurrentPlayerId]);
+
+  // Subscribe to movement events to show overlay BEFORE the move happens
+  useEffect(() => {
+    const unsubscribe = gameServices.stateService.subscribeToAutoActions((event: AutoActionEvent) => {
+      // Only handle movement events for this player
+      if (event.type === 'movement' && event.playerId === playerId) {
+        console.log('🚶 Pre-movement event received:', {
+          from: event.fromSpace,
+          to: event.toSpace,
+          playerId: event.playerId,
+          playerColor: event.playerColor
+        });
+
+        // Show the movement transition overlay immediately (before state changes)
+        setMovementTransition({
+          from: event.fromSpace || event.spaceName,
+          to: event.toSpace || ''
+        });
+        setShowMovementTransition(true);
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+          setShowMovementTransition(false);
+        }, 5000);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [gameServices.stateService, playerId]);
 
   const handleChoice = async (choiceId: string) => {
     const choice = gameServices.stateService.getGameState().awaitingChoice;
@@ -345,7 +379,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(33, 150, 243, 0.95)',
+            backgroundColor: player.color ? `${player.color}ee` : 'rgba(33, 150, 243, 0.95)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

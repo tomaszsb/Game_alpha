@@ -434,6 +434,53 @@ const player = stateService.getPlayer(playerId);
 const result = await cardService.playCard(playerId, cardId);
 ```
 
+### Auto-Action Event System (December 2025)
+
+For automatic actions that require UI feedback (dice-conditional L card draws, etc.), StateService provides an event system:
+
+```typescript
+// StateService exports AutoActionEvent interface
+interface AutoActionEvent {
+  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement';
+  playerId: string;
+  playerName: string;
+  playerColor?: string;      // For movement overlay theming
+  diceValue?: number;
+  requiredRoll?: number;
+  cardType?: string;
+  cardName?: string;
+  success: boolean;
+  spaceName: string;
+  fromSpace?: string;        // For movement events
+  toSpace?: string;          // For movement events
+  message: string;
+}
+
+// TurnService emits events when automatic actions occur
+stateService.emitAutoAction({
+  type: 'life_event',
+  playerId: player.id,
+  playerName: player.name,
+  diceValue: 1,
+  requiredRoll: 1,
+  cardType: 'L',
+  cardName: 'Broken Leg',
+  success: true,
+  spaceName: 'PM-DECISION-CHECK',
+  message: 'Rolled 1 and drew: Broken Leg'
+});
+
+// GameLayout subscribes to show modal notifications
+useEffect(() => {
+  const unsubscribe = stateService.subscribeToAutoActions((event) => {
+    // Convert to TurnEffectResult and show DiceResultModal
+    setDiceResult(convertToTurnEffectResult(event));
+    setIsDiceResultModalOpen(true);
+  });
+  return () => unsubscribe();
+}, [stateService]);
+```
+
 ---
 
 ## Data Architecture

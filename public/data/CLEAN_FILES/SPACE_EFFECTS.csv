@@ -27,7 +27,7 @@ PM-DECISION-CHECK,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll 
 PM-DECISION-CHECK,First,cards,replace_E,1,,Replace 1 E cards,manual
 PM-DECISION-CHECK,First,time,add,5,,Spend 5 days,auto
 PM-DECISION-CHECK,Subsequent,cards,draw_L,Draw 1 if you roll a 2,,Draw 1 if you roll a 2 L cards,auto
-PM-DECISION-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual
+PM-DECISION-CHECK,Subsequent,cards,give_E,1,,Select E card to give opponent,manual
 PM-DECISION-CHECK,Subsequent,time,add,5,,Spend 5 days,auto
 LEND-SCOPE-CHECK,First,cards,draw_L,Draw 1 if you roll a 3,,Draw 1 if you roll a 3 L cards,auto
 LEND-SCOPE-CHECK,First,cards,draw_E,Draw 1,,Draw 1 E cards,manual

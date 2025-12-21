@@ -6,6 +6,7 @@ import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
+import { AutoActionEvent } from './StateService';
 
 export class TurnService implements ITurnService {
   private readonly dataService: IDataService;
@@ -299,18 +300,23 @@ export class TurnService implements ITurnService {
       // and the movement intent has been set, so we can proceed
 
       // Process leaving space effects BEFORE movement (time spent on current space)
-      console.log(`🚪 Processing leaving space effects for ${currentPlayer.name} leaving ${currentPlayer.currentSpace}`);
-      console.log('🔴 [TurnService] About to call processLeavingSpaceEffects...');
-      await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
-      console.log('🔴 [TurnService] processLeavingSpaceEffects completed');
+      // SKIP if skipAutoMove is true (e.g., after Try Again) - player is staying at same space
+      if (!skipAutoMove) {
+        console.log(`🚪 Processing leaving space effects for ${currentPlayer.name} leaving ${currentPlayer.currentSpace}`);
+        console.log('🔴 [TurnService] About to call processLeavingSpaceEffects...');
+        await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
+        console.log('🔴 [TurnService] processLeavingSpaceEffects completed');
+      } else {
+        console.log('🔄 Skipping leaving space effects (skipAutoMove=true, e.g., Try Again)');
+      }
 
       // Handle movement - check for player's move intent first
       console.log('🔴 [TurnService] About to handle movement - moveIntent:', currentPlayer.moveIntent, 'skipAutoMove:', skipAutoMove);
       if (!skipAutoMove) {
-        // Check for dice_outcome movement first
+        // Check for dice_outcome or dice movement first
         const movement = this.dataService.getMovement(currentPlayer.currentSpace, currentPlayer.visitType);
         console.log('🔴 [TurnService] Movement data:', movement?.movement_type, 'lastDiceRoll:', currentPlayer.lastDiceRoll?.total);
-        if (movement?.movement_type === 'dice_outcome' && currentPlayer.lastDiceRoll) {
+        if ((movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') && currentPlayer.lastDiceRoll) {
           // Use dice roll to determine destination from DICE_ROLL_INFO.csv
           const diceRoll = currentPlayer.lastDiceRoll.total;
 
@@ -331,6 +337,18 @@ export class TurnService implements ITurnService {
 
           if (destination) {
             console.log(`🎲 Dice-determined movement: ${currentPlayer.name} rolled ${diceRoll}, moving to ${destination}`);
+            // Emit movement event BEFORE the move so UI can show transition overlay
+            this.stateService.emitAutoAction({
+              type: 'movement',
+              playerId: currentPlayer.id,
+              playerName: currentPlayer.name,
+              playerColor: currentPlayer.color,
+              spaceName: currentPlayer.currentSpace,
+              fromSpace: currentPlayer.currentSpace,
+              toSpace: destination,
+              success: true,
+              message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${destination}`
+            });
             await this.movementService.movePlayer(currentPlayer.id, destination);
           } else {
             console.warn(`🎲 No destination found for dice roll ${diceRoll} at ${currentPlayer.currentSpace}`);
@@ -339,6 +357,18 @@ export class TurnService implements ITurnService {
           // Execute the intended move
           console.log(`🎯 Executing player's intended move to: ${currentPlayer.moveIntent}`);
           console.log('🔴 [TurnService] About to call movementService.movePlayer...');
+          // Emit movement event BEFORE the move so UI can show transition overlay
+          this.stateService.emitAutoAction({
+            type: 'movement',
+            playerId: currentPlayer.id,
+            playerName: currentPlayer.name,
+            playerColor: currentPlayer.color,
+            spaceName: currentPlayer.currentSpace,
+            fromSpace: currentPlayer.currentSpace,
+            toSpace: currentPlayer.moveIntent,
+            success: true,
+            message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${currentPlayer.moveIntent}`
+          });
           await this.movementService.movePlayer(currentPlayer.id, currentPlayer.moveIntent);
           console.log('🔴 [TurnService] movementService.movePlayer completed');
 
@@ -351,6 +381,18 @@ export class TurnService implements ITurnService {
           if (validMoves.length === 1) {
             // Only one move available - perform automatic movement
             console.log(`🚶 Auto-moving player ${currentPlayer.name} to ${validMoves[0]} (end-of-turn move)`);
+            // Emit movement event BEFORE the move so UI can show transition overlay
+            this.stateService.emitAutoAction({
+              type: 'movement',
+              playerId: currentPlayer.id,
+              playerName: currentPlayer.name,
+              playerColor: currentPlayer.color,
+              spaceName: currentPlayer.currentSpace,
+              fromSpace: currentPlayer.currentSpace,
+              toSpace: validMoves[0],
+              success: true,
+              message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${validMoves[0]}`
+            });
             await this.movementService.movePlayer(currentPlayer.id, validMoves[0]);
           }
         }
@@ -691,7 +733,12 @@ export class TurnService implements ITurnService {
 
       // 5. Save snapshot for Try Again feature AFTER processing effects
       // This ensures the snapshot captures state after first-visit effects have been applied
-      this.stateService.savePreSpaceEffectSnapshot(player.id, player.currentSpace);
+      // SKIP if snapshot already exists - preserve original clean snapshot for multiple Try Again attempts
+      if (!this.stateService.hasPreSpaceEffectSnapshot(player.id, player.currentSpace)) {
+        this.stateService.savePreSpaceEffectSnapshot(player.id, player.currentSpace);
+      } else {
+        console.log(`📸 Snapshot already exists for player ${player.id} at ${player.currentSpace} - preserving original`);
+      }
 
       // 6. Unlock UI after processing is complete
       this.stateService.updateGameState({ isProcessingArrival: false });
@@ -734,12 +781,12 @@ export class TurnService implements ITurnService {
         return;
       }
 
-      // GUARD: Skip choice creation for dice_outcome spaces
+      // GUARD: Skip choice creation for dice and dice_outcome spaces
       // Those choices are created AFTER dice roll in processTurnEffectsWithTracking()
       // This prevents duplicate choice creation between this method and path #2
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
-      if (movement?.movement_type === 'dice_outcome') {
-        console.log(`🎬 TurnService.handleMovementChoices - Skipping choice for dice_outcome space ${player.currentSpace} (choice created after dice roll)`);
+      if (movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') {
+        console.log(`🎬 TurnService.handleMovementChoices - Skipping choice for ${movement.movement_type} space ${player.currentSpace} (choice created after dice roll)`);
         return;
       }
 
@@ -815,12 +862,12 @@ export class TurnService implements ITurnService {
         return;
       }
 
-      // GUARD: Skip choice restoration for dice_outcome spaces
+      // GUARD: Skip choice restoration for dice and dice_outcome spaces
       // Those choices are created ONLY in processTurnEffectsWithTracking() after dice roll
       // This prevents duplicate choice creation between this method and path #2
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
-      if (movement?.movement_type === 'dice_outcome') {
-        console.log(`🔄 TurnService.restoreMovementChoiceIfNeeded - Skipping restore for dice_outcome space ${player.currentSpace} (choice created after dice roll)`);
+      if (movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') {
+        console.log(`🔄 TurnService.restoreMovementChoiceIfNeeded - Skipping restore for ${movement.movement_type} space ${player.currentSpace} (choice created after dice roll)`);
         return;
       }
 
@@ -1244,8 +1291,8 @@ export class TurnService implements ITurnService {
                                player.currentSpace.includes('ENG-FEE-REVIEW');
 
       if (isDesignFeeSpace) {
-        // Calculate fee based on project scope
-        const projectScope = player.projectScope || 0;
+        // Calculate fee based on project scope (dynamically from W cards)
+        const projectScope = this.gameRulesService.calculateProjectScope(playerId);
         moneyChange = -Math.floor((projectScope * percentage) / 100);
         const feeType = player.currentSpace.includes('ARCH') ? 'Architect' : 'Engineer';
         description = `${feeType} design fee: ${percentage}% of $${projectScope.toLocaleString()} = $${Math.abs(moneyChange).toLocaleString()}`;
@@ -1530,12 +1577,61 @@ export class TurnService implements ITurnService {
       const returnCount = Math.min(value, currentECards.length);
 
       if (returnCount > 0) {
-        this.cardService.discardCards(
-          playerId,
-          currentECards.slice(0, returnCount),
-          'manual_effect',
-          `Manual action: Return ${returnCount} E cards`
-        );
+        if (returnCount === 1 && currentECards.length === 1) {
+          // Only one E card - return it directly
+          this.cardService.discardCards(
+            playerId,
+            [currentECards[0]],
+            'manual_effect',
+            `Manual action: Return 1 E card`
+          );
+          console.log(`Player ${player.name} returns E card ${currentECards[0]}`);
+        } else {
+          // Multiple cards to choose from - let player select which to return
+          console.log(`Player ${player.name} has ${currentECards.length} E cards, need to return ${returnCount}, creating choice`);
+
+          const cardsToReturn: string[] = [];
+
+          for (let i = 0; i < returnCount; i++) {
+            const remainingCards = currentECards.filter(id => !cardsToReturn.includes(id));
+            if (remainingCards.length === 0) break;
+
+            if (remainingCards.length === 1) {
+              // Only one card left, select it automatically
+              cardsToReturn.push(remainingCards[0]);
+            } else {
+              const options = remainingCards.map(cardId => {
+                const cardData = this.dataService.getCardById(cardId);
+                return {
+                  id: cardId,
+                  label: cardData ? cardData.card_name : `E Card ${cardId}`
+                };
+              });
+
+              const selectedCardId = await this.choiceService.createChoice(
+                playerId,
+                'CARD_SELECTION',
+                `Select E card to return (${i + 1} of ${returnCount}):`,
+                options
+              );
+
+              if (selectedCardId && selectedCardId !== '') {
+                cardsToReturn.push(selectedCardId);
+              }
+              this.stateService.clearAwaitingChoice();
+            }
+          }
+
+          if (cardsToReturn.length > 0) {
+            this.cardService.discardCards(
+              playerId,
+              cardsToReturn,
+              'manual_effect',
+              `Manual action: Return ${cardsToReturn.length} E card${cardsToReturn.length > 1 ? 's' : ''}`
+            );
+            console.log(`Player ${player.name} returns E cards: ${cardsToReturn.join(', ')}`);
+          }
+        }
       } else {
         console.log(`Player ${player.name} has no E cards to return`);
       }
@@ -1552,12 +1648,61 @@ export class TurnService implements ITurnService {
       const returnCount = Math.min(value, currentLCards.length);
 
       if (returnCount > 0) {
-        this.cardService.discardCards(
-          playerId,
-          currentLCards.slice(0, returnCount),
-          'manual_effect',
-          `Manual action: Return ${returnCount} L cards`
-        );
+        if (returnCount === 1 && currentLCards.length === 1) {
+          // Only one L card - return it directly
+          this.cardService.discardCards(
+            playerId,
+            [currentLCards[0]],
+            'manual_effect',
+            `Manual action: Return 1 L card`
+          );
+          console.log(`Player ${player.name} returns L card ${currentLCards[0]}`);
+        } else {
+          // Multiple cards to choose from - let player select which to return
+          console.log(`Player ${player.name} has ${currentLCards.length} L cards, need to return ${returnCount}, creating choice`);
+
+          const cardsToReturn: string[] = [];
+
+          for (let i = 0; i < returnCount; i++) {
+            const remainingCards = currentLCards.filter(id => !cardsToReturn.includes(id));
+            if (remainingCards.length === 0) break;
+
+            if (remainingCards.length === 1) {
+              // Only one card left, select it automatically
+              cardsToReturn.push(remainingCards[0]);
+            } else {
+              const options = remainingCards.map(cardId => {
+                const cardData = this.dataService.getCardById(cardId);
+                return {
+                  id: cardId,
+                  label: cardData ? cardData.card_name : `L Card ${cardId}`
+                };
+              });
+
+              const selectedCardId = await this.choiceService.createChoice(
+                playerId,
+                'CARD_SELECTION',
+                `Select L card to return (${i + 1} of ${returnCount}):`,
+                options
+              );
+
+              if (selectedCardId && selectedCardId !== '') {
+                cardsToReturn.push(selectedCardId);
+              }
+              this.stateService.clearAwaitingChoice();
+            }
+          }
+
+          if (cardsToReturn.length > 0) {
+            this.cardService.discardCards(
+              playerId,
+              cardsToReturn,
+              'manual_effect',
+              `Manual action: Return ${cardsToReturn.length} L card${cardsToReturn.length > 1 ? 's' : ''}`
+            );
+            console.log(`Player ${player.name} returns L cards: ${cardsToReturn.join(', ')}`);
+          }
+        }
       } else {
         console.log(`Player ${player.name} has no L cards to return`);
       }
@@ -1565,6 +1710,88 @@ export class TurnService implements ITurnService {
       // Mark action as complete BEFORE restoring movement choice
       const { text: buttonText } = formatManualEffectButton(effect);
       this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+      await this.restoreMovementChoiceIfNeeded(playerId);
+
+      return this.stateService.getGameState();
+    } else if (action === 'give_e') {
+      // Give an E card to the player on the right (next player in turn order)
+      const gameState = this.stateService.getGameState();
+      const players = gameState.players;
+      const currentPlayerIndex = players.findIndex(p => p.id === playerId);
+
+      // Get next player (to the right / next in turn order)
+      const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+      const targetPlayer = players[nextPlayerIndex];
+
+      if (targetPlayer.id === playerId) {
+        console.log(`Player ${player.name} is the only player, cannot give card to self`);
+        const { text: buttonText } = formatManualEffectButton(effect);
+        this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+        await this.restoreMovementChoiceIfNeeded(playerId);
+        return this.stateService.getGameState();
+      }
+
+      // Get player's E cards
+      const currentECards = this.cardService.getPlayerCards(playerId, 'E');
+
+      if (currentECards.length === 0) {
+        console.log(`Player ${player.name} has no E cards to give`);
+        const { text: buttonText } = formatManualEffectButton(effect);
+        this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+        await this.restoreMovementChoiceIfNeeded(playerId);
+        return this.stateService.getGameState();
+      }
+
+      if (currentECards.length === 1) {
+        // Only one E card - give it directly
+        this.cardService.transferCard(
+          playerId,
+          targetPlayer.id,
+          currentECards[0],
+          'manual_effect',
+          `Manual action: Give E card to ${targetPlayer.name}`
+        );
+        console.log(`Player ${player.name} gives E card ${currentECards[0]} to ${targetPlayer.name}`);
+      } else {
+        // Multiple E cards - create choice for which to give
+        console.log(`Player ${player.name} has ${currentECards.length} E cards, creating choice`);
+
+        const options = currentECards.map(cardId => {
+          const cardData = this.dataService.getCardById(cardId);
+          return {
+            id: cardId,
+            label: cardData ? cardData.card_name : `E Card ${cardId}`
+          };
+        });
+
+        // Use ChoiceService to create the choice
+        const selectedCardId = await this.choiceService.createChoice(
+          playerId,
+          'CARD_GIVE',
+          `Select E card to give to ${targetPlayer.name}:`,
+          options,
+          { targetPlayerId: targetPlayer.id, targetPlayerName: targetPlayer.name }
+        );
+
+        if (selectedCardId && selectedCardId !== '') {
+          this.cardService.transferCard(
+            playerId,
+            targetPlayer.id,
+            selectedCardId,
+            'manual_effect',
+            `Manual action: Give E card to ${targetPlayer.name}`
+          );
+          console.log(`Player ${player.name} gives E card ${selectedCardId} to ${targetPlayer.name}`);
+        } else {
+          console.log(`Player ${player.name} did not select a card to give`);
+        }
+
+        this.stateService.clearAwaitingChoice();
+      }
+
+      // Mark action as complete BEFORE restoring movement choice
+      const { text: giveButtonText } = formatManualEffectButton(effect);
+      this.stateService.setPlayerCompletedManualAction(effectType, giveButtonText);
       await this.restoreMovementChoiceIfNeeded(playerId);
 
       return this.stateService.getGameState();
@@ -2147,12 +2374,29 @@ export class TurnService implements ITurnService {
       );
     }
 
+    // Calculate project time info for the modal
+    const timeEffect = effects.find(e => e.type === 'time');
+    const actionDays = timeEffect?.value || 0;
+    const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
+    const updatedPlayer = this.stateService.getPlayer(currentPlayer.id);
+    const totalDays = updatedPlayer?.timeSpent || currentPlayer.timeSpent;
+    const progressPercent = projectLengthInfo.estimatedDays > 0
+      ? (totalDays / projectLengthInfo.estimatedDays) * 100
+      : 0;
+
     return {
       diceValue: 0, // No dice roll for manual effects
       spaceName: currentPlayer.currentSpace,
       effects,
       summary,
-      hasChoices: false
+      hasChoices: false,
+      projectTime: {
+        actionDays,
+        totalDays,
+        estimatedDays: projectLengthInfo.estimatedDays,
+        progressPercent,
+        uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
+      }
     };
   }
 
@@ -2372,18 +2616,35 @@ export class TurnService implements ITurnService {
     // Process effects for new dice roll
     const effects: DiceResultEffect[] = [];
     await this.processTurnEffectsWithTracking(playerId, newDiceRoll, effects);
-    
+
     // Generate summary for new result
     const summary = this.generateEffectSummary(effects, newDiceRoll);
     const hasChoices = effects.some(effect => effect.type === 'choice');
-    
+
+    // Calculate project time info for the modal
+    const timeEffect = effects.find(e => e.type === 'time');
+    const actionDays = timeEffect?.value || 0;
+    const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
+    const updatedPlayer = this.stateService.getPlayer(currentPlayer.id);
+    const totalDays = updatedPlayer?.timeSpent || currentPlayer.timeSpent;
+    const progressPercent = projectLengthInfo.estimatedDays > 0
+      ? (totalDays / projectLengthInfo.estimatedDays) * 100
+      : 0;
+
     return {
       diceValue: newDiceRoll,
       spaceName: currentPlayer.currentSpace,
       effects,
       summary,
       hasChoices,
-      canReRoll: false // No longer available after use
+      canReRoll: false, // No longer available after use
+      projectTime: {
+        actionDays,
+        totalDays,
+        estimatedDays: projectLengthInfo.estimatedDays,
+        progressPercent,
+        uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
+      }
     };
   }
 
@@ -2449,13 +2710,30 @@ export class TurnService implements ITurnService {
     // Check if player can re-roll (from E066 card effect)
     const canReRoll = currentPlayer.turnModifiers?.canReRoll || false;
 
+    // Calculate project time info for the modal
+    const timeEffect = effects.find(e => e.type === 'time');
+    const actionDays = timeEffect?.value || 0;
+    const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
+    const updatedPlayer = this.stateService.getPlayer(currentPlayer.id);
+    const totalDays = updatedPlayer?.timeSpent || currentPlayer.timeSpent;
+    const progressPercent = projectLengthInfo.estimatedDays > 0
+      ? (totalDays / projectLengthInfo.estimatedDays) * 100
+      : 0;
+
     const result = {
       diceValue: diceRoll,
       spaceName: currentPlayer.currentSpace,
       effects,
       summary,
       hasChoices,
-      canReRoll
+      canReRoll,
+      projectTime: {
+        actionDays,
+        totalDays,
+        estimatedDays: projectLengthInfo.estimatedDays,
+        progressPercent,
+        uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
+      }
     };
 
     console.log(`🎲 ROLL_DICE_FEEDBACK: Returning result:`, result);
@@ -2502,10 +2780,24 @@ export class TurnService implements ITurnService {
         });
       } else if (effect.effectType === 'RESOURCE_CHANGE') {
         if (effect.payload.resource === 'MONEY') {
+          // Calculate actual amount for percentage-based fees
+          let displayAmount = effect.payload.amount;
+          let description = effect.payload.amount > 0 ? 'Received project funding' : 'Paid project costs';
+
+          // Check if this is a percentage-based design fee
+          const payload = effect.payload as { percentageOfScope?: number; feeCategory?: string };
+          if (payload.percentageOfScope !== undefined) {
+            // Calculate project scope dynamically from W cards
+            const projectScope = this.gameRulesService.calculateProjectScope(currentPlayer.id);
+            displayAmount = -Math.floor((projectScope * payload.percentageOfScope) / 100);
+            const feeType = payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer';
+            description = `${feeType} fee: ${payload.percentageOfScope}% of scope`;
+          }
+
           effects.push({
             type: 'money',
-            description: effect.payload.amount > 0 ? 'Received project funding' : 'Paid project costs',
-            value: effect.payload.amount
+            description,
+            value: displayAmount
           });
         } else if (effect.payload.resource === 'TIME') {
           effects.push({
@@ -2537,8 +2829,8 @@ export class TurnService implements ITurnService {
                 moveOptions: moveOptions
             });
         }
-    } else if (movementRule && movementRule.movement_type === 'dice_outcome') {
-        // Handle dice-based movement (e.g., CHEAT-BYPASS)
+    } else if (movementRule && (movementRule.movement_type === 'dice_outcome' || movementRule.movement_type === 'dice')) {
+        // Handle dice-based movement (e.g., CHEAT-BYPASS, REG-DOB-PROF-CERT)
         // Use existing dice destination logic
         // TODO: Implement getDiceRollDestinations in DataService if DICE_ROLL_INFO.csv is needed
         const destination = this.movementService.getDiceDestination(
@@ -2789,6 +3081,116 @@ export class TurnService implements ITurnService {
           // This flag should only be set when the player MANUALLY clicks "Roll Dice"
           // Automatic dice effects are just background mechanics, not player actions
           // Setting this flag incorrectly causes the UI to think actions are complete when they're not
+        }
+      }
+
+      // Handle dice-conditional card effects (e.g., "Draw 1 if you roll a 1" for L cards)
+      // These are automatic card effects that require a dice roll to determine if they trigger
+      const diceConditionalCardEffects = conditionFilteredEffects.filter(effect => {
+        if (effect.trigger_type !== 'auto' || effect.effect_type !== 'cards') return false;
+        const valueStr = String(effect.effect_value || '').toLowerCase();
+        const descStr = String(effect.description || '').toLowerCase();
+        return valueStr.includes('if you roll a') || descStr.includes('if you roll a');
+      });
+
+      if (diceConditionalCardEffects.length > 0) {
+        console.log(`🎲 Found ${diceConditionalCardEffects.length} dice-conditional card effect(s) at ${spaceName}`);
+
+        for (const effect of diceConditionalCardEffects) {
+          // Parse the required dice roll from the effect description
+          const valueStr = String(effect.effect_value || '').toLowerCase();
+          const descStr = String(effect.description || '').toLowerCase();
+          const conditionMatch = valueStr.match(/if you roll a (\d+)/) ||
+                                 descStr.match(/if you roll a (\d+)/);
+
+          if (conditionMatch) {
+            const requiredRoll = parseInt(conditionMatch[1], 10);
+
+            // Roll a dice
+            const diceRoll = Math.floor(Math.random() * 6) + 1;
+            console.log(`🎲 Rolled ${diceRoll} for L card check (need ${requiredRoll})`);
+
+            // Extract card type from effect_action (e.g., "draw_L" -> "L")
+            const cardType = effect.effect_action.replace(/^draw_/i, '').toUpperCase();
+
+            if (diceRoll === requiredRoll) {
+              // Dice matches - draw the card
+              console.log(`🎯 Dice roll ${diceRoll} matches! Drawing ${cardType} card for ${currentPlayer.name}`);
+              try {
+                const drawnCardIds = this.cardService.drawCards(
+                  playerId,
+                  cardType as CardType,
+                  1,
+                  'dice_conditional_effect',
+                  `Auto effect: Rolled ${diceRoll} - Drew ${cardType} card`
+                );
+
+                // Get card details for display
+                const cardData = drawnCardIds.length > 0 ? this.dataService.getCardById(drawnCardIds[0]) : null;
+                const cardName = cardData?.card_name || `${cardType} Card`;
+
+                // Log the successful draw
+                this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} and drew a ${cardType} card!`, {
+                  playerId: currentPlayer.id,
+                  playerName: currentPlayer.name,
+                  action: 'dice_conditional_card',
+                  diceValue: diceRoll,
+                  spaceName: spaceName,
+                  description: `Automatic dice roll - drew ${cardType} card`
+                });
+
+                // Emit auto-action event for modal display
+                const autoActionEvent: AutoActionEvent = {
+                  type: cardType === 'L' ? 'life_event' : 'dice_conditional_card',
+                  playerId: currentPlayer.id,
+                  playerName: currentPlayer.name,
+                  diceValue: diceRoll,
+                  requiredRoll: requiredRoll,
+                  cardType: cardType,
+                  cardName: cardName,
+                  cardId: drawnCardIds.length > 0 ? drawnCardIds[0] : undefined,
+                  success: true,
+                  spaceName: spaceName,
+                  message: `Rolled ${diceRoll} and drew: ${cardName}`
+                };
+                this.stateService.emitAutoAction(autoActionEvent);
+
+                // Also show notification for banner
+                if (this.notificationService) {
+                  this.notificationService.notify(
+                    {
+                      short: `🎲 ${diceRoll}!`,
+                      medium: `🎲 Rolled ${diceRoll} - Drew: ${cardName}`,
+                      detailed: `${currentPlayer.name} rolled ${diceRoll} (needed ${requiredRoll}) and drew a ${cardType} card: ${cardName}`
+                    },
+                    {
+                      playerId: currentPlayer.id,
+                      playerName: currentPlayer.name,
+                      actionType: 'dice_conditional_card',
+                      notificationDuration: 5000
+                    }
+                  );
+                }
+              } catch (error) {
+                console.error(`Failed to draw ${cardType} card on dice conditional effect:`, error);
+              }
+            } else {
+              // Dice doesn't match - no card drawn
+              // No modal notification for misses - life events are surprises,
+              // if nothing happens there's no surprise to show
+              console.log(`🎲 Dice roll ${diceRoll} doesn't match ${requiredRoll}. No ${cardType} card drawn.`);
+
+              // Log the miss (for game history only, no modal)
+              this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} (needed ${requiredRoll}) - No ${cardType} card drawn`, {
+                playerId: currentPlayer.id,
+                playerName: currentPlayer.name,
+                action: 'dice_conditional_miss',
+                diceValue: diceRoll,
+                spaceName: spaceName,
+                description: `Automatic dice roll - no card drawn`
+              });
+            }
+          }
         }
       }
 
@@ -3093,13 +3495,28 @@ export class TurnService implements ITurnService {
         );
       }
 
+      // Calculate project time info for the modal
+      const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
+      const updatedPlayer = this.stateService.getPlayer(currentPlayer.id);
+      const totalDays = updatedPlayer?.timeSpent || currentPlayer.timeSpent;
+      const progressPercent = projectLengthInfo.estimatedDays > 0
+        ? (totalDays / projectLengthInfo.estimatedDays) * 100
+        : 0;
+
       return {
         diceValue: 0, // No actual dice roll
         spaceName: currentPlayer.currentSpace,
         effects: effects,
         summary: fundingDescription,
         hasChoices: false,
-        canReRoll: false
+        canReRoll: false,
+        projectTime: {
+          actionDays: 0, // Funding doesn't take time at this space
+          totalDays,
+          estimatedDays: projectLengthInfo.estimatedDays,
+          progressPercent,
+          uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
+        }
       };
 
     } catch (error) {

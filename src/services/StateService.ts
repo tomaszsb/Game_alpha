@@ -12,11 +12,34 @@ import { colors } from '../styles/theme';
 import { Choice } from '../types/CommonTypes';
 import { getBackendURL } from '../utils/networkDetection';
 
+// Auto-action event type for modal notifications
+export interface AutoActionEvent {
+  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement';
+  playerId: string;
+  playerName: string;
+  playerColor?: string; // Player's color for UI display
+  diceValue?: number;
+  requiredRoll?: number;
+  cardType?: string;
+  cardName?: string;
+  cardId?: string;
+  moneyAmount?: number;
+  success: boolean; // Whether the action triggered (e.g., dice matched)
+  spaceName: string;
+  message: string;
+  // Movement-specific fields
+  fromSpace?: string;
+  toSpace?: string;
+}
+
 export class StateService implements IStateService {
   private currentState: GameState;
   private readonly dataService: IDataService;
   private gameRulesService?: IGameRulesService; // Setter injection to avoid circular dependency
   private listeners: Array<(state: GameState) => void> = [];
+
+  // Auto-action event listeners for modal notifications
+  private autoActionListeners: Array<(event: AutoActionEvent) => void> = [];
 
   // Server synchronization settings
   private serverUrl: string = '';
@@ -42,7 +65,7 @@ export class StateService implements IStateService {
   // Subscription methods
   subscribe(callback: (state: GameState) => void): () => void {
     this.listeners.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.listeners.indexOf(callback);
@@ -50,6 +73,36 @@ export class StateService implements IStateService {
         this.listeners.splice(index, 1);
       }
     };
+  }
+
+  /**
+   * Subscribe to auto-action events (dice rolls for L cards, seed money, etc.)
+   * These events trigger modal notifications in the UI
+   */
+  subscribeToAutoActions(callback: (event: AutoActionEvent) => void): () => void {
+    this.autoActionListeners.push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.autoActionListeners.indexOf(callback);
+      if (index > -1) {
+        this.autoActionListeners.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Emit an auto-action event to trigger modal notifications
+   */
+  emitAutoAction(event: AutoActionEvent): void {
+    console.log(`📢 Auto-action event: ${event.type} for ${event.playerName}`, event);
+    this.autoActionListeners.forEach(callback => {
+      try {
+        callback(event);
+      } catch (error) {
+        console.error('Error in auto-action listener:', error);
+      }
+    });
   }
 
   private notifyListeners(options: { skipSync?: boolean } = {}): void {

@@ -264,11 +264,126 @@ export class EffectEngineService implements IEffectEngineService {
             const reason = payload.reason || 'Effect processing';
             const sourceType = payload.sourceType || 'other';  // Default to 'other' if not specified
 
-            console.log(`🔧 EFFECT_ENGINE: Processing ${payload.resource} change for player ${payload.playerId} by ${payload.amount}`);
+            // Handle percentage-based design fees
+            let actualAmount = payload.amount;
+            if (payload.percentageOfScope !== undefined && payload.resource === 'MONEY') {
+              const player = this.stateService.getPlayer(payload.playerId);
+              if (player) {
+                // Calculate project scope dynamically from W cards (not the stored value which may be stale)
+                const projectScope = this.gameRulesService.calculateProjectScope(payload.playerId);
+                actualAmount = -Math.floor((projectScope * payload.percentageOfScope) / 100);
+                console.log(`🔧 EFFECT_ENGINE: Calculating design fee: ${payload.percentageOfScope}% of ${projectScope.toLocaleString()} = ${Math.abs(actualAmount).toLocaleString()}`);
+
+                // Track as design expenditure if fee category is provided
+                if (payload.feeCategory && actualAmount < 0) {
+                  const feeAmount = Math.abs(actualAmount);
+                  const gameState = this.stateService.getGameState();
+                  const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
+
+                  // Build update data for the player
+                  const updateData: any = { id: payload.playerId };
+
+                  if (player.expenditures) {
+                    // Add to design expenditures
+                    updateData.expenditures = {
+                      ...player.expenditures,
+                      design: (player.expenditures.design || 0) + feeAmount
+                    };
+                  }
+
+                  // Also track in detailed costs
+                  if (player.costs) {
+                    const costCategory = payload.feeCategory === 'architectural' ? 'architectural' : 'engineering';
+                    const updatedCosts = { ...player.costs };
+                    updatedCosts[costCategory] = (updatedCosts[costCategory] || 0) + feeAmount;
+                    updatedCosts.total = (updatedCosts.total || 0) + feeAmount;
+                    updateData.costs = updatedCosts;
+
+                    // Add to cost history
+                    const costHistory = [...(player.costHistory || [])];
+                    costHistory.push({
+                      id: `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                      category: costCategory,
+                      amount: feeAmount,
+                      description: `${payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer'} fee: ${payload.percentageOfScope}% of scope`,
+                      turn: currentTurn,
+                      timestamp: new Date(),
+                      spaceName: player.currentSpace
+                    });
+                    updateData.costHistory = costHistory;
+                  }
+
+                  // Apply all updates at once
+                  this.stateService.updatePlayer(updateData);
+
+                  // Check for 20% design fee cap rule
+                  const updatedPlayer = this.stateService.getPlayer(payload.playerId);
+                  if (updatedPlayer) {
+                    const totalDesignFees = updatedPlayer.expenditures?.design || 0;
+                    // Calculate project scope dynamically from W cards
+                    const playerScope = this.gameRulesService.calculateProjectScope(payload.playerId);
+                    const designFeeRatio = playerScope > 0 ? (totalDesignFees / playerScope) * 100 : 0;
+
+                    if (designFeeRatio >= 20) {
+                      console.log(`⛔ DESIGN FEE CAP EXCEEDED: ${designFeeRatio.toFixed(1)}% (${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()})`);
+
+                      // Get space phase to determine consequence
+                      const spaceConfig = this.dataService ? this.dataService.getGameConfigBySpace(updatedPlayer.currentSpace) : null;
+                      const currentPhase = (spaceConfig && spaceConfig.phase) ? spaceConfig.phase.toUpperCase() : 'UNKNOWN';
+
+                      if (currentPhase === 'DESIGN') {
+                        // DESIGN phase: Game Over (loss)
+                        console.log(`💀 GAME OVER: Design fees exceeded 20% cap during DESIGN phase`);
+                        console.log(`   Player: ${updatedPlayer.name}, Design Fees: $${totalDesignFees.toLocaleString()}, Scope: $${playerScope.toLocaleString()}, Ratio: ${designFeeRatio.toFixed(1)}%`);
+
+                        // Emit auto-action event for modal display
+                        this.stateService.emitAutoAction({
+                          type: 'life_event',
+                          playerId: payload.playerId,
+                          playerName: updatedPlayer.name,
+                          success: false,
+                          spaceName: updatedPlayer.currentSpace,
+                          message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`
+                        });
+
+                        // End the game - player loses
+                        this.stateService.endGame(); // No winner
+                      } else {
+                        // CONSTRUCTION phase or later: Apply punishment (time penalty)
+                        console.log(`⚠️ PENALTY: Design fees exceeded 20% cap during ${currentPhase} phase - applying time penalty`);
+
+                        // Add 2 time units as penalty
+                        const timePenalty = 2;
+                        this.resourceService.addTime(payload.playerId, timePenalty, 'penalty', 'Design fee cap exceeded - time penalty');
+
+                        // Show notification
+                        if (this.notificationService) {
+                          this.notificationService.notify(
+                            {
+                              short: '⚠️ Penalty',
+                              medium: `⚠️ Design fees at ${designFeeRatio.toFixed(1)}% - +${timePenalty} weeks penalty`,
+                              detailed: `Design fees exceeded 20% of project scope ($${totalDesignFees.toLocaleString()} / $${playerScope.toLocaleString()}). Time penalty: +${timePenalty} weeks added to project.`
+                            },
+                            {
+                              playerId: payload.playerId,
+                              playerName: updatedPlayer.name,
+                              actionType: 'design_fee_penalty',
+                              notificationDuration: 6000
+                            }
+                          );
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            console.log(`🔧 EFFECT_ENGINE: Processing ${payload.resource} change for player ${payload.playerId} by ${actualAmount}`);
 
             if (payload.resource === 'MONEY') {
-              if (payload.amount > 0) {
-                success = this.resourceService.addMoney(payload.playerId, payload.amount, source, reason, sourceType);
+              if (actualAmount > 0) {
+                success = this.resourceService.addMoney(payload.playerId, actualAmount, source, reason, sourceType);
 
                 // Show notification for significant money additions (funding from owner)
                 if (success && this.notificationService) {
@@ -280,7 +395,7 @@ export class EffectEngineService implements IEffectEngineService {
                                      sourceType === 'owner' ||
                                      reason.toLowerCase().includes('funding');
 
-                    const formattedAmount = payload.amount.toLocaleString();
+                    const formattedAmount = actualAmount.toLocaleString();
                     const notificationMessage = isFunding
                       ? `💰 Owner Funding: +$${formattedAmount}`
                       : `💵 Received: +$${formattedAmount}`;
@@ -300,8 +415,51 @@ export class EffectEngineService implements IEffectEngineService {
                     );
                   }
                 }
-              } else if (payload.amount < 0) {
-                success = this.resourceService.spendMoney(payload.playerId, Math.abs(payload.amount), source, reason);
+              } else if (actualAmount < 0) {
+                success = this.resourceService.spendMoney(payload.playerId, Math.abs(actualAmount), source, reason);
+
+                // Show notification for design fee deductions
+                if (success && this.notificationService && payload.percentageOfScope !== undefined) {
+                  const player = this.stateService.getPlayer(payload.playerId);
+                  if (player) {
+                    const feeType = payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer';
+                    const formattedAmount = Math.abs(actualAmount).toLocaleString();
+                    this.notificationService.notify(
+                      {
+                        short: `-$${formattedAmount}`,
+                        medium: `💸 ${feeType} Fee: -$${formattedAmount}`,
+                        detailed: `${player.name} paid ${feeType} fee: ${payload.percentageOfScope}% of project scope = $${formattedAmount}`
+                      },
+                      {
+                        playerId: payload.playerId,
+                        playerName: player.name,
+                        actionType: 'fee_paid',
+                        notificationDuration: 5000
+                      }
+                    );
+                  }
+                }
+
+                // Check for bankruptcy (out of money) after spending
+                if (success) {
+                  const updatedPlayer = this.stateService.getPlayer(payload.playerId);
+                  if (updatedPlayer && updatedPlayer.money < 0) {
+                    console.log(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
+
+                    // Emit game over event
+                    this.stateService.emitAutoAction({
+                      type: 'life_event',
+                      playerId: payload.playerId,
+                      playerName: updatedPlayer.name,
+                      success: false,
+                      spaceName: updatedPlayer.currentSpace,
+                      message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`
+                    });
+
+                    // End the game
+                    this.stateService.endGame();
+                  }
+                }
               } else {
                 success = true; // No change needed for 0 amount
               }
@@ -391,6 +549,26 @@ export class EffectEngineService implements IEffectEngineService {
 
               if (context.metadata?.spaceName === 'OWNER-FUND-INITIATION' && drawnCards.length > 0) {
                 console.log(`    💰 OWNER-FUND-INITIATION: Automatically playing drawn funding card: ${drawnCards[0]}`);
+
+                // Get card details for auto-action event
+                const drawnCardData = this.dataService?.getCardById(drawnCards[0]);
+                const cardName = drawnCardData?.card_name || `${payload.cardType} Card`;
+                const fundingPlayer = this.stateService.getPlayer(payload.playerId);
+                const fundingType = payload.cardType === 'B' ? 'Bank' : 'Investment';
+
+                // Emit auto-action event for seed money modal
+                this.stateService.emitAutoAction({
+                  type: 'seed_money',
+                  playerId: payload.playerId,
+                  playerName: fundingPlayer?.name || 'Unknown',
+                  cardType: payload.cardType,
+                  cardName: cardName,
+                  cardId: drawnCards[0],
+                  success: true,
+                  spaceName: 'OWNER-FUND-INITIATION',
+                  message: `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`
+                });
+
                 const playCardEffects = drawnCards.map(cardId => ({
                   effectType: 'PLAY_CARD' as const,
                   payload: {

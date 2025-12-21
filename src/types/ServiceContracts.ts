@@ -174,7 +174,11 @@ export interface IStateService {
 
   // Subscription methods
   subscribe(callback: (state: GameState) => void): () => void;
-  
+
+  // Auto-action event methods for modal notifications
+  subscribeToAutoActions(callback: (event: import('../services/StateService').AutoActionEvent) => void): () => void;
+  emitAutoAction(event: import('../services/StateService').AutoActionEvent): void;
+
   // Player management methods
   addPlayer(name: string): GameState;
   updatePlayer(playerData: PlayerUpdateData): GameState;
@@ -389,6 +393,14 @@ export interface IGameRulesService {
   
   // Project scope calculation methods
   calculateProjectScope(playerId: string): number;
+
+  // Project length estimation methods
+  calculateEstimatedProjectLength(playerId: string): {
+    estimatedDays: number;
+    basePathDays: number;
+    workTypeDays: number;
+    uniqueWorkTypes: string[];
+  };
 
   // Condition evaluation methods
   evaluateCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean;

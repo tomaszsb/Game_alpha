@@ -40,6 +40,8 @@ export type Effect =
         source?: string;
         reason?: string;
         sourceType?: 'bank' | 'investment' | 'owner' | 'other';  // Money source category
+        percentageOfScope?: number;  // For design fees: percentage of project scope to deduct
+        feeCategory?: 'architectural' | 'engineering';  // Category for cost tracking
       };
     }
   | { 
