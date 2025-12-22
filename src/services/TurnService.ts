@@ -1,11 +1,14 @@
-import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, TurnResult } from '../types/ServiceContracts';
+import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, TurnResult } from '../types/ServiceContracts';
 import { NegotiationService } from './NegotiationService';
 import { INotificationService } from './NotificationService';
+import { DiceService } from './DiceService';
+import { SpaceEffectService } from './SpaceEffectService';
 import { GameState, Player, DiceResultEffect, TurnEffectResult } from '../types/StateTypes';
 import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
+import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { AutoActionEvent } from './StateService';
 
 export class TurnService implements ITurnService {
@@ -18,10 +21,13 @@ export class TurnService implements ITurnService {
   private readonly negotiationService: NegotiationService;
   private readonly loggingService: ILoggingService;
   private readonly choiceService: IChoiceService;
+  private readonly diceService: IDiceService;
+  private readonly spaceEffectService: ISpaceEffectService;
+  private readonly conditionEvaluator: ConditionEvaluator;
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
 
-  constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService) {
+  constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService, diceService?: IDiceService, spaceEffectService?: ISpaceEffectService) {
     this.dataService = dataService;
     this.stateService = stateService;
     this.gameRulesService = gameRulesService;
@@ -33,6 +39,18 @@ export class TurnService implements ITurnService {
     this.choiceService = choiceService;
     this.notificationService = notificationService;
     this.effectEngineService = effectEngineService;
+    // Use provided DiceService or create a default instance
+    this.diceService = diceService || new DiceService();
+    // Use provided SpaceEffectService or create a default instance
+    this.spaceEffectService = spaceEffectService || new SpaceEffectService(
+      stateService,
+      cardService,
+      resourceService,
+      gameRulesService,
+      this.diceService
+    );
+    // Create ConditionEvaluator with GameRulesService for scope conditions
+    this.conditionEvaluator = new ConditionEvaluator(gameRulesService);
   }
 
   /**
@@ -920,15 +938,7 @@ export class TurnService implements ITurnService {
   }
 
   rollDice(): number {
-    const roll = Math.floor(Math.random() * 6) + 1;
-    
-    // Safety check - dice should never be 0 or greater than 6
-    if (roll < 1 || roll > 6) {
-      console.error(`Invalid dice roll generated: ${roll}. Rolling again.`);
-      return Math.floor(Math.random() * 6) + 1;
-    }
-    
-    return roll;
+    return this.diceService.rollDice();
   }
 
   canPlayerTakeTurn(playerId: string): boolean {
@@ -1165,184 +1175,32 @@ export class TurnService implements ITurnService {
   }
 
   private applyDiceEffect(
-    playerId: string, 
-    effect: DiceEffect, 
-    diceRoll: number, 
+    playerId: string,
+    effect: DiceEffect,
+    diceRoll: number,
     currentState: GameState
   ): GameState {
-    // Get the effect for the specific dice roll
-    const rollEffect = this.getDiceRollEffect(effect, diceRoll);
-    
-    if (!rollEffect || rollEffect === 'No change') {
-      return currentState;
-    }
-
-    // Apply effect based on type
-    switch (effect.effect_type) {
-      case 'cards':
-        return this.applyCardEffect(playerId, effect.card_type || 'W', rollEffect);
-      
-      case 'money':
-        return this.applyMoneyEffect(playerId, rollEffect);
-      
-      case 'time':
-        return this.applyTimeEffect(playerId, rollEffect);
-      
-      case 'quality':
-        return this.applyQualityEffect(playerId, rollEffect);
-      
-      default:
-        console.warn(`Unknown effect type: ${effect.effect_type}`);
-        return currentState;
-    }
+    return this.spaceEffectService.applyDiceEffect(playerId, effect, diceRoll, currentState);
   }
 
   private getDiceRollEffect(effect: DiceEffect, diceRoll: number): string | undefined {
-    switch (diceRoll) {
-      case 1: return effect.roll_1;
-      case 2: return effect.roll_2;
-      case 3: return effect.roll_3;
-      case 4: return effect.roll_4;
-      case 5: return effect.roll_5;
-      case 6: return effect.roll_6;
-      default: return undefined;
-    }
+    return this.diceService.getDiceRollEffect(effect, diceRoll);
   }
 
   private applyCardEffect(playerId: string, cardType: string, effect: string): GameState {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    if (effect.includes('Draw')) {
-      const drawCount = this.parseNumericValue(effect);
-      if (drawCount > 0) {
-        // Use unified CardService.drawCards with source tracking
-        const drawnCardIds = this.cardService.drawCards(
-          playerId, 
-          cardType as any, 
-          drawCount, 
-          'turn_effect', 
-          `Draw ${drawCount} ${cardType} card${drawCount > 1 ? 's' : ''} from space effect`
-        );
-        console.log(`Player ${player.name} draws ${drawCount} ${cardType} cards:`, drawnCardIds);
-      }
-    } else if (effect.includes('Remove') || effect.includes('Discard')) {
-      const removeCount = this.parseNumericValue(effect);
-      if (removeCount > 0) {
-        const currentCards = this.cardService.getPlayerCards(playerId, cardType as CardType);
-        const cardsToRemove = currentCards.slice(0, removeCount);
-        if (cardsToRemove.length > 0) {
-          // Use unified CardService.discardCards with source tracking
-          this.cardService.discardCards(
-            playerId,
-            cardsToRemove,
-            'turn_effect',
-            `Remove ${removeCount} ${cardType} card${removeCount > 1 ? 's' : ''} from space effect`
-          );
-        }
-      }
-    } else if (effect.includes('Replace')) {
-      const replaceCount = this.parseNumericValue(effect);
-      const currentCards = this.cardService.getPlayerCards(playerId, cardType as CardType);
-      if (replaceCount > 0 && currentCards.length > 0) {
-        // Remove old cards using discardCards
-        const cardsToRemove = currentCards.slice(0, replaceCount);
-        this.cardService.discardCards(
-          playerId,
-          cardsToRemove,
-          'turn_effect',
-          `Replace ${replaceCount} ${cardType} cards - removing old cards`
-        );
-        
-        // Add new cards using drawCards
-        const drawnCardIds = this.cardService.drawCards(
-          playerId,
-          cardType as any,
-          replaceCount,
-          'turn_effect',
-          `Replace ${replaceCount} ${cardType} cards - adding new cards`
-        );
-        console.log(`Player ${player.name} replaces ${replaceCount} ${cardType} cards:`, drawnCardIds);
-      }
-    }
-
-    // Return current state since CardService methods handle state updates
-    return this.stateService.getGameState();
+    return this.spaceEffectService.applyCardEffect(playerId, cardType, effect);
   }
 
   private applyMoneyEffect(playerId: string, effect: string): GameState {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    let moneyChange = 0;
-    let description = '';
-
-    if (effect.includes('%')) {
-      // Percentage-based effect
-      const percentage = this.parseNumericValue(effect);
-
-      // Check if this is a design fee space (ARCH-FEE-REVIEW or ENG-FEE-REVIEW)
-      // Design fees are calculated as percentage of project scope, not player's money
-      const isDesignFeeSpace = player.currentSpace.includes('ARCH-FEE-REVIEW') ||
-                               player.currentSpace.includes('ENG-FEE-REVIEW');
-
-      if (isDesignFeeSpace) {
-        // Calculate fee based on project scope (dynamically from W cards)
-        const projectScope = this.gameRulesService.calculateProjectScope(playerId);
-        moneyChange = -Math.floor((projectScope * percentage) / 100);
-        const feeType = player.currentSpace.includes('ARCH') ? 'Architect' : 'Engineer';
-        description = `${feeType} design fee: ${percentage}% of $${projectScope.toLocaleString()} = $${Math.abs(moneyChange).toLocaleString()}`;
-        console.log(`💸 ${description}`);
-      } else {
-        // Default: percentage of current money (for other effects)
-        moneyChange = Math.floor((player.money * percentage) / 100);
-        description = `Space effect: ${percentage}% = $${Math.abs(moneyChange).toLocaleString()}`;
-      }
-    } else {
-      // Fixed amount effect
-      moneyChange = this.parseNumericValue(effect);
-      description = `Space effect: $${Math.abs(moneyChange).toLocaleString()}`;
-    }
-
-    // Use unified ResourceService for money changes
-    if (moneyChange > 0) {
-      this.resourceService.addMoney(playerId, moneyChange, 'turn_effect', description, 'other');
-    } else if (moneyChange < 0) {
-      this.resourceService.spendMoney(playerId, Math.abs(moneyChange), 'turn_effect', description);
-    }
-
-    // Return current state since ResourceService handles state updates
-    return this.stateService.getGameState();
+    return this.spaceEffectService.applyMoneyEffect(playerId, effect);
   }
 
   private applyTimeEffect(playerId: string, effect: string): GameState {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    const timeChange = this.parseNumericValue(effect);
-
-    // Use unified ResourceService for time changes
-    if (timeChange > 0) {
-      this.resourceService.addTime(playerId, timeChange, 'turn_effect', `Space effect: +${timeChange} time`);
-    } else if (timeChange < 0) {
-      this.resourceService.spendTime(playerId, Math.abs(timeChange), 'turn_effect', `Space effect: -${Math.abs(timeChange)} time`);
-    }
-
-    // Return current state since ResourceService handles state updates
-    return this.stateService.getGameState();
+    return this.spaceEffectService.applyTimeEffect(playerId, effect);
   }
 
   private applyQualityEffect(playerId: string, effect: string): GameState {
-    // Quality effects might affect other game state in the future
-    // For now, just log the quality level
-    console.log(`Player ${playerId} quality level: ${effect}`);
-    return this.stateService.getGameState();
+    return this.spaceEffectService.applyQualityEffect(playerId, effect);
   }
 
   private async applySpaceCardEffect(playerId: string, effect: SpaceEffect, effectType: string): Promise<GameState> {
@@ -1849,51 +1707,7 @@ export class TurnService implements ITurnService {
   }
 
   private applySpaceMoneyEffect(playerId: string, effect: SpaceEffect): GameState {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    const value = typeof effect.effect_value === 'string' ? 
-      parseInt(effect.effect_value) : effect.effect_value;
-    
-    let newMoney = player.money;
-    
-    if (effect.effect_action === 'add') {
-      newMoney += value;
-    } else if (effect.effect_action === 'subtract') {
-      newMoney -= value;
-    } else if (effect.effect_action === 'fee_percent') {
-      // Apply percentage-based fee
-      const feeAmount = Math.floor((player.money * value) / 100);
-      newMoney -= feeAmount;
-      console.log(`Player ${player.name} pays ${value}% fee (${feeAmount}) based on condition: ${effect.condition}`);
-    } else if (effect.effect_action === 'add_per_amount') {
-      // Calculate based on condition (e.g., "per_200k" = per $200,000)
-      let additionalAmount = value;
-
-      if (effect.condition === 'per_200k') {
-        // Calculate amount based on total borrowed (sum of all loan principals)
-        const totalBorrowed = player.loans?.reduce((sum, loan) => sum + loan.principal, 0) || 0;
-        const multiplier = Math.floor(totalBorrowed / 200000);
-        additionalAmount = value * multiplier;
-        console.log(`Player ${player.name} gains ${additionalAmount} money (${value} per $200K, borrowed ${totalBorrowed})`);
-      } else {
-        // For other conditions, use value directly (fallback)
-        console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
-      }
-
-      newMoney += additionalAmount;
-    }
-    
-    newMoney = Math.max(0, newMoney); // Ensure money doesn't go below 0
-
-    console.log(`Player ${player.name} money change: ${effect.effect_action} ${value}, new total: ${newMoney}`);
-
-    return this.stateService.updatePlayer({
-      id: playerId,
-      money: newMoney
-    });
+    return this.spaceEffectService.applySpaceMoneyEffect(playerId, effect);
   }
 
   /**
@@ -1955,100 +1769,22 @@ export class TurnService implements ITurnService {
   }
 
   private applySpaceTimeEffect(playerId: string, effect: SpaceEffect): GameState {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    const value = typeof effect.effect_value === 'string' ? 
-      parseInt(effect.effect_value) : effect.effect_value;
-    
-    let newTime = player.timeSpent || 0;
-    
-    if (effect.effect_action === 'add') {
-      newTime += value;
-    } else if (effect.effect_action === 'subtract') {
-      newTime -= value;
-    } else if (effect.effect_action === 'add_per_amount') {
-      // Calculate based on condition (e.g., "per_200k" = per $200,000)
-      let additionalTime = value;
-
-      if (effect.condition === 'per_200k') {
-        // Calculate time based on total borrowed (sum of all loan principals)
-        const totalBorrowed = player.loans?.reduce((sum, loan) => sum + loan.principal, 0) || 0;
-        const multiplier = Math.floor(totalBorrowed / 200000);
-        additionalTime = value * multiplier;
-        console.log(`Player ${player.name} gains ${additionalTime} time (${value} per $200K, borrowed ${totalBorrowed})`);
-      } else {
-        // For other conditions, use value directly (fallback)
-        console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
-      }
-
-      newTime += additionalTime;
-    }
-    
-    newTime = Math.max(0, newTime); // Ensure time doesn't go below 0
-
-    console.log(`Player ${player.name} time change: ${effect.effect_action} ${value}, new total: ${newTime}`);
-
-    return this.stateService.updatePlayer({
-      id: playerId,
-      timeSpent: newTime
-    });
+    return this.spaceEffectService.applySpaceTimeEffect(playerId, effect);
   }
 
   private getTargetPlayer(currentPlayerId: string, condition: string): Player | null {
-    const gameState = this.stateService.getGameState();
-    const players = gameState.players;
-    const currentPlayerIndex = players.findIndex(p => p.id === currentPlayerId);
-    
-    if (currentPlayerIndex === -1) {
-      return null;
-    }
-
-    if (condition === 'to_right') {
-      // Get player to the right (next in turn order)
-      const targetIndex = (currentPlayerIndex + 1) % players.length;
-      return players[targetIndex];
-    } else if (condition === 'to_left') {
-      // Get player to the left (previous in turn order)  
-      const targetIndex = (currentPlayerIndex - 1 + players.length) % players.length;
-      return players[targetIndex];
-    }
-    
-    // Unknown condition
-    console.warn(`Unknown transfer condition: ${condition}`);
-    return null;
+    return this.spaceEffectService.getTargetPlayer(currentPlayerId, condition);
   }
 
   private parseNumericValue(effect: string): number {
-    // Extract numeric value from effect string (including negatives)
-    const matches = effect.match(/(-?\d+)/);
-    if (matches) {
-      return parseInt(matches[1], 10);
-    }
-
-    // Handle special cases
-    if (effect.toLowerCase().includes('many')) {
-      return 3; // Default "many" to 3
-    }
-
-    return 0;
+    return this.diceService.parseNumericValue(effect);
   }
 
   /**
    * Get the dice roll effect value for a specific roll
    */
   private getDiceRollEffectValue(diceEffect: DiceEffect, diceRoll: number): string {
-    switch (diceRoll) {
-      case 1: return diceEffect.roll_1 || '';
-      case 2: return diceEffect.roll_2 || '';
-      case 3: return diceEffect.roll_3 || '';
-      case 4: return diceEffect.roll_4 || '';
-      case 5: return diceEffect.roll_5 || '';
-      case 6: return diceEffect.roll_6 || '';
-      default: return '';
-    }
+    return this.diceService.getDiceRollEffectValue(diceEffect, diceRoll);
   }
 
   /**
@@ -2880,151 +2616,26 @@ export class TurnService implements ITurnService {
    * Generate a human-readable summary of the effects
    */
   private generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string {
-    if (effects.length === 0) {
-      return `Rolled ${diceValue} - No special effects this turn.`;
-    }
-
-    const summaryParts: string[] = [];
-    let hasPositive = false;
-    let hasNegative = false;
-
-    effects.forEach(effect => {
-      switch (effect.type) {
-        case 'money':
-          if (effect.value! > 0) {
-            summaryParts.push('gained funding');
-            hasPositive = true;
-          } else {
-            summaryParts.push('paid costs');
-            hasNegative = true;
-          }
-          break;
-        case 'cards':
-          summaryParts.push(`drew ${effect.cardCount} card${effect.cardCount! > 1 ? 's' : ''}`);
-          hasPositive = true;
-          break;
-        case 'time':
-          if (effect.value! > 0) {
-            summaryParts.push('faced delays');
-            hasNegative = true;
-          } else {
-            summaryParts.push('gained efficiency');
-            hasPositive = true;
-          }
-          break;
-        case 'choice':
-          summaryParts.push('must choose next move');
-          break;
-      }
-    });
-
-    const tone = hasPositive && !hasNegative ? 'Great roll!' :
-                hasNegative && !hasPositive ? 'Challenging turn.' :
-                'Mixed results.';
-
-    return `${tone} You ${summaryParts.join(', ')}.`;
+    return this.diceService.generateEffectSummary(effects, diceValue);
   }
 
   /**
    * Get human-readable name for card type
    */
   private getCardTypeName(cardType: string): string {
-    switch (cardType) {
-      case 'W': return 'Work';
-      case 'B': return 'Business';
-      case 'E': return 'Expeditor';
-      case 'L': return 'Life Events';
-      case 'I': return 'Investment';
-      default: return cardType;
-    }
+    return this.diceService.getCardTypeName(cardType);
   }
 
   /**
    * Evaluate whether an effect condition is met
    */
   private evaluateEffectCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean {
-    // If no condition is specified, assume it should always apply
-    if (!condition || condition.trim() === '') {
-      return true;
-    }
-
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       console.warn(`Player ${playerId} not found for condition evaluation`);
       return false;
     }
-
-    const conditionLower = condition.toLowerCase().trim();
-
-    try {
-      // Always apply conditions
-      if (conditionLower === 'always') {
-        return true;
-      }
-
-      // Dice roll conditions (used in SPACE_EFFECTS.csv)
-      if (conditionLower.startsWith('dice_roll_') && diceRoll !== undefined) {
-        const requiredRoll = parseInt(conditionLower.replace('dice_roll_', ''));
-        return diceRoll === requiredRoll;
-      }
-
-      // Project scope conditions - delegate to GameRulesService (single source of truth)
-      if (conditionLower === 'scope_le_4m' || conditionLower === 'scope_gt_4m') {
-        return this.gameRulesService.evaluateCondition(playerId, condition, diceRoll);
-      }
-
-      // Loan amount conditions
-      if (conditionLower.startsWith('loan_')) {
-        const playerMoney = player.money || 0;
-        
-        if (conditionLower === 'loan_up_to_1_4m') {
-          return playerMoney <= 1400000; // $1.4M
-        }
-        if (conditionLower === 'loan_1_5m_to_2_75m') {
-          return playerMoney >= 1500000 && playerMoney <= 2750000; // $1.5M to $2.75M
-        }
-        if (conditionLower === 'loan_above_2_75m') {
-          return playerMoney > 2750000; // Above $2.75M
-        }
-      }
-
-      // Percentage-based conditions (often used in dice effects)
-      if (conditionLower.includes('%')) {
-        // These are typically values, not conditions - return true for now
-        return true;
-      }
-
-      // Direction conditions (for card transfer targeting)
-      if (conditionLower === 'to_left' || conditionLower === 'to_right') {
-        // These are targeting directives, not boolean conditions
-        // The actual target resolution happens in EffectEngineService
-        // For condition evaluation, we always return true (effect should be processed)
-        return true;
-      }
-
-      // High/low conditions
-      if (conditionLower === 'high') {
-        return diceRoll !== undefined && diceRoll >= 4; // 4, 5, 6 are "high"
-      }
-      
-      if (conditionLower === 'low') {
-        return diceRoll !== undefined && diceRoll <= 3; // 1, 2, 3 are "low"
-      }
-
-      // Amount-based conditions
-      if (conditionLower.includes('per_') || conditionLower.includes('of_borrowed_amount')) {
-        // These are typically calculation modifiers, not boolean conditions
-        return true;
-      }
-
-      // Fallback for unknown conditions
-      console.warn(`Unknown effect condition: "${condition}" - defaulting to true`);
-      return true;
-
-    } catch (error) {
-      console.error(`Error evaluating condition "${condition}":`, error);
-      return false;
-    }
+    return this.conditionEvaluator.evaluate(player, condition, diceRoll);
   }
 
   /**

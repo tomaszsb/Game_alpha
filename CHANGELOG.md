@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### TurnService Refactoring & Test Consolidation (December 21, 2025)
+
+**Service Extraction from TurnService:**
+Extracted focused services from the 3526-line TurnService to improve maintainability:
+
+- **DiceService** (159 lines) - Pure dice operations
+  - `rollDice()`, `getDiceRollEffect()`, `getDiceRollEffectValue()`
+  - `parseNumericValue()`, `getCardTypeName()`, `generateEffectSummary()`
+
+- **SpaceEffectService** (340 lines) - Space/dice effect application
+  - `applyDiceEffect()`, `applyCardEffect()`, `applyMoneyEffect()`
+  - `applyTimeEffect()`, `applyQualityEffect()`, `getTargetPlayer()`
+
+- **ConditionEvaluator** (158 lines) - Condition evaluation utility
+  - `evaluate()` - Handles dice, scope, loan, high/low conditions
+  - `isDiceCondition()`, `isTargetingDirective()`, `isCalculationModifier()`
+
+**TurnService Reduction:** 3526 → 3137 lines (-389 lines, -11%)
+
+**Test Consolidation:**
+- Deleted `DurationEffects.test.ts` (524 lines, 7 tests) - duplicated EffectEngineService tests
+- Deleted `E066-simple.test.ts` (143 lines, 4 tests) - duplicated E066-reroll-integration tests
+- Total: 667 lines of duplicate test code removed
+
+**New Test Files:**
+- `tests/services/DiceService.test.ts` (24 tests)
+- `tests/services/SpaceEffectService.test.ts` (23 tests)
+- `tests/utils/ConditionEvaluator.test.ts` (43 tests)
+
+**Interface Updates:**
+- Added `IDiceService` to ServiceContracts.ts
+- Added `ISpaceEffectService` to ServiceContracts.ts
+
+**Test Results:** 1026 tests passing (68 test files)
+
 ### UI Consolidation & Per-Player Metrics (December 21, 2025)
 
 **Project Timeline Per Player:**

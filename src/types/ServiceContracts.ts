@@ -266,6 +266,36 @@ export interface TurnResult {
   diceRoll: number;
 }
 
+import { DiceResultEffect } from './StateTypes';
+
+/**
+ * IDiceService - Interface for dice-related operations
+ * Handles dice rolling and dice effect resolution
+ */
+export interface IDiceService {
+  rollDice(): number;
+  getDiceRollEffect(effect: DiceEffect, diceRoll: number): string | undefined;
+  getDiceRollEffectValue(diceEffect: DiceEffect, diceRoll: number): string;
+  parseNumericValue(effect: string): number;
+  getCardTypeName(cardType: string): string;
+  generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string;
+}
+
+/**
+ * ISpaceEffectService - Interface for space and dice effect application
+ * Handles applying effects from dice rolls and space visits
+ */
+export interface ISpaceEffectService {
+  applyDiceEffect(playerId: string, effect: DiceEffect, diceRoll: number, currentState: GameState): GameState;
+  applyCardEffect(playerId: string, cardType: string, effect: string): GameState;
+  applyMoneyEffect(playerId: string, effect: string): GameState;
+  applyTimeEffect(playerId: string, effect: string): GameState;
+  applyQualityEffect(playerId: string, effect: string): GameState;
+  applySpaceMoneyEffect(playerId: string, effect: SpaceEffect): GameState;
+  applySpaceTimeEffect(playerId: string, effect: SpaceEffect): GameState;
+  getTargetPlayer(currentPlayerId: string, condition: string): import('./StateTypes').Player | null;
+}
+
 export interface ITurnService {
   // Turn management methods
   takeTurn(playerId: string): Promise<TurnResult>;
