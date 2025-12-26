@@ -6,7 +6,13 @@ import {
   PlayerUpdateData,
   PlayerCards,
   ActiveModal,
-  ActionLogEntry
+  ActionLogEntry,
+  // REAL/TEMP State Model Types
+  MutablePlayerState,
+  PlayerTurnState,
+  TurnStateModel,
+  StateTransitionResult,
+  CreateTempOptions
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { Choice } from '../types/CommonTypes';
@@ -808,14 +814,17 @@ export class StateService implements IStateService {
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       const isDiceMovement = movement?.movement_type === 'dice';
 
-      // Check if there are unconditional dice effects
-      // Conditional effects have descriptions like "Draw 1 if you roll a 1"
+      // Check if there are unconditional dice effects (dice-based effects without dice_roll_X conditions)
+      // Effects with dice_roll_X conditions are handled automatically - they don't require player action
       const spaceEffects = this.dataService.getSpaceEffects(player.currentSpace, player.visitType);
       const hasUnconditionalDiceEffect = spaceEffects.some(effect => {
-        const desc = effect.description?.toLowerCase() || '';
-        const value = String(effect.effect_value || '').toLowerCase();
-        // Check if this effect requires a dice roll but is NOT conditional
-        return (desc.includes('roll') || value.includes('roll')) && !desc.includes('if you roll');
+        // Check if this is a dice effect type (requires player to roll)
+        const isDiceEffect = effect.effect_type === 'dice' || effect.effect_action === 'dice_outcome';
+        // Exclude effects that are just dice-conditional (like dice_roll_3) - those are auto-evaluated
+        const isDiceConditional = effect.condition?.toLowerCase().startsWith('dice_roll_') ||
+                                  effect.condition?.toLowerCase() === 'high' ||
+                                  effect.condition?.toLowerCase() === 'low';
+        return isDiceEffect && !isDiceConditional;
       });
 
       // Only count dice as required if movement is dice-based OR there are unconditional dice effects
@@ -1134,6 +1143,391 @@ export class StateService implements IStateService {
 
     // 12. Return the new state
     return newState;
+  }
+
+  // ============================================================================
+  // REAL/TEMP State Model Methods (December 26, 2025)
+  // ============================================================================
+  //
+  // These methods implement the new state model that separates "committed" state
+  // (REAL) from "working" state (TEMP). All turn effects apply to TEMP state;
+  // REAL state only updates on turn boundaries.
+  //
+  // Flow:
+  // 1. Turn starts → createTempStateFromReal()
+  // 2. All effects → updateTempState() or updatePlayer() [which writes to TEMP]
+  // 3. UI renders → getPlayerState() [reads from TEMP during turn]
+  // 4. On Try Again: applyToRealState(penalty) → discardTempState() → createTempStateFromReal()
+  // 5. On End Turn: commitTempToReal()
+  // ============================================================================
+
+  /**
+   * Extract mutable state from a Player object.
+   * This creates a snapshot of the fields that can change during a turn.
+   */
+  private extractMutableState(player: Player): MutablePlayerState {
+    return {
+      money: player.money,
+      timeSpent: player.timeSpent,
+      projectScope: player.projectScope,
+      score: player.score,
+      hand: [...player.hand],
+      activeCards: [...player.activeCards],
+      loans: player.loans ? [...player.loans] : [],
+      moneySources: { ...player.moneySources },
+      expenditures: { ...player.expenditures },
+      costHistory: player.costHistory ? [...player.costHistory] : [],
+      costs: { ...player.costs },
+      activeEffects: player.activeEffects ? [...player.activeEffects] : [],
+      spaceVisitLog: player.spaceVisitLog ? [...player.spaceVisitLog] : [],
+      lastDiceRoll: player.lastDiceRoll ? { ...player.lastDiceRoll } : undefined
+    };
+  }
+
+  /**
+   * Initialize the turn state model if it doesn't exist.
+   */
+  private ensureTurnStateModel(): void {
+    if (!this.currentState.turnStateModel) {
+      this.currentState = {
+        ...this.currentState,
+        turnStateModel: {
+          realStates: {},
+          tempStates: {},
+          activeTurnPlayers: [],
+          tryAgainCounts: {}
+        }
+      };
+    }
+  }
+
+  /**
+   * Create a TEMP state from REAL state for a player.
+   * Called at the start of a player's turn.
+   *
+   * If this is a Try Again scenario, the time penalty should have already been
+   * applied to REAL state before calling this method.
+   */
+  public createTempStateFromReal(options: CreateTempOptions): StateTransitionResult {
+    const { playerId, spaceName, visitType, isTryAgain = false, tryAgainPenalty = 0 } = options;
+
+    console.log(`🔄 Creating TEMP state from REAL for player ${playerId} at ${spaceName} (Try Again: ${isTryAgain})`);
+
+    this.ensureTurnStateModel();
+    const player = this.getPlayer(playerId);
+
+    if (!player) {
+      return { success: false, error: `Player ${playerId} not found` };
+    }
+
+    // If Try Again, first apply penalty to REAL state
+    if (isTryAgain && tryAgainPenalty > 0) {
+      const penaltyResult = this.applyToRealState(playerId, { timeSpent: tryAgainPenalty });
+      if (!penaltyResult.success) {
+        return penaltyResult;
+      }
+    }
+
+    // Get the source state - either existing REAL or current player state
+    const realState = this.currentState.turnStateModel!.realStates[playerId];
+    const sourceState: MutablePlayerState = realState?.state
+      ? { ...realState.state }
+      : this.extractMutableState(player);
+
+    // Create new TEMP state from REAL
+    const newTempState: PlayerTurnState = {
+      playerId,
+      playerName: player.name,
+      state: { ...sourceState },
+      capturedAt: {
+        turnNumber: this.currentState.globalTurnCount,
+        spaceName,
+        visitType,
+        timestamp: new Date()
+      }
+    };
+
+    // Update turn state model
+    const turnStateModel = this.currentState.turnStateModel!;
+    this.currentState = {
+      ...this.currentState,
+      turnStateModel: {
+        ...turnStateModel,
+        tempStates: {
+          ...turnStateModel.tempStates,
+          [playerId]: newTempState
+        },
+        activeTurnPlayers: turnStateModel.activeTurnPlayers.includes(playerId)
+          ? turnStateModel.activeTurnPlayers
+          : [...turnStateModel.activeTurnPlayers, playerId],
+        tryAgainCounts: isTryAgain
+          ? { ...turnStateModel.tryAgainCounts, [playerId]: (turnStateModel.tryAgainCounts[playerId] || 0) + 1 }
+          : turnStateModel.tryAgainCounts
+      }
+    };
+
+    console.log(`✅ TEMP state created for player ${playerId} (Try Again count: ${this.currentState.turnStateModel!.tryAgainCounts[playerId] || 0})`);
+
+    return {
+      success: true,
+      newTempState,
+      timePenaltyApplied: isTryAgain ? tryAgainPenalty : undefined
+    };
+  }
+
+  /**
+   * Commit TEMP state to REAL state for a player.
+   * Called at the end of a player's turn.
+   */
+  public commitTempToReal(playerId: string): StateTransitionResult {
+    console.log(`💾 Committing TEMP state to REAL for player ${playerId}`);
+
+    if (!this.currentState.turnStateModel) {
+      return { success: false, error: 'Turn state model not initialized' };
+    }
+
+    const tempState = this.currentState.turnStateModel.tempStates[playerId];
+    if (!tempState) {
+      return { success: false, error: `No TEMP state exists for player ${playerId}` };
+    }
+
+    // Create new REAL state from TEMP
+    const newRealState: PlayerTurnState = {
+      ...tempState,
+      capturedAt: {
+        ...tempState.capturedAt,
+        timestamp: new Date() // Update timestamp to commit time
+      }
+    };
+
+    // Update turn state model
+    const turnStateModel = this.currentState.turnStateModel;
+    this.currentState = {
+      ...this.currentState,
+      turnStateModel: {
+        ...turnStateModel,
+        realStates: {
+          ...turnStateModel.realStates,
+          [playerId]: newRealState
+        },
+        tempStates: {
+          ...turnStateModel.tempStates,
+          [playerId]: null // Clear TEMP state
+        },
+        activeTurnPlayers: turnStateModel.activeTurnPlayers.filter(id => id !== playerId),
+        tryAgainCounts: {
+          ...turnStateModel.tryAgainCounts,
+          [playerId]: 0 // Reset Try Again count
+        }
+      }
+    };
+
+    // Also update the player in main state to reflect committed changes
+    const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
+    if (playerIndex !== -1) {
+      const updatedPlayer = {
+        ...this.currentState.players[playerIndex],
+        ...tempState.state
+      };
+      const newPlayers = [...this.currentState.players];
+      newPlayers[playerIndex] = updatedPlayer;
+      this.currentState = {
+        ...this.currentState,
+        players: newPlayers
+      };
+    }
+
+    this.notifyListeners();
+    console.log(`✅ TEMP state committed to REAL for player ${playerId}`);
+
+    return { success: true, newRealState };
+  }
+
+  /**
+   * Discard TEMP state for a player (used in Try Again flow).
+   * After calling this, createTempStateFromReal should be called to create a fresh TEMP.
+   */
+  public discardTempState(playerId: string): StateTransitionResult {
+    console.log(`🗑️ Discarding TEMP state for player ${playerId}`);
+
+    if (!this.currentState.turnStateModel) {
+      return { success: false, error: 'Turn state model not initialized' };
+    }
+
+    const tempState = this.currentState.turnStateModel.tempStates[playerId];
+    if (!tempState) {
+      console.log(`ℹ️ No TEMP state to discard for player ${playerId}`);
+      return { success: true }; // Not an error - just nothing to discard
+    }
+
+    // Clear TEMP state
+    const turnStateModel = this.currentState.turnStateModel;
+    this.currentState = {
+      ...this.currentState,
+      turnStateModel: {
+        ...turnStateModel,
+        tempStates: {
+          ...turnStateModel.tempStates,
+          [playerId]: null
+        }
+      }
+    };
+
+    console.log(`✅ TEMP state discarded for player ${playerId}`);
+    return { success: true };
+  }
+
+  /**
+   * Apply changes directly to REAL state (bypasses TEMP).
+   * Used for Try Again time penalties that should persist across retries.
+   */
+  public applyToRealState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult {
+    console.log(`📝 Applying changes to REAL state for player ${playerId}:`, changes);
+
+    this.ensureTurnStateModel();
+    const player = this.getPlayer(playerId);
+
+    if (!player) {
+      return { success: false, error: `Player ${playerId} not found` };
+    }
+
+    // Get existing REAL state or create from current player
+    const existingReal = this.currentState.turnStateModel!.realStates[playerId];
+    const currentRealState: MutablePlayerState = existingReal?.state
+      ? { ...existingReal.state }
+      : this.extractMutableState(player);
+
+    // Apply changes (handle additive fields like timeSpent)
+    const updatedState: MutablePlayerState = { ...currentRealState };
+
+    // For timeSpent, we ADD the penalty to existing value
+    if (changes.timeSpent !== undefined) {
+      updatedState.timeSpent = currentRealState.timeSpent + changes.timeSpent;
+    }
+
+    // For other fields, apply directly if provided
+    if (changes.money !== undefined) updatedState.money = changes.money;
+    if (changes.projectScope !== undefined) updatedState.projectScope = changes.projectScope;
+    if (changes.score !== undefined) updatedState.score = changes.score;
+    if (changes.hand) updatedState.hand = [...changes.hand];
+    if (changes.activeCards) updatedState.activeCards = [...changes.activeCards];
+    if (changes.loans) updatedState.loans = [...changes.loans];
+    if (changes.moneySources) updatedState.moneySources = { ...changes.moneySources };
+    if (changes.expenditures) updatedState.expenditures = { ...changes.expenditures };
+    if (changes.costHistory) updatedState.costHistory = [...changes.costHistory];
+    if (changes.costs) updatedState.costs = { ...changes.costs };
+    if (changes.activeEffects) updatedState.activeEffects = [...changes.activeEffects];
+    if (changes.spaceVisitLog) updatedState.spaceVisitLog = [...changes.spaceVisitLog];
+    if (changes.lastDiceRoll) updatedState.lastDiceRoll = { ...changes.lastDiceRoll };
+
+    // Create updated REAL state
+    const newRealState: PlayerTurnState = {
+      playerId,
+      playerName: player.name,
+      state: updatedState,
+      capturedAt: existingReal?.capturedAt || {
+        turnNumber: this.currentState.globalTurnCount,
+        spaceName: player.currentSpace,
+        visitType: player.visitType,
+        timestamp: new Date()
+      }
+    };
+
+    // Update turn state model
+    const turnStateModel = this.currentState.turnStateModel!;
+    this.currentState = {
+      ...this.currentState,
+      turnStateModel: {
+        ...turnStateModel,
+        realStates: {
+          ...turnStateModel.realStates,
+          [playerId]: newRealState
+        }
+      }
+    };
+
+    console.log(`✅ Changes applied to REAL state for player ${playerId}`);
+    return { success: true, newRealState };
+  }
+
+  /**
+   * Get the effective player state (reads from TEMP during turn, REAL otherwise).
+   * This is the state that should be used for UI rendering and effect calculations.
+   */
+  public getEffectivePlayerState(playerId: string): MutablePlayerState | null {
+    const player = this.getPlayer(playerId);
+    if (!player) return null;
+
+    // If turn state model exists and player has active TEMP, use TEMP
+    if (this.currentState.turnStateModel) {
+      const tempState = this.currentState.turnStateModel.tempStates[playerId];
+      if (tempState) {
+        return { ...tempState.state };
+      }
+
+      // Fall back to REAL if no TEMP
+      const realState = this.currentState.turnStateModel.realStates[playerId];
+      if (realState) {
+        return { ...realState.state };
+      }
+    }
+
+    // Fall back to extracting from player object
+    return this.extractMutableState(player);
+  }
+
+  /**
+   * Check if a player has an active TEMP state (i.e., is in the middle of their turn).
+   */
+  public hasActiveTempState(playerId: string): boolean {
+    return !!(this.currentState.turnStateModel?.tempStates[playerId]);
+  }
+
+  /**
+   * Get the Try Again count for a player in the current turn.
+   */
+  public getTryAgainCount(playerId: string): number {
+    return this.currentState.turnStateModel?.tryAgainCounts[playerId] || 0;
+  }
+
+  /**
+   * Update the TEMP state for a player (if active) or main player state.
+   * This is the method that should be used by effect processing.
+   */
+  public updateTempState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult {
+    if (!this.currentState.turnStateModel?.tempStates[playerId]) {
+      // No TEMP state - fall back to updating main player state
+      console.log(`ℹ️ No TEMP state for player ${playerId}, updating main state instead`);
+      this.updatePlayer({ id: playerId, ...changes });
+      return { success: true };
+    }
+
+    const tempState = this.currentState.turnStateModel.tempStates[playerId]!;
+    const updatedState: MutablePlayerState = {
+      ...tempState.state,
+      ...changes
+    };
+
+    const newTempState: PlayerTurnState = {
+      ...tempState,
+      state: updatedState
+    };
+
+    this.currentState = {
+      ...this.currentState,
+      turnStateModel: {
+        ...this.currentState.turnStateModel!,
+        tempStates: {
+          ...this.currentState.turnStateModel!.tempStates,
+          [playerId]: newTempState
+        }
+      }
+    };
+
+    // Also update the main player state for immediate UI feedback
+    this.updatePlayer({ id: playerId, ...changes });
+
+    return { success: true, newTempState };
   }
 
   setGameState(newState: GameState): GameState {

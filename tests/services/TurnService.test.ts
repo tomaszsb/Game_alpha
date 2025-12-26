@@ -77,6 +77,15 @@ const mockStateService: anyIStateService = {
   // Auto-action event methods for modal notifications
   subscribeToAutoActions: vi.fn(),
   emitAutoAction: vi.fn(),
+  // REAL/TEMP State Model Methods
+  createTempStateFromReal: vi.fn().mockReturnValue({ success: true }),
+  commitTempToReal: vi.fn().mockReturnValue({ success: true }),
+  discardTempState: vi.fn().mockReturnValue({ success: true }),
+  applyToRealState: vi.fn().mockReturnValue({ success: true }),
+  getEffectivePlayerState: vi.fn(),
+  hasActiveTempState: vi.fn().mockReturnValue(false),
+  getTryAgainCount: vi.fn().mockReturnValue(0),
+  updateTempState: vi.fn().mockReturnValue({ success: true }),
 };
 
 const mockGameRulesService: anyIGameRulesService = {
@@ -281,6 +290,12 @@ describe('TurnService', () => {
     mockStateService.setCurrentPlayer.mockReturnValue(mockGameState);
     mockStateService.advanceTurn.mockReturnValue(mockGameState);
     mockStateService.clearPlayerHasMoved.mockReturnValue(mockGameState);
+
+    // Setup REAL/TEMP state model mocks
+    mockStateService.createTempStateFromReal.mockReturnValue({ success: true });
+    mockStateService.commitTempToReal.mockReturnValue({ success: true });
+    mockStateService.discardTempState.mockReturnValue({ success: true });
+    mockStateService.getTryAgainCount.mockReturnValue(0);
 
     // Setup getPlayer to return the correct player from mockPlayers array
     mockStateService.getPlayer.mockImplementation(playerId =>

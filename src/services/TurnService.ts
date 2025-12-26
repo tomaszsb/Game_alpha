@@ -3,7 +3,7 @@ import { NegotiationService } from './NegotiationService';
 import { INotificationService } from './NotificationService';
 import { DiceService } from './DiceService';
 import { SpaceEffectService } from './SpaceEffectService';
-import { GameState, Player, DiceResultEffect, TurnEffectResult } from '../types/StateTypes';
+import { GameState, Player, DiceResultEffect, TurnEffectResult, CreateTempOptions } from '../types/StateTypes';
 import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
@@ -434,6 +434,15 @@ export class TurnService implements ITurnService {
       this.loggingService.commitCurrentSession();
       console.log('🔴 [TurnService] Session committed');
 
+      // Commit TEMP state to REAL (new REAL/TEMP state model)
+      // This finalizes all turn effects into the committed state
+      const commitResult = this.stateService.commitTempToReal(gameState.currentPlayerId);
+      if (!commitResult.success) {
+        console.warn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
+      } else {
+        console.log('🔴 [TurnService] TEMP state committed to REAL');
+      }
+
       // Advance to next player
       console.log('🔴 [TurnService] About to call nextPlayer()...');
       const nextPlayerResult = await this.nextPlayer();
@@ -734,6 +743,18 @@ export class TurnService implements ITurnService {
 
       // 1. Start new exploration session for transactional logging
       const sessionId = this.loggingService.startNewExplorationSession();
+
+      // 1.5. Create TEMP state from REAL for this turn (new REAL/TEMP state model)
+      // This allows all turn effects to apply to TEMP, preserving REAL for Try Again
+      const tempOptions: CreateTempOptions = {
+        playerId: player.id,
+        spaceName: player.currentSpace,
+        visitType: player.visitType
+      };
+      const tempResult = this.stateService.createTempStateFromReal(tempOptions);
+      if (!tempResult.success) {
+        console.warn(`⚠️ Failed to create TEMP state: ${tempResult.error}`);
+      }
 
       // 2. Lock UI to prevent player actions during arrival processing
       this.stateService.updateGameState({ isProcessingArrival: true });
@@ -1788,84 +1809,6 @@ export class TurnService implements ITurnService {
   }
 
   /**
-   * Apply dice roll chance effects (like "draw_l_on_1" - draw a card if dice roll is 1)
-   */
-  private applyDiceRollChanceEffect(playerId: string, effect: SpaceEffect): GameState {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    console.log(`🎲 Applying dice roll chance effect: ${effect.effect_action} for ${player.name}`);
-
-    // Roll a dice (1-6)
-    const diceRoll = Math.floor(Math.random() * 6) + 1;
-    console.log(`🎲 Dice rolled: ${diceRoll}`);
-
-    // Parse the effect action to understand the condition
-    // Format: "draw_l_on_1" means draw L card if roll is 1
-    const actionParts = effect.effect_action.split('_');
-    if (actionParts.length >= 3 && actionParts[0] === 'draw') {
-      const cardType = actionParts[1].toUpperCase() as CardType;
-      const triggerRoll = parseInt(actionParts[3]); // "on_1" -> 1
-      const cardCount = parseInt(effect.effect_value.toString()) || 1;
-
-      if (diceRoll === triggerRoll) {
-        console.log(`🎯 Dice roll ${diceRoll} matches trigger ${triggerRoll}! Drawing ${cardCount} ${cardType} card(s)`);
-
-        // Use the CardService to draw cards
-        try {
-          const drawnCardIds = this.cardService.drawCards(playerId, cardType, cardCount, 'dice_roll_chance',
-            `Manual effect: Drew ${cardCount} ${cardType} card(s) on dice roll ${diceRoll}`);
-
-          // Get the card names for better feedback
-          const cardNames = drawnCardIds.map(cardId => {
-            const cardData = this.dataService.getCardById(cardId);
-            return cardData ? cardData.card_name : cardId;
-          });
-
-          // Log dice roll result to game log
-          if (cardNames.length > 0) {
-            const cardList = cardNames.join(', ');
-            this.loggingService.info(`🎲 ${player.name} rolled ${diceRoll} and drew: ${cardList}`, {
-              playerId: player.id,
-              playerName: player.name,
-              action: 'dice_roll',
-              diceValue: diceRoll,
-              spaceName: player.currentSpace,
-              description: `Automatic dice roll - drew ${cardCount} ${cardType} card(s)`
-            });
-          }
-
-          // Set UI completion message
-          this.stateService.setDiceRollCompletion(`Rolled ${diceRoll} - Drew ${cardCount} ${cardType} card(s)`);
-        } catch (error) {
-          console.warn(`Failed to draw ${cardType} cards:`, error);
-        }
-      } else {
-        console.log(`🎲 Dice roll ${diceRoll} does not match trigger ${triggerRoll}. No cards drawn.`);
-
-        // Log dice roll result to game log
-        this.loggingService.info(`🎲 ${player.name} rolled ${diceRoll} (needed ${triggerRoll} to draw ${cardType} card) - No card drawn`, {
-          playerId: player.id,
-          playerName: player.name,
-          action: 'dice_roll',
-          diceValue: diceRoll,
-          spaceName: player.currentSpace,
-          description: `Automatic dice roll - no match`
-        });
-
-        // Set UI completion message for non-matching roll
-        this.stateService.setDiceRollCompletion(`Rolled ${diceRoll} - No card drawn`);
-      }
-    } else {
-      console.warn(`Unknown dice_roll_chance effect format: ${effect.effect_action}`);
-    }
-
-    return this.stateService.getGameState();
-  }
-
-  /**
    * Trigger a manual space effect for the current player
    */
   async triggerManualEffect(playerId: string, effectType: string): Promise<GameState> {
@@ -1927,13 +1870,6 @@ export class TurnService implements ITurnService {
       }
     } else if (baseType === 'time') {
       newState = this.applySpaceTimeEffect(playerId, manualEffect);
-    } else if (baseType === 'dice_roll_chance') {
-      // Handle dice roll chance effects (like "draw_l_on_1")
-      console.log(`🎲 Processing dice_roll_chance effect: ${manualEffect.effect_action}`);
-      newState = this.applyDiceRollChanceEffect(playerId, manualEffect);
-
-      // Mark that dice has been rolled to prevent duplicate dice roll buttons
-      this.stateService.setPlayerHasRolledDice();
     } else if (baseType === 'turn') {
       // Handle turn effects (like "end_turn") - these are special and don't need processing here
       console.log(`🏁 Processing turn effect: ${manualEffect.effect_action}`);
@@ -1942,7 +1878,7 @@ export class TurnService implements ITurnService {
       console.warn(`⚠️ Unknown manual effect type: ${baseType}`);
     }
 
-    // Mark action as complete for non-card effects (money, time, dice_roll_chance)
+    // Mark action as complete for non-card effects (money, time)
     // Card effects handle this inside applySpaceCardEffect (before restoreMovementChoiceIfNeeded)
     if (baseType !== 'cards') {
       const { text: buttonText } = formatManualEffectButton(manualEffect);
@@ -2256,6 +2192,23 @@ export class TurnService implements ITurnService {
       // 6. Revert player to snapshot state with time penalty applied atomically
       // This handles all the complex state reconstruction, action flag resets, and penalty application
       this.stateService.revertPlayerToSnapshot(playerId, timePenalty);
+
+      // 6.5. Use new REAL/TEMP state model for Try Again
+      // Discard current TEMP state and create fresh one from REAL with penalty
+      this.stateService.discardTempState(playerId);
+      const tryAgainTempOptions: CreateTempOptions = {
+        playerId,
+        spaceName: snapshotPlayer.currentSpace,
+        visitType: snapshotPlayer.visitType,
+        isTryAgain: true,
+        tryAgainPenalty: timePenalty
+      };
+      const tempResult = this.stateService.createTempStateFromReal(tryAgainTempOptions);
+      if (!tempResult.success) {
+        console.warn(`⚠️ Failed to create Try Again TEMP state: ${tempResult.error}`);
+      } else {
+        console.log(`🔄 Created fresh TEMP state for Try Again (count: ${this.stateService.getTryAgainCount(playerId)})`);
+      }
 
       console.log(`✅ ${snapshotPlayer.name} reverted to ${snapshotPlayer.currentSpace} with ${timePenalty} day penalty`);
 
@@ -2670,138 +2623,98 @@ export class TurnService implements ITurnService {
       // Get space effect data from DataService for the arrival space
       const spaceEffectsData = this.dataService.getSpaceEffects(spaceName, visitType);
 
-      // Filter space effects based on conditions (e.g., scope_le_4M, scope_gt_4M)
-      const conditionFilteredEffects = this.filterSpaceEffectsByCondition(spaceEffectsData, currentPlayer);
+      // Check if any effects need dice roll for condition evaluation
+      const needsDiceRoll = ConditionEvaluator.anyEffectNeedsDiceRoll(spaceEffectsData);
 
-      // Check for automatic dice roll scenarios BEFORE filtering out manual effects
-      // If the space has requires_dice_roll=false but has a dice_roll_chance effect, automatically trigger it
-      const spaceData = this.dataService.getSpaceByName(spaceName);
+      let diceRoll: number | undefined;
+      if (needsDiceRoll) {
+        // Roll dice once for this space - used for all dice-dependent condition evaluations
+        diceRoll = Math.floor(Math.random() * 6) + 1;
+        console.log(`🎲 Rolled ${diceRoll} for condition evaluation at ${spaceName}`);
 
-      if (spaceData?.config && !spaceData.config.requires_dice_roll) {
-        const diceRollChanceEffect = conditionFilteredEffects.find(effect =>
-          effect.effect_type === 'dice_roll_chance'
-        );
-
-        if (diceRollChanceEffect) {
-          console.log(`🎲 Automatic dice roll triggered for ${spaceName} (requires_dice_roll=false with dice_roll_chance effect)`);
-
-          // Perform the automatic dice roll
-          await this.applyDiceRollChanceEffect(playerId, diceRollChanceEffect);
-
-          // BUG FIX: Do NOT set hasPlayerRolledDice for automatic dice effects
-          // This flag should only be set when the player MANUALLY clicks "Roll Dice"
-          // Automatic dice effects are just background mechanics, not player actions
-          // Setting this flag incorrectly causes the UI to think actions are complete when they're not
-        }
+        // Log the dice roll
+        this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} at ${spaceName}`, {
+          playerId: currentPlayer.id,
+          playerName: currentPlayer.name,
+          action: 'dice_roll',
+          diceValue: diceRoll,
+          spaceName: spaceName
+        });
       }
 
-      // Handle dice-conditional card effects (e.g., "Draw 1 if you roll a 1" for L cards)
-      // These are automatic card effects that require a dice roll to determine if they trigger
-      const diceConditionalCardEffects = conditionFilteredEffects.filter(effect => {
-        if (effect.trigger_type !== 'auto' || effect.effect_type !== 'cards') return false;
-        const valueStr = String(effect.effect_value || '').toLowerCase();
-        const descStr = String(effect.description || '').toLowerCase();
-        return valueStr.includes('if you roll a') || descStr.includes('if you roll a');
-      });
+      // Filter space effects based on conditions (e.g., scope_le_4M, dice_roll_3)
+      // Now includes dice roll value for dice-dependent conditions
+      const conditionFilteredEffects = this.filterSpaceEffectsByCondition(spaceEffectsData, currentPlayer, diceRoll);
 
-      if (diceConditionalCardEffects.length > 0) {
-        console.log(`🎲 Found ${diceConditionalCardEffects.length} dice-conditional card effect(s) at ${spaceName}`);
+      // Process dice-conditional card effects that passed the filter
+      // These effects have condition like 'dice_roll_3' and only appear in filtered list if dice matched
+      if (diceRoll !== undefined) {
+        const diceCardEffects = conditionFilteredEffects.filter(effect =>
+          effect.trigger_type === 'auto' &&
+          effect.effect_type === 'cards' &&
+          ConditionEvaluator.isDiceConditionStatic(effect.condition)
+        );
 
-        for (const effect of diceConditionalCardEffects) {
-          // Parse the required dice roll from the effect description
-          const valueStr = String(effect.effect_value || '').toLowerCase();
-          const descStr = String(effect.description || '').toLowerCase();
-          const conditionMatch = valueStr.match(/if you roll a (\d+)/) ||
-                                 descStr.match(/if you roll a (\d+)/);
+        for (const effect of diceCardEffects) {
+          // Extract card type and required roll from the effect
+          const cardType = effect.effect_action.replace(/^draw_/i, '').toUpperCase();
+          const requiredRoll = parseInt(effect.condition.replace('dice_roll_', ''), 10);
 
-          if (conditionMatch) {
-            const requiredRoll = parseInt(conditionMatch[1], 10);
+          // Effect passed condition check, so dice matched - draw the card
+          console.log(`🎯 Dice roll ${diceRoll} matches ${requiredRoll}! Drawing ${cardType} card for ${currentPlayer.name}`);
+          try {
+            const drawnCardIds = this.cardService.drawCards(
+              playerId,
+              cardType as CardType,
+              1,
+              'dice_conditional_effect',
+              `Auto effect: Rolled ${diceRoll} - Drew ${cardType} card`
+            );
 
-            // Roll a dice
-            const diceRoll = Math.floor(Math.random() * 6) + 1;
-            console.log(`🎲 Rolled ${diceRoll} for L card check (need ${requiredRoll})`);
+            // Get card details for display
+            const cardData = drawnCardIds.length > 0 ? this.dataService.getCardById(drawnCardIds[0]) : null;
+            const cardName = cardData?.card_name || `${cardType} Card`;
 
-            // Extract card type from effect_action (e.g., "draw_L" -> "L")
-            const cardType = effect.effect_action.replace(/^draw_/i, '').toUpperCase();
+            // Emit auto-action event for modal display
+            const autoActionEvent: AutoActionEvent = {
+              type: cardType === 'L' ? 'life_event' : 'dice_conditional_card',
+              playerId: currentPlayer.id,
+              playerName: currentPlayer.name,
+              diceValue: diceRoll,
+              requiredRoll: requiredRoll,
+              cardType: cardType,
+              cardName: cardName,
+              cardId: drawnCardIds.length > 0 ? drawnCardIds[0] : undefined,
+              success: true,
+              spaceName: spaceName,
+              message: `Rolled ${diceRoll} and drew: ${cardName}`
+            };
+            this.stateService.emitAutoAction(autoActionEvent);
 
-            if (diceRoll === requiredRoll) {
-              // Dice matches - draw the card
-              console.log(`🎯 Dice roll ${diceRoll} matches! Drawing ${cardType} card for ${currentPlayer.name}`);
-              try {
-                const drawnCardIds = this.cardService.drawCards(
-                  playerId,
-                  cardType as CardType,
-                  1,
-                  'dice_conditional_effect',
-                  `Auto effect: Rolled ${diceRoll} - Drew ${cardType} card`
-                );
-
-                // Get card details for display
-                const cardData = drawnCardIds.length > 0 ? this.dataService.getCardById(drawnCardIds[0]) : null;
-                const cardName = cardData?.card_name || `${cardType} Card`;
-
-                // Log the successful draw
-                this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} and drew a ${cardType} card!`, {
+            // Show notification for banner
+            if (this.notificationService) {
+              this.notificationService.notify(
+                {
+                  short: `🎲 ${diceRoll}!`,
+                  medium: `🎲 Rolled ${diceRoll} - Drew: ${cardName}`,
+                  detailed: `${currentPlayer.name} rolled ${diceRoll} (needed ${requiredRoll}) and drew a ${cardType} card: ${cardName}`
+                },
+                {
                   playerId: currentPlayer.id,
                   playerName: currentPlayer.name,
-                  action: 'dice_conditional_card',
-                  diceValue: diceRoll,
-                  spaceName: spaceName,
-                  description: `Automatic dice roll - drew ${cardType} card`
-                });
-
-                // Emit auto-action event for modal display
-                const autoActionEvent: AutoActionEvent = {
-                  type: cardType === 'L' ? 'life_event' : 'dice_conditional_card',
-                  playerId: currentPlayer.id,
-                  playerName: currentPlayer.name,
-                  diceValue: diceRoll,
-                  requiredRoll: requiredRoll,
-                  cardType: cardType,
-                  cardName: cardName,
-                  cardId: drawnCardIds.length > 0 ? drawnCardIds[0] : undefined,
-                  success: true,
-                  spaceName: spaceName,
-                  message: `Rolled ${diceRoll} and drew: ${cardName}`
-                };
-                this.stateService.emitAutoAction(autoActionEvent);
-
-                // Also show notification for banner
-                if (this.notificationService) {
-                  this.notificationService.notify(
-                    {
-                      short: `🎲 ${diceRoll}!`,
-                      medium: `🎲 Rolled ${diceRoll} - Drew: ${cardName}`,
-                      detailed: `${currentPlayer.name} rolled ${diceRoll} (needed ${requiredRoll}) and drew a ${cardType} card: ${cardName}`
-                    },
-                    {
-                      playerId: currentPlayer.id,
-                      playerName: currentPlayer.name,
-                      actionType: 'dice_conditional_card',
-                      notificationDuration: 5000
-                    }
-                  );
+                  actionType: 'dice_conditional_card',
+                  notificationDuration: 5000
                 }
-              } catch (error) {
-                console.error(`Failed to draw ${cardType} card on dice conditional effect:`, error);
-              }
-            } else {
-              // Dice doesn't match - no card drawn
-              // No modal notification for misses - life events are surprises,
-              // if nothing happens there's no surprise to show
-              console.log(`🎲 Dice roll ${diceRoll} doesn't match ${requiredRoll}. No ${cardType} card drawn.`);
-
-              // Log the miss (for game history only, no modal)
-              this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} (needed ${requiredRoll}) - No ${cardType} card drawn`, {
-                playerId: currentPlayer.id,
-                playerName: currentPlayer.name,
-                action: 'dice_conditional_miss',
-                diceValue: diceRoll,
-                spaceName: spaceName,
-                description: `Automatic dice roll - no card drawn`
-              });
+              );
             }
+          } catch (error) {
+            console.error(`Failed to draw ${cardType} card on dice conditional effect:`, error);
           }
+        }
+
+        // Log if dice was rolled but no card effects matched (for debugging)
+        if (diceCardEffects.length === 0 && needsDiceRoll) {
+          console.log(`🎲 Dice roll ${diceRoll} - no matching card effects at ${spaceName}`);
         }
       }
 
@@ -3006,17 +2919,16 @@ export class TurnService implements ITurnService {
   }
 
   /**
-   * Filter space effects based on their conditions
-   * Evaluates conditions like scope_le_4M, scope_gt_4M, etc.
-   */
-  /**
-   * Filter space effects based on conditions (e.g., scope_le_4M)
+   * Filter space effects based on conditions (e.g., scope_le_4M, dice_roll_3)
    * Public method for UI components to get condition-filtered effects
    * Delegates to GameRulesService for consistent condition evaluation
+   * @param spaceEffects - Array of space effects to filter
+   * @param player - The player to evaluate conditions for
+   * @param diceRoll - Optional dice roll value for dice-dependent conditions
    */
-  public filterSpaceEffectsByCondition(spaceEffects: SpaceEffect[], player: Player): SpaceEffect[] {
+  public filterSpaceEffectsByCondition(spaceEffects: SpaceEffect[], player: Player, diceRoll?: number): SpaceEffect[] {
     return spaceEffects.filter(effect => {
-      return this.gameRulesService.evaluateCondition(player.id, effect.condition);
+      return this.gameRulesService.evaluateCondition(player.id, effect.condition, diceRoll);
     });
   }
 

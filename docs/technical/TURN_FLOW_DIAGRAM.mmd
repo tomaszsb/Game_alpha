@@ -1,0 +1,289 @@
+flowchart TD
+    %% ==================== LEGEND ====================
+    subgraph LEGEND["LEGEND"]
+        direction LR
+        subgraph SHAPES["Shapes"]
+            L_TERM([Terminal: Start/End])
+            L_PROCESS[Process: Action Step]
+            L_DECISION{Decision: Yes/No}
+        end
+        subgraph COLORS["Colors"]
+            L_RED[Blocked / Locked / Error]
+            L_GREEN[Enabled / Unlocked / Ready]
+            L_YELLOW[Early Exit / Skip / Warning]
+            L_BLUE[Choice / UI Interaction]
+        end
+    end
+    style L_RED fill:#FF6B6B,color:#fff
+    style L_GREEN fill:#90EE90
+    style L_YELLOW fill:#FFD700
+    style L_BLUE fill:#87CEEB
+
+    %% ==================== MOVEMENT COMPLETE ====================
+    START([Player Movement Completes]) --> CLEAR["Reset any pending player choices - clearAwaitingChoice"]
+    CLEAR --> LOCK["Lock UI during processing - isProcessingArrival = true"]
+    LOCK --> LOG["Start logging session for this turn - startNewExplorationSession"]
+    LOG --> INIT_CHECK{First time on this space?}
+    INIT_CHECK -->|NO| PROCESS_EFFECTS
+    INIT_CHECK -->|YES| MARK_INIT["Mark space as visited - markAsInitialized"]
+    MARK_INIT --> PROCESS_EFFECTS
+
+    %% ==================== PROCESS SPACE EFFECTS ====================
+    subgraph PSEM["Apply automatic space effects - processSpaceEffectsAfterMovement"]
+        PROCESS_EFFECTS["Get player data - getPlayer"] --> PLAYER_EXISTS{Player exists?}
+        PLAYER_EXISTS -->|NO| ERROR_EXIT([Error])
+        PLAYER_EXISTS -->|YES| SNAPSHOT_EXISTS
+
+        SNAPSHOT_EXISTS{Is this a Try Again? - hasPreSpaceEffectSnapshot}
+        SNAPSHOT_EXISTS -->|YES| CALC_MANUAL["Only recalculate manual action buttons"]
+        CALC_MANUAL --> EARLY_RETURN([Skip auto effects - preserve state])
+        SNAPSHOT_EXISTS -->|NO| LOAD_EFFECTS
+
+        LOAD_EFFECTS["Load effects from CSV - getSpaceEffects"]
+        LOAD_EFFECTS --> FILTER_COND["Remove effects that dont apply - filterSpaceEffectsByCondition"]
+        FILTER_COND --> GET_SPACE["Get space configuration - getSpaceByName"]
+
+        %% Unified Dice Condition Handling (consolidated December 26, 2025)
+        GET_SPACE --> DICE_CHECK{"Any effects need dice roll?<br/>ConditionEvaluator.anyEffectNeedsDiceRoll()"}
+        DICE_CHECK -->|NO| FILTER_AUTO
+        DICE_CHECK -->|YES| ROLL_ONCE["Roll dice once (1-6)"]
+        ROLL_ONCE --> FILTER_WITH_ROLL["filterSpaceEffectsByCondition(effects, player, diceRoll)<br/>Uses evaluateCondition() with dice_roll_X conditions"]
+        FILTER_WITH_ROLL --> FILTER_AUTO
+
+        FILTER_AUTO["Keep only auto-trigger effects - exclude manual and time"]
+        FILTER_AUTO --> HAS_AUTO{Any auto effects to apply?}
+        HAS_AUTO -->|NO| NO_AUTO_EXIT([No automatic effects])
+        HAS_AUTO -->|YES| CREATE_EFFECTS
+
+        %% Effect Processing Pipeline - inline detail
+        CREATE_EFFECTS["EffectFactory.createEffectsFromSpaceEntry"]
+        CREATE_EFFECTS --> PARSE_EFFECT["parseSpaceEffect - read effect_type, effect_action, effect_value"]
+        PARSE_EFFECT --> BUILD_EFFECT["Build Effect object with effectType and payload"]
+        BUILD_EFFECT --> HAS_GEN{Effects created successfully?}
+        HAS_GEN -->|NO| NO_GEN_EXIT([No executable effects])
+        HAS_GEN -->|YES| CREATE_CTX
+
+        CREATE_CTX["Set up execution context - source, trigger event"]
+        CREATE_CTX --> ENGINE_AVAIL{Effect engine ready?}
+        ENGINE_AVAIL -->|NO| WARN_ENGINE["Log warning: engine not available"]
+        ENGINE_AVAIL -->|YES| RUN_ENGINE
+
+        RUN_ENGINE["EffectEngineService.processEffects - loop through Effect array"]
+        RUN_ENGINE --> SWITCH_TYPE{Switch on effectType}
+        SWITCH_TYPE -->|RESOURCE_CHANGE| DO_RESOURCE["stateService.updatePlayer - add/subtract money, time, scope"]
+        SWITCH_TYPE -->|CARD_DRAW| DO_CARD["cardService.drawCards - draw from deck, add to hand"]
+        SWITCH_TYPE -->|FEE_DEDUCTION| DO_FEE["Calculate percent of project scope, deduct from money"]
+        SWITCH_TYPE -->|LOG| DO_LOG["loggingService.info - record action in game log"]
+
+        DO_RESOURCE --> WRITE_STATE["Write changes to MAIN GameState directly"]
+        DO_CARD --> WRITE_STATE
+        DO_FEE --> WRITE_STATE
+        DO_LOG --> NEXT_EFFECT{More effects?}
+        WRITE_STATE --> NEXT_EFFECT
+        NEXT_EFFECT -->|YES| SWITCH_TYPE
+        NEXT_EFFECT -->|NO| ENGINE_RESULT{All effects succeeded?}
+        ENGINE_RESULT -->|YES| LOG_SUCCESS["Log: effects applied"]
+        ENGINE_RESULT -->|NO| LOG_WARN["Log: some effects failed"]
+    end
+    style CREATE_EFFECTS fill:#87CEEB
+    style PARSE_EFFECT fill:#87CEEB
+    style BUILD_EFFECT fill:#87CEEB
+    style RUN_ENGINE fill:#87CEEB
+    style SWITCH_TYPE fill:#87CEEB
+    style WRITE_STATE fill:#FFA500
+
+    EARLY_RETURN --> SAVE_SNAP
+    NO_AUTO_EXIT --> SAVE_SNAP
+    NO_GEN_EXIT --> SAVE_SNAP
+    WARN_ENGINE --> SAVE_SNAP
+    ENGINE_RESULT --> SAVE_SNAP
+
+    %% ==================== UNLOCK AND HANDLE CHOICES ====================
+    SAVE_SNAP["Save player state for Try Again - savePreSpaceEffectSnapshot"]
+    SAVE_SNAP --> UNLOCK["Unlock UI - isProcessingArrival = false"]
+    UNLOCK --> HMC_START
+
+    subgraph HMC["Show movement destination choices - handleMovementChoices"]
+        HMC_START["Get player data - getPlayer"]
+        HMC_START --> HMC_EXISTS{Player exists?}
+        HMC_EXISTS -->|NO| HMC_EXIT([Return])
+        HMC_EXISTS -->|YES| GET_MOVEMENT
+
+        GET_MOVEMENT["Get movement rules for this space - getMovement"]
+        GET_MOVEMENT --> IS_DICE{Movement determined by dice roll?}
+        IS_DICE -->|YES| SKIP_HMC([Skip - will show choice after player rolls])
+        IS_DICE -->|NO| GET_VALID
+
+        GET_VALID["Get all valid destinations - getValidMoves"]
+        GET_VALID --> IS_ARRAY{Got destination list?}
+        IS_ARRAY -->|NO| HMC_EXIT2([Return])
+        IS_ARRAY -->|YES| MULTI_DEST{Multiple destinations available?}
+        MULTI_DEST -->|NO| SINGLE_DEST([Only one destination - no choice needed])
+        MULTI_DEST -->|YES| CREATE_CHOICE["Show destination picker - setAwaitingChoice MOVEMENT"]
+    end
+
+    HMC_EXIT --> RENDER_START
+    SKIP_HMC --> RENDER_START
+    HMC_EXIT2 --> RENDER_START
+    SINGLE_DEST --> RENDER_START
+    CREATE_CHOICE --> RENDER_START
+
+    %% ==================== PLAYER PANEL RENDERING ====================
+    subgraph RENDER["Draw the Player Panel UI"]
+        RENDER_START["Draw header: avatar, name, location"]
+        RENDER_START --> TRANSITION_CHECK{Showing movement animation?}
+        TRANSITION_CHECK -->|YES| SHOW_OVERLAY["Show movement transition overlay"]
+        TRANSITION_CHECK -->|NO| MY_TURN_CHECK
+        SHOW_OVERLAY --> MY_TURN_CHECK
+
+        MY_TURN_CHECK{Is this players turn?}
+        MY_TURN_CHECK -->|NO| SHOW_WAIT["Show Waiting for other player banner"]
+        MY_TURN_CHECK -->|YES| RENDER_SECTIONS
+        SHOW_WAIT --> RENDER_SECTIONS
+
+        RENDER_SECTIONS["Draw all sections: Win, Card, Story, Scope, Money, Time, Cards"]
+        RENDER_SECTIONS --> CHOICE_CHECK{Player must choose destination?}
+        CHOICE_CHECK -->|YES| SHOW_DEST_BUTTONS["Show destination choice buttons"]
+        CHOICE_CHECK -->|NO| NSB_EVAL
+        SHOW_DEST_BUTTONS --> NSB_EVAL
+    end
+
+    %% ==================== NEXTSTEPBUTTON DECISION ====================
+    subgraph NSB["Determine End Turn button state - NextStepButton.getNextStepState"]
+        NSB_EVAL{Is this players turn?}
+        NSB_EVAL -->|NO| HIDE_BTN["Hide button completely"]
+        NSB_EVAL -->|YES| AWAIT_CHECK
+
+        AWAIT_CHECK{Player has pending choice?}
+        AWAIT_CHECK -->|NO| ACTION_CHECK
+        AWAIT_CHECK -->|YES| AWAIT_TYPE{Is it a movement choice?}
+
+        AWAIT_TYPE -->|NO| DISABLED_CHOICE["Disable: must complete other choice first"]
+        AWAIT_TYPE -->|YES| INTENT_CHECK{Has player selected a destination?}
+        INTENT_CHECK -->|NO| DISABLED_SELECT["Disable: must select destination first"]
+        INTENT_CHECK -->|YES| ACTION_CHECK
+
+        ACTION_CHECK{All required actions completed?}
+        ACTION_CHECK -->|NO| DISABLED_ACTIONS["Disable: must complete N more actions"]
+        ACTION_CHECK -->|YES| ENABLED["Enable: show End Turn button"]
+    end
+
+    %% ==================== PLAYER ACTIONS ====================
+    HIDE_BTN --> WAIT_FOR_ACTION
+    DISABLED_CHOICE --> WAIT_FOR_ACTION
+    DISABLED_SELECT --> WAIT_FOR_ACTION
+    DISABLED_ACTIONS --> WAIT_FOR_ACTION
+    ENABLED --> WAIT_FOR_ACTION
+
+    WAIT_FOR_ACTION{What does player do?}
+    WAIT_FOR_ACTION -->|Clicks destination button| SET_INTENT["Record chosen destination - setMoveIntent"]
+    WAIT_FOR_ACTION -->|Clicks Roll Dice| PROCESS_DICE
+    WAIT_FOR_ACTION -->|Clicks manual action button| MANUAL_HANDLER["Execute the manual effect"]
+    WAIT_FOR_ACTION -->|Clicks End Turn| END_TURN
+
+    SET_INTENT --> RENDER_START
+    MANUAL_HANDLER --> RESTORE_CHOICE["Re-show destination choices if needed - restoreMovementChoiceIfNeeded"]
+    RESTORE_CHOICE --> RENDER_START
+
+    %% ==================== DICE ROLL PROCESSING ====================
+    subgraph DICE["Process dice roll - processTurnEffectsWithTracking"]
+        PROCESS_DICE["Player rolls dice"]
+        PROCESS_DICE --> DICE_OUTCOME_CHECK{Dice determines destination?}
+        DICE_OUTCOME_CHECK -->|YES| GET_DICE_DEST["Look up destination from roll - DICE_ROLL_INFO.csv"]
+        DICE_OUTCOME_CHECK -->|NO| NORMAL_DICE["Apply dice-based effects - money, cards, etc"]
+        GET_DICE_DEST --> CREATE_SINGLE_CHOICE["Show single destination to confirm"]
+        NORMAL_DICE --> RENDER_START
+        CREATE_SINGLE_CHOICE --> RENDER_START
+    end
+
+    %% ==================== END TURN ====================
+    subgraph ENDTURN["End turn and advance - endTurn / nextPlayer"]
+        END_TURN["Apply time costs for leaving - processLeavingSpaceEffects"]
+        END_TURN --> CLEAR_STATE["Reset turn flags and clear choices"]
+        CLEAR_STATE --> NEXT_PLAYER["Move to next player in sequence"]
+        NEXT_PLAYER --> MOVE_NEXT["Next player selects destination and moves"]
+    end
+
+    MOVE_NEXT --> START
+
+    %% ==================== PLAYER DATA REFERENCE ====================
+    subgraph PLAYER_REF["getPlayer Returns: Player Interface"]
+        direction LR
+        subgraph PLAYER_SCHEMA["Player Schema"]
+            PS1["id: string
+shortId?: string
+name: string
+color?: string
+avatar?: string
+deviceType?: mobile | desktop"]
+            PS2["currentSpace: string
+visitType: First | Subsequent
+visitedSpaces: string[]
+spaceVisitLog: SpaceVisitRecord[]
+moveIntent?: string | null"]
+            PS3["money: number
+timeSpent: number
+projectScope: number
+score: number"]
+            PS4["hand: string[]
+activeCards: ActiveCard[]
+lastDiceRoll?: {roll1, roll2, total}"]
+            PS5["turnModifiers?: {skipTurns, canReRoll}
+activeEffects: ActiveEffect[]
+loans: Loan[]"]
+            PS6["moneySources: MoneySources
+expenditures: Expenditures
+costHistory: CostEntry[]
+costs: CostBreakdown"]
+            PS7["spaceEntrySnapshot?: {
+  space, visitType, money,
+  timeSpent, hand, activeCards
+}"]
+        end
+        subgraph PLAYER_SAMPLE["Sample Data"]
+            PD1["id: 'player-uuid-1234'
+shortId: 'P1'
+name: 'Alice'
+color: '#FF5733'
+avatar: 'warrior'
+deviceType: 'desktop'"]
+            PD2["currentSpace: 'DESIGN-A'
+visitType: 'First'
+visitedSpaces: ['START', 'KICKOFF', 'DESIGN-A']
+spaceVisitLog: [{space:'START',time:0}, ...]
+moveIntent: 'DESIGN-B'"]
+            PD3["money: 15000
+timeSpent: 45
+projectScope: 3
+score: 2850"]
+            PD4["hand: ['W-001', 'B-003', 'E-012']
+activeCards: [{id:'W-001',turnsRemaining:2}]
+lastDiceRoll: {roll1:4, roll2:3, total:7}"]
+            PD5["turnModifiers: {skipTurns:0, canReRoll:false}
+activeEffects: [{type:'discount',value:10}]
+loans: [{amount:5000,interest:0.1}]"]
+            PD6["moneySources: {initial:10000, earned:8000}
+expenditures: {fees:2000, cards:1000}
+costHistory: [{turn:3,amount:500}, ...]
+costs: {design:1500, dev:2000}"]
+            PD7["spaceEntrySnapshot: {
+  space: 'DESIGN-A',
+  visitType: 'First',
+  money: 15500, timeSpent: 42,
+  hand: ['W-001','B-003'], ...
+}"]
+        end
+    end
+
+    %% ==================== STYLING ====================
+    style LOCK fill:#FF6B6B,color:#fff
+    style UNLOCK fill:#90EE90
+    style ERROR_EXIT fill:#FF6B6B,color:#fff
+    style EARLY_RETURN fill:#FFD700
+    style SKIP_HMC fill:#FFD700
+    style ENABLED fill:#90EE90
+    style DISABLED_CHOICE fill:#FF6B6B,color:#fff
+    style DISABLED_SELECT fill:#FF6B6B,color:#fff
+    style DISABLED_ACTIONS fill:#FFD700
+    style CREATE_CHOICE fill:#87CEEB
+    style SHOW_DEST_BUTTONS fill:#87CEEB

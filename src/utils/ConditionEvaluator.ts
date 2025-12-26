@@ -1,5 +1,6 @@
 import { Player } from '../types/StateTypes';
 import { IGameRulesService } from '../types/ServiceContracts';
+import { SpaceEffect } from '../types/DataTypes';
 
 /**
  * ConditionEvaluator - Evaluates effect conditions against player state
@@ -9,6 +10,33 @@ import { IGameRulesService } from '../types/ServiceContracts';
  */
 export class ConditionEvaluator {
   constructor(private readonly gameRulesService?: IGameRulesService) {}
+
+  /**
+   * Static helper: Check if any effects in the array have dice-dependent conditions
+   * @param effects - Array of space effects to check
+   * @returns true if any effect requires a dice roll for condition evaluation
+   */
+  static anyEffectNeedsDiceRoll(effects: SpaceEffect[]): boolean {
+    return effects.some(effect => {
+      const condition = effect.condition?.toLowerCase().trim() || '';
+      return condition.startsWith('dice_roll_') ||
+             condition === 'high' ||
+             condition === 'low';
+    });
+  }
+
+  /**
+   * Static helper: Check if a condition string is dice-dependent
+   * @param condition - The condition string to check
+   * @returns true if this is a dice-dependent condition
+   */
+  static isDiceConditionStatic(condition: string | undefined): boolean {
+    if (!condition) return false;
+    const conditionLower = condition.toLowerCase().trim();
+    return conditionLower.startsWith('dice_roll_') ||
+           conditionLower === 'high' ||
+           conditionLower === 'low';
+  }
 
   /**
    * Evaluate whether an effect condition is met

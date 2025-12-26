@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConditionEvaluator, createConditionEvaluator } from '../../src/utils/ConditionEvaluator';
 import { IGameRulesService } from '../../src/types/ServiceContracts';
 import { Player } from '../../src/types/StateTypes';
+import { SpaceEffect } from '../../src/types/DataTypes';
 
 describe('ConditionEvaluator', () => {
   let conditionEvaluator: ConditionEvaluator;
@@ -319,6 +320,94 @@ describe('ConditionEvaluator', () => {
       const player = createMockPlayer();
       evaluator.evaluate(player, 'scope_le_4m');
       expect(mockGameRulesService.evaluateCondition).toHaveBeenCalled();
+    });
+  });
+
+  describe('static anyEffectNeedsDiceRoll', () => {
+    const createMockEffect = (condition: string): SpaceEffect => ({
+      space_name: 'TEST-SPACE',
+      visit_type: 'First',
+      effect_type: 'cards',
+      effect_action: 'draw_L',
+      effect_value: '1',
+      condition: condition,
+      description: 'Test effect',
+      trigger_type: 'auto'
+    });
+
+    it('should return true when any effect has dice_roll_X condition', () => {
+      const effects = [
+        createMockEffect(''),
+        createMockEffect('dice_roll_3'),
+        createMockEffect('scope_le_4M')
+      ];
+      expect(ConditionEvaluator.anyEffectNeedsDiceRoll(effects)).toBe(true);
+    });
+
+    it('should return true when any effect has "high" condition', () => {
+      const effects = [
+        createMockEffect(''),
+        createMockEffect('high')
+      ];
+      expect(ConditionEvaluator.anyEffectNeedsDiceRoll(effects)).toBe(true);
+    });
+
+    it('should return true when any effect has "low" condition', () => {
+      const effects = [
+        createMockEffect('scope_gt_4M'),
+        createMockEffect('low')
+      ];
+      expect(ConditionEvaluator.anyEffectNeedsDiceRoll(effects)).toBe(true);
+    });
+
+    it('should return false when no effects have dice conditions', () => {
+      const effects = [
+        createMockEffect(''),
+        createMockEffect('scope_le_4M'),
+        createMockEffect('always')
+      ];
+      expect(ConditionEvaluator.anyEffectNeedsDiceRoll(effects)).toBe(false);
+    });
+
+    it('should return false for empty effects array', () => {
+      expect(ConditionEvaluator.anyEffectNeedsDiceRoll([])).toBe(false);
+    });
+
+    it('should handle all dice_roll_1 through dice_roll_6', () => {
+      for (let i = 1; i <= 6; i++) {
+        const effects = [createMockEffect(`dice_roll_${i}`)];
+        expect(ConditionEvaluator.anyEffectNeedsDiceRoll(effects)).toBe(true);
+      }
+    });
+  });
+
+  describe('static isDiceConditionStatic', () => {
+    it('should return true for dice_roll_X conditions', () => {
+      expect(ConditionEvaluator.isDiceConditionStatic('dice_roll_1')).toBe(true);
+      expect(ConditionEvaluator.isDiceConditionStatic('dice_roll_3')).toBe(true);
+      expect(ConditionEvaluator.isDiceConditionStatic('dice_roll_6')).toBe(true);
+    });
+
+    it('should return true for high/low conditions', () => {
+      expect(ConditionEvaluator.isDiceConditionStatic('high')).toBe(true);
+      expect(ConditionEvaluator.isDiceConditionStatic('low')).toBe(true);
+    });
+
+    it('should be case-insensitive', () => {
+      expect(ConditionEvaluator.isDiceConditionStatic('DICE_ROLL_3')).toBe(true);
+      expect(ConditionEvaluator.isDiceConditionStatic('HIGH')).toBe(true);
+      expect(ConditionEvaluator.isDiceConditionStatic('Low')).toBe(true);
+    });
+
+    it('should return false for non-dice conditions', () => {
+      expect(ConditionEvaluator.isDiceConditionStatic('always')).toBe(false);
+      expect(ConditionEvaluator.isDiceConditionStatic('scope_le_4M')).toBe(false);
+      expect(ConditionEvaluator.isDiceConditionStatic('to_left')).toBe(false);
+    });
+
+    it('should return false for undefined or empty', () => {
+      expect(ConditionEvaluator.isDiceConditionStatic(undefined)).toBe(false);
+      expect(ConditionEvaluator.isDiceConditionStatic('')).toBe(false);
     });
   });
 });

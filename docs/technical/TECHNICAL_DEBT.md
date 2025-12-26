@@ -62,6 +62,211 @@ This document tracks identified technical debt in the Game Alpha codebase.
 
 ## High Priority Refactoring Candidates
 
+### State Management: Real + Temporary State Model (December 24, 2025)
+- **Status**: 📋 Proposed Refactor
+- **Location**: `StateService.ts`, `TurnService.ts` (snapshot management)
+- **Impact**: Simplifies Try Again logic, eliminates conditional effect processing
+- **Effort**: Medium-High (architectural change)
+- **Reference**: See [Aspirational Turn Flow Diagram](./TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd)
+
+#### Current Implementation (Checkpoint System)
+
+The current "Try Again" feature uses a **checkpoint/snapshot system**:
+
+```
+Enter Space → Apply auto effects → Save snapshot (WITH effects) → Player acts
+                                        ↓
+                              [Try Again] → Restore snapshot
+                                        ↓
+                              ⚠️ MUST skip auto effects (already in snapshot)
+```
+
+**Key code paths:**
+1. `TurnService.processSpaceEffectsAfterMovement()` - Line 2655 checks `hasPreSpaceEffectSnapshot()`
+2. `StateService.savePreSpaceEffectSnapshot()` - Saves AFTER effects applied
+3. `StateService.revertPlayerToSnapshot()` - Restores with time penalty
+
+**The `hasPreSpaceEffectSnapshot` decision point exists because:**
+- Snapshot is taken AFTER automatic effects are applied
+- On Try Again, player is restored to post-effect state
+- Re-entering the same flow would double-apply automatic effects
+- The check prevents this duplication
+
+#### Proposed Implementation (Real + Temporary State Model)
+
+A cleaner architecture separates **committed state** from **working state**:
+
+```
+Exit Previous Space → Add time cost to REAL → Save REAL state
+                              ↓
+Enter New Space → Create TEMPORARY from REAL
+                              ↓
+              → Apply ALL effects to TEMPORARY (always, no checks)
+                              ↓
+        ┌─────────────────────────────────┐
+        │                                 │
+   [Try Again]                      [End Turn]
+        │                                 │
+   Add time to REAL               TEMPORARY → REAL
+   Wipe TEMPORARY                 (commit everything)
+   Fresh TEMP from REAL
+        │
+        ↓
+   Re-enter space (effects applied to fresh TEMP)
+```
+
+#### Key Differences
+
+| Aspect | Current (Checkpoint) | Proposed (Real/Temp) |
+|--------|---------------------|----------------------|
+| When state saved | After arrival effects | On exit from previous space |
+| What's saved | Game state with effects applied | "Real" state before any temp changes |
+| Effect processing | Conditional (check `hasPreSpaceEffectSnapshot`) | Always (on temporary state) |
+| Try Again | Restore snapshot + time penalty | Reset temp, add time to real |
+| Decision points | Need snapshot existence check | No conditional checks needed |
+| Conceptual clarity | Muddled (snapshot includes effects) | Clear (real = committed, temp = working) |
+
+#### Benefits of Proposed Model
+
+1. **No `hasPreSpaceEffectSnapshot` check needed** - Always process all effects on temporary state
+2. **Clear separation of concerns** - Real state is committed, temporary is working
+3. **Multiple Try Again naturally supported** - Each Try Again: penalty to real, fresh temp
+4. **Time penalties accumulate correctly** - Added to real state before creating new temp
+5. **Simpler mental model** - Matches user intuition about "undo"
+
+#### Implementation Approach
+
+**Phase 1: Dual State Structure**
+```typescript
+interface GameState {
+  // Existing fields...
+
+  // NEW: Dual state model
+  realPlayerStates: {
+    [playerId: string]: Player;
+  };
+  temporaryPlayerStates: {
+    [playerId: string]: Player;
+  };
+}
+```
+
+**Phase 2: State Transition Points**
+1. `exitSpace()` - Apply time cost to real, save real state
+2. `enterSpace()` - Create temporary from real, apply all effects
+3. `tryAgain()` - Add penalty to real, create fresh temporary
+4. `endTurn()` - Commit temporary to real
+
+**Phase 3: Remove Snapshot Logic**
+1. Remove `playerSnapshots` from GameState
+2. Remove `hasPreSpaceEffectSnapshot()` checks
+3. Remove `savePreSpaceEffectSnapshot()` / `revertPlayerToSnapshot()`
+4. Simplify `processSpaceEffectsAfterMovement()` - remove conditional
+
+#### Migration Path
+
+1. **Add dual state structure** alongside existing snapshots
+2. **Implement new state transitions** with feature flag
+3. **Test both systems** in parallel
+4. **Remove old snapshot system** once validated
+5. **Update diagram** - current diagram becomes historical reference
+
+#### Files Affected
+
+**Core Changes:**
+- `src/services/StateService.ts` - Add real/temp state management
+- `src/services/TurnService.ts` - Update state transitions
+- `src/types/StateTypes.ts` - Add dual state types
+
+**Simplifications (after migration):**
+- Remove `hasPreSpaceEffectSnapshot()` calls
+- Remove `savePreSpaceEffectSnapshot()` / `revertPlayerToSnapshot()`
+- Remove `playerSnapshots` from GameState
+- Simplify `processSpaceEffectsAfterMovement()` conditional logic
+
+#### Testing Requirements
+
+1. **Try Again basic flow** - Verify time penalty applied correctly
+2. **Multiple Try Again** - Verify penalties accumulate
+3. **Effect application** - Verify effects apply to temporary state
+4. **End Turn commit** - Verify temporary becomes real
+5. **Multi-player** - Verify each player has independent real/temp states
+6. **Edge cases** - Game start, game end, player disconnection
+
+#### Documentation
+
+- **Current flow**: `docs/technical/TURN_FLOW_DIAGRAM.mmd`
+- **Aspirational flow**: `docs/technical/TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd`
+
+---
+
+### Dice Condition Handling Consolidation (December 26, 2025)
+- **Status**: ✅ **RESOLVED**
+- **Location**: `TurnService.ts`, `GameRulesService.ts`, `ConditionEvaluator.ts`, CSV data
+- **Impact**: Removed dead code, eliminated text parsing, unified condition handling
+- **Resolution**: Consolidated 3 separate dice condition paths into 1 unified approach
+
+#### What Was Fixed
+
+**Before (3 paths):**
+1. `applyDiceRollChanceEffect()` - DEAD CODE (0 CSV rows used it) - **REMOVED**
+2. Text parsing "if you roll a X" in descriptions - **REMOVED**
+3. `evaluateCondition()` with `dice_roll_X` condition - **NOW THE ONLY PATH**
+
+**After (1 path):**
+- All dice conditions use the structured `condition` column in CSV
+- `filterSpaceEffectsByCondition()` now accepts optional `diceRoll` parameter
+- `evaluateCondition()` handles all dice conditions (`dice_roll_1` through `dice_roll_6`, `high`, `low`)
+
+#### Changes Made
+
+**Phase 1: Dead Code Removal**
+- Deleted `applyDiceRollChanceEffect()` method (~77 lines) from TurnService.ts
+- Removed `dice_roll_chance` from effect_type union in DataTypes.ts
+- Removed dice_roll_chance handling from buttonFormatting.ts
+- Updated TurnControlsWithActions.tsx to remove dice_roll_chance references
+
+**Phase 2: CSV Migration**
+- Migrated 40 rows in SPACE_EFFECTS.csv from text-based to condition-based
+- Before: `effect_value="Draw 1 if you roll a 3", condition=""`
+- After: `effect_value="1", condition="dice_roll_3"`
+- Backup created: `SPACE_EFFECTS.csv.pre-dice-migration`
+
+**Phase 3: Code Consolidation**
+- Added `anyEffectNeedsDiceRoll()` static method to ConditionEvaluator.ts
+- Added `isDiceConditionStatic()` static method to ConditionEvaluator.ts
+- Updated `filterSpaceEffectsByCondition()` signature to accept optional `diceRoll` parameter
+- Updated ServiceContracts.ts interface
+- Replaced DICE_LOOP text parsing with unified condition filtering
+- Updated EffectFactory.ts to use condition column instead of text parsing
+- Updated StateService.ts dice effect detection
+
+**Phase 4: Tests**
+- Added 11 new tests for static methods to ConditionEvaluator.test.ts
+- All 54 ConditionEvaluator tests pass
+- All 27 TurnService tests pass
+- All 46 buttonFormatting tests pass
+
+#### Files Modified
+- `src/services/TurnService.ts` - Removed ~110 lines of dead/duplicate code
+- `src/types/DataTypes.ts` - Removed `dice_roll_chance` type
+- `src/types/ServiceContracts.ts` - Updated interface signature
+- `src/utils/ConditionEvaluator.ts` - Added static helper methods
+- `src/utils/EffectFactory.ts` - Updated to use condition column
+- `src/utils/buttonFormatting.ts` - Removed dice_roll_chance handling
+- `src/services/StateService.ts` - Updated dice effect detection
+- `src/components/player/TurnControlsWithActions.tsx` - Removed references
+- `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` - Migrated 40 rows
+- `tests/utils/ConditionEvaluator.test.ts` - Added 11 new tests
+
+#### Benefits Achieved
+1. **Single code path** - All dice conditions flow through `filterSpaceEffectsByCondition()`
+2. **No text parsing** - Conditions are structured data in CSV condition column
+3. **Extensible** - Easy to add new dice conditions without code changes
+4. **Maintainable** - Clear, documented code path
+
+---
+
 - **E2E-01_HappyPath.test.tsx Skipped Test**
   - **Status**: ⚠️ Skipped
   - **Description**: The `E2E-01_HappyPath.test.tsx` test is currently skipped. The test is outdated and does not account for a mandatory `draw_E` manual action on the starting space (`OWNER-SCOPE-INITIATION`). The test expects a "Roll to Move" button to be immediately available, but the game correctly requires the manual action to be performed first.

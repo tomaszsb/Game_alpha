@@ -550,13 +550,13 @@ export function TurnControlsWithActions({
             <span>🎲</span>
             <span>{getDiceRollButtonText()}</span>
           </button>
-        ) : hasPlayerRolledDice && completedActions.diceRoll && !completedActions.manualActions.dice_roll_chance ? (
-          // Show local completion message with immediate feedback (only if no manual dice action)
+        ) : hasPlayerRolledDice && completedActions.diceRoll ? (
+          // Show local completion message with immediate feedback
           <div style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: colors.secondary.light, borderRadius: '4px', color: colors.secondary.main }}>
             ✅ {completedActions.diceRoll}
           </div>
-        ) : hasPlayerRolledDice && !completedActions.manualActions.funding && !completedActions.manualActions.dice_roll_chance ? (
-          // Fallback if no local message available and no manual dice action
+        ) : hasPlayerRolledDice && !completedActions.manualActions.funding ? (
+          // Fallback if no local message available
           <div style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: colors.secondary.light, borderRadius: '4px', color: colors.secondary.main }}>
             ✅ Dice rolled - check game log
           </div>

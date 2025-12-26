@@ -104,24 +104,6 @@ describe('buttonFormatting', () => {
       });
     });
 
-    it('should format dice_roll_chance effect button', () => {
-      const effect: SpaceEffect = {
-        space_name: 'TEST_SPACE',
-        visit_type: 'First',
-        effect_type: 'dice_roll_chance',
-        effect_action: 'roll',
-        effect_value: 0,
-        condition: '',
-        description: 'Roll for bonus'
-      };
-
-      const result = formatManualEffectButton(effect);
-      expect(result).toEqual({
-        text: 'Roll for Bonus Card',
-        icon: '🎲'
-      });
-    });
-
     it('should format turn effect button with description', () => {
       const effect: SpaceEffect = {
         space_name: 'TEST_SPACE',

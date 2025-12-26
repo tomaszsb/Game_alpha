@@ -259,6 +259,17 @@ export interface IStateService {
   // Server synchronization methods
   loadStateFromServer(): Promise<boolean>;
   replaceState(newState: GameState): void;
+
+  // REAL/TEMP State Model Methods (December 26, 2025)
+  // Manages separation of committed state (REAL) from working state (TEMP)
+  createTempStateFromReal(options: import('./StateTypes').CreateTempOptions): import('./StateTypes').StateTransitionResult;
+  commitTempToReal(playerId: string): import('./StateTypes').StateTransitionResult;
+  discardTempState(playerId: string): import('./StateTypes').StateTransitionResult;
+  applyToRealState(playerId: string, changes: Partial<import('./StateTypes').MutablePlayerState>): import('./StateTypes').StateTransitionResult;
+  getEffectivePlayerState(playerId: string): import('./StateTypes').MutablePlayerState | null;
+  hasActiveTempState(playerId: string): boolean;
+  getTryAgainCount(playerId: string): number;
+  updateTempState(playerId: string, changes: Partial<import('./StateTypes').MutablePlayerState>): import('./StateTypes').StateTransitionResult;
 }
 
 export interface TurnResult {
@@ -334,8 +345,8 @@ export interface ITurnService {
   tryAgainOnSpace(playerId: string): Promise<{ success: boolean; message: string; shouldAdvanceTurn?: boolean }>;
   handleAutomaticFunding(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
 
-  // Condition filtering for UI components
-  filterSpaceEffectsByCondition(spaceEffects: any[], player: any): any[];
+  // Condition filtering for UI components (with optional dice roll for dice-dependent conditions)
+  filterSpaceEffectsByCondition(spaceEffects: any[], player: any, diceRoll?: number): any[];
 }
 
 export interface ICardService {

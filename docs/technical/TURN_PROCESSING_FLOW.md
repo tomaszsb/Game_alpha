@@ -2,6 +2,13 @@
 
 This document describes the complete logic flow when a player enters a new space and the player panel is rendered.
 
+> **Related Diagrams (December 2025):**
+> - **[TURN_FLOW_DIAGRAM.mmd](./TURN_FLOW_DIAGRAM.mmd)** - Detailed visual flowchart of current implementation including effect processing pipeline
+> - **[TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd](./TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd)** - Proposed Real + Temporary State Model architecture
+> - **[current_process.drawio](./current_process.drawio)** - Draw.io version with collapsible sections
+>
+> See also: [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) for proposed refactors to the turn flow system.
+
 ## Table of Contents
 1. [High-Level Flow](#1-high-level-flow)
 2. [startTurn() Sequence](#2-startturn-sequence)
@@ -90,34 +97,18 @@ flowchart TD
             FILTER_CONDITIONS --> GET_SPACE_DATA["getSpaceByName(spaceName)"]
         end
 
-        subgraph AUTO_DICE["4. Auto Dice Roll Check"]
-            GET_SPACE_DATA --> DICE_CHECK{"requires_dice_roll === false<br/>AND<br/>has dice_roll_chance effect?"}
-            DICE_CHECK -->|YES| AUTO_ROLL["applyDiceRollChanceEffect()"]
-            AUTO_ROLL --> DICE_CONDITIONAL
-            DICE_CHECK -->|NO| DICE_CONDITIONAL
+        subgraph DICE_COND["4. Unified Dice Condition Handling"]
+            %% As of December 26, 2025: All dice conditions use the unified condition column
+            %% See TECHNICAL_DEBT.md for resolution details
+            GET_SPACE_DATA --> CHECK_DICE_NEEDED{"ConditionEvaluator.anyEffectNeedsDiceRoll()?"}
+            CHECK_DICE_NEEDED -->|NO| FILTER_AUTO
+            CHECK_DICE_NEEDED -->|YES| ROLL_ONCE["Roll dice once (1-6)"]
+            ROLL_ONCE --> FILTER_WITH_ROLL["filterSpaceEffectsByCondition(effects, player, diceRoll)<br/>Passes dice roll to evaluateCondition()"]
+            FILTER_WITH_ROLL --> DICE_CARDS["Dice-conditional effects that passed filter<br/>are processed by EffectEngine"]
+            DICE_CARDS --> FILTER_AUTO
         end
 
-        subgraph DICE_COND["5. Dice-Conditional Card Effects (L Cards)"]
-            DICE_CONDITIONAL["Find effects with<br/>'if you roll a X' in description"]
-            DICE_CONDITIONAL --> HAS_DICE_COND{Found any?}
-            HAS_DICE_COND -->|NO| FILTER_AUTO
-            HAS_DICE_COND -->|YES| LOOP_START
-
-            subgraph DICE_LOOP["For Each Dice-Conditional Effect"]
-                LOOP_START["Parse required roll number"]
-                LOOP_START --> ROLL_DICE["Roll dice (1-6)"]
-                ROLL_DICE --> ROLL_MATCH{Roll matches<br/>required?}
-                ROLL_MATCH -->|YES| DRAW_CARD["cardService.drawCards()<br/>+ emit AutoActionEvent<br/>+ notify user"]
-                ROLL_MATCH -->|NO| LOG_MISS["Log miss (no modal)"]
-                DRAW_CARD --> NEXT_EFFECT
-                LOG_MISS --> NEXT_EFFECT
-                NEXT_EFFECT{More effects?}
-                NEXT_EFFECT -->|YES| LOOP_START
-                NEXT_EFFECT -->|NO| FILTER_AUTO
-            end
-        end
-
-        subgraph FILTER_PROCESS["6. Filter & Process Auto Effects"]
+        subgraph FILTER_PROCESS["5. Filter & Process Auto Effects"]
             FILTER_AUTO["Filter out:<br/>- trigger_type = 'manual'<br/>- effect_type = 'time'"]
             FILTER_AUTO --> HAS_AUTO{Any auto<br/>effects left?}
             HAS_AUTO -->|NO| NO_EFFECTS(["No auto effects - Return"])
@@ -158,10 +149,11 @@ flowchart TD
 | 1 | getPlayer | Validate player exists |
 | 2 | Snapshot Check | Skip auto effects if Try Again (preserve state) |
 | 3 | Load Data | Get effects from CSV, filter by conditions |
-| 4 | Auto Dice | Handle spaces with automatic dice rolls |
-| 5 | Dice-Conditional | L cards with "if you roll X" logic |
-| 6 | Filter | Remove manual/time effects (handled elsewhere) |
-| 7 | Execute | Run auto effects through EffectEngine |
+| 4 | Unified Dice | Check if any effects need dice roll, roll once, pass to filter |
+| 5 | Filter | Remove manual/time effects (handled elsewhere) |
+| 6 | Execute | Run auto effects through EffectEngine |
+
+> **Note:** As of December 26, 2025, dice condition handling was consolidated from 3 separate paths into 1 unified approach. All dice conditions now use the `condition` column in CSV (e.g., `dice_roll_3`) and are evaluated through `filterSpaceEffectsByCondition()` with the optional `diceRoll` parameter.
 
 ---
 
@@ -362,14 +354,16 @@ flowchart TD
 ```
 
 ### Condition Examples:
-| Condition | Meaning |
-|-----------|---------|
-| `scope_le_4m` | Project scope <= $4M |
-| `scope_gt_4m` | Project scope > $4M |
-| `dice_roll_3` | Dice rolled 3 |
-| `high` | Dice rolled 4, 5, or 6 |
-| `low` | Dice rolled 1, 2, or 3 |
-| `always` | Always applies |
+| Condition | Meaning | Used For |
+|-----------|---------|----------|
+| `scope_le_4m` | Project scope <= $4M | Movement paths, effect filtering |
+| `scope_gt_4m` | Project scope > $4M | Movement paths, effect filtering |
+| `dice_roll_1` through `dice_roll_6` | Dice rolled specific number | L-card draws, conditional effects |
+| `high` | Dice rolled 4, 5, or 6 | Movement, conditional effects |
+| `low` | Dice rolled 1, 2, or 3 | Movement, conditional effects |
+| `always` | Always applies | Default effects |
+
+> **Note:** Dice conditions (`dice_roll_X`, `high`, `low`) require a dice roll to be passed to `filterSpaceEffectsByCondition()`. The `ConditionEvaluator.anyEffectNeedsDiceRoll()` helper detects when a dice roll is needed.
 
 ---
 
@@ -465,8 +459,9 @@ flowchart TD
         E1["money"] --> E1A["Add/subtract money"]
         E2["time"] --> E2A["Add/subtract time<br/>ON LEAVING SPACE"]
         E3["cards"] --> E3A["Draw/discard cards"]
-        E4["dice_roll_chance"] --> E4A["Automatic dice roll"]
+        E4["dice"] --> E4A["Dice-based effects<br/>(movement, etc.)"]
         E5["turn"] --> E5A["End turn effects"]
+        E6["fee"] --> E6A["Fee deductions<br/>(percent of scope)"]
     end
 
     style T1 fill:#90EE90
@@ -573,12 +568,13 @@ flowchart TD
 
 | Component/Service | File Path | Key Functions |
 |-------------------|-----------|---------------|
-| TurnService | `src/services/TurnService.ts` | `startTurn()`, `processSpaceEffectsAfterMovement()`, `handleMovementChoices()` |
+| TurnService | `src/services/TurnService.ts` | `startTurn()`, `processSpaceEffectsAfterMovement()`, `handleMovementChoices()`, `filterSpaceEffectsByCondition()` |
 | PlayerPanel | `src/components/player/PlayerPanel.tsx` | Main container component |
 | NextStepButton | `src/components/player/NextStepButton.tsx` | `getNextStepState()` |
-| ConditionEvaluator | `src/utils/ConditionEvaluator.ts` | `evaluate()`, `isDiceCondition()` |
-| SpaceEffectService | `src/services/SpaceEffectService.ts` | `applyDiceEffect()`, `applyMoneyEffect()` |
+| ConditionEvaluator | `src/utils/ConditionEvaluator.ts` | `evaluate()`, `isDiceCondition()`, `anyEffectNeedsDiceRoll()`, `isDiceConditionStatic()` |
+| EffectFactory | `src/utils/EffectFactory.ts` | `createEffectsFromSpaceEntry()`, `parseSpaceEffect()` |
 | EffectEngineService | `src/services/EffectEngineService.ts` | `processEffects()` |
+| GameRulesService | `src/services/GameRulesService.ts` | `evaluateCondition()` - handles dice_roll_X conditions |
 | StateService | `src/services/StateService.ts` | State management |
 
 ---

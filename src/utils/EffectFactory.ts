@@ -2,6 +2,7 @@
 
 import { Card, CardType, SpaceEffect, DiceEffect, GameConfig } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
+import { ConditionEvaluator } from './ConditionEvaluator';
 
 /**
  * Effect Factory Utility
@@ -500,17 +501,12 @@ export class EffectFactory {
         break;
 
       case 'cards':
-        // Check if this is a dice-conditional card effect (e.g., "Draw 1 if you roll a 1")
-        // These effects should NOT be processed here - they're handled by dice roll logic
-        const effectValueStr = String(spaceEffect.effect_value || '').toLowerCase();
-        const descriptionStr = String(spaceEffect.description || '').toLowerCase();
-        const diceConditionMatch = effectValueStr.match(/if you roll a (\d+)/) ||
-                                   descriptionStr.match(/if you roll a (\d+)/);
-
-        if (diceConditionMatch) {
+        // Check if this is a dice-conditional card effect (uses condition column like 'dice_roll_3')
+        // These effects should NOT be processed here - they're handled by dice roll logic in TurnService
+        if (ConditionEvaluator.isDiceConditionStatic(spaceEffect.condition)) {
           // This is a dice-conditional card effect - skip it here
           // It will be processed when the dice is actually rolled
-          console.log(`   ⏭️ Skipping dice-conditional card effect: "${spaceEffect.effect_value}" - requires dice roll ${diceConditionMatch[1]}`);
+          console.log(`   ⏭️ Skipping dice-conditional card effect: condition="${spaceEffect.condition}" - handled by dice roll logic`);
           break;
         }
 

@@ -1,8 +1,137 @@
-import { Player, ActiveCard, ActiveEffect } from './DataTypes';
+import { Player, ActiveCard, ActiveEffect, Loan, MoneySources, Expenditures, CostEntry, CostBreakdown, SpaceVisitRecord } from './DataTypes';
 import { Effect } from './EffectTypes';
 import { Choice } from './CommonTypes';
 
 export type GamePhase = 'SETUP' | 'PLAY' | 'END';
+
+// ============================================================
+// REAL/TEMP State Model Types (December 26, 2025)
+// ============================================================
+//
+// This state model separates "committed" state from "working" state
+// to simplify Try Again logic and make state transitions explicit.
+//
+// Flow:
+// 1. Turn starts → CREATE TEMP from REAL
+// 2. All effects → APPLY TO TEMP only
+// 3. UI renders → FROM TEMP
+// 4. On Try Again: Add penalty to REAL → discard TEMP → create fresh TEMP
+// 5. On End Turn: COMMIT TEMP to REAL
+//
+// See docs/technical/TECHNICAL_DEBT.md for full design rationale.
+// ============================================================
+
+/**
+ * Mutable player state that can change during a turn.
+ * This is the subset of Player that gets captured in REAL/TEMP states.
+ */
+export interface MutablePlayerState {
+  // Core resources
+  money: number;
+  timeSpent: number;
+  projectScope: number;
+  score: number;
+
+  // Cards
+  hand: string[];
+  activeCards: ActiveCard[];
+
+  // Financial tracking
+  loans: Loan[];
+  moneySources: MoneySources;
+  expenditures: Expenditures;
+  costHistory: CostEntry[];
+  costs: CostBreakdown;
+
+  // Effects
+  activeEffects: ActiveEffect[];
+
+  // Space tracking (may change if Try Again applies time penalty)
+  spaceVisitLog: SpaceVisitRecord[];
+
+  // Dice state
+  lastDiceRoll?: {
+    roll1: number;
+    roll2: number;
+    total: number;
+  };
+}
+
+/**
+ * Captures the complete REAL or TEMP state for a player.
+ * Used for state transitions (commit, discard, create from REAL).
+ */
+export interface PlayerTurnState {
+  playerId: string;
+  playerName: string;
+
+  // The mutable state snapshot
+  state: MutablePlayerState;
+
+  // Context about when this state was captured
+  capturedAt: {
+    turnNumber: number;
+    spaceName: string;
+    visitType: 'First' | 'Subsequent';
+    timestamp: Date;
+  };
+}
+
+/**
+ * Manages REAL and TEMP states for all players.
+ * This replaces the snapshot-based approach.
+ */
+export interface TurnStateModel {
+  // REAL state: Committed state that survives Try Again
+  // Updated only at turn boundaries (end turn, start of next turn)
+  realStates: {
+    [playerId: string]: PlayerTurnState | null;
+  };
+
+  // TEMP state: Working state for current turn
+  // Discarded and recreated on Try Again
+  // Committed to REAL on End Turn
+  tempStates: {
+    [playerId: string]: PlayerTurnState | null;
+  };
+
+  // Tracks which players have active TEMP states
+  // (i.e., are in the middle of their turn)
+  activeTurnPlayers: string[];
+
+  // Try Again tracking: how many times each player has used Try Again this turn
+  tryAgainCounts: {
+    [playerId: string]: number;
+  };
+}
+
+/**
+ * Result of a state transition operation.
+ */
+export interface StateTransitionResult {
+  success: boolean;
+  error?: string;
+
+  // The affected state (after the operation)
+  newTempState?: PlayerTurnState;
+  newRealState?: PlayerTurnState;
+
+  // For Try Again: the time penalty that was applied
+  timePenaltyApplied?: number;
+}
+
+/**
+ * Options for creating a TEMP state from REAL.
+ */
+export interface CreateTempOptions {
+  playerId: string;
+  spaceName: string;
+  visitType: 'First' | 'Subsequent';
+
+  // If true, this is a Try Again scenario - apply time penalty first
+  isTryAgain?: boolean;
+  tryAgainPenalty?: number;
+}
 
 export interface ActionLogEntry {
   id: string;
@@ -104,13 +233,19 @@ export interface GameState {
   selectedDestination: string | null;
   // Global action log
   globalActionLog: ActionLogEntry[];
-  // Try Again state snapshotting (per player)
+  // Try Again state snapshotting (per player) - LEGACY
+  // Will be replaced by turnStateModel in future refactor
   playerSnapshots: {
     [playerId: string]: {
       spaceName: string;
       gameState: GameState;
     } | null;
   };
+
+  // NEW: REAL/TEMP State Model (December 26, 2025)
+  // Separates committed state (REAL) from working state (TEMP)
+  // See docs/technical/TECHNICAL_DEBT.md for design rationale
+  turnStateModel?: TurnStateModel;
   // Stateful decks and discard piles
   decks: {
     W: string[];
