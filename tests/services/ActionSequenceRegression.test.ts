@@ -123,6 +123,12 @@ describe('Action Sequence Regression Tests', () => {
     mockStateService.hasPreSpaceEffectSnapshot = vi.fn().mockReturnValue(false);
     mockStateService.isInitialized = vi.fn().mockReturnValue(true);
     mockStateService.markAsInitialized = vi.fn();
+    // REAL/TEMP state model mocks
+    mockStateService.createTempStateFromReal = vi.fn().mockReturnValue({ success: true });
+    mockStateService.commitTempToReal = vi.fn().mockReturnValue({ success: true });
+    mockStateService.discardTempState = vi.fn().mockReturnValue({ success: true });
+    mockStateService.hasActiveTempState = vi.fn().mockReturnValue(false);
+    mockStateService.getTryAgainCount = vi.fn().mockReturnValue(0);
 
     // Additional mocks needed for TurnService.startTurn
     mockStateService.clearPlayerCompletedManualActions = vi.fn();

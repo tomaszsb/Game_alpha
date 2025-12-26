@@ -770,16 +770,10 @@ export class TurnService implements ITurnService {
       await this.processSpaceEffectsAfterMovement(player.id, player.currentSpace, player.visitType, false);
       console.log('🔴 [TurnService] startTurn() - Space effects processed');
 
-      // 5. Save snapshot for Try Again feature AFTER processing effects
-      // This ensures the snapshot captures state after first-visit effects have been applied
-      // SKIP if snapshot already exists - preserve original clean snapshot for multiple Try Again attempts
-      if (!this.stateService.hasPreSpaceEffectSnapshot(player.id, player.currentSpace)) {
-        this.stateService.savePreSpaceEffectSnapshot(player.id, player.currentSpace);
-      } else {
-        console.log(`📸 Snapshot already exists for player ${player.id} at ${player.currentSpace} - preserving original`);
-      }
+      // Note: REAL/TEMP state model handles Try Again state preservation
+      // TEMP state contains effects applied this turn; REAL state is preserved for reversion
 
-      // 6. Unlock UI after processing is complete
+      // 5. Unlock UI after processing is complete
       this.stateService.updateGameState({ isProcessingArrival: false });
 
       // Handle movement choices after effects are processed
@@ -2124,7 +2118,7 @@ export class TurnService implements ITurnService {
         };
       }
 
-      // 1. Get the current player to determine their space
+      // 1. Get the current player
       const currentPlayer = this.stateService.getPlayer(playerId);
       if (!currentPlayer) {
         return {
@@ -2134,31 +2128,19 @@ export class TurnService implements ITurnService {
         };
       }
 
-      // 2. Check for the snapshot for this specific player and space
-      if (!this.stateService.hasPreSpaceEffectSnapshot(playerId, currentPlayer.currentSpace)) {
+      // 2. Check if player has active TEMP state (i.e., is in their turn)
+      if (!this.stateService.hasActiveTempState(playerId)) {
         return {
           success: false,
-          message: 'No snapshot available - Try Again not possible at this time',
+          message: 'Try Again not available - no active turn state',
           shouldAdvanceTurn: false
         };
       }
 
-      // 3. Get the snapshot object (do not restore it yet)
-      const snapshotState = this.stateService.getPlayerSnapshot(playerId);
-      if (!snapshotState) {
-        throw new Error('Snapshot exists but could not be retrieved');
-      }
+      console.log(`🔄 ${currentPlayer.name} trying again on space ${currentPlayer.currentSpace}`);
 
-      // Find player in snapshot to get their space info
-      const snapshotPlayer = snapshotState.players.find(p => p.id === playerId);
-      if (!snapshotPlayer) {
-        throw new Error(`Player ${playerId} not found in snapshot`);
-      }
-
-      console.log(`🔄 ${snapshotPlayer.name} trying again on space ${snapshotPlayer.currentSpace}`);
-
-      // Check if space allows negotiation (try again)
-      const spaceContent = this.dataService.getSpaceContent(snapshotPlayer.currentSpace, snapshotPlayer.visitType);
+      // 3. Check if space allows negotiation (try again)
+      const spaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
       if (!spaceContent || !spaceContent.can_negotiate) {
         return {
           success: false,
@@ -2167,58 +2149,51 @@ export class TurnService implements ITurnService {
         };
       }
 
-      // 3. Calculate the timePenalty
-      const spaceEffects = this.dataService.getSpaceEffects(snapshotPlayer.currentSpace, snapshotPlayer.visitType);
+      // 4. Calculate the time penalty from space effects
+      const spaceEffects = this.dataService.getSpaceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
       const timePenalty = spaceEffects
         .filter(effect => effect.effect_type === 'time' && effect.effect_action === 'add')
         .reduce((total, effect) => total + Number(effect.effect_value || 0), 0);
 
-      console.log(`⏰ Applying ${timePenalty} day penalty for Try Again on ${snapshotPlayer.currentSpace}`);
+      console.log(`⏰ Applying ${timePenalty} day penalty for Try Again on ${currentPlayer.currentSpace}`);
 
-      // 4. Log the Try Again action with committed status before abandoning current session
-      this.loggingService.info(`Used Try Again: Reverted to ${snapshotPlayer.currentSpace} with ${timePenalty} day penalty`, {
+      // 5. Log the Try Again action
+      this.loggingService.info(`Used Try Again: ${timePenalty} day penalty applied`, {
         playerId: playerId,
-        playerName: snapshotPlayer.name,
+        playerName: currentPlayer.name,
         action: 'try_again',
-        spaceName: snapshotPlayer.currentSpace,
+        spaceName: currentPlayer.currentSpace,
         timePenalty: timePenalty,
-        isCommitted: true // This action is immediately committed
+        tryAgainCount: this.stateService.getTryAgainCount(playerId) + 1,
+        isCommitted: true
       });
 
-      // 5. Start new exploration session for the fresh attempt (current session will be abandoned)
+      // 6. Start new exploration session for the fresh attempt
       const newSessionId = this.loggingService.startNewExplorationSession();
-      console.log(`🔄 Started new exploration session ${newSessionId} after Try Again for ${snapshotPlayer.name}`);
+      console.log(`🔄 Started new exploration session ${newSessionId} after Try Again for ${currentPlayer.name}`);
 
-      // 6. Revert player to snapshot state with time penalty applied atomically
-      // This handles all the complex state reconstruction, action flag resets, and penalty application
-      this.stateService.revertPlayerToSnapshot(playerId, timePenalty);
-
-      // 6.5. Use new REAL/TEMP state model for Try Again
-      // Discard current TEMP state and create fresh one from REAL with penalty
+      // 7. Use REAL/TEMP state model for Try Again:
+      // - Discard current TEMP state (which has effects applied)
+      // - Create fresh TEMP from REAL with time penalty applied to REAL first
       this.stateService.discardTempState(playerId);
       const tryAgainTempOptions: CreateTempOptions = {
         playerId,
-        spaceName: snapshotPlayer.currentSpace,
-        visitType: snapshotPlayer.visitType,
+        spaceName: currentPlayer.currentSpace,
+        visitType: currentPlayer.visitType,
         isTryAgain: true,
         tryAgainPenalty: timePenalty
       };
       const tempResult = this.stateService.createTempStateFromReal(tryAgainTempOptions);
       if (!tempResult.success) {
-        console.warn(`⚠️ Failed to create Try Again TEMP state: ${tempResult.error}`);
-      } else {
-        console.log(`🔄 Created fresh TEMP state for Try Again (count: ${this.stateService.getTryAgainCount(playerId)})`);
+        throw new Error(`Failed to create Try Again state: ${tempResult.error}`);
       }
 
-      console.log(`✅ ${snapshotPlayer.name} reverted to ${snapshotPlayer.currentSpace} with ${timePenalty} day penalty`);
+      console.log(`✅ ${currentPlayer.name} Try Again processed (count: ${this.stateService.getTryAgainCount(playerId)})`);
 
-      // 6. DO NOT save a new snapshot - preserve the original clean snapshot for multiple Try Again attempts
-      // This ensures subsequent Try Again attempts revert to the original state, not the penalty-applied state
+      // 8. Prepare success message
+      const successMessage = `${currentPlayer.name} used Try Again: ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty applied.`;
 
-      // 7. Prepare success message for immediate display
-      const successMessage = `${snapshotPlayer.name} used Try Again: Reverted to ${snapshotPlayer.currentSpace} with ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty.`;
-
-      // Send Try Again notification
+      // 9. Send Try Again notification
       if (this.notificationService) {
         this.notificationService.notify(
           {
@@ -2227,16 +2202,15 @@ export class TurnService implements ITurnService {
             detailed: successMessage
           },
           {
-            playerId: snapshotPlayer.id,
-            playerName: snapshotPlayer.name,
+            playerId: currentPlayer.id,
+            playerName: currentPlayer.name,
             actionType: 'tryAgain',
             notificationDuration: 3000
           }
         );
       }
 
-      // 10. Return success - state reversion has reset turn flags automatically
-      // Signal that turn should advance after Try Again (player retries NEXT turn)
+      // 10. Return success - turn should advance so player retries next turn
       return {
         success: true,
         message: successMessage,
@@ -2604,21 +2578,9 @@ export class TurnService implements ITurnService {
     console.log(`🏠 Processing arrival space effects for ${currentPlayer.name} at ${spaceName} (${visitType} visit)`);
 
     try {
-      // Check if there's already a snapshot for this player at this same space (multiple Try Again logic)
-      const hasSnapshot = this.stateService.hasPreSpaceEffectSnapshot(playerId, spaceName);
-      if (hasSnapshot) {
-        console.log(`🔄 Snapshot exists for player ${playerId} at ${spaceName} - skipping automatic effects but enabling manual actions`);
-        // Still need to calculate manual actions even when snapshot exists
-        const spaceEffectsData = this.dataService.getSpaceEffects(spaceName, visitType);
-        const conditionFilteredEffects = this.filterSpaceEffectsByCondition(spaceEffectsData, currentPlayer);
-        const manualEffects = conditionFilteredEffects.filter(effect => effect.trigger_type === 'manual');
-
-        if (manualEffects.length > 0) {
-          console.log(`🎯 Processing ${manualEffects.length} manual effects for ${currentPlayer.name} at ${spaceName}`);
-          this.stateService.updateActionCounts();
-        }
-        return;
-      }
+      // Note: With REAL/TEMP state model, we always process effects
+      // On Try Again, TEMP is fresh (created from REAL), so effects apply cleanly
+      // No snapshot check needed - the state model handles this
 
       // Get space effect data from DataService for the arrival space
       const spaceEffectsData = this.dataService.getSpaceEffects(spaceName, visitType);

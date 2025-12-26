@@ -243,15 +243,9 @@ export interface IStateService {
   // Dice roll completion methods
   setDiceRollCompletion(message: string): GameState;
   
-  // Pre-space effect snapshot methods (Try Again feature)
-  savePreSpaceEffectSnapshot(playerId: string, spaceName: string): GameState;
-  clearPreSpaceEffectSnapshot(): GameState;
-  clearPlayerSnapshot(playerId: string): GameState;
-  hasPreSpaceEffectSnapshot(playerId: string, spaceName: string): boolean;
-  getPreSpaceEffectSnapshot(): GameState | null;
-  getPlayerSnapshot(playerId: string): GameState | null;
-  revertPlayerToSnapshot(playerId: string, timePenalty?: number): GameState;
-  
+  // Note: Old snapshot methods removed - replaced by REAL/TEMP state model
+  // See createTempStateFromReal(), commitTempToReal(), discardTempState()
+
   // State management methods
   setGameState(newState: GameState): GameState;
   updateGameState(stateChanges: Partial<GameState>): GameState;

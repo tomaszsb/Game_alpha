@@ -242,8 +242,8 @@ export class MovementService implements IMovementService {
       visitType: newVisitType
     });
 
-    // CLEANUP: Clear any existing snapshot for this player
-    this.stateService.clearPlayerSnapshot(player.id);
+    // Note: REAL/TEMP state model handles state cleanup at turn boundaries
+    // No manual snapshot clearing needed
 
     console.log(`✅ Move completed: ${player.name} now at ${destinationSpace}`);
 
