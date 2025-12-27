@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: December 21, 2025
+**Last Updated**: December 26, 2025
 **Current Phase**: User Acceptance Testing (UAT Phase 3)
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
@@ -9,7 +9,61 @@ This document provides a high-level overview of the current work status for the 
 
 ## Recently Completed
 
-### 1. UI Consolidation & Per-Player Metrics (December 21, 2025) ✅
+### 1. Dice Consolidation & REAL/TEMP State Model (December 26, 2025) ✅
+- **Status**: ✅ Complete
+- **Objectives**:
+  - Consolidate 3 dice condition paths into 1 unified approach
+  - Implement explicit REAL/TEMP state model for turn management
+  - Remove old snapshot system and dead code
+- **Achievements**:
+  - **Part 1: Dice Condition Consolidation**:
+    - Removed `applyDiceRollChanceEffect()` dead code (~77 lines)
+    - Eliminated "if you roll a X" text parsing from descriptions
+    - Migrated 40 CSV rows to use `dice_roll_X` condition column
+    - Added `ConditionEvaluator.anyEffectNeedsDiceRoll()` helper
+    - Updated `filterSpaceEffectsByCondition()` with optional `diceRoll` parameter
+  - **Part 2: REAL/TEMP State Model**:
+    - Implemented explicit state separation (REAL = committed, TEMP = working)
+    - Added `createTempStateFromReal()`, `commitTempToReal()`, `discardTempState()`
+    - Added `applyToRealState()`, `hasActiveTempState()`, `getTryAgainCount()`
+    - Removed ~160 lines of old snapshot code
+    - Simplified Try Again flow - no more conditional effect processing
+  - **Code Impact**:
+    - TurnService.ts: -113 lines (removed snapshot logic, text parsing)
+    - StateService.ts: net reduction after removing old snapshot methods
+    - Tests: 483 service tests passing
+- **Files Modified**:
+  - `src/services/TurnService.ts`, `src/services/StateService.ts`
+  - `src/types/StateTypes.ts`, `src/types/ServiceContracts.ts`
+  - `src/utils/ConditionEvaluator.ts`, `public/data/CLEAN_FILES/SPACE_EFFECTS.csv`
+  - Multiple test files updated for new REAL/TEMP model
+- **Impact**: Cleaner architecture, unified dice handling, explicit state lifecycle
+
+### 2. Turn Flow Documentation & Architecture Analysis (December 25, 2025) ✅
+- **Status**: ✅ Complete
+- **Objectives**:
+  - Document the complete turn processing flow with visual diagrams
+  - Identify architectural improvements for state management
+  - Document dead code and consolidation opportunities
+- **Achievements**:
+  - **Visual Diagrams Created**:
+    - `TURN_FLOW_DIAGRAM.mmd` - Current implementation with effect processing pipeline
+    - `TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd` - Proposed Real + Temporary State architecture
+    - `current_process.drawio` - Draw.io version with collapsible sections
+  - **Technical Debt Documented**:
+    - "Real + Temporary State Model" proposal - simplifies Try Again logic
+    - "Dice Condition Consolidation" - identified 3 implementations, 1 is dead code
+    - `applyDiceRollChanceEffect()` - dead code (0 CSV rows use `dice_roll_chance`)
+  - **Documentation Updates**:
+    - Updated TURN_PROCESSING_FLOW.md with diagram references and dead code notes
+    - Updated ARCHITECTURE.md with snapshot management and diagram links
+    - Added comprehensive proposals to TECHNICAL_DEBT.md
+- **Files Created/Modified**:
+  - New: TURN_FLOW_DIAGRAM.mmd, TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd, current_process.drawio
+  - Updated: TURN_PROCESSING_FLOW.md, ARCHITECTURE.md, TECHNICAL_DEBT.md, PROJECT_STATUS.md
+- **Impact**: Clear documentation of turn flow architecture, identified refactoring opportunities, visual diagrams for onboarding
+
+### 2. UI Consolidation & Per-Player Metrics (December 21, 2025) ✅
 - **Status**: ✅ Complete
 - **Objectives**:
   - Move Project Timeline to per-player display

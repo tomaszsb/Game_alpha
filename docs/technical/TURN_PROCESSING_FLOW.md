@@ -56,8 +56,8 @@ flowchart TD
         T5 -->|YES| T6
         T5A --> T6
 
-        T6["5. processSpaceEffectsAfterMovement()<br/>(playerId, space, visitType)"]
-        T6 --> T7["6. savePreSpaceEffectSnapshot()<br/>(if not exists)"]
+        T6["5. createTempStateFromReal()<br/>(REAL/TEMP model)"]
+        T6 --> T7["6. processSpaceEffectsAfterMovement()<br/>(effects apply to TEMP)"]
         T7 --> T8["7. isProcessingArrival = false<br/>🔓 UI UNLOCKED"]
         T8 --> T9["8. handleMovementChoices(playerId)"]
         T9 --> T10([Turn Ready - Panel Renders])
@@ -82,13 +82,13 @@ flowchart TD
         START([Start]) --> GET_PLAYER["1. getPlayer(playerId)"]
         GET_PLAYER --> PLAYER_CHECK{Player exists?}
         PLAYER_CHECK -->|NO| ERROR1[/"Throw Error"/]
-        PLAYER_CHECK -->|YES| SNAPSHOT_CHECK
+        PLAYER_CHECK -->|YES| STATE_NOTE
 
-        subgraph SNAPSHOT["2. Snapshot Check (Try Again Logic)"]
-            SNAPSHOT_CHECK{"hasPreSpaceEffectSnapshot?"}
-            SNAPSHOT_CHECK -->|YES| CALC_MANUAL_ONLY["Calculate manual effects only<br/>updateActionCounts()"]
-            CALC_MANUAL_ONLY --> EARLY_RETURN([Return Early])
-            SNAPSHOT_CHECK -->|NO| GET_EFFECTS
+        subgraph STATE_CHECK["2. TEMP State (REAL/TEMP Model)"]
+            %% As of December 26, 2025: No more snapshot checks
+            %% All effects always process on TEMP state
+            STATE_NOTE["TEMP state created at turn start<br/>All effects apply to TEMP<br/>No conditional skipping needed"]
+            STATE_NOTE --> GET_EFFECTS
         end
 
         subgraph LOAD_DATA["3. Load Space Effects Data"]
@@ -147,7 +147,7 @@ flowchart TD
 | Step | Subprocess | Purpose |
 |------|------------|---------|
 | 1 | getPlayer | Validate player exists |
-| 2 | Snapshot Check | Skip auto effects if Try Again (preserve state) |
+| 2 | TEMP State | All effects apply to TEMP (REAL/TEMP model) |
 | 3 | Load Data | Get effects from CSV, filter by conditions |
 | 4 | Unified Dice | Check if any effects need dice roll, roll once, pass to filter |
 | 5 | Filter | Remove manual/time effects (handled elsewhere) |
@@ -502,18 +502,14 @@ flowchart TD
         subgraph PSEM["Process Space Effects"]
             PS1["Get effects from CSV"]
             PS1 --> PS2["Filter by conditions"]
-            PS2 --> PS3{"Auto dice?"}
-            PS3 -->|YES| PS4["Roll + apply"]
-            PS3 -->|NO| PS5
-            PS4 --> PS5{"L card dice?"}
-            PS5 -->|YES| PS6["Roll + maybe draw"]
-            PS5 -->|NO| PS7
-            PS6 --> PS7["Filter auto only"]
-            PS7 --> PS8["EffectEngine.process()"]
+            PS2 --> PS3{"Dice needed?"}
+            PS3 -->|YES| PS4["Roll once + filter"]
+            PS3 -->|NO| PS7
+            PS4 --> PS7["Filter auto only"]
+            PS7 --> PS8["EffectEngine.process()<br/>(applies to TEMP)"]
         end
 
-        PROC --> SNAP["savePreSpaceEffectSnapshot()"]
-        SNAP --> UNLOCK["isProcessingArrival = false"]
+        PROC --> UNLOCK["isProcessingArrival = false"]
         UNLOCK --> HMC["handleMovementChoices()"]
 
         subgraph HMCB["Handle Movement Choices"]
@@ -579,5 +575,23 @@ flowchart TD
 
 ---
 
-*Document generated: December 2025*
+*Document updated: December 26, 2025*
 *Based on codebase analysis of Game Alpha turn processing system*
+
+---
+
+## Recent Changes (December 26, 2025)
+
+### Dice Condition Consolidation
+- All dice conditions now use the unified `condition` column in CSV (e.g., `dice_roll_3`)
+- `filterSpaceEffectsByCondition()` now accepts optional `diceRoll` parameter
+- `ConditionEvaluator.anyEffectNeedsDiceRoll()` detects when a dice roll is needed
+- Removed text parsing for "if you roll a X" patterns
+
+### REAL/TEMP State Model
+- Replaced snapshot/checkpoint system with explicit REAL + TEMPORARY state model
+- Turn start: `createTempStateFromReal()` creates working copy
+- All effects apply to TEMP state
+- Try Again: `discardTempState()` + fresh TEMP with penalty applied to REAL
+- End Turn: `commitTempToReal()` finalizes changes
+- Removed `hasPreSpaceEffectSnapshot()` conditional checks

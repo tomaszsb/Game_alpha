@@ -4,6 +4,72 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Dice Consolidation & REAL/TEMP State Model (December 26, 2025)
+
+**Part 1: Dice Condition Consolidation**
+- **Removed dead code**: Deleted `applyDiceRollChanceEffect()` (~77 lines) - 0 CSV rows used this
+- **Removed text parsing**: Eliminated "if you roll a X" regex parsing from descriptions
+- **Unified to condition column**: All 40 dice-conditional effects now use `dice_roll_X` in CSV condition field
+- **Added helpers**: `ConditionEvaluator.anyEffectNeedsDiceRoll()` and `isDiceConditionStatic()`
+- **Updated filter signature**: `filterSpaceEffectsByCondition()` now accepts optional `diceRoll` parameter
+- **Result**: 3 dice paths → 1 unified path through `evaluateCondition()`
+
+**Part 2: REAL/TEMP State Model**
+- **New state architecture**: Separates committed state (REAL) from working state (TEMP)
+- **Turn lifecycle**:
+  - Turn start → `createTempStateFromReal()` creates fresh TEMP
+  - Effects apply → All changes go to TEMP
+  - End turn → `commitTempToReal()` finalizes changes
+  - Try Again → `discardTempState()` + create fresh TEMP with penalty
+- **Removed old snapshot system**: Deleted 160+ lines of `savePreSpaceEffectSnapshot`, `revertPlayerToSnapshot`, etc.
+- **Simplified Try Again**: No more "if snapshot exists" conditional branches
+- **Added StateService methods**:
+  - `createTempStateFromReal()`, `commitTempToReal()`, `discardTempState()`
+  - `applyToRealState()`, `getEffectivePlayerState()`, `hasActiveTempState()`
+  - `getTryAgainCount()`, `updateTempState()`
+
+**Code Impact**:
+- TurnService.ts: -113 lines (removed snapshot logic, text parsing)
+- StateService.ts: -164 lines (removed old snapshot methods), +400 lines (new REAL/TEMP)
+- Net result: Simpler, more maintainable state management
+- Tests: 483 service tests passing
+
+**Files Modified**:
+- `src/services/TurnService.ts` - Unified dice handling, REAL/TEMP integration
+- `src/services/StateService.ts` - New state model methods
+- `src/types/StateTypes.ts` - MutablePlayerState, PlayerTurnState, TurnStateModel types
+- `src/types/ServiceContracts.ts` - Updated interfaces
+- `src/utils/ConditionEvaluator.ts` - Static helper methods
+- `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` - 40 rows migrated to condition column
+
+### Turn Flow Documentation & Architecture Analysis (December 25, 2025)
+
+**Visual Diagrams Created:**
+- `docs/technical/TURN_FLOW_DIAGRAM.mmd` - Detailed Mermaid flowchart of current turn processing
+  - Effect processing pipeline inline (EffectFactory → parseSpaceEffect → EffectEngine)
+  - Player interface schema with sample data
+  - Color-coded states (locked/unlocked, enabled/disabled)
+- `docs/technical/TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd` - Proposed Real + Temporary State architecture
+  - Separates committed "real" state from working "temporary" state
+  - Simplifies Try Again logic (no snapshot existence checks)
+  - Unified condition filtering (no text parsing)
+- `docs/technical/current_process.drawio` - Draw.io version with collapsible sections
+
+**Technical Debt Documented:**
+- **Real + Temporary State Model** - Proposed refactor to simplify state management
+  - Current: Snapshot saved AFTER effects, requires `hasPreSpaceEffectSnapshot` checks
+  - Proposed: Real state on exit, temporary on entry, commit on End Turn
+- **Dice Condition Consolidation** - Identified 3 implementations handling same logic:
+  - `applyDiceRollChanceEffect()` - DEAD CODE (0 CSV rows use `dice_roll_chance`)
+  - Text parsing in `processSpaceEffectsAfterMovement()` - Active but fragile
+  - `evaluateCondition()` with `dice_roll_X` - Ready but underused
+
+**Documentation Updates:**
+- Updated `TURN_PROCESSING_FLOW.md` with diagram references and dead code notes
+- Updated `ARCHITECTURE.md` with snapshot management section and diagram links
+- Updated `PROJECT_STATUS.md` with session summary
+- Added comprehensive refactor proposals to `TECHNICAL_DEBT.md`
+
 ### TurnService Refactoring & Test Consolidation (December 21, 2025)
 
 **Service Extraction from TurnService:**

@@ -1,8 +1,8 @@
 # Architecture Guide - Game Alpha
 
-**Last Updated:** December 9, 2025
+**Last Updated:** December 26, 2025
 **Status:** Production Ready
-**Test Coverage:** 966/967 tests passing
+**Test Coverage:** 720+ tests passing
 
 ---
 
@@ -185,6 +185,11 @@ try {
 ---
 
 ## Game Actions Flow
+
+> **Visual Diagrams:** For detailed flowcharts of turn processing, see:
+> - [TURN_FLOW_DIAGRAM.mmd](./TURN_FLOW_DIAGRAM.mmd) - Current implementation with effect pipeline
+> - [TURN_PROCESSING_FLOW.md](./TURN_PROCESSING_FLOW.md) - Decision trees and state variables
+> - [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) - Proposed architectural improvements
 
 ### Action Processing Pipeline
 
@@ -421,6 +426,44 @@ class StateService {
   }
 }
 ```
+
+### REAL/TEMP State Model (Try Again Feature)
+
+As of December 2025, the "Try Again" feature uses an explicit **REAL + TEMPORARY** state model:
+
+```typescript
+// Turn lifecycle:
+// 1. Turn starts → createTempStateFromReal() creates working copy
+// 2. All effects → Apply to TEMP state only
+// 3. Try Again → applyToRealState(penalty), discardTempState(), fresh TEMP
+// 4. End Turn → commitTempToReal() finalizes all changes
+```
+
+**Key State Types (StateTypes.ts):**
+```typescript
+interface TurnStateModel {
+  realStates: { [playerId: string]: PlayerTurnState | null };   // Committed state
+  tempStates: { [playerId: string]: PlayerTurnState | null };   // Working state
+  activeTurnPlayers: string[];
+  tryAgainCounts: { [playerId: string]: number };
+}
+```
+
+**Key Methods:**
+- `createTempStateFromReal(options)` - Creates fresh TEMP from REAL at turn start
+- `commitTempToReal(playerId)` - Finalizes TEMP → REAL on End Turn
+- `discardTempState(playerId)` - Discards working state on Try Again
+- `applyToRealState(playerId, changes)` - Applies penalties to committed state
+- `hasActiveTempState(playerId)` - Checks if player has active turn state
+- `getTryAgainCount(playerId)` - Returns number of retries this turn
+
+**Benefits:**
+1. No conditional effect processing - always process all effects on TEMP
+2. Clear separation - REAL = committed, TEMP = working
+3. Multiple Try Agains naturally supported
+4. Time penalties accumulate correctly on REAL state
+
+> **Reference:** See [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) for implementation details of the REAL/TEMP model.
 
 ### Context API Integration
 

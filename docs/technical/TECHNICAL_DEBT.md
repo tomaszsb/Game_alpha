@@ -62,141 +62,108 @@ This document tracks identified technical debt in the Game Alpha codebase.
 
 ## High Priority Refactoring Candidates
 
-### State Management: Real + Temporary State Model (December 24, 2025)
-- **Status**: 📋 Proposed Refactor
-- **Location**: `StateService.ts`, `TurnService.ts` (snapshot management)
-- **Impact**: Simplifies Try Again logic, eliminates conditional effect processing
-- **Effort**: Medium-High (architectural change)
-- **Reference**: See [Aspirational Turn Flow Diagram](./TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd)
+### State Management: Real + Temporary State Model (December 26, 2025)
+- **Status**: ✅ **RESOLVED**
+- **Location**: `StateService.ts`, `TurnService.ts`, `StateTypes.ts`
+- **Impact**: Simplified Try Again logic, eliminated conditional effect processing, removed ~160 lines of old snapshot code
+- **Resolution**: Implemented explicit REAL/TEMP state separation with clean turn lifecycle
 
-#### Current Implementation (Checkpoint System)
+#### What Was Implemented
 
-The current "Try Again" feature uses a **checkpoint/snapshot system**:
-
-```
-Enter Space → Apply auto effects → Save snapshot (WITH effects) → Player acts
-                                        ↓
-                              [Try Again] → Restore snapshot
-                                        ↓
-                              ⚠️ MUST skip auto effects (already in snapshot)
-```
-
-**Key code paths:**
-1. `TurnService.processSpaceEffectsAfterMovement()` - Line 2655 checks `hasPreSpaceEffectSnapshot()`
-2. `StateService.savePreSpaceEffectSnapshot()` - Saves AFTER effects applied
-3. `StateService.revertPlayerToSnapshot()` - Restores with time penalty
-
-**The `hasPreSpaceEffectSnapshot` decision point exists because:**
-- Snapshot is taken AFTER automatic effects are applied
-- On Try Again, player is restored to post-effect state
-- Re-entering the same flow would double-apply automatic effects
-- The check prevents this duplication
-
-#### Proposed Implementation (Real + Temporary State Model)
-
-A cleaner architecture separates **committed state** from **working state**:
+Replaced the checkpoint/snapshot system with explicit **REAL + TEMPORARY** state management:
 
 ```
-Exit Previous Space → Add time cost to REAL → Save REAL state
-                              ↓
-Enter New Space → Create TEMPORARY from REAL
-                              ↓
-              → Apply ALL effects to TEMPORARY (always, no checks)
-                              ↓
-        ┌─────────────────────────────────┐
-        │                                 │
-   [Try Again]                      [End Turn]
-        │                                 │
-   Add time to REAL               TEMPORARY → REAL
-   Wipe TEMPORARY                 (commit everything)
-   Fresh TEMP from REAL
-        │
-        ↓
-   Re-enter space (effects applied to fresh TEMP)
+Turn Start → createTempStateFromReal() → Apply ALL effects to TEMP
+                                              ↓
+                    ┌─────────────────────────────────────────┐
+                    │                                         │
+               [Try Again]                              [End Turn]
+                    │                                         │
+            applyToRealState(penalty)                commitTempToReal()
+            discardTempState()                       (finalize everything)
+            createTempStateFromReal()
+                    │
+                    ↓
+           Re-process effects (fresh TEMP)
 ```
 
-#### Key Differences
+#### New StateService Methods
 
-| Aspect | Current (Checkpoint) | Proposed (Real/Temp) |
-|--------|---------------------|----------------------|
-| When state saved | After arrival effects | On exit from previous space |
-| What's saved | Game state with effects applied | "Real" state before any temp changes |
-| Effect processing | Conditional (check `hasPreSpaceEffectSnapshot`) | Always (on temporary state) |
-| Try Again | Restore snapshot + time penalty | Reset temp, add time to real |
-| Decision points | Need snapshot existence check | No conditional checks needed |
-| Conceptual clarity | Muddled (snapshot includes effects) | Clear (real = committed, temp = working) |
-
-#### Benefits of Proposed Model
-
-1. **No `hasPreSpaceEffectSnapshot` check needed** - Always process all effects on temporary state
-2. **Clear separation of concerns** - Real state is committed, temporary is working
-3. **Multiple Try Again naturally supported** - Each Try Again: penalty to real, fresh temp
-4. **Time penalties accumulate correctly** - Added to real state before creating new temp
-5. **Simpler mental model** - Matches user intuition about "undo"
-
-#### Implementation Approach
-
-**Phase 1: Dual State Structure**
 ```typescript
-interface GameState {
-  // Existing fields...
+// Turn lifecycle
+createTempStateFromReal(options: CreateTempOptions): StateTransitionResult
+commitTempToReal(playerId: string): StateTransitionResult
+discardTempState(playerId: string): StateTransitionResult
 
-  // NEW: Dual state model
-  realPlayerStates: {
-    [playerId: string]: Player;
-  };
-  temporaryPlayerStates: {
-    [playerId: string]: Player;
-  };
+// State access
+getEffectivePlayerState(playerId: string): MutablePlayerState | null
+hasActiveTempState(playerId: string): boolean
+getTryAgainCount(playerId: string): number
+
+// Penalty application (for Try Again)
+applyToRealState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult
+updateTempState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult
+```
+
+#### New Types Added (StateTypes.ts)
+
+```typescript
+interface MutablePlayerState {
+  money: number;
+  timeSpent: number;
+  projectScope: number;
+  score: number;
+  hand: string[];
+  activeCards: ActiveCard[];
+  loans: Loan[];
+  // ... other mutable fields
+}
+
+interface PlayerTurnState {
+  playerId: string;
+  playerName: string;
+  state: MutablePlayerState;
+  capturedAt: { turnNumber: number; spaceName: string; visitType: 'First' | 'Subsequent'; timestamp: Date; };
+}
+
+interface TurnStateModel {
+  realStates: { [playerId: string]: PlayerTurnState | null; };
+  tempStates: { [playerId: string]: PlayerTurnState | null; };
+  activeTurnPlayers: string[];
+  tryAgainCounts: { [playerId: string]: number; };
 }
 ```
 
-**Phase 2: State Transition Points**
-1. `exitSpace()` - Apply time cost to real, save real state
-2. `enterSpace()` - Create temporary from real, apply all effects
-3. `tryAgain()` - Add penalty to real, create fresh temporary
-4. `endTurn()` - Commit temporary to real
+#### Old Code Removed
 
-**Phase 3: Remove Snapshot Logic**
-1. Remove `playerSnapshots` from GameState
-2. Remove `hasPreSpaceEffectSnapshot()` checks
-3. Remove `savePreSpaceEffectSnapshot()` / `revertPlayerToSnapshot()`
-4. Simplify `processSpaceEffectsAfterMovement()` - remove conditional
+**Deleted from StateService.ts (~160 lines):**
+- `savePreSpaceEffectSnapshot()` - No longer needed
+- `revertPlayerToSnapshot()` - Replaced by discardTempState + createTempStateFromReal
+- `hasPreSpaceEffectSnapshot()` - No longer needed
+- `clearPlayerSnapshot()` - Replaced by discardTempState
+- `playerSnapshots` from GameState - Replaced by TurnStateModel
 
-#### Migration Path
+**Removed from TurnService.ts:**
+- `hasPreSpaceEffectSnapshot()` check in `processSpaceEffectsAfterMovement()` - Always process effects
+- Snapshot saving after effects - Now handled by REAL/TEMP model
 
-1. **Add dual state structure** alongside existing snapshots
-2. **Implement new state transitions** with feature flag
-3. **Test both systems** in parallel
-4. **Remove old snapshot system** once validated
-5. **Update diagram** - current diagram becomes historical reference
+#### Key Benefits Achieved
 
-#### Files Affected
+1. **No `hasPreSpaceEffectSnapshot` check needed** - Always process all effects (on TEMP)
+2. **Clear separation of concerns** - REAL = committed, TEMP = working
+3. **Multiple Try Again naturally supported** - Each Try Again: penalty to REAL, fresh TEMP
+4. **Time penalties accumulate correctly** - Added to REAL state via `applyToRealState()`
+5. **Simpler mental model** - Matches user intuition about "undo"
+6. **Net code reduction** - Removed ~160 lines of old snapshot code
 
-**Core Changes:**
-- `src/services/StateService.ts` - Add real/temp state management
-- `src/services/TurnService.ts` - Update state transitions
-- `src/types/StateTypes.ts` - Add dual state types
+#### Files Modified
 
-**Simplifications (after migration):**
-- Remove `hasPreSpaceEffectSnapshot()` calls
-- Remove `savePreSpaceEffectSnapshot()` / `revertPlayerToSnapshot()`
-- Remove `playerSnapshots` from GameState
-- Simplify `processSpaceEffectsAfterMovement()` conditional logic
-
-#### Testing Requirements
-
-1. **Try Again basic flow** - Verify time penalty applied correctly
-2. **Multiple Try Again** - Verify penalties accumulate
-3. **Effect application** - Verify effects apply to temporary state
-4. **End Turn commit** - Verify temporary becomes real
-5. **Multi-player** - Verify each player has independent real/temp states
-6. **Edge cases** - Game start, game end, player disconnection
-
-#### Documentation
-
-- **Current flow**: `docs/technical/TURN_FLOW_DIAGRAM.mmd`
-- **Aspirational flow**: `docs/technical/TURN_FLOW_DIAGRAM_ASPIRATIONAL.mmd`
+- `src/services/StateService.ts` - New REAL/TEMP methods, removed old snapshot methods
+- `src/services/TurnService.ts` - Integrated REAL/TEMP calls in startTurn(), endTurn(), tryAgain()
+- `src/types/StateTypes.ts` - Added MutablePlayerState, PlayerTurnState, TurnStateModel
+- `src/types/ServiceContracts.ts` - Updated interfaces
+- `tests/services/TurnService-tryAgainOnSpace.test.ts` - Rewritten for new model
+- `tests/services/ActionSequenceRegression.test.ts` - Added REAL/TEMP mocks
 
 ---
 
