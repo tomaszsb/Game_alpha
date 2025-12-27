@@ -340,10 +340,10 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     console.log(`🎯 PlayerPanel: ${selectedDestination ? 'Changing' : 'Selecting'} destination: ${destinationId}`);
     setSelectedDestination(destinationId);
 
-    // Resolve the choice immediately (can be changed until End Turn is pressed)
-    if (movementChoice) {
-      gameServices.choiceService.resolveChoice(movementChoice.id, destinationId);
-    }
+    // Set the move intent so End Turn knows where to move
+    // DON'T resolve the choice immediately - that clears awaitingChoice and hides buttons
+    // The choice will be resolved when End Turn is pressed
+    gameServices.stateService.setPlayerMoveIntent(playerId, destinationId);
   };
 
   // Get player data for header

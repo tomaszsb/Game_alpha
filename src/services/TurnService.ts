@@ -313,9 +313,13 @@ export class TurnService implements ITurnService {
 
       console.log(`🏁 TurnService.endTurnWithMovement - Moving player ${currentPlayer.name} from ${currentPlayer.currentSpace}`);
 
-      // Note: Movement choices are resolved by the UI before calling endTurnWithMovement
-      // The choice may still be in state (for UI display), but the promise has been resolved
-      // and the movement intent has been set, so we can proceed
+      // Resolve any pending movement choice if player has set their moveIntent
+      // This handles the case where the UI set moveIntent without resolving the choice
+      // (e.g., PlayerPanel click that just sets intent, or direct calls to endTurnWithMovement)
+      if (gameState.awaitingChoice?.type === 'MOVEMENT' && currentPlayer.moveIntent) {
+        console.log(`🎯 Resolving pending movement choice with intent: ${currentPlayer.moveIntent}`);
+        this.choiceService.resolveChoice(gameState.awaitingChoice.id, currentPlayer.moveIntent);
+      }
 
       // Process leaving space effects BEFORE movement (time spent on current space)
       // SKIP if skipAutoMove is true (e.g., after Try Again) - player is staying at same space
@@ -845,21 +849,31 @@ export class TurnService implements ITurnService {
 
         const prompt = `Choose your destination from ${player.currentSpace}:`;
 
-        // Wait for player to make their choice
-        const selectedDestination = await this.choiceService.createChoice(
+        // Create the choice but DON'T await it - we don't want to block startTurn
+        // The choice will be resolved later when:
+        // 1. Player clicks a destination button (sets moveIntent via PlayerPanel)
+        // 2. Player clicks End Turn (endTurnWithMovement resolves the choice)
+        // This prevents the previous player's End Turn from timing out while
+        // waiting for the next player to make their movement choice.
+        this.choiceService.createChoice(
           playerId,
           'MOVEMENT',
           prompt,
           options
-        );
+        ).then(selectedDestination => {
+          // This runs when the choice is resolved (after user clicks End Turn)
+          console.log(`✅ Player ${playerName} movement choice resolved: ${selectedDestination}`);
+          // moveIntent should already be set by PlayerPanel or endTurnWithMovement
+          // but set it here as a safety net
+          if (!this.stateService.getPlayer(playerId)?.moveIntent) {
+            this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
+          }
+        }).catch(error => {
+          // Choice timed out or was cancelled - this is okay
+          console.log(`🎬 Movement choice for ${playerName} was cancelled or timed out:`, error.message);
+        });
 
-        console.log(`✅ Player ${playerName} selected destination: ${selectedDestination}`);
-
-        // Set the player's movement intent so it can be executed at turn end
-        this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
-
-        // Don't clear the choice here - let the UI keep showing the selected option
-        // It will be cleared when the next turn starts
+        console.log(`🎯 Movement choice created for ${playerName} - awaiting user selection`);
       } else {
         // 0 or 1 moves - no choice needed, turn proceeds normally
         console.log(`🎬 TurnService.startTurn - No choice needed (${validMoves.length} valid moves)`);
@@ -1923,7 +1937,10 @@ export class TurnService implements ITurnService {
     const effects: DiceResultEffect[] = [];
 
     if (baseType === 'cards') {
-      const cardType = manualEffect.effect_action.replace('draw_', '').replace('replace_', '').toUpperCase();
+      const cardType = manualEffect.effect_action.replace('draw_', '').replace('replace_', '').replace('give_', '').replace('return_', '').toUpperCase();
+      const isReplaceAction = manualEffect.effect_action.startsWith('replace_');
+      const isGiveAction = manualEffect.effect_action.startsWith('give_');
+      const isReturnAction = manualEffect.effect_action.startsWith('return_');
 
       // Determine which cards were drawn by comparing before/after hands
       const beforeHand = beforePlayer.hand || [];
@@ -1945,12 +1962,29 @@ export class TurnService implements ITurnService {
       // Grammatically correct singular/plural
       const cardWord = count === 1 ? 'card' : 'cards';
 
+      // Determine action verb based on effect type
+      let actionDescription: string;
+      let cardAction: string;
+      if (isReplaceAction) {
+        actionDescription = `You replaced ${count} ${cardType} ${cardWord}!`;
+        cardAction = 'replace';
+      } else if (isGiveAction) {
+        actionDescription = `You gave ${count} ${cardType} ${cardWord} to opponent!`;
+        cardAction = 'give';
+      } else if (isReturnAction) {
+        actionDescription = `You returned ${count} ${cardType} ${cardWord}!`;
+        cardAction = 'return';
+      } else {
+        actionDescription = `You picked up ${count} ${cardType} ${cardWord}!`;
+        cardAction = 'draw';
+      }
+
       effects.push({
         type: 'cards',
-        description: `You picked up ${count} ${cardType} ${cardWord}!`,
+        description: actionDescription,
         cardType: cardType,
         cardCount: count,
-        cardAction: 'draw',
+        cardAction: cardAction,
         cardIds: drawnCardIds
       });
     } else if (baseType === 'money') {

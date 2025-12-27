@@ -86,7 +86,7 @@ describe('PlayerPanel', () => {
     expect(screen.getByText('🎯 Coffee Shop')).toBeInTheDocument();
   });
 
-  it('should call choiceService.resolveChoice when a movement button is clicked', () => {
+  it('should set moveIntent when a movement button is clicked (without resolving choice)', () => {
     // Arrange: Set up a MOVEMENT choice
     const movementChoice: Choice = {
       id: 'movement-choice-789',
@@ -107,11 +107,15 @@ describe('PlayerPanel', () => {
     const universityButton = screen.getByText('🎯 University');
     fireEvent.click(universityButton);
 
-    // Assert: Verify that resolveChoice was called with the correct parameters
-    expect(mockServices.choiceService.resolveChoice).toHaveBeenCalledWith(
-      'movement-choice-789',
+    // Assert: Verify that setPlayerMoveIntent was called (NOT resolveChoice)
+    // The choice should remain active so buttons stay visible
+    // Choice is resolved later when End Turn is pressed
+    expect(mockServices.stateService.setPlayerMoveIntent).toHaveBeenCalledWith(
+      'player1',
       'UNIVERSITY'
     );
+    // resolveChoice should NOT be called - this was the bug that caused buttons to disappear
+    expect(mockServices.choiceService.resolveChoice).not.toHaveBeenCalled();
   });
 
   it('should highlight the selected destination button', () => {
