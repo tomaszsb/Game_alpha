@@ -142,14 +142,24 @@ export const createMockStateService = (): any => ({
   // Action logging methods
   logToActionHistory: vi.fn(),
   
-  // Pre-space effect snapshot methods (Try Again feature)
+  // REAL/TEMP State Model methods (replaces snapshot system - December 2025)
+  createTempStateFromReal: vi.fn().mockReturnValue({ success: true }),
+  commitTempToReal: vi.fn().mockReturnValue({ success: true }),
+  discardTempState: vi.fn().mockReturnValue({ success: true }),
+  applyToRealState: vi.fn().mockReturnValue({ success: true }),
+  getEffectivePlayerState: vi.fn().mockReturnValue(null),
+  hasActiveTempState: vi.fn().mockReturnValue(false),
+  getTryAgainCount: vi.fn().mockReturnValue(0),
+  updateTempState: vi.fn().mockReturnValue({ success: true }),
+
+  // Legacy snapshot methods (deprecated, kept for backward compatibility)
   savePreSpaceEffectSnapshot: vi.fn(),
   clearPreSpaceEffectSnapshot: vi.fn(),
   clearPlayerSnapshot: vi.fn(),
   hasPreSpaceEffectSnapshot: vi.fn(),
   getPreSpaceEffectSnapshot: vi.fn(),
   getPlayerSnapshot: vi.fn(),
-  
+
   // State management methods
   setGameState: vi.fn(),
   updateGameState: vi.fn(),

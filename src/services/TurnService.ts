@@ -2172,7 +2172,12 @@ export class TurnService implements ITurnService {
       const newSessionId = this.loggingService.startNewExplorationSession();
       console.log(`🔄 Started new exploration session ${newSessionId} after Try Again for ${currentPlayer.name}`);
 
-      // 7. Use REAL/TEMP state model for Try Again:
+      // 7. Reset turn flags so player can take fresh actions after Try Again
+      this.stateService.clearPlayerHasMoved();
+      this.stateService.clearPlayerHasRolledDice();
+      this.stateService.clearTurnActions();
+
+      // 8. Use REAL/TEMP state model for Try Again:
       // - Discard current TEMP state (which has effects applied)
       // - Create fresh TEMP from REAL with time penalty applied to REAL first
       this.stateService.discardTempState(playerId);
@@ -2190,10 +2195,10 @@ export class TurnService implements ITurnService {
 
       console.log(`✅ ${currentPlayer.name} Try Again processed (count: ${this.stateService.getTryAgainCount(playerId)})`);
 
-      // 8. Prepare success message
+      // 9. Prepare success message
       const successMessage = `${currentPlayer.name} used Try Again: ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty applied.`;
 
-      // 9. Send Try Again notification
+      // 10. Send Try Again notification
       if (this.notificationService) {
         this.notificationService.notify(
           {
@@ -2210,7 +2215,7 @@ export class TurnService implements ITurnService {
         );
       }
 
-      // 10. Return success - turn should advance so player retries next turn
+      // 11. Return success - player can now retry with fresh state
       return {
         success: true,
         message: successMessage,
