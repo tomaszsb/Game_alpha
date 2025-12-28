@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
@@ -139,7 +139,13 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   workTypeMap.forEach(group => workTypeGroups.push(group));
 
   // Calculate total project scope from W cards (single source of truth)
-  const projectScope = gameServices.gameRulesService.calculateProjectScope(playerId);
+  // Memoized to avoid recalculating on every render - only recalculates when cards change
+  // Using JSON.stringify to compare array contents, not references
+  const handKey = JSON.stringify(player.hand || []);
+  const activeCardsKey = JSON.stringify((player.activeCards || []).map(ac => ac.cardId));
+  const projectScope = useMemo(() => {
+    return gameServices.gameRulesService.calculateProjectScope(playerId);
+  }, [playerId, handKey, activeCardsKey]);
   const totalCosts = workTypeGroups.reduce((sum, group) => sum + group.subtotal, 0);
 
   // Format money

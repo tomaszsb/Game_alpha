@@ -21,47 +21,88 @@ export function GameBoard(): JSX.Element {
   const [selectedSpaceForInfo, setSelectedSpaceForInfo] = useState<string | null>(null);
   const [isSpaceInfoModalOpen, setIsSpaceInfoModalOpen] = useState(false);
 
-  // Subscribe to state changes for live updates with smooth transitions
+  // Subscribe to only board-relevant state changes
+  // This prevents re-renders when unrelated state changes (money, cards, etc.)
   useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
-      // Track transition state for smooth animations
-      setIsTransitioning(gameState.isMoving);
+    // Type for the extracted state slice
+    type BoardStateSlice = {
+      playerPositions: Array<{ id: string; space: string; color: string; name: string }>;
+      currentPlayerId: string | null;
+      gamePhase: string;
+      isMoving: boolean;
+      hasPlayerMovedThisTurn: boolean;
+      awaitingChoiceType: string | null;
+    };
 
-      setPlayers(gameState.players);
-      setCurrentPlayerId(gameState.currentPlayerId);
-      setGamePhase(gameState.gamePhase);
+    // Selector extracts only values needed for the game board
+    const selector = (state: ReturnType<typeof stateService.getGameState>): BoardStateSlice => ({
+      // Only track player positions and identity, not money/cards/etc
+      playerPositions: state.players.map(p => ({ id: p.id, space: p.currentSpace, color: p.color || '#888', name: p.name })),
+      currentPlayerId: state.currentPlayerId,
+      gamePhase: state.gamePhase,
+      isMoving: state.isMoving,
+      hasPlayerMovedThisTurn: state.hasPlayerMovedThisTurn,
+      awaitingChoiceType: state.awaitingChoice?.type || null
+    });
 
-      // REFINED GUARD: Only block this specific state update during a move
-      if (!gameState.isMoving) {
-        if (gameState.gamePhase === 'PLAY' && gameState.currentPlayerId && !gameState.hasPlayerMovedThisTurn) {
-          try {
-            const moves = movementService.getValidMoves(gameState.currentPlayerId);
-            setValidMoves(moves);
-            console.log(`🎯 BOARD: Player ${gameState.currentPlayerId} has ${moves.length} valid moves:`, moves);
-          } catch (error) {
-            console.log(`🎯 BOARD: No valid moves for player ${gameState.currentPlayerId}:`, error);
+    // Custom equality - deep compare player positions
+    const equalityFn = (a: ReturnType<typeof selector>, b: ReturnType<typeof selector>) => {
+      if (a.currentPlayerId !== b.currentPlayerId ||
+          a.gamePhase !== b.gamePhase ||
+          a.isMoving !== b.isMoving ||
+          a.hasPlayerMovedThisTurn !== b.hasPlayerMovedThisTurn ||
+          a.awaitingChoiceType !== b.awaitingChoiceType ||
+          a.playerPositions.length !== b.playerPositions.length) {
+        return false;
+      }
+      // Compare player positions
+      return a.playerPositions.every((p, i) =>
+        p.id === b.playerPositions[i].id && p.space === b.playerPositions[i].space
+      );
+    };
+
+    const unsubscribe = stateService.subscribeWithSelector(
+      selector,
+      (selected, gameState) => {
+        // Track transition state for smooth animations
+        setIsTransitioning(selected.isMoving);
+        setPlayers(gameState.players);
+        setCurrentPlayerId(selected.currentPlayerId);
+        setGamePhase(selected.gamePhase);
+
+        // REFINED GUARD: Only block this specific state update during a move
+        if (!selected.isMoving) {
+          if (selected.gamePhase === 'PLAY' && selected.currentPlayerId && !selected.hasPlayerMovedThisTurn) {
+            try {
+              const moves = movementService.getValidMoves(selected.currentPlayerId);
+              setValidMoves(moves);
+              console.log(`🎯 BOARD: Player ${selected.currentPlayerId} has ${moves.length} valid moves:`, moves);
+            } catch (error) {
+              console.log(`🎯 BOARD: No valid moves for player ${selected.currentPlayerId}:`, error);
+              setValidMoves([]);
+            }
+          } else {
             setValidMoves([]);
           }
-        } else {
-          setValidMoves([]);
         }
-      }
 
-      // Cache movement choices to prevent them from disappearing during animation
-      if (gameState.awaitingChoice?.type === 'MOVEMENT' && !gameState.isMoving && gameState.currentPlayerId) {
-        const moves = movementService.getValidMoves(gameState.currentPlayerId);
-        setHighlightedMoves(moves);
-      } else if (!gameState.awaitingChoice && !gameState.isMoving) {
-        setHighlightedMoves([]);
-      }
-    });
-    
+        // Cache movement choices to prevent them from disappearing during animation
+        if (selected.awaitingChoiceType === 'MOVEMENT' && !selected.isMoving && selected.currentPlayerId) {
+          const moves = movementService.getValidMoves(selected.currentPlayerId);
+          setHighlightedMoves(moves);
+        } else if (!selected.awaitingChoiceType && !selected.isMoving) {
+          setHighlightedMoves([]);
+        }
+      },
+      equalityFn
+    );
+
     // Initialize with current state
     const gameState = stateService.getGameState();
     setPlayers(gameState.players);
     setCurrentPlayerId(gameState.currentPlayerId);
     setGamePhase(gameState.gamePhase);
-    
+
     if (gameState.gamePhase === 'PLAY' && gameState.currentPlayerId && !gameState.hasPlayerMovedThisTurn) {
       try {
         const moves = movementService.getValidMoves(gameState.currentPlayerId);
@@ -70,7 +111,7 @@ export function GameBoard(): JSX.Element {
         setValidMoves([]);
       }
     }
-    
+
     return unsubscribe;
   }, [stateService, movementService]);
 

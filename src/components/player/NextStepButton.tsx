@@ -213,18 +213,52 @@ export function NextStepButton({ gameServices, playerId }: NextStepButtonProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [stepState, setStepState] = useState<NextStepState>({ visible: false });
 
-  // Subscribe to game state changes to update button state
+  // Subscribe to only the state values that affect button state
+  // This prevents unnecessary re-renders when unrelated state changes
   React.useEffect(() => {
-    const updateState = () => {
-      const newState = getNextStepState(gameServices, playerId);
-      console.log('🟣 [NextStepButton] Setting stepState:', newState);
-      setStepState(newState);
+    // Selector extracts only the values needed for button state calculation
+    type ButtonStateSlice = {
+      currentPlayerId: string | null;
+      awaitingChoiceType: string | null;
+      requiredActions: number;
+      completedActionCount: number;
+      moveIntent: string | null;
     };
 
-    const unsubscribe = gameServices.stateService.subscribe(updateState);
+    const selector = (state: ReturnType<typeof gameServices.stateService.getGameState>): ButtonStateSlice => {
+      const player = state.players.find(p => p.id === playerId);
+      return {
+        currentPlayerId: state.currentPlayerId,
+        awaitingChoiceType: state.awaitingChoice?.type || null,
+        requiredActions: state.requiredActions,
+        completedActionCount: state.completedActionCount,
+        moveIntent: player?.moveIntent || null
+      };
+    };
+
+    // Custom equality - compare the extracted values
+    const equalityFn = (a: ReturnType<typeof selector>, b: ReturnType<typeof selector>) => {
+      return a.currentPlayerId === b.currentPlayerId &&
+             a.awaitingChoiceType === b.awaitingChoiceType &&
+             a.requiredActions === b.requiredActions &&
+             a.completedActionCount === b.completedActionCount &&
+             a.moveIntent === b.moveIntent;
+    };
+
+    const unsubscribe = gameServices.stateService.subscribeWithSelector(
+      selector,
+      () => {
+        // When relevant state changes, recalculate button state
+        const newState = getNextStepState(gameServices, playerId);
+        console.log('🟣 [NextStepButton] Setting stepState:', newState);
+        setStepState(newState);
+      },
+      equalityFn
+    );
 
     // Initialize state
-    updateState();
+    const initialState = getNextStepState(gameServices, playerId);
+    setStepState(initialState);
 
     return unsubscribe;
   }, [gameServices, playerId]);

@@ -113,7 +113,8 @@ describe('EffectEngineService', () => {
       getPreSpaceEffectSnapshot: vi.fn(),
       setGameState: vi.fn(),
       updateGameState: vi.fn(),
-      selectDestination: vi.fn()
+      selectDestination: vi.fn(),
+      updateTempState: vi.fn().mockReturnValue({ success: true })
     };
 
     mockMovementService = {
@@ -621,8 +622,8 @@ describe('EffectEngineService', () => {
       expect(result.successfulEffects).toBe(2);
       expect(result.results.every(r => r.effectType === 'DURATION_STORED')).toBe(true);
 
-      // Verify updatePlayer was called to store active effects
-      expect(mockStateService.updatePlayer).toHaveBeenCalledTimes(2);
+      // Verify updateTempState was called to store active effects
+      expect(mockStateService.updateTempState).toHaveBeenCalledTimes(2);
 
       // Resource service should NOT have been called for immediate processing
       expect(mockResourceService.addMoney).not.toHaveBeenCalled();
@@ -664,15 +665,17 @@ describe('EffectEngineService', () => {
       // Assert - Verify effect was processed and duration decremented
       expect(mockResourceService.spendMoney).toHaveBeenCalledWith('player1', 50, 'active:L002', 'Economic Downturn');
 
-      // Verify player was updated with decremented duration
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
-        activeEffects: [{
-          ...activeEffect,
-          remainingDuration: 1,
-          description: 'Effect from L002 (1 turns remaining)'
-        }]
-      });
+      // Verify player was updated via TEMP state with decremented duration
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
+        {
+          activeEffects: [{
+            ...activeEffect,
+            remainingDuration: 1,
+            description: 'Effect from L002 (1 turns remaining)'
+          }]
+        }
+      );
     });
 
     it('should remove expired active effects', async () => {
@@ -733,14 +736,16 @@ describe('EffectEngineService', () => {
       expect(mockResourceService.spendMoney).toHaveBeenCalledWith('player1', 25, 'active:L002', 'Economic Downturn');
 
       // Verify only the continuing effect remains (expired effect removed)
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
-        activeEffects: [{
-          ...continueEffect,
-          remainingDuration: 1,
-          description: 'Effect from L002 (1 turns remaining)'
-        }]
-      });
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
+        {
+          activeEffects: [{
+            ...continueEffect,
+            remainingDuration: 1,
+            description: 'Effect from L002 (1 turns remaining)'
+          }]
+        }
+      );
     });
 
     it('should process active effects for all players', async () => {
@@ -812,8 +817,8 @@ describe('EffectEngineService', () => {
       expect(mockResourceService.spendTime).toHaveBeenCalledWith('player1', 2, 'active:L022', 'Economic Boom - faster construction');
       expect(mockResourceService.addTime).toHaveBeenCalledWith('player2', 2, 'active:L020', 'Building Code Update - slower inspections');
 
-      // Verify both players were updated
-      expect(mockStateService.updatePlayer).toHaveBeenCalledTimes(2);
+      // Verify both players were updated via TEMP state
+      expect(mockStateService.updateTempState).toHaveBeenCalledTimes(2);
     });
 
     it('should handle effects with no duration immediately', async () => {
@@ -882,19 +887,21 @@ describe('EffectEngineService', () => {
       // Act - Add active effect
       effectEngineService.addActiveEffect('player1', effect, 'L030', 2);
 
-      // Assert - Verify updatePlayer was called with correct active effect
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
-        activeEffects: [{
-          effectId: expect.stringMatching(/^L030_\d+_[a-z0-9]{9}$/),
-          sourceCardId: 'L030',
-          effectData: effect,
-          remainingDuration: 2,
-          startTurn: 8,
-          effectType: 'RESOURCE_CHANGE',
-          description: 'Effect from L030 (2 turns remaining)'
-        }]
-      });
+      // Assert - Verify updateTempState was called with correct active effect
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
+        {
+          activeEffects: [{
+            effectId: expect.stringMatching(/^L030_\d+_[a-z0-9]{9}$/),
+            sourceCardId: 'L030',
+            effectData: effect,
+            remainingDuration: 2,
+            startTurn: 8,
+            effectType: 'RESOURCE_CHANGE',
+            description: 'Effect from L030 (2 turns remaining)'
+          }]
+        }
+      );
     });
   });
 

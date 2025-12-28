@@ -104,6 +104,9 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   };
 
   // Calculate financial metrics using useMemo for performance
+  // Using JSON.stringify to compare array contents, not references
+  const handKey = JSON.stringify(player.hand || []);
+  const activeCardsKey = JSON.stringify((player.activeCards || []).map(ac => ac.cardId));
   const financialMetrics = useMemo(() => {
     const totalBudget = Object.values(playerMoneySources).reduce((sum, val) => sum + val, 0);
     const totalExpenditures = Object.values(expenditures).reduce((sum, val) => sum + val, 0);
@@ -133,7 +136,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       ownerFundingPct,
       externalFundingPct
     };
-  }, [playerMoneySources, expenditures, player.money, player.hand, player.activeCards, playerId, gameServices]);
+  }, [playerMoneySources, expenditures, player.money, handKey, activeCardsKey, playerId]);
 
   // Get ALL manual effects for money from current space, filtered by conditions
   // Wrapped in useMemo to prevent state updates during render (evaluateCondition may update projectScope)

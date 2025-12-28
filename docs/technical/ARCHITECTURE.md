@@ -1,6 +1,6 @@
 # Architecture Guide - Game Alpha
 
-**Last Updated:** December 26, 2025
+**Last Updated:** December 27, 2025
 **Status:** Production Ready
 **Test Coverage:** 720+ tests passing
 
@@ -477,6 +477,59 @@ const player = stateService.getPlayer(playerId);
 const result = await cardService.playCard(playerId, cardId);
 ```
 
+### Selective Subscriptions (Performance Optimization)
+
+As of December 2025, StateService supports **selective subscriptions** to reduce unnecessary re-renders. Instead of notifying all subscribers on every state change, components can specify exactly which parts of state they care about:
+
+```typescript
+// Traditional subscription - triggers on EVERY state change
+stateService.subscribe((gameState) => {
+  // Called even when unrelated state changes
+  setPlayers(gameState.players);
+});
+
+// Selective subscription - only triggers when selected value changes
+stateService.subscribeWithSelector(
+  // Selector: extract only the values you need
+  (state) => ({
+    currentPlayerId: state.currentPlayerId,
+    awaitingChoiceType: state.awaitingChoice?.type || null
+  }),
+  // Callback: only called when extracted values change
+  (selected, fullState) => {
+    setCurrentPlayerId(selected.currentPlayerId);
+  },
+  // Optional equality function for complex comparisons
+  (a, b) => a.currentPlayerId === b.currentPlayerId &&
+            a.awaitingChoiceType === b.awaitingChoiceType
+);
+```
+
+**Benefits:**
+- Components only re-render when their relevant data changes
+- Reduces cascade re-renders during turn transitions
+- NextStepButton: ignores money/card/time changes, only responds to action-related state
+- GameBoard: ignores player resources, only responds to position/movement changes
+
+**When to Use:**
+- Components that only need specific state slices
+- High-frequency render components (buttons, status displays)
+- Components that don't need to respond to unrelated state changes
+
+### Service-Level Caching
+
+GameRulesService uses internal caching for expensive calculations:
+
+```typescript
+// calculateProjectScope uses cache keyed by player's W card array
+// Cache is invalidated only when player's cards actually change
+const projectScope = gameRulesService.calculateProjectScope(playerId);
+// First call: calculates and caches
+// Subsequent calls with same cards: returns cached value instantly
+```
+
+This eliminates redundant calculations during turn transitions where the same value might be requested 50+ times by different components and services.
+
 ### Auto-Action Event System (December 2025)
 
 For automatic actions that require UI feedback (dice-conditional L card draws, etc.), StateService provides an event system:
@@ -712,5 +765,5 @@ For related architecture topics, see:
 
 ---
 
-**Last Updated:** December 9, 2025
+**Last Updated:** December 27, 2025
 **Maintained By:** Claude (AI Lead Programmer)

@@ -132,6 +132,17 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
     }
   });
 
+  // Count playable E cards (cards that can be played in current phase)
+  const playableECards = playerHand.filter(cardId => {
+    const card = gameServices.dataService.getCardById(cardId);
+    if (!card || card.card_type !== 'E') return false;
+    // If no phase restriction or "Any", always playable
+    if (!card.phase_restriction || card.phase_restriction === 'Any') return true;
+    // Otherwise check if current phase matches
+    return currentPhase?.toUpperCase() === card.phase_restriction.toUpperCase();
+  });
+  const playableCount = playableECards.length;
+
   const handleManualEffect = async (effectType: string) => {
     setIsLoading(true);
     setError(null);
@@ -322,6 +333,21 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
           </span>
         ))}</>
       )}
+      {/* Prominent indicator for playable E cards */}
+      {playableCount > 0 && (
+        <span style={{
+          marginLeft: '8px',
+          padding: '2px 6px',
+          backgroundColor: '#22c55e',
+          color: 'white',
+          borderRadius: '10px',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          animation: 'pulse 2s infinite'
+        }}>
+          ⚡ {playableCount} playable
+        </span>
+      )}
     </span>
   );
 
@@ -355,15 +381,38 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
 
               const isTypeExpanded = expandedCardType === cardType;
 
+              // Count playable cards in this type group
+              const playableInGroup = cardType === 'E'
+                ? cardsOfType.filter(item => item.card && canPlayCard(item.card)).length
+                : 0;
+
               return (
                 <div key={cardType} className="card-type-group">
                   <button
                     className="card-type-header"
                     onClick={() => toggleCardType(cardType)}
+                    style={playableInGroup > 0 ? {
+                      backgroundColor: '#dcfce7',
+                      borderColor: '#22c55e'
+                    } : undefined}
                   >
                     <span className="card-type-info">
                       <span className="expand-icon">{isTypeExpanded ? '▼' : '▶'}</span>
                       <span className="card-type-name">{cardType} Cards ({cardsOfType.length})</span>
+                      {/* Show playable badge for E cards */}
+                      {playableInGroup > 0 && (
+                        <span style={{
+                          marginLeft: '8px',
+                          padding: '1px 6px',
+                          backgroundColor: '#22c55e',
+                          color: 'white',
+                          borderRadius: '8px',
+                          fontSize: '9px',
+                          fontWeight: 'bold'
+                        }}>
+                          ⚡ {playableInGroup} playable
+                        </span>
+                      )}
                     </span>
                   </button>
 
@@ -372,16 +421,36 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                       {cardsOfType.map((item) => {
                         if (!item.card) return null;
                         const isCardExpanded = expandedCards.has(item.id);
+                        const isPlayable = item.card.card_type === 'E' && canPlayCard(item.card);
 
                         return (
-                          <div key={item.id} className="card-item">
+                          <div
+                            key={item.id}
+                            className="card-item"
+                            style={isPlayable ? {
+                              backgroundColor: '#dcfce7',
+                              borderLeft: '3px solid #22c55e'
+                            } : undefined}
+                          >
                             <button
                               className="card-header"
                               onClick={() => toggleCard(item.id)}
                             >
                               <span className="card-title">
                                 <span className="expand-icon-small">{isCardExpanded ? '▼' : '▶'}</span>
+                                {isPlayable && <span style={{ marginRight: '4px' }}>⚡</span>}
                                 {item.card.card_name || item.id}
+                                {isPlayable && (
+                                  <span style={{
+                                    marginLeft: '6px',
+                                    padding: '1px 4px',
+                                    backgroundColor: '#22c55e',
+                                    color: 'white',
+                                    borderRadius: '4px',
+                                    fontSize: '8px',
+                                    fontWeight: 'bold'
+                                  }}>PLAY</span>
+                                )}
                               </span>
                             </button>
 

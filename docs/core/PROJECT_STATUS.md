@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: December 26, 2025
+**Last Updated**: December 27, 2025
 **Current Phase**: User Acceptance Testing (UAT Phase 3)
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
@@ -9,7 +9,24 @@ This document provides a high-level overview of the current work status for the 
 
 ## Recently Completed
 
-### 1. Dice Consolidation & REAL/TEMP State Model (December 26, 2025) ✅
+### 1. Performance Optimization: Selective Subscriptions & Caching (December 27, 2025) ✅
+- **Status**: ✅ Complete
+- **Problem**: Console logs showed `calculateProjectScope` being called 50+ times per "End Turn" action due to re-render cascade
+- **Solutions Implemented**:
+  - **Service-Level Caching**: GameRulesService now caches `calculateProjectScope` results, invalidated only when player's cards change
+  - **Selective Subscriptions**: New `subscribeWithSelector()` method in StateService allows components to specify exactly which state they need
+- **Components Optimized**:
+  - `NextStepButton.tsx` - Only responds to action-related state changes
+  - `GameBoard.tsx` - Only responds to position/movement changes
+- **Files Modified**:
+  - `src/services/GameRulesService.ts` - Added projectScopeCache
+  - `src/services/StateService.ts` - Added subscribeWithSelector() method
+  - `src/types/ServiceContracts.ts` - Updated IStateService interface
+  - `src/components/player/NextStepButton.tsx` - Selective subscription
+  - `src/components/game/GameBoard.tsx` - Selective subscription
+- **Impact**: Significantly reduced re-render cascade during turn transitions
+
+### 2. Dice Consolidation & REAL/TEMP State Model (December 26, 2025) ✅
 - **Status**: ✅ Complete
 - **Objectives**:
   - Consolidate 3 dice condition paths into 1 unified approach

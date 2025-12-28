@@ -80,9 +80,8 @@ export class ResourceService implements IResourceService {
         [category]: currentExpenditures[category] + amount
       };
 
-      // Update both money and expenditures in a single state update
-      this.stateService.updatePlayer({
-        id: playerId,
+      // Update via TEMP state (or main state if no TEMP exists)
+      this.stateService.updateTempState(playerId, {
         money: player.money - amount,
         expenditures: updatedExpenditures
       });
@@ -179,9 +178,8 @@ export class ResourceService implements IResourceService {
     // Map cost category to expenditure category for backward compatibility
     const expenditureCategory = this.mapCostToExpenditure(category);
 
-    // Update player state
-    this.stateService.updatePlayer({
-      id: playerId,
+    // Update via TEMP state (or main state if no TEMP exists)
+    this.stateService.updateTempState(playerId, {
       money: player.money - amount,
       costHistory: updatedCostHistory,
       costs: updatedCosts,
@@ -296,10 +294,9 @@ export class ResourceService implements IResourceService {
       }
     }
 
-    // Apply the changes
+    // Apply the changes via TEMP state (or main state if no TEMP exists)
     try {
-      const updatedState = this.stateService.updatePlayer({
-        id: playerId,
+      this.stateService.updateTempState(playerId, {
         money: newMoney,
         timeSpent: Math.max(0, newTimeSpent), // Ensure time doesn't go negative
         moneySources: updatedMoneySources
@@ -498,10 +495,9 @@ export class ResourceService implements IResourceService {
       // Add loan to player's loans array
       const originalLoans = player.loans;
       const updatedLoans = [...player.loans, newLoan];
-      
-      // Update player with new loan
-      this.stateService.updatePlayer({
-        id: playerId,
+
+      // Update player with new loan via TEMP state
+      this.stateService.updateTempState(playerId, {
         loans: updatedLoans
       });
 
@@ -519,8 +515,7 @@ export class ResourceService implements IResourceService {
 
       if (!loanSuccess) {
         // Rollback loan if money addition failed
-        this.stateService.updatePlayer({
-          id: playerId,
+        this.stateService.updateTempState(playerId, {
           loans: originalLoans
         });
         return false;
@@ -537,8 +532,7 @@ export class ResourceService implements IResourceService {
       if (!feeSuccess) {
         // Rollback both loan and money if fee deduction failed
         this.addMoney(playerId, -amount, 'loan', `Rollback loan disbursement`);
-        this.stateService.updatePlayer({
-          id: playerId,
+        this.stateService.updateTempState(playerId, {
           loans: originalLoans
         });
         return false;

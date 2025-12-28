@@ -1,8 +1,8 @@
 # Game Alpha - Construction Project Management Board Game
 
-**Status:** Production Ready (November 2025)
+**Status:** Production Ready (December 2025)
 **Version:** 1.0.0
-**Test Coverage:** 958 tests passing across 91 test files (100% success rate)
+**Test Coverage:** 720+ tests passing (100% success rate)
 
 ## Overview
 
@@ -161,6 +161,7 @@ Game_Alpha/
 **👨‍💻 For Developers:**
 - **[ARCHITECTURE.md](docs/technical/ARCHITECTURE.md)** - System design, patterns, services
 - **[API_REFERENCE.md](docs/technical/API_REFERENCE.md)** - Component and service APIs
+- **[TURN_PROCESSING_FLOW.md](docs/technical/TURN_PROCESSING_FLOW.md)** - Turn flow decision trees and diagrams
 - **[TESTING_GUIDE.md](docs/technical/TESTING_GUIDE.md)** - Test strategy and patterns
 - **[CODE_STYLE.md](docs/technical/CODE_STYLE.md)** - Code conventions and standards
 

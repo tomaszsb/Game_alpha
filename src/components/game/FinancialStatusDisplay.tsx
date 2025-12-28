@@ -1,6 +1,6 @@
 // src/components/game/FinancialStatusDisplay.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { useGameContext } from '../../context/GameContext';
@@ -382,33 +382,23 @@ export function FinancialStatusDisplay({ player }: FinancialStatusDisplayProps):
   const iCards = hand.filter(cardId => cardService.getCardType(cardId) === 'I');
 
 
-  // Calculate financial status
-  const calculateFinancialStatus = () => {
-    // wCards is already filtered from player.hand above
-
+  // Calculate financial status - memoized to avoid recalculating on every render
+  // Using JSON.stringify to compare array contents, not references
+  const handKey = JSON.stringify(player.hand || []);
+  const activeCardsKey = JSON.stringify((player.activeCards || []).map(ac => ac.cardId));
+  const financialStatus = useMemo(() => {
     // Calculate project scope from W cards (single source of truth)
     const totalScopeCost = gameRulesService.calculateProjectScope(player.id);
 
     const surplus = player.money - totalScopeCost;
-    
-    // Debug logging
-    console.log(`💰 Financial Status Debug for ${player.name}:`, {
-      playerMoney: player.money,
-      totalScopeCost,
-      surplus,
-      isDeficit: surplus < 0,
-      wCards: wCards.length
-    });
-    
+
     return {
       playerMoney: player.money,
       totalScopeCost,
       surplus,
       isDeficit: surplus < 0
     };
-  };
-
-  const financialStatus = calculateFinancialStatus();
+  }, [player.id, player.money, handKey, activeCardsKey]);
 
   const containerStyle = {
     background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.secondary.light})`,
@@ -526,9 +516,29 @@ export function FinancialStatusDisplay({ player }: FinancialStatusDisplayProps):
               fontSize: '0.9rem',
               fontWeight: 'bold',
               color: colors.success.text,
-              marginBottom: '2px'
+              marginBottom: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
               💰 Sources of Money
+              {/* Show badge for B/I cards in hand */}
+              {(bCards.length > 0 || iCards.length > 0) && player.currentSpace !== 'OWNER-FUND-INITIATION' && (
+                <span style={{
+                  padding: '2px 6px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  {bCards.length > 0 && `${bCards.length} B`}
+                  {bCards.length > 0 && iCards.length > 0 && ' + '}
+                  {iCards.length > 0 && `${iCards.length} I`}
+                  {' card'}{(bCards.length + iCards.length) > 1 ? 's' : ''} available
+                </span>
+              )}
             </div>
             <div style={{
               fontSize: '0.75rem',

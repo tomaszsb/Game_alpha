@@ -1,6 +1,6 @@
 // src/components/game/PlayerStatusItem.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { FinancialStatusDisplay } from './FinancialStatusDisplay';
@@ -90,31 +90,33 @@ export function PlayerStatusItem({
   const [showCardPortfolio, setShowCardPortfolio] = useState(false);
   const [showDiscardedCards, setShowDiscardedCards] = useState(false);
 
-  // Calculate financial status for display
-  const calculateFinancialStatus = () => {
-    const hand = player.hand || [];
-    const wCards = hand.filter(cardId => cardService.getCardType(cardId) === 'W');
-    const totalScopeCost = gameRulesService.calculateProjectScope(player.id);
-    const surplus = player.money - totalScopeCost;
-    
+  // Memoize project scope calculation - only recalculates when cards change
+  // Using JSON.stringify to compare array contents, not references
+  const handKey = JSON.stringify(player.hand || []);
+  const activeCardsKey = JSON.stringify((player.activeCards || []).map(ac => ac.cardId));
+  const projectScope = useMemo(() => {
+    return gameRulesService.calculateProjectScope(player.id);
+  }, [player.id, handKey, activeCardsKey]);
+
+  // Calculate financial status for display - memoized
+  const financialStatus = useMemo(() => {
+    const surplus = player.money - projectScope;
+
     return {
       playerMoney: player.money,
-      totalScopeCost,
+      totalScopeCost: projectScope,
       surplus,
       isDeficit: surplus < 0
     };
-  };
+  }, [player.money, projectScope]);
 
-  const financialStatus = calculateFinancialStatus();
-
-  // Helper function to evaluate effect conditions
+  // Helper function to evaluate effect conditions - uses memoized projectScope
   const evaluateEffectCondition = (condition: string | undefined): boolean => {
     if (!condition || condition === 'always') return true;
 
     const conditionLower = condition.toLowerCase();
 
-    // Project scope conditions
-    const projectScope = gameRulesService.calculateProjectScope(player.id);
+    // Project scope conditions - uses memoized projectScope
     if (conditionLower === 'scope_le_4m') {
       return projectScope <= 4000000;
     }

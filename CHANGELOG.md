@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Performance Optimization: Selective Subscriptions & Calculation Caching (December 27, 2025)
+
+**Problem Identified:**
+- Console logs showed `calculateProjectScope` being called 50+ times per "End Turn" action
+- All 17+ components subscribed to full state and re-rendered on every state change
+- Expensive calculations repeated during turn transition cascade
+
+**Solution 1: Service-Level Caching (GameRulesService)**
+- Added `projectScopeCache` Map to GameRulesService
+- Cache key: JSON-stringified sorted array of player's W card IDs
+- Returns cached value if cards haven't changed
+- Result: 50+ calls → 1 call per turn (only recalculates when cards change)
+
+**Solution 2: Selective Subscriptions (StateService)**
+- Added `subscribeWithSelector<T>()` method to StateService
+- Components specify a selector function to extract only needed state
+- Callback only fires when selected value actually changes
+- Supports custom equality functions for complex comparisons
+
+**Components Updated:**
+- `NextStepButton.tsx` - Only responds to action-related state changes
+  - Tracks: currentPlayerId, awaitingChoice.type, requiredActions, completedActionCount, moveIntent
+  - Ignores: money, cards, time, position changes
+- `GameBoard.tsx` - Only responds to position/movement changes
+  - Tracks: player positions, currentPlayerId, gamePhase, isMoving, hasPlayerMovedThisTurn
+  - Ignores: player resources (money, cards, time)
+
+**Files Modified:**
+- `src/services/GameRulesService.ts` - Added projectScopeCache
+- `src/services/StateService.ts` - Added subscribeWithSelector() method
+- `src/types/ServiceContracts.ts` - Updated IStateService interface
+- `src/components/player/NextStepButton.tsx` - Selective subscription
+- `src/components/game/GameBoard.tsx` - Selective subscription
+- `docs/technical/ARCHITECTURE.md` - Documented new patterns
+
+**Result:**
+- Significantly reduced re-render cascade during turn transitions
+- calculateProjectScope logs only appear when cards actually change
+- NextStepButton and GameBoard callbacks fire less frequently
+
 ### Dice Consolidation & REAL/TEMP State Model (December 26, 2025)
 
 **Part 1: Dice Condition Consolidation**

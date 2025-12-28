@@ -1,6 +1,6 @@
 // src/components/game/ProjectProgress.tsx
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
@@ -32,6 +32,19 @@ interface ProjectProgressProps {
  */
 export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
+
+  // Memoize project scope calculations for all players - only recalculates when cards change
+  // Using a stable key based on card contents, not array references
+  const playersCardKey = players.map(p =>
+    `${p.id}:${JSON.stringify(p.hand || [])}:${JSON.stringify((p.activeCards || []).map(ac => ac.cardId))}`
+  ).join('|');
+  const playerProjectScopes = useMemo(() => {
+    const scopes: { [playerId: string]: number } = {};
+    for (const player of players) {
+      scopes[player.id] = gameRulesService.calculateProjectScope(player.id);
+    }
+    return scopes;
+  }, [playersCardKey]);
 
   // Calculate project timeline for any player
   const getPlayerTimeline = (player: Player) => {
@@ -359,9 +372,9 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           {players.map((player) => {
             const playerProgress = calculatePlayerProgress(player);
 
-            // Calculate design fee ratio for this player
+            // Calculate design fee ratio for this player - uses memoized project scope
             const designFees = player.expenditures?.design || 0;
-            const projectScope = gameRulesService.calculateProjectScope(player.id);
+            const projectScope = playerProjectScopes[player.id] || 0;
             const designFeeRatio = projectScope > 0 ? (designFees / projectScope) * 100 : 0;
             // 4-tier color scheme: green (0-10%), yellow (10-15%), orange (15-20%), red (20%+)
             const designFeeColor = designFeeRatio >= 20 ? '#f44336' :

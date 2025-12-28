@@ -175,6 +175,13 @@ export interface IStateService {
   // Subscription methods
   subscribe(callback: (state: GameState) => void): () => void;
 
+  // Selective subscription - only triggers callback when selected value changes
+  subscribeWithSelector<T>(
+    selector: (state: GameState) => T,
+    callback: (selected: T, state: GameState) => void,
+    equalityFn?: (a: T, b: T) => boolean
+  ): () => void;
+
   // Auto-action event methods for modal notifications
   subscribeToAutoActions(callback: (event: import('../services/StateService').AutoActionEvent) => void): () => void;
   emitAutoAction(event: import('../services/StateService').AutoActionEvent): void;

@@ -185,10 +185,10 @@ describe('CardService - Enhanced Coverage', () => {
     it('should process card expirations correctly on endOfTurn', () => {
       cardService.endOfTurn();
 
-      // Should update player to remove expired cards and keep active ones
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+      // Should update player via TEMP state to remove expired cards and keep active ones
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
         expect.objectContaining({
-          id: 'player1',
           activeCards: [
             { cardId: 'B_active_001', expirationTurn: 5 }
           ]
@@ -199,7 +199,7 @@ describe('CardService - Enhanced Coverage', () => {
     it('should process multiple players during endOfTurn', () => {
       // Clear previous mock calls to ensure accurate count
       vi.clearAllMocks();
-      
+
       const player2: Player = {
         ...mockPlayer,
         id: 'player2',
@@ -207,23 +207,24 @@ describe('CardService - Enhanced Coverage', () => {
         activeCards: [{ cardId: 'B_expired_002', expirationTurn: 1 }],
         hand: [] // Ensure player2 has the new hand structure
       };
-      
+
       // Create a modified game state with both players
       const gameStateWithTwoPlayers = {
         ...mockGameState,
         players: [mockPlayer, player2]
       };
-      
+
       // Re-setup mocks for this test
       mockStateService.getGameState.mockReturnValue(gameStateWithTwoPlayers);
       mockStateService.getAllPlayers.mockReturnValue([mockPlayer, player2]);
       mockStateService.updatePlayer.mockReturnValue(gameStateWithTwoPlayers);
+      mockStateService.updateTempState.mockReturnValue({ success: true });
       mockStateService.updateGameState.mockReturnValue(gameStateWithTwoPlayers);
-      
+
       cardService.endOfTurn();
 
-      // Should update both players (both have expired cards)
-      expect(mockStateService.updatePlayer).toHaveBeenCalledTimes(2);
+      // Should update both players via TEMP state (both have expired cards)
+      expect(mockStateService.updateTempState).toHaveBeenCalledTimes(2);
     });
 
     it('should handle player with no active cards', () => {
@@ -275,19 +276,19 @@ describe('CardService - Enhanced Coverage', () => {
       const result = cardService.transferCard('player1', 'player2', 'E_transferable_001');
 
       expect(result).toEqual(mockGameState);
-      
-      // Should update source player to remove card from hand
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+
+      // Should update source player via TEMP state to remove card from hand
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
         expect.objectContaining({
-          id: 'player1',
           hand: []  // Card removed from hand
         })
       );
 
-      // Should update target player to add card to hand
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+      // Should update target player via TEMP state to add card to hand
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player2',
         expect.objectContaining({
-          id: 'player2',
           hand: ['E_transferable_001']  // Card added to hand
         })
       );
@@ -354,24 +355,20 @@ describe('CardService - Enhanced Coverage', () => {
       expect(drawnCards).toHaveLength(2);
       expect(drawnCards).toEqual(['W003', 'W002']); // Cards drawn from top of deck (LIFO)
 
-      // Assert: Should update game state with new player hand
-      expect(mockStateService.updateGameState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          players: expect.arrayContaining([
-            expect.objectContaining({
-              id: 'player1',
-              hand: ['W_active_001', 'W003', 'W002'] // Original card + 2 new cards
-            })
-          ])
-        })
-      );
-
-      // Assert: Should update global deck state
+      // Assert: Should update global deck state (no longer includes players)
       expect(mockStateService.updateGameState).toHaveBeenCalledWith(
         expect.objectContaining({
           decks: expect.objectContaining({
             W: ['W001'] // Deck should have 1 card remaining (original 3 - 2 drawn)
           })
+        })
+      );
+
+      // Assert: Should update player hand via TEMP state
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
+        expect.objectContaining({
+          hand: ['W_active_001', 'W003', 'W002'] // Original card + 2 new cards
         })
       );
 

@@ -339,7 +339,7 @@ export interface DiceResultEffect {
   value?: number;
   cardType?: string;
   cardCount?: number;
-  cardAction?: 'draw' | 'remove' | 'replace';  // For cards: what action was performed
+  cardAction?: 'draw' | 'remove' | 'replace' | 'give' | 'return';  // For cards: what action was performed
   cardIds?: string[];  // IDs of the actual cards that were drawn/removed
   moveOptions?: string[];
 }

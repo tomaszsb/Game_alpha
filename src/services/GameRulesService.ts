@@ -9,6 +9,10 @@ import { CardType } from '../types/DataTypes';
  * on their primary responsibilities.
  */
 export class GameRulesService implements IGameRulesService {
+  // Cache for calculateProjectScope to avoid redundant calculations
+  // Key: playerId, Value: { cacheKey: stringified card array, value: calculated scope }
+  private projectScopeCache: Map<string, { cacheKey: string; value: number }> = new Map();
+
   constructor(
     private dataService: IDataService,
     private stateService: IStateService
@@ -471,6 +475,8 @@ export class GameRulesService implements IGameRulesService {
 
   /**
    * Calculates the total project scope for a player based on their Work (W) cards
+   * Uses service-level caching to avoid redundant calculations.
+   * Cache is invalidated when the player's card arrays change.
    * @param playerId - The ID of the player
    * @returns The total cost/value of all W cards owned by the player
    */
@@ -482,8 +488,6 @@ export class GameRulesService implements IGameRulesService {
         return 0;
       }
 
-      let totalScope = 0;
-
       // Get all W cards for this player from BOTH hand and activeCards
       const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
       const activeWorkCards = (player.activeCards || [])
@@ -492,7 +496,19 @@ export class GameRulesService implements IGameRulesService {
 
       const allWorkCards = [...handWorkCards, ...activeWorkCards];
 
+      // Create cache key from card arrays
+      const cacheKey = JSON.stringify(allWorkCards.sort());
+
+      // Check cache - return cached value if cards haven't changed
+      const cached = this.projectScopeCache.get(playerId);
+      if (cached && cached.cacheKey === cacheKey) {
+        return cached.value;
+      }
+
+      // Cache miss - calculate scope
       console.log(`📊 Calculating project scope: ${handWorkCards.length} in hand + ${activeWorkCards.length} active = ${allWorkCards.length} total W cards`);
+
+      let totalScope = 0;
 
       // Calculate total scope by summing up card costs
       for (const cardId of allWorkCards) {
@@ -508,6 +524,9 @@ export class GameRulesService implements IGameRulesService {
           console.warn(`Card data not found for base card ID: ${baseCardId} (from ${cardId})`);
         }
       }
+
+      // Store in cache
+      this.projectScopeCache.set(playerId, { cacheKey, value: totalScope });
 
       return totalScope;
     } catch (error) {
