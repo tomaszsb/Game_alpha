@@ -127,7 +127,8 @@ export const createMockStateService = (): any => ({
   updateActionCounts: vi.fn(),
   clearTurnActions: vi.fn(),
   setPlayerMoveIntent: vi.fn(),
-  
+  clearPlayerMoveIntent: vi.fn(),
+
   // Modal management methods
   showCardModal: vi.fn(),
   dismissModal: vi.fn(),

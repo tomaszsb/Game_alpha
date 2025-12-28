@@ -758,8 +758,24 @@ export class StateService implements IStateService {
   }
 
   clearTurnActions(): GameState {
+    const currentPlayerId = this.currentState.currentPlayerId;
+    let players = this.currentState.players;
+    
+    if (currentPlayerId) {
+      const playerIndex = players.findIndex(p => p.id === currentPlayerId);
+      if (playerIndex !== -1) {
+        const updatedPlayer = {
+          ...players[playerIndex],
+          moveIntent: null
+        };
+        players = [...players];
+        players[playerIndex] = updatedPlayer;
+      }
+    }
+
     const newState: GameState = {
       ...this.currentState,
+      players,
       // RESET the new object
       completedActions: {
         diceRoll: undefined,
@@ -769,7 +785,29 @@ export class StateService implements IStateService {
 
     this.currentState = newState;
     this.notifyListeners();
-    return { ...newState };
+    return { ...this.currentState };
+  }
+
+  clearPlayerMoveIntent(playerId: string): GameState {
+    const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return { ...this.currentState };
+
+    const updatedPlayer = {
+      ...this.currentState.players[playerIndex],
+      moveIntent: null
+    };
+
+    const newPlayers = [...this.currentState.players];
+    newPlayers[playerIndex] = updatedPlayer;
+
+    const newState: GameState = {
+      ...this.currentState,
+      players: newPlayers
+    };
+
+    this.currentState = newState;
+    this.notifyListeners();
+    return { ...this.currentState };
   }
 
   clearPlayerHasRolledDice(): GameState {
@@ -896,10 +934,6 @@ export class StateService implements IStateService {
     let completed = 0;
 
     try {
-      // Check if dice roll is REQUIRED for this space
-      // A dice roll is only required if:
-      // 1. Movement type is 'dice' (dice_outcome spaces like CHEAT-BYPASS), OR
-      // 2. There are unconditional dice effects (not "if you roll" effects)
       const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
       const requiresDiceRollConfig = spaceConfig?.requires_dice_roll ?? true; // Default to true if not specified
 
@@ -938,14 +972,6 @@ export class StateService implements IStateService {
       );
 
       const manualEffects = conditionFilteredEffects.filter(effect => effect.trigger_type === 'manual');
-      const automaticEffects = conditionFilteredEffects.filter(effect => effect.trigger_type !== 'manual');
-
-
-      // Log automatic effects for debugging, but don't count them as separate actions
-      // Automatic effects are triggered by space entry and don't require separate player actions
-      automaticEffects.forEach((effect, index) => {
-        console.log(`  📝 Automatic effect ${index}: ${effect.effect_type} ${effect.effect_action} ${effect.effect_value} (triggered by space entry)`);
-      });
 
       // Count manual effects (require separate player action)
       // Exclude 'turn' effects since they duplicate the regular End Turn button
@@ -953,9 +979,6 @@ export class StateService implements IStateService {
       const countableManualEffects = manualEffects.filter(effect =>
         effect.effect_type !== 'turn' && effect.effect_type !== 'dice'
       );
-      console.log(`🎯 calculateRequiredActions: Found ${countableManualEffects.length} countable manual effects:`,
-        countableManualEffects.map(e => `${e.effect_type}:${e.effect_action}`));
-      console.log(`🎯 Current completed manual actions:`, this.currentState.completedActions.manualActions);
 
       countableManualEffects.forEach(effect => {
         // Generic handling for ALL manual effect types
@@ -965,37 +988,34 @@ export class StateService implements IStateService {
         }
         required++;
 
-        // Check if this specific manual action has been completed
-        // Support both simple keys ("cards") and compound keys ("cards:draw_b")
-        // Also support case-insensitive matching for robustness
+        // Match by compound key (cards:draw_b), simple key (cards), or effect action (draw_b)
         const simpleKey = effect.effect_type;
         const compoundKey = `${effect.effect_type}:${effect.effect_action}`;
         const completedKeys = Object.keys(this.currentState.completedActions.manualActions);
 
-        // Direct match (exact key)
+        // 1. Direct match
         const simpleMatch = this.currentState.completedActions.manualActions[simpleKey];
         const compoundMatch = this.currentState.completedActions.manualActions[compoundKey];
+        const actionMatch = this.currentState.completedActions.manualActions[effect.effect_action];
 
-        // Case-insensitive fallback matching
-        const caseInsensitiveMatch = completedKeys.find(key =>
+        // 2. Case-insensitive match for any key
+        const caseMatch = completedKeys.some(key => 
           key.toLowerCase() === compoundKey.toLowerCase() ||
-          key.toLowerCase() === simpleKey.toLowerCase()
+          key.toLowerCase() === simpleKey.toLowerCase() ||
+          key.toLowerCase() === (effect.effect_action || '').toLowerCase()
         );
 
-        const isCompleted = !!(simpleMatch || compoundMatch || caseInsensitiveMatch);
+        // 3. Description match (fallback)
+        const descMatch = Object.values(this.currentState.completedActions.manualActions).some(val => 
+          val === effect.description || val === compoundKey
+        );
 
-        console.log(`  🎯 Manual effect ${effect.effect_type}:${effect.effect_action}:`);
-        console.log(`     - simpleKey="${simpleKey}", simpleMatch="${simpleMatch}"`);
-        console.log(`     - compoundKey="${compoundKey}", compoundMatch="${compoundMatch}"`);
-        console.log(`     - caseInsensitiveMatch="${caseInsensitiveMatch}"`);
-        console.log(`     - completedKeys:`, completedKeys);
-        console.log(`     - isCompleted=${isCompleted}`);
+        const isCompleted = !!(simpleMatch || compoundMatch || actionMatch || caseMatch || descMatch);
 
         if (isCompleted) {
           completed++;
         }
       });
-      
     } catch (error) {
       console.error('Error calculating required actions:', error);
       // Fallback to basic turn requirements

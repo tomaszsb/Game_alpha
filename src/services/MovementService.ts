@@ -110,7 +110,12 @@ export class MovementService implements IMovementService {
     const moveResult = this.executeMove(moveValidation);
 
     // PHASE 3: FINALIZE - Write state, log completion, cleanup
-    return this.finalizeMove(moveResult);
+    const finalState = this.finalizeMove(moveResult);
+    
+    // Clear move intent after successful movement
+    this.stateService.clearPlayerMoveIntent(playerId);
+    
+    return finalState;
   }
 
   /**

@@ -59,6 +59,8 @@ const mockStateService: anyIStateService = {
   clearPlayerHasRolledDice: vi.fn(),
   updateActionCounts: vi.fn(),
   clearTurnActions: vi.fn(),
+  setPlayerMoveIntent: vi.fn(),
+  clearPlayerMoveIntent: vi.fn(),
   showCardModal: vi.fn(),
   dismissModal: vi.fn(),
   createPlayerSnapshot: vi.fn(),

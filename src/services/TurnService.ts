@@ -379,6 +379,7 @@ export class TurnService implements ITurnService {
           // }
 
           if (destination) {
+            process.stderr.write(`\n!!! [MOVE_CHECK] From: ${currentPlayer.currentSpace} To: ${destination} (Roll: ${diceRoll}) !!!\n`);
             console.log(`🎲 Dice-determined movement: ${currentPlayer.name} rolled ${diceRoll}, moving to ${destination}`);
             // Emit movement event BEFORE the move so UI can show transition overlay
             this.stateService.emitAutoAction({
@@ -701,6 +702,7 @@ export class TurnService implements ITurnService {
     this.stateService.clearPlayerHasMoved();
     this.stateService.clearPlayerHasRolledDice();
     this.stateService.clearTurnActions();
+    this.stateService.clearPlayerMoveIntent(nextPlayer.id);
 
     // Send End Turn notification for the previous player AFTER all state changes are complete
     if (this.notificationService) {
@@ -1446,6 +1448,12 @@ export class TurnService implements ITurnService {
       // This ensures action counts are correct when movement buttons re-appear
       const { text: buttonText } = formatManualEffectButton(effect);
       this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+      if (effectType.includes(':')) {
+        this.stateService.setPlayerCompletedManualAction(effectType.split(':')[0], buttonText);
+      }
+      if (effect.effect_action) {
+        this.stateService.setPlayerCompletedManualAction(effect.effect_action, buttonText);
+      }
 
       // BUG FIX: Restore movement choice if this space requires one
       // This fixes the bug where completing a card action clears the movement choice
