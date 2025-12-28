@@ -43,7 +43,10 @@ Validate gameplay, balance, and user experience with real players
 - [x] Verify space mechanics - ✅ Choice system works
 - [x] Document issues found - See findings below
 - [x] Complete full game playthrough (start to finish) ✅ December 28, 2025
-- [ ] Test multiplayer with 2-4 players
+- [x] Test multiplayer with 2-4 players ✅ December 28, 2025
+  - 2-player: Turn switching, state isolation, different paths
+  - 3-player: Odd player rotation verified
+  - 4-player: Full rotation, all paths tested (ARCH, LEND, CHEAT)
 - [ ] Test multi-device functionality (QR codes, short URLs)
 
 **UAT Findings (December 9, 2025):**

@@ -28,8 +28,21 @@ This document provides a high-level overview of the current work status for the 
   - `src/services/StateService.ts` - Add clearPlayerMoveIntent(), expand action matching
   - `src/services/TurnService.ts` - Clear moveIntent on turn switch, multi-key registration
   - `tests/mocks/mockServices.ts`, `tests/services/TurnService.test.ts` - Fix missing mock
-- **Test Status**: 483 service tests passing, 2 E2E tests passing
+- **Test Status**: 483 service tests, 266 component tests, 56 E2E tests (805 total)
 - **Impact**: Game loop is now verified end-to-end, ready for external UAT
+
+### 1a. Multiplayer Testing Verification (December 28, 2025) ✅
+- **Status**: ✅ Complete
+- **E2E Tests Added**:
+  - `E2E-AllPaths.test.ts` - 10 tests covering all decision points
+  - `E2E-Multiplayer2P.test.ts` - 10 tests for 2-player games
+  - `E2E-Multiplayer4P.test.ts` - 12 tests for 3-4 player games
+- **Verifications**:
+  - Turn switching between 2, 3, and 4 players
+  - State isolation (each player's cards, money, position separate)
+  - All players can take different paths (ARCH, LEND, CHEAT)
+  - Player order preserved throughout game
+- **Test Status**: 56 E2E tests passing, 1 skipped (flaky UI test)
 
 ### 2. Performance Optimization: Selective Subscriptions & Caching (December 27, 2025) ✅
 - **Status**: ✅ Complete

@@ -38,6 +38,11 @@ All notable changes to this project will be documented in this file.
   - REG-DOB-TYPE-SELECT: Both PLAN-EXAM and PROF-CERT regulatory paths
   - REG-FDNY-FEE-REVIEW: All 4 destination options
   - Complete alternate path (PLAN-EXAM route to FINISH)
+- `tests/E2E-Multiplayer2P.test.ts` - 2-player multiplayer (10 tests):
+  - Turn switching, state isolation, different paths
+- `tests/E2E-Multiplayer4P.test.ts` - 3-4 player multiplayer (12 tests):
+  - 4-player rotation, all paths tested (ARCH, LEND, CHEAT)
+  - 3-player odd-count handling
 
 **Test Infrastructure Fix**:
 - Added missing `clearPlayerMoveIntent` to mock services in tests/mocks/mockServices.ts and tests/services/TurnService.test.ts

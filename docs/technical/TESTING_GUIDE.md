@@ -6,8 +6,8 @@
 
 ```bash
 # REQUIRED before every commit:
-npm test -- tests/services/    # All service tests (438 tests, ~10s)
-npm test -- tests/E2E-*.test.ts # All E2E tests (~5 tests, ~2s)
+npm test tests/services/    # All service tests (483 tests, ~25s)
+npm test tests/E2E          # All E2E tests (56 tests, ~35s)
 ```
 
 ### If ANY test fails:
@@ -62,15 +62,12 @@ npm run test:isolated       # Ultra-fast pure logic tests
 
 | Test Category         | Tests                   | Status                |
 |-----------------------|-------------------------|-----------------------|
-| Service Tests         | 445 tests               | ✅ Passing            |
-| Component Tests       | 277 tests               | ✅ Passing            |
-| Utils Tests           | 129 tests               | ✅ Passing            |
-| E2E/Integration Tests | 45 tests                | ✅ Passing            |
-| Isolated Tests        | 22 tests                | ✅ Passing            |
-| Features Tests        | 23 tests                | ✅ Passing            |
-| Regression Tests      | 66 tests                | ✅ Passing            |
-| Performance Tests     | 9 tests                 | ✅ Passing            |
-| **Full Suite**        | **914 tests total**     | **✅ 913 Passing / ⚠️ 1 Skipped** |
+| Service Tests         | 483 tests               | ✅ Passing            |
+| Component Tests       | 266 tests               | ✅ Passing            |
+| E2E Tests             | 56 tests                | ✅ Passing            |
+| **Full Suite**        | **805+ tests total**    | **✅ Passing / ⚠️ 1 Skipped** |
+
+*Note: Test counts updated December 28, 2025. E2E includes multiplayer (2P, 3P, 4P) and path coverage tests.*
 
 ## 🛠️ Writing Tests
 
