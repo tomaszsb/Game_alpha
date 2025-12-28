@@ -3,7 +3,7 @@ import { TurnService } from '../../src/services/TurnService';
 import { LoggingService } from '../../src/services/LoggingService';
 import { MovementService } from '../../src/services/MovementService';
 import { NegotiationService } from '../../src/services/NegotiationService';
-import { createMockStateService, createMockDataService, createMockGameRulesService, createMockCardService, createMockResourceService, createMockChoiceService, createMockNegotiationService } from '../mocks/mockServices';
+import { createMockStateService, createMockDataService, createMockGameRulesService, createMockCardService, createMockResourceService, createMockChoiceService, createMockNegotiationService, createMockEffectEngineService } from '../mocks/mockServices';
 import { GameState } from '../../src/types/StateTypes';
 
 /**
@@ -29,6 +29,7 @@ describe('Action Sequence Regression Tests', () => {
   let mockResourceService: any;
   let mockChoiceService: any;
   let mockNegotiationService: any;
+  let mockEffectEngineService: any;
   let mockGameState: GameState;
   let capturedLogs: any[];
 
@@ -43,6 +44,7 @@ describe('Action Sequence Regression Tests', () => {
     mockResourceService = createMockResourceService();
     mockChoiceService = createMockChoiceService();
     mockNegotiationService = createMockNegotiationService();
+    mockEffectEngineService = createMockEffectEngineService();
 
     // Setup game state for action sequence testing
     mockGameState = {
@@ -151,6 +153,9 @@ describe('Action Sequence Regression Tests', () => {
       loggingService,
       mockChoiceService
     );
+
+    // Set the EffectEngineService to satisfy assertion checks
+    turnService.setEffectEngineService(mockEffectEngineService);
   });
 
   describe('CRITICAL: TurnService.startTurn Action Sequence', () => {
