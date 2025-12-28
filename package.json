@@ -38,6 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "terser": "^5.27.0",
     "@babel/preset-typescript": "^7.27.1",
     "@swc/core": "^1.13.5",
     "@swc/jest": "^0.2.39",
