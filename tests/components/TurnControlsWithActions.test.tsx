@@ -236,4 +236,157 @@ describe('TurnControlsWithActions', () => {
     );
     expect(marketResearchButton).toBeUndefined();
   });
+
+  describe('Dice Movement Spaces', () => {
+    it('should show dice roll button on dice-movement spaces like CHEAT-BYPASS', () => {
+      // Set up player on a dice-movement space
+      const diceMovementPlayer = {
+        ...mockCurrentPlayer,
+        currentSpace: 'CHEAT-BYPASS',
+        visitType: 'First' as const
+      };
+
+      // Override mock game state for this test - NO awaiting choice
+      const diceSpaceGameState = {
+        ...mockGameState,
+        awaitingChoice: null,  // No choice pending for dice roll
+        hasPlayerMovedThisTurn: false,
+        hasPlayerRolledDice: false
+      };
+      mockServices.stateService.subscribe.mockImplementation((callback: any) => {
+        callback(diceSpaceGameState);
+        return vi.fn();
+      });
+      mockServices.stateService.getGameState.mockReturnValue(diceSpaceGameState);
+
+      // Mock the data service to return dice-movement configuration
+      mockServices.dataService.getSpaceByName.mockReturnValue({
+        name: 'CHEAT-BYPASS',
+        config: {
+          space_name: 'CHEAT-BYPASS',
+          phase: 'OWNER',
+          path_type: 'side quest cheat',
+          is_starting_space: false,
+          is_ending_space: false,
+          min_players: 1,
+          max_players: 4,
+          requires_dice_roll: true  // Key config for dice button
+        },
+        movement: {
+          space_name: 'CHEAT-BYPASS',
+          visit_type: 'First',
+          movement_type: 'dice',  // Dice-based movement
+          destinations: []  // Determined by dice roll
+        }
+      });
+
+      // Mock movement data
+      mockServices.dataService.getMovement.mockReturnValue({
+        space_name: 'CHEAT-BYPASS',
+        visit_type: 'First',
+        movement_type: 'dice',
+        destinations: []
+      });
+
+      const mockProps = {
+        currentPlayer: diceMovementPlayer,
+        gamePhase: 'PLAY' as GamePhase,
+        isProcessingTurn: false,
+        isProcessingArrival: false,
+        hasPlayerMovedThisTurn: false,  // Start of turn, hasn't moved yet
+        hasPlayerRolledDice: false,      // Hasn't rolled dice yet
+        hasCompletedManualActions: false,
+        awaitingChoice: false,           // No choice pending
+        actionCounts: { required: 1, completed: 0 },
+        completedActions: { diceRoll: undefined, manualActions: {} },
+        feedbackMessage: '',
+        buttonFeedback: {},
+        onRollDice: vi.fn(),
+        onEndTurn: vi.fn(),
+        onManualEffect: vi.fn(),
+        onNegotiate: vi.fn(),
+        onOpenNegotiationModal: vi.fn(),
+        playerId: 'player1',
+        playerName: 'Test Player'
+      };
+
+      render(
+        <GameContext.Provider value={mockServices}>
+          <TurnControlsWithActions {...mockProps} />
+        </GameContext.Provider>
+      );
+
+      // Verify dice roll button is displayed - look for the button with "Roll Dice" text
+      const buttons = screen.getAllByRole('button');
+      const diceRollButton = buttons.find(button =>
+        button.textContent?.includes('🎲') && button.textContent?.includes('Roll Dice')
+      );
+      expect(diceRollButton).toBeDefined();
+      expect(diceRollButton).not.toBeDisabled();
+    });
+
+    it('should NOT show dice button after dice has been rolled', () => {
+      const diceMovementPlayer = {
+        ...mockCurrentPlayer,
+        currentSpace: 'CHEAT-BYPASS',
+        visitType: 'First' as const
+      };
+
+      // Override mock game state - dice has been rolled
+      const rolledDiceGameState = {
+        ...mockGameState,
+        awaitingChoice: null,
+        hasPlayerMovedThisTurn: false,
+        hasPlayerRolledDice: true
+      };
+      mockServices.stateService.subscribe.mockImplementation((callback: any) => {
+        callback(rolledDiceGameState);
+        return vi.fn();
+      });
+      mockServices.stateService.getGameState.mockReturnValue(rolledDiceGameState);
+
+      mockServices.dataService.getSpaceByName.mockReturnValue({
+        name: 'CHEAT-BYPASS',
+        config: { requires_dice_roll: true }
+      });
+
+      const mockProps = {
+        currentPlayer: diceMovementPlayer,
+        gamePhase: 'PLAY' as GamePhase,
+        isProcessingTurn: false,
+        isProcessingArrival: false,
+        hasPlayerMovedThisTurn: false,
+        hasPlayerRolledDice: true,        // Already rolled
+        hasCompletedManualActions: false,
+        awaitingChoice: false,
+        actionCounts: { required: 1, completed: 1 },
+        completedActions: { diceRoll: '🎲 Rolled 4', manualActions: {} },
+        feedbackMessage: '',
+        buttonFeedback: {},
+        onRollDice: vi.fn(),
+        onEndTurn: vi.fn(),
+        onManualEffect: vi.fn(),
+        onNegotiate: vi.fn(),
+        onOpenNegotiationModal: vi.fn(),
+        playerId: 'player1',
+        playerName: 'Test Player'
+      };
+
+      render(
+        <GameContext.Provider value={mockServices}>
+          <TurnControlsWithActions {...mockProps} />
+        </GameContext.Provider>
+      );
+
+      // Verify dice completion message is shown instead of button
+      expect(screen.getByText('✅ 🎲 Rolled 4')).toBeInTheDocument();
+
+      // Verify no clickable dice button exists
+      const buttons = screen.queryAllByRole('button');
+      const diceRollButton = buttons.find(button =>
+        button.textContent?.includes('Roll') && button.textContent?.includes('🎲')
+      );
+      expect(diceRollButton).toBeUndefined();
+    });
+  });
 });
