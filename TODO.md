@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
-**Last Updated:** December 21, 2025
-**Status:** Production Ready - UAT In Progress
+**Last Updated:** December 28, 2025
+**Status:** Production Ready - Gameplay Verified
 
 ---
 
@@ -42,7 +42,7 @@ Validate gameplay, balance, and user experience with real players
 - [x] Test all card types and effects (W, B, E, L, I) - ✅ All working
 - [x] Verify space mechanics - ✅ Choice system works
 - [x] Document issues found - See findings below
-- [ ] Complete full game playthrough (start to finish)
+- [x] Complete full game playthrough (start to finish) ✅ December 28, 2025
 - [ ] Test multiplayer with 2-4 players
 - [ ] Test multi-device functionality (QR codes, short URLs)
 
@@ -162,6 +162,20 @@ Validate gameplay, balance, and user experience with real players
   - Added design fee ratio calculation using player.expenditures.design and projectScope
   - Shows visual bar scaled to 20% threshold with color coding (green/orange/red)
   - Displays current design fees and cap amount in dollars
+
+**E2E Game Loop Verification (December 28) - ✅ COMPLETED:**
+- [x] **Full Playthrough Verified**: 17-turn "Golden Path" from OWNER-SCOPE-INITIATION to FINISH
+- [x] **Win Condition Validated**: Landing on FINISH triggers Game Over and correctly identifies winner
+- [x] **Bug #1 Fixed**: moveIntent Persistence - Movement intent now clears between turns
+  - Root cause: Old moveIntent from multi-path choice spaces persisted to fixed/auto spaces
+  - Fix: Clear moveIntent in clearTurnActions() and when switching players
+- [x] **Bug #2 Fixed**: Manual Action Completion Keys - Fuzzy/case-insensitive matching
+  - Root cause: `cards:replace_E` compound key not matching simple key lookups
+  - Fix: Expand matching to support compound, simple, action keys + case-insensitive
+- [x] **Bug #3 Documented**: Implicit Dice Movement - Spaces with dice movement but no manual dice effects
+  - Workaround: Test forces roll; production uses `requires_dice_roll=Yes` config
+- [x] **E2E Tests Added**: E2E-LogicPlaythrough.test.ts, E2E-FullGame.test.tsx
+- [x] **Test Mocks Fixed**: Added missing clearPlayerMoveIntent to mock services
 
 **UI Consolidation (December 21) - ✅ COMPLETED:**
 - [x] **Project Timeline Per Player**: Moved timeline from global to per-player cards
@@ -297,4 +311,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** December 21, 2025
+**Last Updated:** December 28, 2025

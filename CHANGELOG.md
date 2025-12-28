@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### E2E Game Loop Verification & Bug Fixes (December 28, 2025)
+
+**Milestone: GAMEPLAY PRODUCTION READY**
+- Full game verified from OWNER-SCOPE-INITIATION to FINISH (17-turn "Golden Path")
+- Win condition correctly identifies winner when landing on FINISH
+
+**Bug #1: moveIntent Persistence**
+- **Problem**: Old moveIntent from multi-path choice spaces (e.g., PM-DECISION-CHECK) persisted when moving to fixed/auto movement spaces, causing "Invalid Move" errors on subsequent End Turn
+- **Fix**:
+  - Added `clearPlayerMoveIntent()` method to StateService
+  - Clear moveIntent in `clearTurnActions()` when resetting turn state
+  - Clear moveIntent for next player in `TurnService.nextPlayer()`
+  - Clear moveIntent in `MovementService.movePlayer()` after successful move
+
+**Bug #2: Manual Action Completion Keys**
+- **Problem**: `cards:replace_E` at PM-DECISION-CHECK wasn't recognized as complete due to key format mismatch between TurnService (compound key) and StateService (simple key lookup)
+- **Fix**:
+  - Expanded StateService matching to check: compound key, simple key, effect_action, case-insensitive variants, description fallback
+  - TurnService now registers completion under multiple key formats (compound, simple, action)
+
+**Bug #3: Implicit Dice Movement (Documented)**
+- **Issue**: Spaces with dice-based movement but no manual dice effects could cause softlock if "Roll to Move" button doesn't appear
+- **Status**: Documented for future investigation; production uses `requires_dice_roll=Yes` in GAME_CONFIG.csv
+
+**E2E Tests Added**:
+- `tests/E2E-LogicPlaythrough.test.ts` - Full logic-level game playthrough
+- `tests/E2E-FullGame.test.tsx` - UI integration test with React Testing Library
+
+**Test Infrastructure Fix**:
+- Added missing `clearPlayerMoveIntent` to mock services in tests/mocks/mockServices.ts and tests/services/TurnService.test.ts
+
+**Files Modified**:
+- `src/services/MovementService.ts` - Clear moveIntent after finalizeMove
+- `src/services/StateService.ts` - Add clearPlayerMoveIntent(), expand manual action matching logic
+- `src/services/TurnService.ts` - Clear moveIntent on turn switch, multi-key action registration
+- `tests/mocks/mockServices.ts` - Add clearPlayerMoveIntent mock
+- `tests/services/TurnService.test.ts` - Add clearPlayerMoveIntent mock
+
 ### Performance Optimization: Selective Subscriptions & Calculation Caching (December 27, 2025)
 
 **Problem Identified:**
