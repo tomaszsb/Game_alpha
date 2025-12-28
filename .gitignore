@@ -45,3 +45,14 @@ Thumbs.db
 *.tmp
 *.temp
 *.txt
+
+# Screenshots (UAT/testing artifacts)
+/screenshots/
+initial_load.png
+
+# Playwright MCP server artifacts
+playwright-*.ts
+playwright-*.zip
+
+# Runtime PID files
+*_pid
