@@ -71,7 +71,7 @@ describe('E2E Feature: Multi-Path Movement with Real Services', () => {
     const movementService = new MovementService(dataService, stateService, choiceService, loggingService);
     const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any);
     const negotiationService = new NegotiationService(stateService, effectEngineService);
-    const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService);
+    const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
 
