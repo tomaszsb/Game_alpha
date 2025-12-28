@@ -1,0 +1,15 @@
+# Game Alpha - Docker Compose
+# Run: docker-compose up -d
+
+version: '3.8'
+
+services:
+  game-alpha:
+    build: .
+    container_name: game-alpha
+    ports:
+      - "3000:3000"   # Frontend
+      - "3001:3001"   # Backend API
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
