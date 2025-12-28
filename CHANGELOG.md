@@ -30,7 +30,14 @@ All notable changes to this project will be documented in this file.
 
 **E2E Tests Added**:
 - `tests/E2E-LogicPlaythrough.test.ts` - Full logic-level game playthrough
-- `tests/E2E-FullGame.test.tsx` - UI integration test with React Testing Library
+- `tests/E2E-FullGame.test.tsx` - UI integration test (skipped - flaky due to React timing)
+- `tests/E2E-AllPaths.test.ts` - Comprehensive path coverage (10 tests) covering all decision points:
+  - PM-DECISION-CHECK: All 3 branches (LEND, CHEAT-BYPASS, ARCH paths)
+  - ARCH-SCOPE-CHECK: Scope loop-back mechanic
+  - ENG-SCOPE-CHECK: Scope loop-back mechanic
+  - REG-DOB-TYPE-SELECT: Both PLAN-EXAM and PROF-CERT regulatory paths
+  - REG-FDNY-FEE-REVIEW: All 4 destination options
+  - Complete alternate path (PLAN-EXAM route to FINISH)
 
 **Test Infrastructure Fix**:
 - Added missing `clearPlayerMoveIntent` to mock services in tests/mocks/mockServices.ts and tests/services/TurnService.test.ts
