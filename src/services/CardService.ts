@@ -25,6 +25,20 @@ export class CardService implements ICardService {
     this.effectEngineService = effectEngineService;
   }
 
+  /**
+   * Assert that EffectEngineService is initialized.
+   * Call this at the start of methods that depend on it.
+   * @throws Error if EffectEngineService is not set
+   */
+  private assertEffectEngineReady(): void {
+    if (!this.effectEngineService) {
+      throw new Error(
+        'CardService not fully initialized: EffectEngineService not set. ' +
+        'Call setEffectEngineService() before using card effect methods.'
+      );
+    }
+  }
+
   // Card validation methods
   canPlayCard(playerId: string, cardId: string): boolean {
     return this.gameRulesService.canPlayCard(playerId, cardId);
@@ -103,7 +117,7 @@ export class CardService implements ICardService {
       ...gameState.decks,
       [cardType]: availableDeck
     };
-    
+
     const updatedDiscardPiles = {
       ...gameState.discardPiles,
       [cardType]: discardPile
@@ -112,16 +126,15 @@ export class CardService implements ICardService {
     // Update player's hand with drawn cards
     const updatedHand = [...player.hand, ...drawnCards];
 
-    // Apply updates atomically - single state update to prevent race conditions
+    // Update global deck/discard state
     this.stateService.updateGameState({
       decks: updatedDecks,
-      discardPiles: updatedDiscardPiles,
-      players: gameState.players.map(p => 
-        p.id === playerId 
-          ? { ...p, hand: updatedHand }
-          : p
-      )
+      discardPiles: updatedDiscardPiles
     });
+
+    // Update player's hand via TEMP state (or main state if no TEMP exists)
+    // This ensures cards are preserved when commitTempToReal is called
+    this.stateService.updateTempState(playerId, { hand: updatedHand });
 
     // Log the card draw with source tracking
     const sourceInfo = source || 'unknown';
@@ -244,11 +257,14 @@ export class CardService implements ICardService {
       console.warn(`Could not find card ${cardId} in player ${playerId}'s collections`);
     }
 
-    return this.stateService.updatePlayer({
-      id: playerId,
+    // Update via TEMP state (or main state if no TEMP exists)
+    // This ensures card removal is preserved when commitTempToReal is called
+    this.stateService.updateTempState(playerId, {
       hand: updatedHand,
       activeCards: updatedActiveCards
     });
+
+    return this.stateService.getGameState();
   }
 
   replaceCard(playerId: string, oldCardId: string, newCardType: CardType): GameState {
@@ -428,8 +444,8 @@ export class CardService implements ICardService {
             throw new Error(error.detailed);
           }
 
-          this.stateService.updatePlayer({
-            id: playerId,
+          // Update via TEMP state (or main state if no TEMP exists)
+          this.stateService.updateTempState(playerId, {
             money: player.money - card.cost
           });
           console.log(`Player ${playerId} paid $${card.cost} to play card ${cardId}`);
@@ -547,11 +563,17 @@ export class CardService implements ICardService {
     // Remove card from available cards
     this.removeCard(playerId, cardId);
 
+    // Get fresh player state after removal (removeCard updates TEMP state)
+    const freshPlayer = this.stateService.getPlayer(playerId);
+    if (!freshPlayer) {
+      throw new Error(`Player ${playerId} not found after removeCard`);
+    }
+
     // Add to activeCards
-    const updatedActiveCards = [...player.activeCards, { cardId, expirationTurn }];
-    
-    this.stateService.updatePlayer({
-      id: playerId,
+    const updatedActiveCards = [...freshPlayer.activeCards, { cardId, expirationTurn }];
+
+    // Update via TEMP state (or main state if no TEMP exists)
+    this.stateService.updateTempState(playerId, {
       activeCards: updatedActiveCards
     });
 
@@ -606,12 +628,16 @@ export class CardService implements ICardService {
       
       // Remove card from source player's available cards
       this.removeCard(sourcePlayerId, cardId);
-      
-      // Add card to target player's hand
-      const updatedTargetHand = [...targetPlayer.hand, cardId];
-      
-      this.stateService.updatePlayer({
-        id: targetPlayerId,
+
+      // Get fresh target player state and add card to their hand
+      const freshTargetPlayer = this.stateService.getPlayer(targetPlayerId);
+      if (!freshTargetPlayer) {
+        throw new Error(`Target player ${targetPlayerId} not found after removeCard`);
+      }
+      const updatedTargetHand = [...freshTargetPlayer.hand, cardId];
+
+      // Update via TEMP state (or main state if no TEMP exists)
+      this.stateService.updateTempState(targetPlayerId, {
         hand: updatedTargetHand
       });
       
@@ -724,9 +750,8 @@ export class CardService implements ICardService {
           this.moveExpiredCardToDiscarded(player.id, expiredCardId);
         }
 
-        // Update active cards list
-        this.stateService.updatePlayer({
-          id: player.id,
+        // Update active cards list via TEMP state (or main state if no TEMP exists)
+        this.stateService.updateTempState(player.id, {
           activeCards: remainingActiveCards
         });
       }
@@ -795,16 +820,16 @@ export class CardService implements ICardService {
       [cardType]: [...gameState.discardPiles[cardType], cardId]
     };
     
-    // Update game state and player state atomically
+    // Update global discard pile
     this.stateService.updateGameState({
       discardPiles: updatedDiscardPiles
     });
-    
-    this.stateService.updatePlayer({
-      id: playerId,
+
+    // Update player's hand via TEMP state (or main state if no TEMP exists)
+    this.stateService.updateTempState(playerId, {
       hand: updatedHand
     });
-    
+
     console.log(`Moved card ${cardId} from hand to ${cardType} discard pile for player ${playerId}`);
   }
 
@@ -847,6 +872,9 @@ export class CardService implements ICardService {
 
   // Card effect methods - Enhanced with UnifiedEffectEngine integration
   async applyCardEffects(playerId: string, cardId: string): Promise<GameState> {
+    // Ensure EffectEngineService is ready before processing card effects
+    this.assertEffectEngineReady();
+
     const card = this.dataService.getCardById(cardId);
     if (!card) {
       console.warn(`Card ${cardId} not found in database`);
@@ -1151,21 +1179,21 @@ export class CardService implements ICardService {
       const moneyMatch = effects.match(/gain \$(\d+)/);
       if (moneyMatch) {
         const moneyGain = parseInt(moneyMatch[1]);
-        this.stateService.updatePlayer({
-          id: playerId,
+        // Update via TEMP state (or main state if no TEMP exists)
+        this.stateService.updateTempState(playerId, {
           money: player.money + moneyGain
         });
         console.log(`Expeditor card provided $${moneyGain}`);
       }
     }
-    
+
     if (effects.includes('time units')) {
       // Extract time amount
       const timeMatch = effects.match(/(\d+)\s+time\s+units/);
       if (timeMatch) {
         const timeGain = parseInt(timeMatch[1]);
-        this.stateService.updatePlayer({
-          id: playerId,
+        // Update via TEMP state (or main state if no TEMP exists)
+        this.stateService.updateTempState(playerId, {
           timeSpent: Math.max(0, player.timeSpent - timeGain) // Reduce time spent
         });
         console.log(`Expeditor card saved ${timeGain} time units`);
@@ -1340,14 +1368,14 @@ export class CardService implements ICardService {
       ];
     }
 
-    // Update game state and player state
+    // Update global discard piles and player state
     try {
       this.stateService.updateGameState({
         discardPiles: updatedDiscardPiles
       });
-      
-      this.stateService.updatePlayer({
-        id: playerId,
+
+      // Update player's cards via TEMP state (or main state if no TEMP exists)
+      this.stateService.updateTempState(playerId, {
         hand: updatedHand,
         activeCards: updatedActiveCards
       });

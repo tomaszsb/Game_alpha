@@ -38,11 +38,22 @@ export interface AutoActionEvent {
   toSpace?: string;
 }
 
+// Selective subscription for optimized re-renders
+interface SelectiveListener<T> {
+  selector: (state: GameState) => T;
+  callback: (selected: T, state: GameState) => void;
+  lastValue: T | undefined;
+  equalityFn: (a: T, b: T) => boolean;
+}
+
 export class StateService implements IStateService {
   private currentState: GameState;
   private readonly dataService: IDataService;
   private gameRulesService?: IGameRulesService; // Setter injection to avoid circular dependency
   private listeners: Array<(state: GameState) => void> = [];
+
+  // Selective listeners - only notified when their selected value changes
+  private selectiveListeners: Array<SelectiveListener<unknown>> = [];
 
   // Auto-action event listeners for modal notifications
   private autoActionListeners: Array<(event: AutoActionEvent) => void> = [];
@@ -68,6 +79,20 @@ export class StateService implements IStateService {
     this.gameRulesService = gameRulesService;
   }
 
+  /**
+   * Assert that GameRulesService is initialized.
+   * Note: Some methods have fallbacks, but this ensures full functionality.
+   * @throws Error if GameRulesService is not set
+   */
+  private assertGameRulesServiceReady(): void {
+    if (!this.gameRulesService) {
+      throw new Error(
+        'StateService not fully initialized: GameRulesService not set. ' +
+        'Call setGameRulesService() before using condition evaluation methods.'
+      );
+    }
+  }
+
   // Subscription methods
   subscribe(callback: (state: GameState) => void): () => void {
     this.listeners.push(callback);
@@ -77,6 +102,58 @@ export class StateService implements IStateService {
       const index = this.listeners.indexOf(callback);
       if (index > -1) {
         this.listeners.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Subscribe with a selector - only triggers callback when selected value changes.
+   * This reduces unnecessary re-renders by allowing components to specify exactly
+   * which parts of state they care about.
+   *
+   * @param selector Function to extract the relevant part of state
+   * @param callback Function called when selected value changes
+   * @param equalityFn Optional custom equality function (default: shallow equality)
+   * @returns Unsubscribe function
+   *
+   * @example
+   * // Only re-render when currentPlayerId changes
+   * stateService.subscribeWithSelector(
+   *   state => state.currentPlayerId,
+   *   (currentPlayerId) => setCurrentPlayerId(currentPlayerId)
+   * );
+   *
+   * @example
+   * // Only re-render when specific player's hand changes
+   * stateService.subscribeWithSelector(
+   *   state => state.players.find(p => p.id === playerId)?.hand,
+   *   (hand) => setHand(hand || []),
+   *   (a, b) => JSON.stringify(a) === JSON.stringify(b) // Deep compare arrays
+   * );
+   */
+  subscribeWithSelector<T>(
+    selector: (state: GameState) => T,
+    callback: (selected: T, state: GameState) => void,
+    equalityFn: (a: T, b: T) => boolean = (a, b) => a === b
+  ): () => void {
+    const listener: SelectiveListener<T> = {
+      selector,
+      callback,
+      lastValue: undefined,
+      equalityFn
+    };
+
+    // Initialize with current value
+    const currentState = this.getGameState();
+    listener.lastValue = selector(currentState);
+
+    this.selectiveListeners.push(listener as SelectiveListener<unknown>);
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.selectiveListeners.indexOf(listener as SelectiveListener<unknown>);
+      if (index > -1) {
+        this.selectiveListeners.splice(index, 1);
       }
     };
   }
@@ -114,12 +191,28 @@ export class StateService implements IStateService {
   private notifyListeners(options: { skipSync?: boolean } = {}): void {
     const currentStateSnapshot = this.getGameState();
 
-    // Notify all subscribers
+    // Notify all full-state subscribers (legacy pattern)
     this.listeners.forEach(callback => {
       try {
         callback(currentStateSnapshot);
       } catch (error) {
         console.error('Error in state change listener:', error);
+      }
+    });
+
+    // Notify selective subscribers only if their selected value changed
+    this.selectiveListeners.forEach(listener => {
+      try {
+        const newValue = listener.selector(currentStateSnapshot);
+        const hasChanged = listener.lastValue === undefined ||
+          !listener.equalityFn(listener.lastValue, newValue);
+
+        if (hasChanged) {
+          listener.lastValue = newValue;
+          listener.callback(newValue, currentStateSnapshot);
+        }
+      } catch (error) {
+        console.error('Error in selective state change listener:', error);
       }
     });
 

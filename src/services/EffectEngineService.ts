@@ -136,6 +136,23 @@ export class EffectEngineService implements IEffectEngineService {
   }
 
   /**
+   * Assert that critical setter-injected dependencies are initialized.
+   * Some services (notificationService, dataService) are optional and handled with null checks.
+   * TurnService and NegotiationService are required for specific effect types.
+   * @throws Error if TurnService is not set (required for TURN_MODIFIER effects)
+   */
+  private assertCoreDependenciesReady(): void {
+    if (!this.turnService) {
+      throw new Error(
+        'EffectEngineService not fully initialized: TurnService not set. ' +
+        'Call setTurnService() before processing effects.'
+      );
+    }
+    // Note: negotiationService is checked inline where needed (only for negotiation effects)
+    // Note: notificationService and dataService are optional (used with null checks)
+  }
+
+  /**
    * Process multiple effects as a batch operation
    * 
    * @param effects Array of effects to process
@@ -143,6 +160,9 @@ export class EffectEngineService implements IEffectEngineService {
    * @returns Promise resolving to batch processing results
    */
   async processEffects(effects: Effect[], context: EffectContext): Promise<BatchEffectResult> {
+    // Ensure core setter-injected dependencies are ready
+    this.assertCoreDependenciesReady();
+
     console.log(`🚨 DEBUG: EffectEngineService.processEffects() ENTRY - ${effects.length} effects from source: ${context.source}`);
     console.log(`🔧 EFFECT_ENGINE: Processing ${effects.length} effects from source: ${context.source}`);
     
@@ -281,7 +301,7 @@ export class EffectEngineService implements IEffectEngineService {
                   const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
 
                   // Build update data for the player
-                  const updateData: any = { id: payload.playerId };
+                  const updateData: any = {};
 
                   if (player.expenditures) {
                     // Add to design expenditures
@@ -313,8 +333,8 @@ export class EffectEngineService implements IEffectEngineService {
                     updateData.costHistory = costHistory;
                   }
 
-                  // Apply all updates at once
-                  this.stateService.updatePlayer(updateData);
+                  // Apply all updates via TEMP state (or main state if no TEMP exists)
+                  this.stateService.updateTempState(payload.playerId, updateData);
 
                   // Check for 20% design fee cap rule
                   const updatedPlayer = this.stateService.getPlayer(payload.playerId);
@@ -556,6 +576,16 @@ export class EffectEngineService implements IEffectEngineService {
                 const fundingPlayer = this.stateService.getPlayer(payload.playerId);
                 const fundingType = payload.cardType === 'B' ? 'Bank' : 'Investment';
 
+                // Extract funding amount from card's money_effect field
+                let fundingAmount = 0;
+                if (drawnCardData?.money_effect) {
+                  const moneyMatch = drawnCardData.money_effect.match(/add\s+([\d,]+)/i);
+                  if (moneyMatch) {
+                    fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);
+                  }
+                }
+                console.log(`    💰 Funding amount extracted: $${fundingAmount.toLocaleString()}`);
+
                 // Emit auto-action event for seed money modal
                 this.stateService.emitAutoAction({
                   type: 'seed_money',
@@ -566,7 +596,8 @@ export class EffectEngineService implements IEffectEngineService {
                   cardId: drawnCards[0],
                   success: true,
                   spaceName: 'OWNER-FUND-INITIATION',
-                  message: `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`
+                  message: `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`,
+                  moneyAmount: fundingAmount
                 });
 
                 const playCardEffects = drawnCards.map(cardId => ({
@@ -1694,6 +1725,9 @@ export class EffectEngineService implements IEffectEngineService {
    * Process effects considering both duration and targeting - comprehensive effect processing
    */
   async processCardEffects(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult> {
+    // Ensure core setter-injected dependencies are ready
+    this.assertCoreDependenciesReady();
+
     console.log(`🎯🕒 EFFECT_ENGINE: Processing ${effects.length} card effects with full targeting and duration support`);
     
     const cardId = cardData?.card_id || 'unknown';
@@ -1830,9 +1864,9 @@ export class EffectEngineService implements IEffectEngineService {
     };
 
     const updatedActiveEffects = [...player.activeEffects, activeEffect];
-    
-    this.stateService.updatePlayer({
-      id: playerId,
+
+    // Update via TEMP state (or main state if no TEMP exists)
+    this.stateService.updateTempState(playerId, {
       activeEffects: updatedActiveEffects
     });
 
@@ -1894,9 +1928,8 @@ export class EffectEngineService implements IEffectEngineService {
       }
     }
 
-    // Update player's active effects
-    this.stateService.updatePlayer({
-      id: playerId,
+    // Update player's active effects via TEMP state (or main state if no TEMP exists)
+    this.stateService.updateTempState(playerId, {
       activeEffects: remainingEffects
     });
 

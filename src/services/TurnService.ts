@@ -61,6 +61,20 @@ export class TurnService implements ITurnService {
   }
 
   /**
+   * Assert that all required setter-injected dependencies are initialized.
+   * Call this at the start of public methods that depend on these services.
+   * @throws Error if EffectEngineService is not set
+   */
+  private assertDependenciesReady(): void {
+    if (!this.effectEngineService) {
+      throw new Error(
+        'TurnService not fully initialized: EffectEngineService not set. ' +
+        'Call setEffectEngineService() before using TurnService methods.'
+      );
+    }
+  }
+
+  /**
    * Get a list of available actions for the current player based on game state.
    * This is used by UI components to determine which buttons to display.
    *
@@ -152,8 +166,11 @@ export class TurnService implements ITurnService {
   }
 
   async takeTurn(playerId: string): Promise<TurnResult> {
+    // Ensure all setter-injected dependencies are ready
+    this.assertDependenciesReady();
+
     // Turn start is logged in nextPlayer() method
-    
+
     try {
       // Validation: Check if it's the player's turn
       if (!this.canPlayerTakeTurn(playerId)) {
@@ -217,8 +234,9 @@ export class TurnService implements ITurnService {
    * This is for the "Roll Dice" button
    */
   async rollDiceAndProcessEffects(playerId: string): Promise<{ diceRoll: number }> {
-    // Dice action start
-    
+    // Ensure all setter-injected dependencies are ready
+    this.assertDependenciesReady();
+
     try {
       // Validation: Check if it's the player's turn
       if (!this.canPlayerTakeTurn(playerId)) {
@@ -284,6 +302,9 @@ export class TurnService implements ITurnService {
    * This is for the "End Turn" button
    */
   async endTurnWithMovement(force: boolean = false, skipAutoMove: boolean = false): Promise<{ nextPlayerId: string }> {
+    // Ensure all setter-injected dependencies are ready
+    this.assertDependenciesReady();
+
     console.log('🔴 [TurnService] endTurnWithMovement ENTERED - force:', force, 'skipAutoMove:', skipAutoMove);
     try {
       console.log('🔴 [TurnService] Getting game state...');
@@ -717,6 +738,9 @@ export class TurnService implements ITurnService {
    * 4. Unlock UI and handle movement choices
    */
   public async startTurn(playerId: string): Promise<void> {
+    // Ensure all setter-injected dependencies are ready
+    this.assertDependenciesReady();
+
     console.log('🔴 [TurnService] startTurn() ENTERED for:', playerId);
     // Clear any old choices from the previous turn
     this.stateService.clearAwaitingChoice();
@@ -1964,7 +1988,7 @@ export class TurnService implements ITurnService {
 
       // Determine action verb based on effect type
       let actionDescription: string;
-      let cardAction: string;
+      let cardAction: 'draw' | 'remove' | 'replace' | 'give' | 'return';
       if (isReplaceAction) {
         actionDescription = `You replaced ${count} ${cardType} ${cardWord}!`;
         cardAction = 'replace';
@@ -2988,13 +3012,29 @@ export class TurnService implements ITurnService {
 
       const afterState = this.stateService.getGameState();
 
-      // Create effect description for modal feedback
+      // Get the funding amount from the card
+      let fundingAmount = 0;
+      let cardName = 'Funding Card';
+      if (result.drawnCardId) {
+        const cardData = this.dataService.getCardById(result.drawnCardId);
+        if (cardData) {
+          cardName = cardData.card_name || 'Funding Card';
+          // Extract money value from card's money_effect field
+          if (cardData.money_effect) {
+            const moneyMatch = cardData.money_effect.match(/add\s+([\d,]+)/i);
+            if (moneyMatch) {
+              fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);
+            }
+          }
+        }
+      }
+
+      // Create effect description for modal feedback - include money effect
       const effects: DiceResultEffect[] = [{
-        type: 'cards',
-        description: `${fundingDescription} - ${fundingCardType} card awarded and applied!`,
+        type: 'money',
+        value: fundingAmount,
+        description: `🏠 Owner Seed Money: ${cardName} (${fundingCardType === 'B' ? 'Bank' : 'Investor'} funding approved)`,
         cardType: fundingCardType,
-        cardCount: 1,
-        cardAction: 'draw',
         cardIds: result.drawnCardId ? [result.drawnCardId] : []
       }];
 
