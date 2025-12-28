@@ -2,7 +2,7 @@
 
 **Last Updated:** December 27, 2025
 **Status:** Production Ready
-**Test Coverage:** 720+ tests passing
+**Test Coverage:** 1,028 tests passing
 
 ---
 
@@ -85,6 +85,48 @@ class CardService {
   }
 }
 ```
+
+### Circular Dependency Resolution (Setter Injection)
+
+Some services have circular dependencies (e.g., TurnService ↔ EffectEngineService). These are resolved using setter injection:
+
+```typescript
+// TurnService needs EffectEngineService, but EffectEngineService needs TurnService
+const turnService = new TurnService(dataService, stateService, /* ... */);
+const effectEngineService = new EffectEngineService(/* ... */);
+
+// Resolve circular dependency via setters
+turnService.setEffectEngineService(effectEngineService);
+effectEngineService.setTurnService(turnService);
+```
+
+**Assertion Checks (December 2025):**
+
+Services with setter-injected dependencies include assertion methods to catch initialization errors early:
+
+```typescript
+// In TurnService
+private assertDependenciesReady(): void {
+  if (!this.effectEngineService) {
+    throw new Error(
+      'TurnService not fully initialized: EffectEngineService not set. ' +
+      'Call setEffectEngineService() before using TurnService methods.'
+    );
+  }
+}
+
+// Called at start of public methods
+async takeTurn(playerId: string): Promise<TurnResult> {
+  this.assertDependenciesReady();
+  // ... method logic
+}
+```
+
+**Services with setter injection:**
+- `TurnService.setEffectEngineService()`
+- `CardService.setEffectEngineService()`
+- `EffectEngineService.setTurnService()`, `setNegotiationService()`, `setNotificationService()`, `setDataService()`
+- `StateService.setGameRulesService()`
 
 ### Service Contracts
 
