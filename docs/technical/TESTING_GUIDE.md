@@ -7,7 +7,7 @@
 ```bash
 # REQUIRED before every commit:
 npm test tests/services/    # All service tests (483 tests, ~25s)
-npm test tests/E2E          # All E2E tests (56 tests, ~35s)
+npm test tests/E2E          # All E2E tests (80 tests, ~35s)
 ```
 
 ### If ANY test fails:
@@ -64,10 +64,10 @@ npm run test:isolated       # Ultra-fast pure logic tests
 |-----------------------|-------------------------|-----------------------|
 | Service Tests         | 483 tests               | ✅ Passing            |
 | Component Tests       | 266 tests               | ✅ Passing            |
-| E2E Tests             | 56 tests                | ✅ Passing            |
-| **Full Suite**        | **805+ tests total**    | **✅ Passing / ⚠️ 1 Skipped** |
+| E2E Tests             | 80 tests                | ✅ Passing            |
+| **Full Suite**        | **829+ tests total**    | **✅ Passing / ⚠️ 1 Skipped** |
 
-*Note: Test counts updated December 28, 2025. E2E includes multiplayer (2P, 3P, 4P) and path coverage tests.*
+*Note: Test counts updated December 28, 2025. E2E includes multiplayer (2P, 3P, 4P), path coverage, and multi-device tests.*
 
 ## 🛠️ Writing Tests
 

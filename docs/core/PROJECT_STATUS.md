@@ -42,7 +42,17 @@ This document provides a high-level overview of the current work status for the 
   - State isolation (each player's cards, money, position separate)
   - All players can take different paths (ARCH, LEND, CHEAT)
   - Player order preserved throughout game
-- **Test Status**: 56 E2E tests passing, 1 skipped (flaky UI test)
+- **Test Status**: 80 E2E tests passing, 1 skipped (flaky UI test)
+
+### 1b. Multi-Device Testing Verification (December 28, 2025) ✅
+- **Status**: ✅ Complete
+- **E2E Tests Added**: `E2E-MultiDevice.test.ts` - 24 tests
+- **Verifications**:
+  - Short ID generation (P1, P2, P3, P4) for QR code URLs
+  - URL routing (?p=P1 → player-specific view)
+  - 4 devices accessing 4 different player views simultaneously
+  - Host device sees full game board view
+  - Case sensitivity and edge cases handled
 
 ### 2. Performance Optimization: Selective Subscriptions & Caching (December 27, 2025) ✅
 - **Status**: ✅ Complete

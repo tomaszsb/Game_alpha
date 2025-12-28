@@ -43,6 +43,11 @@ All notable changes to this project will be documented in this file.
 - `tests/E2E-Multiplayer4P.test.ts` - 3-4 player multiplayer (12 tests):
   - 4-player rotation, all paths tested (ARCH, LEND, CHEAT)
   - 3-player odd-count handling
+- `tests/E2E-MultiDevice.test.ts` - Multi-device QR/URL support (24 tests):
+  - Short ID generation (P1, P2, P3, P4)
+  - URL routing (?p=P1 → player screen)
+  - 4 devices accessing 4 player views
+  - Host device full game view
 
 **Test Infrastructure Fix**:
 - Added missing `clearPlayerMoveIntent` to mock services in tests/mocks/mockServices.ts and tests/services/TurnService.test.ts

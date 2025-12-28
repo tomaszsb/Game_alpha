@@ -47,7 +47,11 @@ Validate gameplay, balance, and user experience with real players
   - 2-player: Turn switching, state isolation, different paths
   - 3-player: Odd player rotation verified
   - 4-player: Full rotation, all paths tested (ARCH, LEND, CHEAT)
-- [ ] Test multi-device functionality (QR codes, short URLs)
+- [x] Test multi-device functionality (QR codes, short URLs) ✅ December 28, 2025
+  - Short ID generation (P1, P2, P3, P4)
+  - URL routing (?p=P1 → player screen)
+  - 4 devices accessing 4 player views simultaneously
+  - Host device sees full game view
 
 **UAT Findings (December 9, 2025):**
 - ✅ **GOOD**: Core mechanics working well (8.5/10 rating → 9.5/10 after fixes)
