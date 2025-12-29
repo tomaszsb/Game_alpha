@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Deployment & Multi-Game Support (December 29, 2025)
+
+**Milestone: EXTERNAL TESTING INFRASTRUCTURE READY**
+
+**Docker Deployment to Unraid Server:**
+- Created Dockerfile and docker-compose.yml for containerized deployment
+- Deployed to Unraid server at `unravel-game.duckdns.org:3080`
+- Set up DuckDNS for stable external URL (auto-updates when IP changes)
+- Configured port forwarding (3080→frontend, 3081→backend)
+
+**Multi-Game Session Support:**
+- Server now supports multiple independent games (G1, G2, G3, etc.)
+- New GameLobby component for creating/joining games
+- URLs include game ID: `?g=G1&p=P1`
+- Each game is completely isolated from others
+- Legacy single-game endpoints still work (uses G0)
+
+**Game Persistence & Expiration:**
+- Auto-save games to file (survives Docker restarts)
+- Games expire after 24 hours of inactivity (auto-cleanup)
+- Data stored in Docker volume `/app/data`
+
+**Visitor Logging & Analytics:**
+- Logs every visitor: IP address, device type, timestamp, actions
+- New API endpoints:
+  - `GET /api/logs` - View recent visitor logs
+  - `GET /api/logs/summary` - Today's activity summary
+- Actions logged: CREATE_GAME, PLAYER_JOINED, GAME_STARTED, etc.
+
+**Push Notifications via ntfy.sh:**
+- Real-time notifications when:
+  - Server starts
+  - New game created
+  - Player joins game
+  - Game starts
+  - Games cleaned up (expired)
+- Configure topic via `NTFY_TOPIC` environment variable
+
+**Rebranding to "Unravel Codes: The Game":**
+- Added logo to GameLobby and PlayerSetup screens
+- Added favicon for browser tab
+- Updated page title and loading text
+- Added alpha version notice with feedback email (game@unravelcodes.com)
+
 ### E2E Game Loop Verification & Bug Fixes (December 28, 2025)
 
 **Milestone: GAMEPLAY PRODUCTION READY**

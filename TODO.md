@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
-**Last Updated:** December 28, 2025
-**Status:** Production Ready - Gameplay Verified
+**Last Updated:** December 29, 2025
+**Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
 
@@ -111,8 +111,24 @@ Validate gameplay, balance, and user experience with real players
   - B cards = 'owner', L cards = 'bank', I cards = 'investment'
 - ✅ **Money vs Scope Color**: Red when money < scope, green otherwise
 
+**Deployment Infrastructure (December 29) - ✅ COMPLETED:**
+- [x] Docker deployment to Unraid server
+- [x] DuckDNS setup for stable external URL: `unravel-game.duckdns.org:3080`
+- [x] Multi-game session support (G1, G2, G3, etc.)
+- [x] Game persistence (auto-save, survives restarts)
+- [x] Game expiration (24 hours of inactivity)
+- [x] Visitor logging (IP, device, actions)
+- [x] Push notifications via ntfy.sh (needs phone config for instant delivery)
+- [x] Rebranding to "Unravel Codes: The Game" with logo
+- [x] Alpha version notice with feedback email
+
+**Remaining Setup:**
+- [ ] Configure ntfy app for instant push notifications (background mode)
+- [ ] Set up Hostinger subdomain (game.unravelcodes.com) pointing to DuckDNS
+
 **3B: External Testing** (5-7 days)
 - [ ] Recruit 3-5 external players
+- [ ] Share game link: `http://unravel-game.duckdns.org:3080`
 - [ ] Run controlled gameplay sessions
 - [ ] Gather feedback on:
   - [ ] Rules clarity and difficulty
@@ -319,4 +335,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** December 28, 2025
+**Last Updated:** December 29, 2025
