@@ -1,13 +1,67 @@
 # Project Status
 
-**Last Updated**: December 28, 2025
-**Current Phase**: Gameplay Verified - Ready for External Testing
+**Last Updated**: December 29, 2025
+**Current Phase**: External Testing Ready (v2.4)
+**Current Version**: 2.4
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### 0a. Multi-Device Bug Fixes & Mobile UX (December 29, 2025 - Evening) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.4
+- **Achievements**:
+  - **Critical Bug Fix**: Multi-device state sync race condition
+    - Problem: Phones with stale state could overwrite laptop's newer state
+    - Fix: Version tracking + server rejection of stale updates (HTTP 409)
+    - Test Added: `tests/regression/MultiplayerStateIsolation.test.ts`
+  - **Mobile Quick Stats Bar**: Shows Money, Time, Cards, Scope at top of phone screen
+  - **Sticky Action Button**: End Turn/Roll Dice fixed at bottom on mobile
+  - **Card Display Improvements**: Cards now shown one per line with type emojis
+  - **Game Code Display**: Visible on setup screen and in-game header
+  - **Mid-Game QR Codes**: Can connect mobile devices via Display Settings after game starts
+  - **Server Improvements**: Reduced logging, fixed dev/production path config
+- **Files Modified**:
+  - `src/services/StateService.ts` - Version tracking
+  - `src/types/ServiceContracts.ts` - Interface updates
+  - `src/App.tsx` - Version passing
+  - `server/server.js` - Reject stale updates, path fixes
+  - `src/components/player/PlayerPanel.tsx` - Quick stats, sticky button
+  - `src/components/player/PlayerPanel.css` - Mobile styles
+  - `src/components/modals/DiceResultModal.tsx` - Card display
+  - `src/components/setup/PlayerSetup.tsx` - Game code display
+  - `src/components/game/ProjectProgress.tsx` - Game code badge
+  - `src/components/settings/GameDisplaySettings.tsx` - QR codes
+  - `Dockerfile` - Production environment variables
+
+### 0. Deployment & Multi-Game Support (December 29, 2025) ✅
+- **Status**: ✅ Complete
+- **Milestone**: **EXTERNAL TESTING INFRASTRUCTURE READY**
+- **Achievements**:
+  - **Docker Deployment**: Containerized app deployed to Unraid server
+  - **External Access**: `http://unravel-game.duckdns.org:3080`
+  - **Multi-Game Sessions**: Server supports G1, G2, G3... independent games
+  - **Game Persistence**: Auto-save to file, survives restarts
+  - **Game Expiration**: 24-hour inactivity cleanup
+  - **Visitor Logging**: IP, device, timestamps, actions tracked
+  - **Push Notifications**: ntfy.sh integration for real-time alerts
+  - **Rebranding**: "Unravel Codes: The Game" with logo and alpha notice
+- **New Components**:
+  - `src/components/setup/GameLobby.tsx` - Create/join game UI
+  - `server/server.js` - Multi-game server with persistence & notifications
+  - `Dockerfile`, `docker-compose.yml` - Container deployment
+- **New API Endpoints**:
+  - `GET /api/games` - List active games
+  - `POST /api/games` - Create new game
+  - `GET/POST /api/games/:gameId/state` - Game-specific state
+  - `GET /api/logs` - Visitor logs
+  - `GET /api/logs/summary` - Daily activity summary
+- **Remaining**:
+  - Configure ntfy for instant push (phone background settings)
+  - Optional: Set up game.unravelcodes.com subdomain
 
 ### 1. E2E Game Loop Verification & Bug Fixes (December 28, 2025) ✅
 - **Status**: ✅ Complete

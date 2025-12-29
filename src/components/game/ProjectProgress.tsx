@@ -5,7 +5,7 @@ import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
 import { ConnectionStatus } from '../common/ConnectionStatus';
-import { getBackendURL } from '../../utils/networkDetection';
+import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -219,6 +219,21 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           <div style={titleStyle}>
             🚀 Project Progress Overview
           </div>
+          {/* Game Code Badge (Dec 29, 2025) */}
+          {getCurrentGameId() && (
+            <div style={{
+              padding: '4px 10px',
+              backgroundColor: colors.primary.main,
+              color: 'white',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              fontFamily: 'monospace',
+              letterSpacing: '1px'
+            }}>
+              #{getCurrentGameId()}
+            </div>
+          )}
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>

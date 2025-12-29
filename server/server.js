@@ -32,13 +32,14 @@ const CONFIG = {
   AUTOSAVE_INTERVAL_MS: 30 * 1000,
 
   // Data directory for persistence
-  DATA_DIR: process.env.DATA_DIR || '/app/data',
+  // Use relative path for development, absolute for Docker (set via env var)
+  DATA_DIR: process.env.DATA_DIR || './server/data',
 
   // Log file path
-  LOG_FILE: process.env.LOG_FILE || '/app/data/visitors.log',
+  LOG_FILE: process.env.LOG_FILE || './server/data/visitors.log',
 
   // Games file path
-  GAMES_FILE: process.env.GAMES_FILE || '/app/data/games.json',
+  GAMES_FILE: process.env.GAMES_FILE || './server/data/games.json',
 };
 
 // Middleware
@@ -176,7 +177,8 @@ function saveGames() {
 
     fs.writeFileSync(CONFIG.GAMES_FILE, JSON.stringify(data, null, 2));
     isDirty = false;
-    console.log(`💾 Games saved (${games.size} games)`);
+    // Reduced logging - only log at debug level (Dec 29, 2025)
+    // console.log(`💾 Games saved (${games.size} games)`);
   } catch (err) {
     console.error('❌ Failed to save games:', err.message);
   }
@@ -438,9 +440,16 @@ app.post('/api/games/:gameId/state', async (req, res) => {
     );
   }
 
-  // Version conflict warning
+  // Version conflict detection and rejection (Dec 29, 2025 fix)
+  // Reject updates from clients with stale versions to prevent race conditions
   if (clientVersion !== undefined && clientVersion < game.version) {
-    console.warn(`⚠️  [${gameId}] Client version ${clientVersion} behind server ${game.version}`);
+    console.warn(`⚠️  [${gameId}] REJECTED: Client version ${clientVersion} behind server ${game.version}`);
+    return res.status(409).json({
+      error: 'Version conflict - client has stale state',
+      clientVersion,
+      serverVersion: game.version,
+      message: 'Please refresh your state from server before making changes'
+    });
   }
 
   game.state = state;

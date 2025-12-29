@@ -1,17 +1,111 @@
-# API Reference - Game Alpha
+# API Reference - Unravel Codes: The Game
 
-**Last Updated:** December 9, 2025
-**Version:** 1.0
-**Status:** Production Ready
+**Last Updated:** December 29, 2025
+**Version:** 2.3
+**Status:** Alpha Testing
 
 ---
 
 ## Table of Contents
 
-1. [Service APIs](#service-apis)
-2. [Component APIs](#component-apis)
-3. [Movement System API](#movement-system-api)
-4. [Type Definitions](#type-definitions)
+1. [Server API](#server-api)
+2. [Service APIs](#service-apis)
+3. [Component APIs](#component-apis)
+4. [Movement System API](#movement-system-api)
+5. [Type Definitions](#type-definitions)
+
+---
+
+## Server API
+
+The Express backend server (`server/server.js`) provides REST endpoints for multi-game state management.
+
+### Base URL
+- **Local:** `http://localhost:3001`
+- **Production:** `http://unravel-game.duckdns.org:3080`
+
+### Game Management Endpoints
+
+#### List Active Games
+```http
+GET /api/games
+```
+
+**Response:**
+```json
+{
+  "games": [
+    {
+      "gameId": "G1",
+      "playerCount": 4,
+      "phase": "PLAY",
+      "currentPlayer": "Player 1",
+      "createdAt": "2025-12-29T10:00:00Z",
+      "lastActivity": "2025-12-29T12:30:00Z"
+    }
+  ]
+}
+```
+
+#### Create New Game
+```http
+POST /api/games
+```
+
+**Response:**
+```json
+{
+  "gameId": "G2",
+  "message": "Game created successfully"
+}
+```
+
+#### Get Game State
+```http
+GET /api/games/:gameId/state
+```
+
+**Response:** Full `GameState` object (see Type Definitions)
+
+#### Update Game State
+```http
+POST /api/games/:gameId/state
+```
+
+**Request Body:** Full `GameState` object
+
+**Response:**
+```json
+{
+  "success": true,
+  "gameId": "G1"
+}
+```
+
+### Legacy Endpoints (Deprecated)
+
+These endpoints exist for backwards compatibility:
+
+```http
+GET /api/gamestate        # Single-game mode (deprecated)
+POST /api/gamestate       # Single-game mode (deprecated)
+```
+
+### Server Features
+
+#### Game Persistence
+- Games auto-save to `/app/data/games.json` on every state change
+- Games survive server restarts
+- 24-hour expiration for inactive games
+
+#### Visitor Logging
+- All requests logged with IP, device info, timestamp
+- Logs stored in `/app/data/visitors.log`
+- Push notifications via ntfy.sh for new visitors
+
+#### CORS
+- All origins allowed for development
+- Configure `CORS_ORIGIN` env var for production
 
 ---
 
@@ -656,5 +750,5 @@ interface PathChoiceMemory {
 
 ---
 
-**Last Updated:** December 9, 2025
+**Last Updated:** December 29, 2025
 **Maintained By:** Claude (AI Lead Programmer)

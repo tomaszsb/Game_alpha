@@ -7,6 +7,7 @@ import { PlayerList } from './PlayerList';
 import { usePlayerValidation, GameSettings } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
+import { getCurrentGameId } from '../../utils/networkDetection';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -211,6 +212,29 @@ export function PlayerSetup({
           }}>
             Navigate from project initiation to completion!
           </p>
+
+          {/* Game Code Display (Dec 29, 2025) */}
+          {getCurrentGameId() && (
+            <div style={{
+              marginTop: '1rem',
+              padding: '0.75rem 1.5rem',
+              backgroundColor: colors.primary.light,
+              border: `2px solid ${colors.primary.main}`,
+              borderRadius: '8px',
+              display: 'inline-block'
+            }}>
+              <span style={{ color: colors.secondary.main, fontSize: '0.9rem' }}>Game Code: </span>
+              <span style={{
+                color: colors.primary.main,
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                fontFamily: 'monospace',
+                letterSpacing: '2px'
+              }}>
+                {getCurrentGameId()}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Players section */}

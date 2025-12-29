@@ -1,4 +1,175 @@
-# UI Release Notes - Game Alpha
+# Release Notes - Unravel Codes: The Game
+
+---
+
+## v2.4 - Multi-Device Bug Fixes & Mobile Experience (December 29, 2025)
+
+**Release Date:** December 29, 2025
+**Version:** 2.4
+**Status:** Alpha Testing
+**Type:** Bug Fix & UX Enhancement
+
+### 🐛 Critical Bug Fix
+
+#### Multi-Device State Sync Issue
+**Problem:** When playing with multiple devices (laptop + phones), Player 2's position could change unexpectedly when only Player 1 moved.
+
+**What Happened:**
+- Phones connected via QR code could have "stale" game state
+- When a phone synced, it could overwrite newer changes from the laptop
+- This caused player positions to get mixed up
+
+**Solution:**
+- Added version tracking to prevent stale updates
+- Server now rejects outdated sync requests
+- Clients automatically refresh when their state is outdated
+
+### 📱 Mobile Phone Improvements
+
+#### Quick Stats Bar
+When playing on a phone, you now see your key stats at the top without scrolling:
+- 💰 **Money** - Current balance
+- ⏱️ **Time** - Weeks spent
+- 🃏 **Cards** - Cards in hand
+- 📐 **Scope** - Project scope
+
+#### Sticky Action Button
+The main action button (End Turn, Roll Dice, etc.) is now **always visible** at the bottom of your phone screen. No more scrolling to find it!
+
+### 🃏 Better Card Display
+
+When you receive multiple cards, they're now easier to read:
+
+**Before:** "Card A, Card B, Card C" (all on one line)
+
+**After:**
+```
+🏗️ Card A
+🏗️ Card B
+🏗️ Card C
+```
+
+Card type icons:
+- 🏗️ Work cards (W)
+- 💼 Business cards (B)
+- 🔧 Equipment cards (E)
+- ⚖️ Legal cards (L)
+- 💰 Investment cards (I)
+
+### 🎮 Game Code Visibility
+
+**Problem:** Players didn't know which game code to share with others.
+
+**Solution:**
+- Setup screen now displays "Game Code: XXXX"
+- In-game header shows "#XXXX" badge
+- Easy to tell others which game to join
+
+### 📱 Join Mobile Mid-Game
+
+**New Feature:** Players can now connect their phone **after** the game has started!
+
+**How to use:**
+1. Click the 👁️ **View** button during gameplay
+2. Scroll to "📱 Connect Mobile Device" section
+3. Click "Show QR" for your player
+4. Scan with your phone
+
+### 🔧 Technical Improvements
+- Server no longer spams "Games saved" messages
+- Fixed development vs production path configuration
+- Improved Docker deployment reliability
+
+---
+
+## v2.3 - External Deployment & Multi-Game Support (December 29, 2025)
+
+**Release Date:** December 29, 2025
+**Version:** 2.3
+**Status:** Alpha Testing
+**Type:** Infrastructure & Feature Enhancement
+
+### 🌍 Major Features
+
+#### 1. External Access
+The game is now accessible from anywhere in the world!
+
+**Public URL:** `http://unravel-game.duckdns.org:3080`
+
+**How to Play Remotely:**
+- Share the URL with friends and family
+- Each player scans QR code or uses `?g=XX&p=P1` parameters
+- Real-time sync across all devices
+
+#### 2. Multi-Game Sessions
+Multiple game groups can play simultaneously on the same server.
+
+**Features:**
+- Create new games with unique IDs (G1, G2, G3...)
+- Join existing games by code
+- Each game is completely isolated
+- Games expire after 24 hours of inactivity
+
+#### 3. Game Lobby
+New landing page for game management.
+
+**Actions:**
+- **Create New Game:** Start a fresh game session
+- **Join by Code:** Enter game ID to join existing session
+- **Active Games List:** See currently running games
+
+#### 4. Game Persistence
+Games now survive server restarts.
+
+**Benefits:**
+- Auto-save to disk every state change
+- Resume games after power outages
+- 24-hour game expiration for cleanup
+
+#### 5. Visitor Logging & Notifications
+Server now tracks visitors and notifies the host.
+
+**Features:**
+- IP address and device logging
+- Push notifications via ntfy.sh when players join
+- Daily activity tracking
+
+### 🎨 Branding Update
+
+**New Name:** "Unravel Codes: The Game"
+
+**Visual Changes:**
+- Logo added to Player Setup and Game Lobby
+- Updated page title and favicon
+- Alpha version notice with feedback email
+
+**Alpha Notice:**
+> "This game is in alpha version! Please send feedback to game@unravelcodes.com"
+
+### 🐳 Docker Deployment
+
+Game runs in Docker container on Unraid server.
+
+**Infrastructure:**
+- Node.js 20 Alpine container
+- Express backend + Vite frontend
+- Persistent data volume for game saves
+- DuckDNS for stable external URL
+
+### 📝 Files Added/Modified
+- `src/components/setup/GameLobby.tsx` - NEW: Game lobby component
+- `server/server.js` - Multi-game support, persistence, logging
+- `src/utils/networkDetection.ts` - Game ID URL parameter support
+- `src/App.tsx` - GameLobby routing
+- `public/images/logo.png` - Game logo
+- `public/favicon.ico` - Browser tab icon
+- `Dockerfile` - Production container build
+- `docker-compose.yml` - Container orchestration
+
+### 🎯 Backwards Compatibility
+- Existing single-game URLs redirect to lobby
+- All game mechanics unchanged
+- Player data structure unchanged
 
 ---
 

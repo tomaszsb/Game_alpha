@@ -1,4 +1,4 @@
-# Testing Guide - Game Alpha
+# Testing Guide - Unravel Codes: The Game
 
 ## ⚠️ MANDATORY: Before Every Commit
 

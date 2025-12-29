@@ -1,6 +1,6 @@
-# Code Style Guide - Game Alpha
+# Code Style Guide - Unravel Codes: The Game
 
-**Last Updated:** December 9, 2025
+**Last Updated:** December 29, 2025
 **Status:** Production Standards
 
 ---

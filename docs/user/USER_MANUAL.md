@@ -1,10 +1,10 @@
-# User Manual - Game Alpha
+# User Manual - Unravel Codes: The Game
 
-**Last Updated:** December 9, 2025
-**Version:** 2.0
-**Status:** Production Ready
+**Last Updated:** December 29, 2025
+**Version:** 2.3
+**Status:** Alpha Testing
 
-Welcome to Game Alpha! This manual will help you understand how to play the game and use the interface effectively.
+Welcome to Unravel Codes: The Game! This manual will help you understand how to play the game and use the interface effectively.
 
 ---
 
@@ -22,22 +22,43 @@ Welcome to Game Alpha! This manual will help you understand how to play the game
 
 ## Getting Started
 
+### Accessing the Game
+
+**Public URL:** `http://unravel-game.duckdns.org:3080`
+
+**Local Development:** `http://localhost:3000`
+
 ### Quick Start
 
-1. **Access the game** at http://localhost:3000 (local) or your hosted URL
-2. **Add players** in the setup screen (2-4 players)
-3. **Start game** - players automatically placed at START space
-4. **Play turns** - follow the "Next Step" button guidance
-5. **Win** by completing your construction project first!
+1. **Go to the Game Lobby** at the URL above
+2. **Create or Join a Game:**
+   - Click "Create New Game" to start a new session
+   - Or enter a Game Code to join an existing game
+3. **Add players** in the setup screen (2-4 players)
+4. **Start game** - players automatically placed at START space
+5. **Play turns** - follow the "Next Step" button guidance
+6. **Win** by completing your construction project first!
+
+### Game Lobby
+
+When you first access the game, you'll see the **Game Lobby**:
+
+- **Create New Game:** Starts a fresh game session with a unique ID (e.g., G1, G2)
+- **Join by Code:** Enter a game ID to join an existing session
+- **Active Games:** See list of games currently in progress
+
+**Tip:** Share the game URL with the game ID (`?g=G1`) to invite others to your specific game.
 
 ### Multi-Device Setup
 
 **For individual player control on separate devices:**
 
 1. Start game on main device
-2. Each player scans their QR code or uses short URL (`?p=P1`, `?p=P2`)
+2. Each player scans their QR code or uses short URL (`?g=G1&p=P1`, `?g=G1&p=P2`)
 3. Players can now control their turns from their own device
 4. All devices stay synchronized in real-time
+
+**Remote Play:** Share the public URL with friends and family anywhere in the world. As long as they have the game ID and player code, they can join from any device!
 
 ---
 
@@ -292,4 +313,6 @@ These happen automatically when conditions are met:
 
 **Enjoy the game!** 🎮
 
-**Last Updated:** December 9, 2025
+**Feedback:** Please send feedback to game@unravelcodes.com
+
+**Last Updated:** December 29, 2025

@@ -1,9 +1,10 @@
-# Game Alpha Project Charter
+# Unravel Codes: The Game - Project Charter
 
-**Status**: PRODUCTION READY - November 2025
-**Core Game Complete**: Fully playable multi-player board game with comprehensive features and optimizations
-**Test Status**: 966 tests passing, 1 skipped across 91 test files (99.89% success rate) | Test Coverage: 21.22% statements, 70.08% branches, 61.86% functions
-**Last Updated**: November 30, 2025
+**Status**: ALPHA TESTING - December 2025
+**Core Game Complete**: Fully playable multi-player board game with external access deployed
+**Public URL**: `http://unravel-game.duckdns.org:3080`
+**Test Status**: 1,028 tests passing across 91 test files (100% success rate)
+**Last Updated**: December 29, 2025
 
 ## 1. Mission Progress - Production Ready
 
@@ -111,14 +112,21 @@ The Game Alpha application is **fully production-ready** with:
 - Improved development workflow with concurrent server startup
 - Reorganized documentation for better maintainability
 
+### **External Deployment (December 2025)**
+- **Docker Deployment**: Game running in container on Unraid server
+- **Public Access**: Available at `http://unravel-game.duckdns.org:3080`
+- **Multi-Game Sessions**: Multiple game groups can play simultaneously (G1, G2, G3...)
+- **Game Persistence**: Auto-save to disk, survives server restarts
+- **Visitor Logging**: IP and device tracking with push notifications
+- **Rebranding**: "Unravel Codes: The Game" with logo and alpha notice
+
 ### **Future Enhancement Foundation**
 The clean architecture provides solid foundation for:
 - **New Game Features**: Easy to add new card types, spaces, or mechanics
 - **UI/UX Improvements**: Component-based architecture supports visual enhancements
 - **Performance Optimization**: Service-oriented design enables targeted optimizations
 - **Multiplayer Extensions**: Architecture supports real-time multiplayer features
-- **Multi-Game Sessions**: Planned feature for running multiple independent games on one server
 
-For upcoming feature planning, see [Current Task List](./TODO.md#-planned-multi-game-session-support).
+For upcoming feature planning, see [TODO.md](../../TODO.md).
 
-**Status**: Project charter objectives **FULLY COMPLETED** ✅ - Application is production-ready with 966 tests passing, 1 skipped across 91 test files (967 total tests) and all core systems stable.
+**Status**: Project charter objectives **FULLY COMPLETED** ✅ - Application is in alpha testing with 1,028 tests passing and external access deployed.

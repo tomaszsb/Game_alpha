@@ -24,6 +24,11 @@ RUN npm install -g serve
 # Create data directory for persistence
 RUN mkdir -p /app/data
 
+# Set environment variables for production paths
+ENV DATA_DIR=/app/data
+ENV LOG_FILE=/app/data/visitors.log
+ENV GAMES_FILE=/app/data/games.json
+
 # Expose ports (frontend + backend)
 EXPOSE 3000 3001
 

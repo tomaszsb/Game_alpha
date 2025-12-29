@@ -4,6 +4,30 @@ This document tracks identified technical debt in the Game Alpha codebase.
 
 ## Recently Resolved ✅
 
+### Multi-Device State Sync Race Condition (December 29, 2025)
+- **Status**: ✅ Resolved
+- **Severity**: Critical (data corruption during multiplayer)
+- **Problem**: When multiple devices (laptop + phones via QR) were connected, a device with stale local state could sync and overwrite newer changes. This caused Player 2's position to change when only Player 1 moved.
+- **Root Cause**:
+  1. StateService didn't track server version numbers
+  2. Clients didn't send version with sync requests
+  3. Server accepted stale state updates without validation (just logged a warning)
+- **Resolution**:
+  - Added `lastKnownServerVersion` tracking to StateService
+  - Client now sends `clientVersion` with every sync request
+  - Server rejects updates from clients with stale versions (HTTP 409 Conflict)
+  - Client auto-refreshes state when rejected via `loadStateFromServer()`
+  - `replaceState()` now accepts optional `serverVersion` parameter
+- **Files Modified**:
+  - `src/services/StateService.ts` - Version tracking and conflict handling
+  - `src/types/ServiceContracts.ts` - Updated interface
+  - `src/App.tsx` - Pass version to replaceState
+  - `server/server.js` - Reject stale updates with 409
+- **Test Added**: `tests/regression/MultiplayerStateIsolation.test.ts` (6 tests)
+- **Impact**: Multi-device gameplay now correctly maintains separate player state
+
+---
+
 ### Technical Debt Cleanup - 11 Issues Resolved (December 6, 2025)
 - **Status**: ✅ Resolved
 - **Issues Fixed**: All 11 technical debt issues identified in December 5, 2025 analysis

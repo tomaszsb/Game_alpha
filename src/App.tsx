@@ -109,7 +109,8 @@ function AppContent(): JSX.Element {
           // Only update if server has newer state (prevents unnecessary re-renders)
           // This reduces re-renders by ~95% since state only changes when user takes action
           if (state && stateVersion > clientStateVersion) {
-            stateService.replaceState(state);
+            // Pass serverVersion to prevent stale state overwrites (Dec 29, 2025 fix)
+            stateService.replaceState(state, stateVersion);
             clientStateVersion = stateVersion;
             console.log(`📥 Updated from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
           }

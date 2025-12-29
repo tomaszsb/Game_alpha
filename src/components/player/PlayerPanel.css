@@ -179,10 +179,108 @@
   opacity: 0.6;
 }
 
+/* ===== MOBILE-FIRST QUICK STATS BAR (Dec 29, 2025) ===== */
+.player-panel__quick-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 4px;
+  background: linear-gradient(135deg, #1a237e, #283593);
+  border-radius: 8px;
+  margin-bottom: 4px;
+  gap: 4px;
+}
+
+.quick-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
+  min-width: 60px;
+}
+
+.quick-stat__icon {
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.quick-stat__value {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.quick-stat__label {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Money stat - green tint */
+.quick-stat--money .quick-stat__value {
+  color: #81c784;
+}
+
+/* Time stat - orange tint */
+.quick-stat--time .quick-stat__value {
+  color: #ffb74d;
+}
+
+/* Cards stat - purple tint */
+.quick-stat--cards .quick-stat__value {
+  color: #ce93d8;
+}
+
+/* Scope stat - blue tint */
+.quick-stat--scope .quick-stat__value {
+  color: #64b5f6;
+}
+
+/* ===== MOBILE STICKY ACTION BUTTON ===== */
+@media (max-width: 767px) {
+  .player-panel {
+    padding-bottom: 70px; /* Space for sticky button */
+  }
+
+  .player-panel__bottom--sticky {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(to top, rgba(30, 30, 30, 0.98), rgba(30, 30, 30, 0.95));
+    border-top: 2px solid #2196f3;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .player-panel__bottom--sticky .next-step-button {
+    flex: 2;
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+
+  .player-panel__bottom--sticky .try-again-button {
+    flex: 1;
+    padding: 12px 10px;
+    font-size: 0.9rem;
+  }
+}
+
 /* Desktop layout */
 @media (min-width: 768px) {
   .player-panel {
     padding: 12px;
     gap: 12px;
+  }
+
+  /* Hide quick stats on desktop - full sections are visible */
+  .player-panel__quick-stats {
+    display: none;
   }
 }

@@ -1,22 +1,32 @@
-# Game Alpha - Construction Project Management Board Game
+# Unravel Codes: The Game
 
-**Status:** Production Ready (December 2025)
-**Version:** 1.0.0
+**Status:** Alpha Testing (December 2025)
+**Version:** 2.3.0
 **Test Coverage:** 1,028 tests passing (100% success rate)
+**Public URL:** `http://unravel-game.duckdns.org:3080`
 
 ## Overview
 
-Game Alpha is a multi-player board game that simulates the construction project management process, from initial design through regulatory approval and construction. Players navigate through various spaces representing real-world construction phases, manage resources (money and time), collect cards representing work scope and regulatory requirements, and compete to complete their projects first.
+Unravel Codes: The Game is a multi-player board game that simulates the construction project management process, from initial design through regulatory approval and construction. Players navigate through various spaces representing real-world construction phases, manage resources (money and time), collect cards representing work scope and regulatory requirements, and compete to complete their projects first.
 
 Built with modern web technologies and a clean service-oriented architecture, the game supports both single-device and multi-device gameplay with real-time state synchronization.
 
 ## Quick Start
 
-### Prerequisites
+### Play Online (Recommended)
+Visit the public URL: `http://unravel-game.duckdns.org:3080`
+
+1. Click "Create New Game" to start a session
+2. Share the game link with friends/family
+3. Each player uses their own device with the player URL
+
+### Local Development
+
+#### Prerequisites
 - Node.js (v16 or higher)
 - npm (v8 or higher)
 
-### Installation
+#### Installation
 ```bash
 # Clone or navigate to the repository
 cd /mnt/d/unravel/current_game/Game_Alpha
@@ -25,7 +35,7 @@ cd /mnt/d/unravel/current_game/Game_Alpha
 npm install
 ```
 
-### Running the Game
+#### Running the Game
 ```bash
 # Start both frontend and backend servers
 npm run dev
@@ -53,12 +63,15 @@ npm run build
 
 The game supports multiple players on different devices with real-time state synchronization:
 
-1. Start the game and add players on the main device
-2. Use QR codes or short URLs (`?p=P1`, `?p=P2`) to connect mobile devices
-3. Each player can control their turn from their own device
-4. State syncs automatically across all connected devices
+1. Start a game in the Game Lobby
+2. Share the game URL with game ID (`?g=G1`) with other players
+3. Use QR codes or short URLs (`?g=G1&p=P1`, `?g=G1&p=P2`) to connect devices
+4. Each player controls their turn from their own device
+5. State syncs automatically across all connected devices
 
-**Note:** Backend server (port 3001) is **required** for multi-device features.
+**Remote Play:** Players can join from anywhere in the world using the public URL.
+
+**Multi-Game Support:** Multiple game sessions can run simultaneously (G1, G2, G3, etc.).
 
 ## Testing
 

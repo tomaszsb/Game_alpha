@@ -498,6 +498,30 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       </div>
 
+      {/* Mobile Quick Stats Bar - Shows key stats at a glance (Dec 29, 2025) */}
+      <div className="player-panel__quick-stats">
+        <div className="quick-stat quick-stat--money">
+          <span className="quick-stat__icon">💰</span>
+          <span className="quick-stat__value">${(player.money || 0).toLocaleString()}</span>
+          <span className="quick-stat__label">Money</span>
+        </div>
+        <div className="quick-stat quick-stat--time">
+          <span className="quick-stat__icon">⏱️</span>
+          <span className="quick-stat__value">{player.timeSpent || 0}w</span>
+          <span className="quick-stat__label">Time</span>
+        </div>
+        <div className="quick-stat quick-stat--cards">
+          <span className="quick-stat__icon">🃏</span>
+          <span className="quick-stat__value">{player.hand?.length || 0}</span>
+          <span className="quick-stat__label">Cards</span>
+        </div>
+        <div className="quick-stat quick-stat--scope">
+          <span className="quick-stat__icon">📐</span>
+          <span className="quick-stat__value">{player.projectScope || 0}</span>
+          <span className="quick-stat__label">Scope</span>
+        </div>
+      </div>
+
       {currentCard && (
         <CurrentCardSection
           card={currentCard}
@@ -596,7 +620,8 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       )}
 
       {/* Bottom Row - Next Step Button and Try Again Button */}
-      <div className="player-panel__bottom">
+      {/* Uses sticky positioning on mobile for always-visible action button (Dec 29, 2025) */}
+      <div className="player-panel__bottom player-panel__bottom--sticky">
         <NextStepButton
           gameServices={gameServices}
           playerId={playerId}

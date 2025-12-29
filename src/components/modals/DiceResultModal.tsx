@@ -73,6 +73,18 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     }
   };
 
+  // Get icon for card type (matches CardReplacementModal)
+  const getCardTypeIcon = (cardType: string): string => {
+    switch (cardType) {
+      case 'W': return '🏗️';
+      case 'B': return '💼';
+      case 'E': return '🔧';
+      case 'L': return '⚖️';
+      case 'I': return '💰';
+      default: return '🃏';
+    }
+  };
+
   const getEffectColor = (effectType: string): string => {
     switch (effectType) {
       case 'money': return colors.success.main; // Green for money gains
@@ -112,12 +124,15 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       }
     }
 
-    // Get card names if card IDs are available
-    let cardNames: string[] = [];
+    // Get card details if card IDs are available
+    let cardDetails: Array<{ name: string; type: string }> = [];
     if (effect.type === 'cards' && effect.cardIds && effect.cardIds.length > 0) {
-      cardNames = effect.cardIds.map(cardId => {
+      cardDetails = effect.cardIds.map(cardId => {
         const card = dataService.getCardById(cardId);
-        return card ? card.card_name : cardId;
+        return {
+          name: card ? card.card_name : cardId,
+          type: card ? card.card_type : ''
+        };
       });
     }
 
@@ -139,9 +154,25 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
           <span style={{ color: colors.secondary.main, fontSize: '14px', marginLeft: '6px' }}>
             {effect.description}
           </span>
-          {cardNames.length > 0 && (
-            <div style={{ color: colors.text.primary, fontSize: '13px', marginTop: '2px', fontStyle: 'italic' }}>
-              {cardNames.join(', ')}
+          {/* Display each card on its own line with type icon (Dec 29, 2025 improvement) */}
+          {cardDetails.length > 0 && (
+            <div style={{ marginTop: '4px', marginLeft: '4px' }}>
+              {cardDetails.map((card, cardIndex) => (
+                <div
+                  key={cardIndex}
+                  style={{
+                    color: colors.text.primary,
+                    fontSize: '13px',
+                    padding: '2px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>{getCardTypeIcon(card.type)}</span>
+                  <span style={{ fontStyle: 'italic' }}>{card.name}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>

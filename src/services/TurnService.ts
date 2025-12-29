@@ -3027,8 +3027,17 @@ export class TurnService implements ITurnService {
         const cardData = this.dataService.getCardById(result.drawnCardId);
         if (cardData) {
           cardName = cardData.card_name || 'Funding Card';
-          // Extract money value from card's money_effect field
-          if (cardData.money_effect) {
+          // B cards use loan_amount, I cards use investment_amount
+          if (fundingCardType === 'B' && cardData.loan_amount) {
+            fundingAmount = typeof cardData.loan_amount === 'string'
+              ? parseInt(cardData.loan_amount.replace(/,/g, ''), 10)
+              : cardData.loan_amount;
+          } else if (fundingCardType === 'I' && cardData.investment_amount) {
+            fundingAmount = typeof cardData.investment_amount === 'string'
+              ? parseInt(cardData.investment_amount.replace(/,/g, ''), 10)
+              : cardData.investment_amount;
+          } else if (cardData.money_effect) {
+            // Fallback: Extract money value from money_effect field
             const moneyMatch = cardData.money_effect.match(/add\s+([\d,]+)/i);
             if (moneyMatch) {
               fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);

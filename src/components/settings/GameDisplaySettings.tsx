@@ -1,8 +1,10 @@
 // src/components/settings/GameDisplaySettings.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
+import { getServerURL, getNetworkInfo } from '../../utils/networkDetection';
 
 interface GameDisplaySettingsProps {
   players: Player[];
@@ -17,6 +19,17 @@ export function GameDisplaySettings({
   onTogglePanel,
   onClose
 }: GameDisplaySettingsProps): JSX.Element {
+
+  // Track QR code visibility for each player (Dec 29, 2025)
+  const [qrVisibility, setQrVisibility] = useState<Record<string, boolean>>({});
+  const networkInfo = getNetworkInfo();
+
+  const toggleQR = (playerId: string) => {
+    setQrVisibility(prev => ({
+      ...prev,
+      [playerId]: !prev[playerId]
+    }));
+  };
 
   return (
     <div style={styles.overlay}>
@@ -149,6 +162,90 @@ export function GameDisplaySettings({
               >
                 🎯 Hide Connected Only
               </button>
+            </div>
+          </div>
+
+          {/* Connect Mobile Device - QR Codes (Dec 29, 2025) */}
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>📱 Connect Mobile Device</h3>
+            <p style={{ ...styles.description, marginBottom: '1rem' }}>
+              Scan a QR code to play on your phone. Each player gets their own code.
+            </p>
+
+            {/* Network warning if on localhost */}
+            {networkInfo.isLocalhost && (
+              <div style={styles.networkWarning}>
+                ⚠️ <strong>Warning:</strong> Running on localhost. QR codes will only work on this device.
+              </div>
+            )}
+
+            <div style={styles.qrGrid}>
+              {players.map(player => {
+                const showQR = qrVisibility[player.id] || false;
+                const playerURL = getServerURL(player.id, player.shortId);
+                const isConnected = player.deviceType === 'mobile';
+
+                return (
+                  <div key={player.id} style={styles.qrCard}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
+                      <span style={{
+                        fontWeight: 'bold',
+                        color: player.color || colors.primary.main
+                      }}>
+                        {player.name}
+                      </span>
+                      {isConnected && (
+                        <span style={styles.connectedBadgeSmall}>✅ Mobile</span>
+                      )}
+                    </div>
+
+                    {isConnected ? (
+                      <div style={styles.alreadyConnected}>
+                        Already connected on mobile
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => toggleQR(player.id)}
+                          style={{
+                            ...styles.qrToggleButton,
+                            background: showQR ? colors.primary.main : colors.primary.light,
+                            color: showQR ? 'white' : colors.primary.text
+                          }}
+                        >
+                          {showQR ? '🔽 Hide QR' : '📱 Show QR'}
+                        </button>
+
+                        {showQR && (
+                          <div style={styles.qrDisplay}>
+                            <div style={{
+                              ...styles.qrCodeWrapper,
+                              borderColor: player.color || colors.primary.main
+                            }}>
+                              <QRCodeSVG
+                                value={playerURL}
+                                size={140}
+                                level="M"
+                                includeMargin={true}
+                                fgColor={player.color || colors.primary.main}
+                              />
+                            </div>
+                            <div style={styles.qrUrl}>
+                              {playerURL}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -325,5 +422,71 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     fontSize: '1rem',
     fontWeight: 'bold'
+  },
+  // QR Code section styles (Dec 29, 2025)
+  networkWarning: {
+    background: colors.danger.light,
+    color: colors.danger.text,
+    padding: '0.75rem',
+    borderRadius: '6px',
+    marginBottom: '1rem',
+    fontSize: '0.85rem'
+  },
+  qrGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '1rem'
+  },
+  qrCard: {
+    background: 'white',
+    padding: '1rem',
+    borderRadius: '8px',
+    border: `2px solid ${colors.secondary.border}`
+  },
+  connectedBadgeSmall: {
+    fontSize: '0.75rem',
+    padding: '0.15rem 0.4rem',
+    borderRadius: '4px',
+    background: colors.success.light,
+    color: colors.success.text,
+    marginLeft: 'auto'
+  },
+  alreadyConnected: {
+    fontSize: '0.85rem',
+    color: colors.success.main,
+    fontStyle: 'italic',
+    textAlign: 'center' as const,
+    padding: '0.5rem'
+  },
+  qrToggleButton: {
+    width: '100%',
+    padding: '0.5rem',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    transition: 'all 0.2s'
+  },
+  qrDisplay: {
+    marginTop: '0.75rem',
+    textAlign: 'center' as const
+  },
+  qrCodeWrapper: {
+    display: 'inline-block',
+    padding: '0.5rem',
+    background: 'white',
+    borderRadius: '8px',
+    border: '2px solid'
+  },
+  qrUrl: {
+    marginTop: '0.5rem',
+    fontSize: '0.65rem',
+    color: colors.secondary.main,
+    wordBreak: 'break-all' as const,
+    fontFamily: 'monospace',
+    background: colors.secondary.bg,
+    padding: '0.25rem',
+    borderRadius: '4px'
   }
 };

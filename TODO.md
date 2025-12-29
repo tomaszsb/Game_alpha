@@ -122,6 +122,16 @@ Validate gameplay, balance, and user experience with real players
 - [x] Rebranding to "Unravel Codes: The Game" with logo
 - [x] Alpha version notice with feedback email
 
+**Multi-Device Bug Fixes & Mobile UX (December 29 - Evening) - ✅ COMPLETED:**
+- [x] **Critical Bug Fix**: Multi-device state sync race condition (version tracking + HTTP 409)
+- [x] **Mobile Quick Stats Bar**: Money, Time, Cards, Scope visible at top
+- [x] **Sticky Action Button**: End Turn/Roll Dice fixed at bottom on mobile
+- [x] **Card Display**: Cards shown one per line with type emojis in modals
+- [x] **Game Code Display**: Visible on setup screen and in-game header
+- [x] **Mid-Game QR Codes**: Connect mobile devices via Display Settings after game starts
+- [x] **Server Improvements**: Reduced logging, fixed dev/production path config
+- [x] **Regression Test**: MultiplayerStateIsolation.test.ts (6 tests)
+
 **Remaining Setup:**
 - [ ] Configure ntfy app for instant push notifications (background mode)
 - [ ] Set up Hostinger subdomain (game.unravelcodes.com) pointing to DuckDNS
@@ -297,20 +307,19 @@ Prepare final release package and deployment
 
 ## 🔮 **FUTURE: Planned Features**
 
-### Multi-Game Session Support
-*Status: NOT STARTED - Deferred*
-*Estimated: 45-60 minutes*
+### Multi-Game Session Support ✅
+*Status: COMPLETED - December 29, 2025*
 
-**Objective:** Enable multiple independent game sessions on a single server
+**Implemented Features:**
+- [x] Game ID generation (G1, G2, G3...)
+- [x] Server: Multiple game states with persistence
+- [x] Frontend: URLs include game ID (`?g=G1&p=P1`)
+- [x] GameLobby component for create/join
+- [x] Complete state isolation between games
+- [x] 24-hour game expiration
+- [x] Game code display on setup and in-game
 
-**Implementation:**
-- [ ] Add game ID generation (G1, G2, G3)
-- [ ] Server: Store multiple game states in Map<gameId, GameState>
-- [ ] Frontend: Update URLs to include game ID (`?g=G1&p=P1`)
-- [ ] Create landing page for create/join game
-- [ ] Ensure complete state isolation between games
-
-**Why deferred:** Core game is complete, this is an enhancement for scaling
+See CHANGELOG.md for full implementation details.
 
 ---
 

@@ -48,6 +48,56 @@ All notable changes to this project will be documented in this file.
 - Updated page title and loading text
 - Added alpha version notice with feedback email (game@unravelcodes.com)
 
+### Multi-Device Bug Fixes & Mobile UX Improvements (December 29, 2025 - Evening)
+
+**Critical Bug Fix: Multi-Device State Sync Race Condition**
+- **Problem**: When multiple devices were connected (laptop + phones via QR), a device with stale local state could sync and overwrite newer changes, causing Player 2's position to change when only Player 1 moved
+- **Root Cause**: Server accepted state updates without version validation; clients didn't send version numbers
+- **Fix**:
+  - StateService now tracks `lastKnownServerVersion`
+  - Client sends `clientVersion` with every sync request
+  - Server rejects updates from clients with stale versions (HTTP 409)
+  - Client auto-refreshes state when rejected
+- **Files Changed**: `StateService.ts`, `server.js`, `App.tsx`, `ServiceContracts.ts`
+- **Test Added**: `tests/regression/MultiplayerStateIsolation.test.ts`
+
+**Mobile Phone UI Improvements**
+- **Quick Stats Bar**: New compact stats bar showing Money, Time, Cards, and Scope at a glance
+  - Only visible on mobile devices (hidden on desktop)
+  - Color-coded values (green for money, orange for time, purple for cards, blue for scope)
+- **Sticky Action Button**: "End Turn" / "Roll Dice" button now fixed at bottom of screen on mobile
+  - Always visible, never scrolls out of view
+  - Larger tap target for easier mobile use
+- **Files Changed**: `PlayerPanel.tsx`, `PlayerPanel.css`
+
+**Card Display Improvements**
+- Cards in result modals now display one per line with type-specific emojis:
+  - 🏗️ W (Work/Construction)
+  - 💼 B (Business)
+  - 🔧 E (Equipment/Engineering)
+  - ⚖️ L (Legal)
+  - 💰 I (Investment)
+- Previously: "Card A, Card B, Card C" (hard to read)
+- Now: Each card on its own line with icon
+- **File Changed**: `DiceResultModal.tsx`
+
+**Game Code Display**
+- Setup screen now shows "Game Code: XXXX" so players know which game to join
+- In-game header shows "#XXXX" badge next to "Project Progress Overview"
+- **Files Changed**: `PlayerSetup.tsx`, `ProjectProgress.tsx`
+
+**Mid-Game Mobile Device Connection**
+- New "📱 Connect Mobile Device" section in Display Settings (👁️ View button)
+- Players can now generate QR codes to join on mobile at any point during the game
+- Shows connection status for each player
+- **File Changed**: `GameDisplaySettings.tsx`
+
+**Server & Infrastructure**
+- Fixed data directory paths for local development (uses `./server/data/` instead of `/app/data`)
+- Dockerfile now sets environment variables for production paths
+- Reduced server logging verbosity (removed "Games saved" message every 30 seconds)
+- **Files Changed**: `server.js`, `Dockerfile`
+
 ### E2E Game Loop Verification & Bug Fixes (December 28, 2025)
 
 **Milestone: GAMEPLAY PRODUCTION READY**

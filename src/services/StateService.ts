@@ -63,6 +63,8 @@ export class StateService implements IStateService {
   private syncEnabled: boolean = true;
   private isSyncing: boolean = false;
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
+  // Track server version to prevent stale state overwrites (Dec 29, 2025 fix)
+  private lastKnownServerVersion: number = 0;
 
   constructor(dataService: IDataService) {
     this.dataService = dataService;
@@ -1801,13 +1803,23 @@ export class StateService implements IStateService {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ state })
+        // Include clientVersion to enable server-side conflict detection (Dec 29, 2025 fix)
+        body: JSON.stringify({ state, clientVersion: this.lastKnownServerVersion })
       });
 
       if (!response.ok) {
+        // Check for version conflict (409 Conflict)
+        if (response.status === 409) {
+          console.warn(`⚠️ State sync rejected: server has newer version. Fetching latest state...`);
+          // Fetch the latest state from server to resolve conflict
+          await this.loadStateFromServer();
+          return;
+        }
         console.warn(`Failed to sync state to server: ${response.status} ${response.statusText}`);
       } else {
         const result = await response.json();
+        // Update our known server version to prevent future conflicts
+        this.lastKnownServerVersion = result.stateVersion;
         console.log(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''}`);
       }
     } catch (error) {
@@ -1854,6 +1866,8 @@ export class StateService implements IStateService {
 
       if (state) {
         this.currentState = state;
+        // Track the server version to prevent stale state overwrites (Dec 29, 2025 fix)
+        this.lastKnownServerVersion = stateVersion;
         // Skip sync when loading from server to avoid syncing back what we just loaded
         this.notifyListeners({ skipSync: true });
         console.log(`✅ State loaded from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
@@ -1873,9 +1887,15 @@ export class StateService implements IStateService {
   /**
    * Replace entire state (used by polling mechanism)
    * Does NOT trigger sync (to avoid infinite loops)
+   * @param newState - The new state to replace with
+   * @param serverVersion - Optional server version to track (Dec 29, 2025 fix)
    */
-  replaceState(newState: GameState): void {
+  replaceState(newState: GameState, serverVersion?: number): void {
     this.currentState = newState;
+    // Track the server version to prevent stale state overwrites (Dec 29, 2025 fix)
+    if (serverVersion !== undefined) {
+      this.lastKnownServerVersion = serverVersion;
+    }
     // Skip sync when replacing from server poll to avoid syncing back what we just received
     this.notifyListeners({ skipSync: true });
   }

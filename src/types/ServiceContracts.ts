@@ -259,7 +259,7 @@ export interface IStateService {
 
   // Server synchronization methods
   loadStateFromServer(): Promise<boolean>;
-  replaceState(newState: GameState): void;
+  replaceState(newState: GameState, serverVersion?: number): void;
 
   // REAL/TEMP State Model Methods (December 26, 2025)
   // Manages separation of committed state (REAL) from working state (TEMP)
