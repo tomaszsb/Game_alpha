@@ -1,6 +1,7 @@
 // server/server.js
-// Multi-Device Game Server for Code2027
+// Multi-Device, Multi-Game Server for Code2027
 // Provides REST API for:
+// - Multiple independent game sessions (G1, G2, G3, etc.)
 // - Game state synchronization across devices
 // - Version tracking for conflict detection (last-write-wins)
 
@@ -15,9 +16,19 @@ const DEFAULT_PORT = 3001;
 app.use(cors()); // Allow all origins for development
 app.use(express.json({ limit: '10mb' })); // Support large game states
 
-// ===== GAME STATE STORAGE =====
-let gameState = null;
-let stateVersion = 0;
+// ===== MULTI-GAME STATE STORAGE =====
+// Map of gameId -> { state: GameState, version: number }
+const games = new Map();
+let nextGameNumber = 1;
+
+/**
+ * Generate a new game ID (G1, G2, G3, etc.)
+ */
+function generateGameId() {
+  const id = `G${nextGameNumber}`;
+  nextGameNumber++;
+  return id;
+}
 
 // ===== HEALTH CHECK =====
 /**
@@ -26,46 +37,142 @@ let stateVersion = 0;
  * Returns server status and basic info
  */
 app.get('/health', (req, res) => {
+  const gameList = Array.from(games.entries()).map(([id, data]) => ({
+    gameId: id,
+    version: data.version,
+    playerCount: data.state?.players?.length || 0,
+    gamePhase: data.state?.gamePhase || 'unknown'
+  }));
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    stateVersion,
-    hasState: gameState !== null,
-    playerCount: gameState?.players?.length || 0,
-    gamePhase: gameState?.gamePhase || 'unknown'
+    activeGames: games.size,
+    games: gameList
+  });
+});
+
+// ===== GAME MANAGEMENT ENDPOINTS =====
+
+/**
+ * GET /api/games
+ * List all active games
+ */
+app.get('/api/games', (req, res) => {
+  const gameList = Array.from(games.entries()).map(([id, data]) => ({
+    gameId: id,
+    version: data.version,
+    playerCount: data.state?.players?.length || 0,
+    playerNames: data.state?.players?.map(p => p.name) || [],
+    gamePhase: data.state?.gamePhase || 'unknown',
+    createdAt: data.createdAt
+  }));
+
+  res.json({
+    games: gameList,
+    count: games.size
+  });
+});
+
+/**
+ * POST /api/games
+ * Create a new game session
+ * Returns the new game ID
+ */
+app.post('/api/games', (req, res) => {
+  const gameId = generateGameId();
+
+  games.set(gameId, {
+    state: null,
+    version: 0,
+    createdAt: new Date().toISOString()
+  });
+
+  console.log(`🎮 New game created: ${gameId}`);
+
+  res.json({
+    success: true,
+    gameId,
+    message: `Game ${gameId} created. Share this code with players!`
+  });
+});
+
+/**
+ * DELETE /api/games/:gameId
+ * Delete a specific game
+ */
+app.delete('/api/games/:gameId', (req, res) => {
+  const { gameId } = req.params;
+
+  if (!games.has(gameId)) {
+    return res.status(404).json({
+      error: 'Game not found',
+      gameId
+    });
+  }
+
+  games.delete(gameId);
+  console.log(`🗑️ Game deleted: ${gameId}`);
+
+  res.json({
+    success: true,
+    message: `Game ${gameId} deleted`
   });
 });
 
 // ===== GAME STATE ENDPOINTS =====
+
 /**
- * GET /api/gamestate
- * Retrieve current game state
- * Returns 404 if no state exists
+ * GET /api/games/:gameId/state
+ * Retrieve game state for a specific game
+ * Returns 404 if game doesn't exist
  */
-app.get('/api/gamestate', (req, res) => {
-  if (!gameState) {
+app.get('/api/games/:gameId/state', (req, res) => {
+  const { gameId } = req.params;
+
+  if (!games.has(gameId)) {
+    return res.status(404).json({
+      error: 'Game not found',
+      gameId
+    });
+  }
+
+  const game = games.get(gameId);
+
+  if (!game.state) {
     return res.status(404).json({
       error: 'No game state available',
+      gameId,
       stateVersion: 0
     });
   }
 
-  // Removed verbose logging - only log errors, not every GET request
-
   res.json({
-    state: gameState,
-    stateVersion
+    state: game.state,
+    stateVersion: game.version,
+    gameId
   });
 });
 
 /**
- * POST /api/gamestate
- * Update game state
+ * POST /api/games/:gameId/state
+ * Update game state for a specific game
  * Body: { state: GameState, clientVersion?: number }
  * Returns new stateVersion
  */
-app.post('/api/gamestate', (req, res) => {
+app.post('/api/games/:gameId/state', (req, res) => {
+  const { gameId } = req.params;
   const { state, clientVersion } = req.body;
+
+  // Auto-create game if it doesn't exist
+  if (!games.has(gameId)) {
+    games.set(gameId, {
+      state: null,
+      version: 0,
+      createdAt: new Date().toISOString()
+    });
+    console.log(`🎮 Game auto-created: ${gameId}`);
+  }
 
   // Validation
   if (!state) {
@@ -75,36 +182,129 @@ app.post('/api/gamestate', (req, res) => {
     });
   }
 
+  const game = games.get(gameId);
+
   // Version conflict warning (informational only, we use last-write-wins)
-  if (clientVersion !== undefined && clientVersion < stateVersion) {
-    console.warn(`⚠️  Client version ${clientVersion} behind server ${stateVersion} (will overwrite)`);
+  if (clientVersion !== undefined && clientVersion < game.version) {
+    console.warn(`⚠️  [${gameId}] Client version ${clientVersion} behind server ${game.version} (will overwrite)`);
   }
 
   // Update state
-  gameState = state;
-  stateVersion++;
-
-  // Silent on success - only log errors
+  game.state = state;
+  game.version++;
 
   res.json({
     success: true,
-    stateVersion
+    stateVersion: game.version,
+    gameId
   });
 });
 
 /**
- * DELETE /api/gamestate
- * Reset/clear game state
- * Useful for testing and starting fresh
+ * DELETE /api/games/:gameId/state
+ * Reset/clear game state for a specific game
+ */
+app.delete('/api/games/:gameId/state', (req, res) => {
+  const { gameId } = req.params;
+
+  if (!games.has(gameId)) {
+    return res.status(404).json({
+      error: 'Game not found',
+      gameId
+    });
+  }
+
+  const game = games.get(gameId);
+  const previousVersion = game.version;
+  const hadState = game.state !== null;
+
+  game.state = null;
+  game.version = 0;
+
+  if (hadState) console.log(`🗑️ [${gameId}] Game state reset (was v${previousVersion})`);
+
+  res.json({
+    success: true,
+    message: 'Game state reset',
+    gameId,
+    previousVersion,
+    hadState
+  });
+});
+
+// ===== LEGACY ENDPOINTS (for backwards compatibility) =====
+// These work with a "default" game (G0)
+
+const LEGACY_GAME_ID = 'G0';
+
+// Ensure legacy game exists
+games.set(LEGACY_GAME_ID, {
+  state: null,
+  version: 0,
+  createdAt: new Date().toISOString()
+});
+
+/**
+ * GET /api/gamestate (legacy)
+ * Retrieve current game state from default game
+ */
+app.get('/api/gamestate', (req, res) => {
+  const game = games.get(LEGACY_GAME_ID);
+
+  if (!game.state) {
+    return res.status(404).json({
+      error: 'No game state available',
+      stateVersion: 0
+    });
+  }
+
+  res.json({
+    state: game.state,
+    stateVersion: game.version
+  });
+});
+
+/**
+ * POST /api/gamestate (legacy)
+ * Update game state for default game
+ */
+app.post('/api/gamestate', (req, res) => {
+  const { state, clientVersion } = req.body;
+  const game = games.get(LEGACY_GAME_ID);
+
+  if (!state) {
+    return res.status(400).json({
+      error: 'State is required',
+      received: req.body
+    });
+  }
+
+  if (clientVersion !== undefined && clientVersion < game.version) {
+    console.warn(`⚠️  [${LEGACY_GAME_ID}] Client version ${clientVersion} behind server ${game.version} (will overwrite)`);
+  }
+
+  game.state = state;
+  game.version++;
+
+  res.json({
+    success: true,
+    stateVersion: game.version
+  });
+});
+
+/**
+ * DELETE /api/gamestate (legacy)
+ * Reset default game state
  */
 app.delete('/api/gamestate', (req, res) => {
-  const previousVersion = stateVersion;
-  const hadState = gameState !== null;
+  const game = games.get(LEGACY_GAME_ID);
+  const previousVersion = game.version;
+  const hadState = game.state !== null;
 
-  gameState = null;
-  stateVersion = 0;
+  game.state = null;
+  game.version = 0;
 
-  if (hadState) console.log(`🗑️ Game state reset (was v${previousVersion})`);
+  if (hadState) console.log(`🗑️ [${LEGACY_GAME_ID}] Game state reset (was v${previousVersion})`);
 
   res.json({
     success: true,
@@ -115,17 +315,36 @@ app.delete('/api/gamestate', (req, res) => {
 });
 
 /**
- * GET /api/debug/state
- * Debug endpoint to inspect raw state
- * Returns prettified JSON for troubleshooting
+ * GET /api/debug/state (legacy)
+ * Debug endpoint for default game
  */
 app.get('/api/debug/state', (req, res) => {
+  const game = games.get(LEGACY_GAME_ID);
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify({
-    stateVersion,
-    hasState: gameState !== null,
-    state: gameState
+    stateVersion: game.version,
+    hasState: game.state !== null,
+    state: game.state
   }, null, 2));
+});
+
+/**
+ * GET /api/debug/games
+ * Debug endpoint to see all games
+ */
+app.get('/api/debug/games', (req, res) => {
+  const allGames = {};
+  games.forEach((data, id) => {
+    allGames[id] = {
+      version: data.version,
+      hasState: data.state !== null,
+      playerCount: data.state?.players?.length || 0,
+      createdAt: data.createdAt
+    };
+  });
+
+  res.set('Content-Type', 'application/json');
+  res.send(JSON.stringify(allGames, null, 2));
 });
 
 // ===== ERROR HANDLERS =====
@@ -136,10 +355,15 @@ app.use((req, res) => {
     path: req.path,
     availableEndpoints: [
       'GET /health',
-      'GET /api/gamestate',
-      'POST /api/gamestate',
-      'DELETE /api/gamestate',
-      'GET /api/debug/state'
+      'GET /api/games - List all games',
+      'POST /api/games - Create new game',
+      'DELETE /api/games/:gameId - Delete a game',
+      'GET /api/games/:gameId/state - Get game state',
+      'POST /api/games/:gameId/state - Update game state',
+      'DELETE /api/games/:gameId/state - Reset game state',
+      'GET /api/gamestate - (legacy) Get default game',
+      'POST /api/gamestate - (legacy) Update default game',
+      'DELETE /api/gamestate - (legacy) Reset default game'
     ]
   });
 });
@@ -179,7 +403,9 @@ function startServer(port, maxAttempts = 10) {
 
   server.listen(port, '0.0.0.0', () => {
     const actualPort = server.address().port;
-    console.log(`🚀 Server started on port ${actualPort} | http://localhost:${actualPort} | Multi-device sync enabled`);
+    console.log(`🚀 Multi-Game Server started on port ${actualPort}`);
+    console.log(`   http://localhost:${actualPort}`);
+    console.log(`   Supports multiple independent games (G1, G2, G3, ...)`);
   });
 
   return server;

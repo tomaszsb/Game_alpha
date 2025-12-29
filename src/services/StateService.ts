@@ -16,7 +16,7 @@ import {
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { Choice } from '../types/CommonTypes';
-import { getBackendURL } from '../utils/networkDetection';
+import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../utils/networkDetection';
 
 // Auto-action event type for modal notifications
 export interface AutoActionEvent {
@@ -1794,7 +1794,9 @@ export class StateService implements IStateService {
     this.isSyncing = true;
 
     try {
-      const response = await fetch(`${this.serverUrl}/api/gamestate`, {
+      const gameId = getCurrentGameId();
+      const apiPath = getGameStateAPIPath(gameId);
+      const response = await fetch(`${this.serverUrl}${apiPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1806,7 +1808,7 @@ export class StateService implements IStateService {
         console.warn(`Failed to sync state to server: ${response.status} ${response.statusText}`);
       } else {
         const result = await response.json();
-        console.log(`✅ State synced to server (v${result.stateVersion})`);
+        console.log(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''}`);
       }
     } catch (error) {
       // Fail silently - server may not be running (development mode)
@@ -1833,8 +1835,10 @@ export class StateService implements IStateService {
     }
 
     try {
-      console.log('📥 Loading state from server...');
-      const response = await fetch(`${this.serverUrl}/api/gamestate`);
+      const gameId = getCurrentGameId();
+      const apiPath = getGameStateAPIPath(gameId);
+      console.log(`📥 Loading state from server...${gameId ? ` [${gameId}]` : ''}`);
+      const response = await fetch(`${this.serverUrl}${apiPath}`);
 
       if (response.status === 404) {
         console.log('No server state found, using local state');
@@ -1852,7 +1856,7 @@ export class StateService implements IStateService {
         this.currentState = state;
         // Skip sync when loading from server to avoid syncing back what we just loaded
         this.notifyListeners({ skipSync: true });
-        console.log(`✅ State loaded from server (v${stateVersion})`);
+        console.log(`✅ State loaded from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
         console.log(`   Players: ${state.players?.length || 0}`);
         console.log(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
         return true;

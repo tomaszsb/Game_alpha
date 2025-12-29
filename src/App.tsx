@@ -7,8 +7,9 @@ import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
-import { getBackendURL } from './utils/networkDetection';
+import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from './utils/networkDetection';
 import { detectDeviceType } from './utils/deviceDetection';
+import { GameLobby } from './components/setup/GameLobby';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -94,11 +95,13 @@ function AppContent(): JSX.Element {
   useEffect(() => {
     // Track client's current state version to avoid unnecessary updates
     let clientStateVersion = 0;
+    const gameId = getCurrentGameId();
 
     const pollInterval = setInterval(async () => {
       try {
         const backendURL = getBackendURL();
-        const response = await fetch(`${backendURL}/api/gamestate`);
+        const apiPath = getGameStateAPIPath(gameId);
+        const response = await fetch(`${backendURL}${apiPath}`);
 
         if (response.ok) {
           const { state, stateVersion } = await response.json();
@@ -108,7 +111,7 @@ function AppContent(): JSX.Element {
           if (state && stateVersion > clientStateVersion) {
             stateService.replaceState(state);
             clientStateVersion = stateVersion;
-            console.log(`📥 Updated from server (v${stateVersion})`);
+            console.log(`📥 Updated from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
           }
           // else: Server state unchanged, skip update
         }
@@ -191,8 +194,31 @@ function AppContent(): JSX.Element {
  * App component serves as the composition root for the entire application.
  * It wraps the main layout with the ServiceProvider to provide dependency injection
  * throughout the component tree. ErrorBoundary catches and handles any unexpected errors.
+ *
+ * Multi-Game Support:
+ * - If no game ID in URL: Show GameLobby for create/join
+ * - If game ID in URL: Show the game
  */
 export function App(): JSX.Element {
+  const gameId = getCurrentGameId();
+
+  // If no game ID in URL, show the lobby to create or join a game
+  if (!gameId) {
+    const handleJoinGame = (selectedGameId: string) => {
+      // Redirect to the game by updating the URL
+      const url = new URL(window.location.href);
+      url.searchParams.set('g', selectedGameId);
+      window.location.href = url.toString();
+    };
+
+    return (
+      <ErrorBoundary>
+        <GameLobby onJoinGame={handleJoinGame} />
+      </ErrorBoundary>
+    );
+  }
+
+  // Game ID present - show the game
   return (
     <ErrorBoundary>
       <ServiceProvider>

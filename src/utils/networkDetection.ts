@@ -6,21 +6,31 @@
  */
 
 /**
+ * Get the current game ID from URL parameters
+ * @returns Game ID if present, undefined otherwise
+ */
+export function getCurrentGameId(): string | undefined {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('g') || undefined;
+}
+
+/**
  * Get the current server URL using the actual network address
  * This ensures QR codes work from other devices on the same network
  *
  * @param playerId Optional player ID or short ID to include in URL
  * @param shortId Optional short ID to use for URL (e.g., "P1" instead of full ID)
- * @returns Full URL to access the app (with optional player parameter)
+ * @param gameId Optional game ID to include in URL (e.g., "G1")
+ * @returns Full URL to access the app (with optional player and game parameters)
  *
  * @example
  * getServerURL()
  * // => "http://192.168.1.100:3000"
  *
- * getServerURL("player_123", "P1")
- * // => "http://192.168.1.100:3000?p=P1"
+ * getServerURL("player_123", "P1", "G1")
+ * // => "http://192.168.1.100:3000?g=G1&p=P1"
  */
-export function getServerURL(playerId?: string, shortId?: string): string {
+export function getServerURL(playerId?: string, shortId?: string, gameId?: string): string {
   // Use window.location to get the actual hostname and port
   // This will be the network IP when running with `npm run dev -- --host`
   const protocol = window.location.protocol; // http: or https:
@@ -32,14 +42,37 @@ export function getServerURL(playerId?: string, shortId?: string): string {
     ? `${protocol}//${hostname}:${port}`
     : `${protocol}//${hostname}`;
 
-  // Add player parameter if provided (prefer shortId if available)
-  if (shortId) {
-    return `${baseURL}?p=${encodeURIComponent(shortId)}`;
-  } else if (playerId) {
-    return `${baseURL}?playerId=${encodeURIComponent(playerId)}`;
+  // Build query parameters
+  const params = new URLSearchParams();
+
+  // Use game ID from parameter or current URL
+  const effectiveGameId = gameId || getCurrentGameId();
+  if (effectiveGameId) {
+    params.set('g', effectiveGameId);
   }
 
-  return baseURL;
+  // Add player parameter (prefer shortId if available)
+  if (shortId) {
+    params.set('p', shortId);
+  } else if (playerId) {
+    params.set('playerId', playerId);
+  }
+
+  const queryString = params.toString();
+  return queryString ? `${baseURL}?${queryString}` : baseURL;
+}
+
+/**
+ * Get the API path for game state, supporting both multi-game and legacy modes
+ * @param gameId Optional game ID
+ * @returns API path (e.g., "/api/games/G1/state" or "/api/gamestate")
+ */
+export function getGameStateAPIPath(gameId?: string): string {
+  const effectiveGameId = gameId || getCurrentGameId();
+  if (effectiveGameId) {
+    return `/api/games/${effectiveGameId}/state`;
+  }
+  return '/api/gamestate';
 }
 
 /**

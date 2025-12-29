@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { Space } from '../../types/DataTypes';
+import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
 
 interface DataEditorProps {
   onClose: () => void;
@@ -45,14 +46,13 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     console.log('🗑️ User confirmed - clearing game data...');
 
     try {
-      // Get backend URL using window.location to match network setup
-      const protocol = window.location.protocol;
-      const hostname = window.location.hostname;
-      const backendURL = `${protocol}//${hostname}:3001`;
+      const backendURL = getBackendURL();
+      const gameId = getCurrentGameId();
+      const apiPath = getGameStateAPIPath(gameId);
 
-      console.log(`🗑️ Sending DELETE to: ${backendURL}/api/gamestate`);
+      console.log(`🗑️ Sending DELETE to: ${backendURL}${apiPath}`);
 
-      const response = await fetch(`${backendURL}/api/gamestate`, {
+      const response = await fetch(`${backendURL}${apiPath}`, {
         method: 'DELETE'
       });
 
