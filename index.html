@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code2027 - Board Game</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>Unravel Codes: The Game</title>
     <style>
         body {
             margin: 0;
@@ -65,14 +66,14 @@
 <body>
     <div id="root">
         <div class="loading">
-            Loading Code2027 Game...
+            Loading Unravel Codes...
         </div>
     </div>
 
     <!-- Error fallback (will be hidden when React loads) -->
     <div id="error-fallback" class="error" style="display: none;">
         <h1>Failed to Load Application</h1>
-        <p>There was an error loading the Code2027 game.</p>
+        <p>There was an error loading Unravel Codes.</p>
         <p>Please check the console for more details.</p>
         <button onclick="window.location.reload()">Reload Page</button>
     </div>
@@ -91,7 +92,7 @@
         // Check if React loaded properly after a timeout
         setTimeout(() => {
             const root = document.getElementById('root');
-            if (root && root.innerHTML.includes('Loading Code2027 Game...')) {
+            if (root && root.innerHTML.includes('Loading Unravel Codes...')) {
                 console.warn('React application may have failed to load');
                 // Don't show error immediately, React might be slow to load
             }

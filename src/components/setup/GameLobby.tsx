@@ -99,20 +99,36 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
         width: '100%',
         textAlign: 'center'
       }}>
+        {/* Logo */}
+        <img
+          src="/images/logo.png"
+          alt="Unravel Codes"
+          style={{
+            width: '150px',
+            height: 'auto',
+            marginBottom: '1rem'
+          }}
+        />
+
         {/* Header */}
         <h1 style={{
-          fontSize: '2.5rem',
+          fontSize: '2rem',
           marginBottom: '0.5rem',
           color: colors.neutral.black
         }}>
-          Game Alpha
+          Unravel Codes: The Game
         </h1>
         <p style={{
-          fontSize: '1.1rem',
+          fontSize: '1rem',
           color: colors.text.secondary,
-          marginBottom: '2rem'
+          marginBottom: '1.5rem',
+          lineHeight: '1.5'
         }}>
-          Multi-Player Board Game
+          A multiplayer project management adventure!
+          <br />
+          <span style={{ fontSize: '0.9rem' }}>
+            Create a new game or join an existing one to play with friends.
+          </span>
         </p>
 
         {/* Error message */}

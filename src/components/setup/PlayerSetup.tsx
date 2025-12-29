@@ -185,31 +185,25 @@ export function PlayerSetup({
           textAlign: 'center',
           marginBottom: '3rem'
         }}>
-          <div style={{
-            fontSize: '4rem',
-            marginBottom: '1rem'
-          }}>
-            🏗️
-          </div>
-          
+          <img
+            src="/images/logo.png"
+            alt="Unravel Codes"
+            style={{
+              width: '120px',
+              height: 'auto',
+              marginBottom: '1rem'
+            }}
+          />
+
           <h1 style={{
             color: colors.success.text,
-            fontSize: '2.5rem',
+            fontSize: '2rem',
             marginBottom: '0.5rem',
             fontWeight: 'bold'
           }}>
-            Project Management
+            Unravel Codes: The Game
           </h1>
-          
-          <h2 style={{
-            color: colors.secondary.main,
-            fontSize: '1.5rem',
-            fontWeight: 'normal',
-            margin: 0
-          }}>
-            Board Game
-          </h2>
-          
+
           <p style={{
             color: colors.secondary.main,
             fontSize: '1.1rem',
