@@ -117,21 +117,25 @@ function logVisitor(req, action, details = {}) {
 
 /**
  * Send push notification via ntfy.sh
+ * Note: Headers must be ASCII-only, so we put emojis in the message body
  */
-async function sendNotification(title, message, priority = 'default') {
+async function sendNotification(title, message, priority = 'default', tags = 'game_die') {
   try {
+    // Remove emojis from title (headers must be ASCII)
+    const asciiTitle = title.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+
     const response = await fetch(`https://ntfy.sh/${CONFIG.NTFY_TOPIC}`, {
       method: 'POST',
       headers: {
-        'Title': title,
+        'Title': asciiTitle || 'Game Alert',
         'Priority': priority,
-        'Tags': 'game_die'
+        'Tags': tags
       },
       body: message
     });
 
     if (response.ok) {
-      console.log(`🔔 Notification sent: ${title}`);
+      console.log(`🔔 Notification sent: ${asciiTitle}`);
     } else {
       console.warn(`⚠️ Notification failed: ${response.status}`);
     }
