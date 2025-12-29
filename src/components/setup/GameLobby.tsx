@@ -278,6 +278,29 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
             Checking for active games...
           </p>
         )}
+
+        {/* Alpha notice */}
+        <div style={{
+          marginTop: '2rem',
+          padding: '1rem',
+          backgroundColor: colors.primary.light,
+          borderRadius: '8px',
+          fontSize: '0.9rem',
+          color: colors.text.secondary,
+          lineHeight: '1.5'
+        }}>
+          <strong>Alpha Version</strong>
+          <br />
+          We're working on improving the game daily.
+          <br />
+          Comments or suggestions? Email us at:{' '}
+          <a
+            href="mailto:game@unravelcodes.com"
+            style={{ color: colors.primary.main }}
+          >
+            game@unravelcodes.com
+          </a>
+        </div>
       </div>
     </div>
   );

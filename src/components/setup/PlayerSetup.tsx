@@ -337,6 +337,21 @@ export function PlayerSetup({
         >
           {isStarting ? '🎲 Starting Game...' : '🚀 Start Game'}
         </button>
+
+        {/* Alpha notice */}
+        <div style={{
+          marginTop: '2rem',
+          padding: '1rem',
+          backgroundColor: colors.primary.light,
+          borderRadius: '8px',
+          fontSize: '0.85rem',
+          color: colors.text.secondary,
+          lineHeight: '1.5',
+          textAlign: 'center'
+        }}>
+          <strong>Alpha Version</strong> - We're improving daily.
+          {' '}Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        </div>
       </div>
     </div>
   );

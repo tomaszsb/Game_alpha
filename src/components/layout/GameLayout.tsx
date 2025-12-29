@@ -849,6 +849,23 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
         />
       )}
 
+      {/* Alpha notice footer */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: colors.primary.light,
+        padding: '0.5rem',
+        fontSize: '0.75rem',
+        color: colors.text.secondary,
+        textAlign: 'center',
+        borderTop: `1px solid ${colors.primary.main}`,
+        zIndex: 100
+      }}>
+        <strong>Alpha Version</strong> - Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+      </div>
+
     </div>
   );
 }
