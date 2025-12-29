@@ -1,71 +1,301 @@
 // server/server.js
 // Multi-Device, Multi-Game Server for Code2027
-// Provides REST API for:
+// Features:
 // - Multiple independent game sessions (G1, G2, G3, etc.)
-// - Game state synchronization across devices
-// - Version tracking for conflict detection (last-write-wins)
+// - Auto-save games to file (survives restarts)
+// - Game expiration (24 hours of inactivity)
+// - Visitor logging (IP, device, actions)
+// - Push notifications via ntfy.sh
 
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
+import fs from 'fs';
+import path from 'path';
 
 const app = express();
 const DEFAULT_PORT = 3001;
 
+// ===== CONFIGURATION =====
+const CONFIG = {
+  // ntfy.sh topic for push notifications (change this to your own topic!)
+  // To receive notifications: Install ntfy app and subscribe to this topic
+  NTFY_TOPIC: process.env.NTFY_TOPIC || 'unravel-game-alerts',
+
+  // Game expiration time (24 hours in milliseconds)
+  GAME_EXPIRATION_MS: 24 * 60 * 60 * 1000,
+
+  // How often to check for expired games (1 hour)
+  CLEANUP_INTERVAL_MS: 60 * 60 * 1000,
+
+  // Auto-save interval (every 30 seconds)
+  AUTOSAVE_INTERVAL_MS: 30 * 1000,
+
+  // Data directory for persistence
+  DATA_DIR: process.env.DATA_DIR || '/app/data',
+
+  // Log file path
+  LOG_FILE: process.env.LOG_FILE || '/app/data/visitors.log',
+
+  // Games file path
+  GAMES_FILE: process.env.GAMES_FILE || '/app/data/games.json',
+};
+
 // Middleware
-app.use(cors()); // Allow all origins for development
-app.use(express.json({ limit: '10mb' })); // Support large game states
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
 // ===== MULTI-GAME STATE STORAGE =====
-// Map of gameId -> { state: GameState, version: number }
 const games = new Map();
 let nextGameNumber = 1;
+let isDirty = false; // Track if games need saving
+
+// ===== LOGGING UTILITIES =====
 
 /**
- * Generate a new game ID (G1, G2, G3, etc.)
+ * Get client IP address from request
  */
+function getClientIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.headers['x-real-ip']
+    || req.connection?.remoteAddress
+    || req.socket?.remoteAddress
+    || 'unknown';
+}
+
+/**
+ * Get device info from user agent
+ */
+function getDeviceInfo(req) {
+  const ua = req.headers['user-agent'] || 'unknown';
+
+  // Simple device detection
+  if (ua.includes('iPhone')) return 'iPhone';
+  if (ua.includes('iPad')) return 'iPad';
+  if (ua.includes('Android')) return 'Android';
+  if (ua.includes('Windows')) return 'Windows';
+  if (ua.includes('Mac')) return 'Mac';
+  if (ua.includes('Linux')) return 'Linux';
+  return 'Unknown';
+}
+
+/**
+ * Format timestamp for logging
+ */
+function formatTimestamp() {
+  return new Date().toISOString();
+}
+
+/**
+ * Log visitor action to file
+ */
+function logVisitor(req, action, details = {}) {
+  const entry = {
+    timestamp: formatTimestamp(),
+    ip: getClientIP(req),
+    device: getDeviceInfo(req),
+    userAgent: req.headers['user-agent'] || 'unknown',
+    action,
+    ...details
+  };
+
+  const logLine = JSON.stringify(entry) + '\n';
+
+  // Console log for docker logs
+  console.log(`📊 ${action}: ${entry.ip} (${entry.device})${details.gameId ? ` [${details.gameId}]` : ''}`);
+
+  // Append to log file
+  try {
+    ensureDataDir();
+    fs.appendFileSync(CONFIG.LOG_FILE, logLine);
+  } catch (err) {
+    console.error('Failed to write log:', err.message);
+  }
+
+  return entry;
+}
+
+/**
+ * Send push notification via ntfy.sh
+ */
+async function sendNotification(title, message, priority = 'default') {
+  try {
+    const response = await fetch(`https://ntfy.sh/${CONFIG.NTFY_TOPIC}`, {
+      method: 'POST',
+      headers: {
+        'Title': title,
+        'Priority': priority,
+        'Tags': 'game_die'
+      },
+      body: message
+    });
+
+    if (response.ok) {
+      console.log(`🔔 Notification sent: ${title}`);
+    } else {
+      console.warn(`⚠️ Notification failed: ${response.status}`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not send notification:', err.message);
+  }
+}
+
+// ===== PERSISTENCE UTILITIES =====
+
+/**
+ * Ensure data directory exists
+ */
+function ensureDataDir() {
+  if (!fs.existsSync(CONFIG.DATA_DIR)) {
+    fs.mkdirSync(CONFIG.DATA_DIR, { recursive: true });
+    console.log(`📁 Created data directory: ${CONFIG.DATA_DIR}`);
+  }
+}
+
+/**
+ * Save games to file
+ */
+function saveGames() {
+  if (!isDirty) return;
+
+  try {
+    ensureDataDir();
+
+    const data = {
+      nextGameNumber,
+      games: Array.from(games.entries()).map(([id, game]) => ({
+        id,
+        ...game
+      })),
+      savedAt: formatTimestamp()
+    };
+
+    fs.writeFileSync(CONFIG.GAMES_FILE, JSON.stringify(data, null, 2));
+    isDirty = false;
+    console.log(`💾 Games saved (${games.size} games)`);
+  } catch (err) {
+    console.error('❌ Failed to save games:', err.message);
+  }
+}
+
+/**
+ * Load games from file
+ */
+function loadGames() {
+  try {
+    if (!fs.existsSync(CONFIG.GAMES_FILE)) {
+      console.log('📂 No saved games found, starting fresh');
+      return;
+    }
+
+    const data = JSON.parse(fs.readFileSync(CONFIG.GAMES_FILE, 'utf8'));
+
+    nextGameNumber = data.nextGameNumber || 1;
+
+    for (const game of data.games || []) {
+      const { id, ...gameData } = game;
+      games.set(id, gameData);
+    }
+
+    console.log(`📂 Loaded ${games.size} games from file`);
+    console.log(`   Last saved: ${data.savedAt}`);
+  } catch (err) {
+    console.error('❌ Failed to load games:', err.message);
+  }
+}
+
+/**
+ * Clean up expired games
+ */
+function cleanupExpiredGames() {
+  const now = Date.now();
+  const expiredGames = [];
+
+  games.forEach((game, id) => {
+    // Skip legacy game
+    if (id === 'G0') return;
+
+    const lastActivity = new Date(game.lastActivity || game.createdAt).getTime();
+    const age = now - lastActivity;
+
+    if (age > CONFIG.GAME_EXPIRATION_MS) {
+      expiredGames.push({
+        id,
+        playerCount: game.state?.players?.length || 0,
+        age: Math.round(age / (60 * 60 * 1000)) // hours
+      });
+    }
+  });
+
+  if (expiredGames.length > 0) {
+    for (const { id, playerCount, age } of expiredGames) {
+      games.delete(id);
+      console.log(`🗑️ Expired game ${id} (${playerCount} players, ${age}h inactive)`);
+    }
+    isDirty = true;
+    saveGames();
+
+    // Notify about cleanup
+    sendNotification(
+      'Games Cleaned Up',
+      `Removed ${expiredGames.length} expired game(s): ${expiredGames.map(g => g.id).join(', ')}`,
+      'low'
+    );
+  }
+}
+
+/**
+ * Update game's last activity timestamp
+ */
+function touchGame(gameId) {
+  const game = games.get(gameId);
+  if (game) {
+    game.lastActivity = formatTimestamp();
+    isDirty = true;
+  }
+}
+
+// ===== GAME UTILITIES =====
+
 function generateGameId() {
   const id = `G${nextGameNumber}`;
   nextGameNumber++;
+  isDirty = true;
   return id;
 }
 
 // ===== HEALTH CHECK =====
-/**
- * GET /health
- * Health check endpoint
- * Returns server status and basic info
- */
 app.get('/health', (req, res) => {
   const gameList = Array.from(games.entries()).map(([id, data]) => ({
     gameId: id,
     version: data.version,
     playerCount: data.state?.players?.length || 0,
-    gamePhase: data.state?.gamePhase || 'unknown'
+    gamePhase: data.state?.gamePhase || 'unknown',
+    lastActivity: data.lastActivity
   }));
 
   res.json({
     status: 'ok',
-    timestamp: new Date().toISOString(),
+    timestamp: formatTimestamp(),
     activeGames: games.size,
-    games: gameList
+    games: gameList,
+    ntfyTopic: CONFIG.NTFY_TOPIC
   });
 });
 
 // ===== GAME MANAGEMENT ENDPOINTS =====
 
-/**
- * GET /api/games
- * List all active games
- */
 app.get('/api/games', (req, res) => {
+  logVisitor(req, 'LIST_GAMES');
+
   const gameList = Array.from(games.entries()).map(([id, data]) => ({
     gameId: id,
     version: data.version,
     playerCount: data.state?.players?.length || 0,
     playerNames: data.state?.players?.map(p => p.name) || [],
     gamePhase: data.state?.gamePhase || 'unknown',
-    createdAt: data.createdAt
+    createdAt: data.createdAt,
+    lastActivity: data.lastActivity
   }));
 
   res.json({
@@ -74,21 +304,28 @@ app.get('/api/games', (req, res) => {
   });
 });
 
-/**
- * POST /api/games
- * Create a new game session
- * Returns the new game ID
- */
-app.post('/api/games', (req, res) => {
+app.post('/api/games', async (req, res) => {
   const gameId = generateGameId();
+  const now = formatTimestamp();
 
   games.set(gameId, {
     state: null,
     version: 0,
-    createdAt: new Date().toISOString()
+    createdAt: now,
+    lastActivity: now
   });
 
-  console.log(`🎮 New game created: ${gameId}`);
+  const logEntry = logVisitor(req, 'CREATE_GAME', { gameId });
+
+  // Send notification
+  await sendNotification(
+    '🎮 New Game Created!',
+    `Game ${gameId} created\nIP: ${logEntry.ip}\nDevice: ${logEntry.device}`,
+    'default'
+  );
+
+  isDirty = true;
+  saveGames();
 
   res.json({
     success: true,
@@ -97,47 +334,32 @@ app.post('/api/games', (req, res) => {
   });
 });
 
-/**
- * DELETE /api/games/:gameId
- * Delete a specific game
- */
 app.delete('/api/games/:gameId', (req, res) => {
   const { gameId } = req.params;
 
   if (!games.has(gameId)) {
-    return res.status(404).json({
-      error: 'Game not found',
-      gameId
-    });
+    return res.status(404).json({ error: 'Game not found', gameId });
   }
 
+  logVisitor(req, 'DELETE_GAME', { gameId });
   games.delete(gameId);
-  console.log(`🗑️ Game deleted: ${gameId}`);
+  isDirty = true;
+  saveGames();
 
-  res.json({
-    success: true,
-    message: `Game ${gameId} deleted`
-  });
+  res.json({ success: true, message: `Game ${gameId} deleted` });
 });
 
 // ===== GAME STATE ENDPOINTS =====
 
-/**
- * GET /api/games/:gameId/state
- * Retrieve game state for a specific game
- * Returns 404 if game doesn't exist
- */
 app.get('/api/games/:gameId/state', (req, res) => {
   const { gameId } = req.params;
 
   if (!games.has(gameId)) {
-    return res.status(404).json({
-      error: 'Game not found',
-      gameId
-    });
+    return res.status(404).json({ error: 'Game not found', gameId });
   }
 
   const game = games.get(gameId);
+  touchGame(gameId);
 
   if (!game.state) {
     return res.status(404).json({
@@ -147,6 +369,9 @@ app.get('/api/games/:gameId/state', (req, res) => {
     });
   }
 
+  // Log only first access (when loading game)
+  // Don't log polling requests to avoid spam
+
   res.json({
     state: game.state,
     stateVersion: game.version,
@@ -154,13 +379,7 @@ app.get('/api/games/:gameId/state', (req, res) => {
   });
 });
 
-/**
- * POST /api/games/:gameId/state
- * Update game state for a specific game
- * Body: { state: GameState, clientVersion?: number }
- * Returns new stateVersion
- */
-app.post('/api/games/:gameId/state', (req, res) => {
+app.post('/api/games/:gameId/state', async (req, res) => {
   const { gameId } = req.params;
   const { state, clientVersion } = req.body;
 
@@ -169,29 +388,61 @@ app.post('/api/games/:gameId/state', (req, res) => {
     games.set(gameId, {
       state: null,
       version: 0,
-      createdAt: new Date().toISOString()
+      createdAt: formatTimestamp(),
+      lastActivity: formatTimestamp()
     });
     console.log(`🎮 Game auto-created: ${gameId}`);
   }
 
-  // Validation
   if (!state) {
-    return res.status(400).json({
-      error: 'State is required',
-      received: req.body
-    });
+    return res.status(400).json({ error: 'State is required', received: req.body });
   }
 
   const game = games.get(gameId);
+  const previousPlayerCount = game.state?.players?.length || 0;
+  const newPlayerCount = state.players?.length || 0;
 
-  // Version conflict warning (informational only, we use last-write-wins)
-  if (clientVersion !== undefined && clientVersion < game.version) {
-    console.warn(`⚠️  [${gameId}] Client version ${clientVersion} behind server ${game.version} (will overwrite)`);
+  // Detect significant changes for logging
+  if (newPlayerCount > previousPlayerCount) {
+    const newPlayer = state.players[newPlayerCount - 1];
+    logVisitor(req, 'PLAYER_JOINED', {
+      gameId,
+      playerName: newPlayer?.name || 'Unknown',
+      playerCount: newPlayerCount
+    });
+
+    // Notify about new player
+    await sendNotification(
+      '👤 Player Joined!',
+      `${newPlayer?.name || 'Someone'} joined game ${gameId}\nNow ${newPlayerCount} player(s)`,
+      'default'
+    );
   }
 
-  // Update state
+  // Detect game start
+  if (game.state?.gamePhase === 'SETUP' && state.gamePhase === 'PLAYING') {
+    logVisitor(req, 'GAME_STARTED', {
+      gameId,
+      playerCount: newPlayerCount,
+      playerNames: state.players?.map(p => p.name).join(', ')
+    });
+
+    await sendNotification(
+      '🎲 Game Started!',
+      `Game ${gameId} started with ${newPlayerCount} players: ${state.players?.map(p => p.name).join(', ')}`,
+      'high'
+    );
+  }
+
+  // Version conflict warning
+  if (clientVersion !== undefined && clientVersion < game.version) {
+    console.warn(`⚠️  [${gameId}] Client version ${clientVersion} behind server ${game.version}`);
+  }
+
   game.state = state;
   game.version++;
+  touchGame(gameId);
+  isDirty = true;
 
   res.json({
     success: true,
@@ -200,124 +451,152 @@ app.post('/api/games/:gameId/state', (req, res) => {
   });
 });
 
-/**
- * DELETE /api/games/:gameId/state
- * Reset/clear game state for a specific game
- */
 app.delete('/api/games/:gameId/state', (req, res) => {
   const { gameId } = req.params;
 
   if (!games.has(gameId)) {
-    return res.status(404).json({
-      error: 'Game not found',
-      gameId
-    });
+    return res.status(404).json({ error: 'Game not found', gameId });
   }
+
+  logVisitor(req, 'RESET_GAME', { gameId });
 
   const game = games.get(gameId);
   const previousVersion = game.version;
-  const hadState = game.state !== null;
 
   game.state = null;
   game.version = 0;
-
-  if (hadState) console.log(`🗑️ [${gameId}] Game state reset (was v${previousVersion})`);
+  touchGame(gameId);
+  isDirty = true;
+  saveGames();
 
   res.json({
     success: true,
     message: 'Game state reset',
     gameId,
-    previousVersion,
-    hadState
+    previousVersion
   });
 });
 
-// ===== LEGACY ENDPOINTS (for backwards compatibility) =====
-// These work with a "default" game (G0)
+// ===== LOGS ENDPOINT =====
+app.get('/api/logs', (req, res) => {
+  try {
+    if (!fs.existsSync(CONFIG.LOG_FILE)) {
+      return res.json({ logs: [], count: 0 });
+    }
 
+    const content = fs.readFileSync(CONFIG.LOG_FILE, 'utf8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const logs = lines.map(line => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return { raw: line };
+      }
+    });
+
+    // Return last 100 entries, newest first
+    const recentLogs = logs.slice(-100).reverse();
+
+    res.json({
+      logs: recentLogs,
+      count: logs.length,
+      file: CONFIG.LOG_FILE
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== DAILY SUMMARY ENDPOINT =====
+app.get('/api/logs/summary', (req, res) => {
+  try {
+    if (!fs.existsSync(CONFIG.LOG_FILE)) {
+      return res.json({ summary: 'No logs yet' });
+    }
+
+    const content = fs.readFileSync(CONFIG.LOG_FILE, 'utf8');
+    const lines = content.trim().split('\n').filter(Boolean);
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayLogs = lines
+      .map(line => { try { return JSON.parse(line); } catch { return null; } })
+      .filter(log => log && log.timestamp?.startsWith(today));
+
+    const uniqueIPs = new Set(todayLogs.map(l => l.ip));
+    const gamesCreated = todayLogs.filter(l => l.action === 'CREATE_GAME').length;
+    const playersJoined = todayLogs.filter(l => l.action === 'PLAYER_JOINED').length;
+    const gamesStarted = todayLogs.filter(l => l.action === 'GAME_STARTED').length;
+
+    res.json({
+      date: today,
+      uniqueVisitors: uniqueIPs.size,
+      gamesCreated,
+      playersJoined,
+      gamesStarted,
+      totalEvents: todayLogs.length,
+      visitors: Array.from(uniqueIPs)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== LEGACY ENDPOINTS =====
 const LEGACY_GAME_ID = 'G0';
 
-// Ensure legacy game exists
-games.set(LEGACY_GAME_ID, {
-  state: null,
-  version: 0,
-  createdAt: new Date().toISOString()
-});
+if (!games.has(LEGACY_GAME_ID)) {
+  games.set(LEGACY_GAME_ID, {
+    state: null,
+    version: 0,
+    createdAt: formatTimestamp(),
+    lastActivity: formatTimestamp()
+  });
+}
 
-/**
- * GET /api/gamestate (legacy)
- * Retrieve current game state from default game
- */
 app.get('/api/gamestate', (req, res) => {
   const game = games.get(LEGACY_GAME_ID);
+  touchGame(LEGACY_GAME_ID);
 
   if (!game.state) {
-    return res.status(404).json({
-      error: 'No game state available',
-      stateVersion: 0
-    });
+    return res.status(404).json({ error: 'No game state available', stateVersion: 0 });
   }
 
-  res.json({
-    state: game.state,
-    stateVersion: game.version
-  });
+  res.json({ state: game.state, stateVersion: game.version });
 });
 
-/**
- * POST /api/gamestate (legacy)
- * Update game state for default game
- */
 app.post('/api/gamestate', (req, res) => {
   const { state, clientVersion } = req.body;
   const game = games.get(LEGACY_GAME_ID);
 
   if (!state) {
-    return res.status(400).json({
-      error: 'State is required',
-      received: req.body
-    });
+    return res.status(400).json({ error: 'State is required', received: req.body });
   }
 
   if (clientVersion !== undefined && clientVersion < game.version) {
-    console.warn(`⚠️  [${LEGACY_GAME_ID}] Client version ${clientVersion} behind server ${game.version} (will overwrite)`);
+    console.warn(`⚠️  [${LEGACY_GAME_ID}] Client version ${clientVersion} behind server ${game.version}`);
   }
 
   game.state = state;
   game.version++;
+  touchGame(LEGACY_GAME_ID);
+  isDirty = true;
 
-  res.json({
-    success: true,
-    stateVersion: game.version
-  });
+  res.json({ success: true, stateVersion: game.version });
 });
 
-/**
- * DELETE /api/gamestate (legacy)
- * Reset default game state
- */
 app.delete('/api/gamestate', (req, res) => {
   const game = games.get(LEGACY_GAME_ID);
   const previousVersion = game.version;
-  const hadState = game.state !== null;
 
   game.state = null;
   game.version = 0;
+  touchGame(LEGACY_GAME_ID);
+  isDirty = true;
+  saveGames();
 
-  if (hadState) console.log(`🗑️ [${LEGACY_GAME_ID}] Game state reset (was v${previousVersion})`);
-
-  res.json({
-    success: true,
-    message: 'Game state reset',
-    previousVersion,
-    hadState
-  });
+  res.json({ success: true, message: 'Game state reset', previousVersion });
 });
 
-/**
- * GET /api/debug/state (legacy)
- * Debug endpoint for default game
- */
 app.get('/api/debug/state', (req, res) => {
   const game = games.get(LEGACY_GAME_ID);
   res.set('Content-Type', 'application/json');
@@ -328,10 +607,6 @@ app.get('/api/debug/state', (req, res) => {
   }, null, 2));
 });
 
-/**
- * GET /api/debug/games
- * Debug endpoint to see all games
- */
 app.get('/api/debug/games', (req, res) => {
   const allGames = {};
   games.forEach((data, id) => {
@@ -339,7 +614,8 @@ app.get('/api/debug/games', (req, res) => {
       version: data.version,
       hasState: data.state !== null,
       playerCount: data.state?.players?.length || 0,
-      createdAt: data.createdAt
+      createdAt: data.createdAt,
+      lastActivity: data.lastActivity
     };
   });
 
@@ -348,40 +624,31 @@ app.get('/api/debug/games', (req, res) => {
 });
 
 // ===== ERROR HANDLERS =====
-// 404 handler for unknown routes
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
     path: req.path,
     availableEndpoints: [
       'GET /health',
-      'GET /api/games - List all games',
-      'POST /api/games - Create new game',
-      'DELETE /api/games/:gameId - Delete a game',
-      'GET /api/games/:gameId/state - Get game state',
-      'POST /api/games/:gameId/state - Update game state',
-      'DELETE /api/games/:gameId/state - Reset game state',
-      'GET /api/gamestate - (legacy) Get default game',
-      'POST /api/gamestate - (legacy) Update default game',
-      'DELETE /api/gamestate - (legacy) Reset default game'
+      'GET /api/games',
+      'POST /api/games',
+      'GET /api/games/:gameId/state',
+      'POST /api/games/:gameId/state',
+      'GET /api/logs',
+      'GET /api/logs/summary'
     ]
   });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error('❌ Server error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    message: err.message
   });
 });
 
 // ===== START SERVER =====
-/**
- * Try to start server on a port, and try next port if it fails
- */
 function startServer(port, maxAttempts = 10) {
   const server = createServer(app);
 
@@ -392,7 +659,7 @@ function startServer(port, maxAttempts = 10) {
         server.close();
         startServer(port + 1, maxAttempts - 1);
       } else {
-        console.error('❌ Could not find an available port after multiple attempts');
+        console.error('❌ Could not find an available port');
         process.exit(1);
       }
     } else {
@@ -403,30 +670,47 @@ function startServer(port, maxAttempts = 10) {
 
   server.listen(port, '0.0.0.0', () => {
     const actualPort = server.address().port;
-    console.log(`🚀 Multi-Game Server started on port ${actualPort}`);
-    console.log(`   http://localhost:${actualPort}`);
-    console.log(`   Supports multiple independent games (G1, G2, G3, ...)`);
+    console.log('');
+    console.log('🚀 Multi-Game Server started');
+    console.log(`   Port: ${actualPort}`);
+    console.log(`   ntfy topic: ${CONFIG.NTFY_TOPIC}`);
+    console.log(`   Data dir: ${CONFIG.DATA_DIR}`);
+    console.log('');
+
+    // Send startup notification
+    sendNotification(
+      '🚀 Server Started',
+      `Game server is now online!\nPort: ${actualPort}`,
+      'low'
+    );
   });
 
   return server;
 }
 
+// ===== INITIALIZATION =====
+console.log('📂 Initializing server...');
+ensureDataDir();
+loadGames();
+
+// Start periodic tasks
+setInterval(saveGames, CONFIG.AUTOSAVE_INTERVAL_MS);
+setInterval(cleanupExpiredGames, CONFIG.CLEANUP_INTERVAL_MS);
+
+// Initial cleanup
+cleanupExpiredGames();
+
 const server = startServer(DEFAULT_PORT);
 
 // Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('🛑 Shutting down server...');
+function shutdown() {
+  console.log('🛑 Shutting down...');
+  saveGames();
   server.close(() => {
-    console.log('✅ Server shut down gracefully');
+    console.log('✅ Server shut down');
     process.exit(0);
   });
-});
+}
 
-process.on('SIGTERM', () => {
-  console.log('');
-  console.log('🛑 Shutting down server...');
-  server.close(() => {
-    console.log('✅ Server shut down gracefully');
-    process.exit(0);
-  });
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

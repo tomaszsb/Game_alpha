@@ -1,6 +1,6 @@
 # Game Alpha - Multi-Device Board Game
 # Build: docker build -t game-alpha .
-# Run: docker run -p 3000:3000 -p 3001:3001 game-alpha
+# Run: docker run -p 3000:3000 -p 3001:3001 -v game-data:/app/data game-alpha
 
 FROM node:20-alpine
 
@@ -21,8 +21,14 @@ RUN npm run build
 # Install serve for static file hosting
 RUN npm install -g serve
 
+# Create data directory for persistence
+RUN mkdir -p /app/data
+
 # Expose ports (frontend + backend)
 EXPOSE 3000 3001
+
+# Volume for persistent data (games, logs)
+VOLUME /app/data
 
 # Start both servers
 CMD ["sh", "-c", "node server/server.js & serve -s dist -l 3000"]

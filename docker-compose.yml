@@ -13,3 +13,9 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - NTFY_TOPIC=unravel-game-alerts  # Change this to your own topic!
+    volumes:
+      - game-data:/app/data  # Persistent storage for games and logs
+
+volumes:
+  game-data:
