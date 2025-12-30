@@ -82,13 +82,14 @@ export function getGameStateAPIPath(gameId?: string): string {
  *
  * Priority:
  * 1. Environment variable VITE_SERVER_URL (production)
- * 2. Auto-detect based on frontend port (development)
+ * 2. Same origin if not on standard dev ports (production single-port mode)
+ * 3. Auto-detect based on frontend port (development)
  *
  * @returns Backend server URL
  *
  * @example
  * getBackendURL()
- * // => "http://192.168.1.100:3001" (dev) or "https://api.yourdomain.com" (production)
+ * // => "http://192.168.1.100:3001" (dev) or "" (same-origin production)
  */
 export function getBackendURL(): string {
   // 1. Check environment variable first (production)
@@ -96,16 +97,18 @@ export function getBackendURL(): string {
     return import.meta.env.VITE_SERVER_URL as string;
   }
 
-  // 2. Auto-detect for development
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
   const frontendPort = parseInt(window.location.port || '80');
 
-  // Try ports in this order:
-  // 1. Frontend port + 1 (most common case: frontend=3000, backend=3001)
-  // 2. 3001 (default backend port)
-  // 3. Frontend port + 2 (if both 3000 and 3001 were taken, backend might be on 3002)
-  // We'll return the first guess and let the caller handle retries if needed
+  // 2. If not on standard dev ports (3000, 5173), assume single-port production mode
+  //    Return empty string to use same-origin (relative URLs)
+  if (frontendPort !== 3000 && frontendPort !== 5173) {
+    // Production: Express serves both frontend and API on same port
+    return `${protocol}//${hostname}:${frontendPort}`;
+  }
+
+  // 3. Auto-detect for development (frontend=3000/5173, backend=+1)
   const backendPort = frontendPort + 1;
 
   return `${protocol}//${hostname}:${backendPort}`;

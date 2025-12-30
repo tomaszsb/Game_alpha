@@ -46,6 +46,15 @@ const CONFIG = {
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// ===== STATIC FILE SERVING (Production) =====
+// Serve the built frontend from the dist folder
+// This allows running everything on a single port
+const distPath = process.env.DIST_PATH || path.join(process.cwd(), 'dist');
+if (fs.existsSync(distPath)) {
+  console.log(`📁 Serving static files from: ${distPath}`);
+  app.use(express.static(distPath));
+}
+
 // ===== MULTI-GAME STATE STORAGE =====
 const games = new Map();
 let nextGameNumber = 1;
@@ -636,21 +645,34 @@ app.get('/api/debug/games', (req, res) => {
   res.send(JSON.stringify(allGames, null, 2));
 });
 
-// ===== ERROR HANDLERS =====
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    path: req.path,
-    availableEndpoints: [
-      'GET /health',
-      'GET /api/games',
-      'POST /api/games',
-      'GET /api/games/:gameId/state',
-      'POST /api/games/:gameId/state',
-      'GET /api/logs',
-      'GET /api/logs/summary'
-    ]
-  });
+// ===== SPA FALLBACK & ERROR HANDLERS =====
+// For non-API routes, serve index.html (SPA client-side routing)
+app.use((req, res, next) => {
+  // If it's an API route, return 404 JSON
+  if (req.path.startsWith('/api/') || req.path === '/health') {
+    return res.status(404).json({
+      error: 'Not Found',
+      path: req.path,
+      availableEndpoints: [
+        'GET /health',
+        'GET /api/games',
+        'POST /api/games',
+        'GET /api/games/:gameId/state',
+        'POST /api/games/:gameId/state',
+        'GET /api/logs',
+        'GET /api/logs/summary'
+      ]
+    });
+  }
+
+  // For all other routes, serve index.html (SPA routing)
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  // If no dist folder, return simple error
+  res.status(404).send('Not Found - Frontend not built. Run npm run build first.');
 });
 
 app.use((err, req, res, next) => {

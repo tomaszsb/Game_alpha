@@ -18,9 +18,6 @@ COPY . .
 # Build the frontend
 RUN npm run build
 
-# Install serve for static file hosting
-RUN npm install -g serve
-
 # Create data directory for persistence
 RUN mkdir -p /app/data
 
@@ -28,12 +25,13 @@ RUN mkdir -p /app/data
 ENV DATA_DIR=/app/data
 ENV LOG_FILE=/app/data/visitors.log
 ENV GAMES_FILE=/app/data/games.json
+ENV DIST_PATH=/app/dist
 
-# Expose ports (frontend + backend)
-EXPOSE 3000 3001
+# Expose single port (Express serves both API and static files)
+EXPOSE 3001
 
 # Volume for persistent data (games, logs)
 VOLUME /app/data
 
-# Start both servers
-CMD ["sh", "-c", "node server/server.js & serve -s dist -l 3000"]
+# Start the server (serves both API and frontend)
+CMD ["node", "server/server.js"]
