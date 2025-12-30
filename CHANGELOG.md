@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Modal Fixes (December 30, 2025)
+
+**Fixed Duplicate Modal Display:**
+- Removed duplicate modal opening from auto-action event subscription
+- Previously, both the action handler AND the event subscription were opening DiceResultModal simultaneously
+- Now only the direct action handlers open modals (handleRollDice, handleManualEffect, handleAutomaticFunding)
+- Auto-action subscription now only logs events for debugging
+
+**Fixed Owner Seed Money Modal Amount:**
+- Modal was displaying $0 instead of actual funding amount
+- Root cause: Code was trying to parse card data fields that weren't being read correctly
+- Fix: Now reads directly from `moneySources.ownerFunding` in player state
+- This matches exactly what appears in the Finances section
+- Works for both B cards (bank loans) and I cards (investments) at OWNER-FUND-INITIATION
+
 ### Deployment & Multi-Game Support (December 29, 2025)
 
 **Milestone: EXTERNAL TESTING INFRASTRUCTURE READY**

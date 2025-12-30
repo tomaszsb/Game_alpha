@@ -3020,31 +3020,21 @@ export class TurnService implements ITurnService {
 
       const afterState = this.stateService.getGameState();
 
-      // Get the funding amount from the card
-      let fundingAmount = 0;
+      // Get card name for display
       let cardName = 'Funding Card';
       if (result.drawnCardId) {
         const cardData = this.dataService.getCardById(result.drawnCardId);
         if (cardData) {
           cardName = cardData.card_name || 'Funding Card';
-          // B cards use loan_amount, I cards use investment_amount
-          if (fundingCardType === 'B' && cardData.loan_amount) {
-            fundingAmount = typeof cardData.loan_amount === 'string'
-              ? parseInt(cardData.loan_amount.replace(/,/g, ''), 10)
-              : cardData.loan_amount;
-          } else if (fundingCardType === 'I' && cardData.investment_amount) {
-            fundingAmount = typeof cardData.investment_amount === 'string'
-              ? parseInt(cardData.investment_amount.replace(/,/g, ''), 10)
-              : cardData.investment_amount;
-          } else if (cardData.money_effect) {
-            // Fallback: Extract money value from money_effect field
-            const moneyMatch = cardData.money_effect.match(/add\s+([\d,]+)/i);
-            if (moneyMatch) {
-              fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);
-            }
-          }
         }
       }
+
+      // Get funding amount from ownerFunding in moneySources (what shows in finances)
+      // At OWNER-FUND-INITIATION, both B and I cards go into ownerFunding
+      const playerBefore = beforeState.players.find(p => p.id === playerId);
+      const playerAfter = afterState.players.find(p => p.id === playerId);
+      const fundingAmount = (playerAfter?.moneySources?.ownerFunding || 0) - (playerBefore?.moneySources?.ownerFunding || 0);
+      console.log(`💰 Owner Seed Money: ${cardName} - $${fundingAmount.toLocaleString()} (${fundingCardType} card)`);
 
       // Create effect description for modal feedback - include money effect
       const effects: DiceResultEffect[] = [{
