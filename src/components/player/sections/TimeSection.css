@@ -132,3 +132,49 @@
   background: #f8f9fa;
   border-radius: 6px;
 }
+
+/* Active Effects Section */
+.active-effects-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.active-effects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.active-effect-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border: 1px solid #ffb74d;
+  border-radius: 6px;
+  border-left: 4px solid #ff9800;
+}
+
+.active-effect-item .effect-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.active-effect-item .effect-content {
+  flex: 1;
+}
+
+.active-effect-item .effect-description {
+  font-size: 13px;
+  color: #5d4037;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.active-effect-item .effect-duration {
+  margin-top: 4px;
+  font-weight: 600;
+}

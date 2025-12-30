@@ -150,6 +150,28 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
       summary={summary}
     >
       <div className="time-content" id="time-content">
+        {/* Active Effects Display - show duration-based effects from L cards etc */}
+        {player.activeEffects && player.activeEffects.length > 0 && (
+          <div className="active-effects-section">
+            <div className="timeline-header">⚡ Active Effects</div>
+            <div className="active-effects-list">
+              {player.activeEffects.map((effect, index) => (
+                <div key={effect.effectId || index} className="active-effect-item">
+                  <div className="effect-icon">🔮</div>
+                  <div className="effect-content">
+                    <div className="effect-description">
+                      {effect.description || effect.effectType || 'Unknown effect'}
+                    </div>
+                    <div className="effect-duration" style={{ fontSize: '12px', color: '#ff9800' }}>
+                      ⏳ {effect.remainingDuration} turn{effect.remainingDuration !== 1 ? 's' : ''} remaining
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Visited Spaces Timeline - using spaceVisitLog for time spent details */}
         {player.spaceVisitLog && player.spaceVisitLog.length > 0 ? (
           <div className="visited-spaces-timeline">
