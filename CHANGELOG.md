@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Dictionary/Glossary Feature (January 1, 2026)
+
+**NEW: Building Trade Dictionary Module**
+
+Added a standalone, reusable dictionary component for building trade terminology:
+
+**Core Features:**
+- Side panel that slides in from right when clicking on terms
+- 65 building trade terms with definitions
+- 7 categories: Professionals, Agencies, Documents, Processes, Construction, Finance, Legal
+- Search and filter functionality
+- Related terms navigation
+- Subtle dotted underline on clickable terms
+
+**Standalone Architecture:**
+- Self-contained module at `src/dictionary/`
+- Can be copied to iqarius.com or other projects
+- No game-specific dependencies
+- Exports: DictionaryPanel, TextWithTerms, useDictionary, DictionaryProvider
+
+**Term Sources:**
+- iqarius.com definitions (verified)
+- Game content extraction (AI-drafted, marked for review)
+
+**Files Created:**
+- `src/dictionary/` - Complete standalone module
+- `public/data/CLEAN_FILES/GLOSSARY.csv` - Term database
+
+**Integration Points:**
+- StorySection - Space stories have clickable terms
+- CardDetailsModal - Card descriptions have clickable terms
+- App.tsx - DictionaryProvider wraps game content
+
 ### Modal Fixes (December 30, 2025)
 
 **Fixed Duplicate Modal Display:**

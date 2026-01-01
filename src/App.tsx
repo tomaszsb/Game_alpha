@@ -10,6 +10,7 @@ import { getAppScreen, getURLParams } from './utils/getAppScreen';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from './utils/networkDetection';
 import { detectDeviceType } from './utils/deviceDetection';
 import { GameLobby } from './components/setup/GameLobby';
+import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -38,6 +39,20 @@ function LoadingScreen({ message }: { message?: string }): JSX.Element {
         Please wait while we initialize the game
       </div>
     </div>
+  );
+}
+
+/**
+ * DictionaryPanelWrapper manages the dictionary panel state via context
+ */
+function DictionaryPanelWrapper(): JSX.Element {
+  const { isOpen, closePanel, selectedTerm } = useDictionaryPanel();
+  return (
+    <DictionaryPanel
+      isOpen={isOpen}
+      onClose={closePanel}
+      initialTermId={selectedTerm?.id}
+    />
   );
 }
 
@@ -223,9 +238,12 @@ export function App(): JSX.Element {
   return (
     <ErrorBoundary>
       <ServiceProvider>
-        <ErrorBoundary>
-          <AppContent />
-        </ErrorBoundary>
+        <DictionaryProvider>
+          <ErrorBoundary>
+            <AppContent />
+            <DictionaryPanelWrapper />
+          </ErrorBoundary>
+        </DictionaryProvider>
       </ServiceProvider>
     </ErrorBoundary>
   );

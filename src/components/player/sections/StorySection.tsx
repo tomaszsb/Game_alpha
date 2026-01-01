@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ExpandableSection } from '../ExpandableSection';
+import { TextWithTerms, useDictionaryPanel } from '../../../dictionary';
 
 /**
  * Props for the StorySection component.
@@ -22,6 +23,7 @@ interface StorySectionProps {
  */
 export function StorySection({ story, spaceName }: StorySectionProps) {
   const [isExpanded, setIsExpanded] = useState(true); // Default expanded so players see it
+  const { openWithTerm } = useDictionaryPanel();
 
   console.log('📖 StorySection render:', { story, spaceName, isEmpty: !story || story.trim() === '' });
 
@@ -49,7 +51,10 @@ export function StorySection({ story, spaceName }: StorySectionProps) {
         border: '2px solid #4caf50',
         fontWeight: '500' // Make it slightly bold for prominence
       }}>
-        {story}
+        <TextWithTerms
+          text={story}
+          onTermClick={(term) => openWithTerm(term.id)}
+        />
       </div>
     </ExpandableSection>
   );

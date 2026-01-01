@@ -7,6 +7,7 @@ import { Player } from '../../types/StateTypes';
 import { ICardService } from '../../types/ServiceContracts';
 import { useGameContext } from '../../context/GameContext';
 import { NotificationUtils } from '../../utils/NotificationUtils';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface CardDetailsModalProps {
  */
 export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPlayers, cardService }: CardDetailsModalProps): JSX.Element | null {
   const { notificationService } = useGameContext();
+  const { openWithTerm } = useDictionaryPanel();
   const [showTransferUI, setShowTransferUI] = useState(false);
   const [selectedTargetPlayer, setSelectedTargetPlayer] = useState<string>('');
 
@@ -294,7 +296,10 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
               lineHeight: '1.5',
               margin: 0
             }}>
-              {card.description || 'No description available.'}
+              <TextWithTerms
+                text={card.description || 'No description available.'}
+                onTermClick={(term) => openWithTerm(term.id)}
+              />
             </p>
           </div>
 
@@ -320,7 +325,10 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
                 color: colors.secondary.dark,
                 fontStyle: 'italic'
               }}>
-                {card.effects_on_play}
+                <TextWithTerms
+                  text={card.effects_on_play}
+                  onTermClick={(term) => openWithTerm(term.id)}
+                />
               </div>
             </div>
           )}
