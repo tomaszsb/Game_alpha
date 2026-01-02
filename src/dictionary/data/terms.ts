@@ -75,30 +75,40 @@ function parseGlossaryCsv(csvText: string): GlossaryTerm[] {
   }).filter(term => term.id && term.term);
 }
 
+// Configurable CSV paths - tries in order until one works
+const CSV_PATHS = [
+  '/data/CLEAN_FILES/GLOSSARY.csv',  // game_alpha location
+  '/data/GLOSSARY.csv',               // standalone dictionary location
+];
+
 /**
  * Load terms from the CSV file
+ * Tries multiple paths to support different deployment configurations
  */
 export async function loadTerms(): Promise<GlossaryTerm[]> {
   if (termsCache) {
     return termsCache;
   }
 
-  try {
-    // Try to load from CSV file
-    const response = await fetch('/data/CLEAN_FILES/GLOSSARY.csv?_=' + Date.now());
-    if (!response.ok) {
-      throw new Error(`Failed to fetch GLOSSARY.csv: ${response.status}`);
+  // Try each path until one works
+  for (const csvPath of CSV_PATHS) {
+    try {
+      const response = await fetch(csvPath + '?_=' + Date.now());
+      if (response.ok) {
+        const csvText = await response.text();
+        termsCache = parseGlossaryCsv(csvText);
+        buildCaches();
+        console.log(`Dictionary loaded from ${csvPath}: ${termsCache.length} terms`);
+        return termsCache;
+      }
+    } catch (error) {
+      // Try next path
     }
-    const csvText = await response.text();
-    termsCache = parseGlossaryCsv(csvText);
-    buildCaches();
-    return termsCache;
-  } catch (error) {
-    console.error('Failed to load glossary terms:', error);
-    // Return empty array on error
-    termsCache = [];
-    return termsCache;
   }
+
+  console.error('Failed to load glossary terms from any path:', CSV_PATHS);
+  termsCache = [];
+  return termsCache;
 }
 
 /**

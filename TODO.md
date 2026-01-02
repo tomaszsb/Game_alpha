@@ -21,7 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
-- ✅ Building Trade Dictionary (Jan 1, 2026) - 65 terms, standalone module
+- ✅ Building Trade Dictionary (Jan 1, 2026) - 95 terms, separate project at `../dictionary/`
 - ✅ TypeScript Strict Mode (Nov 30) - 0 errors
 - ✅ Technical Debt Cleanup (Dec 6) - 11 issues resolved
 - ✅ UI Documentation (Nov 30) - 1,500+ lines

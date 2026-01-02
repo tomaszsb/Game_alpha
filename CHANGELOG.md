@@ -8,31 +8,36 @@ All notable changes to this project will be documented in this file.
 
 **NEW: Building Trade Dictionary Module**
 
-Added a standalone, reusable dictionary component for building trade terminology:
+Added a standalone, reusable dictionary component for building trade terminology.
 
 **Core Features:**
 - Side panel that slides in from right when clicking on terms
-- 65 building trade terms with definitions
+- 95 building trade terms with definitions
 - 7 categories: Professionals, Agencies, Documents, Processes, Construction, Finance, Legal
+- 15 terms with images from iqarius.com
 - Search and filter functionality
 - Related terms navigation
 - Subtle dotted underline on clickable terms
 
-**Standalone Architecture:**
-- Self-contained module at `src/dictionary/`
-- Can be copied to iqarius.com or other projects
-- No game-specific dependencies
-- Exports: DictionaryPanel, TextWithTerms, useDictionary, DictionaryProvider
+**Standalone Project Architecture:**
+- Dictionary is now a separate project at `../dictionary/`
+- Master source: `/mnt/d/unravel/current_game/dictionary/`
+- Game_alpha has a synced copy at `src/dictionary/`
+- Sync script: `dictionary/sync-to-game.sh`
+- Can be deployed independently to iqarius.com
 
-**Term Sources:**
-- iqarius.com definitions (verified)
-- Game content extraction (AI-drafted, marked for review)
+**Term Sources (95 total):**
+- 63 terms from iqarius.com (verified definitions)
+- 32 terms from game content (AI-drafted, marked for review)
 
-**Files Created:**
-- `src/dictionary/` - Complete standalone module
-- `public/data/CLEAN_FILES/GLOSSARY.csv` - Term database
+**Dictionary Project Files:**
+- `dictionary/src/` - React components (DictionaryPanel, TextWithTerms, etc.)
+- `dictionary/data/GLOSSARY.csv` - Master term database
+- `dictionary/tools/glossary-editor.html` - Standalone CSV editor
+- `dictionary/docs/` - Integration guide, API reference, terms guide
+- `dictionary/README.md` - Full documentation
 
-**Integration Points:**
+**Game Integration:**
 - StorySection - Space stories have clickable terms
 - CardDetailsModal - Card descriptions have clickable terms
 - App.tsx - DictionaryProvider wraps game content
