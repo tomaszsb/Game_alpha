@@ -1,10 +1,11 @@
 #!/bin/bash
 # Deploy script for Game Alpha
-# Run this from the game_alpha directory on the server
+# Run with: bash deploy.sh
 
 set -e  # Exit on error
 
 echo "Pulling latest changes..."
+git checkout -- deploy.sh 2>/dev/null || true
 git pull origin master
 
 echo "Stopping existing container..."
