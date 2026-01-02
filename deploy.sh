@@ -2,12 +2,26 @@
 # Deploy script for Game Alpha
 # Run this from the game_alpha directory on the server
 
+set -e  # Exit on error
+
 echo "Pulling latest changes..."
-git pull
+git pull origin master
 
-echo "Rebuilding and restarting container..."
-docker-compose down
-docker-compose up -d --build
+echo "Stopping existing container..."
+docker stop game_alpha 2>/dev/null || true
+docker rm game_alpha 2>/dev/null || true
 
+echo "Building new image..."
+docker build -t game_alpha .
+
+echo "Starting container..."
+docker run -d \
+  --name game_alpha \
+  -p 3080:3080 \
+  -v "$(pwd)/server/data:/app/server/data" \
+  --restart unless-stopped \
+  game_alpha
+
+echo ""
 echo "Deployment complete!"
-echo "Check status with: docker-compose logs -f"
+echo "Check status with: docker logs -f game_alpha"
