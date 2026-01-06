@@ -105,7 +105,8 @@ export function getBackendURL(): string {
   //    Return empty string to use same-origin (relative URLs)
   if (frontendPort !== 3000 && frontendPort !== 5173) {
     // Production: Express serves both frontend and API on same port
-    return `${protocol}//${hostname}:${frontendPort}`;
+    // Use same-origin (empty string) for relative URLs - works with any port including default 80/443
+    return '';
   }
 
   // 3. Auto-detect for development (frontend=3000/5173, backend=+1)

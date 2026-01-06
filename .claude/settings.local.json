@@ -57,7 +57,13 @@
       "Bash(tests/regression/MultiplayerStateIsolation.test.ts)",
       "WebFetch(domain:unravel-game.duckdns.org)",
       "Bash(gh repo create tomaszsb/dictionary --public --description \"NYC Building Trade Dictionary - Standalone glossary component for building trade terminology\" --source=. --push)",
-      "Bash(gh repo create:*)"
+      "Bash(gh repo create:*)",
+      "WebFetch(domain:unravelcodes.com)",
+      "Bash(nslookup:*)",
+      "Bash(host:*)",
+      "Bash(dig:*)",
+      "WebFetch(domain:game.unravelcodes.com)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": []
