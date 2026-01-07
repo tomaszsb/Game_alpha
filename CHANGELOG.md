@@ -4,6 +4,68 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Action Button Tooltips (January 6, 2026)
+
+**NEW: Contextual Tooltips for All Action Buttons**
+
+Added hover tooltips to all action buttons explaining "why" each action needs to be taken. Tooltips provide both strategic explanation and context for new players.
+
+**Features:**
+- Styled tooltip component with smooth hover animations
+- Two-part tooltip: "why" explanation + contextual detail
+- CSV-based tooltip data for easy content updates
+- Covers all 45+ action types
+
+**Tooltip Categories:**
+- **Card Actions**: Draw W/B/I/L/E cards, Replace E, Return E, Give E
+- **Dice Rolls**: Scope determination, fees, quality, multiplier, time, next step
+- **Movement**: Roll to Move, End Turn, all 24+ destination choices
+- **Special**: Negotiate button, fee payments, scope checks
+
+**Technical Implementation:**
+- `TooltipService.ts` - Loads and provides tooltip data from CSV
+- `Tooltip.tsx` - Styled React component with position awareness
+- `ACTION_TOOLTIPS.csv` - 45 tooltip entries with why/context text
+- `buttonFormatting.ts` - Helper functions for tooltip lookup
+- Tooltips loaded in parallel with game data at startup
+
+**Files Added:**
+- `src/services/TooltipService.ts`
+- `src/components/common/Tooltip.tsx`
+- `public/data/CLEAN_FILES/ACTION_TOOLTIPS.csv`
+- `tests/services/TooltipService.test.ts`
+- `tests/components/common/Tooltip.test.tsx`
+
+**Files Modified:**
+- `src/App.tsx` - Initialize TooltipService on startup
+- `src/utils/buttonFormatting.ts` - Added tooltip lookup functions
+- `src/components/game/TurnControlsWithActions.tsx` - Wrapped buttons with Tooltip
+- `src/components/modals/ChoiceModal.tsx` - Added tooltips to choice buttons
+
+### HTTPS/SSL Setup & Code Fixes (January 6, 2026)
+
+**NEW: SSL Support via Cloudflare**
+
+Game is now accessible via HTTPS at `https://game.unravelcodes.com`
+
+**Infrastructure Changes:**
+- Configured Cloudflare for unravelcodes.com domain
+- Added A record for `game` subdomain
+- Set SSL mode to "Full" to work with Nginx Proxy Manager
+- NPM configured for SSL termination with Let's Encrypt
+
+**Code Fixes for HTTPS:**
+- Fixed `networkDetection.ts` to return empty string for same-origin URLs in production
+- Fixed `ConnectionStatus.tsx` to accept empty string as valid serverUrl
+- Both fixes ensure proper API calls when frontend and backend share same origin
+
+### Content Fixes (January 6, 2026)
+
+**Spelling Corrections in SPACE_CONTENT.csv:**
+- Fixed 21+ spelling errors across game content
+- Examples: reassess (not reasses), opportunity (not oportunity), etc.
+- Improves player experience with polished text
+
 ### Dictionary/Glossary Feature (January 1, 2026)
 
 **NEW: Building Trade Dictionary Module**

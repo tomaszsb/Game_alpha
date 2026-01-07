@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 1, 2026
+**Last Updated:** January 6, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,14 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Action Button Tooltips (Jan 6, 2026) - 45 tooltips explaining "why" for all buttons
+- ✅ HTTPS/SSL Support (Jan 6, 2026) - game.unravelcodes.com via Cloudflare
+- ✅ Content Spelling Fixes (Jan 6, 2026) - 21+ corrections in SPACE_CONTENT.csv
+- ✅ New Test Coverage (Jan 6, 2026):
+  - TooltipService tests (17 tests)
+  - Tooltip component tests (15 tests)
+  - networkDetection utility tests (19 tests)
+  - ConnectionStatus component tests (7 tests)
 - ✅ Building Trade Dictionary (Jan 1, 2026) - 95 terms, separate project at `../dictionary/`
 - ✅ TypeScript Strict Mode (Nov 30) - 0 errors
 - ✅ Technical Debt Cleanup (Dec 6) - 11 issues resolved
@@ -135,11 +143,11 @@ Validate gameplay, balance, and user experience with real players
 
 **Remaining Setup:**
 - [ ] Configure ntfy app for instant push notifications (background mode)
-- [ ] Set up Hostinger subdomain (game.unravelcodes.com) pointing to DuckDNS
+- [x] ~~Set up Hostinger subdomain (game.unravelcodes.com) pointing to DuckDNS~~ ✅ Done via Cloudflare (Jan 6, 2026)
 
 **3B: External Testing** (5-7 days)
 - [ ] Recruit 3-5 external players
-- [ ] Share game link: `http://unravel-game.duckdns.org:3080`
+- [ ] Share game link: `https://game.unravelcodes.com`
 - [ ] Run controlled gameplay sessions
 - [ ] Gather feedback on:
   - [ ] Rules clarity and difficulty
@@ -345,4 +353,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** December 29, 2025
+**Last Updated:** January 6, 2026

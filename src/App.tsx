@@ -11,6 +11,7 @@ import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from './utils/ne
 import { detectDeviceType } from './utils/deviceDetection';
 import { GameLobby } from './components/setup/GameLobby';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
+import { getTooltipService } from './services/TooltipService';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -75,7 +76,11 @@ function AppContent(): JSX.Element {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await dataService.loadData();
+        // Load game data and tooltips in parallel
+        await Promise.all([
+          dataService.loadData(),
+          getTooltipService().loadTooltips()
+        ]);
 
         // Try to load state from server first (multi-device sync)
         console.log('🌐 Attempting to load state from server...');

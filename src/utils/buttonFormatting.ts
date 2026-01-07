@@ -2,10 +2,16 @@
 
 import React from 'react';
 import { SpaceEffect, DiceEffect } from '../types/DataTypes';
+import { getTooltipService, ActionTooltip } from '../services/TooltipService';
 
 export interface ButtonInfo {
   text: string;
   icon: string;
+}
+
+export interface ButtonInfoWithTooltip extends ButtonInfo {
+  tooltip?: string;
+  tooltipContext?: string;
 }
 
 export interface ButtonStyleInfo {
@@ -276,4 +282,210 @@ export function formatActionFeedback(effects: any[]): string {
   }
 
   return outcomes.join(', ');
+}
+
+/**
+ * Get tooltip for a manual effect button
+ */
+export function getManualEffectTooltip(effect: SpaceEffect): { tooltip: string; context: string } {
+  const tooltipService = getTooltipService();
+
+  // Extract card type and action from effect
+  const isCardEffect = effect.effect_type === 'cards';
+  if (isCardEffect) {
+    const actionLower = effect.effect_action.toLowerCase();
+    let action = 'draw';
+    let cardType = '';
+
+    if (actionLower.startsWith('draw_')) {
+      action = 'draw';
+      cardType = effect.effect_action.replace(/^draw_/i, '').toUpperCase();
+    } else if (actionLower.startsWith('replace_')) {
+      action = 'replace';
+      cardType = effect.effect_action.replace(/^replace_/i, '').toUpperCase();
+    } else if (actionLower.startsWith('give_')) {
+      action = 'give';
+      cardType = effect.effect_action.replace(/^give_/i, '').toUpperCase();
+    } else if (actionLower.startsWith('return_')) {
+      action = 'return';
+      cardType = effect.effect_action.replace(/^return_/i, '').toUpperCase();
+    }
+
+    const tooltipData = tooltipService.getTooltip('cards', `${action}_${cardType}`);
+    if (tooltipData) {
+      return {
+        tooltip: tooltipData.tooltip_why,
+        context: tooltipData.tooltip_context
+      };
+    }
+  }
+
+  // Fallback to description
+  return {
+    tooltip: effect.description || 'Complete this action to progress',
+    context: ''
+  };
+}
+
+/**
+ * Get tooltip for a dice roll button based on dice effects
+ */
+export function getDiceRollTooltip(
+  diceEffects: DiceEffect[],
+  spaceEffects: SpaceEffect[]
+): { tooltip: string; context: string } {
+  const tooltipService = getTooltipService();
+
+  if (diceEffects.length > 0) {
+    const firstEffect = diceEffects[0];
+
+    switch (firstEffect.effect_type) {
+      case 'cards': {
+        const cardType = firstEffect.card_type?.toLowerCase() || 'w';
+        const tooltipData = tooltipService.getTooltip('dice', `dice_outcome_${cardType}`);
+        if (tooltipData) {
+          return { tooltip: tooltipData.tooltip_why, context: tooltipData.tooltip_context };
+        }
+        break;
+      }
+      case 'money': {
+        const tooltipData = tooltipService.getTooltip('dice', 'dice_outcome_fee');
+        if (tooltipData) {
+          return { tooltip: tooltipData.tooltip_why, context: tooltipData.tooltip_context };
+        }
+        break;
+      }
+      case 'Quality': {
+        const tooltipData = tooltipService.getTooltip('dice', 'dice_outcome_quality');
+        if (tooltipData) {
+          return { tooltip: tooltipData.tooltip_why, context: tooltipData.tooltip_context };
+        }
+        break;
+      }
+      case 'Multiplier ':
+      case 'Multiplier': {
+        const tooltipData = tooltipService.getTooltip('dice', 'dice_outcome_multiplier');
+        if (tooltipData) {
+          return { tooltip: tooltipData.tooltip_why, context: tooltipData.tooltip_context };
+        }
+        break;
+      }
+      case 'time': {
+        const tooltipData = tooltipService.getTooltip('dice', 'dice_outcome_time');
+        if (tooltipData) {
+          return { tooltip: tooltipData.tooltip_why, context: tooltipData.tooltip_context };
+        }
+        break;
+      }
+      case 'Next Step': {
+        const tooltipData = tooltipService.getTooltip('dice', 'dice_outcome_next');
+        if (tooltipData) {
+          return { tooltip: tooltipData.tooltip_why, context: tooltipData.tooltip_context };
+        }
+        break;
+      }
+    }
+  }
+
+  // Check for dice condition effects
+  const diceConditionEffects = spaceEffects.filter(effect =>
+    effect.condition && effect.condition.includes('dice_roll')
+  );
+
+  if (diceConditionEffects.length > 0) {
+    return {
+      tooltip: 'Roll the dice to determine bonus effects. Your roll may trigger additional cards or resources.',
+      context: 'Some spaces have conditional effects based on dice results.'
+    };
+  }
+
+  // Default dice tooltip
+  return {
+    tooltip: 'Roll the dice to determine your outcome for this space.',
+    context: 'Each roll can affect cards, money, time, or your next destination.'
+  };
+}
+
+/**
+ * Get tooltip for movement choice (destination space)
+ */
+export function getMovementChoiceTooltip(spaceName: string): { tooltip: string; context: string } {
+  const tooltipService = getTooltipService();
+  const tooltipData = tooltipService.getTooltip('choice', spaceName);
+
+  if (tooltipData) {
+    return {
+      tooltip: tooltipData.tooltip_why,
+      context: tooltipData.tooltip_context
+    };
+  }
+
+  // Generate fallback based on space name
+  const spaceLabels: { [key: string]: { tooltip: string; context: string } } = {
+    'FINISH': {
+      tooltip: 'Complete your project and calculate your final score.',
+      context: 'All approvals obtained. Compare completion time and remaining funds to win.'
+    }
+  };
+
+  if (spaceLabels[spaceName]) {
+    return spaceLabels[spaceName];
+  }
+
+  return {
+    tooltip: `Move to ${formatSpaceName(spaceName)}`,
+    context: 'Select this destination to continue your project.'
+  };
+}
+
+/**
+ * Get tooltip for End Turn button
+ */
+export function getEndTurnTooltip(canEndTurn: boolean, reason: string): { tooltip: string; context: string } {
+  const tooltipService = getTooltipService();
+  const tooltipData = tooltipService.getTooltip('movement', 'end_turn');
+
+  if (canEndTurn && tooltipData) {
+    return {
+      tooltip: tooltipData.tooltip_why,
+      context: tooltipData.tooltip_context
+    };
+  }
+
+  return {
+    tooltip: reason,
+    context: canEndTurn ? 'All mandatory effects have been resolved.' : 'Complete required actions first.'
+  };
+}
+
+/**
+ * Get tooltip for Negotiate button
+ */
+export function getNegotiateTooltip(): { tooltip: string; context: string } {
+  const tooltipService = getTooltipService();
+  const tooltipData = tooltipService.getTooltip('negotiation', 'negotiate');
+
+  if (tooltipData) {
+    return {
+      tooltip: tooltipData.tooltip_why,
+      context: tooltipData.tooltip_context
+    };
+  }
+
+  return {
+    tooltip: 'Unhappy with your outcome? Negotiate to try again next turn.',
+    context: 'Negotiating costs an extra turn but may yield better results.'
+  };
+}
+
+/**
+ * Format space name for display
+ */
+function formatSpaceName(spaceName: string): string {
+  return spaceName
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/Dob/g, 'DOB')
+    .replace(/Fdny/g, 'FDNY')
+    .replace(/Pm/g, 'PM');
 }

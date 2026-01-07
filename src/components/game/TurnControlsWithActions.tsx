@@ -8,8 +8,9 @@ import { Player } from '../../types/DataTypes';
 import { GamePhase, ActionLogEntry } from '../../types/StateTypes';
 import { Choice } from '../../types/CommonTypes';
 import { formatActionDescription } from '../../utils/actionLogFormatting';
-import { formatManualEffectButton, formatDiceRollButton, getManualEffectButtonStyle, formatDiceRollFeedback } from '../../utils/buttonFormatting';
+import { formatManualEffectButton, formatDiceRollButton, getManualEffectButtonStyle, formatDiceRollFeedback, getManualEffectTooltip, getDiceRollTooltip, getMovementChoiceTooltip, getEndTurnTooltip } from '../../utils/buttonFormatting';
 import { NotificationUtils } from '../../utils/NotificationUtils';
+import { Tooltip } from '../common/Tooltip';
 
 interface TurnControlsWithActionsProps {
   // Game state data - currentPlayer is guaranteed to exist by higher-level architecture
@@ -468,44 +469,47 @@ export function TurnControlsWithActions({
 
             // Show button with selection state
             const isSelected = selectedDestination === option.id;
+            // Get tooltip for this destination
+            const destinationTooltip = getMovementChoiceTooltip(option.id);
 
             return (
-              <button
-                key={index}
-                onClick={() => handleMovementChoice(option.id)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  margin: '2px 0',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  backgroundColor: isSelected ? colors.success.main : colors.primary.main,
-                  color: colors.white,
-                  border: isSelected ? `3px solid ${colors.white}` : 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxSizing: 'border-box',
-                  boxShadow: isSelected ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.1)',
-                  transform: isSelected ? 'scale(1.02)' : 'scale(1)'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.backgroundColor = colors.primary.dark;
-                  }
-                  e.currentTarget.style.transform = isSelected ? 'scale(1.02) translateY(-2px)' : 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.backgroundColor = colors.primary.main;
-                  }
-                  e.currentTarget.style.transform = isSelected ? 'scale(1.02)' : 'scale(1)';
-                  e.currentTarget.style.boxShadow = isSelected ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.1)';
-                }}
-              >
-                🎯 {option.label}
-              </button>
+              <Tooltip key={index} content={destinationTooltip.tooltip} context={destinationTooltip.context} position="right">
+                <button
+                  onClick={() => handleMovementChoice(option.id)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    margin: '2px 0',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    backgroundColor: isSelected ? colors.success.main : colors.primary.main,
+                    color: colors.white,
+                    border: isSelected ? `3px solid ${colors.white}` : 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxSizing: 'border-box',
+                    boxShadow: isSelected ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = colors.primary.dark;
+                    }
+                    e.currentTarget.style.transform = isSelected ? 'scale(1.02) translateY(-2px)' : 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = colors.primary.main;
+                    }
+                    e.currentTarget.style.transform = isSelected ? 'scale(1.02)' : 'scale(1)';
+                    e.currentTarget.style.boxShadow = isSelected ? '0 4px 8px rgba(0, 0, 0, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.1)';
+                  }}
+                >
+                  🎯 {option.label}
+                </button>
+              </Tooltip>
             );
           })}
         </div>
@@ -530,26 +534,35 @@ export function TurnControlsWithActions({
 
         {/* Roll Dice - show button if can roll, otherwise show completed action */}
         {canRollDice ? (
-          <button
-            onClick={onRollDice}
-            style={{
-              padding: '4px 8px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              color: colors.white,
-              backgroundColor: colors.success.main,
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px'
-            }}
-          >
-            <span>🎲</span>
-            <span>{getDiceRollButtonText()}</span>
-          </button>
+          (() => {
+            const diceEffects = dataService.getDiceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
+            const spaceEffects = dataService.getSpaceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
+            const diceTooltip = getDiceRollTooltip(diceEffects, spaceEffects);
+            return (
+              <Tooltip content={diceTooltip.tooltip} context={diceTooltip.context} position="top">
+                <button
+                  onClick={onRollDice}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    color: colors.white,
+                    backgroundColor: colors.success.main,
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '3px'
+                  }}
+                >
+                  <span>🎲</span>
+                  <span>{getDiceRollButtonText()}</span>
+                </button>
+              </Tooltip>
+            );
+          })()
         ) : hasPlayerRolledDice && completedActions.diceRoll ? (
           // Show local completion message with immediate feedback
           <div style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: colors.secondary.light, borderRadius: '4px', color: colors.secondary.main }}>
@@ -628,17 +641,19 @@ export function TurnControlsWithActions({
           // Check if effect should be displayed based on state
           
           if (!isButtonDisabled) {
+            // Get tooltip for this effect
+            const effectTooltip = getManualEffectTooltip(effect);
             // Show active button with standard styling (matching other action buttons)
             return (
-              <button
-                key={index}
-                onClick={() => onManualEffect(effect.effect_type)}
-                style={getManualEffectButtonStyle(isButtonDisabled, colors)}
-                title={effect.description || buttonText}
-              >
-                <span>{buttonIcon}</span>
-                <span>{buttonText}</span>
-              </button>
+              <Tooltip key={index} content={effectTooltip.tooltip} context={effectTooltip.context} position="top">
+                <button
+                  onClick={() => onManualEffect(effect.effect_type)}
+                  style={getManualEffectButtonStyle(isButtonDisabled, colors)}
+                >
+                  <span>{buttonIcon}</span>
+                  <span>{buttonText}</span>
+                </button>
+              </Tooltip>
             );
           } else if (isThisEffectCompleted) {
             // Button is disabled because effect is completed - show completion message
@@ -684,29 +699,35 @@ export function TurnControlsWithActions({
 
         {/* End Turn - always show for current player, but disable when actions incomplete */}
         {isCurrentPlayersTurn && (
-          <button
-            onClick={canEndTurn ? handleEndTurnWithMovement : undefined}
-            disabled={!canEndTurn}
-            title={getEndTurnDisabledReason()}
-            style={{
-              padding: '4px 8px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              color: canEndTurn ? colors.white : colors.secondary.main,
-              backgroundColor: canEndTurn ? colors.success.main : colors.secondary.light,
-              border: 'none',
-              borderRadius: '4px',
-              cursor: canEndTurn ? 'pointer' : 'not-allowed',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              opacity: canEndTurn ? 1 : 0.7
-            }}
-          >
-            <span>⏹️</span>
-            <span>End Turn ({actionCounts.completed}/{actionCounts.required})</span>
-          </button>
+          (() => {
+            const endTurnTooltip = getEndTurnTooltip(canEndTurn, getEndTurnDisabledReason());
+            return (
+              <Tooltip content={endTurnTooltip.tooltip} context={endTurnTooltip.context} position="top">
+                <button
+                  onClick={canEndTurn ? handleEndTurnWithMovement : undefined}
+                  disabled={!canEndTurn}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    color: canEndTurn ? colors.white : colors.secondary.main,
+                    backgroundColor: canEndTurn ? colors.success.main : colors.secondary.light,
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: canEndTurn ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '3px',
+                    opacity: canEndTurn ? 1 : 0.7
+                  }}
+                >
+                  <span>⏹️</span>
+                  <span>End Turn ({actionCounts.completed}/{actionCounts.required})</span>
+                </button>
+              </Tooltip>
+            );
+          })()
         )}
       </div>
 

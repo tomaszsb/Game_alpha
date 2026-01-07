@@ -5,6 +5,8 @@ import { Choice } from '../../types/CommonTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { CardReplacementModal } from './CardReplacementModal';
 import { CardType } from '../../types/DataTypes';
+import { Tooltip } from '../common/Tooltip';
+import { getMovementChoiceTooltip } from '../../utils/buttonFormatting';
 
 export function ChoiceModal(): JSX.Element {
   const { stateService, choiceService, notificationService } = useGameContext();
@@ -179,36 +181,42 @@ export function ChoiceModal(): JSX.Element {
 
           {/* Choice Buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {awaitingChoice.options.map((option, index) => (
-              <button
-                key={option.id}
-                onClick={() => handleChoiceClick(option.id)}
-                style={{
-                  padding: '10px 16px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: colors.primary.main,
-                  color: colors.white,
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.primary.dark;
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.primary.main;
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
+            {awaitingChoice.options.map((option, index) => {
+              // Get tooltip for this choice option
+              const choiceTooltip = getMovementChoiceTooltip(option.id);
+              return (
+                <Tooltip key={option.id} content={choiceTooltip.tooltip} context={choiceTooltip.context} position="right">
+                  <button
+                    onClick={() => handleChoiceClick(option.id)}
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      backgroundColor: colors.primary.main,
+                      color: colors.white,
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.primary.dark;
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.primary.main;
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                </Tooltip>
+              );
+            })}
           </div>
 
           {/* Info Text */}

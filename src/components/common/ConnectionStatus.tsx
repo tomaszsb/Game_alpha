@@ -34,7 +34,8 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   const checkConnection = async () => {
-    if (!serverUrl) {
+    // Empty string is valid (same-origin relative URL)
+    if (serverUrl === undefined || serverUrl === null) {
       setStatus('offline');
       return;
     }

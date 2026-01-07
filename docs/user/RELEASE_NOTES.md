@@ -2,6 +2,56 @@
 
 ---
 
+## v2.5 - Action Tooltips & HTTPS Support (January 6, 2026)
+
+**Release Date:** January 6, 2026
+**Version:** 2.5
+**Status:** Alpha Testing
+**Type:** UX Enhancement & Infrastructure
+
+### Hover Tooltips for Action Buttons
+
+**What's New:** All action buttons now show helpful tooltips when you hover over them!
+
+Each tooltip explains:
+- **Why** you need to press that button
+- **Context** about what happens next
+
+**Tooltip Examples:**
+
+| Button | Tooltip |
+|--------|---------|
+| Draw W Cards | "Your project scope is defined by Work cards. Drawing W cards adds tasks and materials to your project." |
+| Draw B Cards | "Banks provide quick funding at lower rates for smaller projects." |
+| Draw E Cards | "Expeditors are your secret weapon. E cards provide special abilities." |
+| Roll for Design Fee | "Design professionals charge based on project complexity." |
+| End Turn | "You have completed all required actions for this turn." |
+| Go to Architect | "Begin or continue architectural design phase. Required before engineering." |
+
+**Movement Choices:** When choosing where to move, hover over each option to learn:
+- What happens at that space
+- Strategic considerations
+- Requirements or costs
+
+### HTTPS Security
+
+**What's New:** The game is now accessible via secure HTTPS!
+
+**New URL:** `https://game.unravelcodes.com`
+
+**Benefits:**
+- Secure encrypted connection
+- Works better with some corporate networks
+- Green padlock in browser address bar
+
+**Note:** The old URL `http://unravel-game.duckdns.org:3080` still works too.
+
+### Spelling & Content Fixes
+
+Fixed 21+ spelling errors in game content for a more polished experience.
+
+---
+
 ## v2.4 - Multi-Device Bug Fixes & Mobile Experience (December 29, 2025)
 
 **Release Date:** December 29, 2025
