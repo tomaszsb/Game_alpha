@@ -1,6 +1,6 @@
 # Project Status
 
-**Last Updated**: December 29, 2025
+**Last Updated**: January 8, 2026
 **Current Phase**: External Testing Ready (v2.4)
 **Current Version**: 2.4
 
@@ -342,6 +342,29 @@ This document provides a high-level overview of the current work status for the 
   - Updated README.md with audience-based documentation navigation
   - Added historical context sections to TECHNICAL_DEEP_DIVE.md and other major docs
 - **Impact**: Documentation now current, organized, and maintainable with clear archive integration
+
+---
+
+## Current Work In Progress
+
+*No active work items*
+
+---
+
+### Logic Movement Type Implementation (January 8, 2026) ✅
+- **Status**: ✅ Complete
+- **Problem**: REG-FDNY-FEE-REVIEW narrative said "answer questions" / "assess 4 criteria" but was free choice
+- **Decision**: After design review, only REG-FDNY-FEE-REVIEW uses `logic` type (other spaces remain strategic free choice)
+- **Resolution**:
+  - Updated MOVEMENT.csv - REG-FDNY-FEE-REVIEW now uses `logic` movement type with conditions
+  - Large projects (>$4M) → Must go through FDNY-PLAN-EXAM (fire safety review required)
+  - Small projects (≤$4M) → Can skip to REG-DOB-TYPE-SELECT
+  - All projects → CON-INITIATION and PM-DECISION-CHECK always available
+- **Tests**: Added 3 tests to MovementService.test.ts (all 32 tests pass)
+- **Files Modified**:
+  - `public/data/CLEAN_FILES/MOVEMENT.csv`
+  - `tests/services/MovementService.test.ts`
+- **Reference**: See `docs/technical/TECHNICAL_DEBT.md` - "Logic Movement Type Dead Code"
 
 ---
 

@@ -850,5 +850,107 @@ describe('MovementService', () => {
 
       expect(result).toEqual(['VALID-PATH']); // Only 'always' condition path available
     });
+
+    // REG-FDNY-FEE-REVIEW specific tests (Issue: Logic Movement Type Implementation)
+    describe('REG-FDNY-FEE-REVIEW logic movement', () => {
+      const fdnyMovement: Movement = {
+        space_name: 'REG-FDNY-FEE-REVIEW',
+        visit_type: 'First',
+        movement_type: 'logic',
+        destination_1: 'REG-FDNY-PLAN-EXAM',
+        destination_2: 'CON-INITIATION',
+        destination_3: 'PM-DECISION-CHECK',
+        destination_4: 'REG-DOB-TYPE-SELECT',
+        condition_1: 'scope_gt_4m',
+        condition_2: 'always',
+        condition_3: 'always',
+        condition_4: 'scope_le_4m'
+      };
+
+      it('should show FDNY-PLAN-EXAM for large projects (>$4M scope)', () => {
+        // Set up player with high scope project at REG-FDNY-FEE-REVIEW
+        const highScopePlayer = {
+          ...mockPlayer,
+          currentSpace: 'REG-FDNY-FEE-REVIEW',
+          visitType: 'First' as const,
+          hand: ['W001', 'W002', 'W003', 'W004', 'W005', 'W006', 'W007', 'W008', 'W009', 'W010']
+        };
+
+        mockStateService.getPlayer.mockReturnValue(highScopePlayer);
+        mockDataService.getMovement.mockReturnValue(fdnyMovement);
+
+        // Mock scope calculation to return $5M (>$4M threshold)
+        mockGameRulesService.calculateProjectScope.mockReturnValue(5000000);
+        mockGameRulesService.evaluateCondition.mockImplementation((playerId: string, condition?: string) => {
+          if (condition === 'scope_gt_4m') return true;  // $5M > $4M
+          if (condition === 'scope_le_4m') return false; // $5M <= $4M is false
+          return true;
+        });
+
+        const result = movementService.getValidMoves('player1');
+
+        // Large projects: FDNY-PLAN-EXAM + always-available options
+        expect(result).toContain('REG-FDNY-PLAN-EXAM');
+        expect(result).toContain('CON-INITIATION');
+        expect(result).toContain('PM-DECISION-CHECK');
+        expect(result).not.toContain('REG-DOB-TYPE-SELECT'); // Not available for large projects
+      });
+
+      it('should show REG-DOB-TYPE-SELECT for small projects (≤$4M scope)', () => {
+        // Set up player with low scope project at REG-FDNY-FEE-REVIEW
+        const lowScopePlayer = {
+          ...mockPlayer,
+          currentSpace: 'REG-FDNY-FEE-REVIEW',
+          visitType: 'First' as const,
+          hand: ['W001', 'W002'] // 2 W cards = low scope
+        };
+
+        mockStateService.getPlayer.mockReturnValue(lowScopePlayer);
+        mockDataService.getMovement.mockReturnValue(fdnyMovement);
+
+        // Mock scope calculation to return $1M (≤$4M threshold)
+        mockGameRulesService.calculateProjectScope.mockReturnValue(1000000);
+        mockGameRulesService.evaluateCondition.mockImplementation((playerId: string, condition?: string) => {
+          if (condition === 'scope_gt_4m') return false; // $1M > $4M is false
+          if (condition === 'scope_le_4m') return true;  // $1M <= $4M
+          return true;
+        });
+
+        const result = movementService.getValidMoves('player1');
+
+        // Small projects: REG-DOB-TYPE-SELECT + always-available options
+        expect(result).toContain('REG-DOB-TYPE-SELECT');
+        expect(result).toContain('CON-INITIATION');
+        expect(result).toContain('PM-DECISION-CHECK');
+        expect(result).not.toContain('REG-FDNY-PLAN-EXAM'); // Not available for small projects
+      });
+
+      it('should always show CON-INITIATION and PM-DECISION-CHECK regardless of scope', () => {
+        // Test with boundary scope ($4M exactly)
+        const boundaryPlayer = {
+          ...mockPlayer,
+          currentSpace: 'REG-FDNY-FEE-REVIEW',
+          visitType: 'First' as const,
+          hand: ['W001', 'W002', 'W003', 'W004', 'W005', 'W006', 'W007', 'W008']
+        };
+
+        mockStateService.getPlayer.mockReturnValue(boundaryPlayer);
+        mockDataService.getMovement.mockReturnValue(fdnyMovement);
+
+        // Mock scope at exactly $4M (should satisfy scope_le_4m but not scope_gt_4m)
+        mockGameRulesService.calculateProjectScope.mockReturnValue(4000000);
+        mockGameRulesService.evaluateCondition.mockImplementation((playerId: string, condition?: string) => {
+          if (condition === 'scope_gt_4m') return false; // $4M > $4M is false
+          if (condition === 'scope_le_4m') return true;  // $4M <= $4M is true
+          return true;
+        });
+
+        const result = movementService.getValidMoves('player1');
+
+        // CON-INITIATION and PM-DECISION-CHECK should ALWAYS be available
+        expect(result).toContain('CON-INITIATION');
+        expect(result).toContain('PM-DECISION-CHECK');
+      });
+    });
   });
 });

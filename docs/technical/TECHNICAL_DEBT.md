@@ -1902,6 +1902,102 @@ return projectScope <= 4000000;
 
 ---
 
+## Active Issues (Open)
+
+### Logic Movement Type Dead Code + Narrative Mismatches (January 8, 2026)
+- **Status**: ✅ **RESOLVED** (January 8, 2026)
+- **Severity**: High (game design not matching implementation)
+- **Discovered**: During movement system audit
+- **Location**: `MovementService.ts`, `MOVEMENT.csv`, `SPACE_CONTENT.csv`
+
+#### Problem Summary
+
+The game has a fully implemented `logic` movement type that evaluates conditions (project scope, money, time, etc.) to filter destination choices. However, **this feature is never used** - no spaces in MOVEMENT.csv use `movement_type = 'logic'`.
+
+Additionally, **8 spaces have narrative text** (in SPACE_CONTENT.csv) that promises conditional logic ("answer questions", "assess criteria", "scope determination") but the actual movement type is simple `choice` with no conditions.
+
+#### Dead Code Identified
+
+```typescript
+// MovementService.ts - These methods exist but are NEVER CALLED
+private getLogicDestinations(playerId: string, movement: Movement): string[]
+private evaluateCondition(playerId: string, condition: string): boolean
+
+// Supported conditions that are never used:
+// - scope_le_4m / scope_gt_4m (project scope ≤/> $4M)
+// - money_le_1m / money_gt_1m (player money ≤/> $1M)
+// - time_le_5 / time_gt_5 (time spent ≤/> 5 days)
+// - cards_le_3 / cards_gt_3 (hand size ≤/> 3 cards)
+```
+
+#### Affected Spaces (8 with Narrative Mismatches)
+
+| Space | Visit | Narrative Says | Actually Does |
+|-------|-------|----------------|---------------|
+| REG-FDNY-FEE-REVIEW | First | "Answer a maze of questions" | Free choice of 4 options |
+| REG-FDNY-FEE-REVIEW | Subsequent | "Assess 4 criteria" | Free choice of 4 options |
+| LEND-SCOPE-CHECK | First | "Scope negotiations... money" | Free choice of 2 options |
+| LEND-SCOPE-CHECK | Subsequent | "More money = more staff scope" | Free choice of 2 options |
+| PM-DECISION-CHECK | First | "Determine... choose a path" | Free choice of 3 options |
+| PM-DECISION-CHECK | Subsequent | "Assess... opportunity" | Free choice of 5 options |
+| ARCH-SCOPE-CHECK | First | "Scope determination" | Free choice of 2 options |
+| ENG-SCOPE-CHECK | Subsequent | "If there are changes" | Free choice of 2 options |
+
+#### Root Cause
+
+1. The `logic` movement type and condition evaluation were implemented in code
+2. MOVEMENT.csv was never updated to use `movement_type = 'logic'` with conditions
+3. The condition columns in MOVEMENT.csv (`condition_1` through `condition_5`) are empty for all spaces
+4. Original verification only checked "will it crash?" not "does it match the design?"
+
+#### Resolution Plan
+
+**Phase 1: Design Conditions**
+- Define what conditions should filter each of the 8 affected spaces
+- Map real NYC building permit logic to game conditions (FDNY criteria, scope thresholds, etc.)
+
+**Phase 2: Wire Up Logic Movement Type**
+- Change affected spaces from `movement_type = 'choice'` to `movement_type = 'logic'`
+- Populate `condition_1` through `condition_5` columns with appropriate conditions
+- Test that only valid destinations appear based on player state
+
+**Phase 3: Testing**
+- Add E2E tests for conditional movement paths
+- Verify narrative matches actual behavior
+- Test edge cases (all conditions fail, multiple conditions pass, etc.)
+
+#### Files to Modify
+
+- `public/data/CLEAN_FILES/MOVEMENT.csv` - Add conditions and change movement types
+- `tests/services/MovementService.test.ts` - Add tests for logic movement
+- `tests/E2E/` - Add E2E tests for conditional paths
+
+#### Related Issues
+
+- The `logic` movement type code in MovementService.ts appears functional but untested in production
+- May need to add new condition types if current ones don't cover all use cases
+
+#### Resolution (January 8, 2026)
+
+**Scope Decision**: After design review with stakeholder, decided to:
+- **Only REG-FDNY-FEE-REVIEW** uses `logic` type (scope-based filter matches real NYC FDNY process)
+- Other 6 affected spaces remain as `choice` (strategic decisions should not be restricted)
+
+**Changes Made**:
+1. Updated `public/data/CLEAN_FILES/MOVEMENT.csv`:
+   - REG-FDNY-FEE-REVIEW (First & Subsequent) changed from `choice` to `logic`
+   - Added conditions: `scope_gt_4m` for FDNY-PLAN-EXAM, `scope_le_4m` for REG-DOB-TYPE-SELECT, `always` for CON-INITIATION and PM-DECISION-CHECK
+2. Added 3 tests to `tests/services/MovementService.test.ts` for REG-FDNY-FEE-REVIEW logic
+
+**Result**:
+- Large projects (>$4M): Must go through FDNY-PLAN-EXAM (fire safety review)
+- Small projects (≤$4M): Can skip directly to REG-DOB-TYPE-SELECT
+- All projects: Always have access to CON-INITIATION and PM-DECISION-CHECK as fallback
+
+**Tests**: All 32 MovementService tests pass
+
+---
+
 ## Summary
 
 ### Issue Count by Severity

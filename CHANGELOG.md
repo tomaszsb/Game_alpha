@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Logic Movement Type Implementation - REG-FDNY-FEE-REVIEW (January 8, 2026)
+
+**FIX: REG-FDNY-FEE-REVIEW now uses conditional logic based on project scope**
+
+Previously, REG-FDNY-FEE-REVIEW was a free choice space where players could select any of 4 destinations. The narrative text ("Answer a maze of questions" / "Assess 4 criteria") implied conditional logic, but none existed.
+
+**Resolution:**
+After design review, decided to implement scope-based filtering for REG-FDNY-FEE-REVIEW only (other strategic choice spaces remain unrestricted).
+
+**Game Effect:**
+- **Large projects (>$4M)**: Must go through REG-FDNY-PLAN-EXAM (fire safety review required)
+- **Small projects (≤$4M)**: Can skip to REG-DOB-TYPE-SELECT
+- **All projects**: CON-INITIATION and PM-DECISION-CHECK always available as fallback
+
+This matches real NYC building permit process where FDNY review is required for larger/complex buildings.
+
+**Technical Changes:**
+- `public/data/CLEAN_FILES/MOVEMENT.csv` - Changed REG-FDNY-FEE-REVIEW movement_type from `choice` to `logic` with conditions
+- Added 3 tests to `tests/services/MovementService.test.ts` for REG-FDNY-FEE-REVIEW logic (all 32 MovementService tests pass)
+
+**Note:** The `logic` movement type was already fully implemented in MovementService.ts but was never used. This change activates that existing code for the first time.
+
+---
+
 ### Action Button Tooltips (January 6, 2026)
 
 **NEW: Contextual Tooltips for All Action Buttons**

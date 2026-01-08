@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 6, 2026
+**Last Updated:** January 8, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -163,6 +163,20 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Minor UI adjustments based on feedback
 - [ ] Re-test fixes
 - [ ] Update CHANGELOG.md with fixes
+
+**Bug Fix Sprint (January 8, 2026) - ✅ COMPLETED:**
+- [x] **Issue #1**: Logic Movement Type Implementation for REG-FDNY-FEE-REVIEW
+  - **Problem**: REG-FDNY-FEE-REVIEW narrative said "answer questions" / "assess 4 criteria" but was free choice
+  - **Decision**: After design review, only REG-FDNY-FEE-REVIEW uses `logic` type (other spaces remain strategic free choice)
+  - **Resolution**:
+    - [x] Phase 1: Designed scope-based conditions for REG-FDNY-FEE-REVIEW
+    - [x] Phase 2: Updated MOVEMENT.csv - changed movement_type to `logic` with conditions
+    - [x] Phase 3: Added 3 tests to MovementService.test.ts (all 32 tests pass)
+  - **Result**:
+    - Large projects (>$4M) → Must go through FDNY-PLAN-EXAM
+    - Small projects (≤$4M) → Can skip to REG-DOB-TYPE-SELECT
+    - All projects → CON-INITIATION and PM-DECISION-CHECK always available
+  - **Reference**: See `docs/technical/TECHNICAL_DEBT.md` - "Logic Movement Type Dead Code"
 
 **Bug Fix Sprint (December 20) - ✅ COMPLETED:**
 - [x] **Bug #1**: Owner seed money tracked as external (should be owner funding)
@@ -353,4 +367,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 6, 2026
+**Last Updated:** January 8, 2026
