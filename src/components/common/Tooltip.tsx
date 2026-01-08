@@ -59,29 +59,29 @@ export function Tooltip({
   const updatePosition = () => {
     if (!wrapperRef.current) return;
 
+    // getBoundingClientRect() returns viewport-relative coordinates
+    // Since we use position: fixed, we should use these directly (no scroll offset needed)
     const rect = wrapperRef.current.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
 
     let top = 0;
     let left = 0;
 
     switch (position) {
       case 'top':
-        top = rect.top + scrollTop - 8;
-        left = rect.left + scrollLeft + rect.width / 2;
+        top = rect.top - 8;
+        left = rect.left + rect.width / 2;
         break;
       case 'bottom':
-        top = rect.bottom + scrollTop + 8;
-        left = rect.left + scrollLeft + rect.width / 2;
+        top = rect.bottom + 8;
+        left = rect.left + rect.width / 2;
         break;
       case 'left':
-        top = rect.top + scrollTop + rect.height / 2;
-        left = rect.left + scrollLeft - 8;
+        top = rect.top + rect.height / 2;
+        left = rect.left - 8;
         break;
       case 'right':
-        top = rect.top + scrollTop + rect.height / 2;
-        left = rect.right + scrollLeft + 8;
+        top = rect.top + rect.height / 2;
+        left = rect.right + 8;
         break;
     }
 
