@@ -59,7 +59,8 @@
       "Bash(dig:*)",
       "WebFetch(domain:game.unravelcodes.com)",
       "Bash(sort:*)",
-      "Bash(__NEW_LINE__ echo \"\")"
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(ssh:*)"
     ],
     "deny": [],
     "ask": []

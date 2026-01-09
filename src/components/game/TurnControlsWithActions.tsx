@@ -297,21 +297,24 @@ export function TurnControlsWithActions({
                      currentPlayer.currentSpace !== 'OWNER-FUND-INITIATION' && // Hide dice roll for funding space
                      requiresManualDiceRoll; // Hide dice roll for automatic dice roll spaces
 
-  // Debug logging for dice roll button visibility
-  if (currentPlayer.currentSpace === 'PM-DECISION-CHECK' && isCurrentPlayersTurn) {
+  // Debug logging for dice roll button visibility - expanded for problematic spaces
+  const debugSpaces = ['PM-DECISION-CHECK', 'CHEAT-BYPASS', 'REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT'];
+  if (debugSpaces.includes(currentPlayer.currentSpace) && isCurrentPlayersTurn) {
     console.log('🎲 DICE ROLL BUTTON DEBUG:', {
       canRollDice,
-      gamePhase,
-      isCurrentPlayersTurn,
-      isProcessingTurn,
-      isProcessingArrival,
-      hasPlayerRolledDice,
-      hasPlayerMovedThisTurn,
-      awaitingChoice,
-      movementChoiceType: movementChoice?.type,
-      isNonMovementChoiceBlocking: !!(awaitingChoice && movementChoice?.type !== 'MOVEMENT'),
-      currentSpace: currentPlayer.currentSpace,
-      requiresManualDiceRoll
+      space: currentPlayer.currentSpace,
+      conditions: {
+        gamePhase: gamePhase === 'PLAY' ? '✅' : `❌ (${gamePhase})`,
+        isProcessingTurn: !isProcessingTurn ? '✅' : '❌',
+        isProcessingArrival: !isProcessingArrival ? '✅' : '❌',
+        hasPlayerRolledDice: !hasPlayerRolledDice ? '✅' : '❌ (already rolled)',
+        hasPlayerMovedThisTurn: !hasPlayerMovedThisTurn ? '✅' : '❌ (already moved)',
+        awaitingChoice: !(awaitingChoice && movementChoice?.type !== 'MOVEMENT') ? '✅' : `❌ (${movementChoice?.type})`,
+        notFundingSpace: currentPlayer.currentSpace !== 'OWNER-FUND-INITIATION' ? '✅' : '❌',
+        requiresManualDiceRoll: requiresManualDiceRoll ? '✅' : '❌'
+      },
+      spaceConfig: currentSpaceData?.config,
+      movementChoice
     });
   }
   // Allow end turn if: dice rolled OR space doesn't require dice roll

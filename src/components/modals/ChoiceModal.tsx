@@ -182,8 +182,10 @@ export function ChoiceModal(): JSX.Element {
           {/* Choice Buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {awaitingChoice.options.map((option, index) => {
-              // Get tooltip for this choice option
-              const choiceTooltip = getMovementChoiceTooltip(option.id);
+              // Get tooltip for this choice option - only use movement tooltips for movement choices
+              const choiceTooltip = awaitingChoice.type === 'MOVEMENT'
+                ? getMovementChoiceTooltip(option.id)
+                : { tooltip: option.label, context: '' };
               return (
                 <Tooltip key={option.id} content={choiceTooltip.tooltip} context={choiceTooltip.context} position="right">
                   <button
@@ -219,21 +221,27 @@ export function ChoiceModal(): JSX.Element {
             })}
           </div>
 
-          {/* Info Text */}
-          <div style={{ 
-            marginTop: '20px', 
+          {/* Info Text - contextual based on choice type */}
+          <div style={{
+            marginTop: '20px',
             padding: '15px',
             backgroundColor: colors.secondary.bg,
             borderRadius: '8px',
             border: `1px solid ${colors.secondary.border}`
           }}>
-            <p style={{ 
+            <p style={{
               margin: '0',
               fontSize: '14px',
               color: colors.secondary.main,
               textAlign: 'center'
             }}>
-              Choose carefully! This decision will determine your next destination.
+              {awaitingChoice.type === 'MOVEMENT'
+                ? 'Choose carefully! This decision will determine your next destination.'
+                : awaitingChoice.type === 'CARD_SELECTION'
+                  ? 'Select the card you want to use for this action.'
+                  : awaitingChoice.type === 'CARD_GIVE'
+                    ? 'Choose which card to give to your opponent.'
+                    : 'Make your selection to continue.'}
             </p>
           </div>
         </div>
