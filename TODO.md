@@ -164,6 +164,40 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Re-test fixes
 - [ ] Update CHANGELOG.md with fixes
 
+**Test Player Bug Reports (January 8, 2026) - 🔴 NEEDS TRIAGE:**
+*Source: External test player feedback (post-it notes transcribed)*
+
+**Critical Bugs (Gameplay Blockers):**
+- [ ] REG-DOB-PLAN-EXAM: No action or movement buttons
+- [ ] REG-DOB-PROF-CERT: No actions, no movement buttons, gameplay stuck
+- [ ] Various spaces: eCard button exists but no movement buttons
+
+**eCard Issues:**
+- [ ] Return to Sender eCard: "Hold" does not work
+- [ ] ARCH-SCOPE-CHECK: Replace eCard button but no modal to choose card
+- [ ] ARCH-SCOPE-CHECK: "I Forgo eCard" shows confusing "Choose new destination?" message
+- [ ] INVESTOR-FUND-REVIEW: "Use eCard" modal shows but no option to pick eCard, card discarded
+- [ ] eCard does not reflect time changes
+- [ ] PM-DECISION-CHECK: Duplicate eCard button - no modal, choosing card does nothing
+- [ ] Work eCard: How does skip turn work?
+
+**Financial Issues:**
+- [ ] INVESTOR-FUND-REVIEW: If cards are split, finances do not reflect added funds
+- [ ] Error codes screen: Blank fund review
+- [ ] Card did not move to finance section
+- [ ] Fee spaces: Can continue without paying if not enough money
+
+**UI/UX Issues:**
+- [ ] Goal in player panel - should be in Project Progress Overview
+- [ ] Acronyms need full names for clarity
+- [ ] Time selection doesn't show time elapsed per move
+- [ ] REG-FEE-REVIEW: "Choose carefully" message doesn't designate destination
+- [ ] Game log doesn't show when card is picked up
+
+*See `docs/technical/TECHNICAL_DEBT.md` for full details and prioritization*
+
+---
+
 **Bug Fix Sprint (January 8, 2026) - ✅ COMPLETED:**
 - [x] **Issue #1**: Logic Movement Type Implementation for REG-FDNY-FEE-REVIEW
   - **Problem**: REG-FDNY-FEE-REVIEW narrative said "answer questions" / "assess 4 criteria" but was free choice

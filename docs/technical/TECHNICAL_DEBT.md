@@ -1904,6 +1904,66 @@ return projectScope <= 4000000;
 
 ## Active Issues (Open)
 
+### Test Player Bug Reports (January 8, 2026)
+- **Status**: 🔴 Active - Needs Triage
+- **Source**: External test player feedback (transcribed from post-it notes)
+- **Severity**: Mixed (Critical to Low)
+
+#### Critical Bugs (Gameplay Blockers)
+
+| Issue | Space/Feature | Description | Priority |
+|-------|--------------|-------------|----------|
+| **No Action Buttons** | REG-DOB-PLAN-EXAM | No action or movement buttons available | 🔴 Critical |
+| **Gameplay Stuck** | REG-DOB-PROF-CERT | No actions, no movement buttons, gameplay gets stuck | 🔴 Critical |
+| **Missing Movement** | Various | Space has eCard button but no movement buttons | 🔴 Critical |
+
+#### eCard Issues
+
+| Issue | Space/Feature | Description | Priority |
+|-------|--------------|-------------|----------|
+| **Hold Not Working** | Return to Sender eCard | "Hold" button does not work | 🟡 High |
+| **No Card Selection Modal** | ARCH-SCOPE-CHECK | Replace eCard button exists but no modal to choose which card | 🟡 High |
+| **Confusing Message** | ARCH-SCOPE-CHECK | "I Forgo eCard" shows "Choose new destination?" message | 🟡 Medium |
+| **eCard Discarded** | INVESTOR-FUND-REVIEW | "Use eCard" button shows modal but no option to pick eCard, card is discarded | 🔴 Critical |
+| **eCard Time Issue** | Various | eCard does not reflect time changes | 🟡 High |
+| **Discard Too Explicit** | Various | eCard option to discard too explicit / confusing | 🟢 Low |
+| **Card Not Processed** | Various | eCard was not properly processed | 🟡 High |
+| **Duplicate Modal Missing** | PM-DECISION-CHECK | Button to select eCard to duplicate exists, no modal appears, choosing card does nothing | 🟡 High |
+| **Skip Turn Unclear** | Work eCard | When work eCard shown, how does skip turn work? | 🟡 Medium |
+
+#### Financial Issues
+
+| Issue | Space/Feature | Description | Priority |
+|-------|--------------|-------------|----------|
+| **Split Cards Not Reflected** | INVESTOR-FUND-REVIEW | If cards are split, finances do not reflect added funds | 🟡 High |
+| **Blank Fund Review** | Error Codes Screen | Blank fund review displayed | 🟡 Medium |
+| **Card Missing From Finance** | Various | Card did not move to finance section | 🟡 High |
+| **Continue Without Fee** | Fee Spaces | If not enough money to cover fee, user can continue without visiting designated screen | 🟡 High |
+| **Missing Fee Breakdown** | Design Fees | Design fees should show financial breakdown | 🟢 Low |
+| **Incomplete Breakdown** | Architect | Architect breakdown incomplete in expenditures | 🟢 Low |
+| **Missing Design Fee Bar** | Project Progress | No project progress design fee bar | 🟢 Low |
+
+#### UI/UX Issues
+
+| Issue | Space/Feature | Description | Priority |
+|-------|--------------|-------------|----------|
+| **Goal Wrong Location** | Player Panel | Goal is in player panel but should be in Project Progress Overview | 🟢 Low |
+| **Acronym Names** | Various | Same names used across acronyms - need full names for clarity | 🟢 Low |
+| **Time Elapsed Missing** | Time Selection | Time selection does not show time elapsed for each move | 🟢 Low |
+| **Time Logic Unclear** | Linears/Time | Linears/time logic unclear to player | 🟡 Medium |
+| **Destination Unclear** | REG-FEE-REVIEW | "Choose carefully, this may determine move destination" does not designate destination | 🟡 Medium |
+| **Card Pickup Not Logged** | Game Log | Game log does not show when card is picked up | 🟢 Low |
+| **Forced Redesign Card** | Game Card | Card was forced redesign (unclear what this means) | 🟡 Medium |
+
+#### Next Steps
+
+1. **Triage Meeting**: Review each bug with stakeholder to clarify details (some notes may need photos/discussion)
+2. **Prioritize**: Address Critical bugs first (gameplay blockers)
+3. **Reproduce**: Create test cases for each verified bug
+4. **Fix Sprint**: Address high-priority issues in next sprint
+
+---
+
 ### Logic Movement Type Dead Code + Narrative Mismatches (January 8, 2026)
 - **Status**: ✅ **RESOLVED** (January 8, 2026)
 - **Severity**: High (game design not matching implementation)
