@@ -13,7 +13,9 @@ docker stop game_alpha 2>/dev/null || true
 docker rm game_alpha 2>/dev/null || true
 
 echo "Building new image..."
-docker build -t game_alpha .
+GIT_COMMIT=$(git rev-parse --short HEAD)
+echo "   Version: $GIT_COMMIT"
+docker build --build-arg GIT_COMMIT=$GIT_COMMIT -t game_alpha .
 
 echo "Starting container..."
 docker run -d \

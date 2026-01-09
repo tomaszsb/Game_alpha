@@ -1,8 +1,12 @@
 # Game Alpha - Multi-Device Board Game
-# Build: docker build -t game-alpha .
+# Build: docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) -t game-alpha .
 # Run: docker run -p 3000:3000 -p 3001:3001 -v game-data:/app/data game-alpha
 
 FROM node:20-alpine
+
+# Build argument for version tracking
+ARG GIT_COMMIT=unknown
+ENV VITE_GIT_COMMIT=$GIT_COMMIT
 
 WORKDIR /app
 

@@ -6,6 +6,11 @@ import type { Plugin } from 'vite';
 
 // Get git commit hash for version tracking
 function getGitCommitHash(): string {
+  // First check if passed via environment (Docker build)
+  if (process.env.VITE_GIT_COMMIT && process.env.VITE_GIT_COMMIT !== 'unknown') {
+    return process.env.VITE_GIT_COMMIT;
+  }
+  // Otherwise try to get from git directly
   try {
     return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
   } catch {
