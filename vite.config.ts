@@ -4,6 +4,20 @@ import path from 'path';
 import { execSync } from 'child_process';
 import type { Plugin } from 'vite';
 
+// Get git commit hash for version tracking
+function getGitCommitHash(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+// Get build timestamp
+function getBuildTimestamp(): string {
+  return new Date().toISOString();
+}
+
 // Detect if running in WSL
 function isWSL(): boolean {
   try {
@@ -109,6 +123,10 @@ const runningInWSL = isWSL();
 export default defineConfig({
   plugins: [react(), wslPortForwardingPlugin()],
   root: '.',
+  define: {
+    __APP_VERSION__: JSON.stringify(getGitCommitHash()),
+    __BUILD_TIME__: JSON.stringify(getBuildTimestamp())
+  },
   server: {
     port: 3000,
     host: true, // Bind to all interfaces for network access

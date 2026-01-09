@@ -5,6 +5,12 @@ import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
 import { getBackendURL } from '../../utils/networkDetection';
 
+interface GitHubSyncStatus {
+  status: 'checking' | 'in-sync' | 'out-of-sync' | 'error';
+  latestCommit?: string;
+  commitsBehind?: number;
+}
+
 interface GameInfo {
   gameId: string;
   playerCount: number;
@@ -23,6 +29,53 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
   const [creating, setCreating] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
+  const [syncStatus, setSyncStatus] = useState<GitHubSyncStatus>({ status: 'checking' });
+
+  // Check GitHub sync status on mount
+  useEffect(() => {
+    const checkGitHubSync = async () => {
+      try {
+        const response = await fetch(
+          'https://api.github.com/repos/tomaszsb/Game_alpha/commits/master',
+          { headers: { 'Accept': 'application/vnd.github.v3+json' } }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const latestCommit = data.sha.substring(0, 7);
+          const currentCommit = __APP_VERSION__;
+
+          if (latestCommit === currentCommit) {
+            setSyncStatus({ status: 'in-sync', latestCommit });
+          } else {
+            // Fetch commit count difference
+            const compareResponse = await fetch(
+              `https://api.github.com/repos/tomaszsb/Game_alpha/compare/${currentCommit}...master`,
+              { headers: { 'Accept': 'application/vnd.github.v3+json' } }
+            );
+
+            if (compareResponse.ok) {
+              const compareData = await compareResponse.json();
+              setSyncStatus({
+                status: 'out-of-sync',
+                latestCommit,
+                commitsBehind: compareData.ahead_by || 0
+              });
+            } else {
+              setSyncStatus({ status: 'out-of-sync', latestCommit });
+            }
+          }
+        } else {
+          setSyncStatus({ status: 'error' });
+        }
+      } catch (err) {
+        console.log('Could not check GitHub sync:', err);
+        setSyncStatus({ status: 'error' });
+      }
+    };
+
+    checkGitHubSync();
+  }, []);
 
   // Fetch available games on mount
   useEffect(() => {
@@ -300,6 +353,43 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
           >
             game@unravelcodes.com
           </a>
+          <div style={{
+            marginTop: '0.75rem',
+            paddingTop: '0.75rem',
+            borderTop: '1px solid rgba(0,0,0,0.1)',
+            fontSize: '0.75rem',
+            fontFamily: 'monospace',
+            color: colors.text.tertiary || colors.text.secondary
+          }}>
+            <div style={{ marginBottom: '0.25rem' }}>
+              Build: {__APP_VERSION__} • {new Date(__BUILD_TIME__).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {syncStatus.status === 'checking' && (
+                <span style={{ color: colors.text.secondary }}>Checking sync...</span>
+              )}
+              {syncStatus.status === 'in-sync' && (
+                <span style={{ color: '#22c55e' }}>✓ In sync with GitHub</span>
+              )}
+              {syncStatus.status === 'out-of-sync' && (
+                <span style={{ color: '#f59e0b' }}>
+                  ⚠ {syncStatus.commitsBehind
+                    ? `${syncStatus.commitsBehind} commit${syncStatus.commitsBehind > 1 ? 's' : ''} behind`
+                    : 'Out of sync'
+                  } (latest: {syncStatus.latestCommit})
+                </span>
+              )}
+              {syncStatus.status === 'error' && (
+                <span style={{ color: colors.text.secondary }}>Could not check sync</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
