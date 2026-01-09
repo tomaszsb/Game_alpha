@@ -811,6 +811,20 @@ export class TurnService implements ITurnService {
       await this.handleMovementChoices(player.id);
       console.log('🔴 [TurnService] startTurn() - Movement choices handled');
 
+      // Auto-roll dice for REG dice-movement spaces (clerk/examiner makes the decision)
+      // CHEAT spaces require manual roll (player actively cheating)
+      const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
+      const isDiceMovementSpace = movement?.movement_type === 'dice';
+      const isRegSpace = player.currentSpace.startsWith('REG-');
+
+      if (isDiceMovementSpace && isRegSpace) {
+        console.log(`🎲 AUTO-ROLL: ${player.currentSpace} is a REG dice-movement space - auto-rolling for clerk/examiner decision`);
+        // Small delay so player sees they arrived before dice rolls
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await this.rollDiceWithFeedback(player.id);
+        console.log(`🎲 AUTO-ROLL: Dice rolled automatically for ${player.currentSpace}`);
+      }
+
     } catch (error) {
       // Ensure UI is unlocked if there's an error
       this.stateService.updateGameState({ isProcessingArrival: false });

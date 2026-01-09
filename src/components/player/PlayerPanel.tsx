@@ -595,8 +595,10 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         isMyTurn={isMyTurn}
       />
 
-      {/* Roll Dice for Movement Button - for dice-movement spaces like CHEAT-BYPASS */}
-      {isDiceMovementSpace && isMyTurn && !hasPlayerRolledDice && onRollDice && (
+      {/* Roll Dice for Movement Button - ONLY for CHEAT spaces where player actively rolls
+          REG spaces auto-roll because the clerk/examiner makes the decision, not the player */}
+      {isDiceMovementSpace && isMyTurn && !hasPlayerRolledDice && onRollDice &&
+       player.currentSpace.startsWith('CHEAT') && (
         <div style={{
           padding: '12px',
           backgroundColor: '#fff3e0',
@@ -611,7 +613,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             color: '#e65100',
             marginBottom: '8px'
           }}>
-            🎲 This space requires a dice roll to determine your destination!
+            🎲 Roll the dice to see if you can cheat the system!
           </div>
           <button
             onClick={async () => {
@@ -641,8 +643,9 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       )}
 
-      {/* Show dice roll result when rolled on dice-movement space */}
-      {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll && (
+      {/* Show dice roll result when rolled on CHEAT dice-movement space */}
+      {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll &&
+       player.currentSpace.startsWith('CHEAT') && (
         <div style={{
           padding: '8px 12px',
           backgroundColor: '#e8f5e9',
@@ -654,7 +657,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           fontWeight: 'bold',
           color: '#2e7d32'
         }}>
-          ✅ {completedActions.diceRoll}
+          🎲 {completedActions.diceRoll}
         </div>
       )}
 
