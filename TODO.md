@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Financial Bug Fixes (Jan 9, 2026) - Auto-play funding cards at all funding spaces, fee validation
 - ✅ Contextual Dice Roll for Movement (Jan 9, 2026) - CHEAT spaces manual, REG spaces auto-roll
 - ✅ Action Button Tooltips (Jan 6, 2026) - 45 tooltips explaining "why" for all buttons
 - ✅ HTTPS/SSL Support (Jan 6, 2026) - game.unravelcodes.com via Cloudflare
@@ -184,10 +185,10 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Work eCard: How does skip turn work?
 
 **Financial Issues:**
-- [ ] INVESTOR-FUND-REVIEW: If cards are split, finances do not reflect added funds
-- [ ] Error codes screen: Blank fund review
-- [ ] Card did not move to finance section
-- [ ] Fee spaces: Can continue without paying if not enough money
+- [x] INVESTOR-FUND-REVIEW: If cards are split, finances do not reflect added funds ✅ **FIXED Jan 9** - Auto-play B/I cards at all funding spaces
+- [x] Error codes screen: Blank fund review ✅ **FIXED Jan 9** - Same root cause as above
+- [ ] Card did not move to finance section (low priority - cosmetic)
+- [x] Fee spaces: Can continue without paying if not enough money ✅ **FIXED Jan 9** - Added canAfford() check
 
 **UI/UX Issues:**
 - [ ] Goal in player panel - should be in Project Progress Overview
@@ -199,6 +200,17 @@ Validate gameplay, balance, and user experience with real players
 *See `docs/technical/TECHNICAL_DEBT.md` for full details and prioritization*
 
 ---
+
+**Bug Fix Sprint (January 9, 2026) - ✅ COMPLETED:**
+- [x] **Financial Bug #1 & #2**: Funding cards not updating moneySources at BANK/INVESTOR-FUND-REVIEW
+  - **Root cause**: Auto-play logic only triggered at OWNER-FUND-INITIATION, not other funding spaces
+  - **Fix**: Extended auto-play to all funding spaces (OWNER-FUND-INITIATION, BANK-FUND-REVIEW, INVESTOR-FUND-REVIEW)
+  - **Result**: B/I cards drawn at any funding space now auto-apply, updating bankLoans/investmentDeals correctly
+- [x] **Financial Bug #3**: Fee spaces allowing continuation without payment
+  - **Root cause**: `spendMoney()` return value was ignored in FEE_DEDUCTION handler
+  - **Fix**: Added `canAfford()` check before fee deduction, returns failure with notification if insufficient funds
+  - **Result**: Players cannot proceed at fee spaces if they can't afford the fee
+- [x] **Tests Added**: Updated 4 existing FEE_DEDUCTION tests + 1 new insufficient funds test (29 tests pass)
 
 **Bug Fix Sprint (January 8, 2026) - ✅ COMPLETED:**
 - [x] **Issue #1**: Logic Movement Type Implementation for REG-FDNY-FEE-REVIEW
