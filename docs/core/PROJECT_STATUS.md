@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated**: January 8, 2026
-**Current Phase**: External Testing Ready (v2.4)
-**Current Version**: 2.4
+**Last Updated**: January 9, 2026
+**Current Phase**: External Testing Ready (v2.5)
+**Current Version**: 2.5
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
@@ -350,6 +350,27 @@ This document provides a high-level overview of the current work status for the 
 *No active work items*
 
 ---
+
+### Contextual Dice Roll for Movement Spaces (January 9, 2026) ✅
+- **Status**: ✅ Complete
+- **Problem**: Dice-movement spaces (CHEAT-BYPASS, REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT) had no visible action button for rolling dice
+- **Solution**: Implemented contextual behavior based on space type:
+  - **CHEAT spaces**: Manual "Roll Dice" button (player actively cheating)
+  - **REG spaces**: Auto-rolls on arrival (clerk/examiner makes the decision)
+- **Narrative Rationale**:
+  - CHEAT: Player takes deliberate action to try to cheat the system
+  - REG: The clerk/examiner makes the decision, player just waits for result
+- **Technical Implementation**:
+  - `PlayerPanel.tsx`: Shows dice button only when `player.currentSpace.startsWith('CHEAT')`
+  - `TurnService.startTurn()`: Auto-rolls dice for REG dice-movement spaces after `handleMovementChoices()`
+  - Added 0.5s delay before auto-roll so player sees they arrived first
+- **Files Modified**:
+  - `src/components/player/PlayerPanel.tsx`
+  - `src/services/TurnService.ts`
+- **Test Player Bugs Fixed**:
+  - REG-DOB-PLAN-EXAM: No action or movement buttons ✅
+  - REG-DOB-PROF-CERT: No actions, gameplay stuck ✅
+  - CHEAT-BYPASS: No dice roll button ✅
 
 ### Logic Movement Type Implementation (January 8, 2026) ✅
 - **Status**: ✅ Complete

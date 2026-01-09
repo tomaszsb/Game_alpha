@@ -2,6 +2,50 @@
 
 ---
 
+## v2.6 - Contextual Dice Roll for Movement (January 9, 2026)
+
+**Release Date:** January 9, 2026
+**Version:** 2.6
+**Status:** Alpha Testing
+**Type:** UX Enhancement & Bug Fix
+
+### Smarter Dice Roll Behavior
+
+**What Changed:** Dice-movement spaces now behave differently based on context!
+
+| Space Type | Who Decides | What Happens |
+|------------|-------------|--------------|
+| **CHEAT spaces** | You (the player) | You press a button to roll the dice |
+| **REG spaces** | Clerk/Examiner | Dice rolls automatically when you arrive |
+
+### CHEAT Spaces - You Take Action
+
+When you land on **CHEAT-BYPASS**, you're actively trying to cheat the system. You'll see a prominent orange button:
+
+> "Roll the dice to see if you can cheat the system!"
+
+Press the button to roll and see if your cheating attempt succeeds!
+
+### REG Spaces - The Clerk Decides
+
+When you land on **REG-DOB-PLAN-EXAM** or **REG-DOB-PROF-CERT**, the clerk or examiner is reviewing your documents. You don't control this - they do!
+
+The dice rolls automatically after a brief pause (so you can see where you arrived), and then you see the result of the clerk's decision.
+
+### Why This Makes Sense
+
+- **CHEAT spaces**: You're the one taking a risky action - it makes sense that you control when to "try your luck"
+- **REG spaces**: In real life, you submit your plans to the DOB and wait for their decision - the auto-roll simulates this
+
+### Bug Fixes
+
+These spaces previously showed no buttons at all, making the game stuck:
+- **REG-DOB-PLAN-EXAM**: Now auto-rolls on arrival
+- **REG-DOB-PROF-CERT**: Now auto-rolls on arrival
+- **CHEAT-BYPASS**: Now shows "Roll Dice" button
+
+---
+
 ## v2.5 - Action Tooltips & HTTPS Support (January 6, 2026)
 
 **Release Date:** January 6, 2026

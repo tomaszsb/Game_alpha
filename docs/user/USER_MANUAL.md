@@ -1,7 +1,7 @@
 # User Manual - Unravel Codes: The Game
 
-**Last Updated:** December 29, 2025
-**Version:** 2.3
+**Last Updated:** January 9, 2026
+**Version:** 2.4
 **Status:** Alpha Testing
 
 Welcome to Unravel Codes: The Game! This manual will help you understand how to play the game and use the interface effectively.
@@ -265,7 +265,8 @@ These happen automatically when conditions are met:
 - "Try Again" available on some spaces
 
 **Dice Spaces:**
-- Outcomes vary - calculated risk
+- **CHEAT spaces:** You actively roll the dice to try to cheat the system
+- **REG spaces:** Dice rolls automatically (clerk/examiner makes the decision)
 - Check DICE_OUTCOMES data for probabilities
 - "Try Again" if outcome is unfavorable
 
@@ -286,7 +287,8 @@ These happen automatically when conditions are met:
 - Ensure it's your turn
 
 **Movement not working**
-- Dice spaces require rolling first
+- **CHEAT dice spaces:** Click "Roll Dice" button first
+- **REG dice spaces:** Wait for auto-roll (happens automatically)
 - Choice spaces require selecting destination
 - Terminal spaces (FINISH) have no movement
 
@@ -315,4 +317,4 @@ These happen automatically when conditions are met:
 
 **Feedback:** Please send feedback to game@unravelcodes.com
 
-**Last Updated:** December 29, 2025
+**Last Updated:** January 9, 2026

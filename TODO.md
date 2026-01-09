@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 8, 2026
+**Last Updated:** January 9, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Contextual Dice Roll for Movement (Jan 9, 2026) - CHEAT spaces manual, REG spaces auto-roll
 - ✅ Action Button Tooltips (Jan 6, 2026) - 45 tooltips explaining "why" for all buttons
 - ✅ HTTPS/SSL Support (Jan 6, 2026) - game.unravelcodes.com via Cloudflare
 - ✅ Content Spelling Fixes (Jan 6, 2026) - 21+ corrections in SPACE_CONTENT.csv
@@ -164,12 +165,13 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Re-test fixes
 - [ ] Update CHANGELOG.md with fixes
 
-**Test Player Bug Reports (January 8, 2026) - 🔴 NEEDS TRIAGE:**
+**Test Player Bug Reports (January 8, 2026) - 🟡 PARTIALLY FIXED:**
 *Source: External test player feedback (post-it notes transcribed)*
 
 **Critical Bugs (Gameplay Blockers):**
-- [ ] REG-DOB-PLAN-EXAM: No action or movement buttons
-- [ ] REG-DOB-PROF-CERT: No actions, no movement buttons, gameplay stuck
+- [x] REG-DOB-PLAN-EXAM: No action or movement buttons ✅ **FIXED Jan 9** - Now auto-rolls dice on arrival
+- [x] REG-DOB-PROF-CERT: No actions, no movement buttons, gameplay stuck ✅ **FIXED Jan 9** - Now auto-rolls dice on arrival
+- [x] CHEAT-BYPASS: No dice roll button ✅ **FIXED Jan 9** - Added manual "Roll Dice" button
 - [ ] Various spaces: eCard button exists but no movement buttons
 
 **eCard Issues:**
@@ -401,4 +403,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 8, 2026
+**Last Updated:** January 9, 2026

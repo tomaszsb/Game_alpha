@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Contextual Dice Roll for Movement Spaces (January 9, 2026)
+
+**IMPROVEMENT: Dice roll behavior now matches game narrative**
+
+Dice-movement spaces (where dice determines destination) now have contextual behavior:
+
+| Space | Who Decides | Behavior |
+|-------|-------------|----------|
+| **CHEAT-BYPASS** | Player actively cheating | Manual button: "Roll the dice to see if you can cheat the system!" |
+| **REG-DOB-PLAN-EXAM** | Clerk reviews plans | Auto-rolls on arrival (clerk's decision) |
+| **REG-DOB-PROF-CERT** | Examiner certifies | Auto-rolls on arrival (examiner's decision) |
+
+**Narrative Rationale:**
+- CHEAT spaces: Player takes deliberate action to try to cheat the system
+- REG spaces: The clerk/examiner makes the decision, player just waits for the result
+
+**Technical Changes:**
+- `src/components/player/PlayerPanel.tsx` - Shows dice button only for CHEAT* spaces
+- `src/services/TurnService.ts` - Auto-rolls dice for REG* dice-movement spaces in `startTurn()`
+- Added 0.5s delay before auto-roll so player sees they arrived first
+
+**Previous Issue Fixed:**
+Players on dice-movement spaces had no visible action button to roll dice and determine their destination. Now CHEAT spaces have a prominent orange button, and REG spaces auto-roll.
+
+---
+
 ### Logic Movement Type Implementation - REG-FDNY-FEE-REVIEW (January 8, 2026)
 
 **FIX: REG-FDNY-FEE-REVIEW now uses conditional logic based on project scope**

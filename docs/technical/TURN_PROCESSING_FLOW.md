@@ -575,12 +575,33 @@ flowchart TD
 
 ---
 
-*Document updated: December 26, 2025*
+*Document updated: January 9, 2026*
 *Based on codebase analysis of Game Alpha turn processing system*
 
 ---
 
-## Recent Changes (December 26, 2025)
+## Recent Changes (January 9, 2026)
+
+### Contextual Dice Roll for Movement Spaces
+Dice-movement spaces (where dice determines destination) now have contextual behavior:
+
+| Space Type | Who Decides | Behavior | Code Location |
+|------------|-------------|----------|---------------|
+| **CHEAT-*** | Player cheating | Manual button in PlayerPanel | `PlayerPanel.tsx` - Shows orange "Roll Dice" button |
+| **REG-*** | Clerk/Examiner | Auto-rolls in `startTurn()` | `TurnService.ts` - Auto-roll after `handleMovementChoices()` |
+
+**Implementation Details:**
+- `PlayerPanel.tsx`: Shows dice button only when `player.currentSpace.startsWith('CHEAT')`
+- `TurnService.startTurn()`: After `handleMovementChoices()`, checks if space is a REG dice-movement space and auto-rolls
+- 0.5s delay before auto-roll so player sees they arrived first
+
+**Narrative Rationale:**
+- CHEAT spaces: Player takes deliberate action to try to cheat the system
+- REG spaces: The clerk/examiner makes the decision, player just waits for the result
+
+---
+
+## Previous Changes (December 26, 2025)
 
 ### Dice Condition Consolidation
 - All dice conditions now use the unified `condition` column in CSV (e.g., `dice_roll_3`)

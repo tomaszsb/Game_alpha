@@ -227,6 +227,12 @@ Currently reducing TypeScript errors toward 0:
 
 ## Recent Updates
 
+### January 9, 2026
+- Implemented contextual dice roll behavior for dice-movement spaces
+- CHEAT spaces: Manual "Roll Dice" button (player actively cheating)
+- REG spaces: Auto-rolls on arrival (clerk/examiner decision)
+- Fixed critical gameplay blockers on REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT, CHEAT-BYPASS
+
 ### November 27-28, 2025
 - Fixed button positioning issues in Player Panel (buttons no longer float over game board)
 - Simplified NextStepButton to only handle "End Turn" action

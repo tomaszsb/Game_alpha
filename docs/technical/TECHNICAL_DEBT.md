@@ -1905,17 +1905,23 @@ return projectScope <= 4000000;
 ## Active Issues (Open)
 
 ### Test Player Bug Reports (January 8, 2026)
-- **Status**: 🔴 Active - Needs Triage
+- **Status**: 🟡 Partially Fixed - Critical dice movement bugs resolved
 - **Source**: External test player feedback (transcribed from post-it notes)
 - **Severity**: Mixed (Critical to Low)
 
 #### Critical Bugs (Gameplay Blockers)
 
-| Issue | Space/Feature | Description | Priority |
-|-------|--------------|-------------|----------|
-| **No Action Buttons** | REG-DOB-PLAN-EXAM | No action or movement buttons available | 🔴 Critical |
-| **Gameplay Stuck** | REG-DOB-PROF-CERT | No actions, no movement buttons, gameplay gets stuck | 🔴 Critical |
-| **Missing Movement** | Various | Space has eCard button but no movement buttons | 🔴 Critical |
+| Issue | Space/Feature | Description | Priority | Status |
+|-------|--------------|-------------|----------|--------|
+| **No Action Buttons** | REG-DOB-PLAN-EXAM | No action or movement buttons available | 🔴 Critical | ✅ **FIXED Jan 9** - Now auto-rolls dice on arrival |
+| **Gameplay Stuck** | REG-DOB-PROF-CERT | No actions, no movement buttons, gameplay gets stuck | 🔴 Critical | ✅ **FIXED Jan 9** - Now auto-rolls dice on arrival |
+| **No Dice Button** | CHEAT-BYPASS | No way to roll dice for movement | 🔴 Critical | ✅ **FIXED Jan 9** - Added manual "Roll Dice" button |
+| **Missing Movement** | Various | Space has eCard button but no movement buttons | 🔴 Critical | Needs investigation |
+
+**Resolution (January 9, 2026)**: Implemented contextual dice roll behavior:
+- **REG spaces** (REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT): Dice auto-rolls on arrival (clerk/examiner makes decision)
+- **CHEAT spaces** (CHEAT-BYPASS): Manual "Roll Dice" button appears (player actively cheating)
+- **Files Modified**: `PlayerPanel.tsx`, `TurnService.ts`
 
 #### eCard Issues
 
