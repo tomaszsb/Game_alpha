@@ -726,8 +726,14 @@ export class GameRulesService implements IGameRulesService {
         return diceRoll !== undefined && diceRoll <= 3; // 1, 2, 3 are "low"
       }
 
-      // Dice roll specific values
-      if (conditionLower.startsWith('dice_roll_') && diceRoll !== undefined) {
+      // Dice roll specific values (e.g., dice_roll_1, dice_roll_3)
+      if (conditionLower.startsWith('dice_roll_')) {
+        // Dice roll conditions require a dice value to evaluate
+        if (diceRoll === undefined) {
+          // No dice roll yet - condition is not met (return false without warning)
+          // This is expected when UI components filter effects before dice is rolled
+          return false;
+        }
         const requiredRoll = parseInt(conditionLower.replace('dice_roll_', ''));
         return diceRoll === requiredRoll;
       }
