@@ -125,6 +125,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
   const [previousCurrentPlayerId, setPreviousCurrentPlayerId] = useState<string | null>(null);
 
+  // Dice movement state - for spaces that require dice roll to determine destination
+  const [hasPlayerRolledDice, setHasPlayerRolledDice] = useState(false);
+  const [isDiceMovementSpace, setIsDiceMovementSpace] = useState(false);
+  const [isRollingDice, setIsRollingDice] = useState(false);
+
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
       const player = gameState.players.find(p => p.id === playerId);
@@ -179,6 +184,24 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             hasContent: space?.content?.length
           });
           setSpaceStory('');
+        }
+
+        // Check if this is a dice-movement space (roll determines destination)
+        const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
+        const isDiceSpace = movement?.movement_type === 'dice';
+        setIsDiceMovementSpace(isDiceSpace);
+        setHasPlayerRolledDice(gameState.hasPlayerRolledDice);
+
+        // Debug logging for dice movement spaces
+        const diceDebugSpaces = ['CHEAT-BYPASS', 'REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT'];
+        if (diceDebugSpaces.includes(player.currentSpace)) {
+          console.log('🎲 DICE MOVEMENT DEBUG (PlayerPanel):', {
+            space: player.currentSpace,
+            isDiceSpace,
+            hasPlayerRolledDice: gameState.hasPlayerRolledDice,
+            movementType: movement?.movement_type,
+            isMyTurn: newCurrentPlayerId === playerId
+          });
         }
 
         // NOTE: Movement transition is now primarily handled via auto-action events
@@ -252,6 +275,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         const fullStory = [storyText, actionText].filter(Boolean).join(' ');
         setSpaceStory(fullStory);
       }
+
+      // Initialize dice movement state
+      const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
+      setIsDiceMovementSpace(movement?.movement_type === 'dice');
+      setHasPlayerRolledDice(gameState.hasPlayerRolledDice);
     }
 
     return unsubscribe;
@@ -566,6 +594,69 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         completedActions={completedActions}
         isMyTurn={isMyTurn}
       />
+
+      {/* Roll Dice for Movement Button - for dice-movement spaces like CHEAT-BYPASS */}
+      {isDiceMovementSpace && isMyTurn && !hasPlayerRolledDice && onRollDice && (
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fff3e0',
+          border: '3px solid #ff9800',
+          borderRadius: '8px',
+          margin: '8px 0',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            fontSize: '12px',
+            fontWeight: 'bold',
+            color: '#e65100',
+            marginBottom: '8px'
+          }}>
+            🎲 This space requires a dice roll to determine your destination!
+          </div>
+          <button
+            onClick={async () => {
+              setIsRollingDice(true);
+              try {
+                await onRollDice();
+              } finally {
+                setIsRollingDice(false);
+              }
+            }}
+            disabled={isRollingDice}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              backgroundColor: isRollingDice ? '#bdbdbd' : '#ff9800',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: isRollingDice ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)'
+            }}
+          >
+            {isRollingDice ? '🎲 Rolling...' : '🎲 Roll Dice for Movement'}
+          </button>
+        </div>
+      )}
+
+      {/* Show dice roll result when rolled on dice-movement space */}
+      {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll && (
+        <div style={{
+          padding: '8px 12px',
+          backgroundColor: '#e8f5e9',
+          border: '2px solid #4caf50',
+          borderRadius: '6px',
+          margin: '4px 0',
+          textAlign: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          color: '#2e7d32'
+        }}>
+          ✅ {completedActions.diceRoll}
+        </div>
+      )}
 
       {/* Movement Choice Buttons */}
       {movementChoice && (
