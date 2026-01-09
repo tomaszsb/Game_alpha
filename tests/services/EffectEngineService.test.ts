@@ -1303,9 +1303,11 @@ describe('EffectEngineService', () => {
       mockStateService.getPlayer.mockReturnValue({
         id: 'player1',
         name: 'Test Player',
+        money: 100000, // Has enough money to pay the fee
         loans: [{ id: 'loan1', principal: 1000000, interestRate: 0.05, startTurn: 1 }]
       });
 
+      mockResourceService.canAfford.mockReturnValue(true);
       mockResourceService.spendMoney.mockReturnValue(true);
 
       // Act
@@ -1313,6 +1315,7 @@ describe('EffectEngineService', () => {
 
       // Assert - 1% of $1M = $10,000
       expect(result.success).toBe(true);
+      expect(mockResourceService.canAfford).toHaveBeenCalledWith('player1', 10000);
       expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
         'player1',
         10000,
@@ -1344,9 +1347,11 @@ describe('EffectEngineService', () => {
       mockStateService.getPlayer.mockReturnValue({
         id: 'player1',
         name: 'Test Player',
+        money: 100000, // Has enough money to pay the fee
         loans: [{ id: 'loan1', principal: 2000000, interestRate: 0.05, startTurn: 1 }]
       });
 
+      mockResourceService.canAfford.mockReturnValue(true);
       mockResourceService.spendMoney.mockReturnValue(true);
 
       // Act
@@ -1384,9 +1389,11 @@ describe('EffectEngineService', () => {
       mockStateService.getPlayer.mockReturnValue({
         id: 'player1',
         name: 'Test Player',
+        money: 50000, // Has enough money to pay the fee
         loans: [{ id: 'loan1', principal: 500000, interestRate: 0.08, startTurn: 1 }]
       });
 
+      mockResourceService.canAfford.mockReturnValue(true);
       mockResourceService.spendMoney.mockReturnValue(true);
 
       // Act
@@ -1498,12 +1505,14 @@ describe('EffectEngineService', () => {
       mockStateService.getPlayer.mockReturnValue({
         id: 'player1',
         name: 'Test Player',
+        money: 100000, // Has enough money to pay the fee
         loans: [
           { id: 'loan1', principal: 1000000, interestRate: 0.05, startTurn: 1 },
           { id: 'loan2', principal: 500000, interestRate: 0.05, startTurn: 2 }
         ]
       });
 
+      mockResourceService.canAfford.mockReturnValue(true);
       mockResourceService.spendMoney.mockReturnValue(true);
 
       // Act
@@ -1516,6 +1525,48 @@ describe('EffectEngineService', () => {
         30000,
         'space:BANK-FUND-REVIEW',
         expect.any(String)
+      );
+    });
+
+    it('should fail when player cannot afford the fee', async () => {
+      // Arrange - Player with $1M loan but not enough money to pay fee
+      const feeEffect: Effect = {
+        effectType: 'FEE_DEDUCTION',
+        payload: {
+          playerId: 'player1',
+          feeType: 'LOAN_PERCENTAGE',
+          feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
+          source: 'space:BANK-FUND-REVIEW',
+          reason: 'Bank fund review fee'
+        }
+      };
+
+      const context: EffectContext = {
+        source: 'space:BANK-FUND-REVIEW',
+        playerId: 'player1',
+        triggerEvent: 'SPACE_ENTRY'
+      };
+
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        name: 'Test Player',
+        money: 5000, // Only has $5,000 but fee is $10,000
+        loans: [{ id: 'loan1', principal: 1000000, interestRate: 0.05, startTurn: 1 }]
+      });
+
+      mockResourceService.canAfford.mockReturnValue(false);
+
+      // Act
+      const result = await effectEngineService.processEffect(feeEffect, context);
+
+      // Assert - Should fail because player cannot afford
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Insufficient funds');
+      expect(mockResourceService.canAfford).toHaveBeenCalledWith('player1', 10000);
+      expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+      expect(mockLoggingService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('insufficient funds'),
+        expect.any(Object)
       );
     });
   });

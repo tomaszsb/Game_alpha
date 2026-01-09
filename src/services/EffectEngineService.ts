@@ -561,14 +561,21 @@ export class EffectEngineService implements IEffectEngineService {
                 }
               }
 
-              // Special handling for OWNER-FUND-INITIATION: automatically play drawn funding cards
-              console.log(`🔍 BUG #2 DEBUG: Checking OWNER-FUND-INITIATION auto-play condition`);
-              console.log(`    - context.metadata?.spaceName = "${context.metadata?.spaceName}"`);
-              console.log(`    - drawnCards.length = ${drawnCards.length}`);
-              console.log(`    - Card type = ${payload.cardType}`);
+              // Special handling for funding spaces: automatically play drawn B/I funding cards
+              // This applies to OWNER-FUND-INITIATION, BANK-FUND-REVIEW, and INVESTOR-FUND-REVIEW
+              const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
+              const currentSpaceName = context.metadata?.spaceName || '';
+              const isFundingSpace = fundingSpaces.includes(currentSpaceName);
+              const isFundingCard = payload.cardType === 'B' || payload.cardType === 'I';
 
-              if (context.metadata?.spaceName === 'OWNER-FUND-INITIATION' && drawnCards.length > 0) {
-                console.log(`    💰 OWNER-FUND-INITIATION: Automatically playing drawn funding card: ${drawnCards[0]}`);
+              console.log(`🔍 Checking funding auto-play condition`);
+              console.log(`    - context.metadata?.spaceName = "${currentSpaceName}"`);
+              console.log(`    - isFundingSpace = ${isFundingSpace}`);
+              console.log(`    - isFundingCard = ${isFundingCard} (type: ${payload.cardType})`);
+              console.log(`    - drawnCards.length = ${drawnCards.length}`);
+
+              if (isFundingSpace && isFundingCard && drawnCards.length > 0) {
+                console.log(`    💰 ${currentSpaceName}: Automatically playing drawn funding card(s): ${drawnCards.join(', ')}`);
 
                 // Get card details for auto-action event
                 const drawnCardData = this.dataService?.getCardById(drawnCards[0]);
@@ -576,27 +583,41 @@ export class EffectEngineService implements IEffectEngineService {
                 const fundingPlayer = this.stateService.getPlayer(payload.playerId);
                 const fundingType = payload.cardType === 'B' ? 'Bank' : 'Investment';
 
-                // Extract funding amount from card's money_effect field
+                // Extract funding amount from card's loan_amount or investment_amount field
                 let fundingAmount = 0;
-                if (drawnCardData?.money_effect) {
-                  const moneyMatch = drawnCardData.money_effect.match(/add\s+([\d,]+)/i);
-                  if (moneyMatch) {
-                    fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);
+                if (drawnCardData) {
+                  if (payload.cardType === 'B' && drawnCardData.loan_amount) {
+                    fundingAmount = parseInt(drawnCardData.loan_amount.replace(/,/g, ''), 10) || 0;
+                  } else if (payload.cardType === 'I' && drawnCardData.investment_amount) {
+                    fundingAmount = parseInt(drawnCardData.investment_amount.replace(/,/g, ''), 10) || 0;
+                  } else if (drawnCardData.money_effect) {
+                    // Fallback to money_effect field
+                    const moneyMatch = drawnCardData.money_effect.match(/add\s+([\d,]+)/i);
+                    if (moneyMatch) {
+                      fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);
+                    }
                   }
                 }
                 console.log(`    💰 Funding amount extracted: $${fundingAmount.toLocaleString()}`);
 
-                // Emit auto-action event for seed money modal
+                // Determine event type and message based on space
+                const isOwnerFunding = currentSpaceName === 'OWNER-FUND-INITIATION';
+                const eventType = isOwnerFunding ? 'seed_money' : 'automatic_funding';
+                const eventMessage = isOwnerFunding
+                  ? `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`
+                  : `💰 ${fundingType} Funding: ${cardName} (+$${fundingAmount.toLocaleString()})`;
+
+                // Emit auto-action event for funding modal
                 this.stateService.emitAutoAction({
-                  type: 'seed_money',
+                  type: eventType,
                   playerId: payload.playerId,
                   playerName: fundingPlayer?.name || 'Unknown',
                   cardType: payload.cardType,
                   cardName: cardName,
                   cardId: drawnCards[0],
                   success: true,
-                  spaceName: 'OWNER-FUND-INITIATION',
-                  message: `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`,
+                  spaceName: currentSpaceName,
+                  message: eventMessage,
                   moneyAmount: fundingAmount
                 });
 
@@ -605,7 +626,7 @@ export class EffectEngineService implements IEffectEngineService {
                   payload: {
                     playerId: payload.playerId,
                     cardId: cardId,
-                    source: `auto_play:OWNER-FUND-INITIATION`
+                    source: `auto_play:${currentSpaceName}`
                   }
                 }));
 
@@ -616,8 +637,10 @@ export class EffectEngineService implements IEffectEngineService {
                   resultingEffects: playCardEffects,
                   data: { cardIds: drawnCards }
                 };
+              } else if (isFundingSpace && !isFundingCard) {
+                console.log(`    ℹ️ Funding space but non-funding card type (${payload.cardType}) - skipping auto-play`);
               } else {
-                console.log(`    ⚠️ OWNER-FUND-INITIATION auto-play NOT triggered (condition not met)`);
+                console.log(`    ⚠️ Funding auto-play NOT triggered (not a funding space or no cards drawn)`);
               }
               
               // Log to action log if available
@@ -1306,17 +1329,72 @@ export class EffectEngineService implements IEffectEngineService {
 
               // Apply the fee deduction if we have an amount
               if (feeAmount > 0) {
-                this.resourceService.spendMoney(payload.playerId, feeAmount, payload.source || context.source, payload.feeDescription);
-                console.log(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
+                // Check if player can afford the fee before attempting deduction
+                const canAfford = this.resourceService.canAfford(payload.playerId, feeAmount);
 
-                // Log the fee deduction
-                this.loggingService.info(`Fee paid: $${feeAmount.toLocaleString()} (${payload.feeDescription})`, {
-                  playerId: payload.playerId,
-                  action: 'fee_deducted',
-                  source: payload.source || context.source
-                });
+                if (!canAfford) {
+                  console.log(`    ❌ Cannot afford fee: $${feeAmount.toLocaleString()} (player has $${player.money.toLocaleString()})`);
 
-                success = true;
+                  // Log the failed fee attempt
+                  this.loggingService.warn(`Fee payment failed: insufficient funds for $${feeAmount.toLocaleString()}`, {
+                    playerId: payload.playerId,
+                    action: 'fee_failed',
+                    source: payload.source || context.source
+                  });
+
+                  // Notify the player
+                  if (this.notificationService) {
+                    this.notificationService.notify(
+                      {
+                        short: 'Insufficient funds',
+                        medium: `❌ Cannot pay $${feeAmount.toLocaleString()} fee`,
+                        detailed: `You need $${feeAmount.toLocaleString()} to pay this fee but only have $${player.money.toLocaleString()}`
+                      },
+                      {
+                        playerId: payload.playerId,
+                        playerName: player.name,
+                        actionType: 'fee_insufficient_funds',
+                        notificationDuration: 5000
+                      }
+                    );
+                  }
+
+                  // Return failure - player cannot proceed until they have funds
+                  return {
+                    success: false,
+                    effectType: effect.effectType,
+                    error: `Insufficient funds: Need $${feeAmount.toLocaleString()} to pay fee, but only have $${player.money.toLocaleString()}`
+                  };
+                }
+
+                // Player can afford - attempt the deduction
+                const deductionResult = this.resourceService.spendMoney(
+                  payload.playerId,
+                  feeAmount,
+                  payload.source || context.source,
+                  payload.feeDescription
+                );
+
+                if (deductionResult) {
+                  console.log(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
+
+                  // Log the fee deduction
+                  this.loggingService.info(`Fee paid: $${feeAmount.toLocaleString()} (${payload.feeDescription})`, {
+                    playerId: payload.playerId,
+                    action: 'fee_deducted',
+                    source: payload.source || context.source
+                  });
+
+                  success = true;
+                } else {
+                  // Deduction failed unexpectedly (shouldn't happen since we checked canAfford)
+                  console.error(`    ❌ Fee deduction failed unexpectedly`);
+                  return {
+                    success: false,
+                    effectType: effect.effectType,
+                    error: `Fee deduction failed unexpectedly`
+                  };
+                }
               } else if (totalLoanAmount === 0 && payload.feeType === 'LOAN_PERCENTAGE') {
                 // No loan means no fee to pay
                 console.log(`    ℹ️  No loan amount - fee does not apply`);
