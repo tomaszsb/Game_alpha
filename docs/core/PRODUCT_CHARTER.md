@@ -4,7 +4,7 @@
 **Core Game Complete**: Fully playable multi-player board game with external access deployed
 **Public URL**: `http://unravel-game.duckdns.org:3080`
 **Test Status**: 1,028 tests passing across 91 test files (100% success rate)
-**Last Updated**: December 29, 2025
+**Last Updated**: January 9, 2026
 
 ## 1. Mission Progress - Production Ready
 
@@ -119,6 +119,13 @@ The Game Alpha application is **fully production-ready** with:
 - **Game Persistence**: Auto-save to disk, survives server restarts
 - **Visitor Logging**: IP and device tracking with push notifications
 - **Rebranding**: "Unravel Codes: The Game" with logo and alpha notice
+
+### **Bug Fixes from External Testing (January 2026)**
+- **Contextual Dice Roll**: Dice-movement spaces now behave contextually:
+  - CHEAT spaces: Manual "Roll Dice" button (player actively cheating)
+  - REG spaces: Auto-rolls on arrival (clerk/examiner makes decision)
+- **Fixed Gameplay Blockers**: REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT, CHEAT-BYPASS now work correctly
+- **Logic Movement Type**: REG-FDNY-FEE-REVIEW now uses conditional logic (scope-based filtering)
 
 ### **Future Enhancement Foundation**
 The clean architecture provides solid foundation for:
