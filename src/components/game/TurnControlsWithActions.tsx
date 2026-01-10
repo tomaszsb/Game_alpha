@@ -298,7 +298,7 @@ export function TurnControlsWithActions({
                      requiresManualDiceRoll; // Hide dice roll for automatic dice roll spaces
 
   // Debug logging for dice roll button visibility - expanded for problematic spaces
-  const debugSpaces = ['PM-DECISION-CHECK', 'CHEAT-BYPASS', 'REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT'];
+  const debugSpaces = ['PM-DECISION-CHECK', 'CHEAT-BYPASS', 'REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT', 'CON-ISSUES'];
   if (debugSpaces.includes(currentPlayer.currentSpace) && isCurrentPlayersTurn) {
     console.log('🎲 DICE ROLL BUTTON DEBUG:', {
       canRollDice,
@@ -315,6 +315,20 @@ export function TurnControlsWithActions({
       },
       spaceConfig: currentSpaceData?.config,
       movementChoice
+    });
+    // Also log manual effects for debugging
+    console.log('🔧 MANUAL EFFECTS DEBUG:', {
+      space: currentPlayer.currentSpace,
+      allSpaceEffectsCount: allSpaceEffects.length,
+      manualEffectsCount: manualEffects.length,
+      manualEffects: manualEffects.map(e => ({
+        type: e.effect_type,
+        action: e.effect_action,
+        trigger: e.trigger_type,
+        condition: e.condition,
+        description: e.description
+      })),
+      completedManualActions: completedActions.manualActions
     });
   }
   // Allow end turn if: dice rolled OR space doesn't require dice roll

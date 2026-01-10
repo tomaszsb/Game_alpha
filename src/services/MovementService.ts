@@ -388,6 +388,53 @@ export class MovementService implements IMovementService {
   }
 
   /**
+   * Gets all destination choices for a dice roll result (handles "or" options)
+   * @param spaceName - The current space name
+   * @param visitType - The visit type (First/Subsequent)
+   * @param diceRoll - The dice roll result (1-6)
+   * @returns Array of destination space names (multiple if "or" choices exist)
+   */
+  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number): string[] {
+    // Validate dice roll range (single die: 1-6)
+    if (diceRoll < 1 || diceRoll > 6) {
+      console.warn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
+      return [];
+    }
+
+    const diceOutcome = this.dataService.getDiceOutcome(spaceName, visitType);
+    if (!diceOutcome) {
+      console.warn(`No dice outcome data for ${spaceName} (${visitType})`);
+      return [];
+    }
+
+    // Map dice roll (1-6) directly to roll fields
+    let destinationStr: string | null = null;
+    switch (diceRoll) {
+      case 1: destinationStr = diceOutcome.roll_1 || null; break;
+      case 2: destinationStr = diceOutcome.roll_2 || null; break;
+      case 3: destinationStr = diceOutcome.roll_3 || null; break;
+      case 4: destinationStr = diceOutcome.roll_4 || null; break;
+      case 5: destinationStr = diceOutcome.roll_5 || null; break;
+      case 6: destinationStr = diceOutcome.roll_6 || null; break;
+      default: destinationStr = null;
+    }
+
+    if (!destinationStr || destinationStr.trim() === '') {
+      return [];
+    }
+
+    // Handle "or" choices - return ALL options as array
+    if (destinationStr.includes(' or ')) {
+      const choices = destinationStr.split(' or ').map(d => d.trim()).filter(d => d);
+      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: Multiple choices available: [${choices.join(', ')}]`);
+      return choices;
+    }
+
+    console.log(`🎲 Dice roll ${diceRoll} at ${spaceName} → single destination: ${destinationStr}`);
+    return [destinationStr.trim()];
+  }
+
+  /**
    * Handles movement choices by presenting options and awaiting player selection
    * @param playerId - The ID of the player making the choice
    * @returns Promise that resolves with the updated game state after movement
@@ -516,7 +563,7 @@ export class MovementService implements IMovementService {
    */
   private getLogicDestinations(playerId: string, movement: Movement): string[] {
     const validDestinations: string[] = [];
-    
+
     // Check each destination and its corresponding condition
     const destinationConditionPairs = [
       { destination: movement.destination_1, condition: movement.condition_1 },
@@ -534,6 +581,93 @@ export class MovementService implements IMovementService {
 
     console.log(`🧠 Logic-based movement for player ${playerId}: ${validDestinations.length} valid destinations`);
     return validDestinations;
+  }
+
+  /**
+   * Gets logic-based movement results with explanation of which conditions matched
+   * Used to show players WHY they're being directed to a specific destination
+   * @param playerId - The ID of the player
+   * @param spaceName - The current space name
+   * @param visitType - The visit type
+   * @returns Object with destination and explanation of matching conditions
+   */
+  public getLogicMovementWithExplanation(playerId: string, spaceName: string, visitType: VisitType): {
+    destinations: string[];
+    explanation: string;
+    matchedConditions: string[];
+  } {
+    const movement = this.dataService.getMovement(spaceName, visitType);
+    if (!movement || movement.movement_type !== 'logic') {
+      return { destinations: [], explanation: '', matchedConditions: [] };
+    }
+
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) {
+      return { destinations: [], explanation: '', matchedConditions: [] };
+    }
+
+    const validDestinations: string[] = [];
+    const matchedConditions: string[] = [];
+
+    // Check each destination and its corresponding condition
+    const destinationConditionPairs = [
+      { destination: movement.destination_1, condition: movement.condition_1 },
+      { destination: movement.destination_2, condition: movement.condition_2 },
+      { destination: movement.destination_3, condition: movement.condition_3 },
+      { destination: movement.destination_4, condition: movement.condition_4 },
+      { destination: movement.destination_5, condition: movement.condition_5 }
+    ];
+
+    for (const pair of destinationConditionPairs) {
+      if (pair.destination && this.evaluateCondition(playerId, pair.condition)) {
+        validDestinations.push(pair.destination);
+        if (pair.condition && pair.condition !== 'always') {
+          matchedConditions.push(pair.condition);
+        }
+      }
+    }
+
+    // Generate human-readable explanation for the conditions
+    const explanation = this.generateConditionExplanation(playerId, matchedConditions);
+
+    return { destinations: validDestinations, explanation, matchedConditions };
+  }
+
+  /**
+   * Generates a human-readable explanation for matched conditions
+   * @private
+   */
+  private generateConditionExplanation(playerId: string, conditions: string[]): string {
+    if (conditions.length === 0) {
+      return 'Based on standard review procedures';
+    }
+
+    const player = this.stateService.getPlayer(playerId);
+    const explanations: string[] = [];
+
+    for (const condition of conditions) {
+      const conditionLower = condition.toLowerCase();
+
+      if (conditionLower === 'scope_le_4m') {
+        const projectScope = player?.projectScope || 0;
+        explanations.push(`project scope ($${(projectScope / 1000000).toFixed(1)}M) is ≤ $4M`);
+      } else if (conditionLower === 'scope_gt_4m') {
+        const projectScope = player?.projectScope || 0;
+        explanations.push(`project scope ($${(projectScope / 1000000).toFixed(1)}M) exceeds $4M`);
+      } else if (conditionLower === 'money_le_1m') {
+        explanations.push('available funds are ≤ $1M');
+      } else if (conditionLower === 'money_gt_1m') {
+        explanations.push('available funds exceed $1M');
+      } else if (conditionLower.startsWith('time_')) {
+        explanations.push('time constraints apply');
+      }
+    }
+
+    if (explanations.length === 0) {
+      return 'Based on project review';
+    }
+
+    return `Because your ${explanations.join(' and ')}`;
   }
 
   /**

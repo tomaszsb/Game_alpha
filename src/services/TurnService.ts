@@ -881,13 +881,16 @@ export class TurnService implements ITurnService {
         const playerName = player.name || 'Unknown Player';
         console.log(`🎯 Player ${playerName} is at a choice space with ${validMoves.length} options - creating movement choice`);
 
-        // Create choice for player to set their movement intent
-        const options = validMoves.map(destination => ({
-          id: destination,
-          label: destination
-        }));
+        // Create choice for player to set their movement intent with descriptive labels
+        const options = validMoves.map(destination => {
+          const destContent = this.dataService.getSpaceContent(destination, 'First');
+          const destTitle = destContent?.title || destination;
+          const label = destTitle !== destination ? `${destination} - ${destTitle}` : destination;
+          return { id: destination, label: label };
+        });
 
-        const prompt = `Choose your destination from ${player.currentSpace}:`;
+        const currentSpaceContent = this.dataService.getSpaceContent(player.currentSpace, player.visitType);
+        const prompt = `At ${currentSpaceContent?.title || player.currentSpace}, choose your next path:`;
 
         // Create the choice but DON'T await it - we don't want to block startTurn
         // The choice will be resolved later when:
@@ -914,6 +917,33 @@ export class TurnService implements ITurnService {
         });
 
         console.log(`🎯 Movement choice created for ${playerName} - awaiting user selection`);
+      } else if (validMoves.length === 1 && movement?.movement_type === 'logic') {
+        // Single destination from logic movement - show the decision path explanation
+        const logicResult = this.movementService.getLogicMovementWithExplanation(
+          playerId,
+          player.currentSpace,
+          player.visitType
+        );
+
+        if (logicResult.explanation && this.notificationService) {
+          const destContent = this.dataService.getSpaceContent(validMoves[0], 'First');
+          const destTitle = destContent?.title || validMoves[0];
+          const spaceContent = this.dataService.getSpaceContent(player.currentSpace, player.visitType);
+
+          this.notificationService.notify(
+            {
+              short: `→ ${destTitle}`,
+              medium: `📋 ${logicResult.explanation}, you'll proceed to ${destTitle}`,
+              detailed: `${player.name} at ${spaceContent?.title || player.currentSpace}: ${logicResult.explanation}. Next stop: ${destTitle}`
+            },
+            {
+              playerId: playerId,
+              playerName: player.name,
+              actionType: 'logic_decision_path'
+            }
+          );
+          console.log(`🧠 Logic decision path: ${logicResult.explanation} → ${validMoves[0]}`);
+        }
       } else {
         // 0 or 1 moves - no choice needed, turn proceeds normally
         console.log(`🎬 TurnService.startTurn - No choice needed (${validMoves.length} valid moves)`);
@@ -972,14 +1002,17 @@ export class TurnService implements ITurnService {
 
         console.log(`🔄 Restoring movement choice for ${playerName} (${validMoves.length} options)${player.moveIntent ? ` - current intent: ${player.moveIntent}` : ''}`);
 
-        // Create choice for player to set their movement intent
+        // Create choice for player to set their movement intent with descriptive labels
         // Even if moveIntent is already set, create a proper choice so player can change it
-        const options = validMoves.map(destination => ({
-          id: destination,
-          label: destination
-        }));
+        const options = validMoves.map(destination => {
+          const destContent = this.dataService.getSpaceContent(destination, 'First');
+          const destTitle = destContent?.title || destination;
+          const label = destTitle !== destination ? `${destination} - ${destTitle}` : destination;
+          return { id: destination, label: label };
+        });
 
-        const prompt = `Choose your destination from ${player.currentSpace}:`;
+        const currentSpaceContent = this.dataService.getSpaceContent(player.currentSpace, player.visitType);
+        const prompt = `At ${currentSpaceContent?.title || player.currentSpace}, choose your next path:`;
 
         // Create the choice (don't await - just set it in state)
         // The UI will show the choice and wait for player selection
@@ -2578,32 +2611,64 @@ export class TurnService implements ITurnService {
             });
         }
     } else if (movementRule && (movementRule.movement_type === 'dice_outcome' || movementRule.movement_type === 'dice')) {
-        // Handle dice-based movement (e.g., CHEAT-BYPASS, REG-DOB-PROF-CERT)
-        // Use existing dice destination logic
-        // TODO: Implement getDiceRollDestinations in DataService if DICE_ROLL_INFO.csv is needed
-        const destination = this.movementService.getDiceDestination(
+        // Handle dice-based movement (e.g., CHEAT-BYPASS, REG-FDNY-PLAN-EXAM)
+        // Use getDiceDestinationChoices to get ALL "or" options as separate choices
+        const destinations = this.movementService.getDiceDestinationChoices(
             currentPlayer.currentSpace,
             currentPlayer.visitType,
             diceRoll
         );
 
-        if (destination) {
-            // Get the destination for this specific dice roll
+        if (destinations.length > 0) {
+            effects.push({
+                type: 'choice',
+                description: 'Choose your next destination',
+                moveOptions: destinations
+            });
 
-            if (destination) {
-                effects.push({
-                    type: 'choice',
-                    description: 'Choose your next destination',
-                    moveOptions: [destination]
-                });
+            // Create the movement choice options with descriptive labels
+            const options = destinations.map(dest => {
+                // Get space content for the destination to provide context
+                const destContent = this.dataService.getSpaceContent(dest, 'First');
+                const destTitle = destContent?.title || dest;
 
-                // Create the movement choice and set player's move intent
-                const options = [{
-                    id: destination,
-                    label: destination
-                }];
+                // Build a descriptive label: "SPACE-NAME - Title"
+                const label = destTitle !== dest ? `${dest} - ${destTitle}` : dest;
 
-                const prompt = `Choose your destination from ${currentPlayer.currentSpace}:`;
+                return {
+                    id: dest,
+                    label: label
+                };
+            });
+
+            if (destinations.length === 1) {
+                // Single destination - auto-select without requiring user choice
+                const singleDest = destinations[0];
+                console.log(`🎲 Single dice destination: ${singleDest} - auto-selecting`);
+                this.stateService.setPlayerMoveIntent(playerId, singleDest);
+
+                // Show explanation if player is being sent back to a review/exam space
+                const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, singleDest);
+                if (loopExplanation && this.notificationService) {
+                    const destContent = this.dataService.getSpaceContent(singleDest, 'First');
+                    this.notificationService.notify(
+                        {
+                            short: `→ ${destContent?.title || singleDest}`,
+                            medium: `📋 ${loopExplanation}`,
+                            detailed: `${currentPlayer.name} is being directed to ${destContent?.title || singleDest}. ${loopExplanation}`
+                        },
+                        {
+                            playerId: playerId,
+                            playerName: currentPlayer.name,
+                            actionType: 'review_loop_explanation'
+                        }
+                    );
+                }
+            } else {
+                // Multiple destinations (from "or" choices) - present choice to player
+                const currentSpaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+                const prompt = `You rolled ${diceRoll}. Based on your outcome at ${currentSpaceContent?.title || currentPlayer.currentSpace}, choose your next path:`;
+                console.log(`🎲 Multiple dice destinations available: [${destinations.join(', ')}]`);
 
                 // Create the choice (don't await - just set it in state)
                 // The UI will show the choice and wait for player selection
@@ -2615,13 +2680,64 @@ export class TurnService implements ITurnService {
                 ).then(selectedDestination => {
                     console.log(`✅ Player ${currentPlayer.name || playerId} selected destination (dice_outcome): ${selectedDestination}`);
                     this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
+
+                    // Show explanation if player chose a review/exam space
+                    const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, selectedDestination);
+                    if (loopExplanation && this.notificationService) {
+                        const destContent = this.dataService.getSpaceContent(selectedDestination, 'First');
+                        this.notificationService.notify(
+                            {
+                                short: `→ ${destContent?.title || selectedDestination}`,
+                                medium: `📋 ${loopExplanation}`,
+                                detailed: `${currentPlayer.name} chose ${destContent?.title || selectedDestination}. ${loopExplanation}`
+                            },
+                            {
+                                playerId: playerId,
+                                playerName: currentPlayer.name,
+                                actionType: 'review_loop_explanation'
+                            }
+                        );
+                    }
                 }).catch(error => {
                     // Handle error silently - choice might be resolved later
                     console.log(`🔄 Movement choice created for dice_outcome (will be resolved when player selects destination)`);
                 });
             }
+        } else {
+            console.warn(`⚠️ No destinations found for dice roll ${diceRoll} at ${currentPlayer.currentSpace}`);
         }
     }
+  }
+
+  /**
+   * Generate an explanatory message when dice outcome sends player back to a review/exam space
+   * This helps players understand WHY they're being sent back rather than just seeing the destination
+   */
+  private getReviewLoopExplanation(fromSpace: string, toSpace: string): string | null {
+    // Define which spaces indicate "being sent back" and their explanations
+    const reviewLoopMessages: { [key: string]: string } = {
+      'REG-DOB-PLAN-EXAM': 'The examiner found minor issues that need to be addressed. Additional documentation or corrections are required before continuing.',
+      'REG-FDNY-PLAN-EXAM': 'Fire safety review identified items needing attention. The FDNY examiner requires additional information or modifications.',
+      'ARCH-INITIATION': 'Design changes are needed. You must consult with the architect to revise the plans before resubmitting.',
+      'ENG-INITIATION': 'Structural or engineering modifications required. The engineer needs to update calculations or drawings.',
+    };
+
+    // Check if the destination is a "loop back" scenario
+    const explanation = reviewLoopMessages[toSpace];
+    if (explanation) {
+      return explanation;
+    }
+
+    // Check if going back to the same type of space (e.g., from AUDIT to PLAN-EXAM)
+    if (fromSpace.includes('AUDIT') && toSpace.includes('PLAN-EXAM')) {
+      return 'The audit revealed discrepancies that require re-examination. Your plans will be reviewed again with the new information.';
+    }
+
+    if (fromSpace.includes('PLAN-EXAM') && toSpace === fromSpace) {
+      return 'The plan examination could not be completed today due to complexity. You will need to return to continue the review.';
+    }
+
+    return null;
   }
 
   /**
