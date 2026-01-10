@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Movement Bug Fixes - Descriptive Choices, Loop Explanations, Logic Paths (January 10, 2026)
+
+**FIX: 5 movement-related issues reported by test players**
+
+#### Bug 1: CHEAT Modal Non-Descriptive
+- **Problem**: Movement choice modal only showed destination names (e.g., "CON-INITIATION") without context
+- **Fix**: Enhanced choice labels to include space titles from SPACE_CONTENT.csv
+- **Result**: Choices now show "CON-INITIATION - Construction begins with permits in hand"
+- **Files**: `TurnService.ts` - Updated 3 choice creation locations (processTurnEffectsWithTracking, handleMovementChoices, restoreMovementChoiceIfNeeded)
+
+#### Bug 2: REG-DOB-AUDIT Loop Unexplained
+- **Problem**: Players sent back to review spaces without understanding why
+- **Fix**: Added `getReviewLoopExplanation()` method with destination-specific messages
+- **Messages**:
+  - REG-DOB-PLAN-EXAM: "The examiner found minor issues that need to be addressed"
+  - ARCH-INITIATION: "Design changes are needed. You must consult with the architect"
+  - REG-FDNY-PLAN-EXAM: "Fire safety review identified items needing attention"
+- **Files**: `TurnService.ts` - Added notification when dice outcome sends player to review space
+
+#### Bug 3: REG-FDNY-PLAN-EXAM Dead End (CRITICAL)
+- **Problem**: "or" destinations in DICE_OUTCOMES.csv only used first option
+- **Root Cause**: `getDiceDestination()` split on " or " but returned only `choices[0]`
+- **Fix**: Added `getDiceDestinationChoices()` method that returns ALL options as array
+- **Result**: Players now see all available destinations (e.g., "CON-INITIATION or REG-DOB-PLAN-EXAM or REG-DOB-AUDIT or PM-DECISION-CHECK")
+- **Files**: `MovementService.ts`, `TurnService.ts`
+
+#### Bug 4: CON-ISSUES No Action/Movement Buttons
+- **Problem**: Buttons not appearing for some players at CON-ISSUES
+- **Fix**: Added CON-ISSUES to debug spaces list with comprehensive logging
+- **Result**: Console now shows detailed state (canRollDice conditions, manualEffects, completedActions) to diagnose if issue recurs
+- **Files**: `TurnControlsWithActions.tsx`
+
+#### Bug 5: REG-FDNY-FEE-REVIEW Logic Path Not Shown
+- **Problem**: Auto-selection happened without showing player why
+- **Fix**: Added `getLogicMovementWithExplanation()` method with human-readable condition explanations
+- **Result**: Players see "Because your project scope ($5.2M) exceeds $4M, you'll proceed to..."
+- **Files**: `MovementService.ts`, `TurnService.ts`
+
+**Tests**: All 504 service tests pass
+
+---
+
 ### Contextual Dice Roll for Movement Spaces (January 9, 2026)
 
 **IMPROVEMENT: Dice roll behavior now matches game narrative**

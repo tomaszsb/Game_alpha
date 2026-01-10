@@ -204,6 +204,16 @@ interface IMovementService {
 
   // Movement type
   getMovementType(space: string, visitType: VisitType): MovementType;
+
+  // Dice movement with "or" choices (Added January 10, 2026)
+  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number): string[];
+
+  // Logic movement with explanation (Added January 10, 2026)
+  getLogicMovementWithExplanation(playerId: string, spaceName: string, visitType: VisitType): {
+    destinations: string[];
+    explanation: string;
+    matchedConditions: string[];
+  };
 }
 ```
 
@@ -555,6 +565,40 @@ getMovementType(space: string, visitType: VisitType): MovementType
 const type = movementService.getMovementType('PM-DECISION-CHECK', 'First');
 // Returns: 'choice'
 ```
+
+#### getDiceDestinationChoices() *(Added January 10, 2026)*
+Returns all destination choices from dice outcome, handling "or" options.
+
+```typescript
+getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number): string[]
+
+// Example - when DICE_OUTCOMES has "CON-INITIATION or REG-DOB-PLAN-EXAM"
+const choices = movementService.getDiceDestinationChoices('REG-FDNY-PLAN-EXAM', 'First', 1);
+// Returns: ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK']
+```
+
+**Note:** Previous `getDiceDestination()` only returned the first option. This method returns ALL "or" options as separate choices.
+
+#### getLogicMovementWithExplanation() *(Added January 10, 2026)*
+Returns logic-based movement results with human-readable explanation of matched conditions.
+
+```typescript
+getLogicMovementWithExplanation(playerId: string, spaceName: string, visitType: VisitType): {
+  destinations: string[];
+  explanation: string;
+  matchedConditions: string[];
+}
+
+// Example - player with $5.2M project scope
+const result = movementService.getLogicMovementWithExplanation('player1', 'REG-FDNY-FEE-REVIEW', 'First');
+// Returns: {
+//   destinations: ['REG-FDNY-PLAN-EXAM', 'CON-INITIATION', 'PM-DECISION-CHECK'],
+//   explanation: 'Because your project scope ($5.2M) exceeds $4M',
+//   matchedConditions: ['scope_gt_4m']
+// }
+```
+
+**Use Case:** Show players WHY they're being directed to a specific destination based on project scope, money, or other conditions.
 
 ### Path Choice Memory
 

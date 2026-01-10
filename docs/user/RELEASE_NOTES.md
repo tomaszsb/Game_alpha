@@ -2,6 +2,47 @@
 
 ---
 
+## v2.7 - Clearer Movement Choices & Explanations (January 10, 2026)
+
+**Release Date:** January 10, 2026
+**Version:** 2.7
+**Status:** Alpha Testing
+**Type:** UX Enhancement & Bug Fix
+
+### Movement Choices Now Tell You Where You're Going
+
+**What Changed:** When you need to choose a destination, you now see helpful descriptions!
+
+**Before:** Just space names like "CON-INITIATION" or "REG-DOB-PLAN-EXAM"
+
+**After:** Descriptive labels like:
+- "CON-INITIATION - Construction begins with permits in hand"
+- "REG-DOB-PLAN-EXAM - DOB examiner reviews your plans"
+- "ARCH-INITIATION - Meet with your architect"
+
+### Understand Why You're Being Sent Back
+
+**What Changed:** When the dice sends you back to a review space, you now see an explanation!
+
+**Examples:**
+- Sent to REG-DOB-PLAN-EXAM: "The examiner found minor issues that need to be addressed. Additional documentation or corrections are required."
+- Sent to ARCH-INITIATION: "Design changes are needed. You must consult with the architect to revise the plans."
+
+This helps you understand it's not random - it's part of the realistic building permit process!
+
+### Logic Movement Shows Decision Path
+
+**What Changed:** At spaces like REG-FDNY-FEE-REVIEW, you now see WHY you're going to a specific destination.
+
+**Example:** "Because your project scope ($5.2M) exceeds $4M, you'll proceed to REG-FDNY-PLAN-EXAM"
+
+### Bug Fixes
+
+- **REG-FDNY-PLAN-EXAM**: Fixed dead end - all destination choices now appear (was only showing first option)
+- **CON-ISSUES**: Added debug logging to investigate button rendering issues
+
+---
+
 ## v2.6 - Contextual Dice Roll for Movement (January 9, 2026)
 
 **Release Date:** January 9, 2026
