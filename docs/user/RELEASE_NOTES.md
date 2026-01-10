@@ -2,6 +2,45 @@
 
 ---
 
+## v2.8 - Smarter Auto-Selection & Clerk Decisions (January 10, 2026)
+
+**Release Date:** January 10, 2026
+**Version:** 2.8
+**Status:** Alpha Testing
+**Type:** UX Enhancement & Bug Fix
+
+### Single Dice Outcomes Auto-Move
+
+**What Changed:** When dice determines a single destination, you move automatically!
+
+**Before:** Even rolling a 1 on CHEAT-BYPASS showed "Choose your next destination" modal
+
+**After:**
+- **Single destination** (e.g., roll 1 → ENG-INITIATION): Shows "Next: Engineering Initiation" and auto-selects
+- **Multiple destinations** (e.g., "or" choices): Shows choice modal with explanations
+
+No more unnecessary clicking for obvious outcomes!
+
+### Clerk Decides Your Path (Logic Spaces)
+
+**What Changed:** At spaces like REG-FDNY-FEE-REVIEW, the clerk now decides where you go - you don't choose!
+
+**Before:** Showed 3 options for you to pick from
+
+**After:**
+- The clerk evaluates your project (scope, permits, etc.)
+- Auto-selects the correct destination
+- Shows notification: "Clerk: → [destination]. Based on your project scope..."
+
+This matches the real-world experience: clerks tell YOU where to go, not the other way around!
+
+### Infrastructure
+
+- Deploy script now auto-cleans orphaned Docker images
+- Updated dependencies and fixed security vulnerabilities
+
+---
+
 ## v2.7 - Clearer Movement Choices & Explanations (January 10, 2026)
 
 **Release Date:** January 10, 2026

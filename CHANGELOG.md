@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Movement System Refinements - Auto-Selection Fixes (January 10, 2026)
+
+**FIX: Single Dice Destinations No Longer Show Choice Modal**
+
+- **Problem**: CHEAT-BYPASS roll 1 (single destination: ENG-INITIATION) still showed "Choose your next destination" modal
+- **Root Cause**: Effects array had 'choice' type effect pushed BEFORE checking destination count
+- **Fix**: Check destination count FIRST, show "Next: [title]" for single destinations
+- **Result**: Single dice outcomes auto-select silently, multi-destination outcomes show contextual choice modal
+- **Files**: `TurnService.ts` - Restructured processTurnEffectsWithTracking() logic
+
+**FIX: Logic Movement Auto-Selects (No Player Choice)**
+
+- **Problem**: REG-FDNY-FEE-REVIEW gave player 3 choices instead of clerk auto-selecting
+- **Root Cause**: `handleMovementChoices()` treated logic movement same as choice movement when multiple conditions matched
+- **Fix**: Added special handling for `logic` movement type at start of handleMovementChoices()
+- **Behavior**:
+  - Evaluates conditions (scope_gt_4m, scope_le_4m, always)
+  - Auto-selects FIRST matching destination
+  - Shows notification: "Clerk: → [destination]. Based on your project scope..."
+  - No choice modal - the clerk decided, not the player
+- **Files**: `TurnService.ts` - Added early return for logic movement type
+
+**Infrastructure Updates**
+
+- Added `getDiceDestinationChoices()` and `getLogicMovementWithExplanation()` to IMovementService interface
+- Added `clearPlayerMoveIntent()` to IStateService interface
+- Added `destination` property to DiceResultEffect type
+- Added Docker image cleanup to deploy.sh (auto-prunes orphaned images after deployment)
+- Updated npm dependencies (vite, express, puppeteer, etc.) and fixed high-severity qs vulnerability
+
+**Tests**: All 504 service tests pass
+
+---
+
 ### Movement Bug Fixes - Descriptive Choices, Loop Explanations, Logic Paths (January 10, 2026)
 
 **FIX: 5 movement-related issues reported by test players**
