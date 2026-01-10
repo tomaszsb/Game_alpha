@@ -4,15 +4,8 @@ import path from 'path';
 // Development configuration optimized for SPEED and fast feedback loops
 export default defineConfig({
   test: {
-    // Use Node environment by default - much faster than jsdom for service tests
-    // But automatically switch to jsdom for React component tests
-    environment: 'node',
-    environmentMatchGlobs: [
-      // Use jsdom for React component tests (.tsx files)
-      ['**/*.tsx', 'jsdom'],
-      ['**/components/**/*.test.ts', 'jsdom'],
-      ['**/components/**/*.test.tsx', 'jsdom']
-    ],
+    // Use jsdom for all tests (component tests need it, service tests work with it)
+    environment: 'jsdom',
 
     include: [
       'tests/**/*.test.ts',
@@ -30,11 +23,8 @@ export default defineConfig({
 
     // STABLE EXECUTION: Single-threaded to avoid worker crashes
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true      // Run all tests in single process
-      }
-    },
+    poolMatchGlobs: [],  // Use forks for all tests
+    fileParallelism: false,  // Run files sequentially (replaces singleFork)
 
     // Standard timeouts
     testTimeout: 30000,       // 30 seconds

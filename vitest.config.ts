@@ -20,13 +20,7 @@ export default defineConfig({
     
     // Optimized configuration for reliability over speed
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        maxForks: 1, // Sequential execution
-        minForks: 1,
-        isolate: true
-      }
-    },
+    fileParallelism: false,  // Sequential execution (replaces maxForks: 1)
 
     // Reasonable timeout
     testTimeout: 30000, // 30 seconds

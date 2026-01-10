@@ -21,13 +21,7 @@ export default defineConfig({
 
     // RELIABILITY OPTIMIZATIONS: Sequential execution with full isolation
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        maxForks: 1,          // Sequential execution for CI reliability
-        minForks: 1,
-        isolate: true         // Complete isolation between tests
-      }
-    },
+    fileParallelism: false,  // Sequential execution for CI reliability
 
     // Conservative timeout for CI environments
     testTimeout: 30000,       // 30 seconds

@@ -4,9 +4,9 @@
     "lib": [
       "DOM",
       "DOM.Iterable",
-      "ES6"
+      "ES2020"
     ],
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "node"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,

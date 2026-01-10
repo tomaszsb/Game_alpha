@@ -256,7 +256,7 @@ export function SimpleTooltip({
   children
 }: {
   content: string;
-  children: React.ReactElement;
+  children: React.ReactElement<{ title?: string }>;
 }): JSX.Element {
   return React.cloneElement(children, { title: content });
 }
