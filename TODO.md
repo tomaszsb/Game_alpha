@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 9, 2026
+**Last Updated:** January 10, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Movement Bug Fixes (Jan 10, 2026) - Descriptive choices, loop explanations, logic paths
 - ✅ Financial Bug Fixes (Jan 9, 2026) - Auto-play funding cards at all funding spaces, fee validation
 - ✅ Contextual Dice Roll for Movement (Jan 9, 2026) - CHEAT spaces manual, REG spaces auto-roll
 - ✅ Action Button Tooltips (Jan 6, 2026) - 45 tooltips explaining "why" for all buttons
@@ -200,6 +201,29 @@ Validate gameplay, balance, and user experience with real players
 *See `docs/technical/TECHNICAL_DEBT.md` for full details and prioritization*
 
 ---
+
+**Bug Fix Sprint (January 10, 2026) - ✅ COMPLETED:**
+- [x] **Movement Bug #1**: CHEAT modal non-descriptive
+  - **Problem**: Movement choice modal only showed destination names without context
+  - **Fix**: Enhanced choice labels to include space titles (e.g., "CON-INITIATION - Construction begins with permits in hand")
+  - **Files**: TurnService.ts - Updated 3 choice creation locations
+- [x] **Movement Bug #2**: REG-DOB-AUDIT loop unexplained
+  - **Problem**: Player sent back to same/similar review spaces without understanding why
+  - **Fix**: Added `getReviewLoopExplanation()` method with notifications explaining the outcome
+  - **Result**: Players now see messages like "The examiner found minor issues that need to be addressed"
+- [x] **Movement Bug #3**: REG-FDNY-PLAN-EXAM dead end (CRITICAL)
+  - **Problem**: "or" destinations in DICE_OUTCOMES.csv only picked first option
+  - **Root cause**: `getDiceDestination()` split on " or " but only returned first choice
+  - **Fix**: Added `getDiceDestinationChoices()` method to return ALL options as separate choices
+  - **Result**: Players can now choose between all available destinations
+- [x] **Movement Bug #4**: CON-ISSUES no action/movement buttons
+  - **Fix**: Added debug logging to TurnControlsWithActions for CON-ISSUES space
+  - **Result**: Console will show detailed state to diagnose if issue recurs
+- [x] **Movement Bug #5**: REG-FDNY-FEE-REVIEW logic path not shown
+  - **Problem**: Auto-selection happened without showing player why
+  - **Fix**: Added `getLogicMovementWithExplanation()` method with condition explanations
+  - **Result**: Players see "Because your project scope ($X) exceeds $4M, you'll proceed to..."
+- [x] **Tests**: All 504 service tests pass
 
 **Bug Fix Sprint (January 9, 2026) - ✅ COMPLETED:**
 - [x] **Financial Bug #1 & #2**: Funding cards not updating moneySources at BANK/INVESTOR-FUND-REVIEW
@@ -415,4 +439,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 9, 2026
+**Last Updated:** January 10, 2026
