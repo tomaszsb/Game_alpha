@@ -26,5 +26,14 @@ docker run -d \
   game_alpha
 
 echo ""
+echo "Cleaning up orphaned images..."
+PRUNED=$(docker image prune -f 2>&1)
+if echo "$PRUNED" | grep -q "Total reclaimed space"; then
+  echo "   $PRUNED" | tail -1
+else
+  echo "   No orphaned images to remove"
+fi
+
+echo ""
 echo "Deployment complete!"
 echo "Check status with: docker logs -f game_alpha"
