@@ -876,8 +876,46 @@ export class TurnService implements ITurnService {
         return;
       }
 
+      // SPECIAL HANDLING: Logic movement type auto-selects first matching destination
+      // The clerk/system decides where to go, not the player
+      if (movement?.movement_type === 'logic' && validMoves.length >= 1) {
+        const firstDestination = validMoves[0];
+        const logicResult = this.movementService.getLogicMovementWithExplanation(
+          playerId,
+          player.currentSpace,
+          player.visitType
+        );
+
+        // Auto-set move intent to first valid destination
+        this.stateService.setPlayerMoveIntent(playerId, firstDestination);
+
+        // Show explanation of why this destination was chosen
+        if (this.notificationService) {
+          const destContent = this.dataService.getSpaceContent(firstDestination, 'First');
+          const destTitle = destContent?.title || firstDestination;
+          const spaceContent = this.dataService.getSpaceContent(player.currentSpace, player.visitType);
+          const explanation = logicResult.explanation || 'Based on your project status';
+
+          this.notificationService.notify(
+            {
+              short: `Clerk: → ${destTitle}`,
+              medium: `📋 ${explanation}. You'll proceed to ${destTitle}`,
+              detailed: `${player.name} at ${spaceContent?.title || player.currentSpace}: ${explanation}. The clerk directs you to ${destTitle}.`
+            },
+            {
+              playerId: playerId,
+              playerName: player.name,
+              actionType: 'logic_decision_path'
+            }
+          );
+        }
+
+        console.log(`🧠 Logic movement auto-selected: ${firstDestination} (${logicResult.explanation || 'first match'})`);
+        return; // Don't create a choice - move intent is already set
+      }
+
       if (validMoves.length > 1) {
-        // Multiple moves available - present choice to player
+        // Multiple moves available - present choice to player (for 'choice' movement type)
         const playerName = player.name || 'Unknown Player';
         console.log(`🎯 Player ${playerName} is at a choice space with ${validMoves.length} options - creating movement choice`);
 
@@ -917,33 +955,6 @@ export class TurnService implements ITurnService {
         });
 
         console.log(`🎯 Movement choice created for ${playerName} - awaiting user selection`);
-      } else if (validMoves.length === 1 && movement?.movement_type === 'logic') {
-        // Single destination from logic movement - show the decision path explanation
-        const logicResult = this.movementService.getLogicMovementWithExplanation(
-          playerId,
-          player.currentSpace,
-          player.visitType
-        );
-
-        if (logicResult.explanation && this.notificationService) {
-          const destContent = this.dataService.getSpaceContent(validMoves[0], 'First');
-          const destTitle = destContent?.title || validMoves[0];
-          const spaceContent = this.dataService.getSpaceContent(player.currentSpace, player.visitType);
-
-          this.notificationService.notify(
-            {
-              short: `→ ${destTitle}`,
-              medium: `📋 ${logicResult.explanation}, you'll proceed to ${destTitle}`,
-              detailed: `${player.name} at ${spaceContent?.title || player.currentSpace}: ${logicResult.explanation}. Next stop: ${destTitle}`
-            },
-            {
-              playerId: playerId,
-              playerName: player.name,
-              actionType: 'logic_decision_path'
-            }
-          );
-          console.log(`🧠 Logic decision path: ${logicResult.explanation} → ${validMoves[0]}`);
-        }
       } else {
         // 0 or 1 moves - no choice needed, turn proceeds normally
         console.log(`🎬 TurnService.startTurn - No choice needed (${validMoves.length} valid moves)`);
