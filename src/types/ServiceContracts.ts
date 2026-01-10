@@ -227,7 +227,8 @@ export interface IStateService {
   clearPlayerHasRolledDice(): GameState;
   updateActionCounts(): void;
   setPlayerMoveIntent(playerId: string, destination: string | null): GameState;
-  
+  clearPlayerMoveIntent(playerId: string): GameState;
+
   // Modal management methods
   showCardModal(cardId: string): GameState;
   dismissModal(): GameState;
@@ -405,6 +406,14 @@ export interface IMovementService {
 
   // Dice-based movement methods
   getDiceDestination(spaceName: string, visitType: VisitType, diceRoll: number): string | null;
+  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number): string[];
+
+  // Logic-based movement methods
+  getLogicMovementWithExplanation(playerId: string, spaceName: string, visitType: VisitType): {
+    destinations: string[];
+    explanation: string;
+    matchedConditions: string[];
+  };
 
   // Choice-based movement methods
   handleMovementChoice(playerId: string): Promise<GameState>;

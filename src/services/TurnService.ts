@@ -2619,43 +2619,79 @@ export class TurnService implements ITurnService {
             diceRoll
         );
 
-        if (destinations.length > 0) {
+        if (destinations.length === 1) {
+            // Single destination - auto-select without requiring user choice
+            const singleDest = destinations[0];
+            const destContent = this.dataService.getSpaceContent(singleDest, 'First');
+            const destTitle = destContent?.title || singleDest;
+
+            // Show destination as movement effect (not choice)
+            effects.push({
+                type: 'movement',
+                description: `Next: ${destTitle}`,
+                destination: singleDest
+            });
+
+            console.log(`🎲 Single dice destination: ${singleDest} - auto-selecting`);
+            this.stateService.setPlayerMoveIntent(playerId, singleDest);
+
+            // Show explanation if player is being sent back to a review/exam space
+            const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, singleDest);
+            if (loopExplanation && this.notificationService) {
+                this.notificationService.notify(
+                    {
+                        short: `→ ${destTitle}`,
+                        medium: `📋 ${loopExplanation}`,
+                        detailed: `${currentPlayer.name} is being directed to ${destTitle}. ${loopExplanation}`
+                    },
+                    {
+                        playerId: playerId,
+                        playerName: currentPlayer.name,
+                        actionType: 'review_loop_explanation'
+                    }
+                );
+            }
+        } else if (destinations.length > 1) {
+            // Multiple destinations (from "or" choices) - present choice to player
+            const currentSpaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+            const prompt = `You rolled ${diceRoll}. Based on your outcome at ${currentSpaceContent?.title || currentPlayer.currentSpace}, choose your next path:`;
+            console.log(`🎲 Multiple dice destinations available: [${destinations.join(', ')}]`);
+
+            // Add choice effect for UI display
             effects.push({
                 type: 'choice',
-                description: 'Choose your next destination',
+                description: prompt,
                 moveOptions: destinations
             });
 
             // Create the movement choice options with descriptive labels
             const options = destinations.map(dest => {
-                // Get space content for the destination to provide context
                 const destContent = this.dataService.getSpaceContent(dest, 'First');
                 const destTitle = destContent?.title || dest;
-
-                // Build a descriptive label: "SPACE-NAME - Title"
                 const label = destTitle !== dest ? `${dest} - ${destTitle}` : dest;
-
-                return {
-                    id: dest,
-                    label: label
-                };
+                return { id: dest, label: label };
             });
 
-            if (destinations.length === 1) {
-                // Single destination - auto-select without requiring user choice
-                const singleDest = destinations[0];
-                console.log(`🎲 Single dice destination: ${singleDest} - auto-selecting`);
-                this.stateService.setPlayerMoveIntent(playerId, singleDest);
+            // Create the choice (don't await - just set it in state)
+            // The UI will show the choice and wait for player selection
+            this.choiceService.createChoice(
+                playerId,
+                'MOVEMENT',
+                prompt,
+                options
+            ).then(selectedDestination => {
+                console.log(`✅ Player ${currentPlayer.name || playerId} selected destination (dice_outcome): ${selectedDestination}`);
+                this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
 
-                // Show explanation if player is being sent back to a review/exam space
-                const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, singleDest);
+                // Show explanation if player chose a review/exam space
+                const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, selectedDestination);
                 if (loopExplanation && this.notificationService) {
-                    const destContent = this.dataService.getSpaceContent(singleDest, 'First');
+                    const destContent = this.dataService.getSpaceContent(selectedDestination, 'First');
                     this.notificationService.notify(
                         {
-                            short: `→ ${destContent?.title || singleDest}`,
+                            short: `→ ${destContent?.title || selectedDestination}`,
                             medium: `📋 ${loopExplanation}`,
-                            detailed: `${currentPlayer.name} is being directed to ${destContent?.title || singleDest}. ${loopExplanation}`
+                            detailed: `${currentPlayer.name} chose ${destContent?.title || selectedDestination}. ${loopExplanation}`
                         },
                         {
                             playerId: playerId,
@@ -2664,45 +2700,10 @@ export class TurnService implements ITurnService {
                         }
                     );
                 }
-            } else {
-                // Multiple destinations (from "or" choices) - present choice to player
-                const currentSpaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
-                const prompt = `You rolled ${diceRoll}. Based on your outcome at ${currentSpaceContent?.title || currentPlayer.currentSpace}, choose your next path:`;
-                console.log(`🎲 Multiple dice destinations available: [${destinations.join(', ')}]`);
-
-                // Create the choice (don't await - just set it in state)
-                // The UI will show the choice and wait for player selection
-                this.choiceService.createChoice(
-                    playerId,
-                    'MOVEMENT',
-                    prompt,
-                    options
-                ).then(selectedDestination => {
-                    console.log(`✅ Player ${currentPlayer.name || playerId} selected destination (dice_outcome): ${selectedDestination}`);
-                    this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
-
-                    // Show explanation if player chose a review/exam space
-                    const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, selectedDestination);
-                    if (loopExplanation && this.notificationService) {
-                        const destContent = this.dataService.getSpaceContent(selectedDestination, 'First');
-                        this.notificationService.notify(
-                            {
-                                short: `→ ${destContent?.title || selectedDestination}`,
-                                medium: `📋 ${loopExplanation}`,
-                                detailed: `${currentPlayer.name} chose ${destContent?.title || selectedDestination}. ${loopExplanation}`
-                            },
-                            {
-                                playerId: playerId,
-                                playerName: currentPlayer.name,
-                                actionType: 'review_loop_explanation'
-                            }
-                        );
-                    }
-                }).catch(error => {
-                    // Handle error silently - choice might be resolved later
-                    console.log(`🔄 Movement choice created for dice_outcome (will be resolved when player selects destination)`);
-                });
-            }
+            }).catch(error => {
+                // Handle error silently - choice might be resolved later
+                console.log(`🔄 Movement choice created for dice_outcome (will be resolved when player selects destination)`);
+            });
         } else {
             console.warn(`⚠️ No destinations found for dice roll ${diceRoll} at ${currentPlayer.currentSpace}`);
         }

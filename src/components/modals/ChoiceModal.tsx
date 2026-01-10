@@ -235,13 +235,11 @@ export function ChoiceModal(): JSX.Element {
               color: colors.secondary.main,
               textAlign: 'center'
             }}>
-              {awaitingChoice.type === 'MOVEMENT'
-                ? 'Choose carefully! This decision will determine your next destination.'
-                : awaitingChoice.type === 'CARD_SELECTION'
-                  ? 'Select the card you want to use for this action.'
-                  : awaitingChoice.type === 'CARD_GIVE'
-                    ? 'Choose which card to give to your opponent.'
-                    : 'Make your selection to continue.'}
+              {awaitingChoice.type === 'CARD_SELECTION'
+                ? 'Select the card you want to use for this action.'
+                : awaitingChoice.type === 'CARD_GIVE'
+                  ? 'Choose which card to give to your opponent.'
+                  : 'Make your selection to continue.'}
             </p>
           </div>
         </div>

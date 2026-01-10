@@ -342,6 +342,7 @@ export interface DiceResultEffect {
   cardAction?: 'draw' | 'remove' | 'replace' | 'give' | 'return';  // For cards: what action was performed
   cardIds?: string[];  // IDs of the actual cards that were drawn/removed
   moveOptions?: string[];
+  destination?: string;  // For single movement destination
 }
 
 export interface TurnEffectResult {

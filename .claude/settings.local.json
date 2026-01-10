@@ -60,7 +60,12 @@
       "WebFetch(domain:game.unravelcodes.com)",
       "Bash(sort:*)",
       "Bash(__NEW_LINE__ echo \"\")",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(/mnt/user/appdata/Game_alpha/deploy.sh:*)",
+      "Bash(/mnt/d/unravel/current_game/game_alpha/deploy.sh:*)",
+      "Bash(npm outdated:*)",
+      "Bash(npm update:*)",
+      "Bash(npm audit:*)"
     ],
     "deny": [],
     "ask": []
