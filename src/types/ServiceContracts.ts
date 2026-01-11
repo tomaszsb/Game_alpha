@@ -411,6 +411,17 @@ export interface ICardEffectService {
   isCardAction(action: string): boolean;
 }
 
+/**
+ * Financial Effect Handler - Handles RESOURCE_CHANGE and FEE_DEDUCTION effects
+ * Extracted from EffectEngineService to consolidate financial operations
+ */
+export interface IFinancialEffectHandler {
+  handleResourceChange(effect: Effect, context: EffectContext): EffectResult;
+  handleFeeDeduction(effect: Effect, context: EffectContext): EffectResult;
+  setNotificationService(notificationService: INotificationService): void;
+  setDataService(dataService: IDataService): void;
+}
+
 export interface IPlayerActionService {
   // Methods for handling player commands and orchestrating actions
   playCard(playerId: string, cardId: string): Promise<void>;

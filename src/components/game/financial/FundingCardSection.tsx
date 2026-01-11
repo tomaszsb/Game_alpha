@@ -14,20 +14,17 @@ export function FundingCardSection({ title, cards, cardType, dataService, colors
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
   // Calculate total funding value from cards
+  // B cards use loan_amount, I cards use investment_amount
   const totalFunding = cards.reduce((sum, cardId) => {
     const card = dataService.getCardById(cardId);
     if (!card) return sum;
 
-    // First try card name
-    const nameMatch = card.card_name?.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-    if (nameMatch) {
-      return sum + FormatUtils.parseMoney(nameMatch[1]);
+    // Use loan_amount for B cards, investment_amount for I cards
+    if (cardType === 'B' && card.loan_amount) {
+      return sum + parseInt(String(card.loan_amount), 10);
     }
-
-    // Then try description
-    const descMatch = card.description?.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-    if (descMatch) {
-      return sum + FormatUtils.parseMoney(descMatch[1]);
+    if (cardType === 'I' && card.investment_amount) {
+      return sum + parseInt(String(card.investment_amount), 10);
     }
 
     return sum;
@@ -115,21 +112,14 @@ export function FundingCardSection({ title, cards, cardType, dataService, colors
                 fontWeight: 'bold',
                 color: cardType === 'B' ? colors.info.text : colors.primary.text
               }}>
-                {/* Try to extract funding amount from card name or description */}
+                {/* Use loan_amount for B cards, investment_amount for I cards */}
                 {(() => {
-                  // First try card name
-                  const nameMatch = card.card_name?.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-                  if (nameMatch) {
-                    return FormatUtils.formatMoney(FormatUtils.parseMoney(nameMatch[1]));
+                  if (cardType === 'B' && card.loan_amount) {
+                    return FormatUtils.formatMoney(parseInt(String(card.loan_amount), 10));
                   }
-
-                  // Then try description
-                  const descMatch = card.description?.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-                  if (descMatch) {
-                    return FormatUtils.formatMoney(FormatUtils.parseMoney(descMatch[1]));
+                  if (cardType === 'I' && card.investment_amount) {
+                    return FormatUtils.formatMoney(parseInt(String(card.investment_amount), 10));
                   }
-
-                  // If no specific amount found, show as variable
                   return 'Variable amount';
                 })()}
               </div>

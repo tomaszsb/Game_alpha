@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Refactoring - FinancialEffectHandler Extraction (January 11, 2026)
+
+**REFACTOR: Extract FinancialEffectHandler from EffectEngineService**
+
+- **Goal**: Extract ~400 lines of financial effect processing from EffectEngineService
+- **Created**: `src/services/FinancialEffectHandler.ts` (~400 lines)
+  - Handles RESOURCE_CHANGE and FEE_DEDUCTION effects
+  - Money additions/deductions with notifications
+  - Design fee percentage calculations
+  - Loan fee calculations (tiered and fixed)
+  - Design fee cap rule (20% cap with game over/penalty)
+  - Bankruptcy checking
+  - Time change processing
+- **Interface**: Added `IFinancialEffectHandler` to `ServiceContracts.ts`
+- **Integration**:
+  - EffectEngineService delegates to handler via setter injection
+  - Legacy code retained for backwards compatibility
+  - ServiceProvider.tsx updated with wiring
+- **Tests**: All 29 EffectEngineService tests pass, all 41 ResourceService tests pass
+
+---
+
 ### Refactoring - FinancialStatusDisplay Decomposition (January 11, 2026)
 
 **REFACTOR: Decompose FinancialStatusDisplay.tsx into focused components**

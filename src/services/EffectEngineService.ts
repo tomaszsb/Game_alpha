@@ -12,7 +12,8 @@ import {
   ILoggingService,
   IDataService,
   LogPayload,
-  INotificationService
+  INotificationService,
+  IFinancialEffectHandler
 } from '../types/ServiceContracts';
 import { NegotiationService } from './NegotiationService';
 import { 
@@ -94,6 +95,7 @@ export class EffectEngineService implements IEffectEngineService {
   private dataService?: IDataService;
   private negotiationService?: NegotiationService;
   private notificationService?: INotificationService;
+  private financialEffectHandler?: IFinancialEffectHandler;
 
   constructor(
     resourceService: IResourceService,
@@ -133,6 +135,17 @@ export class EffectEngineService implements IEffectEngineService {
 
   public setDataService(dataService: IDataService): void {
     this.dataService = dataService;
+  }
+
+  public setFinancialEffectHandler(handler: IFinancialEffectHandler): void {
+    this.financialEffectHandler = handler;
+    // Wire dependencies to the handler
+    if (this.notificationService) {
+      handler.setNotificationService(this.notificationService);
+    }
+    if (this.dataService) {
+      handler.setDataService(this.dataService);
+    }
   }
 
   /**
@@ -278,6 +291,11 @@ export class EffectEngineService implements IEffectEngineService {
       // Process effect based on type using type guards and switch statement
       switch (effect.effectType) {
         case 'RESOURCE_CHANGE':
+          // Delegate to FinancialEffectHandler if available
+          if (this.financialEffectHandler) {
+            return this.financialEffectHandler.handleResourceChange(effect, context);
+          }
+          // Legacy fallback - keep original implementation for backwards compatibility
           if (isResourceChangeEffect(effect)) {
             const { payload } = effect;
             const source = payload.source || context.source;
@@ -1260,6 +1278,11 @@ export class EffectEngineService implements IEffectEngineService {
           break;
 
         case 'FEE_DEDUCTION':
+          // Delegate to FinancialEffectHandler if available
+          if (this.financialEffectHandler) {
+            return this.financialEffectHandler.handleFeeDeduction(effect, context);
+          }
+          // Legacy fallback - keep original implementation for backwards compatibility
           if (isFeeDeductionEffect(effect)) {
             const { payload } = effect;
             console.log(`💰 EFFECT_ENGINE: Processing FEE_DEDUCTION`);

@@ -34,14 +34,21 @@ export function SourcesOfMoneySection({
 }: SourcesOfMoneySectionProps): JSX.Element {
   const [expandedSources, setExpandedSources] = useState(false);
 
-  // Calculate owner funding total
+  // Calculate owner funding total from loan_amount (B) and investment_amount (I) columns
   const calculateOwnerFundingTotal = () => {
     const allCards = [...bCards, ...iCards];
     return allCards.reduce((sum, cardId) => {
       const card = dataService.getCardById(cardId);
       if (!card) return sum;
-      const fundingMatch = card.card_name?.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-      return fundingMatch ? sum + FormatUtils.parseMoney(fundingMatch[1]) : sum;
+
+      const cardType = cardId.charAt(0).toUpperCase();
+      if (cardType === 'B' && card.loan_amount) {
+        return sum + parseInt(String(card.loan_amount), 10);
+      }
+      if (cardType === 'I' && card.investment_amount) {
+        return sum + parseInt(String(card.investment_amount), 10);
+      }
+      return sum;
     }, 0);
   };
 
@@ -56,11 +63,12 @@ export function SourcesOfMoneySection({
       const iDiscarded = discardPiles.I || [];
 
       // Add Bank funding transactions
+      // B cards have funding amounts in loan_amount column
       bDiscarded.forEach((cardId: string) => {
         const card = dataService.getCardById(cardId);
         if (card) {
-          const fundingMatch = card.card_name.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-          const amount = fundingMatch ? FormatUtils.parseMoney(fundingMatch[1]) : 0;
+          // Use loan_amount for B cards (bank loans)
+          const amount = card.loan_amount ? parseInt(String(card.loan_amount), 10) : 0;
           if (amount > 0) {
             fundingTransactions.push({
               type: 'Bank',
@@ -73,11 +81,12 @@ export function SourcesOfMoneySection({
       });
 
       // Add Investor funding transactions
+      // I cards have funding amounts in investment_amount column
       iDiscarded.forEach((cardId: string) => {
         const card = dataService.getCardById(cardId);
         if (card) {
-          const fundingMatch = card.card_name.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-          const amount = fundingMatch ? FormatUtils.parseMoney(fundingMatch[1]) : 0;
+          // Use investment_amount for I cards (investor funding)
+          const amount = card.investment_amount ? parseInt(String(card.investment_amount), 10) : 0;
           if (amount > 0) {
             fundingTransactions.push({
               type: 'Investor',

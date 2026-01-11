@@ -86,20 +86,13 @@ export function OwnerSeedMoneySection({ bCards, iCards, totalFunding, dataServic
               const card = dataService.getCardById(cardId);
               if (!card) return null;
 
-              // Try to get amount from card name first, then fall back to a default based on card type
-              const fundingMatch = card.card_name?.match(/\$?([\d,]+(?:\.\d+)?[KMB]?)/);
-              let amount;
-              if (fundingMatch) {
-                amount = FormatUtils.formatMoney(FormatUtils.parseMoney(fundingMatch[1]));
-              } else {
-                // If no amount in name, try to extract from description, or use a reasonable default
-                if (card.description?.includes('$')) {
-                  const descMatch = card.description.match(/\$([\d,]+(?:\.\d+)?[KMB]?)/);
-                  amount = descMatch ? FormatUtils.formatMoney(FormatUtils.parseMoney(descMatch[1])) : 'Variable amount';
-                } else {
-                  // For cards without explicit amounts, show as variable
-                  amount = 'Variable amount';
-                }
+              // Get amount from loan_amount (B cards) or investment_amount (I cards)
+              let amount = 'Variable amount';
+              const cardType = cardId.charAt(0).toUpperCase();
+              if (cardType === 'B' && card.loan_amount) {
+                amount = FormatUtils.formatMoney(parseInt(String(card.loan_amount), 10));
+              } else if (cardType === 'I' && card.investment_amount) {
+                amount = FormatUtils.formatMoney(parseInt(String(card.investment_amount), 10));
               }
 
               return (

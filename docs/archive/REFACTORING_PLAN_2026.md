@@ -86,16 +86,21 @@ Comprehensive analysis of the Game Alpha codebase reveals significant technical 
 ### Tier 2: Medium Impact, Medium Risk
 
 #### 4. Extract SpaceEffectProcessor from TurnService
-**Lines saved**: ~400 lines
+**Status**: ALREADY EXISTS (January 2026 analysis)
+**Lines saved**: ~400 lines → **SpaceEffectService.ts already has 340 lines**
 **Current location**: `processSpaceEffectsAfterMovement()` (166 lines) + routing
+**Analysis**: `src/services/SpaceEffectService.ts` (340 lines) already extracts dice/space effect application.
+Remaining processing in TurnService is tightly integrated with turn flow and EffectEngine.
 
 #### 5. Extract MovementChoiceManager from TurnService
-**Lines saved**: ~285 lines
+**Lines saved**: ~180 lines (revised estimate)
 **Centralizes**: Three-path choice creation architecture with scattered guard logic
+**Note**: `handleMovementChoices()` (~117 lines) + `restoreMovementChoiceIfNeeded()` (~60 lines)
+Tightly coupled with turn state management - extraction may add complexity.
 
 #### 6. Extract FinancialEffectService from EffectEngineService
-**Lines saved**: ~240 lines
-**Current location**: RESOURCE_CHANGE case block
+**Lines saved**: ~340 lines
+**Current location**: RESOURCE_CHANGE case (~240 lines) + FEE_DEDUCTION case (~100 lines)
 
 #### 7. Decompose FinancialStatusDisplay.tsx
 **Lines saved**: Main component from 1066 to ~300
@@ -253,6 +258,27 @@ Given the game is in alpha/beta stage and still growing:
   - Main component reduced from **1,066 lines to 165 lines** (85% reduction)
   - All 90 player component tests passing
   - Build successful
+- [x] **Tier 2.6**: Extract FinancialEffectHandler from EffectEngineService (Completed January 11, 2026)
+  - Created `src/services/FinancialEffectHandler.ts` (~400 lines)
+  - Handles RESOURCE_CHANGE and FEE_DEDUCTION effects
+  - Features:
+    - Money additions/deductions with notifications
+    - Design fee percentage calculations
+    - Loan fee calculations (tiered and fixed)
+    - Design fee cap rule (20% cap with game over/penalty)
+    - Bankruptcy checking
+    - Time change processing
+  - Added `IFinancialEffectHandler` interface to ServiceContracts.ts
+  - Updated EffectEngineService with setter injection (legacy fallback retained)
+  - Updated ServiceProvider.tsx wiring
+  - All 29 EffectEngineService tests pass, all 41 ResourceService tests pass
+
+**Bug Fixes:**
+- [x] **Fix funding card amount extraction** (January 11, 2026)
+  - Issue: After Tier 2.7 decomposition, B/I card funding details showed "Variable amount" instead of actual amounts
+  - Root cause: Code tried to parse dollar amounts from card names using regex, but B/I cards store amounts in dedicated columns (`loan_amount`, `investment_amount`)
+  - Fixed files: `SourcesOfMoneySection.tsx`, `FundingCardSection.tsx`, `OwnerSeedMoneySection.tsx`
+  - All 90 player component tests passing
 
 **Follow-up Consolidation Tasks (Lower Priority):**
 - [ ] Consolidate ExpandableSection: Enhance common version with player features, update imports
