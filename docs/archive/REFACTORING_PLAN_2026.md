@@ -240,6 +240,20 @@ Given the game is in alpha/beta stage and still growing:
   - MovementDestinationChoice: Already integrated into PlayerPanel and TurnControlsWithActions
   - TooltipButton: Pattern present but not duplicated excessively
 
+- [x] **Tier 2.7**: Decompose FinancialStatusDisplay.tsx (Completed January 11, 2026)
+  - Created `src/components/game/financial/` directory with extracted components:
+    - `types.ts` - Shared types (FinancialStatus, CardGroup, FundingTransaction, etc.)
+    - `FundingCardSection.tsx` - B/I card details (~135 lines)
+    - `OwnerSeedMoneySection.tsx` - Owner seed money display (~120 lines)
+    - `SourcesOfMoneySection.tsx` - Sources of money expandable section (~280 lines)
+    - `ProjectScopeSection.tsx` - W cards grouped by work type (~145 lines)
+    - `FeesSection.tsx` - Fees & costs expandable section (~90 lines)
+    - `SurplusDeficitSection.tsx` - Final calculation display (~85 lines)
+    - `index.ts` - Barrel exports
+  - Main component reduced from **1,066 lines to 165 lines** (85% reduction)
+  - All 90 player component tests passing
+  - Build successful
+
 **Follow-up Consolidation Tasks (Lower Priority):**
 - [ ] Consolidate ExpandableSection: Enhance common version with player features, update imports
 - [ ] Remove legacy applySpaceCardEffectLegacy from TurnService after verification

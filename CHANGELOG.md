@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Refactoring - FinancialStatusDisplay Decomposition (January 11, 2026)
+
+**REFACTOR: Decompose FinancialStatusDisplay.tsx into focused components**
+
+- **Goal**: Reduce 1,066-line component to manageable size following single-responsibility principle
+- **Created**: `src/components/game/financial/` directory with 8 files:
+  - `types.ts` - Shared TypeScript interfaces (FinancialStatus, CardGroup, FundingTransaction)
+  - `FundingCardSection.tsx` (~135 lines) - B/I card details with expandable view
+  - `OwnerSeedMoneySection.tsx` (~120 lines) - Owner seed money display
+  - `SourcesOfMoneySection.tsx` (~280 lines) - Sources of money expandable section
+  - `ProjectScopeSection.tsx` (~145 lines) - W cards grouped by work type
+  - `FeesSection.tsx` (~90 lines) - Fees & costs expandable section
+  - `SurplusDeficitSection.tsx` (~85 lines) - Final calculation with breakdown
+  - `index.ts` - Barrel exports
+- **Result**: Main component reduced from **1,066 lines to 165 lines** (85% reduction)
+- **Tests**: All 90 player component tests pass, build successful
+
+---
+
 ### Refactoring - CardEffectService Extraction (January 11, 2026)
 
 **REFACTOR: Extract CardEffectService from TurnService**
