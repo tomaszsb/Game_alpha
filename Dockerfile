@@ -6,7 +6,6 @@ FROM node:20-alpine
 
 # Build argument for version tracking
 ARG GIT_COMMIT=unknown
-ENV VITE_GIT_COMMIT=$GIT_COMMIT
 
 WORKDIR /app
 
@@ -19,8 +18,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the frontend
-RUN npm run build
+# Build the frontend with git commit passed as env var
+# ENV must be set in the same RUN command for Vite to see it
+RUN VITE_GIT_COMMIT=${GIT_COMMIT} npm run build
 
 # Create data directory for persistence
 RUN mkdir -p /app/data
