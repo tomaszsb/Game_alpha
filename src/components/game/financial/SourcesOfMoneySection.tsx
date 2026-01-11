@@ -3,12 +3,19 @@
 import React, { useState, CSSProperties } from 'react';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { FundingCardSection } from './FundingCardSection';
-import { OwnerSeedMoneySection } from './OwnerSeedMoneySection';
 import { FinancialStatus, FundingTransaction } from './types';
+
+interface MoneySources {
+  ownerFunding: number;
+  bankLoans: number;
+  investmentDeals: number;
+  other: number;
+}
 
 interface SourcesOfMoneySectionProps {
   player: {
     currentSpace: string;
+    moneySources?: MoneySources;
   };
   bCards: string[];
   iCards: string[];
@@ -21,6 +28,10 @@ interface SourcesOfMoneySectionProps {
 
 /**
  * SourcesOfMoneySection displays all funding sources in an expandable format
+ * Shows three separate categories:
+ * 1. Owner Seed Money - from moneySources.ownerFunding (calculated at OWNER-FUND-INITIATION)
+ * 2. Bank Funding - from B cards in discard pile (actual bank loans)
+ * 3. Investor Funding - from I cards in discard pile (actual investor deals)
  */
 export function SourcesOfMoneySection({
   player,
@@ -34,43 +45,40 @@ export function SourcesOfMoneySection({
 }: SourcesOfMoneySectionProps): JSX.Element {
   const [expandedSources, setExpandedSources] = useState(false);
 
-  // Calculate owner funding total from loan_amount (B) and investment_amount (I) columns
-  const calculateOwnerFundingTotal = () => {
-    const allCards = [...bCards, ...iCards];
-    return allCards.reduce((sum, cardId) => {
-      const card = dataService.getCardById(cardId);
-      if (!card) return sum;
-
-      const cardType = cardId.charAt(0).toUpperCase();
-      if (cardType === 'B' && card.loan_amount) {
-        return sum + parseInt(String(card.loan_amount), 10);
-      }
-      if (cardType === 'I' && card.investment_amount) {
-        return sum + parseInt(String(card.investment_amount), 10);
-      }
-      return sum;
-    }, 0);
+  // Get money sources from player state
+  const moneySources = player.moneySources || {
+    ownerFunding: 0,
+    bankLoans: 0,
+    investmentDeals: 0,
+    other: 0
   };
 
-  // Get funding transactions from discard piles
-  const getFundingTransactions = (): FundingTransaction[] => {
+  // Get funding transactions from all sources
+  const getFundingBreakdown = (): FundingTransaction[] => {
+    const transactions: FundingTransaction[] = [];
+
+    // 1. Owner Seed Money (from moneySources.ownerFunding)
+    if (moneySources.ownerFunding > 0) {
+      transactions.push({
+        type: 'Owner',
+        description: "Owner's personal seed money investment",
+        amount: moneySources.ownerFunding,
+        icon: '👤'
+      });
+    }
+
+    // 2. Bank Funding (from B cards in discard pile)
     try {
       const gameState = stateService.getGameState();
       const discardPiles = gameState.discardPiles || {};
-      const fundingTransactions: FundingTransaction[] = [];
-
       const bDiscarded = discardPiles.B || [];
-      const iDiscarded = discardPiles.I || [];
 
-      // Add Bank funding transactions
-      // B cards have funding amounts in loan_amount column
       bDiscarded.forEach((cardId: string) => {
         const card = dataService.getCardById(cardId);
         if (card) {
-          // Use loan_amount for B cards (bank loans)
           const amount = card.loan_amount ? parseInt(String(card.loan_amount), 10) : 0;
           if (amount > 0) {
-            fundingTransactions.push({
+            transactions.push({
               type: 'Bank',
               description: card.card_name,
               amount: amount,
@@ -80,15 +88,15 @@ export function SourcesOfMoneySection({
         }
       });
 
-      // Add Investor funding transactions
-      // I cards have funding amounts in investment_amount column
+      // 3. Investor Funding (from I cards in discard pile)
+      const iDiscarded = discardPiles.I || [];
+
       iDiscarded.forEach((cardId: string) => {
         const card = dataService.getCardById(cardId);
         if (card) {
-          // Use investment_amount for I cards (investor funding)
           const amount = card.investment_amount ? parseInt(String(card.investment_amount), 10) : 0;
           if (amount > 0) {
-            fundingTransactions.push({
+            transactions.push({
               type: 'Investor',
               description: card.card_name,
               amount: amount,
@@ -97,27 +105,21 @@ export function SourcesOfMoneySection({
           }
         }
       });
-
-      // If no transactions found but player has money, show as owner seed money
-      if (fundingTransactions.length === 0 && player.currentSpace !== 'OWNER-FUND-INITIATION') {
-        fundingTransactions.push({
-          type: 'Owner',
-          description: 'Seed money',
-          amount: financialStatus.playerMoney,
-          icon: '👤'
-        });
-      }
-
-      return fundingTransactions;
     } catch (error) {
-      return [{
-        type: 'Owner',
-        description: 'Seed money',
-        amount: financialStatus.playerMoney,
-        icon: '👤'
-      }];
+      console.error('Error getting funding breakdown:', error);
     }
+
+    return transactions;
   };
+
+  // Calculate totals for ratio display
+  const ownerTotal = moneySources.ownerFunding;
+  const lenderTotal = moneySources.bankLoans + moneySources.investmentDeals;
+  const totalFunding = ownerTotal + lenderTotal;
+  const ownerPercent = totalFunding > 0 ? Math.round((ownerTotal / totalFunding) * 100) : 0;
+  const lenderPercent = totalFunding > 0 ? 100 - ownerPercent : 0;
+
+  const transactions = getFundingBreakdown();
 
   return (
     <>
@@ -148,7 +150,7 @@ export function SourcesOfMoneySection({
             }}>
               💰 Sources of Money
               {/* Show badge for B/I cards in hand */}
-              {(bCards.length > 0 || iCards.length > 0) && player.currentSpace !== 'OWNER-FUND-INITIATION' && (
+              {(bCards.length > 0 || iCards.length > 0) && (
                 <span style={{
                   padding: '2px 6px',
                   backgroundColor: '#3b82f6',
@@ -182,19 +184,29 @@ export function SourcesOfMoneySection({
           </div>
         </div>
 
-        {/* Expanded Funding Sources - Only show when NOT on OWNER-FUND-INITIATION */}
-        {expandedSources && player.currentSpace !== 'OWNER-FUND-INITIATION' && (
+        {/* Expanded Funding Sources */}
+        {expandedSources && (
           <div style={{ marginLeft: '16px' }}>
-            {/* Detailed Funding Breakdown */}
-            {financialStatus.playerMoney > 0 && (
+            {/* Funding Breakdown by Category */}
+            {transactions.length > 0 && (
               <div style={{ marginBottom: '8px' }}>
-                {/* Show individual funding transactions */}
-                {getFundingTransactions().map((transaction, index) => (
+                {/* Show individual funding transactions grouped by type */}
+                {transactions.map((transaction, index) => (
                   <div key={index} style={{
                     padding: '6px 12px',
-                    backgroundColor: colors.secondary.bg,
+                    backgroundColor: transaction.type === 'Owner'
+                      ? colors.primary.bg
+                      : transaction.type === 'Bank'
+                        ? colors.info.bg
+                        : colors.warning.bg,
                     borderRadius: '4px',
-                    border: `1px solid ${colors.secondary.border}`,
+                    border: `1px solid ${
+                      transaction.type === 'Owner'
+                        ? colors.primary.border
+                        : transaction.type === 'Bank'
+                          ? colors.info.border
+                          : colors.warning.border
+                    }`,
                     marginBottom: '4px'
                   }}>
                     <div style={{
@@ -226,6 +238,53 @@ export function SourcesOfMoneySection({
                   </div>
                 ))}
 
+                {/* Owner vs Lender Ratio */}
+                {totalFunding > 0 && lenderTotal > 0 && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: colors.secondary.lighter,
+                    borderRadius: '4px',
+                    border: `1px solid ${colors.secondary.border}`
+                  }}>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      color: colors.secondary.dark,
+                      marginBottom: '4px'
+                    }}>
+                      📊 Funding Ratio
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      height: '8px',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      marginBottom: '4px'
+                    }}>
+                      <div style={{
+                        width: `${ownerPercent}%`,
+                        backgroundColor: colors.primary.main,
+                        transition: 'width 0.3s ease'
+                      }} />
+                      <div style={{
+                        width: `${lenderPercent}%`,
+                        backgroundColor: colors.info.main,
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.7rem',
+                      color: colors.secondary.main
+                    }}>
+                      <span>👤 Owner: {ownerPercent}%</span>
+                      <span>🏦💼 Lenders: {lenderPercent}%</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Total Funding */}
                 <div style={{
                   marginTop: '8px',
@@ -252,16 +311,30 @@ export function SourcesOfMoneySection({
               </div>
             )}
 
+            {/* No funding yet message */}
+            {transactions.length === 0 && financialStatus.playerMoney === 0 && (
+              <div style={{
+                padding: '12px',
+                backgroundColor: colors.secondary.lighter,
+                borderRadius: '4px',
+                textAlign: 'center',
+                color: colors.secondary.main,
+                fontSize: '0.8rem'
+              }}>
+                No funding received yet. Complete OWNER-FUND-INITIATION to receive seed money.
+              </div>
+            )}
+
             {/* Available Funding Options in Hand */}
-            {(bCards.length > 0 || iCards.length > 0) && player.currentSpace !== 'OWNER-FUND-INITIATION' && (
-              <div style={{ marginTop: '8px' }}>
+            {(bCards.length > 0 || iCards.length > 0) && (
+              <div style={{ marginTop: '12px' }}>
                 <div style={{
                   fontSize: '0.8rem',
                   fontWeight: 'bold',
                   color: colors.info.dark,
                   marginBottom: '6px'
                 }}>
-                  💼 Available Options:
+                  💼 Available Funding Options (in hand):
                 </div>
 
                 {/* Bank Loans (B Cards) */}
@@ -289,56 +362,7 @@ export function SourcesOfMoneySection({
             )}
           </div>
         )}
-
-        {/* Owner Seed Money Section - Show when ON OWNER-FUND-INITIATION */}
-        {player.currentSpace === 'OWNER-FUND-INITIATION' && (bCards.length > 0 || iCards.length > 0) && (
-          <OwnerSeedMoneySection
-            bCards={bCards}
-            iCards={iCards}
-            totalFunding={calculateOwnerFundingTotal()}
-            dataService={dataService}
-            colors={colors}
-          />
-        )}
       </div>
-
-      {/* Duplicate expandable section - showing available options */}
-      {expandedSources && player.currentSpace !== 'OWNER-FUND-INITIATION' && (bCards.length > 0 || iCards.length > 0) && (
-        <div style={sectionStyle}>
-          <div style={{ marginLeft: '16px' }}>
-            <div style={{ marginTop: '8px' }}>
-              <div style={{
-                fontSize: '0.8rem',
-                fontWeight: 'bold',
-                color: colors.info.dark,
-                marginBottom: '6px'
-              }}>
-                💼 Available Options:
-              </div>
-
-              {bCards.length > 0 && (
-                <FundingCardSection
-                  title="🏦 Bank Loans"
-                  cards={bCards}
-                  cardType="B"
-                  dataService={dataService}
-                  colors={colors}
-                />
-              )}
-
-              {iCards.length > 0 && (
-                <FundingCardSection
-                  title="💼 Investment Deals"
-                  cards={iCards}
-                  cardType="I"
-                  dataService={dataService}
-                  colors={colors}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

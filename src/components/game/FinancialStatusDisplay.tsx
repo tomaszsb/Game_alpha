@@ -122,7 +122,7 @@ export function FinancialStatusDisplay({ player }: FinancialStatusDisplayProps):
     <div style={containerStyle}>
       {/* 1. SOURCES OF MONEY */}
       <SourcesOfMoneySection
-        player={{ currentSpace: player.currentSpace }}
+        player={{ currentSpace: player.currentSpace, moneySources: player.moneySources }}
         bCards={bCards}
         iCards={iCards}
         financialStatus={financialStatus}

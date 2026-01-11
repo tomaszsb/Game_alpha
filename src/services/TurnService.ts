@@ -3150,7 +3150,8 @@ export class TurnService implements ITurnService {
 
   /**
    * Handle automatic funding for OWNER-FUND-INITIATION space
-   * Awards B card if project scope ≤ $4M, I card otherwise
+   * Calculates owner seed money as projectScope * random(0.8 to 1.2)
+   * Owner seed money is separate from bank loans (B cards) and investor funding (I cards)
    */
   async handleAutomaticFunding(playerId: string): Promise<TurnEffectResult> {
     console.log(`💰 TurnService.handleAutomaticFunding - Starting for player ${playerId}`);
@@ -3164,8 +3165,6 @@ export class TurnService implements ITurnService {
       throw new Error(`Player is not on OWNER-FUND-INITIATION space`);
     }
 
-    const beforeState = this.stateService.getGameState();
-
     // Calculate project scope from W cards (single source of truth)
     const projectScope = this.gameRulesService.calculateProjectScope(playerId);
 
@@ -3175,70 +3174,54 @@ export class TurnService implements ITurnService {
       projectScope: projectScope
     });
 
-    // Determine funding type based on project scope
-    const fundingCardType = projectScope <= 4000000 ? 'B' : 'I';
-    const fundingDescription = projectScope <= 4000000
-      ? `Bank funding approved (scope ≤ $4M)`
-      : `Investor funding required (scope > $4M)`;
+    // Calculate owner seed money: projectScope * random(0.8 to 1.2)
+    // This represents the owner's personal investment into the project
+    const seedMoneyMultiplier = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
+    const ownerSeedMoney = Math.round(projectScope * seedMoneyMultiplier);
 
-    console.log(`💰 Project scope: $${projectScope.toLocaleString()}, awarding ${fundingCardType} card`);
+    // Round to nearest $10,000 for cleaner numbers
+    const roundedSeedMoney = Math.round(ownerSeedMoney / 10000) * 10000;
 
-    // Draw and automatically play the funding card using atomic method
+    console.log(`💰 Project scope: $${projectScope.toLocaleString()}`);
+    console.log(`💰 Seed money multiplier: ${(seedMoneyMultiplier * 100).toFixed(1)}%`);
+    console.log(`💰 Owner Seed Money: $${roundedSeedMoney.toLocaleString()}`);
+
     try {
-      const result = await this.cardService.drawAndApplyCard(
+      // Add owner seed money directly to player's funds
+      // This is tracked separately from bank loans and investor deals
+      this.resourceService.addMoney(
         playerId,
-        fundingCardType,
-        'auto_funding',
-        'Automatic funding for OWNER-FUND-INITIATION space'
+        roundedSeedMoney,
+        'owner_seed_money',
+        `Owner's personal seed money investment`,
+        'owner'  // Tracks in moneySources.ownerFunding
       );
-
-      if (!result.success) {
-        throw new Error('Failed to draw and apply funding card.');
-      }
-
-      console.log(`💰 Automatically awarded and played ${fundingCardType} card: ${result.drawnCardId}`);
 
       // Mark that player has "rolled dice" to continue turn flow
       this.stateService.setPlayerHasRolledDice();
 
-      const afterState = this.stateService.getGameState();
+      const fundingDescription = `Owner invested $${roundedSeedMoney.toLocaleString()} as seed money (${(seedMoneyMultiplier * 100).toFixed(0)}% of project scope)`;
 
-      // Get card name for display
-      let cardName = 'Funding Card';
-      if (result.drawnCardId) {
-        const cardData = this.dataService.getCardById(result.drawnCardId);
-        if (cardData) {
-          cardName = cardData.card_name || 'Funding Card';
-        }
-      }
-
-      // Get funding amount from ownerFunding in moneySources (what shows in finances)
-      // At OWNER-FUND-INITIATION, both B and I cards go into ownerFunding
-      const playerBefore = beforeState.players.find(p => p.id === playerId);
-      const playerAfter = afterState.players.find(p => p.id === playerId);
-      const fundingAmount = (playerAfter?.moneySources?.ownerFunding || 0) - (playerBefore?.moneySources?.ownerFunding || 0);
-      console.log(`💰 Owner Seed Money: ${cardName} - $${fundingAmount.toLocaleString()} (${fundingCardType} card)`);
-
-      // Create effect description for modal feedback - include money effect
+      // Create effect description for modal feedback
       const effects: DiceResultEffect[] = [{
         type: 'money',
-        value: fundingAmount,
-        description: `🏠 Owner Seed Money: ${cardName} (${fundingCardType === 'B' ? 'Bank' : 'Investor'} funding approved)`,
-        cardType: fundingCardType,
-        cardIds: result.drawnCardId ? [result.drawnCardId] : []
+        value: roundedSeedMoney,
+        description: `🏠 Owner Seed Money: $${roundedSeedMoney.toLocaleString()}`,
+        cardType: undefined,
+        cardIds: []
       }];
 
       // Generate detailed feedback message for non-dice action and store it in state
       const feedbackMessage = formatActionFeedback(effects);
       this.stateService.setDiceRollCompletion(feedbackMessage);
 
-      // Send Automatic Funding notification
+      // Send Owner Seed Money notification
       if (this.notificationService) {
         this.notificationService.notify(
           {
-            short: 'Funding Approved',
-            medium: `💰 ${fundingDescription}`,
-            detailed: `${currentPlayer.name} received automatic funding: ${fundingDescription}`
+            short: 'Seed Money',
+            medium: `💰 Owner invested $${roundedSeedMoney.toLocaleString()}`,
+            detailed: `${currentPlayer.name} invested personal seed money: $${roundedSeedMoney.toLocaleString()}`
           },
           {
             playerId: currentPlayer.id,
