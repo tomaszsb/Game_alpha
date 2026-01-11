@@ -65,7 +65,9 @@
       "Bash(/mnt/d/unravel/current_game/game_alpha/deploy.sh:*)",
       "Bash(npm outdated:*)",
       "Bash(npm update:*)",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(./scripts/deploy.sh:*)",
+      "Bash(./deploy.sh:*)"
     ],
     "deny": [],
     "ask": []

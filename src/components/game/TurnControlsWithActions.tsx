@@ -617,7 +617,12 @@ export function TurnControlsWithActions({
         )}
 
         {/* Manual Effect Buttons - show if available, replace with actions when completed */}
-        {isCurrentPlayersTurn && manualEffects.length > 0 && !manualEffects.every(e => completedActions.manualActions[e.effect_type]) && (
+        {isCurrentPlayersTurn && manualEffects.length > 0 && !manualEffects.every(e => {
+          // Check by compound key or effect_action for accurate completion detection
+          const compoundKey = `${e.effect_type}:${e.effect_action}`;
+          return completedActions.manualActions[compoundKey] !== undefined ||
+                 completedActions.manualActions[e.effect_action] !== undefined;
+        }) && (
           <div style={{
             padding: '8px',
             backgroundColor: colors.warning.light,
@@ -649,8 +654,12 @@ export function TurnControlsWithActions({
           // Use centralized button formatting
           const { text: buttonText, icon: buttonIcon } = formatManualEffectButton(effect);
 
-          // Check if THIS specific effect type has been completed (not global flag)
-          const isThisEffectCompleted = completedActions.manualActions[effect.effect_type] !== undefined;
+          // Check if THIS specific effect has been completed using compound key or effect_action
+          // This allows multiple effects with the same effect_type (e.g., two "cards" effects at BANK-FUND-REVIEW)
+          const compoundKey = `${effect.effect_type}:${effect.effect_action}`;
+          const isThisEffectCompleted =
+            completedActions.manualActions[compoundKey] !== undefined ||
+            completedActions.manualActions[effect.effect_action] !== undefined;
           // Manual actions should be available alongside movement choices - they're independent
           // Only disable if already completed or if currently processing a manual action
           const isButtonDisabled = isThisEffectCompleted;
@@ -674,7 +683,9 @@ export function TurnControlsWithActions({
             );
           } else if (isThisEffectCompleted) {
             // Button is disabled because effect is completed - show completion message
-            const completionMessage = completedActions.manualActions[effect.effect_type];
+            // Use compound key or effect_action for accurate lookup
+            const completionMessage = completedActions.manualActions[compoundKey] ||
+                                     completedActions.manualActions[effect.effect_action];
             if (completionMessage) {
               return (
                 <div key={`completed-${index}`} style={{ padding: '4px 8px', fontSize: '10px', backgroundColor: colors.secondary.light, borderRadius: '4px', color: colors.secondary.main }}>
