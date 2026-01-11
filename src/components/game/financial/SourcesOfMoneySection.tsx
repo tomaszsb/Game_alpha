@@ -21,7 +21,7 @@ interface SourcesOfMoneySectionProps {
   iCards: string[];
   financialStatus: FinancialStatus;
   dataService: any;
-  stateService: any;
+  stateService?: any; // Optional - no longer used for funding display
   colors: any;
   sectionStyle: CSSProperties;
 }
@@ -53,7 +53,7 @@ export function SourcesOfMoneySection({
     other: 0
   };
 
-  // Get funding transactions from all sources
+  // Get funding transactions from moneySources (reliable tracking)
   const getFundingBreakdown = (): FundingTransaction[] => {
     const transactions: FundingTransaction[] = [];
 
@@ -67,46 +67,34 @@ export function SourcesOfMoneySection({
       });
     }
 
-    // 2. Bank Funding (from B cards in discard pile)
-    try {
-      const gameState = stateService.getGameState();
-      const discardPiles = gameState.discardPiles || {};
-      const bDiscarded = discardPiles.B || [];
-
-      bDiscarded.forEach((cardId: string) => {
-        const card = dataService.getCardById(cardId);
-        if (card) {
-          const amount = card.loan_amount ? parseInt(String(card.loan_amount), 10) : 0;
-          if (amount > 0) {
-            transactions.push({
-              type: 'Bank',
-              description: card.card_name,
-              amount: amount,
-              icon: '🏦'
-            });
-          }
-        }
+    // 2. Bank Funding (from moneySources.bankLoans - tracked when loans are taken)
+    if (moneySources.bankLoans > 0) {
+      transactions.push({
+        type: 'Bank',
+        description: 'Bank loans received',
+        amount: moneySources.bankLoans,
+        icon: '🏦'
       });
+    }
 
-      // 3. Investor Funding (from I cards in discard pile)
-      const iDiscarded = discardPiles.I || [];
-
-      iDiscarded.forEach((cardId: string) => {
-        const card = dataService.getCardById(cardId);
-        if (card) {
-          const amount = card.investment_amount ? parseInt(String(card.investment_amount), 10) : 0;
-          if (amount > 0) {
-            transactions.push({
-              type: 'Investor',
-              description: card.card_name,
-              amount: amount,
-              icon: '💼'
-            });
-          }
-        }
+    // 3. Investor Funding (from moneySources.investmentDeals - tracked when investments are received)
+    if (moneySources.investmentDeals > 0) {
+      transactions.push({
+        type: 'Investor',
+        description: 'Investment deals secured',
+        amount: moneySources.investmentDeals,
+        icon: '💼'
       });
-    } catch (error) {
-      console.error('Error getting funding breakdown:', error);
+    }
+
+    // 4. Other funding sources
+    if (moneySources.other > 0) {
+      transactions.push({
+        type: 'Other',
+        description: 'Other funding sources',
+        amount: moneySources.other,
+        icon: '💵'
+      });
     }
 
     return transactions;
