@@ -6,14 +6,14 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PlayerPanel } from '../../../src/components/player/PlayerPanel';
-import { GameContext } from '../../../src/context/GameContext';
 import { GamePhase, Player } from '../../../src/types/StateTypes';
 import { Choice } from '../../../src/types/CommonTypes';
 import { createAllMockServices } from '../../mocks/mockServices';
+import { renderWithProviders } from '../../utils/test-utils';
 
 describe('PlayerPanel', () => {
   let mockServices: any;
@@ -74,10 +74,9 @@ describe('PlayerPanel', () => {
     mockGameState.awaitingChoice = movementChoice;
 
     // Act: Render the PlayerPanel
-    render(
-      <GameContext.Provider value={mockServices}>
-        <PlayerPanel gameServices={mockServices} playerId="player1" />
-      </GameContext.Provider>
+    renderWithProviders(
+      <PlayerPanel gameServices={mockServices} playerId="player1" />,
+      { gameServices: mockServices }
     );
 
     // Assert: Verify that the movement choice UI is rendered
@@ -97,10 +96,9 @@ describe('PlayerPanel', () => {
     };
     mockGameState.awaitingChoice = movementChoice;
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <PlayerPanel gameServices={mockServices} playerId="player1" />
-      </GameContext.Provider>
+    renderWithProviders(
+      <PlayerPanel gameServices={mockServices} playerId="player1" />,
+      { gameServices: mockServices }
     );
 
     // Act: Click the movement button
@@ -133,10 +131,9 @@ describe('PlayerPanel', () => {
     mockGameState.awaitingChoice = movementChoice;
     mockPlayer.moveIntent = 'ACCELERATOR'; // Pre-select a destination
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <PlayerPanel gameServices={mockServices} playerId="player1" />
-      </GameContext.Provider>
+    renderWithProviders(
+      <PlayerPanel gameServices={mockServices} playerId="player1" />,
+      { gameServices: mockServices }
     );
 
     // Assert: The pre-selected button should be highlighted

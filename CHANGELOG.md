@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Test Infrastructure - React 19 Compatibility (January 10, 2026)
+
+**FIX: Component Tests Missing DictionaryProvider Context**
+
+- **Problem**: 15 component tests failing with "useDictionaryContext must be used within a DictionaryProvider"
+- **Root Cause**: React 19 upgrade required components using dictionary context to be wrapped in DictionaryProvider during tests
+- **Fix**: Created `tests/utils/test-utils.tsx` with `renderWithProviders()` utility
+- **Utility Features**:
+  - Wraps components with both DictionaryProvider and GameContext.Provider
+  - Drop-in replacement for @testing-library/react's render()
+  - Accepts gameServices option for context injection
+- **Files Updated**:
+  - `tests/components/player/PlayerPanel.test.tsx`
+  - `tests/components/player/PlayerPanel.integration.test.tsx`
+  - `tests/components/CardDetailsModal.test.tsx`
+  - `tests/components/TurnControlsWithActions.test.tsx`
+  - `tests/E2E-01_HappyPath.test.tsx`
+  - `tests/features/E2E-MultiPathMovement.test.tsx`
+- **Additional Fix**: TurnControlsWithActions tests updated to use getAllByText for multiple matching elements
+
+**Tests**: All 504 service tests pass, all component tests pass
+
+---
+
 ### Movement System Refinements - Auto-Selection Fixes (January 10, 2026)
 
 **FIX: Single Dice Destinations No Longer Show Choice Modal**

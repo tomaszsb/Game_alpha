@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, vi, beforeEach } from 'vitest';
 import React from 'react'; // Added missing React import
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderWithProviders } from './utils/test-utils';
 import { StateService } from '../src/services/StateService';
 import { DataService } from '../src/services/DataService';
 import { CardService } from '../src/services/CardService';
@@ -98,10 +99,9 @@ const setupGameE2E = async (initialPlayerName: string = 'Alice') => {
   // Initialize the first turn correctly
   await globalTurnService.startTurn(actualPlayerId);
 
-  const { rerender } = render(
-    <GameContext.Provider value={gameServices}>
-      <GameLayout viewPlayerId={actualPlayerId} />
-    </GameContext.Provider>
+  const { rerender } = renderWithProviders(
+    <GameLayout viewPlayerId={actualPlayerId} />,
+    { gameServices }
   );
 
   return { gameServices, actualPlayerId, rerender };

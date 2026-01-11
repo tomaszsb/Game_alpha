@@ -6,8 +6,9 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { renderWithProviders } from '../utils/test-utils';
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { TurnControlsWithActions } from '../../src/components/game/TurnControlsWithActions';
 import { GameContext } from '../../src/context/GameContext';
@@ -113,10 +114,9 @@ describe('E2E Feature: Multi-Path Movement with Real Services', () => {
         playerName: player.name,
       };
 
-    render(
-      <GameContext.Provider value={services}>
-        <TurnControlsWithActions {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <TurnControlsWithActions {...mockProps} />,
+      { gameServices: services }
     );
 
     // 3. Trigger the state change that shows the movement choice (real destinations from CSV)

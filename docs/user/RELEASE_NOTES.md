@@ -2,6 +2,39 @@
 
 ---
 
+## v2.9 - Dependency Updates & Test Infrastructure (January 10, 2026)
+
+**Release Date:** January 10, 2026
+**Version:** 2.9
+**Status:** Alpha Testing
+**Type:** Infrastructure & Maintenance
+
+### Major Dependency Updates
+
+Updated to latest versions of core frameworks:
+- **React 18 → 19**: Latest React with improved performance
+- **Vitest 3 → 4**: Faster test execution
+- **ESLint 8 → 9**: Modern flat config format
+- **Jest 29 → 30**: Updated test runner
+
+### Test Infrastructure Improvements
+
+Created standardized test utilities for consistent component testing:
+- New `renderWithProviders()` utility wraps components with required context providers
+- All component tests now properly support DictionaryProvider context
+- Fixed 15 failing tests related to React 19 context changes
+
+### For Developers
+
+If you're writing new component tests, use the new utility:
+```tsx
+import { renderWithProviders } from '../utils/test-utils';
+
+renderWithProviders(<YourComponent />, { gameServices: mockServices });
+```
+
+---
+
 ## v2.8 - Smarter Auto-Selection & Clerk Decisions (January 10, 2026)
 
 **Release Date:** January 10, 2026

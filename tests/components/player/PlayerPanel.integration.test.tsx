@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithProviders } from '../../utils/test-utils';
 import { PlayerPanel } from '../../../src/components/player/PlayerPanel';
 import { IServiceContainer } from '../../../src/types/ServiceContracts';
 import { createMockStateService, createMockTurnService, createMockCardService, createMockChoiceService, createMockDataService, createMockMovementService, createMockGameRulesService } from '../../mocks/mockServices';
@@ -197,7 +198,10 @@ describe('PlayerPanel Integration Tests - Phase 5 Edge Cases & Polish', () => {
     });
 
 
-    render(<PlayerPanel gameServices={gameServices} playerId={PLAYER_ID} onTryAgain={gameServices.turnService.tryAgainOnSpace} />);
+    renderWithProviders(
+      <PlayerPanel gameServices={gameServices} playerId={PLAYER_ID} onTryAgain={gameServices.turnService.tryAgainOnSpace} />,
+      { gameServices }
+    );
 
     // Initially, choices should be visible
     const acceptButton = screen.getByText('Accept');

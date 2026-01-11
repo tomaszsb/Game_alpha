@@ -6,11 +6,11 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderWithProviders } from '../utils/test-utils';
 import { CardDetailsModal } from '../../src/components/modals/CardDetailsModal';
-import { GameContext } from '../../src/context/GameContext';
 import { Player } from '../../src/types/StateTypes';
 import { Card } from '../../src/types/DataTypes';
 import { createAllMockServices } from '../mocks/mockServices';
@@ -113,10 +113,9 @@ describe('CardDetailsModal', () => {
       // Successful transfer - no error thrown
     });
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <CardDetailsModal {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <CardDetailsModal {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Verify the modal is rendered
@@ -170,10 +169,9 @@ describe('CardDetailsModal', () => {
       throw transferError;
     });
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <CardDetailsModal {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <CardDetailsModal {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Click "Transfer Card" button to show transfer UI
@@ -215,10 +213,9 @@ describe('CardDetailsModal', () => {
   });
 
   it('should display transfer UI for transferable card types', () => {
-    render(
-      <GameContext.Provider value={mockServices}>
-        <CardDetailsModal {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <CardDetailsModal {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Verify "Transfer Card" button is available for E-type card
@@ -241,10 +238,9 @@ describe('CardDetailsModal', () => {
     // Configure mock to return 'W' for getCardType
     mockServices.cardService.getCardType.mockReturnValue('W');
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <CardDetailsModal {...propsWithWorkCard} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <CardDetailsModal {...propsWithWorkCard} />,
+      { gameServices: mockServices }
     );
 
     // Verify "Transfer Card" button is NOT available for W-type card
@@ -257,10 +253,9 @@ describe('CardDetailsModal', () => {
       isOpen: false
     };
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <CardDetailsModal {...propsWithClosedModal} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <CardDetailsModal {...propsWithClosedModal} />,
+      { gameServices: mockServices }
     );
 
     // Verify modal content is not rendered when closed
@@ -268,10 +263,9 @@ describe('CardDetailsModal', () => {
   });
 
   it('should handle multiple card transfer attempts', () => {
-    render(
-      <GameContext.Provider value={mockServices}>
-        <CardDetailsModal {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <CardDetailsModal {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Click "Transfer Card" to show transfer UI

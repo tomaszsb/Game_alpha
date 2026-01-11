@@ -6,11 +6,11 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { renderWithProviders } from '../utils/test-utils';
 import { TurnControlsWithActions } from '../../src/components/game/TurnControlsWithActions';
-import { GameContext } from '../../src/context/GameContext';
 import { GamePhase, Player } from '../../src/types/StateTypes';
 import { Choice } from '../../src/types/CommonTypes';
 import { createAllMockServices } from '../mocks/mockServices';
@@ -106,20 +106,21 @@ describe('TurnControlsWithActions', () => {
       playerName: 'Test Player'
     };
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <TurnControlsWithActions {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <TurnControlsWithActions {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Find the movement choice button by its text (including emoji)
-    const movementButton = screen.getByText((content, node) => {
+    const movementButtons = screen.getAllByText((content, node) => {
       return node?.textContent === '🎯 Market Research';
     });
-    expect(movementButton).toBeInTheDocument();
+    // Get the actual button element (not the wrapper div)
+    const movementButton = movementButtons.find(el => el.tagName === 'BUTTON');
+    expect(movementButton).toBeDefined();
 
     // Click the movement choice button to select it
-    fireEvent.click(movementButton);
+    fireEvent.click(movementButton!);
 
     // Movement is not confirmed until End Turn is clicked
     // Find and click the End Turn button (use getAllByText and filter for button element)
@@ -178,22 +179,24 @@ describe('TurnControlsWithActions', () => {
       playerName: 'Test Player'
     };
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <TurnControlsWithActions {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <TurnControlsWithActions {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Verify movement choice section is displayed
     expect(screen.getByText('📍 Select ONE Destination to Continue')).toBeInTheDocument();
 
-    // Verify both movement option buttons are displayed
-    expect(screen.getByText((content, node) => {
+    // Verify both movement option buttons are displayed (use getAllByText to handle wrapper divs)
+    const marketButtons = screen.getAllByText((content, node) => {
       return node?.textContent === '🎯 Market Research';
-    })).toBeInTheDocument();
-    expect(screen.getByText((content, node) => {
+    });
+    expect(marketButtons.find(el => el.tagName === 'BUTTON')).toBeDefined();
+
+    const discoveryButtons = screen.getAllByText((content, node) => {
       return node?.textContent === '🎯 Customer Discovery';
-    })).toBeInTheDocument();
+    });
+    expect(discoveryButtons.find(el => el.tagName === 'BUTTON')).toBeDefined();
   });
 
   it('should show feedback message instead of button when buttonFeedback is present', () => {
@@ -220,10 +223,9 @@ describe('TurnControlsWithActions', () => {
       playerName: 'Test Player'
     };
 
-    render(
-      <GameContext.Provider value={mockServices}>
-        <TurnControlsWithActions {...mockProps} />
-      </GameContext.Provider>
+    renderWithProviders(
+      <TurnControlsWithActions {...mockProps} />,
+      { gameServices: mockServices }
     );
 
     // Verify feedback message is shown instead of the button
@@ -310,10 +312,9 @@ describe('TurnControlsWithActions', () => {
         playerName: 'Test Player'
       };
 
-      render(
-        <GameContext.Provider value={mockServices}>
-          <TurnControlsWithActions {...mockProps} />
-        </GameContext.Provider>
+      renderWithProviders(
+        <TurnControlsWithActions {...mockProps} />,
+        { gameServices: mockServices }
       );
 
       // Verify dice roll button is displayed - look for the button with "Roll Dice" text
@@ -372,10 +373,9 @@ describe('TurnControlsWithActions', () => {
         playerName: 'Test Player'
       };
 
-      render(
-        <GameContext.Provider value={mockServices}>
-          <TurnControlsWithActions {...mockProps} />
-        </GameContext.Provider>
+      renderWithProviders(
+        <TurnControlsWithActions {...mockProps} />,
+        { gameServices: mockServices }
       );
 
       // Verify dice completion message is shown instead of button
