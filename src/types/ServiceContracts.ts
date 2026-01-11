@@ -388,6 +388,29 @@ export interface ICardService {
   setEffectEngineService(effectEngineService: IEffectEngineService): void;
 }
 
+/**
+ * Result of a card effect operation
+ */
+export interface CardEffectResult {
+  success: boolean;
+  cardsAffected: string[];
+  message?: string;
+}
+
+/**
+ * Card Effect Service - Handles card-related space effects
+ * Extracted from TurnService to consolidate card operations
+ */
+export interface ICardEffectService {
+  executeCardEffect(
+    playerId: string,
+    effect: SpaceEffect,
+    effectType: string
+  ): Promise<CardEffectResult>;
+
+  isCardAction(action: string): boolean;
+}
+
 export interface IPlayerActionService {
   // Methods for handling player commands and orchestrating actions
   playCard(playerId: string, cardId: string): Promise<void>;

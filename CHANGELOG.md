@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Refactoring - CardEffectService Extraction (January 11, 2026)
+
+**REFACTOR: Extract CardEffectService from TurnService**
+
+- **Goal**: Reduce TurnService from 3,239 lines; eliminate 508-line method with 80% code duplication
+- **Created**: `src/services/CardEffectService.ts` (343 lines)
+  - Consolidated card draw, replace, return, give, and transfer operations
+  - Unified action handling across all card types (W, B, E, L, I)
+  - Proper choice creation for multi-card selection scenarios
+  - Special handling for OWNER-FUND-INITIATION auto-play
+- **Interface**: Added `ICardEffectService` to `ServiceContracts.ts`
+- **Integration**:
+  - TurnService delegates to CardEffectService via setter injection
+  - ServiceProvider.tsx and ServiceProviderOptimized.tsx updated
+  - Legacy code retained in `applySpaceCardEffectLegacy()` for backwards compatibility
+- **Tests**: Added 23 tests in `tests/services/CardEffectService.test.ts`
+- **Verification**: All 527 service tests pass (504 existing + 23 new)
+
+---
+
 ### Test Infrastructure - React 19 Compatibility (January 10, 2026)
 
 **FIX: Component Tests Missing DictionaryProvider Context**

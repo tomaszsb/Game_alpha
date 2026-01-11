@@ -1,4 +1,4 @@
-import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, TurnResult } from '../types/ServiceContracts';
+import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult } from '../types/ServiceContracts';
 import { NegotiationService } from './NegotiationService';
 import { INotificationService } from './NotificationService';
 import { DiceService } from './DiceService';
@@ -26,6 +26,7 @@ export class TurnService implements ITurnService {
   private readonly conditionEvaluator: ConditionEvaluator;
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
+  private cardEffectService?: ICardEffectService;
 
   constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService, diceService?: IDiceService, spaceEffectService?: ISpaceEffectService) {
     this.dataService = dataService;
@@ -58,6 +59,13 @@ export class TurnService implements ITurnService {
    */
   public setEffectEngineService(effectEngineService: IEffectEngineService): void {
     this.effectEngineService = effectEngineService;
+  }
+
+  /**
+   * Set the CardEffectService after construction to handle dependencies
+   */
+  public setCardEffectService(cardEffectService: ICardEffectService): void {
+    this.cardEffectService = cardEffectService;
   }
 
   /**
@@ -1319,16 +1327,49 @@ export class TurnService implements ITurnService {
   private async applySpaceCardEffect(playerId: string, effect: SpaceEffect, effectType: string): Promise<GameState> {
     console.log(`🔧 [DEBUG] applySpaceCardEffect called - effect.effect_action: "${effect.effect_action}"`);
 
+    // Delegate to CardEffectService if available
+    if (this.cardEffectService) {
+      const result = await this.cardEffectService.executeCardEffect(playerId, effect, effectType);
+      console.log(`🃏 CardEffectService result: ${result.message}`);
+
+      // Mark action as complete
+      const { text: buttonText } = formatManualEffectButton(effect);
+      this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+
+      // Also mark by base type and action if needed
+      if (effectType.includes(':')) {
+        this.stateService.setPlayerCompletedManualAction(effectType.split(':')[0], buttonText);
+      }
+      if (effect.effect_action) {
+        this.stateService.setPlayerCompletedManualAction(effect.effect_action, buttonText);
+      }
+
+      // Restore movement choice if needed
+      await this.restoreMovementChoiceIfNeeded(playerId);
+
+      return this.stateService.getGameState();
+    }
+
+    // Fallback to legacy implementation if CardEffectService not set
+    console.warn('CardEffectService not set, using legacy implementation');
+    return this.applySpaceCardEffectLegacy(playerId, effect, effectType);
+  }
+
+  /**
+   * Legacy card effect implementation - kept for backwards compatibility during transition
+   * @deprecated Use CardEffectService instead
+   */
+  private async applySpaceCardEffectLegacy(playerId: string, effect: SpaceEffect, effectType: string): Promise<GameState> {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
     }
 
     // Parse the effect action and value
-    const action = effect.effect_action.toLowerCase(); // e.g., "draw_w", "add", etc. - normalize to lowercase
+    const action = effect.effect_action.toLowerCase();
     console.log(`🔧 [DEBUG] Normalized action: "${action}" (original: "${effect.effect_action}")`);
 
-    // Extract numeric value from effect_value (e.g., "Draw 3" → 3, "Replace 1" → 1)
+    // Extract numeric value from effect_value
     let value: number;
     if (typeof effect.effect_value === 'string') {
       const match = effect.effect_value.match(/\d+/);

@@ -50,6 +50,7 @@ function createLazyServiceContainer(): IServiceContainer {
   let _effectEngineService: any = null;
   let _negotiationService: any = null;
   let _playerActionService: any = null;
+  let _cardEffectService: any = null;
 
   // Lazy initialization functions
   const getDataService = () => {
@@ -203,6 +204,29 @@ function createLazyServiceContainer(): IServiceContainer {
     return _notificationService;
   };
 
+  const getCardEffectService = () => {
+    if (!_cardEffectService) {
+      PerformanceMonitor.startMeasurement('cardEffectService-init');
+      import('../services/CardEffectService').then(({ CardEffectService }) => {
+        if (!_cardEffectService) {
+          _cardEffectService = new CardEffectService(
+            getCardService(),
+            getStateService(),
+            getDataService(),
+            getChoiceService()
+          );
+          // Wire to TurnService if already initialized
+          if (_turnService && typeof _turnService.setCardEffectService === 'function') {
+            _turnService.setCardEffectService(_cardEffectService);
+          }
+        }
+      });
+      _cardEffectService = createServicePlaceholder('CardEffectService');
+      PerformanceMonitor.endMeasurement('cardEffectService-init');
+    }
+    return _cardEffectService;
+  };
+
   const getTurnService = () => {
     if (!_turnService) {
       PerformanceMonitor.startMeasurement('turnService-init');
@@ -220,6 +244,10 @@ function createLazyServiceContainer(): IServiceContainer {
             getChoiceService(),
             getNotificationService()
           );
+          // Wire CardEffectService if already initialized
+          if (_cardEffectService && typeof _cardEffectService.executeCardEffect === 'function') {
+            _turnService.setCardEffectService(_cardEffectService);
+          }
         }
       });
       _turnService = createServicePlaceholder('TurnService');
