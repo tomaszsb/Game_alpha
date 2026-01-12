@@ -137,11 +137,14 @@ export class CardEffectService implements ICardEffectService {
       `Manual action: Draw ${count} ${cardType} card${count !== 1 ? 's' : ''}`
     );
 
-    // Special handling for OWNER-FUND-INITIATION: auto-play funding cards (B and I)
-    if (player.currentSpace === 'OWNER-FUND-INITIATION' &&
-        (cardType === 'B' || cardType === 'I') &&
-        drawnCards.length > 0) {
-      console.log(`💰 OWNER-FUND-INITIATION: Auto-playing ${drawnCards.length} funding card(s)`);
+    // Special handling for funding spaces: auto-play funding cards (B and I)
+    // This applies to OWNER-FUND-INITIATION, BANK-FUND-REVIEW, and INVESTOR-FUND-REVIEW
+    const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
+    const isFundingSpace = fundingSpaces.includes(player.currentSpace);
+    const isFundingCard = cardType === 'B' || cardType === 'I';
+
+    if (isFundingSpace && isFundingCard && drawnCards.length > 0) {
+      console.log(`💰 ${player.currentSpace}: Auto-playing ${drawnCards.length} funding card(s)`);
       for (const cardId of drawnCards) {
         this.cardService.applyCardEffects(playerId, cardId);
         this.cardService.finalizePlayedCard(playerId, cardId);
