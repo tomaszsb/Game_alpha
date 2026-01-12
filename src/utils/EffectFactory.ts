@@ -469,6 +469,20 @@ export class EffectFactory {
     
     switch (spaceEffect.effect_type) {
       case 'money':
+        // Special handling for owner seed money calculator
+        if (spaceEffect.effect_action === 'owner_seed_money') {
+          effects.push({
+            effectType: 'OWNER_SEED_MONEY',
+            payload: {
+              playerId,
+              source,
+              reason: spaceEffect.description || "Owner's personal seed money investment"
+            }
+          });
+          console.log(`   💰 Created OWNER_SEED_MONEY effect for player ${playerId}`);
+          break;
+        }
+
         const moneyAmount = this.parseEffectValue(spaceEffect.effect_value, spaceEffect.effect_action);
         if (moneyAmount !== 0) {
           effects.push({

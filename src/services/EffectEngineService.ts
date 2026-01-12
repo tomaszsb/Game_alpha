@@ -537,12 +537,57 @@ export class EffectEngineService implements IEffectEngineService {
           }
           break;
 
+        case 'OWNER_SEED_MONEY':
+          // Calculate owner seed money as 80-120% of project scope
+          {
+            const { payload } = effect as any;
+            const source = payload.source || context.source;
+            const reason = payload.reason || "Owner's personal seed money investment";
+
+            // Get project scope from GameRulesService
+            const projectScope = this.gameRulesService.calculateProjectScope(payload.playerId);
+
+            // Calculate seed money: 80-120% of project scope, rounded to nearest $10,000
+            const seedMoneyMultiplier = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
+            const rawSeedMoney = Math.round(projectScope * seedMoneyMultiplier);
+            const ownerSeedMoney = Math.round(rawSeedMoney / 10000) * 10000;
+
+            console.log(`💰 OWNER_SEED_MONEY: Scope=${projectScope.toLocaleString()}, Multiplier=${(seedMoneyMultiplier * 100).toFixed(0)}%, Amount=${ownerSeedMoney.toLocaleString()}`);
+
+            // Add money with 'owner' source type
+            this.resourceService.addMoney(
+              payload.playerId,
+              ownerSeedMoney,
+              source,
+              `${reason}: $${ownerSeedMoney.toLocaleString()} (${(seedMoneyMultiplier * 100).toFixed(0)}% of scope)`,
+              'owner'
+            );
+
+            // Emit auto-action event for notification
+            const player = this.stateService.getPlayer(payload.playerId);
+            if (player) {
+              this.stateService.emitAutoAction({
+                type: 'seed_money',
+                playerId: payload.playerId,
+                playerName: player.name,
+                cardType: 'Owner',
+                cardName: "Owner's Personal Investment",
+                amount: ownerSeedMoney,
+                spaceName: player.currentSpace,
+                message: `${player.name} invested $${ownerSeedMoney.toLocaleString()} of their own money (${(seedMoneyMultiplier * 100).toFixed(0)}% of project scope)`
+              });
+            }
+
+            success = true;
+          }
+          break;
+
         case 'CARD_DRAW':
           if (isCardDrawEffect(effect)) {
             const { payload } = effect;
             const source = payload.source || context.source;
             const reason = payload.reason || 'Effect processing';
-            
+
             console.log(`🔧 EFFECT_ENGINE: Drawing ${payload.count} ${payload.cardType} card(s) for player ${payload.playerId}`);
             
             try {
