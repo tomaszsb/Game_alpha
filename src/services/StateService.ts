@@ -990,29 +990,27 @@ export class StateService implements IStateService {
         }
         required++;
 
-        // Match by compound key (cards:draw_b), simple key (cards), or effect action (draw_b)
-        const simpleKey = effect.effect_type;
+        // Match by compound key (cards:draw_b) or effect action (draw_b)
+        // DO NOT match by simple key (cards) as it causes all same-type effects to appear completed
         const compoundKey = `${effect.effect_type}:${effect.effect_action}`;
         const completedKeys = Object.keys(this.currentState.completedActions.manualActions);
 
-        // 1. Direct match
-        const simpleMatch = this.currentState.completedActions.manualActions[simpleKey];
+        // 1. Direct match by compound key or effect action
         const compoundMatch = this.currentState.completedActions.manualActions[compoundKey];
         const actionMatch = this.currentState.completedActions.manualActions[effect.effect_action];
 
-        // 2. Case-insensitive match for any key
-        const caseMatch = completedKeys.some(key => 
+        // 2. Case-insensitive match for compound key or effect action
+        const caseMatch = completedKeys.some(key =>
           key.toLowerCase() === compoundKey.toLowerCase() ||
-          key.toLowerCase() === simpleKey.toLowerCase() ||
           key.toLowerCase() === (effect.effect_action || '').toLowerCase()
         );
 
         // 3. Description match (fallback)
-        const descMatch = Object.values(this.currentState.completedActions.manualActions).some(val => 
+        const descMatch = Object.values(this.currentState.completedActions.manualActions).some(val =>
           val === effect.description || val === compoundKey
         );
 
-        const isCompleted = !!(simpleMatch || compoundMatch || actionMatch || caseMatch || descMatch);
+        const isCompleted = !!(compoundMatch || actionMatch || caseMatch || descMatch);
 
         if (isCompleted) {
           completed++;

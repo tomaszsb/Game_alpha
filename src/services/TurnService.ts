@@ -1340,14 +1340,12 @@ export class TurnService implements ITurnService {
       const wasActuallyCompleted = !isSkippableAction || result.cardsAffected.length > 0;
 
       if (wasActuallyCompleted) {
-        // Mark action as complete
+        // Mark action as complete using compound key and effect_action
+        // DO NOT mark by base type (e.g., 'cards') as it causes multiple same-type effects to all appear completed
         const { text: buttonText } = formatManualEffectButton(effect);
         this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
 
-        // Also mark by base type and action if needed
-        if (effectType.includes(':')) {
-          this.stateService.setPlayerCompletedManualAction(effectType.split(':')[0], buttonText);
-        }
+        // Also mark by effect_action for matching
         if (effect.effect_action) {
           this.stateService.setPlayerCompletedManualAction(effect.effect_action, buttonText);
         }
