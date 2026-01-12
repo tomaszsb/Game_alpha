@@ -1332,16 +1332,27 @@ export class TurnService implements ITurnService {
       const result = await this.cardEffectService.executeCardEffect(playerId, effect, effectType);
       console.log(`🃏 CardEffectService result: ${result.message}`);
 
-      // Mark action as complete
-      const { text: buttonText } = formatManualEffectButton(effect);
-      this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+      // Determine if action was actually completed (not skipped)
+      // For replace/return/give actions, user can skip - only mark complete if cards were affected
+      // For draw actions, they always succeed
+      const action = effect.effect_action.toLowerCase();
+      const isSkippableAction = action.startsWith('replace_') || action.startsWith('return_') || action.startsWith('give_');
+      const wasActuallyCompleted = !isSkippableAction || result.cardsAffected.length > 0;
 
-      // Also mark by base type and action if needed
-      if (effectType.includes(':')) {
-        this.stateService.setPlayerCompletedManualAction(effectType.split(':')[0], buttonText);
-      }
-      if (effect.effect_action) {
-        this.stateService.setPlayerCompletedManualAction(effect.effect_action, buttonText);
+      if (wasActuallyCompleted) {
+        // Mark action as complete
+        const { text: buttonText } = formatManualEffectButton(effect);
+        this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
+
+        // Also mark by base type and action if needed
+        if (effectType.includes(':')) {
+          this.stateService.setPlayerCompletedManualAction(effectType.split(':')[0], buttonText);
+        }
+        if (effect.effect_action) {
+          this.stateService.setPlayerCompletedManualAction(effect.effect_action, buttonText);
+        }
+      } else {
+        console.log(`⏭️ User skipped ${effect.effect_action} - action NOT marked as complete`);
       }
 
       // Restore movement choice if needed
