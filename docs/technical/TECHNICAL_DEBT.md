@@ -4,6 +4,46 @@ This document tracks identified technical debt in the Game Alpha codebase.
 
 ## Recently Resolved ✅
 
+### EffectEngineService Legacy Fallback Removal (January 13, 2026)
+- **Status**: ✅ Resolved
+- **Severity**: Moderate (technical debt)
+- **Problem**: EffectEngineService contained duplicate legacy fallback code for effect processing that was no longer needed after handler extraction
+- **Root Cause**: During handler extraction (FinancialEffectHandler, CardEffectHandler), legacy inline code was retained for backwards compatibility
+- **Resolution**:
+  - Removed legacy fallback code for 6 effect types:
+    - RESOURCE_CHANGE - now delegated to FinancialEffectHandler
+    - FEE_DEDUCTION - now delegated to FinancialEffectHandler
+    - CARD_DRAW - now delegated to CardEffectHandler
+    - CARD_DISCARD - now delegated to CardEffectHandler
+    - CARD_ACTIVATION - now delegated to CardEffectHandler
+    - PLAY_CARD - now delegated to CardEffectHandler
+  - Added required handler enforcement (throws error if handler not set)
+  - Updated test setup to initialize handlers in beforeEach blocks
+- **Files Modified**:
+  - `src/services/EffectEngineService.ts` - Removed ~551 lines of legacy code
+  - `tests/services/EffectEngineService.test.ts` - Added handler setup to 4 beforeEach blocks
+- **Impact**: EffectEngineService reduced from 2,104 to 1,553 lines (26% reduction)
+- **Tests**: All 29 EffectEngineService tests pass
+
+### ServerSyncService Extraction (January 12, 2026)
+- **Status**: ✅ Resolved
+- **Severity**: Low (code organization)
+- **Problem**: StateService mixed state management with network synchronization concerns
+- **Root Cause**: Server sync code (~130 lines) was embedded directly in StateService
+- **Resolution**:
+  - Created `src/services/ServerSyncService.ts` (~215 lines)
+  - Implemented StateProvider callback pattern for decoupling
+  - Features: debounced sync (500ms), version tracking, graceful degradation
+  - StateService now delegates to ServerSyncService for all network operations
+- **Files Modified**:
+  - `src/services/ServerSyncService.ts` - New file
+  - `src/services/StateService.ts` - Uses ServerSyncService
+  - `src/context/ServiceProvider.tsx` - Wiring (not needed - ServerSyncService created internally by StateService)
+- **Impact**: Cleaner separation of concerns, easier testing of sync logic
+- **Tests**: All StateService tests continue to pass
+
+---
+
 ### Multi-Device State Sync Race Condition (December 29, 2025)
 - **Status**: ✅ Resolved
 - **Severity**: Critical (data corruption during multiplayer)
@@ -270,10 +310,12 @@ interface TurnStateModel {
   - **Impact:** High - central service, complex logic.
   - **Risk:** High - touches many systems.
 
-- **EffectEngineService.ts (1,589 lines)**
-  - **Suggestion:** Could be split into smaller services based on effect types.
-  - **Impact:** High - central service for game logic.
-  - **Risk:** Medium - can be refactored incrementally.
+- **EffectEngineService.ts (1,553 lines)** ✅ **REDUCED**
+  - **Status:** Refactored January 2026 - reduced from 2,104 to 1,553 lines (26% reduction)
+  - **Extraction:** FinancialEffectHandler and CardEffectHandler now handle most effect processing
+  - **Suggestion:** Further extraction possible for movement and negotiation effects
+  - **Impact:** Medium - now properly delegating to handlers
+  - **Risk:** Low - handler pattern proven successful
 
 ---
 

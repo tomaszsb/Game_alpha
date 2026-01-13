@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Refactoring - ServerSyncService Extraction (January 12, 2026)
+
+**REFACTOR: Extract ServerSyncService from StateService**
+
+- **Goal**: Separate network synchronization concerns from state management
+- **Created**: `src/services/ServerSyncService.ts` (~215 lines)
+  - Debounced state syncing (500ms batching) to prevent spam during rapid changes
+  - Lazy initialization of server URL
+  - Version tracking for conflict resolution (lastKnownServerVersion)
+  - Graceful degradation when server unavailable
+  - HTTP 409 conflict handling with auto-refresh
+- **Pattern**: StateProvider callback interface for decoupling
+  - `getCurrentState()`: Get current game state
+  - `setCurrentState(state, serverVersion?)`: Update state with optional version
+- **Integration**: StateService creates ServerSyncService internally
+- **Tests**: All 51 StateService tests pass
+
+---
+
+### Refactoring - EffectEngineService Legacy Removal (January 13, 2026)
+
+**REFACTOR: Remove legacy fallback code from EffectEngineService**
+
+- **Goal**: Complete handler pattern migration by removing duplicate legacy code
+- **Removed**: Legacy fallback code for 6 effect types (~551 lines total)
+  - RESOURCE_CHANGE - now delegated to FinancialEffectHandler
+  - FEE_DEDUCTION - now delegated to FinancialEffectHandler
+  - CARD_DRAW - now delegated to CardEffectHandler
+  - CARD_DISCARD - now delegated to CardEffectHandler
+  - CARD_ACTIVATION - now delegated to CardEffectHandler
+  - PLAY_CARD - now delegated to CardEffectHandler
+- **Enforcement**: Required handler initialization (throws error if handler not set)
+  ```typescript
+  case 'RESOURCE_CHANGE':
+    if (!this.financialEffectHandler) {
+      throw new Error('FinancialEffectHandler not set - call setFinancialEffectHandler() before processing effects');
+    }
+    return this.financialEffectHandler.handleResourceChange(effect, context);
+  ```
+- **Result**: EffectEngineService reduced from 2,104 to 1,553 lines (26% reduction)
+- **Test Updates**: Added handler initialization to 4 beforeEach blocks in EffectEngineService.test.ts
+- **Tests**: All 29 EffectEngineService tests pass
+
+---
+
 ### Refactoring - FinancialEffectHandler Extraction (January 11, 2026)
 
 **REFACTOR: Extract FinancialEffectHandler from EffectEngineService**

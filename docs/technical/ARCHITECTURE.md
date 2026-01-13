@@ -44,11 +44,12 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ## Core Services
 
-### Service Overview (14 Production Services)
+### Service Overview (17 Production Services)
 
 All services are fully typed and comply with TypeScript strict mode:
 
 ```typescript
+// Core Services
 DataService           // CSV data loading and caching
 StateService          // Immutable game state management
 TurnService           // Turn progression and win conditions
@@ -56,13 +57,19 @@ CardService           // Card operations and deck management
 PlayerActionService   // Command orchestration
 MovementService       // Space transitions and pathfinding
 GameRulesService      // Validation and win conditions
-EffectEngineService   // Unified effect processing
+EffectEngineService   // Unified effect processing (delegates to handlers)
 ResourceService       // Money, time, reputation tracking
 ChoiceService         // Player choice handling
 NegotiationService    // Player-to-player interactions
 NotificationService   // Unified notification system
 TargetingService      // Multi-player effect targeting
 LoggingService        // Centralized game logging
+
+// Extracted Services (January 2026)
+ServerSyncService     // Server synchronization (extracted from StateService)
+CardEffectService     // Card draw/replace/return operations (extracted from TurnService)
+FinancialEffectHandler // Financial effect processing (for EffectEngineService)
+CardEffectHandler     // Card effect processing (for EffectEngineService)
 ```
 
 ### Service Dependency Pattern
@@ -123,10 +130,82 @@ async takeTurn(playerId: string): Promise<TurnResult> {
 ```
 
 **Services with setter injection:**
-- `TurnService.setEffectEngineService()`
+- `TurnService.setEffectEngineService()`, `setCardEffectService()`
 - `CardService.setEffectEngineService()`
-- `EffectEngineService.setTurnService()`, `setNegotiationService()`, `setNotificationService()`, `setDataService()`
+- `EffectEngineService.setTurnService()`, `setNegotiationService()`, `setNotificationService()`, `setDataService()`, `setFinancialEffectHandler()`, `setCardEffectHandler()`
 - `StateService.setGameRulesService()`
+
+### Handler Pattern (January 2026)
+
+Large services like EffectEngineService delegate to specialized handlers for cleaner code organization:
+
+```typescript
+// Handler pattern for EffectEngineService
+class EffectEngineService {
+  private financialEffectHandler?: FinancialEffectHandler;
+  private cardEffectHandler?: CardEffectHandler;
+
+  // Handlers set via dependency injection
+  setFinancialEffectHandler(handler: FinancialEffectHandler): void {
+    this.financialEffectHandler = handler;
+  }
+
+  // Effect processing delegates to handlers
+  async processEffect(effect: Effect, context: EffectContext): Promise<EffectResult> {
+    switch (effect.effectType) {
+      case 'RESOURCE_CHANGE':
+      case 'FEE_DEDUCTION':
+        if (!this.financialEffectHandler) {
+          throw new Error('FinancialEffectHandler not set');
+        }
+        return this.financialEffectHandler.handleResourceChange(effect, context);
+
+      case 'CARD_DRAW':
+      case 'CARD_DISCARD':
+        if (!this.cardEffectHandler) {
+          throw new Error('CardEffectHandler not set');
+        }
+        return this.cardEffectHandler.handleCardDraw(effect, context);
+    }
+  }
+}
+```
+
+**Benefits:**
+- Single-responsibility handlers (~200-400 lines each)
+- Easier testing of isolated concerns
+- Clear separation between financial and card operations
+- EffectEngineService reduced from 2,104 to 1,553 lines (26% reduction)
+
+### ServerSyncService (January 2026)
+
+Extracted from StateService to separate network synchronization from state management:
+
+```typescript
+// StateProvider callback pattern for decoupling
+interface StateProvider {
+  getCurrentState(): GameState;
+  setCurrentState(state: GameState, serverVersion?: number): void;
+}
+
+class ServerSyncService {
+  constructor(private stateProvider: StateProvider) {}
+
+  // Debounced sync to prevent spam during rapid changes
+  debouncedSync(): void { /* ... */ }
+
+  // Load state from server on app init
+  async loadFromServer(): Promise<boolean> { /* ... */ }
+
+  // Version tracking for conflict resolution
+  setServerVersion(version: number): void { /* ... */ }
+}
+```
+
+**Features:**
+- Debounced state syncing (500ms batching)
+- Version tracking for conflict resolution (HTTP 409 handling)
+- Graceful degradation when server unavailable
 
 ### Service Contracts
 
@@ -807,5 +886,5 @@ For related architecture topics, see:
 
 ---
 
-**Last Updated:** December 29, 2025
+**Last Updated:** January 13, 2026
 **Maintained By:** Claude (AI Lead Programmer)

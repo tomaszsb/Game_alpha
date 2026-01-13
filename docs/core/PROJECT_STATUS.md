@@ -1,14 +1,38 @@
 # Project Status
 
-**Last Updated**: January 9, 2026
-**Current Phase**: External Testing Ready (v2.5)
-**Current Version**: 2.5
+**Last Updated**: January 13, 2026
+**Current Phase**: External Testing Ready (v2.6)
+**Current Version**: 2.6
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Service Extraction & Handler Pattern Refactoring (January 12-13, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.6
+- **Achievements**:
+  - **ServerSyncService Extraction**: Extracted ~130 lines of network sync code from StateService
+    - Created `src/services/ServerSyncService.ts` (215 lines)
+    - Implemented StateProvider callback pattern for decoupling
+    - Features: debounced sync (500ms), version tracking, graceful degradation
+  - **EffectEngineService Handler Pattern**: Delegated effect processing to specialized handlers
+    - FinancialEffectHandler: RESOURCE_CHANGE, FEE_DEDUCTION effects
+    - CardEffectHandler: CARD_DRAW, CARD_DISCARD, CARD_ACTIVATION, PLAY_CARD effects
+  - **Legacy Fallback Removal**: Removed 551 lines of duplicate legacy code from EffectEngineService
+    - Service reduced from 2,104 to 1,553 lines (26% reduction)
+    - Required handler enforcement (throws error if handler not set)
+  - **Test Updates**: Updated EffectEngineService tests to initialize handlers in beforeEach blocks
+- **Files Modified**:
+  - `src/services/ServerSyncService.ts` - New file
+  - `src/services/EffectEngineService.ts` - Legacy fallback removal
+  - `tests/services/EffectEngineService.test.ts` - Handler setup in 4 beforeEach blocks
+- **Test Status**: All 29 EffectEngineService tests pass, all 51 StateService tests pass
+- **Impact**: Cleaner architecture, better separation of concerns, easier testing
+
+---
 
 ### 0a. Multi-Device Bug Fixes & Mobile UX (December 29, 2025 - Evening) ✅
 - **Status**: ✅ Complete
