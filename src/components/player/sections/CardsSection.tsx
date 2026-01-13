@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
+import { CardDisplay } from '../../common/CardDisplay';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { CardType } from '../../../types/DataTypes';
 import { DiscardPileModal } from '../../modals/DiscardPileModal';
@@ -423,108 +424,50 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                         const isCardExpanded = expandedCards.has(item.id);
                         const isPlayable = item.card.card_type === 'E' && canPlayCard(item.card);
 
-                        return (
-                          <div
-                            key={item.id}
-                            className="card-item"
-                            style={isPlayable ? {
-                              backgroundColor: '#dcfce7',
-                              borderLeft: '3px solid #22c55e'
-                            } : undefined}
-                          >
-                            <button
-                              className="card-header"
-                              onClick={() => toggleCard(item.id)}
-                            >
-                              <span className="card-title">
-                                <span className="expand-icon-small">{isCardExpanded ? '▼' : '▶'}</span>
-                                {isPlayable && <span style={{ marginRight: '4px' }}>⚡</span>}
-                                {item.card.card_name || item.id}
-                                {isPlayable && (
-                                  <span style={{
-                                    marginLeft: '6px',
-                                    padding: '1px 4px',
-                                    backgroundColor: '#22c55e',
-                                    color: 'white',
-                                    borderRadius: '4px',
-                                    fontSize: '8px',
-                                    fontWeight: 'bold'
-                                  }}>PLAY</span>
-                                )}
-                              </span>
-                            </button>
-
-                            {isCardExpanded && (
-                              <div className="card-details">
-                                {item.card.description && (
-                                  <div className="card-detail-row">
-                                    <span className="detail-label">Description:</span>
-                                    <span className="detail-value">{item.card.description}</span>
-                                  </div>
-                                )}
-                                {item.card.work_type_restriction && (
-                                  <div className="card-detail-row">
-                                    <span className="detail-label">Work Type:</span>
-                                    <span className="detail-value">{item.card.work_type_restriction}</span>
-                                  </div>
-                                )}
-                                {item.card.work_cost && (
-                                  <div className="card-detail-row">
-                                    <span className="detail-label">Cost:</span>
-                                    <span className="detail-value">${Number(item.card.work_cost).toLocaleString()}</span>
-                                  </div>
-                                )}
-                                {item.card.duration_turns && (
-                                  <div className="card-detail-row">
-                                    <span className="detail-label">Duration:</span>
-                                    <span className="detail-value">{item.card.duration_turns} turns</span>
-                                  </div>
-                                )}
-
-                                {/* E Card Phase Restriction */}
-                                {item.card.card_type === 'E' && item.card.phase_restriction && (
-                                  <div className="card-detail-row">
-                                    <span className="detail-label">Phase:</span>
-                                    <span className={`detail-value phase-badge ${canPlayCard(item.card) ? 'phase-badge--active' : 'phase-badge--inactive'}`}>
-                                      {item.card.phase_restriction}
-                                      {canPlayCard(item.card) ? ' ✓' : ' ✗'}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* View Details Button */}
-                                <div className="card-action-row">
-                                  <ActionButton
-                                    label="View Details"
-                                    variant="secondary"
-                                    onClick={() => handleCardDetailsOpen(item.id)}
-                                    disabled={isLoading}
-                                    ariaLabel={`View details for ${item.card.card_name}`}
-                                  />
-                                </div>
-
-                                {/* Play Card Button for E Cards */}
-                                {item.card.card_type === 'E' && canPlayCard(item.card) && (
-                                  <div className="card-action-row">
-                                    <ActionButton
-                                      label="Play Card"
-                                      variant="primary"
-                                      onClick={() => handlePlayCard(item.id)}
-                                      disabled={isLoading}
-                                      isLoading={isLoading}
-                                      ariaLabel={`Play ${item.card.card_name}`}
-                                    />
-                                  </div>
-                                )}
-                                {item.card.card_type === 'E' && !canPlayCard(item.card) && item.card.phase_restriction !== 'Any' && (
-                                  <div className="card-restriction-message">
-                                    Can only be played during {item.card.phase_restriction} phase
-                                    {currentPhase && ` (Current: ${currentPhase})`}
-                                  </div>
-                                )}
+                        // Build action buttons for this card
+                        const cardActions = (
+                          <>
+                            <div className="card-action-row">
+                              <ActionButton
+                                label="View Details"
+                                variant="secondary"
+                                onClick={() => handleCardDetailsOpen(item.id)}
+                                disabled={isLoading}
+                                ariaLabel={`View details for ${item.card.card_name}`}
+                              />
+                            </div>
+                            {item.card.card_type === 'E' && isPlayable && (
+                              <div className="card-action-row">
+                                <ActionButton
+                                  label="Play Card"
+                                  variant="primary"
+                                  onClick={() => handlePlayCard(item.id)}
+                                  disabled={isLoading}
+                                  isLoading={isLoading}
+                                  ariaLabel={`Play ${item.card.card_name}`}
+                                />
                               </div>
                             )}
-                          </div>
+                            {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
+                              <div className="card-restriction-message">
+                                Can only be played during {item.card.phase_restriction} phase
+                                {currentPhase && ` (Current: ${currentPhase})`}
+                              </div>
+                            )}
+                          </>
+                        );
+
+                        return (
+                          <CardDisplay
+                            key={item.id}
+                            card={item.card}
+                            variant="detailed"
+                            isExpanded={isCardExpanded}
+                            onToggle={() => toggleCard(item.id)}
+                            isPlayable={isPlayable}
+                            highlight={isPlayable ? 'playable' : 'none'}
+                            actions={cardActions}
+                          />
                         );
                       })}
                     </div>

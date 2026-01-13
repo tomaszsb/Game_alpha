@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { OwnerSeedMoneySectionProps } from './types';
+import { CardDisplay } from '../../common/CardDisplay';
 
 /**
  * OwnerSeedMoneySection displays seed money information in a compact, expandable format
@@ -80,15 +81,15 @@ export function OwnerSeedMoneySection({ bCards, iCards, totalFunding, dataServic
             Cards in hand: Repurposed as seed money documentation
           </div>
 
-          {/* Show individual cards if needed */}
+          {/* Show individual cards */}
           <div style={{ marginTop: '8px' }}>
             {[...bCards, ...iCards].map(cardId => {
               const card = dataService.getCardById(cardId);
               if (!card) return null;
 
               // Get amount from loan_amount (B cards) or investment_amount (I cards)
-              let amount = 'Variable amount';
               const cardType = cardId.charAt(0).toUpperCase();
+              let amount = 'Variable amount';
               if (cardType === 'B' && card.loan_amount) {
                 amount = FormatUtils.formatMoney(parseInt(String(card.loan_amount), 10));
               } else if (cardType === 'I' && card.investment_amount) {
@@ -96,22 +97,12 @@ export function OwnerSeedMoneySection({ bCards, iCards, totalFunding, dataServic
               }
 
               return (
-                <div key={cardId} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '4px 8px',
-                  backgroundColor: colors.success.bg,
-                  borderRadius: '4px',
-                  marginBottom: '2px',
-                  fontSize: '0.75rem'
-                }}>
-                  <span style={{ color: colors.success.text }}>
-                    {card.card_name}
-                  </span>
-                  <span style={{ color: colors.success.dark, fontWeight: 'bold' }}>
-                    {amount}
-                  </span>
-                </div>
+                <CardDisplay
+                  key={cardId}
+                  card={card}
+                  variant="inline"
+                  displayAmount={amount}
+                />
               );
             })}
           </div>

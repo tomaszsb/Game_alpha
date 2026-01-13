@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { FundingCardSectionProps } from './types';
+import { CardDisplay } from '../../common/CardDisplay';
 
 /**
  * FundingCardSection displays detailed information about B or I cards
@@ -85,45 +86,24 @@ export function FundingCardSection({ title, cards, cardType, dataService, colors
         const card = dataService.getCardById(cardId);
         if (!card) return null;
 
+        // Calculate display amount based on card type
+        const getDisplayAmount = () => {
+          if (cardType === 'B' && card.loan_amount) {
+            return FormatUtils.formatMoney(parseInt(String(card.loan_amount), 10));
+          }
+          if (cardType === 'I' && card.investment_amount) {
+            return FormatUtils.formatMoney(parseInt(String(card.investment_amount), 10));
+          }
+          return 'Variable amount';
+        };
+
         return (
           <div key={cardId} style={cardDetailStyle}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div style={{
-                fontSize: '0.8rem',
-                color: colors.secondary.dark,
-                flex: 1,
-                marginRight: '8px'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-                  {card.card_name}
-                </div>
-                {card.description && (
-                  <div style={{ fontSize: '0.75rem', color: colors.secondary.main }}>
-                    {card.description}
-                  </div>
-                )}
-              </div>
-              <div style={{
-                fontSize: '0.8rem',
-                fontWeight: 'bold',
-                color: cardType === 'B' ? colors.info.text : colors.primary.text
-              }}>
-                {/* Use loan_amount for B cards, investment_amount for I cards */}
-                {(() => {
-                  if (cardType === 'B' && card.loan_amount) {
-                    return FormatUtils.formatMoney(parseInt(String(card.loan_amount), 10));
-                  }
-                  if (cardType === 'I' && card.investment_amount) {
-                    return FormatUtils.formatMoney(parseInt(String(card.investment_amount), 10));
-                  }
-                  return 'Variable amount';
-                })()}
-              </div>
-            </div>
+            <CardDisplay
+              card={card}
+              variant="compact"
+              displayAmount={getDisplayAmount()}
+            />
           </div>
         );
       })}

@@ -3,6 +3,7 @@
 import React, { useState, CSSProperties } from 'react';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { GroupedWCards, SharedStyles } from './types';
+import { CardDisplay } from '../../common/CardDisplay';
 
 interface ProjectScopeSectionProps {
   groupedWCards: GroupedWCards;
@@ -106,26 +107,11 @@ export function ProjectScopeSection({
                 border: `1px solid ${colors.secondary.border}`,
                 marginBottom: '2px'
               }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{
-                    fontSize: '0.8rem',
-                    color: colors.secondary.dark,
-                    flex: 1
-                  }}>
-                    {card.card_name}
-                  </div>
-                  <div style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold',
-                    color: colors.warning.text
-                  }}>
-                    {FormatUtils.formatCardCost(card.cost)}
-                  </div>
-                </div>
+                <CardDisplay
+                  card={card}
+                  variant="inline"
+                  displayAmount={FormatUtils.formatCardCost(card.cost)}
+                />
               </div>
             ))}
           </div>

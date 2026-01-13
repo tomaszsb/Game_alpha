@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '../../../types/DataTypes';
 import { ActionButton } from '../../common/ActionButton';
-import { ExpandableSection } from '../../common/ExpandableSection';
+import { ExpandableSection } from '../ExpandableSection';
 
 /**
  * Props for the CurrentCardSection component.

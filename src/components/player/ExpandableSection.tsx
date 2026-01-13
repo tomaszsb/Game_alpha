@@ -32,8 +32,6 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
   headerActions,
   summary
 }) => {
-  console.log(`📦 ${title} - isExpanded:`, isExpanded);
-
   const headerId = `${ariaControls}-header`;
   const contentId = ariaControls;
 
@@ -54,17 +52,7 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
         <button
           id={headerId}
           className="expandable-section__header"
-          onClick={(e) => {
-            console.log('🔘 ExpandableSection button clicked!', title, e.target);
-            console.log('🔘 onToggle is:', typeof onToggle, onToggle);
-            console.log('🔘 Calling onToggle()...');
-            try {
-              onToggle();
-              console.log('🔘 onToggle() completed successfully');
-            } catch (error) {
-              console.error('🔘 Error calling onToggle:', error);
-            }
-          }}
+          onClick={onToggle}
           onKeyDown={handleKeyDown}
           aria-expanded={isExpanded}
           aria-controls={contentId}
