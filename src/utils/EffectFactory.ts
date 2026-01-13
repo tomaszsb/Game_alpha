@@ -600,37 +600,112 @@ export class EffectFactory {
       return effects;
     }
 
+    // Check for "No change" or similar values that mean nothing happens
+    const noChangePatterns = ['no change', 'no effect', 'none', 'n/a', '-'];
+    if (noChangePatterns.some(pattern => rollEffect.toLowerCase().trim() === pattern)) {
+      console.log(`   Dice effect for roll ${diceRoll}: ${diceEffect.effect_type} = "${rollEffect}" (no effect)`);
+      return effects;
+    }
+
     console.log(`   Dice effect for roll ${diceRoll}: ${diceEffect.effect_type} = "${rollEffect}"`);
 
     // Handle "X Cards" format in effect_type (e.g., "W Cards", "B Cards")
     // This is used in DICE_ROLL_INFO.csv where the effect_type column contains the card type
+    // rollEffect can be "Draw 1", "Remove 1", "Replace 1", etc.
     const cardTypeMatch = diceEffect.effect_type.match(/^([WBELI])\s*Cards?$/i);
     if (cardTypeMatch) {
       const cardType = cardTypeMatch[1].toUpperCase() as CardType;
       const countMatch = rollEffect.match(/(\d+)/);
       if (countMatch) {
         const count = parseInt(countMatch[1]);
-        effects.push({
-          effectType: 'CARD_DRAW' as const,
-          payload: {
-            playerId,
-            cardType: cardType,
-            count: count,
-            source,
-            reason: `Dice effect: Draw ${count} ${cardType} card${count > 1 ? 's' : ''} (rolled ${diceRoll})`
-          }
-        });
 
-        // Add scope recalculation if W cards are drawn
-        if (cardType === 'W') {
+        // Parse action word (Remove, Draw, Replace)
+        const actionMatch = rollEffect.match(/^(Remove|Draw|Replace)\s+/i);
+        const actionWord = actionMatch ? actionMatch[1].toLowerCase() : 'draw';
+
+        if (actionWord === 'draw') {
           effects.push({
-            effectType: 'RECALCULATE_SCOPE',
+            effectType: 'CARD_DRAW' as const,
             payload: {
-              playerId
+              playerId,
+              cardType: cardType,
+              count: count,
+              source,
+              reason: `Dice effect: Draw ${count} ${cardType} card${count > 1 ? 's' : ''} (rolled ${diceRoll})`
             }
           });
+          console.log(`   ✅ Created CARD_DRAW effect for ${count} ${cardType} card(s)`);
+
+          // Add scope recalculation if W cards are drawn
+          if (cardType === 'W') {
+            effects.push({
+              effectType: 'RECALCULATE_SCOPE',
+              payload: {
+                playerId
+              }
+            });
+          }
+        } else if (actionWord === 'remove') {
+          // Remove X cards - requires user selection via choice modal
+          effects.push({
+            effectType: 'CARD_DISCARD' as const,
+            payload: {
+              playerId,
+              cardIds: [], // Empty = runtime selection needed
+              cardType: cardType,
+              count: count,
+              source: `${source}:dice_remove`, // Special marker for dice roll removes
+              reason: `Dice effect: Remove ${count} ${cardType} card${count > 1 ? 's' : ''} (rolled ${diceRoll})`
+            }
+          });
+          console.log(`   ✅ Created CARD_DISCARD effect for removing ${count} ${cardType} card(s)`);
+
+          // Add scope recalculation if W cards are removed
+          if (cardType === 'W') {
+            effects.push({
+              effectType: 'RECALCULATE_SCOPE',
+              payload: {
+                playerId
+              }
+            });
+          }
+        } else if (actionWord === 'replace') {
+          // Replace X cards - requires user selection, then draw new cards
+          // First create a discard effect, then a draw effect
+          effects.push({
+            effectType: 'CARD_DISCARD' as const,
+            payload: {
+              playerId,
+              cardIds: [], // Empty = runtime selection needed
+              cardType: cardType,
+              count: count,
+              source: `${source}:dice_replace`, // Special marker for dice roll replaces
+              reason: `Dice effect: Replace ${count} ${cardType} card${count > 1 ? 's' : ''} - choosing card to replace (rolled ${diceRoll})`
+            }
+          });
+          // The draw will happen after the discard is processed
+          effects.push({
+            effectType: 'CARD_DRAW' as const,
+            payload: {
+              playerId,
+              cardType: cardType,
+              count: count,
+              source: `${source}:dice_replace_draw`,
+              reason: `Dice effect: Replace ${count} ${cardType} card${count > 1 ? 's' : ''} - drawing new card (rolled ${diceRoll})`
+            }
+          });
+          console.log(`   ✅ Created CARD_DISCARD + CARD_DRAW effects for replacing ${count} ${cardType} card(s)`);
+
+          // Add scope recalculation if W cards are replaced (affects scope either way)
+          if (cardType === 'W') {
+            effects.push({
+              effectType: 'RECALCULATE_SCOPE',
+              payload: {
+                playerId
+              }
+            });
+          }
         }
-        console.log(`   ✅ Created CARD_DRAW effect for ${count} ${cardType} card(s)`);
       } else {
         console.warn(`   ⚠️ Could not parse card count from: "${rollEffect}"`);
       }

@@ -16,7 +16,8 @@ import {
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { Choice } from '../types/CommonTypes';
-import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../utils/networkDetection';
+import { TurnStateManager } from './TurnStateManager';
+import { ServerSyncService, StateProvider } from './ServerSyncService';
 
 // Auto-action event type for modal notifications
 export interface AutoActionEvent {
@@ -58,20 +59,30 @@ export class StateService implements IStateService {
   // Auto-action event listeners for modal notifications
   private autoActionListeners: Array<(event: AutoActionEvent) => void> = [];
 
-  // Server synchronization settings
-  private serverUrl: string = '';
-  private syncEnabled: boolean = true;
-  private isSyncing: boolean = false;
-  private syncTimer: ReturnType<typeof setTimeout> | null = null;
-  // Track server version to prevent stale state overwrites (Dec 29, 2025 fix)
-  private lastKnownServerVersion: number = 0;
+  // Server synchronization service (extracted Jan 2026)
+  private serverSyncService: ServerSyncService;
+
+  // Turn state manager for REAL/TEMP state model (extracted Dec 2025)
+  private turnStateManager: TurnStateManager;
 
   constructor(dataService: IDataService) {
     this.dataService = dataService;
+    this.turnStateManager = new TurnStateManager();
     this.currentState = this.createInitialState();
 
-    // Initialize server URL (will be set dynamically based on window.location)
-    // Deferred to first sync call to ensure window is available
+    // Create state provider for server sync
+    const stateProvider: StateProvider = {
+      getCurrentState: () => this.currentState,
+      setCurrentState: (state: GameState, serverVersion?: number) => {
+        this.currentState = state;
+        if (serverVersion !== undefined) {
+          this.serverSyncService.setServerVersion(serverVersion);
+        }
+        // Skip sync when loading from server to avoid syncing back what we just loaded
+        this.notifyListeners({ skipSync: true });
+      }
+    };
+    this.serverSyncService = new ServerSyncService(stateProvider);
   }
 
   /**
@@ -221,25 +232,8 @@ export class StateService implements IStateService {
     // Sync to server after notifying listeners (with debouncing)
     // Skip sync if explicitly requested (e.g., when loading from server)
     if (!options.skipSync) {
-      this.debouncedSyncToServer(currentStateSnapshot);
+      this.serverSyncService.debouncedSync();
     }
-  }
-
-  /**
-   * Debounced version of syncToServer to prevent spam during rapid state changes
-   * Batches multiple rapid changes into a single sync operation
-   */
-  private debouncedSyncToServer(state: GameState): void {
-    // Clear existing timer
-    if (this.syncTimer) {
-      clearTimeout(this.syncTimer);
-    }
-
-    // Debounce 500ms - batches rapid state changes
-    this.syncTimer = setTimeout(() => {
-      this.syncToServer(state);
-      this.syncTimer = null;
-    }, 500);
   }
 
   // State access methods
@@ -320,8 +314,7 @@ export class StateService implements IStateService {
     };
 
     this.currentState = newState;
-    this.notifyListeners();
-    this.debouncedSyncToServer(newState); // Sync to server for multi-device support
+    this.notifyListeners(); // Also triggers debounced server sync
     return { ...newState };
   }
 
@@ -1098,134 +1091,48 @@ export class StateService implements IStateService {
 
   // ============================================================================
   // REAL/TEMP State Model Methods (December 26, 2025)
-  // Note: Old snapshot methods (savePreSpaceEffectSnapshot, revertPlayerToSnapshot, etc.)
-  // have been removed. Try Again functionality now uses REAL/TEMP state model.
-  // ============================================================================
-  //
-  // These methods implement the new state model that separates "committed" state
-  // (REAL) from "working" state (TEMP). All turn effects apply to TEMP state;
-  // REAL state only updates on turn boundaries.
-  //
-  // Flow:
-  // 1. Turn starts → createTempStateFromReal()
-  // 2. All effects → updateTempState() or updatePlayer() [which writes to TEMP]
-  // 3. UI renders → getPlayerState() [reads from TEMP during turn]
-  // 4. On Try Again: applyToRealState(penalty) → discardTempState() → createTempStateFromReal()
-  // 5. On End Turn: commitTempToReal()
+  // Implementation extracted to TurnStateManager for better separation of concerns.
+  // These methods delegate to the TurnStateManager while keeping the public API.
   // ============================================================================
 
   /**
-   * Extract mutable state from a Player object.
-   * This creates a snapshot of the fields that can change during a turn.
+   * Sync turn state model between StateService and TurnStateManager.
+   * Called before operations that need the manager's state.
    */
-  private extractMutableState(player: Player): MutablePlayerState {
-    return {
-      money: player.money,
-      timeSpent: player.timeSpent,
-      projectScope: player.projectScope,
-      score: player.score,
-      hand: [...player.hand],
-      activeCards: [...player.activeCards],
-      loans: player.loans ? [...player.loans] : [],
-      moneySources: { ...player.moneySources },
-      expenditures: { ...player.expenditures },
-      costHistory: player.costHistory ? [...player.costHistory] : [],
-      costs: { ...player.costs },
-      activeEffects: player.activeEffects ? [...player.activeEffects] : [],
-      spaceVisitLog: player.spaceVisitLog ? [...player.spaceVisitLog] : [],
-      lastDiceRoll: player.lastDiceRoll ? { ...player.lastDiceRoll } : undefined
-    };
+  private syncTurnStateToManager(): void {
+    this.turnStateManager.setTurnStateModel(this.currentState.turnStateModel);
   }
 
   /**
-   * Initialize the turn state model if it doesn't exist.
+   * Sync turn state model from TurnStateManager back to StateService.
+   * Called after operations that modify the manager's state.
    */
-  private ensureTurnStateModel(): void {
-    if (!this.currentState.turnStateModel) {
-      this.currentState = {
-        ...this.currentState,
-        turnStateModel: {
-          realStates: {},
-          tempStates: {},
-          activeTurnPlayers: [],
-          tryAgainCounts: {}
-        }
-      };
-    }
+  private syncTurnStateFromManager(): void {
+    this.currentState = {
+      ...this.currentState,
+      turnStateModel: this.turnStateManager.getTurnStateModel()
+    };
   }
 
   /**
    * Create a TEMP state from REAL state for a player.
    * Called at the start of a player's turn.
-   *
-   * If this is a Try Again scenario, the time penalty should have already been
-   * applied to REAL state before calling this method.
    */
   public createTempStateFromReal(options: CreateTempOptions): StateTransitionResult {
-    const { playerId, spaceName, visitType, isTryAgain = false, tryAgainPenalty = 0 } = options;
-
-    console.log(`🔄 Creating TEMP state from REAL for player ${playerId} at ${spaceName} (Try Again: ${isTryAgain})`);
-
-    this.ensureTurnStateModel();
-    const player = this.getPlayer(playerId);
-
+    const player = this.getPlayer(options.playerId);
     if (!player) {
-      return { success: false, error: `Player ${playerId} not found` };
+      return { success: false, error: `Player ${options.playerId} not found` };
     }
 
-    // If Try Again, first apply penalty to REAL state
-    if (isTryAgain && tryAgainPenalty > 0) {
-      const penaltyResult = this.applyToRealState(playerId, { timeSpent: tryAgainPenalty });
-      if (!penaltyResult.success) {
-        return penaltyResult;
-      }
-    }
+    this.syncTurnStateToManager();
+    const result = this.turnStateManager.createTempStateFromReal(
+      options,
+      player,
+      this.currentState.globalTurnCount
+    );
+    this.syncTurnStateFromManager();
 
-    // Get the source state - either existing REAL or current player state
-    const realState = this.currentState.turnStateModel!.realStates[playerId];
-    const sourceState: MutablePlayerState = realState?.state
-      ? { ...realState.state }
-      : this.extractMutableState(player);
-
-    // Create new TEMP state from REAL
-    const newTempState: PlayerTurnState = {
-      playerId,
-      playerName: player.name,
-      state: { ...sourceState },
-      capturedAt: {
-        turnNumber: this.currentState.globalTurnCount,
-        spaceName,
-        visitType,
-        timestamp: new Date()
-      }
-    };
-
-    // Update turn state model
-    const turnStateModel = this.currentState.turnStateModel!;
-    this.currentState = {
-      ...this.currentState,
-      turnStateModel: {
-        ...turnStateModel,
-        tempStates: {
-          ...turnStateModel.tempStates,
-          [playerId]: newTempState
-        },
-        activeTurnPlayers: turnStateModel.activeTurnPlayers.includes(playerId)
-          ? turnStateModel.activeTurnPlayers
-          : [...turnStateModel.activeTurnPlayers, playerId],
-        tryAgainCounts: isTryAgain
-          ? { ...turnStateModel.tryAgainCounts, [playerId]: (turnStateModel.tryAgainCounts[playerId] || 0) + 1 }
-          : turnStateModel.tryAgainCounts
-      }
-    };
-
-    console.log(`✅ TEMP state created for player ${playerId} (Try Again count: ${this.currentState.turnStateModel!.tryAgainCounts[playerId] || 0})`);
-
-    return {
-      success: true,
-      newTempState,
-      timePenaltyApplied: isTryAgain ? tryAgainPenalty : undefined
-    };
+    return result;
   }
 
   /**
@@ -1233,101 +1140,39 @@ export class StateService implements IStateService {
    * Called at the end of a player's turn.
    */
   public commitTempToReal(playerId: string): StateTransitionResult {
-    console.log(`💾 Committing TEMP state to REAL for player ${playerId}`);
-
-    if (!this.currentState.turnStateModel) {
-      return { success: false, error: 'Turn state model not initialized' };
-    }
-
-    const tempState = this.currentState.turnStateModel.tempStates[playerId];
-    if (!tempState) {
-      return { success: false, error: `No TEMP state exists for player ${playerId}` };
-    }
-
-    // Create new REAL state from TEMP
-    const newRealState: PlayerTurnState = {
-      ...tempState,
-      capturedAt: {
-        ...tempState.capturedAt,
-        timestamp: new Date() // Update timestamp to commit time
-      }
-    };
-
-    // Update turn state model
-    const turnStateModel = this.currentState.turnStateModel;
-    this.currentState = {
-      ...this.currentState,
-      turnStateModel: {
-        ...turnStateModel,
-        realStates: {
-          ...turnStateModel.realStates,
-          [playerId]: newRealState
-        },
-        tempStates: {
-          ...turnStateModel.tempStates,
-          [playerId]: null // Clear TEMP state
-        },
-        activeTurnPlayers: turnStateModel.activeTurnPlayers.filter(id => id !== playerId),
-        tryAgainCounts: {
-          ...turnStateModel.tryAgainCounts,
-          [playerId]: 0 // Reset Try Again count
-        }
-      }
-    };
+    this.syncTurnStateToManager();
+    const result = this.turnStateManager.commitTempToReal(playerId);
+    this.syncTurnStateFromManager();
 
     // Also update the player in main state to reflect committed changes
-    const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
-    if (playerIndex !== -1) {
-      const updatedPlayer = {
-        ...this.currentState.players[playerIndex],
-        ...tempState.state
-      };
-      const newPlayers = [...this.currentState.players];
-      newPlayers[playerIndex] = updatedPlayer;
-      this.currentState = {
-        ...this.currentState,
-        players: newPlayers
-      };
+    if (result.success && (result as any).committedState) {
+      const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
+      if (playerIndex !== -1) {
+        const updatedPlayer = {
+          ...this.currentState.players[playerIndex],
+          ...(result as any).committedState
+        };
+        const newPlayers = [...this.currentState.players];
+        newPlayers[playerIndex] = updatedPlayer;
+        this.currentState = {
+          ...this.currentState,
+          players: newPlayers
+        };
+      }
     }
 
     this.notifyListeners();
-    console.log(`✅ TEMP state committed to REAL for player ${playerId}`);
-
-    return { success: true, newRealState };
+    return result;
   }
 
   /**
    * Discard TEMP state for a player (used in Try Again flow).
-   * After calling this, createTempStateFromReal should be called to create a fresh TEMP.
    */
   public discardTempState(playerId: string): StateTransitionResult {
-    console.log(`🗑️ Discarding TEMP state for player ${playerId}`);
-
-    if (!this.currentState.turnStateModel) {
-      return { success: false, error: 'Turn state model not initialized' };
-    }
-
-    const tempState = this.currentState.turnStateModel.tempStates[playerId];
-    if (!tempState) {
-      console.log(`ℹ️ No TEMP state to discard for player ${playerId}`);
-      return { success: true }; // Not an error - just nothing to discard
-    }
-
-    // Clear TEMP state
-    const turnStateModel = this.currentState.turnStateModel;
-    this.currentState = {
-      ...this.currentState,
-      turnStateModel: {
-        ...turnStateModel,
-        tempStates: {
-          ...turnStateModel.tempStates,
-          [playerId]: null
-        }
-      }
-    };
-
-    console.log(`✅ TEMP state discarded for player ${playerId}`);
-    return { success: true };
+    this.syncTurnStateToManager();
+    const result = this.turnStateManager.discardTempState(playerId);
+    this.syncTurnStateFromManager();
+    return result;
   }
 
   /**
@@ -1335,152 +1180,67 @@ export class StateService implements IStateService {
    * Used for Try Again time penalties that should persist across retries.
    */
   public applyToRealState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult {
-    console.log(`📝 Applying changes to REAL state for player ${playerId}:`, changes);
-
-    this.ensureTurnStateModel();
     const player = this.getPlayer(playerId);
-
     if (!player) {
       return { success: false, error: `Player ${playerId} not found` };
     }
 
-    // Get existing REAL state or create from current player
-    const existingReal = this.currentState.turnStateModel!.realStates[playerId];
-    const currentRealState: MutablePlayerState = existingReal?.state
-      ? { ...existingReal.state }
-      : this.extractMutableState(player);
-
-    // Apply changes (handle additive fields like timeSpent)
-    const updatedState: MutablePlayerState = { ...currentRealState };
-
-    // For timeSpent, we ADD the penalty to existing value
-    if (changes.timeSpent !== undefined) {
-      updatedState.timeSpent = currentRealState.timeSpent + changes.timeSpent;
-    }
-
-    // For other fields, apply directly if provided
-    if (changes.money !== undefined) updatedState.money = changes.money;
-    if (changes.projectScope !== undefined) updatedState.projectScope = changes.projectScope;
-    if (changes.score !== undefined) updatedState.score = changes.score;
-    if (changes.hand) updatedState.hand = [...changes.hand];
-    if (changes.activeCards) updatedState.activeCards = [...changes.activeCards];
-    if (changes.loans) updatedState.loans = [...changes.loans];
-    if (changes.moneySources) updatedState.moneySources = { ...changes.moneySources };
-    if (changes.expenditures) updatedState.expenditures = { ...changes.expenditures };
-    if (changes.costHistory) updatedState.costHistory = [...changes.costHistory];
-    if (changes.costs) updatedState.costs = { ...changes.costs };
-    if (changes.activeEffects) updatedState.activeEffects = [...changes.activeEffects];
-    if (changes.spaceVisitLog) updatedState.spaceVisitLog = [...changes.spaceVisitLog];
-    if (changes.lastDiceRoll) updatedState.lastDiceRoll = { ...changes.lastDiceRoll };
-
-    // Create updated REAL state
-    const newRealState: PlayerTurnState = {
+    this.syncTurnStateToManager();
+    const result = this.turnStateManager.applyToRealState(
       playerId,
-      playerName: player.name,
-      state: updatedState,
-      capturedAt: existingReal?.capturedAt || {
-        turnNumber: this.currentState.globalTurnCount,
-        spaceName: player.currentSpace,
-        visitType: player.visitType,
-        timestamp: new Date()
-      }
-    };
+      player,
+      changes,
+      this.currentState.globalTurnCount
+    );
+    this.syncTurnStateFromManager();
 
-    // Update turn state model
-    const turnStateModel = this.currentState.turnStateModel!;
-    this.currentState = {
-      ...this.currentState,
-      turnStateModel: {
-        ...turnStateModel,
-        realStates: {
-          ...turnStateModel.realStates,
-          [playerId]: newRealState
-        }
-      }
-    };
-
-    console.log(`✅ Changes applied to REAL state for player ${playerId}`);
-    return { success: true, newRealState };
+    return result;
   }
 
   /**
    * Get the effective player state (reads from TEMP during turn, REAL otherwise).
-   * This is the state that should be used for UI rendering and effect calculations.
    */
   public getEffectivePlayerState(playerId: string): MutablePlayerState | null {
     const player = this.getPlayer(playerId);
     if (!player) return null;
 
-    // If turn state model exists and player has active TEMP, use TEMP
-    if (this.currentState.turnStateModel) {
-      const tempState = this.currentState.turnStateModel.tempStates[playerId];
-      if (tempState) {
-        return { ...tempState.state };
-      }
-
-      // Fall back to REAL if no TEMP
-      const realState = this.currentState.turnStateModel.realStates[playerId];
-      if (realState) {
-        return { ...realState.state };
-      }
-    }
-
-    // Fall back to extracting from player object
-    return this.extractMutableState(player);
+    this.syncTurnStateToManager();
+    return this.turnStateManager.getEffectivePlayerState(playerId, player);
   }
 
   /**
    * Check if a player has an active TEMP state (i.e., is in the middle of their turn).
    */
   public hasActiveTempState(playerId: string): boolean {
-    return !!(this.currentState.turnStateModel?.tempStates[playerId]);
+    this.syncTurnStateToManager();
+    return this.turnStateManager.hasActiveTempState(playerId);
   }
 
   /**
    * Get the Try Again count for a player in the current turn.
    */
   public getTryAgainCount(playerId: string): number {
-    return this.currentState.turnStateModel?.tryAgainCounts[playerId] || 0;
+    this.syncTurnStateToManager();
+    return this.turnStateManager.getTryAgainCount(playerId);
   }
 
   /**
    * Update the TEMP state for a player (if active) or main player state.
-   * This is the method that should be used by effect processing.
    */
   public updateTempState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult {
-    if (!this.currentState.turnStateModel?.tempStates[playerId]) {
-      // No TEMP state - fall back to updating main player state
-      console.log(`ℹ️ No TEMP state for player ${playerId}, updating main state instead`);
-      this.updatePlayer({ id: playerId, ...changes });
-      return { success: true };
-    }
-
-    const tempState = this.currentState.turnStateModel.tempStates[playerId]!;
-    const updatedState: MutablePlayerState = {
-      ...tempState.state,
-      ...changes
-    };
-
-    const newTempState: PlayerTurnState = {
-      ...tempState,
-      state: updatedState
-    };
-
-    this.currentState = {
-      ...this.currentState,
-      turnStateModel: {
-        ...this.currentState.turnStateModel!,
-        tempStates: {
-          ...this.currentState.turnStateModel!.tempStates,
-          [playerId]: newTempState
-        }
-      }
-    };
+    this.syncTurnStateToManager();
+    const result = this.turnStateManager.updateTempState(playerId, changes);
+    this.syncTurnStateFromManager();
 
     // Also update the main player state for immediate UI feedback
-    this.updatePlayer({ id: playerId, ...changes });
+    if ((result as any).updatedState) {
+      this.updatePlayer({ id: playerId, ...changes });
+    } else if (!this.turnStateManager.hasActiveTempState(playerId)) {
+      // No TEMP state - fall back to updating main player state
+      this.updatePlayer({ id: playerId, ...changes });
+    }
 
-    return { success: true, newTempState };
+    return result;
   }
 
   setGameState(newState: GameState): GameState {
@@ -1766,67 +1526,8 @@ export class StateService implements IStateService {
   }
 
   // ============================================================================
-  // Server Synchronization Methods
+  // Server Synchronization Methods (delegated to ServerSyncService)
   // ============================================================================
-
-  /**
-   * Sync current state to backend server
-   * Called automatically after every state update
-   * Fails silently if server is unavailable (graceful degradation)
-   */
-  private async syncToServer(state: GameState): Promise<void> {
-    // Skip sync if disabled or already syncing
-    if (!this.syncEnabled || this.isSyncing) {
-      return;
-    }
-
-    // Lazy initialization of server URL
-    if (!this.serverUrl) {
-      try {
-        this.serverUrl = getBackendURL();
-      } catch (error) {
-        console.warn('Cannot determine backend URL, disabling server sync:', error);
-        this.syncEnabled = false;
-        return;
-      }
-    }
-
-    this.isSyncing = true;
-
-    try {
-      const gameId = getCurrentGameId();
-      const apiPath = getGameStateAPIPath(gameId);
-      const response = await fetch(`${this.serverUrl}${apiPath}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // Include clientVersion to enable server-side conflict detection (Dec 29, 2025 fix)
-        body: JSON.stringify({ state, clientVersion: this.lastKnownServerVersion })
-      });
-
-      if (!response.ok) {
-        // Check for version conflict (409 Conflict)
-        if (response.status === 409) {
-          console.warn(`⚠️ State sync rejected: server has newer version. Fetching latest state...`);
-          // Fetch the latest state from server to resolve conflict
-          await this.loadStateFromServer();
-          return;
-        }
-        console.warn(`Failed to sync state to server: ${response.status} ${response.statusText}`);
-      } else {
-        const result = await response.json();
-        // Update our known server version to prevent future conflicts
-        this.lastKnownServerVersion = result.stateVersion;
-        console.log(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''}`);
-      }
-    } catch (error) {
-      // Fail silently - server may not be running (development mode)
-      // console.error('Failed to sync state to server:', error);
-    } finally {
-      this.isSyncing = false;
-    }
-  }
 
   /**
    * Load game state from backend server
@@ -1834,65 +1535,19 @@ export class StateService implements IStateService {
    * Returns true if state was loaded successfully, false otherwise
    */
   async loadStateFromServer(): Promise<boolean> {
-    // Lazy initialization of server URL
-    if (!this.serverUrl) {
-      try {
-        this.serverUrl = getBackendURL();
-      } catch (error) {
-        console.warn('Cannot determine backend URL, skipping server state load:', error);
-        return false;
-      }
-    }
-
-    try {
-      const gameId = getCurrentGameId();
-      const apiPath = getGameStateAPIPath(gameId);
-      console.log(`📥 Loading state from server...${gameId ? ` [${gameId}]` : ''}`);
-      const response = await fetch(`${this.serverUrl}${apiPath}`);
-
-      if (response.status === 404) {
-        console.log('No server state found, using local state');
-        return false;
-      }
-
-      if (!response.ok) {
-        console.warn(`Failed to load state from server: ${response.status} ${response.statusText}`);
-        return false;
-      }
-
-      const { state, stateVersion } = await response.json();
-
-      if (state) {
-        this.currentState = state;
-        // Track the server version to prevent stale state overwrites (Dec 29, 2025 fix)
-        this.lastKnownServerVersion = stateVersion;
-        // Skip sync when loading from server to avoid syncing back what we just loaded
-        this.notifyListeners({ skipSync: true });
-        console.log(`✅ State loaded from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
-        console.log(`   Players: ${state.players?.length || 0}`);
-        console.log(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      // Server not available - continue with local state
-      console.log('Server not available, using local state');
-      return false;
-    }
+    return this.serverSyncService.loadFromServer();
   }
 
   /**
    * Replace entire state (used by polling mechanism)
    * Does NOT trigger sync (to avoid infinite loops)
    * @param newState - The new state to replace with
-   * @param serverVersion - Optional server version to track (Dec 29, 2025 fix)
+   * @param serverVersion - Optional server version to track
    */
   replaceState(newState: GameState, serverVersion?: number): void {
     this.currentState = newState;
-    // Track the server version to prevent stale state overwrites (Dec 29, 2025 fix)
     if (serverVersion !== undefined) {
-      this.lastKnownServerVersion = serverVersion;
+      this.serverSyncService.setServerVersion(serverVersion);
     }
     // Skip sync when replacing from server poll to avoid syncing back what we just received
     this.notifyListeners({ skipSync: true });
@@ -1903,7 +1558,6 @@ export class StateService implements IStateService {
    * Useful for testing or when server is intentionally offline
    */
   setSyncEnabled(enabled: boolean): void {
-    this.syncEnabled = enabled;
-    console.log(`Server sync ${enabled ? 'enabled' : 'disabled'}`);
+    this.serverSyncService.setSyncEnabled(enabled);
   }
 }

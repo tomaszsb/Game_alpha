@@ -422,6 +422,19 @@ export interface IFinancialEffectHandler {
   setDataService(dataService: IDataService): void;
 }
 
+/**
+ * Card Effect Handler - Handles card-related effects
+ * Extracted from EffectEngineService to consolidate card operations
+ */
+export interface ICardEffectHandler {
+  handleCardDraw(effect: Effect, context: EffectContext): Promise<EffectResult>;
+  handleCardDiscard(effect: Effect, context: EffectContext): Promise<EffectResult>;
+  handleCardActivation(effect: Effect, context: EffectContext): EffectResult;
+  handlePlayCard(effect: Effect, context: EffectContext): Promise<EffectResult>;
+  setNotificationService(notificationService: INotificationService): void;
+  setDataService(dataService: IDataService): void;
+}
+
 export interface IPlayerActionService {
   // Methods for handling player commands and orchestrating actions
   playCard(playerId: string, cardId: string): Promise<void>;

@@ -1,5 +1,7 @@
 import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EffectEngineService } from '../../src/services/EffectEngineService';
+import { FinancialEffectHandler } from '../../src/services/FinancialEffectHandler';
+import { CardEffectHandler } from '../../src/services/CardEffectHandler';
 import {
   IResourceService,
   ICardService,
@@ -8,7 +10,8 @@ import {
   IMovementService,
   ITurnService,
   IGameRulesService,
-  ITargetingService
+  ITargetingService,
+  ILoggingService
 } from '../../src/types/ServiceContracts';
 import { Effect, EffectContext } from '../../src/types/EffectTypes';
 
@@ -22,6 +25,7 @@ describe('EffectEngineService', () => {
   let mockTurnService: any;
   let mockGameRulesService: any;
   let mockTargetingService: any;
+  let mockLoggingService: any;
 
   beforeEach(() => {
     // Mock all dependencies
@@ -167,6 +171,17 @@ describe('EffectEngineService', () => {
       getTargetDescription: vi.fn()
     };
 
+    mockLoggingService = {
+      log: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
+      debug: vi.fn(),
+      addLogEntry: vi.fn(),
+      getLogEntries: vi.fn().mockReturnValue([]),
+      clearLogs: vi.fn()
+    };
+
     // Instantiate the EffectEngineService with mocked dependencies
     effectEngineService = new EffectEngineService(
       mockResourceService,
@@ -176,8 +191,25 @@ describe('EffectEngineService', () => {
       mockMovementService,
       mockTurnService,
       mockGameRulesService,
-      mockTargetingService
+      mockTargetingService,
+      mockLoggingService
     );
+
+    // Set up handlers - required after removing legacy fallbacks
+    const financialEffectHandler = new FinancialEffectHandler(
+      mockResourceService,
+      mockStateService,
+      mockGameRulesService,
+      mockLoggingService
+    );
+    effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+
+    const cardEffectHandler = new CardEffectHandler(
+      mockCardService,
+      mockStateService,
+      mockChoiceService
+    );
+    effectEngineService.setCardEffectHandler(cardEffectHandler);
   });
 
   it('should process RESOURCE_CHANGE effect and call ResourceService', async () => {
@@ -567,6 +599,22 @@ describe('EffectEngineService', () => {
         mockTargetingService,
         mockLoggingService
       );
+
+      // Set up handlers - required after removing legacy fallbacks
+      const financialEffectHandler = new FinancialEffectHandler(
+        mockResourceService,
+        mockStateService,
+        mockGameRulesService,
+        mockLoggingService
+      );
+      effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+
+      const cardEffectHandler = new CardEffectHandler(
+        mockCardService,
+        mockStateService,
+        mockChoiceService
+      );
+      effectEngineService.setCardEffectHandler(cardEffectHandler);
     });
 
     it('should store duration effects when card has duration=Turns', async () => {
@@ -945,6 +993,22 @@ describe('EffectEngineService', () => {
 
       // Set the negotiation service
       effectEngineService.setNegotiationService(mockNegotiationService);
+
+      // Set up handlers - required after removing legacy fallbacks
+      const financialEffectHandler = new FinancialEffectHandler(
+        mockResourceService,
+        mockStateService,
+        mockGameRulesService,
+        mockLoggingService
+      );
+      effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+
+      const cardEffectHandler = new CardEffectHandler(
+        mockCardService,
+        mockStateService,
+        mockChoiceService
+      );
+      effectEngineService.setCardEffectHandler(cardEffectHandler);
     });
 
     it('should process INITIATE_NEGOTIATION effect successfully', async () => {
@@ -1278,6 +1342,22 @@ describe('EffectEngineService', () => {
         mockTargetingService,
         mockLoggingService
       );
+
+      // Set up handlers - required after removing legacy fallbacks
+      const financialEffectHandler = new FinancialEffectHandler(
+        mockResourceService,
+        mockStateService,
+        mockGameRulesService,
+        mockLoggingService
+      );
+      effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+
+      const cardEffectHandler = new CardEffectHandler(
+        mockCardService,
+        mockStateService,
+        mockChoiceService
+      );
+      effectEngineService.setCardEffectHandler(cardEffectHandler);
     });
 
     it('should deduct loan percentage fee based on tiered rates', async () => {

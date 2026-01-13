@@ -116,6 +116,14 @@ export class DiceService implements IDiceService {
       return `Rolled ${diceValue} - No special effects this turn.`;
     }
 
+    // Check if only choice effects exist (no actual dice effects like cards, money, time)
+    const actualEffects = effects.filter(e => e.type !== 'choice');
+    const hasOnlyChoiceEffect = actualEffects.length === 0 && effects.some(e => e.type === 'choice');
+
+    if (hasOnlyChoiceEffect) {
+      return `Rolled ${diceValue} - No effect. Choose your destination.`;
+    }
+
     const summaryParts: string[] = [];
     let hasPositive = false;
     let hasNegative = false;

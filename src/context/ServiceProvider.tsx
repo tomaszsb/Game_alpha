@@ -21,6 +21,7 @@ import { TargetingService } from '../services/TargetingService';
 import { NotificationService } from '../services/NotificationService';
 import { CardEffectService } from '../services/CardEffectService';
 import { FinancialEffectHandler } from '../services/FinancialEffectHandler';
+import { CardEffectHandler } from '../services/CardEffectHandler';
 
 interface ServiceProviderProps {
   children: ReactNode;
@@ -77,7 +78,11 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Create and wire FinancialEffectHandler for consolidated financial operations
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
   effectEngineService.setFinancialEffectHandler(financialEffectHandler);
-  
+
+  // Create and wire CardEffectHandler for consolidated card operations
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService);
+  effectEngineService.setCardEffectHandler(cardEffectHandler);
+
   const playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
 
   const services: IServiceContainer = {

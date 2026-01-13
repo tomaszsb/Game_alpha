@@ -13,7 +13,8 @@ import {
   IDataService,
   LogPayload,
   INotificationService,
-  IFinancialEffectHandler
+  IFinancialEffectHandler,
+  ICardEffectHandler
 } from '../types/ServiceContracts';
 import { NegotiationService } from './NegotiationService';
 import { 
@@ -96,6 +97,7 @@ export class EffectEngineService implements IEffectEngineService {
   private negotiationService?: NegotiationService;
   private notificationService?: INotificationService;
   private financialEffectHandler?: IFinancialEffectHandler;
+  private cardEffectHandler?: ICardEffectHandler;
 
   constructor(
     resourceService: IResourceService,
@@ -139,6 +141,17 @@ export class EffectEngineService implements IEffectEngineService {
 
   public setFinancialEffectHandler(handler: IFinancialEffectHandler): void {
     this.financialEffectHandler = handler;
+    // Wire dependencies to the handler
+    if (this.notificationService) {
+      handler.setNotificationService(this.notificationService);
+    }
+    if (this.dataService) {
+      handler.setDataService(this.dataService);
+    }
+  }
+
+  public setCardEffectHandler(handler: ICardEffectHandler): void {
+    this.cardEffectHandler = handler;
     // Wire dependencies to the handler
     if (this.notificationService) {
       handler.setNotificationService(this.notificationService);
@@ -217,6 +230,24 @@ export class EffectEngineService implements IEffectEngineService {
       const effect = effects[i];
       console.log(`  Processing effect ${i + 1}/${effects.length}: ${effect.effectType}`);
 
+      // Check if this is a dice_replace_draw effect and the previous discard was skipped
+      if (effect.effectType === 'CARD_DRAW' &&
+          'payload' in effect &&
+          effect.payload.source?.includes(':dice_replace_draw')) {
+        // Look for the previous CARD_DISCARD result
+        const prevResult = results.length > 0 ? results[results.length - 1] : null;
+        if (prevResult && prevResult.effectType === 'CARD_DISCARD' && prevResult.data?.skipped) {
+          console.log(`    ⏭️ Skipping CARD_DRAW because preceding replace discard was skipped`);
+          results.push({
+            success: true,
+            effectType: effect.effectType,
+            data: { cardIds: [], skipped: true, reason: 'Replace was skipped' }
+          });
+          successfulEffects++;
+          continue;
+        }
+      }
+
       try {
         const result = await this.processEffect(effect, context);
         results.push(result);
@@ -291,251 +322,11 @@ export class EffectEngineService implements IEffectEngineService {
       // Process effect based on type using type guards and switch statement
       switch (effect.effectType) {
         case 'RESOURCE_CHANGE':
-          // Delegate to FinancialEffectHandler if available
-          if (this.financialEffectHandler) {
-            return this.financialEffectHandler.handleResourceChange(effect, context);
+          // Delegate to FinancialEffectHandler (required)
+          if (!this.financialEffectHandler) {
+            throw new Error('FinancialEffectHandler not set - call setFinancialEffectHandler() before processing effects');
           }
-          // Legacy fallback - keep original implementation for backwards compatibility
-          if (isResourceChangeEffect(effect)) {
-            const { payload } = effect;
-            const source = payload.source || context.source;
-            const reason = payload.reason || 'Effect processing';
-            const sourceType = payload.sourceType || 'other';  // Default to 'other' if not specified
-
-            // Handle percentage-based design fees
-            let actualAmount = payload.amount;
-            if (payload.percentageOfScope !== undefined && payload.resource === 'MONEY') {
-              const player = this.stateService.getPlayer(payload.playerId);
-              if (player) {
-                // Calculate project scope dynamically from W cards (not the stored value which may be stale)
-                const projectScope = this.gameRulesService.calculateProjectScope(payload.playerId);
-                actualAmount = -Math.floor((projectScope * payload.percentageOfScope) / 100);
-                console.log(`🔧 EFFECT_ENGINE: Calculating design fee: ${payload.percentageOfScope}% of ${projectScope.toLocaleString()} = ${Math.abs(actualAmount).toLocaleString()}`);
-
-                // Track as design expenditure if fee category is provided
-                if (payload.feeCategory && actualAmount < 0) {
-                  const feeAmount = Math.abs(actualAmount);
-                  const gameState = this.stateService.getGameState();
-                  const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
-
-                  // Build update data for the player
-                  const updateData: any = {};
-
-                  if (player.expenditures) {
-                    // Add to design expenditures
-                    updateData.expenditures = {
-                      ...player.expenditures,
-                      design: (player.expenditures.design || 0) + feeAmount
-                    };
-                  }
-
-                  // Also track in detailed costs
-                  if (player.costs) {
-                    const costCategory = payload.feeCategory === 'architectural' ? 'architectural' : 'engineering';
-                    const updatedCosts = { ...player.costs };
-                    updatedCosts[costCategory] = (updatedCosts[costCategory] || 0) + feeAmount;
-                    updatedCosts.total = (updatedCosts.total || 0) + feeAmount;
-                    updateData.costs = updatedCosts;
-
-                    // Add to cost history
-                    const costHistory = [...(player.costHistory || [])];
-                    costHistory.push({
-                      id: `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                      category: costCategory,
-                      amount: feeAmount,
-                      description: `${payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer'} fee: ${payload.percentageOfScope}% of scope`,
-                      turn: currentTurn,
-                      timestamp: new Date(),
-                      spaceName: player.currentSpace
-                    });
-                    updateData.costHistory = costHistory;
-                  }
-
-                  // Apply all updates via TEMP state (or main state if no TEMP exists)
-                  this.stateService.updateTempState(payload.playerId, updateData);
-
-                  // Check for 20% design fee cap rule
-                  const updatedPlayer = this.stateService.getPlayer(payload.playerId);
-                  if (updatedPlayer) {
-                    const totalDesignFees = updatedPlayer.expenditures?.design || 0;
-                    // Calculate project scope dynamically from W cards
-                    const playerScope = this.gameRulesService.calculateProjectScope(payload.playerId);
-                    const designFeeRatio = playerScope > 0 ? (totalDesignFees / playerScope) * 100 : 0;
-
-                    if (designFeeRatio >= 20) {
-                      console.log(`⛔ DESIGN FEE CAP EXCEEDED: ${designFeeRatio.toFixed(1)}% (${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()})`);
-
-                      // Get space phase to determine consequence
-                      const spaceConfig = this.dataService ? this.dataService.getGameConfigBySpace(updatedPlayer.currentSpace) : null;
-                      const currentPhase = (spaceConfig && spaceConfig.phase) ? spaceConfig.phase.toUpperCase() : 'UNKNOWN';
-
-                      if (currentPhase === 'DESIGN') {
-                        // DESIGN phase: Game Over (loss)
-                        console.log(`💀 GAME OVER: Design fees exceeded 20% cap during DESIGN phase`);
-                        console.log(`   Player: ${updatedPlayer.name}, Design Fees: $${totalDesignFees.toLocaleString()}, Scope: $${playerScope.toLocaleString()}, Ratio: ${designFeeRatio.toFixed(1)}%`);
-
-                        // Emit auto-action event for modal display
-                        this.stateService.emitAutoAction({
-                          type: 'life_event',
-                          playerId: payload.playerId,
-                          playerName: updatedPlayer.name,
-                          success: false,
-                          spaceName: updatedPlayer.currentSpace,
-                          message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`
-                        });
-
-                        // End the game - player loses
-                        this.stateService.endGame(); // No winner
-                      } else {
-                        // CONSTRUCTION phase or later: Apply punishment (time penalty)
-                        console.log(`⚠️ PENALTY: Design fees exceeded 20% cap during ${currentPhase} phase - applying time penalty`);
-
-                        // Add 2 time units as penalty
-                        const timePenalty = 2;
-                        this.resourceService.addTime(payload.playerId, timePenalty, 'penalty', 'Design fee cap exceeded - time penalty');
-
-                        // Show notification
-                        if (this.notificationService) {
-                          this.notificationService.notify(
-                            {
-                              short: '⚠️ Penalty',
-                              medium: `⚠️ Design fees at ${designFeeRatio.toFixed(1)}% - +${timePenalty} weeks penalty`,
-                              detailed: `Design fees exceeded 20% of project scope ($${totalDesignFees.toLocaleString()} / $${playerScope.toLocaleString()}). Time penalty: +${timePenalty} weeks added to project.`
-                            },
-                            {
-                              playerId: payload.playerId,
-                              playerName: updatedPlayer.name,
-                              actionType: 'design_fee_penalty',
-                              notificationDuration: 6000
-                            }
-                          );
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-
-            console.log(`🔧 EFFECT_ENGINE: Processing ${payload.resource} change for player ${payload.playerId} by ${actualAmount}`);
-
-            if (payload.resource === 'MONEY') {
-              if (actualAmount > 0) {
-                success = this.resourceService.addMoney(payload.playerId, actualAmount, source, reason, sourceType);
-
-                // Show notification for significant money additions (funding from owner)
-                if (success && this.notificationService) {
-                  const player = this.stateService.getPlayer(payload.playerId);
-                  if (player) {
-                    // Check if this is owner funding (from B card or OWNER-FUND-INITIATION)
-                    const isFunding = source.includes('card:B') ||
-                                     source.includes('OWNER-FUND') ||
-                                     sourceType === 'owner' ||
-                                     reason.toLowerCase().includes('funding');
-
-                    const formattedAmount = actualAmount.toLocaleString();
-                    const notificationMessage = isFunding
-                      ? `💰 Owner Funding: +$${formattedAmount}`
-                      : `💵 Received: +$${formattedAmount}`;
-
-                    this.notificationService.notify(
-                      {
-                        short: `+$${formattedAmount}`,
-                        medium: notificationMessage,
-                        detailed: `${player.name} received $${formattedAmount} (${reason})`
-                      },
-                      {
-                        playerId: payload.playerId,
-                        playerName: player.name,
-                        actionType: 'money_received',
-                        notificationDuration: 4000
-                      }
-                    );
-                  }
-                }
-              } else if (actualAmount < 0) {
-                success = this.resourceService.spendMoney(payload.playerId, Math.abs(actualAmount), source, reason);
-
-                // Show notification for design fee deductions
-                if (success && this.notificationService && payload.percentageOfScope !== undefined) {
-                  const player = this.stateService.getPlayer(payload.playerId);
-                  if (player) {
-                    const feeType = payload.feeCategory === 'architectural' ? 'Architect' : 'Engineer';
-                    const formattedAmount = Math.abs(actualAmount).toLocaleString();
-                    this.notificationService.notify(
-                      {
-                        short: `-$${formattedAmount}`,
-                        medium: `💸 ${feeType} Fee: -$${formattedAmount}`,
-                        detailed: `${player.name} paid ${feeType} fee: ${payload.percentageOfScope}% of project scope = $${formattedAmount}`
-                      },
-                      {
-                        playerId: payload.playerId,
-                        playerName: player.name,
-                        actionType: 'fee_paid',
-                        notificationDuration: 5000
-                      }
-                    );
-                  }
-                }
-
-                // Check for bankruptcy (out of money) after spending
-                if (success) {
-                  const updatedPlayer = this.stateService.getPlayer(payload.playerId);
-                  if (updatedPlayer && updatedPlayer.money < 0) {
-                    console.log(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
-
-                    // Emit game over event
-                    this.stateService.emitAutoAction({
-                      type: 'life_event',
-                      playerId: payload.playerId,
-                      playerName: updatedPlayer.name,
-                      success: false,
-                      spaceName: updatedPlayer.currentSpace,
-                      message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`
-                    });
-
-                    // End the game
-                    this.stateService.endGame();
-                  }
-                }
-              } else {
-                success = true; // No change needed for 0 amount
-              }
-            } else if (payload.resource === 'TIME') {
-              if (payload.amount > 0) {
-                this.resourceService.addTime(payload.playerId, payload.amount, source, reason);
-                success = true;
-                
-                // Log to action log if available
-                const player = this.stateService.getPlayer(payload.playerId);
-                if (player && typeof window !== 'undefined' && typeof (window as any).addActionToLog === 'function') {
-                  (window as any).addActionToLog({
-                    type: 'resource_change',
-                    playerId: payload.playerId,
-                    playerName: player.name,
-                    description: `Added ${payload.amount} day${payload.amount !== 1 ? 's' : ''} of time`,
-                    details: {
-                      time: payload.amount
-                    }
-                  });
-                }
-              } else if (payload.amount < 0) {
-                this.resourceService.spendTime(payload.playerId, Math.abs(payload.amount), source, reason);
-                success = true;
-              } else {
-                success = true; // No change needed for 0 amount
-              }
-            }
-            
-            if (!success) {
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: `Failed to process ${payload.resource} change of ${payload.amount} for player ${payload.playerId}`
-              };
-            }
-          }
-          break;
+          return this.financialEffectHandler.handleResourceChange(effect, context);
 
         case 'OWNER_SEED_MONEY':
           // Calculate owner seed money as 80-120% of project scope
@@ -583,225 +374,18 @@ export class EffectEngineService implements IEffectEngineService {
           break;
 
         case 'CARD_DRAW':
-          if (isCardDrawEffect(effect)) {
-            const { payload } = effect;
-            const source = payload.source || context.source;
-            const reason = payload.reason || 'Effect processing';
-
-            console.log(`🔧 EFFECT_ENGINE: Drawing ${payload.count} ${payload.cardType} card(s) for player ${payload.playerId}`);
-            
-            try {
-              const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
-              console.log(`    ✅ Drew ${drawnCards.length} card(s): ${drawnCards.join(', ')}`);
-
-              // Show notification for L (Life Event) card draws - these are important!
-              if (payload.cardType === 'L' && drawnCards.length > 0 && this.notificationService) {
-                const player = this.stateService.getPlayer(payload.playerId);
-                if (player) {
-                  // Get the card name(s) for a more informative notification
-                  const cardNames = drawnCards.map(cardId => {
-                    const card = this.dataService?.getCardById(cardId);
-                    return card?.name || cardId;
-                  });
-
-                  const notificationMessage = drawnCards.length === 1
-                    ? `🎲 Life Event: ${cardNames[0]}`
-                    : `🎲 Life Events: ${cardNames.join(', ')}`;
-
-                  this.notificationService.notify(
-                    {
-                      short: 'Life Event!',
-                      medium: notificationMessage,
-                      detailed: `Drew ${drawnCards.length} Life Event card(s): ${cardNames.join(', ')}`
-                    },
-                    {
-                      playerId: payload.playerId,
-                      playerName: player.name,
-                      actionType: 'card_draw_L',
-                      notificationDuration: 5000  // Show for 5 seconds since it's important
-                    }
-                  );
-                }
-              }
-
-              // Special handling for funding spaces: automatically play drawn B/I funding cards
-              // This applies to OWNER-FUND-INITIATION, BANK-FUND-REVIEW, and INVESTOR-FUND-REVIEW
-              const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
-              const currentSpaceName = context.metadata?.spaceName || '';
-              const isFundingSpace = fundingSpaces.includes(currentSpaceName);
-              const isFundingCard = payload.cardType === 'B' || payload.cardType === 'I';
-
-              console.log(`🔍 Checking funding auto-play condition`);
-              console.log(`    - context.metadata?.spaceName = "${currentSpaceName}"`);
-              console.log(`    - isFundingSpace = ${isFundingSpace}`);
-              console.log(`    - isFundingCard = ${isFundingCard} (type: ${payload.cardType})`);
-              console.log(`    - drawnCards.length = ${drawnCards.length}`);
-
-              if (isFundingSpace && isFundingCard && drawnCards.length > 0) {
-                console.log(`    💰 ${currentSpaceName}: Automatically playing drawn funding card(s): ${drawnCards.join(', ')}`);
-
-                // Get card details for auto-action event
-                const drawnCardData = this.dataService?.getCardById(drawnCards[0]);
-                const cardName = drawnCardData?.card_name || `${payload.cardType} Card`;
-                const fundingPlayer = this.stateService.getPlayer(payload.playerId);
-                const fundingType = payload.cardType === 'B' ? 'Bank' : 'Investment';
-
-                // Extract funding amount from card's loan_amount or investment_amount field
-                let fundingAmount = 0;
-                if (drawnCardData) {
-                  if (payload.cardType === 'B' && drawnCardData.loan_amount) {
-                    fundingAmount = parseInt(drawnCardData.loan_amount.replace(/,/g, ''), 10) || 0;
-                  } else if (payload.cardType === 'I' && drawnCardData.investment_amount) {
-                    fundingAmount = parseInt(drawnCardData.investment_amount.replace(/,/g, ''), 10) || 0;
-                  } else if (drawnCardData.money_effect) {
-                    // Fallback to money_effect field
-                    const moneyMatch = drawnCardData.money_effect.match(/add\s+([\d,]+)/i);
-                    if (moneyMatch) {
-                      fundingAmount = parseInt(moneyMatch[1].replace(/,/g, ''), 10);
-                    }
-                  }
-                }
-                console.log(`    💰 Funding amount extracted: $${fundingAmount.toLocaleString()}`);
-
-                // Determine event type and message based on space
-                const isOwnerFunding = currentSpaceName === 'OWNER-FUND-INITIATION';
-                const eventType = isOwnerFunding ? 'seed_money' : 'automatic_funding';
-                const eventMessage = isOwnerFunding
-                  ? `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`
-                  : `💰 ${fundingType} Funding: ${cardName} (+$${fundingAmount.toLocaleString()})`;
-
-                // Emit auto-action event for funding modal
-                this.stateService.emitAutoAction({
-                  type: eventType,
-                  playerId: payload.playerId,
-                  playerName: fundingPlayer?.name || 'Unknown',
-                  cardType: payload.cardType,
-                  cardName: cardName,
-                  cardId: drawnCards[0],
-                  success: true,
-                  spaceName: currentSpaceName,
-                  message: eventMessage,
-                  moneyAmount: fundingAmount
-                });
-
-                const playCardEffects = drawnCards.map(cardId => ({
-                  effectType: 'PLAY_CARD' as const,
-                  payload: {
-                    playerId: payload.playerId,
-                    cardId: cardId,
-                    source: `auto_play:${currentSpaceName}`
-                  }
-                }));
-
-                console.log(`    💰 Created ${playCardEffects.length} PLAY_CARD effect(s) to auto-apply funding`);
-                return {
-                  success: true,
-                  effectType: effect.effectType,
-                  resultingEffects: playCardEffects,
-                  data: { cardIds: drawnCards }
-                };
-              } else if (isFundingSpace && !isFundingCard) {
-                console.log(`    ℹ️ Funding space but non-funding card type (${payload.cardType}) - skipping auto-play`);
-              } else {
-                console.log(`    ⚠️ Funding auto-play NOT triggered (not a funding space or no cards drawn)`);
-              }
-              
-              // Log to action log if available
-              const player = this.stateService.getPlayer(payload.playerId);
-              if (player && typeof window !== 'undefined' && typeof (window as any).addActionToLog === 'function') {
-                (window as any).addActionToLog({
-                  type: 'card_draw',
-                  playerId: payload.playerId,
-                  playerName: player.name,
-                  description: `Drew ${payload.count} ${payload.cardType} card${payload.count > 1 ? 's' : ''}`,
-                  details: {
-                    cards: drawnCards
-                  }
-                });
-              }
-              
-              // Store drawn cards in result for potential use by other effects
-              return {
-                success: true,
-                effectType: effect.effectType,
-                data: { cardIds: drawnCards },
-                resultingEffects: [{
-                  effectType: 'LOG',
-                  payload: {
-                    message: `Drew ${drawnCards.length} ${payload.cardType} card(s): ${drawnCards.join(', ')}`,
-                    level: 'INFO',
-                    source,
-                    action: 'card_draw',
-                    playerId: payload.playerId
-                  }
-                }]
-              };
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : 'Unknown card draw error';
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: `Failed to draw ${payload.count} ${payload.cardType} cards for player ${payload.playerId}: ${errorMessage}`
-              };
-            }
+          // Delegate to CardEffectHandler (required)
+          if (!this.cardEffectHandler) {
+            throw new Error('CardEffectHandler not set - call setCardEffectHandler() before processing effects');
           }
-          break;
+          return this.cardEffectHandler.handleCardDraw(effect, context);
 
         case 'CARD_DISCARD':
-          if (isCardDiscardEffect(effect)) {
-            const { payload } = effect;
-            const source = payload.source || context.source;
-            const reason = payload.reason || 'Effect processing';
-            let cardIdsToDiscard = payload.cardIds;
-            
-            // If cardIds is empty but cardType and count are provided, determine cards at runtime
-            if ((!cardIdsToDiscard || cardIdsToDiscard.length === 0) && payload.cardType && payload.count) {
-              console.log(`🔧 EFFECT_ENGINE: Finding ${payload.count} ${payload.cardType} card(s) to discard for player ${payload.playerId}`);
-              
-              // Get all cards of the specified type from the player's hand
-              const allCardsOfType = this.cardService.getPlayerCards(payload.playerId, payload.cardType);
-              
-              // Take the first 'count' cards from that list
-              if (allCardsOfType.length > 0) {
-                cardIdsToDiscard = allCardsOfType.slice(0, payload.count);
-              }
-              
-              if (cardIdsToDiscard.length === 0) {
-                console.log(`    ⚠️  Player ${payload.playerId} has no ${payload.cardType} cards to discard - effect skipped`);
-                break; // Skip this effect if no cards can be discarded
-              }
-            }
-            
-            console.log(`🔧 EFFECT_ENGINE: Discarding ${cardIdsToDiscard.length} card(s) for player ${payload.playerId}`);
-            console.log(`    Card IDs: ${cardIdsToDiscard.join(', ')}`);
-            
-            try {
-              const discardResult = await this.cardService.discardCards(payload.playerId, cardIdsToDiscard, source, reason);
-
-              if (!discardResult) {
-                return {
-                  success: false,
-                  effectType: effect.effectType,
-                  error: `Failed to discard cards for player ${payload.playerId}: Card discard operation failed`
-                };
-              }
-
-              console.log(`    ✅ Successfully discarded ${cardIdsToDiscard.length} card(s)`);
-              return {
-                success: true,
-                effectType: effect.effectType,
-                data: { cardIds: cardIdsToDiscard }
-              };
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : 'Unknown card discard error';
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: `Failed to discard cards for player ${payload.playerId}: ${errorMessage}`
-              };
-            }
+          // Delegate to CardEffectHandler (required)
+          if (!this.cardEffectHandler) {
+            throw new Error('CardEffectHandler not set - call setCardEffectHandler() before processing effects');
           }
-          break;
+          return this.cardEffectHandler.handleCardDiscard(effect, context);
 
         case 'CHOICE':
           if (isChoiceEffect(effect)) {
@@ -956,24 +540,10 @@ export class EffectEngineService implements IEffectEngineService {
           break;
 
         case 'CARD_ACTIVATION':
-          if (isCardActivationEffect(effect)) {
-            const { payload } = effect;
-            console.log(`🎴 EFFECT_ENGINE: Activating card ${payload.cardId} for player ${payload.playerId} for ${payload.duration} turns`);
-            console.log(`    Source: ${payload.source || context.source}`);
-            console.log(`    Reason: ${payload.reason || 'Effect processing'}`);
-            
-            
-            try {
-              // Activate card through CardService
-              this.cardService.activateCard(payload.playerId, payload.cardId, payload.duration);
-              success = true;
-              
-              console.log(`✅ Card ${payload.cardId} activated successfully for ${payload.duration} turns`);
-            } catch (error) {
-              console.error(`❌ Error activating card ${payload.cardId}:`, error);
-              success = false;
-            }
+          if (!this.cardEffectHandler) {
+            throw new Error('CardEffectHandler not set - call setCardEffectHandler() before processing effects');
           }
+          return this.cardEffectHandler.handleCardActivation(effect, context);
           break;
 
         case 'EFFECT_GROUP_TARGETED':
@@ -1110,41 +680,10 @@ export class EffectEngineService implements IEffectEngineService {
           break;
 
         case 'PLAY_CARD':
-          if (isPlayCardEffect(effect)) {
-            const { payload } = effect;
-            try {
-              console.log(`🎴 EFFECT_ENGINE: Processing PLAY_CARD for ${payload.cardId} (player ${payload.playerId})`);
-              console.log(`    Source: ${payload.source}`);
-
-              // Check if this is an auto-play scenario (e.g., OWNER-FUND-INITIATION)
-              const isAutoPlay = payload.source?.startsWith('auto_play:');
-
-              if (isAutoPlay) {
-                console.log(`    💰 Auto-play detected - applying card effects before finalizing`);
-                // For auto-play, we need to apply card effects (they haven't been applied yet)
-                await this.cardService.applyCardEffects(payload.playerId, payload.cardId);
-                console.log(`    ✅ Card effects applied for ${payload.cardId}`);
-              } else {
-                console.log(`    ℹ️  Manual play - effects already applied by PlayerActionService`);
-              }
-
-              // Finalize card (move to active or discard based on duration)
-              this.cardService.finalizePlayedCard(payload.playerId, payload.cardId);
-              console.log(`    ✅ Finalized card ${payload.cardId}`);
-
-              success = true;
-            } catch (error) {
-              const errorMsg = error instanceof Error ? error.message : String(error);
-              console.error(`❌ Error finalizing card ${payload.cardId}:`, errorMsg);
-              success = false;
-              // Store error message for proper error reporting
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: errorMsg
-              };
-            }
+          if (!this.cardEffectHandler) {
+            throw new Error('CardEffectHandler not set - call setCardEffectHandler() before processing effects');
           }
+          return this.cardEffectHandler.handlePlayCard(effect, context);
           break;
 
         case 'DURATION_STORED':
@@ -1323,169 +862,11 @@ export class EffectEngineService implements IEffectEngineService {
           break;
 
         case 'FEE_DEDUCTION':
-          // Delegate to FinancialEffectHandler if available
-          if (this.financialEffectHandler) {
-            return this.financialEffectHandler.handleFeeDeduction(effect, context);
+          // Delegate to FinancialEffectHandler (required)
+          if (!this.financialEffectHandler) {
+            throw new Error('FinancialEffectHandler not set - call setFinancialEffectHandler() before processing effects');
           }
-          // Legacy fallback - keep original implementation for backwards compatibility
-          if (isFeeDeductionEffect(effect)) {
-            const { payload } = effect;
-            console.log(`💰 EFFECT_ENGINE: Processing FEE_DEDUCTION`);
-            console.log(`    Player: ${payload.playerId}`);
-            console.log(`    Fee Type: ${payload.feeType}`);
-            console.log(`    Description: ${payload.feeDescription}`);
-
-            try {
-              const player = this.stateService.getPlayer(payload.playerId);
-              if (!player) {
-                console.warn(`Player ${payload.playerId} not found for fee deduction`);
-                return {
-                  success: false,
-                  effectType: effect.effectType,
-                  error: `Player ${payload.playerId} not found`
-                };
-              }
-
-              // Calculate total loan amount from player's loans array
-              let feeAmount = 0;
-              const totalLoanAmount = (player.loans || []).reduce((sum, loan) => sum + loan.principal, 0);
-              console.log(`    Total loan amount: $${totalLoanAmount}`);
-
-              if (payload.feeType === 'LOAN_PERCENTAGE' && totalLoanAmount > 0) {
-                // Parse percentage from description
-                const feeDesc = payload.feeDescription.toLowerCase();
-
-                // Check for tiered fee structure (e.g., BANK-FUND-REVIEW)
-                // "1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M"
-                if (feeDesc.includes('1.4m') || feeDesc.includes('2.75m')) {
-                  if (totalLoanAmount <= 1400000) {
-                    feeAmount = Math.round(totalLoanAmount * 0.01);
-                  } else if (totalLoanAmount <= 2750000) {
-                    feeAmount = Math.round(totalLoanAmount * 0.02);
-                  } else {
-                    feeAmount = Math.round(totalLoanAmount * 0.03);
-                  }
-                  console.log(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
-                }
-                // Check for fixed percentage (e.g., "5% of amount borrowed")
-                else {
-                  const percentMatch = feeDesc.match(/(\d+)%/);
-                  if (percentMatch) {
-                    const percent = parseInt(percentMatch[1]) / 100;
-                    feeAmount = Math.round(totalLoanAmount * percent);
-                    console.log(`    ${percentMatch[1]}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
-                  }
-                }
-              } else if (payload.feeType === 'DICE_BASED') {
-                // Dice-based fees require a dice roll - for now log and skip
-                console.log(`    Dice-based fee - requires dice roll context, skipping calculation`);
-                // Log that this fee type is encountered but not yet implemented
-                this.loggingService.info(`Fee deduction pending: ${payload.feeDescription} (dice roll required)`, {
-                  playerId: payload.playerId,
-                  action: 'fee_pending',
-                  source: payload.source || context.source
-                });
-                success = true;
-                break;
-              } else if (payload.feeType === 'FIXED') {
-                // Fixed fees - try to parse amount from description
-                const amountMatch = payload.feeDescription.match(/\$?([\d,]+)/);
-                if (amountMatch) {
-                  feeAmount = parseInt(amountMatch[1].replace(/,/g, ''));
-                }
-              }
-
-              // Apply the fee deduction if we have an amount
-              if (feeAmount > 0) {
-                // Check if player can afford the fee before attempting deduction
-                const canAfford = this.resourceService.canAfford(payload.playerId, feeAmount);
-
-                if (!canAfford) {
-                  console.log(`    ❌ Cannot afford fee: $${feeAmount.toLocaleString()} (player has $${player.money.toLocaleString()})`);
-
-                  // Log the failed fee attempt
-                  this.loggingService.warn(`Fee payment failed: insufficient funds for $${feeAmount.toLocaleString()}`, {
-                    playerId: payload.playerId,
-                    action: 'fee_failed',
-                    source: payload.source || context.source
-                  });
-
-                  // Notify the player
-                  if (this.notificationService) {
-                    this.notificationService.notify(
-                      {
-                        short: 'Insufficient funds',
-                        medium: `❌ Cannot pay $${feeAmount.toLocaleString()} fee`,
-                        detailed: `You need $${feeAmount.toLocaleString()} to pay this fee but only have $${player.money.toLocaleString()}`
-                      },
-                      {
-                        playerId: payload.playerId,
-                        playerName: player.name,
-                        actionType: 'fee_insufficient_funds',
-                        notificationDuration: 5000
-                      }
-                    );
-                  }
-
-                  // Return failure - player cannot proceed until they have funds
-                  return {
-                    success: false,
-                    effectType: effect.effectType,
-                    error: `Insufficient funds: Need $${feeAmount.toLocaleString()} to pay fee, but only have $${player.money.toLocaleString()}`
-                  };
-                }
-
-                // Player can afford - attempt the deduction
-                const deductionResult = this.resourceService.spendMoney(
-                  payload.playerId,
-                  feeAmount,
-                  payload.source || context.source,
-                  payload.feeDescription
-                );
-
-                if (deductionResult) {
-                  console.log(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
-
-                  // Log the fee deduction
-                  this.loggingService.info(`Fee paid: $${feeAmount.toLocaleString()} (${payload.feeDescription})`, {
-                    playerId: payload.playerId,
-                    action: 'fee_deducted',
-                    source: payload.source || context.source
-                  });
-
-                  success = true;
-                } else {
-                  // Deduction failed unexpectedly (shouldn't happen since we checked canAfford)
-                  console.error(`    ❌ Fee deduction failed unexpectedly`);
-                  return {
-                    success: false,
-                    effectType: effect.effectType,
-                    error: `Fee deduction failed unexpectedly`
-                  };
-                }
-              } else if (totalLoanAmount === 0 && payload.feeType === 'LOAN_PERCENTAGE') {
-                // No loan means no fee to pay
-                console.log(`    ℹ️  No loan amount - fee does not apply`);
-                this.loggingService.info(`Fee not applicable: No loan to charge against`, {
-                  playerId: payload.playerId,
-                  action: 'fee_skipped',
-                  source: payload.source || context.source
-                });
-                success = true;
-              } else {
-                console.warn(`    ⚠️  Could not calculate fee amount from: ${payload.feeDescription}`);
-                success = true; // Don't fail on unparseable fee descriptions
-              }
-            } catch (error) {
-              console.error(`❌ Error processing fee deduction:`, error);
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: `Failed to process fee deduction: ${error instanceof Error ? error.message : 'Unknown error'}`
-              };
-            }
-          }
-          break;
+          return this.financialEffectHandler.handleFeeDeduction(effect, context);
 
         default:
           // TypeScript exhaustiveness check - this should never be reached

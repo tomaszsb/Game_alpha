@@ -1,0 +1,458 @@
+// src/services/CardEffectHandler.ts
+// Extracted from EffectEngineService - handles card-related effects
+
+import {
+  ICardService,
+  IStateService,
+  IDataService,
+  IChoiceService,
+  INotificationService
+} from '../types/ServiceContracts';
+import {
+  Effect,
+  EffectContext,
+  EffectResult,
+  isCardDrawEffect,
+  isCardDiscardEffect,
+  isCardActivationEffect,
+  isPlayCardEffect
+} from '../types/EffectTypes';
+
+/**
+ * CardEffectHandler - Handles card-related effects
+ *
+ * Extracted from EffectEngineService to create a focused handler for:
+ * - CARD_DRAW: Drawing cards with notifications and funding auto-play
+ * - CARD_DISCARD: Discarding cards with user choice support
+ * - CARD_ACTIVATION: Activating cards with duration
+ * - PLAY_CARD: Finalizing played cards
+ */
+export interface ICardEffectHandler {
+  handleCardDraw(effect: Effect, context: EffectContext): Promise<EffectResult>;
+  handleCardDiscard(effect: Effect, context: EffectContext): Promise<EffectResult>;
+  handleCardActivation(effect: Effect, context: EffectContext): EffectResult;
+  handlePlayCard(effect: Effect, context: EffectContext): Promise<EffectResult>;
+}
+
+export class CardEffectHandler implements ICardEffectHandler {
+  private notificationService?: INotificationService;
+  private dataService?: IDataService;
+
+  constructor(
+    private readonly cardService: ICardService,
+    private readonly stateService: IStateService,
+    private readonly choiceService: IChoiceService
+  ) {}
+
+  setNotificationService(notificationService: INotificationService): void {
+    this.notificationService = notificationService;
+  }
+
+  setDataService(dataService: IDataService): void {
+    this.dataService = dataService;
+  }
+
+  /**
+   * Handle CARD_DRAW effect
+   * Draws cards with notifications and handles funding card auto-play
+   */
+  async handleCardDraw(effect: Effect, context: EffectContext): Promise<EffectResult> {
+    if (!isCardDrawEffect(effect)) {
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: 'Invalid CARD_DRAW effect'
+      };
+    }
+
+    const { payload } = effect;
+    const source = payload.source || context.source;
+    const reason = payload.reason || 'Effect processing';
+
+    console.log(`🔧 CARD_HANDLER: Drawing ${payload.count} ${payload.cardType} card(s) for player ${payload.playerId}`);
+
+    try {
+      const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
+      console.log(`    ✅ Drew ${drawnCards.length} card(s): ${drawnCards.join(', ')}`);
+
+      // Show notification for L (Life Event) card draws
+      this.notifyLifeEventDraw(payload.playerId, payload.cardType, drawnCards);
+
+      // Check for funding space auto-play
+      const fundingResult = this.checkFundingAutoPlay(payload, drawnCards, context);
+      if (fundingResult) {
+        return fundingResult;
+      }
+
+      // Log to action log
+      this.logCardDraw(payload.playerId, payload.cardType, payload.count, drawnCards);
+
+      // Store drawn cards in result
+      return {
+        success: true,
+        effectType: effect.effectType,
+        data: { cardIds: drawnCards },
+        resultingEffects: [{
+          effectType: 'LOG',
+          payload: {
+            message: `Drew ${drawnCards.length} ${payload.cardType} card(s): ${drawnCards.join(', ')}`,
+            level: 'INFO',
+            source,
+            action: 'card_draw',
+            playerId: payload.playerId
+          }
+        }]
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown card draw error';
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: `Failed to draw ${payload.count} ${payload.cardType} cards for player ${payload.playerId}: ${errorMessage}`
+      };
+    }
+  }
+
+  /**
+   * Handle CARD_DISCARD effect
+   * Discards cards with user choice support for dice roll effects
+   */
+  async handleCardDiscard(effect: Effect, context: EffectContext): Promise<EffectResult> {
+    if (!isCardDiscardEffect(effect)) {
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: 'Invalid CARD_DISCARD effect'
+      };
+    }
+
+    const { payload } = effect;
+    const source = payload.source || context.source;
+    const reason = payload.reason || 'Effect processing';
+    let cardIdsToDiscard = payload.cardIds;
+
+    // Check if this is a dice roll effect requiring user choice
+    const isDiceRollRemove = source.includes(':dice_remove');
+    const isDiceRollReplace = source.includes(':dice_replace') && !source.includes(':dice_replace_draw');
+    const requiresUserChoice = isDiceRollRemove || isDiceRollReplace;
+
+    // If cardIds is empty but cardType and count are provided, determine cards at runtime
+    if ((!cardIdsToDiscard || cardIdsToDiscard.length === 0) && payload.cardType && payload.count) {
+      console.log(`🔧 CARD_HANDLER: Finding ${payload.count} ${payload.cardType} card(s) to discard for player ${payload.playerId}`);
+
+      const allCardsOfType = this.cardService.getPlayerCards(payload.playerId, payload.cardType);
+
+      if (allCardsOfType.length === 0) {
+        console.log(`    ⚠️  Player ${payload.playerId} has no ${payload.cardType} cards to discard - effect skipped`);
+        return {
+          success: true,
+          effectType: effect.effectType,
+          data: { cardIds: [], skipped: true, reason: `No ${payload.cardType} cards to ${isDiceRollReplace ? 'replace' : 'remove'}` }
+        };
+      }
+
+      // For dice roll effects, show a choice modal if player has multiple cards
+      if (requiresUserChoice && allCardsOfType.length > payload.count) {
+        const choiceResult = await this.presentCardChoice(payload, allCardsOfType, isDiceRollReplace);
+        if (choiceResult.skipped) {
+          return {
+            success: true,
+            effectType: effect.effectType,
+            data: { cardIds: [], skipped: true }
+          };
+        }
+        if (choiceResult.error) {
+          return {
+            success: false,
+            effectType: effect.effectType,
+            error: choiceResult.error
+          };
+        }
+        cardIdsToDiscard = choiceResult.cardIds;
+      } else {
+        // Take the first 'count' cards from that list
+        cardIdsToDiscard = allCardsOfType.slice(0, payload.count);
+      }
+    }
+
+    console.log(`🔧 CARD_HANDLER: Discarding ${cardIdsToDiscard.length} card(s) for player ${payload.playerId}`);
+    console.log(`    Card IDs: ${cardIdsToDiscard.join(', ')}`);
+
+    try {
+      const discardResult = await this.cardService.discardCards(payload.playerId, cardIdsToDiscard, source, reason);
+
+      if (!discardResult) {
+        return {
+          success: false,
+          effectType: effect.effectType,
+          error: `Failed to discard cards for player ${payload.playerId}: Card discard operation failed`
+        };
+      }
+
+      console.log(`    ✅ Successfully discarded ${cardIdsToDiscard.length} card(s)`);
+      return {
+        success: true,
+        effectType: effect.effectType,
+        data: { cardIds: cardIdsToDiscard }
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown card discard error';
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: `Failed to discard cards for player ${payload.playerId}: ${errorMessage}`
+      };
+    }
+  }
+
+  /**
+   * Handle CARD_ACTIVATION effect
+   * Activates a card for a specified duration
+   */
+  handleCardActivation(effect: Effect, context: EffectContext): EffectResult {
+    if (!isCardActivationEffect(effect)) {
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: 'Invalid CARD_ACTIVATION effect'
+      };
+    }
+
+    const { payload } = effect;
+    console.log(`🎴 CARD_HANDLER: Activating card ${payload.cardId} for player ${payload.playerId} for ${payload.duration} turns`);
+    console.log(`    Source: ${payload.source || context.source}`);
+    console.log(`    Reason: ${payload.reason || 'Effect processing'}`);
+
+    try {
+      this.cardService.activateCard(payload.playerId, payload.cardId, payload.duration);
+      console.log(`✅ Card ${payload.cardId} activated successfully for ${payload.duration} turns`);
+      return { success: true, effectType: effect.effectType };
+    } catch (error) {
+      console.error(`❌ Error activating card ${payload.cardId}:`, error);
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: error instanceof Error ? error.message : 'Unknown error activating card'
+      };
+    }
+  }
+
+  /**
+   * Handle PLAY_CARD effect
+   * Finalizes a played card (moves to active or discard based on duration)
+   */
+  async handlePlayCard(effect: Effect, context: EffectContext): Promise<EffectResult> {
+    if (!isPlayCardEffect(effect)) {
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: 'Invalid PLAY_CARD effect'
+      };
+    }
+
+    const { payload } = effect;
+    try {
+      console.log(`🎴 CARD_HANDLER: Processing PLAY_CARD for ${payload.cardId} (player ${payload.playerId})`);
+      console.log(`    Source: ${payload.source}`);
+
+      // Check if this is an auto-play scenario (e.g., OWNER-FUND-INITIATION)
+      const isAutoPlay = payload.source?.startsWith('auto_play:');
+
+      if (isAutoPlay) {
+        console.log(`    💰 Auto-play detected - applying card effects before finalizing`);
+        await this.cardService.applyCardEffects(payload.playerId, payload.cardId);
+        console.log(`    ✅ Card effects applied for ${payload.cardId}`);
+      } else {
+        console.log(`    ℹ️  Manual play - effects already applied by PlayerActionService`);
+      }
+
+      // Finalize card (move to active or discard based on duration)
+      this.cardService.finalizePlayedCard(payload.playerId, payload.cardId);
+      console.log(`    ✅ Finalized card ${payload.cardId}`);
+
+      return { success: true, effectType: effect.effectType };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Error finalizing card ${payload.cardId}:`, errorMsg);
+      return {
+        success: false,
+        effectType: effect.effectType,
+        error: errorMsg
+      };
+    }
+  }
+
+  // --- Private helper methods ---
+
+  private notifyLifeEventDraw(playerId: string, cardType: string, drawnCards: string[]): void {
+    if (cardType !== 'L' || drawnCards.length === 0 || !this.notificationService) return;
+
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return;
+
+    const cardNames = drawnCards.map(cardId => {
+      const card = this.dataService?.getCardById(cardId);
+      return card?.name || cardId;
+    });
+
+    const notificationMessage = drawnCards.length === 1
+      ? `🎲 Life Event: ${cardNames[0]}`
+      : `🎲 Life Events: ${cardNames.join(', ')}`;
+
+    this.notificationService.notify(
+      {
+        short: 'Life Event!',
+        medium: notificationMessage,
+        detailed: `Drew ${drawnCards.length} Life Event card(s): ${cardNames.join(', ')}`
+      },
+      {
+        playerId,
+        playerName: player.name,
+        actionType: 'card_draw_L',
+        notificationDuration: 5000
+      }
+    );
+  }
+
+  private checkFundingAutoPlay(payload: any, drawnCards: string[], context: EffectContext): EffectResult | null {
+    const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
+    const currentSpaceName = context.metadata?.spaceName || '';
+    const isFundingSpace = fundingSpaces.includes(currentSpaceName);
+    const isFundingCard = payload.cardType === 'B' || payload.cardType === 'I';
+
+    console.log(`🔍 Checking funding auto-play condition`);
+    console.log(`    - context.metadata?.spaceName = "${currentSpaceName}"`);
+    console.log(`    - isFundingSpace = ${isFundingSpace}`);
+    console.log(`    - isFundingCard = ${isFundingCard} (type: ${payload.cardType})`);
+    console.log(`    - drawnCards.length = ${drawnCards.length}`);
+
+    if (!isFundingSpace || !isFundingCard || drawnCards.length === 0) {
+      if (isFundingSpace && !isFundingCard) {
+        console.log(`    ℹ️ Funding space but non-funding card type (${payload.cardType}) - skipping auto-play`);
+      } else {
+        console.log(`    ⚠️ Funding auto-play NOT triggered (not a funding space or no cards drawn)`);
+      }
+      return null;
+    }
+
+    console.log(`    💰 ${currentSpaceName}: Automatically playing drawn funding card(s): ${drawnCards.join(', ')}`);
+
+    // Get card details for auto-action event
+    const drawnCardData = this.dataService?.getCardById(drawnCards[0]);
+    const cardName = drawnCardData?.card_name || `${payload.cardType} Card`;
+    const fundingPlayer = this.stateService.getPlayer(payload.playerId);
+    const fundingType = payload.cardType === 'B' ? 'Bank' : 'Investment';
+
+    // Extract funding amount
+    const fundingAmount = this.extractFundingAmount(drawnCardData, payload.cardType);
+    console.log(`    💰 Funding amount extracted: $${fundingAmount.toLocaleString()}`);
+
+    // Determine event type and message
+    const isOwnerFunding = currentSpaceName === 'OWNER-FUND-INITIATION';
+    const eventType = isOwnerFunding ? 'seed_money' : 'automatic_funding';
+    const eventMessage = isOwnerFunding
+      ? `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`
+      : `💰 ${fundingType} Funding: ${cardName} (+$${fundingAmount.toLocaleString()})`;
+
+    // Emit auto-action event for funding modal
+    this.stateService.emitAutoAction({
+      type: eventType,
+      playerId: payload.playerId,
+      playerName: fundingPlayer?.name || 'Unknown',
+      cardType: payload.cardType,
+      cardName: cardName,
+      cardId: drawnCards[0],
+      success: true,
+      spaceName: currentSpaceName,
+      message: eventMessage,
+      moneyAmount: fundingAmount
+    });
+
+    const playCardEffects = drawnCards.map(cardId => ({
+      effectType: 'PLAY_CARD' as const,
+      payload: {
+        playerId: payload.playerId,
+        cardId: cardId,
+        source: `auto_play:${currentSpaceName}`
+      }
+    }));
+
+    console.log(`    💰 Created ${playCardEffects.length} PLAY_CARD effect(s) to auto-apply funding`);
+    return {
+      success: true,
+      effectType: 'CARD_DRAW',
+      resultingEffects: playCardEffects,
+      data: { cardIds: drawnCards }
+    };
+  }
+
+  private extractFundingAmount(cardData: any, cardType: string): number {
+    if (!cardData) return 0;
+
+    if (cardType === 'B' && cardData.loan_amount) {
+      return parseInt(cardData.loan_amount.replace(/,/g, ''), 10) || 0;
+    } else if (cardType === 'I' && cardData.investment_amount) {
+      return parseInt(cardData.investment_amount.replace(/,/g, ''), 10) || 0;
+    } else if (cardData.money_effect) {
+      const moneyMatch = cardData.money_effect.match(/add\s+([\d,]+)/i);
+      if (moneyMatch) {
+        return parseInt(moneyMatch[1].replace(/,/g, ''), 10);
+      }
+    }
+    return 0;
+  }
+
+  private async presentCardChoice(
+    payload: any,
+    allCardsOfType: string[],
+    isDiceRollReplace: boolean
+  ): Promise<{ cardIds: string[]; skipped?: boolean; error?: string }> {
+    console.log(`🎲 CARD_HANDLER: Dice roll ${isDiceRollReplace ? 'replace' : 'remove'} - showing choice modal for ${payload.count} of ${allCardsOfType.length} ${payload.cardType} cards`);
+
+    try {
+      const options = allCardsOfType.map(cardId => {
+        const cardData = this.dataService?.getCardById(cardId);
+        return {
+          id: cardId,
+          label: cardData ? cardData.card_name : `${payload.cardType} Card`
+        };
+      });
+
+      const actionVerb = isDiceRollReplace ? 'replace' : 'remove';
+      const prompt = `Choose ${payload.count} ${payload.cardType} card${payload.count > 1 ? 's' : ''} to ${actionVerb}:`;
+
+      const selectedCardId = await this.choiceService.createChoice(
+        payload.playerId,
+        isDiceRollReplace ? 'CARD_REPLACEMENT' : 'CARD_DISCARD',
+        prompt,
+        options
+      );
+
+      if (selectedCardId && selectedCardId !== '') {
+        console.log(`    Player selected card ${selectedCardId} to ${actionVerb}`);
+        this.stateService.clearAwaitingChoice();
+        return { cardIds: [selectedCardId] };
+      } else {
+        console.log(`    Player skipped card ${actionVerb}`);
+        return { cardIds: [], skipped: true };
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown choice error';
+      console.error(`    ❌ Error presenting card choice: ${errorMessage}`);
+      return { cardIds: [], error: `Failed to present card choice: ${errorMessage}` };
+    }
+  }
+
+  private logCardDraw(playerId: string, cardType: string, count: number, drawnCards: string[]): void {
+    const player = this.stateService.getPlayer(playerId);
+    if (player && typeof window !== 'undefined' && typeof (window as any).addActionToLog === 'function') {
+      (window as any).addActionToLog({
+        type: 'card_draw',
+        playerId,
+        playerName: player.name,
+        description: `Drew ${count} ${cardType} card${count > 1 ? 's' : ''}`,
+        details: { cards: drawnCards }
+      });
+    }
+  }
+}
