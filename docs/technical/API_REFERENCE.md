@@ -1,7 +1,7 @@
 # API Reference - Unravel Codes: The Game
 
-**Last Updated:** December 29, 2025
-**Version:** 2.3
+**Last Updated:** January 13, 2026
+**Version:** 2.6
 **Status:** Alpha Testing
 
 ---
@@ -153,9 +153,38 @@ interface IStateService {
   // Logging
   logToActionHistory(entry: ActionLogEntry): void;
 
-  // Snapshots (for Try Again feature)
-  savePreSpaceEffectSnapshot(playerId: string): void;
-  revertPlayerToSnapshot(playerId: string): void;
+  // REAL/TEMP State Model (for Try Again feature - Updated Dec 2025)
+  createTempStateFromReal(options: CreateTempOptions): StateTransitionResult;
+  commitTempToReal(playerId: string): StateTransitionResult;
+  discardTempState(playerId: string): StateTransitionResult;
+  applyToRealState(playerId: string, changes: Partial<MutablePlayerState>): StateTransitionResult;
+  getEffectivePlayerState(playerId: string): MutablePlayerState | null;
+  hasActiveTempState(playerId: string): boolean;
+  getTryAgainCount(playerId: string): number;
+}
+```
+
+#### ServerSyncService (Extracted January 2026)
+```typescript
+// StateProvider callback interface for decoupling
+interface StateProvider {
+  getCurrentState(): GameState;
+  setCurrentState(state: GameState, serverVersion?: number): void;
+}
+
+interface IServerSyncService {
+  // Sync operations
+  debouncedSync(): void;                    // Debounced sync (500ms batching)
+  loadFromServer(): Promise<boolean>;       // Load state on app init
+
+  // Version tracking
+  setServerVersion(version: number): void;
+  getServerVersion(): number;
+
+  // Sync control
+  setSyncEnabled(enabled: boolean): void;
+  isSyncEnabled(): boolean;
+  cancelPendingSync(): void;
 }
 ```
 
@@ -227,6 +256,30 @@ interface IEffectEngineService {
   // Space effects
   processSpaceArrivalEffects(playerId: string): Promise<void>;
   processLeavingSpaceEffects(playerId: string): Promise<void>;
+
+  // Handler injection (January 2026 - delegates to specialized handlers)
+  setFinancialEffectHandler(handler: FinancialEffectHandler): void;
+  setCardEffectHandler(handler: CardEffectHandler): void;
+}
+```
+
+#### FinancialEffectHandler (January 2026)
+```typescript
+interface IFinancialEffectHandler {
+  // Financial effects
+  handleResourceChange(effect: ResourceChangeEffect, context: EffectContext): Promise<EffectResult>;
+  handleFeeDeduction(effect: FeeDeductionEffect, context: EffectContext): Promise<EffectResult>;
+}
+```
+
+#### CardEffectHandler (January 2026)
+```typescript
+interface ICardEffectHandler {
+  // Card effects
+  handleCardDraw(effect: CardDrawEffect, context: EffectContext): Promise<EffectResult>;
+  handleCardDiscard(effect: CardDiscardEffect, context: EffectContext): Promise<EffectResult>;
+  handleCardActivation(effect: CardActivationEffect, context: EffectContext): Promise<EffectResult>;
+  handlePlayCard(effect: PlayCardEffect, context: EffectContext): Promise<EffectResult>;
 }
 ```
 

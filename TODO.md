@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 10, 2026
+**Last Updated:** January 13, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Service Extraction Refactoring (Jan 12-13, 2026) - ServerSyncService, EffectEngineService handlers, 551 lines legacy code removed
 - ✅ Movement Bug Fixes (Jan 10, 2026) - Descriptive choices, loop explanations, logic paths
 - ✅ Financial Bug Fixes (Jan 9, 2026) - Auto-play funding cards at all funding spaces, fee validation
 - ✅ Contextual Dice Roll for Movement (Jan 9, 2026) - CHEAT spaces manual, REG spaces auto-roll
@@ -439,4 +440,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 10, 2026
+**Last Updated:** January 13, 2026
