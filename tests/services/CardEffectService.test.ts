@@ -363,7 +363,7 @@ describe('CardEffectService', () => {
   });
 
   describe('executeCardEffect - transfer operations', () => {
-    it('should transfer first available card by priority', async () => {
+    it('should transfer E card to target player based on direction', async () => {
       const player2: Player = { ...mockPlayer, id: 'player2', name: 'Player 2' };
       mockStateService.getGameState.mockReturnValue({
         players: [mockPlayer, player2],
@@ -371,11 +371,8 @@ describe('CardEffectService', () => {
         gamePhase: 'PLAY'
       });
 
-      // No W or B cards, has E card
-      mockCardService.getPlayerCards
-        .mockReturnValueOnce([])  // W cards
-        .mockReturnValueOnce([])  // B cards
-        .mockReturnValueOnce(['e-card-1']);  // E cards
+      // Player has E cards (transfer now specifically targets E cards)
+      mockCardService.getPlayerCards.mockReturnValue(['e-card-1']);
 
       const effect: SpaceEffect = {
         space_name: 'TEST',
@@ -383,20 +380,49 @@ describe('CardEffectService', () => {
         effect_type: 'cards',
         effect_action: 'transfer',
         effect_value: '1',
-        condition: 'next_player',
+        condition: 'right', // Transfer to player on right
         is_manual: false
       };
 
       const result = await cardEffectService.executeCardEffect('player1', effect, 'cards:transfer');
 
       expect(result.success).toBe(true);
+      expect(mockCardService.getPlayerCards).toHaveBeenCalledWith('player1', 'E');
       expect(mockCardService.transferCard).toHaveBeenCalledWith(
         'player1',
         'player2',
         'e-card-1',
         'manual_effect',
-        'Manual action: Transfer card'
+        'Manual action: Transfer E card to Player 2'
       );
+    });
+
+    it('should return success with message when no E cards to transfer', async () => {
+      const player2: Player = { ...mockPlayer, id: 'player2', name: 'Player 2' };
+      mockStateService.getGameState.mockReturnValue({
+        players: [mockPlayer, player2],
+        currentPlayerId: 'player1',
+        gamePhase: 'PLAY'
+      });
+
+      // Player has no E cards
+      mockCardService.getPlayerCards.mockReturnValue([]);
+
+      const effect: SpaceEffect = {
+        space_name: 'TEST',
+        visit_type: 'First',
+        effect_type: 'cards',
+        effect_action: 'transfer',
+        effect_value: '1',
+        condition: 'left',
+        is_manual: false
+      };
+
+      const result = await cardEffectService.executeCardEffect('player1', effect, 'cards:transfer');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('No E cards to transfer');
+      expect(mockCardService.transferCard).not.toHaveBeenCalled();
     });
   });
 

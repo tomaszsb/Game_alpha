@@ -461,8 +461,9 @@ export function CardReplacementModal({
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
+              title="Skip this card replacement and continue"
             >
-              Cancel
+              Skip Replacement
             </button>
 
             <button

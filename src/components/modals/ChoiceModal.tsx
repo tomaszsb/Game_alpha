@@ -111,11 +111,11 @@ export function ChoiceModal(): JSX.Element {
           // Use skipChoice to properly resolve the pending promise
           choiceService.skipChoice(awaitingChoice.id);
 
-          // Notify user
+          // Notify user with clearer message
           notificationService.notify(
             NotificationUtils.createSuccessNotification(
-              'Skipped',
-              'Card replacement skipped',
+              'Card Action Complete',
+              'E card replacement skipped - continuing with your turn',
               currentPlayerName
             ),
             {

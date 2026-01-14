@@ -40,10 +40,10 @@ BANK-FUND-REVIEW,Subsequent,cards,draw_B,Draw 1,,Draw 1 B cards,manual
 BANK-FUND-REVIEW,Subsequent,cards,return_E,1,,Return 1 E cards,manual
 BANK-FUND-REVIEW,Subsequent,fee,deduct,1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M,,Pay 1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M fees,auto
 INVESTOR-FUND-REVIEW,First,cards,draw_L,1,dice_roll_5,Draw L card on roll of 5,auto
-INVESTOR-FUND-REVIEW,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+INVESTOR-FUND-REVIEW,First,cards,replace_E,1,,Replace 1 E card,manual
 INVESTOR-FUND-REVIEW,First,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto
 INVESTOR-FUND-REVIEW,Subsequent,cards,draw_L,1,dice_roll_6,Draw L card on roll of 6,auto
-INVESTOR-FUND-REVIEW,Subsequent,cards,draw_E,The person to your left takes a card.,,The person to your left takes a card. E cards,manual
+INVESTOR-FUND-REVIEW,Subsequent,cards,transfer,1,left,Give 1 E card to the player on your left,manual
 INVESTOR-FUND-REVIEW,Subsequent,fee,deduct,5% of amount borrowed,,Pay 5% of amount borrowed fees,auto
 ARCH-INITIATION,First,cards,draw_L,1,dice_roll_1,Draw L card on roll of 1,auto
 ARCH-INITIATION,First,time,add,5,,Spend 5 days,auto
@@ -58,10 +58,10 @@ ARCH-FEE-REVIEW,Subsequent,cards,draw_L,1,dice_roll_4,Draw L card on roll of 4,a
 ARCH-FEE-REVIEW,Subsequent,cards,draw_E,Draw 1,,Draw 1 E cards,manual
 ARCH-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto
 ARCH-SCOPE-CHECK,First,cards,draw_L,1,dice_roll_5,Draw L card on roll of 5,auto
-ARCH-SCOPE-CHECK,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+ARCH-SCOPE-CHECK,First,cards,replace_E,1,,Replace 1 E card,manual
 ARCH-SCOPE-CHECK,First,time,add,50,,Spend 50 days,auto
 ARCH-SCOPE-CHECK,Subsequent,cards,draw_L,1,dice_roll_6,Draw L card on roll of 6,auto
-ARCH-SCOPE-CHECK,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual
+ARCH-SCOPE-CHECK,Subsequent,cards,transfer,1,right,Give 1 E card to the player on your right,manual
 ARCH-SCOPE-CHECK,Subsequent,time,add,15,,Spend 15 days,auto
 ENG-INITIATION,First,cards,draw_L,1,dice_roll_1,Draw L card on roll of 1,auto
 ENG-INITIATION,First,time,add,5,,Spend 5 days,auto
@@ -90,7 +90,7 @@ REG-DOB-FEE-REVIEW,First,cards,draw_E,Draw 2,,Draw 2 E cards,manual
 REG-DOB-FEE-REVIEW,First,time,add,10,,Spend 10 days,auto
 REG-DOB-FEE-REVIEW,First,fee,deduct,1%,,Pay 1% fees,auto
 REG-DOB-FEE-REVIEW,Subsequent,cards,draw_L,1,dice_roll_6,Draw L card on roll of 6,auto
-REG-DOB-FEE-REVIEW,Subsequent,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+REG-DOB-FEE-REVIEW,Subsequent,cards,replace_E,1,,Replace 1 E card,manual
 REG-DOB-FEE-REVIEW,Subsequent,time,add,10,,Spend 10 days,auto
 REG-DOB-FEE-REVIEW,Subsequent,fee,deduct,Based on dice roll,,Pay Based on dice roll fees,auto
 REG-DOB-TYPE-SELECT,First,cards,draw_L,1,dice_roll_1,Draw L card on roll of 1,auto
@@ -119,9 +119,9 @@ CON-INITIATION,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
 CON-INITIATION,Subsequent,cards,draw_L,1,dice_roll_4,Draw L card on roll of 4,auto
 CON-INITIATION,Subsequent,cards,draw_E,Draw 1,,Draw 1 E cards,manual
 CON-ISSUES,First,cards,draw_L,1,dice_roll_5,Draw L card on roll of 5,auto
-CON-ISSUES,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual
+CON-ISSUES,First,cards,replace_E,1,,Replace 1 E card,manual
 CON-ISSUES,Subsequent,cards,draw_L,1,dice_roll_6,Draw L card on roll of 6,auto
-CON-ISSUES,Subsequent,cards,draw_E,The person to your right takes a card.,,The person to your right takes a card. E cards,manual
+CON-ISSUES,Subsequent,cards,transfer,1,right,Give 1 E card to the player on your right,manual
 CON-INSPECT,First,cards,draw_L,1,dice_roll_1,Draw L card on roll of 1,auto
 CON-INSPECT,First,cards,return_E,1,,Return 1 E cards,manual
 CON-INSPECT,Subsequent,cards,draw_L,1,dice_roll_2,Draw L card on roll of 2,auto

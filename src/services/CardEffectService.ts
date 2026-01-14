@@ -381,7 +381,7 @@ export class CardEffectService implements ICardEffectService {
   }
 
   /**
-   * Handle transferring any card based on effect condition
+   * Handle transferring E card based on effect condition (left/right player)
    */
   private async handleTransferCard(
     playerId: string,
@@ -395,33 +395,59 @@ export class CardEffectService implements ICardEffectService {
       return { success: true, cardsAffected: [], message: 'No target player found' };
     }
 
-    // Transfer a card from player's hand to target
-    // Priority order: W, B, E, L, I (transfer most valuable first)
-    const cardTypes: CardType[] = ['W', 'B', 'E', 'L', 'I'];
-    let transferredCard: string | null = null;
+    // Transfer specifically E cards (as per space effects intent)
+    const eCards = this.cardService.getPlayerCards(playerId, 'E');
 
-    for (const cardType of cardTypes) {
-      const playerCards = this.cardService.getPlayerCards(playerId, cardType);
-      if (playerCards.length > 0) {
-        transferredCard = playerCards[0];
-        break;
-      }
+    if (eCards.length === 0) {
+      console.log(`${player.name} has no E cards to transfer`);
+      return { success: true, cardsAffected: [], message: 'No E cards to transfer' };
     }
 
-    if (transferredCard) {
+    let cardToTransfer: string | null = null;
+
+    if (eCards.length === 1) {
+      // Only one E card - transfer it
+      cardToTransfer = eCards[0];
+    } else {
+      // Multiple E cards - let player choose
+      console.log(`${player.name} has ${eCards.length} E cards, creating choice`);
+
+      const options = eCards.map(cardId => {
+        const cardData = this.dataService.getCardById(cardId);
+        return {
+          id: cardId,
+          label: cardData ? cardData.card_name : `E Card ${cardId}`
+        };
+      });
+
+      const directionText = effect.condition === 'left' ? 'left' : 'right';
+      const selectedCardId = await this.choiceService.createChoice(
+        playerId,
+        'CARD_GIVE',
+        `Select E card to give to the player on your ${directionText} (${targetPlayer.name}):`,
+        options,
+        { targetPlayerId: targetPlayer.id, targetPlayerName: targetPlayer.name }
+      );
+
+      if (selectedCardId && selectedCardId !== '') {
+        cardToTransfer = selectedCardId;
+      }
+      this.stateService.clearAwaitingChoice();
+    }
+
+    if (cardToTransfer) {
       this.cardService.transferCard(
         playerId,
         targetPlayer.id,
-        transferredCard,
+        cardToTransfer,
         'manual_effect',
-        'Manual action: Transfer card'
+        `Manual action: Transfer E card to ${targetPlayer.name}`
       );
-      console.log(`${player.name} transfers card ${transferredCard} to ${targetPlayer.name}`);
-      return { success: true, cardsAffected: [transferredCard], message: `Transferred card to ${targetPlayer.name}` };
+      console.log(`${player.name} transfers E card ${cardToTransfer} to ${targetPlayer.name}`);
+      return { success: true, cardsAffected: [cardToTransfer], message: `Gave E card to ${targetPlayer.name}` };
     }
 
-    console.log(`${player.name} has no cards to transfer`);
-    return { success: true, cardsAffected: [], message: 'No cards to transfer' };
+    return { success: true, cardsAffected: [], message: 'No E card selected to transfer' };
   }
 
   /**

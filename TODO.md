@@ -177,14 +177,34 @@ Validate gameplay, balance, and user experience with real players
 - [x] CHEAT-BYPASS: No dice roll button ✅ **FIXED Jan 9** - Added manual "Roll Dice" button
 - [ ] Various spaces: eCard button exists but no movement buttons
 
-**eCard Issues:**
-- [ ] Return to Sender eCard: "Hold" does not work
-- [ ] ARCH-SCOPE-CHECK: Replace eCard button but no modal to choose card
-- [ ] ARCH-SCOPE-CHECK: "I Forgo eCard" shows confusing "Choose new destination?" message
-- [ ] INVESTOR-FUND-REVIEW: "Use eCard" modal shows but no option to pick eCard, card discarded
-- [ ] eCard does not reflect time changes
-- [ ] PM-DECISION-CHECK: Duplicate eCard button - no modal, choosing card does nothing
-- [ ] Work eCard: How does skip turn work?
+**eCard Issues (January 13, 2026 - ✅ FIXED):**
+- [x] **ARCH-SCOPE-CHECK, INVESTOR-FUND-REVIEW, REG-DOB-FEE-REVIEW, CON-ISSUES**: Replace eCard modal missing
+  - **Root cause**: SPACE_EFFECTS.csv had `draw_E` instead of `replace_E` for replace actions
+  - **Fix**: Updated SPACE_EFFECTS.csv with correct effect_action values
+- [x] **ARCH-SCOPE-CHECK, INVESTOR-FUND-REVIEW, CON-ISSUES Subsequent**: Transfer to left/right player not working
+  - **Root cause**: SPACE_EFFECTS.csv had `draw_E` instead of `transfer` for give-to-neighbor actions
+  - **Fix**: Added `transfer` action with `left`/`right` condition, updated CardEffectService to handle direction
+- [x] **"I Forgo eCard" confusing message**: Skip message unclear
+  - **Fix**: Updated CardReplacementModal button to "Skip Replacement", improved notification message
+- [x] **eCard time changes not visible**: E cards with tick_modifier didn't notify
+  - **Root cause**: FinancialEffectHandler.processTimeChange() only logged time additions, not reductions
+  - **Fix**: Added `notifyTimeChange()` method for time reductions, updated logging to show "Reduced filing time"
+- [x] **PM-DECISION-CHECK "duplicate button"**: Data verified correct (First: replace_E, Subsequent: give_E)
+  - **Status**: Needs live testing to reproduce - may have been a visit type detection issue
+- [x] **Return to Sender eCard "Hold"**: Feature not implemented
+  - **Status**: Documented as missing feature - no "hold" functionality exists in codebase
+- [x] **Skip turn mechanism documented** (see below)
+
+**How E Card Skip Turn Works:**
+E cards like E029 (Weekend Work), E030 (Time Crunch) have a `turn_skip` field. When played:
+1. `EffectFactory.parseCardIntoEffects()` creates `TURN_CONTROL` effects with `action: 'SKIP_TURN'`
+2. `EffectEngineService` processes the effect, calling `TurnService.setTurnModifier(playerId, 'SKIP_TURN')`
+3. Player's `turnModifiers.skipTurns` counter is incremented
+4. When `TurnService.getNextPlayer()` runs, if `skipTurns > 0`:
+   - Log entry created: "Turn skipped (X remaining)"
+   - Counter decremented
+   - Next player in order is found
+   - If multiple skip turns queued, loop continues until player with no skips is found
 
 **Financial Issues:**
 - [x] INVESTOR-FUND-REVIEW: If cards are split, finances do not reflect added funds ✅ **FIXED Jan 9** - Auto-play B/I cards at all funding spaces

@@ -214,9 +214,12 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
   private processTimeChange(playerId: string, amount: number, source: string, reason: string): boolean {
     if (amount > 0) {
       this.resourceService.addTime(playerId, amount, source, reason);
-      this.logTimeChange(playerId, amount);
+      this.logTimeChange(playerId, amount, 'added');
+      this.notifyTimeChange(playerId, amount, source, reason);
     } else if (amount < 0) {
       this.resourceService.spendTime(playerId, Math.abs(amount), source, reason);
+      this.logTimeChange(playerId, Math.abs(amount), 'reduced');
+      this.notifyTimeChange(playerId, amount, source, reason);
     }
     return true;
   }
@@ -383,16 +386,53 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
   }
 
-  private logTimeChange(playerId: string, amount: number): void {
+  private logTimeChange(playerId: string, amount: number, changeType: 'added' | 'reduced'): void {
     const player = this.stateService.getPlayer(playerId);
     if (player && typeof window !== 'undefined' && typeof (window as any).addActionToLog === 'function') {
+      const description = changeType === 'reduced'
+        ? `Reduced filing time by ${amount} day${amount !== 1 ? 's' : ''}`
+        : `Added ${amount} day${amount !== 1 ? 's' : ''} of time`;
+
       (window as any).addActionToLog({
         type: 'resource_change',
         playerId: playerId,
         playerName: player.name,
-        description: `Added ${amount} day${amount !== 1 ? 's' : ''} of time`,
-        details: { time: amount }
+        description,
+        details: { time: changeType === 'reduced' ? -amount : amount }
       });
+    }
+  }
+
+  private notifyTimeChange(playerId: string, amount: number, source: string, reason: string): void {
+    if (!this.notificationService) return;
+
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return;
+
+    const absAmount = Math.abs(amount);
+    const isReduction = amount < 0;
+    const isFromCard = source.includes('card:');
+
+    // Only notify for E card time changes (most relevant to users)
+    if (isFromCard) {
+      const shortMsg = isReduction ? `-${absAmount} days` : `+${absAmount} days`;
+      const mediumMsg = isReduction
+        ? `⏰ Time Saved: ${absAmount} day${absAmount !== 1 ? 's' : ''}`
+        : `⏰ Time Added: ${absAmount} day${absAmount !== 1 ? 's' : ''}`;
+
+      this.notificationService.notify(
+        {
+          short: shortMsg,
+          medium: mediumMsg,
+          detailed: reason || (isReduction ? `Filing time reduced by ${absAmount} days` : `${absAmount} days added to project time`)
+        },
+        {
+          playerId: playerId,
+          playerName: player.name,
+          actionType: isReduction ? 'time_reduced' : 'time_added',
+          notificationDuration: 4000
+        }
+      );
     }
   }
 

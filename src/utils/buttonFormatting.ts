@@ -84,6 +84,12 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
       text = `Replace ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
     } else if (actionLower.startsWith('give_')) {
       text = `Select ${cardType} card to give opponent`;
+    } else if (actionLower === 'transfer') {
+      // Transfer uses condition to specify direction (left/right)
+      const direction = effect.condition === 'left' ? 'left' : 'right';
+      text = `Give E card to player on your ${direction}`;
+    } else if (actionLower.startsWith('return_')) {
+      text = `Return ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
     } else {
       text = `Pick up ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
     }
@@ -309,6 +315,9 @@ export function getManualEffectTooltip(effect: SpaceEffect): { tooltip: string; 
     } else if (actionLower.startsWith('return_')) {
       action = 'return';
       cardType = effect.effect_action.replace(/^return_/i, '').toUpperCase();
+    } else if (actionLower === 'transfer') {
+      action = 'transfer';
+      cardType = 'E'; // Transfer is always for E cards
     }
 
     const tooltipData = tooltipService.getTooltip('cards', `${action}_${cardType}`);
