@@ -80,7 +80,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   effectEngineService.setFinancialEffectHandler(financialEffectHandler);
 
   // Create and wire CardEffectHandler for consolidated card operations
-  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService);
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
   effectEngineService.setCardEffectHandler(cardEffectHandler);
 
   const playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);

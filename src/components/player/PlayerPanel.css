@@ -73,9 +73,13 @@
   font-size: 0.85rem;
   color: #5c6bc0;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.player-location__title {
+  font-weight: 400;
+  color: #666;
+  font-size: 0.8rem;
 }
 
 /* Inline Notification in Header */

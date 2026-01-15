@@ -378,6 +378,10 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return null;
 
+  // Get space title for display (shows full name alongside acronym)
+  const spaceContent = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
+  const spaceTitle = spaceContent?.title || '';
+
   // Handle movement transition dismiss
   const handleDismissTransition = () => {
     setShowMovementTransition(false);
@@ -480,7 +484,10 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         <div className="player-avatar">{player.avatar}</div>
         <div className="player-info">
           <div className="player-name">{player.name}</div>
-          <div className="player-location">📍 {player.currentSpace}</div>
+          <div className="player-location" title={spaceTitle}>
+            📍 {player.currentSpace}
+            {spaceTitle && <span className="player-location__title"> - {spaceTitle}</span>}
+          </div>
         </div>
         <ConnectionStatus serverUrl={getBackendURL()} />
         {playerNotification && (
@@ -489,41 +496,6 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             <span className="notification-text">{playerNotification}</span>
           </div>
         )}
-      </div>
-
-      {/* Win Condition Banner */}
-      <div style={{
-        padding: '10px',
-        backgroundColor: '#e8f5e9',
-        borderRadius: '6px',
-        border: '2px solid #4caf50',
-        margin: '8px 0'
-      }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 'bold',
-          color: '#2e7d32',
-          marginBottom: '4px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <span>🎯</span>
-          <span>Goal: Reach FINISH space</span>
-        </div>
-        <div style={{
-          fontSize: '9px',
-          color: '#666',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span>Current: {player.currentSpace}</span>
-          <span style={{ fontWeight: 'bold' }}>Phase: {(() => {
-            const config = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
-            return config?.phase || 'SETUP';
-          })()}</span>
-        </div>
       </div>
 
       {/* Mobile Quick Stats Bar - Shows key stats at a glance (Dec 29, 2025) */}

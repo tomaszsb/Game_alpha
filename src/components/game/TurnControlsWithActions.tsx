@@ -459,6 +459,17 @@ export function TurnControlsWithActions({
             const feedbackKey = `move_${option.id}`;
             const feedback = buttonFeedback[feedbackKey];
 
+            // Calculate time cost for destination space (First visit by default since we're moving there)
+            const getDestinationTimeCost = (spaceName: string): number => {
+              // Check if player has visited this space before
+              const visitType = currentPlayer.visitedSpaces?.includes(spaceName) ? 'Subsequent' : 'First';
+              const destEffects = dataService.getSpaceEffects(spaceName, visitType as 'First' | 'Subsequent');
+              return destEffects
+                .filter(effect => effect.effect_type === 'time' && effect.effect_action === 'add')
+                .reduce((total, effect) => total + (parseInt(effect.effect_value) || 0), 0);
+            };
+            const destTimeCost = getDestinationTimeCost(option.id);
+
             // If feedback exists, show completion message instead of button
             if (feedback) {
               return (
@@ -525,6 +536,11 @@ export function TurnControlsWithActions({
                   }}
                 >
                   🎯 {option.label}
+                  {destTimeCost > 0 && (
+                    <span style={{ marginLeft: '8px', opacity: 0.9, fontSize: '10px' }}>
+                      ⏱️ {destTimeCost}d
+                    </span>
+                  )}
                 </button>
               </Tooltip>
             );

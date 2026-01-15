@@ -29,6 +29,14 @@ export interface CardDisplayProps {
   additionalDetails?: { label: string; value: string | ReactNode }[];
   /** Highlight style */
   highlight?: 'playable' | 'active' | 'warning' | 'none';
+  /** Whether this card is selectable (adds checkbox behavior) */
+  selectable?: boolean;
+  /** Whether this card is currently selected (for selectable mode) */
+  isSelected?: boolean;
+  /** Callback when selection changes (for selectable mode) */
+  onSelect?: () => void;
+  /** Card type icon to display */
+  cardTypeIcon?: string;
 }
 
 /**
@@ -49,9 +57,15 @@ export function CardDisplay({
   displayAmount,
   actions,
   additionalDetails,
-  highlight = 'none'
+  highlight = 'none',
+  selectable = false,
+  isSelected = false,
+  onSelect,
+  cardTypeIcon
 }: CardDisplayProps) {
   const highlightClass = highlight !== 'none' ? `card-display--${highlight}` : '';
+  const selectableClass = selectable ? 'card-display--selectable' : '';
+  const selectedClass = isSelected ? 'card-display--selected' : '';
 
   if (variant === 'inline') {
     return (
@@ -65,9 +79,20 @@ export function CardDisplay({
   }
 
   if (variant === 'compact') {
+    const handleClick = selectable && onSelect ? onSelect : undefined;
+
     return (
-      <div className={`card-display card-display--compact ${highlightClass}`}>
+      <div
+        className={`card-display card-display--compact ${highlightClass} ${selectableClass} ${selectedClass}`}
+        onClick={handleClick}
+        role={selectable ? 'button' : undefined}
+        tabIndex={selectable ? 0 : undefined}
+        onKeyDown={selectable && onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(); } : undefined}
+      >
         <div className="card-display__header">
+          {cardTypeIcon && (
+            <span className="card-display__type-icon">{cardTypeIcon}</span>
+          )}
           <div className="card-display__info">
             <div className="card-display__name">{card.card_name}</div>
             {card.description && (
@@ -77,7 +102,15 @@ export function CardDisplay({
           {displayAmount && (
             <div className="card-display__amount">{displayAmount}</div>
           )}
+          {selectable && isSelected && (
+            <div className="card-display__selected-indicator">✓</div>
+          )}
         </div>
+        {actions && (
+          <div className="card-display__actions">
+            {actions}
+          </div>
+        )}
       </div>
     );
   }

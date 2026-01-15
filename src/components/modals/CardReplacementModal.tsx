@@ -4,6 +4,8 @@ import { Player, CardType } from '../../types/DataTypes';
 import { Card } from '../../types/DataTypes';
 import { useGameContext } from '../../context/GameContext';
 import { FormatUtils } from '../../utils/FormatUtils';
+import { CardDisplay } from '../common/CardDisplay';
+import '../common/CardDisplay.css';
 
 interface CardReplacementModalProps {
   isOpen: boolean;
@@ -156,22 +158,6 @@ export function CardReplacementModal({
     marginBottom: '20px'
   };
 
-  const cardItemStyle: React.CSSProperties = {
-    border: `2px solid ${colors.secondary.light}`,
-    borderRadius: '12px',
-    padding: '16px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    backgroundColor: colors.white
-  };
-
-  const selectedCardStyle: React.CSSProperties = {
-    ...cardItemStyle,
-    border: `2px solid ${colors.primary.main}`,
-    backgroundColor: colors.primary.lighter,
-    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-  };
-
   const buttonStyle: React.CSSProperties = {
     padding: '10px 16px',
     border: 'none',
@@ -263,117 +249,43 @@ export function CardReplacementModal({
                 {availableCards.map(cardId => {
                   const card = getCardDetails(cardId);
                   const isSelected = selectedCardIds.includes(cardId);
-                  
-                  return (
-                    <div
-                      key={cardId}
-                      style={isSelected ? selectedCardStyle : cardItemStyle}
-                      onClick={() => handleCardToggle(cardId)}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = colors.border.slate;
-                          e.currentTarget.style.backgroundColor = colors.neutral.gray[50];
-                        }
+
+                  if (!card) return null;
+
+                  const detailsButton = (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        stateService.showCardModal(cardId);
                       }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = colors.secondary.light;
-                          e.currentTarget.style.backgroundColor = colors.white;
-                        }
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: colors.primary.main,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '12px',
-                        marginBottom: '12px'
-                      }}>
-                        <span style={{
-                          fontSize: '24px',
-                          color: getCardTypeColor(cardType)
-                        }}>
-                          {getCardTypeIcon(cardType)}
-                        </span>
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            color: colors.text.darkSlate,
-                            margin: 0,
-                            marginBottom: '4px'
-                          }}>
-                            {card?.card_name || 'Unknown Card'}
-                          </h4>
-                          <div style={{
-                            fontSize: '12px',
-                            color: colors.text.slate[500],
-                            marginBottom: '8px'
-                          }}>
-                            Cost: {card ? FormatUtils.formatCardCost(card.cost || 0) : 'Unknown'}
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (cardId) {
-                                stateService.showCardModal(cardId);
-                              }
-                            }}
-                            style={{
-                              padding: '4px 12px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              backgroundColor: colors.primary.main,
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.opacity = '0.9';
-                              e.currentTarget.style.transform = 'translateY(-1px)';
-                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.opacity = '1';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = 'none';
-                            }}
-                          >
-                            📋 Details
-                          </button>
-                        </div>
-                        {isSelected && (
-                          <div style={{
-                            backgroundColor: colors.primary.main,
-                            color: 'white',
-                            borderRadius: '50%',
-                            width: '24px',
-                            height: '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '14px',
-                            fontWeight: 'bold'
-                          }}>
-                            ✓
-                          </div>
-                        )}
-                      </div>
-                      
-                      {card?.description && (
-                        <p style={{
-                          fontSize: '14px',
-                          color: colors.text.slate[600],
-                          margin: 0,
-                          lineHeight: '1.4'
-                        }}>
-                          {card.description.length > 80 
-                            ? `${card.description.substring(0, 80)}...` 
-                            : card.description}
-                        </p>
-                      )}
-                    </div>
+                      📋 Details
+                    </button>
+                  );
+
+                  return (
+                    <CardDisplay
+                      key={cardId}
+                      card={card}
+                      variant="compact"
+                      selectable={true}
+                      isSelected={isSelected}
+                      onSelect={() => handleCardToggle(cardId)}
+                      cardTypeIcon={getCardTypeIcon(cardType)}
+                      displayAmount={FormatUtils.formatCardCost(card.cost || 0)}
+                      actions={detailsButton}
+                    />
                   );
                 })}
               </div>

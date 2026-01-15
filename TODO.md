@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 13, 2026
+**Last Updated:** January 15, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -212,12 +212,19 @@ E cards like E029 (Weekend Work), E030 (Time Crunch) have a `turn_skip` field. W
 - [ ] Card did not move to finance section (low priority - cosmetic)
 - [x] Fee spaces: Can continue without paying if not enough money ✅ **FIXED Jan 9** - Added canAfford() check
 
-**UI/UX Issues:**
-- [ ] Goal in player panel - should be in Project Progress Overview
-- [ ] Acronyms need full names for clarity
-- [ ] Time selection doesn't show time elapsed per move
-- [ ] REG-FEE-REVIEW: "Choose carefully" message doesn't designate destination
-- [ ] Game log doesn't show when card is picked up
+**UI/UX Issues (January 15, 2026 - ✅ FIXED):**
+- [x] Goal in player panel - should be in Project Progress Overview
+  - **Fix**: Moved Win Condition Banner from PlayerPanel to ProjectProgress component
+- [x] Acronyms need full names for clarity
+  - **Fix**: Added space titles from SPACE_CONTENT.csv to PlayerPanel and ProjectProgress
+- [x] Time selection doesn't show time elapsed per move
+  - **Fix**: Added time cost display (⏱️ Xd) to movement choice buttons in TurnControlsWithActions
+- [x] REG-FEE-REVIEW: "Choose carefully" message doesn't designate destination
+  - **Status**: Already fixed in Jan 8 bug fix with `getLogicMovementWithExplanation()` method
+- [x] Game log doesn't show when card is picked up
+  - **Fix**: Updated CardEffectHandler and FinancialEffectHandler to use LoggingService instead of legacy window.addActionToLog
+- [x] Card viewers uniform look across player panel and exchange modal
+  - **Fix**: Refactored CardReplacementModal to use CardDisplay component, added selectable mode to CardDisplay
 
 *See `docs/technical/TECHNICAL_DEBT.md` for full details and prioritization*
 
@@ -460,4 +467,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 13, 2026
+**Last Updated:** January 15, 2026

@@ -330,6 +330,28 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         ))}
       </div>
 
+      {/* Goal Banner */}
+      <div style={{
+        padding: '10px 16px',
+        backgroundColor: colors.success.bg,
+        borderRadius: '8px',
+        border: `2px solid ${colors.success.main}`,
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px'
+      }}>
+        <span style={{ fontSize: '1.2rem' }}>🎯</span>
+        <span style={{
+          fontSize: '0.95rem',
+          fontWeight: 'bold',
+          color: colors.text.success
+        }}>
+          Goal: Complete construction and reach the FINISH space
+        </span>
+      </div>
+
       {/* Overall Progress Info */}
       <div style={{
         display: 'flex',
@@ -366,19 +388,27 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             Current Turn: {currentPlayer.name}
           </div>
         )}
-        {currentPlayer && (
-          <div style={{
-            background: colors.warning.bg,
-            color: colors.warning.text,
-            padding: '4px 8px',
-            borderRadius: '12px',
-            fontSize: '0.8rem',
-            fontWeight: 'bold',
-            textAlign: 'center'
-          }}>
-            📍 {currentPlayer.currentSpace} ({currentPlayer.visitType} Visit)
-          </div>
-        )}
+        {currentPlayer && (() => {
+          const spaceContent = dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+          const spaceTitle = spaceContent?.title || '';
+          return (
+            <div
+              style={{
+                background: colors.warning.bg,
+                color: colors.warning.text,
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                textAlign: 'center'
+              }}
+              title={spaceTitle}
+            >
+              📍 {currentPlayer.currentSpace} ({currentPlayer.visitType} Visit)
+              {spaceTitle && <span style={{ fontWeight: 'normal', fontSize: '0.75rem', display: 'block' }}>{spaceTitle}</span>}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Individual Player Progress */}

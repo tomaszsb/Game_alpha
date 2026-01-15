@@ -6,7 +6,8 @@ import {
   IStateService,
   IDataService,
   IChoiceService,
-  INotificationService
+  INotificationService,
+  ILoggingService
 } from '../types/ServiceContracts';
 import {
   Effect,
@@ -41,7 +42,8 @@ export class CardEffectHandler implements ICardEffectHandler {
   constructor(
     private readonly cardService: ICardService,
     private readonly stateService: IStateService,
-    private readonly choiceService: IChoiceService
+    private readonly choiceService: IChoiceService,
+    private readonly loggingService: ILoggingService
   ) {}
 
   setNotificationService(notificationService: INotificationService): void {
@@ -444,15 +446,26 @@ export class CardEffectHandler implements ICardEffectHandler {
   }
 
   private logCardDraw(playerId: string, cardType: string, count: number, drawnCards: string[]): void {
-    const player = this.stateService.getPlayer(playerId);
-    if (player && typeof window !== 'undefined' && typeof (window as any).addActionToLog === 'function') {
-      (window as any).addActionToLog({
-        type: 'card_draw',
+    const cardTypeNames: Record<string, string> = {
+      'W': 'Work',
+      'L': 'Life Event',
+      'E': 'Expeditor',
+      'B': 'Bank Funding',
+      'I': 'Investor Funding'
+    };
+    const cardTypeName = cardTypeNames[cardType] || cardType;
+    const cardLabel = count > 1 ? 'cards' : 'card';
+
+    this.loggingService.info(
+      `Drew ${count} ${cardTypeName} ${cardLabel}: ${drawnCards.join(', ')}`,
+      {
         playerId,
-        playerName: player.name,
-        description: `Drew ${count} ${cardType} card${count > 1 ? 's' : ''}`,
-        details: { cards: drawnCards }
-      });
-    }
+        action: 'card_draw',
+        cardType,
+        count,
+        cards: drawnCards,
+        visibility: 'player'
+      }
+    );
   }
 }

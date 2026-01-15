@@ -387,20 +387,16 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
   }
 
   private logTimeChange(playerId: string, amount: number, changeType: 'added' | 'reduced'): void {
-    const player = this.stateService.getPlayer(playerId);
-    if (player && typeof window !== 'undefined' && typeof (window as any).addActionToLog === 'function') {
-      const description = changeType === 'reduced'
-        ? `Reduced filing time by ${amount} day${amount !== 1 ? 's' : ''}`
-        : `Added ${amount} day${amount !== 1 ? 's' : ''} of time`;
+    const description = changeType === 'reduced'
+      ? `Reduced filing time by ${amount} day${amount !== 1 ? 's' : ''}`
+      : `Added ${amount} day${amount !== 1 ? 's' : ''} of time`;
 
-      (window as any).addActionToLog({
-        type: 'resource_change',
-        playerId: playerId,
-        playerName: player.name,
-        description,
-        details: { time: changeType === 'reduced' ? -amount : amount }
-      });
-    }
+    this.loggingService.info(description, {
+      playerId,
+      action: 'time_effect',
+      timeChange: changeType === 'reduced' ? -amount : amount,
+      visibility: 'player'
+    });
   }
 
   private notifyTimeChange(playerId: string, amount: number, source: string, reason: string): void {

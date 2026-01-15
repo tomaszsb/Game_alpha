@@ -169,3 +169,46 @@
   background-color: #fef3c7;
   border-left: 3px solid #f59e0b;
 }
+
+/* Selectable mode */
+.card-display--selectable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--color-border, #e2e8f0);
+}
+
+.card-display--selectable:hover {
+  border-color: var(--color-border-hover, #94a3b8);
+  background-color: var(--color-surface-hover, #f1f5f9);
+}
+
+.card-display--selectable:focus {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.card-display--selected {
+  border-color: var(--color-primary, #2563eb);
+  background-color: var(--color-primary-light, #dbeafe);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.card-display__selected-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #2563eb);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.card-display__type-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
