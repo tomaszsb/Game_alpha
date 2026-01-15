@@ -72,7 +72,7 @@ export function TurnControlsWithActions({
   playerId,
   playerName
 }: TurnControlsWithActionsProps): JSX.Element {
-  const { dataService, stateService, choiceService, notificationService } = useGameContext();
+  const { dataService, stateService, choiceService, notificationService, movementService, turnService } = useGameContext();
 
   // Track transition states for smooth animations
   const [isActionInProgress, setIsActionInProgress] = useState(false);
@@ -282,6 +282,31 @@ export function TurnControlsWithActions({
   };
 
   const spaceTimeCost = getSpaceTimeCost();
+
+  // Helper to get single destination when no movement choice exists
+  // This handles fixed-destination spaces where E card effects cleared the awaitingChoice
+  const getSingleDestination = (): { destination: string; label: string } | null => {
+    // Only check if no movement choice and player hasn't moved
+    if (movementChoice || hasPlayerMovedThisTurn) return null;
+
+    try {
+      // Get valid moves from movement service
+      const validMoves = movementService.getValidMoves(currentPlayer.id);
+
+      // Only return if exactly 1 destination (fixed movement)
+      if (validMoves.length === 1) {
+        const dest = validMoves[0];
+        const spaceContent = dataService.getSpaceContent(dest, 'First');
+        const label = spaceContent?.title || dest;
+        return { destination: dest, label };
+      }
+    } catch (error) {
+      console.error('Error getting single destination:', error);
+    }
+    return null;
+  };
+
+  const singleDestination = getSingleDestination();
 
   // All players can take actions when it's their turn - currentPlayer is guaranteed to exist
   const isCurrentPlayersTurn = true;
@@ -545,6 +570,95 @@ export function TurnControlsWithActions({
               </Tooltip>
             );
           })}
+        </div>
+      )}
+
+      {/* Single Destination Fallback - shows when E card effect cleared movementChoice but there's only 1 destination */}
+      {singleDestination && !movementChoice && !hasPlayerMovedThisTurn && (
+        <div style={{
+          padding: '8px',
+          backgroundColor: colors.primary.bg,
+          border: `2px solid ${colors.primary.main}`,
+          borderRadius: '8px',
+          animation: 'fadeIn 0.3s ease-in-out'
+        }}>
+          <div style={{
+            padding: '8px',
+            backgroundColor: colors.info.light,
+            borderRadius: '6px',
+            border: `2px solid ${colors.info.main}`,
+            marginBottom: '8px'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: colors.info.main,
+              textAlign: 'center'
+            }}>
+              📍 Ready to Continue
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              // Set the destination and trigger movement via End Turn
+              setSelectedDestination(singleDestination.destination);
+
+              // Create a synthetic movement choice for the End Turn handler
+              const syntheticChoice: Choice = {
+                id: `single-dest-${Date.now()}`,
+                type: 'MOVEMENT',
+                prompt: 'Continue to next space',
+                options: [{ id: singleDestination.destination, label: singleDestination.label }],
+                playerId: currentPlayer.id
+              };
+              setMovementChoice(syntheticChoice);
+
+              // Notify about the move
+              if (notificationService) {
+                notificationService.notify(
+                  {
+                    short: `→ ${singleDestination.label}`,
+                    medium: `🚶 Moving to ${singleDestination.label}`,
+                    detailed: `${currentPlayer.name} is moving to ${singleDestination.label}`
+                  },
+                  {
+                    playerId: currentPlayer.id,
+                    playerName: currentPlayer.name,
+                    actionType: `move_${singleDestination.destination}`
+                  }
+                );
+              }
+
+              // Set move intent and trigger end turn
+              stateService.setPlayerMoveIntent(currentPlayer.id, singleDestination.destination);
+              onEndTurn();
+            }}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              backgroundColor: colors.success.main,
+              color: colors.white,
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.success.dark || '#16a34a';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.success.main;
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+            }}
+          >
+            ➡️ Continue to {singleDestination.label}
+          </button>
         </div>
       )}
 

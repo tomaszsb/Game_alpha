@@ -272,6 +272,9 @@ export class ResourceService implements IResourceService {
       other: 0
     };
 
+    // Track funding history for individual card/source details
+    const fundingHistory = player.fundingHistory ? [...player.fundingHistory] : [];
+
     if (changes.money && changes.money > 0) {
       const amount = changes.money;
 
@@ -292,6 +295,35 @@ export class ResourceService implements IResourceService {
           updatedMoneySources.other = (updatedMoneySources.other || 0) + amount;
           break;
       }
+
+      // Extract card ID from source if present (format: "card:CARD_ID")
+      const cardIdMatch = changes.source?.match(/^card:(.+)$/);
+      const cardId = cardIdMatch ? cardIdMatch[1] : undefined;
+
+      // Get card name if we have a card ID
+      let cardName: string | undefined;
+      if (cardId) {
+        try {
+          const gameState = this.stateService.getGameState();
+          const card = gameState.allCards?.find(c => c.card_id === cardId);
+          cardName = card?.card_name;
+        } catch {
+          // Ignore errors getting card name
+        }
+      }
+
+      // Add funding entry
+      const fundingEntry: import('../types/DataTypes').FundingEntry = {
+        id: `funding_${playerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        sourceType,
+        cardId,
+        cardName,
+        amount,
+        description: changes.reason || `Received $${amount.toLocaleString()}`,
+        turn: this.stateService.getGameState().currentTurn || 1,
+        timestamp: new Date()
+      };
+      fundingHistory.push(fundingEntry);
     }
 
     // Apply the changes via TEMP state (or main state if no TEMP exists)
@@ -299,7 +331,8 @@ export class ResourceService implements IResourceService {
       this.stateService.updateTempState(playerId, {
         money: newMoney,
         timeSpent: Math.max(0, newTimeSpent), // Ensure time doesn't go negative
-        moneySources: updatedMoneySources
+        moneySources: updatedMoneySources,
+        fundingHistory
       });
 
       const balanceAfter = {

@@ -119,6 +119,17 @@ export interface MoneySources {
   other: number;           // Other sources (cards, space effects, etc.)
 }
 
+export interface FundingEntry {
+  id: string;
+  sourceType: 'bank' | 'investment' | 'owner' | 'other';
+  cardId?: string;         // Card ID if funding came from a card
+  cardName?: string;       // Card name for display
+  amount: number;
+  description: string;
+  turn: number;
+  timestamp: Date;
+}
+
 export interface Expenditures {
   design: number;       // Architect/Engineer fees (ARCH-FEE-REVIEW, ENG-FEE-REVIEW)
   fees: number;         // All regulatory, consultant, and expeditor costs (DOB, FDNY, Bank, Investor fees, E cards)
@@ -204,6 +215,7 @@ export interface Player {
   moneySources: MoneySources; // Track where money came from
   expenditures: Expenditures; // Track where money is spent
   costHistory: CostEntry[]; // Detailed log of all costs incurred
+  fundingHistory: FundingEntry[]; // Detailed log of all funding received
   costs: CostBreakdown; // Summary of costs by category
   moveIntent?: string | null; // Player's intended destination (set before move execution)
   currentCard?: string | null; // The card the player is currently interacting with

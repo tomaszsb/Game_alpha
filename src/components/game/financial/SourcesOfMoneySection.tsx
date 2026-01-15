@@ -12,10 +12,22 @@ interface MoneySources {
   other: number;
 }
 
+interface FundingEntry {
+  id: string;
+  sourceType: 'bank' | 'investment' | 'owner' | 'other';
+  cardId?: string;
+  cardName?: string;
+  amount: number;
+  description: string;
+  turn: number;
+  timestamp: Date;
+}
+
 interface SourcesOfMoneySectionProps {
   player: {
     currentSpace: string;
     moneySources?: MoneySources;
+    fundingHistory?: FundingEntry[];
   };
   bCards: string[];
   iCards: string[];
@@ -53,48 +65,96 @@ export function SourcesOfMoneySection({
     other: 0
   };
 
-  // Get funding transactions from moneySources (reliable tracking)
+  // Get funding transactions from fundingHistory (detailed per-card tracking)
+  // Falls back to aggregated moneySources if no history exists
   const getFundingBreakdown = (): FundingTransaction[] => {
     const transactions: FundingTransaction[] = [];
+    const fundingHistory = player.fundingHistory || [];
 
-    // 1. Owner Seed Money (from moneySources.ownerFunding)
-    if (moneySources.ownerFunding > 0) {
-      transactions.push({
-        type: 'Owner',
-        description: "Owner's personal seed money investment",
-        amount: moneySources.ownerFunding,
-        icon: '👤'
-      });
-    }
+    // If we have detailed funding history, use it
+    if (fundingHistory.length > 0) {
+      // Group by source type and show individual cards
+      const ownerEntries = fundingHistory.filter(f => f.sourceType === 'owner');
+      const bankEntries = fundingHistory.filter(f => f.sourceType === 'bank');
+      const investmentEntries = fundingHistory.filter(f => f.sourceType === 'investment');
+      const otherEntries = fundingHistory.filter(f => f.sourceType === 'other');
 
-    // 2. Bank Funding (from moneySources.bankLoans - tracked when loans are taken)
-    if (moneySources.bankLoans > 0) {
-      transactions.push({
-        type: 'Bank',
-        description: 'Bank loans received',
-        amount: moneySources.bankLoans,
-        icon: '🏦'
+      // Owner funding entries
+      ownerEntries.forEach(entry => {
+        transactions.push({
+          type: 'Owner',
+          description: entry.cardName || entry.description,
+          amount: entry.amount,
+          icon: '👤'
+        });
       });
-    }
 
-    // 3. Investor Funding (from moneySources.investmentDeals - tracked when investments are received)
-    if (moneySources.investmentDeals > 0) {
-      transactions.push({
-        type: 'Investor',
-        description: 'Investment deals secured',
-        amount: moneySources.investmentDeals,
-        icon: '💼'
+      // Bank loan entries (show individual cards)
+      bankEntries.forEach(entry => {
+        transactions.push({
+          type: 'Bank',
+          description: entry.cardName || entry.description,
+          amount: entry.amount,
+          icon: '🏦'
+        });
       });
-    }
 
-    // 4. Other funding sources
-    if (moneySources.other > 0) {
-      transactions.push({
-        type: 'Other',
-        description: 'Other funding sources',
-        amount: moneySources.other,
-        icon: '💵'
+      // Investment entries (show individual cards)
+      investmentEntries.forEach(entry => {
+        transactions.push({
+          type: 'Investor',
+          description: entry.cardName || entry.description,
+          amount: entry.amount,
+          icon: '💼'
+        });
       });
+
+      // Other funding entries
+      otherEntries.forEach(entry => {
+        transactions.push({
+          type: 'Other',
+          description: entry.cardName || entry.description,
+          amount: entry.amount,
+          icon: '💵'
+        });
+      });
+    } else {
+      // Fallback to aggregated totals if no detailed history
+      if (moneySources.ownerFunding > 0) {
+        transactions.push({
+          type: 'Owner',
+          description: "Owner's personal seed money investment",
+          amount: moneySources.ownerFunding,
+          icon: '👤'
+        });
+      }
+
+      if (moneySources.bankLoans > 0) {
+        transactions.push({
+          type: 'Bank',
+          description: 'Bank loans received',
+          amount: moneySources.bankLoans,
+          icon: '🏦'
+        });
+      }
+
+      if (moneySources.investmentDeals > 0) {
+        transactions.push({
+          type: 'Investor',
+          description: 'Investment deals secured',
+          amount: moneySources.investmentDeals,
+          icon: '💼'
+        });
+      }
+
+      if (moneySources.other > 0) {
+        transactions.push({
+          type: 'Other',
+          description: 'Other funding sources',
+          amount: moneySources.other,
+          icon: '💵'
+        });
+      }
     }
 
     return transactions;

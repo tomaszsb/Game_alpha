@@ -168,14 +168,14 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Re-test fixes
 - [ ] Update CHANGELOG.md with fixes
 
-**Test Player Bug Reports (January 8, 2026) - 🟡 PARTIALLY FIXED:**
+**Test Player Bug Reports (January 8, 2026) - ✅ ALL FIXED:**
 *Source: External test player feedback (post-it notes transcribed)*
 
 **Critical Bugs (Gameplay Blockers):**
 - [x] REG-DOB-PLAN-EXAM: No action or movement buttons ✅ **FIXED Jan 9** - Now auto-rolls dice on arrival
 - [x] REG-DOB-PROF-CERT: No actions, no movement buttons, gameplay stuck ✅ **FIXED Jan 9** - Now auto-rolls dice on arrival
 - [x] CHEAT-BYPASS: No dice roll button ✅ **FIXED Jan 9** - Added manual "Roll Dice" button
-- [ ] Various spaces: eCard button exists but no movement buttons
+- [x] Various spaces: eCard button exists but no movement buttons ✅ **FIXED Jan 15** - Added single-destination "Continue" button fallback
 
 **eCard Issues (January 13, 2026 - ✅ FIXED):**
 - [x] **ARCH-SCOPE-CHECK, INVESTOR-FUND-REVIEW, REG-DOB-FEE-REVIEW, CON-ISSUES**: Replace eCard modal missing
@@ -209,7 +209,7 @@ E cards like E029 (Weekend Work), E030 (Time Crunch) have a `turn_skip` field. W
 **Financial Issues:**
 - [x] INVESTOR-FUND-REVIEW: If cards are split, finances do not reflect added funds ✅ **FIXED Jan 9** - Auto-play B/I cards at all funding spaces
 - [x] Error codes screen: Blank fund review ✅ **FIXED Jan 9** - Same root cause as above
-- [ ] Card did not move to finance section (low priority - cosmetic)
+- [x] Card did not move to finance section (cosmetic) ✅ **FIXED Jan 15** - Added fundingHistory tracking with individual card amounts
 - [x] Fee spaces: Can continue without paying if not enough money ✅ **FIXED Jan 9** - Added canAfford() check
 
 **UI/UX Issues (January 15, 2026 - ✅ FIXED):**
@@ -443,6 +443,66 @@ Prepare final release package and deployment
 - [x] Game code display on setup and in-game
 
 See CHANGELOG.md for full implementation details.
+
+### Same Starting Point Game Mode 📋
+*Status: PLANNED - January 15, 2026*
+*Estimated Effort: Major feature (multi-phase implementation)*
+
+**Overview:** Add a new game mode where all players start with identical cards, enabling fair skill-based comparison. Requested by playtesters who want to see how different decisions lead to different outcomes when everyone starts equal.
+
+**Game Modes:**
+| Mode | Description | Default |
+|------|-------------|---------|
+| **Battle Royale** | Current behavior - shared decks, random draws | ✅ Yes |
+| **Same Starting Point** | Per-player decks, identical starting cards | No |
+
+**Same Starting Point Sub-Modes:**
+| Sub-Mode | Description |
+|----------|-------------|
+| **Quick Start** | First player's natural card draws get "baked in" as starting hand for all players |
+| **Educational** | Teacher manually selects starting cards (full card details visible, no maximum) |
+
+**Architecture Changes Required:**
+
+1. **Per-Player Deck System** (High effort)
+   - Change from shared `decks` to `playerDecks: Record<playerId, Decks>`
+   - Each player gets their own shuffled copy of each deck
+   - Separate discard piles per player
+   - Files: `StateService.ts`, `CardService.ts`, `GameState` types
+
+2. **Starting Cards System** (Medium effort)
+   - Quick Start: Clone P1's first-turn draws to all players
+   - Educational: UI to browse/select specific cards before game start
+   - Files: `StateService.ts`, new card selection component
+
+3. **Global L Card Events** (Low effort)
+   - L cards with `scope: Global` already exist in CSV
+   - Ensure Global events affect all players immediately
+   - Files: `CardService.ts`, `EffectEngineService.ts`
+
+4. **Consolidated Game Settings UI** (Medium effort)
+   - Replace win condition section in `PlayerSetup.tsx`
+   - Add checkbox: "☐ Same Starting Point" (default OFF)
+   - If checked: Radio buttons for Quick Start / Educational
+   - Remove `GameDisplaySettings.tsx` from post-game, integrate into setup
+
+**Data Model Changes:**
+```typescript
+interface GameState {
+  gameMode: 'BATTLE_ROYALE' | 'SAME_START';
+  startingMode?: 'QUICK_START' | 'EDUCATIONAL';
+  playerDecks?: Record<string, Decks>;  // Per-player decks
+  playerDiscardPiles?: Record<string, DiscardPiles>;  // Per-player discards
+  startingHand?: string[];  // Card IDs all players start with
+}
+```
+
+**Implementation Phases:**
+- [ ] Phase 1: Per-player deck system (architecture change)
+- [ ] Phase 2: Quick Start mode (P1 draws → copy to all)
+- [ ] Phase 3: Educational mode (teacher selects cards UI)
+- [ ] Phase 4: Global L Card broadcasting verification
+- [ ] Phase 5: Consolidated Game Settings UI
 
 ---
 

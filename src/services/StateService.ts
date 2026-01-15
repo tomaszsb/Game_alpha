@@ -1358,6 +1358,7 @@ export class StateService implements IStateService {
         construction: 0
       },
       costHistory: [], // Track all costs incurred with details
+      fundingHistory: [], // Track all funding received with details
       costs: {
         bank: 0,
         investor: 0,
