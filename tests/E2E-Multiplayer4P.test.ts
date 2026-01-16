@@ -23,6 +23,7 @@ import { TurnService } from '../src/services/TurnService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
+import { CardEffectService } from '../src/services/CardEffectService';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -75,6 +76,10 @@ describe('E2E: 4-Player Multiplayer Game', () => {
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
     cardService.setEffectEngineService(effectEngineService);
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService.setCardEffectService(cardEffectService);
   });
 
   it('should initialize a 4-player game correctly', () => {
@@ -364,6 +369,10 @@ describe('E2E: 3-Player Multiplayer Game', () => {
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
     cardService.setEffectEngineService(effectEngineService);
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService.setCardEffectService(cardEffectService);
   });
 
   it('should initialize a 3-player game correctly', () => {

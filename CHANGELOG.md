@@ -37,6 +37,26 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+### Technical Debt Cleanup (January 15, 2026)
+
+**Test Infrastructure Fixes**
+- Fixed E2E-01_HappyPath.test.tsx - was failing due to missing service wiring
+  - Added `CardEffectService` initialization (required for manual card actions)
+  - Fixed incorrect test expectations (expected B card draw at OWNER-FUND-INITIATION, but actual behavior is owner seed money)
+- Fixed E2E-Multiplayer2P.test.ts, E2E-Multiplayer4P.test.ts - added `CardEffectService` wiring
+- Fixed E2E-LogicPlaythrough.test.ts, E2E-AllPaths.test.ts - added `CardEffectService`, `FinancialEffectHandler`, and `CardEffectHandler` wiring
+
+**Documentation Updates**
+- Updated TECHNICAL_DEBT.md with current file sizes:
+  - TurnService.ts: 2,163 lines (reduced from 2,421, 11% decrease)
+  - EffectEngineService.ts: 1,553 lines (already marked as reduced)
+- Clarified E2E test statuses:
+  - E2E-01_HappyPath: Fixed and passing
+  - E2E-FullGame: Intentionally skipped (UI flakiness, covered by logic tests)
+  - puppeteer-gameplay: Intentionally skipped (requires manual `npm run test:uat`)
+
+---
+
 ### Refactoring - ServerSyncService Extraction (January 12, 2026)
 
 **REFACTOR: Extract ServerSyncService from StateService**

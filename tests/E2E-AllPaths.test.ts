@@ -27,6 +27,9 @@ import { TurnService } from '../src/services/TurnService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
+import { CardEffectService } from '../src/services/CardEffectService';
+import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
+import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -75,6 +78,16 @@ const setupGame = async () => {
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);
   cardService.setEffectEngineService(effectEngineService);
+
+  // Create and wire CardEffectService for manual card actions
+  const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+  turnService.setCardEffectService(cardEffectService);
+
+  // Create and wire effect handlers for EffectEngineService
+  const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, dataService, choiceService);
+  effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+  effectEngineService.setCardEffectHandler(cardEffectHandler);
 
   stateService.addPlayer('TestPlayer');
   const player = stateService.getAllPlayers()[0];

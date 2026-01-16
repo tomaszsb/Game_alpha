@@ -303,15 +303,25 @@ interface TurnStateModel {
 
 ---
 
-- **E2E-01_HappyPath.test.tsx Skipped Test**
-  - **Status**: ⚠️ Skipped
-  - **Description**: The `E2E-01_HappyPath.test.tsx` test is currently skipped. The test is outdated and does not account for a mandatory `draw_E` manual action on the starting space (`OWNER-SCOPE-INITIATION`). The test expects a "Roll to Move" button to be immediately available, but the game correctly requires the manual action to be performed first.
-  - **Reason for Skipping**: The test infrastructure has difficulty handling the manual action button click in the test environment. Fixing this would require a significant refactor of the test setup, which was deemed out of scope for the TypeScript strict mode migration.
-  - **Impact**: The "Happy Path" E2E test is not currently running, which reduces confidence in the overall test suite.
-  - **Resolution**: The test needs to be refactored to correctly handle the manual action on the starting space. This may involve updating the test infrastructure to better support manual action handling.
+- **E2E-01_HappyPath.test.tsx** ✅ **FIXED**
+  - **Status**: ✅ Resolved (January 15, 2026)
+  - **Previous Issues**:
+    1. Missing `CardEffectService` initialization - test setup didn't wire this service
+    2. Incorrect test expectations - test expected B card draw at OWNER-FUND-INITIATION, but actual behavior is owner seed money
+  - **Resolution**:
+    - Added `CardEffectService` import and initialization in test setup
+    - Fixed test expectations to match actual game behavior (owner seed money, not B card draw)
+  - **Impact**: Test now passes and validates the happy path correctly
 
-- **TurnService.ts (2,421 lines)**
-  - **Suggestion:** Could be split into smaller, more focused services (e.g., TurnPhaseService, EffectProcessingService, TurnValidationService).
+- **E2E-FullGame.test.tsx and UAT Puppeteer Tests**
+  - **Status**: ✅ Intentionally Skipped
+  - **E2E-FullGame**: UI-level E2E test marked `.skip` due to React rendering timing flakiness. Comprehensive logic-level coverage exists in E2E-LogicPlaythrough.test.ts and E2E-AllPaths.test.ts.
+  - **puppeteer-gameplay.test.ts**: Skipped in regular test runs - requires manual execution via `npm run test:uat` (spawns real browser and dev server).
+
+- **TurnService.ts (2,163 lines)** ✅ **REDUCED**
+  - **Status:** Reduced from 2,421 to 2,163 lines (258 line reduction, 11% decrease)
+  - **Note:** Further extraction possible but represents higher risk due to central role
+  - **Suggestion:** Consider extracting negotiation methods to NegotiationService if further reduction needed
   - **Impact:** High - central service, complex logic.
   - **Risk:** High - touches many systems.
 

@@ -65,12 +65,13 @@ The card system is a central part of the game, providing a wide range of strateg
 
 ### Automatic Funding
 
-At the **OWNER-FUND-INITIATION** space, the game features an automatic funding mechanic. Instead of a manual "Get Funding" button, the game automatically draws a funding card for the player based on their current project scope.
+At the **OWNER-FUND-INITIATION** space, the game features an automatic funding mechanic. When a player arrives at this space, the owner automatically invests "seed money" into the project.
 
-*   If the project scope is less than or equal to $4M, the player receives a **B (Bank Loan)** card.
-*   If the project scope is greater than $4M, the player receives an **I (Investor Loan)** card.
+*   **Owner Seed Money**: Calculated as 80-120% of the project scope (randomly determined).
+*   This represents the owner's personal investment into the project.
+*   The funding is added directly to the player's available funds.
 
-This mechanic streamlines the gameplay and integrates the funding process directly into the game's narrative.
+This mechanic streamlines the gameplay and integrates the funding process directly into the game's narrative. Additional funding can be obtained later through B (Bank Loan) and I (Investor Loan) cards at dedicated funding spaces.
 
 ## 4. Implementation Standards Achieved ✅
 

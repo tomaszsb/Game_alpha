@@ -23,6 +23,7 @@ import { TurnService } from '../src/services/TurnService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
+import { CardEffectService } from '../src/services/CardEffectService';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -73,6 +74,10 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
     cardService.setEffectEngineService(effectEngineService);
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService.setCardEffectService(cardEffectService);
   });
 
   it('should initialize a 2-player game correctly', () => {

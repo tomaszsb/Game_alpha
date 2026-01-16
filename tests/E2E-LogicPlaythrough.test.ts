@@ -12,6 +12,7 @@ import { TurnService } from '../src/services/TurnService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
+import { CardEffectService } from '../src/services/CardEffectService';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -60,6 +61,10 @@ describe('Logic E2E: Full Game Playthrough', () => {
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
     cardService.setEffectEngineService(effectEngineService);
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService.setCardEffectService(cardEffectService);
   });
 
   it('should complete a full game from START to FINISH via services', async () => {
