@@ -423,11 +423,16 @@ export class MovementService implements IMovementService {
       return [];
     }
 
-    // Handle "or" choices - return ALL options as array
+    // Handle "or" options - RANDOMLY SELECT ONE (the "plan examiner" decides, not the player)
+    // For dice-based movement spaces like REG-FDNY-PLAN-EXAM, the dice roll determines
+    // the outcome category, and if multiple destinations exist within that category,
+    // the game randomly picks one (simulating the plan examiner's decision)
     if (destinationStr.includes(' or ')) {
       const choices = destinationStr.split(' or ').map(d => d.trim()).filter(d => d);
-      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: Multiple choices available: [${choices.join(', ')}]`);
-      return choices;
+      const randomIndex = Math.floor(Math.random() * choices.length);
+      const selectedDestination = choices[randomIndex];
+      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: Plan examiner selected "${selectedDestination}" from [${choices.join(', ')}]`);
+      return [selectedDestination]; // Return single destination - the plan examiner's decision
     }
 
     console.log(`🎲 Dice roll ${diceRoll} at ${spaceName} → single destination: ${destinationStr}`);

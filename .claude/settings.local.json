@@ -67,7 +67,22 @@
       "Bash(npm update:*)",
       "Bash(npm audit:*)",
       "Bash(./scripts/deploy.sh:*)",
-      "Bash(./deploy.sh:*)"
+      "Bash(./deploy.sh:*)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)",
+      "Bash(./tests/scripts/run-tests-batch-fixed.sh:*)",
+      "Bash(while read f)",
+      "Bash(do if ! grep -q \"CardEffectService\" \"$f\")",
+      "Bash(then echo \"Missing CardEffectService: $f\" fi done)",
+      "Bash(for f in /mnt/d/unravel/current_game/game_alpha/tests/E2E*.test.ts /mnt/d/unravel/current_game/game_alpha/tests/E2E*.test.tsx)",
+      "Bash(do)",
+      "Bash(if [ -f \"$f\" ])",
+      "Bash(then)",
+      "Bash(if grep -q \"triggerManualEffect\" \"$f\")",
+      "Bash(! grep -q \"CardEffectService\" \"$f\")",
+      "Bash(fi)",
+      "Bash(getent:*)",
+      "Bash(nc:*)"
     ],
     "deny": [],
     "ask": []
