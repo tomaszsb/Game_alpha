@@ -8,6 +8,7 @@ import { usePlayerValidation, GameSettings } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
+import { DataEditor } from '../editor/DataEditor';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -49,6 +50,7 @@ export function PlayerSetup({
   });
 
   const [isStarting, setIsStarting] = useState(false);
+  const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
 
   // Use validation hook with services
   const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService);
@@ -459,6 +461,51 @@ export function PlayerSetup({
           </div>
         </div>
 
+        {/* Admin Tools section */}
+        <div style={{
+          background: colors.secondary.bg,
+          borderRadius: '12px',
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <h3 style={{
+            color: colors.success.text,
+            fontSize: '1.2rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            🛠️ Admin Tools
+          </h3>
+
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              type="button"
+              onClick={() => setIsDataEditorOpen(true)}
+              style={{
+                padding: '0.75rem 1.25rem',
+                backgroundColor: colors.secondary.main,
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              ⚙️ Space Data Editor
+            </button>
+          </div>
+        </div>
+
         {/* Start game button */}
         <button
           type="button"
@@ -502,6 +549,9 @@ export function PlayerSetup({
           {' '}Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
         </div>
       </div>
+
+      {/* Data Editor Modal */}
+      {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
     </div>
   );
 }
