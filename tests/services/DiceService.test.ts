@@ -192,7 +192,8 @@ describe('DiceService', () => {
         { type: 'choice' }
       ];
       const summary = diceService.generateEffectSummary(effects, 4);
-      expect(summary).toContain('must choose next move');
+      // When there's only a choice effect (no other effects), the summary is different
+      expect(summary).toContain('Choose your destination');
     });
 
     it('should generate mixed results for positive and negative effects', () => {

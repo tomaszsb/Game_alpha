@@ -207,7 +207,8 @@ describe('EffectEngineService', () => {
     const cardEffectHandler = new CardEffectHandler(
       mockCardService,
       mockStateService,
-      mockChoiceService
+      mockChoiceService,
+      mockLoggingService
     );
     effectEngineService.setCardEffectHandler(cardEffectHandler);
   });

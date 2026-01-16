@@ -50,7 +50,13 @@ describe('ResourceService', () => {
               bankLoans: 0,
               investmentDeals: 0,
               other: 500
-            }
+            },
+            fundingHistory: expect.arrayContaining([
+              expect.objectContaining({
+                sourceType: 'other',
+                amount: 500
+              })
+            ])
           }
         );
       });
@@ -86,7 +92,8 @@ describe('ResourceService', () => {
               bankLoans: 0,
               investmentDeals: 0,
               other: 0
-            }
+            },
+            fundingHistory: []
           }
         );
       });
@@ -139,7 +146,8 @@ describe('ResourceService', () => {
               bankLoans: 0,
               investmentDeals: 0,
               other: 0
-            }
+            },
+            fundingHistory: []
           }
         );
       });
@@ -159,7 +167,8 @@ describe('ResourceService', () => {
               bankLoans: 0,
               investmentDeals: 0,
               other: 0
-            }
+            },
+            fundingHistory: []
           }
         );
       });
@@ -177,7 +186,8 @@ describe('ResourceService', () => {
               bankLoans: 0,
               investmentDeals: 0,
               other: 0
-            }
+            },
+            fundingHistory: []
           }
         );
       });
@@ -207,7 +217,13 @@ describe('ResourceService', () => {
               bankLoans: 0,
               investmentDeals: 0,
               other: 200
-            }
+            },
+            fundingHistory: expect.arrayContaining([
+              expect.objectContaining({
+                sourceType: 'other',
+                amount: 200
+              })
+            ])
           }
         );
       });
@@ -226,14 +242,16 @@ describe('ResourceService', () => {
           'player1',
           {
             money: 700,
-          timeSpent: 5,
-          moneySources: {
-            ownerFunding: 0,
-            bankLoans: 0,
-            investmentDeals: 0,
-            other: 0
+            timeSpent: 5,
+            moneySources: {
+              ownerFunding: 0,
+              bankLoans: 0,
+              investmentDeals: 0,
+              other: 0
+            },
+            fundingHistory: []
           }
-        });
+        );
       });
 
       it('should fail validation for insufficient funds', () => {
