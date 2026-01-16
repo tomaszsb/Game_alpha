@@ -201,7 +201,7 @@ export interface IStateService {
   
   // Game lifecycle methods
   initializeGame(): GameState;
-  startGame(): GameState;
+  startGame(settings?: import('./StateTypes').GameModeSettings): GameState;
   endGame(winnerId?: string): GameState;
   resetGame(): GameState;
   

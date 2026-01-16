@@ -50,6 +50,10 @@ export interface GameSettings {
   maxPlayers: number;
   winCondition: string;
   difficulty: string;
+  // Same Starting Point game mode (January 2026)
+  sameStartingPoint?: boolean;
+  startingMode?: 'QUICK_START' | 'EDUCATIONAL';
+  preSelectedHand?: string[];  // For Educational mode
 }
 
 /**

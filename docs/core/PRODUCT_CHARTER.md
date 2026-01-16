@@ -4,8 +4,8 @@
 **Core Game Complete**: Fully playable multi-player board game with external access deployed
 **Public URL**: `http://unravel-game.duckdns.org:3080`
 **Test Status**: 967+ tests passing across 83 test files (100% success rate)
-**Version**: 2.10
-**Last Updated**: January 15, 2026
+**Version**: 2.11
+**Last Updated**: January 16, 2026
 
 ## 1. Mission Progress - Production Ready
 

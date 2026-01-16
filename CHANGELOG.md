@@ -4,6 +4,68 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Same Starting Point Game Mode (January 16, 2026)
+
+**New Feature: Same Starting Point mode for fair skill-based comparison**
+
+Added a new game mode where all players start with identical cards, enabling fair skill-based comparison instead of random luck.
+
+**Game Modes:**
+- **Battle Royale** (default) - Shared decks, random draws (original behavior)
+- **Same Starting Point** - Per-player decks, identical starting cards
+
+**Same Starting Point Sub-Modes:**
+- **Quick Start**: First player's natural card draws become starting hand for all players
+- **Educational** (placeholder): Teacher manually selects starting cards before game
+
+**Implementation Details:**
+
+1. **Core Type System** (`src/types/StateTypes.ts`):
+   - Added `GameMode = 'BATTLE_ROYALE' | 'SAME_START'` type
+   - Added `StartingMode = 'QUICK_START' | 'EDUCATIONAL'` type
+   - Added `Decks` and `DiscardPiles` interfaces for card management
+   - Added `GameModeSettings` interface for game initialization
+   - Extended `GameState` with `playerDecks`, `playerDiscardPiles`, `shuffleSeed`, `startingHand`, `isCapturingStartingHand`
+
+2. **Seeded Shuffle Algorithm** (`src/services/StateService.ts`):
+   - Implemented Linear Congruential Generator (LCG) for reproducible randomness
+   - Added `seededShuffle()` method using Fisher-Yates algorithm with seed
+   - Created `startGameSameStart()` for per-player deck initialization with identical order
+
+3. **Per-Player Deck Management** (`src/services/CardService.ts`):
+   - Updated `drawCards()` to use per-player decks in SAME_START mode
+   - Updated `moveCardToDiscarded()`, `moveExpiredCardToDiscarded()`, `discardCards()` to use per-player discard piles
+   - Added Quick Start capture logic - drawn cards are captured to `startingHand` when `isCapturingStartingHand` is true
+
+4. **Quick Start Finalization** (`src/services/TurnService.ts`):
+   - Added `finalizeQuickStartHand()` method called at end of P1's first turn
+   - Distributes captured starting hand to all other players
+   - Removes starting cards from each player's per-player deck
+   - Clears `isCapturingStartingHand` flag after distribution
+
+5. **Game Settings UI** (`src/components/setup/PlayerSetup.tsx`):
+   - Added "Same Starting Point" checkbox (default OFF)
+   - Added Quick Start / Educational radio buttons when checkbox is checked
+   - Added placeholder "Select Starting Cards" button for Educational mode
+
+6. **Interface Updates** (`src/types/ServiceContracts.ts`, `src/components/setup/usePlayerValidation.ts`):
+   - Updated `IStateService.startGame()` to accept optional `GameModeSettings`
+   - Extended `GameSettings` interface with `sameStartingPoint`, `startingMode`, `preSelectedHand`
+
+**Files Modified:**
+- `src/types/StateTypes.ts`
+- `src/types/ServiceContracts.ts`
+- `src/services/StateService.ts`
+- `src/services/CardService.ts`
+- `src/services/TurnService.ts`
+- `src/components/setup/PlayerSetup.tsx`
+- `src/components/setup/usePlayerValidation.ts`
+- `src/components/layout/GameLayout.tsx`
+
+**Pending:** Phase 3 - CardSelectionModal for Educational mode (allows teacher to select specific starting cards)
+
+---
+
 ### Bug Fixes - External Testing Issues (January 15, 2026)
 
 **FIX: Resolve all remaining external testing bugs**

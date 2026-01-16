@@ -3,6 +3,10 @@ import {
   GameState,
   Player,
   GamePhase,
+  GameMode,
+  GameModeSettings,
+  Decks,
+  DiscardPiles,
   PlayerUpdateData,
   PlayerCards,
   ActiveModal,
@@ -479,13 +483,33 @@ export class StateService implements IStateService {
     return { ...this.currentState };
   }
 
-  startGame(): GameState {
+  /**
+   * Start the game with optional game mode settings.
+   * @param settings - Optional settings for game mode (Battle Royale or Same Starting Point)
+   */
+  startGame(settings?: GameModeSettings): GameState {
     if (!this.canStartGame()) {
       throw new Error('Cannot start game: requirements not met');
     }
 
-    // Initialize shuffled decks for each card type
-    const decks = {
+    const gameMode = settings?.gameMode ?? 'BATTLE_ROYALE';
+    const startingMode = settings?.startingMode;
+    const preSelectedHand = settings?.startingHand;
+
+    if (gameMode === 'BATTLE_ROYALE') {
+      return this.startGameBattleRoyale();
+    } else {
+      return this.startGameSameStart(startingMode, preSelectedHand);
+    }
+  }
+
+  /**
+   * Start game in Battle Royale mode - shared decks, random draws.
+   * This is the default/original game mode.
+   */
+  private startGameBattleRoyale(): GameState {
+    // Initialize shuffled decks for each card type (shared by all players)
+    const decks: Decks = {
       W: this.shuffleArray([...this.dataService.getCardsByType('W').map(card => card.card_id)]),
       B: this.shuffleArray([...this.dataService.getCardsByType('B').map(card => card.card_id)]),
       E: this.shuffleArray([...this.dataService.getCardsByType('E').map(card => card.card_id)]),
@@ -494,12 +518,12 @@ export class StateService implements IStateService {
     };
 
     // Initialize empty discard piles
-    const discardPiles = {
-      W: [] as string[],
-      B: [] as string[],
-      E: [] as string[],
-      L: [] as string[],
-      I: [] as string[]
+    const discardPiles: DiscardPiles = {
+      W: [],
+      B: [],
+      E: [],
+      L: [],
+      I: []
     };
 
     const newState: GameState = {
@@ -507,6 +531,7 @@ export class StateService implements IStateService {
       gamePhase: 'PLAY',
       gameStartTime: new Date(),
       currentPlayerId: this.currentState.players.length > 0 ? this.currentState.players[0].id : null,
+      gameMode: 'BATTLE_ROYALE',
       decks,
       discardPiles,
       isInitialized: false // Game is not fully initialized until players are placed
@@ -517,10 +542,108 @@ export class StateService implements IStateService {
     // Initialize action counts for the first player
     this.updateActionCounts();
 
-    console.log(`🎴 DECK_INIT: Created shuffled decks - W:${decks.W.length}, B:${decks.B.length}, E:${decks.E.length}, L:${decks.L.length}, I:${decks.I.length}`);
+    console.log(`🎴 DECK_INIT [BATTLE_ROYALE]: Created shared shuffled decks - W:${decks.W.length}, B:${decks.B.length}, E:${decks.E.length}, L:${decks.L.length}, I:${decks.I.length}`);
     console.log('⏳ Game started but not yet initialized - waiting for player placement');
 
     return { ...this.currentState };
+  }
+
+  /**
+   * Start game in Same Starting Point mode - per-player decks with identical order.
+   * All players get the same shuffled deck order using a shared seed.
+   */
+  private startGameSameStart(startingMode?: 'QUICK_START' | 'EDUCATIONAL', preSelectedHand?: string[]): GameState {
+    const seed = Date.now();
+    const playerDecks: Record<string, Decks> = {};
+    const playerDiscardPiles: Record<string, DiscardPiles> = {};
+
+    // Create identical deck for each player using same seed
+    // Each card type uses seed + offset to ensure different but reproducible order per type
+    for (const player of this.currentState.players) {
+      playerDecks[player.id] = {
+        W: this.createSeededDeck('W', seed),
+        B: this.createSeededDeck('B', seed + 1),
+        E: this.createSeededDeck('E', seed + 2),
+        L: this.createSeededDeck('L', seed + 3),
+        I: this.createSeededDeck('I', seed + 4)
+      };
+      playerDiscardPiles[player.id] = { W: [], B: [], E: [], L: [], I: [] };
+    }
+
+    // For Educational mode, apply pre-selected starting hand
+    const updatedPlayers = [...this.currentState.players];
+    if (startingMode === 'EDUCATIONAL' && preSelectedHand && preSelectedHand.length > 0) {
+      // Give selected starting cards to all players
+      for (let i = 0; i < updatedPlayers.length; i++) {
+        updatedPlayers[i] = {
+          ...updatedPlayers[i],
+          hand: [...preSelectedHand]
+        };
+        // Remove starting cards from each player's deck
+        for (const cardId of preSelectedHand) {
+          const cardType = this.getCardTypeFromId(cardId);
+          if (cardType && playerDecks[updatedPlayers[i].id]) {
+            const deck = playerDecks[updatedPlayers[i].id][cardType];
+            const cardIndex = deck.indexOf(cardId);
+            if (cardIndex !== -1) {
+              deck.splice(cardIndex, 1);
+            }
+          }
+        }
+      }
+    }
+
+    const isQuickStart = startingMode === 'QUICK_START';
+
+    // For Battle Royale compatibility, create empty shared decks
+    // (Per-player decks will be used when gameMode is SAME_START)
+    const decks: Decks = { W: [], B: [], E: [], L: [], I: [] };
+    const discardPiles: DiscardPiles = { W: [], B: [], E: [], L: [], I: [] };
+
+    const newState: GameState = {
+      ...this.currentState,
+      players: updatedPlayers,
+      gamePhase: 'PLAY',
+      gameStartTime: new Date(),
+      currentPlayerId: this.currentState.players.length > 0 ? this.currentState.players[0].id : null,
+      gameMode: 'SAME_START',
+      startingMode,
+      shuffleSeed: seed,
+      playerDecks,
+      playerDiscardPiles,
+      startingHand: preSelectedHand || [],
+      isCapturingStartingHand: isQuickStart,
+      decks,
+      discardPiles,
+      isInitialized: false
+    };
+
+    this.currentState = newState;
+
+    // Initialize action counts for the first player
+    this.updateActionCounts();
+
+    console.log(`🎴 DECK_INIT [SAME_START/${startingMode}]: Created per-player decks with seed ${seed}`);
+    console.log(`   Players: ${this.currentState.players.map(p => p.name).join(', ')}`);
+    if (isQuickStart) {
+      console.log(`   📝 Quick Start: Capturing P1's draws as starting hand for all players`);
+    } else if (startingMode === 'EDUCATIONAL' && preSelectedHand) {
+      console.log(`   📚 Educational: All players start with ${preSelectedHand.length} pre-selected cards`);
+    }
+
+    return { ...this.currentState };
+  }
+
+  /**
+   * Helper to determine card type from card ID.
+   */
+  private getCardTypeFromId(cardId: string): 'W' | 'B' | 'E' | 'L' | 'I' | null {
+    if (!cardId) return null;
+    const firstChar = cardId.charAt(0).toUpperCase();
+    if (['W', 'B', 'E', 'L', 'I'].includes(firstChar)) {
+      return firstChar as 'W' | 'B' | 'E' | 'L' | 'I';
+    }
+    return null;
   }
 
   endGame(winnerId?: string): GameState {
@@ -1312,7 +1435,9 @@ export class StateService implements IStateService {
         E: [],
         L: [],
         I: []
-      }
+      },
+      // Game mode - defaults to Battle Royale (shared decks)
+      gameMode: 'BATTLE_ROYALE'
     };
   }
 
@@ -1483,6 +1608,37 @@ export class StateService implements IStateService {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
+  }
+
+  /**
+   * Seeded shuffle - produces deterministic order based on seed.
+   * Used for Same Starting Point mode to give all players identical deck order.
+   * Uses Linear Congruential Generator (LCG) for reproducible random numbers.
+   */
+  private seededShuffle<T>(array: T[], seed: number): T[] {
+    const shuffled = [...array];
+    let currentSeed = seed;
+
+    // Simple LCG for deterministic shuffle
+    const random = () => {
+      currentSeed = (currentSeed * 1664525 + 1013904223) % 4294967296;
+      return currentSeed / 4294967296;
+    };
+
+    // Fisher-Yates shuffle with seeded random
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  /**
+   * Create a shuffled deck for a specific card type using a seed.
+   */
+  private createSeededDeck(cardType: 'W' | 'B' | 'E' | 'L' | 'I', seed: number): string[] {
+    const cards = this.dataService.getCardsByType(cardType).map(card => card.card_id);
+    return this.seededShuffle(cards, seed);
   }
 
   // Action logging methods

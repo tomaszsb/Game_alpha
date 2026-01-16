@@ -727,8 +727,16 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
           onStartGame={async (players, settings) => {
             console.log('Starting game with players:', players);
             console.log('Game settings:', settings);
+
+            // Build game mode settings if Same Starting Point is enabled
+            const gameModeSettings = settings.sameStartingPoint ? {
+              gameMode: 'SAME_START' as const,
+              startingMode: settings.startingMode,
+              startingHand: settings.preSelectedHand
+            } : undefined;
+
             // Actually start the game through StateService
-            stateService.startGame();
+            stateService.startGame(gameModeSettings);
 
             // Place players on starting spaces (no effects processing)
             console.log('🏁 Placing players on starting spaces...');

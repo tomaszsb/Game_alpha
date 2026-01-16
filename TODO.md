@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 16, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Same Starting Point Game Mode (Jan 16, 2026) - New game mode for fair skill-based comparison
+  - Per-player deck system with seeded shuffle
+  - Quick Start mode (P1's draws become all players' starting hand)
+  - Game mode UI in PlayerSetup.tsx
+  - Pending: Educational mode card selection modal
 - ✅ Service Extraction Refactoring (Jan 12-13, 2026) - ServerSyncService, EffectEngineService handlers, 551 lines legacy code removed
 - ✅ Movement Bug Fixes (Jan 10, 2026) - Descriptive choices, loop explanations, logic paths
 - ✅ Financial Bug Fixes (Jan 9, 2026) - Auto-play funding cards at all funding spaces, fee validation

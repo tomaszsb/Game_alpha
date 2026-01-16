@@ -2,6 +2,44 @@
 
 ---
 
+## v2.11 - Same Starting Point Game Mode (January 16, 2026)
+
+**Release Date:** January 16, 2026
+**Version:** 2.11
+**Status:** Alpha Testing
+**Type:** New Feature
+
+### New: Same Starting Point Mode
+
+**What Changed:** You can now play with all players starting with identical cards!
+
+**Why It Matters:**
+- Fair skill-based comparison - everyone starts equal
+- Great for competitive play and teaching
+- Eliminates "lucky draw" advantages
+
+**How It Works:**
+
+1. **In Game Setup**, check the "Same Starting Point" checkbox
+2. **Choose a sub-mode:**
+   - **Quick Start** (recommended): Player 1 plays normally. Whatever cards they draw become the starting hand for ALL players. After P1's turn ends, everyone gets the same cards!
+   - **Educational**: (Coming soon) Teacher can pre-select specific starting cards
+
+3. **Play the game** - all players now have identical deck orders too, so fair comparison continues throughout
+
+**Behind the Scenes:**
+- Each player gets their own deck copy (instead of shared deck)
+- Decks are shuffled identically using a "seeded" shuffle algorithm
+- When P1 ends their turn in Quick Start mode, their cards are copied to everyone
+
+**Best For:**
+- Classroom/educational settings
+- Tournament play
+- Testing player skill vs luck
+- Teaching new players the same strategies
+
+---
+
 ## v2.10 - Funding Details & UI Polish (January 15, 2026)
 
 **Release Date:** January 15, 2026

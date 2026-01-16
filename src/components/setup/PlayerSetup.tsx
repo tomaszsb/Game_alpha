@@ -43,7 +43,9 @@ export function PlayerSetup({
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     maxPlayers: 4,
     winCondition: 'FIRST_TO_FINISH',
-    difficulty: 'normal'
+    difficulty: 'normal',
+    sameStartingPoint: false,
+    startingMode: 'QUICK_START'
   });
 
   const [isStarting, setIsStarting] = useState(false);
@@ -331,6 +333,129 @@ export function PlayerSetup({
                 <option value="HIGHEST_SCORE">Highest Score</option>
               </select>
             </div>
+          </div>
+
+          {/* Same Starting Point Mode (January 2026) */}
+          <div style={{ marginTop: '1.5rem' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}>
+              <input
+                type="checkbox"
+                checked={gameSettings.sameStartingPoint}
+                onChange={(e) => setGameSettings({
+                  ...gameSettings,
+                  sameStartingPoint: e.target.checked
+                })}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  cursor: 'pointer'
+                }}
+              />
+              <span style={{
+                fontWeight: 'bold',
+                color: colors.secondary.dark
+              }}>
+                Same Starting Point
+              </span>
+              <span style={{
+                color: colors.text.secondary,
+                fontSize: '0.9rem'
+              }}>
+                All players start with identical cards
+              </span>
+            </label>
+
+            {/* Sub-mode options (only shown when Same Starting Point is checked) */}
+            {gameSettings.sameStartingPoint && (
+              <div style={{
+                marginTop: '1rem',
+                marginLeft: '2rem',
+                padding: '1rem',
+                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                borderRadius: '8px',
+                border: `1px solid ${colors.secondary.light}`
+              }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <input
+                      type="radio"
+                      name="startingMode"
+                      value="QUICK_START"
+                      checked={gameSettings.startingMode === 'QUICK_START'}
+                      onChange={() => setGameSettings({
+                        ...gameSettings,
+                        startingMode: 'QUICK_START'
+                      })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: '500' }}>Quick Start</span>
+                    <span style={{ color: colors.text.secondary, fontSize: '0.85rem' }}>
+                      - P1's natural draws become starting hand for all
+                    </span>
+                  </label>
+                </div>
+                <div>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer'
+                  }}>
+                    <input
+                      type="radio"
+                      name="startingMode"
+                      value="EDUCATIONAL"
+                      checked={gameSettings.startingMode === 'EDUCATIONAL'}
+                      onChange={() => setGameSettings({
+                        ...gameSettings,
+                        startingMode: 'EDUCATIONAL'
+                      })}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: '500' }}>Educational</span>
+                    <span style={{ color: colors.text.secondary, fontSize: '0.85rem' }}>
+                      - Select specific starting cards
+                    </span>
+                  </label>
+
+                  {/* Educational mode: Select Cards button (placeholder for Phase 3) */}
+                  {gameSettings.startingMode === 'EDUCATIONAL' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // TODO: Phase 3 - Open CardSelectionModal
+                        alert('Card selection coming soon! For now, use Quick Start mode.');
+                      }}
+                      style={{
+                        marginTop: '0.75rem',
+                        marginLeft: '1.5rem',
+                        padding: '0.5rem 1rem',
+                        backgroundColor: colors.primary.main,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      Select Starting Cards...
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

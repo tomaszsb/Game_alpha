@@ -5,6 +5,49 @@ import { Choice } from './CommonTypes';
 export type GamePhase = 'SETUP' | 'PLAY' | 'END';
 
 // ============================================================
+// Game Mode Types (January 15, 2026)
+// ============================================================
+//
+// Same Starting Point mode gives all players identical starting cards.
+// Battle Royale is the default with shared decks and random draws.
+// ============================================================
+
+export type GameMode = 'BATTLE_ROYALE' | 'SAME_START';
+export type StartingMode = 'QUICK_START' | 'EDUCATIONAL';
+
+/**
+ * Deck structure for a single player or shared deck.
+ * Contains arrays of card IDs for each card type.
+ */
+export interface Decks {
+  W: string[];  // Work cards
+  B: string[];  // Bank loan cards
+  E: string[];  // Expeditor cards
+  L: string[];  // Life event cards
+  I: string[];  // Investor cards
+}
+
+/**
+ * Discard pile structure matching deck structure.
+ */
+export interface DiscardPiles {
+  W: string[];
+  B: string[];
+  E: string[];
+  L: string[];
+  I: string[];
+}
+
+/**
+ * Game mode settings for starting a new game.
+ */
+export interface GameModeSettings {
+  gameMode: GameMode;
+  startingMode?: StartingMode;
+  startingHand?: string[];  // Pre-selected cards for Educational mode
+}
+
+// ============================================================
 // REAL/TEMP State Model Types (December 26, 2025)
 // ============================================================
 //
@@ -246,21 +289,24 @@ export interface GameState {
   // Separates committed state (REAL) from working state (TEMP)
   // See docs/technical/TECHNICAL_DEBT.md for design rationale
   turnStateModel?: TurnStateModel;
-  // Stateful decks and discard piles
-  decks: {
-    W: string[];
-    B: string[];
-    E: string[];
-    L: string[];
-    I: string[];
-  };
-  discardPiles: {
-    W: string[];
-    B: string[];
-    E: string[];
-    L: string[];
-    I: string[];
-  };
+
+  // ============================================================
+  // Deck System (January 15, 2026)
+  // ============================================================
+  // Shared decks for Battle Royale mode (default)
+  decks: Decks;
+  discardPiles: DiscardPiles;
+
+  // Same Starting Point mode support
+  gameMode: GameMode;
+  startingMode?: StartingMode;
+  shuffleSeed?: number;  // For reproducible deck shuffling
+  // Per-player decks for Same Start mode
+  playerDecks?: Record<string, Decks>;
+  playerDiscardPiles?: Record<string, DiscardPiles>;
+  // Starting hand tracking
+  startingHand?: string[];  // Captured/selected starting cards
+  isCapturingStartingHand?: boolean;  // True during P1's first turn (Quick Start)
 }
 
 export interface PlayerAction {

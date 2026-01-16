@@ -59,7 +59,7 @@ export class CardService implements ICardService {
    * @param playerId - Player to draw cards for
    * @param cardType - Type of cards to draw (W, B, E, L, I)
    * @param count - Number of cards to draw
-   * @param source - Source of the draw (e.g., "card:E029", "space:PM-DECISION-CHECK") 
+   * @param source - Source of the draw (e.g., "card:E029", "space:PM-DECISION-CHECK")
    * @param reason - Human-readable reason for the draw
    * @returns Array of drawn card IDs
    */
@@ -80,8 +80,23 @@ export class CardService implements ICardService {
     }
 
     const gameState = this.stateService.getGameState();
-    let availableDeck = [...gameState.decks[cardType]];
-    let discardPile = [...gameState.discardPiles[cardType]];
+
+    // Determine which deck and discard pile to use based on game mode
+    const isSameStartMode = gameState.gameMode === 'SAME_START';
+
+    let availableDeck: string[];
+    let discardPile: string[];
+
+    if (isSameStartMode && gameState.playerDecks && gameState.playerDiscardPiles) {
+      // Same Starting Point mode: use per-player decks
+      availableDeck = [...(gameState.playerDecks[playerId]?.[cardType] || [])];
+      discardPile = [...(gameState.playerDiscardPiles[playerId]?.[cardType] || [])];
+    } else {
+      // Battle Royale mode (default): use shared decks
+      availableDeck = [...gameState.decks[cardType]];
+      discardPile = [...gameState.discardPiles[cardType]];
+    }
+
     const drawnCards: string[] = [];
 
     // Draw cards from the deck
@@ -93,11 +108,11 @@ export class CardService implements ICardService {
           console.warn(error.medium);
           break; // Cannot draw any more cards
         }
-        
+
         // Reshuffle discard pile into deck
         availableDeck = this.shuffleArray([...discardPile]);
         discardPile = [];
-        
+
         // Log deck reshuffle to action history
         this.loggingService.info(`Deck for ${cardType} cards was empty. Discard pile reshuffled.`, {
           playerId: player.id,
@@ -112,29 +127,62 @@ export class CardService implements ICardService {
       drawnCards.push(drawnCard);
     }
 
-    // Update global game state with new deck and discard pile state
-    const updatedDecks = {
-      ...gameState.decks,
-      [cardType]: availableDeck
-    };
+    // Update deck/discard state based on game mode
+    if (isSameStartMode && gameState.playerDecks && gameState.playerDiscardPiles) {
+      // Same Starting Point mode: update per-player decks
+      const updatedPlayerDecks = {
+        ...gameState.playerDecks,
+        [playerId]: {
+          ...gameState.playerDecks[playerId],
+          [cardType]: availableDeck
+        }
+      };
 
-    const updatedDiscardPiles = {
-      ...gameState.discardPiles,
-      [cardType]: discardPile
-    };
+      const updatedPlayerDiscardPiles = {
+        ...gameState.playerDiscardPiles,
+        [playerId]: {
+          ...gameState.playerDiscardPiles[playerId],
+          [cardType]: discardPile
+        }
+      };
+
+      this.stateService.updateGameState({
+        playerDecks: updatedPlayerDecks,
+        playerDiscardPiles: updatedPlayerDiscardPiles
+      });
+    } else {
+      // Battle Royale mode: update shared decks
+      const updatedDecks = {
+        ...gameState.decks,
+        [cardType]: availableDeck
+      };
+
+      const updatedDiscardPiles = {
+        ...gameState.discardPiles,
+        [cardType]: discardPile
+      };
+
+      this.stateService.updateGameState({
+        decks: updatedDecks,
+        discardPiles: updatedDiscardPiles
+      });
+    }
 
     // Update player's hand with drawn cards
     const updatedHand = [...player.hand, ...drawnCards];
 
-    // Update global deck/discard state
-    this.stateService.updateGameState({
-      decks: updatedDecks,
-      discardPiles: updatedDiscardPiles
-    });
-
     // Update player's hand via TEMP state (or main state if no TEMP exists)
     // This ensures cards are preserved when commitTempToReal is called
     this.stateService.updateTempState(playerId, { hand: updatedHand });
+
+    // Quick Start mode: capture drawn cards to starting hand if capturing
+    if (gameState.isCapturingStartingHand && drawnCards.length > 0) {
+      const currentStartingHand = gameState.startingHand || [];
+      this.stateService.updateGameState({
+        startingHand: [...currentStartingHand, ...drawnCards]
+      });
+      console.log(`📝 Quick Start: Captured ${drawnCards.length} card(s) to starting hand: ${drawnCards.join(', ')}`);
+    }
 
     // Log the card draw with source tracking
     const sourceInfo = source || 'unknown';
@@ -772,16 +820,35 @@ export class CardService implements ICardService {
       return;
     }
 
-    // Add expired card to global discard pile
+    // Add expired card to discard pile based on game mode
     const gameState = this.stateService.getGameState();
-    const updatedDiscardPiles = {
-      ...gameState.discardPiles,
-      [cardType]: [...gameState.discardPiles[cardType], cardId]
-    };
+    const isSameStartMode = gameState.gameMode === 'SAME_START';
 
-    this.stateService.updateGameState({
-      discardPiles: updatedDiscardPiles
-    });
+    if (isSameStartMode && gameState.playerDiscardPiles) {
+      // Same Starting Point mode: use per-player discard piles
+      const playerDiscards = gameState.playerDiscardPiles[playerId] || { W: [], B: [], E: [], L: [], I: [] };
+      const updatedPlayerDiscardPiles = {
+        ...gameState.playerDiscardPiles,
+        [playerId]: {
+          ...playerDiscards,
+          [cardType]: [...(playerDiscards[cardType] || []), cardId]
+        }
+      };
+
+      this.stateService.updateGameState({
+        playerDiscardPiles: updatedPlayerDiscardPiles
+      });
+    } else {
+      // Battle Royale mode: use shared discard pile
+      const updatedDiscardPiles = {
+        ...gameState.discardPiles,
+        [cardType]: [...gameState.discardPiles[cardType], cardId]
+      };
+
+      this.stateService.updateGameState({
+        discardPiles: updatedDiscardPiles
+      });
+    }
 
     console.log(`Expired card ${cardId} moved to ${cardType} discard pile for player ${playerId}`);
   }
@@ -806,24 +873,42 @@ export class CardService implements ICardService {
       const error = ErrorNotifications.cardDiscardFailed(cardId, 'Card not found in player hand');
       throw new Error(error.detailed);
     }
-    
+
     // Remove from player's hand
     const updatedHand = [
       ...player.hand.slice(0, handIndex),
       ...player.hand.slice(handIndex + 1)
     ];
-    
-    // Add to global discard pile
+
+    // Add to discard pile based on game mode
     const gameState = this.stateService.getGameState();
-    const updatedDiscardPiles = {
-      ...gameState.discardPiles,
-      [cardType]: [...gameState.discardPiles[cardType], cardId]
-    };
-    
-    // Update global discard pile
-    this.stateService.updateGameState({
-      discardPiles: updatedDiscardPiles
-    });
+    const isSameStartMode = gameState.gameMode === 'SAME_START';
+
+    if (isSameStartMode && gameState.playerDiscardPiles) {
+      // Same Starting Point mode: use per-player discard piles
+      const playerDiscards = gameState.playerDiscardPiles[playerId] || { W: [], B: [], E: [], L: [], I: [] };
+      const updatedPlayerDiscardPiles = {
+        ...gameState.playerDiscardPiles,
+        [playerId]: {
+          ...playerDiscards,
+          [cardType]: [...(playerDiscards[cardType] || []), cardId]
+        }
+      };
+
+      this.stateService.updateGameState({
+        playerDiscardPiles: updatedPlayerDiscardPiles
+      });
+    } else {
+      // Battle Royale mode: use shared discard pile
+      const updatedDiscardPiles = {
+        ...gameState.discardPiles,
+        [cardType]: [...gameState.discardPiles[cardType], cardId]
+      };
+
+      this.stateService.updateGameState({
+        discardPiles: updatedDiscardPiles
+      });
+    }
 
     // Update player's hand via TEMP state (or main state if no TEMP exists)
     this.stateService.updateTempState(playerId, {
@@ -1326,7 +1411,7 @@ export class CardService implements ICardService {
 
     // Group cards by type for efficient discarding
     const cardsByType: { [cardType: string]: string[] } = {};
-    
+
     for (const cardId of cardIds) {
       const cardType = this.getCardType(cardId);
       if (cardType) {
@@ -1337,16 +1422,14 @@ export class CardService implements ICardService {
       }
     }
 
-    // Copy current player card collections  
+    // Copy current player card collections
     let updatedHand = [...player.hand];
     let updatedActiveCards = [...player.activeCards];
     const gameState = this.stateService.getGameState();
-    const updatedDiscardPiles = { ...gameState.discardPiles };
+    const isSameStartMode = gameState.gameMode === 'SAME_START';
 
     // Process each card type
     for (const [cardType, cards] of Object.entries(cardsByType)) {
-      const typedCardType = cardType as CardType;
-      
       // Remove from hand
       updatedHand = updatedHand.filter(cardId => !cards.includes(cardId));
 
@@ -1357,22 +1440,48 @@ export class CardService implements ICardService {
           updatedActiveCards.splice(activeIndex, 1);
         }
       }
-
-      // Add to global discard pile
-      if (!updatedDiscardPiles[typedCardType]) {
-        updatedDiscardPiles[typedCardType] = [];
-      }
-      updatedDiscardPiles[typedCardType] = [
-        ...updatedDiscardPiles[typedCardType],
-        ...cards
-      ];
     }
 
-    // Update global discard piles and player state
+    // Update discard piles and player state
     try {
-      this.stateService.updateGameState({
-        discardPiles: updatedDiscardPiles
-      });
+      if (isSameStartMode && gameState.playerDiscardPiles) {
+        // Same Starting Point mode: use per-player discard piles
+        const playerDiscards = gameState.playerDiscardPiles[playerId] || { W: [], B: [], E: [], L: [], I: [] };
+        const updatedPlayerDiscards = { ...playerDiscards };
+
+        for (const [cardType, cards] of Object.entries(cardsByType)) {
+          const typedCardType = cardType as CardType;
+          updatedPlayerDiscards[typedCardType] = [
+            ...(updatedPlayerDiscards[typedCardType] || []),
+            ...cards
+          ];
+        }
+
+        this.stateService.updateGameState({
+          playerDiscardPiles: {
+            ...gameState.playerDiscardPiles,
+            [playerId]: updatedPlayerDiscards
+          }
+        });
+      } else {
+        // Battle Royale mode: use shared discard piles
+        const updatedDiscardPiles = { ...gameState.discardPiles };
+
+        for (const [cardType, cards] of Object.entries(cardsByType)) {
+          const typedCardType = cardType as CardType;
+          if (!updatedDiscardPiles[typedCardType]) {
+            updatedDiscardPiles[typedCardType] = [];
+          }
+          updatedDiscardPiles[typedCardType] = [
+            ...updatedDiscardPiles[typedCardType],
+            ...cards
+          ];
+        }
+
+        this.stateService.updateGameState({
+          discardPiles: updatedDiscardPiles
+        });
+      }
 
       // Update player's cards via TEMP state (or main state if no TEMP exists)
       this.stateService.updateTempState(playerId, {
@@ -1384,10 +1493,10 @@ export class CardService implements ICardService {
       const cardSummary = Object.entries(cardsByType)
         .map(([type, cards]) => `${cards.length}x${type}`)
         .join(', ');
-      
+
       const sourceInfo = source || 'manual';
       const reasonInfo = reason || `Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`;
-      
+
       console.log(`🗑️ Cards Discarded [${playerId}]: ${cardSummary} (Source: ${sourceInfo})`);
       console.log(`   Reason: ${reasonInfo}`);
       console.log(`   Card IDs: ${cardIds.join(', ')}`);
