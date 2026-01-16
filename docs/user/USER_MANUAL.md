@@ -1,7 +1,7 @@
 # User Manual - Unravel Codes: The Game
 
-**Last Updated:** January 9, 2026
-**Version:** 2.4
+**Last Updated:** January 15, 2026
+**Version:** 2.10
 **Status:** Alpha Testing
 
 Welcome to Unravel Codes: The Game! This manual will help you understand how to play the game and use the interface effectively.

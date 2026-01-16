@@ -2,6 +2,66 @@
 
 ---
 
+## v2.10 - Funding Details & UI Polish (January 15, 2026)
+
+**Release Date:** January 15, 2026
+**Version:** 2.10
+**Status:** Alpha Testing
+**Type:** Bug Fix & UX Enhancement
+
+### See Where Your Funding Comes From
+
+**What Changed:** The "Sources of Money" section now shows detailed breakdown per funding card!
+
+**Before:** Just showed total amounts for "Bank Loans" and "Investment Deals"
+
+**After:**
+- Each B card (bank loan) shows individually with its contribution amount
+- Each I card (investment) shows individually with its contribution amount
+- Owner seed money tracked separately with full details
+- Running total with Owner vs Lender ratio visualization
+
+**Benefits:**
+- Track exactly which cards contributed to your funding
+- See funding history chronologically as you progress
+- Understand your Owner/Lender mix at a glance
+
+### Uniform Card Appearance
+
+**What Changed:** Cards now look the same everywhere in the game!
+
+**Before:** Card viewers in player panel looked different from exchange modal cards
+
+**After:** Consistent card styling across:
+- Player panel card displays
+- Card exchange modals
+- Card selection screens
+
+### Fixed: Movement Buttons After E Cards
+
+**What Changed:** Fixed a bug where movement buttons disappeared at certain spaces.
+
+**Before:** At spaces like BANK-FUND-REVIEW or INVESTOR-FUND-REVIEW, pressing an E card could cause the movement button to disappear, leaving you stuck.
+
+**After:** A "Continue to [destination]" button now appears reliably, ensuring smooth gameplay at all spaces with automatic destinations.
+
+### Game Log Now Shows Card Pickups
+
+**What Changed:** When you draw cards, it now appears in the game log!
+
+**Before:** Drawing cards happened silently - no log entry
+
+**After:** You'll see entries like:
+- "Drew 2 Work cards: W-101, W-205"
+- "Drew 1 Bank Funding card: B-003"
+
+**Benefits:**
+- Complete game history
+- Track what cards were drawn and when
+- Better for game replay analysis
+
+---
+
 ## v2.9 - Dependency Updates & Test Infrastructure (January 10, 2026)
 
 **Release Date:** January 10, 2026
@@ -587,8 +647,8 @@ All sections now accept `isMyTurn?: boolean` prop:
 - Fixed full-screen wait overlay blocking information view
 
 ### 📚 Documentation
-- Updated: `docs/guides/UI_RELEASE_NOTES.md` (this file)
-- Updated: `docs/architecture/CHANGELOG.md`
+- Updated: `docs/user/RELEASE_NOTES.md` (this file)
+- Updated: `CHANGELOG.md`
 
 ### ⚡ Performance
 - Minimal impact (+2 state variables for turn tracking)
@@ -928,7 +988,7 @@ Game Alpha's UI has been completely redesigned from the ground up with a mobile-
 - **Testing Library DOM** - Accessibility testing
 
 ### Architecture
-- **Service-Oriented** - 15 core services
+- **Service-Oriented** - 26 production services
 - **Dependency Injection** - Clean service layer
 - **Immutable State** - Predictable updates
 - **Event-Driven** - Clear data flow
@@ -942,14 +1002,14 @@ Game Alpha's UI has been completely redesigned from the ground up with a mobile-
 - `src/components/player/ExpandableSection.tsx` - Collapsible sections
 - `src/components/player/NextStepButton.tsx` - Context-aware button
 - `src/components/player/sections/*.tsx` - Section components
-- `docs/guides/UI_COMPONENT_REFERENCE.md` - Developer docs
-- `docs/guides/UI_RELEASE_NOTES.md` - This document
+- `docs/technical/API_REFERENCE.md` - Developer docs
+- `docs/user/RELEASE_NOTES.md` - This document
 
 ### Modified Files
 - `src/components/layout/GameLayout.tsx` - Multi-device support
 - `src/styles/theme.ts` - Expanded color system
 - `src/types/*.ts` - Enhanced type definitions
-- `docs/guides/PLAYER_PANEL_USER_GUIDE.md` - Enhanced guide
+- `docs/user/USER_MANUAL.md` - Enhanced guide
 
 ### Removed Files
 - Old player panel components (archived)
@@ -999,7 +1059,7 @@ import { PlayerPanel } from './components/player/PlayerPanel';
 />
 ```
 
-**See Full Migration Guide:** `docs/guides/UI_COMPONENT_REFERENCE.md#migration-guide`
+**See Full Migration Guide:** `docs/technical/API_REFERENCE.md`
 
 ---
 
@@ -1104,10 +1164,10 @@ import { PlayerPanel } from './components/player/PlayerPanel';
 ## 🎓 Learn More
 
 **Documentation:**
-- [UI Component Reference](./UI_COMPONENT_REFERENCE.md) - Developer API docs
-- [Player Panel User Guide](./PLAYER_PANEL_USER_GUIDE.md) - User manual
-- [UI Style Guide](../architecture/UI_STYLE_GUIDE.md) - Design system
-- [Game Finalization Roadmap](../../GAME_FINALIZATION_ROADMAP.md) - Project status
+- [API Reference](../technical/API_REFERENCE.md) - Developer API docs
+- [User Manual](./USER_MANUAL.md) - User manual
+- [Architecture Guide](../technical/ARCHITECTURE.md) - System design
+- [Project Status](../core/PROJECT_STATUS.md) - Current status
 
 **Project Links:**
 - GitHub Repository: [Link TBD]

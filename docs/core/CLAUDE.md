@@ -3,8 +3,8 @@
 
 ### **⚠️ CRITICAL: Read This First**
 Before making ANY code changes or commits:
-1. **BRANCH RULE**: Work ONLY on `xenodochial-brown` branch. Do NOT create new branches. Push all work to this branch.
-2. Read [../architecture/TESTING_REQUIREMENTS.md](../architecture/TESTING_REQUIREMENTS.md)
+1. **BRANCH RULE**: Work on `master` branch unless otherwise directed.
+2. Read [../technical/TESTING_GUIDE.md](../technical/TESTING_GUIDE.md)
 3. **Golden Rule**: Run all tests before committing. No exceptions.
 4. If tests fail, stop and fix them. Never commit broken tests.
 
@@ -12,16 +12,16 @@ Before making ANY code changes or commits:
 
 ### **📁 WORKSPACE & DIRECTORY STRUCTURE**
 
-**Working Directory**: `/mnt/d/unravel/current_game/Game_Alpha/`
+**Working Directory**: `/mnt/d/unravel/current_game/game_alpha/`
 
-**Status**: Production-ready codebase (November 2025)
+**Status**: Production-ready codebase (January 2026)
 
 **Directory Structure:**
 ```
-Game_Alpha/
+game_alpha/
 ├── src/                          # Application source code
 │   ├── components/              # React UI components
-│   ├── services/                # Business logic services (15 core services)
+│   ├── services/                # Business logic services (26 service files)
 │   ├── types/                   # TypeScript interfaces
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
@@ -189,9 +189,9 @@ The archive folder is for:
 
 ## 🎯 **MISSION & RESPONSIBILITIES**
 
-**Status:** Code2027 is **PRODUCTION READY** (October 21, 2025)
+**Status:** Game Alpha (Unravel Codes: The Game) is **PRODUCTION READY** (October 2025)
 
-Your mission is to maintain and enhance the Code2027 production system, a fully functional multi-player board game built with modern architectural best practices.
+Your mission is to maintain and enhance the Game Alpha production system, a fully functional multi-player board game built with modern architectural best practices.
 
 **Current Focus:** User Acceptance Testing (UAT) and production polish.
 
@@ -241,9 +241,9 @@ For detailed information, refer to these consolidated documents:
 
 ---
 
-**Remember:** Code2027 is production-ready. Focus on maintaining quality, stability, and user experience. Update existing docs - don't create new ones. Follow the documentation matrix above.
+**Remember:** Game Alpha is production-ready. Focus on maintaining quality, stability, and user experience. Update existing docs - don't create new ones. Follow the documentation matrix above.
 
 ---
 
-**Last Updated:** December 9, 2025
-**Charter Version:** 3.0 (Consolidated)
+**Last Updated:** January 15, 2026
+**Charter Version:** 3.1 (Consolidated)

@@ -1,14 +1,48 @@
 # Project Status
 
-**Last Updated**: January 13, 2026
-**Current Phase**: External Testing Ready (v2.6)
-**Current Version**: 2.6
+**Last Updated**: January 15, 2026
+**Current Phase**: External Testing Ready (v2.10)
+**Current Version**: 2.10
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Bug Fixes & UI/UX Improvements (January 15, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.10
+- **Achievements**:
+  - **Card Pickup Logging**: Fixed game log not showing card pickup events
+    - Replaced legacy `window.addActionToLog` with proper LoggingService pattern
+    - Updated CardEffectHandler and FinancialEffectHandler to use injected loggingService
+  - **Uniform Card Viewers**: Made card viewers consistent across player panel and exchange modal
+    - Extended CardDisplay component with selectable mode props
+    - Refactored CardReplacementModal to use CardDisplay component
+  - **Single-Destination Movement Fix**: Fixed "eCard button exists but no movement buttons" bug
+    - Added fallback "Continue to [destination]" button for fixed-destination spaces
+    - Works for spaces like BANK-FUND-REVIEW and INVESTOR-FUND-REVIEW
+  - **Funding History Tracking**: Enhanced Sources of Money section to show per-card details
+    - Added FundingEntry interface to DataTypes.ts
+    - Added fundingHistory field to Player interface
+    - ResourceService now records individual card contributions
+    - SourcesOfMoneySection displays breakdown by funding source and card
+- **Files Modified**:
+  - `src/services/CardEffectHandler.ts` - LoggingService integration
+  - `src/services/FinancialEffectHandler.ts` - LoggingService integration
+  - `src/context/ServiceProvider.tsx` - Pass loggingService to handlers
+  - `src/components/common/CardDisplay.tsx` - Added selectable mode
+  - `src/components/modals/CardReplacementModal.tsx` - Use CardDisplay
+  - `src/components/game/TurnControlsWithActions.tsx` - Single-destination button
+  - `src/components/game/financial/SourcesOfMoneySection.tsx` - Funding history display
+  - `src/services/ResourceService.ts` - Record funding history
+  - `src/services/StateService.ts` - Initialize fundingHistory
+  - `src/types/DataTypes.ts` - FundingEntry interface
+- **Test Player Bug Reports**: ALL FIXED ✅
+  - eCard issues (Jan 13) ✅
+  - UI/UX issues (Jan 15) ✅
+  - Funding display issues (Jan 15) ✅
 
 ### Service Extraction & Handler Pattern Refactoring (January 12-13, 2026) ✅
 - **Status**: ✅ Complete

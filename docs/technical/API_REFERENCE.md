@@ -1,7 +1,7 @@
 # API Reference - Unravel Codes: The Game
 
-**Last Updated:** January 13, 2026
-**Version:** 2.6
+**Last Updated:** January 15, 2026
+**Version:** 2.10
 **Status:** Alpha Testing
 
 ---
@@ -748,6 +748,10 @@ interface Player {
   // Loans
   loans?: Loan[];
 
+  // Money tracking
+  moneySources?: MoneySources;
+  fundingHistory?: FundingEntry[];
+
   // Snapshots
   preSpaceEffectSnapshot?: Player;
 }
@@ -767,6 +771,31 @@ interface Card {
 }
 
 type CardType = 'W' | 'B' | 'E' | 'L' | 'I';
+```
+
+#### MoneySources
+```typescript
+interface MoneySources {
+  ownerFunding: number;     // Owner's personal investment
+  bankLoans: number;        // Total from B cards
+  investmentDeals: number;  // Total from I cards
+  other: number;            // Miscellaneous funding
+}
+```
+
+#### FundingEntry
+```typescript
+// Added in v2.10 for per-card funding tracking
+interface FundingEntry {
+  id: string;                                    // Unique entry ID
+  sourceType: 'bank' | 'investment' | 'owner' | 'other';
+  cardId?: string;                               // Card ID if from a card
+  cardName?: string;                             // Display name
+  amount: number;                                // Funding amount
+  description: string;                           // Human-readable description
+  turn: number;                                  // Turn when received
+  timestamp: Date;                               // When recorded
+}
 ```
 
 #### GameState
@@ -847,5 +876,5 @@ interface PathChoiceMemory {
 
 ---
 
-**Last Updated:** December 29, 2025
+**Last Updated:** January 15, 2026
 **Maintained By:** Claude (AI Lead Programmer)

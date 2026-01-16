@@ -1,5 +1,10 @@
 # Testing Guide - Unravel Codes: The Game
 
+**Last Updated:** January 15, 2026
+**Status:** Production Standards (v2.10)
+
+---
+
 ## ⚠️ MANDATORY: Before Every Commit
 
 **Rule: If tests don't pass, the work isn't done. No exceptions.**
@@ -230,7 +235,7 @@ const mockFn = jest.fn(); // This will fail
 
 The test suite has been completely migrated from Jest to Vitest with incredible performance improvements:
 
-- **✅ 91 test files** converted and working
+- **✅ 83 test files** converted and working
 - **✅ 967 tests** running in seconds
 - **⚠️ 1 test skipped** (`E2E-01_HappyPath.test.tsx` due to a pre-existing issue with the test infrastructure)
 - **✅ Real-time feedback** for TDD workflow

@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fixes - External Testing Issues (January 15, 2026)
+
+**FIX: Resolve all remaining external testing bugs**
+
+**Bug #1: eCard button exists but no movement buttons**
+- **Root Cause**: At fixed-destination spaces (BANK-FUND-REVIEW, INVESTOR-FUND-REVIEW), when E card effects cleared `awaitingChoice`, the movement choice wasn't restored
+- **Fix**: Added single-destination "Continue to [destination]" button fallback in `TurnControlsWithActions.tsx`
+- **Files**: `src/components/game/TurnControlsWithActions.tsx`
+
+**Bug #2: Card funding amounts not visible in finance section**
+- **Root Cause**: Funding was tracked as aggregate totals only, individual card contributions were lost
+- **Fix**: Added `FundingEntry` type and `fundingHistory` array to track per-card funding
+- **Files**:
+  - `src/types/DataTypes.ts` - Added `FundingEntry` interface
+  - `src/services/ResourceService.ts` - Records card-level funding details
+  - `src/services/StateService.ts` - Initialize `fundingHistory` for new players
+  - `src/components/game/financial/SourcesOfMoneySection.tsx` - Display individual card amounts
+
+**UI/UX Fixes (January 15, 2026)**
+- Moved Win Condition Banner from PlayerPanel to ProjectProgress
+- Added space titles for acronym clarity in PlayerPanel and ProjectProgress
+- Added time cost display (⏱️) to movement choice buttons
+- Fixed game log card pickup - CardEffectHandler/FinancialEffectHandler now use LoggingService
+- Unified card display - CardReplacementModal now uses CardDisplay component with selectable mode
+
+**eCard Fixes (January 13, 2026)**
+- Fixed SPACE_EFFECTS.csv: Changed `draw_E` to `replace_E` for card replacement actions
+- Fixed CardEffectService: Transfer now specifically handles E cards with direction (left/right)
+- Added E card time change notifications via `notifyTimeChange()` method
+- Updated CardReplacementModal: "Cancel" → "Skip Replacement" with improved messaging
+
+---
+
 ### Refactoring - ServerSyncService Extraction (January 12, 2026)
 
 **REFACTOR: Extract ServerSyncService from StateService**

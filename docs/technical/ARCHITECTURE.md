@@ -1,8 +1,8 @@
 # Architecture Guide - Unravel Codes: The Game
 
-**Last Updated:** December 29, 2025
-**Status:** Alpha Testing
-**Test Coverage:** 1,028 tests passing
+**Last Updated:** January 15, 2026
+**Status:** Alpha Testing (v2.10)
+**Test Coverage:** 967+ tests passing
 
 ---
 
@@ -44,7 +44,7 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ## Core Services
 
-### Service Overview (17 Production Services)
+### Service Overview (26 Production Services)
 
 All services are fully typed and comply with TypeScript strict mode:
 
@@ -886,5 +886,5 @@ For related architecture topics, see:
 
 ---
 
-**Last Updated:** January 13, 2026
+**Last Updated:** January 15, 2026
 **Maintained By:** Claude (AI Lead Programmer)

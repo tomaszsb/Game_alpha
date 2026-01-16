@@ -1,7 +1,7 @@
 # Code Style Guide - Unravel Codes: The Game
 
-**Last Updated:** December 29, 2025
-**Status:** Production Standards
+**Last Updated:** January 15, 2026
+**Status:** Production Standards (v2.10)
 
 ---
 
@@ -376,10 +376,8 @@ Before committing code, verify:
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Architectural patterns
 - **[API_REFERENCE.md](./API_REFERENCE.md)** - API documentation
 - **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Testing strategies
-- **UI Style Guide:** See `docs/architecture/UI_STYLE_GUIDE.md` (legacy - being consolidated)
-- **UI Standardization:** See `docs/architecture/UI_STANDARDIZATION_ACTION_PLAN.md` (legacy)
 
 ---
 
-**Last Updated:** December 9, 2025
+**Last Updated:** January 15, 2026
 **Maintained By:** Claude (AI Lead Programmer)

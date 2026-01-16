@@ -1,8 +1,8 @@
 # Unravel Codes: The Game
 
-**Status:** Alpha Testing (December 2025)
-**Version:** 2.3.0
-**Test Coverage:** 1,028 tests passing (100% success rate)
+**Status:** Alpha Testing (January 2026)
+**Version:** 2.10
+**Test Coverage:** 967+ tests passing (100% success rate)
 **Public URL:** `http://unravel-game.duckdns.org:3080`
 
 ## Overview
@@ -89,12 +89,12 @@ npm test tests/E2E-
 npm test tests/services/TurnService.test.tsx
 ```
 
-**Note:** Running all tests together (`npm test`) may hang due to test isolation issues with module-level mocks. Use batch execution (see [Testing Guide](docs/architecture/TESTING_REQUIREMENTS.md)) for best results.
+**Note:** Running all tests together (`npm test`) may hang due to test isolation issues with module-level mocks. Use batch execution (see [Testing Guide](docs/technical/TESTING_GUIDE.md)) for best results.
 
 ## Project Structure
 
 ```
-Game_Alpha/
+game_alpha/
 ├── src/                          # Application source code
 │   ├── components/              # React UI components (expandable sections, modals, etc.)
 │   ├── services/                # Business logic services (14+ core services)
@@ -116,7 +116,7 @@ Game_Alpha/
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
 │   └── styles/                  # CSS and styling (animations.css, theme constants)
-├── tests/                        # Test suite (1,028 tests across 91 test files)
+├── tests/                        # Test suite (967+ tests across 83 test files)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -126,10 +126,10 @@ Game_Alpha/
 ├── public/                       # Static assets and processed CSV files
 ├── server/                       # Backend Express server (state sync)
 ├── docs/                         # Technical documentation
-│   ├── architecture/            # Technical architecture and design
-│   ├── guides/                  # User and developer guides
-│   ├── project/                 # Project management and status
-│   └── archive/                 # Archived/obsolete documentation
+│   ├── core/                    # CLAUDE.md, PROJECT_STATUS.md
+│   ├── technical/               # Architecture, APIs, testing, code style
+│   ├── user/                    # User manual, release notes
+│   └── archive/                 # Historical milestones
 ├── package.json                  # Dependencies and scripts
 ├── tsconfig.json                 # TypeScript configuration (strict mode)
 ├── vite.config.ts               # Vite build configuration
@@ -150,8 +150,8 @@ Game_Alpha/
 - **Immutable State Management:** Predictable state updates with snapshot support
 - **Transactional Logging:** 100% accurate game log with exploration session tracking
 - **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play
-- **Comprehensive Testing:** 1,028 tests covering services, components, and E2E scenarios
-- **TypeScript Strict Mode:** Type-safe codebase with 12 remaining errors (down from 28+)
+- **Comprehensive Testing:** 967+ tests covering services, components, and E2E scenarios
+- **TypeScript Strict Mode:** 100% type-safe codebase with strict mode compliance
 
 ## Technology Stack
 
@@ -261,7 +261,7 @@ This project follows a service-oriented architecture with clear separation of co
 3. Create or update components in `src/components/` for UI
 4. Add comprehensive tests in `tests/`
 5. Update CSV data in `data/` if needed
-6. Document changes in `docs/architecture/CHANGELOG.md`
+6. Document changes in `CHANGELOG.md`
 
 ## License
 
@@ -270,6 +270,6 @@ MIT
 ## Support
 
 For issues, questions, or contributions:
-- **Issues:** See `docs/project/TECHNICAL_DEBT.md` for known issues
+- **Issues:** See `docs/technical/TECHNICAL_DEBT.md` for known issues
 - **Documentation:** Check `docs/` directory for comprehensive guides
 - **Testing:** Run `./tests/scripts/run-tests-batch-fixed.sh` to verify functionality

@@ -1,5 +1,10 @@
 # Technical Debt Log
 
+**Last Updated:** January 15, 2026
+**Status:** Active tracking document
+
+---
+
 This document tracks identified technical debt in the Game Alpha codebase.
 
 ## Recently Resolved ✅
@@ -2126,4 +2131,4 @@ private evaluateCondition(playerId: string, condition: string): boolean
 5. **Refactor Moderate #6 & #7** (Resource categorization) - Technical debt cleanup
 6. **Clean up Low Priority** - When time permits
 
-All issues are now documented in `/docs/project/TECHNICAL_DEBT.md` with detailed analysis, solution options, and testing requirements.
+All issues are now documented in this file (`docs/technical/TECHNICAL_DEBT.md`) with detailed analysis, solution options, and testing requirements.
