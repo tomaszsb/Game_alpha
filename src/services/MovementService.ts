@@ -394,7 +394,7 @@ export class MovementService implements IMovementService {
    * @param diceRoll - The dice roll result (1-6)
    * @returns Array of destination space names (multiple if "or" choices exist)
    */
-  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number): string[] {
+  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number, playerId?: string): string[] {
     // Validate dice roll range (single die: 1-6)
     if (diceRoll < 1 || diceRoll > 6) {
       console.warn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
@@ -423,11 +423,36 @@ export class MovementService implements IMovementService {
       return [];
     }
 
-    // Handle "or" choices - return ALL options for player to choose
+    // Handle "or" choices - return options for player to choose
     // For PASS outcomes at dice-based spaces, player chooses their next destination
-    // (e.g., continue to construction, go back to DOB, or talk to PM)
     if (destinationStr.includes(' or ')) {
-      const choices = destinationStr.split(' or ').map(d => d.trim()).filter(d => d);
+      let choices = destinationStr.split(' or ').map(d => d.trim()).filter(d => d);
+
+      // FILTER based on path choice memory (Plan Exam vs Prof Cert path)
+      // At REG-FDNY-PLAN-EXAM, only show the DOB option matching player's earlier path choice
+      if (playerId && spaceName === 'REG-FDNY-PLAN-EXAM') {
+        const player = this.stateService.getPlayer(playerId);
+        const pathChoice = player?.pathChoiceMemory?.['REG-DOB-TYPE-SELECT'];
+
+        if (pathChoice) {
+          const originalCount = choices.length;
+
+          if (pathChoice === 'REG-DOB-PLAN-EXAM') {
+            // Plan Exam path: remove REG-DOB-AUDIT (Prof Cert path)
+            choices = choices.filter(c => c !== 'REG-DOB-AUDIT');
+            console.log(`🔒 Filtered to Plan Exam path: removed REG-DOB-AUDIT`);
+          } else if (pathChoice === 'REG-DOB-PROF-CERT') {
+            // Prof Cert path: remove REG-DOB-PLAN-EXAM (Plan Exam path)
+            choices = choices.filter(c => c !== 'REG-DOB-PLAN-EXAM');
+            console.log(`🔒 Filtered to Prof Cert path: removed REG-DOB-PLAN-EXAM`);
+          }
+
+          if (choices.length < originalCount) {
+            console.log(`🎲 Filtered choices based on path memory (${pathChoice}): [${choices.join(', ')}]`);
+          }
+        }
+      }
+
       console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: Player chooses from [${choices.join(', ')}]`);
       return choices;
     }

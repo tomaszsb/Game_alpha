@@ -453,7 +453,7 @@ export interface IMovementService {
 
   // Dice-based movement methods
   getDiceDestination(spaceName: string, visitType: VisitType, diceRoll: number): string | null;
-  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number): string[];
+  getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number, playerId?: string): string[];
 
   // Logic-based movement methods
   getLogicMovementWithExplanation(playerId: string, spaceName: string, visitType: VisitType): {

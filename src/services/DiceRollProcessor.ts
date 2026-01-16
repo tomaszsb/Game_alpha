@@ -374,7 +374,8 @@ export class DiceRollProcessor {
     const destinations = this.movementService.getDiceDestinationChoices(
       currentPlayer.currentSpace,
       currentPlayer.visitType,
-      diceRoll
+      diceRoll,
+      playerId  // Pass playerId to filter choices based on path memory
     );
 
     if (destinations.length === 1) {
