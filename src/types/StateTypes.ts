@@ -85,6 +85,7 @@ export interface MutablePlayerState {
   expenditures: Expenditures;
   costHistory: CostEntry[];
   costs: CostBreakdown;
+  fundingHistory: import('./DataTypes').FundingEntry[];
 
   // Effects
   activeEffects: ActiveEffect[];

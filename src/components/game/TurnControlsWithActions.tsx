@@ -491,9 +491,9 @@ export function TurnControlsWithActions({
               const destEffects = dataService.getSpaceEffects(spaceName, visitType as 'First' | 'Subsequent');
               return destEffects
                 .filter(effect => effect.effect_type === 'time' && effect.effect_action === 'add')
-                .reduce((total, effect) => total + (parseInt(effect.effect_value) || 0), 0);
+                .reduce((total, effect) => total + (parseInt(String(effect.effect_value)) || 0), 0);
             };
-            const destTimeCost = getDestinationTimeCost(option.id);
+            const destTimeCost = getDestinationTimeCost(String(option.id));
 
             // If feedback exists, show completion message instead of button
             if (feedback) {

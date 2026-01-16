@@ -300,27 +300,17 @@ export class ResourceService implements IResourceService {
       const cardIdMatch = changes.source?.match(/^card:(.+)$/);
       const cardId = cardIdMatch ? cardIdMatch[1] : undefined;
 
-      // Get card name if we have a card ID
-      let cardName: string | undefined;
-      if (cardId) {
-        try {
-          const gameState = this.stateService.getGameState();
-          const card = gameState.allCards?.find(c => c.card_id === cardId);
-          cardName = card?.card_name;
-        } catch {
-          // Ignore errors getting card name
-        }
-      }
-
       // Add funding entry
+      // Note: Card name lookup would require DataService, so we skip it here
+      // The cardId is sufficient for tracking purposes
       const fundingEntry: import('../types/DataTypes').FundingEntry = {
         id: `funding_${playerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         sourceType,
         cardId,
-        cardName,
+        cardName: undefined, // Would require DataService to look up
         amount,
         description: changes.reason || `Received $${amount.toLocaleString()}`,
-        turn: this.stateService.getGameState().currentTurn || 1,
+        turn: this.stateService.getGameState().globalTurnCount || 1,
         timestamp: new Date()
       };
       fundingHistory.push(fundingEntry);

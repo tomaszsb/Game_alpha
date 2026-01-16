@@ -194,7 +194,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     let success = false;
 
     if (amount > 0) {
-      success = this.resourceService.addMoney(playerId, amount, source, reason, sourceType);
+      success = this.resourceService.addMoney(playerId, amount, source, reason, sourceType as 'bank' | 'investment' | 'owner' | 'other');
       if (success) {
         this.notifyMoneyReceived(playerId, amount, source, sourceType, reason);
       }

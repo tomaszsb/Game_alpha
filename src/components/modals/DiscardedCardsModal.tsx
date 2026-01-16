@@ -138,7 +138,7 @@ export function DiscardedCardsModal({ player, isVisible, onClose, onOpenCardDeta
                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                     gap: '8px'
                   }}>
-                    {cardIds.map((cardId, index) => {
+                    {cardIds.map((cardId: string, index: number) => {
                       const cardData = dataService.getCardById(cardId);
                       const cardDisplayName = cardData?.card_name || `${cardType} Card ${index + 1}`;
                       

@@ -35,7 +35,8 @@ export interface AutoActionEvent {
   cardName?: string;
   cardId?: string;
   moneyAmount?: number;
-  success: boolean; // Whether the action triggered (e.g., dice matched)
+  amount?: number; // Alternative to moneyAmount for seed money events
+  success?: boolean; // Whether the action triggered (e.g., dice matched)
   spaceName: string;
   message: string;
   // Movement-specific fields

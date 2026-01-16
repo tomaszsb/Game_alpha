@@ -211,6 +211,14 @@ export type Effect =
         source?: string;
         reason?: string;
       };
+    }
+  | {
+      effectType: 'OWNER_SEED_MONEY';
+      payload: {
+        playerId: string;
+        source?: string;
+        reason?: string;
+      };
     };
 
 /**

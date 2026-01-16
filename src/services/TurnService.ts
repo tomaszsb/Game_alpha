@@ -1,6 +1,5 @@
-import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult } from '../types/ServiceContracts';
+import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult, INotificationService } from '../types/ServiceContracts';
 import { NegotiationService } from './NegotiationService';
-import { INotificationService } from './NotificationService';
 import { DiceService } from './DiceService';
 import { SpaceEffectService } from './SpaceEffectService';
 import { MovementChoiceManager } from './MovementChoiceManager';

@@ -82,6 +82,7 @@ export class TurnStateManager {
       expenditures: { ...player.expenditures },
       costHistory: player.costHistory ? [...player.costHistory] : [],
       costs: { ...player.costs },
+      fundingHistory: player.fundingHistory ? [...player.fundingHistory] : [],
       activeEffects: player.activeEffects ? [...player.activeEffects] : [],
       spaceVisitLog: player.spaceVisitLog ? [...player.spaceVisitLog] : [],
       lastDiceRoll: player.lastDiceRoll ? { ...player.lastDiceRoll } : undefined

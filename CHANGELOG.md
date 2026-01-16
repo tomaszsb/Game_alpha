@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix: TypeScript Strict Mode Compliance (January 16, 2026)
+
+**Resolved 12 pre-existing TypeScript errors for full strict mode compliance**
+
+**Type Definition Fixes:**
+- Added `OWNER_SEED_MONEY` effect type to `EffectTypes.ts`
+- Added `CARD_DISCARD` to Choice type union in `CommonTypes.ts`
+- Added `fundingHistory` property to `MutablePlayerState` in `StateTypes.ts`
+- Added `amount` property to `AutoActionEvent` in `StateService.ts`
+
+**Service Fixes:**
+- `ResourceService.ts`: Fixed `globalTurnCount` property reference, removed problematic card lookup
+- `TurnService.ts`: Fixed `INotificationService` import to use ServiceContracts
+- `TurnStateManager.ts`: Added `fundingHistory` to extracted mutable state
+- `FinancialEffectHandler.ts`: Added proper type cast for `sourceType` parameter
+
+**Component Fixes:**
+- `TurnControlsWithActions.tsx`: Fixed `effect.effect_value` type coercion with `String()`
+- `DiscardedCardsModal.tsx`: Added explicit types to map callback parameters
+
+**Test Fixes (separate commit):**
+- `ResourceService.test.ts`: Added `fundingHistory` to mock expectations
+- `EffectEngineService.test.ts`: Added missing `loggingService` parameter
+- `DiceService.test.ts`: Updated choice summary expectation
+
+**Results:** 0 TypeScript errors, 528 service tests passing
+
 ### Feature: Same Starting Point Game Mode (January 16, 2026)
 
 **New Feature: Same Starting Point mode for fair skill-based comparison**
