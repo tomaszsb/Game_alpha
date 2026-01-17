@@ -324,6 +324,11 @@ describe('E2E Path Coverage: All Decision Points', () => {
       await playTurn(playerId, 'REG-DOB-TYPE-SELECT', { destination: 'REG-DOB-PROF-CERT' });
       await playTurn(playerId, 'REG-DOB-PROF-CERT', { roll: 3 });
 
+      // Add W card worth >$4M to enable REG-FDNY-PLAN-EXAM destination (requires scope_gt_4m)
+      // W005 = $4.5M (Construction of new emergency department addition to existing hospital)
+      const player = stateService.getPlayer(playerId)!;
+      stateService.updatePlayer({ id: playerId, hand: [...player.hand, 'W005'] });
+
       // REG-FDNY → REG-FDNY-PLAN-EXAM
       const newSpace = await playTurn(playerId, 'REG-FDNY-FEE-REVIEW', { destination: 'REG-FDNY-PLAN-EXAM' });
       expect(newSpace).toBe('REG-FDNY-PLAN-EXAM');
