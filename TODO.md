@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 16, 2026
+**Last Updated:** January 18, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,9 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Try Again State Restoration Fix (Jan 18, 2026) - Cards now properly cleared on Try Again
+  - Fixed: `discardTempState()` and `createTempStateFromReal()` now restore player state from REAL
+  - Root cause: Main player state wasn't being restored when TEMP was discarded
 - ✅ Same Starting Point Game Mode (Jan 16, 2026) - New game mode for fair skill-based comparison
   - Per-player deck system with seeded shuffle
   - Quick Start mode (P1's draws become all players' starting hand)

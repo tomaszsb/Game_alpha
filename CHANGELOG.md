@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix: Try Again State Restoration (January 18, 2026)
+
+**Fixed: Try Again now correctly restores player state from start of turn**
+
+When pressing "Try Again" on spaces like OWNER-SCOPE-INITIATION, cards drawn during the turn were not being cleared. Players would accumulate cards instead of getting a fresh retry.
+
+**Root Cause:**
+- `CardService.drawCards` updates both TEMP state AND main player state (for immediate UI feedback)
+- When `discardTempState` was called, only TEMP was cleared but main player state retained the drawn cards
+
+**Fix Applied (`StateService.ts`):**
+1. `discardTempState()` now restores player's main state from REAL state after discarding TEMP
+2. `createTempStateFromReal()` with `isTryAgain: true` also restores player state from REAL
+
+**State Fields Restored:**
+- `hand` (cards), `money`, `timeSpent`, `projectScope`, `score`
+- `activeCards`, `activeEffects`, `loans`
+- `moneySources`, `expenditures`, `costHistory`, `costs`, `fundingHistory`
+
+**Testing:**
+- Player with 11 cards (5W + 6E) after rolling and drawing
+- After Try Again: hand restored to 6 cards (3W + 3E from start of turn)
+- Project scope correctly recalculated
+
 ### Fix: TypeScript Strict Mode Compliance (January 16, 2026)
 
 **Resolved 12 pre-existing TypeScript errors for full strict mode compliance**

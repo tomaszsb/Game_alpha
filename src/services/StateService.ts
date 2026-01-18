@@ -1249,6 +1249,34 @@ export class StateService implements IStateService {
     }
 
     this.syncTurnStateToManager();
+
+    // For Try Again scenarios, we need to restore player state from REAL before creating new TEMP
+    // This is because updateTempState also updates main player state for UI feedback,
+    // so the player's main state has the turn's changes that need to be reverted
+    if (options.isTryAgain) {
+      const realState = this.turnStateManager.getRealState(options.playerId);
+      if (realState) {
+        console.log(`🔄 Restoring player state from REAL for Try Again: ${player.hand.length} → ${realState.state.hand.length} cards`);
+
+        this.updatePlayer({
+          id: options.playerId,
+          hand: [...realState.state.hand],
+          money: realState.state.money,
+          timeSpent: realState.state.timeSpent,
+          projectScope: realState.state.projectScope,
+          score: realState.state.score,
+          activeCards: [...realState.state.activeCards],
+          loans: [...realState.state.loans],
+          moneySources: { ...realState.state.moneySources },
+          expenditures: { ...realState.state.expenditures },
+          costHistory: [...realState.state.costHistory],
+          costs: { ...realState.state.costs },
+          fundingHistory: [...realState.state.fundingHistory],
+          activeEffects: [...realState.state.activeEffects],
+        });
+      }
+    }
+
     const result = this.turnStateManager.createTempStateFromReal(
       options,
       player,
@@ -1291,11 +1319,42 @@ export class StateService implements IStateService {
 
   /**
    * Discard TEMP state for a player (used in Try Again flow).
+   * Also restores the player's main state from REAL to undo any changes made during the turn.
    */
   public discardTempState(playerId: string): StateTransitionResult {
     this.syncTurnStateToManager();
+
+    // Get REAL state BEFORE discarding TEMP - this is what we need to restore the player to
+    const realState = this.turnStateManager.getRealState(playerId);
+
     const result = this.turnStateManager.discardTempState(playerId);
     this.syncTurnStateFromManager();
+
+    // Restore player's main state from REAL state
+    // This is critical because updateTempState also updates main player state for UI feedback
+    // Without this, the player would keep cards/money/etc from the failed attempt
+    if (result.success && realState) {
+      const currentHand = this.getPlayer(playerId)?.hand.length ?? 0;
+      console.log(`🔄 Restoring player state from REAL after discardTempState: ${currentHand} → ${realState.state.hand.length} cards`);
+
+      this.updatePlayer({
+        id: playerId,
+        hand: [...realState.state.hand],
+        money: realState.state.money,
+        timeSpent: realState.state.timeSpent,
+        projectScope: realState.state.projectScope,
+        score: realState.state.score,
+        activeCards: [...realState.state.activeCards],
+        loans: [...realState.state.loans],
+        moneySources: { ...realState.state.moneySources },
+        expenditures: { ...realState.state.expenditures },
+        costHistory: [...realState.state.costHistory],
+        costs: { ...realState.state.costs },
+        fundingHistory: [...realState.state.fundingHistory],
+        activeEffects: [...realState.state.activeEffects],
+      });
+    }
+
     return result;
   }
 

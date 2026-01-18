@@ -153,7 +153,9 @@ interface IStateService {
   // Logging
   logToActionHistory(entry: ActionLogEntry): void;
 
-  // REAL/TEMP State Model (for Try Again feature - Updated Dec 2025)
+  // REAL/TEMP State Model (for Try Again feature - Updated Jan 2026)
+  // Note: discardTempState and createTempStateFromReal(isTryAgain:true) both
+  // restore player's main state from REAL to undo UI feedback changes
   createTempStateFromReal(options: CreateTempOptions): StateTransitionResult;
   commitTempToReal(playerId: string): StateTransitionResult;
   discardTempState(playerId: string): StateTransitionResult;

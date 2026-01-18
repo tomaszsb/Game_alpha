@@ -1867,9 +1867,14 @@ export class TurnService implements ITurnService {
         throw new Error(`Failed to create Try Again state: ${tempResult.error}`);
       }
 
+      // 9. Re-process space effects to re-apply cards and manual actions
+      // This is critical for spaces like OWNER-SCOPE-INITIATION (card draws) and PM-DECISION-CHECK (manual actions)
+      console.log(`🔄 Re-processing space effects after Try Again for ${currentPlayer.currentSpace}`);
+      await this.processSpaceEffectsAfterMovement(playerId, currentPlayer.currentSpace, currentPlayer.visitType, true);
+
       console.log(`✅ ${currentPlayer.name} Try Again processed (count: ${this.stateService.getTryAgainCount(playerId)})`);
 
-      // 9. Prepare success message
+      // 10. Prepare success message
       const successMessage = `${currentPlayer.name} used Try Again: ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty applied.`;
 
       // 10. Send Try Again notification

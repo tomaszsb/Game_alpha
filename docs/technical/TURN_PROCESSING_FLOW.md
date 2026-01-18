@@ -613,6 +613,9 @@ Dice-movement spaces (where dice determines destination) now have contextual beh
 - Replaced snapshot/checkpoint system with explicit REAL + TEMPORARY state model
 - Turn start: `createTempStateFromReal()` creates working copy
 - All effects apply to TEMP state
-- Try Again: `discardTempState()` + fresh TEMP with penalty applied to REAL
+- Try Again: `discardTempState()` + `createTempStateFromReal(isTryAgain: true)`
+  - Both methods restore player's main state from REAL (cards, money, etc.)
+  - This is necessary because `updateTempState()` also updates main state for UI feedback
+  - Time penalty applied to REAL before creating fresh TEMP
 - End Turn: `commitTempToReal()` finalizes changes
 - Removed `hasPreSpaceEffectSnapshot()` conditional checks
