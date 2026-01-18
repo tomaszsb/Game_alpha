@@ -1,8 +1,9 @@
 // src/components/modals/CardContent.tsx
 
 import React from 'react';
-import { colors } from '../../styles/theme';
+import { colors, theme } from '../../styles/theme';
 import { Card } from '../../types/DataTypes';
+import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 
 interface CardContentProps {
   card?: Card | null;
@@ -11,10 +12,10 @@ interface CardContentProps {
 
 /**
  * CardContent component displays card details with organized effect categories
- * Now simplified to work with the new Card interface from DataTypes
+ * Uses standardized card type colors from the theme
  */
 export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.Element {
-  
+
   // Handle flipped card state
   if (isFlipped) {
     return (
@@ -28,14 +29,14 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: '8px'
+        borderRadius: theme.borderRadius.md
       }}>
         <div style={{
           fontSize: '4rem',
           marginBottom: '20px',
           opacity: 0.8
         }}>
-          🃏
+          {theme.emoji.cards}
         </div>
         <h3 style={{
           fontSize: '1.5rem',
@@ -73,7 +74,7 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
           marginBottom: '20px',
           opacity: 0.5
         }}>
-          📝
+          {theme.emoji.info}
         </div>
         <h3 style={{
           fontSize: '1.2rem',
@@ -91,31 +92,17 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
     );
   }
 
-  // Get card type colors
-  const getCardTypeColor = (cardType: string) => {
-    const cardTypeColors = {
-      'W': { bg: colors.primary.light, border: colors.primary.main, text: colors.primary.text }, // Blue for Work
-      'B': { bg: colors.game.cardBg.B, border: colors.success.main, text: colors.success.dark }, // Green for Budget
-      'E': { bg: colors.game.cardBg.E, border: colors.warning.main, text: colors.warning.dark }, // Orange for Expeditor
-      'L': { bg: colors.game.cardBg.L, border: colors.danger.main, text: colors.danger.dark }, // Pink for Life Events
-      'I': { bg: colors.game.cardBg.I, border: colors.purple.main, text: colors.purple.dark }  // Purple for Innovation
-    };
-    return cardTypeColors[cardType as keyof typeof cardTypeColors] || { 
-      bg: colors.secondary.bg, 
-      border: colors.secondary.border, 
-      text: colors.secondary.dark 
-    };
-  };
-
-  const cardColors = getCardTypeColor(card.card_type);
+  // Use standardized card type colors from theme
+  const cardColors = getCardTypeColors(card.card_type);
+  const cardEmoji = getCardTypeEmoji(card.card_type);
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* Card Header */}
+      {/* Card Header - uses standardized card type colors */}
       <div style={{
         background: cardColors.bg,
         border: `2px solid ${cardColors.border}`,
-        borderRadius: '12px',
+        borderRadius: theme.borderRadius.lg,
         padding: '20px',
         marginBottom: '20px'
       }}>
@@ -126,14 +113,18 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
           marginBottom: '12px'
         }}>
           <div style={{
-            background: cardColors.border,
+            background: cardColors.primary,
             color: 'white',
-            borderRadius: '8px',
+            borderRadius: theme.borderRadius.md,
             padding: '8px 12px',
             fontSize: '14px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}>
-            {card.card_type}
+            <span>{cardEmoji}</span>
+            <span>{card.card_type}</span>
           </div>
           <h2 style={{
             margin: 0,
@@ -144,10 +135,10 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
             {card.card_name}
           </h2>
         </div>
-        
+
         <p style={{
           margin: 0,
-          color: colors.secondary.dark,
+          color: colors.text.secondary,
           fontSize: '1rem',
           lineHeight: '1.5'
         }}>
@@ -164,17 +155,20 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
         {card.cost !== undefined && (
           <div style={{
             background: colors.special.cardEffects.negative,
-            border: `2px solid ${colors.game.lightRed}`,
-            borderRadius: '8px',
+            border: `2px solid ${colors.danger.border}`,
+            borderRadius: theme.borderRadius.md,
             padding: '12px 16px'
           }}>
             <div style={{
               fontSize: '14px',
               fontWeight: 'bold',
-              color: colors.text.danger,
-              marginBottom: '4px'
+              color: colors.danger.text,
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              💰 Cost
+              {theme.emoji.money} Cost
             </div>
             <div style={{
               color: colors.text.dark,
@@ -189,17 +183,20 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
         {card.phase_restriction && (
           <div style={{
             background: colors.special.cardEffects.neutral,
-            border: `2px solid ${colors.game.lightBlue}`,
-            borderRadius: '8px',
+            border: `2px solid ${colors.info.main}`,
+            borderRadius: theme.borderRadius.md,
             padding: '12px 16px'
           }}>
             <div style={{
               fontSize: '14px',
               fontWeight: 'bold',
-              color: colors.text.info,
-              marginBottom: '4px'
+              color: colors.info.dark,
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              🎯 Phase Restriction
+              {theme.emoji.target} Phase Restriction
             </div>
             <div style={{
               color: colors.text.dark,
@@ -214,17 +211,20 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
         {card.effects_on_play && (
           <div style={{
             background: colors.special.cardEffects.positive,
-            border: `2px solid ${colors.game.lightGreen}`,
-            borderRadius: '8px',
+            border: `2px solid ${colors.success.border}`,
+            borderRadius: theme.borderRadius.md,
             padding: '12px 16px'
           }}>
             <div style={{
               fontSize: '14px',
               fontWeight: 'bold',
-              color: colors.text.successDark,
-              marginBottom: '4px'
+              color: colors.success.text,
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              ⚡ Effects on Play
+              {theme.emoji.effects} Effects on Play
             </div>
             <div style={{
               color: colors.text.dark,

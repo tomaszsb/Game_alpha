@@ -188,20 +188,65 @@ export const colors = {
 
   // Game-Specific Colors
   game: {
-    // Card type colors
+    // STANDARDIZED Card Type System - Single source of truth for all card colors
+    // Use cardTypes[type].primary, cardTypes[type].bg, etc. everywhere
+    cardTypes: {
+      W: { // Work Cards - Purple
+        primary: '#6f42c1',
+        bg: '#f3e5f5',
+        border: '#6f42c1',
+        text: '#4a148c',
+        emoji: '🏗️',
+        label: 'Work',
+      },
+      B: { // Bank/Loan Cards - Blue
+        primary: '#007bff',
+        bg: '#e3f2fd',
+        border: '#007bff',
+        text: '#0d47a1',
+        emoji: '🏦',
+        label: 'Bank',
+      },
+      E: { // Expeditor Cards - Orange
+        primary: '#ff9800',
+        bg: '#fff3e0',
+        border: '#ff9800',
+        text: '#e65100',
+        emoji: '⚡',
+        label: 'Expeditor',
+      },
+      L: { // Life Event Cards - Red
+        primary: '#dc3545',
+        bg: '#fce4ec',
+        border: '#dc3545',
+        text: '#b71c1c',
+        emoji: '🎲',
+        label: 'Life Event',
+      },
+      I: { // Investor Cards - Green
+        primary: '#28a745',
+        bg: '#e8f5e9',
+        border: '#28a745',
+        text: '#1b5e20',
+        emoji: '💰',
+        label: 'Investor',
+      },
+    } as Record<string, { primary: string; bg: string; border: string; text: string; emoji: string; label: string }>,
+
+    // Legacy card colors (kept for backwards compatibility - prefer cardTypes above)
     cardW: '#6f42c1',       // W card color (purple)
-    cardB: '#28a745',       // B card color (green) - reuse success
-    cardE: '#dc3545',       // E card color (red) - reuse danger
-    cardI: '#007bff',       // I card color (blue) - reuse primary
-    cardL: '#ffc107',       // L card color (yellow) - reuse warning
-    
-    // Card background colors  
+    cardB: '#007bff',       // B card color (blue)
+    cardE: '#ff9800',       // E card color (orange)
+    cardI: '#28a745',       // I card color (green)
+    cardL: '#dc3545',       // L card color (red)
+
+    // Legacy card background colors (prefer cardTypes above)
     cardBg: {
       W: '#f3e5f5',         // Purple card background
-      B: '#e8f5e8',         // Green card background
+      B: '#e3f2fd',         // Blue card background
       E: '#fff3e0',         // Orange card background
       L: '#fce4ec',         // Pink card background
-      I: '#f3e5f5',         // Purple card background
+      I: '#e8f5e9',         // Green card background
     },
     
     // Space colors
@@ -301,28 +346,65 @@ export const theme = {
     xl: '0 20px 60px rgba(0, 0, 0, 0.3)',
   },
 
+  // Standard Emoji Set - Use these for consistency across modals
+  emoji: {
+    close: '✕',
+    success: '✓',
+    info: '📋',
+    warning: '⚠️',
+    cards: '🃏',
+    money: '💰',
+    time: '⏱️',
+    dice: '🎲',
+    movement: '🚶',
+    celebration: '🎉',
+    trophy: '🏆',
+    rules: '📖',
+    negotiation: '🤝',
+    target: '🎯',
+    story: '📖',
+    effects: '⚡',
+    players: '👥',
+    settings: '⚙️',
+    discard: '🗂️',
+  },
+
   // Modal Layout - Consistent modal spacing and layout
   modal: {
     overlay: {
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
       padding: '20px',
       zIndex: 1000,
     },
     container: {
+      background: '#ffffff',
       maxWidth: '500px',
-      maxHeight: '80vh',
-      borderRadius: '16px',
+      maxHeight: '85vh',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
     },
     header: {
       padding: '16px 20px',
-      borderBottom: `2px solid ${colors.secondary.light}`,
+      backgroundColor: colors.primary.light,
+      borderBottom: `3px solid ${colors.primary.main}`,
+      borderRadius: '12px 12px 0 0',
     },
     body: {
-      padding: '16px 20px',
+      padding: '20px',
+      overflowY: 'auto' as const,
     },
     footer: {
       padding: '16px 20px',
       gap: '12px',
+      borderTop: `1px solid ${colors.secondary.light}`,
+      display: 'flex',
+      justifyContent: 'flex-end',
+    },
+    closeButton: {
+      size: '32px',
+      fontSize: '20px',
+      color: colors.text.secondary,
+      hoverColor: colors.danger.main,
     },
     animation: {
       duration: '0.3s',
@@ -368,6 +450,40 @@ export const theme = {
     normal: '0.2s ease',
     slow: '0.3s ease',
     modal: '0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+  },
+
+  // Breakpoints - Mobile-first responsive design
+  breakpoints: {
+    xs: '320px',   // Small phones
+    sm: '480px',   // Large phones
+    md: '768px',   // Tablets
+    lg: '1024px',  // Small laptops
+    xl: '1280px',  // Desktops
+  },
+
+  // Mobile-specific adjustments
+  mobile: {
+    // Touch-friendly minimum tap target (Apple/Google recommend 44px)
+    minTapTarget: '44px',
+    // Modal adjustments for mobile
+    modal: {
+      padding: '12px',
+      maxWidth: '100%',
+      margin: '8px',
+      borderRadius: '8px',
+    },
+    // Larger text for readability
+    typography: {
+      body: '16px',  // Prevents zoom on iOS inputs
+      heading: '20px',
+    },
+    // Spacing adjustments
+    spacing: {
+      xs: '4px',
+      sm: '8px',
+      md: '12px',
+      lg: '16px',
+    },
   },
 } as const;
 

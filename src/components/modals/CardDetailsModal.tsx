@@ -1,13 +1,15 @@
 // src/components/modals/CardDetailsModal.tsx
 
 import React, { useState } from 'react';
-import { colors } from '../../styles/theme';
+import { colors, theme } from '../../styles/theme';
 import { Card } from '../../types/DataTypes';
 import { Player } from '../../types/StateTypes';
 import { ICardService } from '../../types/ServiceContracts';
 import { useGameContext } from '../../context/GameContext';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
+import { ModalBase, modalButtonStyles } from './shared/ModalBase';
+import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -21,6 +23,7 @@ interface CardDetailsModalProps {
 /**
  * CardDetailsModal displays comprehensive information about a specific card
  * including name, description, effects, cost, and other properties.
+ * Uses ModalBase for consistent styling and mobile-friendly design.
  */
 export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPlayers, cardService }: CardDetailsModalProps): JSX.Element | null {
   const { notificationService } = useGameContext();
@@ -28,29 +31,10 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
   const [showTransferUI, setShowTransferUI] = useState(false);
   const [selectedTargetPlayer, setSelectedTargetPlayer] = useState<string>('');
 
-  // Handle escape key to close modal
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
-  // Handle backdrop click to close modal
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-
   // Check if current player owns this card and it's transferable
   const canTransferCard = (): boolean => {
     if (!currentPlayer || !card) return false;
-
-    // Check if card has is_transferable property set to true
     if (!card.is_transferable) return false;
-
-    // Check if the card is in the player's hand
     return currentPlayer.hand?.includes(card.card_id) || false;
   };
 
@@ -61,11 +45,9 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
     try {
       cardService.transferCard(currentPlayer.id, selectedTargetPlayer, card.card_id);
 
-      // Get target player name for notification
       const targetPlayer = otherPlayers.find(p => p.id === selectedTargetPlayer);
       const targetPlayerName = targetPlayer?.name || 'Unknown Player';
 
-      // Provide success notification
       notificationService.notify(
         NotificationUtils.createSuccessNotification(
           'Card Transferred',
@@ -79,13 +61,11 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
         }
       );
 
-      // Close modal and transfer UI on success
       setShowTransferUI(false);
       setSelectedTargetPlayer('');
       onClose();
 
     } catch (error: any) {
-      // Provide error notification instead of alert
       notificationService.notify(
         NotificationUtils.createErrorNotification(
           'Card Transfer',
@@ -101,7 +81,6 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
     }
   };
 
-  // Don't render if modal is not open
   if (!isOpen) {
     return null;
   }
@@ -109,477 +88,345 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
   // Show loading state if card data is not available
   if (!card) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '20px'
-        }}
-        onClick={handleBackdropClick}
-        onKeyDown={handleKeyDown}
-        tabIndex={-1}
+      <ModalBase
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Loading..."
+        emoji={theme.emoji.cards}
+        maxWidth="600px"
+        testId="card-details-modal"
       >
-        <div
-          style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-            padding: '40px',
-            textAlign: 'center'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div style={{ fontSize: '1.1rem', color: colors.secondary.main }}>
-            Loading card details...
-          </div>
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          color: colors.secondary.main
+        }}>
+          Loading card details...
         </div>
-      </div>
+      </ModalBase>
     );
   }
 
-  // Get card type for color coding
+  // Get card type colors from theme
   const cardType = cardService.getCardType(card.card_id);
-  
-  // Card type colors
-  const cardTypeColors = {
-    W: colors.danger.main, // Red for Work cards
-    B: colors.primary.main, // Blue for Bank Loan cards
-    I: colors.success.main, // Green for Investor Loan cards
-    L: colors.warning.main, // Yellow for Life Events cards
-    E: colors.purple.main  // Purple for Expeditor cards
-  };
+  const cardColors = getCardTypeColors(cardType || '');
+  const cardEmoji = getCardTypeEmoji(cardType || '');
 
-  const cardTypeColor = cardType ? cardTypeColors[cardType] : colors.secondary.main;
+  // Footer content
+  const footer = (
+    <>
+      {canTransferCard() && !showTransferUI && (
+        <button
+          onClick={() => setShowTransferUI(true)}
+          style={modalButtonStyles.primary}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '0.9';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '1';
+          }}
+        >
+          ↔ Transfer Card
+        </button>
+      )}
+      <button
+        onClick={onClose}
+        style={modalButtonStyles.secondary}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = colors.secondary.bg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = colors.secondary.light;
+        }}
+      >
+        Close
+      </button>
+    </>
+  );
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    <ModalBase
+      isOpen={isOpen}
+      onClose={onClose}
+      title={card.card_name}
+      emoji={cardEmoji}
+      maxWidth="600px"
+      headerColor={cardColors.bg}
+      headerBorderColor={cardColors.primary}
+      footer={footer}
+      testId="card-details-modal"
+    >
+      {/* Card Type Badge and ID */}
+      <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px'
-      }}
-      onClick={handleBackdropClick}
-      onKeyDown={handleKeyDown}
-      tabIndex={-1}
-    >
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-          maxWidth: '600px',
-          width: '100%',
-          maxHeight: '80vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          position: 'relative'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div style={{
-          padding: '20px 24px 16px',
-          borderBottom: `1px solid ${colors.secondary.border}`,
-          backgroundColor: colors.secondary.bg,
-          borderRadius: '12px 12px 0 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start'
+        gap: '12px',
+        marginBottom: '16px'
+      }}>
+        <span style={{
+          display: 'inline-block',
+          padding: '4px 12px',
+          borderRadius: theme.borderRadius.sm,
+          fontSize: '0.85rem',
+          fontWeight: 'bold',
+          color: 'white',
+          backgroundColor: cardColors.primary
         }}>
-          <div style={{ flex: 1 }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '8px'
-            }}>
-              {/* Card Type Badge */}
-              <span style={{
-                display: 'inline-block',
-                padding: '4px 12px',
-                borderRadius: '6px',
-                fontSize: '0.85rem',
-                fontWeight: 'bold',
-                color: 'white',
-                backgroundColor: cardTypeColor
-              }}>
-                {cardType} Card
-              </span>
-              
-              {/* Card ID */}
-              <span style={{
-                fontSize: '0.75rem',
-                color: colors.secondary.main,
-                fontFamily: 'monospace'
-              }}>
-                {card.card_id}
-              </span>
-            </div>
-            
-            <h2 style={{
-              margin: 0,
-              fontSize: '1.4rem',
-              fontWeight: 'bold',
-              color: colors.text.primary,
-              lineHeight: '1.3'
-            }}>
-              {card.card_name}
-            </h2>
-          </div>
-
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              padding: '4px',
-              lineHeight: 1,
-              color: colors.secondary.main,
-              borderRadius: '4px',
-              marginLeft: '12px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.secondary.light;
-              e.currentTarget.style.color = colors.secondary.dark;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = colors.secondary.main;
-            }}
-            title="Close"
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Modal Content */}
-        <div style={{
-          padding: '24px',
-          flex: 1,
-          overflowY: 'auto'
+          {cardEmoji} {cardType} Card
+        </span>
+        <span style={{
+          fontSize: '0.75rem',
+          color: colors.secondary.main,
+          fontFamily: 'monospace'
         }}>
-          {/* Card Description */}
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              color: colors.secondary.dark,
-              marginBottom: '8px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              Description
-            </h3>
-            <p style={{
-              fontSize: '0.95rem',
-              color: colors.text.primary,
-              lineHeight: '1.5',
-              margin: 0
-            }}>
-              <TextWithTerms
-                text={card.description || 'No description available.'}
-                onTermClick={(term) => openWithTerm(term.id)}
-              />
-            </p>
-          </div>
+          {card.card_id}
+        </span>
+      </div>
 
-          {/* Card Effects */}
-          {card.effects_on_play && (
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                color: colors.secondary.dark,
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Effects When Played
-              </h3>
-              <div style={{
-                background: colors.secondary.bg,
-                border: `1px solid ${colors.secondary.border}`,
-                borderRadius: '8px',
-                padding: '12px',
-                fontSize: '0.9rem',
-                color: colors.secondary.dark,
-                fontStyle: 'italic'
-              }}>
-                <TextWithTerms
-                  text={card.effects_on_play}
-                  onTermClick={(term) => openWithTerm(term.id)}
-                />
-              </div>
-            </div>
-          )}
+      {/* Card Description */}
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{
+          fontSize: '1rem',
+          fontWeight: 'bold',
+          color: colors.secondary.dark,
+          marginBottom: '8px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Description
+        </h3>
+        <p style={{
+          fontSize: '0.95rem',
+          color: colors.text.primary,
+          lineHeight: '1.5',
+          margin: 0
+        }}>
+          <TextWithTerms
+            text={card.description || 'No description available.'}
+            onTermClick={(term) => openWithTerm(term.id)}
+          />
+        </p>
+      </div>
 
-          {/* Card Properties */}
-          <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px'
+      {/* Card Effects */}
+      {card.effects_on_play && (
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            color: colors.secondary.dark,
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
-            {/* Cost */}
-            {card.cost !== undefined && (
-              <div>
-                <h4 style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 'bold',
-                  color: colors.secondary.main,
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Cost
-                </h4>
-                <div style={{
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  color: card.cost === 0 ? colors.success.main : colors.danger.main
-                }}>
-                  ${card.cost}
-                </div>
-              </div>
-            )}
-
-            {/* Duration */}
-            {card.duration !== undefined && (
-              <div>
-                <h4 style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 'bold',
-                  color: colors.secondary.main,
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Duration
-                </h4>
-                <div style={{
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  color: colors.secondary.dark
-                }}>
-                  {card.duration} turn{Number(card.duration) !== 1 ? 's' : ''}
-                </div>
-              </div>
-            )}
-
-            {/* Phase Restriction */}
-            {card.phase_restriction && card.phase_restriction !== 'Any' && (
-              <div>
-                <h4 style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 'bold',
-                  color: colors.secondary.main,
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Phase Restriction
-                </h4>
-                <div style={{
-                  fontSize: '1rem',
-                  fontWeight: 'bold',
-                  color: colors.purple.main,
-                  background: colors.purple.lighter,
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  display: 'inline-block'
-                }}>
-                  {card.phase_restriction}
-                </div>
-              </div>
-            )}
+            {theme.emoji.effects} Effects When Played
+          </h3>
+          <div style={{
+            background: colors.special.cardEffects.positive,
+            border: `2px solid ${colors.success.border}`,
+            borderRadius: theme.borderRadius.md,
+            padding: '12px',
+            fontSize: '0.9rem',
+            color: colors.success.text,
+            fontStyle: 'italic'
+          }}>
+            <TextWithTerms
+              text={card.effects_on_play}
+              onTermClick={(term) => openWithTerm(term.id)}
+            />
           </div>
         </div>
+      )}
 
-        {/* Transfer UI */}
-        {showTransferUI && (
+      {/* Card Properties */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '16px'
+      }}>
+        {/* Cost */}
+        {card.cost !== undefined && (
           <div style={{
-            padding: '16px 24px',
-            borderTop: `1px solid ${colors.secondary.border}`,
-            backgroundColor: colors.warning.bg
+            background: colors.special.cardEffects.negative,
+            border: `2px solid ${colors.danger.border}`,
+            borderRadius: theme.borderRadius.md,
+            padding: '12px 16px'
           }}>
             <h4 style={{
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               fontWeight: 'bold',
-              color: colors.warning.text,
-              marginBottom: '12px',
+              color: colors.danger.text,
+              marginBottom: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
               margin: 0
             }}>
-              Select player to transfer card to:
+              {theme.emoji.money} Cost
             </h4>
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              marginTop: '12px'
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              color: card.cost === 0 ? colors.success.main : colors.danger.main,
+              marginTop: '4px'
             }}>
-              {otherPlayers.map((player) => (
-                <label
-                  key={player.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    backgroundColor: selectedTargetPlayer === player.id ? colors.primary.light : 'transparent'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="targetPlayer"
-                    value={player.id}
-                    checked={selectedTargetPlayer === player.id}
-                    onChange={(e) => setSelectedTargetPlayer(e.target.value)}
-                    style={{ margin: 0 }}
-                  />
-                  <span style={{
-                    fontSize: '1rem',
-                    marginRight: '8px'
-                  }}>
-                    {player.avatar}
-                  </span>
-                  <span style={{
-                    fontWeight: 'bold',
-                    color: colors.secondary.dark
-                  }}>
-                    {player.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '8px',
-              marginTop: '16px'
-            }}>
-              <button
-                onClick={() => {
-                  setShowTransferUI(false);
-                  setSelectedTargetPlayer('');
-                }}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  color: colors.secondary.main,
-                  backgroundColor: colors.secondary.light,
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTransferCard}
-                disabled={!selectedTargetPlayer}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  color: selectedTargetPlayer ? colors.white : colors.secondary.main,
-                  backgroundColor: selectedTargetPlayer ? colors.danger.main : colors.secondary.light,
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: selectedTargetPlayer ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Transfer Card
-              </button>
+              ${card.cost}
             </div>
           </div>
         )}
 
-        {/* Modal Footer */}
+        {/* Duration */}
+        {card.duration !== undefined && (
+          <div style={{
+            background: colors.special.cardEffects.neutral,
+            border: `2px solid ${colors.info.main}`,
+            borderRadius: theme.borderRadius.md,
+            padding: '12px 16px'
+          }}>
+            <h4 style={{
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              color: colors.info.dark,
+              marginBottom: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              margin: 0
+            }}>
+              {theme.emoji.time} Duration
+            </h4>
+            <div style={{
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              color: colors.secondary.dark,
+              marginTop: '4px'
+            }}>
+              {card.duration} turn{Number(card.duration) !== 1 ? 's' : ''}
+            </div>
+          </div>
+        )}
+
+        {/* Phase Restriction */}
+        {card.phase_restriction && card.phase_restriction !== 'Any' && (
+          <div style={{
+            background: colors.purple.lighter,
+            border: `2px solid ${colors.purple.main}`,
+            borderRadius: theme.borderRadius.md,
+            padding: '12px 16px'
+          }}>
+            <h4 style={{
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              color: colors.purple.dark,
+              marginBottom: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              margin: 0
+            }}>
+              {theme.emoji.target} Phase Restriction
+            </h4>
+            <div style={{
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              color: colors.purple.main,
+              marginTop: '4px'
+            }}>
+              {card.phase_restriction}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Transfer UI */}
+      {showTransferUI && (
         <div style={{
-          padding: '16px 24px',
-          borderTop: `1px solid ${colors.secondary.border}`,
-          backgroundColor: colors.secondary.bg,
-          borderRadius: '0 0 12px 12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          marginTop: '24px',
+          padding: '16px',
+          backgroundColor: colors.warning.bg,
+          borderRadius: theme.borderRadius.md,
+          border: `2px solid ${colors.warning.main}`
         }}>
-          <div>
-            {canTransferCard() && !showTransferUI && (
-              <button
-                onClick={() => setShowTransferUI(true)}
+          <h4 style={{
+            fontSize: '0.9rem',
+            fontWeight: 'bold',
+            color: colors.warning.text,
+            margin: 0,
+            marginBottom: '12px'
+          }}>
+            Select player to transfer card to:
+          </h4>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            {otherPlayers.map((player) => (
+              <label
+                key={player.id}
                 style={{
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: 'bold',
-                  color: colors.white,
-                  backgroundColor: colors.success.main,
-                  border: 'none',
-                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.special.button.primaryHover;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.success.main;
+                  padding: '8px',
+                  borderRadius: theme.borderRadius.sm,
+                  backgroundColor: selectedTargetPlayer === player.id ? colors.primary.light : 'transparent',
+                  minHeight: theme.mobile.minTapTarget
                 }}
               >
-                🔄 Transfer Card
-              </button>
-            )}
+                <input
+                  type="radio"
+                  name="targetPlayer"
+                  value={player.id}
+                  checked={selectedTargetPlayer === player.id}
+                  onChange={(e) => setSelectedTargetPlayer(e.target.value)}
+                  style={{ margin: 0 }}
+                />
+                <span style={{ fontSize: '1rem', marginRight: '8px' }}>
+                  {player.avatar}
+                </span>
+                <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>
+                  {player.name}
+                </span>
+              </label>
+            ))}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              fontSize: '0.9rem',
-              fontWeight: 'bold',
-              color: colors.secondary.main,
-              backgroundColor: colors.secondary.light,
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.secondary.border;
-              e.currentTarget.style.color = colors.secondary.dark;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = colors.secondary.light;
-              e.currentTarget.style.color = colors.secondary.main;
-            }}
-          >
-            Close
-          </button>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '8px',
+            marginTop: '16px'
+          }}>
+            <button
+              onClick={() => {
+                setShowTransferUI(false);
+                setSelectedTargetPlayer('');
+              }}
+              style={modalButtonStyles.secondary}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleTransferCard}
+              disabled={!selectedTargetPlayer}
+              style={{
+                ...modalButtonStyles.danger,
+                opacity: selectedTargetPlayer ? 1 : 0.6,
+                cursor: selectedTargetPlayer ? 'pointer' : 'not-allowed'
+              }}
+            >
+              Transfer Card
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </ModalBase>
   );
 }

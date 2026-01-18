@@ -1,5 +1,8 @@
+// src/components/modals/ChoiceModal.tsx
+
 import React, { useState, useEffect } from 'react';
-import { colors } from '../../styles/theme';
+import { ModalBase, modalButtonStyles } from './shared/ModalBase';
+import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { Choice } from '../../types/CommonTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
@@ -13,26 +16,23 @@ export function ChoiceModal(): JSX.Element {
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
 
-  // Subscribe to state changes to show/hide modal
   useEffect(() => {
     const unsubscribe = stateService.subscribe((gameState) => {
       setAwaitingChoice(gameState.awaitingChoice);
-      
+
       if (gameState.awaitingChoice) {
-        // Get the current player's name for display
         const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
         setCurrentPlayerName(player?.name || 'Unknown Player');
       }
     });
-    
-    // Initialize with current state
+
     const gameState = stateService.getGameState();
     setAwaitingChoice(gameState.awaitingChoice);
     if (gameState.awaitingChoice) {
       const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
       setCurrentPlayerName(player?.name || 'Unknown Player');
     }
-    
+
     return unsubscribe;
   }, [stateService]);
 
@@ -40,11 +40,9 @@ export function ChoiceModal(): JSX.Element {
     if (!awaitingChoice) return;
 
     try {
-      // Get the selected option for feedback
       const selectedOption = awaitingChoice.options.find(opt => opt.id === selectedOptionId);
       const optionLabel = selectedOption?.label || selectedOptionId;
 
-      // Provide immediate feedback via NotificationService
       notificationService.notify(
         NotificationUtils.createSuccessNotification(
           'Choice Made',
@@ -58,7 +56,6 @@ export function ChoiceModal(): JSX.Element {
         }
       );
 
-      // Use the ChoiceService to resolve the choice
       choiceService.resolveChoice(awaitingChoice.id, selectedOptionId);
     } catch (error) {
       console.error('Error resolving choice:', error);
@@ -75,9 +72,7 @@ export function ChoiceModal(): JSX.Element {
     const gameState = stateService.getGameState();
     const player = gameState.players.find(p => p.id === awaitingChoice.playerId);
 
-    // Extract card type from first option ID (e.g., "E001" -> "E")
     const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
-    // Get maxReplacements from metadata if available, otherwise default to 1
     const maxReplacements = (awaitingChoice.metadata?.replaceCount as number) || 1;
     const newCardType = awaitingChoice.metadata?.newCardType as CardType | undefined;
 
@@ -89,29 +84,18 @@ export function ChoiceModal(): JSX.Element {
         maxReplacements={maxReplacements}
         newCardType={newCardType}
         onReplace={(selectedCardIds, replacementType) => {
-          // Handle card selection
           if (selectedCardIds.length > 0) {
             console.log(`🔄 CardReplacement: Attempting to replace cards: ${selectedCardIds.join(', ')}`);
-            console.log(`🔄 CardReplacement: Choice ID: ${awaitingChoice.id}`);
-            console.log(`🔄 CardReplacement: Valid options: ${awaitingChoice.options.map(o => o.id).join(', ')}`);
-
-            // Process each selected card
             selectedCardIds.forEach((cardId, index) => {
               if (index === 0) {
-                // First card uses handleChoiceClick to resolve the choice
                 handleChoiceClick(cardId);
               }
             });
           }
         }}
         onCancel={() => {
-          // Allow skipping card replacement - it's optional
           console.log('Card replacement skipped by user');
-
-          // Use skipChoice to properly resolve the pending promise
           choiceService.skipChoice(awaitingChoice.id);
-
-          // Notify user with clearer message
           notificationService.notify(
             NotificationUtils.createSuccessNotification(
               'Card Action Complete',
@@ -129,121 +113,92 @@ export function ChoiceModal(): JSX.Element {
     );
   }
 
+  // Get contextual help text based on choice type
+  const getHelpText = () => {
+    switch (awaitingChoice.type) {
+      case 'CARD_SELECTION':
+        return 'Select the card you want to use for this action.';
+      case 'CARD_GIVE':
+        return 'Choose which card to give to your opponent.';
+      default:
+        return 'Make your selection to continue.';
+    }
+  };
+
+  const choiceButtonStyle: React.CSSProperties = {
+    ...modalButtonStyles.primary,
+    backgroundColor: colors.primary.main,
+    width: '100%',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
   return (
-    <>
-      {/* Modal Overlay */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}
-      >
-        {/* Modal Content */}
-        <div
-          style={{
-            backgroundColor: colors.white,
-            padding: '30px',
-            borderRadius: '12px',
-            maxWidth: '500px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-            border: `3px solid ${colors.primary.main}`
-          }}
-        >
-          {/* Modal Header */}
-          <div style={{ marginBottom: '25px', textAlign: 'center' }}>
-            <h2 style={{ 
-              margin: '0 0 10px 0', 
-              color: colors.primary.main,
-              fontSize: '24px',
-              fontWeight: 'bold'
-            }}>
-              🎯 Make Your Choice
-            </h2>
-            <p style={{ 
-              margin: '0',
-              color: colors.text.secondary,
-              fontSize: '16px'
-            }}>
-              {currentPlayerName}: {awaitingChoice.prompt}
-            </p>
-          </div>
+    <ModalBase
+      isOpen={true}
+      onClose={() => {}}
+      title="Make Your Choice"
+      emoji={theme.emoji.target}
+      maxWidth="500px"
+      testId="choice-modal"
+    >
+      {/* Prompt */}
+      <p style={{
+        margin: '0 0 20px 0',
+        color: colors.text.secondary,
+        fontSize: '16px',
+        textAlign: 'center',
+      }}>
+        <strong>{currentPlayerName}:</strong> {awaitingChoice.prompt}
+      </p>
 
-          {/* Choice Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {awaitingChoice.options.map((option, index) => {
-              // Get tooltip for this choice option - only use movement tooltips for movement choices
-              const choiceTooltip = awaitingChoice.type === 'MOVEMENT'
-                ? getMovementChoiceTooltip(option.id)
-                : { tooltip: option.label, context: '' };
-              return (
-                <Tooltip key={option.id} content={choiceTooltip.tooltip} context={choiceTooltip.context} position="right">
-                  <button
-                    onClick={() => handleChoiceClick(option.id)}
-                    style={{
-                      padding: '10px 16px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      backgroundColor: colors.primary.main,
-                      color: colors.white,
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                      width: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.primary.dark;
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.primary.main;
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                </Tooltip>
-              );
-            })}
-          </div>
+      {/* Choice Buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {awaitingChoice.options.map((option) => {
+          const choiceTooltip = awaitingChoice.type === 'MOVEMENT'
+            ? getMovementChoiceTooltip(option.id)
+            : { tooltip: option.label, context: '' };
 
-          {/* Info Text - contextual based on choice type */}
-          <div style={{
-            marginTop: '20px',
-            padding: '15px',
-            backgroundColor: colors.secondary.bg,
-            borderRadius: '8px',
-            border: `1px solid ${colors.secondary.border}`
-          }}>
-            <p style={{
-              margin: '0',
-              fontSize: '14px',
-              color: colors.secondary.main,
-              textAlign: 'center'
-            }}>
-              {awaitingChoice.type === 'CARD_SELECTION'
-                ? 'Select the card you want to use for this action.'
-                : awaitingChoice.type === 'CARD_GIVE'
-                  ? 'Choose which card to give to your opponent.'
-                  : 'Make your selection to continue.'}
-            </p>
-          </div>
-        </div>
+          return (
+            <Tooltip key={option.id} content={choiceTooltip.tooltip} context={choiceTooltip.context} position="right">
+              <button
+                onClick={() => handleChoiceClick(option.id)}
+                style={choiceButtonStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.primary.dark;
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = colors.primary.main;
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {option.label}
+              </button>
+            </Tooltip>
+          );
+        })}
       </div>
-    </>
+
+      {/* Help Text */}
+      <div style={{
+        marginTop: '20px',
+        padding: '15px',
+        backgroundColor: colors.secondary.bg,
+        borderRadius: theme.borderRadius.md,
+        border: `1px solid ${colors.secondary.border}`
+      }}>
+        <p style={{
+          margin: '0',
+          fontSize: '14px',
+          color: colors.secondary.main,
+          textAlign: 'center'
+        }}>
+          {theme.emoji.info} {getHelpText()}
+        </p>
+      </div>
+    </ModalBase>
   );
 }
