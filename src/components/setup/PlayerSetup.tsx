@@ -9,6 +9,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { DataEditor } from '../editor/DataEditor';
+import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -23,7 +24,7 @@ export function PlayerSetup({
 }: PlayerSetupProps): JSX.Element {
   
   // Get services from context
-  const { stateService, gameRulesService } = useGameContext();
+  const { stateService, gameRulesService, dataService } = useGameContext();
   
   // Get players from StateService instead of local state
   const [players, setPlayers] = useState<Player[]>([]);
@@ -51,6 +52,7 @@ export function PlayerSetup({
 
   const [isStarting, setIsStarting] = useState(false);
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
+  const [showCardSelection, setShowCardSelection] = useState(false);
 
   // Use validation hook with services
   const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService);
@@ -432,28 +434,41 @@ export function PlayerSetup({
                     </span>
                   </label>
 
-                  {/* Educational mode: Select Cards button (placeholder for Phase 3) */}
+                  {/* Educational mode: Select Cards button */}
                   {gameSettings.startingMode === 'EDUCATIONAL' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // TODO: Phase 3 - Open CardSelectionModal
-                        alert('Card selection coming soon! For now, use Quick Start mode.');
-                      }}
-                      style={{
-                        marginTop: '0.75rem',
-                        marginLeft: '1.5rem',
-                        padding: '0.5rem 1rem',
-                        backgroundColor: colors.primary.main,
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem'
-                      }}
-                    >
-                      Select Starting Cards...
-                    </button>
+                    <div style={{ marginTop: '0.75rem', marginLeft: '1.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCardSelection(true)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          backgroundColor: colors.primary.main,
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        Select Starting Cards...
+                      </button>
+                      {/* Show selection summary */}
+                      {gameSettings.preSelectedHand && gameSettings.preSelectedHand.length > 0 && (
+                        <div style={{
+                          marginTop: '0.5rem',
+                          fontSize: '0.85rem',
+                          color: colors.success.text
+                        }}>
+                          {gameSettings.preSelectedHand.length} card{gameSettings.preSelectedHand.length !== 1 ? 's' : ''} selected:
+                          {' '}
+                          <span style={{ color: colors.text.secondary }}>
+                            {gameSettings.preSelectedHand.filter(id => id.startsWith('W')).length} W,
+                            {' '}
+                            {gameSettings.preSelectedHand.filter(id => id.startsWith('E')).length} E
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -552,6 +567,21 @@ export function PlayerSetup({
 
       {/* Data Editor Modal */}
       {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
+
+      {/* Educational Card Selection Modal */}
+      <EducationalCardSelectionModal
+        isOpen={showCardSelection}
+        onClose={() => setShowCardSelection(false)}
+        onConfirm={(selectedCardIds) => {
+          setGameSettings({
+            ...gameSettings,
+            preSelectedHand: selectedCardIds
+          });
+          setShowCardSelection(false);
+        }}
+        initialSelection={gameSettings.preSelectedHand}
+        dataService={dataService}
+      />
     </div>
   );
 }

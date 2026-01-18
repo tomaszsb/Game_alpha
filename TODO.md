@@ -21,6 +21,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Educational Card Selection Modal (Jan 18, 2026) - Complete Same Starting Point feature
+  - Created `EducationalCardSelectionModal.tsx` with filter tabs and multi-select
+  - Wired to PlayerSetup.tsx for Educational mode
+  - Teachers can pre-select starting cards for all players
 - ✅ Try Again State Restoration Fix (Jan 18, 2026) - Cards now properly cleared on Try Again
   - Fixed: `discardTempState()` and `createTempStateFromReal()` now restore player state from REAL
   - Root cause: Main player state wasn't being restored when TEMP was discarded
@@ -28,7 +32,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
   - Per-player deck system with seeded shuffle
   - Quick Start mode (P1's draws become all players' starting hand)
   - Game mode UI in PlayerSetup.tsx
-  - Pending: Educational mode card selection modal
 - ✅ Service Extraction Refactoring (Jan 12-13, 2026) - ServerSyncService, EffectEngineService handlers, 551 lines legacy code removed
 - ✅ Movement Bug Fixes (Jan 10, 2026) - Descriptive choices, loop explanations, logic paths
 - ✅ Financial Bug Fixes (Jan 9, 2026) - Auto-play funding cards at all funding spaces, fee validation

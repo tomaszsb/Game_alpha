@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Educational Card Selection Modal (January 18, 2026)
+
+**New Feature: Card selection for Educational mode in Same Starting Point**
+
+Teachers can now pre-select specific starting cards for all players in Educational mode, rather than relying on random draws.
+
+**Implementation:**
+- Created `EducationalCardSelectionModal.tsx` component
+  - Uses ModalBase for consistent styling
+  - Filter tabs: All, W Cards, E Cards
+  - Grid of selectable CardDisplay components
+  - Selection count and type breakdown in footer
+  - Clear/Cancel/Confirm buttons
+- Updated `PlayerSetup.tsx`:
+  - Wired modal to "Select Starting Cards..." button
+  - Shows selection summary when cards are selected
+  - Stores selected card IDs in `gameSettings.preSelectedHand`
+- Added `fundingHistory` to `PlayerUpdateData` type (TypeScript fix)
+
+**Usage:**
+1. Select "Same Starting Point" mode in game setup
+2. Select "Educational" sub-mode
+3. Click "Select Starting Cards..."
+4. Pick cards using filter tabs and clicking to select
+5. Confirm selection - all players will start with these cards
+
 ### Fix: Try Again State Restoration (January 18, 2026)
 
 **Fixed: Try Again now correctly restores player state from start of turn**

@@ -367,6 +367,7 @@ export interface PlayerUpdateData {
   costHistory?: import('./DataTypes').CostEntry[];
   costs?: import('./DataTypes').CostBreakdown;
   moveIntent?: string | null;
+  fundingHistory?: import('./DataTypes').FundingEntry[];
 }
 
 export type PlayerCards = {
