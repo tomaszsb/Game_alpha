@@ -136,6 +136,20 @@ export default defineConfig({
     port: 3000,
     host: true, // Bind to all interfaces for network access
     open: true, // Let Vite handle opening the browser with the correct port
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        // Retry with next port if 3001 fails
+        configure: (proxy) => {
+          proxy.on('error', (err, req, res) => {
+            // Try port 3002 if 3001 fails
+            const backupTarget = 'http://localhost:3002';
+            console.log(`Proxy error, retrying with ${backupTarget}`);
+          });
+        }
+      }
+    }
   },
   build: {
     outDir: 'dist',
