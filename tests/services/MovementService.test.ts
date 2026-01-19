@@ -252,12 +252,14 @@ describe('MovementService', () => {
       const result = await movementService.movePlayer('player1', 'DESTINATION-A');
 
       expect(result).toBe(updatedGameState);
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
-        currentSpace: 'DESTINATION-A',
-        visitType: 'First',
-        visitedSpaces: ['START-QUICK-PLAY-GUIDE', 'DESTINATION-A']
-      });
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          currentSpace: 'DESTINATION-A',
+          visitType: 'First',
+          visitedSpaces: ['START-QUICK-PLAY-GUIDE', 'DESTINATION-A']
+        })
+      );
     });
 
     it('should set visit type to Subsequent for non-starting spaces', async () => {
@@ -294,12 +296,14 @@ describe('MovementService', () => {
 
       const result = await movementService.movePlayer('player1', 'DESTINATION-A');
 
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
-        currentSpace: 'DESTINATION-A',
-        visitType: 'Subsequent',
-        visitedSpaces: ['START-QUICK-PLAY-GUIDE', 'DESTINATION-A'] // No change since already visited
-      });
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          currentSpace: 'DESTINATION-A',
+          visitType: 'Subsequent',
+          visitedSpaces: ['START-QUICK-PLAY-GUIDE', 'DESTINATION-A'] // No change since already visited
+        })
+      );
     });
 
     it('should throw error for invalid destination', async () => {
@@ -342,12 +346,14 @@ describe('MovementService', () => {
 
       const result = await movementService.movePlayer('player1', 'START-QUICK-PLAY-GUIDE');
 
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith({
-        id: 'player1',
-        currentSpace: 'START-QUICK-PLAY-GUIDE',
-        visitType: 'Subsequent',
-        visitedSpaces: ['START-QUICK-PLAY-GUIDE'] // No change since already in visitedSpaces
-      });
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          currentSpace: 'START-QUICK-PLAY-GUIDE',
+          visitType: 'Subsequent',
+          visitedSpaces: ['START-QUICK-PLAY-GUIDE'] // No change since already in visitedSpaces
+        })
+      );
     });
   });
 

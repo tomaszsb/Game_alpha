@@ -86,7 +86,7 @@ export class CardService implements ICardService {
     const isStartingSpace = player.currentSpace === 'OWNER-SCOPE-INITIATION';
     const hasPreSelectedCards = gameState.startingHand && gameState.startingHand.length > 0;
 
-    if (isEducationalMode && isStartingSpace && hasPreSelectedCards) {
+    if (isEducationalMode && isStartingSpace && hasPreSelectedCards && gameState.startingHand) {
       // Get pre-selected cards of this type
       const preSelectedOfType = gameState.startingHand.filter(cardId => cardId.startsWith(cardType));
 

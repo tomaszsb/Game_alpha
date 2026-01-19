@@ -368,6 +368,9 @@ export interface PlayerUpdateData {
   costs?: import('./DataTypes').CostBreakdown;
   moveIntent?: string | null;
   fundingHistory?: import('./DataTypes').FundingEntry[];
+  pathChoiceMemory?: {
+    'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT';
+  };
 }
 
 export type PlayerCards = {

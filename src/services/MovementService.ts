@@ -1,8 +1,19 @@
 // src/services/MovementService.ts
 
 import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService } from '../types/ServiceContracts';
-import { GameState, Player } from '../types/StateTypes';
+import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType } from '../types/DataTypes';
+
+/**
+ * Internal interface for move result passed between phases
+ */
+interface MoveResult {
+  player: Player;
+  playerUpdate: PlayerUpdateData;
+  sourceSpace: string;
+  destinationSpace: string;
+  newVisitType: VisitType;
+}
 
 /**
  * Movement timing configuration for smooth state transitions
@@ -188,13 +199,20 @@ export class MovementService implements IMovementService {
    * Phase 2: Execute the movement (prepare changes, no state writes yet)
    * @private
    */
-  private executeMove(moveValidation: any) {
+  private executeMove(moveValidation: {
+    player: Player;
+    destinationSpace: string;
+    sourceSpace: string;
+    newVisitType: VisitType;
+    updatedVisitedSpaces: string[];
+  }): MoveResult {
     const { player, destinationSpace, sourceSpace, newVisitType, updatedVisitedSpaces } = moveValidation;
 
     console.log(`⚡ Executing move: ${player.name} ${sourceSpace} → ${destinationSpace}`);
 
     // Prepare the player update object (don't write to state yet)
-    const playerUpdate = {
+    // Use PlayerUpdateData type to ensure all optional properties can be added later
+    const playerUpdate: PlayerUpdateData = {
       id: player.id,
       currentSpace: destinationSpace,
       visitType: newVisitType,
@@ -214,7 +232,7 @@ export class MovementService implements IMovementService {
    * Phase 3: Finalize move (write state, log, cleanup)
    * @private
    */
-  private finalizeMove(moveResult: any): GameState {
+  private finalizeMove(moveResult: MoveResult): GameState {
     const { player, playerUpdate, sourceSpace, destinationSpace, newVisitType } = moveResult;
 
     console.log(`📝 Finalizing move: ${player.name} ${sourceSpace} → ${destinationSpace}`);
@@ -250,6 +268,7 @@ export class MovementService implements IMovementService {
 
     // Add spaceVisitLog to playerUpdate
     playerUpdate.spaceVisitLog = updatedLog;
+    console.log(`📊 Journey Log: ${updatedLog.length} entries, latest: ${destinationSpace} (entryTime: ${currentTime})`);
 
     // SPECIAL: Store path choice memory for REG-DOB-TYPE-SELECT
     // Per DOB rules, once you choose Plan Exam vs Prof Cert, you're locked in for this application
@@ -265,6 +284,10 @@ export class MovementService implements IMovementService {
         'REG-DOB-TYPE-SELECT': destinationSpace as 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT'
       };
     }
+
+    // DEBUG: Verify playerUpdate contains spaceVisitLog before calling updatePlayer
+    console.log(`📊 MovementService.finalizeMove: playerUpdate keys = ${Object.keys(playerUpdate).join(', ')}`);
+    console.log(`📊 MovementService.finalizeMove: spaceVisitLog in playerUpdate = ${!!playerUpdate.spaceVisitLog}, length = ${playerUpdate.spaceVisitLog?.length}`);
 
     // WRITE STATE: Update player's position (atomic operation)
     const updatedState = this.stateService.updatePlayer(playerUpdate);

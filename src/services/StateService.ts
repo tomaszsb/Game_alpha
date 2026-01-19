@@ -300,12 +300,25 @@ export class StateService implements IStateService {
     }
 
     const currentPlayer = this.currentState.players[playerIndex];
+
+    // Debug: Log spaceVisitLog updates
+    if (playerData.spaceVisitLog) {
+      console.log(`📊 updatePlayer: spaceVisitLog update - from ${currentPlayer.spaceVisitLog?.length || 0} to ${playerData.spaceVisitLog.length} entries`);
+    }
+
     const updatedPlayer: Player = {
       ...currentPlayer,
       ...playerData,
       timeSpent: playerData.timeSpent !== undefined ? playerData.timeSpent : currentPlayer.timeSpent,
-      hand: playerData.hand ? [...playerData.hand] : currentPlayer.hand
+      hand: playerData.hand ? [...playerData.hand] : currentPlayer.hand,
+      visitedSpaces: playerData.visitedSpaces ? [...playerData.visitedSpaces] : currentPlayer.visitedSpaces,
+      spaceVisitLog: playerData.spaceVisitLog ? [...playerData.spaceVisitLog] : currentPlayer.spaceVisitLog
     };
+
+    // Debug: Verify spaceVisitLog was set
+    if (playerData.spaceVisitLog) {
+      console.log(`📊 updatePlayer: After merge - spaceVisitLog has ${updatedPlayer.spaceVisitLog?.length || 0} entries`);
+    }
 
     let newPlayers = [...this.currentState.players];
     newPlayers[playerIndex] = updatedPlayer;

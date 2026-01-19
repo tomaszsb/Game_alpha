@@ -275,10 +275,7 @@ export function EducationalCardSelectionModal({
                 isExpanded={isExpanded}
                 selectable={true}
                 isSelected={selectedCardIds.includes(card.card_id)}
-                onSelect={(e) => {
-                  e?.stopPropagation();
-                  handleCardToggle(card.card_id);
-                }}
+                onSelect={() => handleCardToggle(card.card_id)}
               />
             </div>
           );
