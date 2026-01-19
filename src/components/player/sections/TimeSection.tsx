@@ -177,29 +177,44 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
           <div className="visited-spaces-timeline">
             <div className="timeline-header">Journey Timeline</div>
             <div className="timeline-list">
-              {player.spaceVisitLog.map((visit, index) => {
-                const isCurrent = visit.spaceName === player.currentSpace && visit.exitTime === undefined;
-                return (
-                  <div
-                    key={`${visit.spaceName}-${index}`}
-                    className={`timeline-item ${isCurrent ? 'timeline-item--current' : ''}`}
-                  >
-                    <div className="timeline-marker">
-                      {isCurrent ? '📍' : '✓'}
-                    </div>
-                    <div className="timeline-content">
-                      <div className="timeline-space-name">{visit.spaceName}</div>
-                      <div className="timeline-days" style={{ fontSize: '12px', color: '#666' }}>
-                        {visit.daysSpent > 0 ? `${visit.daysSpent} days` : '0 days'}
+              {(() => {
+                let runningTotal = 0;
+                return player.spaceVisitLog.map((visit, index) => {
+                  const isCurrent = visit.spaceName === player.currentSpace && visit.exitTime === undefined;
+                  // For current space, calculate days dynamically (current time - entry time)
+                  const displayDays = isCurrent
+                    ? (elapsed - (visit.entryTime || 0))
+                    : visit.daysSpent;
+                  runningTotal += displayDays;
+                  return (
+                    <div
+                      key={`${visit.spaceName}-${index}`}
+                      className={`timeline-item ${isCurrent ? 'timeline-item--current' : ''}`}
+                    >
+                      <div className="timeline-marker">
+                        {isCurrent ? '📍' : '✓'}
                       </div>
-                      {isCurrent && (
-                        <div className="timeline-badge">Current</div>
-                      )}
+                      <div className="timeline-content">
+                        <div className="timeline-space-name">{visit.spaceName}</div>
+                        <div className="timeline-days" style={{ fontSize: '12px', color: '#666', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                          <span>{displayDays > 0 ? `+${displayDays}d` : '0d'}</span>
+                          <span style={{ color: '#999' }}>Total: {runningTotal}d</span>
+                        </div>
+                        {isCurrent && (
+                          <div className="timeline-badge">Current</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
+            {/* Show note if journey history is incomplete */}
+            {player.spaceVisitLog.length === 1 && elapsed > 0 && (
+              <div style={{ fontSize: '11px', color: '#999', marginTop: '8px', fontStyle: 'italic' }}>
+                Note: Detailed journey tracking started this session
+              </div>
+            )}
           </div>
         ) : player.visitedSpaces && player.visitedSpaces.length > 0 ? (
           // Fallback to visitedSpaces if spaceVisitLog is not available

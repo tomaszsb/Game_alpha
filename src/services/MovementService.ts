@@ -219,6 +219,38 @@ export class MovementService implements IMovementService {
 
     console.log(`📝 Finalizing move: ${player.name} ${sourceSpace} → ${destinationSpace}`);
 
+    // Update spaceVisitLog: close previous space entry and add new one
+    const gameState = this.stateService.getGameState();
+    const currentTurn = gameState.turn || 1;
+    const currentTime = player.timeSpent || 0;
+
+    // Get existing spaceVisitLog or create empty array
+    const existingLog = player.spaceVisitLog || [];
+    const updatedLog = [...existingLog];
+
+    // Close the previous space entry (find the most recent entry for sourceSpace without exitTime)
+    const lastEntryIndex = updatedLog.length - 1;
+    if (lastEntryIndex >= 0 && updatedLog[lastEntryIndex].spaceName === sourceSpace && !updatedLog[lastEntryIndex].exitTime) {
+      const entryTime = updatedLog[lastEntryIndex].entryTime || 0;
+      updatedLog[lastEntryIndex] = {
+        ...updatedLog[lastEntryIndex],
+        exitTime: currentTime,
+        exitTurn: currentTurn,
+        daysSpent: currentTime - entryTime
+      };
+    }
+
+    // Add new entry for destination space
+    updatedLog.push({
+      spaceName: destinationSpace,
+      entryTurn: currentTurn,
+      entryTime: currentTime,
+      daysSpent: 0
+    });
+
+    // Add spaceVisitLog to playerUpdate
+    playerUpdate.spaceVisitLog = updatedLog;
+
     // SPECIAL: Store path choice memory for REG-DOB-TYPE-SELECT
     // Per DOB rules, once you choose Plan Exam vs Prof Cert, you're locked in for this application
     if (sourceSpace === 'REG-DOB-TYPE-SELECT' &&
