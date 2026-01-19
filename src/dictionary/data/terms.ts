@@ -37,40 +37,48 @@ function parseCsvLine(line: string): string[] {
 
 /**
  * Parse GLOSSARY.csv content into GlossaryTerm objects
+ * Supports dynamic column mapping based on header row
  */
 function parseGlossaryCsv(csvText: string): GlossaryTerm[] {
   const lines = csvText.split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
 
-  // Skip header line
-  const dataLines = lines.slice(1);
+  // Parse Header to get column indices
+  const headerFields = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+  const colMap = new Map<string, number>();
+  headerFields.forEach((h, i) => colMap.set(h, i));
 
-  return dataLines.map(line => {
+  // Helper to safely get field by name
+  const getField = (row: string[], name: string): string => {
+    const idx = colMap.get(name);
+    return (idx !== undefined && row[idx]) ? row[idx].trim() : '';
+  };
+
+  return lines.slice(1).map(line => {
     const fields = parseCsvLine(line);
 
-    // CSV columns: id,term,definition,category,source,needs_review,aliases,related_terms,image_url
-    const [
-      id = '',
-      term = '',
-      definition = '',
-      category = 'Construction',
-      source = 'game',
-      needsReview = 'false',
-      aliases = '',
-      relatedTerms = '',
-      imageUrl = ''
-    ] = fields;
+    // Resolve definition (try technical, then old 'definition')
+    let definition = getField(fields, 'definition_technical');
+    if (!definition) definition = getField(fields, 'definition');
+
+    // Parse array fields
+    const parseArray = (val: string) => val ? val.split('|').map(s => s.trim()).filter(Boolean) : [];
 
     return {
-      id: id.trim(),
-      term: term.trim(),
-      definition: definition.trim(),
-      category: category.trim() as TermCategory,
-      source: source.trim() as 'iqarius' | 'game',
-      needsReview: needsReview.trim().toLowerCase() === 'true',
-      aliases: aliases ? aliases.split('|').map(a => a.trim()).filter(Boolean) : [],
-      relatedTerms: relatedTerms ? relatedTerms.split('|').map(r => r.trim()).filter(Boolean) : [],
-      imageUrl: imageUrl.trim() || undefined
+      id: getField(fields, 'id'),
+      term: getField(fields, 'term'),
+      definition: definition,
+      definitionSimple: getField(fields, 'definition_simple') || undefined,
+      instructions: getField(fields, 'instructions') || undefined,
+      category: (getField(fields, 'category') || 'Construction') as TermCategory,
+      source: (getField(fields, 'source') || 'game') as 'iqarius' | 'game',
+      needsReview: getField(fields, 'needs_review').toLowerCase() === 'true',
+      aliases: parseArray(getField(fields, 'aliases')),
+      relatedTerms: parseArray(getField(fields, 'related_terms')),
+      imageUrl: getField(fields, 'image_url') || undefined,
+      videoUrl: getField(fields, 'video_url') || undefined,
+      sourceUrl: getField(fields, 'source_url') || undefined,
+      instagramLink: getField(fields, 'instagram_link') || undefined
     };
   }).filter(term => term.id && term.term);
 }

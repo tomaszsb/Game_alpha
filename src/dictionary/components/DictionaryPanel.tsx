@@ -24,7 +24,8 @@ export function DictionaryPanel({
   isOpen,
   onClose,
   initialTermId,
-  config
+  config,
+  mode = 'game'
 }: DictionaryPanelProps): JSX.Element | null {
   const { terms, isLoading, error, categories, getTerm, search } = useDictionary();
   const [selectedTerm, setSelectedTerm] = useState<GlossaryTerm | null>(null);
@@ -197,7 +198,7 @@ export function DictionaryPanel({
           )}
 
           {!isLoading && !error && selectedTerm && (
-            <div className="dictionary-term-detail">
+            <div className={`dictionary-term-detail dictionary-mode-${mode}`}>
               <div className="dictionary-term-detail__header">
                 <h3 className="dictionary-term-detail__title">{selectedTerm.term}</h3>
                 <span className={`dictionary-category-badge dictionary-category-badge--${selectedTerm.category.toLowerCase()}`}>
@@ -217,8 +218,42 @@ export function DictionaryPanel({
                 </div>
               )}
 
+              {/* Iqarius/Unravel: Simple Definition */}
+              {(mode === 'iqarius' || mode === 'unravel') && selectedTerm.definitionSimple && (
+                <div className="dictionary-term-detail__definition-simple" style={{ fontStyle: 'italic', marginBottom: '1rem', color: '#ffd700' }}>
+                  <strong>Quick Summary:</strong> {selectedTerm.definitionSimple}
+                </div>
+              )}
+
               <div className="dictionary-term-detail__definition">
                 {selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}
+              </div>
+
+              {/* Iqarius: Instructions */}
+              {mode === 'iqarius' && selectedTerm.instructions && (
+                <div className="dictionary-term-detail__instructions" style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                  <strong style={{ display: 'block', marginBottom: '0.5rem' }}>How-To:</strong>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{selectedTerm.instructions}</div>
+                </div>
+              )}
+
+              {/* Links Section */}
+              <div className="dictionary-term-detail__links" style={{ display: 'flex', gap: '10px', marginTop: '1rem', flexWrap: 'wrap' }}>
+                {selectedTerm.videoUrl && (
+                  <a href={selectedTerm.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ff4444', textDecoration: 'underline' }}>
+                    ▶ Watch Video
+                  </a>
+                )}
+                {selectedTerm.sourceUrl && (
+                  <a href={selectedTerm.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4488ff', textDecoration: 'underline' }}>
+                    Official Source
+                  </a>
+                )}
+                {selectedTerm.instagramLink && (
+                  <a href={selectedTerm.instagramLink} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', textDecoration: 'underline' }}>
+                    Instagram
+                  </a>
+                )}
               </div>
 
               {selectedTerm.aliases.length > 0 && (

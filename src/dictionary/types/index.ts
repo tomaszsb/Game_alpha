@@ -15,8 +15,14 @@ export interface GlossaryTerm {
   /** Display name of the term */
   term: string;
 
-  /** Plain-language definition of the term */
+  /** Plain-language definition of the term (Technical/Detailed) */
   definition: string;
+
+  /** Simple, layman-friendly definition (1 sentence) */
+  definitionSimple?: string;
+
+  /** Step-by-step instructions for homeowners */
+  instructions?: string;
 
   /** Category for grouping terms (e.g., "Professionals", "Agencies", "Construction") */
   category: TermCategory;
@@ -35,6 +41,15 @@ export interface GlossaryTerm {
 
   /** Optional URL to an image illustrating this term */
   imageUrl?: string;
+
+  /** Optional YouTube video URL */
+  videoUrl?: string;
+
+  /** Optional link to official source (DOB/Code) */
+  sourceUrl?: string;
+
+  /** Optional link to Instagram post */
+  instagramLink?: string;
 }
 
 /**
@@ -158,6 +173,9 @@ export interface DictionaryPanelProps {
 
   /** Configuration options */
   config?: DictionaryConfig;
+
+  /** Display mode controls which fields and layout are shown */
+  mode?: 'game' | 'iqarius' | 'unravel';
 }
 
 /**
