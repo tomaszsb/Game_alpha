@@ -571,16 +571,12 @@ export class StateService implements IStateService {
       playerDiscardPiles[player.id] = { W: [], B: [], E: [], L: [], I: [] };
     }
 
-    // For Educational mode, apply pre-selected starting hand
+    // For Educational mode, DON'T give cards at startup - store them for later
+    // Cards will be given when player presses draw buttons on OWNER-SCOPE-INITIATION
     const updatedPlayers = [...this.currentState.players];
     if (startingMode === 'EDUCATIONAL' && preSelectedHand && preSelectedHand.length > 0) {
-      // Give selected starting cards to all players
+      // Remove pre-selected cards from each player's deck (so they can be given later)
       for (let i = 0; i < updatedPlayers.length; i++) {
-        updatedPlayers[i] = {
-          ...updatedPlayers[i],
-          hand: [...preSelectedHand]
-        };
-        // Remove starting cards from each player's deck
         for (const cardId of preSelectedHand) {
           const cardType = this.getCardTypeFromId(cardId);
           if (cardType && playerDecks[updatedPlayers[i].id]) {
@@ -629,7 +625,7 @@ export class StateService implements IStateService {
     if (isQuickStart) {
       console.log(`   📝 Quick Start: Capturing P1's draws as starting hand for all players`);
     } else if (startingMode === 'EDUCATIONAL' && preSelectedHand) {
-      console.log(`   📚 Educational: All players start with ${preSelectedHand.length} pre-selected cards`);
+      console.log(`   📚 Educational: ${preSelectedHand.length} cards pre-selected (given when buttons pressed on starting space)`);
     }
 
     return { ...this.currentState };
@@ -1762,10 +1758,17 @@ export class StateService implements IStateService {
    * @param serverVersion - Optional server version to track
    */
   replaceState(newState: GameState, serverVersion?: number): void {
-    this.currentState = newState;
+    // Reject stale server updates - only accept if version is actually newer
+    // This prevents race conditions where polling returns old state during Try Again
     if (serverVersion !== undefined) {
+      const currentKnownVersion = this.serverSyncService.getServerVersion();
+      if (serverVersion <= currentKnownVersion) {
+        console.log(`⏭️ Rejecting stale server state (v${serverVersion} <= v${currentKnownVersion})`);
+        return;
+      }
       this.serverSyncService.setServerVersion(serverVersion);
     }
+    this.currentState = newState;
     // Skip sync when replacing from server poll to avoid syncing back what we just received
     this.notifyListeners({ skipSync: true });
   }

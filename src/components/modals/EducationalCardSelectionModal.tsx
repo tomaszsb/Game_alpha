@@ -8,7 +8,7 @@ import { IDataService } from '../../types/ServiceContracts';
 import { Card, CardType } from '../../types/DataTypes';
 import { colors, theme } from '../../styles/theme';
 
-type FilterType = 'ALL' | 'W' | 'E';
+type CardTypeFilter = 'ALL' | 'W' | 'E';
 
 interface EducationalCardSelectionModalProps {
   isOpen: boolean;
@@ -26,7 +26,9 @@ export function EducationalCardSelectionModal({
   dataService,
 }: EducationalCardSelectionModalProps): JSX.Element | null {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>(initialSelection);
-  const [filter, setFilter] = useState<FilterType>('ALL');
+  const [cardTypeFilter, setCardTypeFilter] = useState<CardTypeFilter>('ALL');
+  const [workTypeFilter, setWorkTypeFilter] = useState<string>('ALL');
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   // Get W and E cards (the types drawn at game start)
   const allCards = useMemo(() => {
@@ -35,11 +37,33 @@ export function EducationalCardSelectionModal({
     return [...wCards, ...eCards];
   }, [dataService]);
 
-  // Filter cards based on current filter
+  // Get unique work types
+  const workTypes = useMemo(() => {
+    const types = new Set<string>();
+    allCards.forEach(card => {
+      if (card.work_type_restriction) {
+        types.add(card.work_type_restriction);
+      }
+    });
+    return Array.from(types).sort();
+  }, [allCards]);
+
+  // Filter cards based on current filters
   const filteredCards = useMemo(() => {
-    if (filter === 'ALL') return allCards;
-    return allCards.filter(card => card.card_id.startsWith(filter));
-  }, [allCards, filter]);
+    let filtered = allCards;
+
+    // Filter by card type (W/E)
+    if (cardTypeFilter !== 'ALL') {
+      filtered = filtered.filter(card => card.card_id.startsWith(cardTypeFilter));
+    }
+
+    // Filter by work type
+    if (workTypeFilter !== 'ALL') {
+      filtered = filtered.filter(card => card.work_type_restriction === workTypeFilter);
+    }
+
+    return filtered;
+  }, [allCards, cardTypeFilter, workTypeFilter]);
 
   // Count selected by type
   const selectionCounts = useMemo(() => {
@@ -59,6 +83,11 @@ export function EducationalCardSelectionModal({
     });
   };
 
+  const handleCardClick = (cardId: string) => {
+    // Toggle expanded view for this card
+    setExpandedCardId(prev => prev === cardId ? null : cardId);
+  };
+
   const handleConfirm = () => {
     onConfirm(selectedCardIds);
   };
@@ -71,8 +100,9 @@ export function EducationalCardSelectionModal({
   const filterContainerStyle: React.CSSProperties = {
     display: 'flex',
     gap: '8px',
-    marginBottom: '16px',
+    marginBottom: '12px',
     flexWrap: 'wrap',
+    alignItems: 'center',
   };
 
   const filterButtonStyle = (isActive: boolean): React.CSSProperties => ({
@@ -88,9 +118,20 @@ export function EducationalCardSelectionModal({
     minHeight: theme.mobile.minTapTarget,
   });
 
+  const selectStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    fontSize: '14px',
+    border: `1px solid ${colors.secondary.border}`,
+    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.white,
+    cursor: 'pointer',
+    minHeight: theme.mobile.minTapTarget,
+    minWidth: '180px',
+  };
+
   const cardGridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
     gap: '12px',
     maxHeight: '50vh',
     overflowY: 'auto',
@@ -112,6 +153,12 @@ export function EducationalCardSelectionModal({
     backgroundColor: type === 'W' ? colors.warning.light : colors.info.light,
     color: type === 'W' ? colors.warning.dark : colors.info.dark,
     borderRadius: theme.borderRadius.sm,
+  });
+
+  const cardWrapperStyle = (isExpanded: boolean): React.CSSProperties => ({
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease',
+    transform: isExpanded ? 'scale(1.02)' : 'scale(1)',
   });
 
   const footer = (
@@ -159,48 +206,88 @@ export function EducationalCardSelectionModal({
       title="Select Starting Cards"
       emoji="📚"
       footer={footer}
-      maxWidth="900px"
+      maxWidth="1000px"
       testId="educational-card-selection-modal"
     >
-      {/* Filter tabs */}
+      {/* Card Type Filter tabs */}
       <div style={filterContainerStyle}>
         <button
-          onClick={() => setFilter('ALL')}
-          style={filterButtonStyle(filter === 'ALL')}
+          onClick={() => setCardTypeFilter('ALL')}
+          style={filterButtonStyle(cardTypeFilter === 'ALL')}
         >
-          All Cards ({allCards.length})
+          All ({allCards.length})
         </button>
         <button
-          onClick={() => setFilter('W')}
-          style={filterButtonStyle(filter === 'W')}
+          onClick={() => setCardTypeFilter('W')}
+          style={filterButtonStyle(cardTypeFilter === 'W')}
         >
           W Cards ({allCards.filter(c => c.card_id.startsWith('W')).length})
         </button>
         <button
-          onClick={() => setFilter('E')}
-          style={filterButtonStyle(filter === 'E')}
+          onClick={() => setCardTypeFilter('E')}
+          style={filterButtonStyle(cardTypeFilter === 'E')}
         >
           E Cards ({allCards.filter(c => c.card_id.startsWith('E')).length})
         </button>
       </div>
 
+      {/* Work Type Filter dropdown */}
+      <div style={{ ...filterContainerStyle, marginBottom: '16px' }}>
+        <label style={{ fontWeight: '500', color: colors.text.primary }}>
+          Work Type:
+        </label>
+        <select
+          value={workTypeFilter}
+          onChange={(e) => setWorkTypeFilter(e.target.value)}
+          style={selectStyle}
+        >
+          <option value="ALL">All Work Types ({filteredCards.length} cards)</option>
+          {workTypes.map(type => {
+            const count = allCards.filter(c =>
+              c.work_type_restriction === type &&
+              (cardTypeFilter === 'ALL' || c.card_id.startsWith(cardTypeFilter))
+            ).length;
+            return (
+              <option key={type} value={type}>
+                {type} ({count})
+              </option>
+            );
+          })}
+        </select>
+        <span style={{ fontSize: '13px', color: colors.text.secondary, marginLeft: '8px' }}>
+          Click a card to see details
+        </span>
+      </div>
+
       {/* Card grid */}
       <div style={cardGridStyle}>
-        {filteredCards.map(card => (
-          <CardDisplay
-            key={card.card_id}
-            card={card}
-            variant="compact"
-            selectable={true}
-            isSelected={selectedCardIds.includes(card.card_id)}
-            onSelect={() => handleCardToggle(card.card_id)}
-          />
-        ))}
+        {filteredCards.map(card => {
+          const isExpanded = expandedCardId === card.card_id;
+          return (
+            <div
+              key={card.card_id}
+              style={cardWrapperStyle(isExpanded)}
+              onClick={() => handleCardClick(card.card_id)}
+            >
+              <CardDisplay
+                card={card}
+                variant={isExpanded ? 'detailed' : 'compact'}
+                isExpanded={isExpanded}
+                selectable={true}
+                isSelected={selectedCardIds.includes(card.card_id)}
+                onSelect={(e) => {
+                  e?.stopPropagation();
+                  handleCardToggle(card.card_id);
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {filteredCards.length === 0 && (
         <div style={{ textAlign: 'center', padding: '24px', color: colors.text.secondary }}>
-          No cards found
+          No cards found matching filters
         </div>
       )}
     </ModalBase>

@@ -81,6 +81,48 @@ export class CardService implements ICardService {
 
     const gameState = this.stateService.getGameState();
 
+    // Educational mode: On starting space, give pre-selected cards instead of drawing from deck
+    const isEducationalMode = gameState.startingMode === 'EDUCATIONAL';
+    const isStartingSpace = player.currentSpace === 'OWNER-SCOPE-INITIATION';
+    const hasPreSelectedCards = gameState.startingHand && gameState.startingHand.length > 0;
+
+    if (isEducationalMode && isStartingSpace && hasPreSelectedCards) {
+      // Get pre-selected cards of this type
+      const preSelectedOfType = gameState.startingHand.filter(cardId => cardId.startsWith(cardType));
+
+      if (preSelectedOfType.length > 0) {
+        console.log(`📚 Educational mode: Giving ${preSelectedOfType.length} pre-selected ${cardType} card(s) instead of drawing`);
+
+        // Add pre-selected cards to player's hand
+        const currentHand = player.hand || [];
+        const newHand = [...currentHand, ...preSelectedOfType];
+
+        // Update player state with the pre-selected cards
+        this.stateService.updatePlayer({ id: playerId, hand: newHand });
+
+        // For Quick Start mode compatibility, track captured cards
+        if (gameState.isCapturingStartingHand) {
+          const currentStartingHand = gameState.startingHand || [];
+          this.stateService.updateGameState({
+            startingHand: [...currentStartingHand, ...preSelectedOfType]
+          });
+        }
+
+        // Log card draw to action history
+        this.loggingService.info(`Drew ${preSelectedOfType.length} ${cardType} card(s) (pre-selected): ${preSelectedOfType.join(', ')}`, {
+          playerId: player.id,
+          action: 'card_draw',
+          cardType,
+          count: preSelectedOfType.length,
+          cards: preSelectedOfType,
+          source: source || 'educational_mode',
+          reason: reason || 'Pre-selected starting cards'
+        });
+
+        return preSelectedOfType;
+      }
+    }
+
     // Determine which deck and discard pile to use based on game mode
     const isSameStartMode = gameState.gameMode === 'SAME_START';
 
