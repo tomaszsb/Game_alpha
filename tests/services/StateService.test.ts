@@ -608,10 +608,208 @@ describe('StateService', () => {
       const stateServiceEmptyConfigs = new StateService(mockDataServiceEmptyConfigs);
       stateServiceEmptyConfigs.addPlayer('Alice');
       stateServiceEmptyConfigs.addPlayer('Bob');
-      
+
       const canStart = stateServiceEmptyConfigs.canStartGame();
-      
+
       expect(canStart).toBe(true); // Should use fallback 1-6 player range
+    });
+  });
+
+  describe('commitTempToReal Movement State Preservation (January 2026 Fix)', () => {
+    /**
+     * These tests verify that movement-related properties are NOT overwritten
+     * when committing TEMP state back to REAL state at end of turn.
+     *
+     * Background: The TEMP state system captures player state at the START of a turn.
+     * Movement happens DURING the turn and updates the player directly through
+     * MovementService.movePlayerToSpace(). When the turn ends, commitTempToReal()
+     * must NOT overwrite these movement updates with the stale values from TEMP.
+     *
+     * Properties that must be preserved:
+     * - currentSpace: Updated by MovementService
+     * - visitType: Updated by MovementService
+     * - visitedSpaces: Updated by MovementService
+     * - spaceVisitLog: Updated by MovementService (journey timeline)
+     * - moveIntent: Set during movement
+     * - pathChoiceMemory: Path choices made during movement
+     */
+
+    let testStateService: StateService;
+    let testPlayerId: string;
+
+    beforeEach(() => {
+      // Create fresh service with loaded data
+      mockDataService.isLoaded.mockReturnValue(true);
+      mockDataService.getGameConfig.mockReturnValue([
+        { space_name: 'START-SPACE', is_starting_space: true, min_players: 1, max_players: 4 }
+      ] as any);
+
+      testStateService = new StateService(mockDataService);
+      const addResult = testStateService.addPlayer('TestPlayer');
+      testPlayerId = addResult.players[0].id;
+    });
+
+    it('should preserve spaceVisitLog when committing TEMP to REAL', () => {
+      // Arrange: Create TEMP state (simulates turn start)
+      testStateService.createTempStateFromReal({
+        playerId: testPlayerId,
+        spaceName: 'START-SPACE',
+        visitType: 'First',
+        isTryAgain: false
+      });
+
+      // Simulate movement - update player directly (as MovementService does)
+      const movementSpaceVisitLog = [
+        { spaceName: 'START-SPACE', entryTime: 0, exitTime: 2, daysSpent: 2 },
+        { spaceName: 'NEW-SPACE', entryTime: 2, exitTime: undefined, daysSpent: 0 }
+      ];
+      testStateService.updatePlayer({
+        id: testPlayerId,
+        currentSpace: 'NEW-SPACE',
+        visitType: 'First',
+        spaceVisitLog: movementSpaceVisitLog
+      });
+
+      // Act: Commit TEMP to REAL (end of turn)
+      testStateService.commitTempToReal(testPlayerId);
+
+      // Assert: spaceVisitLog should be preserved, not overwritten by TEMP
+      const player = testStateService.getPlayer(testPlayerId);
+      expect(player?.spaceVisitLog).toHaveLength(2);
+      expect(player?.spaceVisitLog?.[1].spaceName).toBe('NEW-SPACE');
+    });
+
+    it('should preserve currentSpace when committing TEMP to REAL', () => {
+      // Arrange: Create TEMP state at original space
+      testStateService.createTempStateFromReal({
+        playerId: testPlayerId,
+        spaceName: 'START-SPACE',
+        visitType: 'First',
+        isTryAgain: false
+      });
+
+      // Simulate movement to new space
+      testStateService.updatePlayer({
+        id: testPlayerId,
+        currentSpace: 'DESTINATION-SPACE',
+        visitType: 'First'
+      });
+
+      // Act: Commit TEMP to REAL
+      testStateService.commitTempToReal(testPlayerId);
+
+      // Assert: currentSpace should be the new location, not START-SPACE
+      const player = testStateService.getPlayer(testPlayerId);
+      expect(player?.currentSpace).toBe('DESTINATION-SPACE');
+    });
+
+    it('should preserve visitedSpaces when committing TEMP to REAL', () => {
+      // Arrange: Create TEMP state
+      testStateService.createTempStateFromReal({
+        playerId: testPlayerId,
+        spaceName: 'START-SPACE',
+        visitType: 'First',
+        isTryAgain: false
+      });
+
+      // Simulate movement - add to visitedSpaces
+      testStateService.updatePlayer({
+        id: testPlayerId,
+        visitedSpaces: ['START-SPACE', 'NEW-SPACE']
+      });
+
+      // Act: Commit TEMP to REAL
+      testStateService.commitTempToReal(testPlayerId);
+
+      // Assert: visitedSpaces should contain both spaces
+      const player = testStateService.getPlayer(testPlayerId);
+      expect(player?.visitedSpaces).toContain('START-SPACE');
+      expect(player?.visitedSpaces).toContain('NEW-SPACE');
+    });
+
+    it('should preserve visitType when committing TEMP to REAL', () => {
+      // Arrange: Create TEMP state
+      testStateService.createTempStateFromReal({
+        playerId: testPlayerId,
+        spaceName: 'START-SPACE',
+        visitType: 'First',
+        isTryAgain: false
+      });
+
+      // Simulate movement to previously visited space
+      testStateService.updatePlayer({
+        id: testPlayerId,
+        currentSpace: 'REVISITED-SPACE',
+        visitType: 'Revisit'
+      });
+
+      // Act: Commit TEMP to REAL
+      testStateService.commitTempToReal(testPlayerId);
+
+      // Assert: visitType should be 'Revisit', not the original TEMP value
+      const player = testStateService.getPlayer(testPlayerId);
+      expect(player?.visitType).toBe('Revisit');
+    });
+
+    it('should preserve pathChoiceMemory when committing TEMP to REAL', () => {
+      // Arrange: Create TEMP state
+      testStateService.createTempStateFromReal({
+        playerId: testPlayerId,
+        spaceName: 'START-SPACE',
+        visitType: 'First',
+        isTryAgain: false
+      });
+
+      // Simulate path choice during movement
+      testStateService.updatePlayer({
+        id: testPlayerId,
+        pathChoiceMemory: {
+          'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM'
+        }
+      });
+
+      // Act: Commit TEMP to REAL
+      testStateService.commitTempToReal(testPlayerId);
+
+      // Assert: pathChoiceMemory should be preserved
+      const player = testStateService.getPlayer(testPlayerId);
+      expect(player?.pathChoiceMemory?.['REG-DOB-TYPE-SELECT']).toBe('REG-DOB-PLAN-EXAM');
+    });
+
+    it('should still merge non-movement TEMP state changes', () => {
+      // Arrange: Create TEMP state
+      testStateService.createTempStateFromReal({
+        playerId: testPlayerId,
+        spaceName: 'START-SPACE',
+        visitType: 'First',
+        isTryAgain: false
+      });
+
+      // Simulate spending money and time during turn (via TEMP state)
+      testStateService.updateTempState(testPlayerId, {
+        money: 100,
+        timeSpent: 5
+      });
+
+      // Also simulate movement
+      testStateService.updatePlayer({
+        id: testPlayerId,
+        currentSpace: 'NEW-SPACE',
+        spaceVisitLog: [
+          { spaceName: 'START-SPACE', entryTime: 0, exitTime: 5, daysSpent: 5 },
+          { spaceName: 'NEW-SPACE', entryTime: 5, exitTime: undefined, daysSpent: 0 }
+        ]
+      });
+
+      // Act: Commit TEMP to REAL
+      testStateService.commitTempToReal(testPlayerId);
+
+      // Assert: Both TEMP changes AND movement changes are preserved
+      const player = testStateService.getPlayer(testPlayerId);
+      expect(player?.money).toBe(100); // From TEMP
+      expect(player?.timeSpent).toBe(5); // From TEMP
+      expect(player?.currentSpace).toBe('NEW-SPACE'); // Movement preserved
+      expect(player?.spaceVisitLog).toHaveLength(2); // Movement preserved
     });
   });
 });

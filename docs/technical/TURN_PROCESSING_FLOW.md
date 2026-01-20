@@ -619,3 +619,20 @@ Dice-movement spaces (where dice determines destination) now have contextual beh
   - Time penalty applied to REAL before creating fresh TEMP
 - End Turn: `commitTempToReal()` finalizes changes
 - Removed `hasPreSpaceEffectSnapshot()` conditional checks
+
+### Movement State Preservation (January 2026 Fix)
+**Important:** Movement-related state is updated by `MovementService` directly on the player object,
+NOT through the TEMP state system. When `commitTempToReal()` merges TEMP state back to the player,
+these properties must be preserved from the current player state:
+
+| Property | Updated By | Purpose |
+|----------|------------|---------|
+| `currentSpace` | MovementService | Player's current location |
+| `visitType` | MovementService | First or Subsequent visit |
+| `visitedSpaces` | MovementService | Array of all visited spaces |
+| `spaceVisitLog` | MovementService | Journey timeline with time spent per space |
+| `moveIntent` | StateService | Selected destination for movement |
+| `pathChoiceMemory` | MovementService | Locked path choices (e.g., DOB exam type) |
+
+**Why this matters:** Without this preservation, the journey timeline (`spaceVisitLog`) in the
+TIME section would be overwritten with stale data when the turn ends, losing the movement history.
