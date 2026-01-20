@@ -6,6 +6,7 @@ import { useGameContext } from '../../context/GameContext';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { CardDisplay } from '../common/CardDisplay';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
+import { CardDetailsModal } from './CardDetailsModal';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import '../common/CardDisplay.css';
 
@@ -32,9 +33,10 @@ export function CardReplacementModal({
   onReplace,
   onCancel
 }: CardReplacementModalProps): JSX.Element | null {
-  const { dataService, stateService } = useGameContext();
+  const { dataService, stateService, cardService } = useGameContext();
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [replacementCardType, setReplacementCardType] = useState<CardType>(newCardType || 'W');
+  const [detailCardId, setDetailCardId] = useState<string | null>(null);
 
   if (!isOpen || !player) {
     return null;
@@ -128,6 +130,7 @@ export function CardReplacementModal({
   );
 
   return (
+    <>
     <ModalBase
       isOpen={isOpen}
       onClose={handleCancel}
@@ -198,7 +201,7 @@ export function CardReplacementModal({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    stateService.showCardModal(cardId);
+                    setDetailCardId(cardId);
                   }}
                   style={{
                     padding: '4px 12px',
@@ -296,5 +299,20 @@ export function CardReplacementModal({
         </>
       )}
     </ModalBase>
+
+      {/* Nested CardDetailsModal for viewing card details */}
+      {detailCardId && (
+        <div style={{ position: 'fixed', zIndex: 1100 }}>
+          <CardDetailsModal
+            isOpen={true}
+            onClose={() => setDetailCardId(null)}
+            card={getCardDetails(detailCardId)}
+            currentPlayer={player}
+            otherPlayers={stateService.getGameState().players.filter(p => p.id !== player?.id)}
+            cardService={cardService}
+          />
+        </div>
+      )}
+    </>
   );
 }

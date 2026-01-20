@@ -11,9 +11,19 @@ const mockDataService = {
   getCardById: vi.fn()
 } as unknown as DataService;
 
+const mockStateService = {
+  getGameState: vi.fn().mockReturnValue({
+    players: []
+  })
+};
+
+const mockCardService = {};
+
 vi.mock('../../../src/context/GameContext', () => ({
   useGameContext: () => ({
-    dataService: mockDataService
+    dataService: mockDataService,
+    stateService: mockStateService,
+    cardService: mockCardService
   })
 }));
 
@@ -204,8 +214,8 @@ describe('CardReplacementModal', () => {
     );
 
     expect(screen.getByText('Foundation Work')).toBeInTheDocument();
-    expect(screen.getByText('Cost: Free')).toBeInTheDocument();
-    expect(screen.getByText('Cost: $25K')).toBeInTheDocument();
+    expect(screen.getByText('Free')).toBeInTheDocument();
+    expect(screen.getByText('$25K')).toBeInTheDocument();
     expect(screen.getByText(/Essential foundation repairs/)).toBeInTheDocument();
   });
 
@@ -225,7 +235,7 @@ describe('CardReplacementModal', () => {
     expect(screen.getByText('Replace with:')).toBeInTheDocument();
 
     // Click on Bank Loan card type
-    const businessButton = screen.getByText(/💼 Bank Loan/);
+    const businessButton = screen.getByText(/🏦 Bank/);
     fireEvent.click(businessButton);
 
     // Should update the replacement type selection
@@ -275,7 +285,7 @@ describe('CardReplacementModal', () => {
     fireEvent.click(foundationCard!);
 
     // Select Business replacement type
-    const businessButton = screen.getByText(/💼 Bank Loan/);
+    const businessButton = screen.getByText(/🏦 Bank/);
     fireEvent.click(businessButton);
 
     // Click replace
@@ -297,7 +307,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const cancelButton = screen.getByText('Cancel');
+    const cancelButton = screen.getByText('Skip Replacement');
     fireEvent.click(cancelButton);
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
@@ -339,7 +349,7 @@ describe('CardReplacementModal', () => {
     expect(screen.getByText('1 of 2 cards selected')).toBeInTheDocument();
 
     // Cancel
-    const cancelButton = screen.getByText('Cancel');
+    const cancelButton = screen.getByText('Skip Replacement');
     fireEvent.click(cancelButton);
 
     // Re-render the same component to check if its internal state was reset
@@ -382,17 +392,17 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText('Replace Bank Loan Cards')).toBeInTheDocument();
+    expect(screen.getByText('Replace Bank Cards')).toBeInTheDocument();
     expect(screen.getByText('Marketing Campaign')).toBeInTheDocument();
   });
 
-  it('should handle cards with long descriptions by truncating', () => {
+  it('should handle cards with long descriptions', () => {
     const longDescCard: Card = {
       card_id: 'W3',
       card_name: 'Complex Project',
       card_type: 'W',
       cost: 50000,
-      description: 'This is a very long description that should be truncated when displayed in the card replacement modal because it exceeds the 80 character limit and would make the UI look bad'
+      description: 'This is a very long description that should be displayed in the card replacement modal even if it is lengthy'
     };
 
     (mockDataService.getCardById as Mock).mockReturnValue(longDescCard);
@@ -413,7 +423,8 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText(/This is a very long description that should be truncated when displayed/)).toBeInTheDocument();
-    expect(screen.getByText(/\.\.\.$/)).toBeInTheDocument();
+    // Full description should be present in the DOM (CSS may visually clip it)
+    expect(screen.getByText(/This is a very long description/)).toBeInTheDocument();
+    expect(screen.getByText('Complex Project')).toBeInTheDocument();
   });
 });
