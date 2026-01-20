@@ -113,7 +113,10 @@ export class ServerSyncService {
         const result = await response.json();
         // Update our known server version to prevent future conflicts
         this.lastKnownServerVersion = result.stateVersion;
-        console.log(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''}`);
+        // Debug: Log spaceVisitLog sync status
+        const player = state.players?.[0];
+        const logLength = player?.spaceVisitLog?.length || 0;
+        console.log(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''} - spaceVisitLog: ${logLength} entries`);
       }
     } catch (error) {
       // Fail silently - server may not be running (development mode)
@@ -156,9 +159,13 @@ export class ServerSyncService {
         this.lastKnownServerVersion = stateVersion;
         // Update state through the provider (skips sync to avoid loop)
         this.stateProvider.setCurrentState(state, stateVersion);
+        // Debug: Log spaceVisitLog status when loading
+        const player = state.players?.[0];
+        const logLength = player?.spaceVisitLog?.length || 0;
         console.log(`✅ State loaded from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
         console.log(`   Players: ${state.players?.length || 0}`);
         console.log(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
+        console.log(`   Player 0 spaceVisitLog: ${logLength} entries`);
         return true;
       }
 

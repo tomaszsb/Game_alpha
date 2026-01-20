@@ -1309,9 +1309,21 @@ export class StateService implements IStateService {
     if (result.success && (result as any).committedState) {
       const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
       if (playerIndex !== -1) {
+        const currentPlayer = this.currentState.players[playerIndex];
+        const committedState = (result as any).committedState;
+
+        // IMPORTANT: Preserve movement-related properties that are updated outside TEMP state
+        // These are set by MovementService and should NOT be overwritten by committedState
         const updatedPlayer = {
-          ...this.currentState.players[playerIndex],
-          ...(result as any).committedState
+          ...currentPlayer,
+          ...committedState,
+          // Preserve movement-related state (updated by MovementService, not TEMP state)
+          currentSpace: currentPlayer.currentSpace,
+          visitType: currentPlayer.visitType,
+          visitedSpaces: currentPlayer.visitedSpaces,
+          spaceVisitLog: currentPlayer.spaceVisitLog,
+          moveIntent: currentPlayer.moveIntent,
+          pathChoiceMemory: currentPlayer.pathChoiceMemory
         };
         const newPlayers = [...this.currentState.players];
         newPlayers[playerIndex] = updatedPlayer;
