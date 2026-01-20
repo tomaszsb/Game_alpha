@@ -16,6 +16,7 @@ export interface ISpaceEffectService {
   applyMoneyEffect(playerId: string, effect: string): GameState;
   applyTimeEffect(playerId: string, effect: string): GameState;
   applyQualityEffect(playerId: string, effect: string): GameState;
+  applyMultiplierEffect(playerId: string, effect: string): GameState;
   applySpaceMoneyEffect(playerId: string, effect: SpaceEffect): GameState;
   applySpaceTimeEffect(playerId: string, effect: SpaceEffect): GameState;
   getTargetPlayer(currentPlayerId: string, condition: string): Player | null;
@@ -46,8 +47,9 @@ export class SpaceEffectService implements ISpaceEffectService {
       return currentState;
     }
 
-    // Apply effect based on type
-    switch (effect.effect_type) {
+    // Apply effect based on type (normalize to lowercase and trim whitespace)
+    const effectType = effect.effect_type.toLowerCase().trim();
+    switch (effectType) {
       case 'cards':
         return this.applyCardEffect(playerId, effect.card_type || 'W', rollEffect);
 
@@ -59,6 +61,9 @@ export class SpaceEffectService implements ISpaceEffectService {
 
       case 'quality':
         return this.applyQualityEffect(playerId, rollEffect);
+
+      case 'multiplier':
+        return this.applyMultiplierEffect(playerId, rollEffect);
 
       default:
         console.warn(`Unknown effect type: ${effect.effect_type}`);
@@ -205,12 +210,169 @@ export class SpaceEffectService implements ISpaceEffectService {
   }
 
   /**
-   * Apply a quality effect (logs quality level)
+   * Apply a quality effect - stores contractor quality on player
+   * Quality affects change order frequency: HIGH = fewer, LOW = more
    */
   applyQualityEffect(playerId: string, effect: string): GameState {
-    // Quality effects might affect other game state in the future
-    // For now, just log the quality level
-    console.log(`Player ${playerId} quality level: ${effect}`);
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found`);
+    }
+
+    // Parse quality from effect string (e.g., "HIGH", "MED", "LOW")
+    const qualityUpper = effect.toUpperCase().trim();
+    let quality: 'HIGH' | 'MED' | 'LOW';
+
+    if (qualityUpper === 'HIGH') {
+      quality = 'HIGH';
+    } else if (qualityUpper === 'MED' || qualityUpper === 'MEDIUM') {
+      quality = 'MED';
+    } else if (qualityUpper === 'LOW') {
+      quality = 'LOW';
+    } else {
+      console.warn(`Unknown quality level: ${effect}, defaulting to MED`);
+      quality = 'MED';
+    }
+
+    console.log(`👷 Player ${player.name} contractor quality: ${quality}`);
+
+    // Update player's contractor info, preserving existing multiplier if set
+    const existingContractor = player.contractor || { quality: 'MED', multiplier: 1 };
+    return this.stateService.updatePlayer({
+      id: playerId,
+      contractor: {
+        ...existingContractor,
+        quality,
+        hiredAt: player.currentSpace
+      }
+    });
+  }
+
+  /**
+   * Apply a multiplier effect - stores contractor cost multiplier on player
+   * Multiplier affects base construction cost (1-6)
+   * After setting multiplier, calculates and deducts construction costs
+   */
+  applyMultiplierEffect(playerId: string, effect: string): GameState {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found`);
+    }
+
+    // Parse multiplier from effect string (e.g., "1", "2", ..., "6")
+    const multiplier = parseInt(effect.trim(), 10);
+
+    if (isNaN(multiplier) || multiplier < 1 || multiplier > 6) {
+      console.warn(`Invalid multiplier: ${effect}, defaulting to 3`);
+      const existingContractor = player.contractor || { quality: 'MED', multiplier: 3 };
+      this.stateService.updatePlayer({
+        id: playerId,
+        contractor: {
+          ...existingContractor,
+          multiplier: 3,
+          hiredAt: player.currentSpace
+        }
+      });
+      // Calculate construction cost with default values
+      return this.calculateAndDeductConstructionCost(playerId);
+    }
+
+    console.log(`💰 Player ${player.name} contractor multiplier: ${multiplier}`);
+
+    // Update player's contractor info, preserving existing quality if set
+    const existingContractor = player.contractor || { quality: 'MED', multiplier: 1 };
+    this.stateService.updatePlayer({
+      id: playerId,
+      contractor: {
+        ...existingContractor,
+        multiplier,
+        hiredAt: player.currentSpace
+      }
+    });
+
+    // Now calculate and deduct construction costs
+    return this.calculateAndDeductConstructionCost(playerId);
+  }
+
+  /**
+   * Calculate and deduct construction costs based on contractor quality and multiplier
+   *
+   * Formula: Construction Cost = Work Cost × (Multiplier × 0.1) × Quality Coefficient
+   *
+   * Quality Coefficients:
+   * - HIGH = 1.5 (experienced contractor, higher upfront cost, fewer change orders)
+   * - MED = 1.0 (standard contractor)
+   * - LOW = 0.6 (cheap contractor, lower upfront cost, more change orders)
+   *
+   * Multiplier: 1-6 determines percentage of work cost (10% to 60%)
+   *
+   * Example for $1M work cost:
+   * - HIGH + mult 6: $1M × 0.6 × 1.5 = $900K
+   * - MED + mult 3: $1M × 0.3 × 1.0 = $300K
+   * - LOW + mult 1: $1M × 0.1 × 0.6 = $60K
+   */
+  private calculateAndDeductConstructionCost(playerId: string): GameState {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) {
+      throw new Error(`Player ${playerId} not found`);
+    }
+
+    const contractor = player.contractor;
+    if (!contractor) {
+      console.warn(`No contractor info for player ${playerId}, skipping construction cost`);
+      return this.stateService.getGameState();
+    }
+
+    // Get total work cost from W cards
+    const totalWorkCost = this.gameRulesService.calculateTotalWorkCost(playerId);
+    if (totalWorkCost <= 0) {
+      console.log(`🔨 No work cost to calculate (total work cost: $0)`);
+      return this.stateService.getGameState();
+    }
+
+    // Quality coefficient
+    const qualityCoefficients: Record<'HIGH' | 'MED' | 'LOW', number> = {
+      'HIGH': 1.5,
+      'MED': 1.0,
+      'LOW': 0.6
+    };
+    const qualityCoeff = qualityCoefficients[contractor.quality] || 1.0;
+
+    // Multiplier as percentage (1 = 10%, 6 = 60%)
+    const multiplierPercent = contractor.multiplier * 0.1;
+
+    // Calculate construction cost
+    const constructionCost = Math.round(totalWorkCost * multiplierPercent * qualityCoeff);
+
+    console.log(`🔨 CONSTRUCTION COST CALCULATION:`);
+    console.log(`   📊 Total Work Cost: $${totalWorkCost.toLocaleString()}`);
+    console.log(`   👷 Quality: ${contractor.quality} (×${qualityCoeff})`);
+    console.log(`   🎲 Multiplier: ${contractor.multiplier} (${(multiplierPercent * 100).toFixed(0)}%)`);
+    console.log(`   💵 Construction Cost: $${constructionCost.toLocaleString()}`);
+
+    // Deduct the construction cost
+    if (constructionCost > 0) {
+      this.resourceService.spendMoney(
+        playerId,
+        constructionCost,
+        'turn_effect',
+        `Contractor hired: ${contractor.quality} quality, multiplier ${contractor.multiplier} - $${constructionCost.toLocaleString()}`
+      );
+
+      // Update expenditures.construction
+      const updatedPlayer = this.stateService.getPlayer(playerId);
+      if (updatedPlayer) {
+        const currentConstruction = updatedPlayer.expenditures?.construction || 0;
+        this.stateService.updatePlayer({
+          id: playerId,
+          expenditures: {
+            ...updatedPlayer.expenditures,
+            construction: currentConstruction + constructionCost
+          }
+        });
+      }
+    }
+
     return this.stateService.getGameState();
   }
 

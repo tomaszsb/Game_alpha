@@ -224,6 +224,12 @@ export interface Player {
     'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT'; // DOB path choice (locked for application)
     // Future: Other spaces that need choice memory can be added here
   };
+  // Contractor info from CON-INITIATION dice rolls
+  contractor?: {
+    quality: 'HIGH' | 'MED' | 'LOW'; // Affects change order frequency (HIGH = fewer, LOW = more)
+    multiplier: number; // 1-6, affects base construction cost
+    hiredAt?: string; // Space where contractor was hired (for tracking)
+  };
 }
 
 export interface GameState {

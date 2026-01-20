@@ -58,7 +58,8 @@ describe('SpaceEffectService', () => {
     } as unknown as IResourceService;
 
     mockGameRulesService = {
-      calculateProjectScope: vi.fn().mockReturnValue(4000000)
+      calculateProjectScope: vi.fn().mockReturnValue(4000000),
+      calculateTotalWorkCost: vi.fn().mockReturnValue(100000)
     } as unknown as IGameRulesService;
 
     spaceEffectService = new SpaceEffectService(
@@ -261,12 +262,111 @@ describe('SpaceEffectService', () => {
   });
 
   describe('applyQualityEffect', () => {
-    it('should log quality effect and return game state', () => {
+    it('should store contractor quality on player and return updated game state', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      spaceEffectService.applyQualityEffect('player1', 'High');
+      spaceEffectService.applyQualityEffect('player1', 'HIGH');
 
-      expect(consoleSpy).toHaveBeenCalledWith('Player player1 quality level: High');
+      // Should update player with contractor info
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          contractor: expect.objectContaining({
+            quality: 'HIGH'
+          })
+        })
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('should normalize quality values (MED, MEDIUM)', () => {
+      spaceEffectService.applyQualityEffect('player1', 'medium');
+
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          contractor: expect.objectContaining({
+            quality: 'MED'
+          })
+        })
+      );
+    });
+
+    it('should default to MED for unknown quality values', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      spaceEffectService.applyQualityEffect('player1', 'UNKNOWN');
+
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          contractor: expect.objectContaining({
+            quality: 'MED'
+          })
+        })
+      );
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('applyMultiplierEffect', () => {
+    beforeEach(() => {
+      // Mock gameRulesService.calculateTotalWorkCost to return a value
+      mockGameRulesService.calculateTotalWorkCost = vi.fn().mockReturnValue(100000);
+    });
+
+    it('should store contractor multiplier on player', () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      spaceEffectService.applyMultiplierEffect('player1', '3');
+
+      // Should update player with contractor multiplier
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          contractor: expect.objectContaining({
+            multiplier: 3
+          })
+        })
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('should default to multiplier 3 for invalid values', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      spaceEffectService.applyMultiplierEffect('player1', 'invalid');
+
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          contractor: expect.objectContaining({
+            multiplier: 3
+          })
+        })
+      );
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('should calculate and deduct construction costs', () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      // Mock getPlayer to return player with contractor info after update
+      const playerWithContractor = createMockPlayer({
+        contractor: { quality: 'MED', multiplier: 4, hiredAt: 'TEST-SPACE' },
+        expenditures: { design: 0, fees: 0, construction: 0 }
+      });
+      (mockStateService.getPlayer as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(createMockPlayer()) // First call in applyMultiplierEffect
+        .mockReturnValueOnce(playerWithContractor) // Call in calculateAndDeductConstructionCost
+        .mockReturnValueOnce(playerWithContractor); // Call for updating expenditures
+
+      spaceEffectService.applyMultiplierEffect('player1', '4');
+
+      // Should call spendMoney from resourceService
+      expect(mockResourceService.spendMoney).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });

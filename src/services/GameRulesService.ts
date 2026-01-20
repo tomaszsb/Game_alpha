@@ -536,6 +536,57 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
+   * Calculate the total work cost from W cards (used for construction phase costs)
+   * This is different from project scope - work_cost represents actual construction costs,
+   * while cost represents design/scope value.
+   *
+   * @param playerId - The ID of the player
+   * @returns The total work_cost of all W cards owned by the player
+   */
+  calculateTotalWorkCost(playerId: string): number {
+    try {
+      const player = this.stateService.getPlayer(playerId);
+      if (!player) {
+        console.error(`Player ${playerId} not found when calculating work cost`);
+        return 0;
+      }
+
+      // Get all W cards for this player from BOTH hand and activeCards
+      const handWorkCards = player.hand.filter(cardId => cardId.startsWith('W'));
+      const activeWorkCards = (player.activeCards || [])
+        .map(ac => ac.cardId)
+        .filter(cardId => cardId.startsWith('W'));
+
+      const allWorkCards = [...handWorkCards, ...activeWorkCards];
+
+      console.log(`🔨 Calculating total work cost: ${allWorkCards.length} W cards`);
+
+      let totalWorkCost = 0;
+
+      for (const cardId of allWorkCards) {
+        // Extract base card ID from generated ID (e.g., W111_1756274803252_sezfko0rc_0 -> W111)
+        const baseCardId = cardId.split('_')[0];
+        const cardData = this.dataService.getCardById(baseCardId);
+        if (cardData && cardData.work_cost) {
+          const workCost = typeof cardData.work_cost === 'string'
+            ? parseFloat(cardData.work_cost)
+            : cardData.work_cost;
+          if (!isNaN(workCost)) {
+            totalWorkCost += workCost;
+            console.log(`   🔧 Card ${baseCardId}: ${cardData.card_name} work_cost = $${workCost.toLocaleString()}`);
+          }
+        }
+      }
+
+      console.log(`   📊 Total work cost: $${totalWorkCost.toLocaleString()}`);
+      return totalWorkCost;
+    } catch (error) {
+      console.error(`Error calculating work cost for player ${playerId}:`, error);
+      return 0;
+    }
+  }
+
+  /**
    * Calculate the estimated project length based on work types
    * Formula: Base path time (300 days) + 100 days per unique work type
    * @param playerId - The ID of the player

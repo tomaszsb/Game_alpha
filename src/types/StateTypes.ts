@@ -371,6 +371,11 @@ export interface PlayerUpdateData {
   pathChoiceMemory?: {
     'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT';
   };
+  contractor?: {
+    quality: 'HIGH' | 'MED' | 'LOW';
+    multiplier: number;
+    hiredAt?: string;
+  };
 }
 
 export type PlayerCards = {

@@ -492,6 +492,9 @@ export interface IGameRulesService {
   // Project scope calculation methods
   calculateProjectScope(playerId: string): number;
 
+  // Work cost calculation methods (for construction phase)
+  calculateTotalWorkCost(playerId: string): number;
+
   // Project length estimation methods
   calculateEstimatedProjectLength(playerId: string): {
     estimatedDays: number;
