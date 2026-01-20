@@ -4,6 +4,79 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Contractor Hiring and Construction Cost Mechanics (January 20, 2026)
+
+**New Feature: CON-INITIATION now calculates and deducts construction costs**
+
+When players land on CON-INITIATION (first visit), they roll for contractor quality and multiplier, which determines the upfront construction cost.
+
+**Implementation:**
+- Added `contractor` field to Player type storing: quality (HIGH/MED/LOW), multiplier (1-6), hiredAt
+- Added `calculateTotalWorkCost()` to GameRulesService - sums `work_cost` from all W cards
+- Updated `applyQualityEffect()` in SpaceEffectService to store contractor quality
+- Added `applyMultiplierEffect()` to store multiplier and trigger cost calculation
+
+**Cost Formula:**
+```
+Construction Cost = Total Work Cost × (Multiplier × 10%) × Quality Coefficient
+```
+
+| Quality | Coefficient | Description |
+|---------|-------------|-------------|
+| HIGH | 1.5x | Experienced contractor, higher upfront cost, fewer change orders |
+| MED | 1.0x | Standard contractor |
+| LOW | 0.6x | Cheap contractor, lower upfront cost, more change orders |
+
+**Example for $1M work_cost:**
+- HIGH + multiplier 6: $900K
+- MED + multiplier 3: $300K
+- LOW + multiplier 1: $60K
+
+### Fix: Card Effect Improvements (January 20, 2026)
+
+**Fixed: Bank loan interest now calculated and deducted upfront**
+- Interest fee = loan amount × loan_rate%
+- Deducted immediately when B card is played (bank loans only, not owner funding)
+
+**Fixed: Global scope cards now affect all players**
+- Cards with `scope: "global"` and `tick_modifier` now apply time effects to ALL players
+- Previously only affected the current player
+
+**Fixed: E009 "Favor Called In" opponent targeting**
+- Implemented opponent selection via ChoiceService
+- Selected opponent gets +2 ticks, playing player gets -2 ticks
+- Auto-selects if only one opponent, applies self-benefit only in single player
+
+### Feature: Replace Skip Turn with Money Cost (January 20, 2026)
+
+**Changed E cards to use money costs instead of skip turn mechanic**
+
+Skip turn was problematic - could cost more time than the "savings" provided.
+
+| Card | Old Effect | New Effect |
+|------|-----------|------------|
+| E014 | Skip turn | $3K cost |
+| E028 | Skip turn | $6K cost |
+| E029 | Skip turn | $5K cost |
+| E030 | Skip turn | $8K cost |
+
+### Feature: E024 Return to Sender Implementation (January 20, 2026)
+
+**Implemented E024 "Return to Sender" card functionality**
+- Player selects an active E card on any player
+- Selected card returns to that player's hand
+- Uses ChoiceService for target selection
+
+### Chore: Remove Unused Dependencies (January 20, 2026)
+
+**Cleaned up package.json - removed unused Jest and coverage tools**
+
+Removed packages:
+- jest, jest-environment-jsdom, @types/jest, @swc/jest, ts-jest, ts-node
+- istanbul-merge, nyc, madge
+
+Result: 0 vulnerabilities, reduced from 967 to 555 packages
+
 ### Feature: Educational Card Selection Modal (January 18, 2026)
 
 **New Feature: Card selection for Educational mode in Same Starting Point**
