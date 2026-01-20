@@ -1028,6 +1028,12 @@ export class CardService implements ICardService {
       return this.stateService.getGameState();
     }
 
+    // Special handling for E009 "Favor Called In" - Choose opponent, they +2 ticks, you -2 ticks
+    if (card.card_id === 'E009') {
+      await this.handleFavorCalledIn(playerId, card);
+      return this.stateService.getGameState();
+    }
+
     // Step 1: Parse card data into standardized Effect objects
     const effects = this.parseCardIntoEffects(card, playerId);
 
@@ -1092,17 +1098,39 @@ export class CardService implements ICardService {
     if (card.tick_modifier && card.tick_modifier !== '0') {
       const timeAmount = parseInt(card.tick_modifier, 10);
       if (!isNaN(timeAmount) && timeAmount !== 0) {
-        effects.push({
-          effectType: 'RESOURCE_CHANGE',
-          payload: {
-            playerId: playerId,
-            resource: 'TIME',
-            amount: timeAmount, // Positive = add time, negative = spend time
-            source: cardSource,
-            reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks`
+        // Check if this is a Global scope card - affects all players
+        const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
+
+        if (isGlobalScope) {
+          // Apply to ALL players
+          const gameState = this.stateService.getGameState();
+          for (const player of gameState.players) {
+            effects.push({
+              effectType: 'RESOURCE_CHANGE',
+              payload: {
+                playerId: player.id,
+                resource: 'TIME',
+                amount: timeAmount,
+                source: cardSource,
+                reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks (affects all players)`
+              }
+            });
           }
-        });
-        console.log(`   ⏰ Added TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks`);
+          console.log(`   ⏰ Added GLOBAL TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks to ALL ${gameState.players.length} players`);
+        } else {
+          // Apply to current player only
+          effects.push({
+            effectType: 'RESOURCE_CHANGE',
+            payload: {
+              playerId: playerId,
+              resource: 'TIME',
+              amount: timeAmount, // Positive = add time, negative = spend time
+              source: cardSource,
+              reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks`
+            }
+          });
+          console.log(`   ⏰ Added TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks`);
+        }
       }
     }
 
@@ -1187,6 +1215,10 @@ export class CardService implements ICardService {
         console.log(`   - player.currentSpace: ${player?.currentSpace}`);
         console.log(`   - sourceType: ${sourceType}`);
 
+        // Calculate interest (loan_rate is stored as percentage, e.g., 5 for 5%)
+        const interestRate = card.loan_rate ? parseFloat(card.loan_rate) / 100 : 0;
+        const interestFee = sourceType === 'bank' ? Math.round(loanAmount * interestRate) : 0;
+
         effects.push({
           effectType: 'RESOURCE_CHANGE',
           payload: {
@@ -1195,10 +1227,26 @@ export class CardService implements ICardService {
             amount: loanAmount,
             source: cardSource,
             sourceType: sourceType,
-            reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${sourceType === 'bank' && card.loan_rate ? ` at ${card.loan_rate}% interest` : ''}`
+            reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${interestFee > 0 ? ` at ${card.loan_rate}% interest` : ''}`
           }
         });
         console.log(`   💰 Added LOAN RESOURCE_CHANGE effect: +$${loanAmount.toLocaleString()} (${sourceLabel})`);
+
+        // Deduct interest upfront for bank loans (not owner funding)
+        if (interestFee > 0) {
+          effects.push({
+            effectType: 'RESOURCE_CHANGE',
+            payload: {
+              playerId: playerId,
+              resource: 'MONEY',
+              amount: -interestFee,
+              source: cardSource,
+              sourceType: 'other',
+              reason: `${card.card_name}: Interest fee (${card.loan_rate}%): -$${interestFee.toLocaleString()}`
+            }
+          });
+          console.log(`   💸 Added INTEREST DEDUCTION effect: -$${interestFee.toLocaleString()} (${card.loan_rate}% of $${loanAmount.toLocaleString()})`);
+        }
       }
     }
 
@@ -1685,6 +1733,96 @@ export class CardService implements ICardService {
       cardId: selectedCard.cardId,
       cardName: selectedCard.cardName,
       action: 'card_return_to_hand'
+    });
+  }
+
+  /**
+   * Handle E009 "Favor Called In" - Choose opponent, they get +2 ticks, you get -2 ticks
+   *
+   * This card requires selecting an opponent and applying opposite time effects.
+   */
+  private async handleFavorCalledIn(playerId: string, card: any): Promise<void> {
+    console.log(`📞 E009 "Favor Called In" played by player ${playerId}`);
+
+    const gameState = this.stateService.getGameState();
+    const allPlayers = gameState.players;
+    const currentPlayer = allPlayers.find(p => p.id === playerId);
+
+    // Get opponents (all players except current)
+    const opponents = allPlayers.filter(p => p.id !== playerId);
+
+    if (opponents.length === 0) {
+      console.log(`📞 No opponents to target - single player game`);
+      // Still apply benefit to self in single player (spendTime reduces time spent)
+      this.resourceService.spendTime(playerId, 2, `card:${card.card_id}`, `${card.card_name}: -2 time ticks`);
+      this.loggingService.info(`${card.card_name} played - no opponents, self benefit only`, {
+        playerId: playerId,
+        action: 'card_no_target'
+      });
+      return;
+    }
+
+    let selectedOpponent: Player | null = null;
+
+    if (opponents.length === 1) {
+      // Only one opponent - auto-select
+      selectedOpponent = opponents[0];
+      console.log(`📞 Auto-selecting only opponent: ${selectedOpponent.name}`);
+    } else {
+      // Multiple opponents - present choice
+      if (!this.choiceService) {
+        console.error('❌ ChoiceService not available - auto-selecting first opponent');
+        selectedOpponent = opponents[0];
+      } else {
+        const options = opponents.map(p => ({
+          id: p.id,
+          label: p.name
+        }));
+
+        const selection = await this.choiceService.createChoice(
+          playerId,
+          'TARGET_SELECTION',
+          'Choose an opponent to slow down:',
+          options
+        );
+
+        if (selection && selection !== '') {
+          selectedOpponent = opponents.find(p => p.id === selection) || null;
+        }
+      }
+    }
+
+    if (!selectedOpponent) {
+      console.log(`📞 No opponent selected - effect cancelled`);
+      return;
+    }
+
+    // Apply effects: opponent gets +2 ticks (slower), player gets -2 ticks (faster)
+    const cardSource = `card:${card.card_id}`;
+
+    // Opponent gets +2 ticks (penalty) - addTime increases time spent
+    this.resourceService.addTime(
+      selectedOpponent.id,
+      2,
+      cardSource,
+      `${card.card_name}: +2 time ticks (targeted by ${currentPlayer?.name})`
+    );
+
+    // Player gets -2 ticks (benefit) - spendTime reduces time spent
+    this.resourceService.spendTime(
+      playerId,
+      2,
+      cardSource,
+      `${card.card_name}: -2 time ticks`
+    );
+
+    console.log(`✅ Favor Called In: ${selectedOpponent.name} +2 ticks, ${currentPlayer?.name} -2 ticks`);
+
+    // Log the action
+    this.loggingService.info(`${currentPlayer?.name} called in a favor: ${selectedOpponent.name} slowed down`, {
+      playerId: playerId,
+      targetPlayerId: selectedOpponent.id,
+      action: 'favor_called_in'
     });
   }
 }
