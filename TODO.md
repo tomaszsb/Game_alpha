@@ -204,18 +204,16 @@ Validate gameplay, balance, and user experience with real players
   - **Status**: Needs live testing to reproduce - may have been a visit type detection issue
 - [x] **Return to Sender eCard "Hold"**: Feature not implemented
   - **Status**: Documented as missing feature - no "hold" functionality exists in codebase
-- [x] **Skip turn mechanism documented** (see below)
-
-**How E Card Skip Turn Works:**
-E cards like E029 (Weekend Work), E030 (Time Crunch) have a `turn_skip` field. When played:
-1. `EffectFactory.parseCardIntoEffects()` creates `TURN_CONTROL` effects with `action: 'SKIP_TURN'`
-2. `EffectEngineService` processes the effect, calling `TurnService.setTurnModifier(playerId, 'SKIP_TURN')`
-3. Player's `turnModifiers.skipTurns` counter is incremented
-4. When `TurnService.getNextPlayer()` runs, if `skipTurns > 0`:
-   - Log entry created: "Turn skipped (X remaining)"
-   - Counter decremented
-   - Next player in order is found
-   - If multiple skip turns queued, loop continues until player with no skips is found
+- [x] **Skip turn mechanism replaced** (January 20, 2026)
+  - E cards (E014, E028, E029, E030) previously had "skip turn" penalties that didn't work well:
+    - Skipping a turn at timed spaces could cost MORE time than the benefit
+    - Single player mode bypass (same player continues immediately)
+  - **Fix**: Replaced skip turn with money costs (overtime wages):
+    - E014 Express Delivery: $3K for -2 ticks
+    - E028 Fact Checking: $6K for -4 ticks
+    - E029 Weekend Work: $5K for -3 ticks
+    - E030 Time Crunch: $8K for -5 ticks
+  - L cards (L014, L024, L035) still use skip turn (forced penalties make sense)
 
 **Financial Issues:**
 - [x] INVESTOR-FUND-REVIEW: If cards are split, finances do not reflect added funds ✅ **FIXED Jan 9** - Auto-play B/I cards at all funding spaces

@@ -68,6 +68,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Set final EffectEngineService on TurnService and CardService to complete the circular dependencies
   turnService.setEffectEngineService(effectEngineService);
   cardService.setEffectEngineService(effectEngineService);
+  cardService.setChoiceService(choiceService);
   effectEngineService.setNotificationService(notificationService);
   effectEngineService.setDataService(dataService);
 

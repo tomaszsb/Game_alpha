@@ -1,4 +1,4 @@
-import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService } from '../types/ServiceContracts';
+import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService, IChoiceService } from '../types/ServiceContracts';
 import { GameState, Player } from '../types/StateTypes';
 import { CardType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
@@ -11,6 +11,7 @@ export class CardService implements ICardService {
   private readonly loggingService: ILoggingService;
   private readonly gameRulesService: IGameRulesService;
   public effectEngineService!: IEffectEngineService;
+  private choiceService!: IChoiceService;
 
   constructor(dataService: IDataService, stateService: IStateService, resourceService: IResourceService, loggingService: ILoggingService, gameRulesService: IGameRulesService) {
     this.dataService = dataService;
@@ -23,6 +24,10 @@ export class CardService implements ICardService {
   // Circular dependency resolution methods
   setEffectEngineService(effectEngineService: IEffectEngineService): void {
     this.effectEngineService = effectEngineService;
+  }
+
+  setChoiceService(choiceService: IChoiceService): void {
+    this.choiceService = choiceService;
   }
 
   /**
@@ -1017,6 +1022,12 @@ export class CardService implements ICardService {
     console.log(`🎴 CARD_SERVICE: Applying effects for card ${cardId}: "${card.card_name}"`);
     console.log(`🔍 DEBUG FUNDING: Card type=${card.card_type}, loan_amount=${card.loan_amount}, investment_amount=${card.investment_amount}, cost=${card.cost}`);
 
+    // Special handling for E024 "Return to Sender"
+    if (card.card_id === 'E024') {
+      await this.handleReturnToSender(playerId, card);
+      return this.stateService.getGameState();
+    }
+
     // Step 1: Parse card data into standardized Effect objects
     const effects = this.parseCardIntoEffects(card, playerId);
 
@@ -1563,5 +1574,117 @@ export class CardService implements ICardService {
       console.error(errorNotification.detailed);
       throw new Error(errorNotification.detailed);
     }
+  }
+
+  /**
+   * Handle E024 "Return to Sender" - Returns a target active E card to its owner's hand
+   *
+   * This card allows the player to select any active E card (from any player) and
+   * return it to that player's hand, canceling its ongoing effect.
+   */
+  private async handleReturnToSender(playerId: string, card: any): Promise<void> {
+    console.log(`🔄 E024 "Return to Sender" played by player ${playerId}`);
+
+    const gameState = this.stateService.getGameState();
+    const allPlayers = gameState.players;
+
+    // Collect all active E cards from all players
+    const activeECards: { cardId: string; ownerId: string; ownerName: string; cardName: string }[] = [];
+
+    for (const player of allPlayers) {
+      if (player.activeCards && player.activeCards.length > 0) {
+        for (const activeCard of player.activeCards) {
+          // Check if this is an E card
+          const cardData = this.dataService.getCardById(activeCard.cardId);
+          if (cardData && cardData.card_type === 'E') {
+            activeECards.push({
+              cardId: activeCard.cardId,
+              ownerId: player.id,
+              ownerName: player.name,
+              cardName: cardData.card_name
+            });
+          }
+        }
+      }
+    }
+
+    if (activeECards.length === 0) {
+      console.log(`🔄 No active E cards to return - card has no effect`);
+      this.loggingService.info(`${card.card_name} played but no active E cards to target`, {
+        playerId: playerId,
+        action: 'card_no_target'
+      });
+      return;
+    }
+
+    let selectedCard: typeof activeECards[0] | null = null;
+
+    if (activeECards.length === 1) {
+      // Only one target - auto-select
+      selectedCard = activeECards[0];
+      console.log(`🔄 Auto-selecting only active E card: ${selectedCard.cardName}`);
+    } else {
+      // Multiple targets - present choice
+      if (!this.choiceService) {
+        console.error('❌ ChoiceService not available - cannot present card selection');
+        // Fall back to first card
+        selectedCard = activeECards[0];
+      } else {
+        const options = activeECards.map(ec => ({
+          id: ec.cardId,
+          label: `${ec.cardName} (${ec.ownerName}'s)`
+        }));
+
+        const selection = await this.choiceService.createChoice(
+          playerId,
+          'CARD_SELECTION',
+          'Choose an active Expeditor card to return to its owner\'s hand:',
+          options
+        );
+
+        if (selection && selection !== '') {
+          selectedCard = activeECards.find(ec => ec.cardId === selection) || null;
+        }
+      }
+    }
+
+    if (!selectedCard) {
+      console.log(`🔄 No card selected - effect cancelled`);
+      return;
+    }
+
+    // Return the card to its owner's hand
+    const owner = allPlayers.find(p => p.id === selectedCard!.ownerId);
+    if (!owner) {
+      console.error(`❌ Owner ${selectedCard.ownerId} not found`);
+      return;
+    }
+
+    // Remove from owner's activeCards
+    const updatedActiveCards = owner.activeCards.filter(
+      ac => ac.cardId !== selectedCard!.cardId
+    );
+
+    // Add back to owner's hand
+    const updatedHand = [...owner.hand, selectedCard.cardId];
+
+    // Update owner's state
+    this.stateService.updatePlayer({
+      id: owner.id,
+      hand: updatedHand,
+      activeCards: updatedActiveCards
+    });
+
+    console.log(`✅ ${selectedCard.cardName} returned to ${owner.name}'s hand`);
+
+    // Log the action
+    const currentPlayer = allPlayers.find(p => p.id === playerId);
+    this.loggingService.info(`${currentPlayer?.name || 'Player'} returned ${selectedCard.cardName} to ${owner.name}'s hand`, {
+      playerId: playerId,
+      targetPlayerId: owner.id,
+      cardId: selectedCard.cardId,
+      cardName: selectedCard.cardName,
+      action: 'card_return_to_hand'
+    });
   }
 }
