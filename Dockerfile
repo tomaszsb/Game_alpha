@@ -12,6 +12,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Update npm to latest version (suppresses version warning)
+RUN npm install -g npm@latest
+
 # Install ALL dependencies (including build tools)
 RUN npm ci
 
