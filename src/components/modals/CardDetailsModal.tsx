@@ -10,6 +10,7 @@ import { NotificationUtils } from '../../utils/NotificationUtils';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import { openInDictionary } from '../../utils/dictionaryBridge';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -129,6 +130,19 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
           ↔ Transfer Card
         </button>
       )}
+      <button
+        onClick={() => openInDictionary('card', card.card_id)}
+        style={modalButtonStyles.secondary}
+        title="Open in Dictionary Dashboard"
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = colors.secondary.bg;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = colors.secondary.light;
+        }}
+      >
+        📖 View Intelligence
+      </button>
       <button
         onClick={onClose}
         style={modalButtonStyles.secondary}

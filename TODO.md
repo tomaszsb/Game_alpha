@@ -515,6 +515,23 @@ interface GameState {
 
 ---
 
+## 🌐 **NEW: Universal Dictionary Integration**
+*Status: READY FOR IMPLEMENTATION*
+*Integration Target: dashboard.unravelcodes.com*
+
+### Objective
+Create a seamless bridge between the Game Engine and the Command Center's Intelligence Database.
+
+### Tasks
+- [ ] **Term Lookup Service**: Create a utility to link Game Space IDs and Action Card IDs to their respective dictionary terms.
+- [ ] **External Intelligence Link**: Add a "View Intelligence" button to the Space Explorer and Card Preview modals that opens `https://dashboard.unravelcodes.com/dictionary?id={id}`.
+- [ ] **Reverse Bridge (Dictionary -> Game)**:
+  - [ ] Support receiving a `?action=preview_card&id=W001` message from the dictionary.
+  - [ ] Implement a lightweight "Asset Preview" route that only renders the card or space info without starting a full game.
+- [ ] **Shared Media Assets**: Transition card and space images to the dictionary's central asset server to prevent duplication.
+
+---
+
 ## 🐛 **KNOWN ISSUES & TECHNICAL DEBT**
 
 For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`

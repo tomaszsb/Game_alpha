@@ -27,13 +27,15 @@ import { AutoActionEvent } from '../../services/StateService';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
+  initialPreview?: { action: string; id: string } | null;
+  onPreviewConsumed?: () => void;
 }
 
 /**
  * GameLayout component replicates the high-level structure of the legacy FixedApp.js
  * This provides the main grid-based layout for the game application.
  */
-export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element {
+export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: GameLayoutProps = {}): JSX.Element {
   const {
     stateService,
     dataService,
@@ -76,6 +78,7 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
   const [isMovementPathVisible, setIsMovementPathVisible] = useState<boolean>(false);
   const [shouldAutoShowMovementPath, setShouldAutoShowMovementPath] = useState<boolean>(false);
   const [isSpaceExplorerVisible, setIsSpaceExplorerVisible] = useState<boolean>(false);
+  const [previewSpaceId, setPreviewSpaceId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
   const [isDataEditorOpen, setIsDataEditorOpen] = useState<boolean>(false);
@@ -92,6 +95,39 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
       return {};
     }
   });
+
+  // Handle initial preview request
+  useEffect(() => {
+    if (!initialPreview) return;
+
+    console.log('🚀 Consuming initial preview:', initialPreview);
+
+    if (initialPreview.action === 'preview_card') {
+      const card = dataService.getCardById(initialPreview.id);
+      if (card) {
+        setSelectedCard(card);
+        setIsCardDetailsModalOpen(true);
+      } else {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Preview', `Card "${initialPreview.id}" not found`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'preview_error' }
+        );
+      }
+    } else if (initialPreview.action === 'preview_space') {
+      const spaceExists = dataService.getAllSpaces().some(s => s.name === initialPreview.id);
+      if (spaceExists) {
+        setPreviewSpaceId(initialPreview.id);
+        setIsSpaceExplorerVisible(true);
+      } else {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('Preview', `Space "${initialPreview.id}" not found`, 'System'),
+          { playerId: 'system', playerName: 'System', actionType: 'preview_error' }
+        );
+      }
+    }
+
+    onPreviewConsumed?.();
+  }, [initialPreview, dataService, notificationService, onPreviewConsumed]);
 
   // State tracking for processing and notifications
   const [isProcessingTurn, setIsProcessingTurn] = useState<boolean>(false);
@@ -803,6 +839,7 @@ export function GameLayout({ viewPlayerId }: GameLayoutProps = {}): JSX.Element 
         <SpaceExplorerPanel
           isVisible={isSpaceExplorerVisible}
           onToggle={handleToggleSpaceExplorer}
+          initialSelectedSpace={previewSpaceId}
         />
       )}
 

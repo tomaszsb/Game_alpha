@@ -12,6 +12,7 @@ import { detectDeviceType } from './utils/deviceDetection';
 import { GameLobby } from './components/setup/GameLobby';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
+import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -64,6 +65,7 @@ function AppContent(): JSX.Element {
   const { dataService, stateService } = useGameContext();
   const [isLoading, setIsLoading] = useState(true);
   const [gameState, setGameState] = useState(stateService.getGameState());
+  const [initialPreview, setInitialPreview] = useState<{action: string; id: string} | null>(null);
 
   // Subscribe to game state changes
   useEffect(() => {
@@ -72,6 +74,18 @@ function AppContent(): JSX.Element {
     });
     return unsubscribe;
   }, [stateService]);
+
+  // Detect and clear preview params on load
+  useEffect(() => {
+    if (isLoading) return;
+    
+    const preview = getPreviewParams();
+    if (preview.action && preview.id) {
+      console.log('🔍 Detected inbound preview request:', preview);
+      setInitialPreview({ action: preview.action, id: preview.id });
+      clearPreviewParams();
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -193,7 +207,11 @@ function AppContent(): JSX.Element {
   if (routeInfo.playerId && routeInfo.isValidPlayer) {
     return (
       <>
-        <GameLayout viewPlayerId={routeInfo.playerId} />
+        <GameLayout 
+          viewPlayerId={routeInfo.playerId} 
+          initialPreview={initialPreview}
+          onPreviewConsumed={() => setInitialPreview(null)}
+        />
       </>
     );
   }
@@ -206,7 +224,10 @@ function AppContent(): JSX.Element {
   // Default: show normal game view (no player locking)
   return (
     <>
-      <GameLayout />
+      <GameLayout 
+        initialPreview={initialPreview}
+        onPreviewConsumed={() => setInitialPreview(null)}
+      />
     </>
   );
 }

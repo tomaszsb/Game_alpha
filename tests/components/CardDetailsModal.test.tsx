@@ -122,7 +122,7 @@ describe('CardDetailsModal', () => {
     expect(screen.getByText('Permit Expeditor')).toBeInTheDocument();
 
     // Click "Transfer Card" button to show transfer UI
-    const transferButton = screen.getByText('🔄 Transfer Card');
+    const transferButton = screen.getByText('↔ Transfer Card');
     fireEvent.click(transferButton);
 
     // Verify transfer UI is displayed
@@ -175,7 +175,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Click "Transfer Card" button to show transfer UI
-    const transferButton = screen.getByText('🔄 Transfer Card');
+    const transferButton = screen.getByText('↔ Transfer Card');
     fireEvent.click(transferButton);
 
     // Select a target player
@@ -219,7 +219,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Verify "Transfer Card" button is available for E-type card
-    expect(screen.getByText('🔄 Transfer Card')).toBeInTheDocument();
+    expect(screen.getByText('↔ Transfer Card')).toBeInTheDocument();
   });
 
   it('should not display transfer UI for non-transferable card types', () => {
@@ -244,7 +244,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Verify "Transfer Card" button is NOT available for W-type card
-    expect(screen.queryByText('🔄 Transfer Card')).not.toBeInTheDocument();
+    expect(screen.queryByText('↔ Transfer Card')).not.toBeInTheDocument();
   });
 
   it('should not show transfer UI when modal is closed', () => {
@@ -269,7 +269,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Click "Transfer Card" to show transfer UI
-    const transferButton = screen.getByText('🔄 Transfer Card');
+    const transferButton = screen.getByText('↔ Transfer Card');
     fireEvent.click(transferButton);
 
     // Verify transfer UI is shown

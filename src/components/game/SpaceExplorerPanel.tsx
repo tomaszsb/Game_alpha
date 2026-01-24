@@ -3,6 +3,7 @@ import { colors } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../types/DataTypes';
 import { FormatUtils } from '../../utils/FormatUtils';
+import { openInDictionary } from '../../utils/dictionaryBridge';
 
 interface SpaceDetails {
   space: Space;
@@ -16,6 +17,7 @@ interface SpaceDetails {
 interface SpaceExplorerPanelProps {
   isVisible: boolean;
   onToggle: () => void;
+  initialSelectedSpace?: string | null;
 }
 
 /**
@@ -24,7 +26,8 @@ interface SpaceExplorerPanelProps {
  */
 export function SpaceExplorerPanel({ 
   isVisible, 
-  onToggle 
+  onToggle,
+  initialSelectedSpace
 }: SpaceExplorerPanelProps): JSX.Element {
   const { dataService, stateService, movementService } = useGameContext();
   const [allSpaces, setAllSpaces] = useState<Space[]>([]);
@@ -33,6 +36,13 @@ export function SpaceExplorerPanel({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'starting' | 'ending' | 'tutorial'>('all');
   const [players, setPlayers] = useState<Player[]>([]);
+
+  // Effect to handle external selection
+  useEffect(() => {
+    if (initialSelectedSpace) {
+      setSelectedSpace(initialSelectedSpace);
+    }
+  }, [initialSelectedSpace]);
 
   // Subscribe to state changes
   useEffect(() => {
@@ -376,19 +386,37 @@ export function SpaceExplorerPanel({
               }}>
                 {spaceDetails.space.name}
               </h4>
-              <button
-                onClick={() => setSelectedSpace(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: colors.primary.text
-                }}
-                title="Back to space list"
-              >
-                ←
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => openInDictionary('space', spaceDetails.space.name)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: `1px solid ${colors.primary.text}`,
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    color: colors.primary.text,
+                    fontWeight: 'bold'
+                  }}
+                  title="Open in Dictionary Dashboard"
+                >
+                  📖 Intelligence
+                </button>
+                <button
+                  onClick={() => setSelectedSpace(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    color: colors.primary.text
+                  }}
+                  title="Back to space list"
+                >
+                  ←
+                </button>
+              </div>
             </div>
 
             <div style={detailsContentStyle}>
