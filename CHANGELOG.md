@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Universal Dictionary Integration (January 24, 2026)
+
+**Bidirectional bridge between Game Alpha and Dictionary Dashboard**
+
+**Game → Dictionary (Outbound Links):**
+- Added "📖 View Intelligence" button to CardDetailsModal
+- Added "📖 Intelligence" button to SpaceExplorerPanel
+- Opens `https://dashboard.unravelcodes.com/dictionary?id={id}&view=game` in new tab
+- Uses secure `window.open()` with `noopener,noreferrer`
+
+**Dictionary → Game (Reverse Bridge):**
+- URL parameter detection: `?action=preview_card&id=W001` or `?action=preview_space&id=SPACE_ID`
+- App.tsx detects params on load, passes to GameLayout
+- GameLayout opens CardDetailsModal or SpaceExplorerPanel with requested asset
+- Shows error notification if asset ID not found
+- Clears URL params after processing (preserves game/player IDs)
+
+**New Files:**
+- `src/utils/dictionaryBridge.ts` - URL construction and parsing utility
+- `tests/utils/dictionaryBridge.test.ts` - 5 unit tests
+
+**Modified Files:**
+- `src/App.tsx` - Preview param detection and state
+- `src/components/layout/GameLayout.tsx` - Preview handling, modal opening
+- `src/components/modals/CardDetailsModal.tsx` - View Intelligence button
+- `src/components/game/SpaceExplorerPanel.tsx` - Intelligence button, initialSelectedSpace prop
+
 ### Feature: Contractor Hiring and Construction Cost Mechanics (January 20, 2026)
 
 **New Feature: CON-INITIATION now calculates and deducts construction costs**

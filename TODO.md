@@ -21,6 +21,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Universal Dictionary Integration (Jan 24, 2026) - Bidirectional bridge between Game and Dictionary Dashboard
+  - "View Intelligence" buttons in CardDetailsModal and SpaceExplorerPanel
+  - URL preview support (`?action=preview_card&id=W001`)
+  - New utility: `src/utils/dictionaryBridge.ts`
 - ✅ Educational Card Selection Modal (Jan 18, 2026) - Complete Same Starting Point feature
   - Created `EducationalCardSelectionModal.tsx` with filter tabs and multi-select
   - Wired to PlayerSetup.tsx for Educational mode
@@ -515,20 +519,29 @@ interface GameState {
 
 ---
 
-## 🌐 **NEW: Universal Dictionary Integration**
-*Status: READY FOR IMPLEMENTATION*
+## 🌐 **Universal Dictionary Integration** ✅
+*Status: COMPLETED - January 24, 2026*
 *Integration Target: dashboard.unravelcodes.com*
 
 ### Objective
 Create a seamless bridge between the Game Engine and the Command Center's Intelligence Database.
 
-### Tasks
-- [ ] **Term Lookup Service**: Create a utility to link Game Space IDs and Action Card IDs to their respective dictionary terms.
-- [ ] **External Intelligence Link**: Add a "View Intelligence" button to the Space Explorer and Card Preview modals that opens `https://dashboard.unravelcodes.com/dictionary?id={id}`.
-- [ ] **Reverse Bridge (Dictionary -> Game)**:
-  - [ ] Support receiving a `?action=preview_card&id=W001` message from the dictionary.
-  - [ ] Implement a lightweight "Asset Preview" route that only renders the card or space info without starting a full game.
-- [ ] **Shared Media Assets**: Transition card and space images to the dictionary's central asset server to prevent duplication.
+### Completed Tasks
+- [x] **Term Lookup Service**: Created `src/utils/dictionaryBridge.ts` utility with `openInDictionary()`, `getPreviewParams()`, and `clearPreviewParams()` functions.
+- [x] **External Intelligence Link**: Added "📖 View Intelligence" button to CardDetailsModal and "📖 Intelligence" button to SpaceExplorerPanel. Opens `https://dashboard.unravelcodes.com/dictionary?id={id}&view=game` in new tab.
+- [x] **Reverse Bridge (Dictionary -> Game)**:
+  - [x] App.tsx detects `?action=preview_card&id=W001` or `?action=preview_space&id=SPACE_ID` on load.
+  - [x] GameLayout opens appropriate modal and shows error notification if asset not found.
+  - [x] URL params cleared after processing to prevent re-triggers.
+- [ ] **Shared Media Assets**: Deferred to future DevOps sprint - assets remain local for now.
+
+### Files Added/Modified
+- `src/utils/dictionaryBridge.ts` (NEW)
+- `src/App.tsx` (preview param detection)
+- `src/components/layout/GameLayout.tsx` (preview handling)
+- `src/components/modals/CardDetailsModal.tsx` (View Intelligence button)
+- `src/components/game/SpaceExplorerPanel.tsx` (Intelligence button + initialSelectedSpace prop)
+- `tests/utils/dictionaryBridge.test.ts` (NEW - 5 tests)
 
 ---
 
@@ -553,4 +566,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 24, 2026
