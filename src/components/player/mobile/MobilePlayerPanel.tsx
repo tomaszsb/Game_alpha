@@ -3,6 +3,7 @@
 // Main mobile container for the player panel.
 // Uses PlayerViewStateService for context-aware rendering.
 // Created: January 24, 2026
+// Updated: January 25, 2026 - Added landscape mode support
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { IServiceContainer } from '../../../types/ServiceContracts';
@@ -124,57 +125,77 @@ export const MobilePlayerPanel: React.FC<MobilePlayerPanelProps> = ({
 
   const hasSelectedChoice = !!viewContext.selectedChoiceId;
 
-  return (
-    <div className="mobile-player-panel">
-      {/* Header */}
-      <SpaceHeader
-        spaceName={viewContext.spaceName}
-        spaceTitle={viewContext.spaceTitle}
-        visitType={viewContext.visitType}
-        playerName={viewContext.playerName}
-        playerAvatar={viewContext.playerAvatar}
-        playerColor={viewContext.playerColor}
+  // Shared components that are used in both portrait and landscape
+  const headerComponent = (
+    <SpaceHeader
+      spaceName={viewContext.spaceName}
+      spaceTitle={viewContext.spaceTitle}
+      visitType={viewContext.visitType}
+      playerName={viewContext.playerName}
+      playerAvatar={viewContext.playerAvatar}
+      playerColor={viewContext.playerColor}
+    />
+  );
+
+  const notificationComponent = playerNotification && (
+    <div className="mobile-player-panel__notification">
+      <span className="notification-icon">📢</span>
+      <span className="notification-text">{playerNotification}</span>
+    </div>
+  );
+
+  const contextComponent = (
+    <div className="mobile-player-panel__context">
+      <ContextArea
+        viewContext={viewContext}
+        onContinueStory={handleContinueStory}
+        onChoiceSelect={onChoiceSelect}
       />
+    </div>
+  );
 
-      {/* Notification banner */}
-      {playerNotification && (
-        <div className="mobile-player-panel__notification">
-          <span className="notification-icon">📢</span>
-          <span className="notification-text">{playerNotification}</span>
-        </div>
-      )}
+  const statsComponent = (
+    <StatsBar
+      money={viewContext.stats.money}
+      timeSpent={viewContext.stats.timeSpent}
+      cardCount={viewContext.stats.cardCount}
+      projectScope={viewContext.stats.projectScope}
+      onStatTap={onStatTap}
+    />
+  );
 
-      {/* Context Area - Content changes based on view state */}
-      <div className="mobile-player-panel__context">
-        <ContextArea
-          viewContext={viewContext}
-          onContinueStory={handleContinueStory}
-          onChoiceSelect={onChoiceSelect}
-        />
+  const actionComponent = (
+    <PrimaryAction
+      viewState={viewContext.state}
+      actionPrompt={viewContext.actionPrompt}
+      canEndTurn={viewContext.canEndTurn}
+      isMyTurn={viewContext.isMyTurn}
+      hasSelectedChoice={hasSelectedChoice}
+      isLoading={isLoading}
+      onContinueStory={handleContinueStory}
+      onPerformAction={handlePerformAction}
+      onEndTurn={handleEndTurn}
+      onConfirmChoice={handleConfirmChoice}
+    />
+  );
+
+  // The layout is controlled via CSS media queries for orientation
+  // Portrait: vertical stack (default)
+  // Landscape: side-by-side (CSS handles via flex-direction: row)
+  return (
+    <div className="mobile-player-panel" data-testid="mobile-player-panel">
+      {/* Left section: Header + Notification + Context (Story) */}
+      <div className="mobile-player-panel__left">
+        {headerComponent}
+        {notificationComponent}
+        {contextComponent}
       </div>
 
-      {/* Stats Bar */}
-      <StatsBar
-        money={viewContext.stats.money}
-        timeSpent={viewContext.stats.timeSpent}
-        cardCount={viewContext.stats.cardCount}
-        projectScope={viewContext.stats.projectScope}
-        onStatTap={onStatTap}
-      />
-
-      {/* Primary Action */}
-      <PrimaryAction
-        viewState={viewContext.state}
-        actionPrompt={viewContext.actionPrompt}
-        canEndTurn={viewContext.canEndTurn}
-        isMyTurn={viewContext.isMyTurn}
-        hasSelectedChoice={hasSelectedChoice}
-        isLoading={isLoading}
-        onContinueStory={handleContinueStory}
-        onPerformAction={handlePerformAction}
-        onEndTurn={handleEndTurn}
-        onConfirmChoice={handleConfirmChoice}
-      />
+      {/* Right section: Stats + Action */}
+      <div className="mobile-player-panel__right">
+        {statsComponent}
+        {actionComponent}
+      </div>
     </div>
   );
 };

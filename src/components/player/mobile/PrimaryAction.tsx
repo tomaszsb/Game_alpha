@@ -3,9 +3,12 @@
 // Sticky primary action button for mobile player panel.
 // Context-aware - shows different actions based on view state.
 // Created: January 24, 2026
+// Updated: January 25, 2026 - Added CSS classes, theme support, touch-action, haptics
 
 import React from 'react';
 import { PlayerViewState, ActionPrompt } from '../../../services/PlayerViewStateService';
+import { haptics } from '../../../utils/haptics';
+import './PrimaryAction.css';
 
 export interface PrimaryActionProps {
   viewState: PlayerViewState;
@@ -22,6 +25,13 @@ export interface PrimaryActionProps {
   onConfirmChoice?: () => void;
 }
 
+interface ButtonConfig {
+  label: string;
+  icon: string;
+  className: string;
+  disabled: boolean;
+}
+
 /**
  * Get button configuration based on view state.
  */
@@ -30,13 +40,13 @@ function getButtonConfig(
   actionPrompt?: ActionPrompt,
   canEndTurn: boolean = false,
   hasSelectedChoice: boolean = false
-): { label: string; icon: string; color: string; disabled: boolean } {
+): ButtonConfig {
   switch (viewState) {
     case 'STORY_MODE':
       return {
         label: 'Continue',
         icon: '📖',
-        color: '#2196f3',
+        className: 'mobile-primary-action__button--story',
         disabled: false
       };
 
@@ -46,14 +56,14 @@ function getButtonConfig(
         return {
           label: actionPrompt.label,
           icon,
-          color: '#ff9800',
+          className: 'mobile-primary-action__button--action',
           disabled: false
         };
       }
       return {
         label: 'Complete Action',
         icon: '▶️',
-        color: '#ff9800',
+        className: 'mobile-primary-action__button--action',
         disabled: false
       };
 
@@ -61,7 +71,9 @@ function getButtonConfig(
       return {
         label: hasSelectedChoice ? 'Confirm Choice' : 'Select an Option',
         icon: hasSelectedChoice ? '✅' : '🎯',
-        color: hasSelectedChoice ? '#4caf50' : '#9e9e9e',
+        className: hasSelectedChoice
+          ? 'mobile-primary-action__button--decision-ready'
+          : 'mobile-primary-action__button--decision-pending',
         disabled: !hasSelectedChoice
       };
 
@@ -69,7 +81,9 @@ function getButtonConfig(
       return {
         label: canEndTurn ? 'End Turn' : 'Complete Actions',
         icon: canEndTurn ? '✓' : '⏳',
-        color: canEndTurn ? '#4caf50' : '#9e9e9e',
+        className: canEndTurn
+          ? 'mobile-primary-action__button--summary-ready'
+          : 'mobile-primary-action__button--summary-pending',
         disabled: !canEndTurn
       };
 
@@ -78,7 +92,7 @@ function getButtonConfig(
       return {
         label: 'Waiting...',
         icon: '⏳',
-        color: '#9e9e9e',
+        className: '',
         disabled: true
       };
   }
@@ -105,6 +119,9 @@ export const PrimaryAction: React.FC<PrimaryActionProps> = ({
   const handleClick = () => {
     if (isLoading || config.disabled || !isMyTurn) return;
 
+    // Haptic feedback on button press
+    haptics.buttonPress();
+
     switch (viewState) {
       case 'STORY_MODE':
         onContinueStory?.();
@@ -113,95 +130,49 @@ export const PrimaryAction: React.FC<PrimaryActionProps> = ({
         onPerformAction?.();
         break;
       case 'DECISION_MODE':
+        haptics.success(); // Extra feedback for confirming choice
         onConfirmChoice?.();
         break;
       case 'SUMMARY_MODE':
+        haptics.success(); // Extra feedback for ending turn
         onEndTurn?.();
         break;
     }
   };
 
   const isDisabled = config.disabled || isLoading || !isMyTurn;
+  const buttonClassName = `mobile-primary-action__button ${config.className}`;
 
   return (
-    <div
-      className="mobile-primary-action"
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        padding: '8px 12px',
-        backgroundColor: '#fff',
-        borderTop: '1px solid #e0e0e0',
-        boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.1)',
-        zIndex: 100
-      }}
-    >
+    <div className="mobile-primary-action" data-testid="primary-action-container">
       <button
+        className={buttonClassName}
         onClick={handleClick}
         disabled={isDisabled}
-        style={{
-          width: '100%',
-          padding: '14px 20px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          backgroundColor: isDisabled ? '#e0e0e0' : config.color,
-          color: isDisabled ? '#9e9e9e' : '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: isDisabled ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          transition: 'all 0.2s ease',
-          minHeight: '48px',
-          boxShadow: isDisabled ? 'none' : '0 2px 4px rgba(0, 0, 0, 0.2)'
-        }}
         aria-label={config.label}
+        data-testid="primary-action-button"
       >
         {isLoading ? (
           <>
-            <span
-              style={{
-                display: 'inline-block',
-                animation: 'spin 1s linear infinite'
-              }}
-            >
+            <span className="mobile-primary-action__icon mobile-primary-action__spinner">
               ⏳
             </span>
-            <span>Processing...</span>
+            <span className="mobile-primary-action__label">Processing...</span>
           </>
         ) : (
           <>
-            <span>{config.icon}</span>
-            <span>{config.label}</span>
+            <span className="mobile-primary-action__icon">{config.icon}</span>
+            <span className="mobile-primary-action__label">{config.label}</span>
           </>
         )}
       </button>
 
       {/* Not your turn indicator */}
       {!isMyTurn && (
-        <div
-          style={{
-            textAlign: 'center',
-            fontSize: '11px',
-            color: '#666',
-            marginTop: '4px'
-          }}
-        >
+        <div className="mobile-primary-action__waiting">
           Waiting for other player...
         </div>
       )}
-
-      {/* Inline keyframes for spinner */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };

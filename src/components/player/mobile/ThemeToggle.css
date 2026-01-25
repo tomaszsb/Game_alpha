@@ -1,0 +1,122 @@
+/* src/components/player/mobile/ThemeToggle.css
+ *
+ * Styles for the theme toggle switch component.
+ * Created: January 25, 2026
+ */
+
+/* ============================================================
+   Theme Toggle Container
+   ============================================================ */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-toggle--compact {
+  gap: 4px;
+}
+
+/* ============================================================
+   Toggle Button
+   ============================================================ */
+
+.theme-toggle__button {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: background-color 0.2s ease;
+  touch-action: manipulation;
+}
+
+.theme-toggle__button:hover {
+  background-color: var(--mobile-bg-secondary);
+}
+
+.theme-toggle__button:focus {
+  outline: 2px solid var(--mobile-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Track (Background)
+   ============================================================ */
+
+.theme-toggle__track {
+  display: block;
+  width: 52px;
+  height: 28px;
+  background-color: var(--mobile-bg-secondary);
+  border: 2px solid var(--mobile-border);
+  border-radius: 14px;
+  position: relative;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme="dark"] .theme-toggle__track {
+  background-color: var(--mobile-accent);
+  border-color: var(--mobile-accent);
+}
+
+/* ============================================================
+   Thumb (Slider)
+   ============================================================ */
+
+.theme-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: var(--mobile-bg-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle__thumb--dark {
+  transform: translateX(24px);
+}
+
+/* ============================================================
+   Label
+   ============================================================ */
+
+.theme-toggle__label {
+  font-size: 12px;
+  color: var(--mobile-text-secondary);
+  min-width: 36px;
+}
+
+.theme-toggle--compact .theme-toggle__label {
+  font-size: 11px;
+  min-width: 28px;
+}
+
+/* ============================================================
+   Responsive Adjustments
+   ============================================================ */
+
+@media (max-width: 359px) {
+  .theme-toggle__track {
+    width: 44px;
+    height: 24px;
+  }
+
+  .theme-toggle__thumb {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+
+  .theme-toggle__thumb--dark {
+    transform: translateX(20px);
+  }
+}

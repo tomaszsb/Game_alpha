@@ -3,8 +3,10 @@
 // Compact horizontal stats bar for mobile player panel.
 // Shows 4 key stats: Money, Time, Cards, Scope
 // Created: January 24, 2026
+// Updated: January 25, 2026 - Added CSS classes, theme support, 2x2 grid fallback
 
 import React from 'react';
+import './StatsBar.css';
 
 export interface StatsBarProps {
   money: number;
@@ -18,51 +20,33 @@ interface StatItemProps {
   icon: string;
   value: string;
   label: string;
-  color: string;
+  colorClass: string;
   onTap?: () => void;
+  testId?: string;
 }
 
-const StatItem: React.FC<StatItemProps> = ({ icon, value, label, color, onTap }) => (
-  <div
-    onClick={onTap}
-    style={{
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '4px 2px',
-      cursor: onTap ? 'pointer' : 'default',
-      borderRadius: '4px',
-      transition: 'background-color 0.15s ease'
-    }}
-    role={onTap ? 'button' : undefined}
-    tabIndex={onTap ? 0 : undefined}
-    onKeyDown={onTap ? (e) => e.key === 'Enter' && onTap() : undefined}
-  >
-    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-      <span style={{ fontSize: '12px' }}>{icon}</span>
-      <span
-        style={{
-          fontSize: '12px',
-          fontWeight: 'bold',
-          color
-        }}
-      >
-        {value}
-      </span>
-    </div>
-    <span
-      style={{
-        fontSize: '9px',
-        color: '#888',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px'
-      }}
+const StatItem: React.FC<StatItemProps> = ({ icon, value, label, colorClass, onTap, testId }) => {
+  const className = `mobile-stats-bar__item ${onTap ? 'mobile-stats-bar__item--tappable' : ''}`;
+
+  return (
+    <div
+      className={className}
+      onClick={onTap}
+      role={onTap ? 'button' : undefined}
+      tabIndex={onTap ? 0 : undefined}
+      onKeyDown={onTap ? (e) => e.key === 'Enter' && onTap() : undefined}
+      data-testid={testId}
     >
-      {label}
-    </span>
-  </div>
-);
+      <div className="mobile-stats-bar__value-row">
+        <span className="mobile-stats-bar__icon">{icon}</span>
+        <span className={`mobile-stats-bar__value ${colorClass}`}>
+          {value}
+        </span>
+      </div>
+      <span className="mobile-stats-bar__label">{label}</span>
+    </div>
+  );
+};
 
 /**
  * Format money value for compact display.
@@ -104,6 +88,7 @@ function formatScope(scope: number): string {
 /**
  * StatsBar - Compact horizontal stats bar for mobile.
  * Shows key player stats at a glance with optional tap handlers.
+ * Falls back to 2x2 grid on very narrow screens (<360px).
  */
 export const StatsBar: React.FC<StatsBarProps> = ({
   money,
@@ -113,44 +98,38 @@ export const StatsBar: React.FC<StatsBarProps> = ({
   onStatTap
 }) => {
   return (
-    <div
-      className="mobile-stats-bar"
-      style={{
-        display: 'flex',
-        backgroundColor: '#fafafa',
-        borderTop: '1px solid #e0e0e0',
-        borderBottom: '1px solid #e0e0e0',
-        padding: '4px 0',
-        minHeight: '36px'
-      }}
-    >
+    <div className="mobile-stats-bar" data-testid="stats-bar">
       <StatItem
         icon="💰"
         value={formatMoney(money)}
         label="Money"
-        color={money >= 0 ? '#2e7d32' : '#c62828'}
+        colorClass={money >= 0 ? 'mobile-stats-bar__value--money-positive' : 'mobile-stats-bar__value--money-negative'}
         onTap={onStatTap ? () => onStatTap('money') : undefined}
+        testId="stat-money"
       />
       <StatItem
         icon="⏱️"
         value={`${timeSpent}w`}
         label="Time"
-        color="#1565c0"
+        colorClass="mobile-stats-bar__value--time"
         onTap={onStatTap ? () => onStatTap('time') : undefined}
+        testId="stat-time"
       />
       <StatItem
         icon="🃏"
         value={String(cardCount)}
         label="Cards"
-        color="#6a1b9a"
+        colorClass="mobile-stats-bar__value--cards"
         onTap={onStatTap ? () => onStatTap('cards') : undefined}
+        testId="stat-cards"
       />
       <StatItem
         icon="📐"
         value={formatScope(projectScope)}
         label="Scope"
-        color="#e65100"
+        colorClass="mobile-stats-bar__value--scope"
         onTap={onStatTap ? () => onStatTap('scope') : undefined}
+        testId="stat-scope"
       />
     </div>
   );

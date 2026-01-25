@@ -2,6 +2,7 @@
  *
  * Styles for the draggable detail sheet component.
  * Created: January 24, 2026
+ * Updated: January 25, 2026 - Added theme support with CSS custom properties
  */
 
 /* ============================================================
@@ -13,19 +14,20 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
+  background-color: var(--mobile-bg-primary);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   z-index: 200;
-  transition: height 0.3s ease;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Safe area support for bottom-positioned sheet */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .detail-sheet--open {
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
 }
 
 /* ============================================================
@@ -49,19 +51,20 @@
 .detail-sheet__handle-bar {
   width: 40px;
   height: 4px;
-  background-color: #ccc;
+  background-color: var(--mobile-border);
   border-radius: 2px;
 }
 
 /* ============================================================
-   Tab Bar
+   Tab Bar - Material Design 56dp height
    ============================================================ */
 
 .detail-sheet__tabs {
   display: flex;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--mobile-border);
   padding: 0 4px;
   flex-shrink: 0;
+  min-height: 56px;  /* Material Design standard */
 }
 
 .detail-sheet__tab {
@@ -69,31 +72,35 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 6px 4px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #666;
+  color: var(--mobile-text-secondary);
+  min-width: 44px;  /* Touch target minimum */
+  min-height: 44px;  /* Touch target minimum */
+  touch-action: manipulation;
 }
 
 .detail-sheet__tab:hover {
-  background-color: #f5f5f5;
+  background-color: var(--mobile-bg-secondary);
 }
 
 .detail-sheet__tab--active {
-  color: #2196f3;
-  border-bottom-color: #2196f3;
+  color: var(--mobile-accent);
+  border-bottom-color: var(--mobile-accent);
 }
 
 .detail-sheet__tab .tab-icon {
-  font-size: 16px;
+  font-size: 24px;  /* Increased from 16px for better visibility */
   margin-bottom: 2px;
 }
 
 .detail-sheet__tab .tab-label {
-  font-size: 9px;
+  font-size: 10px;  /* Increased from 9px */
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -106,6 +113,8 @@
   flex: 1;
   overflow-y: auto;
   padding: 12px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
 }
 
 .detail-content {
@@ -117,7 +126,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--mobile-bg-secondary);
 }
 
 .detail-row:last-child {
@@ -125,25 +134,25 @@
 }
 
 .detail-label {
-  color: #666;
+  color: var(--mobile-text-secondary);
 }
 
 .detail-value {
   font-weight: 600;
-  color: #333;
+  color: var(--mobile-text-primary);
 }
 
 .detail-value.positive {
-  color: #2e7d32;
+  color: var(--mobile-success);
 }
 
 .detail-value.negative {
-  color: #c62828;
+  color: var(--mobile-danger);
 }
 
 .detail-divider {
   height: 1px;
-  background-color: #e0e0e0;
+  background-color: var(--mobile-border);
   margin: 8px 0;
 }
 
@@ -151,14 +160,14 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #888;
+  color: var(--mobile-text-muted);
   letter-spacing: 0.5px;
   margin-bottom: 8px;
   margin-top: 4px;
 }
 
 .detail-empty {
-  color: #999;
+  color: var(--mobile-text-muted);
   font-style: italic;
   text-align: center;
   padding: 16px 0;
@@ -170,7 +179,7 @@
 
 .log-entry {
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--mobile-bg-secondary);
 }
 
 .log-entry:last-child {
@@ -179,13 +188,13 @@
 
 .log-space {
   font-weight: 600;
-  color: #333;
+  color: var(--mobile-text-primary);
   margin-bottom: 2px;
 }
 
 .log-details {
   font-size: 11px;
-  color: #888;
+  color: var(--mobile-text-muted);
 }
 
 /* ============================================================
@@ -198,20 +207,48 @@
   }
 
   .detail-sheet__tab .tab-icon {
-    font-size: 14px;
+    font-size: 20px;
   }
 
   .detail-sheet__content {
     padding: 8px;
   }
+
+  .detail-sheet__tabs {
+    min-height: 48px;  /* Reduced but still above 44px minimum */
+  }
 }
 
 @media (min-width: 480px) {
   .detail-sheet__tab .tab-label {
-    font-size: 10px;
+    font-size: 11px;
+  }
+
+  .detail-sheet__tab .tab-icon {
+    font-size: 26px;
   }
 
   .detail-row {
     padding: 8px 0;
   }
+}
+
+/* ============================================================
+   Dark Theme Adjustments
+   ============================================================ */
+
+[data-theme="dark"] .detail-sheet {
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .detail-sheet--open {
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .detail-value.positive {
+  color: #81c784;
+}
+
+[data-theme="dark"] .detail-value.negative {
+  color: #e57373;
 }

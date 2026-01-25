@@ -1,0 +1,164 @@
+/* src/components/player/mobile/PrimaryAction.css
+ *
+ * Styles for the mobile primary action button.
+ * Sticky bottom button with context-aware styling.
+ * Created: January 25, 2026
+ */
+
+/* ============================================================
+   Primary Action Container
+   ============================================================ */
+
+.mobile-primary-action {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 12px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  background-color: var(--mobile-bg-primary);
+  border-top: 1px solid var(--mobile-border);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+/* ============================================================
+   Primary Action Button
+   ============================================================ */
+
+.mobile-primary-action__button {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  /* Remove 300ms tap delay, prevent double-tap zoom */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.mobile-primary-action__button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ============================================================
+   Button State Modifiers
+   ============================================================ */
+
+/* Continue / Story mode - Blue */
+.mobile-primary-action__button--story {
+  background-color: var(--mobile-accent);
+}
+
+.mobile-primary-action__button--story:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+/* Action mode - Orange */
+.mobile-primary-action__button--action {
+  background-color: var(--mobile-warning);
+}
+
+.mobile-primary-action__button--action:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
+/* Decision confirmed - Green */
+.mobile-primary-action__button--decision-ready {
+  background-color: var(--mobile-success);
+}
+
+.mobile-primary-action__button--decision-ready:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+/* Decision pending - Gray */
+.mobile-primary-action__button--decision-pending {
+  background-color: #9e9e9e;
+}
+
+/* Summary / End Turn ready - Green */
+.mobile-primary-action__button--summary-ready {
+  background-color: var(--mobile-success);
+}
+
+.mobile-primary-action__button--summary-ready:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+/* Summary / End Turn not ready - Gray */
+.mobile-primary-action__button--summary-pending {
+  background-color: #9e9e9e;
+}
+
+/* Disabled state */
+.mobile-primary-action__button:disabled {
+  background-color: var(--mobile-border);
+  color: var(--mobile-text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ============================================================
+   Button Content
+   ============================================================ */
+
+.mobile-primary-action__icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.mobile-primary-action__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Loading spinner */
+.mobile-primary-action__spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Not Your Turn Indicator
+   ============================================================ */
+
+.mobile-primary-action__waiting {
+  text-align: center;
+  font-size: 11px;
+  color: var(--mobile-text-secondary);
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Dark Theme Adjustments
+   ============================================================ */
+
+[data-theme="dark"] .mobile-primary-action {
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .mobile-primary-action__button {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}

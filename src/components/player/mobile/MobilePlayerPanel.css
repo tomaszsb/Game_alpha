@@ -3,7 +3,55 @@
  * Styles for the mobile player panel components.
  * Mobile-first design with minimal spacing.
  * Created: January 24, 2026
+ * Updated: January 25, 2026 - Added 100dvh, safe areas, landscape mode
  */
+
+/* ============================================================
+   CSS Custom Properties (Theme Support)
+   ============================================================ */
+
+:root {
+  /* Light theme (default) */
+  --mobile-bg-primary: #ffffff;
+  --mobile-bg-secondary: #f5f5f5;
+  --mobile-text-primary: #333333;
+  --mobile-text-secondary: #666666;
+  --mobile-text-muted: #888888;
+  --mobile-border: #e0e0e0;
+  --mobile-accent: #2196f3;
+  --mobile-success: #4caf50;
+  --mobile-warning: #ff9800;
+  --mobile-danger: #f44336;
+  color-scheme: light dark;
+}
+
+[data-theme="dark"] {
+  --mobile-bg-primary: #1a1a1a;
+  --mobile-bg-secondary: #2d2d2d;
+  --mobile-text-primary: #ffffff;
+  --mobile-text-secondary: #b0b0b0;
+  --mobile-text-muted: #888888;
+  --mobile-border: #404040;
+  --mobile-accent: #64b5f6;
+  --mobile-success: #81c784;
+  --mobile-warning: #ffb74d;
+  --mobile-danger: #e57373;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --mobile-bg-primary: #1a1a1a;
+    --mobile-bg-secondary: #2d2d2d;
+    --mobile-text-primary: #ffffff;
+    --mobile-text-secondary: #b0b0b0;
+    --mobile-text-muted: #888888;
+    --mobile-border: #404040;
+    --mobile-accent: #64b5f6;
+    --mobile-success: #81c784;
+    --mobile-warning: #ffb74d;
+    --mobile-danger: #e57373;
+  }
+}
 
 /* ============================================================
    Main Container
@@ -12,11 +60,25 @@
 .mobile-player-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 100vh;
+  height: 100dvh;  /* Dynamic viewport height - handles mobile browser toolbars */
+  min-height: -webkit-fill-available;  /* iOS Safari fallback */
+  max-height: 100dvh;
   overflow: hidden;
-  background-color: #fff;
+  background-color: var(--mobile-bg-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Safe area protection for notched devices */
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+
+/* Portrait mode (default): vertical stacking */
+.mobile-player-panel__left {
+  display: contents;  /* Children flow into parent's flex layout */
+}
+
+.mobile-player-panel__right {
+  display: contents;  /* Children flow into parent's flex layout */
 }
 
 .mobile-player-panel--loading {
@@ -26,7 +88,7 @@
 
 .mobile-player-panel__loader {
   font-size: 16px;
-  color: #666;
+  color: var(--mobile-text-secondary);
 }
 
 /* ============================================================
@@ -38,10 +100,12 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background-color: #fff3e0;
-  border-bottom: 1px solid #ffcc80;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  background-color: color-mix(in srgb, var(--mobile-warning) 15%, var(--mobile-bg-primary));
+  border-bottom: 1px solid var(--mobile-warning);
   font-size: 12px;
-  color: #e65100;
+  color: var(--mobile-warning);
 }
 
 .mobile-player-panel__notification .notification-icon {
@@ -51,6 +115,8 @@
 .mobile-player-panel__notification .notification-text {
   flex: 1;
   min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ============================================================
@@ -60,31 +126,48 @@
 .mobile-player-panel__context {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 12px;
-  min-height: 120px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+  min-height: 0;  /* Allow flex shrinking */
 }
 
-/* Story Mode */
+/* Story Mode - Designed for 300% of typical story length */
 .mobile-context-story {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
 }
 
 .mobile-context-story .story-text {
   flex: 1;
   font-size: 14px;
-  line-height: 1.5;
-  color: #333;
+  line-height: 1.6;
+  color: var(--mobile-text-primary);
   overflow-y: auto;
+  /* Text wrapping fixes */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  hyphens: auto;
+  /* Padding for sticky hint */
+  padding-bottom: 40px;
 }
 
 .mobile-context-story .story-hint {
-  margin-top: 12px;
+  /* Sticky at bottom of scrollable area */
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 8px 12px;
   text-align: center;
   font-size: 12px;
-  color: #888;
+  color: var(--mobile-accent);
   font-style: italic;
+  /* Gradient fade for readability */
+  background: linear-gradient(transparent, var(--mobile-bg-primary) 30%);
 }
 
 /* Action Mode */
@@ -106,14 +189,16 @@
 .mobile-context-action .action-label {
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: var(--mobile-text-primary);
   margin-bottom: 8px;
 }
 
 .mobile-context-action .action-description {
   font-size: 14px;
-  color: #666;
+  color: var(--mobile-text-secondary);
   max-width: 280px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Decision Mode */
@@ -126,7 +211,7 @@
 .mobile-context-decision .decision-prompt {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--mobile-text-primary);
   text-align: center;
 }
 
@@ -141,23 +226,24 @@
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background-color: #f5f5f5;
-  border: 2px solid #e0e0e0;
+  background-color: var(--mobile-bg-secondary);
+  border: 2px solid var(--mobile-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
   font-size: 14px;
+  touch-action: manipulation;  /* Remove 300ms tap delay */
 }
 
 .mobile-context-decision .decision-option:hover {
-  background-color: #e3f2fd;
-  border-color: #90caf9;
+  background-color: color-mix(in srgb, var(--mobile-accent) 15%, var(--mobile-bg-primary));
+  border-color: var(--mobile-accent);
 }
 
 .mobile-context-decision .decision-option--selected {
-  background-color: #e8f5e9;
-  border-color: #4caf50;
+  background-color: color-mix(in srgb, var(--mobile-success) 15%, var(--mobile-bg-primary));
+  border-color: var(--mobile-success);
 }
 
 .mobile-context-decision .decision-option .option-icon {
@@ -167,7 +253,9 @@
 
 .mobile-context-decision .decision-option .option-label {
   flex: 1;
-  color: #333;
+  color: var(--mobile-text-primary);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Waiting Mode */
@@ -189,7 +277,7 @@
 
 .mobile-context-waiting .waiting-message {
   font-size: 16px;
-  color: #666;
+  color: var(--mobile-text-secondary);
 }
 
 /* Summary Mode */
@@ -205,14 +293,14 @@
 
 .mobile-context-summary .summary-icon {
   font-size: 48px;
-  color: #4caf50;
+  color: var(--mobile-success);
   margin-bottom: 12px;
 }
 
 .mobile-context-summary .summary-message {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--mobile-text-primary);
 }
 
 /* ============================================================
@@ -271,5 +359,53 @@
 
   .mobile-context-decision .decision-option {
     padding: 14px 18px;
+  }
+}
+
+/* ============================================================
+   Landscape Mode - Side by side layout
+   ============================================================ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-player-panel {
+    flex-direction: row;
+  }
+
+  .mobile-player-panel__left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .mobile-player-panel__right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-left: 1px solid var(--mobile-border);
+  }
+
+  .mobile-player-panel__context {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Adjust header for landscape */
+  .mobile-space-header {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+
+  /* Adjust stats bar for landscape */
+  .mobile-stats-bar {
+    border-top: none;
+    border-bottom: 1px solid var(--mobile-border);
+  }
+
+  /* Adjust primary action for landscape */
+  .mobile-primary-action {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 }

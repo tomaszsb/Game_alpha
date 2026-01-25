@@ -2,9 +2,13 @@
 //
 // Draggable bottom sheet with tabs for detailed information.
 // Created: January 24, 2026
+// Updated: January 25, 2026 - Refactored with framer-motion for spring physics
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { IServiceContainer } from '../../../types/ServiceContracts';
+import { Player } from '../../../types/StateTypes';
+import { haptics } from '../../../utils/haptics';
 import './DetailSheet.css';
 
 export type DetailTab = 'finances' | 'time' | 'cards' | 'scope' | 'log';
@@ -34,13 +38,20 @@ const TABS: TabConfig[] = [
 ];
 
 // Snap points for the sheet height
-const SNAP_COLLAPSED = 48;  // Just the tab bar visible
-const SNAP_HALF = 250;      // Half expanded
-const SNAP_FULL = 400;      // Fully expanded
+const SNAP_COLLAPSED = 56;  // Just the tab bar visible (Material Design 56dp)
+const SNAP_HALF = 280;      // Half expanded
+const SNAP_FULL = 420;      // Fully expanded
+
+// Spring animation config for native-feeling drag
+const springConfig = {
+  type: 'spring' as const,
+  damping: 30,
+  stiffness: 300
+};
 
 /**
  * DetailSheet - Draggable bottom sheet with tabs.
- * Provides access to detailed player information.
+ * Uses framer-motion for native-feeling spring physics.
  */
 export const DetailSheet: React.FC<DetailSheetProps> = ({
   gameServices,
@@ -52,74 +63,59 @@ export const DetailSheet: React.FC<DetailSheetProps> = ({
   onOpen
 }) => {
   const [sheetHeight, setSheetHeight] = useState(SNAP_COLLAPSED);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartY = useRef(0);
-  const dragStartHeight = useRef(0);
+
+  // Motion value for tracking drag
+  const y = useMotionValue(0);
+
+  // Transform for backdrop opacity (0 when collapsed, 0.4 when fully expanded)
+  const backdropOpacity = useTransform(
+    y,
+    [0, -(SNAP_FULL - SNAP_COLLAPSED)],
+    [0, 0.4]
+  );
 
   // Get player data
   const player = gameServices.stateService.getPlayer(playerId);
 
-  // Update height when isOpen changes
+  // Update height when isOpen changes externally
   useEffect(() => {
     setSheetHeight(isOpen ? SNAP_HALF : SNAP_COLLAPSED);
   }, [isOpen]);
 
-  // Handle drag start
-  const handleDragStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    setIsDragging(true);
-    dragStartY.current = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    dragStartHeight.current = sheetHeight;
-  }, [sheetHeight]);
-
-  // Handle drag move
-  const handleDragMove = useCallback((e: TouchEvent | MouseEvent) => {
-    if (!isDragging) return;
-
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const deltaY = dragStartY.current - clientY;
-    const newHeight = Math.max(SNAP_COLLAPSED, Math.min(SNAP_FULL, dragStartHeight.current + deltaY));
-    setSheetHeight(newHeight);
-  }, [isDragging]);
-
   // Handle drag end - snap to nearest point
-  const handleDragEnd = useCallback(() => {
-    setIsDragging(false);
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const currentHeight = sheetHeight - info.offset.y;
+    const velocity = info.velocity.y;
 
-    // Find nearest snap point
-    const snapPoints = [SNAP_COLLAPSED, SNAP_HALF, SNAP_FULL];
-    const nearest = snapPoints.reduce((prev, curr) =>
-      Math.abs(curr - sheetHeight) < Math.abs(prev - sheetHeight) ? curr : prev
-    );
+    // Use velocity to determine snap direction if moving fast
+    let targetHeight: number;
+    if (Math.abs(velocity) > 500) {
+      // Fast swipe - go in the direction of velocity
+      targetHeight = velocity < 0 ? SNAP_FULL : SNAP_COLLAPSED;
+    } else {
+      // Slow drag - snap to nearest
+      const snapPoints = [SNAP_COLLAPSED, SNAP_HALF, SNAP_FULL];
+      targetHeight = snapPoints.reduce((prev, curr) =>
+        Math.abs(curr - currentHeight) < Math.abs(prev - currentHeight) ? curr : prev
+      );
+    }
 
-    setSheetHeight(nearest);
+    setSheetHeight(targetHeight);
+
+    // Haptic feedback on snap
+    haptics.mediumTap();
 
     // Update open state based on snap point
-    if (nearest === SNAP_COLLAPSED) {
+    if (targetHeight === SNAP_COLLAPSED) {
       onClose();
     } else {
       onOpen();
     }
-  }, [sheetHeight, onClose, onOpen]);
-
-  // Add/remove global event listeners for drag
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleDragMove);
-      window.addEventListener('touchend', handleDragEnd);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleDragMove);
-      window.removeEventListener('mouseup', handleDragEnd);
-      window.removeEventListener('touchmove', handleDragMove);
-      window.removeEventListener('touchend', handleDragEnd);
-    };
-  }, [isDragging, handleDragMove, handleDragEnd]);
+  };
 
   // Handle tab click - also opens sheet if collapsed
   const handleTabClick = (tab: DetailTab) => {
+    haptics.lightTap();
     onTabChange(tab);
     if (sheetHeight === SNAP_COLLAPSED) {
       setSheetHeight(SNAP_HALF);
@@ -127,56 +123,93 @@ export const DetailSheet: React.FC<DetailSheetProps> = ({
     }
   };
 
+  // Handle backdrop click - close sheet
+  const handleBackdropClick = () => {
+    setSheetHeight(SNAP_COLLAPSED);
+    onClose();
+  };
+
   if (!player) return null;
 
+  const isExpanded = sheetHeight > SNAP_COLLAPSED;
+
   return (
-    <div
-      className={`detail-sheet ${isOpen ? 'detail-sheet--open' : ''}`}
-      style={{ height: sheetHeight }}
-    >
-      {/* Drag Handle */}
-      <div
-        className="detail-sheet__handle"
-        onMouseDown={handleDragStart}
-        onTouchStart={handleDragStart}
+    <>
+      {/* Backdrop - dims game board when sheet is expanded */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            className="detail-sheet__backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            onClick={handleBackdropClick}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: '#000',
+              zIndex: 199,
+              touchAction: 'none'
+            }}
+            data-testid="detail-sheet-backdrop"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sheet */}
+      <motion.div
+        className={`detail-sheet ${isOpen ? 'detail-sheet--open' : ''}`}
+        initial={{ height: SNAP_COLLAPSED }}
+        animate={{ height: sheetHeight }}
+        transition={springConfig}
+        drag="y"
+        dragConstraints={{ top: -(SNAP_FULL - SNAP_COLLAPSED), bottom: 0 }}
+        dragElastic={0.2}
+        onDragEnd={handleDragEnd}
+        style={{ y }}
+        data-testid="detail-sheet"
       >
-        <div className="detail-sheet__handle-bar" />
-      </div>
+        {/* Drag Handle */}
+        <div className="detail-sheet__handle" data-testid="drag-handle">
+          <div className="detail-sheet__handle-bar" />
+        </div>
 
-      {/* Tab Bar */}
-      <div className="detail-sheet__tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            className={`detail-sheet__tab ${activeTab === tab.id ? 'detail-sheet__tab--active' : ''}`}
-            onClick={() => handleTabClick(tab.id)}
-            aria-selected={activeTab === tab.id}
-          >
-            <span className="tab-icon">{tab.icon}</span>
-            <span className="tab-label">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+        {/* Tab Bar */}
+        <div className="detail-sheet__tabs" role="tablist">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`detail-sheet__tab ${activeTab === tab.id ? 'detail-sheet__tab--active' : ''}`}
+              onClick={() => handleTabClick(tab.id)}
+              aria-selected={activeTab === tab.id}
+              role="tab"
+            >
+              <span className="tab-icon">{tab.icon}</span>
+              <span className="tab-label">{tab.label}</span>
+            </button>
+          ))}
+        </div>
 
-      {/* Content Area */}
-      <div className="detail-sheet__content">
-        {activeTab === 'finances' && (
-          <FinancesContent player={player} />
-        )}
-        {activeTab === 'time' && (
-          <TimeContent player={player} />
-        )}
-        {activeTab === 'cards' && (
-          <CardsContent player={player} gameServices={gameServices} />
-        )}
-        {activeTab === 'scope' && (
-          <ScopeContent player={player} gameServices={gameServices} />
-        )}
-        {activeTab === 'log' && (
-          <LogContent player={player} gameServices={gameServices} />
-        )}
-      </div>
-    </div>
+        {/* Content Area with tab transitions */}
+        <div className="detail-sheet__content">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+            >
+              {activeTab === 'finances' && <FinancesContent player={player} />}
+              {activeTab === 'time' && <TimeContent player={player} />}
+              {activeTab === 'cards' && <CardsContent player={player} />}
+              {activeTab === 'scope' && <ScopeContent player={player} />}
+              {activeTab === 'log' && <LogContent player={player} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </>
   );
 };
 
@@ -184,11 +217,8 @@ export const DetailSheet: React.FC<DetailSheetProps> = ({
 // Content Components
 // ============================================================
 
-import { Player } from '../../../types/StateTypes';
-
 interface ContentProps {
   player: Player;
-  gameServices?: IServiceContainer;
 }
 
 const FinancesContent: React.FC<ContentProps> = ({ player }) => (
@@ -268,7 +298,7 @@ const TimeContent: React.FC<ContentProps> = ({ player }) => (
   </div>
 );
 
-const CardsContent: React.FC<ContentProps> = ({ player, gameServices }) => {
+const CardsContent: React.FC<ContentProps> = ({ player }) => {
   const cardsByType: Record<string, string[]> = {
     W: [], B: [], E: [], L: [], I: []
   };
@@ -297,7 +327,7 @@ const CardsContent: React.FC<ContentProps> = ({ player, gameServices }) => {
   );
 };
 
-const ScopeContent: React.FC<ContentProps> = ({ player, gameServices }) => {
+const ScopeContent: React.FC<ContentProps> = ({ player }) => {
   const workCards = player.hand.filter((id) => id.startsWith('W'));
 
   return (
@@ -328,7 +358,7 @@ const ScopeContent: React.FC<ContentProps> = ({ player, gameServices }) => {
   );
 };
 
-const LogContent: React.FC<ContentProps> = ({ player, gameServices }) => {
+const LogContent: React.FC<ContentProps> = ({ player }) => {
   const recentVisits = player.spaceVisitLog?.slice(-5).reverse() || [];
 
   return (

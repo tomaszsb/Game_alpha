@@ -1,0 +1,188 @@
+/* src/components/player/mobile/StatsBar.css
+ *
+ * Styles for the mobile stats bar component.
+ * Includes responsive 2x2 grid fallback for narrow screens.
+ * Created: January 25, 2026
+ */
+
+/* ============================================================
+   Stats Bar Container
+   ============================================================ */
+
+.mobile-stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  background-color: var(--mobile-bg-secondary);
+  border-top: 1px solid var(--mobile-border);
+  border-bottom: 1px solid var(--mobile-border);
+  padding: 4px;
+  padding-left: max(4px, env(safe-area-inset-left));
+  padding-right: max(4px, env(safe-area-inset-right));
+  min-height: 44px;
+  gap: 2px;
+}
+
+/* ============================================================
+   Stat Item
+   ============================================================ */
+
+.mobile-stats-bar__item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 2px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  touch-action: manipulation;
+}
+
+.mobile-stats-bar__item--tappable {
+  cursor: pointer;
+}
+
+.mobile-stats-bar__item--tappable:hover,
+.mobile-stats-bar__item--tappable:focus {
+  background-color: var(--mobile-border);
+  outline: none;
+}
+
+.mobile-stats-bar__item--tappable:active {
+  background-color: var(--mobile-border);
+  transform: scale(0.98);
+}
+
+/* Value row (icon + value) */
+.mobile-stats-bar__value-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mobile-stats-bar__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mobile-stats-bar__value {
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Color modifiers for values */
+.mobile-stats-bar__value--positive {
+  color: var(--mobile-success);
+}
+
+.mobile-stats-bar__value--negative {
+  color: var(--mobile-danger);
+}
+
+.mobile-stats-bar__value--money-positive {
+  color: #2e7d32;
+}
+
+.mobile-stats-bar__value--money-negative {
+  color: #c62828;
+}
+
+.mobile-stats-bar__value--time {
+  color: #1565c0;
+}
+
+.mobile-stats-bar__value--cards {
+  color: #6a1b9a;
+}
+
+.mobile-stats-bar__value--scope {
+  color: #e65100;
+}
+
+/* Label */
+.mobile-stats-bar__label {
+  font-size: 9px;
+  color: var(--mobile-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Responsive: 2x2 Grid for Narrow Screens (<360px)
+   ============================================================ */
+
+@media (max-width: 359px) {
+  .mobile-stats-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .mobile-stats-bar__item {
+    padding: 6px 4px;
+  }
+
+  .mobile-stats-bar__icon {
+    font-size: 12px;
+  }
+
+  .mobile-stats-bar__value {
+    font-size: 12px;
+  }
+
+  .mobile-stats-bar__label {
+    font-size: 8px;
+  }
+}
+
+/* ============================================================
+   Responsive: Larger Screens
+   ============================================================ */
+
+@media (min-width: 480px) {
+  .mobile-stats-bar__item {
+    padding: 6px 4px;
+  }
+
+  .mobile-stats-bar__icon {
+    font-size: 16px;
+  }
+
+  .mobile-stats-bar__value {
+    font-size: 14px;
+  }
+
+  .mobile-stats-bar__label {
+    font-size: 10px;
+  }
+}
+
+/* ============================================================
+   Dark Theme Adjustments
+   ============================================================ */
+
+[data-theme="dark"] .mobile-stats-bar__value--money-positive {
+  color: #81c784;
+}
+
+[data-theme="dark"] .mobile-stats-bar__value--money-negative {
+  color: #e57373;
+}
+
+[data-theme="dark"] .mobile-stats-bar__value--time {
+  color: #64b5f6;
+}
+
+[data-theme="dark"] .mobile-stats-bar__value--cards {
+  color: #ce93d8;
+}
+
+[data-theme="dark"] .mobile-stats-bar__value--scope {
+  color: #ffb74d;
+}
