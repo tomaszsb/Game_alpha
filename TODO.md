@@ -21,6 +21,12 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Mobile PlayerPanel Redesign (Jan 24, 2026) - Context-aware mobile UI architecture
+  - New state machine service: `PlayerViewStateService` (5 states: STORY, ACTION, DECISION, WAITING, SUMMARY)
+  - Mobile components: MobilePlayerPanel, SpaceHeader, StatsBar, PrimaryAction, ContextArea
+  - Draggable DetailSheet with 5 tabs (Finances, Time, Cards, Scope, Log)
+  - Responsive wrapper switches at 768px breakpoint
+  - 43 new tests for mobile components
 - ✅ Universal Dictionary Integration (Jan 24, 2026) - Bidirectional bridge between Game and Dictionary Dashboard
   - "View Intelligence" buttons in CardDetailsModal and SpaceExplorerPanel
   - URL preview support (`?action=preview_card&id=W001`)

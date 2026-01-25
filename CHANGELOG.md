@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Mobile PlayerPanel Redesign (January 24, 2026)
+
+**Context-aware mobile UI architecture replacing accordion-based desktop design**
+
+**Problem Solved:**
+The previous PlayerPanel design showed all information via accordions - a desktop mental model. On phones (360x640px), it required excessive scrolling and didn't fit on screen.
+
+**Solution: State Machine Architecture**
+New `PlayerViewStateService` with 5 view states:
+- `STORY_MODE` - Just landed, showing narrative
+- `ACTION_MODE` - Has pending manual action (dice roll, card draw)
+- `DECISION_MODE` - Must choose between options (movement, cards)
+- `WAITING_MODE` - Waiting for other players or processing
+- `SUMMARY_MODE` - Turn complete, can end turn
+
+**New Files (16 total):**
+- `src/services/PlayerViewStateService.ts` - Central state machine
+- `src/components/player/mobile/MobilePlayerPanel.tsx` - Main mobile container
+- `src/components/player/mobile/SpaceHeader.tsx` - Compact header
+- `src/components/player/mobile/StatsBar.tsx` - Horizontal 4-stat bar
+- `src/components/player/mobile/PrimaryAction.tsx` - Sticky action button
+- `src/components/player/mobile/ContextArea.tsx` - State-based content switcher
+- `src/components/player/mobile/DetailSheet.tsx` - Draggable bottom sheet
+- `src/components/player/mobile/views/*.tsx` - 5 view components
+- `src/components/player/PlayerPanelWrapper.tsx` - Responsive wrapper
+
+**Integration:**
+- `GameLayout.tsx` now uses `PlayerPanelWrapper` instead of `PlayerPanel`
+- Automatic switch at 768px breakpoint
+- Desktop users see unchanged experience
+
+**Tests:**
+- 25 tests for PlayerViewStateService
+- 18 tests for mobile components
+- Total: 43 new tests
+
 ### Feature: Universal Dictionary Integration (January 24, 2026)
 
 **Bidirectional bridge between Game Alpha and Dictionary Dashboard**

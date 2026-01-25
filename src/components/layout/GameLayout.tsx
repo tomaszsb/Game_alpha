@@ -10,7 +10,7 @@ import { EndGameModal } from '../modals/EndGameModal';
 import { NegotiationModal } from '../modals/NegotiationModal';
 import { RulesModal } from '../modals/RulesModal';
 import { PlayerSetup } from '../setup/PlayerSetup';
-import { PlayerPanel } from '../player/PlayerPanel';
+import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { GameBoard } from '../game/GameBoard';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { MovementPathVisualization } from '../game/MovementPathVisualization';
@@ -581,7 +581,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           }}
         >
           {players.find(p => p.id === effectiveViewPlayerId) ? (
-            <PlayerPanel
+            <PlayerPanelWrapper
               gameServices={gameServices}
               playerId={effectiveViewPlayerId}
               onToggleSpaceExplorer={handleToggleSpaceExplorer}
@@ -650,7 +650,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               {gamePhase === 'PLAY' ? (
                 <>
                   {players.filter(p => shouldShowPlayerPanel(p.id)).map(player => (
-                    <PlayerPanel
+                    <PlayerPanelWrapper
                       key={player.id}
                       gameServices={gameServices}
                       playerId={player.id}
