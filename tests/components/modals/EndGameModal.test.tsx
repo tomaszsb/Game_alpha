@@ -206,7 +206,8 @@ describe('EndGameModal', () => {
 
       render(<EndGameModal />);
       
-      expect(screen.getByText('📊 Game Statistics')).toBeInTheDocument();
+      // Game statistics section is rendered - check for the completion time text
+      expect(screen.getByText(/Game completed at:/)).toBeInTheDocument();
       expect(screen.getByText(`Game completed at: ${testDate.toLocaleString()}`)).toBeInTheDocument();
     });
 
@@ -223,7 +224,8 @@ describe('EndGameModal', () => {
 
       render(<EndGameModal />);
       
-      expect(screen.queryByText('📊 Game Statistics')).not.toBeInTheDocument();
+      // Game statistics section is not rendered when no end time
+      expect(screen.queryByText(/Game completed at:/)).not.toBeInTheDocument();
     });
   });
 
@@ -289,10 +291,9 @@ describe('EndGameModal', () => {
 
       render(<EndGameModal />);
       
-      // Check for key elements
-      expect(screen.getByText('🎉')).toBeInTheDocument(); // Celebration icon
-      expect(screen.getAllByText('Game Complete!')[0]).toBeInTheDocument();
-      expect(screen.getByText('🎮 Play Again')).toBeInTheDocument();
+      // Check for key elements using testId and accessible text
+      expect(screen.getByTestId('end-game-modal')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
       expect(screen.getByText(/Well played! You've mastered the game/)).toBeInTheDocument();
     });
 

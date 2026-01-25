@@ -162,7 +162,7 @@ describe('NegotiationModal', () => {
     );
 
     // Verify the modal renders (even if stuck in initialization)
-    expect(screen.getByText(/🤝/)).toBeInTheDocument();
+    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
 
     // Since the component's state management is complex for testing, we'll verify that
     // the notification service integration is properly set up by checking that the
@@ -196,7 +196,7 @@ describe('NegotiationModal', () => {
     );
 
     // Verify the modal renders and services are available
-    expect(screen.getByText(/🤝/)).toBeInTheDocument();
+    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
     expect(mockServices.notificationService.notify).toBeDefined();
     expect(mockServices.negotiationService.acceptOffer).toBeDefined();
 
@@ -226,7 +226,7 @@ describe('NegotiationModal', () => {
     );
 
     // Verify the modal renders and services are available
-    expect(screen.getByText(/🤝/)).toBeInTheDocument();
+    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
     expect(mockServices.notificationService.notify).toBeDefined();
     expect(mockServices.negotiationService.declineOffer).toBeDefined();
 
@@ -253,8 +253,8 @@ describe('NegotiationModal', () => {
       </GameContext.Provider>
     );
 
-    // Verify the modal renders (should show either initialization or main content)
-    expect(screen.getByText(/🤝/)).toBeInTheDocument();
+    // Verify the modal renders by checking for the modal container
+    expect(screen.getByTestId('negotiation-modal')).toBeInTheDocument();
   });
 
   it('should not render modal when closed', () => {
@@ -270,7 +270,7 @@ describe('NegotiationModal', () => {
     );
 
     // Verify modal is not rendered when closed
-    expect(screen.queryByText(/🤝/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('negotiation-modal')).not.toBeInTheDocument();
   });
 
   it('should have proper notification service integration', () => {

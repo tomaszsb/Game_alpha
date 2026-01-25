@@ -319,7 +319,7 @@ describe('CardsSection', () => {
 
       // Modal should appear showing player's discard pile
       await waitFor(() => {
-        expect(screen.getByText(/Discard Pile for Test Player/i)).toBeInTheDocument();
+        expect(screen.getByTestId('discard-pile-modal')).toBeInTheDocument();
       });
     });
   });

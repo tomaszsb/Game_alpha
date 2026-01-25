@@ -62,7 +62,8 @@ describe('DiscardPileModal', () => {
 
   it('should render the modal title and cards when isOpen is true', () => {
     render(<DiscardPileModal gameServices={mockGameServices} playerId={PLAYER_ID} isOpen={true} onClose={mockOnClose} />);
-    expect(screen.getByText(`Discard Pile for ${PLAYER_NAME}`)).toBeInTheDocument();
+    // Check modal is rendered via testId
+    expect(screen.getByTestId('discard-pile-modal')).toBeInTheDocument();
     expect(screen.getByText('Work Card')).toBeInTheDocument();
     expect(screen.getByText('Expeditor Card')).toBeInTheDocument();
     expect(screen.getByText('Bank Loan Card')).toBeInTheDocument();

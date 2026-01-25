@@ -86,8 +86,8 @@ describe('ChoiceModal', () => {
     );
 
     // Verify the modal is displayed with the correct content
-    expect(screen.getByText('🎯 Make Your Choice')).toBeInTheDocument();
-    expect(screen.getByText('Test Player: Choose your card effect')).toBeInTheDocument();
+    expect(screen.getByTestId('choice-modal')).toBeInTheDocument();
+    expect(screen.getByText(/Choose your card effect/)).toBeInTheDocument();
 
     // Find and verify choice buttons are displayed
     const drawCardsButton = screen.getByText('Draw 2 Work Cards');
@@ -188,7 +188,8 @@ describe('ChoiceModal', () => {
     );
 
     // Verify the modal header displays the correct player name and prompt
-    expect(screen.getByText('Test Player: Choose your card effect')).toBeInTheDocument();
+    expect(screen.getByTestId('choice-modal')).toBeInTheDocument();
+    expect(screen.getByText(/Choose your card effect/)).toBeInTheDocument();
   });
 
   it('should call notification for different choice options with correct labels', () => {

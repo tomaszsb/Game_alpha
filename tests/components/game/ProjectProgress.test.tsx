@@ -66,6 +66,11 @@ describe('ProjectProgress', () => {
         }
         return undefined;
       }),
+      getSpaceContent: vi.fn((spaceName: string, visitType: string) => ({
+        title: `${spaceName} Title`,
+        story: 'Test story content',
+        hint: 'Test hint'
+      })),
     } as unknown as IDataService;
 
     mockGameRulesService = {
