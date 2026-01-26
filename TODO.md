@@ -21,6 +21,13 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Desktop Command Center Modernization (Jan 25, 2026) - Glassmorphism + haptic visuals
+  - desktop-theme.css with glass effect CSS variables
+  - PlayerPanel glassmorphism (frosted glass, translucent backgrounds)
+  - framer-motion spring animations for active player panel
+  - Turn change pulse animation
+  - prefers-reduced-motion accessibility support
+  - QR code reset button for reconnecting mobile devices
 - ✅ Mobile UI Polish (Jan 25, 2026) - framer-motion animations, theme system, haptics
   - Spring physics for DetailSheet drag gestures
   - Dark/light theme with CSS custom properties
@@ -554,6 +561,28 @@ Create a seamless bridge between the Game Engine and the Command Center's Intell
 - `src/components/modals/CardDetailsModal.tsx` (View Intelligence button)
 - `src/components/game/SpaceExplorerPanel.tsx` (Intelligence button + initialSelectedSpace prop)
 - `tests/utils/dictionaryBridge.test.ts` (NEW - 5 tests)
+
+---
+
+## 🖥️ **Desktop Command Center - Future Ideas**
+*Status: POSSIBLE - Not Required*
+
+These ideas were considered for the "Living Command Center" feel but deferred to keep scope manageable. The core glassmorphism and haptic visuals have been implemented.
+
+### Neural Dictionary Bridge
+- **Concept**: Floating graph view showing card/space connections
+- **Why Deferred**: High effort, potential scope creep
+- **Alternative**: Use existing dictionary deep-link in new tab
+
+### Modular Tiles
+- **Concept**: Draggable/collapsible panels for Game Master feel
+- **Why Deferred**: May confuse casual users, requires react-grid-layout
+- **Alternative**: Offer 2-3 preset layouts instead
+
+### High-Fidelity Card Reveal
+- **Concept**: 3D fly animation from deck to center
+- **Why Deferred**: Could slow down gameplay, mobile-game feel
+- **Alternative**: Subtle flip and glow animation (implemented)
 
 ---
 

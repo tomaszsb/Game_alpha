@@ -402,6 +402,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     });
   };
 
+  // Handler to clear a player's device connection status (allows re-scanning QR code)
+  const handleClearDeviceType = (playerId: string) => {
+    console.log(`🔄 Clearing deviceType for player ${playerId}`);
+    stateService.updatePlayer({ id: playerId, deviceType: undefined });
+  };
+
   // Action handlers for TurnControlsWithActions component
   const handleRollDice = async () => {
     if (!currentPlayerId) return;
@@ -850,6 +856,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           visiblePanels={visiblePanels}
           onTogglePanel={handleTogglePanel}
           onClose={() => setIsDisplaySettingsOpen(false)}
+          onClearDeviceType={handleClearDeviceType}
         />
       )}
 

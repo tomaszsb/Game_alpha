@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { IServiceContainer } from '../../types/ServiceContracts';
 import { Card } from '../../types/DataTypes';
 import { FinancesSection } from './sections/FinancesSection';
@@ -13,6 +14,25 @@ import { Choice } from '../../types/CommonTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { getBackendURL } from '../../utils/networkDetection';
 import './PlayerPanel.css';
+
+// Spring animation config for desktop panels
+const desktopPanelSpring = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 25
+};
+
+// Variants for active/inactive panel states
+const panelVariants = {
+  inactive: {
+    scale: 1,
+    transition: desktopPanelSpring
+  },
+  active: {
+    scale: 1.02,
+    transition: desktopPanelSpring
+  }
+};
 
 /**
  * Props for the PlayerPanel component
@@ -125,6 +145,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
   const [previousCurrentPlayerId, setPreviousCurrentPlayerId] = useState<string | null>(null);
 
+  // Desktop animation state - pulse on turn change
+  const [shouldPulse, setShouldPulse] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+
   // Dice movement state - for spaces that require dice roll to determine destination
   const [hasPlayerRolledDice, setHasPlayerRolledDice] = useState(false);
   const [isDiceMovementSpace, setIsDiceMovementSpace] = useState(false);
@@ -144,6 +169,13 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         previousCurrentPlayerId !== null &&
         previousCurrentPlayerId !== playerId &&
         newCurrentPlayerId === playerId;
+
+      // Trigger desktop pulse animation when turn changes to this player
+      if (turnJustStartedForThisPlayer && isDesktop && !prefersReducedMotion) {
+        setShouldPulse(true);
+        // Clear pulse after animation completes (600ms matches CSS animation)
+        setTimeout(() => setShouldPulse(false), 600);
+      }
 
       // Also detect same-player movement (single-player or turn continuation)
       const isCurrentPlayer = newCurrentPlayerId === playerId;
@@ -399,8 +431,23 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
     shouldShowBanner: !isMyTurn
   });
 
+  // Build class names for desktop animations
+  const panelClasses = [
+    'player-panel',
+    isDesktop && isMyTurn ? 'player-panel--active' : '',
+    isDesktop && shouldPulse ? 'player-panel--pulse' : ''
+  ].filter(Boolean).join(' ');
+
+  // Use motion.div on desktop for spring animations, regular div on mobile
+  const PanelWrapper = isDesktop && !prefersReducedMotion ? motion.div : 'div';
+  const motionProps = isDesktop && !prefersReducedMotion ? {
+    variants: panelVariants,
+    animate: isMyTurn ? 'active' : 'inactive',
+    initial: 'inactive'
+  } : {};
+
   return (
-    <div className="player-panel">
+    <PanelWrapper className={panelClasses} {...motionProps}>
       {/* Movement Transition Overlay - Only shows on this player's panel at start of their turn */}
       {showMovementTransition && movementTransition && (
         <div
@@ -703,6 +750,6 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           </button>
         )}
       </div>
-    </div>
+    </PanelWrapper>
   );
 };

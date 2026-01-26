@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Desktop Command Center Modernization (January 25, 2026)
+
+**Premium desktop experience with glassmorphism and motion design**
+
+**Phase 1: Glassmorphism Foundation**
+- Created `src/styles/desktop-theme.css` with CSS custom properties:
+  - Glass effects: `--glass-blur`, `--glass-bg-light`, `--glass-border`, `--glass-shadow`
+  - Glow effects: `--glow-active`, `--glow-success`, `--glow-warning`, `--glow-danger`
+  - Panel scaling: `--panel-scale-active`, `--panel-scale-pulse`
+- Dark mode overrides via `[data-theme="dark"]`
+- `prefers-reduced-motion` accessibility support (disables blur, animations)
+- Player panels get frosted glass effect on desktop (768px+)
+- Active player panel scales up with subtle glow
+
+**Phase 2: Haptic Visuals (Motion Design)**
+- Added framer-motion to PlayerPanel.tsx:
+  - Spring physics for active/inactive state transitions
+  - Turn change pulse animation when player's turn starts
+  - Conditional rendering: motion.div on desktop, regular div on mobile
+- CSS animations: `player-panel--active` glow, `player-panel--pulse` keyframes
+
+**Bug Fix: QR Code Reset Button**
+- Added "Reset" button in GameDisplaySettings for connected players
+- Allows clearing deviceType to re-enable QR code scanning
+- Handler in GameLayout.tsx calls `stateService.updatePlayer({ deviceType: undefined })`
+- Fixes issue where lost mobile connection prevented reconnection
+
+**Files Added:**
+- `src/styles/desktop-theme.css` - Glassmorphism CSS variables
+
+**Files Modified:**
+- `src/components/player/PlayerPanel.tsx` - framer-motion animations
+- `src/components/player/PlayerPanel.css` - Glass effects, pulse animation
+- `src/components/settings/GameDisplaySettings.tsx` - Reset button
+- `src/components/layout/GameLayout.tsx` - handleClearDeviceType handler
+- `TODO.md` - Added deferred desktop ideas section
+
 ### Feature: Mobile UI Polish with Animations and Theme System (January 25, 2026)
 
 **Enhanced mobile experience with native-feeling animations, theme support, and haptic feedback**

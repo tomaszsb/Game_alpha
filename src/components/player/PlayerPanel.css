@@ -1,5 +1,7 @@
 /* Import centralized animations */
 @import '../../styles/animations.css';
+/* Import desktop glassmorphism theme */
+@import '../../styles/desktop-theme.css';
 
 /* Bounce animation for movement transition */
 @keyframes bounce {
@@ -281,10 +283,56 @@
   .player-panel {
     padding: 12px;
     gap: 12px;
+    /* Glassmorphism effect */
+    backdrop-filter: blur(var(--glass-blur, 12px));
+    -webkit-backdrop-filter: blur(var(--glass-blur, 12px));
+    background: var(--glass-bg-light, rgba(255, 255, 255, 0.78));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.25));
+    box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.08));
+    border-radius: 12px;
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease,
+      background 0.3s ease;
+  }
+
+  /* Active player panel - elevated with glow */
+  .player-panel--active {
+    box-shadow: var(--glow-active, 0 0 24px rgba(33, 150, 243, 0.35));
+    transform: scale(var(--panel-scale-active, 1.02));
+    z-index: 10;
+  }
+
+  /* Pulse animation for turn change */
+  .player-panel--pulse {
+    animation: panelPulse 0.6s ease-out;
+  }
+
+  @keyframes panelPulse {
+    0% {
+      transform: scale(1);
+      box-shadow: var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.08));
+    }
+    50% {
+      transform: scale(var(--panel-scale-pulse, 1.04));
+      box-shadow: var(--glow-active-intense, 0 0 32px rgba(33, 150, 243, 0.5));
+    }
+    100% {
+      transform: scale(var(--panel-scale-active, 1.02));
+      box-shadow: var(--glow-active, 0 0 24px rgba(33, 150, 243, 0.35));
+    }
   }
 
   /* Hide quick stats on desktop - full sections are visible */
   .player-panel__quick-stats {
     display: none;
+  }
+
+  /* Header glass effect */
+  .player-panel__header {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(135deg, rgba(227, 242, 253, 0.9), rgba(187, 222, 251, 0.9));
+    border: 1px solid rgba(33, 150, 243, 0.3);
   }
 }

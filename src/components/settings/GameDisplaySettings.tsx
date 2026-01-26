@@ -11,13 +11,16 @@ interface GameDisplaySettingsProps {
   visiblePanels: Record<string, boolean>;
   onTogglePanel: (playerId: string) => void;
   onClose: () => void;
+  /** Callback to clear a player's device connection status */
+  onClearDeviceType?: (playerId: string) => void;
 }
 
 export function GameDisplaySettings({
   players,
   visiblePanels,
   onTogglePanel,
-  onClose
+  onClose,
+  onClearDeviceType
 }: GameDisplaySettingsProps): JSX.Element {
 
   // Track QR code visibility for each player (Dec 29, 2025)
@@ -207,7 +210,16 @@ export function GameDisplaySettings({
 
                     {isConnected ? (
                       <div style={styles.alreadyConnected}>
-                        Already connected on mobile
+                        <span>Already connected on mobile</span>
+                        {onClearDeviceType && (
+                          <button
+                            onClick={() => onClearDeviceType(player.id)}
+                            style={styles.resetButton}
+                            title="Clear connection status to show QR code again"
+                          >
+                            🔄 Reset
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -452,11 +464,27 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginLeft: 'auto'
   },
   alreadyConnected: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '0.5rem',
     fontSize: '0.85rem',
     color: colors.success.main,
     fontStyle: 'italic',
     textAlign: 'center' as const,
     padding: '0.5rem'
+  },
+  resetButton: {
+    padding: '0.35rem 0.75rem',
+    fontSize: '0.75rem',
+    background: colors.secondary.light,
+    color: colors.secondary.dark,
+    border: `1px solid ${colors.secondary.border}`,
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontStyle: 'normal',
+    fontWeight: 'bold',
+    transition: 'all 0.2s'
   },
   qrToggleButton: {
     width: '100%',
