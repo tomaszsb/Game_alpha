@@ -24,6 +24,15 @@ All notable changes to this project will be documented in this file.
   - Turn change pulse animation when player's turn starts
   - Conditional rendering: motion.div on desktop, regular div on mobile
 - CSS animations: `player-panel--active` glow, `player-panel--pulse` keyframes
+- Shake effect for negative events:
+  - Added `shake` prop to ModalBase with CSS keyframe animation
+  - DiceResultModal shakes on L card draws, money loss, time loss, card removal
+  - CardModal shakes when displaying L cards (life events)
+  - Respects `prefers-reduced-motion` for accessibility
+- Spring animations for ExpandableSection:
+  - framer-motion AnimatePresence for smooth expand/collapse
+  - Desktop-only (768px+) with CSS transition fallback
+  - Spring physics: stiffness 300, damping 30
 
 **Bug Fix: QR Code Reset Button**
 - Added "Reset" button in GameDisplaySettings for connected players
@@ -39,6 +48,11 @@ All notable changes to this project will be documented in this file.
 - `src/components/player/PlayerPanel.css` - Glass effects, pulse animation
 - `src/components/settings/GameDisplaySettings.tsx` - Reset button
 - `src/components/layout/GameLayout.tsx` - handleClearDeviceType handler
+- `src/components/modals/shared/ModalBase.tsx` - shake prop and animation
+- `src/components/modals/DiceResultModal.tsx` - Shake on negative effects
+- `src/components/modals/CardModal.tsx` - Shake on L cards
+- `src/components/player/ExpandableSection.tsx` - framer-motion spring animations
+- `src/components/player/ExpandableSection.css` - Motion variant styles
 - `TODO.md` - Added deferred desktop ideas section
 
 ### Feature: Mobile UI Polish with Animations and Theme System (January 25, 2026)
