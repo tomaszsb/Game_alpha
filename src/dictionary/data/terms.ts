@@ -7,28 +7,115 @@
 
 import { GlossaryTerm, TermCategory } from '../types';
 
-// Import bundled data
-import glossaryData from './glossary.json';
-
 // Cache for loaded terms
 let termsCache: GlossaryTerm[] | null = null;
 let termsByIdCache: Map<string, GlossaryTerm> | null = null;
 let termsByWordCache: Map<string, GlossaryTerm> | null = null;
 
 /**
- * Load terms from the bundled JSON
+ * Parse a CSV line handling quoted fields
+ */
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/**
+ * Parse GLOSSARY.csv content into GlossaryTerm objects
+ * Supports dynamic column mapping based on header row
+ */
+function parseGlossaryCsv(csvText: string): GlossaryTerm[] {
+  const lines = csvText.split('\n').filter(line => line.trim());
+  if (lines.length < 2) return [];
+
+  // Parse Header to get column indices
+  const headerFields = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+  const colMap = new Map<string, number>();
+  headerFields.forEach((h, i) => colMap.set(h, i));
+
+  // Helper to safely get field by name
+  const getField = (row: string[], name: string): string => {
+    const idx = colMap.get(name);
+    return (idx !== undefined && row[idx]) ? row[idx].trim() : '';
+  };
+
+  return lines.slice(1).map(line => {
+    const fields = parseCsvLine(line);
+
+    // Resolve definition (try technical, then old 'definition')
+    let definition = getField(fields, 'definition_technical');
+    if (!definition) definition = getField(fields, 'definition');
+
+    // Parse array fields
+    const parseArray = (val: string) => val ? val.split('|').map(s => s.trim()).filter(Boolean) : [];
+
+    return {
+      id: getField(fields, 'id'),
+      term: getField(fields, 'term'),
+      definition: definition,
+      definitionSimple: getField(fields, 'definition_simple') || undefined,
+      instructions: getField(fields, 'instructions') || undefined,
+      category: (getField(fields, 'category') || 'Construction') as TermCategory,
+      source: (getField(fields, 'source') || 'game') as 'iqarius' | 'game',
+      needsReview: getField(fields, 'needs_review').toLowerCase() === 'true',
+      aliases: parseArray(getField(fields, 'aliases')),
+      relatedTerms: parseArray(getField(fields, 'related_terms')),
+      imageUrl: getField(fields, 'image_url') || undefined,
+      videoUrl: getField(fields, 'video_url') || undefined,
+      sourceUrl: getField(fields, 'source_url') || undefined,
+      instagramLink: getField(fields, 'instagram_link') || undefined
+    };
+  }).filter(term => term.id && term.term);
+}
+
+// Configurable CSV paths - tries in order until one works
+const CSV_PATHS = [
+  '/data/CLEAN_FILES/GLOSSARY.csv',  // game_alpha location
+  '/data/GLOSSARY.csv',               // standalone dictionary location
+];
+
+/**
+ * Load terms from the CSV file
+ * Tries multiple paths to support different deployment configurations
  */
 export async function loadTerms(): Promise<GlossaryTerm[]> {
   if (termsCache) {
     return termsCache;
   }
 
-  // Load from bundled JSON
-  // Cast to unknown first if TS complains about specific fields not matching exactly (though they should)
-  termsCache = glossaryData as unknown as GlossaryTerm[];
+  // Try each path until one works
+  for (const csvPath of CSV_PATHS) {
+    try {
+      const response = await fetch(csvPath + '?_=' + Date.now());
+      if (response.ok) {
+        const csvText = await response.text();
+        termsCache = parseGlossaryCsv(csvText);
+        buildCaches();
+        console.log(`Dictionary loaded from ${csvPath}: ${termsCache.length} terms`);
+        return termsCache;
+      }
+    } catch (error) {
+      // Try next path
+    }
+  }
 
-  buildCaches();
-  console.log(`Dictionary loaded from bundle: ${termsCache.length} terms`);
+  console.error('Failed to load glossary terms from any path:', CSV_PATHS);
+  termsCache = [];
   return termsCache;
 }
 
