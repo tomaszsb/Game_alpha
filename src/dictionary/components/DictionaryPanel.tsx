@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GlossaryTerm, TermCategory, DictionaryPanelProps } from '../types';
 import { useDictionary } from '../hooks/useDictionary';
 import { TermCard } from './TermCard';
+import { fetchRemoteConfig, ServiceVisibility } from '../utils/remoteConfig';
 import './DictionaryPanel.css';
 
 // Import theme if available (for game integration)
@@ -31,6 +32,14 @@ export function DictionaryPanel({
   const [selectedTerm, setSelectedTerm] = useState<GlossaryTerm | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<TermCategory | null>(null);
+  const [remoteConfig, setRemoteConfig] = useState<ServiceVisibility | null>(null);
+
+  // Fetch remote config when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchRemoteConfig().then(setRemoteConfig);
+    }
+  }, [isOpen]);
 
   // Handle initial term selection
   useEffect(() => {
@@ -218,51 +227,134 @@ export function DictionaryPanel({
                 </div>
               )}
 
-              {/* Iqarius/Unravel: Simple Definition */}
-              {(mode === 'iqarius' || mode === 'unravel') && selectedTerm.definitionSimple && (
+              {/* Simple Definition */}
+              {remoteConfig?.show_simple_def !== false && selectedTerm.definitionSimple && (
                 <div className="dictionary-term-detail__definition-simple" style={{ fontStyle: 'italic', marginBottom: '1rem', color: '#ffd700' }}>
                   <strong>Quick Summary:</strong> {selectedTerm.definitionSimple}
                 </div>
               )}
 
-              <div className="dictionary-term-detail__definition">
-                {selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}
-              </div>
+              {/* Technical Definition */}
+              {remoteConfig?.show_technical_def !== false && (
+                <div className="dictionary-term-detail__definition">
+                  {selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}
+                </div>
+              )}
 
-              {/* Iqarius: Instructions */}
-              {mode === 'iqarius' && selectedTerm.instructions && (
+              {/* Strategic Impact */}
+              {remoteConfig?.show_why_it_matters !== false && selectedTerm.whyItMatters && (
+                <div className="dictionary-term-detail__why-it-matters" style={{ marginTop: '1.5rem', paddingLeft: '1rem', borderLeft: '4px solid #f44336' }}>
+                  <strong style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#f44336', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Strategic Impact</strong>
+                  <div style={{ fontStyle: 'italic', fontWeight: 'bold' }}>{selectedTerm.whyItMatters}</div>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {remoteConfig?.show_instructions !== false && selectedTerm.instructions && (
                 <div className="dictionary-term-detail__instructions" style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
                   <strong style={{ display: 'block', marginBottom: '0.5rem' }}>How-To:</strong>
                   <div style={{ whiteSpace: 'pre-wrap' }}>{selectedTerm.instructions}</div>
                 </div>
               )}
 
+              {/* Documents Section */}
+              {remoteConfig?.show_related_docs !== false && selectedTerm.relatedDocuments && selectedTerm.relatedDocuments.length > 0 && (
+                <div className="dictionary-term-detail__docs" style={{ marginTop: '1.5rem' }}>
+                  <strong style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.5, letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Regulatory Documentation</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedTerm.relatedDocuments.map((doc, i) => (
+                      <span key={i} style={{ fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', background: 'rgba(33, 150, 243, 0.1)', color: '#2196f3', border: '1px solid rgba(33, 150, 243, 0.2)', borderRadius: '4px' }}>
+                        {doc}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Links Section */}
-              <div className="dictionary-term-detail__links" style={{ display: 'flex', gap: '10px', marginTop: '1rem', flexWrap: 'wrap' }}>
-                {selectedTerm.videoUrl && (
-                  <a href={selectedTerm.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ff4444', textDecoration: 'underline' }}>
+              <div className="dictionary-term-detail__links" style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                {remoteConfig?.show_video !== false && selectedTerm.videoUrl && (
+                  <a href={selectedTerm.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ff4444', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>
                     ▶ Watch Video
                   </a>
                 )}
-                {selectedTerm.sourceUrl && (
-                  <a href={selectedTerm.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4488ff', textDecoration: 'underline' }}>
+                {remoteConfig?.show_source !== false && selectedTerm.sourceUrl && (
+                  <a href={selectedTerm.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4488ff', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>
                     Official Source
                   </a>
                 )}
-                {selectedTerm.instagramLink && (
-                  <a href={selectedTerm.instagramLink} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', textDecoration: 'underline' }}>
+                {remoteConfig?.show_instagram !== false && selectedTerm.instagramLink && (
+                  <a href={selectedTerm.instagramLink} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>
                     Instagram
                   </a>
                 )}
+
+                {/* Visual - only if configured */}
+                {remoteConfig?.show_visual_example !== false && selectedTerm.imageUrl && !selectedTerm.imageUrl.includes('iqarius') && (
+                  /* Logic to show extra visuals if needed, though main image is already top-level */
+                  null
+                )}
               </div>
 
-              {selectedTerm.aliases.length > 0 && (
+              {/* Game Integration Section */}
+              {(remoteConfig?.show_game_card_id !== false || remoteConfig?.show_game_space_id !== false) && (selectedTerm.gameCardId || selectedTerm.gameSpaceId) && (
+                <div className="dictionary-term-detail__game-mapping" style={{ marginTop: '2rem', padding: '1.5rem', background: 'linear-gradient(135deg, #312e81 0%, #4c1d95 100%)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <strong style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#a5b4fc', letterSpacing: '0.2em', marginBottom: '1rem' }}>Game Engine Integration</strong>
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    {remoteConfig?.show_game_card_id !== false && selectedTerm.gameCardId && (
+                      <div>
+                        <div style={{ fontSize: '9px', fontWeight: 'black', color: '#818cf8', textTransform: 'uppercase', marginBottom: '2px' }}>Action Card</div>
+                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#fff' }}>{selectedTerm.gameCardId}</div>
+                      </div>
+                    )}
+                    {remoteConfig?.show_game_space_id !== false && selectedTerm.gameSpaceId && (
+                      <div>
+                        <div style={{ fontSize: '9px', fontWeight: 'black', color: '#818cf8', textTransform: 'uppercase', marginBottom: '2px' }}>Board Space</div>
+                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#fff' }}>{selectedTerm.gameSpaceId}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Partner Intel (Ads) Section */}
+              {(remoteConfig?.show_ad_copy !== false || remoteConfig?.show_ad_image_url !== false) && (selectedTerm.adCopy || selectedTerm.adImageUrl) && (
+                <a
+                  href={selectedTerm.adLink || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    marginTop: '2rem',
+                    display: 'block',
+                    padding: '1.5rem',
+                    background: 'rgba(255, 215, 0, 0.05)',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255, 215, 0, 0.2)',
+                    textDecoration: 'none',
+                    textAlign: 'center'
+                  }}
+                >
+                  <strong style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#ffd700', letterSpacing: '0.2em', marginBottom: '1rem' }}>Partner Intel</strong>
+
+                  {remoteConfig?.show_ad_image_url !== false && selectedTerm.adImageUrl && (
+                    <img src={selectedTerm.adImageUrl} alt="Partner Logo" style={{ width: '100%', maxHeight: '120px', objectFit: 'contain', marginBottom: '1rem' }} />
+                  )}
+
+                  {remoteConfig?.show_ad_copy !== false && (
+                    <p style={{ fontSize: '13px', fontWeight: 'bold', color: '#ffd700', margin: 0, lineHeight: 1.4 }}>
+                      {selectedTerm.adCopy || "Global Real Estate Intelligence Partner"}
+                    </p>
+                  )}
+                </a>
+              )}
+
+              {remoteConfig?.show_aliases !== false && selectedTerm.aliases.length > 0 && (
                 <div className="dictionary-term-detail__aliases">
                   <strong>Also known as:</strong> {selectedTerm.aliases.join(', ')}
                 </div>
               )}
 
-              {selectedTerm.relatedTerms.length > 0 && (
+              {remoteConfig?.show_connections !== false && selectedTerm.relatedTerms.length > 0 && (
                 <div className="dictionary-term-detail__related">
                   <strong>Related terms:</strong>
                   <div className="dictionary-term-detail__related-list">
@@ -282,9 +374,11 @@ export function DictionaryPanel({
                 </div>
               )}
 
-              <div className="dictionary-term-detail__source">
-                Source: {selectedTerm.source === 'iqarius' ? 'iqarius.com' : 'Game content'}
-              </div>
+              {remoteConfig?.show_source !== false && (
+                <div className="dictionary-term-detail__source">
+                  Source: {selectedTerm.source === 'iqarius' ? 'iqarius.com' : 'Game content'}
+                </div>
+              )}
             </div>
           )}
 
@@ -319,3 +413,4 @@ export function DictionaryPanel({
     </>
   );
 }
+

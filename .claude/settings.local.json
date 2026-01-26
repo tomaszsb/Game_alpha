@@ -82,7 +82,18 @@
       "Bash(! grep -q \"CardEffectService\" \"$f\")",
       "Bash(fi)",
       "Bash(getent:*)",
-      "Bash(nc:*)"
+      "Bash(nc:*)",
+      "Bash(fuser:*)",
+      "Bash(claude mcp add chrome-devtools --scope user -- npx chrome-devtools-mcp@latest)",
+      "Bash(npm ls:*)",
+      "Bash(while IFS=',' read id cost work)",
+      "Bash(do [ \"$cost\" != \"$work\" ])",
+      "WebFetch(domain:dashboard.unravelcodes.com)",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__list_pages",
+      "Bash(claude install:*)",
+      "Bash(claude:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

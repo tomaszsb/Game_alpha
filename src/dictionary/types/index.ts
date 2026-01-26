@@ -21,6 +21,12 @@ export interface GlossaryTerm {
   /** Simple, layman-friendly definition (1 sentence) */
   definitionSimple?: string;
 
+  /** Real-world consequences or importance */
+  whyItMatters?: string;
+
+  /** Pipe-separated list of official NYC forms or filing names */
+  relatedDocuments?: string[];
+
   /** Step-by-step instructions for homeowners */
   instructions?: string;
 
@@ -41,6 +47,21 @@ export interface GlossaryTerm {
 
   /** Optional URL to an image illustrating this term */
   imageUrl?: string;
+
+  /** ID of the corresponding game card (e.g., W-15) */
+  gameCardId?: string;
+
+  /** ID of the board space (e.g., S-04) */
+  gameSpaceId?: string;
+
+  /** Term-specific ad text */
+  adCopy?: string;
+
+  /** Term-specific ad URL */
+  adLink?: string;
+
+  /** Advertiser logo URL */
+  adImageUrl?: string;
 
   /** Optional YouTube video URL */
   videoUrl?: string;
