@@ -7,7 +7,7 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ExpandableSection } from '../../../src/components/player/ExpandableSection';
 
 describe('ExpandableSection', () => {
@@ -21,9 +21,28 @@ describe('ExpandableSection', () => {
     children: <div>Test Content</div>
   };
 
+  // Store original window.innerWidth
+  const originalInnerWidth = window.innerWidth;
+
   beforeEach(() => {
     vi.clearAllMocks();
     cleanup();
+    // Set window width to mobile (<768px) so CSS-based expand/collapse is used
+    // This ensures tests expecting DOM-based hiding continue to work
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 500,
+    });
+  });
+
+  afterEach(() => {
+    // Restore original window.innerWidth
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: originalInnerWidth,
+    });
   });
 
   describe('Basic Rendering', () => {

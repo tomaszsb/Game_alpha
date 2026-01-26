@@ -99,6 +99,9 @@ export function CardModal(): JSX.Element | null {
   const cardColors = cardData ? getCardTypeColors(cardData.card_type) : null;
   const cardEmoji = cardData ? getCardTypeEmoji(cardData.card_type) : theme.emoji.cards;
 
+  // L cards are negative life events - trigger shake animation
+  const isNegativeCard = cardData?.card_type === 'L';
+
   // Custom footer with CardActions
   const footer = (
     <CardActions
@@ -123,6 +126,7 @@ export function CardModal(): JSX.Element | null {
       headerColor={cardColors?.bg}
       headerBorderColor={cardColors?.primary}
       testId="card-modal"
+      shake={isNegativeCard && !isFlipped}
     >
       {/* Card type subtitle when available */}
       {cardData?.card_type && !isFlipped && (

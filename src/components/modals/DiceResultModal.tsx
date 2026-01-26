@@ -168,6 +168,19 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
   const title = isDiceRoll ? `Roll: ${result.diceValue}` : 'Action Result';
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
 
+  // Check for negative effects (L cards, money loss, time loss) to trigger shake
+  const hasNegativeEffect = result.effects.some(effect => {
+    // L card draws are negative life events
+    if (effect.type === 'cards' && effect.cardType === 'L') return true;
+    // Money loss
+    if (effect.type === 'money' && effect.value !== undefined && effect.value < 0) return true;
+    // Time loss (positive time value = days added = bad)
+    if (effect.type === 'time' && effect.value !== undefined && effect.value > 0) return true;
+    // Card removal
+    if (effect.type === 'cards' && effect.cardAction === 'remove') return true;
+    return false;
+  });
+
   const footer = (
     <>
       {result.hasChoices && onConfirm ? (
@@ -225,6 +238,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       maxWidth="500px"
       footer={footer}
       testId="dice-result-modal"
+      shake={hasNegativeEffect}
     >
       {/* Summary */}
       {result.summary && (

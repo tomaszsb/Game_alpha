@@ -114,6 +114,17 @@
   overflow: visible; /* Show all content */
 }
 
+/* framer-motion variant - no CSS transitions (handled by JS) */
+.expandable-section__content--motion {
+  padding: 0 12px;
+  /* No max-height or transition - framer-motion handles this */
+}
+
+/* Inner wrapper for motion variant to add padding */
+.expandable-section__content-inner {
+  padding-bottom: 12px;
+}
+
 /* Other styles (loading, error, etc.) can remain as they were */
 .expandable-section__content--loading, .expandable-section__error, .skeleton-line, .retry-button {
   /* Unchanged */

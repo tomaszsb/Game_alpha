@@ -15,6 +15,8 @@ export interface ModalBaseProps {
   headerColor?: string;
   headerBorderColor?: string;
   testId?: string;
+  /** Trigger shake animation for negative effects (L cards, bad outcomes) */
+  shake?: boolean;
 }
 
 /**
@@ -38,6 +40,7 @@ export function ModalBase({
   headerColor,
   headerBorderColor,
   testId,
+  shake = false,
 }: ModalBaseProps): JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -102,6 +105,11 @@ export function ModalBase({
     padding: isMobile ? theme.mobile.modal.padding : theme.modal.overlay.padding,
   };
 
+  // Determine animation - shake after slide-in for negative effects
+  const animationValue = shake
+    ? `modalSlideIn ${theme.modal.animation.duration} ${theme.modal.animation.easing}, modalShake 0.4s ease-out 0.15s`
+    : `modalSlideIn ${theme.modal.animation.duration} ${theme.modal.animation.easing}`;
+
   const containerStyle: React.CSSProperties = {
     backgroundColor: theme.modal.container.background,
     borderRadius: isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius,
@@ -113,8 +121,8 @@ export function ModalBase({
     flexDirection: 'column',
     overflow: 'hidden',
     position: 'relative',
-    // Animation
-    animation: `modalSlideIn ${theme.modal.animation.duration} ${theme.modal.animation.easing}`,
+    // Animation - with optional shake for negative effects
+    animation: animationValue,
   };
 
   const headerStyle: React.CSSProperties = {
@@ -187,6 +195,16 @@ export function ModalBase({
             to {
               opacity: 1;
               transform: scale(1) translateY(0);
+            }
+          }
+          @keyframes modalShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+            20%, 40%, 60%, 80% { transform: translateX(8px); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            @keyframes modalShake {
+              0%, 100% { transform: translateX(0); }
             }
           }
         `}
