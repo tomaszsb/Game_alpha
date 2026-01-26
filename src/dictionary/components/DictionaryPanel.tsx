@@ -9,7 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GlossaryTerm, TermCategory, DictionaryPanelProps } from '../types';
 import { useDictionary } from '../hooks/useDictionary';
 import { TermCard } from './TermCard';
-import { fetchRemoteConfig, ServiceVisibility } from '../utils/remoteConfig';
+import { fetchRemoteConfig, ServiceVisibility } from '../../../utils/remoteConfig';
 import './DictionaryPanel.css';
 
 // Import theme if available (for game integration)
@@ -234,7 +234,6 @@ export function DictionaryPanel({
                 </div>
               )}
 
-              {/* Technical Definition */}
               {remoteConfig?.show_technical_def !== false && (
                 <div className="dictionary-term-detail__definition">
                   {selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}
@@ -275,7 +274,7 @@ export function DictionaryPanel({
               <div className="dictionary-term-detail__links" style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                 {remoteConfig?.show_video !== false && selectedTerm.videoUrl && (
                   <a href={selectedTerm.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ff4444', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>
-                    ▶ Watch Video
+                    ▶ Watch Briefing
                   </a>
                 )}
                 {remoteConfig?.show_source !== false && selectedTerm.sourceUrl && (
@@ -283,17 +282,27 @@ export function DictionaryPanel({
                     Official Source
                   </a>
                 )}
-                {remoteConfig?.show_instagram !== false && selectedTerm.instagramLink && (
-                  <a href={selectedTerm.instagramLink} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', textDecoration: 'underline', fontSize: '12px', fontWeight: 'bold' }}>
-                    Instagram
-                  </a>
-                )}
-
-                {/* Visual - only if configured */}
-                {remoteConfig?.show_visual_example !== false && selectedTerm.imageUrl && !selectedTerm.imageUrl.includes('iqarius') && (
-                  /* Logic to show extra visuals if needed, though main image is already top-level */
-                  null
-                )}
+                
+                {/* Dashboard Bridge */}
+                <a 
+                  href={`https://dashboard.unravelcodes.com/dictionary?id=${selectedTerm.id}&view=game`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ 
+                    marginLeft: 'auto',
+                    padding: '4px 10px', 
+                    background: 'rgba(255, 215, 0, 0.1)', 
+                    color: '#ffd700', 
+                    border: '1px solid #ffd700', 
+                    borderRadius: '6px',
+                    fontSize: '10px',
+                    fontWeight: 'black',
+                    textTransform: 'uppercase',
+                    textDecoration: 'none'
+                  }}
+                >
+                  View in Command Center
+                </a>
               </div>
 
               {/* Game Integration Section */}
@@ -319,27 +328,27 @@ export function DictionaryPanel({
 
               {/* Partner Intel (Ads) Section */}
               {(remoteConfig?.show_ad_copy !== false || remoteConfig?.show_ad_image_url !== false) && (selectedTerm.adCopy || selectedTerm.adImageUrl) && (
-                <a
-                  href={selectedTerm.adLink || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    marginTop: '2rem',
+                <a 
+                  href={selectedTerm.adLink || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ 
+                    marginTop: '2rem', 
                     display: 'block',
-                    padding: '1.5rem',
-                    background: 'rgba(255, 215, 0, 0.05)',
-                    borderRadius: '16px',
+                    padding: '1.5rem', 
+                    background: 'rgba(255, 215, 0, 0.05)', 
+                    borderRadius: '16px', 
                     border: '1px solid rgba(255, 215, 0, 0.2)',
                     textDecoration: 'none',
                     textAlign: 'center'
                   }}
                 >
                   <strong style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#ffd700', letterSpacing: '0.2em', marginBottom: '1rem' }}>Partner Intel</strong>
-
+                  
                   {remoteConfig?.show_ad_image_url !== false && selectedTerm.adImageUrl && (
                     <img src={selectedTerm.adImageUrl} alt="Partner Logo" style={{ width: '100%', maxHeight: '120px', objectFit: 'contain', marginBottom: '1rem' }} />
                   )}
-
+                  
                   {remoteConfig?.show_ad_copy !== false && (
                     <p style={{ fontSize: '13px', fontWeight: 'bold', color: '#ffd700', margin: 0, lineHeight: 1.4 }}>
                       {selectedTerm.adCopy || "Global Real Estate Intelligence Partner"}
@@ -348,13 +357,13 @@ export function DictionaryPanel({
                 </a>
               )}
 
-              {remoteConfig?.show_aliases !== false && selectedTerm.aliases.length > 0 && (
+              {selectedTerm.aliases.length > 0 && (
                 <div className="dictionary-term-detail__aliases">
                   <strong>Also known as:</strong> {selectedTerm.aliases.join(', ')}
                 </div>
               )}
 
-              {remoteConfig?.show_connections !== false && selectedTerm.relatedTerms.length > 0 && (
+              {selectedTerm.relatedTerms.length > 0 && (
                 <div className="dictionary-term-detail__related">
                   <strong>Related terms:</strong>
                   <div className="dictionary-term-detail__related-list">
@@ -374,11 +383,9 @@ export function DictionaryPanel({
                 </div>
               )}
 
-              {remoteConfig?.show_source !== false && (
-                <div className="dictionary-term-detail__source">
-                  Source: {selectedTerm.source === 'iqarius' ? 'iqarius.com' : 'Game content'}
-                </div>
-              )}
+              <div className="dictionary-term-detail__source">
+                Source: {selectedTerm.source === 'iqarius' ? 'iqarius.com' : 'Game content'}
+              </div>
             </div>
           )}
 
@@ -413,4 +420,3 @@ export function DictionaryPanel({
     </>
   );
 }
-

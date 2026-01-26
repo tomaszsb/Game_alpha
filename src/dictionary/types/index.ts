@@ -45,9 +45,6 @@ export interface GlossaryTerm {
   /** IDs of related terms */
   relatedTerms: string[];
 
-  /** Optional URL to an image illustrating this term */
-  imageUrl?: string;
-
   /** ID of the corresponding game card (e.g., W-15) */
   gameCardId?: string;
 
@@ -62,6 +59,9 @@ export interface GlossaryTerm {
 
   /** Advertiser logo URL */
   adImageUrl?: string;
+
+  /** Optional URL to an image illustrating this term */
+  imageUrl?: string;
 
   /** Optional YouTube video URL */
   videoUrl?: string;
