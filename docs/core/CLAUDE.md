@@ -245,5 +245,5 @@ For detailed information, refer to these consolidated documents:
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 25, 2026
 **Charter Version:** 3.1 (Consolidated)

@@ -4,6 +4,85 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Mobile UI Polish with Animations and Theme System (January 25, 2026)
+
+**Enhanced mobile experience with native-feeling animations, theme support, and haptic feedback**
+
+**New Dependencies:**
+- Added `framer-motion` for spring physics animations and gesture handling
+
+**Theme System:**
+- Created `src/styles/mobile-theme.css` with CSS custom properties
+- Light and dark theme variables (--mobile-bg-primary, --mobile-text-primary, etc.)
+- System preference detection via `prefers-color-scheme: dark`
+- Theme persistence to localStorage
+
+**Haptic Feedback:**
+- Created `src/utils/haptics.ts` utility using Web Vibrations API
+- `buttonPress()` - 10ms tick on button taps
+- `turnNotification()` - double-pulse (100-50-100ms) on turn change
+- `success()` - celebration pattern (50-30-50-30-100ms)
+- Graceful degradation on unsupported devices
+
+**Animation Improvements (framer-motion):**
+- DetailSheet: Spring physics for drag gestures (damping: 30, stiffness: 300)
+- ContextArea: AnimatePresence for smooth view state transitions
+- Backdrop dimming (40% opacity) when DetailSheet expanded
+
+**CSS Fixes:**
+- Container height: `100dvh` for dynamic viewport (mobile browser toolbar handling)
+- Safe area protection: `env(safe-area-inset-*)` for notched devices
+- Text wrapping: `word-wrap: break-word` in story area
+- StatsBar: 2x2 grid fallback for narrow screens (<360px)
+- Touch optimization: `touch-action: manipulation` removes 300ms tap delay
+
+**Landscape Mode:**
+- Side-by-side layout when `orientation: landscape` and `max-height: 500px`
+- Left panel: SpaceHeader + ContextArea
+- Right panel: StatsBar + PrimaryAction
+
+**Touch Target Compliance:**
+- Tab bar height: 56dp (Material Design standard)
+- Tab icons: 24px (increased from 16px)
+- Tab labels: 10px (increased from 9px)
+- All interactive elements: minimum 44px touch targets
+
+**Files Added:**
+- `src/styles/mobile-theme.css` - Theme CSS variables
+- `src/utils/haptics.ts` - Web Vibrations API utility
+
+**Files Modified:**
+- `package.json` - Added framer-motion dependency
+- `src/components/player/mobile/MobilePlayerPanel.css` - 100dvh, safe areas, landscape
+- `src/components/player/mobile/DetailSheet.tsx` - framer-motion animations
+- `src/components/player/mobile/DetailSheet.css` - Touch targets, backdrop
+- `src/components/player/mobile/PrimaryAction.tsx` - Haptic feedback
+- `src/components/player/mobile/ContextArea.tsx` - AnimatePresence transitions
+- `src/components/player/mobile/StatsBar.tsx` - 2x2 grid fallback
+
+### Fix: Test Assertions for Split Text Elements (January 25, 2026)
+
+**Fixed 27 failing tests caused by text assertions for emoji+text elements**
+
+**Root Cause:**
+Components render emojis in separate `<span>` elements from accompanying text, causing `getByText('🎲 Roll: 4')` to fail since the emoji and text are in different DOM nodes.
+
+**Solution:**
+Updated test assertions to use `getByTestId()` for modal detection and regex patterns for partial text matching.
+
+**Files Fixed:**
+- `tests/components/game/ProjectProgress.test.tsx` - Added missing `getSpaceContent` mock
+- `tests/components/NegotiationModal.test.tsx` - Changed emoji assertions to testIds
+- `tests/components/modals/DiscardedCardsModal.test.tsx` - Updated badge assertions, used testIds
+- `tests/components/modals/EndGameModal.test.tsx` - Used regex and testIds for split text
+- `tests/components/modals/DiceResultModal.test.tsx` - Used testIds for modal and overlay
+- `tests/components/modals/DiscardPileModal.test.tsx` - Used testId for modal check
+- `tests/components/player/CardsSection.test.tsx` - Used testId for discard pile modal
+- `tests/components/ChoiceModal.test.tsx` - Used testId and regex patterns
+
+**Test Results:**
+- All 870 tests pass (306 component + 564 services)
+
 ### Feature: Mobile PlayerPanel Redesign (January 24, 2026)
 
 **Context-aware mobile UI architecture replacing accordion-based desktop design**

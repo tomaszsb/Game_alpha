@@ -2,6 +2,50 @@
 
 ---
 
+## v2.12 - Mobile UI Polish (January 25, 2026)
+
+**Release Date:** January 25, 2026
+**Version:** 2.12
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### Smoother Mobile Experience
+
+**What Changed:** The mobile interface now feels more native with smooth animations and better visual feedback!
+
+**New Features:**
+
+- **Smooth Animations:** The bottom sheet (detail tabs) now uses spring physics for natural-feeling drag gestures
+- **Dark Mode Support:** Automatically follows your phone's light/dark theme setting
+- **Haptic Feedback:** Feel a subtle vibration when pressing buttons and when it's your turn (on supported devices)
+- **Better Touch Targets:** Larger, easier-to-tap buttons following Material Design guidelines
+
+### Landscape Mode
+
+**What Changed:** Play comfortably when holding your phone sideways!
+
+**How It Works:** In landscape orientation, the screen splits:
+- Left side: Story content and space information
+- Right side: Stats and action buttons
+
+### Safe Areas for Notched Phones
+
+**What Changed:** Content no longer gets hidden behind the notch or rounded corners on modern phones.
+
+**Supported Devices:**
+- iPhones with Dynamic Island or notch
+- Android phones with punch-hole cameras
+- Tablets with rounded display corners
+
+### Technical Improvements
+
+- Fixed text wrapping issue where story text could get cut off
+- Stats bar now shows all 4 stats even on narrow screens
+- Added fallback 2x2 grid layout for very small screens
+- Improved visual hierarchy with clearer information priority
+
+---
+
 ## v2.11 - Same Starting Point Game Mode (January 16, 2026)
 
 **Release Date:** January 16, 2026

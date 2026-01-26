@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 18, 2026
+**Last Updated:** January 25, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,12 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Mobile UI Polish (Jan 25, 2026) - framer-motion animations, theme system, haptics
+  - Spring physics for DetailSheet drag gestures
+  - Dark/light theme with CSS custom properties
+  - Web Vibrations API for tactile feedback
+  - 100dvh viewport, safe areas, landscape mode
+  - All 870 tests passing (test assertion fixes for split text)
 - ✅ Mobile PlayerPanel Redesign (Jan 24, 2026) - Context-aware mobile UI architecture
   - New state machine service: `PlayerViewStateService` (5 states: STORY, ACTION, DECISION, WAITING, SUMMARY)
   - Mobile components: MobilePlayerPanel, SpaceHeader, StatsBar, PrimaryAction, ContextArea
@@ -572,4 +578,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 24, 2026
+**Last Updated:** January 25, 2026

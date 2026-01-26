@@ -1,14 +1,53 @@
 # Project Status
 
-**Last Updated**: January 16, 2026
-**Current Phase**: External Testing Ready (v2.11)
-**Current Version**: 2.11
+**Last Updated**: January 25, 2026
+**Current Phase**: External Testing Ready (v2.12)
+**Current Version**: 2.12
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Mobile UI Polish with Animations & Theme System (January 25, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.12
+- **Feature**: Enhanced mobile experience with native-feeling animations, theme support, and haptics
+- **Achievements**:
+  - **framer-motion Integration**: Spring physics for DetailSheet drag gestures
+  - **Theme System**: CSS custom properties for light/dark mode with system preference detection
+  - **Haptic Feedback**: Web Vibrations API for button presses and turn notifications
+  - **CSS Fixes**: 100dvh viewport, safe areas for notched devices, 2x2 grid fallback
+  - **Landscape Mode**: Side-by-side layout for phones in landscape orientation
+  - **Touch Targets**: Material Design compliant (56dp tabs, 44px touch targets)
+  - **Test Fixes**: Updated 8 test files for emoji+text split element assertions
+- **Files Added**:
+  - `src/styles/mobile-theme.css` - Theme CSS variables
+  - `src/utils/haptics.ts` - Web Vibrations API utility
+- **Test Status**: All 870 tests passing (306 component + 564 services)
+
+### Mobile PlayerPanel Redesign (January 24, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.11.1
+- **Feature**: Context-aware mobile UI architecture with state machine design
+- **Achievements**:
+  - **PlayerViewStateService**: 5 view states (STORY, ACTION, DECISION, WAITING, SUMMARY)
+  - **New Mobile Components**: MobilePlayerPanel, SpaceHeader, StatsBar, PrimaryAction, ContextArea
+  - **DetailSheet**: Draggable bottom sheet with 5 tabs (Finances, Time, Cards, Scope, Log)
+  - **PlayerPanelWrapper**: Responsive wrapper switches at 768px breakpoint
+- **Files Added**: 16 new files
+- **Test Status**: 43 new tests
+
+### Universal Dictionary Integration (January 24, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.11
+- **Feature**: Bidirectional bridge between Game and Dictionary Dashboard
+- **Achievements**:
+  - "View Intelligence" buttons in CardDetailsModal and SpaceExplorerPanel
+  - URL preview support for dictionary → game deep links
+  - New utility: `src/utils/dictionaryBridge.ts`
+- **Test Status**: 5 new tests
 
 ### Same Starting Point Game Mode (January 16, 2026) ✅
 - **Status**: ✅ Complete (Quick Start mode)
