@@ -1,0 +1,23 @@
+{
+  "game": {
+    "show_term": true,
+    "show_category": true,
+    "show_simple_def": true,
+    "show_technical_def": false,
+    "show_why_it_matters": false,
+    "show_related_docs": false,
+    "show_instructions": false,
+    "show_aliases": true,
+    "show_connections": true,
+    "show_game_card_id": true,
+    "show_game_space_id": true,
+    "show_visual_example": true,
+    "show_video": false,
+    "show_source": false,
+    "show_instagram": false,
+    "show_quiz_mode": false,
+    "show_ad_copy": true,
+    "show_ad_link": true,
+    "show_ad_image_url": true
+  }
+}
