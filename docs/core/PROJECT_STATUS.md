@@ -25,7 +25,7 @@ This document provides a high-level overview of the current work status for the 
 - **Files Added**:
   - `src/styles/mobile-theme.css` - Theme CSS variables
   - `src/utils/haptics.ts` - Web Vibrations API utility
-- **Test Status**: All 870 tests passing (306 component + 564 services)
+- **Test Status**: All ~1,027 tests passing (306 component + 564 services + 157 E2E/regression/other)
 
 ### Mobile PlayerPanel Redesign (January 24, 2026) ✅
 - **Status**: ✅ Complete

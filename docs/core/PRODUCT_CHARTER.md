@@ -3,9 +3,9 @@
 **Status**: ALPHA TESTING - January 2026
 **Core Game Complete**: Fully playable multi-player board game with external access deployed
 **Public URL**: `http://unravel-game.duckdns.org:3080`
-**Test Status**: 967+ tests passing across 83 test files (100% success rate)
-**Version**: 2.11
-**Last Updated**: January 16, 2026
+**Test Status**: ~1,027 tests passing across 87 test files (100% success rate in batches)
+**Version**: 2.12
+**Last Updated**: January 27, 2026
 
 ## 1. Mission Progress - Production Ready
 
@@ -36,10 +36,11 @@ For detailed historical context on the initial refactoring effort and architectu
 - **Dependency Injection**: Complete service-oriented architecture implementation
 
 **Testing Validation**:
-- **TurnService**: 20/20 tests passing (100% success rate)
-- **E2E Scenarios**: 45 tests, 1 skipped (99.89% success rate for E2E)
-- **Total Tests**: 967 tests
-- **Service Coverage**: 56.47% with quality focus over quantity
+- **Service Tests**: 564 tests passing (24 files)
+- **Component Tests**: 306 tests passing (28 files)
+- **E2E/Regression/Other**: ~157 tests passing (35 files)
+- **Total Tests**: ~1,027 tests across 87 files
+- **Note**: Tests must be run in batches due to module-level mock isolation
 - **Integration Testing**: Comprehensive service dependency chain validation
 
 ## 3. Core Features
@@ -100,7 +101,7 @@ The Game Alpha application is **fully production-ready** with:
 - ✅ Complete gameplay functionality from start to win condition
 - ✅ Robust error handling and graceful degradation
 - ✅ Modern web standards compliance and cross-browser compatibility
-- ✅ 967+ tests passing across 83 test files (100% success rate)
+- ✅ ~1,027 tests passing across 87 test files (100% success rate in batches)
 - ✅ Multi-device state synchronization with real-time updates
 - ✅ Service-oriented architecture with dependency injection
 - ✅ Clean separation of concerns across 14+ core services

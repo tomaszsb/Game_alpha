@@ -33,6 +33,9 @@ import { TurnService } from '../src/services/TurnService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { TargetingService } from '../src/services/TargetingService';
 import { PlayerActionService } from '../src/services/PlayerActionService';
+import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
+import { CardEffectHandler } from '../src/services/CardEffectHandler';
+import { CardEffectService } from '../src/services/CardEffectService';
 import { IDataService, IStateService } from '../src/types/ServiceContracts';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -121,7 +124,18 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     // Complete circular dependencies
     turnService.setEffectEngineService(effectEngineService);
     cardService.setEffectEngineService(effectEngineService);
-    
+
+    // Create and wire effect handlers for EffectEngineService
+    const loggingServiceRef = new LoggingService(stateService);
+    const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingServiceRef);
+    const cardEffectHandler = new CardEffectHandler(cardService, stateService, dataService, choiceService);
+    effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+    effectEngineService.setCardEffectHandler(cardEffectHandler);
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService.setCardEffectService(cardEffectService);
+
     // Create PlayerActionService
     playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
     

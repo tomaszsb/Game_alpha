@@ -1,8 +1,8 @@
 # Unravel Codes: The Game
 
 **Status:** Alpha Testing (January 2026)
-**Version:** 2.10
-**Test Coverage:** 967+ tests passing (100% success rate)
+**Version:** 2.12
+**Test Coverage:** ~1,027 tests passing (100% success rate when run in batches)
 **Public URL:** `http://unravel-game.duckdns.org:3080`
 
 ## Overview
@@ -97,7 +97,7 @@ npm test tests/services/TurnService.test.tsx
 game_alpha/
 ├── src/                          # Application source code
 │   ├── components/              # React UI components (expandable sections, modals, etc.)
-│   ├── services/                # Business logic services (14+ core services)
+│   ├── services/                # Business logic services (26 service files)
 │   │   ├── DataService.ts       # CSV data loading and access
 │   │   ├── StateService.ts      # Immutable state management
 │   │   ├── TurnService.ts       # Turn sequence and player progression
@@ -116,7 +116,7 @@ game_alpha/
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
 │   └── styles/                  # CSS and styling (animations.css, theme constants)
-├── tests/                        # Test suite (967+ tests across 83 test files)
+├── tests/                        # Test suite (~1,027 tests across 87 test files)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -150,7 +150,7 @@ game_alpha/
 - **Immutable State Management:** Predictable state updates with snapshot support
 - **Transactional Logging:** 100% accurate game log with exploration session tracking
 - **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play
-- **Comprehensive Testing:** 967+ tests covering services, components, and E2E scenarios
+- **Comprehensive Testing:** ~1,027 tests covering services, components, and E2E scenarios
 - **TypeScript Strict Mode:** 100% type-safe codebase with strict mode compliance
 
 ## Technology Stack
@@ -220,10 +220,8 @@ game_alpha/
 4. Follow commit message conventions
 
 ### TypeScript Strict Mode
-Currently reducing TypeScript errors toward 0:
-- **Current:** 12 errors remaining (down from 28+)
-- **Target:** 0 errors for full strict mode compliance
-- **Remaining:** Legacy files (App.tsx, ErrorBoundary.tsx, DataEditor.tsx, GameSpace.tsx)
+- **Status:** ✅ 0 errors - Full strict mode compliance achieved (November 30, 2025)
+- All legacy type issues resolved
 
 ## Recent Updates
 

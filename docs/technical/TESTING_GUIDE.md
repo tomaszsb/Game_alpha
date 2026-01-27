@@ -1,7 +1,7 @@
 # Testing Guide - Unravel Codes: The Game
 
-**Last Updated:** January 15, 2026
-**Status:** Production Standards (v2.10)
+**Last Updated:** January 27, 2026
+**Status:** Production Standards (v2.12)
 
 ---
 
@@ -67,12 +67,12 @@ npm run test:isolated       # Ultra-fast pure logic tests
 
 | Test Category         | Tests                   | Status                |
 |-----------------------|-------------------------|-----------------------|
-| Service Tests         | 483 tests               | ✅ Passing            |
-| Component Tests       | 266 tests               | ✅ Passing            |
-| E2E Tests             | 80 tests                | ✅ Passing            |
-| **Full Suite**        | **829+ tests total**    | **✅ Passing / ⚠️ 1 Skipped** |
+| Service Tests         | 564 tests (24 files)    | ✅ Passing            |
+| Component Tests       | 306 tests (28 files)    | ✅ Passing            |
+| E2E/Regression/Other  | ~157 tests (35 files)   | ✅ Passing            |
+| **Full Suite**        | **~1,027 tests (87 files)** | **✅ Passing in batches** |
 
-*Note: Test counts updated December 28, 2025. E2E includes multiplayer (2P, 3P, 4P), path coverage, and multi-device tests.*
+*Note: Test counts updated January 27, 2026. Tests must be run in batches due to module-level mock isolation issues - running all together may hang.*
 
 ## 🛠️ Writing Tests
 
@@ -235,13 +235,13 @@ const mockFn = jest.fn(); // This will fail
 
 The test suite has been completely migrated from Jest to Vitest with incredible performance improvements:
 
-- **✅ 83 test files** converted and working
-- **✅ 967 tests** running in seconds
-- **⚠️ 1 test skipped** (`E2E-01_HappyPath.test.tsx` due to a pre-existing issue with the test infrastructure)
+- **✅ 87 test files** converted and working
+- **✅ ~1,027 tests** running when executed in batches
+- **⚠️ Known limitation**: Running all tests together may hang due to module-level mock isolation issues
 - **✅ Real-time feedback** for TDD workflow
 - **✅ Zero compilation hangs** with native TypeScript support
 
-**Ready for continuous testing and rapid development!**
+**Recommended execution:** Run tests in batches by directory (`npm test tests/services/`, `npm test tests/components/`, etc.)
 
 ---
 

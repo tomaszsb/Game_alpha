@@ -15,6 +15,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TurnService } from '../../src/services/TurnService';
+import { CardEffectService } from '../../src/services/CardEffectService';
 import { createMockStateService, createMockDataService } from '../mocks/mockServices';
 import { GameState, Player } from '../../src/types/StateTypes';
 
@@ -204,6 +205,15 @@ describe('CardCountNaN Regression Tests', () => {
       mockLoggingService,
       mockChoiceService
     );
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(
+      mockCardService,
+      mockStateService,
+      mockDataService,
+      mockChoiceService
+    );
+    turnService.setCardEffectService(cardEffectService);
   });
 
   describe('triggerManualEffectWithFeedback - undefined effect_value', () => {

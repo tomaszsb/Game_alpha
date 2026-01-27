@@ -109,13 +109,17 @@ export class CardEffectService implements ICardEffectService {
 
   /**
    * Parse effect value to extract numeric count
+   * Handles undefined, null, numbers, and strings containing numbers
    */
-  private parseEffectValue(effectValue: string | number): number {
+  private parseEffectValue(effectValue: string | number | undefined | null): number {
+    if (effectValue === undefined || effectValue === null) {
+      return 1; // Default to 1 card if not specified
+    }
     if (typeof effectValue === 'number') {
       return effectValue;
     }
     const match = effectValue.match(/\d+/);
-    return match ? parseInt(match[0]) : 0;
+    return match ? parseInt(match[0]) : 1;
   }
 
   /**

@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 25, 2026
+**Last Updated:** January 27, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -33,7 +33,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
   - Dark/light theme with CSS custom properties
   - Web Vibrations API for tactile feedback
   - 100dvh viewport, safe areas, landscape mode
-  - All 870 tests passing (test assertion fixes for split text)
+  - All ~1,027 tests passing (test assertion fixes for split text)
 - ✅ Mobile PlayerPanel Redesign (Jan 24, 2026) - Context-aware mobile UI architecture
   - New state machine service: `PlayerViewStateService` (5 states: STORY, ACTION, DECISION, WAITING, SUMMARY)
   - Mobile components: MobilePlayerPanel, SpaceHeader, StatsBar, PrimaryAction, ContextArea
@@ -591,10 +591,10 @@ These ideas were considered for the "Living Command Center" feel but deferred to
 For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ### Minor Issues (Low Priority)
-- **Test count discrepancy:** Docs show varying counts (958/966/967)
-  - [ ] Run full test suite
-  - [ ] Update all documentation with correct count
-  - [ ] Standardize test count reporting
+- **Test count discrepancy:** ✅ RESOLVED (January 27, 2026)
+  - [x] Run full test suite (in batches)
+  - [x] Update all documentation with correct count (~1,027 tests across 87 files)
+  - [x] Standardize test count reporting
 
 ---
 
@@ -607,4 +607,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 25, 2026
+**Last Updated:** January 27, 2026

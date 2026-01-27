@@ -26,7 +26,7 @@ game_alpha/
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
 │   └── styles/                  # CSS and styling
-├── tests/                        # Test suite (967 tests, 100% passing)
+├── tests/                        # Test suite (~1,027 tests, 100% passing in batches)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -245,5 +245,5 @@ For detailed information, refer to these consolidated documents:
 
 ---
 
-**Last Updated:** January 25, 2026
-**Charter Version:** 3.1 (Consolidated)
+**Last Updated:** January 27, 2026
+**Charter Version:** 3.2 (Test count updated)

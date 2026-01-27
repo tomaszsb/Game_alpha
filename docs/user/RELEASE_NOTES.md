@@ -999,9 +999,10 @@ Game Alpha's UI has been completely redesigned from the ground up with a mobile-
 - **TypeScript strict mode** - 100% type safety
 
 ### Testing
-- **967 tests** - Comprehensive coverage
-- **Component tests** - 288 tests
-- **E2E tests** - Full gameplay scenarios
+- **~1,027 tests** - Comprehensive coverage across 87 test files
+- **Service tests** - 564 tests (24 files)
+- **Component tests** - 306 tests (28 files)
+- **E2E/Regression tests** - ~157 tests (35 files)
 - **Accessibility tests** - A11y validation
 
 ### Documentation

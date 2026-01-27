@@ -1,7 +1,7 @@
 # API Reference - Unravel Codes: The Game
 
-**Last Updated:** January 15, 2026
-**Version:** 2.10
+**Last Updated:** January 27, 2026
+**Version:** 2.12
 **Status:** Alpha Testing
 
 ---

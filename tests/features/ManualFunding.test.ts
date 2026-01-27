@@ -20,6 +20,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TurnService } from '../../src/services/TurnService';
 import { StateService } from '../../src/services/StateService';
 import { CardService } from '../../src/services/CardService';
+import { CardEffectService } from '../../src/services/CardEffectService';
 import {
   createMockDataService,
   createMockStateService,
@@ -195,6 +196,15 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
       undefined, // notificationService (optional)
       createMockEffectEngineService()
     );
+
+    // Create and wire CardEffectService for manual card actions
+    const cardEffectService = new CardEffectService(
+      cardService,
+      stateService,
+      mockDataService,
+      createMockChoiceService()
+    );
+    turnService.setCardEffectService(cardEffectService);
 
     // Mock getCardById for both B and I cards
     mockDataService.getCardById.mockImplementation((cardId: string) => {
@@ -561,53 +571,56 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
       expect(cardService.finalizePlayedCard).toHaveBeenCalledWith(playerId, 'I001');
     });
 
-    it('should NOT auto-apply B/I cards drawn at other spaces', async () => {
+    it('should NOT auto-apply B/I cards drawn at non-funding spaces', async () => {
       // Initialize game
       stateService.initializeGame();
       stateService.addPlayer('Test Player');
       const players = stateService.getAllPlayers();
       const playerId = players[0].id;
 
-      // Setup player at DIFFERENT space (not OWNER-FUND-INITIATION)
+      // Setup player at a NON-funding space
+      // Note: As of January 9, 2026 bug fix, auto-play was extended to ALL funding spaces:
+      // OWNER-FUND-INITIATION, BANK-FUND-REVIEW, and INVESTOR-FUND-REVIEW
+      // So we test with a non-funding space like PM-DECISION-CHECK
       stateService.updatePlayer({
         id: playerId,
-          currentSpace: 'BANK-FUND-REVIEW',
+          currentSpace: 'PM-DECISION-CHECK',
           visitType: 'First',
           projectScope: 2000000
-        
+
       });
 
-      // Mock space effects for BANK-FUND-REVIEW
+      // Mock space effects for PM-DECISION-CHECK (a non-funding space)
       mockDataService.getSpaceEffects.mockReturnValue([
         {
-          space_name: 'BANK-FUND-REVIEW',
+          space_name: 'PM-DECISION-CHECK',
           visit_type: 'First',
           effect_type: 'cards',
           effect_action: 'draw_b',
           effect_value: 1,
           condition: 'always',
           trigger_type: 'manual',
-          description: 'Negotiate Bank Loan Terms'
+          description: 'Draw B card at decision point'
         }
       ]);
 
-      // Mock game config for BANK-FUND-REVIEW
+      // Mock game config for PM-DECISION-CHECK
       mockDataService.getGameConfigBySpace.mockReturnValue({
-        space_name: 'BANK-FUND-REVIEW',
-        phase: 'FUNDING',
+        space_name: 'PM-DECISION-CHECK',
+        phase: 'PROJECT_MANAGEMENT',
         requires_dice_roll: false
       });
 
       // Mock card draw
       cardService.drawCards.mockReturnValue(['B001']);
 
-      // Trigger manual B card draw at different space
+      // Trigger manual B card draw at non-funding space
       await turnService.triggerManualEffect(playerId, 'cards:draw_b');
 
       // Verify card was drawn
       expect(cardService.drawCards).toHaveBeenCalled();
 
-      // Verify card effects were NOT automatically applied
+      // Verify card effects were NOT automatically applied (only at funding spaces)
       expect(cardService.applyCardEffects).not.toHaveBeenCalled();
       expect(cardService.finalizePlayedCard).not.toHaveBeenCalled();
     });

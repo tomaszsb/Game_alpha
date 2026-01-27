@@ -124,7 +124,7 @@ This document tracks identified technical debt in the Game Alpha codebase.
 - **Description**: The "Try Again" feature was previously implemented using a persistent `usedTryAgain` boolean flag on the core `Player` state object. This proved to be a brittle, bug-prone pattern, as it required multiple, disparate functions (`rollDiceWithFeedback`, `handleAutomaticFunding`, etc.) to remember to manually clear the flag.
 - **Resolution**: The flag has been removed from the core data model. The logic now uses ephemeral state management - a short-lived state variable in the UI component passes parameters to `endTurnWithMovement()` function. This correctly separates UI state from core game state and eliminates the bug-prone manual flag clearing.
 - **Files Modified**: NextStepButton.tsx, PlayerPanel.tsx
-- **Test Impact**: All 958 tests continue passing after refactor
+- **Test Impact**: All ~1,027 tests continue passing after refactor (in batches)
 - **Reference**: See [Project Status](./PROJECT_STATUS.md#4-documentation-review--consolidation-november-28-2025-) for implementation details
 
 ---

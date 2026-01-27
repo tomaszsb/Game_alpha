@@ -2,7 +2,7 @@
   "name": "code2027",
   "version": "1.0.0",
   "type": "module",
-  "description": "Clean architecture refactor of code2026 board game with comprehensive test suite (617 tests passing)",
+  "description": "Unravel Codes: The Game - Multi-player board game with comprehensive test suite (~1,027 tests passing)",
   "main": "index.js",
   "scripts": {
     "server": "node server/server.js",

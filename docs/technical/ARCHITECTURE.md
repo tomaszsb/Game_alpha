@@ -1,8 +1,8 @@
 # Architecture Guide - Unravel Codes: The Game
 
-**Last Updated:** January 15, 2026
-**Status:** Alpha Testing (v2.10)
-**Test Coverage:** 967+ tests passing
+**Last Updated:** January 27, 2026
+**Status:** Alpha Testing (v2.12)
+**Test Coverage:** ~1,027 tests passing (in batches)
 
 ---
 
@@ -44,12 +44,12 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ## Core Services
 
-### Service Overview (26 Production Services)
+### Service Overview (26 Service Files)
 
 All services are fully typed and comply with TypeScript strict mode:
 
 ```typescript
-// Core Services
+// Core Services (in IServiceContainer)
 DataService           // CSV data loading and caching
 StateService          // Immutable game state management
 TurnService           // Turn progression and win conditions
@@ -65,11 +65,21 @@ NotificationService   // Unified notification system
 TargetingService      // Multi-player effect targeting
 LoggingService        // Centralized game logging
 
-// Extracted Services (January 2026)
+// Extracted/Specialized Services
 ServerSyncService     // Server synchronization (extracted from StateService)
 CardEffectService     // Card draw/replace/return operations (extracted from TurnService)
 FinancialEffectHandler // Financial effect processing (for EffectEngineService)
 CardEffectHandler     // Card effect processing (for EffectEngineService)
+PlayerViewStateService // Mobile view state management
+
+// Internal Helper Services (used by TurnService)
+DiceService           // Dice rolling and outcome lookup
+SpaceEffectService    // Space effect retrieval
+DiceRollProcessor     // Dice roll processing with callbacks
+MovementChoiceManager // Movement choice creation and management
+SpaceArrivalProcessor // Space arrival effect processing
+TurnStateManager      // REAL/TEMP state lifecycle management
+TooltipService        // Tooltip content management
 ```
 
 ### Service Dependency Pattern
