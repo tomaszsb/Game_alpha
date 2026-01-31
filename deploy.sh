@@ -21,7 +21,7 @@ echo "Starting container..."
 docker run -d \
   --name game_alpha \
   -p 3080:3001 \
-  -v "$(pwd)/server/data:/app/server/data" \
+  -v "$(pwd)/server/data:/app/data" \
   --restart unless-stopped \
   game_alpha
 
