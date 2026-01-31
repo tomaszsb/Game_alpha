@@ -8,6 +8,24 @@ Before making ANY code changes or commits:
 3. **Golden Rule**: Run all tests before committing. No exceptions.
 4. If tests fail, stop and fix them. Never commit broken tests.
 
+### **🌐 Browser Automation**
+Chrome must be running with `--remote-debugging-port=9222` for browser automation.
+- **Game URL**: `http://unravel-game.duckdns.org:3080`
+
+**One-time setup (Admin PowerShell) - enables WSL to reach Chrome:**
+```powershell
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=9222 connectaddress=127.0.0.1 connectport=9222
+```
+
+**Start Chrome with debugging** (regular PowerShell):
+```powershell
+taskkill /F /IM chrome.exe
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\temp\chrome-debug-profile"
+```
+
+- **MCP Configuration**: Uses `--browserUrl=http://172.22.128.1:9222` (Windows host IP from WSL)
+- **After Chrome is running**: Restart Claude Code once to connect.
+
 ---
 
 ### **📁 WORKSPACE & DIRECTORY STRUCTURE**
@@ -245,5 +263,38 @@ For detailed information, refer to these consolidated documents:
 
 ---
 
-**Last Updated:** January 27, 2026
-**Charter Version:** 3.2 (Test count updated)
+## 🎮 **UAT PLAYTESTING GUIDELINES** (January 31, 2026)
+
+### **Efficient Playtesting Approach**
+When conducting User Acceptance Testing via browser automation:
+
+1. **Play First, Debug Later**: Complete the game flow before deep-diving into bugs
+2. **Document Briefly**: Note bugs with 1-2 sentences, don't investigate code immediately
+3. **Test All Features**: Explicitly test E cards, dictionary links, negotiations, Try Again
+4. **Use a Checklist**: Cover all game mechanics systematically
+
+### **Playtest Checklist**
+- [ ] Complete a full game from OWNER to FINISH
+- [ ] Play at least one E card (Expeditor)
+- [ ] Click dictionary links to test integration
+- [ ] Use Try Again feature at least once
+- [ ] Test card replacement when prompted
+- [ ] Observe all notification messages for clarity
+- [ ] Test movement choice UI on multi-destination spaces
+
+### **Bug Documentation Format**
+```
+| Severity | Location | Issue | Reproduction Steps |
+|----------|----------|-------|-------------------|
+| Critical/Minor | Space/Component | Brief description | How to trigger |
+```
+
+### **When to Fix vs Document**
+- **Fix immediately**: Game-blocking bugs (can't continue playing)
+- **Document only**: UX issues, text errors, cosmetic bugs
+- **Workaround**: If possible, use Try Again or console to continue testing
+
+---
+
+**Last Updated:** January 31, 2026
+**Charter Version:** 3.3 (Added UAT playtesting guidelines)

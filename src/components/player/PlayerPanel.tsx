@@ -614,14 +614,15 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         isMyTurn={isMyTurn}
       />
 
-      {/* Roll Dice for Movement Button - ONLY for CHEAT spaces where player actively rolls
-          REG spaces auto-roll because the clerk/examiner makes the decision, not the player */}
+      {/* Roll Dice for Movement Button - for non-REG dice-movement spaces
+          REG spaces auto-roll because the clerk/examiner makes the decision, not the player
+          All other dice-movement spaces (CHEAT, ARCH Subsequent, etc.) require manual roll */}
       {isDiceMovementSpace && isMyTurn && !hasPlayerRolledDice && onRollDice &&
-       player.currentSpace.startsWith('CHEAT') && (
+       !player.currentSpace.startsWith('REG-') && (
         <div style={{
           padding: '12px',
-          backgroundColor: '#fff3e0',
-          border: '3px solid #ff9800',
+          backgroundColor: player.currentSpace.startsWith('CHEAT') ? '#fff3e0' : '#e3f2fd',
+          border: `3px solid ${player.currentSpace.startsWith('CHEAT') ? '#ff9800' : '#2196f3'}`,
           borderRadius: '8px',
           margin: '8px 0',
           textAlign: 'center'
@@ -629,10 +630,12 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           <div style={{
             fontSize: '12px',
             fontWeight: 'bold',
-            color: '#e65100',
+            color: player.currentSpace.startsWith('CHEAT') ? '#e65100' : '#1565c0',
             marginBottom: '8px'
           }}>
-            🎲 Roll the dice to see if you can cheat the system!
+            {player.currentSpace.startsWith('CHEAT')
+              ? '🎲 Roll the dice to see if you can cheat the system!'
+              : '🎲 Roll the dice to determine your next destination'}
           </div>
           <button
             onClick={async () => {
@@ -648,7 +651,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
               padding: '12px 24px',
               fontSize: '16px',
               fontWeight: 'bold',
-              backgroundColor: isRollingDice ? '#bdbdbd' : '#ff9800',
+              backgroundColor: isRollingDice ? '#bdbdbd' : (player.currentSpace.startsWith('CHEAT') ? '#ff9800' : '#2196f3'),
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -662,9 +665,9 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         </div>
       )}
 
-      {/* Show dice roll result when rolled on CHEAT dice-movement space */}
+      {/* Show dice roll result when rolled on non-REG dice-movement space */}
       {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll &&
-       player.currentSpace.startsWith('CHEAT') && (
+       !player.currentSpace.startsWith('REG-') && (
         <div style={{
           padding: '8px 12px',
           backgroundColor: '#e8f5e9',

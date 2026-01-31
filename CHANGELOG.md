@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fix: Missing Dice Roll Button for Non-REG Dice-Movement Spaces (January 31, 2026)
+
+**Problem:** Players at ARCH-INITIATION (Subsequent Visit) and similar dice-movement spaces couldn't roll the dice because no button was displayed, blocking game progress.
+
+**Root Cause:** `PlayerPanel.tsx` only showed the manual dice roll button for CHEAT-prefixed spaces (`startsWith('CHEAT')`), but other dice-movement spaces like ARCH-INITIATION also require manual dice rolls (REG- spaces auto-roll, but ARCH- spaces don't).
+
+**Fix:** Changed the condition from `startsWith('CHEAT')` to `!startsWith('REG-')` to show the dice roll button for ALL non-auto-roll dice-movement spaces.
+
+**Files Modified:**
+- `src/components/player/PlayerPanel.tsx` - Updated dice roll button condition (lines 619-665, 668-670)
+  - Button now shows for any dice-movement space that doesn't start with 'REG-'
+  - Added conditional styling: blue for non-CHEAT spaces, orange for CHEAT spaces
+  - Added conditional messaging based on space type
+
+**Testing:** All 108 player component tests pass.
+
+### UAT Playtesting Session (January 31, 2026)
+
+**Bugs Documented During Testing:**
+
+| # | Severity | Issue | Status |
+|---|----------|-------|--------|
+| 1 | Minor | Toast "Card Action Complete complete" - redundant word | Open |
+| 2 | Design | "Skip Replacement" button behavior needs review (rules require replacement) | Open |
+| 3 | Minor | Budget Variance calculation may be incorrect | Open |
+| 4 | Minor | Card selection in Replace modal is buggy | Open |
+| 5 | Minor | Notification "-$66600" missing comma formatting | Open |
+| 6 | Minor | "Action available" label inconsistent with "All actions complete" | Open |
+| 7 | UX | Movement destinations could use better visual distinction when selected | Open |
+| 8 | Minor | FDNY notification shows "project scope ($0.0M)" but actual ~$0.9M | Open |
+| 9 | Minor | Notification text concatenation: two messages incorrectly joined | Open |
+| 10 | Critical | Missing dice roll button at ARCH-INITIATION (Subsequent Visit) | **FIXED** |
+
+**Added to CLAUDE.md:** UAT playtesting guidelines and checklist for efficient testing.
+
 ### Feature: Desktop Command Center Modernization (January 25, 2026)
 
 **Premium desktop experience with glassmorphism and motion design**
