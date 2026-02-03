@@ -1,8 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGameContext } from '../../context/GameContext';
-import { Space } from '../../types/DataTypes';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
+import { SpaceBrowser } from './SpaceBrowser';
+import { SpaceEditor } from './SpaceEditor';
+import { DiceRollEditor } from './DiceRollEditor';
+import { SpaceRow, DiceRollRow } from './types/EditorTypes';
+import { downloadSourceFiles } from './utils/csvExport';
 
 interface DataEditorProps {
   onClose: () => void;
@@ -10,137 +13,366 @@ interface DataEditorProps {
 
 export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
   const { dataService } = useGameContext();
-  const [spaces, setSpaces] = useState<Space[]>([]);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>('');
 
+  // Editor state
+  const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
+  const [diceRollData, setDiceRollData] = useState<DiceRollRow[]>([]);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [visitType, setVisitType] = useState<'First' | 'Subsequent'>('First');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [phaseFilter, setPhaseFilter] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState<'spaces' | 'diceRolls'>('spaces');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load data from DataService (CLEAN_FILES) and convert to source format
   useEffect(() => {
-    // In a real implementation, you'd fetch all spaces
-    // For now, this is a placeholder
-    const allSpaces = dataService.getAllSpaces();
-    setSpaces(allSpaces);
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Load source files directly from public folder
+        const [spacesResponse, diceRollResponse] = await Promise.all([
+          fetch('/data/SOURCE_FILES/Spaces.csv?_=' + Date.now()),
+          fetch('/data/SOURCE_FILES/DiceRoll Info.csv?_=' + Date.now())
+        ]);
+
+        if (!spacesResponse.ok || !diceRollResponse.ok) {
+          throw new Error('Failed to load source files');
+        }
+
+        const spacesText = await spacesResponse.text();
+        const diceRollText = await diceRollResponse.text();
+
+        // Parse Spaces.csv
+        const spacesRows = parseSpacesCSV(spacesText);
+        setSpacesData(spacesRows);
+
+        // Parse DiceRoll Info.csv
+        const diceRollRows = parseDiceRollCSV(diceRollText);
+        setDiceRollData(diceRollRows);
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error loading source files:', err);
+        setError('Failed to load source files. Make sure SOURCE_FILES are in public/data/SOURCE_FILES/');
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [dataService]);
 
-  const handleDownload = () => {
-    // Logic to convert edited data to CSV and trigger download
-    alert('CSV download functionality to be implemented!');
-  };
+  // Get all unique space names for dropdowns
+  const allSpaceNames = React.useMemo(() => {
+    const names = new Set<string>();
+    spacesData.forEach(space => names.add(space.space_name));
+    return Array.from(names).sort();
+  }, [spacesData]);
 
+  // Get current space data (First and Subsequent)
+  const spaceFirst = spacesData.find(
+    s => s.space_name === selectedSpaceId && s.visit_type === 'First'
+  ) || null;
+  const spaceSubsequent = spacesData.find(
+    s => s.space_name === selectedSpaceId && s.visit_type === 'Subsequent'
+  ) || null;
+
+  // Handle field changes
+  const handleFieldChange = useCallback((
+    vType: 'First' | 'Subsequent',
+    field: keyof SpaceRow,
+    value: string
+  ) => {
+    setSpacesData(prev => prev.map(space => {
+      if (space.space_name === selectedSpaceId && space.visit_type === vType) {
+        return { ...space, [field]: value };
+      }
+      return space;
+    }));
+    setHasUnsavedChanges(true);
+  }, [selectedSpaceId]);
+
+  // Handle dice roll changes
+  const handleDiceRollUpdate = useCallback((
+    index: number,
+    field: keyof DiceRollRow,
+    value: string
+  ) => {
+    setDiceRollData(prev => prev.map((roll, i) => {
+      if (i === index) {
+        return { ...roll, [field]: value };
+      }
+      return roll;
+    }));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleAddDiceRoll = useCallback((newRoll: DiceRollRow) => {
+    setDiceRollData(prev => [...prev, newRoll]);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleDeleteDiceRoll = useCallback((index: number) => {
+    if (!confirm('Delete this dice roll row?')) return;
+    setDiceRollData(prev => prev.filter((_, i) => i !== index));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  // Export handlers
+  const handleExport = useCallback(() => {
+    downloadSourceFiles(spacesData, diceRollData);
+    setHasUnsavedChanges(false);
+    alert('Downloading Spaces.csv and DiceRoll Info.csv...\n\nReplace files in data/SOURCE_FILES/ and run:\npython data/process_game_data.py');
+  }, [spacesData, diceRollData]);
+
+  // Clear game data handler
   const handleClearData = async () => {
-    console.log('🗑️ Clear Game Data button clicked');
-
     const confirmed = window.confirm(
-      '⚠️ Clear All Game Data?\n\n' +
+      'Clear All Game Data?\n\n' +
       'This will permanently delete:\n' +
-      '• All players\n' +
-      '• Current game progress\n' +
-      '• Game state\n\n' +
+      '- All players\n' +
+      '- Current game progress\n' +
+      '- Game state\n\n' +
       'The page will reload after clearing.\n\n' +
       'Continue?'
     );
 
-    if (!confirmed) {
-      console.log('🗑️ Clear Game Data cancelled by user');
-      return;
-    }
-
-    console.log('🗑️ User confirmed - clearing game data...');
+    if (!confirmed) return;
 
     try {
       const backendURL = getBackendURL();
       const gameId = getCurrentGameId();
       const apiPath = getGameStateAPIPath(gameId);
 
-      console.log(`🗑️ Sending DELETE to: ${backendURL}${apiPath}`);
-
       const response = await fetch(`${backendURL}${apiPath}`, {
         method: 'DELETE'
       });
 
-      console.log(`🗑️ Response status: ${response.status}`);
-
       if (response.ok) {
-        const result = await response.json();
-        console.log('🗑️ Clear successful:', result);
-        alert('✅ Game data cleared successfully!\n\nPage will reload...');
+        alert('Game data cleared successfully!\n\nPage will reload...');
         window.location.reload();
       } else {
-        const errorText = await response.text();
-        console.error('🗑️ Clear failed:', response.status, errorText);
-        alert(`❌ Failed to clear game data (${response.status}). Please try again.`);
+        alert(`Failed to clear game data (${response.status}). Please try again.`);
       }
     } catch (error) {
-      console.error('🗑️ Error clearing game data:', error);
-      alert('❌ Error connecting to server. Make sure the backend is running on port 3001.\n\nError: ' + (error instanceof Error ? error.message : String(error)));
+      alert('Error connecting to server. Make sure the backend is running on port 3001.\n\nError: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
+
+  // Handle close with unsaved changes warning
+  const handleClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      if (!confirm('You have unsaved changes. Discard and close?')) {
+        return;
+      }
+    }
+    onClose();
+  }, [hasUnsavedChanges, onClose]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape to close
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+      // Ctrl+S to export
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        if (!isLoading && !error) {
+          handleExport();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleClose, handleExport, isLoading, error]);
 
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
+        {/* Header */}
         <div style={styles.header}>
-          <h2>Space Data Editor</h2>
-          <button onClick={onClose} style={styles.closeButton}>&times;</button>
+          <div style={styles.headerLeft}>
+            <h2 style={styles.title}>Space Data Editor</h2>
+            {hasUnsavedChanges && (
+              <span style={styles.unsavedBadge}>Unsaved Changes</span>
+            )}
+          </div>
+          <button onClick={handleClose} style={styles.closeButton}>&times;</button>
         </div>
+
+        {/* Tab Bar */}
+        <div style={styles.tabBar}>
+          <button
+            onClick={() => setActiveTab('spaces')}
+            style={{
+              ...styles.tab,
+              ...(activeTab === 'spaces' ? styles.tabActive : {})
+            }}
+          >
+            Spaces ({allSpaceNames.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('diceRolls')}
+            style={{
+              ...styles.tab,
+              ...(activeTab === 'diceRolls' ? styles.tabActive : {})
+            }}
+          >
+            Dice Rolls ({diceRollData.length})
+          </button>
+        </div>
+
+        {/* Content */}
         <div style={styles.content}>
-          {/* Status notice */}
-          <div style={styles.statusNotice}>
-            <strong>⏸️ Status: Placeholder</strong>
-            <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
-              Space editing UI is planned but not yet implemented. Currently you can:
-            </p>
-            <ul style={{ margin: '8px 0', paddingLeft: '24px', fontSize: '14px' }}>
-              <li>Browse available spaces (dropdown below)</li>
-              <li>Clear all game data (button below)</li>
-            </ul>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label htmlFor="space-select" style={{ fontWeight: '600', display: 'block', marginBottom: '8px' }}>
-              Browse Spaces ({spaces.length} total):
-            </label>
-            <select
-              id="space-select"
-              value={selectedSpaceId}
-              onChange={(e) => setSelectedSpaceId(e.target.value)}
-              style={styles.select}
-            >
-              <option value="">--Choose a Space--</option>
-              {spaces.map(space => (
-                <option key={space.id} value={space.id}>
-                  {space.id}: {space.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Show selected space info */}
-          {selectedSpaceId && (() => {
-            const space = spaces.find(s => s.id === selectedSpaceId);
-            const firstContent = space?.content?.[0];
-            return (
-              <div style={styles.spaceInfo}>
-                <h4 style={{ margin: '0 0 8px 0' }}>📍 {space?.title || selectedSpaceId}</h4>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                  {firstContent?.story || 'No story available for this space'}
-                </p>
+          {isLoading ? (
+            <div style={styles.loading}>Loading source files...</div>
+          ) : error ? (
+            <div style={styles.error}>
+              <p>{error}</p>
+              <p style={{ fontSize: '14px', marginTop: '12px' }}>
+                To use the editor, copy SOURCE_FILES to public/data/:
+              </p>
+              <code style={styles.code}>
+                cp -r data/SOURCE_FILES public/data/
+              </code>
+            </div>
+          ) : activeTab === 'spaces' ? (
+            <div style={styles.splitPanel}>
+              <div style={styles.browserPanel}>
+                <SpaceBrowser
+                  spaces={spacesData}
+                  selectedSpaceId={selectedSpaceId}
+                  searchTerm={searchTerm}
+                  onSelectSpace={setSelectedSpaceId}
+                  onSearchChange={setSearchTerm}
+                  phaseFilter={phaseFilter}
+                  onPhaseFilterChange={setPhaseFilter}
+                />
               </div>
-            );
-          })()}
+              <div style={styles.editorPanel}>
+                <SpaceEditor
+                  spaceFirst={spaceFirst}
+                  spaceSubsequent={spaceSubsequent}
+                  visitType={visitType}
+                  allSpaceNames={allSpaceNames}
+                  onVisitTypeChange={setVisitType}
+                  onFieldChange={handleFieldChange}
+                />
+              </div>
+            </div>
+          ) : (
+            <DiceRollEditor
+              diceRolls={diceRollData}
+              selectedSpaceId={selectedSpaceId}
+              allSpaceNames={allSpaceNames}
+              onUpdateDiceRoll={handleDiceRollUpdate}
+              onAddDiceRoll={handleAddDiceRoll}
+              onDeleteDiceRoll={handleDeleteDiceRoll}
+            />
+          )}
         </div>
+
+        {/* Footer */}
         <div style={styles.footer}>
           <button onClick={handleClearData} style={styles.clearButton}>
-            🗑️ Clear Game Data
+            Clear Game Data
           </button>
-          <button onClick={handleDownload} style={styles.downloadButton}>
-            Download as CSV
-          </button>
+          <div style={styles.footerRight}>
+            <button onClick={handleExport} style={styles.exportButton} disabled={isLoading || !!error}>
+              Export Source Files
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-const styles: { [key: string]: React.CSSProperties } = {
+// CSV Parsing Functions
+function parseSpacesCSV(csvText: string): SpaceRow[] {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  // Skip header row
+  return lines.slice(1).map(line => {
+    const values = parseCsvLine(line);
+    return {
+      space_name: values[0] || '',
+      phase: values[1] || '',
+      visit_type: (values[2] || 'First') as 'First' | 'Subsequent',
+      Event: values[3] || '',
+      Action: values[4] || '',
+      Outcome: values[5] || '',
+      w_card: values[6] || '',
+      b_card: values[7] || '',
+      i_card: values[8] || '',
+      l_card: values[9] || '',
+      e_card: values[10] || '',
+      Time: values[11] || '',
+      Fee: values[12] || '',
+      space_1: values[13] || '',
+      space_2: values[14] || '',
+      space_3: values[15] || '',
+      space_4: values[16] || '',
+      space_5: values[17] || '',
+      Negotiate: values[18] || '',
+      requires_dice_roll: values[19] || '',
+      path: values[20] || '',
+      rolls: values[21] || ''
+    };
+  }).filter(row => row.space_name); // Filter out empty rows
+}
+
+function parseDiceRollCSV(csvText: string): DiceRollRow[] {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  // Skip header row (may have BOM character)
+  return lines.slice(1).map(line => {
+    const values = parseCsvLine(line);
+    return {
+      space_name: values[0]?.replace(/^\uFEFF/, '') || '', // Remove BOM if present
+      die_roll: values[1] || '',
+      visit_type: (values[2] || 'First') as 'First' | 'Subsequent',
+      roll_1: values[3] || '',
+      roll_2: values[4] || '',
+      roll_3: values[5] || '',
+      roll_4: values[6] || '',
+      roll_5: values[7] || '',
+      roll_6: values[8] || ''
+    };
+  }).filter(row => row.space_name); // Filter out empty rows
+}
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed',
     top: 0,
@@ -151,23 +383,43 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    zIndex: 1000
   },
   modal: {
     background: 'white',
     borderRadius: '8px',
-    width: '80%',
-    maxWidth: '1000px',
-    height: '80vh',
+    width: '95%',
+    maxWidth: '1400px',
+    height: '90vh',
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden'
   },
   header: {
-    padding: '15px',
-    borderBottom: '1px solid #eee',
+    padding: '12px 16px',
+    borderBottom: '1px solid #dee2e6',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa'
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  title: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: 600
+  },
+  unsavedBadge: {
+    fontSize: '12px',
+    padding: '4px 8px',
+    backgroundColor: '#ffc107',
+    color: '#212529',
+    borderRadius: '4px',
+    fontWeight: 500
   },
   closeButton: {
     background: '#f0f0f0',
@@ -177,60 +429,109 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     cursor: 'pointer',
     padding: '4px 10px',
-    color: '#333',
+    color: '#333'
+  },
+  tabBar: {
+    display: 'flex',
+    borderBottom: '1px solid #dee2e6',
+    backgroundColor: '#f8f9fa'
+  },
+  tab: {
+    padding: '10px 20px',
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#6c757d',
+    borderBottom: '2px solid transparent',
+    marginBottom: '-1px'
+  },
+  tabActive: {
+    color: '#007bff',
+    borderBottomColor: '#007bff',
+    backgroundColor: 'white'
   },
   content: {
-    padding: '15px',
     flex: 1,
-    overflowY: 'auto',
+    overflow: 'hidden',
+    display: 'flex'
+  },
+  splitPanel: {
+    display: 'flex',
+    width: '100%',
+    height: '100%'
+  },
+  browserPanel: {
+    width: '280px',
+    minWidth: '280px',
+    height: '100%',
+    overflow: 'hidden'
+  },
+  editorPanel: {
+    flex: 1,
+    height: '100%',
+    overflow: 'hidden',
+    backgroundColor: '#f8f9fa'
+  },
+  loading: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    color: '#6c757d',
+    fontSize: '16px'
+  },
+  error: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    color: '#dc3545',
+    padding: '40px',
+    textAlign: 'center'
+  },
+  code: {
+    display: 'block',
+    marginTop: '8px',
+    padding: '12px 16px',
+    backgroundColor: '#f8f9fa',
+    border: '1px solid #dee2e6',
+    borderRadius: '4px',
+    fontFamily: 'monospace',
+    fontSize: '13px',
+    color: '#212529'
   },
   footer: {
-    padding: '15px',
-    borderTop: '1px solid #eee',
+    padding: '12px 16px',
+    borderTop: '1px solid #dee2e6',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa'
+  },
+  footerRight: {
+    display: 'flex',
+    gap: '8px'
   },
   clearButton: {
     background: '#dc3545',
     color: 'white',
     border: 'none',
-    padding: '10px 20px',
-    borderRadius: '5px',
+    padding: '8px 16px',
+    borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '14px',
+    fontSize: '14px'
   },
-  downloadButton: {
+  exportButton: {
     background: '#28a745',
     color: 'white',
     border: 'none',
-    padding: '10px 20px',
-    borderRadius: '5px',
-    cursor: 'pointer',
-  },
-  formGroup: {
-    marginBottom: '15px',
-  },
-  select: {
-    width: '100%',
-    padding: '10px',
-    fontSize: '16px',
-    border: '1px solid #ccc',
+    padding: '8px 16px',
     borderRadius: '4px',
-  },
-  statusNotice: {
-    backgroundColor: '#fff3cd',
-    border: '1px solid #ffc107',
-    borderRadius: '6px',
-    padding: '12px 16px',
-    marginBottom: '20px',
-    color: '#856404',
-  },
-  spaceInfo: {
-    backgroundColor: '#e7f3ff',
-    border: '1px solid #b6d4fe',
-    borderRadius: '6px',
-    padding: '12px 16px',
-    marginTop: '12px',
+    cursor: 'pointer',
+    fontSize: '14px'
   }
 };

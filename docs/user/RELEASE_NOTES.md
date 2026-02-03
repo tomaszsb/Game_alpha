@@ -2,6 +2,58 @@
 
 ---
 
+## v2.13 - Space Data Editor (February 3, 2026)
+
+**Release Date:** February 3, 2026
+**Version:** 2.13
+**Status:** Alpha Testing
+**Type:** New Feature
+
+### New: Space Data Editor
+
+**What Changed:** Game designers can now edit space data directly from the game interface!
+
+**Key Features:**
+
+- **Browse Spaces:** Left panel shows all game spaces grouped by phase with search and filter
+- **Edit All Fields:** Edit all 21 columns for each space including narrative, cards, costs, and movement
+- **Visit Type Toggle:** Switch between First and Subsequent visit data
+- **Dice Roll Editor:** Dedicated tab for editing dice roll outcomes (1-6 values)
+- **Export to Source Files:** Downloads `Spaces.csv` and `DiceRoll Info.csv` in the correct format
+
+**Keyboard Shortcuts:**
+- `Escape` - Close editor
+- `Ctrl+S` - Export source files
+
+**Workflow:**
+1. Open Data Editor from settings menu
+2. Make changes to spaces and dice rolls
+3. Export source files
+4. Replace files in `data/SOURCE_FILES/`
+5. Run `python data/process_game_data.py`
+6. Reload game to see changes
+
+### Technical Details
+
+**New Components:**
+- `SpaceBrowser.tsx` - Space list with search/filter
+- `SpaceEditor.tsx` - Form editor for space fields
+- `DiceRollEditor.tsx` - Grid editor for dice outcomes
+- `csvExport.ts` - CSV export utilities
+
+**Files Structure:**
+```
+src/components/editor/
+├── DataEditor.tsx (main modal)
+├── SpaceBrowser.tsx
+├── SpaceEditor.tsx
+├── DiceRollEditor.tsx
+├── types/EditorTypes.ts
+└── utils/csvExport.ts
+```
+
+---
+
 ## v2.12 - Mobile UI Polish (January 25, 2026)
 
 **Release Date:** January 25, 2026

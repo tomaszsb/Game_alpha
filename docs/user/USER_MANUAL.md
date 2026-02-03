@@ -1,7 +1,7 @@
 # User Manual - Unravel Codes: The Game
 
-**Last Updated:** January 15, 2026
-**Version:** 2.10
+**Last Updated:** February 3, 2026
+**Version:** 2.11
 **Status:** Alpha Testing
 
 Welcome to Unravel Codes: The Game! This manual will help you understand how to play the game and use the interface effectively.
@@ -17,6 +17,7 @@ Welcome to Unravel Codes: The Game! This manual will help you understand how to 
 5. [Multi-Device Play](#multi-device-play)
 6. [Tips & Strategies](#tips--strategies)
 7. [Troubleshooting](#troubleshooting)
+8. [Space Data Editor](#space-data-editor)
 
 ---
 
@@ -305,6 +306,57 @@ These happen automatically when conditions are met:
 
 ---
 
+## Space Data Editor
+
+The Space Data Editor allows game designers to edit space data directly from the game interface.
+
+### Accessing the Editor
+
+1. Click the **gear icon** (⚙️) in the game header
+2. Select **"Data Editor"** from the menu
+
+### Editor Features
+
+**Spaces Tab:**
+- Browse all game spaces in the left panel
+- Search by name or filter by phase
+- Edit all 21 columns for each space
+- Toggle between First/Subsequent visit data
+- Edit narrative text (Event, Action, Outcome)
+- Configure card effects (W, B, I, L, E cards)
+- Set movement destinations
+- Configure dice roll requirements
+
+**Dice Rolls Tab:**
+- View dice roll outcomes for each space
+- Edit roll 1-6 values
+- Add new dice roll categories
+- Delete unnecessary rows
+
+### Workflow
+
+1. **Make changes** in the editor
+2. **Export Source Files** - downloads `Spaces.csv` and `DiceRoll Info.csv`
+3. **Replace files** in `data/SOURCE_FILES/`
+4. **Run conversion script:**
+   ```bash
+   python data/process_game_data.py
+   ```
+5. **Reload game** to see changes
+
+### Keyboard Shortcuts
+
+- **Escape** - Close editor
+- **Ctrl+S** - Export source files
+
+### Important Notes
+
+- Changes are only saved when you export and run the conversion script
+- The editor warns you about unsaved changes when closing
+- CLEAN_FILES should never be edited directly (they are derived from SOURCE_FILES)
+
+---
+
 ## Additional Resources
 
 - **[RELEASE_NOTES.md](./RELEASE_NOTES.md)** - Latest features and changes
@@ -317,4 +369,4 @@ These happen automatically when conditions are met:
 
 **Feedback:** Please send feedback to game@unravelcodes.com
 
-**Last Updated:** January 9, 2026
+**Last Updated:** February 3, 2026

@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Space Data Editor (February 3, 2026)
+
+**New Feature:** Full-featured space data editor for game designers.
+
+**Components Created:**
+- `src/components/editor/DataEditor.tsx` - Main modal with tabs and state management
+- `src/components/editor/SpaceBrowser.tsx` - Left panel with search, filter, and space list
+- `src/components/editor/SpaceEditor.tsx` - Form editor for all 21 space columns
+- `src/components/editor/DiceRollEditor.tsx` - Grid editor for dice roll outcomes
+- `src/components/editor/types/EditorTypes.ts` - TypeScript interfaces
+- `src/components/editor/utils/csvExport.ts` - CSV export utilities
+
+**Features:**
+- Browse spaces grouped by phase with search/filter
+- Edit all fields: narrative (Event, Action, Outcome), card effects, costs, movement destinations
+- Toggle between First/Subsequent visit data
+- Dedicated Dice Rolls tab for editing 1-6 outcomes
+- Export to SOURCE_FILES format (Spaces.csv, DiceRoll Info.csv)
+- Unsaved changes warning
+- Keyboard shortcuts (Escape to close, Ctrl+S to export)
+
+**Tests Added:**
+- `tests/components/editor/DataEditor.test.tsx` - 16 tests for UI and state
+- `tests/components/editor/csvExport.test.ts` - 9 tests for CSV export
+
+**Documentation Updated:**
+- `docs/user/USER_MANUAL.md` - Added Space Data Editor section
+- `docs/user/RELEASE_NOTES.md` - Added v2.13 release notes
+
 ### UAT Bug Fixes + Dictionary Integration (February 3, 2026)
 
 **Card Selection UX Improvements:**
