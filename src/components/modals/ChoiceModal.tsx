@@ -15,9 +15,16 @@ export function ChoiceModal(): JSX.Element {
   const { stateService, choiceService, notificationService } = useGameContext();
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
+  // Track whether the card replacement modal is temporarily hidden
+  // The choice remains pending, but user can return to main panel
+  const [isCardReplacementHidden, setIsCardReplacementHidden] = useState(false);
 
   useEffect(() => {
     const unsubscribe = stateService.subscribe((gameState) => {
+      // Reset hidden state when a new choice appears
+      if (gameState.awaitingChoice?.id !== awaitingChoice?.id) {
+        setIsCardReplacementHidden(false);
+      }
       setAwaitingChoice(gameState.awaitingChoice);
 
       if (gameState.awaitingChoice) {
@@ -34,7 +41,7 @@ export function ChoiceModal(): JSX.Element {
     }
 
     return unsubscribe;
-  }, [stateService]);
+  }, [stateService, awaitingChoice?.id]);
 
   const handleChoiceClick = (selectedOptionId: string) => {
     if (!awaitingChoice) return;
@@ -69,6 +76,51 @@ export function ChoiceModal(): JSX.Element {
 
   // Handle CARD_REPLACEMENT choice with dedicated modal
   if (awaitingChoice.type === 'CARD_REPLACEMENT') {
+    // If user clicked "Return to Main Panel", show a floating indicator to return
+    if (isCardReplacementHidden) {
+      const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
+      return (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000
+          }}
+        >
+          <button
+            onClick={() => setIsCardReplacementHidden(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 20px',
+              backgroundColor: colors.warning.main,
+              color: colors.white,
+              border: 'none',
+              borderRadius: theme.borderRadius.lg,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              animation: 'pulse 2s infinite'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.warning.dark || '#d97706';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.warning.main;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>⚠️</span>
+            <span>Complete Card Replacement ({cardType})</span>
+          </button>
+        </div>
+      );
+    }
+
     const gameState = stateService.getGameState();
     const player = gameState.players.find(p => p.id === awaitingChoice.playerId);
 
@@ -94,20 +146,10 @@ export function ChoiceModal(): JSX.Element {
           }
         }}
         onCancel={() => {
-          console.log('Card replacement skipped by user');
-          choiceService.skipChoice(awaitingChoice.id);
-          notificationService.notify(
-            NotificationUtils.createSuccessNotification(
-              'Card Action Complete',
-              'E card replacement skipped - continuing with your turn',
-              currentPlayerName
-            ),
-            {
-              playerId: awaitingChoice.playerId,
-              playerName: currentPlayerName,
-              actionType: 'skip_card_replacement'
-            }
-          );
+          // Hide the modal but keep the choice pending
+          // Player can return to complete it via the pending action indicator
+          console.log('Card replacement modal hidden - choice remains pending');
+          setIsCardReplacementHidden(true);
         }}
       />
     );

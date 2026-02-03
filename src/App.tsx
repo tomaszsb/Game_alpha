@@ -46,14 +46,28 @@ function LoadingScreen({ message }: { message?: string }): JSX.Element {
 
 /**
  * DictionaryPanelWrapper manages the dictionary panel state via context
+ *
+ * When useEmbeddedDashboard is enabled, the panel will render an iframe
+ * pointing to dashboard.unravelcodes.com with the term ID.
+ * This requires the dashboard to support the `embedded=true` parameter.
+ *
+ * Set ENABLE_EMBEDDED_DICTIONARY to true once the dashboard is ready.
  */
+const ENABLE_EMBEDDED_DICTIONARY = false; // Enable once dashboard supports embedded=true
+
 function DictionaryPanelWrapper(): JSX.Element {
-  const { isOpen, closePanel, selectedTerm } = useDictionaryPanel();
+  const { isOpen, closePanel, selectedTerm, pendingTermId } = useDictionaryPanel();
+
+  // Use pendingTermId for embedded mode (works even when term isn't in local cache)
+  // Use selectedTerm?.id for local mode (requires term to be loaded)
+  const termId = pendingTermId || selectedTerm?.id;
+
   return (
     <DictionaryPanel
       isOpen={isOpen}
       onClose={closePanel}
-      initialTermId={selectedTerm?.id}
+      initialTermId={termId}
+      useEmbeddedDashboard={ENABLE_EMBEDDED_DICTIONARY}
     />
   );
 }

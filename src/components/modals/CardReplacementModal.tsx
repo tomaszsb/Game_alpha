@@ -35,8 +35,10 @@ export function CardReplacementModal({
 }: CardReplacementModalProps): JSX.Element | null {
   const { dataService, stateService, cardService } = useGameContext();
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
-  const [replacementCardType, setReplacementCardType] = useState<CardType>(newCardType || 'W');
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
+
+  // Replacement card type is always the same as the current type (or newCardType if specified)
+  const replacementCardType = newCardType || cardType;
 
   if (!isOpen || !player) {
     return null;
@@ -61,13 +63,11 @@ export function CardReplacementModal({
     if (canReplace) {
       onReplace(selectedCardIds, replacementCardType);
       setSelectedCardIds([]);
-      setReplacementCardType('W');
     }
   };
 
   const handleCancel = () => {
     setSelectedCardIds([]);
-    setReplacementCardType('W');
     onCancel();
   };
 
@@ -100,9 +100,9 @@ export function CardReplacementModal({
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = colors.secondary.light;
           }}
-          title="Skip this card replacement and continue"
+          title="Return to the main game panel - you can come back to complete this action"
         >
-          Skip Replacement
+          Return to Main Panel
         </button>
         <button
           style={{
@@ -236,66 +236,6 @@ export function CardReplacementModal({
             })}
           </div>
 
-          {/* Replacement Card Type Selection */}
-          <div style={{
-            marginTop: '24px',
-            padding: '20px',
-            backgroundColor: colors.secondary.bg,
-            borderRadius: theme.borderRadius.lg,
-            border: `2px solid ${colors.secondary.border}`
-          }}>
-            <h4 style={{
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: colors.text.primary,
-              margin: 0,
-              marginBottom: '12px'
-            }}>
-              Replace with:
-            </h4>
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap'
-            }}>
-              {(['W', 'B', 'E', 'L', 'I'] as CardType[]).map(type => {
-                const typeColors = getCardTypeColors(type);
-                const isActive = replacementCardType === type;
-                return (
-                  <button
-                    key={type}
-                    aria-selected={isActive}
-                    onClick={() => setReplacementCardType(type)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: theme.borderRadius.md,
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: theme.transitions.fast,
-                      minWidth: '100px',
-                      minHeight: theme.mobile.minTapTarget,
-                      backgroundColor: isActive ? typeColors.primary : colors.white,
-                      color: isActive ? colors.white : typeColors.text,
-                      border: `2px solid ${typeColors.primary}`
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = typeColors.bg;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = colors.white;
-                      }
-                    }}
-                  >
-                    {getCardTypeEmoji(type)} {typeColors.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </>
       )}
     </ModalBase>

@@ -30,11 +30,16 @@ import {
   searchTerms,
   getTermsByCategory
 } from '../data/terms';
+import {
+  registerPanelOpenCallback,
+  unregisterPanelOpenCallback
+} from '../../utils/dictionaryBridge';
 
 // Initial state
 const initialState: DictionaryState = {
   isOpen: false,
   selectedTerm: null,
+  pendingTermId: null,
   searchQuery: '',
   categoryFilter: null
 };
@@ -48,11 +53,13 @@ function dictionaryReducer(
     case 'OPEN_PANEL':
       return { ...state, isOpen: true };
     case 'CLOSE_PANEL':
-      return { ...state, isOpen: false, selectedTerm: null };
+      return { ...state, isOpen: false, selectedTerm: null, pendingTermId: null };
     case 'SELECT_TERM':
-      return { ...state, selectedTerm: action.term, isOpen: true };
+      return { ...state, selectedTerm: action.term, pendingTermId: action.term.id, isOpen: true };
+    case 'OPEN_TERM_BY_ID':
+      return { ...state, pendingTermId: action.termId, isOpen: true };
     case 'CLEAR_SELECTION':
-      return { ...state, selectedTerm: null };
+      return { ...state, selectedTerm: null, pendingTermId: null };
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.query };
     case 'SET_CATEGORY_FILTER':
@@ -98,6 +105,23 @@ export function DictionaryProvider({
       }
     }
     load();
+  }, []);
+
+  // Register dictionary bridge callback for openInDictionary calls
+  useEffect(() => {
+    const handleOpenInPanel = (termId: string) => {
+      const term = getTermById(termId);
+      if (term) {
+        dispatch({ type: 'SELECT_TERM', term });
+      } else {
+        // If term not found locally, use OPEN_TERM_BY_ID
+        // This allows embedded dashboard mode to handle it via iframe
+        dispatch({ type: 'OPEN_TERM_BY_ID', termId });
+      }
+    };
+
+    registerPanelOpenCallback(handleOpenInPanel);
+    return () => unregisterPanelOpenCallback();
   }, []);
 
   // Get term by ID
@@ -193,6 +217,7 @@ export function useDictionaryPanel() {
   return {
     isOpen: state.isOpen,
     selectedTerm: state.selectedTerm,
+    pendingTermId: state.pendingTermId,
     openPanel,
     closePanel,
     selectTerm,

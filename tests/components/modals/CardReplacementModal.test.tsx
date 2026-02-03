@@ -219,27 +219,22 @@ describe('CardReplacementModal', () => {
     expect(screen.getByText(/Essential foundation repairs/)).toBeInTheDocument();
   });
 
-  it('should handle replacement card type selection', () => {
+  it('should show newCardType notification when specified', () => {
     render(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
         cardType="W"
         maxReplacements={2}
+        newCardType="B"
         onReplace={mockOnReplace}
         onCancel={mockOnCancel}
       />
     );
 
-    // Default replacement type should be Work
-    expect(screen.getByText('Replace with:')).toBeInTheDocument();
-
-    // Click on Bank Loan card type
-    const businessButton = screen.getByText(/🏦 Bank/);
-    fireEvent.click(businessButton);
-
-    // Should update the replacement type selection
-    expect(businessButton).toHaveAttribute('aria-selected', 'true');
+    // Should show notification about what type of card they'll receive
+    expect(screen.getByText(/You will receive a new/)).toBeInTheDocument();
+    expect(screen.getByText(/Bank/)).toBeInTheDocument();
   });
 
   it('should enable Replace button when cards are selected', () => {
@@ -268,7 +263,7 @@ describe('CardReplacementModal', () => {
     expect(screen.getByText('Replace 1 Card')).toBeInTheDocument();
   });
 
-  it('should call onReplace with selected cards and replacement type', () => {
+  it('should call onReplace with selected cards and same card type', () => {
     render(
       <CardReplacementModal
         isOpen={true}
@@ -284,18 +279,14 @@ describe('CardReplacementModal', () => {
     const foundationCard = screen.getByText('Foundation Work').closest('div');
     fireEvent.click(foundationCard!);
 
-    // Select Business replacement type
-    const businessButton = screen.getByText(/🏦 Bank/);
-    fireEvent.click(businessButton);
-
-    // Click replace
+    // Click replace - should use same card type (W)
     const replaceButton = screen.getByText('Replace 1 Card');
     fireEvent.click(replaceButton);
 
-    expect(mockOnReplace).toHaveBeenCalledWith(['W1'], 'B');
+    expect(mockOnReplace).toHaveBeenCalledWith(['W1'], 'W');
   });
 
-  it('should call onCancel when Cancel button is clicked', () => {
+  it('should call onCancel when Return to Main Panel button is clicked', () => {
     render(
       <CardReplacementModal
         isOpen={true}
@@ -307,7 +298,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const cancelButton = screen.getByText('Skip Replacement');
+    const cancelButton = screen.getByText('Return to Main Panel');
     fireEvent.click(cancelButton);
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
@@ -348,8 +339,8 @@ describe('CardReplacementModal', () => {
     fireEvent.click(foundationCard!);
     expect(screen.getByText('1 of 2 cards selected')).toBeInTheDocument();
 
-    // Cancel
-    const cancelButton = screen.getByText('Skip Replacement');
+    // Cancel using Return to Main Panel button
+    const cancelButton = screen.getByText('Return to Main Panel');
     fireEvent.click(cancelButton);
 
     // Re-render the same component to check if its internal state was reset

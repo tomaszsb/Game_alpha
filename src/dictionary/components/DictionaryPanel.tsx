@@ -21,18 +21,23 @@ const defaultColors = {
   white: '#ffffff',
 };
 
+// Dashboard URL for embedded iframe mode
+const DASHBOARD_BASE_URL = 'https://dashboard.unravelcodes.com/dictionary';
+
 export function DictionaryPanel({
   isOpen,
   onClose,
   initialTermId,
   config,
-  mode = 'game'
+  mode = 'game',
+  useEmbeddedDashboard = false
 }: DictionaryPanelProps): JSX.Element | null {
   const { terms, isLoading, error, categories, getTerm, search } = useDictionary();
   const [selectedTerm, setSelectedTerm] = useState<GlossaryTerm | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<TermCategory | null>(null);
   const [remoteConfig, setRemoteConfig] = useState<ServiceVisibility | null>(null);
+  const [isIframeLoading, setIsIframeLoading] = useState(false);
 
   // Fetch remote config when panel opens
   useEffect(() => {
@@ -50,6 +55,13 @@ export function DictionaryPanel({
       }
     }
   }, [initialTermId, terms, getTerm]);
+
+  // Set iframe loading state when embedded mode opens with a term
+  useEffect(() => {
+    if (isOpen && useEmbeddedDashboard && initialTermId) {
+      setIsIframeLoading(true);
+    }
+  }, [isOpen, useEmbeddedDashboard, initialTermId]);
 
   // Handle escape key
   useEffect(() => {
@@ -194,19 +206,46 @@ export function DictionaryPanel({
 
         {/* Content */}
         <div className="dictionary-content">
-          {isLoading && (
+          {/* Embedded Dashboard Mode - renders iframe with dashboard content */}
+          {useEmbeddedDashboard && initialTermId && (
+            <>
+              {isIframeLoading && (
+                <div className="dictionary-loading">
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>📚</div>
+                    Loading intelligence from dashboard...
+                  </div>
+                </div>
+              )}
+              <iframe
+                src={`${DASHBOARD_BASE_URL}?id=${encodeURIComponent(initialTermId)}&view=game&embedded=true`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: isIframeLoading ? 'none' : 'block'
+                }}
+                title="Dictionary Content"
+                onLoad={() => setIsIframeLoading(false)}
+                onError={() => setIsIframeLoading(false)}
+              />
+            </>
+          )}
+
+          {/* Local Dictionary Mode - shows locally loaded terms */}
+          {!useEmbeddedDashboard && isLoading && (
             <div className="dictionary-loading">
               Loading dictionary...
             </div>
           )}
 
-          {error && (
+          {!useEmbeddedDashboard && error && (
             <div className="dictionary-error">
               Error loading dictionary: {error}
             </div>
           )}
 
-          {!isLoading && !error && selectedTerm && (
+          {!useEmbeddedDashboard && !isLoading && !error && selectedTerm && (
             <div className={`dictionary-term-detail dictionary-mode-${mode}`}>
               <div className="dictionary-term-detail__header">
                 <h3 className="dictionary-term-detail__title">{selectedTerm.term}</h3>
@@ -382,7 +421,7 @@ export function DictionaryPanel({
             </div>
           )}
 
-          {!isLoading && !error && !selectedTerm && (
+          {!useEmbeddedDashboard && !isLoading && !error && !selectedTerm && (
             <div className="dictionary-term-list">
               {displayTerms.length === 0 ? (
                 <div className="dictionary-empty">

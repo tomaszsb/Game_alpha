@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### UAT Bug Fixes + Dictionary Integration Preparation (February 3, 2026)
+
+**Card Replacement Modal Improvements:**
+
+Fixed 4 bugs from UAT playtesting:
+
+1. **Bug #2 FIXED: "Skip Replacement" button behavior** - Renamed to "Return to Main Panel" and changed behavior to temporarily hide modal while keeping the choice pending. Player can return via floating indicator button.
+
+2. **Bug #4 FIXED: Card selection UX** - Clarified interaction: clicking card selects it (visual checkmark), clicking "Details" button opens card info modal. These are now visually distinct.
+
+3. **Removed misleading card type exchange buttons** - The "Replace with: W/B/E/L/I" section was removed since replacement always gives same card type back.
+
+4. **Added pending action indicator** - Floating "Complete Card Replacement" button appears when modal is temporarily hidden, pulsing to remind player of pending action.
+
+**Files Modified:**
+- `src/components/modals/CardReplacementModal.tsx` - Removed card type buttons, renamed button, simplified state
+- `src/components/modals/ChoiceModal.tsx` - Added hidden state tracking, floating return button
+- `tests/components/modals/CardReplacementModal.test.tsx` - Updated tests for new behavior
+
+**Dictionary Panel Integration (Dashboard Iframe):**
+
+Prepared game for embedded dashboard content. When enabled, Dictionary Panel loads content from `dashboard.unravelcodes.com` via iframe instead of local term data.
+
+**Implementation:**
+- Panel width increased from 400px to 600px for rich dashboard content
+- Added `useEmbeddedDashboard` prop to DictionaryPanel
+- Dashboard URL pattern: `?id={termId}&view=game&embedded=true`
+- `openInDictionary()` now opens in-app panel instead of new browser tab
+- Added `pendingTermId` state for terms not in local cache
+- Feature flag `ENABLE_EMBEDDED_DICTIONARY` (currently false until dashboard ready)
+
+**Dashboard Requirements (for full integration):**
+- Handle `embedded=true` param to hide graph/network view
+- Set CSP header: `frame-ancestors 'self' https://game.unravelcodes.com`
+
+**Files Modified:**
+- `src/dictionary/components/DictionaryPanel.tsx` - Added iframe mode
+- `src/dictionary/components/DictionaryPanel.css` - Panel width 600px
+- `src/dictionary/types/index.ts` - New props and state
+- `src/dictionary/context/DictionaryContext.tsx` - pendingTermId, bridge callback
+- `src/utils/dictionaryBridge.ts` - Panel callback registration
+- `src/App.tsx` - DictionaryPanelWrapper updated with feature flag
+
+**Testing:** All 1,083+ tests passing.
+
 ### Bug Fix: Missing Dice Roll Button for Non-REG Dice-Movement Spaces (January 31, 2026)
 
 **Problem:** Players at ARCH-INITIATION (Subsequent Visit) and similar dice-movement spaces couldn't roll the dice because no button was displayed, blocking game progress.

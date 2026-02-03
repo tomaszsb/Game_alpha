@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** January 27, 2026
+**Last Updated:** February 3, 2026
 **Status:** Production Ready - External Testing Infrastructure Deployed
 
 ---
@@ -21,6 +21,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ UAT Bug Fixes + Dictionary Integration Prep (Feb 3, 2026)
+  - Card Replacement Modal: Fixed 4 bugs (selection UX, removed exchange buttons, renamed button, return behavior)
+  - Dictionary Panel: Iframe embedding ready (600px width, `useEmbeddedDashboard` prop, bridge callback)
+  - Feature flag `ENABLE_EMBEDDED_DICTIONARY` - enable when dashboard supports `embedded=true`
 - ✅ Desktop Command Center Modernization (Jan 25, 2026) - Glassmorphism + haptic visuals
   - desktop-theme.css with glass effect CSS variables
   - PlayerPanel glassmorphism (frosted glass, translucent backgrounds)
@@ -180,7 +184,7 @@ Validate gameplay, balance, and user experience with real players
 - [x] **Regression Test**: MultiplayerStateIsolation.test.ts (6 tests)
 
 **Remaining Setup:**
-- [ ] Configure ntfy app for instant push notifications (background mode)
+- [x] ~~Configure ntfy app for instant push notifications~~ (User task - not code related)
 - [x] ~~Set up Hostinger subdomain (game.unravelcodes.com) pointing to DuckDNS~~ ✅ Done via Cloudflare (Jan 6, 2026)
 
 **3B: External Testing** (5-7 days)
@@ -201,6 +205,30 @@ Validate gameplay, balance, and user experience with real players
 - [ ] Minor UI adjustments based on feedback
 - [ ] Re-test fixes
 - [ ] Update CHANGELOG.md with fixes
+
+**UAT Bug Reports (February 3, 2026) - ✅ ALL FIXED:**
+*Source: Browser automation playtesting session*
+
+**Card Selection Modal Issues:**
+- [x] **Bug #1**: Card selection UX confusion ✅ **FIXED Feb 3**
+  - **Problem**: Clicking card button in Replace modal was confusing - unclear if selecting or viewing details
+  - **Solution**: Clarified UX - clicking card body SELECTS it (visual checkmark), separate "Details" button opens card info
+  - **Files**: `src/components/modals/CardReplacementModal.tsx`, `src/components/common/CardDisplay.tsx`
+
+- [x] **Bug #2**: Misleading card type exchange buttons at modal bottom ✅ **FIXED Feb 3**
+  - **Problem**: Bottom of Replace modal showed card type buttons (W, B, E, etc.) suggesting exchange for different type
+  - **Solution**: Removed entire "Replace with:" section - replacement always gives same card type
+  - **Files**: `src/components/modals/CardReplacementModal.tsx`
+
+- [x] **Bug #3**: "Skip Replacement" button misnamed ✅ **FIXED Feb 3**
+  - **Problem**: Button labeled "Skip Replacement" suggested skipping a required action
+  - **Solution**: Renamed to "Return to Main Panel" with tooltip explaining behavior
+  - **Files**: `src/components/modals/CardReplacementModal.tsx`
+
+- [x] **Bug #4**: Return button behavior incorrect ✅ **FIXED Feb 3**
+  - **Problem**: Button showed success notification and may have marked action complete
+  - **Solution**: Button now hides modal (choice stays pending), floating indicator lets player return
+  - **Files**: `src/components/modals/ChoiceModal.tsx`, `src/components/modals/CardReplacementModal.tsx`
 
 **Test Player Bug Reports (January 8, 2026) - ✅ ALL FIXED:**
 *Source: External test player feedback (post-it notes transcribed)*
@@ -476,78 +504,51 @@ Prepare final release package and deployment
 
 See CHANGELOG.md for full implementation details.
 
-### Same Starting Point Game Mode 📋
-*Status: PLANNED - January 15, 2026*
-*Estimated Effort: Major feature (multi-phase implementation)*
+### Same Starting Point Game Mode ✅
+*Status: COMPLETED - January 16, 2026*
 
-**Overview:** Add a new game mode where all players start with identical cards, enabling fair skill-based comparison. Requested by playtesters who want to see how different decisions lead to different outcomes when everyone starts equal.
+**Implemented Features:**
+- [x] Per-player deck system with seeded shuffle
+- [x] Quick Start mode (P1's draws become all players' starting hand)
+- [x] Educational mode with `EducationalCardSelectionModal.tsx`
+- [x] Game mode UI in `PlayerSetup.tsx` with sameStartingPoint checkbox
+- [x] Teachers can pre-select starting cards for all players
 
-**Game Modes:**
-| Mode | Description | Default |
-|------|-------------|---------|
-| **Battle Royale** | Current behavior - shared decks, random draws | ✅ Yes |
-| **Same Starting Point** | Per-player decks, identical starting cards | No |
+**Files:**
+- `src/components/setup/PlayerSetup.tsx` - Game mode settings
+- `src/components/modals/EducationalCardSelectionModal.tsx` - Card selection UI
+- `src/services/StateService.ts` - Per-player deck management
+- `src/types/StateTypes.ts` - GameState with gameMode, startingMode
 
-**Same Starting Point Sub-Modes:**
-| Sub-Mode | Description |
-|----------|-------------|
-| **Quick Start** | First player's natural card draws get "baked in" as starting hand for all players |
-| **Educational** | Teacher manually selects starting cards (full card details visible, no maximum) |
-
-**Architecture Changes Required:**
-
-1. **Per-Player Deck System** (High effort)
-   - Change from shared `decks` to `playerDecks: Record<playerId, Decks>`
-   - Each player gets their own shuffled copy of each deck
-   - Separate discard piles per player
-   - Files: `StateService.ts`, `CardService.ts`, `GameState` types
-
-2. **Starting Cards System** (Medium effort)
-   - Quick Start: Clone P1's first-turn draws to all players
-   - Educational: UI to browse/select specific cards before game start
-   - Files: `StateService.ts`, new card selection component
-
-3. **Global L Card Events** (Low effort)
-   - L cards with `scope: Global` already exist in CSV
-   - Ensure Global events affect all players immediately
-   - Files: `CardService.ts`, `EffectEngineService.ts`
-
-4. **Consolidated Game Settings UI** (Medium effort)
-   - Replace win condition section in `PlayerSetup.tsx`
-   - Add checkbox: "☐ Same Starting Point" (default OFF)
-   - If checked: Radio buttons for Quick Start / Educational
-   - Remove `GameDisplaySettings.tsx` from post-game, integrate into setup
-
-**Data Model Changes:**
-```typescript
-interface GameState {
-  gameMode: 'BATTLE_ROYALE' | 'SAME_START';
-  startingMode?: 'QUICK_START' | 'EDUCATIONAL';
-  playerDecks?: Record<string, Decks>;  // Per-player decks
-  playerDiscardPiles?: Record<string, DiscardPiles>;  // Per-player discards
-  startingHand?: string[];  // Card IDs all players start with
-}
-```
-
-**Implementation Phases:**
-- [ ] Phase 1: Per-player deck system (architecture change)
-- [ ] Phase 2: Quick Start mode (P1 draws → copy to all)
-- [ ] Phase 3: Educational mode (teacher selects cards UI)
-- [ ] Phase 4: Global L Card broadcasting verification
-- [ ] Phase 5: Consolidated Game Settings UI
+See CHANGELOG.md for full implementation details.
 
 ---
 
-## 🌐 **Universal Dictionary Integration** ✅
-*Status: COMPLETED - January 24, 2026*
+## 🌐 **Universal Dictionary Integration** 🔄
+*Status: PARTIAL - Needs Panel Integration*
 *Integration Target: dashboard.unravelcodes.com*
 
 ### Objective
 Create a seamless bridge between the Game Engine and the Command Center's Intelligence Database.
 
 ### Completed Tasks
-- [x] **Term Lookup Service**: Created `src/utils/dictionaryBridge.ts` utility with `openInDictionary()`, `getPreviewParams()`, and `clearPreviewParams()` functions.
-- [x] **External Intelligence Link**: Added "📖 View Intelligence" button to CardDetailsModal and "📖 Intelligence" button to SpaceExplorerPanel. Opens `https://dashboard.unravelcodes.com/dictionary?id={id}&view=game` in new tab.
+- [x] **Term Highlighting**: `TextWithTerms` component highlights glossary terms in game text
+- [x] **View Intelligence Buttons**: Added to CardDetailsModal and SpaceExplorerPanel
+- [x] **Reverse Bridge (Dictionary -> Game)**: URL params for preview_card/preview_space
+
+### Pending Tasks (February 2026)
+- [ ] **Dictionary Panel Integration**: Modify `dictionaryBridge.ts` to open dictionary as in-game panel (like DictionaryPanel) instead of new browser tab
+- [ ] **Remote Term Data**: Fetch all term definitions from `https://dashboard.unravelcodes.com/dictionary?id=` instead of local `data/terms.ts`
+- [ ] **Seamless UI**: Panel should embed dashboard content seamlessly within game interface
+- [ ] **Remove Local Data**: Delete `src/dictionary/data/terms.ts` once remote fetch is working
+
+### Current Architecture
+- `src/utils/dictionaryBridge.ts` - Links to external dictionary (currently opens new tab)
+- `src/dictionary/components/TextWithTerms.tsx` - Highlights terms in text (KEEP)
+- `src/dictionary/components/DictionaryPanel.tsx` - Panel UI (modify to embed dashboard)
+- `src/dictionary/data/terms.ts` - Local term data (REMOVE - use dashboard)
+
+### Previous Completed Tasks
 - [x] **Reverse Bridge (Dictionary -> Game)**:
   - [x] App.tsx detects `?action=preview_card&id=W001` or `?action=preview_space&id=SPACE_ID` on load.
   - [x] GameLayout opens appropriate modal and shows error notification if asset not found.
@@ -561,6 +562,28 @@ Create a seamless bridge between the Game Engine and the Command Center's Intell
 - `src/components/modals/CardDetailsModal.tsx` (View Intelligence button)
 - `src/components/game/SpaceExplorerPanel.tsx` (Intelligence button + initialSelectedSpace prop)
 - `tests/utils/dictionaryBridge.test.ts` (NEW - 5 tests)
+
+---
+
+## 🛠️ **Space Data Editor** ⏸️
+*Status: DEFERRED - Placeholder Implementation*
+
+### Current State
+- File: `src/components/editor/DataEditor.tsx`
+- Has space dropdown selector (functional)
+- Has "Clear Game Data" button (functional)
+- Editing UI says "Editor UI will go here" (placeholder)
+- CSV download says "functionality to be implemented" (placeholder)
+
+### Deferred Features
+- [ ] Edit space properties (title, description, effects)
+- [ ] Edit space connections (movement paths)
+- [ ] CSV export/download of edited data
+- [ ] CSV import to load modified data
+- [ ] Validation before save
+
+### Why Deferred
+Game data is currently managed via CSV files edited externally. In-game editor is nice-to-have for non-technical users but not critical for current workflow.
 
 ---
 
@@ -607,4 +630,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** January 27, 2026
+**Last Updated:** February 3, 2026

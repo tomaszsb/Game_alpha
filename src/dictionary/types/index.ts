@@ -112,6 +112,12 @@ export interface DictionaryState {
   /** Currently selected term (if any) */
   selectedTerm: GlossaryTerm | null;
 
+  /**
+   * ID of a term to show, used when term may not be in local cache.
+   * Used by embedded mode to pass to dashboard iframe.
+   */
+  pendingTermId: string | null;
+
   /** Current search query */
   searchQuery: string;
 
@@ -126,6 +132,7 @@ export type DictionaryAction =
   | { type: 'OPEN_PANEL' }
   | { type: 'CLOSE_PANEL' }
   | { type: 'SELECT_TERM'; term: GlossaryTerm }
+  | { type: 'OPEN_TERM_BY_ID'; termId: string }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'SET_SEARCH'; query: string }
   | { type: 'SET_CATEGORY_FILTER'; category: TermCategory | null };
@@ -197,6 +204,13 @@ export interface DictionaryPanelProps {
 
   /** Display mode controls which fields and layout are shown */
   mode?: 'game' | 'iqarius' | 'unravel';
+
+  /**
+   * When true, shows dashboard content via iframe instead of local terms.
+   * Requires dashboard.unravelcodes.com to support embedded=true param.
+   * @default false
+   */
+  useEmbeddedDashboard?: boolean;
 }
 
 /**
