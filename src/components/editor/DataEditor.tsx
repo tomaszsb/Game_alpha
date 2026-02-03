@@ -82,9 +82,22 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
           <button onClick={onClose} style={styles.closeButton}>&times;</button>
         </div>
         <div style={styles.content}>
-          <p>Editor UI will go here.</p>
+          {/* Status notice */}
+          <div style={styles.statusNotice}>
+            <strong>⏸️ Status: Placeholder</strong>
+            <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+              Space editing UI is planned but not yet implemented. Currently you can:
+            </p>
+            <ul style={{ margin: '8px 0', paddingLeft: '24px', fontSize: '14px' }}>
+              <li>Browse available spaces (dropdown below)</li>
+              <li>Clear all game data (button below)</li>
+            </ul>
+          </div>
+
           <div style={styles.formGroup}>
-            <label htmlFor="space-select">Select Space:</label>
+            <label htmlFor="space-select" style={{ fontWeight: '600', display: 'block', marginBottom: '8px' }}>
+              Browse Spaces ({spaces.length} total):
+            </label>
             <select
               id="space-select"
               value={selectedSpaceId}
@@ -99,7 +112,20 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
               ))}
             </select>
           </div>
-          {/* Form for editing the selected space will be built here */}
+
+          {/* Show selected space info */}
+          {selectedSpaceId && (() => {
+            const space = spaces.find(s => s.id === selectedSpaceId);
+            const firstContent = space?.content?.[0];
+            return (
+              <div style={styles.spaceInfo}>
+                <h4 style={{ margin: '0 0 8px 0' }}>📍 {space?.title || selectedSpaceId}</h4>
+                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+                  {firstContent?.story || 'No story available for this space'}
+                </p>
+              </div>
+            );
+          })()}
         </div>
         <div style={styles.footer}>
           <button onClick={handleClearData} style={styles.clearButton}>
@@ -144,10 +170,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
   },
   closeButton: {
-    background: 'transparent',
-    border: 'none',
-    fontSize: '24px',
+    background: '#f0f0f0',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontSize: '20px',
+    fontWeight: 'bold',
     cursor: 'pointer',
+    padding: '4px 10px',
+    color: '#333',
   },
   content: {
     padding: '15px',
@@ -183,7 +213,24 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   select: {
     width: '100%',
-    padding: '8px',
+    padding: '10px',
     fontSize: '16px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+  },
+  statusNotice: {
+    backgroundColor: '#fff3cd',
+    border: '1px solid #ffc107',
+    borderRadius: '6px',
+    padding: '12px 16px',
+    marginBottom: '20px',
+    color: '#856404',
+  },
+  spaceInfo: {
+    backgroundColor: '#e7f3ff',
+    border: '1px solid #b6d4fe',
+    borderRadius: '6px',
+    padding: '12px 16px',
+    marginTop: '12px',
   }
 };
