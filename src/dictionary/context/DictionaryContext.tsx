@@ -145,7 +145,7 @@ export function DictionaryProvider({
     if (term) {
       dispatch({ type: 'SELECT_TERM', term });
     } else {
-      dispatch({ type: 'OPEN_PANEL' });
+      dispatch({ type: 'OPEN_TERM_BY_ID', termId });
     }
   }, []);
 

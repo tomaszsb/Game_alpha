@@ -227,6 +227,7 @@ export function CardReplacementModal({
                   variant="compact"
                   selectable={true}
                   isSelected={isSelected}
+                  selectedColor={currentCardColors.primary}
                   onSelect={() => handleCardToggle(cardId)}
                   cardTypeIcon={getCardTypeEmoji(cardType)}
                   displayAmount={FormatUtils.formatCardCost(card.cost || 0)}

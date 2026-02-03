@@ -53,7 +53,7 @@ function LoadingScreen({ message }: { message?: string }): JSX.Element {
  *
  * Set ENABLE_EMBEDDED_DICTIONARY to true once the dashboard is ready.
  */
-const ENABLE_EMBEDDED_DICTIONARY = false; // Enable once dashboard supports embedded=true
+const ENABLE_EMBEDDED_DICTIONARY = true; // Enabled after dashboard updates supporting embedded=true
 
 function DictionaryPanelWrapper(): JSX.Element {
   const { isOpen, closePanel, selectedTerm, pendingTermId } = useDictionaryPanel();

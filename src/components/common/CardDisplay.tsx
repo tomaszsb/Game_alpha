@@ -33,6 +33,8 @@ export interface CardDisplayProps {
   selectable?: boolean;
   /** Whether this card is currently selected (for selectable mode) */
   isSelected?: boolean;
+  /** Color to use for the border/glow when selected */
+  selectedColor?: string;
   /** Callback when selection changes (for selectable mode) */
   onSelect?: () => void;
   /** Card type icon to display */
@@ -60,6 +62,7 @@ export function CardDisplay({
   highlight = 'none',
   selectable = false,
   isSelected = false,
+  selectedColor,
   onSelect,
   cardTypeIcon
 }: CardDisplayProps) {
@@ -80,11 +83,18 @@ export function CardDisplay({
 
   if (variant === 'compact') {
     const handleClick = selectable && onSelect ? onSelect : undefined;
+    
+    // Dynamic style for selection glow
+    const selectedStyle: React.CSSProperties = isSelected && selectedColor ? {
+      borderColor: selectedColor,
+      boxShadow: `0 0 0 3px ${selectedColor}44, 0 4px 12px rgba(0, 0, 0, 0.15)`
+    } : {};
 
     return (
       <div
         className={`card-display card-display--compact ${highlightClass} ${selectableClass} ${selectedClass}`}
         onClick={handleClick}
+        style={selectedStyle}
         role={selectable ? 'button' : undefined}
         tabIndex={selectable ? 0 : undefined}
         onKeyDown={selectable && onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(); } : undefined}
@@ -103,7 +113,12 @@ export function CardDisplay({
             <div className="card-display__amount">{displayAmount}</div>
           )}
           {selectable && isSelected && (
-            <div className="card-display__selected-indicator">✓</div>
+            <div 
+              className="card-display__selected-indicator"
+              style={selectedColor ? { backgroundColor: selectedColor } : {}}
+            >
+              ✓
+            </div>
           )}
         </div>
         {actions && (

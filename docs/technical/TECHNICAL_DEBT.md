@@ -1,7 +1,7 @@
 # Technical Debt Log
 
-**Last Updated:** January 15, 2026
-**Status:** Active tracking document
+**Last Updated:** February 3, 2026
+**Status:** Historical reference - All issues resolved
 
 ---
 
@@ -2125,20 +2125,35 @@ private evaluateCondition(playerId: string, condition: string): boolean
 
 ### Issue Count by Severity
 
-| Severity | Count | Status |
-|----------|-------|--------|
-| 🔴 Critical | 2 | Active bugs affecting gameplay |
-| 🟡 Moderate | 5 | Logic issues, dead code, design flaws |
-| 🟢 Low Priority | 4 | Edge cases, theoretical risks, cleanup |
-| **Total** | **11** | **Fully documented** |
+| Severity | Original Count | Status |
+|----------|----------------|--------|
+| 🔴 Critical | 2 | ✅ ALL RESOLVED |
+| 🟡 Moderate | 5 | ✅ ALL RESOLVED |
+| 🟢 Low Priority | 4 | ✅ ALL RESOLVED |
+| **Total** | **11** | **✅ ALL RESOLVED** |
 
-### Recommended Priority Order
+### Resolution Summary (Updated February 2026)
 
-1. **Fix Critical #1 & #2 together** (Card effects + Cost charging) - Both in CardService, fix simultaneously
-2. **Fix Moderate #5** (Project scope) - Affects movement and scoring
-3. **Clean up Moderate #3** (Dice mapping dead code) - Remove confusion
-4. **Review Moderate #4** (Interest forgiveness) - Game balance decision needed
-5. **Refactor Moderate #6 & #7** (Resource categorization) - Technical debt cleanup
-6. **Clean up Low Priority** - When time permits
+All technical debt issues documented in this file have been resolved:
 
-All issues are now documented in this file (`docs/technical/TECHNICAL_DEBT.md`) with detailed analysis, solution options, and testing requirements.
+- ✅ **Critical #1**: Card Effect Double-Application - Fixed December 6, 2025
+- ✅ **Critical #2**: Cost Charged Before Effects - Fixed December 6, 2025
+- ✅ **Moderate #3**: Dice Mapping Dead Code - Removed December 6, 2025
+- ✅ **Moderate #4**: Interest Forgiveness - Changed to upfront fee model December 6, 2025
+- ✅ **Moderate #5**: Project Scope Calculation - Fixed December 6, 2025
+- ✅ **Moderate #6**: Money Source Heuristics - Added explicit sourceType December 6, 2025
+- ✅ **Moderate #7**: Cost Category Semantics - Split types December 6, 2025
+- ✅ **Low #8**: Movement Choice Documentation - Added 70+ lines comments December 6, 2025
+- ✅ **Low #9**: Effect Recursion Limits - Added MAX_EFFECTS_PER_BATCH December 6, 2025
+- ✅ **Low #10**: Turn End Sequence Timing - Added 55-line JSDoc December 6, 2025
+- ✅ **Low #11**: Stale ProjectScope Cache - Fixed December 6, 2025
+
+### Additional Resolutions (January 2026)
+- ✅ Test Player Bug Reports - All gameplay blockers fixed
+- ✅ Logic Movement Type - REG-FDNY-FEE-REVIEW now uses conditions
+- ✅ EffectEngineService Legacy Fallback - Removed 551 lines
+- ✅ ServerSyncService Extraction - Clean separation of concerns
+- ✅ State Management REAL/TEMP Model - Simplified Try Again logic
+- ✅ Dice Condition Handling - Consolidated to single path
+
+This file now serves as historical reference for resolved technical debt.
