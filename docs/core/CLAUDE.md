@@ -104,6 +104,29 @@ npm run build
 npm test
 ```
 
+### **🚀 Deployment**
+
+**Production Server:** unraid (192.168.86.57) via SSH alias
+**Public URL:** http://unravel-game.duckdns.org:3080
+**Repo on server:** `/mnt/user/appdata/Game_alpha`
+
+```bash
+# Deploy (from WSL)
+ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"
+
+# Check status
+ssh unraid "docker ps | grep game_alpha"
+ssh unraid "docker logs --tail 20 game_alpha"
+
+# Restart without rebuild
+ssh unraid "docker restart game_alpha"
+```
+
+**Docker details:**
+- Container: `game_alpha`, port 3080 → 3001
+- Data volume: `server/data:/app/data`
+- Notifications: ntfy topic `unravel-game-alerts`
+
 ---
 
 ## 📝 **DOCUMENTATION PRINCIPLES** (December 8, 2025)
@@ -296,5 +319,5 @@ When conducting User Acceptance Testing via browser automation:
 
 ---
 
-**Last Updated:** January 31, 2026
-**Charter Version:** 3.3 (Added UAT playtesting guidelines)
+**Last Updated:** February 3, 2026
+**Charter Version:** 3.4 (Added deployment instructions)
