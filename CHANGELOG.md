@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Mobile UI Layout Fixes (February 4, 2026)
+
+**Problem:** On mobile devices, the primary action button was invisible (covered by DetailSheet tabs) and only 2 of 4 stats were visible in the stats bar.
+
+**Root Cause Analysis:**
+- `PrimaryAction` used `position: sticky; bottom: 0` but was not inside a scrolling container, so sticky had no effect
+- `DetailSheet` (fixed at bottom with z-index 200) was covering the action button
+- `StatsBar` used `flex-wrap: wrap` which could cause stats to wrap to a hidden second row
+
+**CSS Fixes Applied:**
+- `MobilePlayerPanel.css`: Added `padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px))` to reserve space for DetailSheet tabs
+- `PrimaryAction.css`: Removed `position: sticky`, added `flex-shrink: 0` to prevent squeezing
+- `StatsBar.css`: Changed to `flex-wrap: nowrap`, added `flex-shrink: 0`, simplified narrow screen layout
+
+**Tests Added:**
+- 6 new tests in `MobilePlayerPanel.test.tsx`:
+  - StatsBar: test IDs, container, all labels visible
+  - PrimaryAction: container test IDs, confirm choice handler, disabled when not my turn
+
 ### Space Data Editor (February 3, 2026)
 
 **New Feature:** Full-featured space data editor for game designers.

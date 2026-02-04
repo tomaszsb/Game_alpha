@@ -2,6 +2,28 @@
 
 ---
 
+## v2.14 - Mobile UI Fixes (February 4, 2026)
+
+**Release Date:** February 4, 2026
+**Version:** 2.14
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Mobile Button Visibility
+
+**What Changed:** The primary action button is now visible and usable on mobile devices.
+
+**Issues Fixed:**
+- **Action button invisible:** The "Continue", "Roll Dice", and "End Turn" buttons were being covered by the bottom navigation tabs
+- **Stats bar truncation:** Only 2 of 4 stats (Money, Time) were visible; Cards and Scope were cut off
+
+**What You'll See:**
+- All 4 stats (Money, Time, Cards, Scope) display in a single row
+- The action button appears above the bottom tabs
+- Consistent layout on both narrow and wide mobile screens
+
+---
+
 ## v2.13 - Space Data Editor (February 3, 2026)
 
 **Release Date:** February 3, 2026

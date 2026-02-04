@@ -116,6 +116,53 @@ describe('Mobile Components', () => {
 
       expect(onStatTap).toHaveBeenCalledWith('money');
     });
+
+    it('renders all stat items with test IDs', () => {
+      render(
+        <StatsBar
+          money={1000}
+          timeSpent={10}
+          cardCount={3}
+          projectScope={50000}
+        />
+      );
+
+      // Verify all 4 stat items are present via test IDs
+      expect(screen.getByTestId('stat-money')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-time')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-cards')).toBeInTheDocument();
+      expect(screen.getByTestId('stat-scope')).toBeInTheDocument();
+    });
+
+    it('renders stats bar container with test ID', () => {
+      render(
+        <StatsBar
+          money={0}
+          timeSpent={0}
+          cardCount={0}
+          projectScope={0}
+        />
+      );
+
+      expect(screen.getByTestId('stats-bar')).toBeInTheDocument();
+    });
+
+    it('displays all stat labels', () => {
+      render(
+        <StatsBar
+          money={0}
+          timeSpent={0}
+          cardCount={0}
+          projectScope={0}
+        />
+      );
+
+      // Verify all 4 labels are visible
+      expect(screen.getByText('Money')).toBeInTheDocument();
+      expect(screen.getByText('Time')).toBeInTheDocument();
+      expect(screen.getByText('Cards')).toBeInTheDocument();
+      expect(screen.getByText('Scope')).toBeInTheDocument();
+    });
   });
 
   describe('PrimaryAction', () => {
@@ -292,6 +339,52 @@ describe('Mobile Components', () => {
       );
 
       expect(screen.getByText('Waiting for other player...')).toBeInTheDocument();
+    });
+
+    it('renders container with test ID', () => {
+      render(
+        <PrimaryAction
+          viewState="STORY_MODE"
+          canEndTurn={false}
+          isMyTurn={true}
+          hasSelectedChoice={false}
+        />
+      );
+
+      expect(screen.getByTestId('primary-action-container')).toBeInTheDocument();
+      expect(screen.getByTestId('primary-action-button')).toBeInTheDocument();
+    });
+
+    it('calls onConfirmChoice when clicked in DECISION_MODE with selection', () => {
+      const onConfirmChoice = vi.fn();
+      render(
+        <PrimaryAction
+          viewState="DECISION_MODE"
+          canEndTurn={false}
+          isMyTurn={true}
+          hasSelectedChoice={true}
+          onConfirmChoice={onConfirmChoice}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button'));
+      expect(onConfirmChoice).toHaveBeenCalled();
+    });
+
+    it('does not call handler when not my turn', () => {
+      const onEndTurn = vi.fn();
+      render(
+        <PrimaryAction
+          viewState="SUMMARY_MODE"
+          canEndTurn={true}
+          isMyTurn={false}
+          hasSelectedChoice={false}
+          onEndTurn={onEndTurn}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button'));
+      expect(onEndTurn).not.toHaveBeenCalled();
     });
   });
 });
