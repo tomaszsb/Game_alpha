@@ -70,6 +70,9 @@
   /* Safe area protection for notched devices */
   padding-left: max(0px, env(safe-area-inset-left));
   padding-right: max(0px, env(safe-area-inset-right));
+
+  /* Reserve space for DetailSheet tabs (56px) + safe area at bottom */
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Portrait mode (default): vertical stacking */

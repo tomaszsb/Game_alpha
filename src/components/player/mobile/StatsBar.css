@@ -11,7 +11,8 @@
 
 .mobile-stats-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;  /* Keep all 4 stats in one row */
+  flex-shrink: 0;  /* Don't shrink when space is tight */
   background-color: var(--mobile-bg-secondary);
   border-top: 1px solid var(--mobile-border);
   border-bottom: 1px solid var(--mobile-border);
@@ -20,6 +21,7 @@
   padding-right: max(4px, env(safe-area-inset-right));
   min-height: 44px;
   gap: 2px;
+  overflow-x: auto;  /* Allow horizontal scroll if needed on very narrow screens */
 }
 
 /* ============================================================
@@ -118,14 +120,14 @@
    ============================================================ */
 
 @media (max-width: 359px) {
+  /* Keep flex layout on narrow screens - just make items smaller */
   .mobile-stats-bar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
+    padding: 2px;
+    gap: 1px;
   }
 
   .mobile-stats-bar__item {
-    padding: 6px 4px;
+    padding: 4px 2px;
   }
 
   .mobile-stats-bar__icon {
@@ -133,11 +135,11 @@
   }
 
   .mobile-stats-bar__value {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .mobile-stats-bar__label {
-    font-size: 8px;
+    font-size: 7px;
   }
 }
 

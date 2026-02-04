@@ -10,14 +10,11 @@
    ============================================================ */
 
 .mobile-primary-action {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  /* Flex item at bottom of panel - no sticky needed as it's outside scroll container */
+  flex-shrink: 0;  /* Don't shrink when space is tight */
   padding: 8px 12px;
   padding-left: max(12px, env(safe-area-inset-left));
   padding-right: max(12px, env(safe-area-inset-right));
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
   background-color: var(--mobile-bg-primary);
   border-top: 1px solid var(--mobile-border);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
