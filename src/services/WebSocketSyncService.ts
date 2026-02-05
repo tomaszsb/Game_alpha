@@ -127,8 +127,19 @@ export class WebSocketSyncService {
 
     try {
       // Build WebSocket URL
-      const wsProtocol = serverUrl.startsWith('https') ? 'wss' : 'ws';
-      const wsHost = serverUrl.replace(/^https?:\/\//, '');
+      // Handle empty serverUrl (same-origin production mode)
+      let wsProtocol: string;
+      let wsHost: string;
+
+      if (!serverUrl || serverUrl === '') {
+        // Same-origin: use current page's host
+        wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        wsHost = window.location.host;
+      } else {
+        wsProtocol = serverUrl.startsWith('https') ? 'wss' : 'ws';
+        wsHost = serverUrl.replace(/^https?:\/\//, '');
+      }
+
       let wsUrl = `${wsProtocol}://${wsHost}/ws?gameId=${gameId}`;
       if (playerId) {
         wsUrl += `&playerId=${playerId}`;
