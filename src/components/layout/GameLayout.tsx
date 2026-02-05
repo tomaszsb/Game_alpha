@@ -24,6 +24,8 @@ import { NotificationUtils } from '../../utils/NotificationUtils';
 import { GamePhase, Player } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
+import { haptics } from '../../utils/haptics';
+import { pushNotifications } from '../../utils/pushNotifications';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -95,6 +97,28 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       return {};
     }
   });
+
+  // Push notification permission state
+  const [notificationPermission, setNotificationPermission] = useState<string>(() =>
+    pushNotifications.getPermission()
+  );
+  const hasRequestedNotificationsRef = useRef(false);
+
+  // Request notification permission when game starts (only once)
+  useEffect(() => {
+    if (gamePhase === 'PLAY' && !hasRequestedNotificationsRef.current) {
+      hasRequestedNotificationsRef.current = true;
+      // Request permission after a short delay so it doesn't disrupt the game start experience
+      const timer = setTimeout(async () => {
+        const permission = await pushNotifications.requestPermission();
+        setNotificationPermission(permission);
+        if (permission === 'granted') {
+          console.log('🔔 Push notifications enabled for turn alerts');
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [gamePhase]);
 
   // Handle initial preview request
   useEffect(() => {
@@ -235,7 +259,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       style.textContent = `
         .game-interface-responsive {
           display: grid;
-          grid-template-columns: 1280px 1fr;
+          grid-template-columns: minmax(300px, 400px) 1fr;
+          grid-template-rows: auto 1fr;
           column-gap: 8px;
           row-gap: 4px;
           height: 100vh;
@@ -245,9 +270,31 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           overflow: hidden;
         }
 
+        /* Player panels container - no scrolling, flex layout */
+        .game-player-panels {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        /* Individual player panel - shrink to fit */
+        .game-player-panel-item {
+          flex: 1 1 auto;
+          min-height: 120px;
+          max-height: 50%;
+          overflow: hidden;
+        }
+
+        /* When only 1 player panel, let it take more space */
+        .game-player-panels:has(:only-child) .game-player-panel-item {
+          max-height: 100%;
+        }
+
         @media (max-width: 1920px) {
           .game-interface-responsive {
-            grid-template-columns: 1120px 1fr;
+            grid-template-columns: minmax(280px, 380px) 1fr;
             column-gap: 6px;
             padding: 4px;
           }
@@ -255,7 +302,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
         @media (max-width: 1600px) {
           .game-interface-responsive {
-            grid-template-columns: 960px 1fr;
+            grid-template-columns: minmax(260px, 350px) 1fr;
             column-gap: 6px;
             padding: 4px;
           }
@@ -263,7 +310,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
         @media (max-width: 1400px) {
           .game-interface-responsive {
-            grid-template-columns: 800px 1fr;
+            grid-template-columns: minmax(240px, 320px) 1fr;
             column-gap: 6px;
             padding: 4px;
           }
@@ -271,9 +318,29 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
         @media (max-width: 1200px) {
           .game-interface-responsive {
-            grid-template-columns: 640px 1fr;
+            grid-template-columns: minmax(220px, 300px) 1fr;
             column-gap: 4px;
             padding: 2px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .game-interface-responsive {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto 1fr auto !important;
+            column-gap: 0;
+            padding: 0;
+            height: 100dvh;
+            min-height: -webkit-fill-available;
+          }
+          .game-interface-responsive > * {
+            grid-column: 1 !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .game-interface-responsive {
+            padding: 0;
           }
         }
       `;
@@ -413,6 +480,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     if (!currentPlayerId) return;
     setJustUsedTryAgain(false); // Clear Try Again flag when player takes action
     setIsProcessingTurn(true);
+
+    // Haptic feedback for dice roll
+    haptics.diceRoll();
+
     try {
       const result = await turnService.rollDiceWithFeedback(currentPlayerId);
       const currentPlayer = players.find(p => p.id === currentPlayerId);
@@ -434,6 +505,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       }
     } catch (error) {
       console.error("Error rolling dice:", error);
+      haptics.error(); // Error haptic feedback
       const currentPlayer = players.find(p => p.id === currentPlayerId);
       if (currentPlayer) {
         notificationService.notify(
@@ -568,7 +640,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     <div
       className="game-interface-responsive"
       style={{
-        gridTemplateRows: gamePhase === 'PLAY' ? 'auto 1fr auto' : '1fr auto',
+        gridTemplateRows: gamePhase === 'PLAY'
+          ? (isGameLogVisible ? 'auto 1fr auto auto' : 'auto 1fr auto')
+          : '1fr auto',
         // Dynamic columns: 1 column if no panels shown, 2 columns otherwise
         gridTemplateColumns: hidePanelColumn ? '1fr' : undefined
       }}
@@ -645,39 +719,38 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 background: colors.background.light,
                 border: `3px solid ${colors.primary.main}`,
                 borderRadius: '8px',
-                padding: gamePhase === 'PLAY' ? '0' : '15px',
-                overflow: 'auto',
+                padding: gamePhase === 'PLAY' ? '4px' : '15px',
+                overflow: 'hidden',
                 position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
+                minHeight: 0,
               }}
             >
               {gamePhase === 'PLAY' ? (
-                <>
+                <div className="game-player-panels">
                   {players.filter(p => shouldShowPlayerPanel(p.id)).map(player => (
-                    <PlayerPanelWrapper
-                      key={player.id}
-                      gameServices={gameServices}
-                      playerId={player.id}
-                      onToggleSpaceExplorer={handleToggleSpaceExplorer}
-                      onToggleMovementPath={handleToggleMovementPath}
-                      isSpaceExplorerVisible={isSpaceExplorerVisible}
-                      isMovementPathVisible={isMovementPathVisible}
-                      onTryAgain={handleTryAgain}
-                      playerNotification={playerNotifications[player.id]}
-                      onRollDice={handleRollDice}
-                      onAutomaticFunding={handleAutomaticFunding}
-                      onManualEffectResult={(result) => {
-                        if (result && result.effects && result.effects.length > 0) {
-                          setDiceResult(result);
-                          setIsDiceResultModalOpen(true);
-                        }
-                      }}
-                      completedActions={completedActions}
-                    />
+                    <div key={player.id} className="game-player-panel-item">
+                      <PlayerPanelWrapper
+                        gameServices={gameServices}
+                        playerId={player.id}
+                        onToggleSpaceExplorer={handleToggleSpaceExplorer}
+                        onToggleMovementPath={handleToggleMovementPath}
+                        isSpaceExplorerVisible={isSpaceExplorerVisible}
+                        isMovementPathVisible={isMovementPathVisible}
+                        onTryAgain={handleTryAgain}
+                        playerNotification={playerNotifications[player.id]}
+                        onRollDice={handleRollDice}
+                        onAutomaticFunding={handleAutomaticFunding}
+                        onManualEffectResult={(result) => {
+                          if (result && result.effects && result.effects.length > 0) {
+                            setDiceResult(result);
+                            setIsDiceResultModalOpen(true);
+                          }
+                        }}
+                        completedActions={completedActions}
+                      />
+                    </div>
                   ))}
-                </>
+                </div>
               ) : (
                 <>
                   <h3>👤 Player Panel</h3>
@@ -860,22 +933,22 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         />
       )}
 
-      {/* Alpha notice footer */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: colors.primary.light,
-        padding: '0.5rem',
-        fontSize: '0.75rem',
-        color: colors.text.secondary,
-        textAlign: 'center',
-        borderTop: `1px solid ${colors.primary.main}`,
-        zIndex: 100
-      }}>
-        <strong>Alpha Version</strong> - Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
-      </div>
+      {/* Alpha notice footer - only show if not in mobile view */}
+      {!effectiveViewPlayerId && (
+        <div style={{
+          gridColumn: '1 / -1',
+          gridRow: isGameLogVisible ? '4' : '3',
+          backgroundColor: colors.primary.light,
+          padding: '0.25rem 0.5rem',
+          fontSize: '0.7rem',
+          color: colors.text.secondary,
+          textAlign: 'center',
+          borderTop: `1px solid ${colors.primary.main}`,
+          flexShrink: 0,
+        }}>
+          <strong>Alpha</strong> - <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        </div>
+      )}
 
     </div>
   );
