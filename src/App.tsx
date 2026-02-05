@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ServiceProvider } from './context/ServiceProvider';
 import { GameLayout } from './components/layout/GameLayout';
 import { TVDisplay } from './components/layout/TVDisplay';
+import { LandingPage } from './components/layout/LandingPage';
 import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
@@ -247,24 +248,66 @@ function AppContent(): JSX.Element {
  * throughout the component tree. ErrorBoundary catches and handles any unexpected errors.
  *
  * Multi-Game Support:
- * - If no game ID in URL: Show GameLobby for create/join
+ * - If no parameters at all: Show LandingPage for mode selection (TV-remote friendly)
+ * - If mode selected but no game: Show GameLobby to select/create game
  * - If game ID in URL: Show the game
  */
 export function App(): JSX.Element {
   const gameId = getCurrentGameId();
+  const urlParams = new URLSearchParams(window.location.search);
+  const mode = urlParams.get('mode');
+  const isJoining = urlParams.get('join') === '1';
 
-  // If no game ID in URL, show the lobby to create or join a game
+  // Track if user has selected a mode from landing page
+  const [selectedMode, setSelectedMode] = useState<'host' | 'tv' | 'join' | null>(
+    // If URL already has mode param, use it
+    mode === 'tv' ? 'tv' : (isJoining ? 'join' : null)
+  );
+
+  // Handle mode selection from landing page
+  const handleModeSelect = (newMode: 'host' | 'tv' | 'join') => {
+    setSelectedMode(newMode);
+
+    // For TV mode, add it to URL so refreshing maintains mode
+    if (newMode === 'tv') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('mode', 'tv');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  // If no game ID and no mode selected, show landing page
+  if (!gameId && !selectedMode) {
+    return (
+      <ErrorBoundary>
+        <LandingPage onSelectMode={handleModeSelect} />
+      </ErrorBoundary>
+    );
+  }
+
+  // If no game ID but mode selected, show lobby to pick/create game
   if (!gameId) {
     const handleJoinGame = (selectedGameId: string) => {
-      // Redirect to the game by updating the URL
+      // Redirect to the game with appropriate mode
       const url = new URL(window.location.href);
       url.searchParams.set('g', selectedGameId);
+
+      // Keep TV mode if selected
+      if (selectedMode === 'tv') {
+        url.searchParams.set('mode', 'tv');
+      }
+
+      // Remove join flag as it's only for landing page routing
+      url.searchParams.delete('join');
+
       window.location.href = url.toString();
     };
 
     return (
       <ErrorBoundary>
-        <GameLobby onJoinGame={handleJoinGame} />
+        <GameLobby
+          onJoinGame={handleJoinGame}
+        />
       </ErrorBoundary>
     );
   }
