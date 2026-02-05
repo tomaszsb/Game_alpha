@@ -12,6 +12,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import fs from 'fs';
 import path from 'path';
+import { initializeWebSocket, broadcastStateUpdate, getRoomStats } from './websocket.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -294,7 +295,8 @@ app.get('/health', (req, res) => {
     timestamp: formatTimestamp(),
     activeGames: games.size,
     games: gameList,
-    ntfyTopic: CONFIG.NTFY_TOPIC
+    ntfyTopic: CONFIG.NTFY_TOPIC,
+    websocket: getRoomStats()
   });
 });
 
@@ -465,6 +467,9 @@ app.post('/api/games/:gameId/state', async (req, res) => {
   game.version++;
   touchGame(gameId);
   isDirty = true;
+
+  // Broadcast state update to all WebSocket clients in this game room
+  broadcastStateUpdate(gameId, game.state, game.version);
 
   res.json({
     success: true,
@@ -705,9 +710,14 @@ function startServer(port, maxAttempts = 10) {
 
   server.listen(port, '0.0.0.0', () => {
     const actualPort = server.address().port;
+
+    // Initialize WebSocket server after HTTP server is listening
+    initializeWebSocket(server, games);
+
     console.log('');
     console.log('🚀 Multi-Game Server started');
     console.log(`   Port: ${actualPort}`);
+    console.log(`   WebSocket: ws://0.0.0.0:${actualPort}/ws`);
     console.log(`   ntfy topic: ${CONFIG.NTFY_TOPIC}`);
     console.log(`   Data dir: ${CONFIG.DATA_DIR}`);
     console.log('');

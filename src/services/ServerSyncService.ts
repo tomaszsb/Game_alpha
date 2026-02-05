@@ -1,8 +1,10 @@
 // src/services/ServerSyncService.ts
-// Extracted from StateService - handles server synchronization
+// Handles server synchronization with WebSocket (primary) and HTTP (fallback)
+// WebSocket provides sub-100ms updates; HTTP provides reliability for state pushes
 
 import { GameState } from '../types/StateTypes';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../utils/networkDetection';
+import { getWebSocketService, ConnectionState, StateUpdateCallback } from './WebSocketSyncService';
 
 /**
  * Callback interface for state operations
@@ -19,6 +21,8 @@ export interface StateProvider {
  * Extracted from StateService to separate network concerns from state management.
  *
  * Features:
+ * - WebSocket for real-time inbound state updates (sub-100ms latency)
+ * - HTTP POST for reliable outbound state pushes
  * - Debounced state syncing to prevent spam during rapid changes
  * - Lazy initialization of server URL
  * - Version tracking for conflict resolution
@@ -30,6 +34,8 @@ export class ServerSyncService {
   private isSyncing: boolean = false;
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private lastKnownServerVersion: number = 0;
+  private webSocketConnected: boolean = false;
+  private webSocketUnsubscribers: (() => void)[] = [];
 
   constructor(private stateProvider: StateProvider) {}
 
@@ -48,6 +54,72 @@ export class ServerSyncService {
       this.syncEnabled = false;
       return false;
     }
+  }
+
+  /**
+   * Connect to WebSocket for real-time state updates
+   * Call this after initial state load to enable real-time sync
+   */
+  public connectWebSocket(): void {
+    if (!this.initializeServerUrl()) {
+      return;
+    }
+
+    const gameId = getCurrentGameId();
+    if (!gameId) {
+      console.log('No game ID, skipping WebSocket connection');
+      return;
+    }
+
+    const wsService = getWebSocketService();
+
+    // Subscribe to state updates
+    const stateUnsubscribe = wsService.onStateUpdate((state, version) => {
+      // Only update if newer than our local version
+      if (version > this.lastKnownServerVersion) {
+        this.lastKnownServerVersion = version;
+        // Update state through the provider (skips sync to avoid loop)
+        this.stateProvider.setCurrentState(state, version);
+        console.log(`📥 WebSocket state update applied (v${version})`);
+      }
+    });
+    this.webSocketUnsubscribers.push(stateUnsubscribe);
+
+    // Subscribe to connection state changes
+    const connUnsubscribe = wsService.onConnectionChange((state) => {
+      this.webSocketConnected = state === 'connected';
+      console.log(`🔌 WebSocket connection: ${state}`);
+    });
+    this.webSocketUnsubscribers.push(connUnsubscribe);
+
+    // Connect
+    wsService.connect(this.serverUrl, gameId);
+  }
+
+  /**
+   * Disconnect WebSocket
+   */
+  public disconnectWebSocket(): void {
+    // Unsubscribe from all callbacks
+    this.webSocketUnsubscribers.forEach(unsub => unsub());
+    this.webSocketUnsubscribers = [];
+
+    getWebSocketService().disconnect();
+    this.webSocketConnected = false;
+  }
+
+  /**
+   * Check if WebSocket is connected
+   */
+  public isWebSocketConnected(): boolean {
+    return this.webSocketConnected;
+  }
+
+  /**
+   * Register a callback for WebSocket connection state changes
+   */
+  public onConnectionChange(callback: (state: ConnectionState) => void): () => void {
+    return getWebSocketService().onConnectionChange(callback);
   }
 
   /**
@@ -113,6 +185,8 @@ export class ServerSyncService {
         const result = await response.json();
         // Update our known server version to prevent future conflicts
         this.lastKnownServerVersion = result.stateVersion;
+        // Sync version with WebSocket service
+        getWebSocketService().setLastKnownVersion(result.stateVersion);
         // Debug: Log spaceVisitLog sync status
         const player = state.players?.[0];
         const logLength = player?.spaceVisitLog?.length || 0;
@@ -157,6 +231,8 @@ export class ServerSyncService {
       if (state) {
         // Track the server version to prevent stale state overwrites
         this.lastKnownServerVersion = stateVersion;
+        // Sync version with WebSocket service
+        getWebSocketService().setLastKnownVersion(stateVersion);
         // Update state through the provider (skips sync to avoid loop)
         this.stateProvider.setCurrentState(state, stateVersion);
         // Debug: Log spaceVisitLog status when loading

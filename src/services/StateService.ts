@@ -1805,4 +1805,26 @@ export class StateService implements IStateService {
   setSyncEnabled(enabled: boolean): void {
     this.serverSyncService.setSyncEnabled(enabled);
   }
+
+  /**
+   * Connect WebSocket for real-time state updates
+   * Call this after initial state load to enable real-time sync
+   */
+  connectWebSocket(): void {
+    this.serverSyncService.connectWebSocket();
+  }
+
+  /**
+   * Disconnect WebSocket
+   */
+  disconnectWebSocket(): void {
+    this.serverSyncService.disconnectWebSocket();
+  }
+
+  /**
+   * Check if WebSocket is connected
+   */
+  isWebSocketConnected(): boolean {
+    return this.serverSyncService.isWebSocketConnected();
+  }
 }

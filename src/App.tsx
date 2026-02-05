@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ServiceProvider } from './context/ServiceProvider';
 import { GameLayout } from './components/layout/GameLayout';
+import { TVDisplay } from './components/layout/TVDisplay';
 import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
@@ -139,39 +140,24 @@ function AppContent(): JSX.Element {
     initializeApp();
   }, [dataService, stateService]);
 
-  // Poll server for state updates every 2 seconds (multi-device sync)
+  // WebSocket connection for real-time state updates (replaces 2s polling)
+  // Connects after initial load and provides sub-100ms state sync
   useEffect(() => {
-    // Track client's current state version to avoid unnecessary updates
-    let clientStateVersion = 0;
+    if (isLoading) return;
+
     const gameId = getCurrentGameId();
+    if (!gameId) return;
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const backendURL = getBackendURL();
-        const apiPath = getGameStateAPIPath(gameId);
-        const response = await fetch(`${backendURL}${apiPath}`);
+    // Connect WebSocket for real-time updates
+    // ServerSyncService handles state updates via its WebSocket callback
+    console.log('🔌 Connecting WebSocket for real-time sync...');
+    stateService.connectWebSocket();
 
-        if (response.ok) {
-          const { state, stateVersion } = await response.json();
-
-          // Only update if server has newer state (prevents unnecessary re-renders)
-          // This reduces re-renders by ~95% since state only changes when user takes action
-          if (state && stateVersion > clientStateVersion) {
-            // Pass serverVersion to prevent stale state overwrites (Dec 29, 2025 fix)
-            stateService.replaceState(state, stateVersion);
-            clientStateVersion = stateVersion;
-            console.log(`📥 Updated from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
-          }
-          // else: Server state unchanged, skip update
-        }
-      } catch (error) {
-        // Server not available - continue with local state
-        // Silently fail to avoid console spam
-      }
-    }, 2000); // Poll every 2 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [stateService]);
+    // Cleanup on unmount
+    return () => {
+      stateService.disconnectWebSocket();
+    };
+  }, [stateService, isLoading]);
 
   // Detect and store device type when player connects via URL
   useEffect(() => {
@@ -216,13 +202,22 @@ function AppContent(): JSX.Element {
 
   console.log('🔍 Routing info:', routeInfo);
 
+  // Check for TV mode
+  const isTVMode = urlParams.get('mode') === 'tv';
+
+  // TV Display Mode - shows game board prominently with QR codes
+  if (isTVMode) {
+    console.log('📺 TV Display Mode enabled');
+    return <TVDisplay />;
+  }
+
   // Render based on routing logic
   // If playerId is specified in URL and valid, show player-specific view
   if (routeInfo.playerId && routeInfo.isValidPlayer) {
     return (
       <>
-        <GameLayout 
-          viewPlayerId={routeInfo.playerId} 
+        <GameLayout
+          viewPlayerId={routeInfo.playerId}
           initialPreview={initialPreview}
           onPreviewConsumed={() => setInitialPreview(null)}
         />
@@ -238,7 +233,7 @@ function AppContent(): JSX.Element {
   // Default: show normal game view (no player locking)
   return (
     <>
-      <GameLayout 
+      <GameLayout
         initialPreview={initialPreview}
         onPreviewConsumed={() => setInitialPreview(null)}
       />

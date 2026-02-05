@@ -262,6 +262,11 @@ export interface IStateService {
   loadStateFromServer(): Promise<boolean>;
   replaceState(newState: GameState, serverVersion?: number): void;
 
+  // WebSocket synchronization methods
+  connectWebSocket(): void;
+  disconnectWebSocket(): void;
+  isWebSocketConnected(): boolean;
+
   // REAL/TEMP State Model Methods (December 26, 2025)
   // Manages separation of committed state (REAL) from working state (TEMP)
   createTempStateFromReal(options: import('./StateTypes').CreateTempOptions): import('./StateTypes').StateTransitionResult;
