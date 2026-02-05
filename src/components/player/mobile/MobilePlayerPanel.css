@@ -63,7 +63,8 @@
   height: 100dvh;  /* Dynamic viewport height - handles mobile browser toolbars */
   min-height: -webkit-fill-available;  /* iOS Safari fallback */
   max-height: 100dvh;
-  overflow: hidden;
+  overflow-x: hidden;  /* Prevent horizontal overflow */
+  overflow-y: hidden;  /* Children handle their own vertical scrolling */
   background-color: var(--mobile-bg-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
@@ -71,8 +72,8 @@
   padding-left: max(0px, env(safe-area-inset-left));
   padding-right: max(0px, env(safe-area-inset-right));
 
-  /* Reserve space for DetailSheet tabs (56px) + safe area at bottom */
-  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  /* Reserve space for DetailSheet tabs (56px) - safe area is handled by DetailSheet itself */
+  padding-bottom: 56px;
 }
 
 /* Portrait mode (default): vertical stacking */
@@ -129,11 +130,14 @@
 .mobile-player-panel__context {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;  /* Prevent horizontal overflow */
   overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;  /* Smooth scrolling on iOS */
   padding: 12px;
   padding-left: max(12px, env(safe-area-inset-left));
   padding-right: max(12px, env(safe-area-inset-right));
   min-height: 0;  /* Allow flex shrinking */
+  position: relative;  /* Establish containing block for children */
 }
 
 /* Story Mode - Designed for 300% of typical story length */
@@ -146,7 +150,7 @@
 
 .mobile-context-story .story-text {
   flex: 1;
-  font-size: 14px;
+  font-size: clamp(13px, 3.5vw, 16px);  /* Fluid typography: scales smoothly */
   line-height: 1.6;
   color: var(--mobile-text-primary);
   overflow-y: auto;
@@ -166,7 +170,7 @@
   margin-top: auto;
   padding: 8px 12px;
   text-align: center;
-  font-size: 12px;
+  font-size: clamp(11px, 3vw, 13px);  /* Fluid typography */
   color: var(--mobile-accent);
   font-style: italic;
   /* Gradient fade for readability */
@@ -190,14 +194,14 @@
 }
 
 .mobile-context-action .action-label {
-  font-size: 18px;
+  font-size: clamp(16px, 4.5vw, 20px);  /* Fluid typography */
   font-weight: bold;
   color: var(--mobile-text-primary);
   margin-bottom: 8px;
 }
 
 .mobile-context-action .action-description {
-  font-size: 14px;
+  font-size: clamp(12px, 3.5vw, 15px);  /* Fluid typography */
   color: var(--mobile-text-secondary);
   max-width: 280px;
   word-wrap: break-word;
@@ -212,7 +216,7 @@
 }
 
 .mobile-context-decision .decision-prompt {
-  font-size: 14px;
+  font-size: clamp(13px, 3.5vw, 15px);  /* Fluid typography */
   font-weight: 600;
   color: var(--mobile-text-primary);
   text-align: center;
@@ -228,15 +232,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 14px 16px;
+  min-height: 48px;  /* Touch target minimum (Google recommends 48px) */
   background-color: var(--mobile-bg-secondary);
   border: 2px solid var(--mobile-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
-  font-size: 14px;
+  font-size: clamp(13px, 3.5vw, 15px);  /* Fluid typography */
   touch-action: manipulation;  /* Remove 300ms tap delay */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-context-decision .decision-option:hover {
@@ -279,7 +285,7 @@
 }
 
 .mobile-context-waiting .waiting-message {
-  font-size: 16px;
+  font-size: clamp(14px, 4vw, 17px);  /* Fluid typography */
   color: var(--mobile-text-secondary);
 }
 
@@ -301,7 +307,7 @@
 }
 
 .mobile-context-summary .summary-message {
-  font-size: 16px;
+  font-size: clamp(14px, 4vw, 17px);  /* Fluid typography */
   font-weight: 600;
   color: var(--mobile-text-primary);
 }
