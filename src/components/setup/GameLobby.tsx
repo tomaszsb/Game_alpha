@@ -1,5 +1,6 @@
 // src/components/setup/GameLobby.tsx
 // Landing page for creating or joining a game session
+// Redesigned for TV/wide screens - horizontal layout, no scrolling
 
 import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
@@ -138,260 +139,337 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: colors.background.secondary,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem'
-    }}>
-      <div style={{
-        maxWidth: '500px',
-        width: '100%',
-        textAlign: 'center'
-      }}>
-        {/* Logo */}
-        <img
-          src="/images/logo.png"
-          alt="Unravel Codes"
-          style={{
-            width: '150px',
-            height: 'auto',
-            marginBottom: '1rem'
-          }}
-        />
+    <div style={styles.container}>
+      {/* Background */}
+      <div style={styles.background} />
 
-        {/* Header */}
-        <h1 style={{
-          fontSize: '2rem',
-          marginBottom: '0.5rem',
-          color: colors.neutral.black
-        }}>
-          Unravel Codes: The Game
-        </h1>
-        <p style={{
-          fontSize: '1rem',
-          color: colors.text.secondary,
-          marginBottom: '1.5rem',
-          lineHeight: '1.5'
-        }}>
-          A multiplayer project management adventure!
-          <br />
-          <span style={{ fontSize: '0.9rem' }}>
-            Create a new game or join an existing one to play with friends.
-          </span>
-        </p>
-
-        {/* Error message */}
-        {error && (
-          <div style={{
-            backgroundColor: '#fee2e2',
-            border: '1px solid #ef4444',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginBottom: '1rem',
-            color: '#dc2626'
-          }}>
-            {error}
+      {/* Header */}
+      <header style={styles.header}>
+        <div style={styles.headerContent}>
+          <img
+            src="/images/logo.png"
+            alt="Unravel Codes"
+            style={styles.logo}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div style={styles.headerText}>
+            <h1 style={styles.title}>Unravel Codes: The Game</h1>
+            <p style={styles.subtitle}>A multiplayer project management adventure</p>
           </div>
-        )}
+        </div>
+        <div style={styles.versionInfo}>
+          <span>v{__APP_VERSION__}</span>
+          {syncStatus.status === 'in-sync' && <span style={{ color: '#22c55e' }}> ✓</span>}
+          {syncStatus.status === 'out-of-sync' && (
+            <span style={{ color: '#f59e0b' }}> ⚠ {syncStatus.commitsBehind || ''} behind</span>
+          )}
+        </div>
+      </header>
 
-        {/* Create New Game */}
-        <div style={{
-          backgroundColor: colors.secondary.bg,
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{
-            fontSize: '1.3rem',
-            marginBottom: '1rem',
-            color: colors.neutral.black
-          }}>
-            Start New Game
-          </h2>
+      {/* Error message */}
+      {error && (
+        <div style={styles.errorBanner}>
+          {error}
+          <button onClick={() => setError('')} style={styles.errorClose}>×</button>
+        </div>
+      )}
+
+      {/* Main content - horizontal layout */}
+      <main style={styles.main}>
+        {/* Left panel - Create New Game */}
+        <section style={styles.panel}>
+          <h2 style={styles.panelTitle}>🎮 New Game</h2>
+          <p style={styles.panelDescription}>
+            Start a fresh game session and invite friends to play
+          </p>
           <button
             onClick={handleCreateGame}
             disabled={creating}
             style={{
+              ...styles.primaryButton,
               backgroundColor: creating ? colors.neutral.gray[400] : colors.primary.main,
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '1rem 2rem',
-              fontSize: '1.1rem',
               cursor: creating ? 'wait' : 'pointer',
-              width: '100%',
-              fontWeight: 'bold'
             }}
           >
             {creating ? 'Creating...' : 'Create Game'}
           </button>
-        </div>
+        </section>
 
-        {/* Join Existing Game */}
-        <div style={{
-          backgroundColor: colors.secondary.bg,
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{
-            fontSize: '1.3rem',
-            marginBottom: '1rem',
-            color: colors.neutral.black
-          }}>
-            Join Game
-          </h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {/* Center panel - Join by Code */}
+        <section style={styles.panel}>
+          <h2 style={styles.panelTitle}>🔗 Join by Code</h2>
+          <p style={styles.panelDescription}>
+            Enter a game code to join an existing session
+          </p>
+          <div style={styles.joinForm}>
             <input
               type="text"
-              placeholder="Enter code (e.g., G1)"
+              placeholder="e.g., G1"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && handleJoinGame(joinCode)}
-              style={{
-                flex: 1,
-                padding: '1rem',
-                fontSize: '1.1rem',
-                border: `1px solid ${colors.neutral.gray[300]}`,
-                borderRadius: '8px',
-                textAlign: 'center',
-                textTransform: 'uppercase'
-              }}
+              style={styles.codeInput}
+              maxLength={10}
             />
             <button
               onClick={() => handleJoinGame(joinCode)}
-              style={{
-                backgroundColor: colors.success.main,
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '1rem 1.5rem',
-                fontSize: '1.1rem',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
+              style={styles.joinButton}
             >
               Join
             </button>
           </div>
-        </div>
+        </section>
 
-        {/* Active Games List */}
-        {games.length > 0 && (
-          <div style={{
-            backgroundColor: colors.secondary.bg,
-            borderRadius: '12px',
-            padding: '1.5rem',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{
-              fontSize: '1.3rem',
-              marginBottom: '1rem',
-              color: colors.neutral.black
-            }}>
-              Active Games
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {games.map((game) => (
+        {/* Right panel - Active Games */}
+        <section style={styles.panel}>
+          <h2 style={styles.panelTitle}>
+            📋 Active Games
+            {loading && <span style={styles.loadingDot}>...</span>}
+          </h2>
+          <div style={styles.gamesList}>
+            {games.length === 0 ? (
+              <p style={styles.noGames}>
+                {loading ? 'Checking...' : 'No active games. Create one!'}
+              </p>
+            ) : (
+              games.slice(0, 4).map((game) => (
                 <button
                   key={game.gameId}
                   onClick={() => onJoinGame(game.gameId)}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    backgroundColor: 'white',
-                    border: `1px solid ${colors.neutral.gray[300]}`,
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    cursor: 'pointer',
-                    fontSize: '1rem'
-                  }}
+                  style={styles.gameCard}
                 >
-                  <span style={{ fontWeight: 'bold' }}>{game.gameId}</span>
-                  <span style={{ color: colors.text.secondary }}>
+                  <span style={styles.gameId}>{game.gameId}</span>
+                  <span style={styles.gameInfo}>
                     {game.playerCount} player{game.playerCount !== 1 ? 's' : ''}
-                    {game.playerNames.length > 0 && ` (${game.playerNames.join(', ')})`}
                   </span>
+                  {game.playerNames.length > 0 && (
+                    <span style={styles.playerNames}>
+                      {game.playerNames.slice(0, 3).join(', ')}
+                      {game.playerNames.length > 3 && '...'}
+                    </span>
+                  )}
                 </button>
-              ))}
-            </div>
+              ))
+            )}
           </div>
-        )}
+        </section>
+      </main>
 
-        {/* Loading indicator */}
-        {loading && (
-          <p style={{ color: colors.text.secondary, marginTop: '1rem' }}>
-            Checking for active games...
-          </p>
-        )}
-
-        {/* Alpha notice */}
-        <div style={{
-          marginTop: '2rem',
-          padding: '1rem',
-          backgroundColor: colors.primary.light,
-          borderRadius: '8px',
-          fontSize: '0.9rem',
-          color: colors.text.secondary,
-          lineHeight: '1.5'
-        }}>
-          <strong>Alpha Version</strong>
-          <br />
-          We're working on improving the game daily.
-          <br />
-          Comments or suggestions? Email us at:{' '}
-          <a
-            href="mailto:game@unravelcodes.com"
-            style={{ color: colors.primary.main }}
-          >
-            game@unravelcodes.com
-          </a>
-          <div style={{
-            marginTop: '0.75rem',
-            paddingTop: '0.75rem',
-            borderTop: '1px solid rgba(0,0,0,0.1)',
-            fontSize: '0.75rem',
-            fontFamily: 'monospace',
-            color: colors.text.tertiary || colors.text.secondary
-          }}>
-            <div style={{ marginBottom: '0.25rem' }}>
-              Build: {__APP_VERSION__} • {new Date(__BUILD_TIME__).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {syncStatus.status === 'checking' && (
-                <span style={{ color: colors.text.secondary }}>Checking sync...</span>
-              )}
-              {syncStatus.status === 'in-sync' && (
-                <span style={{ color: '#22c55e' }}>✓ In sync with GitHub</span>
-              )}
-              {syncStatus.status === 'out-of-sync' && (
-                <span style={{ color: '#f59e0b' }}>
-                  ⚠ {syncStatus.commitsBehind
-                    ? `${syncStatus.commitsBehind} commit${syncStatus.commitsBehind > 1 ? 's' : ''} behind`
-                    : 'Out of sync'
-                  } (latest: {syncStatus.latestCommit})
-                </span>
-              )}
-              {syncStatus.status === 'error' && (
-                <span style={{ color: colors.text.secondary }}>Could not check sync</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Footer */}
+      <footer style={styles.footer}>
+        <span>Alpha Version</span>
+        <span style={styles.footerDot}>•</span>
+        <a href="mailto:game@unravelcodes.com" style={styles.footerLink}>
+          game@unravelcodes.com
+        </a>
+      </footer>
     </div>
   );
 }
+
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    width: '100vw',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: `linear-gradient(135deg, ${colors.primary.light} 0%, ${colors.background.secondary} 50%, ${colors.secondary.light} 100%)`,
+    zIndex: -1,
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 'clamp(0.5rem, 1.5vh, 1rem) clamp(1rem, 3vw, 2rem)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderBottom: `1px solid ${colors.secondary.border}`,
+    flexShrink: 0,
+  },
+  headerContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+  },
+  logo: {
+    height: 'clamp(30px, 5vh, 50px)',
+    width: 'auto',
+  },
+  headerText: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  title: {
+    fontSize: 'clamp(1rem, 2.5vh, 1.5rem)',
+    fontWeight: 'bold',
+    margin: 0,
+    color: colors.neutral.black,
+  },
+  subtitle: {
+    fontSize: 'clamp(0.7rem, 1.5vh, 0.9rem)',
+    margin: 0,
+    color: colors.text.secondary,
+  },
+  versionInfo: {
+    fontSize: 'clamp(0.6rem, 1.2vh, 0.75rem)',
+    fontFamily: 'monospace',
+    color: colors.text.secondary,
+  },
+  errorBanner: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '0.5rem 1rem',
+    backgroundColor: '#fee2e2',
+    color: '#dc2626',
+    fontSize: 'clamp(0.8rem, 1.5vh, 1rem)',
+    flexShrink: 0,
+  },
+  errorClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '1.25rem',
+    cursor: 'pointer',
+    color: '#dc2626',
+  },
+  main: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    gap: 'clamp(1rem, 3vw, 2rem)',
+    padding: 'clamp(1rem, 2vh, 2rem) clamp(1rem, 3vw, 2rem)',
+    minHeight: 0,
+  },
+  panel: {
+    flex: '1 1 0',
+    maxWidth: '350px',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: 'clamp(1rem, 2vh, 1.5rem)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+  },
+  panelTitle: {
+    fontSize: 'clamp(1rem, 2.5vh, 1.3rem)',
+    fontWeight: 'bold',
+    margin: '0 0 0.5rem 0',
+    color: colors.neutral.black,
+  },
+  panelDescription: {
+    fontSize: 'clamp(0.75rem, 1.5vh, 0.9rem)',
+    color: colors.text.secondary,
+    margin: '0 0 1rem 0',
+    lineHeight: 1.4,
+  },
+  primaryButton: {
+    backgroundColor: colors.primary.main,
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    padding: 'clamp(0.75rem, 2vh, 1rem) 1.5rem',
+    fontSize: 'clamp(0.9rem, 2vh, 1.1rem)',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    marginTop: 'auto',
+  },
+  joinForm: {
+    display: 'flex',
+    gap: '0.5rem',
+    marginTop: 'auto',
+  },
+  codeInput: {
+    flex: 1,
+    padding: 'clamp(0.5rem, 1.5vh, 0.75rem)',
+    fontSize: 'clamp(1rem, 2vh, 1.25rem)',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    border: `2px solid ${colors.secondary.border}`,
+    borderRadius: '8px',
+    letterSpacing: '0.1em',
+  },
+  joinButton: {
+    backgroundColor: colors.success.main,
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    padding: 'clamp(0.5rem, 1.5vh, 0.75rem) clamp(1rem, 2vw, 1.5rem)',
+    fontSize: 'clamp(0.9rem, 2vh, 1rem)',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  },
+  gamesList: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+    overflow: 'auto',
+    minHeight: 0,
+  },
+  noGames: {
+    color: colors.text.secondary,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    fontSize: 'clamp(0.8rem, 1.5vh, 0.9rem)',
+  },
+  gameCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: 'clamp(0.5rem, 1vh, 0.75rem)',
+    backgroundColor: colors.background.light,
+    border: `1px solid ${colors.secondary.border}`,
+    borderRadius: '8px',
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  gameId: {
+    fontWeight: 'bold',
+    fontSize: 'clamp(0.9rem, 1.8vh, 1.1rem)',
+    color: colors.primary.main,
+  },
+  gameInfo: {
+    fontSize: 'clamp(0.7rem, 1.3vh, 0.85rem)',
+    color: colors.text.secondary,
+  },
+  playerNames: {
+    fontSize: 'clamp(0.65rem, 1.2vh, 0.75rem)',
+    color: colors.text.muted,
+    marginTop: '0.25rem',
+  },
+  loadingDot: {
+    marginLeft: '0.5rem',
+    color: colors.text.secondary,
+  },
+  footer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '1rem',
+    padding: '0.5rem',
+    color: colors.text.muted,
+    fontSize: 'clamp(0.65rem, 1.2vh, 0.8rem)',
+    flexShrink: 0,
+  },
+  footerDot: {
+    opacity: 0.5,
+  },
+  footerLink: {
+    color: colors.primary.main,
+    textDecoration: 'none',
+  },
+};
