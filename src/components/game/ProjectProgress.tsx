@@ -367,26 +367,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
         {!hideButtons && <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {onToggleCollapsed && (
-            <button onClick={onToggleCollapsed} style={{
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              backgroundColor: colors.info.main,
-              color: colors.white,
-              border: `2px solid ${colors.white}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}>
-              <span>▲</span>
-              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Collapse</span>
-            </button>
-          )}
           <button onClick={onOpenRulesModal} style={{
             padding: '6px 12px',
             fontSize: '11px',
@@ -484,6 +464,26 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             }}>
               <span>⚙️</span>
               <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Edit</span>
+            </button>
+          )}
+          {onToggleCollapsed && (
+            <button onClick={onToggleCollapsed} style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              backgroundColor: '#ff5722',
+              color: colors.white,
+              border: `2px solid ${colors.white}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>▲</span>
+              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Collapse</span>
             </button>
           )}
         </div>}
