@@ -406,3 +406,13 @@ export function getWebSocketService(): WebSocketSyncService {
   }
   return webSocketServiceInstance;
 }
+
+/**
+ * Reset the singleton instance - used in tests to prevent timer/state leaks
+ */
+export function resetWebSocketService(): void {
+  if (webSocketServiceInstance) {
+    webSocketServiceInstance.disconnect();
+    webSocketServiceInstance = null;
+  }
+}

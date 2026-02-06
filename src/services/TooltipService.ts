@@ -185,3 +185,10 @@ export function initializeTooltipService(dataService?: DataService): TooltipServ
   tooltipServiceInstance = new TooltipService(dataService);
   return tooltipServiceInstance;
 }
+
+/**
+ * Reset the singleton instance - used in tests to prevent state leaks
+ */
+export function resetTooltipService(): void {
+  tooltipServiceInstance = null;
+}

@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### PlayerSetup Horizontal Layout + Compact TV Progress + Test Performance (February 5, 2026)
+
+**PlayerSetup Horizontal Layout:**
+- Converted PlayerSetup from single vertical card (maxWidth 800px, scrollable) to horizontal no-scroll layout
+- New structure: header bar (logo + title + game code) → 2-panel main area (Players | Settings/Admin/Start) → footer bar
+- Uses `clamp()` for responsive fonts, `vh/vw` units for sizing, matching LandingPage/GameLobby pattern
+- Works well on TV and wide screens
+
+**Compact ProjectProgress for TV:**
+- Added `compact` prop to ProjectProgress component
+- Compact mode: reduced padding (16→8px), smaller progress bars (12→8px height), hidden goal banner
+- Player grid: 200→150px min width, reduced card padding and font sizes
+- Overall progress info condensed with flexWrap for narrow displays
+- TVDisplay now passes `compact` alongside existing `hideButtons`
+
+**Test Suite Performance Fix:**
+- Root cause: 85 test files × ~20s fork overhead = ~28 minute total runtime (not hanging, just extremely slow)
+- Solution: Switched default pool from `forks` to `vmThreads` (~1s/file instead of ~15s/file)
+- Used vitest 4.x `test.projects` to split into two pools:
+  - `vmThreads` project: 86 test files (fast VM-based isolation)
+  - `forks` project: 4 files that mock `window.location` (requires full process isolation)
+- Added `resetWebSocketService()` and `resetTooltipService()` for singleton cleanup between tests
+- Test setup (`vitest.setup.ts`) now resets singletons in `afterEach`
+- Total runtime: ~28 minutes → ~80 seconds
+
+**Integration Test Fixes (E012, E066):**
+- `E012-integration.test.ts`: Added missing `financialEffectHandler` and `cardEffectHandler` to EffectEngineService setup, fixed missing `loggingService` constructor arg
+- `E066-reroll-integration.test.ts`: Fixed dice mocking - `rollDiceWithFeedback` delegates to `diceRollProcessor.rollDice()` which uses `diceService.rollDice()`, so injected mock `diceService` via TurnService constructor instead of spying on wrong object. Also fixed constructor arg order (`effectEngineService` was in `choiceService` position)
+- All 1319 tests passing (88 files, 0 failures)
+
+**Files Modified:**
+- `src/components/setup/PlayerSetup.tsx` - Horizontal 2-panel layout
+- `src/components/game/ProjectProgress.tsx` - Added `compact` prop
+- `src/components/layout/TVDisplay.tsx` - Pass `compact` to ProjectProgress
+- `src/services/WebSocketSyncService.ts` - Added `resetWebSocketService()`
+- `src/services/TooltipService.ts` - Added `resetTooltipService()`
+- `vitest.config.ts` - `test.projects` with vmThreads + forks pools
+- `tests/vitest.setup.ts` - Singleton cleanup in afterEach
+- `tests/E012-integration.test.ts` - Fixed missing effect handlers and constructor arg
+- `tests/E066-reroll-integration.test.ts` - Fixed dice mocking and constructor arg order
+
 ### Landing Page Flow Fixes + TV Display + Editor Contrast (February 5, 2026)
 
 **Problem:** The new landing page (Host/TV/Join) had broken flows after button clicks. The old setup screen still appeared in some flows. TV Display only showed a simplified progress bar instead of the full ProjectProgress panel. Space Data Editor had low-contrast text.

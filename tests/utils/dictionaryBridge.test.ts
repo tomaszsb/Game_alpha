@@ -1,3 +1,4 @@
+/* @vitest-pool forks */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openInDictionary, getPreviewParams, clearPreviewParams } from '../../src/utils/dictionaryBridge';
 
@@ -55,10 +56,10 @@ describe('dictionaryBridge', () => {
     it('removes preview params but keeps others', () => {
       window.location.href = 'http://localhost/?g=G1&action=preview_card&id=W001';
       clearPreviewParams();
-      
+
       const call = vi.mocked(window.history.replaceState).mock.calls[0];
       const newUrl = new URL(call[2] as string);
-      
+
       expect(newUrl.searchParams.get('g')).toBe('G1');
       expect(newUrl.searchParams.has('action')).toBe(false);
       expect(newUrl.searchParams.has('id')).toBe(false);

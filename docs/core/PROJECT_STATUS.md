@@ -1,14 +1,25 @@
 # Project Status
 
 **Last Updated**: February 5, 2026
-**Current Phase**: External Testing Ready (v2.15)
-**Current Version**: 2.15
+**Current Phase**: External Testing Ready (v2.16)
+**Current Version**: 2.16
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### PlayerSetup Horizontal Layout + Compact TV + Test Performance (February 5, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.16
+- **Features**: Horizontal setup screen, compact TV progress, vitest projects for fast tests
+- **Achievements**:
+  - PlayerSetup: 2-panel horizontal layout (Players | Settings/Admin/Start) for TV/wide screens
+  - ProjectProgress compact mode for TV display (reduced padding, hidden goal banner)
+  - Test suite: ~28 min → ~80s via vitest `test.projects` (vmThreads + forks pools)
+  - Fixed E012/E066 integration tests (missing effect handlers, wrong dice mocking)
+  - All 1319 tests passing (88 files, 0 failures)
 
 ### Landing Page Flow Fixes + TV Display + Editor Contrast (February 5, 2026) ✅
 - **Status**: ✅ Complete

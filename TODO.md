@@ -21,6 +21,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ PlayerSetup Horizontal Layout + Compact TV Progress + Test Perf (Feb 5, 2026)
+  - PlayerSetup: converted to 2-panel horizontal layout (Players | Settings) for TV/wide screens
+  - TV ProjectProgress: compact mode hides goal banner, reduces padding/fonts
+  - Tests: vitest projects (vmThreads + forks) → runtime from ~28min to ~80s, all 1319 passing
 - ✅ Landing Page Flow Fixes + TV Display + Editor Contrast (Feb 5, 2026)
   - Host Game: auto-creates game and redirects (no more confusing lobby)
   - TV Display: shows only game picker; full ProjectProgress panel in TV mode

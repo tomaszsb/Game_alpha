@@ -12,7 +12,8 @@ import {
   createMockStateService,
   createMockMovementService,
   createMockTurnService,
-  createMockGameRulesService
+  createMockGameRulesService,
+  createMockLoggingService
 } from './mocks/mockServices';
 
 const createMockServices = () => ({
@@ -22,7 +23,8 @@ const createMockServices = () => ({
   stateService: createMockStateService(),
   movementService: createMockMovementService(),
   turnService: createMockTurnService(),
-  gameRulesService: createMockGameRulesService()
+  gameRulesService: createMockGameRulesService(),
+  loggingService: createMockLoggingService()
 });
 
 describe('E012 Card - Choice of Effects Integration', () => {
@@ -50,8 +52,26 @@ describe('E012 Card - Choice of Effects Integration', () => {
       mockServices.movementService,
       mockServices.turnService,
       mockServices.gameRulesService,
-      {} as any // targetingService
+      {} as any, // targetingService
+      mockServices.loggingService
     );
+
+    // Wire up financial effect handler for RESOURCE_CHANGE effects
+    effectEngineService.setFinancialEffectHandler({
+      handleResourceChange: vi.fn().mockReturnValue({ success: true, effectType: 'RESOURCE_CHANGE' }),
+      handleFeeDeduction: vi.fn().mockReturnValue({ success: true, effectType: 'FEE_DEDUCTION' }),
+      setNotificationService: vi.fn()
+    });
+
+    // Wire up card effect handler for CARD_DISCARD effects
+    effectEngineService.setCardEffectHandler({
+      handleCardDraw: vi.fn().mockResolvedValue({ success: true, effectType: 'CARD_DRAW' }),
+      handleCardDiscard: vi.fn().mockResolvedValue({ success: true, effectType: 'CARD_DISCARD' }),
+      handleCardActivation: vi.fn().mockReturnValue({ success: true, effectType: 'CARD_ACTIVATION' }),
+      handlePlayCard: vi.fn().mockResolvedValue({ success: true, effectType: 'PLAY_CARD' }),
+      setNotificationService: vi.fn(),
+      setDataService: vi.fn()
+    });
   });
 
   it('should parse E012 card description into CHOICE_OF_EFFECTS', () => {

@@ -47,17 +47,25 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   let effectEngineService: EffectEngineService;
   let turnService: TurnService;
   let mockServices: ReturnType<typeof createMockServices>;
+  let mockDiceService: { rollDice: ReturnType<typeof vi.fn>; getCardTypeName: ReturnType<typeof vi.fn>; generateEffectSummary: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockServices = createMockServices();
-    
+
     // Setup essential GameRulesService mocks
     mockServices.gameRulesService.checkGameEndConditions.mockResolvedValue({
       shouldEnd: false,
       reason: null,
       winnerId: null
     });
-    
+
+    // Mock dice service to control dice values
+    mockDiceService = {
+      rollDice: vi.fn().mockReturnValue(4),
+      getCardTypeName: vi.fn().mockReturnValue(''),
+      generateEffectSummary: vi.fn().mockReturnValue('')
+    };
+
     effectEngineService = new EffectEngineService(
       mockServices.resourceService,
       mockServices.cardService,
@@ -66,7 +74,8 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
       mockServices.movementService,
       {} as ITurnService,
       mockServices.gameRulesService,
-      {} as any // targetingService
+      {} as any, // targetingService
+      mockServices.loggingService
     );
 
     turnService = new TurnService(
@@ -78,7 +87,10 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
       mockServices.movementService,
       mockServices.negotiationService as any,
       mockServices.loggingService,
-      effectEngineService
+      mockServices.choiceService,
+      undefined, // notificationService
+      effectEngineService,
+      mockDiceService as any // diceService - controls dice values
     );
 
     // Set the effect engine service on turn service for circular dependency
@@ -188,8 +200,8 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
     mockServices.dataService.getSpaceEffects.mockReturnValue([]);
     mockServices.dataService.getDiceEffects.mockReturnValue([]);
 
-    // Mock the rollDice method to return a fixed value
-    vi.spyOn(turnService as any, 'rollDice').mockReturnValue(4);
+    // Control dice value via mock dice service
+    mockDiceService.rollDice.mockReturnValue(4);
 
     const result = await turnService.rollDiceWithFeedback('player1');
 
@@ -227,8 +239,8 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
     mockServices.dataService.getSpaceEffects.mockReturnValue([]);
     mockServices.dataService.getDiceEffects.mockReturnValue([]);
 
-    // Mock the rollDice method to return a fixed value
-    vi.spyOn(turnService as any, 'rollDice').mockReturnValue(3);
+    // Control dice value via mock dice service
+    mockDiceService.rollDice.mockReturnValue(3);
 
     const result = await turnService.rollDiceWithFeedback('player1');
 
@@ -266,8 +278,8 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
     mockServices.dataService.getSpaceEffects.mockReturnValue([]);
     mockServices.dataService.getDiceEffects.mockReturnValue([]);
 
-    // Mock the rollDice method to return a different value for re-roll
-    vi.spyOn(turnService as any, 'rollDice').mockReturnValue(6);
+    // Control dice value via mock dice service
+    mockDiceService.rollDice.mockReturnValue(6);
 
     const result = await turnService.rerollDice('player1');
 

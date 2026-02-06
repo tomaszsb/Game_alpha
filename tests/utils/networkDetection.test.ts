@@ -3,6 +3,7 @@
  *
  * Tests for network detection utilities used for multi-device support
  * @vitest-environment jsdom
+ * @vitest-pool forks
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

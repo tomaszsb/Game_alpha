@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import { beforeEach, afterEach, vi } from 'vitest';
 
 // Environment detection
-const isVerboseMode = process.env.VERBOSE_TESTS === 'true' || 
+const isVerboseMode = process.env.VERBOSE_TESTS === 'true' ||
                       process.env.CI_VERBOSE === 'true' ||
                       process.env.VITEST_VERBOSE === 'true';
 
@@ -15,7 +15,7 @@ const isDebugMode = process.env.DEBUG_TESTS === 'true' ||
 // Console suppression for performance (75% improvement)
 if (!isVerboseMode && !isDebugMode) {
   const originalError = console.error;
-  
+
   beforeEach(() => {
     console.log = vi.fn();
     console.error = vi.fn();
@@ -23,7 +23,7 @@ if (!isVerboseMode && !isDebugMode) {
     console.info = vi.fn();
     console.debug = vi.fn();
   });
-  
+
   // Keep original error for critical issues
   if (isDebugMode) {
     console.error = originalError;
@@ -71,10 +71,20 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Global cleanup after each test
-afterEach(() => {
-  // Standard vitest cleanup (handles most cases efficiently)
+afterEach(async () => {
+  // Standard vitest cleanup (handles fake timers)
   vi.clearAllTimers();
   vi.restoreAllMocks();
+
+  // Reset singleton services to prevent timer/state leaks between tests
+  try {
+    const { resetWebSocketService } = await import('../src/services/WebSocketSyncService');
+    resetWebSocketService();
+  } catch {}
+  try {
+    const { resetTooltipService } = await import('../src/services/TooltipService');
+    resetTooltipService();
+  } catch {}
 
   // Only in verbose/debug mode, do more aggressive cleanup
   if (isVerboseMode || isDebugMode) {

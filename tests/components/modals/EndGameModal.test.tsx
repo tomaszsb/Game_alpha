@@ -1,3 +1,4 @@
+/* @vitest-pool forks */
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';

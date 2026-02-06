@@ -2,6 +2,34 @@
 
 ---
 
+## v2.16 - Setup Screen Layout + TV Improvements (February 5, 2026)
+
+**Release Date:** February 5, 2026
+**Version:** 2.16
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### Improved: Game Setup Screen Layout
+
+**What Changed:** The game setup screen (after clicking "Host Game") now uses a horizontal two-panel layout instead of a narrow vertical card.
+
+**What You'll See:**
+- Left panel: Player list and "Add Player" button
+- Right panel: Game settings, admin tools, and "Start Game" button
+- Header bar with game title and game code
+- Works great on TV screens and wide monitors
+
+### Improved: TV Display is More Compact
+
+**What Changed:** The Project Progress panel on the TV display is now more compact, giving the game board more room.
+
+**Improvements:**
+- Smaller progress bars and player cards
+- Goal banner hidden to save space
+- Condensed spacing throughout
+
+---
+
 ## v2.15 - Landing Page Flows + TV Display + Editor Polish (February 5, 2026)
 
 **Release Date:** February 5, 2026

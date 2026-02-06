@@ -134,6 +134,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             onToggleGameLog={() => {}}
             onOpenRulesModal={() => {}}
             hideButtons
+            compact
           />
         )}
 

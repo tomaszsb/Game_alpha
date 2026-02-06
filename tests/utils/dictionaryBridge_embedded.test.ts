@@ -1,3 +1,4 @@
+/* @vitest-pool forks */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openInDictionary, registerPanelOpenCallback, unregisterPanelOpenCallback } from '../../src/utils/dictionaryBridge';
 

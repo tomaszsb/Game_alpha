@@ -26,13 +26,15 @@ interface ProjectProgressProps {
   onOpenDataEditor?: () => void;
   /** Hide action buttons (for TV display mode). */
   hideButtons?: boolean;
+  /** Compact mode for TV display - reduced padding, hidden goal banner. */
+  compact?: boolean;
 }
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor, hideButtons }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor, hideButtons, compact }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   // Memoize project scope calculations for all players - only recalculates when cards change
@@ -125,8 +127,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const containerStyle = {
     background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
     borderRadius: '12px',
-    padding: '16px',
-    margin: '16px 0',
+    padding: compact ? '8px' : '16px',
+    margin: compact ? '4px 0' : '16px 0',
     border: `2px solid ${colors.primary.main}`,
     boxShadow: '0 4px 16px rgba(33, 150, 243, 0.2)'
   };
@@ -144,8 +146,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const progressBarContainerStyle = {
     background: colors.secondary.light,
     borderRadius: '8px',
-    height: '12px',
-    marginBottom: '12px',
+    height: compact ? '8px' : '12px',
+    marginBottom: compact ? '6px' : '12px',
     overflow: 'hidden',
     position: 'relative' as const
   };
@@ -161,31 +163,31 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   const phaseIndicatorsStyle = {
     display: 'flex',
     justifyContent: 'space-between',
-    marginBottom: '16px',
+    marginBottom: compact ? '8px' : '16px',
     padding: '0 8px'
   };
 
   const phaseIndicatorStyle = (phase: string, index: number) => ({
-    fontSize: '0.7rem',
+    fontSize: compact ? '0.6rem' : '0.7rem',
     fontWeight: 'bold' as const,
     color: overallProgress.averageProgress >= ((index + 1) / phases.length) * 100 ? colors.success.main : colors.secondary.main,
     textAlign: 'center' as const,
-    minWidth: '60px'
+    minWidth: compact ? '40px' : '60px'
   });
 
   const playersGridStyle = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '8px',
-    marginTop: '8px'
+    gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? '150px' : '200px'}, 1fr))`,
+    gap: compact ? '4px' : '8px',
+    marginTop: compact ? '4px' : '8px'
   };
 
   const playerItemStyle = {
     background: colors.white,
     borderRadius: '8px',
-    padding: '8px 12px',
+    padding: compact ? '4px 8px' : '8px 12px',
     border: `1px solid ${colors.secondary.border}`,
-    fontSize: '0.8rem'
+    fontSize: compact ? '0.75rem' : '0.8rem'
   };
 
   const playerNameStyle = {
@@ -355,37 +357,40 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         ))}
       </div>
 
-      {/* Goal Banner */}
-      <div style={{
-        padding: '10px 16px',
-        backgroundColor: colors.success.bg,
-        borderRadius: '8px',
-        border: `2px solid ${colors.success.main}`,
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '12px'
-      }}>
-        <span style={{ fontSize: '1.2rem' }}>🎯</span>
-        <span style={{
-          fontSize: '0.95rem',
-          fontWeight: 'bold',
-          color: colors.text.success
+      {/* Goal Banner - hidden in compact mode */}
+      {!compact && (
+        <div style={{
+          padding: '10px 16px',
+          backgroundColor: colors.success.bg,
+          borderRadius: '8px',
+          border: `2px solid ${colors.success.main}`,
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px'
         }}>
-          Goal: Complete construction and reach the FINISH space
-        </span>
-      </div>
+          <span style={{ fontSize: '1.2rem' }}>🎯</span>
+          <span style={{
+            fontSize: '0.95rem',
+            fontWeight: 'bold',
+            color: colors.text.success
+          }}>
+            Goal: Complete construction and reach the FINISH space
+          </span>
+        </div>
+      )}
 
       {/* Overall Progress Info */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '16px',
-        marginBottom: '16px',
-        fontSize: '0.85rem',
-        color: colors.secondary.dark
+        gap: compact ? '8px' : '16px',
+        marginBottom: compact ? '6px' : '16px',
+        fontSize: compact ? '0.75rem' : '0.85rem',
+        color: colors.secondary.dark,
+        flexWrap: compact ? 'wrap' as const : undefined
       }}>
         <span>
           <strong>Overall Progress:</strong> {Math.round(overallProgress.averageProgress)}% | 
@@ -472,8 +477,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
                 {/* Design Fee Cap Bar */}
                 <div style={{
-                  marginTop: '8px',
-                  padding: '6px',
+                  marginTop: compact ? '4px' : '8px',
+                  padding: compact ? '3px' : '6px',
                   backgroundColor: '#fafafa',
                   borderRadius: '4px',
                   border: '1px solid #e0e0e0'
@@ -541,8 +546,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                                         timeline.progressPercent >= 75 ? '#ff9800' : '#4caf50';
                   return (
                     <div style={{
-                      marginTop: '8px',
-                      padding: '6px',
+                      marginTop: compact ? '4px' : '8px',
+                      padding: compact ? '3px' : '6px',
                       backgroundColor: '#fafafa',
                       borderRadius: '4px',
                       border: '1px solid #e0e0e0'
