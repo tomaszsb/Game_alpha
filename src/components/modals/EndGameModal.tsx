@@ -36,11 +36,8 @@ export function EndGameModal(): JSX.Element {
   }, [stateService]);
 
   const handlePlayAgain = () => {
-    try {
-      stateService.resetGame();
-    } catch (error) {
-      console.error('Error resetting game:', error);
-    }
+    // Navigate to root landing page instead of resetting in-place
+    window.location.href = window.location.origin + window.location.pathname;
   };
 
   // Don't render if game is not over or there's no winner

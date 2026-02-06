@@ -263,9 +263,36 @@ export function App(): JSX.Element {
     // If URL already has mode param, use it
     mode === 'tv' ? 'tv' : (isJoining ? 'join' : null)
   );
+  const [hostCreating, setHostCreating] = useState(false);
+  const [hostError, setHostError] = useState('');
 
   // Handle mode selection from landing page
   const handleModeSelect = (newMode: 'host' | 'tv' | 'join') => {
+    if (newMode === 'host') {
+      // Auto-create a new game and redirect
+      setSelectedMode('host');
+      setHostCreating(true);
+      setHostError('');
+
+      const backendURL = getBackendURL();
+      fetch(`${backendURL}/api/games`, { method: 'POST' })
+        .then(response => {
+          if (response.ok) return response.json();
+          throw new Error('Failed to create game');
+        })
+        .then(data => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('g', data.gameId);
+          window.location.href = url.toString();
+        })
+        .catch(() => {
+          setHostCreating(false);
+          setHostError('Cannot connect to server. Is it running?');
+          setSelectedMode(null);
+        });
+      return;
+    }
+
     setSelectedMode(newMode);
 
     // For TV mode, add it to URL so refreshing maintains mode
@@ -276,11 +303,20 @@ export function App(): JSX.Element {
     }
   };
 
+  // If host mode is creating a game, show loading
+  if (hostCreating) {
+    return (
+      <ErrorBoundary>
+        <LoadingScreen message="Creating game..." />
+      </ErrorBoundary>
+    );
+  }
+
   // If no game ID and no mode selected, show landing page
   if (!gameId && !selectedMode) {
     return (
       <ErrorBoundary>
-        <LandingPage onSelectMode={handleModeSelect} />
+        <LandingPage onSelectMode={handleModeSelect} error={hostError} />
       </ErrorBoundary>
     );
   }
@@ -307,6 +343,7 @@ export function App(): JSX.Element {
       <ErrorBoundary>
         <GameLobby
           onJoinGame={handleJoinGame}
+          mode={selectedMode === 'tv' ? 'tv' : undefined}
         />
       </ErrorBoundary>
     );

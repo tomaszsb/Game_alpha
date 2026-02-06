@@ -141,7 +141,7 @@ const styles: Record<string, React.CSSProperties> = {
   spaceCount: {
     padding: '8px 12px',
     fontSize: '12px',
-    color: '#6c757d',
+    color: '#495057',
     borderBottom: '1px solid #dee2e6'
   },
   spaceList: {
@@ -157,8 +157,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     fontWeight: 600,
     textTransform: 'uppercase',
-    color: '#6c757d',
-    backgroundColor: '#e9ecef'
+    color: '#343a40',
+    backgroundColor: '#dee2e6'
   },
   spaceItem: {
     padding: '8px 12px',
@@ -167,6 +167,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     fontSize: '13px',
+    color: '#212529',
     borderBottom: '1px solid #f0f0f0',
     transition: 'background-color 0.1s'
   },

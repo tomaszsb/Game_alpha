@@ -363,7 +363,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    color: '#6c757d'
+    color: '#495057'
   },
   placeholderIcon: {
     fontSize: '48px',
@@ -438,8 +438,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   label: {
     fontSize: '12px',
-    fontWeight: 500,
-    color: '#6c757d',
+    fontWeight: 600,
+    color: '#343a40',
     marginBottom: '4px'
   },
   input: {

@@ -233,7 +233,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '2px 8px',
     backgroundColor: '#e9ecef',
     borderRadius: '4px',
-    color: '#6c757d'
+    color: '#495057'
   },
   addButton: {
     padding: '6px 12px',
@@ -267,8 +267,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   label: {
     fontSize: '11px',
-    fontWeight: 500,
-    color: '#6c757d',
+    fontWeight: 600,
+    color: '#343a40',
     marginBottom: '4px'
   },
   input: {
@@ -309,7 +309,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   noRolls: {
     textAlign: 'center',
-    color: '#6c757d',
+    color: '#495057',
     padding: '40px 20px',
     fontStyle: 'italic'
   },

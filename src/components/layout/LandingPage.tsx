@@ -7,6 +7,7 @@ import { colors } from '../../styles/theme';
 
 interface LandingPageProps {
   onSelectMode: (mode: 'host' | 'tv' | 'join') => void;
+  error?: string;
 }
 
 /**
@@ -17,7 +18,7 @@ interface LandingPageProps {
  * - Arrow key navigation
  * - High contrast, readable from distance
  */
-export function LandingPage({ onSelectMode }: LandingPageProps): JSX.Element {
+export function LandingPage({ onSelectMode, error: externalError }: LandingPageProps): JSX.Element {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [gameCode, setGameCode] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
@@ -35,7 +36,7 @@ export function LandingPage({ onSelectMode }: LandingPageProps): JSX.Element {
       id: 'tv' as const,
       icon: '📺',
       title: 'TV Display',
-      description: 'Show the game board on a TV or large screen',
+      description: 'Open this URL on your TV or large screen to display the game board',
       color: '#9c27b0',
     },
     {
@@ -117,6 +118,13 @@ export function LandingPage({ onSelectMode }: LandingPageProps): JSX.Element {
         <p style={styles.subtitle}>The Construction Project Management Game</p>
       </header>
 
+      {/* Error from host creation failure */}
+      {externalError && (
+        <div style={{ textAlign: 'center', padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#dc2626', fontSize: 'clamp(0.8rem, 1.5vh, 1rem)' }}>
+          {externalError}
+        </div>
+      )}
+
       {/* Mode selection */}
       <main style={styles.main}>
         <h2 style={styles.selectTitle}>Select Mode</h2>
@@ -164,6 +172,9 @@ export function LandingPage({ onSelectMode }: LandingPageProps): JSX.Element {
                 style={styles.input}
                 maxLength={10}
                 autoComplete="off"
+                name="gamecode"
+                data-lpignore="true"
+                data-1p-ignore
               />
               <div style={styles.dialogButtons}>
                 <button

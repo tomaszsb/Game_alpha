@@ -1,14 +1,25 @@
 # Project Status
 
-**Last Updated**: January 25, 2026
-**Current Phase**: External Testing Ready (v2.12)
-**Current Version**: 2.12
+**Last Updated**: February 5, 2026
+**Current Phase**: External Testing Ready (v2.15)
+**Current Version**: 2.15
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Landing Page Flow Fixes + TV Display + Editor Contrast (February 5, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.15
+- **Features**: Fixed landing page button flows, full ProjectProgress on TV, editor readability
+- **Achievements**:
+  - Host Game auto-creates game and redirects (no lobby)
+  - TV Display shows only game picker; TV mode renders full ProjectProgress panel
+  - Autocomplete prevention on game code inputs
+  - EndGameModal and DataEditor navigate to root landing page
+  - Space Data Editor text contrast improvements across all editor components
 
 ### Mobile UI Polish with Animations & Theme System (January 25, 2026) ✅
 - **Status**: ✅ Complete

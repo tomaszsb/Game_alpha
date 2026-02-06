@@ -3,10 +3,11 @@
 // Shows game board prominently with QR codes for players to join
 // No interactive controls - just display
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { GameBoard } from '../game/GameBoard';
+import { ProjectProgress } from '../game/ProjectProgress';
 import { useGameContext } from '../../context/GameContext';
 import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
@@ -27,7 +28,7 @@ interface TVDisplayProps {
  * - No interactive controls (players use their phones)
  */
 export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
-  const { stateService, dataService } = useGameContext();
+  const { stateService, dataService, gameRulesService } = useGameContext();
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -35,49 +36,6 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   const [showActionOverlay, setShowActionOverlay] = useState(false);
 
   const gameId = getCurrentGameId();
-
-  // Get dynamic phase order from data service
-  const phases = useMemo(() => dataService.getPhaseOrder(), [dataService]);
-
-  // Calculate project progress for a player
-  const calculatePlayerProgress = (player: Player) => {
-    const allSpaces = [...(player.visitedSpaces || []), player.currentSpace];
-    let maxPhaseIndex = -1;
-    let maxPhase = 'UNKNOWN';
-
-    for (const spaceName of allSpaces) {
-      const spaceConfig = dataService.getGameConfigBySpace(spaceName);
-      if (spaceConfig) {
-        const phaseIndex = phases.findIndex(phase =>
-          spaceConfig.phase.toUpperCase().includes(phase)
-        );
-        if (phaseIndex > maxPhaseIndex) {
-          maxPhaseIndex = phaseIndex;
-          maxPhase = phases[phaseIndex];
-        }
-      }
-    }
-
-    if (maxPhaseIndex === -1) {
-      return { phase: 'UNKNOWN', progress: 0, phaseIndex: -1 };
-    }
-
-    const progress = ((maxPhaseIndex + 1) / phases.length) * 100;
-    return { phase: maxPhase, progress, phaseIndex: maxPhaseIndex };
-  };
-
-  // Calculate overall project progress
-  const overallProgress = useMemo(() => {
-    const firstPhase = phases.length > 0 ? phases[0] : 'UNKNOWN';
-    if (players.length === 0) return { averageProgress: 0, leadingPhase: firstPhase };
-
-    const playerProgresses = players.map(player => calculatePlayerProgress(player));
-    const averageProgress = playerProgresses.reduce((sum, p) => sum + p.progress, 0) / players.length;
-    const maxPhaseIndex = Math.max(...playerProgresses.map(p => p.phaseIndex));
-    const leadingPhase = maxPhaseIndex >= 0 ? phases[maxPhaseIndex] : firstPhase;
-
-    return { averageProgress, leadingPhase };
-  }, [players, phases, dataService]);
 
   // Subscribe to game state
   useEffect(() => {
@@ -166,39 +124,17 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
 
       {/* Main content area */}
       <main style={styles.main}>
-        {/* Project Progress Overview - TV optimized */}
+        {/* Full Project Progress panel - reuses the same component as main game view */}
         {gamePhase === 'PLAY' && (
-          <div style={styles.progressSection}>
-            <div style={styles.progressHeader}>
-              <span style={styles.progressTitle}>🚀 Project Progress</span>
-              <span style={styles.progressStats}>
-                {Math.round(overallProgress.averageProgress)}% | {overallProgress.leadingPhase}
-              </span>
-            </div>
-            <div style={styles.progressBarContainer}>
-              <div
-                style={{
-                  ...styles.progressBarFill,
-                  width: `${overallProgress.averageProgress}%`
-                }}
-              />
-            </div>
-            <div style={styles.phaseIndicators}>
-              {phases.map((phase, index) => (
-                <div
-                  key={phase}
-                  style={{
-                    ...styles.phaseIndicator,
-                    color: overallProgress.averageProgress >= ((index + 1) / phases.length) * 100
-                      ? colors.success.main
-                      : colors.text.secondary
-                  }}
-                >
-                  {phase}
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProjectProgress
+            players={players}
+            currentPlayerId={currentPlayerId}
+            dataService={dataService}
+            gameRulesService={gameRulesService}
+            onToggleGameLog={() => {}}
+            onOpenRulesModal={() => {}}
+            hideButtons
+          />
         )}
 
         {/* Game board - takes most of the screen */}
@@ -413,55 +349,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '1rem',
     overflow: 'hidden',
     gap: '1rem',
-  },
-  progressSection: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '1rem 1.5rem',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    border: `2px solid ${colors.primary.main}`,
-  },
-  progressHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.75rem',
-  },
-  progressTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 'bold',
-    color: colors.primary.main,
-  },
-  progressStats: {
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    color: colors.text.secondary,
-    backgroundColor: colors.primary.light,
-    padding: '0.25rem 0.75rem',
-    borderRadius: '20px',
-  },
-  progressBarContainer: {
-    backgroundColor: colors.secondary.light,
-    borderRadius: '8px',
-    height: '12px',
-    overflow: 'hidden',
-    marginBottom: '0.5rem',
-  },
-  progressBarFill: {
-    background: `linear-gradient(90deg, ${colors.success.main}, ${colors.game.teal}, ${colors.info.main})`,
-    height: '100%',
-    borderRadius: '8px',
-    transition: 'width 0.3s ease',
-  },
-  phaseIndicators: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '0 0.5rem',
-  },
-  phaseIndicator: {
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    textAlign: 'center' as const,
   },
   boardSection: {
     flex: 1,

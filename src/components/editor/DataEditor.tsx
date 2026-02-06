@@ -152,8 +152,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       });
 
       if (response.ok) {
-        alert('Game data cleared successfully!\n\nPage will reload...');
-        window.location.reload();
+        alert('Game data cleared successfully!\n\nReturning to home...');
+        window.location.href = window.location.origin + window.location.pathname;
       } else {
         alert(`Failed to clear game data (${response.status}). Please try again.`);
       }
@@ -442,12 +442,14 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     cursor: 'pointer',
     fontSize: '14px',
-    color: '#6c757d',
+    fontWeight: 500,
+    color: '#495057',
     borderBottom: '2px solid transparent',
     marginBottom: '-1px'
   },
   tabActive: {
     color: '#007bff',
+    fontWeight: 600,
     borderBottomColor: '#007bff',
     backgroundColor: 'white'
   },
@@ -523,7 +525,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 16px',
     borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '14px'
+    fontSize: '14px',
+    fontWeight: 600
   },
   exportButton: {
     background: '#28a745',
@@ -532,6 +535,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 16px',
     borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '14px'
+    fontSize: '14px',
+    fontWeight: 600
   }
 };

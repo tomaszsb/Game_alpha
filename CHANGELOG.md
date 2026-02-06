@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Landing Page Flow Fixes + TV Display + Editor Contrast (February 5, 2026)
+
+**Problem:** The new landing page (Host/TV/Join) had broken flows after button clicks. The old setup screen still appeared in some flows. TV Display only showed a simplified progress bar instead of the full ProjectProgress panel. Space Data Editor had low-contrast text.
+
+**Landing Page Flow Fixes:**
+- **Host Game auto-creates game:** Clicking "Host Game" now immediately creates a game via `POST /api/games` and redirects to it. Shows "Creating game..." loading screen. No more confusing GameLobby with 3 panels.
+- **TV Display shows only game picker:** GameLobby now accepts a `mode` prop. When `mode === 'tv'`, only the Active Games panel is shown with title "Select Game to Display on TV". Create Game and Join by Code panels are hidden.
+- **Join Game autocomplete prevention:** Added `autoComplete="off"`, `name="gamecode"`, `data-lpignore="true"`, `data-1p-ignore` attributes to game code inputs in both LandingPage and GameLobby to prevent password manager popups.
+- **EndGameModal returns to landing:** "Play Again" now navigates to root URL (`/`) instead of calling `resetGame()`, which previously left the old `?g=` param in the URL and showed the old setup screen.
+- **DataEditor returns to landing:** "Clear Game Data" now navigates to root URL instead of `window.location.reload()`, same fix as above.
+- **TV button description updated:** Changed to "Open this URL on your TV or large screen to display the game board".
+
+**TV Display Full ProjectProgress Panel:**
+- Replaced the simplified inline progress bar in TVDisplay with the full `ProjectProgress` component
+- TV now shows: overall progress %, leading phase, player count, current turn, current space info with title, per-player phase/progress bars, design fee cap bars, and project timeline bars
+- Added `hideButtons` prop to `ProjectProgress` to hide Rules/Log/View/TV/Edit buttons in TV mode
+- Removed duplicated progress calculation code from TVDisplay (now handled by ProjectProgress)
+
+**Space Data Editor Contrast Fixes:**
+- `SpaceBrowser.tsx`: Phase headers `#6c757d` → `#343a40`, space items added explicit `color: #212529`, space count `#6c757d` → `#495057`
+- `SpaceEditor.tsx`: Labels `#6c757d` → `#343a40` with `fontWeight: 600`, placeholder `#6c757d` → `#495057`
+- `DiceRollEditor.tsx`: Labels `#6c757d` → `#343a40` with `fontWeight: 600`, tags/empty state `#6c757d` → `#495057`
+- `DataEditor.tsx`: Tab text `#6c757d` → `#495057` with `fontWeight: 500/600`, buttons added `fontWeight: 600`
+
+**Files Modified:**
+- `src/App.tsx` - Host mode auto-create, TV mode prop passing, loading screen
+- `src/components/setup/GameLobby.tsx` - `mode` prop, conditional panel hiding, autocomplete attrs
+- `src/components/layout/LandingPage.tsx` - Autocomplete attrs, error prop, TV description
+- `src/components/modals/EndGameModal.tsx` - Navigate to root instead of resetGame()
+- `src/components/editor/DataEditor.tsx` - Navigate to root after clear, tab/button contrast
+- `src/components/layout/TVDisplay.tsx` - Full ProjectProgress component, removed inline progress
+- `src/components/game/ProjectProgress.tsx` - Added `hideButtons` prop
+- `src/components/editor/SpaceBrowser.tsx` - Text contrast fixes
+- `src/components/editor/SpaceEditor.tsx` - Label contrast fixes
+- `src/components/editor/DiceRollEditor.tsx` - Label/tag contrast fixes
+
 ### Mobile UI Layout Fixes (February 4, 2026)
 
 **Problem:** On mobile devices, the primary action button was invisible (covered by DetailSheet tabs) and only 2 of 4 stats were visible in the stats bar.

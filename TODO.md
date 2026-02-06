@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
-**Last Updated:** February 3, 2026
-**Status:** Production Ready - External Testing Infrastructure Deployed
+**Last Updated:** February 5, 2026
+**Status:** Production Ready - Mobile Optimization Sprint Planned
 
 ---
 
@@ -21,6 +21,12 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Landing Page Flow Fixes + TV Display + Editor Contrast (Feb 5, 2026)
+  - Host Game: auto-creates game and redirects (no more confusing lobby)
+  - TV Display: shows only game picker; full ProjectProgress panel in TV mode
+  - Join Game: autocomplete prevention for game code inputs
+  - EndGameModal/DataEditor: navigate to root landing page instead of old setup screen
+  - Space Editor: fixed low-contrast text (labels, phase headers, tabs, buttons)
 - ✅ UAT Bug Fixes + Dictionary Integration Prep (Feb 3, 2026)
   - Card Replacement Modal: Fixed 4 bugs (selection UX, removed exchange buttons, renamed button, return behavior)
   - Dictionary Panel: Iframe embedding ready (600px width, `useEmbeddedDashboard` prop, bridge callback)
@@ -488,6 +494,289 @@ Prepare final release package and deployment
 
 ---
 
+## 📱 **MOBILE OPTIMIZATION SPRINT** (February 2026)
+*Status: NOT STARTED*
+*Priority: HIGH - Blocking external testing on mobile devices*
+*Consultant Review: February 4, 2026*
+
+### Problem Statement
+Mobile players report that UI "doesn't fit on screens". The game is a Jackbox-style hybrid where players use mobile devices as controllers while viewing a shared TV/monitor display. Current implementation has responsive foundations but needs significant work to be truly mobile-friendly.
+
+### Current Mobile Architecture
+- **Framework:** React 18 + TypeScript (web-based, not native)
+- **Existing Mobile Components:** MobilePlayerPanel, StatsBar, PrimaryAction, ContextArea, ResponsiveSheet
+- **Breakpoint:** 768px (Bootstrap standard)
+- **State Sync:** HTTP POST with 500ms debounce (no WebSockets)
+
+---
+
+### 🔴 **CRITICAL: Layout Fixes (Do First)** ✅ ALL FIXED Feb 4, 2026
+
+**Issue #1: Fixed Pixel Values in Desktop Layout** ✅ FIXED
+- **File:** `src/components/layout/GameLayout.tsx` (lines 236-280)
+- **Problem:** Desktop uses fixed widths (`1280px`, `1120px`, etc.) that don't scale to mobile
+- **Fix:** Add mobile breakpoint CSS:
+```css
+@media (max-width: 768px) {
+  .game-interface-responsive {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr auto !important;
+    column-gap: 0;
+    padding: 0;
+    height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+  .game-interface-responsive > * {
+    grid-column: 1 !important;
+  }
+}
+@media (max-width: 480px) {
+  .game-interface-responsive { padding: 0; }
+}
+```
+
+**Issue #2: Modal Max-Height Cuts Off Content** ✅ FIXED
+- **File:** `src/components/modals/ResponsiveSheet.tsx` (line 112)
+- **Problem:** `maxHeight: '85vh'` leaves only 15% for system UI, but mobile browsers have dynamic toolbars
+- **Fix:** Changed to `maxHeight: '100dvh'` and `height: '100dvh'` for full screen on mobile
+
+**Issue #3: Content Overflow in ContextArea** ✅ FIXED
+- **File:** `src/components/player/mobile/MobilePlayerPanel.css` (lines 129-137)
+- **Problem:** Context area has `overflow-y: auto` but parent has `overflow: hidden`, causing clipping
+- **Fix:** Added `-webkit-overflow-scrolling: touch`, ensured proper scroll chain, split overflow-x/y
+
+**Issue #4: Stats Bar Cramped on Small Screens** ✅ FIXED
+- **File:** `src/components/player/mobile/StatsBar.css` (lines 12-25)
+- **Problem:** Four stats in a row with `flex-wrap: nowrap` forces horizontal scroll on phones <360px
+- **Fix:** Added 2x2 grid for screens <400px, plus extra narrow breakpoint for <320px
+
+**Issue #5: Font Sizes Too Large for Small Screens** ✅ FIXED
+- **Multiple files:** MobilePlayerPanel.css, StatsBar.css
+- **Problem:** Current font sizes (14-18px) fine for tablets but cramped on phones
+- **Fix:** Added `clamp()` fluid typography throughout mobile components (story text, action labels, decision prompts, stats)
+
+---
+
+### 🟠 **HIGH PRIORITY: Touch Optimization**
+
+**Issue #6: Touch Targets Too Small** ✅ FIXED
+- **Minimum:** Apple/Google recommend 44x44px minimum
+- **Problem:** Some buttons have smaller tap areas (decision options at 12px padding)
+- **Fix:** Added `min-height: 48px` to decision options and `min-width/min-height: 44px` to stats bar items
+
+**Issue #7: No Swipe Gestures**
+- **Problem:** Bottom sheets only close via tap on X or backdrop
+- **Recommendation:** Add swipe-to-dismiss for ResponsiveSheet
+  - Swipe down to close modals
+  - Swipe between cards in hand
+  - Swipe to navigate sections
+- **Library:** Consider `react-swipeable` or use existing Framer Motion gestures
+
+**Issue #8: Haptic Feedback Not Used Consistently** ✅ FIXED
+- **Added:** New patterns to `haptics.ts` (diceRoll, cardDraw, movement)
+- **Integrated haptics in:**
+  - `GameLayout.tsx` - dice roll (strong) and error feedback
+  - `MobilePlayerPanel.tsx` - turn notification (double pulse)
+  - `DecisionView.tsx` - choice selection (light tap)
+  - `StatsBar.tsx` - stat taps (light tap)
+  - `PrimaryAction.tsx` - already had haptics (button press, success)
+
+**Issue #9: 300ms Tap Delay on Some Elements** ✅ FIXED
+- **Problem:** Not all elements have `touch-action: manipulation`
+- **Fix:** Added globally in index.html: `* { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }`
+
+**Issue #10: No Pull-to-Refresh**
+- **Recommendation:** Add pull-to-refresh to sync state from server (useful when other players make moves)
+
+---
+
+### 🟡 **MEDIUM PRIORITY: TV/Mobile Role Separation**
+
+**Issue #11: TV Shows Too Much Detail** ✅ FIXED
+- **Solution:** Created `TVDisplay` component (`src/components/layout/TVDisplay.tsx`) that:
+  - Shows large game board prominently
+  - Current player indicator with colored banner
+  - QR codes for all players to join
+  - Dramatic action overlays for events
+  - No interactive controls (display only)
+
+**Issue #12: Mobile Shows Too Little** ✅ FIXED
+- **Solution:** Clear role detection implemented in `App.tsx`:
+  - TV mode: `?mode=tv` shows TVDisplay (no controls)
+  - Mobile mode: `?p=P1` shows player's controller interface
+  - Host mode: No params shows full GameLayout
+
+**Issue #13: No "TV Mode" URL Parameter** ✅ FIXED
+- **Implemented:** URL parameter routing:
+  - `?g=G1&mode=tv` → TVDisplay component
+  - `?g=G1&p=P1` → Player 1's mobile controller
+  - 📺 TV button in ProjectProgress header opens TV mode in new tab
+
+**Issue #14: State Sync is HTTP Polling (Laggy)**
+- **File:** `src/services/ServerSyncService.ts`
+- **Problem:** HTTP polling with 500ms debounce creates lag in multiplayer
+- **Recommendation:** Migrate to WebSockets or Server-Sent Events (SSE)
+  - WebSocket: Bidirectional, instant updates
+  - SSE: Server-to-client only, simpler, good for game state push
+- **Impact:** Critical for TV to update instantly when player acts
+
+---
+
+### 🟢 **IMPROVEMENTS: Mobile UX Enhancements**
+
+**Issue #15: No Offline Support**
+- **Problem:** Party games often happen in locations with poor WiFi
+- **Recommendation:** Add Service Worker for:
+  - Caching game assets
+  - Queuing actions when offline
+  - Syncing when reconnected
+
+**Issue #16: No Full-Screen Mode**
+- **Problem:** Mobile browsers have toolbars that eat screen space
+- **Fix:** Add "Enter Fullscreen" button:
+```typescript
+document.documentElement.requestFullscreen();
+```
+- **Alternative:** Use PWA manifest with `"display": "fullscreen"`
+
+**Issue #17: No Screen Orientation Lock**
+- **Recommendation:** Allow users to lock orientation:
+```typescript
+screen.orientation.lock('portrait');
+```
+
+**Issue #18: Battery Drain from Animations**
+- **File:** `src/styles/animations.css`
+- **Problem:** Continuous pulse animations drain battery
+- **Fix:** Respect `prefers-reduced-motion`:
+```css
+@media (prefers-reduced-motion: reduce) {
+  .waiting-icon { animation: none; }
+}
+```
+
+**Issue #19: No Loading States for Slow Networks**
+- **Problem:** `SkeletonLoader.tsx` exists but isn't used in all views
+- **Fix:** Add skeleton loaders while fetching state
+
+**Issue #20: Missing "Your Turn" Push Notification** ✅ FIXED
+- **Implemented:** Web Push Notifications to alert players when it's their turn
+- **Files:** `src/utils/pushNotifications.ts` (new), `src/components/player/mobile/MobilePlayerPanel.tsx`, `src/components/layout/GameLayout.tsx`
+- **Features:** Auto-requests permission when game starts, sends notification when tab is in background, click notification focuses game tab
+
+---
+
+### 🔵 **PATH TO NATIVE APPS**
+
+**Issue #21: No PWA Manifest** ✅ FIXED
+- **Created:** `public/manifest.json` with app name, display mode, theme colors
+- **Updated:** `index.html` with manifest link, apple-mobile-web-app meta tags, theme-color
+- **Note:** Uses existing logo.png; for best results, create 192x192 and 512x512 icons
+
+**Issue #22: No App Icons**
+- **Create:** Icons in sizes 192x192 and 512x512 (PNG)
+- **Location:** `public/icons/`
+
+**Issue #23: Future Native App Strategy**
+- **Options:**
+  1. **Capacitor (Recommended)** - Wrap React app in native shell
+  2. **React Native** - Rewrite UI (more work, better performance)
+  3. **PWA only** - Sufficient for party games
+- **For Capacitor:**
+```bash
+npm install @capacitor/core @capacitor/cli
+npx cap init
+npx cap add ios
+npx cap add android
+```
+
+---
+
+### 🟣 **SPECIFIC UI COMPONENT FIXES**
+
+**Issue #24: Decision Options Overflow**
+- **Problem:** Long option text wraps awkwardly
+- **Fix:** Truncate with ellipsis or expand on tap:
+```css
+.option-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+```
+
+**Issue #25: StatsBar Icons Are Emoji**
+- **Problem:** Emoji render differently across devices
+- **Recommendation:** Use consistent icon library (Lucide React, Heroicons)
+
+**Issue #26: No Dark Mode Toggle Visible**
+- **Problem:** Dark mode exists in CSS but no UI to toggle
+- **Fix:** Add toggle in header or settings
+
+**Issue #27: Card Display Too Dense**
+- **Problem:** Card details have lots of information
+- **Recommendation:** Use progressive disclosure:
+  - Show card name + type initially
+  - Tap to expand full details
+
+**Issue #28: No Zoom/Pan on Game Board**
+- **Problem:** TV display should allow zooming the board
+- **Recommendation:** Add pinch-to-zoom for mobile, scroll-wheel zoom for TV
+
+---
+
+### 🔧 **TESTING RECOMMENDATIONS**
+
+**Issue #29: No Mobile Device Testing Setup**
+- **Recommendation:** Add Playwright mobile emulation tests:
+```typescript
+devices: ['iPhone 13', 'Pixel 5', 'iPad Pro']
+```
+
+**Issue #30: No Performance Monitoring**
+- **Recommendation:** Track mobile performance metrics:
+  - Time to Interactive (TTI)
+  - First Contentful Paint (FCP)
+  - Cumulative Layout Shift (CLS)
+
+**Issue #31: No Real Device Testing**
+- **Recommendation:** Test on actual devices (browser DevTools is not enough):
+  - iPhone SE (smallest common phone)
+  - iPhone 14 Pro Max (largest)
+  - Samsung Galaxy (Android)
+  - Budget Android (<$200)
+
+**Issue #32: No Network Throttling Tests**
+- **Recommendation:** Test with "Slow 3G" in DevTools to ensure playability on poor connections
+
+---
+
+### Prioritized Action Plan
+
+| Priority | Issue | Effort | Impact | Status |
+|----------|-------|--------|--------|--------|
+| 1 | Add mobile breakpoint to GameLayout (#1) | Low | High | ✅ Fixed Feb 4 |
+| 2 | Fix modal max-height for mobile (#2) | Low | High | ✅ Fixed Feb 4 |
+| 3 | Add 2x2 StatsBar grid for narrow screens (#4) | Low | Medium | ✅ Fixed Feb 4 |
+| 4 | Implement TV mode (`?mode=tv`) (#11, #13) | Medium | High | ✅ Fixed Feb 4 |
+| 5 | Migrate to WebSockets (#14) | High | High | ⬜ |
+| 6 | Add PWA manifest (#21) | Low | Medium | ✅ Fixed Feb 4 |
+| 7 | Increase touch target sizes (#6) | Low | Medium | ✅ Fixed Feb 4 |
+| 8 | Add swipe gestures (#7) | Medium | Medium | ✅ Fixed Feb 4 |
+| 9 | Add haptic feedback consistently (#8) | Low | Low | ✅ Fixed Feb 4 |
+| 10 | Add push notifications (#20) | Medium | Medium | ✅ Fixed Feb 4 |
+
+### Success Criteria
+- [x] Game UI fits on iPhone SE (375px width) without horizontal scroll ✅ Feb 4
+- [x] All interactive elements have 44x44px minimum touch targets ✅ Feb 4
+- [x] TV mode displays game board prominently with QR code for joining ✅ Feb 4
+- [x] Mobile mode shows only player's controller interface ✅ Feb 4
+- [ ] State updates appear on TV within 100ms of player action (needs WebSockets)
+- [x] PWA installable on iOS and Android home screens ✅ Feb 4
+
+---
+
 ## 🔮 **FUTURE: Planned Features**
 
 ### Multi-Game Session Support ✅
@@ -630,4 +919,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** February 3, 2026
+**Last Updated:** February 5, 2026

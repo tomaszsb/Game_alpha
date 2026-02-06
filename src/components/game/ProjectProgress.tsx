@@ -24,13 +24,15 @@ interface ProjectProgressProps {
   onOpenDisplaySettings?: () => void;
   /** Callback function to open the data editor. */
   onOpenDataEditor?: () => void;
+  /** Hide action buttons (for TV display mode). */
+  hideButtons?: boolean;
 }
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor, hideButtons }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   // Memoize project scope calculations for all players - only recalculates when cards change
@@ -236,7 +238,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           )}
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        {!hideButtons && <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={onOpenRulesModal} style={{
             padding: '6px 12px',
             fontSize: '11px',
@@ -293,6 +295,29 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>View</span>
             </button>
           )}
+          {/* TV Mode button - opens game in dedicated TV display */}
+          <button onClick={() => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('mode', 'tv');
+            window.open(url.toString(), '_blank');
+          }} style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            backgroundColor: '#9c27b0',
+            color: colors.white,
+            border: `2px solid ${colors.white}`,
+            borderRadius: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <span>📺</span>
+            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>TV</span>
+          </button>
           {onOpenDataEditor && (
             <button onClick={onOpenDataEditor} style={{
               padding: '6px 12px',
@@ -313,7 +338,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Edit</span>
             </button>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Overall Progress Bar */}

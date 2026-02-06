@@ -2,6 +2,47 @@
 
 ---
 
+## v2.15 - Landing Page Flows + TV Display + Editor Polish (February 5, 2026)
+
+**Release Date:** February 5, 2026
+**Version:** 2.15
+**Status:** Alpha Testing
+**Type:** Bug Fix + Enhancement
+
+### Fixed: Landing Page Button Flows
+
+**What Changed:** The Host Game, TV Display, and Join Game buttons now work correctly.
+
+**Issues Fixed:**
+- **Host Game:** Now instantly creates a new game and takes you to setup. No more confusing lobby screen with 3 panels.
+- **TV Display:** Shows only the active games list with "Select Game to Display on TV" title. No more Create Game or Join by Code panels.
+- **Join Game:** Game code input no longer triggers password manager suggestions.
+- **Play Again / Clear Game Data:** Both now return you to the landing page instead of getting stuck on the old setup screen.
+
+### Enhanced: TV Display Shows Full Game Stats
+
+**What Changed:** The TV Display now shows the complete Project Progress panel.
+
+**What You'll See on TV:**
+- Overall progress percentage and leading phase
+- Player count and current turn indicator
+- Current space name with description
+- Per-player progress bars with phase info
+- Design fee cap bars per player
+- Project timeline bars per player
+
+### Improved: Space Data Editor Readability
+
+**What Changed:** Text in the Space Data Editor is now much easier to read.
+
+**Improvements:**
+- Phase headers, space names, and labels are darker and bolder
+- Tab text is more visible
+- Footer buttons have bolder text
+- All low-contrast gray text (`#6c757d`) replaced with darker alternatives (`#343a40`, `#495057`)
+
+---
+
 ## v2.14 - Mobile UI Fixes (February 4, 2026)
 
 **Release Date:** February 4, 2026
