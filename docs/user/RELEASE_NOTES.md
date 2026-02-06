@@ -2,6 +2,27 @@
 
 ---
 
+## v2.17 - Admin Password Protection (February 5, 2026)
+
+**Release Date:** February 5, 2026
+**Version:** 2.17
+**Status:** Alpha Testing
+**Type:** Security Enhancement
+
+### New: Admin Tools are Password-Protected
+
+**What Changed:** The Data Editor and admin tools now require a password before you can access them.
+
+**How It Works:**
+- Click "Unlock Admin Tools" on the game setup screen
+- Enter the admin password to gain access
+- Your session stays unlocked until you close the browser tab
+- Click the lock icon to re-lock admin tools at any time
+
+**Why:** Prevents accidental or unauthorized changes to game data during playtesting.
+
+---
+
 ## v2.16 - Setup Screen Layout + TV Improvements (February 5, 2026)
 
 **Release Date:** February 5, 2026

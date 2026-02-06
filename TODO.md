@@ -21,6 +21,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Admin Password Protection for Data Editor (Feb 5, 2026)
+  - Server-side SHA-256 password verification endpoint (`POST /api/admin/verify`)
+  - Frontend auth gate on PlayerSetup admin tools and DataEditor
+  - sessionStorage-based auth (resets on tab close), configurable via env var
+- ✅ URL Migration: DuckDNS → game.unravelcodes.com (Feb 5, 2026)
 - ✅ PlayerSetup Horizontal Layout + Compact TV Progress + Test Perf (Feb 5, 2026)
   - PlayerSetup: converted to 2-panel horizontal layout (Players | Settings) for TV/wide screens
   - TV ProjectProgress: compact mode hides goal banner, reduces padding/fonts

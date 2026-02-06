@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Admin Password Protection for Data Editor (February 5, 2026)
+
+**Problem:** Admin tools (Data Editor) were accessible to anyone, risking accidental or unauthorized changes to game data.
+
+**Server-side:**
+- Added `POST /api/admin/verify` endpoint to Express server
+- SHA-256 password hashing with `crypto.timingSafeEqual` for timing-safe comparison
+- Default password: `unravel2026` (configurable via `ADMIN_PASSWORD_HASH` env var in docker-compose)
+- Logs auth success/failure events
+
+**Frontend:**
+- New `src/utils/adminAuth.ts` utility: `isAdminAuthenticated()`, `verifyAdminPassword()`, `clearAdminAuth()`
+- Uses `sessionStorage` so auth resets when browser tab is closed
+- PlayerSetup: Admin tools section gated with password prompt (locked → password input → unlocked with lock button)
+- DataEditor: `AdminAuthGate` component wraps editor, requires authentication regardless of entry point
+- Updated DataEditor tests to mock admin auth module (16 tests passing)
+
+**Files Modified:**
+- `server/server.js` - Added `/api/admin/verify` endpoint with SHA-256 verification
+- `src/utils/adminAuth.ts` - New admin auth utility (sessionStorage-based)
+- `src/components/setup/PlayerSetup.tsx` - Admin tools password gate UI
+- `src/components/editor/DataEditor.tsx` - AdminAuthGate wrapper component
+- `tests/components/editor/DataEditor.test.tsx` - Added admin auth mock
+- `docker-compose.yml` - Documented ADMIN_PASSWORD_HASH env var
+
+### URL Migration: DuckDNS → game.unravelcodes.com (February 5, 2026)
+
+- Updated all documentation references from `http://unravel-game.duckdns.org:3080` to `https://game.unravelcodes.com`
+- Files updated: README.md, USER_MANUAL.md, PRODUCT_CHARTER.md, PROJECT_STATUS.md, CLAUDE.md, API_REFERENCE.md
+
 ### PlayerSetup Horizontal Layout + Compact TV Progress + Test Performance (February 5, 2026)
 
 **PlayerSetup Horizontal Layout:**

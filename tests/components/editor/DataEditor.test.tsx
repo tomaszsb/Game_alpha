@@ -3,6 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DataEditor } from '../../../src/components/editor/DataEditor';
 import { GameContext } from '../../../src/context/GameContext';
 
+// Mock admin auth to always be authenticated in tests
+vi.mock('../../../src/utils/adminAuth', () => ({
+  isAdminAuthenticated: () => true,
+  verifyAdminPassword: vi.fn().mockResolvedValue(true),
+  clearAdminAuth: vi.fn()
+}));
+
 // Mock fetch for loading CSV files
 const mockSpacesCSV = `space_name,phase,visit_type,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls
 TEST-SPACE-1,SETUP,First,Test event 1,Test action 1,Test outcome 1,Draw 1,,,,,5 days,,TEST-SPACE-2,,,,,YES,Yes,Main,1

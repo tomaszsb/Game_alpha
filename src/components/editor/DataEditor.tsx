@@ -1,17 +1,103 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
+import { isAdminAuthenticated, verifyAdminPassword } from '../../utils/adminAuth';
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { DiceRollEditor } from './DiceRollEditor';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
 import { downloadSourceFiles } from './utils/csvExport';
+import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
   onClose: () => void;
 }
 
+/**
+ * Admin auth gate - shown before DataEditor content if not authenticated
+ */
+function AdminAuthGate({ onAuthenticated, onClose }: { onAuthenticated: () => void; onClose: () => void }): JSX.Element {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerify = async () => {
+    if (!password.trim()) return;
+    setVerifying(true);
+    setError('');
+    const success = await verifyAdminPassword(password);
+    setVerifying(false);
+    if (success) {
+      onAuthenticated();
+    } else {
+      setError('Incorrect password');
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{
+        backgroundColor: 'white', borderRadius: '12px', padding: '2rem',
+        maxWidth: '360px', width: '90%', textAlign: 'center'
+      }}>
+        <h3 style={{ margin: '0 0 0.5rem', color: colors.text.primary }}>🔒 Admin Access Required</h3>
+        <p style={{ margin: '0 0 1.25rem', color: colors.text.secondary, fontSize: '0.9rem' }}>
+          Enter the admin password to access the Data Editor.
+        </p>
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => { setPassword(e.target.value); setError(''); }}
+          onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+          autoFocus
+          style={{
+            width: '100%', padding: '0.75rem', marginBottom: '0.75rem',
+            border: `2px solid ${error ? '#dc3545' : '#dee2e6'}`,
+            borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box'
+          }}
+        />
+        {error && <p style={{ color: '#dc3545', fontSize: '0.85rem', margin: '0 0 0.75rem' }}>{error}</p>}
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: '0.65rem', backgroundColor: '#f8f9fa',
+              color: '#495057', border: '1px solid #dee2e6',
+              borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleVerify}
+            disabled={verifying}
+            style={{
+              flex: 1, padding: '0.65rem',
+              backgroundColor: colors.primary.main, color: 'white',
+              border: 'none', borderRadius: '8px',
+              cursor: verifying ? 'wait' : 'pointer',
+              fontSize: '0.9rem', fontWeight: '600'
+            }}
+          >
+            {verifying ? 'Verifying...' : 'Unlock'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
+  // Admin auth check
+  const [isAuthed, setIsAuthed] = useState(() => isAdminAuthenticated());
+  if (!isAuthed) {
+    return <AdminAuthGate onAuthenticated={() => setIsAuthed(true)} onClose={onClose} />;
+  }
   const { dataService } = useGameContext();
 
   // Editor state

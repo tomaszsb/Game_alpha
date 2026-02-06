@@ -10,6 +10,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { initializeWebSocket, broadcastStateUpdate, getRoomStats } from './websocket.js';
@@ -41,6 +42,10 @@ const CONFIG = {
 
   // Games file path
   GAMES_FILE: process.env.GAMES_FILE || './server/data/games.json',
+
+  // Admin password hash (SHA-256 of password, default: "unravel2026")
+  // To change: node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
+  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || 'f8ae3d3550bc96cabbc42d3c378c3bb65139032474f847af20d6e86093e7c1ef',
 };
 
 // Middleware
@@ -298,6 +303,30 @@ app.get('/health', (req, res) => {
     ntfyTopic: CONFIG.NTFY_TOPIC,
     websocket: getRoomStats()
   });
+});
+
+// ===== ADMIN AUTHENTICATION =====
+
+app.post('/api/admin/verify', (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ success: false, error: 'Password required' });
+  }
+
+  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
+  const expectedHash = CONFIG.ADMIN_PASSWORD_HASH;
+
+  // Timing-safe comparison to prevent timing attacks
+  const match = inputHash.length === expectedHash.length &&
+    crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(expectedHash));
+
+  if (match) {
+    logVisitor(req, 'ADMIN_AUTH_SUCCESS');
+    res.json({ success: true });
+  } else {
+    logVisitor(req, 'ADMIN_AUTH_FAILED');
+    res.status(401).json({ success: false, error: 'Invalid password' });
+  }
 });
 
 // ===== GAME MANAGEMENT ENDPOINTS =====

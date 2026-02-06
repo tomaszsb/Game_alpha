@@ -8,6 +8,7 @@ import { usePlayerValidation, GameSettings } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
+import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 
@@ -53,6 +54,13 @@ export function PlayerSetup({
   const [isStarting, setIsStarting] = useState(false);
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
+
+  // Admin auth state
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => isAdminAuthenticated());
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminVerifying, setAdminVerifying] = useState(false);
 
   // Use validation hook with services
   const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService);
@@ -116,6 +124,24 @@ export function PlayerSetup({
 
     const nextAvatar = validation.getNextAvatar(player.avatar || '', playerId);
     handleUpdatePlayer(playerId, 'avatar', nextAvatar);
+  };
+
+  /**
+   * Verify admin password
+   */
+  const handleAdminVerify = async () => {
+    if (!adminPassword.trim()) return;
+    setAdminVerifying(true);
+    setAdminError('');
+    const success = await verifyAdminPassword(adminPassword);
+    setAdminVerifying(false);
+    if (success) {
+      setIsAdminUnlocked(true);
+      setShowAdminPrompt(false);
+      setAdminPassword('');
+    } else {
+      setAdminError('Incorrect password');
+    }
   };
 
   /**
@@ -336,15 +362,104 @@ export function PlayerSetup({
               🛠️ Admin Tools
             </h3>
 
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {isAdminUnlocked ? (
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsDataEditorOpen(true)}
+                  style={{
+                    padding: '0.6rem 1rem',
+                    backgroundColor: colors.secondary.main,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  ⚙️ Space Data Editor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { clearAdminAuth(); setIsAdminUnlocked(false); }}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    backgroundColor: 'transparent',
+                    color: colors.secondary.main,
+                    border: `1px solid ${colors.secondary.light}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  🔓 Lock
+                </button>
+              </div>
+            ) : showAdminPrompt ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="password"
+                  placeholder="Admin password"
+                  value={adminPassword}
+                  onChange={(e) => { setAdminPassword(e.target.value); setAdminError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdminVerify()}
+                  autoFocus
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    border: `2px solid ${adminError ? '#dc3545' : colors.secondary.light}`,
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    width: '160px'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAdminVerify}
+                  disabled={adminVerifying}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: colors.primary.main,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: adminVerifying ? 'wait' : 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  {adminVerifying ? '...' : 'Unlock'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAdminPrompt(false); setAdminPassword(''); setAdminError(''); }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: 'transparent',
+                    color: colors.secondary.main,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Cancel
+                </button>
+                {adminError && (
+                  <span style={{ color: '#dc3545', fontSize: '0.8rem', width: '100%' }}>{adminError}</span>
+                )}
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={() => setIsDataEditorOpen(true)}
+                onClick={() => setShowAdminPrompt(true)}
                 style={{
                   padding: '0.6rem 1rem',
-                  backgroundColor: colors.secondary.main,
-                  color: 'white',
-                  border: 'none',
+                  backgroundColor: colors.secondary.light,
+                  color: colors.secondary.main,
+                  border: `1px solid ${colors.secondary.main}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '0.9rem',
@@ -354,9 +469,9 @@ export function PlayerSetup({
                   gap: '0.4rem'
                 }}
               >
-                ⚙️ Space Data Editor
+                🔒 Unlock Admin Tools
               </button>
-            </div>
+            )}
           </div>
 
           {/* Start game button */}

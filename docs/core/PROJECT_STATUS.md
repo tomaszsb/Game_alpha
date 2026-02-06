@@ -1,14 +1,25 @@
 # Project Status
 
 **Last Updated**: February 5, 2026
-**Current Phase**: External Testing Ready (v2.16)
-**Current Version**: 2.16
+**Current Phase**: External Testing Ready (v2.17)
+**Current Version**: 2.17
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Admin Password Protection for Data Editor (February 5, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.17
+- **Features**: Server-side password verification, frontend auth gates, sessionStorage auth
+- **Achievements**:
+  - `POST /api/admin/verify` endpoint with SHA-256 + timing-safe comparison
+  - PlayerSetup admin tools locked behind password prompt
+  - DataEditor wrapped with AdminAuthGate component
+  - Configurable via `ADMIN_PASSWORD_HASH` env var in docker-compose
+  - All 1319 tests passing (88 files, 0 failures)
 
 ### PlayerSetup Horizontal Layout + Compact TV + Test Performance (February 5, 2026) ✅
 - **Status**: ✅ Complete
