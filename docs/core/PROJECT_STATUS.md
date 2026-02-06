@@ -183,7 +183,7 @@ This document provides a high-level overview of the current work status for the 
 - **Milestone**: **EXTERNAL TESTING INFRASTRUCTURE READY**
 - **Achievements**:
   - **Docker Deployment**: Containerized app deployed to Unraid server
-  - **External Access**: `http://unravel-game.duckdns.org:3080`
+  - **External Access**: `https://game.unravelcodes.com`
   - **Multi-Game Sessions**: Server supports G1, G2, G3... independent games
   - **Game Persistence**: Auto-save to file, survives restarts
   - **Game Expiration**: 24-hour inactivity cleanup
@@ -202,7 +202,7 @@ This document provides a high-level overview of the current work status for the 
   - `GET /api/logs/summary` - Daily activity summary
 - **Remaining**:
   - Configure ntfy for instant push (phone background settings)
-  - Optional: Set up game.unravelcodes.com subdomain
+  - ~~Set up game.unravelcodes.com subdomain~~ ✅ Done via Cloudflare
 
 ### 1. E2E Game Loop Verification & Bug Fixes (December 28, 2025) ✅
 - **Status**: ✅ Complete

@@ -2,7 +2,7 @@
 
 **Status**: ALPHA TESTING - January 2026
 **Core Game Complete**: Fully playable multi-player board game with external access deployed
-**Public URL**: `http://unravel-game.duckdns.org:3080`
+**Public URL**: `https://game.unravelcodes.com`
 **Test Status**: ~1,027 tests passing across 87 test files (100% success rate in batches)
 **Version**: 2.12
 **Last Updated**: January 27, 2026
@@ -117,7 +117,7 @@ The Game Alpha application is **fully production-ready** with:
 
 ### **External Deployment (December 2025)**
 - **Docker Deployment**: Game running in container on Unraid server
-- **Public Access**: Available at `http://unravel-game.duckdns.org:3080`
+- **Public Access**: Available at `https://game.unravelcodes.com`
 - **Multi-Game Sessions**: Multiple game groups can play simultaneously (G1, G2, G3...)
 - **Game Persistence**: Auto-save to disk, survives server restarts
 - **Visitor Logging**: IP and device tracking with push notifications

@@ -25,7 +25,7 @@ Welcome to Unravel Codes: The Game! This manual will help you understand how to 
 
 ### Accessing the Game
 
-**Public URL:** `http://unravel-game.duckdns.org:3080`
+**Public URL:** `https://game.unravelcodes.com`
 
 **Local Development:** `http://localhost:3000`
 

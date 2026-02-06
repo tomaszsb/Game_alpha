@@ -3,7 +3,7 @@
 **Status:** Alpha Testing (January 2026)
 **Version:** 2.12
 **Test Coverage:** ~1,027 tests passing (100% success rate when run in batches)
-**Public URL:** `http://unravel-game.duckdns.org:3080`
+**Public URL:** `https://game.unravelcodes.com`
 
 ## Overview
 
@@ -14,7 +14,7 @@ Built with modern web technologies and a clean service-oriented architecture, th
 ## Quick Start
 
 ### Play Online (Recommended)
-Visit the public URL: `http://unravel-game.duckdns.org:3080`
+Visit the public URL: `https://game.unravelcodes.com`
 
 1. Click "Create New Game" to start a session
 2. Share the game link with friends/family

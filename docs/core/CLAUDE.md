@@ -10,7 +10,7 @@ Before making ANY code changes or commits:
 
 ### **🌐 Browser Automation**
 Chrome must be running with `--remote-debugging-port=9222` for browser automation.
-- **Game URL**: `http://unravel-game.duckdns.org:3080`
+- **Game URL**: `https://game.unravelcodes.com`
 
 **One-time setup (Admin PowerShell) - enables WSL to reach Chrome:**
 ```powershell
@@ -107,7 +107,7 @@ npm test
 ### **🚀 Deployment**
 
 **Production Server:** unraid (192.168.86.57) via SSH alias
-**Public URL:** http://unravel-game.duckdns.org:3080
+**Public URL:** https://game.unravelcodes.com
 **Repo on server:** `/mnt/user/appdata/Game_alpha`
 
 ```bash

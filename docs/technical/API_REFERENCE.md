@@ -22,7 +22,7 @@ The Express backend server (`server/server.js`) provides REST endpoints for mult
 
 ### Base URL
 - **Local:** `http://localhost:3001`
-- **Production:** `http://unravel-game.duckdns.org:3080`
+- **Production:** `https://game.unravelcodes.com`
 
 ### Game Management Endpoints
 
