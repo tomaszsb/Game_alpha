@@ -1,6 +1,6 @@
 // src/components/setup/PlayerList.tsx
 
-import React, { useState } from 'react';
+import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
@@ -26,20 +26,6 @@ export function PlayerList({
   onCycleAvatar,
   canRemovePlayer
 }: PlayerListProps): JSX.Element {
-
-  // ✅ CORRECT: State at component top level (not inside render function)
-  // Track QR code visibility for each player
-  const [qrVisibility, setQrVisibility] = useState<Record<string, boolean>>({});
-
-  /**
-   * Toggle QR code visibility for a specific player
-   */
-  const toggleQR = (playerId: string) => {
-    setQrVisibility(prev => ({
-      ...prev,
-      [playerId]: !prev[playerId]
-    }));
-  };
 
   /**
    * Handle input focus styling
@@ -110,8 +96,6 @@ export function PlayerList({
    * Render individual player card
    */
   const renderPlayerCard = (player: Player) => {
-    // ✅ CORRECT: Get state from component-level Record
-    const showQR = qrVisibility[player.id] || false;
     const playerURL = getServerURL(player.id, player.shortId);
     const networkInfo = getNetworkInfo();
 
@@ -122,27 +106,27 @@ export function PlayerList({
           background: colors.secondary.bg,
           border: `3px solid ${player.color}`,
           borderRadius: '12px',
-          padding: '1.5rem',
+          padding: '1rem 1.25rem',
           display: 'flex',
-          flexDirection: 'column',
           gap: '1rem',
+          alignItems: 'center',
           transition: 'all 0.3s ease',
           animation: 'slideInFromLeft 0.5s ease-out'
         }}
       >
-        {/* Main player info row */}
+        {/* Left side: Avatar + Name + Colors + Remove */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '60px 1fr auto',
-          gap: '1rem',
-          alignItems: 'center'
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          flex: '0 1 auto',
+          minWidth: 0
         }}>
-          {/* Avatar section */}
-          <div style={{ textAlign: 'center' }}>
+          {/* Avatar */}
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
             <div
               style={{
-                fontSize: '2.5rem',
-                marginBottom: '0.5rem',
+                fontSize: '2rem',
                 cursor: 'pointer',
                 userSelect: 'none'
               }}
@@ -151,21 +135,14 @@ export function PlayerList({
             >
               {player.avatar}
             </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: colors.secondary.main
-            }}>
-              Click to change
-            </div>
           </div>
 
-          {/* Name and color inputs */}
+          {/* Name + Colors stacked */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '1rem'
+            gap: '0.5rem'
           }}>
-            {/* Name input */}
             <input
               type="text"
               placeholder="Enter player name"
@@ -173,18 +150,19 @@ export function PlayerList({
               onChange={(e) => onUpdatePlayer(player.id, 'name', e.target.value)}
               maxLength={20}
               style={{
-                padding: '0.75rem',
+                padding: '0.5rem 0.75rem',
                 border: `2px solid ${colors.secondary.light}`,
                 borderRadius: '8px',
                 fontSize: '1rem',
                 fontWeight: 'bold',
-                transition: 'border-color 0.3s ease'
+                transition: 'border-color 0.3s ease',
+                width: `${AVAILABLE_COLORS.length * 30 + (AVAILABLE_COLORS.length - 1) * 8}px`,
+                maxWidth: '100%',
+                boxSizing: 'border-box'
               }}
               onFocus={(e) => handleInputFocus(e, player.color || '')}
               onBlur={handleInputBlur}
             />
-
-            {/* Color picker */}
             {renderColorPicker(player)}
           </div>
 
@@ -197,13 +175,14 @@ export function PlayerList({
                 color: 'white',
                 border: 'none',
                 borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                fontSize: '1.5rem',
+                width: '32px',
+                height: '32px',
+                fontSize: '1.2rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
                 transition: 'all 0.3s ease'
               }}
               onMouseEnter={handleRemoveMouseEnter}
@@ -216,124 +195,61 @@ export function PlayerList({
           )}
         </div>
 
-        {/* QR Code section */}
+        {/* Right side: QR code (always visible) or Connected badge */}
         <div style={{
-          borderTop: `1px solid ${colors.secondary.light}`,
-          paddingTop: '1rem'
+          marginLeft: 'auto',
+          flexShrink: 0,
+          textAlign: 'center'
         }}>
-          {/* Show "Connected" badge if player is on mobile */}
           {player.deviceType === 'mobile' ? (
             <div style={{
               background: colors.success.light,
               color: colors.success.text,
               border: `2px solid ${colors.success.main}`,
               borderRadius: '8px',
-              padding: '0.75rem 1rem',
-              fontSize: '0.9rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8rem',
               fontWeight: 'bold',
-              width: '100%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
+              gap: '0.25rem'
             }}>
-              ✅ Connected on mobile
+              ✅ Mobile
             </div>
           ) : (
-            /* Show QR code button if not connected via mobile */
-            <button
-              onClick={() => toggleQR(player.id)}
-              style={{
-                background: showQR ? colors.primary.main : colors.primary.light,
-                color: showQR ? 'white' : colors.primary.text,
-                border: 'none',
-                borderRadius: '8px',
-                padding: '0.75rem 1rem',
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.3s ease'
-              }}
-              title={showQR ? 'Hide QR code' : 'Show QR code for mobile access'}
-            >
-              📱 {showQR ? 'Hide' : 'Show'} QR Code
-            </button>
-          )}
-
-          {showQR && player.deviceType !== 'mobile' && (
-            <div style={{
-              marginTop: '1rem',
-              padding: '1rem',
-              background: 'white',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              {/* Network warning if on localhost */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               {networkInfo.isLocalhost && (
                 <div style={{
-                  background: colors.danger.light,
+                  fontSize: '0.65rem',
                   color: colors.danger.text,
-                  padding: '0.75rem',
-                  borderRadius: '6px',
-                  marginBottom: '1rem',
-                  fontSize: '0.85rem',
-                  textAlign: 'left'
+                  marginBottom: '0.25rem',
+                  maxWidth: '120px'
                 }}>
-                  ⚠️ <strong>Warning:</strong> Running on localhost. QR code will only work on this device.
-                  <br />
-                  Run <code style={{ background: 'rgba(0,0,0,0.1)', padding: '2px 4px', borderRadius: '3px' }}>
-                    npm run dev -- --host
-                  </code> to enable network access.
+                  localhost only
                 </div>
               )}
-
-              {/* QR Code */}
               <div style={{
-                display: 'inline-block',
-                padding: '1rem',
+                padding: '4px',
                 background: 'white',
-                borderRadius: '8px',
-                border: `2px solid ${player.color}`
+                borderRadius: '6px',
+                border: `2px solid ${player.color}`,
+                lineHeight: 0
               }}>
                 <QRCodeSVG
                   value={playerURL}
-                  size={180}
+                  size={100}
                   level="M"
-                  includeMargin={true}
+                  includeMargin={false}
                   fgColor={player.color || colors.primary.main}
                 />
               </div>
-
-              {/* Instructions */}
               <div style={{
-                marginTop: '1rem',
-                fontSize: '0.9rem',
-                color: colors.secondary.dark
-              }}>
-                <strong>{player.name || 'Player'}'s QR Code</strong>
-                <br />
-                <span style={{ fontSize: '0.8rem', color: colors.secondary.main }}>
-                  Scan with phone to access player panel
-                </span>
-              </div>
-
-              {/* URL display (for debugging) */}
-              <div style={{
-                marginTop: '0.75rem',
-                fontSize: '0.75rem',
+                fontSize: '0.65rem',
                 color: colors.secondary.main,
-                wordBreak: 'break-all',
-                background: colors.secondary.bg,
-                padding: '0.5rem',
-                borderRadius: '4px',
-                fontFamily: 'monospace'
+                marginTop: '0.25rem',
+                fontStyle: 'italic'
               }}>
-                {playerURL}
+                Optional: scan for personal screen
               </div>
             </div>
           )}

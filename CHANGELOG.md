@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Player Card Layout: Inline QR Codes + Compact Design (February 5, 2026)
+
+**Problem:** Player cards were too tall - QR codes appeared underneath the player info behind a toggle button, wasting vertical space. Name input was unnecessarily wide.
+
+**Changes:**
+- Player card is now a single horizontal row: avatar + name/colors on left, QR code on right
+- QR code always visible (100px, no toggle button needed) with player's color border
+- Name input width matched to color picker circles width (no longer stretches full width)
+- Added "Optional: scan for personal screen" note under each QR code
+- Connected mobile players show compact "Mobile" badge instead of QR
+- Removed `qrVisibility` state and `toggleQR` function (no longer needed)
+
+**Files Modified:**
+- `src/components/setup/PlayerList.tsx` - Horizontal player cards with inline QR codes
+
 ### Admin Password Protection for Data Editor (February 5, 2026)
 
 **Problem:** Admin tools (Data Editor) were accessible to anyone, risking accidental or unauthorized changes to game data.

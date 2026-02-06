@@ -2,6 +2,26 @@
 
 ---
 
+## v2.18 - Compact Player Cards with Inline QR Codes (February 5, 2026)
+
+**Release Date:** February 5, 2026
+**Version:** 2.18
+**Status:** Alpha Testing
+**Type:** UI Improvement
+
+### Improved: Player Cards are More Compact
+
+**What Changed:** Each player's QR code now appears to the right of their name and color picker, instead of underneath behind a button.
+
+**What You'll See:**
+- Player name, avatar, and color picker on the left
+- QR code always visible on the right (smaller, 100px)
+- Note below QR: "Optional: scan for personal screen"
+- No more "Show QR Code" button - it's always there
+- Players connected on mobile show a compact "Mobile" badge instead
+
+---
+
 ## v2.17 - Admin Password Protection (February 5, 2026)
 
 **Release Date:** February 5, 2026

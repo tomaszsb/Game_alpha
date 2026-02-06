@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: February 5, 2026
-**Current Phase**: External Testing Ready (v2.17)
-**Current Version**: 2.17
+**Current Phase**: External Testing Ready (v2.18)
+**Current Version**: 2.18
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Player Card Layout: Inline QR Codes + Compact Design (February 5, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.18
+- **Features**: Horizontal player cards, always-visible QR codes, compact name input
+- **Achievements**:
+  - QR code inline to the right of player info (no toggle button)
+  - Name input width matched to color picker circles
+  - "Optional: scan for personal screen" note under QR
+  - Compact "Mobile" badge for connected players
 
 ### Admin Password Protection for Data Editor (February 5, 2026) ✅
 - **Status**: ✅ Complete

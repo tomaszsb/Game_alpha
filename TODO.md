@@ -21,6 +21,9 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Player Card Layout: Inline QR + compact design (Feb 5, 2026)
+  - QR codes always visible to the right of player info (no toggle button)
+  - Name input width matched to color circles, compact horizontal layout
 - ✅ Admin Password Protection for Data Editor (Feb 5, 2026)
   - Server-side SHA-256 password verification endpoint (`POST /api/admin/verify`)
   - Frontend auth gate on PlayerSetup admin tools and DataEditor
