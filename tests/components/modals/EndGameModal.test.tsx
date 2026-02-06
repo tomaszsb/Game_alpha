@@ -230,7 +230,7 @@ describe('EndGameModal', () => {
   });
 
   describe('Play Again Functionality', () => {
-    it('should call stateService.resetGame when Play Again button is clicked', () => {
+    it('should navigate to root URL when Play Again button is clicked', () => {
       const gameOverState = {
         ...mockGameState,
         isGameOver: true,
@@ -241,15 +241,24 @@ describe('EndGameModal', () => {
 
       mockStateService.getGameState.mockReturnValue(gameOverState);
 
+      // Mock window.location
+      const originalLocation = window.location;
+      const mockLocation = { ...originalLocation, origin: 'http://localhost', pathname: '/', href: '' };
+      Object.defineProperty(window, 'location', { value: mockLocation, writable: true });
+
       render(<EndGameModal />);
-      
+
       const playAgainButton = screen.getByRole('button', { name: /play again/i });
       fireEvent.click(playAgainButton);
 
-      expect(mockStateService.resetGame).toHaveBeenCalledTimes(1);
+      // Should navigate to root URL (landing page) instead of calling resetGame
+      expect(mockLocation.href).toBe('http://localhost/');
+
+      // Restore
+      Object.defineProperty(window, 'location', { value: originalLocation, writable: true });
     });
 
-    it('should handle resetGame errors gracefully', () => {
+    it('should render Play Again button when game is over', () => {
       const gameOverState = {
         ...mockGameState,
         isGameOver: true,
@@ -259,21 +268,11 @@ describe('EndGameModal', () => {
       };
 
       mockStateService.getGameState.mockReturnValue(gameOverState);
-      mockStateService.resetGame.mockImplementation(() => {
-        throw new Error('Reset failed');
-      });
-
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       render(<EndGameModal />);
-      
+
       const playAgainButton = screen.getByRole('button', { name: /play again/i });
-      fireEvent.click(playAgainButton);
-
-      expect(mockStateService.resetGame).toHaveBeenCalledTimes(1);
-      expect(consoleSpy).toHaveBeenCalledWith('Error resetting game:', expect.any(Error));
-
-      consoleSpy.mockRestore();
+      expect(playAgainButton).toBeInTheDocument();
     });
   });
 
