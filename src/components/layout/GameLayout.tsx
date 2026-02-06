@@ -87,6 +87,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [isDiceResultModalOpen, setIsDiceResultModalOpen] = useState<boolean>(false);
   const [diceResult, setDiceResult] = useState<any>(null);
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState<boolean>(false);
+  const [isProgressCollapsed, setIsProgressCollapsed] = useState<boolean>(false);
   const [visiblePanels, setVisiblePanels] = useState<Record<string, boolean>>(() => {
     // Load from localStorage on mount
     try {
@@ -270,21 +271,29 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           overflow: hidden;
         }
 
-        /* Player panels container - no scrolling, flex layout */
+        /* Player panels container - scrollable flex layout */
         .game-player-panels {
           display: flex;
           flex-direction: column;
           gap: 4px;
           min-height: 0;
-          overflow: hidden;
+          overflow-y: auto;
         }
 
-        /* Individual player panel - shrink to fit */
+        /* Individual player panel - scrollable when content overflows */
         .game-player-panel-item {
           flex: 1 1 auto;
           min-height: 120px;
           max-height: 50%;
-          overflow: hidden;
+          overflow-y: auto;
+        }
+
+        .game-player-panel-item::-webkit-scrollbar {
+          width: 4px;
+        }
+        .game-player-panel-item::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.2);
+          border-radius: 2px;
         }
 
         /* When only 1 player panel, let it take more space */
@@ -706,6 +715,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 onOpenRulesModal={handleOpenRulesModal}
                 onOpenDisplaySettings={() => setIsDisplaySettingsOpen(true)}
                 onOpenDataEditor={() => setIsDataEditorOpen(true)}
+                collapsed={isProgressCollapsed}
+                onToggleCollapsed={() => setIsProgressCollapsed(prev => !prev)}
               />
             </div>
           )}

@@ -28,13 +28,17 @@ interface ProjectProgressProps {
   hideButtons?: boolean;
   /** Compact mode for TV display - reduced padding, hidden goal banner. */
   compact?: boolean;
+  /** Whether the progress overview is collapsed to a slim summary bar. */
+  collapsed?: boolean;
+  /** Callback to toggle collapsed state. */
+  onToggleCollapsed?: () => void;
 }
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor, hideButtons, compact }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, onOpenDataEditor, hideButtons, compact, collapsed, onToggleCollapsed }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   // Memoize project scope calculations for all players - only recalculates when cards change
@@ -123,6 +127,128 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   };
 
   const overallProgress = calculateOverallProgress();
+
+  // Collapsed mode: slim single-line summary bar
+  if (collapsed) {
+    return (
+      <div style={{
+        background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
+        borderRadius: '12px',
+        padding: '6px 16px',
+        margin: '4px 0',
+        border: `2px solid ${colors.primary.main}`,
+        boxShadow: '0 2px 8px rgba(33, 150, 243, 0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: colors.primary.text }}>
+          📊 {overallProgress.leadingPhase}
+        </span>
+        {currentPlayer && (
+          <span style={{ fontSize: '0.8rem', color: colors.secondary.dark }}>
+            ▶ {currentPlayer.name}'s Turn
+          </span>
+        )}
+        <span style={{ fontSize: '0.8rem', color: colors.secondary.dark }}>
+          {Math.round(overallProgress.averageProgress)}%
+        </span>
+        <span style={{
+          background: colors.primary.light,
+          color: colors.primary.text,
+          padding: '2px 8px',
+          borderRadius: '10px',
+          fontSize: '0.75rem',
+          fontWeight: 'bold'
+        }}>
+          {players.length} {players.length === 1 ? 'Player' : 'Players'}
+        </span>
+        {/* Progress mini-bar */}
+        <div style={{
+          flex: '1 1 60px',
+          minWidth: '60px',
+          maxWidth: '150px',
+          height: '6px',
+          background: colors.secondary.light,
+          borderRadius: '3px',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${overallProgress.averageProgress}%`,
+            height: '100%',
+            background: `linear-gradient(90deg, ${colors.success.main}, ${colors.game.teal})`,
+            borderRadius: '3px',
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {!hideButtons && (
+            <>
+              <button onClick={onOpenRulesModal} style={{
+                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                backgroundColor: colors.purple.main, color: colors.white,
+                border: `2px solid ${colors.white}`, borderRadius: '8px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+              }}>
+                <span>📋</span>
+              </button>
+              <button onClick={onToggleGameLog} style={{
+                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                backgroundColor: colors.primary.main, color: colors.white,
+                border: `2px solid ${colors.white}`, borderRadius: '8px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+              }}>
+                <span>📜</span>
+              </button>
+              {onOpenDisplaySettings && (
+                <button onClick={onOpenDisplaySettings} style={{
+                  padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                  backgroundColor: colors.success.main, color: colors.white,
+                  border: `2px solid ${colors.white}`, borderRadius: '8px',
+                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+                }}>
+                  <span>👁️</span>
+                </button>
+              )}
+              <button onClick={() => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('mode', 'tv');
+                window.open(url.toString(), '_blank');
+              }} style={{
+                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                backgroundColor: '#9c27b0', color: colors.white,
+                border: `2px solid ${colors.white}`, borderRadius: '8px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+              }}>
+                <span>📺</span>
+              </button>
+              {onOpenDataEditor && (
+                <button onClick={onOpenDataEditor} style={{
+                  padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                  backgroundColor: colors.secondary.main, color: colors.white,
+                  border: `2px solid ${colors.white}`, borderRadius: '8px',
+                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+                }}>
+                  <span>⚙️</span>
+                </button>
+              )}
+            </>
+          )}
+          {onToggleCollapsed && (
+            <button onClick={onToggleCollapsed} style={{
+              padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+              backgroundColor: colors.info.main, color: colors.white,
+              border: `2px solid ${colors.white}`, borderRadius: '8px',
+              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+            }}>
+              <span>▼</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const containerStyle = {
     background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
@@ -240,7 +366,27 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           )}
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
-        {!hideButtons && <div style={{ display: 'flex', gap: '8px' }}>
+        {!hideButtons && <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onToggleCollapsed && (
+            <button onClick={onToggleCollapsed} style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              backgroundColor: colors.info.main,
+              color: colors.white,
+              border: `2px solid ${colors.white}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <span>▲</span>
+              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Collapse</span>
+            </button>
+          )}
           <button onClick={onOpenRulesModal} style={{
             padding: '6px 12px',
             fontSize: '11px',
