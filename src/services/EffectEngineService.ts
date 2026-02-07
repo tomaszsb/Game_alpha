@@ -354,6 +354,16 @@ export class EffectEngineService implements IEffectEngineService {
               'owner'
             );
 
+            // Store funding result so ActionCenterPanel can show it persistently
+            const fundingMessage = `Owner invested $${ownerSeedMoney.toLocaleString()} as seed money (${(seedMoneyMultiplier * 100).toFixed(0)}% of project scope)`;
+            this.stateService.setDiceRollCompletion(fundingMessage);
+
+            // Also store project scope on the player
+            this.stateService.updatePlayer({
+              id: payload.playerId,
+              projectScope: projectScope
+            });
+
             // Emit auto-action event for notification
             const player = this.stateService.getPlayer(payload.playerId);
             if (player) {

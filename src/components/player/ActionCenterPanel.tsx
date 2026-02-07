@@ -291,9 +291,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
 
   const tabConfig: { key: ReferenceTab; icon: string; label: string; hasBadge: boolean }[] = [
     { key: 'money', icon: '💰', label: 'Money', hasBadge: hasMoneyActions },
-    { key: 'time', icon: '⏱', label: 'Time', hasBadge: false },
-    { key: 'cards', icon: '🃏', label: 'Cards', hasBadge: hasCardActions || playableECards.length > 0 },
     { key: 'scope', icon: '📐', label: 'Scope', hasBadge: false },
+    { key: 'cards', icon: '🃏', label: 'Cards', hasBadge: hasCardActions || playableECards.length > 0 },
+    { key: 'time', icon: '⏱', label: 'Time', hasBadge: false },
     { key: 'log', icon: '📜', label: 'Log', hasBadge: false },
   ];
 
