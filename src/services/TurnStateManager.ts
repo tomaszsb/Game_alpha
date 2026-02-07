@@ -121,6 +121,29 @@ export class TurnStateManager {
       ? { ...realState.state }
       : this.extractMutableState(player);
 
+    // Always create REAL state if it doesn't exist yet — this captures the pre-effect
+    // snapshot so Try Again can restore to it later
+    if (!realState) {
+      console.log(`📸 Capturing initial REAL state for player ${playerId} (${Object.keys(sourceState).length} fields)`);
+      this.turnStateModel = {
+        ...this.turnStateModel,
+        realStates: {
+          ...this.turnStateModel.realStates,
+          [playerId]: {
+            playerId,
+            playerName: player.name,
+            state: { ...sourceState },
+            capturedAt: {
+              turnNumber: globalTurnCount,
+              spaceName,
+              visitType,
+              timestamp: new Date()
+            }
+          }
+        }
+      };
+    }
+
     // Create new TEMP state from REAL
     const newTempState: PlayerTurnState = {
       playerId,
