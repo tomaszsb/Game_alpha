@@ -727,29 +727,58 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             >
               {gamePhase === 'PLAY' ? (
                 <div className="game-player-panels">
-                  {players.filter(p => shouldShowPlayerPanel(p.id)).map(player => (
-                    <div key={player.id} className="game-player-panel-item">
-                      <PlayerPanelWrapper
-                        gameServices={gameServices}
-                        playerId={player.id}
-                        onToggleSpaceExplorer={handleToggleSpaceExplorer}
-                        onToggleMovementPath={handleToggleMovementPath}
-                        isSpaceExplorerVisible={isSpaceExplorerVisible}
-                        isMovementPathVisible={isMovementPathVisible}
-                        onTryAgain={handleTryAgain}
-                        playerNotification={playerNotifications[player.id]}
-                        onRollDice={handleRollDice}
-                        onAutomaticFunding={handleAutomaticFunding}
-                        onManualEffectResult={(result) => {
-                          if (result && result.effects && result.effects.length > 0) {
-                            setDiceResult(result);
-                            setIsDiceResultModalOpen(true);
-                          }
-                        }}
-                        completedActions={completedActions}
-                      />
-                    </div>
-                  ))}
+                  {(() => {
+                    const visiblePlayers = players.filter(p => shouldShowPlayerPanel(p.id));
+                    const hasMultipleLocal = visiblePlayers.length > 1;
+                    return visiblePlayers.map(player => {
+                      const isCurrentPlayer = player.id === currentPlayerId;
+                      // When multiple local panels, collapse non-current players to a mini bar
+                      if (hasMultipleLocal && !isCurrentPlayer) {
+                        return (
+                          <div key={player.id} className="game-player-panel-item" style={{
+                            flex: '0 0 auto',
+                            minHeight: 'auto',
+                            padding: '6px 10px',
+                            background: '#f5f5f5',
+                            borderRadius: '6px',
+                            border: '1px solid #e0e0e0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.8rem',
+                            color: '#757575',
+                          }}>
+                            <span style={{ fontSize: '1.2rem' }}>{player.avatar}</span>
+                            <span style={{ fontWeight: 'bold', color: '#343a40' }}>{player.name}</span>
+                            <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>📍 {player.currentSpace}</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={player.id} className="game-player-panel-item">
+                          <PlayerPanelWrapper
+                            gameServices={gameServices}
+                            playerId={player.id}
+                            onToggleSpaceExplorer={handleToggleSpaceExplorer}
+                            onToggleMovementPath={handleToggleMovementPath}
+                            isSpaceExplorerVisible={isSpaceExplorerVisible}
+                            isMovementPathVisible={isMovementPathVisible}
+                            onTryAgain={handleTryAgain}
+                            playerNotification={playerNotifications[player.id]}
+                            onRollDice={handleRollDice}
+                            onAutomaticFunding={handleAutomaticFunding}
+                            onManualEffectResult={(result) => {
+                              if (result && result.effects && result.effects.length > 0) {
+                                setDiceResult(result);
+                                setIsDiceResultModalOpen(true);
+                              }
+                            }}
+                            completedActions={completedActions}
+                          />
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <>
