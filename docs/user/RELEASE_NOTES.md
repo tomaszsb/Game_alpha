@@ -2,6 +2,27 @@
 
 ---
 
+## v2.20 - Playtest Polish (February 7, 2026)
+
+**Release Date:** February 7, 2026
+**Version:** 2.20
+**Status:** Alpha Testing
+**Type:** Playtest Fixes
+
+### Improved: More Immersive Buttons and Better Multi-Player Experience
+
+**What Changed:** Several improvements based on playtesting feedback.
+
+**What You'll See:**
+- **Thematic action buttons:** On the first space (Owner Scope Initiation), buttons now say "Discuss & hire some Expeditors" and "Agree on scope of work with Owner" instead of generic "Draw 3 E cards" / "Roll for W cards"
+- **Better Try Again button:** Now reads "Renegotiate — I'll take more time" to better convey what happens
+- **Owner funding displayed:** When the owner gives you seed money, the amount now stays visible in a green box (instead of disappearing after 3 seconds)
+- **Multi-player on one screen:** When multiple players share the same computer, only the current player's full panel is shown. Other players appear as a compact bar with their name and location — no more overlapping panels
+- **Try Again works correctly:** Using "Renegotiate" now properly restores your state to before you took actions
+- **Mobile fixes:** Action buttons and tabs no longer overflow the screen edges
+
+---
+
 ## v2.19 - Unified Action Center Panel (February 6, 2026)
 
 **Release Date:** February 6, 2026

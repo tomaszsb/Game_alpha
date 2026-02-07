@@ -1,14 +1,26 @@
 # Project Status
 
-**Last Updated**: February 6, 2026
-**Current Phase**: External Testing Ready (v2.19)
-**Current Version**: 2.19
+**Last Updated**: February 7, 2026
+**Current Phase**: External Testing Ready (v2.20)
+**Current Version**: 2.20
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Playtest Polish: Thematic Buttons, Funding Display, Multi-Player Panel Fix (February 7, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.20
+- **Features**: Thematic button names, persistent funding display, multi-player panel collapse, Try Again state fix
+- **Achievements**:
+  - OWNER-SCOPE-INITIATION buttons renamed to thematic narrative labels
+  - Try Again → "Renegotiate — I'll take more time"
+  - Auto effect results (owner seed money) shown persistently in green box
+  - Multi-player on same PC: current player gets full panel, others collapse to mini bar
+  - TurnStateManager always captures REAL state snapshot before space effects
+  - Mobile overflow fixes (width, tab height capping)
 
 ### Unified Action Center Player Panel (February 6, 2026) ✅
 - **Status**: ✅ Complete

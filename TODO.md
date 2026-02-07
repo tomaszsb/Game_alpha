@@ -21,6 +21,13 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Playtest Polish: Thematic Buttons, Funding Display, Multi-Player Panel Fix (Feb 7, 2026)
+  - OWNER-SCOPE-INITIATION buttons renamed to thematic labels
+  - Try Again button → "Renegotiate — I'll take more time"
+  - Owner funding displayed persistently in green box
+  - Mobile overflow fixes (width, tab height)
+  - Multi-player on same PC: only current player's full panel shown, others collapsed to mini bar
+  - Try Again REAL state fix: snapshot now captured before space effects run
 - ✅ Unified Action Center Player Panel (Feb 6, 2026)
   - Replaced desktop PlayerPanel + mobile MobilePlayerPanel with single ActionCenterPanel
   - 3-zone layout: Context (space/story/stats), Actions (E cards/buttons/choices), Reference (5 tabs)

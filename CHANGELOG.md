@@ -4,6 +4,55 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Playtest Polish: Thematic Buttons, Funding Display, Multi-Player Panel Fix (February 7, 2026)
+
+**Problem:** After deploying the ActionCenterPanel, playtesting revealed 5 issues:
+1. Action buttons on OWNER-SCOPE-INITIATION were generic ("Draw 3 E cards", "Roll for W cards")
+2. Try Again button text was too terse
+3. OWNER-FUND-INITIATION auto effect showed only a brief notification, not a persistent display
+4. Mobile: width expanded beyond screen after actions; tabs exceeded viewport height
+5. Multiple local players' panels overlapped on the same PC
+6. Try Again didn't restore pre-effect state because REAL state snapshot was never captured during initial turn start
+
+**Changes:**
+
+**Smart Button Names (CSV):**
+- Changed OWNER-SCOPE-INITIATION descriptions to thematic names: "Discuss & hire some Expeditors" and "Agree on scope of work with Owner"
+- Only affects OWNER-SCOPE-INITIATION; other spaces retain generic descriptions
+
+**Thematic Try Again Button:**
+- Renamed from "🔄 Try Again" to "🔄 Renegotiate — I'll take more time"
+- Removed `white-space: nowrap`, added `text-align: left` for multi-line wrapping on narrow screens
+
+**Auto Effect Result Display:**
+- Added persistent green box showing automatic effect results (e.g., owner seed money) when `completedActions.diceRoll` exists on non-dice-movement spaces with no pending manual actions
+- New CSS class `.action-center__auto-effect-result` with green border/background
+
+**Mobile Overflow Fixes:**
+- `overflow-x: hidden` on `.action-center__actions` and `.action-center__tab-content`
+- `max-width: 100%`, `box-sizing: border-box`, `word-break: break-word` on `.action-center__action-btn`
+- `overflow: hidden` on `.action-center__reference`
+- Mobile media query: `max-height: 35vh` on `.action-center__tab-content`
+
+**Multi-Player Panel Collapse:**
+- When multiple local players share the same PC, only the current player's full ActionCenterPanel is shown
+- Other players collapse to a mini bar (avatar + name + current space)
+- Panels automatically switch as turns change
+
+**Try Again REAL State Fix:**
+- Root cause: `TurnStateManager.createTempStateFromReal()` only created REAL state when `isTryAgain=true`, not during initial turn start
+- By the time Try Again was clicked, the player object was already mutated by space effects (card draws), so REAL captured the wrong state
+- Fix: `createTempStateFromReal()` now always saves a REAL state snapshot on first call, before any effects run
+
+**Files Modified:**
+- `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` — thematic descriptions for OWNER-SCOPE-INITIATION
+- `src/components/player/ActionCenterPanel.tsx` — Try Again text, auto-effect result display
+- `src/components/player/ActionCenterPanel.css` — overflow fixes, auto-effect styling, Try Again wrapping
+- `src/components/layout/GameLayout.tsx` — multi-player panel collapse logic
+- `src/services/TurnStateManager.ts` — always capture REAL state on initial turn start
+- `tests/E2E-01_HappyPath.test.tsx` — updated button selectors
+- `tests/services/TurnService-tryAgainOnSpace.test.ts` — added shouldAdvanceTurn assertions
+
 ### Unified Action Center Player Panel (February 6, 2026)
 
 **Problem:** The player panel organized information by **data category** (6 collapsible accordion sections), forcing players to expand/collapse sections to find what they need. Critical decision info was hidden behind clicks, action buttons were tiny and scattered across section headers, and E cards — a key strategic mechanic — were buried 4 clicks deep. Desktop and mobile used entirely separate component trees (`PlayerPanel` vs `MobilePlayerPanel`).
