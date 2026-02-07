@@ -2,10 +2,12 @@
 //
 // View component for DECISION_MODE - displays choice options.
 // Created: January 24, 2026
+// Updated: February 4, 2026 - Added haptic feedback
 
 import React from 'react';
 import { DecisionChoice } from '../../../../services/PlayerViewStateService';
 import { Choice } from '../../../../types/CommonTypes';
+import { haptics } from '../../../../utils/haptics';
 
 export interface DecisionViewProps {
   choices: DecisionChoice[];
@@ -55,7 +57,10 @@ export const DecisionView: React.FC<DecisionViewProps> = ({
         {choices.map((choice) => (
           <button
             key={choice.id}
-            onClick={() => onSelect(choice.id)}
+            onClick={() => {
+              haptics.lightTap();
+              onSelect(choice.id);
+            }}
             className={`decision-option ${choice.isSelected ? 'decision-option--selected' : ''}`}
           >
             <span className="option-icon">

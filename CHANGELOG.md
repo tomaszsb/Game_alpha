@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Unified Action Center Player Panel (February 6, 2026)
+
+**Problem:** The player panel organized information by **data category** (6 collapsible accordion sections), forcing players to expand/collapse sections to find what they need. Critical decision info was hidden behind clicks, action buttons were tiny and scattered across section headers, and E cards — a key strategic mechanic — were buried 4 clicks deep. Desktop and mobile used entirely separate component trees (`PlayerPanel` vs `MobilePlayerPanel`).
+
+**Solution:** Replaced both desktop and mobile panels with a single unified `ActionCenterPanel` organized by **decision priority** in three zones:
+- **Zone 1 (Context):** Space name, story text, phase badge, quick stats bar (money/time/cards/scope)
+- **Zone 2 (Actions):** E card callout with gold pulse animation, required actions as full-width buttons, movement choices, End Turn + Try Again controls
+- **Zone 3 (Reference):** 5 tabs (Money, Time, Cards, Scope, Log) — one tab open at a time, not accordions
+
+**Key Changes:**
+- Created `ActionCenterPanel.tsx` — unified panel with 3-zone flex layout, internal scrolling
+- Created `ActionCenterPanel.css` — responsive styles, tab bar, E card callout pulse animation
+- Created `PlayerLogSection.tsx` — per-player filtered log tab (filters by playerId + visibility)
+- Added `renderMode?: 'accordion' | 'content'` prop to `FinancesSection`, `TimeSection`, `CardsSection`, `ProjectScopeSection` — backward compatible, allows rendering without ExpandableSection wrapper
+- Rewrote `PlayerPanelWrapper.tsx` — removed desktop/mobile branching, always renders ActionCenterPanel
+- Updated `GameLayout.tsx` — removed `max-height: 50%` constraint, panel manages own scrolling
+- Updated `ProjectProgress.tsx` — removed Log button from collapsed bar (players have per-player log now)
+- Updated E2E test selectors to match new button text
+
+**Technical Details:**
+- Dice effects vs manual effects properly distinguished: dice effects route through `onRollDice`, manual effects through `triggerManualEffectWithFeedback`
+- `completedActions.diceRoll` tracks dice completion, `completedActions.manualActions` tracks manual effects
+- E card callout uses `useMemo` to filter playable E cards by phase restriction
+- Stats bar shows color-coded warnings (low cash, design fee ratio)
+- Mobile: same component, sticky turn controls via `@media (max-width: 768px)`
+
+**Files Created:**
+- `src/components/player/ActionCenterPanel.tsx`
+- `src/components/player/ActionCenterPanel.css`
+- `src/components/player/sections/PlayerLogSection.tsx`
+
+**Files Modified:**
+- `src/components/player/PlayerPanelWrapper.tsx`
+- `src/components/player/sections/FinancesSection.tsx`
+- `src/components/player/sections/TimeSection.tsx`
+- `src/components/player/sections/CardsSection.tsx`
+- `src/components/player/sections/ProjectScopeSection.tsx`
+- `src/components/layout/GameLayout.tsx`
+- `src/components/game/ProjectProgress.tsx`
+- `tests/E2E-01_HappyPath.test.tsx`
+
 ### Player Card Layout: Inline QR Codes + Compact Design (February 5, 2026)
 
 **Problem:** Player cards were too tall - QR codes appeared underneath the player info behind a toggle button, wasting vertical space. Name input was unnecessarily wide.

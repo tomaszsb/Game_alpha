@@ -1,14 +1,26 @@
 # Project Status
 
-**Last Updated**: February 5, 2026
-**Current Phase**: External Testing Ready (v2.18)
-**Current Version**: 2.18
+**Last Updated**: February 6, 2026
+**Current Phase**: External Testing Ready (v2.19)
+**Current Version**: 2.19
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Unified Action Center Player Panel (February 6, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.19
+- **Features**: Single unified panel replacing desktop + mobile, 3-zone decision-priority layout
+- **Achievements**:
+  - ActionCenterPanel with Context/Actions/Reference zones
+  - E card callout with gold pulse when playable cards available
+  - Per-player filtered log tab
+  - `renderMode` prop on section components for tab rendering
+  - Same component on all screen sizes (responsive CSS)
+  - All 1319 tests passing (88 files, 0 failures)
 
 ### Player Card Layout: Inline QR Codes + Compact Design (February 5, 2026) ✅
 - **Status**: ✅ Complete

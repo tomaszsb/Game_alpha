@@ -4,9 +4,11 @@
 // Shows 4 key stats: Money, Time, Cards, Scope
 // Created: January 24, 2026
 // Updated: January 25, 2026 - Added CSS classes, theme support, 2x2 grid fallback
+// Updated: February 4, 2026 - Added haptic feedback
 
 import React from 'react';
 import './StatsBar.css';
+import { haptics } from '../../../utils/haptics';
 
 export interface StatsBarProps {
   money: number;
@@ -28,13 +30,20 @@ interface StatItemProps {
 const StatItem: React.FC<StatItemProps> = ({ icon, value, label, colorClass, onTap, testId }) => {
   const className = `mobile-stats-bar__item ${onTap ? 'mobile-stats-bar__item--tappable' : ''}`;
 
+  const handleTap = () => {
+    if (onTap) {
+      haptics.lightTap();
+      onTap();
+    }
+  };
+
   return (
     <div
       className={className}
-      onClick={onTap}
+      onClick={handleTap}
       role={onTap ? 'button' : undefined}
       tabIndex={onTap ? 0 : undefined}
-      onKeyDown={onTap ? (e) => e.key === 'Enter' && onTap() : undefined}
+      onKeyDown={onTap ? (e) => e.key === 'Enter' && handleTap() : undefined}
       data-testid={testId}
     >
       <div className="mobile-stats-bar__value-row">

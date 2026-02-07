@@ -22,6 +22,9 @@ export interface TimeSectionProps {
 
   /** Whether it's this player's turn */
   isMyTurn?: boolean;
+
+  /** Render mode: 'accordion' wraps in ExpandableSection, 'content' renders inner content only */
+  renderMode?: 'accordion' | 'content';
 }
 
 /**
@@ -62,7 +65,8 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
   gameServices,
   playerId,
   completedActions = { manualActions: {} },
-  isMyTurn = true
+  isMyTurn = true,
+  renderMode = 'accordion'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -134,6 +138,63 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
 
   // Summary content - always visible
   const summary = <span>{`Elapsed: ${elapsed}d`}</span>;
+
+  if (renderMode === 'content') {
+    return (
+      <div className="time-content">
+        {headerActions && <div className="section-header-actions">{headerActions}</div>}
+        {error && <div className="section-error"><p>{error}</p>{handleRetry && <button onClick={handleRetry}>Retry</button>}</div>}
+        {player.activeEffects && player.activeEffects.length > 0 && (
+          <div className="active-effects-section">
+            <div className="timeline-header">⚡ Active Effects</div>
+            <div className="active-effects-list">
+              {player.activeEffects.map((effect, index) => (
+                <div key={effect.effectId || index} className="active-effect-item">
+                  <div className="effect-icon">🔮</div>
+                  <div className="effect-content">
+                    <div className="effect-description">{effect.description || effect.effectType || 'Unknown effect'}</div>
+                    <div className="effect-duration" style={{ fontSize: '12px', color: '#ff9800' }}>
+                      ⏳ {effect.remainingDuration} turn{effect.remainingDuration !== 1 ? 's' : ''} remaining
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {player.spaceVisitLog && player.spaceVisitLog.length > 0 ? (
+          <div className="visited-spaces-timeline">
+            <div className="timeline-header">Journey Timeline</div>
+            <div className="timeline-list">
+              {(() => {
+                let runningTotal = 0;
+                return player.spaceVisitLog.map((visit, index) => {
+                  const isCurrent = visit.spaceName === player.currentSpace && visit.exitTime === undefined;
+                  const displayDays = isCurrent ? (elapsed - (visit.entryTime || 0)) : visit.daysSpent;
+                  runningTotal += displayDays;
+                  return (
+                    <div key={`${visit.spaceName}-${index}`} className={`timeline-item ${isCurrent ? 'timeline-item--current' : ''}`}>
+                      <div className="timeline-marker">{isCurrent ? '📍' : '✓'}</div>
+                      <div className="timeline-content">
+                        <div className="timeline-space-name">{visit.spaceName}</div>
+                        <div className="timeline-days" style={{ fontSize: '12px', color: '#666', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                          <span>{displayDays > 0 ? `+${displayDays}d` : '0d'}</span>
+                          <span style={{ color: '#999' }}>Total: {runningTotal}d</span>
+                        </div>
+                        {isCurrent && <div className="timeline-badge">Current</div>}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        ) : (
+          <div className="empty-state">Journey has not started yet.</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <ExpandableSection

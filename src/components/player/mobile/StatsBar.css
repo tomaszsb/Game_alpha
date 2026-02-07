@@ -30,7 +30,8 @@
 
 .mobile-stats-bar__item {
   flex: 1;
-  min-width: 0;
+  min-width: 44px;  /* Touch target minimum */
+  min-height: 44px;  /* Touch target minimum */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,6 +40,7 @@
   border-radius: 4px;
   transition: background-color 0.15s ease;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-stats-bar__item--tappable {
@@ -70,7 +72,7 @@
 }
 
 .mobile-stats-bar__value {
-  font-size: 13px;
+  font-size: clamp(11px, 3.2vw, 14px);  /* Fluid typography */
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -108,7 +110,7 @@
 
 /* Label */
 .mobile-stats-bar__label {
-  font-size: 9px;
+  font-size: clamp(7px, 2.2vw, 10px);  /* Fluid typography */
   color: var(--mobile-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -116,14 +118,42 @@
 }
 
 /* ============================================================
-   Responsive: 2x2 Grid for Narrow Screens (<360px)
+   Responsive: 2x2 Grid for Narrow Screens (<400px)
    ============================================================ */
 
-@media (max-width: 359px) {
-  /* Keep flex layout on narrow screens - just make items smaller */
+@media (max-width: 400px) {
+  /* Switch to 2x2 grid on narrow phones */
   .mobile-stats-bar {
-    padding: 2px;
-    gap: 1px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 4px;
+    padding: 6px;
+    overflow-x: visible;  /* No horizontal scroll needed in grid */
+  }
+
+  .mobile-stats-bar__item {
+    padding: 6px 4px;
+  }
+
+  .mobile-stats-bar__icon {
+    font-size: 13px;
+  }
+
+  .mobile-stats-bar__value {
+    font-size: 12px;
+  }
+
+  .mobile-stats-bar__label {
+    font-size: 8px;
+  }
+}
+
+/* Extra narrow screens (<320px) - tighter spacing */
+@media (max-width: 319px) {
+  .mobile-stats-bar {
+    gap: 2px;
+    padding: 4px;
   }
 
   .mobile-stats-bar__item {
@@ -131,11 +161,11 @@
   }
 
   .mobile-stats-bar__icon {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .mobile-stats-bar__value {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .mobile-stats-bar__label {

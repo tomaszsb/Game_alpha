@@ -2,6 +2,32 @@
 
 ---
 
+## v2.19 - Unified Action Center Panel (February 6, 2026)
+
+**Release Date:** February 6, 2026
+**Version:** 2.19
+**Status:** Alpha Testing
+**Type:** Major UI Redesign
+
+### Redesigned: Player Panel Now Organized by What You Need to Do
+
+**What Changed:** The player panel (left sidebar on desktop, full screen on mobile) has been completely redesigned. Instead of 6 collapsible sections organized by data type, information is now organized by **decision priority**.
+
+**What You'll See:**
+- **Top:** Your current space name, story text, phase badge, and a quick stats bar showing money, time, cards, and scope at a glance
+- **Middle:** All your available actions — big, clear buttons for each required action. When you have Expeditor (E) cards that can be played, they appear in a highlighted gold callout at the top of the actions area
+- **Bottom:** Reference tabs (Money, Time, Cards, Scope, Log) — tap any tab to see details, tap again to close
+- **Your personal log:** A new "Log" tab shows only your actions, filtered from the global game log
+
+**Why It's Better:**
+- No more hunting through collapsed sections to find what to do
+- E cards are immediately visible when playable (no more buried 4 clicks deep)
+- Action buttons are large and easy to tap on mobile
+- Same layout on desktop and mobile — no confusing differences between devices
+- Quick stats always visible so you know your situation at a glance
+
+---
+
 ## v2.18 - Compact Player Cards with Inline QR Codes (February 5, 2026)
 
 **Release Date:** February 5, 2026

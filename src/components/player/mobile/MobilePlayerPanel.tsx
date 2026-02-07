@@ -4,8 +4,10 @@
 // Uses PlayerViewStateService for context-aware rendering.
 // Created: January 24, 2026
 // Updated: January 25, 2026 - Added landscape mode support
+// Updated: February 4, 2026 - Added haptic feedback for turn notifications
+// Updated: February 4, 2026 - Added push notifications for turn alerts
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import {
   PlayerViewStateService,
@@ -15,6 +17,8 @@ import { SpaceHeader } from './SpaceHeader';
 import { StatsBar } from './StatsBar';
 import { PrimaryAction } from './PrimaryAction';
 import { ContextArea } from './ContextArea';
+import { haptics } from '../../../utils/haptics';
+import { pushNotifications } from '../../../utils/pushNotifications';
 import './MobilePlayerPanel.css';
 
 export interface MobilePlayerPanelProps {
@@ -70,6 +74,7 @@ export const MobilePlayerPanel: React.FC<MobilePlayerPanelProps> = ({
 }) => {
   const [viewContext, setViewContext] = useState<ViewStateContext | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const wasMyTurnRef = useRef<boolean>(false);
 
   // Subscribe to view state changes
   useEffect(() => {
@@ -79,6 +84,20 @@ export const MobilePlayerPanel: React.FC<MobilePlayerPanelProps> = ({
 
     return unsubscribe;
   }, [viewStateService, playerId]);
+
+  // Haptic and push notification when it becomes player's turn
+  useEffect(() => {
+    if (viewContext?.isMyTurn && !wasMyTurnRef.current) {
+      // It just became our turn - trigger haptic notification
+      haptics.turnNotification();
+      // Also send push notification (works when tab is in background)
+      pushNotifications.sendTurnNotification(
+        viewContext.playerName,
+        viewContext.spaceName
+      );
+    }
+    wasMyTurnRef.current = viewContext?.isMyTurn || false;
+  }, [viewContext?.isMyTurn, viewContext?.playerName, viewContext?.spaceName]);
 
   // Handle story continuation
   const handleContinueStory = useCallback(() => {

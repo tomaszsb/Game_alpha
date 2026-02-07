@@ -31,6 +31,9 @@ export interface FinancesSectionProps {
 
   /** Whether it's this player's turn */
   isMyTurn?: boolean;
+
+  /** Render mode: 'accordion' wraps in ExpandableSection, 'content' renders inner content only */
+  renderMode?: 'accordion' | 'content';
 }
 
 /**
@@ -75,7 +78,8 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   onAutomaticFunding,
   onManualEffectResult,
   completedActions = { manualActions: {} },
-  isMyTurn = true
+  isMyTurn = true,
+  renderMode = 'accordion'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -359,6 +363,71 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       )}
     </span>
   );
+
+  if (renderMode === 'content') {
+    return (
+      <div className="finances-content">
+        {headerActions && <div className="section-header-actions">{headerActions}</div>}
+        {error && <div className="section-error"><p>{error}</p>{handleRetry && <button onClick={handleRetry}>Retry</button>}</div>}
+        {/* Section A: Scope & Budget */}
+        <div className="financial-section">
+          <h3 className="section-heading">📊 Scope & Budget</h3>
+          <div className="stat-grid">
+            <div className="stat-item">
+              <span className="stat-label">Project Scope</span>
+              <span className="stat-value">${financialMetrics.projectScope.toLocaleString()}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Total Budget</span>
+              <span className="stat-value">${financialMetrics.totalBudget.toLocaleString()}</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Cash on Hand</span>
+              <span
+                className="stat-value stat-highlight"
+                style={{
+                  color: financialMetrics.projectScope > 0 ? moneyVsScopeColor : undefined,
+                  fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : undefined
+                }}
+              >
+                {financialMetrics.projectScope > 0 && moneyVsScopeIcon} ${financialMetrics.cashOnHand.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {financialMetrics.totalExpenditures > 0 && (
+          <div className="financial-section">
+            <h3 className="section-heading">💸 Expenditures</h3>
+            <div className="stat-list">
+              <div className="stat-item"><span className="stat-label">Design</span><span className="stat-value">${expenditures.design.toLocaleString()}</span></div>
+              <div className="stat-item"><span className="stat-label">Fees</span><span className="stat-value">${expenditures.fees.toLocaleString()}</span></div>
+              <div className="stat-item"><span className="stat-label">Construction</span><span className="stat-value">${expenditures.construction.toLocaleString()}</span></div>
+              <div className="stat-item stat-total"><span className="stat-label">Total Spent</span><span className="stat-value">${financialMetrics.totalExpenditures.toLocaleString()}</span></div>
+            </div>
+          </div>
+        )}
+
+        {financialMetrics.totalBudget > 0 && (
+          <div className="financial-section">
+            <h3 className="section-heading">📈 Financial Health</h3>
+            <div className="stat-list">
+              <div className={`stat-item ${financialMetrics.isDesignOverBudget ? 'stat-warning' : ''}`}>
+                <span className="stat-label">Design Cost %</span>
+                <span className="stat-value">{financialMetrics.designCostRatio.toFixed(1)}%{financialMetrics.isDesignOverBudget && ' ⚠️'}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Budget Variance</span>
+                <span className={`stat-value ${financialMetrics.budgetVariance < 0 ? 'stat-negative' : 'stat-positive'}`}>
+                  ${Math.abs(financialMetrics.budgetVariance).toLocaleString()}{financialMetrics.budgetVariance >= 0 ? ' under' : ' over'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <ExpandableSection

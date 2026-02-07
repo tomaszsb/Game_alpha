@@ -281,25 +281,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           overflow-y: auto;
         }
 
-        /* Individual player panel - scrollable when content overflows */
+        /* Individual player panel - ActionCenterPanel manages internal scrolling */
         .game-player-panel-item {
           flex: 1 1 auto;
           min-height: 120px;
-          max-height: 50%;
-          overflow-y: auto;
-        }
-
-        .game-player-panel-item::-webkit-scrollbar {
-          width: 4px;
-        }
-        .game-player-panel-item::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,0.2);
-          border-radius: 2px;
-        }
-
-        /* When only 1 player panel, let it take more space */
-        .game-player-panels:has(:only-child) .game-player-panel-item {
-          max-height: 100%;
+          overflow: hidden;
         }
 
         @media (max-width: 1920px) {

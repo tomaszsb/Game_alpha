@@ -91,6 +91,36 @@ export const haptics = {
   },
 
   /**
+   * Dice roll feedback - strong vibration pattern.
+   * Pattern: escalating pulses simulating dice rolling
+   */
+  diceRoll: (): void => {
+    if (isHapticsSupported()) {
+      navigator.vibrate([30, 20, 40, 20, 50, 20, 60, 30, 100]);
+    }
+  },
+
+  /**
+   * Card draw feedback - quick swipe feel.
+   * Pattern: medium pulse
+   */
+  cardDraw: (): void => {
+    if (isHapticsSupported()) {
+      navigator.vibrate([20, 10, 30]);
+    }
+  },
+
+  /**
+   * Movement feedback - player moved to new space.
+   * Pattern: gentle pulse
+   */
+  movement: (): void => {
+    if (isHapticsSupported()) {
+      navigator.vibrate([15, 30, 15]);
+    }
+  },
+
+  /**
    * Custom vibration pattern.
    * @param pattern - Single duration in ms, or array of [vibrate, pause, vibrate, ...]
    */

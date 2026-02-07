@@ -25,6 +25,9 @@ export interface ProjectScopeSectionProps {
 
   /** Whether it's this player's turn */
   isMyTurn?: boolean;
+
+  /** Render mode: 'accordion' wraps in ExpandableSection, 'content' renders inner content only */
+  renderMode?: 'accordion' | 'content';
 }
 
 /**
@@ -59,7 +62,8 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   playerId,
   onRollDice,
   completedActions = { manualActions: {} },
-  isMyTurn = true
+  isMyTurn = true,
+  renderMode = 'accordion'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -254,6 +258,49 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
       Total: {formatMoney(projectScope)} | W: {wCards.length}
     </span>
   );
+
+  if (renderMode === 'content') {
+    return (
+      <div className="project-scope-content">
+        {headerActions && <div className="section-header-actions">{headerActions}</div>}
+        {error && <div className="section-error"><p>{error}</p>{handleRetry && <button onClick={handleRetry}>Retry</button>}</div>}
+        {workTypeGroups.length > 0 ? (
+          <div className="work-types-section">
+            {workTypeGroups.map((group, groupIndex) => {
+              const isExpanded = expandedWorkTypes.has(group.workType);
+              return (
+                <div key={groupIndex} className="work-type-group">
+                  <button className="work-type-header" onClick={() => toggleWorkType(group.workType)}>
+                    <span className="work-type-info">
+                      <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                      <span className="work-type-name">{group.workType} ({group.cards.length})</span>
+                    </span>
+                    <span className="work-type-subtotal">{formatMoney(group.subtotal)}</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="work-type-cards">
+                      {group.cards.map((card, cardIndex) => (
+                        <div key={cardIndex} className="work-card-item">
+                          <div className="card-name">{card.name}</div>
+                          <div className="card-cost">{formatMoney(card.cost)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div className="project-scope-total">
+              <span className="total-label">Total Project Scope:</span>
+              <span className="total-value">{formatMoney(projectScope)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="empty-state">No work cards yet. Draw W cards to build project scope.</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <ExpandableSection

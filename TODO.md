@@ -21,6 +21,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Unified Action Center Player Panel (Feb 6, 2026)
+  - Replaced desktop PlayerPanel + mobile MobilePlayerPanel with single ActionCenterPanel
+  - 3-zone layout: Context (space/story/stats), Actions (E cards/buttons/choices), Reference (5 tabs)
+  - Per-player filtered log tab, E card callout with gold pulse, dice/manual effect routing
+  - Same component on desktop and mobile — responsive via CSS only
 - ✅ Player Card Layout: Inline QR + compact design (Feb 5, 2026)
   - QR codes always visible to the right of player info (no toggle button)
   - Name input width matched to color circles, compact horizontal layout

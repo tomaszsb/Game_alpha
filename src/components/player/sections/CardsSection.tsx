@@ -32,6 +32,9 @@ export interface CardsSectionProps {
 
   /** Whether it's this player's turn */
   isMyTurn?: boolean;
+
+  /** Render mode: 'accordion' wraps in ExpandableSection, 'content' renders inner content only */
+  renderMode?: 'accordion' | 'content';
 }
 
 /**
@@ -79,7 +82,8 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   onRollDice,
   onManualEffectResult,
   completedActions = { manualActions: {} },
-  isMyTurn = true
+  isMyTurn = true,
+  renderMode = 'accordion'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
@@ -351,6 +355,80 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
       )}
     </span>
   );
+
+  if (renderMode === 'content') {
+    return (
+      <>
+        <div className="cards-content">
+          {headerActions && <div className="section-header-actions">{headerActions}</div>}
+          {error && <div className="section-error"><p>{error}</p>{handleRetry && <button onClick={handleRetry}>Retry</button>}</div>}
+          {playerHand.length > 0 ? (
+            <div className="card-list">
+              {(Object.keys(cardCounts) as CardType[]).map((cardType) => {
+                const cardsOfType = playerHand
+                  .map(cardId => ({ id: cardId, card: gameServices.dataService.getCardById(cardId) }))
+                  .filter(item => item.card && gameServices.cardService.getCardType(item.id) === cardType);
+                const isTypeExpanded = expandedCardType === cardType;
+                const playableInGroup = cardType === 'E' ? cardsOfType.filter(item => item.card && canPlayCard(item.card)).length : 0;
+                return (
+                  <div key={cardType} className="card-type-group">
+                    <button className="card-type-header" onClick={() => toggleCardType(cardType)}
+                      style={playableInGroup > 0 ? { backgroundColor: '#dcfce7', borderColor: '#22c55e' } : undefined}>
+                      <span className="card-type-info">
+                        <span className="expand-icon">{isTypeExpanded ? '▼' : '▶'}</span>
+                        <span className="card-type-name">{cardType} Cards ({cardsOfType.length})</span>
+                        {playableInGroup > 0 && (
+                          <span style={{ marginLeft: '8px', padding: '1px 6px', backgroundColor: '#22c55e', color: 'white', borderRadius: '8px', fontSize: '9px', fontWeight: 'bold' }}>
+                            ⚡ {playableInGroup} playable
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                    {isTypeExpanded && (
+                      <div className="cards-list">
+                        {cardsOfType.map((item) => {
+                          if (!item.card) return null;
+                          const isCardExpanded = expandedCards.has(item.id);
+                          const isPlayable = item.card.card_type === 'E' && canPlayCard(item.card);
+                          const cardActions = (
+                            <>
+                              <div className="card-action-row">
+                                <ActionButton label="View Details" variant="secondary" onClick={() => handleCardDetailsOpen(item.id)} disabled={isLoading} ariaLabel={`View details for ${item.card.card_name}`} />
+                              </div>
+                              {item.card.card_type === 'E' && isPlayable && (
+                                <div className="card-action-row">
+                                  <ActionButton label="Play Card" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Play ${item.card.card_name}`} />
+                                </div>
+                              )}
+                              {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
+                                <div className="card-restriction-message">Can only be played during {item.card.phase_restriction} phase{currentPhase && ` (Current: ${currentPhase})`}</div>
+                              )}
+                            </>
+                          );
+                          return (
+                            <CardDisplay key={item.id} card={item.card} variant="detailed" isExpanded={isCardExpanded} onToggle={() => toggleCard(item.id)} isPlayable={isPlayable} highlight={isPlayable ? 'playable' : 'none'} actions={cardActions} />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-state">No cards in hand yet.</div>
+          )}
+          <div className="card-actions">
+            <ActionButton label="View Discarded" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View your discarded cards" />
+          </div>
+        </div>
+        <DiscardPileModal gameServices={gameServices} playerId={playerId} isOpen={showDiscardedModal} onClose={() => setShowDiscardedModal(false)} />
+        {selectedCardForDetails && (
+          <CardDetailsModal isOpen={true} onClose={handleCardDetailsClose} card={gameServices.dataService.getCardById(selectedCardForDetails) || null} currentPlayer={player} otherPlayers={gameServices.stateService.getAllPlayers().filter(p => p.id !== playerId)} cardService={gameServices.cardService} />
+        )}
+      </>
+    );
+  }
 
   return (
     <>

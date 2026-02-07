@@ -232,9 +232,9 @@ describe('E2E-01: Happy Path with New UI', () => {
     // Mock dice roll to return 4 consistently for controlled movement
     const rollDiceSpy = vi.spyOn(gameServices.turnService, 'rollDice').mockReturnValue(4);
 
-    // Wait for manual action buttons to appear
-    const pickUpCardsButton = await screen.findByRole('button', { name: /Perform draw_E action/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /Roll dice to gain W type work cards/i });
+    // Wait for manual action buttons to appear (ActionCenterPanel renders these as text buttons)
+    const pickUpCardsButton = await screen.findByRole('button', { name: /Draw 3 E cards/i }, { timeout: 5000 });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /Roll for W cards/i });
 
     // UI Interaction 1: Execute Manual Action "Pick up E Cards"
     fireEvent.click(pickUpCardsButton);

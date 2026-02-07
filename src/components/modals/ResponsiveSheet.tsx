@@ -1,7 +1,10 @@
 // src/components/modals/ResponsiveSheet.tsx
+// Updated: February 4, 2026 - Added swipe-to-dismiss with framer-motion
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence, PanInfo, useAnimation } from 'framer-motion';
 import { colors } from '../../styles/theme';
+import { haptics } from '../../utils/haptics';
 
 interface ResponsiveSheetProps {
   isOpen: boolean;
@@ -11,57 +14,21 @@ interface ResponsiveSheetProps {
 }
 
 /**
- * ResponsiveSheet - Adaptive modal component
+ * ResponsiveSheet - Adaptive modal component with swipe gestures
  * Desktop (>768px): Centered modal overlay
- * Mobile (<=768px): Bottom sheet that slides up
+ * Mobile (<=768px): Bottom sheet that slides up, swipe down to close
  */
 export function ResponsiveSheet({ isOpen, onClose, title, children }: ResponsiveSheetProps): JSX.Element | null {
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+  const controls = useAnimation();
 
-  // Add CSS animations to document head
+  // Track window resize for responsive behavior
   useEffect(() => {
-    const styleId = 'responsive-sheet-styles';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        @keyframes slideUp {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideDown {
-          from {
-            transform: translateY(0);
-          }
-          to {
-            transform: translateY(100%);
-          }
-        }
-
-        @keyframes fadeOut {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth > 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Prevent body scroll when sheet is open
@@ -87,9 +54,22 @@ export function ResponsiveSheet({ isOpen, onClose, title, children }: Responsive
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  // Handle swipe gesture end
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const threshold = 100; // Minimum distance to trigger close
+    const velocity = 500; // Minimum velocity to trigger close
 
-  // Backdrop (dimmed background)
+    if (info.offset.y > threshold || info.velocity.y > velocity) {
+      // User swiped down enough - close the sheet
+      haptics.lightTap();
+      controls.start({ y: '100%', transition: { duration: 0.2 } }).then(onClose);
+    } else {
+      // Snap back to open position
+      controls.start({ y: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } });
+    }
+  };
+
+  // Backdrop style
   const backdropStyle: React.CSSProperties = {
     position: 'fixed',
     top: 0,
@@ -98,40 +78,39 @@ export function ResponsiveSheet({ isOpen, onClose, title, children }: Responsive
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 1000,
-    animation: 'fadeIn 0.3s ease-out',
     cursor: 'pointer'
   };
 
-  // Container style - responsive
+  // Base container style (mobile-first)
   const containerStyle: React.CSSProperties = {
     position: 'fixed',
     zIndex: 1001,
     backgroundColor: colors.white,
     borderRadius: '16px 16px 0 0',
     boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.15)',
-    maxHeight: '85vh',
+    maxHeight: '100dvh',
+    height: '100dvh',
     display: 'flex',
     flexDirection: 'column',
-    animation: 'slideUp 0.3s ease-out',
-    // Mobile-first: bottom sheet
     bottom: 0,
     left: 0,
-    right: 0
+    right: 0,
+    touchAction: 'none' // Prevent browser gestures
   };
 
-  // Desktop override via inline media query simulation
-  const isDesktop = window.innerWidth > 768;
+  // Desktop override
   if (isDesktop) {
     Object.assign(containerStyle, {
       top: '50%',
       left: '50%',
       right: 'auto',
       bottom: 'auto',
-      transform: 'translate(-50%, -50%)',
       borderRadius: '16px',
       maxWidth: '800px',
       width: '90vw',
-      maxHeight: '90vh'
+      maxHeight: '90vh',
+      height: 'auto',
+      touchAction: 'auto'
     });
   }
 
@@ -159,16 +138,22 @@ export function ResponsiveSheet({ isOpen, onClose, title, children }: Responsive
     padding: '4px 8px',
     color: colors.secondary.main,
     transition: 'color 0.2s ease',
-    lineHeight: 1
+    lineHeight: 1,
+    minWidth: '44px',
+    minHeight: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   };
 
   const contentStyle: React.CSSProperties = {
     padding: '20px',
     overflowY: 'auto',
-    flex: 1
+    flex: 1,
+    touchAction: 'pan-y' // Allow vertical scrolling in content
   };
 
-  // Handle for mobile (visual indicator to swipe down)
+  // Handle bar style (mobile only)
   const handleStyle: React.CSSProperties = {
     width: '40px',
     height: '4px',
@@ -178,39 +163,100 @@ export function ResponsiveSheet({ isOpen, onClose, title, children }: Responsive
     display: isDesktop ? 'none' : 'block'
   };
 
+  // Drag handle area style (larger touch target)
+  const dragHandleAreaStyle: React.CSSProperties = {
+    padding: '4px 0',
+    cursor: 'grab',
+    touchAction: 'none'
+  };
+
+  // Animation variants
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 }
+  };
+
+  const sheetVariants = isDesktop ? {
+    hidden: { opacity: 0, scale: 0.95 },
+    visible: { opacity: 1, scale: 1, x: '-50%', y: '-50%' }
+  } : {
+    hidden: { y: '100%' },
+    visible: { y: 0 }
+  };
+
   return (
-    <>
-      {/* Backdrop */}
-      <div style={backdropStyle} onClick={onClose} />
-
-      {/* Sheet/Modal Container */}
-      <div style={containerStyle}>
-        {/* Mobile handle */}
-        <div style={handleStyle} />
-
-        {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={titleStyle}>{title}</h2>
-          <button
-            style={closeButtonStyle}
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            style={backdropStyle}
             onClick={onClose}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = colors.danger.main;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = colors.secondary.main;
-            }}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={backdropVariants}
+            transition={{ duration: 0.2 }}
+          />
 
-        {/* Content */}
-        <div style={contentStyle}>
-          {children}
-        </div>
-      </div>
-    </>
+          {/* Sheet/Modal Container */}
+          <motion.div
+            style={containerStyle}
+            initial="hidden"
+            animate={isDesktop ? "visible" : controls}
+            exit="hidden"
+            variants={sheetVariants}
+            transition={{
+              type: isDesktop ? 'tween' : 'spring',
+              stiffness: 300,
+              damping: 30,
+              duration: isDesktop ? 0.2 : undefined
+            }}
+            drag={isDesktop ? false : 'y'}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={isDesktop ? undefined : handleDragEnd}
+            onAnimationComplete={() => {
+              if (isOpen && !isDesktop) {
+                controls.set({ y: 0 });
+              }
+            }}
+          >
+            {/* Mobile drag handle */}
+            {!isDesktop && (
+              <div style={dragHandleAreaStyle}>
+                <div style={handleStyle} />
+              </div>
+            )}
+
+            {/* Header */}
+            <div style={headerStyle}>
+              <h2 style={titleStyle}>{title}</h2>
+              <button
+                style={closeButtonStyle}
+                onClick={() => {
+                  haptics.lightTap();
+                  onClose();
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = colors.danger.main;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = colors.secondary.main;
+                }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={contentStyle}>
+              {children}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

@@ -193,14 +193,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               }}>
                 <span>📋</span>
               </button>
-              <button onClick={onToggleGameLog} style={{
-                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                backgroundColor: colors.primary.main, color: colors.white,
-                border: `2px solid ${colors.white}`, borderRadius: '8px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
-              }}>
-                <span>📜</span>
-              </button>
               {onOpenDisplaySettings && (
                 <button onClick={onOpenDisplaySettings} style={{
                   padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
