@@ -281,11 +281,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           overflow-y: auto;
         }
 
-        /* Individual player panel - ActionCenterPanel manages internal scrolling */
+        /* Individual player panel - content flows naturally, parent scrolls */
         .game-player-panel-item {
-          flex: 1 1 auto;
+          flex: 0 0 auto;
           min-height: 120px;
-          overflow: hidden;
         }
 
         @media (max-width: 1920px) {
