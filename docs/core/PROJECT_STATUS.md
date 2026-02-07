@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: February 7, 2026
-**Current Phase**: External Testing Ready (v2.20)
-**Current Version**: 2.20
+**Current Phase**: External Testing Ready (v2.21)
+**Current Version**: 2.21
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### UI Polish: Button Sizing, Tab Visibility, Conditional Renegotiate (February 7, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.21
+- **Features**: Equal-size turn buttons, reference tabs visibility fix, conditional Renegotiate
+- **Achievements**:
+  - End Turn and Renegotiate buttons both flex: 1 with min-height: 48px
+  - "Actions remaining" moved inside End Turn button as subtitle
+  - Reference section changed to flex: 0 1 auto (no longer pushed off-screen)
+  - Renegotiate hidden until completedActionCount > 0
 
 ### Playtest Polish: Thematic Buttons, Funding Display, Multi-Player Panel Fix (February 7, 2026) ✅
 - **Status**: ✅ Complete

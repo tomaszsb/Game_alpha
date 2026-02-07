@@ -21,6 +21,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ UI Polish: Equal button sizing, tab visibility fix, conditional Renegotiate (Feb 7, 2026)
+  - End Turn and Renegotiate buttons same size; remaining actions shown inside End Turn
+  - Reference tabs no longer cut off when collapsed player bar above
+  - Renegotiate only appears after at least one action completed
 - ✅ Playtest Polish: Thematic Buttons, Funding Display, Multi-Player Panel Fix (Feb 7, 2026)
   - OWNER-SCOPE-INITIATION buttons renamed to thematic labels
   - Try Again button → "Renegotiate — I'll take more time"

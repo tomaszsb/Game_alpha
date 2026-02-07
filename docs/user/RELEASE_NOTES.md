@@ -2,6 +2,24 @@
 
 ---
 
+## v2.21 - Button & Layout Polish (February 7, 2026)
+
+**Release Date:** February 7, 2026
+**Version:** 2.21
+**Status:** Alpha Testing
+**Type:** UI Polish
+
+### Improved: Clearer Turn Controls and Better Tab Visibility
+
+**What Changed:** Turn control buttons are now equally sized, and reference tabs are always visible.
+
+**What You'll See:**
+- **End Turn and Renegotiate buttons are the same size** — End Turn is no longer smaller. The "actions remaining" message now appears inside the End Turn button
+- **Reference tabs always visible** — The Money, Time, Cards, Scope, and Log tabs no longer get pushed off-screen when multiple players are in the panel
+- **Renegotiate appears only after you act** — The "Renegotiate" button won't show until you've completed at least one action, so it's clear you need to do something first
+
+---
+
 ## v2.20 - Playtest Polish (February 7, 2026)
 
 **Release Date:** February 7, 2026

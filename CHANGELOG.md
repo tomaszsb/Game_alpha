@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### UI Polish: Button Sizing, Tab Visibility, Conditional Renegotiate (February 7, 2026)
+
+**Problem:** Continued playtesting revealed 3 more issues:
+1. End Turn button was visually smaller than the Renegotiate button, making it seem less important
+2. Reference tabs (Money, Time, Cards, Scope, Log) were pushed off-screen when a collapsed player bar was above
+3. Renegotiate button was visible before any actions were taken, causing confusion
+
+**Changes:**
+
+**Equal-Size Turn Buttons:**
+- Both End Turn and Renegotiate buttons now use `flex: 1` with `min-height: 48px`
+- "X actions remaining" tooltip moved inside End Turn button as a subtitle (`.action-center__end-turn-subtitle`)
+- Removed the wrapper `<div style={{ flex: 1 }}>` around End Turn — button itself handles sizing
+- Try Again button centered text with `text-align: center`
+
+**Reference Tabs Visibility Fix:**
+- Changed `.action-center__reference` from `flex-shrink: 0` to `flex: 0 1 auto` with `min-height: 0`
+- Added `display: flex; flex-direction: column` so tab content can flex within
+- Tab content gets `flex: 1 1 auto; min-height: 0` for proper scrolling within available space
+
+**Conditional Renegotiate Button:**
+- Renegotiate button only appears after `completedActionCount > 0`
+- Prevents confusion — can't renegotiate before taking any actions
+
+**Files Modified:**
+- `src/components/player/ActionCenterPanel.tsx` — button layout, conditional rendering
+- `src/components/player/ActionCenterPanel.css` — equal button sizing, reference flex layout
+
 ### Playtest Polish: Thematic Buttons, Funding Display, Multi-Player Panel Fix (February 7, 2026)
 
 **Problem:** After deploying the ActionCenterPanel, playtesting revealed 5 issues:
