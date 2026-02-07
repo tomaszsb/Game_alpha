@@ -137,16 +137,14 @@
   background: #dcfce7;
 }
 
-/* ===== ZONE 2: Actions (scrollable) ===== */
+/* ===== ZONE 2: Actions ===== */
 .action-center__actions {
-  flex: 1 1 0;
-  overflow-y: auto;
+  flex: 0 0 auto;
   overflow-x: hidden;
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 0;
 }
 
 .action-center__actions::-webkit-scrollbar {
@@ -415,12 +413,9 @@
 
 /* ===== ZONE 3: Reference Tabs ===== */
 .action-center__reference {
-  flex: 0 1 auto;
-  min-height: 40px;
+  flex: 0 0 auto;
   border-top: 2px solid #e0e0e0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .action-center__tab-bar {
@@ -475,8 +470,6 @@
 }
 
 .action-center__tab-content {
-  flex: 1 1 auto;
-  min-height: 120px;
   max-height: 250px;
   overflow-y: auto;
   overflow-x: hidden;
