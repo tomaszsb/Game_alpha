@@ -260,7 +260,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       style.textContent = `
         .game-interface-responsive {
           display: grid;
-          grid-template-columns: minmax(300px, 400px) 1fr;
+          grid-template-columns: minmax(340px, 480px) 1fr;
           grid-template-rows: auto 1fr;
           column-gap: 8px;
           row-gap: 4px;
@@ -271,7 +271,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           overflow: hidden;
         }
 
-        /* Player panels container - scrollable flex layout */
+        /* Player panels container - scrollable flex layout, hidden scrollbar */
         .game-player-panels {
           display: flex;
           flex-direction: column;
@@ -279,6 +279,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           min-height: 0;
           flex: 1 1 0;
           overflow-y: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .game-player-panels::-webkit-scrollbar {
+          display: none;
         }
 
         /* Individual player panel - content flows naturally, parent scrolls */
@@ -289,7 +294,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
         @media (max-width: 1920px) {
           .game-interface-responsive {
-            grid-template-columns: minmax(280px, 380px) 1fr;
+            grid-template-columns: minmax(320px, 440px) 1fr;
             column-gap: 6px;
             padding: 4px;
           }
@@ -297,7 +302,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
         @media (max-width: 1600px) {
           .game-interface-responsive {
-            grid-template-columns: minmax(260px, 350px) 1fr;
+            grid-template-columns: minmax(280px, 380px) 1fr;
             column-gap: 6px;
             padding: 4px;
           }
@@ -305,7 +310,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
         @media (max-width: 1400px) {
           .game-interface-responsive {
-            grid-template-columns: minmax(240px, 320px) 1fr;
+            grid-template-columns: minmax(260px, 350px) 1fr;
             column-gap: 6px;
             padding: 4px;
           }
