@@ -656,7 +656,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             background: colors.background.light,
             border: `3px solid ${colors.primary.main}`,
             borderRadius: '8px',
-            overflow: 'visible',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
             position: 'relative'
           }}
         >
