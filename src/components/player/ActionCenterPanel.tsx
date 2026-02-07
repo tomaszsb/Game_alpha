@@ -510,7 +510,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               <div className="action-center__end-turn-subtitle">{endTurnTooltip}</div>
             )}
           </button>
-          {onTryAgain && (
+          {onTryAgain && gameState.completedActionCount > 0 && (
             <button
               className="action-center__try-again-btn"
               onClick={() => onTryAgain(playerId)}
