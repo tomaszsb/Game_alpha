@@ -1894,11 +1894,11 @@ export class TurnService implements ITurnService {
         );
       }
 
-      // 11. Return success - player can now retry with fresh state
+      // 11. Return success - player stays on space to retry with fresh state
       return {
         success: true,
         message: successMessage,
-        shouldAdvanceTurn: true
+        shouldAdvanceTurn: false
       };
 
     } catch (error) {
