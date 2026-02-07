@@ -472,6 +472,13 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </>
         )}
 
+        {/* Auto effect result (e.g., owner seed money) */}
+        {completedActions.diceRoll && !isDiceMovementSpace && pendingActions.length === 0 && (
+          <div className="action-center__auto-effect-result">
+            💰 {completedActions.diceRoll}
+          </div>
+        )}
+
         {/* Movement Choices */}
         {movementChoice && (
           <div className="action-center__movement">
@@ -512,7 +519,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               onClick={() => onTryAgain(playerId)}
               title="Restore to snapshot saved when you arrived at this space"
             >
-              🔄 Try Again
+              🔄 Renegotiate — I'll take more time
             </button>
           )}
         </div>

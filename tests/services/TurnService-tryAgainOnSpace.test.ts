@@ -129,6 +129,9 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect(result.message).toContain('Player 1 used Try Again');
     expect(result.message).toContain('1 day');
 
+    // Critical: shouldAdvanceTurn must be false so the player stays on the space to retry
+    expect(result.shouldAdvanceTurn).toBe(false);
+
     // Check that Try Again count was incremented
     expect(stateService.getTryAgainCount(player1.id)).toBe(1);
 
@@ -148,6 +151,7 @@ describe('TurnService.tryAgainOnSpace', () => {
     const result = await turnService.tryAgainOnSpace(player1.id);
 
     expect(result.success).toBe(false);
+    expect(result.shouldAdvanceTurn).toBe(false);
     expect(result.message).toContain('no active turn state');
     expect((turnService as any).nextPlayer).not.toHaveBeenCalled();
   });
@@ -175,6 +179,7 @@ describe('TurnService.tryAgainOnSpace', () => {
     const result = await turnService.tryAgainOnSpace(player1.id);
 
     expect(result.success).toBe(false);
+    expect(result.shouldAdvanceTurn).toBe(false);
     expect(result.message).toContain('Try again not available on this space');
     expect((turnService as any).nextPlayer).not.toHaveBeenCalled();
   });
@@ -208,11 +213,13 @@ describe('TurnService.tryAgainOnSpace', () => {
     // First Try Again
     const result1 = await turnService.tryAgainOnSpace(player1.id);
     expect(result1.success).toBe(true);
+    expect(result1.shouldAdvanceTurn).toBe(false);
     expect(stateService.getTryAgainCount(player1.id)).toBe(1);
 
     // Second Try Again
     const result2 = await turnService.tryAgainOnSpace(player1.id);
     expect(result2.success).toBe(true);
+    expect(result2.shouldAdvanceTurn).toBe(false);
     expect(stateService.getTryAgainCount(player1.id)).toBe(2);
 
     // Penalties should accumulate in REAL state

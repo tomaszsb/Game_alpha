@@ -233,13 +233,13 @@ describe('E2E-01: Happy Path with New UI', () => {
     const rollDiceSpy = vi.spyOn(gameServices.turnService, 'rollDice').mockReturnValue(4);
 
     // Wait for manual action buttons to appear (ActionCenterPanel renders these as text buttons)
-    const pickUpCardsButton = await screen.findByRole('button', { name: /Draw 3 E cards/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /Roll for W cards/i });
+    const pickUpCardsButton = await screen.findByRole('button', { name: /Discuss & hire some Expeditors/i }, { timeout: 5000 });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /Agree on scope of work with Owner/i });
 
-    // UI Interaction 1: Execute Manual Action "Pick up E Cards"
+    // UI Interaction 1: Execute Manual Action "Discuss & hire some Expeditors"
     fireEvent.click(pickUpCardsButton);
 
-    // UI Interaction 2: Execute Manual Action "Roll for W cards"
+    // UI Interaction 2: Execute Manual Action "Agree on scope of work with Owner"
     fireEvent.click(rollForWCardsButton);
 
     // Wait for "End Turn" to become enabled

@@ -11,11 +11,11 @@ START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_I,and from whom. Bank offers quick 
 START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_L,Beware that in the meantime life happens,,Beware that in the meantime life happens L cards,manual
 START-QUICK-PLAY-GUIDE,Subsequent,cards,draw_E,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer.,,so don't forget to use your Expeditor help. Investor offers large loans at higher rates but takes longer. E cards,manual
 START-QUICK-PLAY-GUIDE,Subsequent,fee,deduct,Pay attention to fees - they accumulate quickly,,Pay Pay attention to fees - they accumulate quickly fees,auto
-OWNER-SCOPE-INITIATION,First,cards,draw_E,Draw 3,,Draw 3 E cards,manual
-OWNER-SCOPE-INITIATION,First,dice,dice_outcome,W Cards,,Roll for W cards,manual
+OWNER-SCOPE-INITIATION,First,cards,draw_E,Draw 3,,Discuss & hire some Expeditors,manual
+OWNER-SCOPE-INITIATION,First,dice,dice_outcome,W Cards,,Agree on scope of work with Owner,manual
 OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto
-OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Draw 3 E cards,manual
-OWNER-SCOPE-INITIATION,Subsequent,dice,dice_outcome,W Cards,,Roll for W cards,manual
+OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Discuss & hire some Expeditors,manual
+OWNER-SCOPE-INITIATION,Subsequent,dice,dice_outcome,W Cards,,Agree on scope of work with Owner,manual
 OWNER-SCOPE-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
 OWNER-FUND-INITIATION,First,money,owner_seed_money,80-120% of scope,,Owner seed money (80-120% of project scope),auto
 OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto

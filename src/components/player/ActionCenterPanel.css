@@ -140,6 +140,7 @@
 .action-center__actions {
   flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -255,6 +256,8 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   border: 2px solid #2196f3;
   border-radius: 8px;
@@ -266,6 +269,7 @@
   transition: all 0.15s;
   min-height: 48px;
   text-align: left;
+  word-break: break-word;
 }
 
 .action-center__action-btn:hover:not(:disabled) {
@@ -397,7 +401,7 @@
   font-weight: bold;
   font-size: 0.8rem;
   cursor: pointer;
-  white-space: nowrap;
+  text-align: left;
   transition: all 0.15s;
 }
 
@@ -409,6 +413,7 @@
 .action-center__reference {
   flex-shrink: 0;
   border-top: 2px solid #e0e0e0;
+  overflow: hidden;
 }
 
 .action-center__tab-bar {
@@ -465,6 +470,7 @@
 .action-center__tab-content {
   max-height: 250px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
   background: white;
 }
@@ -503,6 +509,18 @@
   color: #2e7d32;
 }
 
+/* Auto effect result (e.g., owner seed money) */
+.action-center__auto-effect-result {
+  padding: 10px 12px;
+  background: #e8f5e9;
+  border: 2px solid #4caf50;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #2e7d32;
+  text-align: center;
+}
+
 /* Mobile sticky turn controls */
 @media (max-width: 768px) {
   .action-center__turn-controls {
@@ -510,6 +528,10 @@
     bottom: 0;
     z-index: 10;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .action-center__tab-content {
+    max-height: 35vh;
   }
 }
 
