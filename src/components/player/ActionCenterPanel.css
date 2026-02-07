@@ -372,6 +372,7 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.15s;
+  min-height: 48px;
 }
 
 .action-center__end-turn-btn:not(:disabled) {
@@ -385,14 +386,15 @@
   cursor: not-allowed;
 }
 
-.action-center__end-turn-tooltip {
+.action-center__end-turn-subtitle {
   font-size: 0.7rem;
-  color: #999;
-  text-align: center;
+  font-weight: normal;
+  opacity: 0.8;
   margin-top: 2px;
 }
 
 .action-center__try-again-btn {
+  flex: 1;
   padding: 10px 16px;
   border: 2px solid #ff9800;
   border-radius: 8px;
@@ -401,8 +403,9 @@
   font-weight: bold;
   font-size: 0.8rem;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition: all 0.15s;
+  min-height: 48px;
 }
 
 .action-center__try-again-btn:hover {
@@ -411,9 +414,12 @@
 
 /* ===== ZONE 3: Reference Tabs ===== */
 .action-center__reference {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-height: 0;
   border-top: 2px solid #e0e0e0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .action-center__tab-bar {
@@ -468,6 +474,8 @@
 }
 
 .action-center__tab-content {
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 250px;
   overflow-y: auto;
   overflow-x: hidden;

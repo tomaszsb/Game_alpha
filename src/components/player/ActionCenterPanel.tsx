@@ -499,20 +499,17 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       {/* ===== Turn Controls ===== */}
       {isMyTurn && (
         <div className="action-center__turn-controls">
-          <div style={{ flex: 1 }}>
-            <button
-              className="action-center__end-turn-btn"
-              onClick={handleEndTurn}
-              disabled={!canEndTurn || isEndingTurn}
-              title={endTurnTooltip || (canEndTurn ? 'All actions complete - click to end your turn' : '')}
-              style={{ width: '100%' }}
-            >
-              {isEndingTurn ? 'Processing...' : 'End Turn'}
-            </button>
+          <button
+            className="action-center__end-turn-btn"
+            onClick={handleEndTurn}
+            disabled={!canEndTurn || isEndingTurn}
+            title={endTurnTooltip || (canEndTurn ? 'All actions complete - click to end your turn' : '')}
+          >
+            <div>{isEndingTurn ? 'Processing...' : 'End Turn'}</div>
             {endTurnTooltip && (
-              <div className="action-center__end-turn-tooltip">{endTurnTooltip}</div>
+              <div className="action-center__end-turn-subtitle">{endTurnTooltip}</div>
             )}
-          </div>
+          </button>
           {onTryAgain && (
             <button
               className="action-center__try-again-btn"
