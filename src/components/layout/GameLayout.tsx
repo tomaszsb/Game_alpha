@@ -277,6 +277,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           flex-direction: column;
           gap: 4px;
           min-height: 0;
+          flex: 1 1 0;
           overflow-y: auto;
         }
 
@@ -734,6 +735,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 overflow: 'hidden',
                 position: 'relative',
                 minHeight: 0,
+                display: gamePhase === 'PLAY' ? 'flex' : undefined,
+                flexDirection: gamePhase === 'PLAY' ? 'column' : undefined,
               }}
             >
               {gamePhase === 'PLAY' ? (
