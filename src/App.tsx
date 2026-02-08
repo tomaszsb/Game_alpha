@@ -206,8 +206,9 @@ function AppContent(): JSX.Element {
   // Check for TV mode
   const isTVMode = urlParams.get('mode') === 'tv';
 
-  // TV Display Mode - shows game board prominently with QR codes
-  if (isTVMode) {
+  // TV Display Mode - during SETUP show normal GameLayout (with PlayerSetup),
+  // during PLAY/END show the TV-optimized display
+  if (isTVMode && gameState.gamePhase !== 'SETUP') {
     console.log('📺 TV Display Mode enabled');
     return <TVDisplay />;
   }
