@@ -413,7 +413,7 @@ export function PlayerSetup({
           <h3 style={{ ...styles.sectionTitleSmall, color: 'white', textAlign: 'center' as const }}>
             📱 Scan to Join
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', flex: 1, minHeight: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
             {players.map(player => {
               const playerURL = getServerURL(player.id, player.shortId);
               const networkInfo = getNetworkInfo();
@@ -423,8 +423,6 @@ export function PlayerSetup({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.25rem',
-                  flex: '1 1 0',
-                  minHeight: 0,
                 }}>
                   {player.deviceType === 'mobile' ? (
                     <div style={{
@@ -434,10 +432,7 @@ export function PlayerSetup({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
                       gap: '0.25rem',
-                      flex: 1,
-                      width: '100%',
                     }}>
                       <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
                       <div style={{
@@ -462,10 +457,7 @@ export function PlayerSetup({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
                       gap: '0.25rem',
-                      flex: 1,
-                      width: '100%',
                     }}>
                       <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
                       {networkInfo.isLocalhost && (
