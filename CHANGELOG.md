@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### UI: Consolidate Display Settings Modal by Player (February 8, 2026)
+
+**Problem:** The Display Settings modal showed player information in 3 separate sections ("Player Panels", "Quick Presets", "Connect Mobile Device"), causing each player to appear multiple times.
+
+**Changes:**
+- Merged all 3 sections into a single per-player card list
+- Each player card contains: visibility checkbox, avatar/name, connection badge, suggestion text, and QR/mobile section
+- Card border uses the player's color for visual identity
+- Quick Preset buttons moved to top of modal (before player list)
+- Localhost warning shown once at top if applicable
+- Removed redundant section headings and duplicate player listings
+- "Already connected" layout changed from vertical/centered to horizontal inline
+
 ### Security: Restrict Data Editor to Main Menu + Kill Game + Mobile Setup View (February 7, 2026)
 
 **Problem:** During playtesting, three issues were identified:

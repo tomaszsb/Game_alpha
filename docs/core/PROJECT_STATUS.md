@@ -1,14 +1,23 @@
 # Project Status
 
-**Last Updated**: February 7, 2026
-**Current Phase**: External Testing Ready (v2.22)
-**Current Version**: 2.22
+**Last Updated**: February 8, 2026
+**Current Phase**: External Testing Ready (v2.23)
+**Current Version**: 2.23
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### UI: Consolidate Display Settings Modal (February 8, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.23
+- **Features**: Per-player cards with all controls consolidated
+- **Achievements**:
+  - Merged 3 separate sections into unified per-player card list
+  - Each card: visibility toggle, connection badge, QR/mobile controls, player-colored border
+  - Quick presets moved to top, localhost warning shown once
 
 ### Security: Restrict Data Editor + Kill Game + Mobile Setup View (February 7, 2026) ✅
 - **Status**: ✅ Complete

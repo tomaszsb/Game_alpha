@@ -23,7 +23,6 @@ export function GameDisplaySettings({
   onClearDeviceType
 }: GameDisplaySettingsProps): JSX.Element {
 
-  // Track QR code visibility for each player (Dec 29, 2025)
   const [qrVisibility, setQrVisibility] = useState<Record<string, boolean>>({});
   const networkInfo = getNetworkInfo();
 
@@ -50,96 +49,8 @@ export function GameDisplaySettings({
             Players connected on their own devices can be hidden to save space.
           </p>
 
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Player Panels</h3>
-
-            {players.length === 0 ? (
-              <p style={styles.emptyState}>No players in game yet.</p>
-            ) : (
-              <div style={styles.playerList}>
-                {players.map(player => {
-                  const isConnected = !!player.deviceType; // Connected if deviceType is set (mobile OR desktop)
-                  const isMobile = player.deviceType === 'mobile';
-                  const isDesktop = player.deviceType === 'desktop';
-
-                  // Compute actual visibility (matching GameLayout's shouldShowPlayerPanel logic)
-                  let isVisible: boolean;
-                  if (visiblePanels[player.id] === false) {
-                    isVisible = false; // Explicitly hidden
-                  } else if (visiblePanels[player.id] === true) {
-                    isVisible = true; // Explicitly shown
-                  } else {
-                    // Default behavior: hide if connected, show if not connected
-                    isVisible = !isConnected;
-                  }
-
-                  return (
-                    <div key={player.id} style={styles.playerRow}>
-                      {/* Checkbox */}
-                      <label style={styles.checkboxLabel}>
-                        <input
-                          type="checkbox"
-                          checked={isVisible}
-                          onChange={() => onTogglePanel(player.id)}
-                          style={styles.checkbox}
-                        />
-
-                        {/* Player info */}
-                        <span style={{
-                          ...styles.playerName,
-                          color: player.color || colors.primary.main
-                        }}>
-                          {player.avatar} {player.name}
-                        </span>
-
-                        {/* Connection status badge */}
-                        {isMobile && (
-                          <span style={styles.connectedBadge}>
-                            ✅ Connected on mobile
-                          </span>
-                        )}
-
-                        {isDesktop && (
-                          <span style={styles.connectedBadge}>
-                            ✅ Connected on desktop
-                          </span>
-                        )}
-
-                        {!isConnected && (
-                          <span style={styles.notConnectedBadge}>
-                            💻 Not connected
-                          </span>
-                        )}
-                      </label>
-
-                      {/* Suggestion */}
-                      {isMobile && isVisible && (
-                        <span style={styles.suggestion}>
-                          💡 Can hide (they're viewing on their phone)
-                        </span>
-                      )}
-
-                      {isDesktop && isVisible && (
-                        <span style={styles.suggestion}>
-                          💡 Can hide (they're viewing on their computer)
-                        </span>
-                      )}
-
-                      {!isConnected && !isVisible && (
-                        <span style={styles.warning}>
-                          ⚠️ Hidden (player can't see their panel!)
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Quick preset buttons */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Quick Presets</h3>
+          {/* Quick Presets */}
+          {players.length > 0 && (
             <div style={styles.presetButtons}>
               <button
                 onClick={() => players.forEach(p => onTogglePanel(p.id))}
@@ -150,14 +61,12 @@ export function GameDisplaySettings({
               <button
                 onClick={() => {
                   players.forEach(p => {
-                    const isConnected = !!p.deviceType; // Connected if deviceType is set
+                    const isConnected = !!p.deviceType;
                     const isCurrentlyVisible = visiblePanels[p.id] !== false;
-
-                    // Hide connected players, show disconnected players
                     if (isConnected && isCurrentlyVisible) {
-                      onTogglePanel(p.id); // Hide it
+                      onTogglePanel(p.id);
                     } else if (!isConnected && !isCurrentlyVisible) {
-                      onTogglePanel(p.id); // Show it
+                      onTogglePanel(p.id);
                     }
                   });
                 }}
@@ -166,100 +75,139 @@ export function GameDisplaySettings({
                 🎯 Hide Connected Only
               </button>
             </div>
-          </div>
+          )}
 
-          {/* Connect Mobile Device - QR Codes (Dec 29, 2025) */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>📱 Connect Mobile Device</h3>
-            <p style={{ ...styles.description, marginBottom: '1rem' }}>
-              Scan a QR code to play on your phone. Each player gets their own code.
-            </p>
+          {/* Localhost warning */}
+          {networkInfo.isLocalhost && (
+            <div style={styles.networkWarning}>
+              ⚠️ <strong>Warning:</strong> Running on localhost. QR codes will only work on this device.
+            </div>
+          )}
 
-            {/* Network warning if on localhost */}
-            {networkInfo.isLocalhost && (
-              <div style={styles.networkWarning}>
-                ⚠️ <strong>Warning:</strong> Running on localhost. QR codes will only work on this device.
-              </div>
-            )}
-
-            <div style={styles.qrGrid}>
+          {/* Per-player cards */}
+          {players.length === 0 ? (
+            <p style={styles.emptyState}>No players in game yet.</p>
+          ) : (
+            <div style={styles.playerList}>
               {players.map(player => {
+                const isConnected = !!player.deviceType;
+                const isMobile = player.deviceType === 'mobile';
+                const isDesktop = player.deviceType === 'desktop';
                 const showQR = qrVisibility[player.id] || false;
                 const playerURL = getServerURL(player.id, player.shortId);
-                const isConnected = player.deviceType === 'mobile';
+
+                let isVisible: boolean;
+                if (visiblePanels[player.id] === false) {
+                  isVisible = false;
+                } else if (visiblePanels[player.id] === true) {
+                  isVisible = true;
+                } else {
+                  isVisible = !isConnected;
+                }
 
                 return (
-                  <div key={player.id} style={styles.qrCard}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginBottom: '0.5rem'
-                    }}>
-                      <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
+                  <div key={player.id} style={{
+                    ...styles.playerCard,
+                    borderColor: player.color || colors.primary.main
+                  }}>
+                    {/* Row 1: Checkbox + avatar/name + connection badge */}
+                    <label style={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={isVisible}
+                        onChange={() => onTogglePanel(player.id)}
+                        style={styles.checkbox}
+                      />
                       <span style={{
-                        fontWeight: 'bold',
+                        ...styles.playerName,
                         color: player.color || colors.primary.main
                       }}>
-                        {player.name}
+                        {player.avatar} {player.name}
                       </span>
-                      {isConnected && (
-                        <span style={styles.connectedBadgeSmall}>✅ Mobile</span>
+
+                      {isMobile && (
+                        <span style={styles.connectedBadge}>✅ Connected on mobile</span>
+                      )}
+                      {isDesktop && (
+                        <span style={styles.connectedBadge}>✅ Connected on desktop</span>
+                      )}
+                      {!isConnected && (
+                        <span style={styles.notConnectedBadge}>💻 Not connected</span>
+                      )}
+                    </label>
+
+                    {/* Row 2: Suggestion/warning text */}
+                    {isMobile && isVisible && (
+                      <span style={styles.suggestion}>
+                        💡 Can hide (they're viewing on their phone)
+                      </span>
+                    )}
+                    {isDesktop && isVisible && (
+                      <span style={styles.suggestion}>
+                        💡 Can hide (they're viewing on their computer)
+                      </span>
+                    )}
+                    {!isConnected && !isVisible && (
+                      <span style={styles.warning}>
+                        ⚠️ Hidden (player can't see their panel!)
+                      </span>
+                    )}
+
+                    {/* Row 3: QR / mobile connection */}
+                    <div style={styles.qrSection}>
+                      {isMobile ? (
+                        <div style={styles.alreadyConnected}>
+                          <span>Already connected on mobile</span>
+                          {onClearDeviceType && (
+                            <button
+                              onClick={() => onClearDeviceType(player.id)}
+                              style={styles.resetButton}
+                              title="Clear connection status to show QR code again"
+                            >
+                              🔄 Reset
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => toggleQR(player.id)}
+                            style={{
+                              ...styles.qrToggleButton,
+                              background: showQR ? colors.primary.main : colors.primary.light,
+                              color: showQR ? 'white' : colors.primary.text
+                            }}
+                          >
+                            {showQR ? '🔽 Hide QR' : '📱 Show QR'}
+                          </button>
+
+                          {showQR && (
+                            <div style={styles.qrDisplay}>
+                              <div style={{
+                                ...styles.qrCodeWrapper,
+                                borderColor: player.color || colors.primary.main
+                              }}>
+                                <QRCodeSVG
+                                  value={playerURL}
+                                  size={140}
+                                  level="M"
+                                  includeMargin={true}
+                                  fgColor={player.color || colors.primary.main}
+                                />
+                              </div>
+                              <div style={styles.qrUrl}>
+                                {playerURL}
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
-
-                    {isConnected ? (
-                      <div style={styles.alreadyConnected}>
-                        <span>Already connected on mobile</span>
-                        {onClearDeviceType && (
-                          <button
-                            onClick={() => onClearDeviceType(player.id)}
-                            style={styles.resetButton}
-                            title="Clear connection status to show QR code again"
-                          >
-                            🔄 Reset
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => toggleQR(player.id)}
-                          style={{
-                            ...styles.qrToggleButton,
-                            background: showQR ? colors.primary.main : colors.primary.light,
-                            color: showQR ? 'white' : colors.primary.text
-                          }}
-                        >
-                          {showQR ? '🔽 Hide QR' : '📱 Show QR'}
-                        </button>
-
-                        {showQR && (
-                          <div style={styles.qrDisplay}>
-                            <div style={{
-                              ...styles.qrCodeWrapper,
-                              borderColor: player.color || colors.primary.main
-                            }}>
-                              <QRCodeSVG
-                                value={playerURL}
-                                size={140}
-                                level="M"
-                                includeMargin={true}
-                                fgColor={player.color || colors.primary.main}
-                              />
-                            </div>
-                            <div style={styles.qrUrl}>
-                              {playerURL}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
                   </div>
                 );
               })}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -328,17 +276,33 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   description: {
     color: colors.secondary.dark,
-    marginBottom: '1.5rem',
+    marginBottom: '1rem',
     lineHeight: '1.5'
   },
-  section: {
-    marginBottom: '2rem'
+  presetButtons: {
+    display: 'flex',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+    marginBottom: '1rem'
   },
-  sectionTitle: {
-    fontSize: '1.1rem',
+  presetButton: {
+    padding: '0.75rem 1rem',
+    background: colors.primary.light,
+    color: colors.primary.text,
+    border: `2px solid ${colors.primary.main}`,
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+    transition: 'all 0.2s'
+  },
+  networkWarning: {
+    background: colors.danger.light,
+    color: colors.danger.text,
+    padding: '0.75rem',
+    borderRadius: '6px',
     marginBottom: '1rem',
-    color: colors.secondary.darker,
-    fontWeight: 'bold'
+    fontSize: '0.85rem'
   },
   emptyState: {
     color: colors.secondary.main,
@@ -351,11 +315,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     gap: '1rem'
   },
-  playerRow: {
+  playerCard: {
     background: 'white',
     padding: '1rem',
     borderRadius: '8px',
-    border: `2px solid ${colors.secondary.border}`
+    border: '2px solid'
   },
   checkboxLabel: {
     display: 'flex',
@@ -403,76 +367,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: colors.danger.main,
     fontWeight: 'bold'
   },
-  presetButtons: {
-    display: 'flex',
-    gap: '0.75rem',
-    flexWrap: 'wrap'
-  },
-  presetButton: {
-    padding: '0.75rem 1rem',
-    background: colors.primary.light,
-    color: colors.primary.text,
-    border: `2px solid ${colors.primary.main}`,
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-    fontWeight: 'bold',
-    transition: 'all 0.2s'
-  },
-  footer: {
-    padding: '1rem 1.5rem',
-    borderTop: `2px solid ${colors.secondary.border}`,
-    display: 'flex',
-    justifyContent: 'flex-end'
-  },
-  doneButton: {
-    padding: '0.75rem 2rem',
-    background: colors.primary.main,
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    fontWeight: 'bold'
-  },
-  // QR Code section styles (Dec 29, 2025)
-  networkWarning: {
-    background: colors.danger.light,
-    color: colors.danger.text,
-    padding: '0.75rem',
-    borderRadius: '6px',
-    marginBottom: '1rem',
-    fontSize: '0.85rem'
-  },
-  qrGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '1rem'
-  },
-  qrCard: {
-    background: 'white',
-    padding: '1rem',
-    borderRadius: '8px',
-    border: `2px solid ${colors.secondary.border}`
-  },
-  connectedBadgeSmall: {
-    fontSize: '0.75rem',
-    padding: '0.15rem 0.4rem',
-    borderRadius: '4px',
-    background: colors.success.light,
-    color: colors.success.text,
-    marginLeft: 'auto'
+  qrSection: {
+    marginTop: '0.75rem',
+    paddingTop: '0.75rem',
+    borderTop: `1px solid ${colors.secondary.border}`
   },
   alreadyConnected: {
     display: 'flex',
-    flexDirection: 'column' as const,
     alignItems: 'center',
-    gap: '0.5rem',
+    gap: '0.75rem',
     fontSize: '0.85rem',
     color: colors.success.main,
-    fontStyle: 'italic',
-    textAlign: 'center' as const,
-    padding: '0.5rem'
+    fontStyle: 'italic'
   },
   resetButton: {
     padding: '0.35rem 0.75rem',
@@ -516,5 +422,21 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: colors.secondary.bg,
     padding: '0.25rem',
     borderRadius: '4px'
+  },
+  footer: {
+    padding: '1rem 1.5rem',
+    borderTop: `2px solid ${colors.secondary.border}`,
+    display: 'flex',
+    justifyContent: 'flex-end'
+  },
+  doneButton: {
+    padding: '0.75rem 2rem',
+    background: colors.primary.main,
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: 'bold'
   }
 };

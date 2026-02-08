@@ -2,6 +2,25 @@
 
 ---
 
+## v2.23 - Consolidated Display Settings (February 8, 2026)
+
+**Release Date:** February 8, 2026
+**Version:** 2.23
+**Status:** Alpha Testing
+**Type:** UI Polish
+
+### Improved: Cleaner Display Settings Modal
+
+**What Changed:** The Display Settings modal now shows each player exactly once, with all their controls together in a single card.
+
+**What You'll See:**
+- **One card per player** — Each player has a single card with their visibility toggle, connection status, and QR code controls all in one place
+- **Player-colored borders** — Each card is bordered in the player's color for easy identification
+- **Quick presets at the top** — "Show All Panels" and "Hide Connected Only" buttons are now at the top of the modal for easy access
+- **No more duplicate listings** — Previously players appeared in 3 separate sections; now everything is consolidated
+
+---
+
 ## v2.22 - Security & Mobile Setup (February 7, 2026)
 
 **Release Date:** February 7, 2026

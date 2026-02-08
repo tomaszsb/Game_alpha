@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ UI: Consolidated Display Settings modal — one card per player with all controls (Feb 8, 2026)
 - ✅ Security: Data Editor restricted to main menu, Kill Game button, mobile setup view (Feb 7, 2026)
   - Data Editor removed from in-game ProjectProgress (only accessible from PlayerSetup)
   - ☠️ Kill Game button with admin auth replaces ⚙️ in-game
