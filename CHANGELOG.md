@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Floating Bug Report Button with Screenshot Capture (February 8, 2026)
+
+**Purpose:** Enable player testers to report bugs in-context during playtesting sessions.
+
+**Changes:**
+- Added `html2canvas` dependency for screenshot capture
+- New `FeedbackButton` component (`src/components/feedback/FeedbackButton.tsx`):
+  - Floating draggable button (bottom-right, zIndex 2500 — above modals)
+  - Semi-transparent when idle, full opacity on hover
+  - On click: hides button, captures screenshot via html2canvas, opens feedback modal
+  - Modal (uses ModalBase): screenshot preview (click to enlarge), 3 textareas (what doing, what went wrong, anything else), auto-collected metadata
+  - Submits via POST to `/api/feedback`, shows "Thank you!" confirmation
+- Server endpoints in `server/server.js`:
+  - `POST /api/feedback` — saves report as JSON in `server/data/feedback/`, sends ntfy notification
+  - `GET /api/feedback` — lists all reports (without screenshot data) sorted newest first
+  - `GET /api/feedback/:id` — returns full report including screenshot
+- Mounted `<FeedbackButton />` in all 3 App.tsx branches (landing, lobby, game)
+
 ### UI: Consolidate Display Settings Modal by Player (February 8, 2026)
 
 **Problem:** The Display Settings modal showed player information in 3 separate sections ("Player Panels", "Quick Presets", "Connect Mobile Device"), causing each player to appear multiple times.

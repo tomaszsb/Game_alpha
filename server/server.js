@@ -679,6 +679,103 @@ app.get('/api/debug/games', (req, res) => {
   res.send(JSON.stringify(allGames, null, 2));
 });
 
+// ===== FEEDBACK / BUG REPORT ENDPOINTS =====
+const FEEDBACK_DIR = path.join(CONFIG.DATA_DIR, 'feedback');
+
+function ensureFeedbackDir() {
+  if (!fs.existsSync(FEEDBACK_DIR)) {
+    fs.mkdirSync(FEEDBACK_DIR, { recursive: true });
+    console.log(`📁 Created feedback directory: ${FEEDBACK_DIR}`);
+  }
+}
+
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { screenshot, whatDoing, whatWrong, extra, metadata } = req.body;
+
+    if (!whatDoing || !whatWrong) {
+      return res.status(400).json({ error: 'whatDoing and whatWrong are required' });
+    }
+
+    ensureFeedbackDir();
+
+    const timestamp = Date.now();
+    const random = crypto.randomBytes(4).toString('hex');
+    const filename = `feedback-${timestamp}-${random}.json`;
+
+    const report = {
+      id: filename,
+      screenshot: screenshot || null,
+      whatDoing,
+      whatWrong,
+      extra: extra || '',
+      metadata: metadata || {},
+      createdAt: new Date(timestamp).toISOString(),
+    };
+
+    fs.writeFileSync(path.join(FEEDBACK_DIR, filename), JSON.stringify(report, null, 2));
+
+    logVisitor(req, 'BUG_REPORT', {
+      gameId: metadata?.gameId || 'unknown',
+      whatDoing: whatDoing.substring(0, 80),
+    });
+
+    // Send ntfy notification
+    const gameLabel = metadata?.gameId && metadata.gameId !== 'none' ? metadata.gameId : 'unknown game';
+    await sendNotification(
+      'Bug Report Received',
+      `Bug report from ${gameLabel}:\n${whatDoing.substring(0, 80)}`,
+      'default',
+      'bug'
+    );
+
+    res.json({ success: true, id: filename });
+  } catch (err) {
+    console.error('Failed to save feedback:', err);
+    res.status(500).json({ error: 'Failed to save feedback' });
+  }
+});
+
+app.get('/api/feedback', (req, res) => {
+  try {
+    ensureFeedbackDir();
+
+    const files = fs.readdirSync(FEEDBACK_DIR).filter(f => f.endsWith('.json'));
+    const reports = files.map(f => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(FEEDBACK_DIR, f), 'utf8'));
+        // Return without screenshot for list view
+        const { screenshot, ...rest } = data;
+        return rest;
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    // Sort newest first
+    reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    res.json({ reports, count: reports.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/feedback/:id', (req, res) => {
+  try {
+    const filePath = path.join(FEEDBACK_DIR, req.params.id);
+
+    if (!req.params.id.endsWith('.json') || !fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== SPA FALLBACK & ERROR HANDLERS =====
 // For non-API routes, serve index.html (SPA client-side routing)
 app.use((req, res, next) => {
@@ -694,7 +791,10 @@ app.use((req, res, next) => {
         'GET /api/games/:gameId/state',
         'POST /api/games/:gameId/state',
         'GET /api/logs',
-        'GET /api/logs/summary'
+        'GET /api/logs/summary',
+        'POST /api/feedback',
+        'GET /api/feedback',
+        'GET /api/feedback/:id'
       ]
     });
   }

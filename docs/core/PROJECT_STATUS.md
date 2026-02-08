@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: February 8, 2026
-**Current Phase**: External Testing Ready (v2.23)
-**Current Version**: 2.23
+**Current Phase**: External Testing Ready (v2.24)
+**Current Version**: 2.24
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Feature: Bug Report Button with Screenshot Capture (February 8, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.24
+- **Features**: Floating draggable bug button, screenshot capture, feedback form, server storage
+- **Achievements**:
+  - html2canvas screenshot capture on click
+  - Draggable button (zIndex 2500), ModalBase form with 3 fields + metadata
+  - Server endpoints: POST/GET /api/feedback with ntfy notifications
+  - Reports saved as JSON in server/data/feedback/
 
 ### UI: Consolidate Display Settings Modal (February 8, 2026) ✅
 - **Status**: ✅ Complete

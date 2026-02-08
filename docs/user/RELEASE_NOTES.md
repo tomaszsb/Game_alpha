@@ -2,6 +2,28 @@
 
 ---
 
+## v2.24 - Bug Report Button (February 8, 2026)
+
+**Release Date:** February 8, 2026
+**Version:** 2.24
+**Status:** Alpha Testing
+**Type:** Feature
+
+### New: Report a Bug Button
+
+**What's New:** A small floating bug button now appears on every screen. Tap it to report an issue.
+
+**How It Works:**
+- **Red bug button** in the bottom-right corner of the screen (draggable if it's in your way)
+- **Tap it** to capture a screenshot and open a bug report form
+- **Describe the issue** — what you were doing, what went wrong
+- **Submit** — the report (with screenshot) is sent to the developer automatically
+- The button is semi-transparent so it doesn't distract from gameplay
+
+**Why:** As we enter player testing, this gives everyone an easy way to flag issues without leaving the game.
+
+---
+
 ## v2.23 - Consolidated Display Settings (February 8, 2026)
 
 **Release Date:** February 8, 2026

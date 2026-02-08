@@ -15,6 +15,7 @@ import { GameLobby } from './components/setup/GameLobby';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
+import { FeedbackButton } from './components/feedback/FeedbackButton';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -281,6 +282,7 @@ export function App(): JSX.Element {
     return (
       <ErrorBoundary>
         <LandingPage onSelectMode={handleModeSelect} />
+        <FeedbackButton />
       </ErrorBoundary>
     );
   }
@@ -306,6 +308,7 @@ export function App(): JSX.Element {
           onJoinGame={handleJoinGame}
           mode={selectedMode === 'tv' ? 'tv' : undefined}
         />
+        <FeedbackButton />
       </ErrorBoundary>
     );
   }
@@ -318,6 +321,7 @@ export function App(): JSX.Element {
           <ErrorBoundary>
             <AppContent />
             <DictionaryPanelWrapper />
+            <FeedbackButton />
           </ErrorBoundary>
         </DictionaryProvider>
       </ServiceProvider>
