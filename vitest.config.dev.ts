@@ -21,10 +21,16 @@ export default defineConfig({
     globals: true,
     setupFiles: ['tests/vitest.setup.ts'],
 
-    // STABLE EXECUTION: Single-threaded to avoid worker crashes
-    pool: 'forks',
-    poolMatchGlobs: [],  // Use forks for all tests
-    fileParallelism: false,  // Run files sequentially (replaces singleFork)
+    // Parallel threads with limited workers for WSL2 stability
+    // Force-exit reporter prevents post-test hang from open handles
+    pool: 'threads',
+    fileParallelism: true,
+    poolOptions: {
+      threads: {
+        maxThreads: 4,
+        minThreads: 2,
+      }
+    },
 
     // Standard timeouts
     testTimeout: 30000,       // 30 seconds
@@ -33,8 +39,8 @@ export default defineConfig({
     isolate: true,            // Isolated environment between tests
     clearMocks: true,         // Still clear mocks for test reliability
 
-    // Faster reporter
-    reporter: ['default'],
+    // Default reporter + force-exit reporter (prevents hanging after tests complete)
+    reporter: ['default', 'tests/vitest.forceExit.ts'],
 
     // Skip coverage for development speed (use test:coverage for coverage)
     coverage: {
@@ -42,7 +48,10 @@ export default defineConfig({
     },
 
     // Faster test discovery
-    passWithNoTests: true
+    passWithNoTests: true,
+
+    // Low teardown timeout to prevent hanging
+    teardownTimeout: 3000
   },
 
   resolve: {
