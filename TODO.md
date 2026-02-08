@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
-**Last Updated:** February 5, 2026
-**Status:** Production Ready - Mobile Optimization Sprint Planned
+**Last Updated:** February 8, 2026
+**Status:** Production Ready - External Testing In Progress
 
 ---
 
@@ -540,7 +540,7 @@ Mobile players report that UI "doesn't fit on screens". The game is a Jackbox-st
 - **Framework:** React 18 + TypeScript (web-based, not native)
 - **Existing Mobile Components:** MobilePlayerPanel, StatsBar, PrimaryAction, ContextArea, ResponsiveSheet
 - **Breakpoint:** 768px (Bootstrap standard)
-- **State Sync:** HTTP POST with 500ms debounce (no WebSockets)
+- **State Sync:** WebSockets (real-time) with HTTP fallback (server/websocket.js + WebSocketSyncService.ts)
 
 ---
 
@@ -598,13 +598,10 @@ Mobile players report that UI "doesn't fit on screens". The game is a Jackbox-st
 - **Problem:** Some buttons have smaller tap areas (decision options at 12px padding)
 - **Fix:** Added `min-height: 48px` to decision options and `min-width/min-height: 44px` to stats bar items
 
-**Issue #7: No Swipe Gestures**
-- **Problem:** Bottom sheets only close via tap on X or backdrop
-- **Recommendation:** Add swipe-to-dismiss for ResponsiveSheet
-  - Swipe down to close modals
-  - Swipe between cards in hand
-  - Swipe to navigate sections
-- **Library:** Consider `react-swipeable` or use existing Framer Motion gestures
+**Issue #7: No Swipe Gestures** ✅ FIXED
+- **Implemented:** framer-motion drag gestures on DetailSheet (swipe down to dismiss)
+- **Files:** `src/components/player/mobile/DetailSheet.tsx` uses `drag="y"` with spring physics
+- **Status:** Bottom sheets close via swipe-down gesture, tap on backdrop, or X button
 
 **Issue #8: Haptic Feedback Not Used Consistently** ✅ FIXED
 - **Added:** New patterns to `haptics.ts` (diceRoll, cardDraw, movement)
@@ -646,13 +643,11 @@ Mobile players report that UI "doesn't fit on screens". The game is a Jackbox-st
   - `?g=G1&p=P1` → Player 1's mobile controller
   - 📺 TV button in ProjectProgress header opens TV mode in new tab
 
-**Issue #14: State Sync is HTTP Polling (Laggy)**
-- **File:** `src/services/ServerSyncService.ts`
-- **Problem:** HTTP polling with 500ms debounce creates lag in multiplayer
-- **Recommendation:** Migrate to WebSockets or Server-Sent Events (SSE)
-  - WebSocket: Bidirectional, instant updates
-  - SSE: Server-to-client only, simpler, good for game state push
-- **Impact:** Critical for TV to update instantly when player acts
+**Issue #14: State Sync is HTTP Polling (Laggy)** ✅ FIXED
+- **Implemented:** WebSocket real-time state sync with HTTP fallback
+- **Files:** `server/websocket.js` (server), `src/services/WebSocketSyncService.ts` (client)
+- **Features:** Bidirectional updates, instant state push, automatic reconnection
+- **Impact:** TV and mobile devices update instantly when any player acts
 
 ---
 
@@ -744,9 +739,10 @@ npx cap add android
 - **Problem:** Emoji render differently across devices
 - **Recommendation:** Use consistent icon library (Lucide React, Heroicons)
 
-**Issue #26: No Dark Mode Toggle Visible**
-- **Problem:** Dark mode exists in CSS but no UI to toggle
-- **Fix:** Add toggle in header or settings
+**Issue #26: No Dark Mode Toggle Visible** ✅ FIXED
+- **Implemented:** `ThemeToggle.tsx` component with sun/moon icon toggle
+- **Features:** Light/dark mode switch, system preference detection, CSS custom properties
+- **Files:** `src/components/common/ThemeToggle.tsx`, `src/styles/mobile-theme.css`
 
 **Issue #27: Card Display Too Dense**
 - **Problem:** Card details have lots of information
@@ -794,7 +790,7 @@ devices: ['iPhone 13', 'Pixel 5', 'iPad Pro']
 | 2 | Fix modal max-height for mobile (#2) | Low | High | ✅ Fixed Feb 4 |
 | 3 | Add 2x2 StatsBar grid for narrow screens (#4) | Low | Medium | ✅ Fixed Feb 4 |
 | 4 | Implement TV mode (`?mode=tv`) (#11, #13) | Medium | High | ✅ Fixed Feb 4 |
-| 5 | Migrate to WebSockets (#14) | High | High | ⬜ |
+| 5 | Migrate to WebSockets (#14) | High | High | ✅ Fixed |
 | 6 | Add PWA manifest (#21) | Low | Medium | ✅ Fixed Feb 4 |
 | 7 | Increase touch target sizes (#6) | Low | Medium | ✅ Fixed Feb 4 |
 | 8 | Add swipe gestures (#7) | Medium | Medium | ✅ Fixed Feb 4 |
@@ -806,7 +802,7 @@ devices: ['iPhone 13', 'Pixel 5', 'iPad Pro']
 - [x] All interactive elements have 44x44px minimum touch targets ✅ Feb 4
 - [x] TV mode displays game board prominently with QR code for joining ✅ Feb 4
 - [x] Mobile mode shows only player's controller interface ✅ Feb 4
-- [ ] State updates appear on TV within 100ms of player action (needs WebSockets)
+- [x] State updates appear on TV within 100ms of player action ✅ WebSockets implemented
 - [x] PWA installable on iOS and Android home screens ✅ Feb 4
 
 ---
@@ -847,8 +843,8 @@ See CHANGELOG.md for full implementation details.
 
 ---
 
-## 🌐 **Universal Dictionary Integration** 🔄
-*Status: PARTIAL - Needs Panel Integration*
+## 🌐 **Universal Dictionary Integration** ✅
+*Status: COMPLETE - Embedded iframe mode enabled*
 *Integration Target: dashboard.unravelcodes.com*
 
 ### Objective
@@ -858,25 +854,20 @@ Create a seamless bridge between the Game Engine and the Command Center's Intell
 - [x] **Term Highlighting**: `TextWithTerms` component highlights glossary terms in game text
 - [x] **View Intelligence Buttons**: Added to CardDetailsModal and SpaceExplorerPanel
 - [x] **Reverse Bridge (Dictionary -> Game)**: URL params for preview_card/preview_space
+- [x] **Dictionary Panel Integration**: Embedded iframe via `DictionaryPanelWrapper` (600px width)
+- [x] **Feature Flag**: `ENABLE_EMBEDDED_DICTIONARY=true` enables in-game embedded panel
+- [x] **Local Term Data**: `src/dictionary/data/terms.ts` retained as fallback for TextWithTerms highlighting
 
-### Pending Tasks (February 2026)
-- [ ] **Dictionary Panel Integration**: Modify `dictionaryBridge.ts` to open dictionary as in-game panel (like DictionaryPanel) instead of new browser tab
-- [ ] **Remote Term Data**: Fetch all term definitions from `https://dashboard.unravelcodes.com/dictionary?id=` instead of local `data/terms.ts`
-- [ ] **Seamless UI**: Panel should embed dashboard content seamlessly within game interface
-- [ ] **Remove Local Data**: Delete `src/dictionary/data/terms.ts` once remote fetch is working
+### Architecture
+- `src/utils/dictionaryBridge.ts` - Links to external dictionary
+- `src/dictionary/components/TextWithTerms.tsx` - Highlights terms in text
+- `src/dictionary/components/DictionaryPanel.tsx` - Embedded iframe panel UI
+- `src/dictionary/data/terms.ts` - Local term data (fallback for highlighting)
+- `src/components/layout/DictionaryPanelWrapper.tsx` - Wrapper mounted in App.tsx game branch
 
-### Current Architecture
-- `src/utils/dictionaryBridge.ts` - Links to external dictionary (currently opens new tab)
-- `src/dictionary/components/TextWithTerms.tsx` - Highlights terms in text (KEEP)
-- `src/dictionary/components/DictionaryPanel.tsx` - Panel UI (modify to embed dashboard)
-- `src/dictionary/data/terms.ts` - Local term data (REMOVE - use dashboard)
-
-### Previous Completed Tasks
-- [x] **Reverse Bridge (Dictionary -> Game)**:
-  - [x] App.tsx detects `?action=preview_card&id=W001` or `?action=preview_space&id=SPACE_ID` on load.
-  - [x] GameLayout opens appropriate modal and shows error notification if asset not found.
-  - [x] URL params cleared after processing to prevent re-triggers.
-- [ ] **Shared Media Assets**: Deferred to future DevOps sprint - assets remain local for now.
+### Remaining (Nice-to-Have)
+- [ ] **Remote Term Data**: Fetch definitions from dashboard API instead of local `terms.ts`
+- [ ] **Shared Media Assets**: Deferred to future DevOps sprint
 
 ### Files Added/Modified
 - `src/utils/dictionaryBridge.ts` (NEW)
@@ -888,25 +879,17 @@ Create a seamless bridge between the Game Engine and the Command Center's Intell
 
 ---
 
-## 🛠️ **Space Data Editor** ⏸️
-*Status: DEFERRED - Placeholder Implementation*
+## 🛠️ **Space Data Editor** ✅
+*Status: COMPLETE - Full CRUD Implementation*
 
-### Current State
-- File: `src/components/editor/DataEditor.tsx`
-- Has space dropdown selector (functional)
-- Has "Clear Game Data" button (functional)
-- Editing UI says "Editor UI will go here" (placeholder)
-- CSV download says "functionality to be implemented" (placeholder)
-
-### Deferred Features
-- [ ] Edit space properties (title, description, effects)
-- [ ] Edit space connections (movement paths)
-- [ ] CSV export/download of edited data
-- [ ] CSV import to load modified data
-- [ ] Validation before save
-
-### Why Deferred
-Game data is currently managed via CSV files edited externally. In-game editor is nice-to-have for non-technical users but not critical for current workflow.
+### Implemented Features
+- File: `src/components/editor/DataEditor.tsx` + `src/components/editor/SpaceEditor.tsx`
+- [x] Space dropdown selector with search
+- [x] Edit space properties (title, description, effects) — full SpaceEditor component
+- [x] Edit space connections (movement paths)
+- [x] Clear Game Data button
+- [x] Admin password protection (via AdminAuthGate)
+- [x] Text contrast fixes for readability (Feb 5, 2026)
 
 ---
 
@@ -953,4 +936,4 @@ For current technical debt, see `docs/technical/TECHNICAL_DEBT.md`
 
 ---
 
-**Last Updated:** February 5, 2026
+**Last Updated:** February 8, 2026
