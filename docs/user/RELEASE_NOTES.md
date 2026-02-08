@@ -2,6 +2,24 @@
 
 ---
 
+## v2.22 - Security & Mobile Setup (February 7, 2026)
+
+**Release Date:** February 7, 2026
+**Version:** 2.22
+**Status:** Alpha Testing
+**Type:** Security + UX
+
+### Improved: Safer In-Game Controls and Better Phone Setup Experience
+
+**What Changed:** The Data Editor is no longer accessible during a game, a new Kill Game button lets admins end games, and phone players now see a simpler setup screen.
+
+**What You'll See:**
+- **Data Editor locked to main menu only** — The ⚙️ Edit button has been removed from the in-game progress bar. You can still access the Data Editor from the main setup screen via Admin Tools
+- **Kill Game button** — A new ☠️ Kill button appears in the progress bar. It requires the admin password and a confirmation before ending the game. Use it to end a game that's stuck or no longer needed
+- **Simplified phone setup** — When you scan the QR code before the game starts, you now see only your own player card: your avatar, name, and color. No more confusing full setup screen. A "Waiting for the host to start the game..." message pulses while you wait
+
+---
+
 ## v2.21 - Button & Layout Polish (February 7, 2026)
 
 **Release Date:** February 7, 2026

@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: February 7, 2026
-**Current Phase**: External Testing Ready (v2.21)
-**Current Version**: 2.21
+**Current Phase**: External Testing Ready (v2.22)
+**Current Version**: 2.22
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Security: Restrict Data Editor + Kill Game + Mobile Setup View (February 7, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.22
+- **Features**: Data Editor restricted to main menu, in-game Kill Game button, simplified mobile setup
+- **Achievements**:
+  - Removed Data Editor access from in-game ProjectProgress (security fix)
+  - ☠️ Kill Game button with admin password auth + confirmation dialog
+  - Mobile players scanning QR during SETUP see only their own player card
+  - "Waiting for host to start..." pulsing message on mobile setup
 
 ### UI Polish: Button Sizing, Tab Visibility, Conditional Renegotiate (February 7, 2026) ✅
 - **Status**: ✅ Complete

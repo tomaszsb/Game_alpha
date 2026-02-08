@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security: Restrict Data Editor to Main Menu + Kill Game + Mobile Setup View (February 7, 2026)
+
+**Problem:** During playtesting, three issues were identified:
+1. The Data Editor (⚙️ button) was accessible from within active games via ProjectProgress — a security risk since anyone who knows the admin password could edit game data mid-game
+2. There was no way to kill/end a specific game from within the game UI
+3. When players scanned the QR code during SETUP, they saw the full desktop setup screen (all players, game settings, admin tools, start button) — confusing on a phone
+
+**Changes:**
+
+**Data Editor Restricted to Main Menu:**
+- Removed `onOpenDataEditor` prop from `ProjectProgress` component
+- Removed ⚙️ Edit buttons from both collapsed and full mode headers
+- Removed `DataEditor` import, state, and render from `GameLayout`
+- Data Editor remains accessible from `PlayerSetup` via Admin Tools (main menu only)
+
+**Kill Game Button (In-Game):**
+- Added ☠️ Kill button in both compact and full ProjectProgress headers (red `#dc3545`)
+- Requires admin password authentication (reuses existing `adminAuth.ts`)
+- Shows inline password prompt if not already authenticated
+- After auth: browser `confirm()` dialog → `DELETE` to game state API → redirect to landing page
+- Imports: `verifyAdminPassword`, `isAdminAuthenticated` from adminAuth; `getGameStateAPIPath` from networkDetection
+
+**Simplified Mobile Setup View:**
+- Added `viewPlayerId` prop to `PlayerSetup` component
+- `GameLayout` passes `effectiveViewPlayerId` to `PlayerSetup` during SETUP phase
+- When `viewPlayerId` is set, renders a mobile-optimized view showing only:
+  - Large tappable avatar with "tap to change" hint
+  - Name input field
+  - Color picker
+  - Pulsing "Waiting for the host to start the game..." message
+- No game settings, no admin tools, no start button, no other players visible
+- "Player not found" fallback if player ID doesn't match
+
+**Files Modified:**
+- `src/components/game/ProjectProgress.tsx` — Removed ⚙️, added ☠️ Kill with admin auth
+- `src/components/layout/GameLayout.tsx` — Removed DataEditor state/render/prop, pass viewPlayerId to PlayerSetup
+- `src/components/setup/PlayerSetup.tsx` — Added viewPlayerId prop, mobile setup view
+
 ### UI Polish: Button Sizing, Tab Visibility, Conditional Renegotiate (February 7, 2026)
 
 **Problem:** Continued playtesting revealed 3 more issues:

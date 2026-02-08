@@ -16,7 +16,6 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { MovementPathVisualization } from '../game/MovementPathVisualization';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
-import { DataEditor } from '../editor/DataEditor';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
@@ -83,7 +82,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [previewSpaceId, setPreviewSpaceId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
-  const [isDataEditorOpen, setIsDataEditorOpen] = useState<boolean>(false);
   const [isDiceResultModalOpen, setIsDiceResultModalOpen] = useState<boolean>(false);
   const [diceResult, setDiceResult] = useState<any>(null);
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState<boolean>(false);
@@ -707,7 +705,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 onToggleGameLog={handleToggleGameLog}
                 onOpenRulesModal={handleOpenRulesModal}
                 onOpenDisplaySettings={() => setIsDisplaySettingsOpen(true)}
-                onOpenDataEditor={() => setIsDataEditorOpen(true)}
                 collapsed={isProgressCollapsed}
                 onToggleCollapsed={() => setIsProgressCollapsed(prev => !prev)}
               />
@@ -874,6 +871,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       {/* Conditional rendering based on game phase */}
       {gamePhase === 'SETUP' && (
         <PlayerSetup
+          viewPlayerId={effectiveViewPlayerId || undefined}
           onStartGame={async (players, settings) => {
             console.log('Starting game with players:', players);
             console.log('Game settings:', settings);
@@ -946,8 +944,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         cardService={cardService}
       />
       
-      {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
-
       {/* Space Explorer Panel */}
       {isSpaceExplorerVisible && (
         <SpaceExplorerPanel

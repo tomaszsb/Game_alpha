@@ -21,6 +21,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Security: Data Editor restricted to main menu, Kill Game button, mobile setup view (Feb 7, 2026)
+  - Data Editor removed from in-game ProjectProgress (only accessible from PlayerSetup)
+  - ☠️ Kill Game button with admin auth replaces ⚙️ in-game
+  - Mobile players scanning QR during setup see only their own player card + "Waiting..." message
 - ✅ UI Polish: Equal button sizing, tab visibility fix, conditional Renegotiate (Feb 7, 2026)
   - End Turn and Renegotiate buttons same size; remaining actions shown inside End Turn
   - Reference tabs no longer cut off when collapsed player bar above

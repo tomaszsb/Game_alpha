@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
 import { PlayerForm } from './PlayerForm';
 import { PlayerList } from './PlayerList';
-import { usePlayerValidation, GameSettings } from './usePlayerValidation';
+import { usePlayerValidation, GameSettings, AVAILABLE_COLORS, ColorOption } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
@@ -14,6 +14,8 @@ import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectio
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
+  /** When set, show a simplified mobile view for this player only */
+  viewPlayerId?: string;
 }
 
 /**
@@ -21,7 +23,8 @@ interface PlayerSetupProps {
  * This replaces the legacy EnhancedPlayerSetup with a clean, composable structure
  */
 export function PlayerSetup({
-  onStartGame = (players, settings) => console.log('Start game:', players, settings)
+  onStartGame = (players, settings) => console.log('Start game:', players, settings),
+  viewPlayerId
 }: PlayerSetupProps): JSX.Element {
 
   // Get services from context
@@ -169,6 +172,139 @@ export function PlayerSetup({
   };
 
   const addPlayerValidation = validation.validateAddPlayer();
+
+  // Mobile player view: show only their own player card + waiting message
+  if (viewPlayerId) {
+    const viewPlayer = players.find(p => p.id === viewPlayerId);
+    if (!viewPlayer) {
+      return (
+        <div style={styles.container}>
+          <div style={styles.background} />
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.2rem' }}>
+            Player not found. The host may not have added you yet.
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.container}>
+        <div style={styles.background} />
+
+        {/* Header */}
+        <header style={styles.header}>
+          <div style={styles.headerLeft}>
+            <img src="/images/logo.png" alt="Unravel Codes" style={styles.logo} />
+            <div>
+              <h1 style={styles.title}>Unravel Codes: The Game</h1>
+              <p style={styles.subtitle}>Setting up your player</p>
+            </div>
+          </div>
+          {getCurrentGameId() && (
+            <div style={styles.gameCodeBadge}>
+              <span style={styles.gameCodeLabel}>Game: </span>
+              <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
+            </div>
+          )}
+        </header>
+
+        {/* Player card */}
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 1rem', gap: '1.5rem' }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+            width: '100%',
+            maxWidth: '400px',
+            border: `4px solid ${viewPlayer.color}`,
+          }}>
+            {/* Avatar */}
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <div
+                style={{ fontSize: '3.5rem', cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => handleCycleAvatar(viewPlayer.id)}
+                title="Tap to change avatar"
+              >
+                {viewPlayer.avatar}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: colors.secondary.main, marginTop: '0.25rem' }}>
+                Tap to change
+              </div>
+            </div>
+
+            {/* Name */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', color: colors.secondary.dark, fontSize: '0.9rem' }}>
+                Your Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={viewPlayer.name}
+                onChange={(e) => handleUpdatePlayer(viewPlayer.id, 'name', e.target.value)}
+                maxLength={20}
+                style={{
+                  padding: '0.75rem',
+                  border: `2px solid ${viewPlayer.color}`,
+                  borderRadius: '10px',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Color picker */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', color: colors.secondary.dark, fontSize: '0.9rem' }}>
+                Your Color
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {AVAILABLE_COLORS.map((colorOption: ColorOption) => {
+                  const isSelected = viewPlayer.color === colorOption.color;
+                  return (
+                    <button
+                      key={colorOption.color}
+                      onClick={() => handleUpdatePlayer(viewPlayer.id, 'color', colorOption.color)}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        backgroundColor: colorOption.color,
+                        border: isSelected ? `3px solid ${colors.success.text}` : `2px solid ${colors.secondary.light}`,
+                        cursor: 'pointer',
+                        transform: isSelected ? 'scale(1.2)' : 'scale(1)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      title={colorOption.name}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Waiting message */}
+          <div style={{
+            textAlign: 'center',
+            color: 'rgba(255,255,255,0.9)',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            animation: 'pulse 2s ease-in-out infinite',
+          }}>
+            ⏳ Waiting for the host to start the game...
+          </div>
+          <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
+        </main>
+
+        <footer style={styles.footer}>
+          <strong>Alpha Version</strong> - Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
