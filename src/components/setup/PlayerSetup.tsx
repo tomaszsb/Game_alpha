@@ -7,7 +7,8 @@ import { PlayerList } from './PlayerList';
 import { usePlayerValidation, GameSettings, AVAILABLE_COLORS, ColorOption } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
-import { getCurrentGameId } from '../../utils/networkDetection';
+import { getCurrentGameId, getServerURL, getNetworkInfo } from '../../utils/networkDetection';
+import { QRCodeSVG } from 'qrcode.react';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
@@ -44,6 +45,14 @@ export function PlayerSetup({
 
     return unsubscribe;
   }, [stateService]);
+
+  // Track wide screen for QR column visibility
+  const [isWideScreen, setIsWideScreen] = useState(() => window.innerWidth > 900);
+  useEffect(() => {
+    const handleResize = () => setIsWideScreen(window.innerWidth > 900);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Game settings state
   const [gameSettings, setGameSettings] = useState<GameSettings>({
@@ -311,6 +320,13 @@ export function PlayerSetup({
       {/* Background gradient */}
       <div style={styles.background} />
 
+      {/* Responsive: hide QR column on narrow screens */}
+      <style>{`
+        @media (max-width: 900px) {
+          .qr-column { display: none !important; }
+        }
+      `}</style>
+
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
@@ -332,9 +348,90 @@ export function PlayerSetup({
         )}
       </header>
 
-      {/* Main content - two panels side by side */}
+      {/* Main content - 3-column layout on wide screens */}
       <main style={styles.main}>
-        {/* Left panel: Players */}
+        {/* Left column: QR codes for scanning (hidden on narrow screens via .qr-column) */}
+        <div className="qr-column" style={styles.qrColumn}>
+          <h3 style={{ ...styles.sectionTitleSmall, color: 'white', textAlign: 'center' as const }}>
+            📱 Scan to Join
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', flex: 1 }}>
+            {players.map(player => {
+              const playerURL = getServerURL(player.id, player.shortId);
+              const networkInfo = getNetworkInfo();
+              return (
+                <div key={player.id} style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}>
+                  {player.deviceType === 'mobile' ? (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: '10px',
+                      padding: '0.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
+                      <div style={{
+                        background: colors.success.light,
+                        color: colors.success.text,
+                        borderRadius: '6px',
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.7rem',
+                        fontWeight: 'bold',
+                      }}>
+                        ✅ Connected
+                      </div>
+                      <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                        {player.name || 'Unnamed'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      borderRadius: '10px',
+                      padding: '0.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                    }}>
+                      <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
+                      {networkInfo.isLocalhost && (
+                        <div style={{ fontSize: '0.6rem', color: '#ffb3b3' }}>localhost only</div>
+                      )}
+                      <div style={{
+                        padding: '4px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        border: `3px solid ${player.color}`,
+                        lineHeight: 0,
+                      }}>
+                        <QRCodeSVG
+                          value={playerURL}
+                          size={120}
+                          level="M"
+                          includeMargin={false}
+                          fgColor={player.color || colors.primary.main}
+                        />
+                      </div>
+                      <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                        {player.name || 'Unnamed'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Center column: Player edit cards */}
         <div style={styles.panel}>
           <h3 style={styles.sectionTitle}>
             👥 Players
@@ -351,6 +448,7 @@ export function PlayerSetup({
               onRemovePlayer={handleRemovePlayer}
               onCycleAvatar={handleCycleAvatar}
               canRemovePlayer={validation.canRemovePlayer}
+              hideQR={isWideScreen}
             />
           </div>
 
@@ -363,8 +461,8 @@ export function PlayerSetup({
           )}
         </div>
 
-        {/* Right panel: Settings + Admin + Start */}
-        <div style={styles.panel}>
+        {/* Right column: Settings + Admin + Start */}
+        <div style={styles.settingsColumn}>
           {/* Game settings section */}
           <div style={styles.settingsBlock}>
             <h3 style={styles.sectionTitleSmall}>
@@ -740,8 +838,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     minHeight: 0,
     overflow: 'hidden',
   },
+  qrColumn: {
+    flex: '0 0 200px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'auto',
+    minWidth: 0,
+  },
   panel: {
     flex: 1,
+    background: 'white',
+    borderRadius: '16px',
+    padding: 'clamp(1rem, 2vh, 1.5rem)',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'auto',
+    minWidth: 0,
+  },
+  settingsColumn: {
+    flex: '0 0 280px',
     background: 'white',
     borderRadius: '16px',
     padding: 'clamp(1rem, 2vh, 1.5rem)',

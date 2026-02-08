@@ -28,22 +28,22 @@ export function LandingPage({ onSelectMode, error: externalError }: LandingPageP
     {
       id: 'host' as const,
       icon: '🎮',
-      title: 'Host Game',
-      description: 'Start a new game session and invite players',
+      title: 'Host on PC',
+      description: 'Start a new game session from your computer',
       color: colors.primary.main,
     },
     {
       id: 'tv' as const,
       icon: '📺',
-      title: 'TV Display',
-      description: 'Open this URL on your TV or large screen to display the game board',
+      title: 'Host or Join on TV',
+      description: 'Host a new game or join an existing one on a TV or large screen',
       color: '#9c27b0',
     },
     {
       id: 'join' as const,
       icon: '📱',
-      title: 'Join Game',
-      description: 'Join an existing game as a player',
+      title: 'Join if Lost Connection',
+      description: 'Rejoin an existing game with a game code',
       color: colors.success.main,
     },
   ];

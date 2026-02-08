@@ -13,6 +13,8 @@ interface PlayerListProps {
   onRemovePlayer: (playerId: string) => void;
   onCycleAvatar: (playerId: string) => void;
   canRemovePlayer: boolean;
+  /** When true, QR codes / connected badges are hidden from player cards */
+  hideQR?: boolean;
 }
 
 /**
@@ -24,7 +26,8 @@ export function PlayerList({
   onUpdatePlayer,
   onRemovePlayer,
   onCycleAvatar,
-  canRemovePlayer
+  canRemovePlayer,
+  hideQR = false
 }: PlayerListProps): JSX.Element {
 
   /**
@@ -195,65 +198,67 @@ export function PlayerList({
           )}
         </div>
 
-        {/* Right side: QR code (always visible) or Connected badge */}
-        <div style={{
-          marginLeft: 'auto',
-          flexShrink: 0,
-          textAlign: 'center'
-        }}>
-          {player.deviceType === 'mobile' ? (
-            <div style={{
-              background: colors.success.light,
-              color: colors.success.text,
-              border: `2px solid ${colors.success.main}`,
-              borderRadius: '8px',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8rem',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem'
-            }}>
-              ✅ Mobile
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {networkInfo.isLocalhost && (
+        {/* Right side: QR code or Connected badge (hidden when hideQR is true) */}
+        {!hideQR && (
+          <div style={{
+            marginLeft: 'auto',
+            flexShrink: 0,
+            textAlign: 'center'
+          }}>
+            {player.deviceType === 'mobile' ? (
+              <div style={{
+                background: colors.success.light,
+                color: colors.success.text,
+                border: `2px solid ${colors.success.main}`,
+                borderRadius: '8px',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.8rem',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                ✅ Mobile
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {networkInfo.isLocalhost && (
+                  <div style={{
+                    fontSize: '0.65rem',
+                    color: colors.danger.text,
+                    marginBottom: '0.25rem',
+                    maxWidth: '120px'
+                  }}>
+                    localhost only
+                  </div>
+                )}
+                <div style={{
+                  padding: '4px',
+                  background: 'white',
+                  borderRadius: '6px',
+                  border: `2px solid ${player.color}`,
+                  lineHeight: 0
+                }}>
+                  <QRCodeSVG
+                    value={playerURL}
+                    size={100}
+                    level="M"
+                    includeMargin={false}
+                    fgColor={player.color || colors.primary.main}
+                  />
+                </div>
                 <div style={{
                   fontSize: '0.65rem',
-                  color: colors.danger.text,
-                  marginBottom: '0.25rem',
-                  maxWidth: '120px'
+                  color: colors.secondary.main,
+                  marginTop: '0.25rem',
+                  fontStyle: 'italic'
                 }}>
-                  localhost only
+                  Optional: scan for personal screen
                 </div>
-              )}
-              <div style={{
-                padding: '4px',
-                background: 'white',
-                borderRadius: '6px',
-                border: `2px solid ${player.color}`,
-                lineHeight: 0
-              }}>
-                <QRCodeSVG
-                  value={playerURL}
-                  size={100}
-                  level="M"
-                  includeMargin={false}
-                  fgColor={player.color || colors.primary.main}
-                />
               </div>
-              <div style={{
-                fontSize: '0.65rem',
-                color: colors.secondary.main,
-                marginTop: '0.25rem',
-                fontStyle: 'italic'
-              }}>
-                Optional: scan for personal screen
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };

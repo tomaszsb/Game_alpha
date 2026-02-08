@@ -179,8 +179,7 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
 
       {/* Main content - horizontal layout */}
       <main style={styles.main}>
-        {/* Left panel - Create New Game (hidden in TV mode) */}
-        {mode !== 'tv' && (
+        {/* Left panel - Create New Game */}
         <section style={styles.panel}>
           <h2 style={styles.panelTitle}>🎮 New Game</h2>
           <p style={styles.panelDescription}>
@@ -198,10 +197,8 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
             {creating ? 'Creating...' : 'Create Game'}
           </button>
         </section>
-        )}
 
-        {/* Center panel - Join by Code (hidden in TV mode) */}
-        {mode !== 'tv' && (
+        {/* Center panel - Join by Code */}
         <section style={styles.panel}>
           <h2 style={styles.panelTitle}>🔗 Join by Code</h2>
           <p style={styles.panelDescription}>
@@ -229,12 +226,11 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
             </button>
           </div>
         </section>
-        )}
 
-        {/* Right panel - Active Games (only panel in TV mode) */}
-        <section style={mode === 'tv' ? { ...styles.panel, maxWidth: '600px' } : styles.panel}>
+        {/* Right panel - Active Games */}
+        <section style={styles.panel}>
           <h2 style={styles.panelTitle}>
-            {mode === 'tv' ? '📺 Select Game to Display on TV' : '📋 Active Games'}
+            {mode === 'tv' ? '📺 Active Games (TV Display)' : '📋 Active Games'}
             {loading && <span style={styles.loadingDot}>...</span>}
           </h2>
           <div style={styles.gamesList}>
