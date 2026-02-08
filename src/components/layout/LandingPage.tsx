@@ -25,14 +25,14 @@ export function LandingPage({ onSelectMode }: LandingPageProps): JSX.Element {
       id: 'pc' as const,
       icon: '🖥️',
       title: 'Play on Computer',
-      description: 'Host a new game or join an existing one from your computer',
+      description: 'All players share one screen, taking turns. Mobile devices are optional — players can scan QR codes to join from their phones.',
       color: colors.primary.main,
     },
     {
       id: 'tv' as const,
       icon: '📺',
       title: 'Play on TV',
-      description: 'Same as computer, but optimized for a large screen display',
+      description: 'Display the game board on a TV or large screen. Each player needs their own phone or tablet to play.',
       color: '#9c27b0',
     },
   ];

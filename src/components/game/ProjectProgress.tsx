@@ -5,8 +5,7 @@ import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
 import { ConnectionStatus } from '../common/ConnectionStatus';
-import { getBackendURL, getCurrentGameId, getGameStateAPIPath } from '../../utils/networkDetection';
-import { verifyAdminPassword, isAdminAuthenticated } from '../../utils/adminAuth';
+import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -39,48 +38,6 @@ interface ProjectProgressProps {
  */
 export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
-
-  // Kill game state
-  const [showKillAuth, setShowKillAuth] = useState(false);
-  const [killPassword, setKillPassword] = useState('');
-  const [killError, setKillError] = useState('');
-  const [isKilling, setIsKilling] = useState(false);
-
-  const handleKillGame = async () => {
-    if (!isAdminAuthenticated()) {
-      setShowKillAuth(true);
-      setKillError('');
-      setKillPassword('');
-      return;
-    }
-    if (!window.confirm('End this game? All progress will be lost.')) return;
-    setIsKilling(true);
-    try {
-      const backendURL = getBackendURL();
-      const resp = await fetch(`${backendURL}${getGameStateAPIPath(getCurrentGameId())}`, { method: 'DELETE' });
-      if (resp.ok) {
-        window.location.href = window.location.origin + window.location.pathname;
-      } else {
-        alert('Failed to end game. Server returned ' + resp.status);
-      }
-    } catch (err) {
-      alert('Failed to end game: ' + (err instanceof Error ? err.message : 'Network error'));
-    } finally {
-      setIsKilling(false);
-    }
-  };
-
-  const handleKillAuthSubmit = async () => {
-    setKillError('');
-    const ok = await verifyAdminPassword(killPassword);
-    if (ok) {
-      setShowKillAuth(false);
-      setKillPassword('');
-      handleKillGame();
-    } else {
-      setKillError('Wrong password');
-    }
-  };
 
   // Memoize project scope calculations for all players - only recalculates when cards change
   // Using a stable key based on card contents, not array references
@@ -256,15 +213,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               }}>
                 <span>📺</span>
               </button>
-              <button onClick={handleKillGame} disabled={isKilling} style={{
-                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-                backgroundColor: '#dc3545', color: colors.white,
-                border: `2px solid ${colors.white}`, borderRadius: '8px',
-                cursor: isKilling ? 'wait' : 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
-                opacity: isKilling ? 0.6 : 1
-              }}>
-                <span>☠️</span>
-              </button>
             </>
           )}
           {onToggleCollapsed && (
@@ -278,30 +226,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             </button>
           )}
         </div>
-        {showKillAuth && (
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '4px' }}>
-            <input
-              type="password"
-              placeholder="Admin password"
-              value={killPassword}
-              onChange={e => setKillPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleKillAuthSubmit()}
-              autoComplete="off"
-              data-lpignore="true"
-              data-1p-ignore
-              style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '6px', border: '1px solid #ccc', width: '120px' }}
-            />
-            <button onClick={handleKillAuthSubmit} style={{
-              padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
-              backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
-            }}>OK</button>
-            <button onClick={() => setShowKillAuth(false)} style={{
-              padding: '4px 8px', fontSize: '11px',
-              backgroundColor: '#eee', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer'
-            }}>Cancel</button>
-            {killError && <span style={{ fontSize: '11px', color: '#dc3545' }}>{killError}</span>}
-          </div>
-        )}
       </div>
     );
   }
@@ -502,25 +426,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             <span>📺</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>TV</span>
           </button>
-          <button onClick={handleKillGame} disabled={isKilling} style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            backgroundColor: '#dc3545',
-            color: colors.white,
-            border: `2px solid ${colors.white}`,
-            borderRadius: '8px',
-            cursor: isKilling ? 'wait' : 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            opacity: isKilling ? 0.6 : 1
-          }}>
-            <span>☠️</span>
-            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Kill</span>
-          </button>
           {onToggleCollapsed && (
             <button onClick={onToggleCollapsed} style={{
               padding: '6px 12px',
@@ -543,32 +448,6 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           )}
         </div>}
       </div>
-
-      {/* Kill Game Auth Prompt */}
-      {showKillAuth && (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', justifyContent: 'flex-end' }}>
-          <input
-            type="password"
-            placeholder="Admin password"
-            value={killPassword}
-            onChange={e => setKillPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleKillAuthSubmit()}
-            autoComplete="off"
-            data-lpignore="true"
-            data-1p-ignore
-            style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '6px', border: '1px solid #ccc', width: '140px' }}
-          />
-          <button onClick={handleKillAuthSubmit} style={{
-            padding: '4px 10px', fontSize: '12px', fontWeight: 'bold',
-            backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'
-          }}>OK</button>
-          <button onClick={() => setShowKillAuth(false)} style={{
-            padding: '4px 10px', fontSize: '12px',
-            backgroundColor: '#eee', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer'
-          }}>Cancel</button>
-          {killError && <span style={{ fontSize: '12px', color: '#dc3545', fontWeight: 'bold' }}>{killError}</span>}
-        </div>
-      )}
 
       {/* Overall Progress Bar */}
       <div style={{ ...progressBarContainerStyle, marginBottom: '12px' }}>

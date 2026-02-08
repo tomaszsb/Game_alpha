@@ -7,7 +7,7 @@ import { PlayerList } from './PlayerList';
 import { usePlayerValidation, GameSettings, AVAILABLE_COLORS, ColorOption } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
-import { getCurrentGameId, getServerURL, getNetworkInfo } from '../../utils/networkDetection';
+import { getCurrentGameId, getServerURL, getNetworkInfo, getBackendURL } from '../../utils/networkDetection';
 import { QRCodeSVG } from 'qrcode.react';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
@@ -66,6 +66,16 @@ export function PlayerSetup({
   const [isStarting, setIsStarting] = useState(false);
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
+
+  // Game Manager state (for admin)
+  interface GameInfo {
+    gameId: string;
+    playerCount: number;
+    playerNames: string[];
+    gamePhase: string;
+  }
+  const [activeGames, setActiveGames] = useState<GameInfo[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
 
   // Admin auth state
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => isAdminAuthenticated());
@@ -154,6 +164,54 @@ export function PlayerSetup({
     } else {
       setAdminError('Incorrect password');
     }
+  };
+
+  // Fetch active games when admin is unlocked
+  const fetchActiveGames = async () => {
+    try {
+      setGamesLoading(true);
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games`);
+      if (response.ok) {
+        const data = await response.json();
+        const games = data.games.filter(
+          (g: GameInfo) => g.gameId !== 'G0' && g.playerCount > 0
+        );
+        setActiveGames(games);
+      }
+    } catch (err) {
+      console.log('Could not fetch games:', err);
+    } finally {
+      setGamesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdminUnlocked) return;
+    fetchActiveGames();
+    const interval = setInterval(fetchActiveGames, 5000);
+    return () => clearInterval(interval);
+  }, [isAdminUnlocked]);
+
+  const handleClearGame = async (gameId: string) => {
+    if (!window.confirm(`Clear all data for game ${gameId}? This cannot be undone.`)) return;
+    try {
+      const backendURL = getBackendURL();
+      const resp = await fetch(`${backendURL}/api/games/${gameId}/state`, { method: 'DELETE' });
+      if (resp.ok) {
+        fetchActiveGames();
+      } else {
+        alert('Failed to clear game. Server returned ' + resp.status);
+      }
+    } catch (err) {
+      alert('Failed to clear game: ' + (err instanceof Error ? err.message : 'Network error'));
+    }
+  };
+
+  const handleJoinGame = (gameId: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('g', gameId);
+    window.location.href = url.toString();
   };
 
   /**
@@ -355,7 +413,7 @@ export function PlayerSetup({
           <h3 style={{ ...styles.sectionTitleSmall, color: 'white', textAlign: 'center' as const }}>
             📱 Scan to Join
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', flex: 1, minHeight: 0 }}>
             {players.map(player => {
               const playerURL = getServerURL(player.id, player.shortId);
               const networkInfo = getNetworkInfo();
@@ -365,6 +423,8 @@ export function PlayerSetup({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.25rem',
+                  flex: '1 1 0',
+                  minHeight: 0,
                 }}>
                   {player.deviceType === 'mobile' ? (
                     <div style={{
@@ -374,7 +434,10 @@ export function PlayerSetup({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '0.25rem',
+                      flex: 1,
+                      width: '100%',
                     }}>
                       <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
                       <div style={{
@@ -399,7 +462,10 @@ export function PlayerSetup({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '0.25rem',
+                      flex: 1,
+                      width: '100%',
                     }}>
                       <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
                       {networkInfo.isLocalhost && (
@@ -597,41 +663,116 @@ export function PlayerSetup({
             </h3>
 
             {isAdminUnlocked ? (
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsDataEditorOpen(true)}
-                  style={{
-                    padding: '0.6rem 1rem',
-                    backgroundColor: colors.secondary.main,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem'
-                  }}
-                >
-                  ⚙️ Space Data Editor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { clearAdminAuth(); setIsAdminUnlocked(false); }}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    backgroundColor: 'transparent',
-                    color: colors.secondary.main,
-                    border: `1px solid ${colors.secondary.light}`,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  🔓 Lock
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDataEditorOpen(true)}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      backgroundColor: colors.secondary.main,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    ⚙️ Space Data Editor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { clearAdminAuth(); setIsAdminUnlocked(false); }}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      backgroundColor: 'transparent',
+                      color: colors.secondary.main,
+                      border: `1px solid ${colors.secondary.light}`,
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    🔓 Lock
+                  </button>
+                </div>
+
+                {/* Game Manager */}
+                <div style={{
+                  marginTop: '0.25rem',
+                  padding: '0.75rem',
+                  backgroundColor: 'rgba(255,255,255,0.5)',
+                  borderRadius: '8px',
+                  border: `1px solid ${colors.secondary.light}`,
+                }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: colors.secondary.dark, marginBottom: '0.5rem' }}>
+                    📋 Active Games {gamesLoading && <span style={{ fontWeight: 'normal', color: colors.text.secondary }}>...</span>}
+                  </div>
+                  {activeGames.length === 0 ? (
+                    <div style={{ fontSize: '0.8rem', color: colors.text.secondary, fontStyle: 'italic' }}>
+                      No active games
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {activeGames.map(game => (
+                        <div key={game.gameId} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.35rem 0.5rem',
+                          backgroundColor: 'white',
+                          borderRadius: '6px',
+                          border: `1px solid ${colors.secondary.border}`,
+                          fontSize: '0.8rem',
+                        }}>
+                          <span style={{ fontWeight: 'bold', color: colors.primary.main, minWidth: '2rem' }}>
+                            {game.gameId}
+                          </span>
+                          <span style={{ color: colors.text.secondary, flex: 1, fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {game.playerCount}p{game.playerNames.length > 0 && `: ${game.playerNames.slice(0, 3).join(', ')}`}
+                            {game.playerNames.length > 3 && '...'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleJoinGame(game.gameId)}
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              backgroundColor: colors.primary.main,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.7rem',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            Join
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleClearGame(game.gameId)}
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.7rem',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : showAdminPrompt ? (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>

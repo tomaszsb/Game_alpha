@@ -1,6 +1,6 @@
 // src/components/setup/GameLobby.tsx
 // Landing page for creating or joining a game session
-// Redesigned for TV/wide screens - horizontal layout, no scrolling
+// Simple 2-panel layout: New Game + Join by Code
 
 import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
@@ -12,22 +12,12 @@ interface GitHubSyncStatus {
   commitsBehind?: number;
 }
 
-interface GameInfo {
-  gameId: string;
-  playerCount: number;
-  playerNames: string[];
-  gamePhase: string;
-  createdAt: string;
-}
-
 interface GameLobbyProps {
   onJoinGame: (gameId: string) => void;
   mode?: 'tv';
 }
 
 export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
-  const [games, setGames] = useState<GameInfo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
@@ -78,33 +68,6 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
 
     checkGitHubSync();
   }, []);
-
-  // Fetch available games on mount
-  useEffect(() => {
-    fetchGames();
-    // Refresh every 5 seconds
-    const interval = setInterval(fetchGames, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchGames = async () => {
-    try {
-      const backendURL = getBackendURL();
-      const response = await fetch(`${backendURL}/api/games`);
-      if (response.ok) {
-        const data = await response.json();
-        // Filter out legacy G0 game and empty games
-        const activeGames = data.games.filter(
-          (g: GameInfo) => g.gameId !== 'G0' && g.playerCount > 0
-        );
-        setGames(activeGames);
-      }
-    } catch (err) {
-      console.log('Could not fetch games:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateGame = async () => {
     setCreating(true);
@@ -177,11 +140,13 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
         </div>
       )}
 
-      {/* Main content - horizontal layout */}
+      {/* Main content - horizontal layout, 2 panels */}
       <main style={styles.main}>
         {/* Left panel - Create New Game */}
         <section style={styles.panel}>
-          <h2 style={styles.panelTitle}>🎮 New Game</h2>
+          <h2 style={styles.panelTitle}>
+            {mode === 'tv' ? '📺 New TV Game' : '🎮 New Game'}
+          </h2>
           <p style={styles.panelDescription}>
             Start a fresh game session and invite friends to play
           </p>
@@ -190,7 +155,7 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
             disabled={creating}
             style={{
               ...styles.primaryButton,
-              backgroundColor: creating ? colors.neutral.gray[400] : colors.primary.main,
+              backgroundColor: creating ? colors.neutral.gray[400] : (mode === 'tv' ? '#9c27b0' : colors.primary.main),
               cursor: creating ? 'wait' : 'pointer',
             }}
           >
@@ -198,7 +163,7 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
           </button>
         </section>
 
-        {/* Center panel - Join by Code */}
+        {/* Right panel - Join by Code */}
         <section style={styles.panel}>
           <h2 style={styles.panelTitle}>🔗 Join by Code</h2>
           <p style={styles.panelDescription}>
@@ -224,40 +189,6 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
             >
               Join
             </button>
-          </div>
-        </section>
-
-        {/* Right panel - Active Games */}
-        <section style={styles.panel}>
-          <h2 style={styles.panelTitle}>
-            {mode === 'tv' ? '📺 Active Games (TV Display)' : '📋 Active Games'}
-            {loading && <span style={styles.loadingDot}>...</span>}
-          </h2>
-          <div style={styles.gamesList}>
-            {games.length === 0 ? (
-              <p style={styles.noGames}>
-                {loading ? 'Checking...' : 'No active games. Create one!'}
-              </p>
-            ) : (
-              games.slice(0, 4).map((game) => (
-                <button
-                  key={game.gameId}
-                  onClick={() => onJoinGame(game.gameId)}
-                  style={styles.gameCard}
-                >
-                  <span style={styles.gameId}>{game.gameId}</span>
-                  <span style={styles.gameInfo}>
-                    {game.playerCount} player{game.playerCount !== 1 ? 's' : ''}
-                  </span>
-                  {game.playerNames.length > 0 && (
-                    <span style={styles.playerNames}>
-                      {game.playerNames.slice(0, 3).join(', ')}
-                      {game.playerNames.length > 3 && '...'}
-                    </span>
-                  )}
-                </button>
-              ))
-            )}
           </div>
         </section>
       </main>
@@ -353,32 +284,34 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'stretch',
-    gap: 'clamp(1rem, 3vw, 2rem)',
+    alignItems: 'center',
+    gap: 'clamp(1.5rem, 4vw, 3rem)',
     padding: 'clamp(1rem, 2vh, 2rem) clamp(1rem, 3vw, 2rem)',
     minHeight: 0,
   },
   panel: {
     flex: '1 1 0',
-    maxWidth: '350px',
+    maxWidth: '400px',
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: 'white',
     borderRadius: '12px',
-    padding: 'clamp(1rem, 2vh, 1.5rem)',
+    padding: 'clamp(1.5rem, 3vh, 2rem)',
     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    minHeight: '220px',
   },
   panelTitle: {
-    fontSize: 'clamp(1rem, 2.5vh, 1.3rem)',
+    fontSize: 'clamp(1.1rem, 2.5vh, 1.4rem)',
     fontWeight: 'bold',
-    margin: '0 0 0.5rem 0',
+    margin: '0 0 0.75rem 0',
     color: colors.neutral.black,
   },
   panelDescription: {
-    fontSize: 'clamp(0.75rem, 1.5vh, 0.9rem)',
+    fontSize: 'clamp(0.8rem, 1.5vh, 0.95rem)',
     color: colors.text.secondary,
-    margin: '0 0 1rem 0',
-    lineHeight: 1.4,
+    margin: '0 0 1.5rem 0',
+    lineHeight: 1.5,
+    flex: 1,
   },
   primaryButton: {
     backgroundColor: colors.primary.main,
@@ -389,12 +322,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(0.9rem, 2vh, 1.1rem)',
     fontWeight: 'bold',
     cursor: 'pointer',
-    marginTop: 'auto',
   },
   joinForm: {
     display: 'flex',
     gap: '0.5rem',
-    marginTop: 'auto',
   },
   codeInput: {
     flex: 1,
@@ -416,49 +347,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(0.9rem, 2vh, 1rem)',
     fontWeight: 'bold',
     cursor: 'pointer',
-  },
-  gamesList: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-    overflow: 'auto',
-    minHeight: 0,
-  },
-  noGames: {
-    color: colors.text.secondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    fontSize: 'clamp(0.8rem, 1.5vh, 0.9rem)',
-  },
-  gameCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    padding: 'clamp(0.5rem, 1vh, 0.75rem)',
-    backgroundColor: colors.background.light,
-    border: `1px solid ${colors.secondary.border}`,
-    borderRadius: '8px',
-    cursor: 'pointer',
-    textAlign: 'left',
-  },
-  gameId: {
-    fontWeight: 'bold',
-    fontSize: 'clamp(0.9rem, 1.8vh, 1.1rem)',
-    color: colors.primary.main,
-  },
-  gameInfo: {
-    fontSize: 'clamp(0.7rem, 1.3vh, 0.85rem)',
-    color: colors.text.secondary,
-  },
-  playerNames: {
-    fontSize: 'clamp(0.65rem, 1.2vh, 0.75rem)',
-    color: colors.text.muted,
-    marginTop: '0.25rem',
-  },
-  loadingDot: {
-    marginLeft: '0.5rem',
-    color: colors.text.secondary,
   },
   footer: {
     display: 'flex',
