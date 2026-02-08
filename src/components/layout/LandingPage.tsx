@@ -1,13 +1,12 @@
 // src/components/layout/LandingPage.tsx
 // Landing page with mode selection - TV remote friendly
-// Shows Host | TV | Join options when visiting without parameters
+// Shows PC | TV options when visiting without parameters
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
 
 interface LandingPageProps {
-  onSelectMode: (mode: 'host' | 'tv' | 'join') => void;
-  error?: string;
+  onSelectMode: (mode: 'pc' | 'tv') => void;
 }
 
 /**
@@ -18,94 +17,48 @@ interface LandingPageProps {
  * - Arrow key navigation
  * - High contrast, readable from distance
  */
-export function LandingPage({ onSelectMode, error: externalError }: LandingPageProps): JSX.Element {
+export function LandingPage({ onSelectMode }: LandingPageProps): JSX.Element {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [gameCode, setGameCode] = useState('');
-  const [showJoinInput, setShowJoinInput] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const modes = [
     {
-      id: 'host' as const,
-      icon: '🎮',
-      title: 'Host on PC',
-      description: 'Start a new game session from your computer',
+      id: 'pc' as const,
+      icon: '🖥️',
+      title: 'Play on Computer',
+      description: 'Host a new game or join an existing one from your computer',
       color: colors.primary.main,
     },
     {
       id: 'tv' as const,
       icon: '📺',
-      title: 'Host or Join on TV',
-      description: 'Host a new game or join an existing one on a TV or large screen',
+      title: 'Play on TV',
+      description: 'Same as computer, but optimized for a large screen display',
       color: '#9c27b0',
-    },
-    {
-      id: 'join' as const,
-      icon: '📱',
-      title: 'Join if Lost Connection',
-      description: 'Rejoin an existing game with a game code',
-      color: colors.success.main,
     },
   ];
 
   // Keyboard navigation for TV remotes
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (showJoinInput) {
-        if (e.key === 'Escape') {
-          setShowJoinInput(false);
-          setGameCode('');
-        }
-        return;
-      }
-
       switch (e.key) {
         case 'ArrowLeft':
-          setSelectedIndex(prev => (prev > 0 ? prev - 1 : modes.length - 1));
-          break;
-        case 'ArrowRight':
-          setSelectedIndex(prev => (prev < modes.length - 1 ? prev + 1 : 0));
-          break;
         case 'ArrowUp':
           setSelectedIndex(prev => (prev > 0 ? prev - 1 : modes.length - 1));
           break;
+        case 'ArrowRight':
         case 'ArrowDown':
           setSelectedIndex(prev => (prev < modes.length - 1 ? prev + 1 : 0));
           break;
         case 'Enter':
         case ' ':
-          handleModeSelect(modes[selectedIndex].id);
+          onSelectMode(modes[selectedIndex].id);
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, showJoinInput]);
-
-  // Focus input when join dialog opens
-  useEffect(() => {
-    if (showJoinInput && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [showJoinInput]);
-
-  const handleModeSelect = (mode: 'host' | 'tv' | 'join') => {
-    if (mode === 'join') {
-      setShowJoinInput(true);
-    } else {
-      onSelectMode(mode);
-    }
-  };
-
-  const handleJoinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (gameCode.trim()) {
-      // Navigate to player join URL
-      const code = gameCode.trim().toUpperCase();
-      window.location.href = `${window.location.origin}${window.location.pathname}?g=${code}&join=1`;
-    }
-  };
+  }, [selectedIndex]);
 
   return (
     <div style={styles.container}>
@@ -118,22 +71,15 @@ export function LandingPage({ onSelectMode, error: externalError }: LandingPageP
         <p style={styles.subtitle}>The Construction Project Management Game</p>
       </header>
 
-      {/* Error from host creation failure */}
-      {externalError && (
-        <div style={{ textAlign: 'center', padding: '0.5rem 1rem', backgroundColor: '#fee2e2', color: '#dc2626', fontSize: 'clamp(0.8rem, 1.5vh, 1rem)' }}>
-          {externalError}
-        </div>
-      )}
-
       {/* Mode selection */}
       <main style={styles.main}>
-        <h2 style={styles.selectTitle}>Select Mode</h2>
+        <h2 style={styles.selectTitle}>How are you playing?</h2>
 
         <div style={styles.modeGrid}>
           {modes.map((mode, index) => (
             <button
               key={mode.id}
-              onClick={() => handleModeSelect(mode.id)}
+              onClick={() => onSelectMode(mode.id)}
               onMouseEnter={() => setSelectedIndex(index)}
               style={{
                 ...styles.modeCard,
@@ -155,50 +101,6 @@ export function LandingPage({ onSelectMode, error: externalError }: LandingPageP
           Use arrow keys to navigate, Enter to select
         </p>
       </main>
-
-      {/* Join game dialog */}
-      {showJoinInput && (
-        <div style={styles.overlay} onClick={() => setShowJoinInput(false)}>
-          <div style={styles.dialog} onClick={e => e.stopPropagation()}>
-            <h3 style={styles.dialogTitle}>Join Game</h3>
-            <form onSubmit={handleJoinSubmit}>
-              <label style={styles.inputLabel}>Enter Game Code:</label>
-              <input
-                ref={inputRef}
-                type="text"
-                value={gameCode}
-                onChange={e => setGameCode(e.target.value.toUpperCase())}
-                placeholder="e.g., G1"
-                style={styles.input}
-                maxLength={10}
-                autoComplete="off"
-                name="gamecode"
-                data-lpignore="true"
-                data-1p-ignore
-              />
-              <div style={styles.dialogButtons}>
-                <button
-                  type="button"
-                  onClick={() => setShowJoinInput(false)}
-                  style={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!gameCode.trim()}
-                  style={{
-                    ...styles.submitButton,
-                    opacity: gameCode.trim() ? 1 : 0.5,
-                  }}
-                >
-                  Join
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <footer style={styles.footer}>
@@ -265,9 +167,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'stretch',
-    gap: 'clamp(1rem, 3vw, 3rem)',
+    gap: 'clamp(1.5rem, 4vw, 4rem)',
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '800px',
     flex: 1,
     maxHeight: '50vh',
   },
@@ -277,9 +179,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     flex: '1 1 0',
-    maxWidth: '320px',
+    maxWidth: '350px',
     minWidth: '150px',
-    padding: 'clamp(1rem, 2vh, 2rem)',
+    padding: 'clamp(1.5rem, 3vh, 3rem)',
     borderRadius: '16px',
     border: '4px solid transparent',
     cursor: 'pointer',
@@ -288,11 +190,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: 'white',
   },
   modeIcon: {
-    fontSize: 'clamp(2rem, 8vh, 4rem)',
-    marginBottom: 'clamp(0.5rem, 1vh, 1rem)',
+    fontSize: 'clamp(2.5rem, 10vh, 5rem)',
+    marginBottom: 'clamp(0.5rem, 1.5vh, 1.5rem)',
   },
   modeTitle: {
-    fontSize: 'clamp(1rem, 3vh, 1.5rem)',
+    fontSize: 'clamp(1.1rem, 3vh, 1.75rem)',
     fontWeight: 'bold',
     marginBottom: 'clamp(0.25rem, 0.5vh, 0.5rem)',
   },
@@ -306,77 +208,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(0.7rem, 1.5vh, 0.9rem)',
     color: colors.text.muted,
     flexShrink: 0,
-  },
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  dialog: {
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    padding: '2rem',
-    width: 'clamp(300px, 80vw, 400px)',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-  },
-  dialogTitle: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    color: colors.primary.main,
-    marginTop: 0,
-    marginBottom: '1.5rem',
-    textAlign: 'center',
-  },
-  inputLabel: {
-    display: 'block',
-    fontSize: '1rem',
-    color: colors.text.secondary,
-    marginBottom: '0.5rem',
-  },
-  input: {
-    width: '100%',
-    padding: '1rem',
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    border: `2px solid ${colors.secondary.border}`,
-    borderRadius: '8px',
-    outline: 'none',
-    letterSpacing: '0.2em',
-    textTransform: 'uppercase',
-  },
-  dialogButtons: {
-    display: 'flex',
-    gap: '1rem',
-    marginTop: '1.5rem',
-  },
-  cancelButton: {
-    flex: 1,
-    padding: '0.75rem 1.5rem',
-    fontSize: '1rem',
-    backgroundColor: colors.secondary.light,
-    color: colors.text.primary,
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-  },
-  submitButton: {
-    flex: 1,
-    padding: '0.75rem 1.5rem',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    backgroundColor: colors.success.main,
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
   },
   footer: {
     display: 'flex',

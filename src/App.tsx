@@ -9,7 +9,7 @@ import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
-import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from './utils/networkDetection';
+import { getGameStateAPIPath, getCurrentGameId } from './utils/networkDetection';
 import { detectDeviceType } from './utils/deviceDetection';
 import { GameLobby } from './components/setup/GameLobby';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
@@ -256,43 +256,15 @@ export function App(): JSX.Element {
   const gameId = getCurrentGameId();
   const urlParams = new URLSearchParams(window.location.search);
   const mode = urlParams.get('mode');
-  const isJoining = urlParams.get('join') === '1';
 
   // Track if user has selected a mode from landing page
-  const [selectedMode, setSelectedMode] = useState<'host' | 'tv' | 'join' | null>(
+  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv' | null>(
     // If URL already has mode param, use it
-    mode === 'tv' ? 'tv' : (isJoining ? 'join' : null)
+    mode === 'tv' ? 'tv' : (gameId ? 'pc' : null)
   );
-  const [hostCreating, setHostCreating] = useState(false);
-  const [hostError, setHostError] = useState('');
 
   // Handle mode selection from landing page
-  const handleModeSelect = (newMode: 'host' | 'tv' | 'join') => {
-    if (newMode === 'host') {
-      // Auto-create a new game and redirect
-      setSelectedMode('host');
-      setHostCreating(true);
-      setHostError('');
-
-      const backendURL = getBackendURL();
-      fetch(`${backendURL}/api/games`, { method: 'POST' })
-        .then(response => {
-          if (response.ok) return response.json();
-          throw new Error('Failed to create game');
-        })
-        .then(data => {
-          const url = new URL(window.location.href);
-          url.searchParams.set('g', data.gameId);
-          window.location.href = url.toString();
-        })
-        .catch(() => {
-          setHostCreating(false);
-          setHostError('Cannot connect to server. Is it running?');
-          setSelectedMode(null);
-        });
-      return;
-    }
-
+  const handleModeSelect = (newMode: 'pc' | 'tv') => {
     setSelectedMode(newMode);
 
     // For TV mode, add it to URL so refreshing maintains mode
@@ -303,20 +275,11 @@ export function App(): JSX.Element {
     }
   };
 
-  // If host mode is creating a game, show loading
-  if (hostCreating) {
-    return (
-      <ErrorBoundary>
-        <LoadingScreen message="Creating game..." />
-      </ErrorBoundary>
-    );
-  }
-
   // If no game ID and no mode selected, show landing page
   if (!gameId && !selectedMode) {
     return (
       <ErrorBoundary>
-        <LandingPage onSelectMode={handleModeSelect} error={hostError} />
+        <LandingPage onSelectMode={handleModeSelect} />
       </ErrorBoundary>
     );
   }
@@ -332,9 +295,6 @@ export function App(): JSX.Element {
       if (selectedMode === 'tv') {
         url.searchParams.set('mode', 'tv');
       }
-
-      // Remove join flag as it's only for landing page routing
-      url.searchParams.delete('join');
 
       window.location.href = url.toString();
     };
