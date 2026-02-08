@@ -1,15 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { colors } from '../../styles/theme';
 import { GameSpace } from './GameSpace';
 import { SpaceInfoModal } from '../modals/SpaceInfoModal';
 import { useGameContext } from '../../context/GameContext';
 import { Space, Player } from '../../types/DataTypes';
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2.5;
+const ZOOM_STEP = 0.15;
+
+interface GameBoardProps {
+  /** Disable zoom/pan controls (e.g. for TV display mode) */
+  disableZoom?: boolean;
+}
+
 /**
  * GameBoard component with enhanced smooth transitions and animations.
  * All state changes now have visual transitions for better user experience.
  */
-export function GameBoard(): JSX.Element {
+export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Element {
   const { dataService, stateService, movementService } = useGameContext();
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -20,6 +29,161 @@ export function GameBoard(): JSX.Element {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedSpaceForInfo, setSelectedSpaceForInfo] = useState<string | null>(null);
   const [isSpaceInfoModalOpen, setIsSpaceInfoModalOpen] = useState(false);
+
+  // Zoom/Pan state
+  const [zoom, setZoom] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+
+  // Touch tracking refs
+  const touchStartDistance = useRef(0);
+  const touchStartZoom = useRef(1);
+  const touchStartPan = useRef({ x: 0, y: 0 });
+  const touchStartPos = useRef({ x: 0, y: 0 });
+  const isTouchPanning = useRef(false);
+  const lastTapTime = useRef(0);
+
+  // Mouse drag refs
+  const isMouseDragging = useRef(false);
+  const mouseStartPos = useRef({ x: 0, y: 0 });
+  const mouseStartPan = useRef({ x: 0, y: 0 });
+
+  const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+
+  const clampPan = useCallback((x: number, y: number, z: number) => {
+    if (z <= 1) return { x: 0, y: 0 };
+    const container = boardContainerRef.current;
+    if (!container) return { x, y };
+    const w = container.offsetWidth;
+    const h = container.offsetHeight;
+    const maxPanX = (w * (z - 1)) / 2;
+    const maxPanY = (h * (z - 1)) / 2;
+    return {
+      x: Math.min(maxPanX, Math.max(-maxPanX, x)),
+      y: Math.min(maxPanY, Math.max(-maxPanY, y))
+    };
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setZoom(1);
+    setPanX(0);
+    setPanY(0);
+  }, []);
+
+  const adjustZoom = useCallback((delta: number) => {
+    setZoom(prev => {
+      const next = clampZoom(prev + delta);
+      if (next <= 1) {
+        setPanX(0);
+        setPanY(0);
+      }
+      return next;
+    });
+  }, []);
+
+  // Touch handlers for pinch-zoom and pan
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch start
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchStartDistance.current = Math.hypot(dx, dy);
+      touchStartZoom.current = zoom;
+      isTouchPanning.current = false;
+    } else if (e.touches.length === 1 && zoom > 1) {
+      // Pan start (only when zoomed)
+      isTouchPanning.current = true;
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchStartPan.current = { x: panX, y: panY };
+
+      // Double-tap detection
+      const now = Date.now();
+      if (now - lastTapTime.current < 300) {
+        resetZoom();
+        isTouchPanning.current = false;
+      }
+      lastTapTime.current = now;
+    } else if (e.touches.length === 1 && zoom <= 1) {
+      // Double-tap detection at default zoom (to zoom in)
+      const now = Date.now();
+      if (now - lastTapTime.current < 300) {
+        setZoom(1.5);
+      }
+      lastTapTime.current = now;
+    }
+  }, [zoom, panX, panY, resetZoom]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const scale = dist / touchStartDistance.current;
+      const newZoom = clampZoom(touchStartZoom.current * scale);
+      setZoom(newZoom);
+      if (newZoom <= 1) {
+        setPanX(0);
+        setPanY(0);
+      }
+      e.preventDefault();
+    } else if (e.touches.length === 1 && isTouchPanning.current && zoom > 1) {
+      // Pan
+      const dx = e.touches[0].clientX - touchStartPos.current.x;
+      const dy = e.touches[0].clientY - touchStartPos.current.y;
+      const clamped = clampPan(touchStartPan.current.x + dx, touchStartPan.current.y + dy, zoom);
+      setPanX(clamped.x);
+      setPanY(clamped.y);
+      e.preventDefault();
+    }
+  }, [zoom, clampPan]);
+
+  const handleTouchEnd = useCallback(() => {
+    isTouchPanning.current = false;
+  }, []);
+
+  // Mouse wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (zoom <= 1 && e.deltaY > 0) return; // Don't interfere with page scroll when not zoomed
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+    setZoom(prev => {
+      const next = clampZoom(prev + delta);
+      if (next <= 1) {
+        setPanX(0);
+        setPanY(0);
+      }
+      return next;
+    });
+  }, [zoom]);
+
+  // Mouse drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    isMouseDragging.current = true;
+    mouseStartPos.current = { x: e.clientX, y: e.clientY };
+    mouseStartPan.current = { x: panX, y: panY };
+    e.preventDefault();
+  }, [zoom, panX, panY]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isMouseDragging.current || zoom <= 1) return;
+    const dx = e.clientX - mouseStartPos.current.x;
+    const dy = e.clientY - mouseStartPos.current.y;
+    const clamped = clampPan(mouseStartPan.current.x + dx, mouseStartPan.current.y + dy, zoom);
+    setPanX(clamped.x);
+    setPanY(clamped.y);
+  }, [zoom, clampPan]);
+
+  const handleMouseUp = useCallback(() => {
+    isMouseDragging.current = false;
+  }, []);
+
+  // Double-click to reset
+  const handleDoubleClick = useCallback(() => {
+    resetZoom();
+  }, [resetZoom]);
 
   // Subscribe to only board-relevant state changes
   // This prevents re-renders when unrelated state changes (money, cards, etc.)
@@ -201,14 +365,65 @@ export function GameBoard(): JSX.Element {
 
   return (
     <div
+      ref={boardContainerRef}
       style={{
         width: '100%',
         height: '100%',
         padding: '20px',
         transition: 'opacity 0.2s ease-in-out',
-        opacity: isTransitioning ? 0.95 : 1
+        opacity: isTransitioning ? 0.95 : 1,
+        position: 'relative',
+        overflow: 'hidden',
+        cursor: !disableZoom && zoom > 1 ? (isMouseDragging.current ? 'grabbing' : 'grab') : 'default',
+        touchAction: !disableZoom && zoom > 1 ? 'none' : 'auto'
       }}
+      {...(!disableZoom ? {
+        onTouchStart: handleTouchStart,
+        onTouchMove: handleTouchMove,
+        onTouchEnd: handleTouchEnd,
+        onWheel: handleWheel,
+        onMouseDown: handleMouseDown,
+        onMouseMove: handleMouseMove,
+        onMouseUp: handleMouseUp,
+        onMouseLeave: handleMouseUp,
+        onDoubleClick: handleDoubleClick
+      } : {})}
     >
+      {/* Zoom controls overlay */}
+      {!disableZoom && <div style={{
+        position: 'absolute',
+        top: '8px',
+        right: '8px',
+        zIndex: 10,
+        display: 'flex',
+        gap: '4px',
+        alignItems: 'center',
+        background: 'rgba(255,255,255,0.9)',
+        borderRadius: '6px',
+        padding: '4px 6px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+        fontSize: '12px'
+      }}>
+        <span style={{ color: '#495057', fontWeight: 'bold', minWidth: '36px', textAlign: 'center' }}>
+          {Math.round(zoom * 100)}%
+        </span>
+        <button onClick={(e) => { e.stopPropagation(); adjustZoom(-ZOOM_STEP); }} style={{
+          width: '26px', height: '26px', border: '1px solid #ccc', borderRadius: '4px',
+          background: '#fff', cursor: 'pointer', fontSize: '14px', lineHeight: '1',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>−</button>
+        <button onClick={(e) => { e.stopPropagation(); adjustZoom(ZOOM_STEP); }} style={{
+          width: '26px', height: '26px', border: '1px solid #ccc', borderRadius: '4px',
+          background: '#fff', cursor: 'pointer', fontSize: '14px', lineHeight: '1',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>+</button>
+        <button onClick={(e) => { e.stopPropagation(); resetZoom(); }} style={{
+          width: '26px', height: '26px', border: '1px solid #ccc', borderRadius: '4px',
+          background: zoom !== 1 ? '#e3f2fd' : '#fff', cursor: 'pointer', fontSize: '13px', lineHeight: '1',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>↺</button>
+      </div>}
+
       <h2 style={{
         color: colors.game.boardTitle,
         marginBottom: '20px',
@@ -225,7 +440,10 @@ export function GameBoard(): JSX.Element {
           gap: '12px',
           width: '100%',
           transition: 'transform 0.15s ease-in-out',
-          transform: isTransitioning ? 'scale(0.99)' : 'scale(1)'
+          transform: disableZoom
+            ? (isTransitioning ? 'scale(0.99)' : 'scale(1)')
+            : `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)${isTransitioning ? ' scale(0.99)' : ''}`,
+          transformOrigin: 'center center'
         }}
       >
         {spaces.map((space) => {
@@ -246,7 +464,7 @@ export function GameBoard(): JSX.Element {
           );
         })}
       </div>
-      
+
       {spaces.length === 0 && (
         <div
           style={{

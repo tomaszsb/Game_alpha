@@ -1,6 +1,6 @@
 // src/components/game/ProjectProgress.tsx
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
@@ -38,6 +38,25 @@ interface ProjectProgressProps {
  */
 export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
+
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen();
+    }
+  }, []);
 
   // Memoize project scope calculations for all players - only recalculates when cards change
   // Using a stable key based on card contents, not array references
@@ -425,6 +444,24 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           }}>
             <span>📺</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>TV</span>
+          </button>
+          <button onClick={toggleFullscreen} style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            backgroundColor: isFullscreen ? '#e65100' : '#1565c0',
+            color: colors.white,
+            border: `2px solid ${colors.white}`,
+            borderRadius: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <span>⛶</span>
+            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>{isFullscreen ? 'Exit' : 'Full'}</span>
           </button>
           {onToggleCollapsed && (
             <button onClick={onToggleCollapsed} style={{

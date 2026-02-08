@@ -141,7 +141,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
         {/* Game board - takes most of the screen */}
         <div style={styles.boardSection}>
           {gamePhase === 'PLAY' ? (
-            <GameBoard />
+            <GameBoard disableZoom />
           ) : gamePhase === 'SETUP' ? (
             <div style={styles.setupMessage}>
               <h2 style={styles.setupTitle}>Scan to Join!</h2>

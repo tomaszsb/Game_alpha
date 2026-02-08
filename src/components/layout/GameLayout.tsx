@@ -25,6 +25,7 @@ import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { haptics } from '../../utils/haptics';
 import { pushNotifications } from '../../utils/pushNotifications';
+import { PullToRefresh } from '../common/PullToRefresh';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -450,6 +451,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setIsSpaceExplorerVisible(!isSpaceExplorerVisible);
   };
 
+  // Handler for pull-to-refresh (mobile view)
+  const handlePullToRefresh = async () => {
+    await stateService.loadStateFromServer();
+  };
+
   // Handler for game log toggle
   const handleToggleGameLog = () => setIsGameLogVisible(prev => !prev);
 
@@ -654,37 +660,39 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             background: colors.background.light,
             border: `3px solid ${colors.primary.main}`,
             borderRadius: '8px',
-            overflowY: 'auto',
+            overflowY: 'hidden',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
             position: 'relative'
           }}
         >
-          {players.find(p => p.id === effectiveViewPlayerId) ? (
-            <PlayerPanelWrapper
-              gameServices={gameServices}
-              playerId={effectiveViewPlayerId}
-              onToggleSpaceExplorer={handleToggleSpaceExplorer}
-              onToggleMovementPath={handleToggleMovementPath}
-              isSpaceExplorerVisible={isSpaceExplorerVisible}
-              isMovementPathVisible={isMovementPathVisible}
-              onTryAgain={handleTryAgain}
-              playerNotification={playerNotifications[effectiveViewPlayerId]}
-              onRollDice={handleRollDice}
-              onAutomaticFunding={handleAutomaticFunding}
-              onManualEffectResult={(result) => {
-                if (result && result.effects && result.effects.length > 0) {
-                  setDiceResult(result);
-                  setIsDiceResultModalOpen(true);
-                }
-              }}
-              completedActions={completedActions}
-            />
-          ) : (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <h3>Player not found</h3>
-            </div>
-          )}
+          <PullToRefresh onRefresh={handlePullToRefresh}>
+            {players.find(p => p.id === effectiveViewPlayerId) ? (
+              <PlayerPanelWrapper
+                gameServices={gameServices}
+                playerId={effectiveViewPlayerId}
+                onToggleSpaceExplorer={handleToggleSpaceExplorer}
+                onToggleMovementPath={handleToggleMovementPath}
+                isSpaceExplorerVisible={isSpaceExplorerVisible}
+                isMovementPathVisible={isMovementPathVisible}
+                onTryAgain={handleTryAgain}
+                playerNotification={playerNotifications[effectiveViewPlayerId]}
+                onRollDice={handleRollDice}
+                onAutomaticFunding={handleAutomaticFunding}
+                onManualEffectResult={(result) => {
+                  if (result && result.effects && result.effects.length > 0) {
+                    setDiceResult(result);
+                    setIsDiceResultModalOpen(true);
+                  }
+                }}
+                completedActions={completedActions}
+              />
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <h3>Player not found</h3>
+              </div>
+            )}
+          </PullToRefresh>
         </div>
       )}
 

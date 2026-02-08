@@ -2,6 +2,24 @@
 
 ---
 
+## v2.25 - Fullscreen, Refresh & Zoom (February 8, 2026)
+
+**Release Date:** February 8, 2026
+**Version:** 2.25
+**Status:** Alpha Testing
+**Type:** UX Improvements
+
+### New: Fullscreen Mode
+A new **Full** button in the game toolbar puts your browser into fullscreen mode, reclaiming the address bar and toolbar space on mobile devices. Tap again (or press Escape) to exit.
+
+### New: Pull to Refresh (Mobile)
+On mobile player view, **pull down** from the top of the screen to refresh game state. Useful if your connection drops or the board seems stale.
+
+### New: Game Board Zoom & Pan
+The game board now supports **pinch-to-zoom** on touch devices and **scroll-wheel zoom** on desktop. When zoomed in, drag to pan around the board. A small control panel in the top-right corner shows the current zoom level with +, −, and reset buttons. **Double-tap** or **double-click** to snap back to normal view.
+
+---
+
 ## v2.24 - Bug Report Button (February 8, 2026)
 
 **Release Date:** February 8, 2026

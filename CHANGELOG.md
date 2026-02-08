@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Fullscreen, Pull-to-Refresh, and Board Zoom/Pan (February 8, 2026)
+
+**Purpose:** Three mobile UX improvements for external playtesting — fullscreen reclaims browser toolbar space, pull-to-refresh provides intuitive state resync, and zoom/pan lets players inspect the game board on small screens.
+
+**Changes:**
+- **Fullscreen toggle** (`src/components/game/ProjectProgress.tsx`):
+  - New button in toolbar between TV and Collapse
+  - Uses Fullscreen API (`requestFullscreen`/`exitFullscreen`)
+  - Tracks state via `fullscreenchange` event; label toggles "Full"/"Exit"
+- **Pull-to-Refresh** (new `src/components/common/PullToRefresh.tsx`):
+  - Reusable touch-based wrapper component
+  - Activates only when scrolled to top; 70px pull threshold
+  - Haptic feedback on trigger; shows pull/release/refreshing indicators
+  - Integrated in GameLayout mobile view, calls `stateService.loadStateFromServer()`
+- **Game Board Zoom/Pan** (`src/components/game/GameBoard.tsx`):
+  - Pinch-to-zoom (touch), mouse wheel zoom, drag-to-pan when zoomed
+  - Double-tap/double-click to reset zoom
+  - Zoom range: 0.5x–2.5x; pan constrained to prevent board going off-screen
+  - Overlay controls (top-right): zoom %, +, −, reset buttons
+  - Normal page scroll preserved when zoom is 1.0x
+
 ### Feature: Floating Bug Report Button with Screenshot Capture (February 8, 2026)
 
 **Purpose:** Enable player testers to report bugs in-context during playtesting sessions.

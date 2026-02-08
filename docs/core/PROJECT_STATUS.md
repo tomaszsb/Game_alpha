@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: February 8, 2026
-**Current Phase**: External Testing Ready (v2.24)
-**Current Version**: 2.24
+**Current Phase**: External Testing Ready (v2.25)
+**Current Version**: 2.25
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Feature: Fullscreen, Pull-to-Refresh, Board Zoom/Pan (February 8, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.25
+- **Features**: Fullscreen toggle, pull-to-refresh on mobile, pinch/wheel zoom + drag pan on game board
+- **Achievements**:
+  - Fullscreen button in toolbar using Fullscreen API
+  - PullToRefresh wrapper component with haptic feedback
+  - Board zoom (0.5x–2.5x) with pinch, wheel, and overlay controls
+  - Pan constrained to board bounds; double-tap/click resets
 
 ### Feature: Bug Report Button with Screenshot Capture (February 8, 2026) ✅
 - **Status**: ✅ Complete
