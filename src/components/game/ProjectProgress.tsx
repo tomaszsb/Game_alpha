@@ -630,17 +630,20 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: '4px'
+                    marginBottom: '4px',
+                    flexWrap: 'nowrap',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden'
                   }}>
-                    <span style={{ fontSize: '0.65rem', color: '#666', fontWeight: 'bold' }}>
+                    <span style={{ fontSize: '0.6rem', color: '#666', fontWeight: 'bold' }}>
                       📐 Design Fees
                     </span>
                     <span style={{
-                      fontSize: '0.65rem',
+                      fontSize: '0.6rem',
                       color: designFeeColor,
                       fontWeight: 'bold'
                     }}>
-                      {designFeeRatio.toFixed(1)}% / 20%
+                      {designFeeRatio.toFixed(1)}%{'\u00A0'}/{'\u00A0'}20%
                     </span>
                   </div>
                   <div style={{

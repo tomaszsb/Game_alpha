@@ -222,7 +222,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   }, [player.currentSpace, player.visitType, completedActions, gameServices]);
 
   const pendingCount = pendingActions.filter(a => !a.isCompleted).length +
-    (isDiceMovementSpace && !hasPlayerRolledDice && !player.currentSpace.startsWith('REG-') ? 1 : 0);
+    (isDiceMovementSpace && !hasPlayerRolledDice ? 1 : 0);
 
   // End turn logic
   const gameState = gameServices.stateService.getGameState();
@@ -428,8 +428,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Dice Roll for Movement (non-REG spaces) */}
-        {isMyTurn && isDiceMovementSpace && !hasPlayerRolledDice && onRollDice && !player.currentSpace.startsWith('REG-') && (
+        {/* Dice Roll for Movement */}
+        {isMyTurn && isDiceMovementSpace && !hasPlayerRolledDice && onRollDice && (
           <button
             className="action-center__action-btn action-center__action-btn--dice"
             onClick={handleDiceRoll}
@@ -440,7 +440,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         )}
 
         {/* Dice roll result */}
-        {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll && !player.currentSpace.startsWith('REG-') && (
+        {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll && (
           <div className="action-center__dice-result">
             🎲 {completedActions.diceRoll}
           </div>
