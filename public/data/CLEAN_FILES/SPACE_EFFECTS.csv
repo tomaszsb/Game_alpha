@@ -17,9 +17,9 @@ OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto
 OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Discuss & hire some Expeditors,manual
 OWNER-SCOPE-INITIATION,Subsequent,dice,dice_outcome,W Cards,,Agree on scope of work with Owner,manual
 OWNER-SCOPE-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
-OWNER-FUND-INITIATION,First,money,owner_seed_money,80-120% of scope,,Owner seed money (80-120% of project scope),auto
+OWNER-FUND-INITIATION,First,money,owner_seed_money,80-120% of scope,,Accept Owner's Funding,manual
 OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto
-OWNER-FUND-INITIATION,Subsequent,money,owner_seed_money,80-120% of scope,,Owner seed money (80-120% of project scope),auto
+OWNER-FUND-INITIATION,Subsequent,money,owner_seed_money,80-120% of scope,,Accept Owner's Revised Offer,manual
 OWNER-FUND-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
 PM-DECISION-CHECK,First,cards,draw_L,1,dice_roll_1,Draw L card on roll of 1,auto
 PM-DECISION-CHECK,First,cards,replace_E,1,,Replace 1 E cards,manual

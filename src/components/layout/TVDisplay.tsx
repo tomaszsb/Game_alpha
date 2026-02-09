@@ -8,6 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { GameBoard } from '../game/GameBoard';
 import { ProjectProgress } from '../game/ProjectProgress';
+import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
 import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
@@ -34,6 +35,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showActionOverlay, setShowActionOverlay] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   const gameId = getCurrentGameId();
 
@@ -92,6 +94,21 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           {gameId && (
             <span style={styles.gameCode}>Game: {gameId}</span>
           )}
+          <button
+            onClick={() => setIsRulesOpen(true)}
+            style={{
+              padding: '8px 16px',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '2px solid rgba(255,255,255,0.5)',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            📋 Rules
+          </button>
         </div>
 
         {/* Current player indicator */}
@@ -256,6 +273,9 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           </div>
         </div>
       )}
+
+      {/* Rules Modal */}
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
 
       {/* Footer */}
       <footer style={styles.footer}>
