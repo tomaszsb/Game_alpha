@@ -55,10 +55,9 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
     if (z <= 1) return { x: 0, y: 0 };
     const container = boardContainerRef.current;
     if (!container) return { x, y };
-    const w = container.offsetWidth;
-    const h = container.offsetHeight;
-    const maxPanX = (w * (z - 1)) / 2;
-    const maxPanY = (h * (z - 1)) / 2;
+    // Clamp pan to half the container size in each direction
+    const maxPanX = container.offsetWidth * 0.5;
+    const maxPanY = container.scrollHeight * 0.5;
     return {
       x: Math.min(maxPanX, Math.max(-maxPanX, x)),
       y: Math.min(maxPanY, Math.max(-maxPanY, y))
@@ -373,7 +372,7 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
         transition: 'opacity 0.2s ease-in-out',
         opacity: isTransitioning ? 0.95 : 1,
         position: 'relative',
-        overflow: 'hidden',
+        overflow: zoom > 1 && !disableZoom ? 'hidden' : 'auto',
         cursor: !disableZoom && zoom > 1 ? (isMouseDragging.current ? 'grabbing' : 'grab') : 'default',
         touchAction: !disableZoom && zoom > 1 ? 'none' : 'auto'
       }}
@@ -436,14 +435,14 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '12px',
+          gridTemplateColumns: `repeat(auto-fit, minmax(${Math.round(140 * zoom)}px, 1fr))`,
+          gap: `${Math.round(12 * zoom)}px`,
           width: '100%',
           transition: 'transform 0.15s ease-in-out',
           transform: disableZoom
             ? (isTransitioning ? 'scale(0.99)' : 'scale(1)')
-            : `scale(${zoom}) translate(${panX / zoom}px, ${panY / zoom}px)${isTransitioning ? ' scale(0.99)' : ''}`,
-          transformOrigin: 'center center'
+            : `translate(${panX}px, ${panY}px)${isTransitioning ? ' scale(0.99)' : ''}`,
+          fontSize: `${zoom}em`
         }}
       >
         {spaces.map((space) => {

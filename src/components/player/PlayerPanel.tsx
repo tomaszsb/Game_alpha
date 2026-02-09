@@ -204,10 +204,12 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
             story: visitContent?.story,
             action_description: visitContent?.action_description
           });
-          // Combine story and action_description for full context
+          // Combine story and action_description for full context (skip story when it duplicates title)
+          const titleText = visitContent?.title || '';
           const storyText = visitContent?.story || '';
           const actionText = visitContent?.action_description || '';
-          const fullStory = [storyText, actionText].filter(Boolean).join(' ');
+          const uniqueStory = storyText.trim() === titleText.trim() ? '' : storyText;
+          const fullStory = [uniqueStory, actionText].filter(Boolean).join(' ');
           setSpaceStory(fullStory);
         } else {
           console.log('📖 Story Debug: No space or content', {
@@ -301,10 +303,12 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           story: visitContent?.story,
           action_description: visitContent?.action_description
         });
-        // Combine story and action_description for full context
+        // Combine story and action_description for full context (skip story when it duplicates title)
+        const titleText = visitContent?.title || '';
         const storyText = visitContent?.story || '';
         const actionText = visitContent?.action_description || '';
-        const fullStory = [storyText, actionText].filter(Boolean).join(' ');
+        const uniqueStory = storyText.trim() === titleText.trim() ? '' : storyText;
+        const fullStory = [uniqueStory, actionText].filter(Boolean).join(' ');
         setSpaceStory(fullStory);
       }
 
