@@ -88,15 +88,13 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       setCurrentPlayerName(currentPlayer?.name || '');
 
       if (player) {
-        // Get space story (skip story text when it duplicates the title)
+        // Get space story
         const space = gameServices.dataService.getSpaceByName(player.currentSpace);
         if (space?.content?.length) {
           const visitContent = space.content.find(c => c.visit_type === player.visitType);
-          const titleText = visitContent?.title || '';
           const storyText = visitContent?.story || '';
           const actionText = visitContent?.action_description || '';
-          const uniqueStory = storyText.trim() === titleText.trim() ? '' : storyText;
-          setSpaceStory([uniqueStory, actionText].filter(Boolean).join(' '));
+          setSpaceStory([storyText, actionText].filter(Boolean).join(' '));
         } else {
           setSpaceStory('');
         }
@@ -130,11 +128,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       const space = gameServices.dataService.getSpaceByName(player.currentSpace);
       if (space?.content?.length) {
         const visitContent = space.content.find(c => c.visit_type === player.visitType);
-        const titleText = visitContent?.title || '';
         const storyText = visitContent?.story || '';
         const actionText = visitContent?.action_description || '';
-        const uniqueStory = storyText.trim() === titleText.trim() ? '' : storyText;
-        setSpaceStory([uniqueStory, actionText].filter(Boolean).join(' '));
+        setSpaceStory([storyText, actionText].filter(Boolean).join(' '));
       }
       const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
       setIsDiceMovementSpace(movement?.movement_type === 'dice');
