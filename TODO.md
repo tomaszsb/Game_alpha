@@ -21,6 +21,9 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Bug Fix: Dice roll button missing on REG- spaces — players got stuck (Feb 9, 2026)
+- ✅ Bug Fix: Design Fees text wrapping on TV mode (960x540) (Feb 9, 2026)
+- ✅ Data Fix: Space titles now proper English names instead of duplicating story text (Feb 9, 2026)
 - ✅ Feature: Fullscreen toggle, Pull-to-Refresh, Game Board Zoom/Pan (Feb 8, 2026)
 - ✅ Feature: Floating Bug Report button with screenshot capture + server storage (Feb 8, 2026)
 - ✅ UI: Consolidated Display Settings modal — one card per player with all controls (Feb 8, 2026)

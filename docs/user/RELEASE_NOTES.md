@@ -2,6 +2,24 @@
 
 ---
 
+## v2.25.1 - Bug Fixes from Playtesting (February 9, 2026)
+
+**Release Date:** February 9, 2026
+**Version:** 2.25.1
+**Status:** Alpha Testing
+**Type:** Bug Fixes
+
+### Fixed: Stuck Turn on Regulatory Spaces
+Players on DOB and FDNY spaces that require a dice roll (Plan Exam, Prof Cert, Audit, Final Review) could get stuck — the "Roll Dice" button wasn't appearing, but "End Turn" showed actions remaining. This is now fixed.
+
+### Fixed: TV Display Text Wrapping
+On TV mode, the "Design Fees" label and percentage could wrap to two lines when fees exceeded 10%. Now stays on one line.
+
+### Improved: Space Titles
+Each space now shows a clear English title (e.g., "Architect Fee Review", "DOB Plan Exam") instead of repeating the story text. This makes it easier to identify where you are at a glance.
+
+---
+
 ## v2.25 - Fullscreen, Refresh & Zoom (February 8, 2026)
 
 **Release Date:** February 8, 2026

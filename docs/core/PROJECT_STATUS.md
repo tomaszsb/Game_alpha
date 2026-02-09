@@ -1,14 +1,22 @@
 # Project Status
 
-**Last Updated**: February 8, 2026
-**Current Phase**: External Testing Ready (v2.25)
-**Current Version**: 2.25
+**Last Updated**: February 9, 2026
+**Current Phase**: External Testing Ready (v2.25.1)
+**Current Version**: 2.25.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Bug Fixes from Playtesting (February 9, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.25.1
+- **Fixes**:
+  - Dice roll button missing on 6 REG- spaces (stuck turn bug)
+  - Design Fees text wrapping on TV mode (960x540)
+  - Space titles replaced with proper English names (all 54 rows)
 
 ### Feature: Fullscreen, Pull-to-Refresh, Board Zoom/Pan (February 8, 2026) ✅
 - **Status**: ✅ Complete

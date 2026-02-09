@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fix: Stuck Turn on REG- Dice Movement Spaces (February 9, 2026)
+
+**Reported via:** In-game bug report from player Ray on REG-FDNY-PLAN-EXAM (Game G38)
+
+**Problem:** Players on regulatory spaces (REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT, REG-DOB-AUDIT, REG-FDNY-PLAN-EXAM, REG-DOB-FINAL-REVIEW) that use dice-based movement got stuck — "End Turn" showed "1 action remaining" but no dice roll button appeared.
+
+**Root Cause:** A blanket `!player.currentSpace.startsWith('REG-')` exclusion in `ActionCenterPanel.tsx` hid the dice roll button, dice result display, and pending action count for all REG- spaces. This was likely intended for REG spaces with fixed/logic movement but broke the 6 REG spaces that use dice movement.
+
+**Fix:** Removed the REG- prefix exclusion from dice roll button rendering (line 432), dice result display (line 443), and pending count calculation (line 225). The dice roll button now shows on all dice movement spaces regardless of name prefix.
+
+**Files:** `src/components/player/ActionCenterPanel.tsx`
+
+### Bug Fix: Design Fees Text Wrapping on TV Mode (February 9, 2026)
+
+**Reported via:** In-game bug report from Smart TV (960x540, Game G38)
+
+**Problem:** "📐 Design Fees" and "12.0% / 20%" in the player card progress overview wrapped to two lines when the fee percentage exceeded 10%, making the layout look broken on small TV screens.
+
+**Fix:** Added `flexWrap: 'nowrap'`, `whiteSpace: 'nowrap'`, `overflow: 'hidden'` to the fee label row, reduced font from 0.65rem to 0.6rem, and used non-breaking spaces around the `/` separator.
+
+**Files:** `src/components/game/ProjectProgress.tsx`
+
+### Data Fix: Space Content Titles (February 9, 2026)
+
+**Problem:** All 54 rows in SPACE_CONTENT.csv had the `title` column duplicating the `story` column (narrative sentences). The title should be a short human-readable space name displayed alongside the hyphenated space ID.
+
+**Fix:** Replaced all title values with proper English names (e.g., "OWNER-SCOPE-INITIATION" → title: "Owner Scope Initiation", "REG-DOB-PLAN-EXAM" → title: "DOB Plan Exam", "CON-INITIATION" → title: "Contractor Selection"). Subsequent visits get context-appropriate titles (e.g., "Owner Scope Renegotiation", "DOB Plan Re-exam").
+
+**Files:** `public/data/CLEAN_FILES/SPACE_CONTENT.csv`
+
 ### Feature: Fullscreen, Pull-to-Refresh, and Board Zoom/Pan (February 8, 2026)
 
 **Purpose:** Three mobile UX improvements for external playtesting — fullscreen reclaims browser toolbar space, pull-to-refresh provides intuitive state resync, and zoom/pan lets players inspect the game board on small screens.
