@@ -1,14 +1,21 @@
 # Project Status
 
 **Last Updated**: February 9, 2026
-**Current Phase**: External Testing Ready (v2.25.1)
-**Current Version**: 2.25.1
+**Current Phase**: External Testing Ready (v2.25.2)
+**Current Version**: 2.25.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### TV Rules & Interactive Funding (February 9, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.25.2
+- **Changes**:
+  - Rules button added to TV display header for first-time players
+  - Owner Funding space now interactive (manual trigger instead of auto)
 
 ### Bug Fixes from Playtesting (February 9, 2026) ✅
 - **Status**: ✅ Complete

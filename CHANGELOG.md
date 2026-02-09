@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Enhancement: TV Mode Rules Button & Interactive Owner Funding (February 9, 2026)
+
+**TV Mode Rules Button:**
+- Added "📋 Rules" button to TVDisplay header for first-time players
+- Opens the existing RulesModal overlay on the TV screen
+- Styled consistently with the TV header (translucent white background, white text)
+
+**Interactive Owner Funding:**
+- Changed OWNER-FUND-INITIATION `owner_seed_money` effect from `auto` to `manual` trigger
+- Players now click a button to accept funding instead of it happening automatically
+- First visit: "Accept Owner's Funding", Subsequent: "Accept Owner's Revised Offer"
+- Gives players agency on a space that previously had zero interaction
+
+**Files:** `src/components/layout/TVDisplay.tsx`, `public/data/CLEAN_FILES/SPACE_EFFECTS.csv`
+
 ### Bug Fix: Stuck Turn on REG- Dice Movement Spaces (February 9, 2026)
 
 **Reported via:** In-game bug report from player Ray on REG-FDNY-PLAN-EXAM (Game G38)

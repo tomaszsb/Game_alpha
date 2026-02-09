@@ -2,6 +2,21 @@
 
 ---
 
+## v2.25.2 - TV Rules & Interactive Funding (February 9, 2026)
+
+**Release Date:** February 9, 2026
+**Version:** 2.25.2
+**Status:** Alpha Testing
+**Type:** UX Improvements
+
+### New: Rules Button on TV Display
+First-time players watching the TV can now tap the "Rules" button in the header to see the full game rules without needing to leave the TV screen.
+
+### Improved: Owner Funding is Now Interactive
+The Owner Funding space now shows a button to accept the owner's funding offer, instead of applying it automatically. This gives players a sense of doing something on that space.
+
+---
+
 ## v2.25.1 - Bug Fixes from Playtesting (February 9, 2026)
 
 **Release Date:** February 9, 2026
