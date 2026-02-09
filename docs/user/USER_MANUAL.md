@@ -85,7 +85,7 @@ Navigate through construction project phases, manage resources (money and time),
 - Track via Finances section
 
 **Time:**
-- Measured in "ticks" (weeks/months)
+- Measured in "days" (weeks/months)
 - Affected by space effects and cards
 - Win condition: Finish with lowest time
 

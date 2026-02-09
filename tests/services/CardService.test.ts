@@ -769,7 +769,7 @@ describe('CardService - Enhanced Coverage', () => {
               resource: 'TIME',
               amount: -3,
               source: 'card:TIME001',
-              reason: 'Time Card: -3 time ticks'
+              reason: 'Time Card: -3 days'
             })
           })
         ]),

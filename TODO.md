@@ -305,10 +305,10 @@ Validate gameplay, balance, and user experience with real players
     - Skipping a turn at timed spaces could cost MORE time than the benefit
     - Single player mode bypass (same player continues immediately)
   - **Fix**: Replaced skip turn with money costs (overtime wages):
-    - E014 Express Delivery: $3K for -2 ticks
-    - E028 Fact Checking: $6K for -4 ticks
-    - E029 Weekend Work: $5K for -3 ticks
-    - E030 Time Crunch: $8K for -5 ticks
+    - E014 Express Delivery: $3K for -2 days
+    - E028 Fact Checking: $6K for -4 days
+    - E029 Weekend Work: $5K for -3 days
+    - E030 Time Crunch: $8K for -5 days
   - L cards (L014, L024, L035) still use skip turn (forced penalties make sense)
 
 **Financial Issues:**

@@ -78,7 +78,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
     const e012Card: Card = {
       card_id: 'E012',
       card_name: 'Paperwork Snag',
-      description: 'Discard 1 Expeditor Card or the current filing takes 1 tick more time.',
+      description: 'Discard 1 Expeditor Card or the current filing takes 1 day more time.',
       card_type: 'E'
     };
 
@@ -99,7 +99,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
       expect(payload.options[0].effects[0].effectType).toBe('CARD_DISCARD');
       
       // Check second option - time delay
-      expect(payload.options[1].label).toBe('Current filing takes 1 tick more time');
+      expect(payload.options[1].label).toBe('Current filing takes 1 day more time');
       expect(payload.options[1].effects).toHaveLength(1);
       expect(payload.options[1].effects[0].effectType).toBe('RESOURCE_CHANGE');
     }
@@ -127,7 +127,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
             }]
           },
           {
-            label: 'Current filing takes 1 tick more time',
+            label: 'Current filing takes 1 day more time',
             effects: [{
               effectType: 'RESOURCE_CHANGE',
               payload: {
@@ -217,7 +217,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
       'Paperwork Snag: Choose one option',
       [
         { id: '0', label: 'Discard 1 Expeditor Card' },
-        { id: '1', label: 'Current filing takes 1 tick more time' }
+        { id: '1', label: 'Current filing takes 1 day more time' }
       ]
     );
   });
@@ -244,7 +244,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
             }]
           },
           {
-            label: 'Current filing takes 1 tick more time',
+            label: 'Current filing takes 1 day more time',
             effects: [{
               effectType: 'RESOURCE_CHANGE',
               payload: {
@@ -278,7 +278,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
       'Paperwork Snag: Choose one option',
       [
         { id: '0', label: 'Discard 1 Expeditor Card' },
-        { id: '1', label: 'Current filing takes 1 tick more time' }
+        { id: '1', label: 'Current filing takes 1 day more time' }
       ]
     );
   });

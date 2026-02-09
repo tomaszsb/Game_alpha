@@ -1028,7 +1028,7 @@ export class CardService implements ICardService {
       return this.stateService.getGameState();
     }
 
-    // Special handling for E009 "Favor Called In" - Choose opponent, they +2 ticks, you -2 ticks
+    // Special handling for E009 "Favor Called In" - Choose opponent, they +2 days, you -2 days
     if (card.card_id === 'E009') {
       await this.handleFavorCalledIn(playerId, card);
       return this.stateService.getGameState();
@@ -1112,11 +1112,11 @@ export class CardService implements ICardService {
                 resource: 'TIME',
                 amount: timeAmount,
                 source: cardSource,
-                reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks (affects all players)`
+                reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days (affects all players)`
               }
             });
           }
-          console.log(`   ⏰ Added GLOBAL TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks to ALL ${gameState.players.length} players`);
+          console.log(`   ⏰ Added GLOBAL TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} days to ALL ${gameState.players.length} players`);
         } else {
           // Apply to current player only
           effects.push({
@@ -1126,10 +1126,10 @@ export class CardService implements ICardService {
               resource: 'TIME',
               amount: timeAmount, // Positive = add time, negative = spend time
               source: cardSource,
-              reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks`
+              reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days`
             }
           });
-          console.log(`   ⏰ Added TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} time ticks`);
+          console.log(`   ⏰ Added TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} days`);
         }
       }
     }
@@ -1737,7 +1737,7 @@ export class CardService implements ICardService {
   }
 
   /**
-   * Handle E009 "Favor Called In" - Choose opponent, they get +2 ticks, you get -2 ticks
+   * Handle E009 "Favor Called In" - Choose opponent, they get +2 days, you get -2 days
    *
    * This card requires selecting an opponent and applying opposite time effects.
    */
@@ -1754,7 +1754,7 @@ export class CardService implements ICardService {
     if (opponents.length === 0) {
       console.log(`📞 No opponents to target - single player game`);
       // Still apply benefit to self in single player (spendTime reduces time spent)
-      this.resourceService.spendTime(playerId, 2, `card:${card.card_id}`, `${card.card_name}: -2 time ticks`);
+      this.resourceService.spendTime(playerId, 2, `card:${card.card_id}`, `${card.card_name}: -2 days`);
       this.loggingService.info(`${card.card_name} played - no opponents, self benefit only`, {
         playerId: playerId,
         action: 'card_no_target'
@@ -1797,26 +1797,26 @@ export class CardService implements ICardService {
       return;
     }
 
-    // Apply effects: opponent gets +2 ticks (slower), player gets -2 ticks (faster)
+    // Apply effects: opponent gets +2 days (slower), player gets -2 days (faster)
     const cardSource = `card:${card.card_id}`;
 
-    // Opponent gets +2 ticks (penalty) - addTime increases time spent
+    // Opponent gets +2 days (penalty) - addTime increases time spent
     this.resourceService.addTime(
       selectedOpponent.id,
       2,
       cardSource,
-      `${card.card_name}: +2 time ticks (targeted by ${currentPlayer?.name})`
+      `${card.card_name}: +2 days (targeted by ${currentPlayer?.name})`
     );
 
-    // Player gets -2 ticks (benefit) - spendTime reduces time spent
+    // Player gets -2 days (benefit) - spendTime reduces time spent
     this.resourceService.spendTime(
       playerId,
       2,
       cardSource,
-      `${card.card_name}: -2 time ticks`
+      `${card.card_name}: -2 days`
     );
 
-    console.log(`✅ Favor Called In: ${selectedOpponent.name} +2 ticks, ${currentPlayer?.name} -2 ticks`);
+    console.log(`✅ Favor Called In: ${selectedOpponent.name} +2 days, ${currentPlayer?.name} -2 days`);
 
     // Log the action
     this.loggingService.info(`${currentPlayer?.name} called in a favor: ${selectedOpponent.name} slowed down`, {

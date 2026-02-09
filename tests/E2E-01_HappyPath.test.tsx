@@ -260,24 +260,27 @@ describe('E2E-01: Happy Path with New UI', () => {
       expect(screen.getAllByText(/OWNER-FUND-INITIATION/i).length).toBeGreaterThan(0);
     }, { timeout: 5000 });
 
-    // OWNER-FUND-INITIATION automatically applies owner_seed_money (no card draw)
-    // Wait for automatic effects to complete and verify player received funding
+    // OWNER-FUND-INITIATION has a manual owner_seed_money effect
+    // Player must click the funding button before End Turn is enabled
     await waitFor(() => {
       const player = gameServices.stateService.getPlayer(actualPlayerId);
-      // Player should have received owner seed money (80-120% of scope)
-      // With no W cards drawn, scope is $0, so seed money might be $0 too
-      // Just verify the turn flow completed - End Turn button should be enabled
       expect(player).toBeTruthy();
     }, { timeout: 5000 });
 
-    // "End Turn" should be enabled for Turn 1 at OWNER-FUND-INITIATION
-    // Automatic effects complete immediately, so button should be ready
+    // Click the manual funding button to accept owner's funding
+    await waitFor(() => {
+      const fundingButton = screen.getByRole('button', { name: /Accept Owner/i });
+      expect(fundingButton).toBeInTheDocument();
+      fireEvent.click(fundingButton);
+    }, { timeout: 5000 });
+
+    // "End Turn" should now be enabled after completing the manual action
     await waitFor(() => {
       const etButton = screen.getByRole('button', { name: /End Turn/i });
       expect(etButton).toBeEnabled();
     }, { timeout: 5000 });
 
-    // Click End Turn again to finish Alice's Turn 1
+    // Click End Turn to finish Alice's Turn 1
     fireEvent.click(screen.getByRole('button', { name: /End Turn/i }));
 
     await waitFor(() => {

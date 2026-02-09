@@ -34,7 +34,7 @@ card_id,card_type,card_name,description,flavor_text,target,scope,phase_restricti
 - `percentage_effect`: Percentage-based effects
 
 ### 3. **Time & Timing System** (HIGH PRIORITY)
-- `tick_modifier`: -3, -5 (time reductions in ticks)
+- `tick_modifier`: -3, -5 (time reductions in days)
 - `time_effect`: Time-based modifications
 - `cooldown`: Prevents immediate reuse
 - `priority`: Card play order
@@ -99,12 +99,12 @@ draw_cards,discard_cards,target,scope
 
 ### E029 - Weekend Work (Turn Skip + Time Reduction):
 ```csv
-E029,Weekend Work,E,"Reduce the current filing time by 3 ticks but skip your next turn.",Apply Card,0,Any,Immediate,,Skip next turn,Immediate,,,,,,-3,,,Self,Single
+E029,Weekend Work,E,"Reduce the current filing time by 3 days but skip your next turn.",Apply Card,0,Any,Immediate,,Skip next turn,Immediate,,,,,,-3,,,Self,Single
 ```
 
 ### E030 - Time Crunch (Turn Skip + Major Time Reduction):
 ```csv  
-E030,Time Crunch,E,"Skip your next turn. Then reduce your current filing time by 5 ticks.",Apply Card,0,Any,Immediate,,Skip next turn,Immediate,,,,,,-5,,,Self,Single
+E030,Time Crunch,E,"Skip your next turn. Then reduce your current filing time by 5 days.",Apply Card,0,Any,Immediate,,Skip next turn,Immediate,,,,,,-5,,,Self,Single
 ```
 
 ### B001 - Small Business Loan (Loan Amount + Rate):
@@ -123,7 +123,7 @@ B001,Small Business Loan,B,"Low interest loan for initial funding",Apply Loan,0,
 ### What's Broken/Missing:
 - Turn skipping effects (E029, E030, L014)
 - Actual loan amounts and rates
-- Time tick modifications
+- Time day modifications
 - Complex card interactions
 - Conditional effects
 - Player targeting system

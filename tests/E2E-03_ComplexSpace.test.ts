@@ -211,7 +211,7 @@ describe('E2E-03: Complex Space Features Test', () => {
     const ownerScopeContent = dataService.getSpaceContent('OWNER-SCOPE-INITIATION', 'First');
     expect(ownerScopeContent).toBeDefined();
     expect(ownerScopeContent?.can_negotiate).toBe(true);
-    expect(ownerScopeContent?.title).toBe('The owner dreams up an idea of project scope.');
+    expect(ownerScopeContent?.title).toBe('Owner Scope Initiation');
     
     const pmDecisionContent = dataService.getSpaceContent('PM-DECISION-CHECK', 'First');
     expect(pmDecisionContent).toBeDefined();

@@ -716,7 +716,7 @@ Construction Cost = Total Work Cost × (Multiplier × 10%) × Quality Coefficien
 
 **Fixed: E009 "Favor Called In" opponent targeting**
 - Implemented opponent selection via ChoiceService
-- Selected opponent gets +2 ticks, playing player gets -2 ticks
+- Selected opponent gets +2 days, playing player gets -2 days
 - Auto-selects if only one opponent, applies self-benefit only in single player
 
 ### Feature: Replace Skip Turn with Money Cost (January 20, 2026)

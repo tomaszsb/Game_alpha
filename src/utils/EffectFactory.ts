@@ -195,7 +195,7 @@ export class EffectFactory {
       }
     }
 
-    // === TICK MODIFIER EFFECTS (New expanded mechanic) ===
+    // === TIME MODIFIER EFFECTS (New expanded mechanic) ===
     if (card.tick_modifier && card.tick_modifier !== '0' && card.tick_modifier !== '') {
       const tickModifier = this.parseTickModifier(card.tick_modifier);
       if (tickModifier !== 0) {
@@ -942,7 +942,7 @@ export class EffectFactory {
   }
 
   /**
-   * Parse tick modifier (e.g., "+1", "-2", "0")
+   * Parse time modifier (e.g., "+1", "-2", "0")
    */
   private static parseTickModifier(tickModifier: string): number {
     const cleanModifier = tickModifier.trim();
@@ -1020,7 +1020,7 @@ export class EffectFactory {
   ): Effect | null {
     const description = card.description || '';
     
-    // For E012: "Discard 1 Expeditor Card or the current filing takes 1 tick more time."
+    // For E012: "Discard 1 Expeditor Card or the current filing takes 1 day more time."
     if (card.card_id === 'E012') {
       return {
         effectType: 'CHOICE_OF_EFFECTS',
@@ -1043,7 +1043,7 @@ export class EffectFactory {
               }]
             },
             {
-              label: 'Current filing takes 1 tick more time',
+              label: 'Current filing takes 1 day more time',
               effects: [{
                 effectType: 'RESOURCE_CHANGE',
                 payload: {
@@ -1089,7 +1089,7 @@ export class EffectFactory {
     // Pattern: "On X-Y [effect]. On Z-W [effect]." or "On X-Y [effect]. On Z-W no effect."
     const ranges: Array<{ min: number; max: number; effects: Effect[] }> = [];
     
-    // Match patterns like "On 1-3 increase the current filing time by 5 ticks"
+    // Match patterns like "On 1-3 increase the current filing time by 5 days"
     const rangePattern = /On (\d+)-(\d+)\s+([^.]+)\./g;
     let match;
     
@@ -1134,7 +1134,7 @@ export class EffectFactory {
   /**
    * Parse conditional effect text into actual Effect objects
    * 
-   * @param effectText The text describing the effect (e.g., "increase the current filing time by 5 ticks")
+   * @param effectText The text describing the effect (e.g., "increase the current filing time by 5 days")
    * @param card The original card object for reference
    * @param playerId The player ID
    * @param cardSource Source string
@@ -1156,9 +1156,9 @@ export class EffectFactory {
       return effects; // Return empty array
     }
     
-    // Parse time/tick modifications
-    // Patterns: "increase ... by X ticks", "reduce ... by X ticks", "decrease ... by X ticks"
-    const tickPattern = /(increase|reduce|decrease)\s+.*?\s+by\s+(\d+)\s+ticks?/i;
+    // Parse time/day modifications
+    // Patterns: "increase ... by X days", "reduce ... by X days", "decrease ... by X days"
+    const tickPattern = /(increase|reduce|decrease)\s+.*?\s+by\s+(\d+)\s+days?/i;
     const tickMatch = effectText.match(tickPattern);
     
     if (tickMatch) {
@@ -1178,7 +1178,7 @@ export class EffectFactory {
         }
       });
       
-      console.log(`   Parsed time effect: ${timeAmount} ticks`);
+      console.log(`   Parsed time effect: ${timeAmount} days`);
     }
     
     // Could add more parsing patterns here for other effect types (money, cards, etc.)

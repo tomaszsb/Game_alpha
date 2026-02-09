@@ -275,7 +275,7 @@ describe.skip('UAT: Full Gameplay Test', () => {
       return {
         hasPlayers: document.body.innerText.includes('Player'),
         hasMoneyDisplay: document.body.innerText.includes('$') || document.body.innerText.includes('Money'),
-        hasTimeDisplay: document.body.innerText.includes('Time') || document.body.innerText.includes('Tick'),
+        hasTimeDisplay: document.body.innerText.includes('Time') || document.body.innerText.includes('Day'),
         hasCards: document.body.innerText.includes('Card'),
         buttonCount: document.querySelectorAll('button').length
       };

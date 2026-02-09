@@ -203,7 +203,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
 
   describe('All Players Targeting', () => {
     it('should affect all players with L003 New Safety Regulations', async () => {
-      // L003: "All players must discard 1 Expeditor card. All inspections take 3 additional ticks this turn."
+      // L003: "All players must discard 1 Expeditor card. All inspections take 3 additional days this turn."
       // Target: "All Players"
       
       // Setup: Give all players some E cards to discard
@@ -251,7 +251,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     });
 
     it('should handle duration-based All Players effects with L002 Economic Downturn', async () => {
-      // L002: "All permit and inspection times increase by 2 ticks for the next 3 turns."
+      // L002: "All permit and inspection times increase by 2 days for the next 3 turns."
       // Target: "All Players", Duration: "Turns", Duration Count: "3"
       
       // Give Alice the L002 card

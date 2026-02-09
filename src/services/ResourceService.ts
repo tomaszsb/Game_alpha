@@ -402,7 +402,7 @@ export class ResourceService implements IResourceService {
 
       // Warning for large time changes
       if (Math.abs(changes.timeSpent) > 20) {
-        warnings.push(`Large time change: ${changes.timeSpent > 0 ? '+' : ''}${changes.timeSpent} ticks`);
+        warnings.push(`Large time change: ${changes.timeSpent > 0 ? '+' : ''}${changes.timeSpent} days`);
       }
     }
 

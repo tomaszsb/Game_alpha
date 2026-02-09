@@ -94,7 +94,7 @@ async function runUATTest() {
           hasText: text.length > 100,
           hasPlayers: text.includes('Player') || text.toLowerCase().includes('player'),
           hasMoney: text.includes('$') || text.includes('Money'),
-          hasTime: text.includes('Time') || text.includes('Tick'),
+          hasTime: text.includes('Time') || text.includes('Day'),
           hasButtons: document.querySelectorAll('button').length,
           pageTitle: document.title,
           bodyClasses: document.body.className

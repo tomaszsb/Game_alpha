@@ -14,7 +14,7 @@ BANK-FUND-REVIEW,Subsequent,Bank Funding Follow-up,You wait impatiently as the b
 INVESTOR-FUND-REVIEW,First,Investor Funding Review,You wait patiently as the investors determine the loan amount and rate.,Having money will allow you to hire and spend maybe even have a life.,,YES
 INVESTOR-FUND-REVIEW,Subsequent,Investor Funding Follow-up,You wait impatiently as the investors determine the loan amount and rate.,It is late in the game - you are starting to lose credibility. Staff is leaving. Life is passing you by. ,,NO
 ARCH-INITIATION,First,Architect Search,You are searching for the architect.,You are making phone calls and looking at qualifications… in the mean time others play…as you roll for outside influence only.,,No
-ARCH-INITIATION,Subsequent,Architect Redesign Review,Architect glances over files to determine if change to drawings is needed. ,As time ticks you think: Looks bad you may have to redesign again!,,No
+ARCH-INITIATION,Subsequent,Architect Redesign Review,Architect glances over files to determine if change to drawings is needed. ,As time passes you think: Looks bad you may have to redesign again!,,No
 ARCH-FEE-REVIEW,First,Architect Fee Review,Architect negotiates their initial fees.,Everyone wants money from you! You paid a big chunk so now you have to save a little by cutting your staff.,,YES
 ARCH-FEE-REVIEW,Subsequent,Architect Additional Fees,Architect negotiates additional architect fees.,You cross your fingers and wait for life to dump on you. You will need a friend in need.,,YES
 ARCH-SCOPE-CHECK,First,Architect Scope Check,Architect's team finished their design. Today you are attending the final presentation. ,The architect takes their time to get to the initial design scope determination.,,YES

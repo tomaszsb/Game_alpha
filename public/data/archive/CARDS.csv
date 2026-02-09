@@ -98,55 +98,55 @@ I036,Investment: Multinational tech consortium building smart city,I,Multination
 I037,Investment: National railway company developing transit-oriented projects,I,National railway company developing transit-oriented projects,Apply Investment,10500000,Any,false
 I038,Investment: Global theme park operator expanding into urban entertainment,I,Global theme park operator expanding into urban entertainment,Apply Investment,11000000,Any,false
 I039,Investment: International expo committee funding legacy project,I,International expo committee funding legacy project,Apply Investment,11500000,Any,false
-L001,Neighborly Complaints,L,The next inspection takes 3 additional ticks.,Apply Legal,0,CONSTRUCTION,false
-L002,Economic Downturn,L,All permit and inspection times increase by 2 ticks for the next 3 turns.,Apply Legal,0,Any,false
-L003,New Safety Regulations,L,All players must discard 1 Expeditor card. All inspections take 3 additional ticks this turn.,Apply Legal,0,CONSTRUCTION,false
-L004,Labor Strike,L,All construction times increase by 4 ticks for the next 2 turns.,Apply Legal,0,Any,false
-L005,Positive Press,L,The current high-profile client filing takes 3 ticks less time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
-L006,Unexpected Archeological Find,L,If a filing involves excavation increase its time by 6 ticks.,Apply Legal,0,Any,false
-L007,Zoning Variance Required,L,The current filing takes 4 ticks more time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
-L008,Materials Shortage,L,All players' current construction phase takes 3 ticks more time.,Apply Legal,0,CONSTRUCTION,false
-L009,NIMBY Lawsuit,L,Roll a die. On 1-3 the project is high-profile; increase the current filing time by 5 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L010,City Council Allies,L,The current permit filing takes 2 ticks less time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
-L011,Holiday Rush,L,All filing times increase by 2 ticks this turn.,Apply Legal,0,Any,false
-L012,Soil Contamination,L,If the current project involves groundwork increase the filing time by 4 ticks.,Apply Legal,0,Any,false
-L013,Endangered Species Habitat,L,Roll a die. On 1-3 the project is in a designated habitat area; increase the permit filing time by 6 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
+L001,Neighborly Complaints,L,The next inspection takes 3 additional days.,Apply Legal,0,CONSTRUCTION,false
+L002,Economic Downturn,L,All permit and inspection times increase by 2 days for the next 3 turns.,Apply Legal,0,Any,false
+L003,New Safety Regulations,L,All players must discard 1 Expeditor card. All inspections take 3 additional days this turn.,Apply Legal,0,CONSTRUCTION,false
+L004,Labor Strike,L,All construction times increase by 4 days for the next 2 turns.,Apply Legal,0,Any,false
+L005,Positive Press,L,The current high-profile client filing takes 3 days less time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L006,Unexpected Archeological Find,L,If a filing involves excavation increase its time by 6 days.,Apply Legal,0,Any,false
+L007,Zoning Variance Required,L,The current filing takes 4 days more time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L008,Materials Shortage,L,All players' current construction phase takes 3 days more time.,Apply Legal,0,CONSTRUCTION,false
+L009,NIMBY Lawsuit,L,Roll a die. On 1-3 the project is high-profile; increase the current filing time by 5 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L010,City Council Allies,L,The current permit filing takes 2 days less time. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L011,Holiday Rush,L,All filing times increase by 2 days this turn.,Apply Legal,0,Any,false
+L012,Soil Contamination,L,If the current project involves groundwork increase the filing time by 4 days.,Apply Legal,0,Any,false
+L013,Endangered Species Habitat,L,Roll a die. On 1-3 the project is in a designated habitat area; increase the permit filing time by 6 days. On 4-6 no effect.,Apply Legal,0,Any,false
 L014,Funding Delay,L,Skip your next turn.,Apply Legal,0,Any,false
-L015,Annexation,L,The current filing takes 5 ticks more time but the player's next turn takes 2 ticks less time.,Apply Legal,0,Any,false
-L016,Expeditor Lobbying,L,The next inspection takes 2 ticks less time. Discard 1 Expeditor card.,Apply Legal,0,CONSTRUCTION,false
-L017,Neighborhood Revitalization,L,Roll a die. On 1-3 the project is in a targeted revitalization area; reduce the permit filing time by 3 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L018,Bribery Scandal,L,All permit filing times increase by 2 ticks for the next 3 turns.,Apply Legal,0,Any,false
-L019,Planning Department Backlog,L,The current filing takes 3 ticks more time.,Apply Legal,0,Any,false
-L020,Building Code Update,L,All inspection times increase by 2 ticks for the next 2 turns.,Apply Legal,0,CONSTRUCTION,false
-L021,High-Profile Client,L,The current filing time is reduced by 4 ticks. All other players' current filing time increases by 1 tick.,Apply Legal,0,Any,false
-L022,Economic Boom,L,All construction times decrease by 2 ticks for the next 3 turns.,Apply Legal,0,CONSTRUCTION,false
+L015,Annexation,L,The current filing takes 5 days more time but the player's next turn takes 2 days less time.,Apply Legal,0,Any,false
+L016,Expeditor Lobbying,L,The next inspection takes 2 days less time. Discard 1 Expeditor card.,Apply Legal,0,CONSTRUCTION,false
+L017,Neighborhood Revitalization,L,Roll a die. On 1-3 the project is in a targeted revitalization area; reduce the permit filing time by 3 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L018,Bribery Scandal,L,All permit filing times increase by 2 days for the next 3 turns.,Apply Legal,0,Any,false
+L019,Planning Department Backlog,L,The current filing takes 3 days more time.,Apply Legal,0,Any,false
+L020,Building Code Update,L,All inspection times increase by 2 days for the next 2 turns.,Apply Legal,0,CONSTRUCTION,false
+L021,High-Profile Client,L,The current filing time is reduced by 4 days. All other players' current filing time increases by 1 day.,Apply Legal,0,Any,false
+L022,Economic Boom,L,All construction times decrease by 2 days for the next 3 turns.,Apply Legal,0,CONSTRUCTION,false
 L023,Project Redesign,L,The current filing is delayed indefinitely. Discard 2 Expeditor cards.,Apply Legal,0,Any,false
 L024,Expeditor Conference,L,Skip this turn. Draw 2 Expeditor Cards.,Apply Legal,0,Any,false
-L025,Celebrity Endorsement,L,Roll a die. On 1-3 the project is high-profile; reduce the permit filing time by 4 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L026,Community Outreach,L,All permit filing times decrease by 1 tick this turn.,Apply Legal,0,Any,false
-L027,Permit Office Upgrade,L,All players' current filing times decrease by 2 ticks.,Apply Legal,0,Any,false
-L028,Surprise Inspection,L,The next inspection takes 4 ticks more time.,Apply Legal,0,CONSTRUCTION,false
-L029,Utility Delay,L,If the project requires utility hookups increase the filing time by 3 ticks.,Apply Legal,0,Any,false
-L030,Cybersecurity Breach,L,All filing times increase by 1 tick for the next 2 turns.,Apply Legal,0,Any,false
-L031,Permit Fee Hike,L,The current permit filing costs 2 extra resources but takes 2 ticks less time.,Apply Legal,0,Any,false
-L032,Diversity Initiative,L,Roll a die. On 1-3 the project team is diverse; reduce the inspection time by 2 ticks. On 4-6 no effect.,Apply Legal,0,CONSTRUCTION,false
-L033,Worksite Injury,L,All construction times increase by 3 ticks this turn.,Apply Legal,0,Any,false
-L034,Natural Disaster,L,All filing and inspection times increase by 4 ticks for the next 2 turns.,Apply Legal,0,Any,false
+L025,Celebrity Endorsement,L,Roll a die. On 1-3 the project is high-profile; reduce the permit filing time by 4 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L026,Community Outreach,L,All permit filing times decrease by 1 day this turn.,Apply Legal,0,Any,false
+L027,Permit Office Upgrade,L,All players' current filing times decrease by 2 days.,Apply Legal,0,Any,false
+L028,Surprise Inspection,L,The next inspection takes 4 days more time.,Apply Legal,0,CONSTRUCTION,false
+L029,Utility Delay,L,If the project requires utility hookups increase the filing time by 3 days.,Apply Legal,0,Any,false
+L030,Cybersecurity Breach,L,All filing times increase by 1 day for the next 2 turns.,Apply Legal,0,Any,false
+L031,Permit Fee Hike,L,The current permit filing costs 2 extra resources but takes 2 days less time.,Apply Legal,0,Any,false
+L032,Diversity Initiative,L,Roll a die. On 1-3 the project team is diverse; reduce the inspection time by 2 days. On 4-6 no effect.,Apply Legal,0,CONSTRUCTION,false
+L033,Worksite Injury,L,All construction times increase by 3 days this turn.,Apply Legal,0,Any,false
+L034,Natural Disaster,L,All filing and inspection times increase by 4 days for the next 2 turns.,Apply Legal,0,Any,false
 L035,Expeditor Quits,L,Skip your next turn. Discard 2 Expeditor cards.,Apply Legal,0,Any,false
-L036,City Budget Surplus,L,All permit filing times decrease by 2 ticks this turn.,Apply Legal,0,Any,false
-L037,Affordable Housing Initiative,L,Roll a die. On 1-3 the project includes affordable housing; reduce the permit filing time by 5 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L038,Intern Error,L,The current filing time increases by 2 ticks.,Apply Legal,0,Any,false
-L039,Rezoning Request,L,The current filing time increases by 3 ticks. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
-L040,Historical Preservation,L,Roll a die. On 1-3 the project involves a historic building; increase the filing time by 4 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L041,Competing Projects,L,Ask each other player about their current worktypes. If any player has the same worktype as you increase your filing time by 2 ticks.,Apply Legal,0,Any,false
-L042,Sister City Collaboration,L,All players' current filing times decrease by 1 tick.,Apply Legal,0,Any,false
-L043,Green Building Bonus,L,Roll a die. On 1-3 the project is LEED certified; reduce the total filing time by 3 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L044,State Funding,L,The current high-profile project filing time is reduced by 4 ticks.,Apply Legal,0,Any,false
-L045,Mayor's Pet Project,L,Roll a die. On 1-3 the mayor expresses interest in the project; reduce its filing time by 5 ticks. On 4-6 no effect.,Apply Legal,0,Any,false
-L046,Expeditor Awards,L,The player with the most completed projects reduces their current filing time by 4 ticks.,Apply Legal,0,Any,false
-L047,Political Gridlock,L,All filing times increase by 1 tick for the next 5 turns.,Apply Legal,0,Any,false
+L036,City Budget Surplus,L,All permit filing times decrease by 2 days this turn.,Apply Legal,0,Any,false
+L037,Affordable Housing Initiative,L,Roll a die. On 1-3 the project includes affordable housing; reduce the permit filing time by 5 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L038,Intern Error,L,The current filing time increases by 2 days.,Apply Legal,0,Any,false
+L039,Rezoning Request,L,The current filing time increases by 3 days. Draw 1 Expeditor Card.,Apply Legal,0,Any,false
+L040,Historical Preservation,L,Roll a die. On 1-3 the project involves a historic building; increase the filing time by 4 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L041,Competing Projects,L,Ask each other player about their current worktypes. If any player has the same worktype as you increase your filing time by 2 days.,Apply Legal,0,Any,false
+L042,Sister City Collaboration,L,All players' current filing times decrease by 1 day.,Apply Legal,0,Any,false
+L043,Green Building Bonus,L,Roll a die. On 1-3 the project is LEED certified; reduce the total filing time by 3 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L044,State Funding,L,The current high-profile project filing time is reduced by 4 days.,Apply Legal,0,Any,false
+L045,Mayor's Pet Project,L,Roll a die. On 1-3 the mayor expresses interest in the project; reduce its filing time by 5 days. On 4-6 no effect.,Apply Legal,0,Any,false
+L046,Expeditor Awards,L,The player with the most completed projects reduces their current filing time by 4 days.,Apply Legal,0,Any,false
+L047,Political Gridlock,L,All filing times increase by 1 day for the next 5 turns.,Apply Legal,0,Any,false
 L048,Graft Investigation,L,All permit filings are halted for 1 turn while players discard half their Expeditor cards.,Apply Legal,0,Any,false
-L049,Permitting Process Overhaul,L,All filing times are reduced by 2 ticks for the remainder of the game. Each player draws 1 Expeditor Card.,Apply Legal,0,Any,false
+L049,Permitting Process Overhaul,L,All filing times are reduced by 2 days for the remainder of the game. Each player draws 1 Expeditor Card.,Apply Legal,0,Any,false
 W001,Lobby renovation and security upgrade for corporate headquarters,W,Lobby renovation and security upgrade for corporate headquarters,Apply Work,150000,Any,false
 W002,Conversion of attic space into habitable loft in single-family home,W,Conversion of attic space into habitable loft in single-family home,Apply Work,80000,Any,false
 W003,Installation of green wall and rooftop garden for eco-friendly office building,W,Installation of green wall and rooftop garden for eco-friendly office building,Apply Work,200000,Any,false
@@ -329,78 +329,78 @@ TEST003,Master Project Coordination,W,Work project that benefits from team diver
 TEST004,Efficiency Accelerator,E,Expeditor that amplifies all other cards this turn,Apply Equipment,0,Any,false
 TEST005,Work-Life Synergist,L,Life card that creates powerful combinations,Apply Legal,0,Any,false
 TEST006,Cascade Funding,B,Bank card that triggers investment opportunities,Apply Loan,0,Any,false
-E008,Overtime,E,Pay a junior expeditor ($1000) to reduce the current filing time by 2 ticks.,Apply Equipment,0,Any,false
-E020,Expeditor Training,E,Reduce the current filing time by 1 tick for each Expeditor Card played this turn.,Apply Equipment,0,Any,false
+E008,Overtime,E,Pay a junior expeditor ($1000) to reduce the current filing time by 2 days.,Apply Equipment,0,Any,false
+E020,Expeditor Training,E,Reduce the current filing time by 1 day for each Expeditor Card played this turn.,Apply Equipment,0,Any,false
 E024,Return to Sender,E,Return target Expeditor Card to its owner's hand.,Apply Equipment,0,Any,false
-E029,Weekend Work,E,Reduce the current filing time by 3 ticks but skip your next turn.,Apply Equipment,0,Any,false
-E030,Time Crunch,E,Skip your next turn. Then reduce your current filing time by 5 ticks.,Apply Equipment,0,Any,false
-E032,Team Effort,E,You and target player each reduce your current filing times by 2 ticks then discard 1 Expeditor Card.,Apply Equipment,0,Any,false
-E037,Expeditor Mentor,E,Reduce the current filing time by 1 tick for each Expeditor Card played this turn.,Apply Equipment,0,Any,false
-E038,Surge Pricing,E,Pay three junior expeditors ($3000) to reduce the current filing time by 3 ticks.,Apply Equipment,0,Any,false
-E041,Process Improvement,E,Reduce your current filing time by 6 ticks.,Apply Equipment,0,Any,false
-E046,Expeditor's Assistant,E,Reduce the current filing time by 1 tick. Draw 1 Expeditor Card.,Apply Equipment,0,Any,false
-E047,Final Push,E,Reduce the time for the final inspection by 3 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E048,Streamlined Closeout,E,Reduce the time for project closeout paperwork by 2 ticks and draw 1 Expeditor Card.,Apply Equipment,0,CONSTRUCTION,false
-E049,Safety Inspection Prep,E,Reduce time for next safety inspection by 2 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E050,Equipment Rush Order,E,Pay $2000 to reduce construction time by 4 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E051,Permit Extension,E,Extend current construction permit by 10 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E052,Site Logistics Optimization,E,Reduce construction time by 3 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E053,Overtime Approval,E,Pay $3000 to reduce construction time by 6 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E054,Inspection Scheduling,E,Advance your place in the inspection queue by 5 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E055,Change Order Expedite,E,Reduce time for processing a change order by 3 ticks.,Apply Equipment,0,CONSTRUCTION,false
-E056,Weather Mitigation Plan,E,Prevent a 2-tick delay due to adverse weather conditions.,Apply Equipment,0,CONSTRUCTION,false
-E028,Fact Checking,E,Skip this turn. Reduce the current filing time by 4 ticks.,Apply Equipment,0,DESIGN,false
-E045,Permit Pre-Approval,E,Choose a permit type. The current permit filing of that type takes 4 ticks less time.,Apply Equipment,0,DESIGN,false
-E057,Zoning Variance Fast Track,E,Reduce time for zoning variance approval by 4 ticks.,Apply Equipment,0,DESIGN,false
-E058,Design Team Coordination,E,Reduce design phase time by 3 ticks.,Apply Equipment,0,DESIGN,false
-E059,Code Compliance Review,E,Prevent a potential 3-tick delay from code violations.,Apply Equipment,0,DESIGN,false
-E060,Sustainable Design Incentive,E,Reduce design time by 2 ticks for incorporating green features.,Apply Equipment,0,DESIGN,false
-E061,Historic Preservation Consult,E,Reduce design review time by 3 ticks for projects in historic districts.,Apply Equipment,0,DESIGN,false
-E062,BIM Integration,E,Reduce overall design time by 4 ticks.,Apply Equipment,0,DESIGN,false
-E063,Value Engineering Session,E,Reduce design costs by $2000 and design time by 2 ticks.,Apply Equipment,0,DESIGN,false
-E064,Peer Review Acceleration,E,Reduce peer review process time by 3 ticks.,Apply Equipment,0,DESIGN,false
-E065,Grant Application Expedite,E,Reduce time for grant application processing by 3 ticks.,Apply Equipment,0,FUNDING,false
+E029,Weekend Work,E,Reduce the current filing time by 3 days but skip your next turn.,Apply Equipment,0,Any,false
+E030,Time Crunch,E,Skip your next turn. Then reduce your current filing time by 5 days.,Apply Equipment,0,Any,false
+E032,Team Effort,E,You and target player each reduce your current filing times by 2 days then discard 1 Expeditor Card.,Apply Equipment,0,Any,false
+E037,Expeditor Mentor,E,Reduce the current filing time by 1 day for each Expeditor Card played this turn.,Apply Equipment,0,Any,false
+E038,Surge Pricing,E,Pay three junior expeditors ($3000) to reduce the current filing time by 3 days.,Apply Equipment,0,Any,false
+E041,Process Improvement,E,Reduce your current filing time by 6 days.,Apply Equipment,0,Any,false
+E046,Expeditor's Assistant,E,Reduce the current filing time by 1 day. Draw 1 Expeditor Card.,Apply Equipment,0,Any,false
+E047,Final Push,E,Reduce the time for the final inspection by 3 days.,Apply Equipment,0,CONSTRUCTION,false
+E048,Streamlined Closeout,E,Reduce the time for project closeout paperwork by 2 days and draw 1 Expeditor Card.,Apply Equipment,0,CONSTRUCTION,false
+E049,Safety Inspection Prep,E,Reduce time for next safety inspection by 2 days.,Apply Equipment,0,CONSTRUCTION,false
+E050,Equipment Rush Order,E,Pay $2000 to reduce construction time by 4 days.,Apply Equipment,0,CONSTRUCTION,false
+E051,Permit Extension,E,Extend current construction permit by 10 days.,Apply Equipment,0,CONSTRUCTION,false
+E052,Site Logistics Optimization,E,Reduce construction time by 3 days.,Apply Equipment,0,CONSTRUCTION,false
+E053,Overtime Approval,E,Pay $3000 to reduce construction time by 6 days.,Apply Equipment,0,CONSTRUCTION,false
+E054,Inspection Scheduling,E,Advance your place in the inspection queue by 5 days.,Apply Equipment,0,CONSTRUCTION,false
+E055,Change Order Expedite,E,Reduce time for processing a change order by 3 days.,Apply Equipment,0,CONSTRUCTION,false
+E056,Weather Mitigation Plan,E,Prevent a 2-day delay due to adverse weather conditions.,Apply Equipment,0,CONSTRUCTION,false
+E028,Fact Checking,E,Skip this turn. Reduce the current filing time by 4 days.,Apply Equipment,0,DESIGN,false
+E045,Permit Pre-Approval,E,Choose a permit type. The current permit filing of that type takes 4 days less time.,Apply Equipment,0,DESIGN,false
+E057,Zoning Variance Fast Track,E,Reduce time for zoning variance approval by 4 days.,Apply Equipment,0,DESIGN,false
+E058,Design Team Coordination,E,Reduce design phase time by 3 days.,Apply Equipment,0,DESIGN,false
+E059,Code Compliance Review,E,Prevent a potential 3-day delay from code violations.,Apply Equipment,0,DESIGN,false
+E060,Sustainable Design Incentive,E,Reduce design time by 2 days for incorporating green features.,Apply Equipment,0,DESIGN,false
+E061,Historic Preservation Consult,E,Reduce design review time by 3 days for projects in historic districts.,Apply Equipment,0,DESIGN,false
+E062,BIM Integration,E,Reduce overall design time by 4 days.,Apply Equipment,0,DESIGN,false
+E063,Value Engineering Session,E,Reduce design costs by $2000 and design time by 2 days.,Apply Equipment,0,DESIGN,false
+E064,Peer Review Acceleration,E,Reduce peer review process time by 3 days.,Apply Equipment,0,DESIGN,false
+E065,Grant Application Expedite,E,Reduce time for grant application processing by 3 days.,Apply Equipment,0,FUNDING,false
 E066,Investor Pitch Preparation,E,Gain 1 extra die throw this turn if you do not like the outcome of first throw.,Apply Equipment,0,FUNDING,false
 E067,Tax Incentive Research,E,Reduce project costs by 10% through identified tax incentives.,Apply Equipment,0,FUNDING,false
-E068,Loan Approval Acceleration,E,Reduce loan approval time by 4 ticks.,Apply Equipment,0,FUNDING,false
+E068,Loan Approval Acceleration,E,Reduce loan approval time by 4 days.,Apply Equipment,0,FUNDING,false
 E069,Crowdfunding Campaign Boost,E,Gain an extra $10000 in funding this turn.,Apply Equipment,0,FUNDING,false
 E070,Escrow Resolution,E,Release $5000 from escrow immediately.,Apply Equipment,0,FUNDING,false
 E071,Capital Stack Optimization,E,Reduce interest payments by $2000.,Apply Equipment,0,FUNDING,false
 E072,Brownfield Remediation Fund,E,Secure an additional $4000 for site cleanup.,Apply Equipment,0,FUNDING,false
 E073,Historic Tax Credit Application,E,Reduce renovation costs by $3000 for qualifying historic buildings.,Apply Equipment,0,FUNDING,false
 E074,Public-Private Partnership,E,Secure $5000 in public funds for the project.,Apply Equipment,0,FUNDING,false
-E005,Rush Processing,E,Complete the current filing immediately skipping up to 5 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E005,Rush Processing,E,Complete the current filing immediately skipping up to 5 days.,Apply Equipment,0,REGULATORY_REVIEW,false
 E007,Expeditor's Insight,E,Draw 2 Expeditor Cards then discard 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
-E009,Favor Called In,E,Choose an opponent. Their current filing takes 2 ticks more time. your current filing takes 2 ticks less time.,Apply Equipment,0,REGULATORY_REVIEW,false
-E011,Permit Expedited,E,Roll a die. On 1-3 reduce processing time by 4 ticks. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
-E016,Routine Procedure,E,Roll a die. On 1-3 the last filing was the same type; reduce the current filing time by 1 tick. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
-E023,On the Radar,E,Roll a die. On 1-3 the current filing is for a high-profile client; reduce its time by 2 ticks. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
-E026,Benefit Verification,E,Roll a die. On 1-3 reduce your current filing time by 2 ticks. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
-E033,Audit Preparation,E,Roll a die. On 1-3 reduce your current filing time by 2 ticks. On 4-6 increase your current filing time by 2 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E036,Press Release,E,If the current client is high-profile reduce the filing time by 3 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
+E009,Favor Called In,E,Choose an opponent. Their current filing takes 2 days more time. your current filing takes 2 days less time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E011,Permit Expedited,E,Roll a die. On 1-3 reduce processing time by 4 days. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E016,Routine Procedure,E,Roll a die. On 1-3 the last filing was the same type; reduce the current filing time by 1 day. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E023,On the Radar,E,Roll a die. On 1-3 the current filing is for a high-profile client; reduce its time by 2 days. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E026,Benefit Verification,E,Roll a die. On 1-3 reduce your current filing time by 2 days. On 4-6 no effect.,Apply Equipment,0,REGULATORY_REVIEW,false
+E033,Audit Preparation,E,Roll a die. On 1-3 reduce your current filing time by 2 days. On 4-6 increase your current filing time by 2 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E036,Press Release,E,If the current client is high-profile reduce the filing time by 3 days.,Apply Equipment,0,REGULATORY_REVIEW,false
 E040,Bulk Discount,E,If 3+ permits are filed this turn,Apply Equipment,0,REGULATORY_REVIEW,false
 E044,Appeal Process,E,If your filing was previously rejected,Apply Equipment,0,REGULATORY_REVIEW,false
-E001,Expedited Review,E,The current review phase takes 1 tick less time.,Apply Equipment,0,REGULATORY_REVIEW,false
-E002,Filing Error,E,Increase the time for the current filing by 3 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E003,Efficiency Boost,E,Reduce your current filing time by 3 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E004,Extended Wait Time,E,Increase your current filing time by 4 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E006,Regulatory Slowdown,E,Your current filing takes 2 ticks more time.,Apply Equipment,0,REGULATORY_REVIEW,false
-E010,Batch Processing,E,Reduce your current filing time by 2 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E012,Paperwork Snag,E,Discard 1 Expeditor Card or the current filing takes 1 tick more time.,Apply Equipment,0,REGULATORY_REVIEW,false
-E013,Redundant Requests,E,All players' current filing takes 2 ticks more time.,Apply Equipment,0,REGULATORY_REVIEW,false
-E014,Express Delivery,E,Reduce the current filing time by 2 ticks but skip your next turn.,Apply Equipment,0,REGULATORY_REVIEW,false
-E015,Canceled Appointment,E,Increase the current filing time by 1 tick and draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E001,Expedited Review,E,The current review phase takes 1 day less time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E002,Filing Error,E,Increase the time for the current filing by 3 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E003,Efficiency Boost,E,Reduce your current filing time by 3 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E004,Extended Wait Time,E,Increase your current filing time by 4 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E006,Regulatory Slowdown,E,Your current filing takes 2 days more time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E010,Batch Processing,E,Reduce your current filing time by 2 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E012,Paperwork Snag,E,Discard 1 Expeditor Card or the current filing takes 1 day more time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E013,Redundant Requests,E,All players' current filing takes 2 days more time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E014,Express Delivery,E,Reduce the current filing time by 2 days but skip your next turn.,Apply Equipment,0,REGULATORY_REVIEW,false
+E015,Canceled Appointment,E,Increase the current filing time by 1 day and draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
 E017,Double Check,E,Pay a junior expeditor ($1000) to reduce the chance of a random filing error by 50% this turn.,Apply Equipment,0,REGULATORY_REVIEW,false
-E018,Inside Connection,E,Reduce the current filing time by 2 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E019,Complex Filing,E,Increase the current filing time by 4 ticks but pay two subject matter experts ($4000).,Apply Equipment,0,REGULATORY_REVIEW,false
-E021,Delayed Expeditor,E,Increase your current filing time by 4 ticks.,Apply Equipment,0,REGULATORY_REVIEW,false
-E022,Expeditor Lunch Meeting,E,Reduce your current filing time by 1 tick and the next player's current filing time by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
-E025,Red Tape Reduction,E,Your current filing takes 1 tick less time.,Apply Equipment,0,REGULATORY_REVIEW,false
-E027,Early Submission,E,Reduce the current filing time by 1 tick. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
-E031,Review Request,E,All players must increase their current filing time by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
-E034,Approved Template,E,Reduce your current filing time by 2 ticks. All other players may reduce their current filing time by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
-E035,Electronic Submission,E,Reduce the current filing time by 1 tick. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
-E039,Policy Change,E,Increase all players' current filing times by 1 tick.,Apply Equipment,0,REGULATORY_REVIEW,false
-E042,Courier Delay,E,Increase the current filing time by 2 ticks. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
-E043,Rejected Filing,E,Increase the current filing time by 4 ticks. Discard 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E018,Inside Connection,E,Reduce the current filing time by 2 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E019,Complex Filing,E,Increase the current filing time by 4 days but pay two subject matter experts ($4000).,Apply Equipment,0,REGULATORY_REVIEW,false
+E021,Delayed Expeditor,E,Increase your current filing time by 4 days.,Apply Equipment,0,REGULATORY_REVIEW,false
+E022,Expeditor Lunch Meeting,E,Reduce your current filing time by 1 day and the next player's current filing time by 1 day.,Apply Equipment,0,REGULATORY_REVIEW,false
+E025,Red Tape Reduction,E,Your current filing takes 1 day less time.,Apply Equipment,0,REGULATORY_REVIEW,false
+E027,Early Submission,E,Reduce the current filing time by 1 day. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E031,Review Request,E,All players must increase their current filing time by 1 day.,Apply Equipment,0,REGULATORY_REVIEW,false
+E034,Approved Template,E,Reduce your current filing time by 2 days. All other players may reduce their current filing time by 1 day.,Apply Equipment,0,REGULATORY_REVIEW,false
+E035,Electronic Submission,E,Reduce the current filing time by 1 day. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E039,Policy Change,E,Increase all players' current filing times by 1 day.,Apply Equipment,0,REGULATORY_REVIEW,false
+E042,Courier Delay,E,Increase the current filing time by 2 days. Draw 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
+E043,Rejected Filing,E,Increase the current filing time by 4 days. Discard 1 Expeditor Card.,Apply Equipment,0,REGULATORY_REVIEW,false
 L-TAX-DEDUCTION,Tax Deduction,L,It's tax time and you want to get a deduction - you can give this card to an opponent of your choosing.,,0,Any,true
