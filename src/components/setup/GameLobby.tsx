@@ -252,6 +252,11 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
               📺 TV
             </button>
           </div>
+          <p style={styles.modeDescription}>
+            {selectedMode === 'pc'
+              ? 'All players share one screen, taking turns. Mobile devices are optional \u2014 players can scan QR codes to join from their phones.'
+              : 'Display the game board on a TV or large screen. Each player needs their own phone or tablet to play.'}
+          </p>
 
           <button
             onClick={handleCreateGame}
@@ -522,6 +527,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '8px',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
+  },
+  modeDescription: {
+    fontSize: 'clamp(0.75rem, 1.3vh, 0.85rem)',
+    color: colors.text.secondary,
+    margin: '0 0 1rem 0',
+    lineHeight: 1.5,
+    fontStyle: 'italic',
   },
   primaryButton: {
     backgroundColor: colors.primary.main,
