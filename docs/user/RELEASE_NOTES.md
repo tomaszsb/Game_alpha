@@ -2,6 +2,18 @@
 
 ---
 
+## v2.27.2 - Data Editor Redesign (February 10, 2026)
+
+**Release Date:** February 10, 2026
+**Version:** 2.27.2
+**Status:** Alpha Testing
+**Type:** Admin Tool Improvement
+
+### Improved: Data Editor matches the player experience
+The space editor now groups fields the way players see them — Story, Cards, Costs, Movement — with colored borders and emoji badges matching the game's visual style. A live "Player Preview" panel at the top shows exactly how the space will look to players: the story text in a green box, card and cost effects with color-coded badges, and what the End Turn and Try Again buttons will say. Everything updates instantly as you edit.
+
+---
+
 ## v2.27.1 - Narrative Game Experience (February 10, 2026)
 
 **Release Date:** February 10, 2026

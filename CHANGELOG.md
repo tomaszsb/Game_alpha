@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Enhancement: Data Editor Visual Redesign + Space Preview (February 10, 2026)
+
+**Problem:** The Data Editor's form layout didn't match how players see the game. Admins editing space data had to mentally map between raw CSV fields and the player experience — no visual connection between editor fields and what players actually see.
+
+**Solution:** Reorganized the SpaceEditor into player-flow-matched fieldsets with a live preview panel that shows exactly how the space will appear to players.
+
+**Changes:**
+- **Player Preview panel**: Collapsible section showing live story box (green border matching StorySection), color-coded effects summary, computed button labels, and movement destinations — updates instantly as fields are edited
+- **Merged Identity & Config**: Combined two fieldsets into one with colored left border
+- **Story & Narrative**: Green left border matching player StorySection styling
+- **Card Effects**: Purple left border with colored emoji badges (🏗️W, 🏦B, 💰I, 🎲L, ⚡E) and type-tinted input backgrounds when values are set
+- **Time & Costs**: Orange left border with emoji labels
+- **Movement**: Blue left border with destination chips
+- **Button Labels Preview**: Read-only fieldset showing computed End Turn and Try Again labels based on current Title + Negotiate values, with explanation of derivation
+
+**Files:** `src/components/editor/SpaceEditor.tsx`
+
 ### Enhancement: Data-Driven Narrative UX — Descriptive Modals, Buttons, and Negotiate Visibility (February 10, 2026)
 
 **Problem:** Players found the game too mechanical on early spaces. The dice modal showed "Roll: 5" with no narrative context, card effects showed cryptic letter codes like "+2 W cards", and the Try Again button wasn't recognizable as the negotiate action on negotiable spaces.

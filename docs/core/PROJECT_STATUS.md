@@ -1,14 +1,23 @@
 # Project Status
 
 **Last Updated**: February 10, 2026
-**Current Phase**: External Testing Ready (v2.27.1)
-**Current Version**: 2.27.1
+**Current Phase**: External Testing Ready (v2.27.2)
+**Current Version**: 2.27.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Data Editor Visual Redesign (February 10, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.27.2
+- **Changes**:
+  - SpaceEditor reorganized into player-flow-matched fieldsets with colored borders
+  - Live Player Preview panel shows story, effects, button labels, destinations
+  - Card fields use colored emoji badges and type-tinted backgrounds
+  - Button Labels Preview fieldset shows computed End Turn/Try Again labels
 
 ### Narrative UX Enhancements (February 10, 2026) ✅
 - **Status**: ✅ Complete
