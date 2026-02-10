@@ -1,14 +1,23 @@
 # Project Status
 
-**Last Updated**: February 9, 2026
-**Current Phase**: External Testing Ready (v2.26.0)
-**Current Version**: 2.26.0
+**Last Updated**: February 10, 2026
+**Current Phase**: External Testing Ready (v2.27.0)
+**Current Version**: 2.27.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Merged Landing + Lobby Screen (February 10, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.27.0
+- **Changes**:
+  - LandingPage and GameLobby merged into single 3-panel screen
+  - Mode toggle (PC/TV) embedded in New Game panel
+  - Admin-locked Browse Games panel with auto-refreshing game list
+  - Deleted LandingPage.tsx, simplified App.tsx routing
 
 ### Redistribute Cards Across Tabs (February 9, 2026) ✅
 - **Status**: ✅ Complete

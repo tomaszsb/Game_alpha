@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Merged Landing + Lobby into Single Screen with Game Viewer (February 10, 2026)
+
+**Problem:** Three separate screens before gameplay (LandingPage → GameLobby → PlayerSetup) required too many clicks. Admin game browsing was only available deep inside PlayerSetup.
+
+**Solution:** Merged the LandingPage and GameLobby into a single 3-panel screen:
+1. **New Game panel** — PC/TV mode toggle + Create Game button (replaces separate LandingPage)
+2. **Join by Code panel** — game code input (unchanged from old GameLobby)
+3. **Browse Games panel** — admin password-locked game list with auto-refresh every 5s
+
+**Changes:**
+- Deleted `src/components/layout/LandingPage.tsx` — mode selection now embedded as toggle buttons
+- Rewrote `src/components/setup/GameLobby.tsx` — 3-panel layout with admin auth integration
+- Simplified `src/App.tsx` — removed LandingPage import, `selectedMode` state, and mode-selection branch
+- `GameLobbyProps.onJoinGame` now accepts optional `mode` parameter instead of separate `mode` prop
+- Reuses `adminAuth.ts` utilities and `GET /api/games` endpoint (no server changes)
+
+**Files:** `src/App.tsx`, `src/components/setup/GameLobby.tsx`, `src/components/layout/LandingPage.tsx` (deleted)
+
 ### Enhancement: Feedback Reports Now Include Console Logs & Game State (February 9, 2026)
 
 Bug reports submitted via the in-game feedback button now automatically include:

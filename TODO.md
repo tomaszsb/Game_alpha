@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Feature: Merged Landing + Lobby into single 3-panel screen with admin game viewer (Feb 10, 2026)
 - ✅ Enhancement: Feedback reports now include console logs & game state snapshot (Feb 9, 2026)
 - ✅ Feature: Redistribute cards across tabs — Cards tab replaced by Expeditors + Events (Feb 9, 2026)
 - ✅ Enhancement: TV mode Rules button + Owner Funding now interactive (Feb 9, 2026)

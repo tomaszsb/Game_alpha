@@ -2,6 +2,24 @@
 
 ---
 
+## v2.27.0 - One-Screen Setup & Game Browser (February 10, 2026)
+
+**Release Date:** February 10, 2026
+**Version:** 2.27.0
+**Status:** Alpha Testing
+**Type:** UX Improvement
+
+### Improved: Fewer clicks to start playing
+The separate "How are you playing?" and "New Game / Join" screens have been merged into a single screen. When you visit the game, you now see three options side by side:
+- **New Game** — with a simple PC/TV toggle right there (no extra screen)
+- **Join by Code** — enter a game code as before
+- **Browse Games** — admin-only game list to quickly find and rejoin active games
+
+### New: Admin game browser
+Admins can unlock a game list panel directly from the start screen, showing all active games with player counts and names. Click "View" to jump straight into any game. The list refreshes automatically every 5 seconds.
+
+---
+
 ## v2.26.0 - Smarter Tabs & Thematic Labels (February 9, 2026)
 
 **Release Date:** February 9, 2026

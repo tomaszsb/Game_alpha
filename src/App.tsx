@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { ServiceProvider } from './context/ServiceProvider';
 import { GameLayout } from './components/layout/GameLayout';
 import { TVDisplay } from './components/layout/TVDisplay';
-import { LandingPage } from './components/layout/LandingPage';
 import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
@@ -95,7 +94,7 @@ function AppContent(): JSX.Element {
   // Detect and clear preview params on load
   useEffect(() => {
     if (isLoading) return;
-    
+
     const preview = getPreviewParams();
     if (preview.action && preview.id) {
       console.log('🔍 Detected inbound preview request:', preview);
@@ -250,52 +249,19 @@ function AppContent(): JSX.Element {
  * throughout the component tree. ErrorBoundary catches and handles any unexpected errors.
  *
  * Multi-Game Support:
- * - If no parameters at all: Show LandingPage for mode selection (TV-remote friendly)
- * - If mode selected but no game: Show GameLobby to select/create game
+ * - If no game ID: Show merged GameLobby (mode toggle + new game + join + browse)
  * - If game ID in URL: Show the game
  */
 export function App(): JSX.Element {
   const gameId = getCurrentGameId();
-  const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get('mode');
 
-  // Track if user has selected a mode from landing page
-  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv' | null>(
-    // If URL already has mode param, use it
-    mode === 'tv' ? 'tv' : (gameId ? 'pc' : null)
-  );
-
-  // Handle mode selection from landing page
-  const handleModeSelect = (newMode: 'pc' | 'tv') => {
-    setSelectedMode(newMode);
-
-    // For TV mode, add it to URL so refreshing maintains mode
-    if (newMode === 'tv') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('mode', 'tv');
-      window.history.replaceState({}, '', url.toString());
-    }
-  };
-
-  // If no game ID and no mode selected, show landing page
-  if (!gameId && !selectedMode) {
-    return (
-      <ErrorBoundary>
-        <LandingPage onSelectMode={handleModeSelect} />
-        <FeedbackButton />
-      </ErrorBoundary>
-    );
-  }
-
-  // If no game ID but mode selected, show lobby to pick/create game
+  // If no game ID, show lobby (handles mode selection, create, join, browse)
   if (!gameId) {
-    const handleJoinGame = (selectedGameId: string) => {
-      // Redirect to the game with appropriate mode
+    const handleJoinGame = (selectedGameId: string, mode?: 'tv') => {
       const url = new URL(window.location.href);
       url.searchParams.set('g', selectedGameId);
 
-      // Keep TV mode if selected
-      if (selectedMode === 'tv') {
+      if (mode === 'tv') {
         url.searchParams.set('mode', 'tv');
       }
 
@@ -304,10 +270,7 @@ export function App(): JSX.Element {
 
     return (
       <ErrorBoundary>
-        <GameLobby
-          onJoinGame={handleJoinGame}
-          mode={selectedMode === 'tv' ? 'tv' : undefined}
-        />
+        <GameLobby onJoinGame={handleJoinGame} />
         <FeedbackButton />
       </ErrorBoundary>
     );

@@ -1,10 +1,10 @@
 // src/components/setup/GameLobby.tsx
-// Landing page for creating or joining a game session
-// Simple 2-panel layout: New Game + Join by Code
+// Merged landing + lobby screen: New Game (with mode toggle), Join by Code, Browse Games (admin)
 
 import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
 import { getBackendURL } from '../../utils/networkDetection';
+import { verifyAdminPassword, isAdminAuthenticated } from '../../utils/adminAuth';
 
 interface GitHubSyncStatus {
   status: 'checking' | 'in-sync' | 'out-of-sync' | 'error';
@@ -12,16 +12,34 @@ interface GitHubSyncStatus {
   commitsBehind?: number;
 }
 
-interface GameLobbyProps {
-  onJoinGame: (gameId: string) => void;
-  mode?: 'tv';
+interface GameInfo {
+  gameId: string;
+  playerCount: number;
+  playerNames: string[];
+  gamePhase: string;
 }
 
-export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
+interface GameLobbyProps {
+  onJoinGame: (gameId: string, mode?: 'tv') => void;
+}
+
+export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
   const [creating, setCreating] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [syncStatus, setSyncStatus] = useState<GitHubSyncStatus>({ status: 'checking' });
+
+  // Mode toggle state — default PC
+  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv'>('pc');
+
+  // Admin / Browse Games state
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(isAdminAuthenticated());
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminVerifying, setAdminVerifying] = useState(false);
+  const [adminError, setAdminError] = useState('');
+  const [activeGames, setActiveGames] = useState<GameInfo[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(false);
 
   // Check GitHub sync status on mount
   useEffect(() => {
@@ -40,7 +58,6 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
           if (latestCommit === currentCommit) {
             setSyncStatus({ status: 'in-sync', latestCommit });
           } else {
-            // Fetch commit count difference
             const compareResponse = await fetch(
               `https://api.github.com/repos/tomaszsb/Game_alpha/compare/${currentCommit}...master`,
               { headers: { 'Accept': 'application/vnd.github.v3+json' } }
@@ -69,6 +86,48 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
     checkGitHubSync();
   }, []);
 
+  // Fetch active games when admin is unlocked
+  const fetchActiveGames = async () => {
+    try {
+      setGamesLoading(true);
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games`);
+      if (response.ok) {
+        const data = await response.json();
+        const games = data.games.filter(
+          (g: GameInfo) => g.gameId !== 'G0' && g.playerCount > 0
+        );
+        setActiveGames(games);
+      }
+    } catch (err) {
+      console.log('Could not fetch games:', err);
+    } finally {
+      setGamesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdminUnlocked) return;
+    fetchActiveGames();
+    const interval = setInterval(fetchActiveGames, 5000);
+    return () => clearInterval(interval);
+  }, [isAdminUnlocked]);
+
+  const handleAdminVerify = async () => {
+    if (!adminPassword.trim()) return;
+    setAdminVerifying(true);
+    setAdminError('');
+    const success = await verifyAdminPassword(adminPassword);
+    setAdminVerifying(false);
+    if (success) {
+      setIsAdminUnlocked(true);
+      setShowAdminPrompt(false);
+      setAdminPassword('');
+    } else {
+      setAdminError('Incorrect password');
+    }
+  };
+
   const handleCreateGame = async () => {
     setCreating(true);
     setError('');
@@ -81,7 +140,7 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
 
       if (response.ok) {
         const data = await response.json();
-        onJoinGame(data.gameId);
+        onJoinGame(data.gameId, selectedMode === 'tv' ? 'tv' : undefined);
       } else {
         setError('Failed to create game. Try again.');
       }
@@ -97,9 +156,8 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
       setError('Please enter a game code');
       return;
     }
-    // Normalize to uppercase
     const normalizedId = gameId.trim().toUpperCase();
-    onJoinGame(normalizedId);
+    onJoinGame(normalizedId, selectedMode === 'tv' ? 'tv' : undefined);
   };
 
   return (
@@ -140,22 +198,47 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
         </div>
       )}
 
-      {/* Main content - horizontal layout, 2 panels */}
+      {/* Main content - 3 panels */}
       <main style={styles.main}>
-        {/* Left panel - Create New Game */}
+        {/* Panel 1 - New Game with mode toggle */}
         <section style={styles.panel}>
-          <h2 style={styles.panelTitle}>
-            {mode === 'tv' ? '📺 New TV Game' : '🎮 New Game'}
-          </h2>
+          <h2 style={styles.panelTitle}>🎮 New Game</h2>
           <p style={styles.panelDescription}>
             Start a fresh game session and invite friends to play
           </p>
+
+          {/* Mode toggle */}
+          <div style={styles.modeToggle}>
+            <button
+              onClick={() => setSelectedMode('pc')}
+              style={{
+                ...styles.modeButton,
+                backgroundColor: selectedMode === 'pc' ? colors.primary.main : 'transparent',
+                color: selectedMode === 'pc' ? 'white' : colors.text.secondary,
+                borderColor: selectedMode === 'pc' ? colors.primary.main : colors.secondary.border,
+              }}
+            >
+              🖥️ PC
+            </button>
+            <button
+              onClick={() => setSelectedMode('tv')}
+              style={{
+                ...styles.modeButton,
+                backgroundColor: selectedMode === 'tv' ? '#9c27b0' : 'transparent',
+                color: selectedMode === 'tv' ? 'white' : colors.text.secondary,
+                borderColor: selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border,
+              }}
+            >
+              📺 TV
+            </button>
+          </div>
+
           <button
             onClick={handleCreateGame}
             disabled={creating}
             style={{
               ...styles.primaryButton,
-              backgroundColor: creating ? colors.neutral.gray[400] : (mode === 'tv' ? '#9c27b0' : colors.primary.main),
+              backgroundColor: creating ? colors.neutral.gray[400] : (selectedMode === 'tv' ? '#9c27b0' : colors.primary.main),
               cursor: creating ? 'wait' : 'pointer',
             }}
           >
@@ -163,7 +246,7 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
           </button>
         </section>
 
-        {/* Right panel - Join by Code */}
+        {/* Panel 2 - Join by Code */}
         <section style={styles.panel}>
           <h2 style={styles.panelTitle}>🔗 Join by Code</h2>
           <p style={styles.panelDescription}>
@@ -190,6 +273,92 @@ export function GameLobby({ onJoinGame, mode }: GameLobbyProps): JSX.Element {
               Join
             </button>
           </div>
+        </section>
+
+        {/* Panel 3 - Browse Games (admin-locked) */}
+        <section style={styles.panel}>
+          <h2 style={styles.panelTitle}>📋 Browse Games</h2>
+
+          {isAdminUnlocked ? (
+            <>
+              <div style={styles.gameListHeader}>
+                <span style={{ fontSize: '0.8rem', color: colors.text.secondary }}>
+                  Active games {gamesLoading && '...'}
+                </span>
+              </div>
+              <div style={styles.gameList}>
+                {activeGames.length === 0 ? (
+                  <div style={{ fontSize: '0.85rem', color: colors.text.secondary, fontStyle: 'italic', padding: '1rem 0', textAlign: 'center' }}>
+                    No active games
+                  </div>
+                ) : (
+                  activeGames.map(game => (
+                    <div key={game.gameId} style={styles.gameRow}>
+                      <span style={{ fontWeight: 'bold', color: colors.primary.main, minWidth: '2.5rem' }}>
+                        {game.gameId}
+                      </span>
+                      <span style={{ color: colors.text.secondary, flex: 1, fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {game.playerCount}p{game.playerNames.length > 0 && `: ${game.playerNames.slice(0, 3).join(', ')}`}
+                        {game.playerNames.length > 3 && '...'}
+                      </span>
+                      <button
+                        onClick={() => handleJoinGame(game.gameId)}
+                        style={styles.gameActionButton}
+                      >
+                        View
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          ) : showAdminPrompt ? (
+            <div style={styles.adminPrompt}>
+              <p style={{ fontSize: '0.85rem', color: colors.text.secondary, margin: '0 0 0.75rem 0' }}>
+                Enter admin password to browse games
+              </p>
+              <div style={styles.joinForm}>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdminVerify()}
+                  style={{ ...styles.codeInput, textAlign: 'left', letterSpacing: 'normal' }}
+                  autoComplete="off"
+                />
+                <button
+                  onClick={handleAdminVerify}
+                  disabled={adminVerifying}
+                  style={styles.joinButton}
+                >
+                  {adminVerifying ? '...' : 'OK'}
+                </button>
+              </div>
+              {adminError && (
+                <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: '0.5rem 0 0 0' }}>{adminError}</p>
+              )}
+              <button
+                onClick={() => { setShowAdminPrompt(false); setAdminError(''); setAdminPassword(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', color: colors.text.muted, marginTop: '0.5rem' }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div style={styles.lockedContent}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🔒</div>
+              <p style={{ fontSize: '0.85rem', color: colors.text.secondary, margin: '0 0 1rem 0' }}>
+                Admin access required to browse games
+              </p>
+              <button
+                onClick={() => setShowAdminPrompt(true)}
+                style={styles.adminButton}
+              >
+                Unlock
+              </button>
+            </div>
+          )}
         </section>
       </main>
 
@@ -284,19 +453,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: 'clamp(1.5rem, 4vw, 3rem)',
+    alignItems: 'stretch',
+    gap: 'clamp(1rem, 2vw, 2rem)',
     padding: 'clamp(1rem, 2vh, 2rem) clamp(1rem, 3vw, 2rem)',
     minHeight: 0,
   },
   panel: {
     flex: '1 1 0',
-    maxWidth: '400px',
+    maxWidth: '380px',
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: 'white',
     borderRadius: '12px',
-    padding: 'clamp(1.5rem, 3vh, 2rem)',
+    padding: 'clamp(1.25rem, 2.5vh, 1.75rem)',
     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
     minHeight: '220px',
   },
@@ -309,9 +478,23 @@ const styles: { [key: string]: React.CSSProperties } = {
   panelDescription: {
     fontSize: 'clamp(0.8rem, 1.5vh, 0.95rem)',
     color: colors.text.secondary,
-    margin: '0 0 1.5rem 0',
+    margin: '0 0 1rem 0',
     lineHeight: 1.5,
+  },
+  modeToggle: {
+    display: 'flex',
+    gap: '0.5rem',
+    marginBottom: '1rem',
+  },
+  modeButton: {
     flex: 1,
+    padding: '0.5rem 0.75rem',
+    fontSize: 'clamp(0.8rem, 1.5vh, 0.95rem)',
+    fontWeight: 'bold',
+    border: '2px solid',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
   primaryButton: {
     backgroundColor: colors.primary.main,
@@ -322,6 +505,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(0.9rem, 2vh, 1.1rem)',
     fontWeight: 'bold',
     cursor: 'pointer',
+    marginTop: 'auto',
   },
   joinForm: {
     display: 'flex',
@@ -347,6 +531,64 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 'clamp(0.9rem, 2vh, 1rem)',
     fontWeight: 'bold',
     cursor: 'pointer',
+  },
+  // Browse Games panel styles
+  gameListHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '0.5rem',
+  },
+  gameList: {
+    flex: 1,
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.4rem',
+  },
+  gameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.4rem 0.6rem',
+    backgroundColor: colors.background.secondary,
+    borderRadius: '6px',
+    border: `1px solid ${colors.secondary.border}`,
+    fontSize: '0.85rem',
+  },
+  gameActionButton: {
+    padding: '0.25rem 0.6rem',
+    backgroundColor: colors.primary.main,
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    flexShrink: 0,
+  },
+  lockedContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminButton: {
+    padding: '0.5rem 1.5rem',
+    backgroundColor: colors.secondary.dark,
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+  },
+  adminPrompt: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
   },
   footer: {
     display: 'flex',
