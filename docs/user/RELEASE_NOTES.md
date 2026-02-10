@@ -2,6 +2,25 @@
 
 ---
 
+## v2.26.0 - Smarter Tabs & Thematic Labels (February 9, 2026)
+
+**Release Date:** February 9, 2026
+**Version:** 2.26.0
+**Status:** Alpha Testing
+**Type:** UX Improvement
+
+### Improved: Card tabs reorganized by purpose
+The old "Cards" tab has been replaced with more intuitive tabs:
+- **Money tab** now shows your bank loans and investment cards alongside your financial summary
+- **Expeditors tab** shows your expeditor cards with clear actions: "Hire Expeditor", "Fire Expeditor", etc.
+- **Events tab** (new!) shows your life event cards and any active effects from them
+- **Scope tab** continues to show your work packages
+
+### Improved: Thematic action labels
+Action buttons now use real-world language instead of card codes. "Draw E Card" becomes "Hire Expeditor", "Draw B Card" becomes "Get Bank Loan", and so on.
+
+---
+
 ## v2.25.2 - TV Rules & Interactive Funding (February 9, 2026)
 
 **Release Date:** February 9, 2026

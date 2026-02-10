@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Redistribute Cards Across Tabs (February 9, 2026)
+
+**Problem:** Players were confused by the generic "Cards" tab grouping unrelated items (bank loans, work packages, life events, expeditors) together. This was a legacy of the physical board game where players pick up cards.
+
+**Solution:** Eliminated the "Cards" tab and distributed each card type to the tab where it conceptually belongs:
+- **Money tab** → Now shows B (Bank Loan) and I (Investment) cards in a "Funding in Hand" subsection
+- **Scope tab** → Already showed W (Work) cards — verified complete
+- **Expeditors tab** (new, replaces Cards) → Shows only E cards with thematic labels (Hire/Fire/Change Expeditor)
+- **Events tab** (new, 6th tab) → Shows L (Life Event) cards with active duration effects
+- **Discard pile** → Accessible from Expeditors tab as "View History"
+
+**User-facing label changes:**
+- "Draw E Card" → "Hire Expeditor"
+- "Replace E Card" → "Change Expeditor"
+- "Return E Card" → "Expeditor Left"
+- "Give E Card" → "Fire Expeditor"
+- "Draw B Card" → "Get Bank Loan"
+- "Draw I Card" → "Get Investment"
+- "Draw W Card" → "Add Work Package"
+- "Draw L Card" → "Life Event"
+
+**Files modified:**
+- `src/components/player/ActionCenterPanel.tsx` — 6-tab config, stats bar
+- `src/components/player/sections/CardsSection.tsx` — E-cards only, expeditor labels
+- `src/components/player/sections/FinancesSection.tsx` — B/I card display with CardDisplay
+- `src/components/player/sections/EventsSection.tsx` — **NEW** L card section
+- `src/utils/buttonFormatting.ts` — Thematic button labels
+- `public/data/CLEAN_FILES/ACTION_TOOLTIPS.csv` — Updated tooltip text
+
+**Scope:** UI text only — internal code (CardService, hand[], draw_W) unchanged.
+
 ### Enhancement: TV Mode Rules Button & Interactive Owner Funding (February 9, 2026)
 
 **TV Mode Rules Button:**

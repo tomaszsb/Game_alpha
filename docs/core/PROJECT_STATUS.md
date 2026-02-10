@@ -1,14 +1,23 @@
 # Project Status
 
 **Last Updated**: February 9, 2026
-**Current Phase**: External Testing Ready (v2.25.2)
-**Current Version**: 2.25.2
+**Current Phase**: External Testing Ready (v2.26.0)
+**Current Version**: 2.26.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Redistribute Cards Across Tabs (February 9, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.26.0
+- **Changes**:
+  - Cards tab replaced by Expeditors (E cards) and Events (L cards) tabs
+  - B/I funding cards now shown in Money tab
+  - Thematic action labels (Hire Expeditor, Get Bank Loan, etc.)
+  - New EventsSection component for L cards with active effects display
 
 ### TV Rules & Interactive Funding (February 9, 2026) ✅
 - **Status**: ✅ Complete

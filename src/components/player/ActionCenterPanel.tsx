@@ -7,6 +7,7 @@ import { FinancesSection } from './sections/FinancesSection';
 import { TimeSection } from './sections/TimeSection';
 import { CardsSection } from './sections/CardsSection';
 import { ProjectScopeSection } from './sections/ProjectScopeSection';
+import { EventsSection } from './sections/EventsSection';
 import { PlayerLogSection } from './sections/PlayerLogSection';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL } from '../../utils/networkDetection';
@@ -26,17 +27,17 @@ export interface ActionCenterPanelProps {
   };
 }
 
-type ReferenceTab = 'money' | 'time' | 'cards' | 'scope' | 'log' | null;
+type ReferenceTab = 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
 
 // Helper to format effect action for display
 function formatEffectAction(effectType: string, effectAction?: string): string {
   if (effectType === 'cards' && effectAction) {
     const cardTypeMap: { [key: string]: string } = {
-      'draw_b': 'Draw B Card (Bank Funding)',
-      'draw_i': 'Draw I Card (Investor Deal)',
-      'draw_w': 'Draw W Card (Work Package)',
-      'draw_l': 'Draw L Card (Life Event)',
-      'draw_e': 'Draw E Card (Event)',
+      'draw_b': 'Get Bank Loan',
+      'draw_i': 'Get Investment',
+      'draw_w': 'Add Work Package',
+      'draw_l': 'Life Event',
+      'draw_e': 'Hire Expeditor',
       'draw_n': 'Draw N Card (Negotiation)'
     };
     return cardTypeMap[effectAction] || `Draw ${effectAction.replace('draw_', '').toUpperCase()} Card`;
@@ -233,7 +234,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
 
   // Check which tabs have actions
   const hasMoneyActions = pendingActions.some(a => !a.isCompleted && a.effect.effect_type === 'money');
-  const hasCardActions = pendingActions.some(a => !a.isCompleted && a.effect.effect_type === 'cards');
+  const hasECardActions = pendingActions.some(a => !a.isCompleted && a.effect.effect_type === 'cards' && a.effect.effect_action?.toLowerCase().includes('_e'));
+  const hasLCardActions = pendingActions.some(a => !a.isCompleted && a.effect.effect_type === 'cards' && a.effect.effect_action?.toLowerCase().includes('_l'));
 
   // Handlers
   const handleManualEffect = async (effectKey: string) => {
@@ -292,7 +294,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const tabConfig: { key: ReferenceTab; icon: string; label: string; hasBadge: boolean }[] = [
     { key: 'money', icon: '💰', label: 'Money', hasBadge: hasMoneyActions },
     { key: 'scope', icon: '📐', label: 'Scope', hasBadge: false },
-    { key: 'cards', icon: '🃏', label: 'Cards', hasBadge: hasCardActions || playableECards.length > 0 },
+    { key: 'expeditors', icon: '⚡', label: 'Expeditors', hasBadge: hasECardActions || playableECards.length > 0 },
+    { key: 'events', icon: '🎲', label: 'Events', hasBadge: hasLCardActions },
     { key: 'time', icon: '⏱', label: 'Time', hasBadge: false },
     { key: 'log', icon: '📜', label: 'Log', hasBadge: false },
   ];
@@ -368,10 +371,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             <span className="action-center__stat-value">{player.timeSpent || 0}d</span>
           </div>
           <div className={`action-center__stat ${playableECards.length > 0 ? 'action-center__stat--spark' : ''}`}>
-            <span className="action-center__stat-icon">🃏</span>
+            <span className="action-center__stat-icon">⚡</span>
             <span className="action-center__stat-value">
-              {player.hand?.length || 0}
-              {playableECards.length > 0 && <span style={{ color: '#22c55e', marginLeft: '3px' }}>⚡</span>}
+              {playableECards.length}/{(player.hand || []).filter(id => { const c = gameServices.dataService.getCardById(id); return c && c.card_type === 'E'; }).length}
             </span>
           </div>
           <div className="action-center__stat">
@@ -562,11 +564,21 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 renderMode="content"
               />
             )}
-            {activeTab === 'cards' && (
+            {activeTab === 'expeditors' && (
               <CardsSection
                 gameServices={gameServices}
                 playerId={playerId}
                 onRollDice={onRollDice}
+                onManualEffectResult={onManualEffectResult}
+                completedActions={completedActions}
+                isMyTurn={isMyTurn}
+                renderMode="content"
+              />
+            )}
+            {activeTab === 'events' && (
+              <EventsSection
+                gameServices={gameServices}
+                playerId={playerId}
                 onManualEffectResult={onManualEffectResult}
                 completedActions={completedActions}
                 isMyTurn={isMyTurn}

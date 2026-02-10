@@ -80,14 +80,33 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
   let text = '';
   if (isCardEffect) {
     const actionLower = effect.effect_action.toLowerCase();
-    if (actionLower.startsWith('replace_')) {
+    if (cardType === 'E') {
+      if (actionLower.startsWith('draw_')) {
+        text = count > 1 ? `Hire ${count} Expeditors` : 'Hire Expeditor';
+      } else if (actionLower.startsWith('replace_')) {
+        text = 'Change Expeditor';
+      } else if (actionLower.startsWith('give_')) {
+        text = 'Fire Expeditor';
+      } else if (actionLower === 'transfer') {
+        const direction = effect.condition === 'left' ? 'left' : 'right';
+        text = `Expeditor Reassigned (${direction})`;
+      } else if (actionLower.startsWith('return_')) {
+        text = count > 1 ? `Lose ${count} Expeditors` : 'Expeditor Left';
+      } else {
+        text = 'Expeditor Action';
+      }
+    } else if (cardType === 'B') {
+      text = count > 1 ? `Get ${count} Bank Loans` : 'Get Bank Loan';
+    } else if (cardType === 'I') {
+      text = count > 1 ? `Get ${count} Investments` : 'Get Investment';
+    } else if (cardType === 'W') {
+      text = count > 1 ? `Add ${count} Work Packages` : 'Add Work Package';
+    } else if (cardType === 'L') {
+      text = count > 1 ? `${count} Life Events` : 'Life Event';
+    } else if (actionLower.startsWith('replace_')) {
       text = `Replace ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
     } else if (actionLower.startsWith('give_')) {
       text = `Select ${cardType} card to give opponent`;
-    } else if (actionLower === 'transfer') {
-      // Transfer uses condition to specify direction (left/right)
-      const direction = effect.condition === 'left' ? 'left' : 'right';
-      text = `Give E card to player on your ${direction}`;
     } else if (actionLower.startsWith('return_')) {
       text = `Return ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
     } else {
@@ -103,7 +122,7 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
   // Generate appropriate icon based on effect type
   let icon = '';
   if (isCardEffect) {
-    icon = '🃏';
+    icon = cardType === 'E' ? '⚡' : cardType === 'B' || cardType === 'I' ? '💰' : cardType === 'W' ? '📐' : cardType === 'L' ? '🎲' : '🃏';
   } else if (effect.effect_type === 'turn') {
     icon = '⏹️';
   } else {
@@ -128,9 +147,15 @@ export function formatDiceRollButton(
     const firstEffect = diceEffects[0];
 
     switch (firstEffect.effect_type) {
-      case 'cards':
-        const cardType = firstEffect.card_type?.toUpperCase() || 'Cards';
-        return `Roll for ${cardType} Cards`;
+      case 'cards': {
+        const ct = firstEffect.card_type?.toUpperCase() || '';
+        if (ct === 'E') return 'Roll to Hire Expeditors';
+        if (ct === 'W') return 'Roll for Work Packages';
+        if (ct === 'B') return 'Roll for Bank Loans';
+        if (ct === 'I') return 'Roll for Investments';
+        if (ct === 'L') return 'Roll for Life Events';
+        return `Roll for ${ct} Cards`;
+      }
 
       case 'money':
         return firstEffect.card_type === 'fee' ? "Roll for Fee Amount" : "Roll for Money";

@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
+import { CardDisplay } from '../../common/CardDisplay';
+import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import './FinancesSection.css';
 
 /**
@@ -86,6 +88,8 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [isRollingDice, setIsRollingDice] = useState(false);
+  const [expandedFundingCards, setExpandedFundingCards] = useState<Set<string>>(new Set());
+  const [selectedCardForDetails, setSelectedCardForDetails] = useState<string | null>(null);
 
   // Get player state
   const player = gameServices.stateService.getPlayer(playerId);
@@ -141,6 +145,98 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       externalFundingPct
     };
   }, [playerMoneySources, expenditures, player.money, handKey, activeCardsKey, playerId]);
+
+  // Get B and I cards from player's hand (funding cards)
+  const fundingCards = useMemo(() => {
+    const hand = player.hand || [];
+    const bCards = hand
+      .map(id => ({ id, card: gameServices.dataService.getCardById(id) }))
+      .filter(item => item.card && item.card.card_type === 'B');
+    const iCards = hand
+      .map(id => ({ id, card: gameServices.dataService.getCardById(id) }))
+      .filter(item => item.card && item.card.card_type === 'I');
+    return { bCards, iCards };
+  }, [handKey, gameServices.dataService]);
+
+  const toggleFundingCard = (cardId: string) => {
+    setExpandedFundingCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(cardId)) newSet.delete(cardId);
+      else newSet.add(cardId);
+      return newSet;
+    });
+  };
+
+  // Render B/I funding cards section (shared between both render modes)
+  const renderFundingCards = () => {
+    const { bCards, iCards } = fundingCards;
+    if (bCards.length === 0 && iCards.length === 0) return null;
+
+    return (
+      <div className="financial-section">
+        <h3 className="section-heading">🏦 Funding in Hand</h3>
+        <div style={{ fontSize: '11px', color: '#495057', marginBottom: '8px' }}>
+          Bank Loans: {bCards.length} | Investments: {iCards.length}
+        </div>
+        {bCards.map(item => {
+          if (!item.card) return null;
+          const loanAmount = item.card.loan_amount || '';
+          const loanRate = item.card.loan_rate || '';
+          return (
+            <CardDisplay
+              key={item.id}
+              card={item.card}
+              variant="detailed"
+              isExpanded={expandedFundingCards.has(item.id)}
+              onToggle={() => toggleFundingCard(item.id)}
+              highlight="none"
+              displayAmount={loanAmount ? `$${loanAmount}` : undefined}
+              additionalDetails={[
+                ...(loanRate ? [{ label: 'Interest Rate', value: `${loanRate}%` }] : []),
+              ]}
+              actions={
+                <div className="card-action-row">
+                  <ActionButton
+                    label="View Details"
+                    variant="secondary"
+                    onClick={() => setSelectedCardForDetails(item.id)}
+                    disabled={isLoading}
+                    ariaLabel={`View details for ${item.card.card_name}`}
+                  />
+                </div>
+              }
+            />
+          );
+        })}
+        {iCards.map(item => {
+          if (!item.card) return null;
+          const investAmount = item.card.investment_amount || '';
+          return (
+            <CardDisplay
+              key={item.id}
+              card={item.card}
+              variant="detailed"
+              isExpanded={expandedFundingCards.has(item.id)}
+              onToggle={() => toggleFundingCard(item.id)}
+              highlight="none"
+              displayAmount={investAmount ? `$${investAmount}` : undefined}
+              actions={
+                <div className="card-action-row">
+                  <ActionButton
+                    label="View Details"
+                    variant="secondary"
+                    onClick={() => setSelectedCardForDetails(item.id)}
+                    disabled={isLoading}
+                    ariaLabel={`View details for ${item.card.card_name}`}
+                  />
+                </div>
+              }
+            />
+          );
+        })}
+      </div>
+    );
+  };
 
   // Get ALL manual effects for money from current space, filtered by conditions
   // Wrapped in useMemo to prevent state updates during render (evaluateCondition may update projectScope)
@@ -366,70 +462,85 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
 
   if (renderMode === 'content') {
     return (
-      <div className="finances-content">
-        {headerActions && <div className="section-header-actions">{headerActions}</div>}
-        {error && <div className="section-error"><p>{error}</p>{handleRetry && <button onClick={handleRetry}>Retry</button>}</div>}
-        {/* Section A: Scope & Budget */}
-        <div className="financial-section">
-          <h3 className="section-heading">📊 Scope & Budget</h3>
-          <div className="stat-grid">
-            <div className="stat-item">
-              <span className="stat-label">Project Scope</span>
-              <span className="stat-value">${financialMetrics.projectScope.toLocaleString()}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Budget</span>
-              <span className="stat-value">${financialMetrics.totalBudget.toLocaleString()}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Cash on Hand</span>
-              <span
-                className="stat-value stat-highlight"
-                style={{
-                  color: financialMetrics.projectScope > 0 ? moneyVsScopeColor : undefined,
-                  fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : undefined
-                }}
-              >
-                {financialMetrics.projectScope > 0 && moneyVsScopeIcon} ${financialMetrics.cashOnHand.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {financialMetrics.totalExpenditures > 0 && (
+      <>
+        <div className="finances-content">
+          {headerActions && <div className="section-header-actions">{headerActions}</div>}
+          {error && <div className="section-error"><p>{error}</p>{handleRetry && <button onClick={handleRetry}>Retry</button>}</div>}
+          {/* Section A: Scope & Budget */}
           <div className="financial-section">
-            <h3 className="section-heading">💸 Expenditures</h3>
-            <div className="stat-list">
-              <div className="stat-item"><span className="stat-label">Design</span><span className="stat-value">${expenditures.design.toLocaleString()}</span></div>
-              <div className="stat-item"><span className="stat-label">Fees</span><span className="stat-value">${expenditures.fees.toLocaleString()}</span></div>
-              <div className="stat-item"><span className="stat-label">Construction</span><span className="stat-value">${expenditures.construction.toLocaleString()}</span></div>
-              <div className="stat-item stat-total"><span className="stat-label">Total Spent</span><span className="stat-value">${financialMetrics.totalExpenditures.toLocaleString()}</span></div>
-            </div>
-          </div>
-        )}
-
-        {financialMetrics.totalBudget > 0 && (
-          <div className="financial-section">
-            <h3 className="section-heading">📈 Financial Health</h3>
-            <div className="stat-list">
-              <div className={`stat-item ${financialMetrics.isDesignOverBudget ? 'stat-warning' : ''}`}>
-                <span className="stat-label">Design Cost %</span>
-                <span className="stat-value">{financialMetrics.designCostRatio.toFixed(1)}%{financialMetrics.isDesignOverBudget && ' ⚠️'}</span>
+            <h3 className="section-heading">📊 Scope & Budget</h3>
+            <div className="stat-grid">
+              <div className="stat-item">
+                <span className="stat-label">Project Scope</span>
+                <span className="stat-value">${financialMetrics.projectScope.toLocaleString()}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Budget Variance</span>
-                <span className={`stat-value ${financialMetrics.budgetVariance < 0 ? 'stat-negative' : 'stat-positive'}`}>
-                  ${Math.abs(financialMetrics.budgetVariance).toLocaleString()}{financialMetrics.budgetVariance >= 0 ? ' under' : ' over'}
+                <span className="stat-label">Total Budget</span>
+                <span className="stat-value">${financialMetrics.totalBudget.toLocaleString()}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Cash on Hand</span>
+                <span
+                  className="stat-value stat-highlight"
+                  style={{
+                    color: financialMetrics.projectScope > 0 ? moneyVsScopeColor : undefined,
+                    fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : undefined
+                  }}
+                >
+                  {financialMetrics.projectScope > 0 && moneyVsScopeIcon} ${financialMetrics.cashOnHand.toLocaleString()}
                 </span>
               </div>
             </div>
           </div>
+
+          {renderFundingCards()}
+
+          {financialMetrics.totalExpenditures > 0 && (
+            <div className="financial-section">
+              <h3 className="section-heading">💸 Expenditures</h3>
+              <div className="stat-list">
+                <div className="stat-item"><span className="stat-label">Design</span><span className="stat-value">${expenditures.design.toLocaleString()}</span></div>
+                <div className="stat-item"><span className="stat-label">Fees</span><span className="stat-value">${expenditures.fees.toLocaleString()}</span></div>
+                <div className="stat-item"><span className="stat-label">Construction</span><span className="stat-value">${expenditures.construction.toLocaleString()}</span></div>
+                <div className="stat-item stat-total"><span className="stat-label">Total Spent</span><span className="stat-value">${financialMetrics.totalExpenditures.toLocaleString()}</span></div>
+              </div>
+            </div>
+          )}
+
+          {financialMetrics.totalBudget > 0 && (
+            <div className="financial-section">
+              <h3 className="section-heading">📈 Financial Health</h3>
+              <div className="stat-list">
+                <div className={`stat-item ${financialMetrics.isDesignOverBudget ? 'stat-warning' : ''}`}>
+                  <span className="stat-label">Design Cost %</span>
+                  <span className="stat-value">{financialMetrics.designCostRatio.toFixed(1)}%{financialMetrics.isDesignOverBudget && ' ⚠️'}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Budget Variance</span>
+                  <span className={`stat-value ${financialMetrics.budgetVariance < 0 ? 'stat-negative' : 'stat-positive'}`}>
+                    ${Math.abs(financialMetrics.budgetVariance).toLocaleString()}{financialMetrics.budgetVariance >= 0 ? ' under' : ' over'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        {selectedCardForDetails && (
+          <CardDetailsModal
+            isOpen={true}
+            onClose={() => setSelectedCardForDetails(null)}
+            card={gameServices.dataService.getCardById(selectedCardForDetails) || null}
+            currentPlayer={player}
+            otherPlayers={gameServices.stateService.getAllPlayers().filter(p => p.id !== playerId)}
+            cardService={gameServices.cardService}
+          />
         )}
-      </div>
+      </>
     );
   }
 
   return (
+    <>
     <ExpandableSection
       title="FINANCES"
       icon="💰"
@@ -473,6 +584,9 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Section A2: Funding Cards in Hand */}
+        {renderFundingCards()}
 
         {/* Section B: Expenditures */}
         {financialMetrics.totalExpenditures > 0 && (
@@ -761,5 +875,16 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
         )}
       </div>
     </ExpandableSection>
+    {selectedCardForDetails && (
+      <CardDetailsModal
+        isOpen={true}
+        onClose={() => setSelectedCardForDetails(null)}
+        card={gameServices.dataService.getCardById(selectedCardForDetails) || null}
+        currentPlayer={player}
+        otherPlayers={gameServices.stateService.getAllPlayers().filter(p => p.id !== playerId)}
+        cardService={gameServices.cardService}
+      />
+    )}
+    </>
   );
 };

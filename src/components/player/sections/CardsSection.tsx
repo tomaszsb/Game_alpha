@@ -104,38 +104,39 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   const currentSpaceConfig = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const currentPhase = currentSpaceConfig?.phase;
 
-  // Get ALL manual effects for cards from current space, filtered by conditions
-  // Exclude B/I card draws which are funding actions (shown in FinancesSection)
+  // Get E card manual effects only from current space (B/I in Finances, W in Scope, L in Events)
   const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
   const conditionFilteredEffects = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
 
   const cardManualEffects = conditionFilteredEffects.filter(
     effect => effect.trigger_type === 'manual' &&
               effect.effect_type === 'cards' &&
-              !(effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i') // Funding actions belong in Finances
+              (effect.effect_action === 'draw_e' || effect.effect_action === 'replace_e' ||
+               effect.effect_action === 'give_e' || effect.effect_action === 'return_e' ||
+               effect.effect_action === 'transfer')
   );
 
-  // Get dice effects for cards (excluding W which shows in Project Scope)
+  // Get dice effects for E cards only
   const allDiceEffects = gameServices.dataService.getDiceEffects(player.currentSpace, player.visitType);
   const cardDiceEffects = allDiceEffects.filter(
-    effect => effect.effect_type === 'cards' && effect.card_type !== 'W' // W cards shown in Project Scope
+    effect => effect.effect_type === 'cards' && effect.card_type === 'E'
   );
 
-  // Check if there are any card actions available (manual or dice)
+  // Check if there are any E card actions available (manual or dice)
   const hasCardActions = cardManualEffects.length > 0 || cardDiceEffects.length > 0;
 
-  // Calculate card counts
-  const playerHand = player.hand || [];
-  const totalCards = playerHand.length;
-  
-  // Count cards by type
-  const cardCounts: { [key in CardType]?: number } = {};
-  playerHand.forEach(cardId => {
+  // Filter to E cards only (other types shown in their respective tabs)
+  const playerHand = (player.hand || []).filter(cardId => {
     const cardType = gameServices.cardService.getCardType(cardId);
-    if (cardType) {
-      cardCounts[cardType] = (cardCounts[cardType] || 0) + 1;
-    }
+    return cardType === 'E';
   });
+  const totalCards = playerHand.length;
+
+  // All cards here are E type
+  const cardCounts: { [key in CardType]?: number } = {};
+  if (totalCards > 0) {
+    cardCounts['E'] = totalCards;
+  }
 
   // Count playable E cards (cards that can be played in current phase)
   const playableECards = playerHand.filter(cardId => {
@@ -188,27 +189,17 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   const getManualEffectButtonLabel = (effect: any): string => {
     if (effect.description) return effect.description;
     const action = effect.effect_action?.toLowerCase();
-    if (action === 'draw_e') return 'Pick up E Cards';
-    if (action === 'draw_l') return 'Get L Cards';
-    if (action === 'draw_i') return 'Get I Cards';
-    if (action === 'draw_b') return 'Get B Cards';
-    if (action === 'draw_w') return 'Get W Cards';
-    if (action === 'replace_e') return 'Replace E Card';
-    if (action === 'give_e') return 'Select E card to give opponent';
-    if (action?.startsWith('replace_')) return 'Replace Card';
-    if (action?.startsWith('give_')) return 'Select card to give opponent';
-    return 'Get Cards';
+    if (action === 'draw_e') return 'Hire Expeditor';
+    if (action === 'replace_e') return 'Change Expeditor';
+    if (action === 'give_e') return 'Fire Expeditor';
+    if (action === 'return_e') return 'Expeditor Left';
+    if (action === 'transfer') return 'Expeditor Reassigned';
+    return 'Expeditor Action';
   };
 
   // Helper to format dice button label
   const getDiceButtonLabel = (cardType: string): string => {
-    switch (cardType) {
-      case 'B': return 'Roll for B Cards';
-      case 'E': return 'Roll for E Cards';
-      case 'L': return 'Roll for L Cards';
-      case 'I': return 'Roll for I Cards';
-      default: return 'Roll for Cards';
-    }
+    return 'Roll for Expeditors';
   };
 
   // Create header actions (action buttons always visible)
@@ -329,16 +320,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   // Summary content - always visible
   const summary = (
     <span>
-      Total: {totalCards}
-      {Object.keys(cardCounts).length > 0 && (
-        <> | {(Object.keys(cardCounts) as CardType[]).map((type, idx, arr) => (
-          <span key={type}>
-            {type}: {cardCounts[type]}
-            {idx < arr.length - 1 && ', '}
-          </span>
-        ))}</>
-      )}
-      {/* Prominent indicator for playable E cards */}
+      {totalCards} Expeditor{totalCards !== 1 ? 's' : ''}
       {playableCount > 0 && (
         <span style={{
           marginLeft: '8px',
@@ -376,7 +358,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                       style={playableInGroup > 0 ? { backgroundColor: '#dcfce7', borderColor: '#22c55e' } : undefined}>
                       <span className="card-type-info">
                         <span className="expand-icon">{isTypeExpanded ? '▼' : '▶'}</span>
-                        <span className="card-type-name">{cardType} Cards ({cardsOfType.length})</span>
+                        <span className="card-type-name">Expeditors ({cardsOfType.length})</span>
                         {playableInGroup > 0 && (
                           <span style={{ marginLeft: '8px', padding: '1px 6px', backgroundColor: '#22c55e', color: 'white', borderRadius: '8px', fontSize: '9px', fontWeight: 'bold' }}>
                             ⚡ {playableInGroup} playable
@@ -416,10 +398,10 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
               })}
             </div>
           ) : (
-            <div className="empty-state">No cards in hand yet.</div>
+            <div className="empty-state">No expeditors hired yet.</div>
           )}
           <div className="card-actions">
-            <ActionButton label="View Discarded" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View your discarded cards" />
+            <ActionButton label="View History" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View card history" />
           </div>
         </div>
         <DiscardPileModal gameServices={gameServices} playerId={playerId} isOpen={showDiscardedModal} onClose={() => setShowDiscardedModal(false)} />
@@ -433,8 +415,8 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   return (
     <>
       <ExpandableSection
-        title="CARDS"
-        icon="🎴"
+        title="EXPEDITORS"
+        icon="⚡"
         hasAction={hasCardActions}
               isExpanded={isExpanded}
               onToggle={() => setIsExpanded(!isExpanded)}        ariaControls="cards-content"
@@ -477,7 +459,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                   >
                     <span className="card-type-info">
                       <span className="expand-icon">{isTypeExpanded ? '▼' : '▶'}</span>
-                      <span className="card-type-name">{cardType} Cards ({cardsOfType.length})</span>
+                      <span className="card-type-name">Expeditors ({cardsOfType.length})</span>
                       {/* Show playable badge for E cards */}
                       {playableInGroup > 0 && (
                         <span style={{
@@ -556,42 +538,17 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
           </div>
         ) : (
           <div className="empty-state">
-            No cards in hand yet.
+            No expeditors hired yet.
           </div>
         )}
 
-        {/* Card Type Legend */}
-        <div style={{
-          padding: '8px',
-          backgroundColor: '#f0f0f0',
-          borderRadius: '4px',
-          marginTop: '12px',
-          marginBottom: '8px'
-        }}>
-          <div style={{
-            fontSize: '10px',
-            fontWeight: 'bold',
-            color: '#666',
-            marginBottom: '4px'
-          }}>
-            💡 Card Types:
-          </div>
-          <div style={{
-            fontSize: '9px',
-            color: '#666',
-            lineHeight: '1.4'
-          }}>
-            <strong>W</strong>=Work (project scope) | <strong>B</strong>=Bank Loan | <strong>E</strong>=Expeditor (can play) | <strong>L</strong>=Life Event | <strong>I</strong>=Investor Loan
-          </div>
-        </div>
-
         <div className="card-actions">
           <ActionButton
-            label="View Discarded"
+            label="View History"
             variant="secondary"
             onClick={handleViewDiscarded}
             disabled={isLoading}
-            ariaLabel="View your discarded cards"
+            ariaLabel="View card history"
           />
         </div>
       </div>
