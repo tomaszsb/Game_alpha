@@ -60,7 +60,7 @@ def process_space_content():
             content = {
                 'space_name': row['space_name'],
                 'visit_type': row['visit_type'],
-                'title': row.get('Event', ''),
+                'title': row.get('Title', '') or row.get('Event', ''),
                 'story': row.get('Event', ''),
                 'action_description': row.get('Action', ''),
                 'outcome_description': row.get('Outcome', ''),

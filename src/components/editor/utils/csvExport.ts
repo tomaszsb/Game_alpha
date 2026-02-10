@@ -25,7 +25,7 @@ function escapeCSV(value: string): string {
  */
 export function exportSpacesCSV(spaces: SpaceRow[]): string {
   const headers = [
-    'space_name', 'phase', 'visit_type', 'Event', 'Action', 'Outcome',
+    'space_name', 'phase', 'visit_type', 'Title', 'Event', 'Action', 'Outcome',
     'w_card', 'b_card', 'i_card', 'l_card', 'e_card',
     'Time', 'Fee',
     'space_1', 'space_2', 'space_3', 'space_4', 'space_5',
@@ -36,6 +36,7 @@ export function exportSpacesCSV(spaces: SpaceRow[]): string {
     escapeCSV(space.space_name),
     escapeCSV(space.phase),
     escapeCSV(space.visit_type),
+    escapeCSV(space.Title),
     escapeCSV(space.Event),
     escapeCSV(space.Action),
     escapeCSV(space.Outcome),

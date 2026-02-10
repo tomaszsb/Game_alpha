@@ -10,6 +10,7 @@ export interface SpaceRow {
   space_name: string;
   phase: string;
   visit_type: 'First' | 'Subsequent';
+  Title: string;      // Display title (e.g., "Owner Scope Initiation")
   Event: string;      // Story text
   Action: string;     // Action description
   Outcome: string;    // Outcome description

@@ -120,6 +120,12 @@ export function SpaceEditor({
         {/* Group 3: Narrative */}
         <fieldset style={styles.fieldset}>
           <legend style={styles.legend}>Narrative</legend>
+          <Field
+            label="Title"
+            value={currentSpace.Title}
+            onChange={(v) => handleChange('Title', v)}
+            placeholder="e.g., Owner Scope Initiation"
+          />
           <TextareaField
             label="Event (Story)"
             value={currentSpace.Event}
