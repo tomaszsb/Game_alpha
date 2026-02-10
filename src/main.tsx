@@ -2,7 +2,11 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { installConsoleCapture } from './utils/consoleCapture';
 import { App } from './App';
+
+// Install console capture early so we catch errors during init
+installConsoleCapture();
 
 /**
  * Main entry point for the React application.

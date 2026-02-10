@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas';
 import { ModalBase, modalButtonStyles } from '../modals/shared/ModalBase';
 import { colors } from '../../styles/theme';
 import { getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
+import { getConsoleLogs } from '../../utils/consoleCapture';
 
 interface FeedbackForm {
   whatDoing: string;
@@ -61,6 +62,41 @@ export function FeedbackButton(): JSX.Element {
     }
   }, []);
 
+  // Fetch a lightweight game state snapshot for the feedback report
+  const fetchGameStateSummary = useCallback(async (): Promise<any> => {
+    const gameId = getCurrentGameId() || new URLSearchParams(window.location.search).get('g');
+    if (!gameId) return null;
+
+    try {
+      const response = await fetch(`${getApiBase()}${getGameStateAPIPath(gameId)}`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!response.ok) return null;
+      const state = await response.json();
+
+      // Extract only what's needed for debugging (no hand contents or large arrays)
+      return {
+        currentPlayerId: state.currentPlayerId,
+        turnNumber: state.turnNumber,
+        requiredActions: state.requiredActions,
+        completedActionCount: state.completedActionCount,
+        hasPlayerRolledDice: state.hasPlayerRolledDice,
+        awaitingChoice: state.awaitingChoice ? { type: state.awaitingChoice.type } : null,
+        players: (state.players || []).map((p: any) => ({
+          id: p.shortId || p.id,
+          name: p.name,
+          space: p.currentSpace,
+          visitType: p.visitType,
+          money: p.money,
+          handSize: (p.hand || []).length,
+          timeSpent: p.timeSpent,
+        })),
+      };
+    } catch {
+      return null;
+    }
+  }, [getApiBase]);
+
   const handleSubmit = useCallback(async () => {
     if (!form.whatDoing.trim() || !form.whatWrong.trim()) return;
 
@@ -77,6 +113,13 @@ export function FeedbackButton(): JSX.Element {
       playerId: urlParams.get('p') || urlParams.get('playerId') || 'none',
     };
 
+    // Collect diagnostic data in parallel
+    const [gameState] = await Promise.all([
+      fetchGameStateSummary(),
+    ]);
+
+    const consoleLogs = getConsoleLogs();
+
     try {
       const response = await fetch(`${getApiBase()}/api/feedback`, {
         method: 'POST',
@@ -87,6 +130,8 @@ export function FeedbackButton(): JSX.Element {
           whatWrong: form.whatWrong.trim(),
           extra: form.extra.trim(),
           metadata,
+          consoleLogs,
+          gameState,
         }),
       });
 
@@ -103,7 +148,7 @@ export function FeedbackButton(): JSX.Element {
       setErrorMsg('Failed to submit. Please try again.');
       setState('form');
     }
-  }, [form, screenshot, getApiBase]);
+  }, [form, screenshot, getApiBase, fetchGameStateSummary]);
 
   const handleCancel = useCallback(() => {
     setState('idle');
