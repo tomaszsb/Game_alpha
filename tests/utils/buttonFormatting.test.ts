@@ -81,8 +81,8 @@ describe('buttonFormatting', () => {
 
       const result = formatManualEffectButton(effect);
       expect(result).toEqual({
-        text: 'Pick up 1 W card',
-        icon: '🃏'
+        text: 'Add Work Package',
+        icon: '📐'
       });
     });
 
@@ -99,8 +99,8 @@ describe('buttonFormatting', () => {
 
       const result = formatManualEffectButton(effect);
       expect(result).toEqual({
-        text: 'Pick up 3 B cards',
-        icon: '🃏'
+        text: 'Get 3 Bank Loans',
+        icon: '💰'
       });
     });
 
@@ -204,7 +204,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for W Cards');
+      expect(result).toBe('Roll for Work Packages');
     });
 
     it('should format button for dice effects with money', () => {
@@ -305,7 +305,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], spaceEffects, null);
-      expect(result).toBe('Roll for Bonus Cards');
+      expect(result).toBe('Roll for Bonus');
     });
 
     it('should format button for space effects with dice condition for money', () => {
@@ -379,7 +379,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Cards Cards');
+      expect(result).toBe('Roll for Effects');
     });
   });
 
@@ -392,7 +392,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(4, effects);
-      expect(result).toBe('Rolled 4 → Drew 2 Work cards');
+      expect(result).toBe('Rolled 4 → Got 2 Works');
     });
 
     it('should format feedback with single card effect', () => {
@@ -403,7 +403,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(3, effects);
-      expect(result).toBe('Rolled 3 → Drew 1 Bank card');
+      expect(result).toBe('Rolled 3 → Got 1 Bank');
     });
 
     it('should format feedback with positive money effect', () => {
@@ -474,7 +474,7 @@ describe('buttonFormatting', () => {
       ];
 
       const result = formatDiceRollFeedback(6, effects);
-      expect(result).toBe('Rolled 6 → Drew 1 Expeditor card, Gained $300, Time Saved: 1 day');
+      expect(result).toBe('Rolled 6 → Got 1 Expeditor, Gained $300, Time Saved: 1 day');
     });
 
     it('should format feedback with unknown effect type', () => {
@@ -513,7 +513,7 @@ describe('buttonFormatting', () => {
 
       const result = formatDiceRollFeedback(4, effects);
       // The function processes the cards effect with undefined values
-      expect(result).toBe('Rolled 4 → Drew undefined undefined cards');
+      expect(result).toBe('Rolled 4 → Got undefined undefineds');
     });
 
     it('should handle all card types correctly', () => {
@@ -529,7 +529,7 @@ describe('buttonFormatting', () => {
       cardTypes.forEach(({ cardType, expected }) => {
         const effects = [{ type: 'cards', cardCount: 1, cardType }];
         const result = formatDiceRollFeedback(3, effects);
-        expect(result).toBe(`Rolled 3 → Drew 1 ${expected} card`);
+        expect(result).toBe(`Rolled 3 → Got 1 ${expected}`);
       });
     });
   });
@@ -543,7 +543,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatActionFeedback(effects);
-      expect(result).toBe('Drew 1 Bank card');
+      expect(result).toBe('Got 1 Bank');
     });
 
     it('should format feedback with multiple card effects', () => {
@@ -554,7 +554,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatActionFeedback(effects);
-      expect(result).toBe('Drew 2 Work cards');
+      expect(result).toBe('Got 2 Works');
     });
 
     it('should format feedback with money effects', () => {
@@ -614,7 +614,7 @@ describe('buttonFormatting', () => {
       ];
 
       const result = formatActionFeedback(effects);
-      expect(result).toBe('Drew 1 Investment card, Gained $500');
+      expect(result).toBe('Got 1 Investment, Gained $500');
     });
 
     it('should return default message for no effects', () => {

@@ -104,13 +104,13 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     } else if (cardType === 'L') {
       text = count > 1 ? `${count} Life Events` : 'Life Event';
     } else if (actionLower.startsWith('replace_')) {
-      text = `Replace ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+      text = `Replace ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     } else if (actionLower.startsWith('give_')) {
-      text = `Select ${cardType} card to give opponent`;
+      text = `Give ${getCardTypeName(cardType)} to opponent`;
     } else if (actionLower.startsWith('return_')) {
-      text = `Return ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+      text = `Return ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     } else {
-      text = `Pick up ${count} ${cardType} card${count !== 1 ? 's' : ''}`;
+      text = `Pick up ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     }
   } else if (effect.effect_type === 'turn') {
     text = effect.description || 'End Turn';
@@ -154,7 +154,7 @@ export function formatDiceRollButton(
         if (ct === 'B') return 'Roll for Bank Loans';
         if (ct === 'I') return 'Roll for Investments';
         if (ct === 'L') return 'Roll for Life Events';
-        return `Roll for ${ct} Cards`;
+        return ct ? `Roll for ${ct} Cards` : 'Roll for Effects';
       }
 
       case 'money':
@@ -179,7 +179,7 @@ export function formatDiceRollButton(
   if (diceConditionEffects.length > 0) {
     const effectTypes = diceConditionEffects.map(effect => effect.effect_type);
     if (effectTypes.includes('cards')) {
-      return "Roll for Bonus Cards";
+      return "Roll for Bonus";
     } else if (effectTypes.includes('money')) {
       return "Roll for Bonus Money";
     } else {
@@ -234,7 +234,7 @@ export function formatDiceRollFeedback(diceValue: number, effects: any[]): strin
   effects?.forEach(effect => {
     switch (effect.type) {
       case 'cards':
-        outcomes.push(`Drew ${effect.cardCount} ${getCardTypeName(effect.cardType)} card${effect.cardCount !== 1 ? 's' : ''}`);
+        outcomes.push(`Got ${effect.cardCount} ${getCardTypeName(effect.cardType)}${effect.cardCount !== 1 ? 's' : ''}`);
         break;
       case 'money':
         if (effect.value !== undefined) {
@@ -284,7 +284,7 @@ export function formatActionFeedback(effects: any[]): string {
   effects?.forEach(effect => {
     switch (effect.type) {
       case 'cards':
-        outcomes.push(`Drew ${effect.cardCount} ${getCardTypeName(effect.cardType)} card${effect.cardCount !== 1 ? 's' : ''}`);
+        outcomes.push(`Got ${effect.cardCount} ${getCardTypeName(effect.cardType)}${effect.cardCount !== 1 ? 's' : ''}`);
         break;
       case 'money':
         if (effect.value !== undefined) {

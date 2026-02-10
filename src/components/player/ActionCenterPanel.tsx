@@ -40,11 +40,11 @@ function formatEffectAction(effectType: string, effectAction?: string): string {
       'draw_e': 'Hire Expeditor',
       'draw_n': 'Draw N Card (Negotiation)'
     };
-    return cardTypeMap[effectAction] || `Draw ${effectAction.replace('draw_', '').toUpperCase()} Card`;
+    return cardTypeMap[effectAction] || effectAction.replace('draw_', '').toUpperCase();
   }
   const typeMap: { [key: string]: string } = {
     'dice': 'Roll Dice',
-    'cards': 'Draw Card',
+    'cards': 'Pick Up',
     'money': 'Get Funding',
     'time': 'Time Action',
     'movement': 'Select Destination'

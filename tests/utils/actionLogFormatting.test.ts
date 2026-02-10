@@ -33,7 +33,7 @@ describe('actionLogFormatting', () => {
       };
 
       const result = formatActionDescription(entry);
-      expect(result).toBe('🎴 Drew 2 W cards');
+      expect(result).toBe('🎴 Got 2 Work Packages');
     });
 
     it('should format card_draw type with single card', () => {
@@ -51,7 +51,7 @@ describe('actionLogFormatting', () => {
       };
 
       const result = formatActionDescription(entry);
-      expect(result).toBe('🎴 Drew 1 B card');
+      expect(result).toBe('🎴 Got 1 Bank Loan');
     });
 
     it('should format card_draw type without details', () => {

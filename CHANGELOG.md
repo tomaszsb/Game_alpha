@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Enhancement: Feedback Reports Now Include Console Logs & Game State (February 9, 2026)
+
+Bug reports submitted via the in-game feedback button now automatically include:
+- **Console logs**: Last 50 `console.error` and `console.warn` entries, plus unhandled errors/rejections
+- **Game state snapshot**: Current player, turn info, all players' positions, money, hand sizes
+
+Console capture installs at app boot (`main.tsx`) via a ring buffer in `src/utils/consoleCapture.ts`.
+Game state is fetched from the server API at submit time (3s timeout, fails gracefully).
+
+**Files:** `src/utils/consoleCapture.ts` (NEW), `src/main.tsx`, `src/components/feedback/FeedbackButton.tsx`
+
 ### Feature: Redistribute Cards Across Tabs (February 9, 2026)
 
 **Problem:** Players were confused by the generic "Cards" tab grouping unrelated items (bank loans, work packages, life events, expeditors) together. This was a legacy of the physical board game where players pick up cards.
@@ -34,6 +45,12 @@ All notable changes to this project will be documented in this file.
 - `public/data/CLEAN_FILES/ACTION_TOOLTIPS.csv` — Updated tooltip text
 
 **Scope:** UI text only — internal code (CardService, hand[], draw_W) unchanged.
+
+**Additional cleanup:** Removed all remaining user-facing "card" references:
+- "Play Card" → "Play Expeditor", "Roll for W Cards" → "Roll for Work Packages"
+- "Drew 2 W cards" → "Got 2 Work Packages" (log entries)
+- "No work cards yet" → "No work packages yet"
+- Generic fallbacks now use friendly names (Bank Loan, Investment, etc.)
 
 ### Enhancement: TV Mode Rules Button & Interactive Owner Funding (February 9, 2026)
 

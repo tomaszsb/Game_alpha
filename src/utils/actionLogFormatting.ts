@@ -6,11 +6,15 @@ export const formatActionDescription = (entry: ActionLogEntry): string => {
       // Use the unified description that already includes outcomes
       return `🎲 ${entry.description}`;
       
-    case 'card_draw':
+    case 'card_draw': {
       if (entry.details?.cardType && entry.details?.cardCount) {
-        return `🎴 Drew ${entry.details.cardCount} ${entry.details.cardType} card${entry.details.cardCount > 1 ? 's' : ''}`;
+        const typeNames: Record<string, string> = { W: 'Work Package', B: 'Bank Loan', E: 'Expeditor', L: 'Life Event', I: 'Investment' };
+        const name = typeNames[entry.details.cardType] || entry.details.cardType;
+        const count = entry.details.cardCount;
+        return `🎴 Got ${count} ${name}${count > 1 ? 's' : ''}`;
       }
       return entry.description;
+    }
 
     case 'space_effect':
       const cleanDescription = entry.description.replace(/^📍\s*Space Effect:\s*/, '');

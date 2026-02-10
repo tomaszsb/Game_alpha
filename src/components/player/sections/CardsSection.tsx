@@ -379,7 +379,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                               </div>
                               {item.card.card_type === 'E' && isPlayable && (
                                 <div className="card-action-row">
-                                  <ActionButton label="Play Card" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Play ${item.card.card_name}`} />
+                                  <ActionButton label="Play Expeditor" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Play ${item.card.card_name}`} />
                                 </div>
                               )}
                               {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
@@ -401,7 +401,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
             <div className="empty-state">No expeditors hired yet.</div>
           )}
           <div className="card-actions">
-            <ActionButton label="View History" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View card history" />
+            <ActionButton label="View History" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View discard history" />
           </div>
         </div>
         <DiscardPileModal gameServices={gameServices} playerId={playerId} isOpen={showDiscardedModal} onClose={() => setShowDiscardedModal(false)} />
@@ -499,7 +499,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                             {item.card.card_type === 'E' && isPlayable && (
                               <div className="card-action-row">
                                 <ActionButton
-                                  label="Play Card"
+                                  label="Play Expeditor"
                                   variant="primary"
                                   onClick={() => handlePlayCard(item.id)}
                                   disabled={isLoading}
@@ -548,7 +548,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
             variant="secondary"
             onClick={handleViewDiscarded}
             disabled={isLoading}
-            ariaLabel="View card history"
+            ariaLabel="View discard history"
           />
         </div>
       </div>

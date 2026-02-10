@@ -211,8 +211,8 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   // Helper to format button label from manual effect
   const getManualEffectButtonLabel = (effect: any): string => {
     if (effect.description) return effect.description;
-    if (effect.card_type === 'W') return 'Get W Cards';
-    if (effect.effect_type === 'cards') return 'Get Cards';
+    if (effect.card_type === 'W') return 'Add Work Package';
+    if (effect.effect_type === 'cards') return 'Add Work Package';
     return effect.effect_type;
   };
 
@@ -224,12 +224,12 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
         const isDiceCompleted = completedActions.diceRoll !== undefined;
         return wCardDiceEffects.length > 0 && onRollDice && !isDiceCompleted && (
           <ActionButton
-            label={isMyTurn ? "Roll for W Cards" : "⏳ Wait for your turn"}
+            label={isMyTurn ? "Roll for Work Packages" : "⏳ Wait for your turn"}
             variant="primary"
             onClick={handleDiceRoll}
             disabled={!isMyTurn || isLoading || isRollingDice}
             isLoading={isRollingDice}
-            ariaLabel={isMyTurn ? "Roll dice to gain W type work cards" : "Wait for your turn"}
+            ariaLabel={isMyTurn ? "Roll dice to gain work packages" : "Wait for your turn"}
           />
         );
       })()}
@@ -245,7 +245,7 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
             onClick={() => handleManualEffect(effect.effect_type)}
             disabled={isLoading}
             isLoading={isLoading}
-            ariaLabel="Get W type work cards"
+            ariaLabel="Add work packages"
           />
         );
       })}
@@ -296,7 +296,7 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
             </div>
           </div>
         ) : (
-          <div className="empty-state">No work cards yet. Draw W cards to build project scope.</div>
+          <div className="empty-state">No work packages yet. Add work packages to build project scope.</div>
         )}
       </div>
     );
@@ -363,7 +363,7 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
           </div>
         ) : (
           <div className="empty-state">
-            No work cards yet. Draw W cards to build project scope.
+            No work packages yet. Add work packages to build project scope.
           </div>
         )}
       </div>
