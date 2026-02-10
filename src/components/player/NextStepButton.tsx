@@ -121,6 +121,9 @@ function getEndTurnLabel(gameServices: IServiceContainer, playerId: string): str
   if (title.includes('owner')) return 'Agree with Owner';
   if (title.includes('fee')) return 'Accept Fee';
   if (title.includes('scope')) return 'Accept Scope';
+  if (title.includes('fund')) return 'Accept Funding';
+  if (title.includes('exam') || title.includes('audit') || title.includes('review')) return 'Accept Result';
+  if (title.includes('contractor') || title.includes('change order')) return 'Accept Terms';
   return 'Accept & End Turn';
 }
 
