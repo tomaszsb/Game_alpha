@@ -271,7 +271,19 @@ export function TurnControlsWithActions({
   // Manual effects are properly detected and handled
 
   // Check if negotiation is available on current space
-  const canNegotiate = dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType)?.can_negotiate === true;
+  const currentSpaceContent = dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+  const canNegotiate = currentSpaceContent?.can_negotiate === true;
+
+  // Context-sensitive End Turn label for negotiable spaces
+  const getEndTurnLabel = (): string => {
+    if (!canNegotiate || !currentSpaceContent?.title) return 'End Turn';
+    const title = currentSpaceContent.title.toLowerCase();
+    if (title.includes('owner')) return 'Agree with Owner';
+    if (title.includes('fee')) return 'Accept Fee';
+    if (title.includes('scope')) return 'Accept Scope';
+    return 'Accept & End Turn';
+  };
+  const endTurnLabel = getEndTurnLabel();
 
   // Calculate space time cost that will be spent when rolling dice/taking actions
   const getSpaceTimeCost = (): number => {
@@ -881,7 +893,7 @@ export function TurnControlsWithActions({
                   }}
                 >
                   <span>⏹️</span>
-                  <span>End Turn ({actionCounts.completed}/{actionCounts.required})</span>
+                  <span>{endTurnLabel} ({actionCounts.completed}/{actionCounts.required})</span>
                 </button>
               </Tooltip>
             );

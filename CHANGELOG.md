@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Enhancement: Data-Driven Narrative UX — Descriptive Modals, Buttons, and Negotiate Visibility (February 10, 2026)
+
+**Problem:** Players found the game too mechanical on early spaces. The dice modal showed "Roll: 5" with no narrative context, card effects showed cryptic letter codes like "+2 W cards", and the Try Again button wasn't recognizable as the negotiate action on negotiable spaces.
+
+**Solution:** Used existing SpaceContent CSV fields (title, story, can_negotiate) to drive narrative UI — no new data columns needed.
+
+**Changes:**
+- **DiceResultModal**: Title now shows space title (e.g., "Owner's Scope Proposal") with dice roll as subtitle. Card effects use friendly names ("Work Packages" instead of "W cards")
+- **DiceService/DiceRollProcessor**: Summary now prepends space story text when available (e.g., "The owner dreams up project scope. Great roll! You drew 2 cards.")
+- **NextStepButton + TurnControlsWithActions**: End Turn button shows context-sensitive labels on negotiable spaces ("Agree with Owner", "Accept Fee", "Accept Scope", "Accept & End Turn")
+- **PlayerPanel**: Try Again button shows "🔄 Negotiate" on negotiable spaces with updated tooltip explaining negotiation
+
+**Files:** `DiceResultModal.tsx`, `DiceService.ts`, `DiceRollProcessor.ts`, `ServiceContracts.ts`, `NextStepButton.tsx`, `TurnControlsWithActions.tsx`, `PlayerPanel.tsx`
+
 ### Feature: Merged Landing + Lobby into Single Screen with Game Viewer (February 10, 2026)
 
 **Problem:** Three separate screens before gameplay (LandingPage → GameLobby → PlayerSetup) required too many clicks. Admin game browsing was only available deep inside PlayerSetup.

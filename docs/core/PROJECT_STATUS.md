@@ -1,14 +1,23 @@
 # Project Status
 
 **Last Updated**: February 10, 2026
-**Current Phase**: External Testing Ready (v2.27.0)
-**Current Version**: 2.27.0
+**Current Phase**: External Testing Ready (v2.27.1)
+**Current Version**: 2.27.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Narrative UX Enhancements (February 10, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.27.1
+- **Changes**:
+  - Dice modals show space titles with narrative story summaries
+  - Card effects use friendly names (Work Packages, Bank Loans, etc.)
+  - End Turn button context-sensitive on negotiable spaces
+  - Try Again → Negotiate on negotiable spaces
 
 ### Merged Landing + Lobby Screen (February 10, 2026) ✅
 - **Status**: ✅ Complete

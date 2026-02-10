@@ -80,8 +80,8 @@ export class DiceRollProcessor {
   /**
    * Generate a human-readable summary of the effects
    */
-  public generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string {
-    return this.diceService.generateEffectSummary(effects, diceValue);
+  public generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string): string {
+    return this.diceService.generateEffectSummary(effects, diceValue, storyText);
   }
 
   /**
@@ -137,8 +137,12 @@ export class DiceRollProcessor {
     this.stateService.setPlayerHasRolledDice();
     this.stateService.setPlayerHasMoved();
 
+    // Look up space story for narrative summary
+    const spaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+    const storyText = spaceContent?.story || undefined;
+
     // Generate summary
-    const summary = this.generateEffectSummary(effects, diceRoll);
+    const summary = this.generateEffectSummary(effects, diceRoll, storyText);
     const hasChoices = effects.some(effect => effect.type === 'choice');
 
     // Generate detailed feedback message and store it in state
@@ -185,8 +189,12 @@ export class DiceRollProcessor {
     const effects: DiceResultEffect[] = [];
     await this.processTurnEffectsWithTracking(playerId, newDiceRoll, effects);
 
+    // Look up space story for narrative summary
+    const spaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
+    const storyText = spaceContent?.story || undefined;
+
     // Generate summary for new result
-    const summary = this.generateEffectSummary(effects, newDiceRoll);
+    const summary = this.generateEffectSummary(effects, newDiceRoll, storyText);
     const hasChoices = effects.some(effect => effect.type === 'choice');
 
     return this.buildTurnEffectResult(currentPlayer, newDiceRoll, effects, summary, hasChoices, false);

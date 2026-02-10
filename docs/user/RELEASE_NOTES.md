@@ -2,6 +2,22 @@
 
 ---
 
+## v2.27.1 - Narrative Game Experience (February 10, 2026)
+
+**Release Date:** February 10, 2026
+**Version:** 2.27.1
+**Status:** Alpha Testing
+**Type:** UX Improvement
+
+### Improved: Dice results tell a story
+When you roll the dice, the popup now shows the space title (e.g., "Owner's Scope Proposal") instead of just "Roll: 5". The summary includes narrative context from the game's story text, and card effects use friendly names like "Work Packages" instead of cryptic letter codes.
+
+### Improved: Buttons match the situation
+- **End Turn** now says "Agree with Owner", "Accept Fee", or "Accept Scope" on negotiable spaces, so you know what you're agreeing to
+- **Try Again** shows as "Negotiate" on spaces where negotiation is available — no more hunting for the negotiate option
+
+---
+
 ## v2.27.0 - One-Screen Setup & Game Browser (February 10, 2026)
 
 **Release Date:** February 10, 2026

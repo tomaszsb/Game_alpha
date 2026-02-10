@@ -746,10 +746,12 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           <button
             onClick={() => onTryAgain(playerId)} // Pass playerId to onTryAgain
             className="try-again-button"
-            aria-label="Try Again on current space"
-            title="Restore to snapshot saved when you arrived at this space. Use this if you want to undo actions and try different choices. (Also called 'Negotiation')"
+            aria-label={spaceContent?.can_negotiate ? 'Negotiate on current space' : 'Try Again on current space'}
+            title={spaceContent?.can_negotiate
+              ? 'Negotiate for a better outcome. Resets your turn on this space so you can roll again and try for different results.'
+              : 'Restore to snapshot saved when you arrived at this space. Use this if you want to undo actions and try different choices.'}
           >
-            🔄 Try Again
+            {spaceContent?.can_negotiate ? '🔄 Negotiate' : '🔄 Try Again'}
           </button>
         )}
       </div>

@@ -82,6 +82,19 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       effectColor = colors.warning.main;
     }
 
+    // Friendly card type names for display
+    const friendlyCardTypeNames: { [key: string]: string } = {
+      'W': 'Work Package',
+      'B': 'Bank Loan',
+      'E': 'Expeditor',
+      'I': 'Investment',
+      'L': 'Life Event'
+    };
+    const getFriendlyCardName = (cardType: string, count: number): string => {
+      const base = friendlyCardTypeNames[cardType] || cardType;
+      return count > 1 ? base + 's' : base;
+    };
+
     let formattedValue = '';
     if (effect.type === 'money' && effect.value !== undefined) {
       const formatted = FormatUtils.formatResourceChange(effect.value, 'money');
@@ -90,13 +103,14 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       const formatted = FormatUtils.formatResourceChange(effect.value, 'time');
       formattedValue = formatted.text;
     } else if (effect.type === 'cards' && effect.cardCount && effect.cardType) {
+      const friendlyName = getFriendlyCardName(effect.cardType, effect.cardCount);
       const action = effect.cardAction || 'draw';
       if (action === 'draw') {
-        formattedValue = `+${effect.cardCount} ${effect.cardType} card${effect.cardCount > 1 ? 's' : ''}`;
+        formattedValue = `+${effect.cardCount} ${friendlyName}`;
       } else if (action === 'remove') {
-        formattedValue = `-${effect.cardCount} ${effect.cardType} card${effect.cardCount > 1 ? 's' : ''}`;
+        formattedValue = `-${effect.cardCount} ${friendlyName}`;
       } else if (action === 'replace') {
-        formattedValue = `↔ ${effect.cardCount} ${effect.cardType} card${effect.cardCount > 1 ? 's' : ''}`;
+        formattedValue = `↔ ${effect.cardCount} ${friendlyName}`;
       }
     }
 
@@ -163,9 +177,17 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     );
   };
 
+  // Look up space content for narrative title
+  const spaceContent = result.spaceName
+    ? dataService.getSpaceContent(result.spaceName, 'First')
+    : undefined;
+
   // Determine title and emoji based on dice value
   const isDiceRoll = result.diceValue > 0;
-  const title = isDiceRoll ? `Roll: ${result.diceValue}` : 'Action Result';
+  const narrativeTitle = spaceContent?.title || '';
+  const title = isDiceRoll
+    ? (narrativeTitle ? narrativeTitle : `Roll: ${result.diceValue}`)
+    : 'Action Result';
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
 
   // Check for negative effects (L cards, money loss, time loss) to trigger shake
@@ -240,6 +262,18 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       testId="dice-result-modal"
       shake={hasNegativeEffect}
     >
+      {/* Dice value subtitle when narrative title is used */}
+      {isDiceRoll && narrativeTitle && (
+        <div style={{
+          textAlign: 'center',
+          color: colors.text.secondary,
+          fontSize: '13px',
+          marginBottom: '12px'
+        }}>
+          🎲 Roll: {result.diceValue}
+        </div>
+      )}
+
       {/* Summary */}
       {result.summary && (
         <div style={{

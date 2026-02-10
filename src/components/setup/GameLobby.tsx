@@ -40,6 +40,7 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
   const [adminError, setAdminError] = useState('');
   const [activeGames, setActiveGames] = useState<GameInfo[]>([]);
   const [gamesLoading, setGamesLoading] = useState(false);
+  const [deletingGameId, setDeletingGameId] = useState<string | null>(null);
 
   // Check GitHub sync status on mount
   useEffect(() => {
@@ -158,6 +159,25 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
     }
     const normalizedId = gameId.trim().toUpperCase();
     onJoinGame(normalizedId, selectedMode === 'tv' ? 'tv' : undefined);
+  };
+
+  const handleDeleteGame = async (gameId: string) => {
+    if (deletingGameId) return;
+    if (!window.confirm(`Delete game ${gameId}? This cannot be undone.`)) return;
+    setDeletingGameId(gameId);
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games/${gameId}`, { method: 'DELETE' });
+      if (response.ok) {
+        setActiveGames(prev => prev.filter(g => g.gameId !== gameId));
+      } else {
+        setError(`Failed to delete ${gameId}`);
+      }
+    } catch (err) {
+      setError(`Cannot connect to server`);
+    } finally {
+      setDeletingGameId(null);
+    }
   };
 
   return (
@@ -306,6 +326,13 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
                         style={styles.gameActionButton}
                       >
                         View
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGame(game.gameId)}
+                        disabled={deletingGameId === game.gameId}
+                        style={styles.gameDeleteButton}
+                      >
+                        {deletingGameId === game.gameId ? '...' : '✕'}
                       </button>
                     </div>
                   ))
@@ -559,6 +586,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   gameActionButton: {
     padding: '0.25rem 0.6rem',
     backgroundColor: colors.primary.main,
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    flexShrink: 0,
+  },
+  gameDeleteButton: {
+    padding: '0.25rem 0.45rem',
+    backgroundColor: '#dc2626',
     color: 'white',
     border: 'none',
     borderRadius: '4px',

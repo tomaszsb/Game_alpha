@@ -111,9 +111,10 @@ export class DiceService implements IDiceService {
    * @param diceValue - The dice roll value
    * @returns A formatted summary string
    */
-  generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string {
+  generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string): string {
     if (effects.length === 0) {
-      return `Rolled ${diceValue} - No special effects this turn.`;
+      const prefix = storyText ? `${storyText} ` : '';
+      return `${prefix}Rolled ${diceValue} - No special effects this turn.`;
     }
 
     // Check if only choice effects exist (no actual dice effects like cards, money, time)
@@ -121,7 +122,8 @@ export class DiceService implements IDiceService {
     const hasOnlyChoiceEffect = actualEffects.length === 0 && effects.some(e => e.type === 'choice');
 
     if (hasOnlyChoiceEffect) {
-      return `Rolled ${diceValue} - No effect. Choose your destination.`;
+      const prefix = storyText ? `${storyText} ` : '';
+      return `${prefix}Rolled ${diceValue} - No effect. Choose your destination.`;
     }
 
     const summaryParts: string[] = [];
@@ -162,6 +164,7 @@ export class DiceService implements IDiceService {
                 hasNegative && !hasPositive ? 'Challenging turn.' :
                 'Mixed results.';
 
-    return `${tone} You ${summaryParts.join(', ')}.`;
+    const prefix = storyText ? `${storyText} ` : '';
+    return `${prefix}${tone} You ${summaryParts.join(', ')}.`;
   }
 }

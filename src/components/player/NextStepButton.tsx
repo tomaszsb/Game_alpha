@@ -109,6 +109,21 @@ function buildRemainingActionsTooltip(
   return `Complete ${remaining} actions: ${pendingActions.join(', ')}`;
 }
 
+// Get context-sensitive End Turn label based on space content
+function getEndTurnLabel(gameServices: IServiceContainer, playerId: string): string {
+  const player = gameServices.stateService.getPlayer(playerId);
+  if (!player) return 'End Turn';
+
+  const spaceContent = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
+  if (!spaceContent?.can_negotiate || !spaceContent.title) return 'End Turn';
+
+  const title = spaceContent.title.toLowerCase();
+  if (title.includes('owner')) return 'Agree with Owner';
+  if (title.includes('fee')) return 'Accept Fee';
+  if (title.includes('scope')) return 'Accept Scope';
+  return 'Accept & End Turn';
+}
+
 // Function to determine the state of the Next Step Button
 // LOGIC:
 // - VISIBLE: Always show on your turn (so player knows it exists)
@@ -138,6 +153,8 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
     availableActionTypes: gameState.availableActionTypes,
     actionsComplete
   });
+
+  const endTurnLabel = getEndTurnLabel(gameServices, playerId);
 
   // Check 1: Is there a blocking choice?
   if (awaitingChoice) {
@@ -169,7 +186,7 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
 
       return {
         visible: true,
-        label: 'End Turn',
+        label: endTurnLabel,
         disabled: true,
         tooltip
       };
@@ -182,7 +199,7 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
     const tooltip = buildRemainingActionsTooltip(gameServices, playerId, gameState);
     return {
       visible: true,
-      label: 'End Turn',
+      label: endTurnLabel,
       disabled: true,
       tooltip
     };
@@ -192,7 +209,7 @@ function getNextStepState(gameServices: IServiceContainer, playerId: string): Ne
   console.log('🟢 [NextStepButton] All actions complete - ENABLED');
   return {
     visible: true,
-    label: 'End Turn',
+    label: endTurnLabel,
     disabled: false,
     action: 'end-turn' as const,
     tooltip: 'All actions complete - click to end your turn'
