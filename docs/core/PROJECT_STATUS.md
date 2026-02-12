@@ -1,14 +1,23 @@
 # Project Status
 
-**Last Updated**: February 10, 2026
-**Current Phase**: External Testing Ready (v2.27.2)
-**Current Version**: 2.27.2
+**Last Updated**: February 12, 2026
+**Current Phase**: External Testing Ready (v2.27.3)
+**Current Version**: 2.27.3
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Live Save for Data Editor (February 12, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.27.3
+- **Changes**:
+  - Server-side save endpoint writes SOURCE_FILES and regenerates CLEAN_FILES
+  - JS port of Python data processing scripts (runs in Docker Alpine)
+  - Save button + Ctrl+S shortcut in Data Editor with inline status feedback
+  - Export button kept as secondary local backup option
 
 ### Data Editor Visual Redesign (February 10, 2026) ✅
 - **Status**: ✅ Complete

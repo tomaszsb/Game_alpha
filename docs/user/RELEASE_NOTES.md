@@ -2,6 +2,18 @@
 
 ---
 
+## v2.27.3 - Live Save for Data Editor (February 12, 2026)
+
+**Release Date:** February 12, 2026
+**Version:** 2.27.3
+**Status:** Alpha Testing
+**Type:** Admin Tool Improvement
+
+### New: Save game data changes instantly
+The Data Editor now has a "Save" button that writes your changes directly to the server and regenerates all game data files. No more downloading CSVs, replacing files, and running scripts — just click Save (or Ctrl+S) and your changes are live on the next page load. The old "Export" button is still available as a local backup option.
+
+---
+
 ## v2.27.2 - Data Editor Redesign (February 10, 2026)
 
 **Release Date:** February 10, 2026

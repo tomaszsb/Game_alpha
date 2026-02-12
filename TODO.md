@@ -21,6 +21,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 **Next Milestone:** UAT Completion (Dec 10-15)
 
 ### **Recently Completed:**
+- ✅ Feature: Live Save for Data Editor — server-side save + JS data processing (Feb 12, 2026)
 - ✅ Enhancement: Data Editor visual redesign with player preview panel (Feb 10, 2026)
 - ✅ Enhancement: Narrative UX — dice modals show space titles, friendly card names, context-sensitive End Turn labels, Negotiate button (Feb 10, 2026)
 - ✅ Feature: Merged Landing + Lobby into single 3-panel screen with admin game viewer (Feb 10, 2026)

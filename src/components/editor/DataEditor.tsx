@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
-import { isAdminAuthenticated, verifyAdminPassword } from '../../utils/adminAuth';
+import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../../utils/adminAuth';
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { DiceRollEditor } from './DiceRollEditor';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
-import { downloadSourceFiles } from './utils/csvExport';
+import { downloadSourceFiles, exportSpacesCSV, exportDiceRollCSV } from './utils/csvExport';
 import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
@@ -111,6 +111,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
   const [activeTab, setActiveTab] = useState<'spaces' | 'diceRolls'>('spaces');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Load data from DataService (CLEAN_FILES) and convert to source format
   useEffect(() => {
@@ -207,11 +209,48 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     setHasUnsavedChanges(true);
   }, []);
 
-  // Export handlers
+  // Save to server (live save)
+  const handleSave = useCallback(async () => {
+    const password = getAdminPassword();
+    if (!password) {
+      setSaveStatus({ type: 'error', message: 'Admin session expired. Please re-open the editor.' });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus(null);
+
+    try {
+      const backendURL = getBackendURL();
+      const spacesCSV = exportSpacesCSV(spacesData);
+      const diceRollCSV = exportDiceRollCSV(diceRollData);
+
+      const response = await fetch(`${backendURL}/api/admin/save-source-files`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, spacesCSV, diceRollCSV })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setHasUnsavedChanges(false);
+        setSaveStatus({ type: 'success', message: `Saved! ${data.files.length} files regenerated.` });
+        // Auto-clear success message after 4 seconds
+        setTimeout(() => setSaveStatus(prev => prev?.type === 'success' ? null : prev), 4000);
+      } else {
+        setSaveStatus({ type: 'error', message: data.error || 'Save failed' });
+      }
+    } catch (err) {
+      setSaveStatus({ type: 'error', message: 'Connection error: ' + (err instanceof Error ? err.message : String(err)) });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [spacesData, diceRollData]);
+
+  // Export handlers (local download fallback)
   const handleExport = useCallback(() => {
     downloadSourceFiles(spacesData, diceRollData);
-    setHasUnsavedChanges(false);
-    alert('Downloading Spaces.csv and DiceRoll Info.csv...\n\nReplace files in data/SOURCE_FILES/ and run:\npython data/process_game_data.py');
   }, [spacesData, diceRollData]);
 
   // Clear game data handler
@@ -265,18 +304,18 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       if (e.key === 'Escape') {
         handleClose();
       }
-      // Ctrl+S to export
+      // Ctrl+S to save to server
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        if (!isLoading && !error) {
-          handleExport();
+        if (!isLoading && !error && !isSaving) {
+          handleSave();
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose, handleExport, isLoading, error]);
+  }, [handleClose, handleSave, isLoading, error, isSaving]);
 
   return (
     <div style={styles.overlay}>
@@ -370,8 +409,23 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
             Clear Game Data
           </button>
           <div style={styles.footerRight}>
-            <button onClick={handleExport} style={styles.exportButton} disabled={isLoading || !!error}>
-              Export Source Files
+            {saveStatus && (
+              <span style={{
+                fontSize: '13px',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                backgroundColor: saveStatus.type === 'success' ? '#d4edda' : '#f8d7da',
+                color: saveStatus.type === 'success' ? '#155724' : '#721c24',
+                alignSelf: 'center'
+              }}>
+                {saveStatus.message}
+              </span>
+            )}
+            <button onClick={handleExport} style={styles.exportSecondaryButton} disabled={isLoading || !!error}>
+              Export
+            </button>
+            <button onClick={handleSave} style={styles.saveButton} disabled={isLoading || !!error || isSaving}>
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
@@ -615,7 +669,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     fontWeight: 600
   },
-  exportButton: {
+  exportSecondaryButton: {
+    background: '#f8f9fa',
+    color: '#495057',
+    border: '1px solid #dee2e6',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 500
+  },
+  saveButton: {
     background: '#28a745',
     color: 'white',
     border: 'none',

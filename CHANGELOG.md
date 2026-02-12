@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Live Save for Data Editor (February 12, 2026)
+
+**Problem:** The Data Editor could only export CSVs via browser download. To apply changes, admins had to manually replace files, run Python processing scripts, and redeploy — a multi-step workflow that made quick iterations painful.
+
+**Solution:** Added server-side save that writes source files and regenerates clean game data in one click. Ported both Python processing scripts (`process_game_data.py` and `process_remaining_files.py`) to a Node.js module so processing works inside the Docker Alpine container (no Python needed).
+
+**Changes:**
+- **NEW `server/processGameData.js`**: JS port of both Python data processing scripts — generates MOVEMENT.csv, GAME_CONFIG.csv, SPACE_CONTENT.csv, SPACE_EFFECTS.csv, and DICE_EFFECTS.csv from source CSVs (skips DICE_OUTCOMES.csv which has manual fixes)
+- **NEW `POST /api/admin/save-source-files` endpoint**: Admin-authenticated endpoint that writes SOURCE_FILES to dist, then regenerates all CLEAN_FILES server-side
+- **Save button in Data Editor**: Primary green "Save" button sends data to server; old "Export" becomes secondary for local backup
+- **Ctrl+S shortcut**: Now triggers live save instead of export download
+- **Save status toast**: Success/error feedback appears inline in the footer
+- **Admin password stored in sessionStorage**: Enables authenticated save calls without re-prompting
+
+**Files:**
+- `server/processGameData.js` (new)
+- `server/server.js` (new endpoint)
+- `src/components/editor/DataEditor.tsx` (Save button + save handler)
+- `src/utils/adminAuth.ts` (password storage for API calls)
+
 ### Enhancement: Data Editor Visual Redesign + Space Preview (February 10, 2026)
 
 **Problem:** The Data Editor's form layout didn't match how players see the game. Admins editing space data had to mentally map between raw CSV fields and the player experience — no visual connection between editor fields and what players actually see.

@@ -5,6 +5,7 @@
 import { getBackendURL } from './networkDetection';
 
 const SESSION_KEY = 'admin_authenticated';
+const PASSWORD_KEY = 'admin_password';
 
 /**
  * Check if admin is already authenticated this session
@@ -28,6 +29,7 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 
     if (response.ok) {
       sessionStorage.setItem(SESSION_KEY, 'true');
+      sessionStorage.setItem(PASSWORD_KEY, password);
       return true;
     }
     return false;
@@ -39,6 +41,17 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 /**
  * Clear admin authentication
  */
+/**
+ * Get stored admin password for authenticated API calls
+ */
+export function getAdminPassword(): string | null {
+  return sessionStorage.getItem(PASSWORD_KEY);
+}
+
+/**
+ * Clear admin authentication
+ */
 export function clearAdminAuth(): void {
   sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(PASSWORD_KEY);
 }

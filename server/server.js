@@ -14,6 +14,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { initializeWebSocket, broadcastStateUpdate, getRoomStats } from './websocket.js';
+import { processGameData } from './processGameData.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -326,6 +327,58 @@ app.post('/api/admin/verify', (req, res) => {
   } else {
     logVisitor(req, 'ADMIN_AUTH_FAILED');
     res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+});
+
+// ===== ADMIN: SAVE SOURCE FILES & REGENERATE =====
+
+app.post('/api/admin/save-source-files', (req, res) => {
+  const { password, spacesCSV, diceRollCSV } = req.body;
+
+  // Verify admin password
+  if (!password) {
+    return res.status(400).json({ success: false, error: 'Password required' });
+  }
+  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
+  const expectedHash = CONFIG.ADMIN_PASSWORD_HASH;
+  const match = inputHash.length === expectedHash.length &&
+    crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(expectedHash));
+  if (!match) {
+    logVisitor(req, 'SAVE_SOURCE_FILES_AUTH_FAILED');
+    return res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+
+  if (!spacesCSV || !diceRollCSV) {
+    return res.status(400).json({ success: false, error: 'spacesCSV and diceRollCSV are required' });
+  }
+
+  try {
+    // Write SOURCE_FILES to dist
+    const sourceDir = path.join(distPath, 'data', 'SOURCE_FILES');
+    const cleanDir = path.join(distPath, 'data', 'CLEAN_FILES');
+
+    fs.mkdirSync(sourceDir, { recursive: true });
+    fs.writeFileSync(path.join(sourceDir, 'Spaces.csv'), spacesCSV, 'utf-8');
+    fs.writeFileSync(path.join(sourceDir, 'DiceRoll Info.csv'), diceRollCSV, 'utf-8');
+
+    console.log('📝 SOURCE_FILES written to dist');
+
+    // Regenerate CLEAN_FILES
+    const results = processGameData(spacesCSV, diceRollCSV, cleanDir);
+    console.log(`✅ CLEAN_FILES regenerated (${results.length} files)`);
+
+    logVisitor(req, 'SAVE_SOURCE_FILES', {
+      filesGenerated: results.map(r => r.filename)
+    });
+
+    res.json({
+      success: true,
+      message: 'Source files saved and clean files regenerated',
+      files: results
+    });
+  } catch (err) {
+    console.error('❌ Failed to save source files:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -792,6 +845,7 @@ app.use((req, res, next) => {
         'POST /api/games/:gameId/state',
         'GET /api/logs',
         'GET /api/logs/summary',
+        'POST /api/admin/save-source-files',
         'POST /api/feedback',
         'GET /api/feedback',
         'GET /api/feedback/:id'
