@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { SpaceRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS } from './types/EditorTypes';
+import { SpaceRow, DiceRollRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS } from './types/EditorTypes';
 
 interface SpaceEditorProps {
   spaceFirst: SpaceRow | null;
   spaceSubsequent: SpaceRow | null;
   visitType: 'First' | 'Subsequent';
   allSpaceNames: string[];
+  diceRollData: DiceRollRow[];
   onVisitTypeChange: (visitType: 'First' | 'Subsequent') => void;
   onFieldChange: (visitType: 'First' | 'Subsequent', field: keyof SpaceRow, value: string) => void;
 }
@@ -45,11 +46,26 @@ function getTryAgainLabel(negotiate: string): string {
   return negotiate === 'YES' ? '🔄 Negotiate' : '🔄 Try Again';
 }
 
+// Dice roll type display config
+const DICE_TYPE_COLORS: Record<string, { emoji: string; color: string; label: string }> = {
+  'W Cards': { emoji: '🏗️', color: '#6f42c1', label: 'W Cards' },
+  'I Cards': { emoji: '💰', color: '#28a745', label: 'I Cards' },
+  'E cards': { emoji: '⚡', color: '#ff9800', label: 'E Cards' },
+  'Fees Paid': { emoji: '💰', color: '#dc3545', label: 'Fees' },
+  'Fee Paid': { emoji: '💰', color: '#dc3545', label: 'Fees' },
+  'Time outcomes': { emoji: '⏱️', color: '#fd7e14', label: 'Time/Destination' },
+  'Quality': { emoji: '⭐', color: '#17a2b8', label: 'Quality' },
+  'Multiplier': { emoji: '✖️', color: '#6610f2', label: 'Multiplier' },
+  'Multiplier ': { emoji: '✖️', color: '#6610f2', label: 'Multiplier' },
+  'Next Step': { emoji: '🚶', color: '#007bff', label: 'Next Step' },
+};
+
 export function SpaceEditor({
   spaceFirst,
   spaceSubsequent,
   visitType,
   allSpaceNames,
+  diceRollData,
   onVisitTypeChange,
   onFieldChange
 }: SpaceEditorProps): JSX.Element {
@@ -90,6 +106,18 @@ export function SpaceEditor({
   }
   if (currentSpace.Fee) {
     effects.push({ emoji: '💰', label: 'Fee', value: currentSpace.Fee, color: '#28a745' });
+  }
+
+  // Dice roll effects (from DiceRoll Info.csv)
+  const spaceDiceRolls = diceRollData.filter(
+    dr => dr.space_name === currentSpace.space_name && dr.visit_type === visitType
+  );
+  for (const dr of spaceDiceRolls) {
+    const diceType = DICE_TYPE_COLORS[dr.die_roll] || { emoji: '🎲', color: '#6c757d', label: dr.die_roll };
+    const rollValues = [dr.roll_1, dr.roll_2, dr.roll_3, dr.roll_4, dr.roll_5, dr.roll_6].filter(Boolean);
+    const uniqueValues = [...new Set(rollValues)];
+    const summary = uniqueValues.length <= 3 ? uniqueValues.join(', ') : `${uniqueValues[0]}...${uniqueValues[uniqueValues.length - 1]}`;
+    effects.push({ emoji: diceType.emoji, label: `Dice: ${diceType.label}`, value: summary, color: diceType.color });
   }
 
   // Movement destinations

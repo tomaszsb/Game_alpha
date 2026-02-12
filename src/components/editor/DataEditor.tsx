@@ -386,6 +386,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                   spaceSubsequent={spaceSubsequent}
                   visitType={visitType}
                   allSpaceNames={allSpaceNames}
+                  diceRollData={diceRollData}
                   onVisitTypeChange={setVisitType}
                   onFieldChange={handleFieldChange}
                 />

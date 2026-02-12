@@ -267,15 +267,28 @@ function processSpaceContent(spacesCsv) {
   return toCsv(contents, fieldnames);
 }
 
-function processSpaceEffects(spacesCsv) {
+function processSpaceEffects(spacesCsv, diceRollCsv) {
   const rows = parseCsvWithHeaders(spacesCsv);
   const effects = [];
+
+  // Build dice roll lookup: space|visit_type -> [die_roll types]
+  // Used to generate dice_outcome effect rows for non-movement dice types
+  const diceRollRows = parseCsvWithHeaders(diceRollCsv);
+  const diceRollLookup = new Map(); // key: "space|visitType" -> [{die_roll, rolls}]
+  for (const dr of diceRollRows) {
+    const dieRoll = (dr.die_roll || '').trim();
+    // Skip "Next Step" — that's movement, not an effect
+    if (dieRoll === 'Next Step') continue;
+    const key = `${dr.space_name}|${dr.visit_type}`;
+    if (!diceRollLookup.has(key)) diceRollLookup.set(key, []);
+    diceRollLookup.get(key).push({ die_roll: dieRoll });
+  }
 
   for (const row of rows) {
     const spaceName = row.space_name;
     const visitType = row.visit_type;
 
-    // Card effects
+    // Card effects (from Spaces.csv columns)
     const cardTypes = { w_card: 'W', b_card: 'B', i_card: 'I', l_card: 'L', e_card: 'E' };
     for (const [colName, cardLetter] of Object.entries(cardTypes)) {
       const cardValue = (row[colName] || '').trim();
@@ -297,6 +310,22 @@ function processSpaceEffects(spacesCsv) {
         condition: '',
         description: `${cardValue} ${cardLetter} cards`,
         trigger_type: triggerType
+      });
+    }
+
+    // Dice outcome effects (from DiceRoll Info.csv cross-reference)
+    const diceKey = `${spaceName}|${visitType}`;
+    const diceEntries = diceRollLookup.get(diceKey) || [];
+    for (const entry of diceEntries) {
+      effects.push({
+        space_name: spaceName,
+        visit_type: visitType,
+        effect_type: 'dice',
+        effect_action: 'dice_outcome',
+        effect_value: entry.die_roll,
+        condition: '',
+        description: `Roll for ${entry.die_roll}`,
+        trigger_type: 'manual'
       });
     }
 
@@ -406,7 +435,7 @@ export function processGameData(spacesCsv, diceRollCsv, outputDir) {
     'MOVEMENT.csv': processMovement(spacesCsv, diceRollCsv),
     'GAME_CONFIG.csv': processGameConfig(spacesCsv),
     'SPACE_CONTENT.csv': processSpaceContent(spacesCsv),
-    'SPACE_EFFECTS.csv': processSpaceEffects(spacesCsv),
+    'SPACE_EFFECTS.csv': processSpaceEffects(spacesCsv, diceRollCsv),
     'DICE_EFFECTS.csv': processDiceEffects(diceRollCsv),
   };
 
