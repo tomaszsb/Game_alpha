@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security: Production Hardening (February 13, 2026)
+
+**Changes:**
+- **CORS**: Restricted to `game.unravelcodes.com` + `localhost:3000/3001` (configurable via `ALLOWED_ORIGINS` env var)
+- **Security headers**: Added `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection`, `Referrer-Policy`
+- **Debug endpoints**: `/api/debug/state` and `/api/debug/games` now require admin password via `X-Admin-Password` header
+- **Path traversal**: `/api/feedback/:id` validates filename format (`feedback-{timestamp}-{hex}.json`) + `path.basename()`
+- **Error messages**: All API error responses return generic messages; internal details logged server-side only
+- **Source maps**: Disabled in production build (`sourcemap: false` in vite.config.ts)
+- **Console.log removal**: 586 statements stripped from 16 files (console.warn/error preserved)
+- **Test fixes**: Updated 4 test files to match component redesigns (CardsSection, NextStepButton, DiceResultModal, E2E-MultiPathMovement)
+- **Default password**: Removed from CHANGELOG documentation
+
+**Files:** `server/server.js`, `vite.config.ts`, `CHANGELOG.md`, 16 service/component files, 4 test files
+
 ### Feature: Data Editor Input Helpers + Add/Delete Spaces + Baseline Reset (February 12, 2026)
 
 **Problem:** Data entry in the Space Data Editor was tedious — card effects required exact strings, time/fee fields needed specific formats, LOGIC conditions needed complex text, there was no way to add or delete spaces, and no way to reset data to defaults.

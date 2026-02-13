@@ -2,6 +2,23 @@
 
 ---
 
+## v2.28.1 - Security Hardening & Production Cleanup (February 13, 2026)
+
+**Release Date:** February 13, 2026
+**Version:** 2.28.1
+**Status:** Alpha Testing
+**Type:** Security & Stability
+
+### Improved: Production-ready security
+- Server now restricts which websites can talk to it (CORS policy)
+- Debug endpoints locked behind admin password
+- Error messages no longer expose internal server details
+- Source maps removed from production builds (smaller download, no source code exposure)
+- All debug logging removed from game code (cleaner console, better performance)
+- Full test suite passing: 1316 tests, 0 failures
+
+---
+
 ## v2.28.0 - Data Editor Input Helpers & Space Management (February 12, 2026)
 
 **Release Date:** February 12, 2026

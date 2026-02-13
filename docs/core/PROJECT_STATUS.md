@@ -1,14 +1,28 @@
 # Project Status
 
-**Last Updated**: February 12, 2026
-**Current Phase**: External Testing Ready (v2.28.0)
-**Current Version**: 2.28.0
+**Last Updated**: February 13, 2026
+**Current Phase**: Release Preparation Complete (v2.28.1)
+**Current Version**: 2.28.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Security Hardening & Production Cleanup (February 13, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.28.1
+- **Changes**:
+  - 586 console.log statements removed from 16 service/component files
+  - CORS restricted to specific origins (game.unravelcodes.com + localhost)
+  - Security headers added (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
+  - Debug endpoints require admin auth
+  - Path traversal fixed in feedback endpoint
+  - Error messages sanitized (no internal details leaked)
+  - Source maps disabled in production
+  - TypeScript strict check passes clean
+  - All 1316 tests passing (88 files, 0 failures)
 
 ### Data Editor Input Helpers & Space Management (February 12, 2026) ✅
 - **Status**: ✅ Complete
@@ -652,78 +666,7 @@ This document provides a high-level overview of the current work status for the 
 
 ---
 
-## Current Work In Progress
+## Current Status
 
-*No active work items*
-
----
-
-### Contextual Dice Roll for Movement Spaces (January 9, 2026) ✅
-- **Status**: ✅ Complete
-- **Problem**: Dice-movement spaces (CHEAT-BYPASS, REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT) had no visible action button for rolling dice
-- **Solution**: Implemented contextual behavior based on space type:
-  - **CHEAT spaces**: Manual "Roll Dice" button (player actively cheating)
-  - **REG spaces**: Auto-rolls on arrival (clerk/examiner makes the decision)
-- **Narrative Rationale**:
-  - CHEAT: Player takes deliberate action to try to cheat the system
-  - REG: The clerk/examiner makes the decision, player just waits for result
-- **Technical Implementation**:
-  - `PlayerPanel.tsx`: Shows dice button only when `player.currentSpace.startsWith('CHEAT')`
-  - `TurnService.startTurn()`: Auto-rolls dice for REG dice-movement spaces after `handleMovementChoices()`
-  - Added 0.5s delay before auto-roll so player sees they arrived first
-- **Files Modified**:
-  - `src/components/player/PlayerPanel.tsx`
-  - `src/services/TurnService.ts`
-- **Test Player Bugs Fixed**:
-  - REG-DOB-PLAN-EXAM: No action or movement buttons ✅
-  - REG-DOB-PROF-CERT: No actions, gameplay stuck ✅
-  - CHEAT-BYPASS: No dice roll button ✅
-
-### Logic Movement Type Implementation (January 8, 2026) ✅
-- **Status**: ✅ Complete
-- **Problem**: REG-FDNY-FEE-REVIEW narrative said "answer questions" / "assess 4 criteria" but was free choice
-- **Decision**: After design review, only REG-FDNY-FEE-REVIEW uses `logic` type (other spaces remain strategic free choice)
-- **Resolution**:
-  - Updated MOVEMENT.csv - REG-FDNY-FEE-REVIEW now uses `logic` movement type with conditions
-  - Large projects (>$4M) → Must go through FDNY-PLAN-EXAM (fire safety review required)
-  - Small projects (≤$4M) → Can skip to REG-DOB-TYPE-SELECT
-  - All projects → CON-INITIATION and PM-DECISION-CHECK always available
-- **Tests**: Added 3 tests to MovementService.test.ts (all 32 tests pass)
-- **Files Modified**:
-  - `public/data/CLEAN_FILES/MOVEMENT.csv`
-  - `tests/services/MovementService.test.ts`
-- **Reference**: See `docs/technical/TECHNICAL_DEBT.md` - "Logic Movement Type Dead Code"
-
----
-
-## Up Next
-
-### 1. UAT Phase 3 - External Testing (In Progress)
-- **Status**: 🔵 In Progress
-- **Current**: ✅ Full game playthrough verified (Dec 28), ready for external testing
-- **Objective**: Validate gameplay with real players (3-5 testers)
-- **Completed**:
-  - ✅ Complete full game playthrough (start to finish) - Dec 28
-  - ✅ All critical engine bugs fixed
-- **Next Steps**:
-  - Test multiplayer with 2-4 players
-  - Test multi-device functionality (QR codes, short URLs)
-  - Recruit external testers
-  - Gather feedback on rules, UI/UX, balance, and performance
-- **Timeline**: Ready for external testing now
-
-### 2. Release Preparation (Planned)
-- **Status**: 🔵 Planned
-- **Target**: December 15-19, 2025
-- **Objective**: Prepare for public release
-- **Tasks**:
-  - Final code review and cleanup
-  - Remove debug code
-  - Production build and deployment setup
-  - Documentation finalization
-  - Security audit
-
-### 3. Public Release (Planned)
-- **Status**: 🔵 Planned
-- **Target**: December 19-20, 2025
-- **Objective**: Launch Game Alpha to public
+**Phase 4 (Release Preparation)**: ✅ Complete — security audit, debug cleanup, typecheck, full test suite passing
+**Next**: Phase 3B (External Testing) and Phase 5 (Public Release) — see TODO.md
