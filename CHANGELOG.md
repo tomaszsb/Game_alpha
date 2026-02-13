@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Live Dictionary from Dashboard API (February 13, 2026)
+
+**Problem:** Game bundled GLOSSARY.csv in its Docker image. Approved dictionary terms required a game redeploy to appear.
+
+**Solution:** `loadTerms()` now fetches from dashboard's `GET /api/glossary/live` endpoint first. Falls back to local CSV if dashboard is unreachable. Approved volunteer submissions appear in-game on next page refresh — no redeploy needed.
+
+**Changes:**
+- `src/dictionary/data/terms.ts`: API-first loading with `normalizeApiTerm()` to map JSON response to `GlossaryTerm` interface; CSV fallback preserved
+- `src/utils/dictionaryBridge.ts`: Verified URL pattern (`/dictionary?id=X&view=game`) remains stable
+
 ### Security: Production Hardening (February 13, 2026)
 
 **Changes:**

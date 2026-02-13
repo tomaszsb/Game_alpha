@@ -89,8 +89,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] Real device testing (iPhone SE, Galaxy, budget Android)
 - [ ] Network throttling tests (Slow 3G)
 
-### Dictionary Integration
-- [ ] Remote term data from dashboard API (instead of local `terms.ts`)
+### Dictionary Integration ✅ (Feb 13, 2026)
+- [x] Switch `loadTerms()` to fetch from dashboard API (`GET /api/glossary/live`) with CSV fallback
+- [x] Verify `GlossaryTerm` JSON shape matches game's interface
+- [x] Confirm `dictionaryBridge.ts` URL pattern still works
 
 ### Native App (Long-term)
 - [ ] Evaluate Capacitor for wrapping React app in native shell

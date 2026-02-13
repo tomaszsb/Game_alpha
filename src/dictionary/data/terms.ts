@@ -83,22 +83,71 @@ function parseGlossaryCsv(csvText: string): GlossaryTerm[] {
   }).filter(term => term.id && term.term);
 }
 
-// Configurable CSV paths - tries in order until one works
+// Dashboard API endpoint (primary source — live data)
+const GLOSSARY_API_URL = 'https://dashboard.unravelcodes.com/api/glossary/live';
+
+// CSV fallback paths (used when dashboard is unreachable)
 const CSV_PATHS = [
   '/data/CLEAN_FILES/GLOSSARY.csv',  // game_alpha location
   '/data/GLOSSARY.csv',               // standalone dictionary location
 ];
 
 /**
- * Load terms from the CSV file
- * Tries multiple paths to support different deployment configurations
+ * Normalize API response to match GlossaryTerm interface.
+ * Handles null → undefined conversions for optional fields.
+ */
+function normalizeApiTerm(raw: any): GlossaryTerm {
+  return {
+    id: raw.id || '',
+    term: raw.term || '',
+    definition: raw.definition || '',
+    definitionSimple: raw.definitionSimple || undefined,
+    instructions: raw.instructions || undefined,
+    category: raw.category || 'Construction',
+    source: (raw.source === 'game' ? 'game' : 'iqarius') as 'iqarius' | 'game',
+    needsReview: !!raw.needsReview,
+    aliases: Array.isArray(raw.aliases) ? raw.aliases : [],
+    relatedTerms: Array.isArray(raw.relatedTerms) ? raw.relatedTerms : [],
+    imageUrl: raw.imageUrl || undefined,
+    videoUrl: raw.videoUrl || undefined,
+    sourceUrl: raw.sourceUrl || undefined,
+    instagramLink: raw.instagramLink || undefined,
+    whyItMatters: raw.whyItMatters || undefined,
+    relatedDocuments: Array.isArray(raw.relatedDocuments) ? raw.relatedDocuments : undefined,
+    gameCardId: raw.gameCardId || undefined,
+    gameSpaceId: raw.gameSpaceId || undefined,
+    adCopy: raw.adCopy || undefined,
+    adLink: raw.adLink || undefined,
+    adImageUrl: raw.adImageUrl || undefined,
+  };
+}
+
+/**
+ * Load terms — tries dashboard API first, falls back to local CSV.
+ * API provides live data (approved volunteer submissions appear instantly).
+ * CSV fallback ensures the game works even if the dashboard is down.
  */
 export async function loadTerms(): Promise<GlossaryTerm[]> {
   if (termsCache) {
     return termsCache;
   }
 
-  // Try each path until one works
+  // Try dashboard API first (live data)
+  try {
+    const response = await fetch(GLOSSARY_API_URL);
+    if (response.ok) {
+      const rawTerms = await response.json();
+      if (Array.isArray(rawTerms) && rawTerms.length > 0) {
+        termsCache = rawTerms.map(normalizeApiTerm).filter(t => t.id && t.term);
+        buildCaches();
+        return termsCache;
+      }
+    }
+  } catch {
+    // API unreachable, fall through to CSV
+  }
+
+  // Fallback: try local CSV files
   for (const csvPath of CSV_PATHS) {
     try {
       const response = await fetch(csvPath + '?_=' + Date.now());
@@ -106,15 +155,14 @@ export async function loadTerms(): Promise<GlossaryTerm[]> {
         const csvText = await response.text();
         termsCache = parseGlossaryCsv(csvText);
         buildCaches();
-        console.log(`Dictionary loaded from ${csvPath}: ${termsCache.length} terms`);
         return termsCache;
       }
-    } catch (error) {
+    } catch {
       // Try next path
     }
   }
 
-  console.error('Failed to load glossary terms from any path:', CSV_PATHS);
+  console.warn('Dictionary: failed to load from API and CSV fallbacks');
   termsCache = [];
   return termsCache;
 }
