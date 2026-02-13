@@ -2,6 +2,24 @@
 
 ---
 
+## v2.28.0 - Data Editor Input Helpers & Space Management (February 12, 2026)
+
+**Release Date:** February 12, 2026
+**Version:** 2.28.0
+**Status:** Alpha Testing
+**Type:** Admin Tool Improvement
+
+### New: Smarter data entry and space management
+The Data Editor now makes editing much faster with input helpers:
+- **Card effects** use a dropdown with common presets (Draw 1, Draw 2, Remove 1, etc.) — no more typing exact strings. Custom values are still supported via "Custom..." option.
+- **Time and Fee fields** have number spinners with auto-formatting — type "5" and get "5 days", type "8" and get "8%".
+- **LOGIC spaces** show a structured builder with Question, YES destination, and NO destination fields instead of requiring you to type the full condition string.
+- **Add spaces** with the green "+" button in the browser panel — enter a name and both First/Subsequent visits are created automatically.
+- **Delete spaces** by hovering over a space name to reveal the delete button. Both visit rows and associated dice roll data are removed.
+- **Reset to Baseline** button restores all space and dice roll data to the original defaults baked into the Docker image — the ultimate safety net.
+
+---
+
 ## v2.27.3 - Live Save for Data Editor (February 12, 2026)
 
 **Release Date:** February 12, 2026

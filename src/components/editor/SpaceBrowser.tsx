@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SpaceRow, PHASES } from './types/EditorTypes';
 
 interface SpaceBrowserProps {
@@ -9,6 +9,8 @@ interface SpaceBrowserProps {
   onSearchChange: (term: string) => void;
   phaseFilter: string;
   onPhaseFilterChange: (phase: string) => void;
+  onAddSpace?: (spaceName: string) => void;
+  onDeleteSpace?: (spaceName: string) => void;
 }
 
 export function SpaceBrowser({
@@ -18,8 +20,15 @@ export function SpaceBrowser({
   onSelectSpace,
   onSearchChange,
   phaseFilter,
-  onPhaseFilterChange
+  onPhaseFilterChange,
+  onAddSpace,
+  onDeleteSpace
 }: SpaceBrowserProps): JSX.Element {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState('');
+  const [addError, setAddError] = useState('');
+  const [hoveredSpace, setHoveredSpace] = useState<string | null>(null);
+
   // Get unique space names (since each space has 2 rows: First/Subsequent)
   const uniqueSpaces = React.useMemo(() => {
     const seen = new Set<string>();
@@ -51,16 +60,58 @@ export function SpaceBrowser({
     return groups;
   }, [filteredSpaces]);
 
+  const existingNames = React.useMemo(() => {
+    return new Set(spaces.map(s => s.space_name));
+  }, [spaces]);
+
+  const handleAddConfirm = () => {
+    const formatted = newSpaceName.trim().toUpperCase().replace(/\s+/g, '-');
+    if (!formatted) {
+      setAddError('Name is required');
+      return;
+    }
+    if (!/^[A-Z0-9-]+$/.test(formatted)) {
+      setAddError('Only letters, numbers, and hyphens');
+      return;
+    }
+    if (existingNames.has(formatted)) {
+      setAddError('Space already exists');
+      return;
+    }
+    onAddSpace?.(formatted);
+    setShowAddDialog(false);
+    setNewSpaceName('');
+    setAddError('');
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, spaceName: string) => {
+    e.stopPropagation();
+    if (confirm(`Delete "${spaceName}"?\n\nThis removes both First and Subsequent visit data.`)) {
+      onDeleteSpace?.(spaceName);
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.searchSection}>
-        <input
-          type="text"
-          placeholder="Search spaces..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          style={styles.searchInput}
-        />
+        <div style={styles.searchRow}>
+          <input
+            type="text"
+            placeholder="Search spaces..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={styles.searchInput}
+          />
+          {onAddSpace && (
+            <button
+              onClick={() => setShowAddDialog(true)}
+              style={styles.addButton}
+              title="Add new space"
+            >
+              +
+            </button>
+          )}
+        </div>
         <select
           value={phaseFilter}
           onChange={(e) => onPhaseFilterChange(e.target.value)}
@@ -72,6 +123,37 @@ export function SpaceBrowser({
           ))}
         </select>
       </div>
+
+      {/* Add Space Dialog */}
+      {showAddDialog && (
+        <div style={styles.addDialog}>
+          <div style={styles.addDialogTitle}>New Space</div>
+          <input
+            type="text"
+            placeholder="SPACE-NAME"
+            value={newSpaceName}
+            onChange={(e) => {
+              setNewSpaceName(e.target.value.toUpperCase().replace(/\s+/g, '-'));
+              setAddError('');
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddConfirm()}
+            autoFocus
+            style={styles.addInput}
+          />
+          {addError && <div style={styles.addError}>{addError}</div>}
+          <div style={styles.addDialogButtons}>
+            <button
+              onClick={() => { setShowAddDialog(false); setNewSpaceName(''); setAddError(''); }}
+              style={styles.addCancelBtn}
+            >
+              Cancel
+            </button>
+            <button onClick={handleAddConfirm} style={styles.addConfirmBtn}>
+              Create
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={styles.spaceCount}>
         {filteredSpaces.length} of {uniqueSpaces.length} spaces
@@ -85,15 +167,28 @@ export function SpaceBrowser({
               <div
                 key={space.space_name}
                 onClick={() => onSelectSpace(space.space_name)}
+                onMouseEnter={() => setHoveredSpace(space.space_name)}
+                onMouseLeave={() => setHoveredSpace(null)}
                 style={{
                   ...styles.spaceItem,
                   ...(selectedSpaceId === space.space_name ? styles.spaceItemSelected : {})
                 }}
               >
                 <span style={styles.spaceName}>{space.space_name}</span>
-                {space.requires_dice_roll?.toLowerCase() === 'yes' && (
-                  <span style={styles.diceIndicator} title="Requires dice roll">🎲</span>
-                )}
+                <span style={styles.spaceActions}>
+                  {space.requires_dice_roll?.toLowerCase() === 'yes' && (
+                    <span style={styles.diceIndicator} title="Requires dice roll">🎲</span>
+                  )}
+                  {onDeleteSpace && hoveredSpace === space.space_name && selectedSpaceId !== space.space_name && (
+                    <span
+                      onClick={(e) => handleDeleteClick(e, space.space_name)}
+                      style={styles.deleteButton}
+                      title="Delete space"
+                    >
+                      ✕
+                    </span>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -122,13 +217,32 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '8px'
   },
+  searchRow: {
+    display: 'flex',
+    gap: '6px'
+  },
   searchInput: {
-    width: '100%',
+    flex: 1,
     padding: '8px 12px',
     fontSize: '14px',
     border: '1px solid #ced4da',
     borderRadius: '4px',
     boxSizing: 'border-box'
+  },
+  addButton: {
+    width: '36px',
+    height: '36px',
+    border: '1px solid #28a745',
+    borderRadius: '4px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0
   },
   phaseSelect: {
     width: '100%',
@@ -137,6 +251,58 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #ced4da',
     borderRadius: '4px',
     backgroundColor: 'white'
+  },
+  addDialog: {
+    margin: '0 12px',
+    padding: '12px',
+    backgroundColor: '#e8f5e9',
+    border: '1px solid #a5d6a7',
+    borderRadius: '6px',
+    marginBottom: '4px'
+  },
+  addDialogTitle: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#2e7d32',
+    marginBottom: '8px'
+  },
+  addInput: {
+    width: '100%',
+    padding: '8px 10px',
+    fontSize: '14px',
+    border: '1px solid #ced4da',
+    borderRadius: '4px',
+    boxSizing: 'border-box',
+    fontFamily: 'monospace'
+  },
+  addError: {
+    fontSize: '12px',
+    color: '#dc3545',
+    marginTop: '4px'
+  },
+  addDialogButtons: {
+    display: 'flex',
+    gap: '6px',
+    marginTop: '8px',
+    justifyContent: 'flex-end'
+  },
+  addCancelBtn: {
+    padding: '5px 12px',
+    border: '1px solid #ced4da',
+    borderRadius: '4px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    fontSize: '13px'
+  },
+  addConfirmBtn: {
+    padding: '5px 12px',
+    border: 'none',
+    borderRadius: '4px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 600
   },
   spaceCount: {
     padding: '8px 12px',
@@ -180,9 +346,22 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
   },
+  spaceActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    flexShrink: 0
+  },
   diceIndicator: {
-    marginLeft: '4px',
     fontSize: '12px'
+  },
+  deleteButton: {
+    fontSize: '14px',
+    color: '#dc3545',
+    cursor: 'pointer',
+    padding: '0 4px',
+    fontWeight: 'bold',
+    opacity: 0.7
   },
   noResults: {
     padding: '20px',

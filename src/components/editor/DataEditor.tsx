@@ -287,6 +287,80 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     }
   };
 
+  // Add new space
+  const handleAddSpace = useCallback((spaceName: string) => {
+    // Determine default phase from the first space (or SETUP)
+    const defaultPhase = spacesData.length > 0 ? spacesData[0].phase : 'SETUP';
+    const newFirst: SpaceRow = {
+      space_name: spaceName,
+      phase: defaultPhase,
+      visit_type: 'First',
+      Title: '', Event: '', Action: '', Outcome: '',
+      w_card: '', b_card: '', i_card: '', l_card: '', e_card: '',
+      Time: '', Fee: '',
+      space_1: '', space_2: '', space_3: '', space_4: '', space_5: '',
+      Negotiate: '', requires_dice_roll: '', path: 'Main', rolls: ''
+    };
+    const newSubsequent: SpaceRow = { ...newFirst, visit_type: 'Subsequent' };
+    setSpacesData(prev => [...prev, newFirst, newSubsequent]);
+    setSelectedSpaceId(spaceName);
+    setHasUnsavedChanges(true);
+  }, [spacesData]);
+
+  // Delete space
+  const handleDeleteSpace = useCallback((spaceName: string) => {
+    setSpacesData(prev => prev.filter(s => s.space_name !== spaceName));
+    setDiceRollData(prev => prev.filter(d => d.space_name !== spaceName));
+    if (selectedSpaceId === spaceName) {
+      setSelectedSpaceId(null);
+    }
+    setHasUnsavedChanges(true);
+  }, [selectedSpaceId]);
+
+  // Reset to baseline
+  const handleResetToBaseline = useCallback(async () => {
+    const confirmed = window.confirm(
+      'Reset to Baseline?\n\n' +
+      'This will revert ALL space and dice roll data to the original defaults ' +
+      'that were baked into the Docker image.\n\n' +
+      'Any changes you\'ve saved will be lost.\n\n' +
+      'Continue?'
+    );
+    if (!confirmed) return;
+
+    const password = getAdminPassword();
+    if (!password) {
+      setSaveStatus({ type: 'error', message: 'Admin session expired. Please re-open the editor.' });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus(null);
+
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/admin/reset-to-baseline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSaveStatus({ type: 'success', message: 'Reset to baseline! Reloading data...' });
+        // Reload the data from server
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        setSaveStatus({ type: 'error', message: data.error || 'Reset failed' });
+      }
+    } catch (err) {
+      setSaveStatus({ type: 'error', message: 'Connection error: ' + (err instanceof Error ? err.message : String(err)) });
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
   // Handle close with unsaved changes warning
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -378,6 +452,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                   onSearchChange={setSearchTerm}
                   phaseFilter={phaseFilter}
                   onPhaseFilterChange={setPhaseFilter}
+                  onAddSpace={handleAddSpace}
+                  onDeleteSpace={handleDeleteSpace}
                 />
               </div>
               <div style={styles.editorPanel}>
@@ -406,9 +482,14 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
 
         {/* Footer */}
         <div style={styles.footer}>
-          <button onClick={handleClearData} style={styles.clearButton}>
-            Clear Game Data
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleClearData} style={styles.clearButton}>
+              Clear Game Data
+            </button>
+            <button onClick={handleResetToBaseline} style={styles.resetButton} disabled={isSaving}>
+              Reset to Baseline
+            </button>
+          </div>
           <div style={styles.footerRight}>
             {saveStatus && (
               <span style={{
@@ -664,6 +745,16 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#dc3545',
     color: 'white',
     border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 600
+  },
+  resetButton: {
+    background: 'white',
+    color: '#dc3545',
+    border: '2px solid #dc3545',
     padding: '8px 16px',
     borderRadius: '4px',
     cursor: 'pointer',

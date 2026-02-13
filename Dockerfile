@@ -25,6 +25,9 @@ COPY . .
 # ENV must be set in the same RUN command for Vite to see it
 RUN VITE_GIT_COMMIT=${GIT_COMMIT} npm run build
 
+# Copy SOURCE_FILES as immutable baseline for reset functionality
+RUN cp -r dist/data/SOURCE_FILES dist/data/BASELINE
+
 # Create data directory for persistence
 RUN mkdir -p /app/data
 

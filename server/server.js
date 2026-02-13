@@ -382,6 +382,70 @@ app.post('/api/admin/save-source-files', (req, res) => {
   }
 });
 
+// ===== ADMIN: RESET TO BASELINE =====
+
+app.post('/api/admin/reset-to-baseline', (req, res) => {
+  const { password } = req.body;
+
+  // Verify admin password
+  if (!password) {
+    return res.status(400).json({ success: false, error: 'Password required' });
+  }
+  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
+  const expectedHash = CONFIG.ADMIN_PASSWORD_HASH;
+  const match = inputHash.length === expectedHash.length &&
+    crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(expectedHash));
+  if (!match) {
+    logVisitor(req, 'RESET_BASELINE_AUTH_FAILED');
+    return res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+
+  try {
+    const baselineDir = path.join(distPath, 'data', 'BASELINE');
+    const sourceDir = path.join(distPath, 'data', 'SOURCE_FILES');
+    const cleanDir = path.join(distPath, 'data', 'CLEAN_FILES');
+
+    if (!fs.existsSync(baselineDir)) {
+      return res.status(404).json({
+        success: false,
+        error: 'No baseline found. This feature requires a Docker deployment with BASELINE files.'
+      });
+    }
+
+    // Copy all CSV files from BASELINE to SOURCE_FILES
+    fs.mkdirSync(sourceDir, { recursive: true });
+    const baselineFiles = fs.readdirSync(baselineDir).filter(f => f.endsWith('.csv'));
+
+    for (const file of baselineFiles) {
+      fs.copyFileSync(path.join(baselineDir, file), path.join(sourceDir, file));
+    }
+
+    console.log(`📋 Copied ${baselineFiles.length} baseline files to SOURCE_FILES`);
+
+    // Read the restored files and regenerate CLEAN_FILES
+    const spacesCSV = fs.readFileSync(path.join(sourceDir, 'Spaces.csv'), 'utf-8');
+    const diceRollCSV = fs.readFileSync(path.join(sourceDir, 'DiceRoll Info.csv'), 'utf-8');
+    const results = processGameData(spacesCSV, diceRollCSV, cleanDir);
+
+    console.log(`✅ CLEAN_FILES regenerated from baseline (${results.length} files)`);
+
+    logVisitor(req, 'RESET_TO_BASELINE', {
+      filesRestored: baselineFiles,
+      filesGenerated: results.map(r => r.filename)
+    });
+
+    res.json({
+      success: true,
+      message: 'Data reset to baseline successfully',
+      filesRestored: baselineFiles,
+      filesGenerated: results
+    });
+  } catch (err) {
+    console.error('❌ Failed to reset to baseline:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ===== GAME MANAGEMENT ENDPOINTS =====
 
 app.get('/api/games', (req, res) => {
@@ -846,6 +910,7 @@ app.use((req, res, next) => {
         'GET /api/logs',
         'GET /api/logs/summary',
         'POST /api/admin/save-source-files',
+        'POST /api/admin/reset-to-baseline',
         'POST /api/feedback',
         'GET /api/feedback',
         'GET /api/feedback/:id'

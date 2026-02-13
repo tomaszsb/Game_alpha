@@ -327,17 +327,13 @@ export function SpaceEditor({
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.costs}` }}>
           <legend style={styles.legend}>⏱️ Time & Costs</legend>
           <div style={styles.fieldRow}>
-            <Field
-              label="⏱️ Time"
+            <TimeField
               value={currentSpace.Time}
               onChange={(v) => handleChange('Time', v)}
-              placeholder="e.g., 5 days"
             />
-            <Field
-              label="💰 Fee"
+            <FeeField
               value={currentSpace.Fee}
               onChange={(v) => handleChange('Fee', v)}
-              placeholder="e.g., 8%"
             />
           </div>
         </fieldset>
@@ -345,40 +341,50 @@ export function SpaceEditor({
         {/* Group 5: Movement */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.movement}` }}>
           <legend style={styles.legend}>🚶 Movement Destinations</legend>
-          <div style={styles.fieldRow}>
-            <SpaceSelectField
-              label="Space 1"
-              value={currentSpace.space_1}
-              options={allSpaceNames}
-              onChange={(v) => handleChange('space_1', v)}
+          {currentSpace.path === 'LOGIC' ? (
+            <LogicBuilder
+              currentSpace={currentSpace}
+              allSpaceNames={allSpaceNames}
+              onFieldChange={handleChange}
             />
-            <SpaceSelectField
-              label="Space 2"
-              value={currentSpace.space_2}
-              options={allSpaceNames}
-              onChange={(v) => handleChange('space_2', v)}
-            />
-          </div>
-          <div style={styles.fieldRow}>
-            <SpaceSelectField
-              label="Space 3"
-              value={currentSpace.space_3}
-              options={allSpaceNames}
-              onChange={(v) => handleChange('space_3', v)}
-            />
-            <SpaceSelectField
-              label="Space 4"
-              value={currentSpace.space_4}
-              options={allSpaceNames}
-              onChange={(v) => handleChange('space_4', v)}
-            />
-            <SpaceSelectField
-              label="Space 5"
-              value={currentSpace.space_5}
-              options={allSpaceNames}
-              onChange={(v) => handleChange('space_5', v)}
-            />
-          </div>
+          ) : (
+            <>
+              <div style={styles.fieldRow}>
+                <SpaceSelectField
+                  label="Space 1"
+                  value={currentSpace.space_1}
+                  options={allSpaceNames}
+                  onChange={(v) => handleChange('space_1', v)}
+                />
+                <SpaceSelectField
+                  label="Space 2"
+                  value={currentSpace.space_2}
+                  options={allSpaceNames}
+                  onChange={(v) => handleChange('space_2', v)}
+                />
+              </div>
+              <div style={styles.fieldRow}>
+                <SpaceSelectField
+                  label="Space 3"
+                  value={currentSpace.space_3}
+                  options={allSpaceNames}
+                  onChange={(v) => handleChange('space_3', v)}
+                />
+                <SpaceSelectField
+                  label="Space 4"
+                  value={currentSpace.space_4}
+                  options={allSpaceNames}
+                  onChange={(v) => handleChange('space_4', v)}
+                />
+                <SpaceSelectField
+                  label="Space 5"
+                  value={currentSpace.space_5}
+                  options={allSpaceNames}
+                  onChange={(v) => handleChange('space_5', v)}
+                />
+              </div>
+            </>
+          )}
         </fieldset>
 
         {/* Group 6: Button Labels Preview */}
@@ -432,6 +438,8 @@ function Field({ label, value, onChange, readOnly, type = 'text', placeholder }:
   );
 }
 
+const CARD_PRESETS = ['Draw 1', 'Draw 2', 'Draw 3', 'Remove 1', 'Replace 1', 'No change'];
+
 interface CardFieldProps {
   type: string;
   value: string;
@@ -440,6 +448,9 @@ interface CardFieldProps {
 
 function CardField({ type, value, onChange }: CardFieldProps): JSX.Element {
   const cc = CARD_COLORS[type];
+  const isPreset = !value || CARD_PRESETS.includes(value);
+  const [useCustom, setUseCustom] = useState(!isPreset && !!value);
+
   return (
     <div style={styles.field}>
       <label style={{ ...styles.label, color: cc.text }}>
@@ -448,17 +459,54 @@ function CardField({ type, value, onChange }: CardFieldProps): JSX.Element {
         </span>
         {' '}{cc.label}
       </label>
-      <input
-        type="text"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={`e.g., Draw 1`}
-        style={{
-          ...styles.input,
-          backgroundColor: value ? cc.bg : undefined,
-          borderColor: value ? cc.border + '60' : undefined,
-        }}
-      />
+      {useCustom ? (
+        <div style={styles.comboRow}>
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Custom card effect..."
+            style={{
+              ...styles.input,
+              flex: 1,
+              backgroundColor: value ? cc.bg : undefined,
+              borderColor: value ? cc.border + '60' : undefined,
+            }}
+          />
+          <button
+            onClick={() => { setUseCustom(false); if (!CARD_PRESETS.includes(value)) onChange(''); }}
+            style={styles.comboToggle}
+            title="Switch to dropdown"
+          >
+            ▼
+          </button>
+        </div>
+      ) : (
+        <div style={styles.comboRow}>
+          <select
+            value={value || ''}
+            onChange={(e) => {
+              if (e.target.value === '__custom__') {
+                setUseCustom(true);
+              } else {
+                onChange(e.target.value);
+              }
+            }}
+            style={{
+              ...styles.select,
+              flex: 1,
+              backgroundColor: value ? cc.bg : undefined,
+              borderColor: value ? cc.border + '60' : undefined,
+            }}
+          >
+            <option value="">-- None --</option>
+            {CARD_PRESETS.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+            <option value="__custom__">Custom...</option>
+          </select>
+        </div>
+      )}
     </div>
   );
 }
@@ -541,6 +589,262 @@ function TextareaField({ label, value, onChange }: TextareaFieldProps): JSX.Elem
         style={styles.textarea}
         rows={3}
       />
+    </div>
+  );
+}
+
+// LOGIC condition builder for spaces with path === 'LOGIC'
+// Parses/generates: "{question} YES - {yesDest} - NO - {noDest}"
+function parseLogicCondition(value: string): { question: string; yes: string; no: string } | null {
+  if (!value) return null;
+  const match = value.match(/^(.+?)\s+YES\s*-\s*(.+?)\s*-\s*NO\s*-\s*(.+)$/i);
+  if (!match) return null;
+  return { question: match[1].trim(), yes: match[2].trim(), no: match[3].trim() };
+}
+
+function LogicBuilder({
+  currentSpace,
+  allSpaceNames,
+  onFieldChange
+}: {
+  currentSpace: SpaceRow;
+  allSpaceNames: string[];
+  onFieldChange: (field: keyof SpaceRow, value: string) => void;
+}): JSX.Element {
+  // Build logic entries for each space_N field
+  const spaceFields = ['space_1', 'space_2', 'space_3', 'space_4', 'space_5'] as const;
+  const destOptions = [...allSpaceNames, 'Space 2', 'Space 3', 'Space 4', 'Space 5'];
+
+  return (
+    <div style={styles.logicBuilder}>
+      {spaceFields.map((field, idx) => {
+        const raw = currentSpace[field];
+        if (!raw && idx > 0) {
+          // Only show empty slots after the first if space_1 exists
+          if (!currentSpace.space_1 && idx > 0) return null;
+          // Show a simple add field for empty subsequent slots
+          return (
+            <div key={field}>
+              <label style={styles.label}>Destination {idx + 1}</label>
+              <SpaceSelectField
+                label=""
+                value=""
+                options={allSpaceNames}
+                onChange={(v) => onFieldChange(field, v)}
+              />
+            </div>
+          );
+        }
+        if (!raw) {
+          return (
+            <div key={field}>
+              <label style={styles.label}>Destination {idx + 1} (LOGIC)</label>
+              <LogicFieldBuilder
+                value=""
+                allSpaceNames={destOptions}
+                onChange={(v) => onFieldChange(field, v)}
+              />
+            </div>
+          );
+        }
+
+        const parsed = parseLogicCondition(raw);
+        if (!parsed) {
+          // Non-parseable: show as plain text + space select
+          return (
+            <div key={field} style={{ marginBottom: '8px' }}>
+              <label style={styles.label}>Destination {idx + 1}</label>
+              <input
+                type="text"
+                value={raw}
+                onChange={(e) => onFieldChange(field, e.target.value)}
+                style={styles.input}
+              />
+              <div style={styles.logicFallback}>Complex value - edit as text</div>
+            </div>
+          );
+        }
+
+        return (
+          <div key={field} style={{ marginBottom: '8px' }}>
+            <label style={styles.label}>Destination {idx + 1} (LOGIC)</label>
+            <LogicFieldBuilder
+              value={raw}
+              allSpaceNames={destOptions}
+              onChange={(v) => onFieldChange(field, v)}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LogicFieldBuilder({
+  value,
+  allSpaceNames,
+  onChange
+}: {
+  value: string;
+  allSpaceNames: string[];
+  onChange: (v: string) => void;
+}): JSX.Element {
+  const parsed = parseLogicCondition(value);
+  const [question, setQuestion] = useState(parsed?.question || '');
+  const [yesDest, setYesDest] = useState(parsed?.yes || '');
+  const [noDest, setNoDest] = useState(parsed?.no || '');
+
+  const rebuild = (q: string, y: string, n: string) => {
+    if (!q && !y && !n) {
+      onChange('');
+    } else {
+      onChange(`${q} YES - ${y} - NO - ${n}`);
+    }
+  };
+
+  return (
+    <div style={styles.logicBuilder}>
+      <div style={styles.logicRow}>
+        <span style={styles.logicLabel}>Question</span>
+        <input
+          type="text"
+          value={question}
+          onChange={(e) => { setQuestion(e.target.value); rebuild(e.target.value, yesDest, noDest); }}
+          placeholder="e.g., Is scope ≤ $4M?"
+          style={{ ...styles.input, flex: 1 }}
+        />
+      </div>
+      <div style={styles.logicRow}>
+        <span style={styles.logicYes}>YES →</span>
+        <select
+          value={allSpaceNames.includes(yesDest) ? yesDest : ''}
+          onChange={(e) => { setYesDest(e.target.value); rebuild(question, e.target.value, noDest); }}
+          style={{ ...styles.select, flex: 1 }}
+        >
+          <option value="">-- Select --</option>
+          {allSpaceNames.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+        {yesDest && !allSpaceNames.includes(yesDest) && (
+          <input
+            type="text"
+            value={yesDest}
+            onChange={(e) => { setYesDest(e.target.value); rebuild(question, e.target.value, noDest); }}
+            style={{ ...styles.input, flex: 1 }}
+          />
+        )}
+      </div>
+      <div style={styles.logicRow}>
+        <span style={styles.logicNo}>NO →</span>
+        <select
+          value={allSpaceNames.includes(noDest) ? noDest : ''}
+          onChange={(e) => { setNoDest(e.target.value); rebuild(question, yesDest, e.target.value); }}
+          style={{ ...styles.select, flex: 1 }}
+        >
+          <option value="">-- Select --</option>
+          {allSpaceNames.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+        {noDest && !allSpaceNames.includes(noDest) && (
+          <input
+            type="text"
+            value={noDest}
+            onChange={(e) => { setNoDest(e.target.value); rebuild(question, yesDest, e.target.value); }}
+            style={{ ...styles.input, flex: 1 }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Time field: number spinner + "days" label
+function TimeField({ value, onChange }: { value: string; onChange: (v: string) => void }): JSX.Element {
+  const timeMatch = value?.match(/^(\d+)\s*days?$/i);
+  const isNumeric = !value || timeMatch;
+
+  if (!isNumeric) {
+    // Fallback to plain text for non-standard values
+    return (
+      <div style={styles.field}>
+        <label style={styles.label}>⏱️ Time</label>
+        <input
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          style={styles.input}
+        />
+      </div>
+    );
+  }
+
+  const numDays = timeMatch ? parseInt(timeMatch[1]) : 0;
+
+  return (
+    <div style={styles.field}>
+      <label style={styles.label}>⏱️ Time</label>
+      <div style={styles.helperRow}>
+        <input
+          type="number"
+          min="0"
+          value={numDays || ''}
+          onChange={(e) => {
+            const n = parseInt(e.target.value);
+            if (!e.target.value || n <= 0) {
+              onChange('');
+            } else {
+              onChange(`${n} ${n === 1 ? 'day' : 'days'}`);
+            }
+          }}
+          style={{ ...styles.input, flex: 1 }}
+          placeholder="0"
+        />
+        <span style={styles.helperSuffix}>days</span>
+      </div>
+    </div>
+  );
+}
+
+// Fee field: number input + "%" suffix
+function FeeField({ value, onChange }: { value: string; onChange: (v: string) => void }): JSX.Element {
+  const feeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
+  const isPercent = !value || feeMatch;
+
+  if (!isPercent) {
+    return (
+      <div style={styles.field}>
+        <label style={styles.label}>💰 Fee</label>
+        <input
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          style={styles.input}
+        />
+      </div>
+    );
+  }
+
+  const numFee = feeMatch ? feeMatch[1] : '';
+
+  return (
+    <div style={styles.field}>
+      <label style={styles.label}>💰 Fee</label>
+      <div style={styles.helperRow}>
+        <input
+          type="number"
+          min="0"
+          step="0.5"
+          value={numFee}
+          onChange={(e) => {
+            if (!e.target.value) {
+              onChange('');
+            } else {
+              onChange(`${e.target.value}%`);
+            }
+          }}
+          style={{ ...styles.input, flex: 1 }}
+          placeholder="0"
+        />
+        <span style={styles.helperSuffix}>%</span>
+      </div>
     </div>
   );
 }
@@ -847,5 +1151,71 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     color: '#868e96',
     fontStyle: 'italic',
+  },
+
+  // Combo / helper styles
+  comboRow: {
+    display: 'flex',
+    gap: '4px',
+    alignItems: 'center',
+  },
+  comboToggle: {
+    padding: '6px 8px',
+    border: '1px solid #ced4da',
+    borderRadius: '4px',
+    backgroundColor: '#f8f9fa',
+    cursor: 'pointer',
+    fontSize: '12px',
+    flexShrink: 0,
+  },
+  helperRow: {
+    display: 'flex',
+    gap: '6px',
+    alignItems: 'center',
+  },
+  helperSuffix: {
+    fontSize: '14px',
+    color: '#495057',
+    fontWeight: 500,
+    flexShrink: 0,
+  },
+
+  // LOGIC builder
+  logicBuilder: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '8px',
+  },
+  logicRow: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+  },
+  logicLabel: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#343a40',
+    minWidth: '60px',
+    flexShrink: 0,
+  },
+  logicYes: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#28a745',
+    minWidth: '40px',
+    flexShrink: 0,
+  },
+  logicNo: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#dc3545',
+    minWidth: '40px',
+    flexShrink: 0,
+  },
+  logicFallback: {
+    fontSize: '11px',
+    color: '#868e96',
+    fontStyle: 'italic',
+    marginTop: '4px',
   },
 };

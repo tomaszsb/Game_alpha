@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: February 12, 2026
-**Current Phase**: External Testing Ready (v2.27.3)
-**Current Version**: 2.27.3
+**Current Phase**: External Testing Ready (v2.28.0)
+**Current Version**: 2.28.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Data Editor Input Helpers & Space Management (February 12, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.28.0
+- **Changes**:
+  - Card effect combobox with presets (Draw 1-3, Remove 1, Replace 1, No change)
+  - Time/Fee number spinners with auto-formatting
+  - LOGIC condition builder (Question + YES/NO destinations)
+  - Add/Delete spaces with validation and confirmation
+  - Reset to Baseline: Dockerfile BASELINE copy + server endpoint + UI button
 
 ### Live Save for Data Editor (February 12, 2026) ✅
 - **Status**: ✅ Complete

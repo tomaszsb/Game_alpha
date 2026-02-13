@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Data Editor Input Helpers + Add/Delete Spaces + Baseline Reset (February 12, 2026)
+
+**Problem:** Data entry in the Space Data Editor was tedious — card effects required exact strings, time/fee fields needed specific formats, LOGIC conditions needed complex text, there was no way to add or delete spaces, and no way to reset data to defaults.
+
+**Solution:** Added input helpers (card dropdowns, time/fee spinners, LOGIC condition builder), CRUD operations for spaces, and a baseline reset feature.
+
+**Changes:**
+- **Add Space**: "+" button in SpaceBrowser opens dialog to create a new space (auto-uppercased, validates format/duplicates, creates First+Subsequent rows)
+- **Delete Space**: Hover-reveal "✕" button per space item with confirmation dialog, removes both visit rows + associated dice roll data
+- **Card Effect Dropdowns**: CardField now uses combobox with presets (Draw 1-3, Remove 1, Replace 1, No change) + "Custom..." fallback for conditional values
+- **Time Helper**: Number spinner + "days" label, auto-formats to "N day(s)", falls back to text for non-standard values
+- **Fee Helper**: Number spinner + "%" suffix, auto-formats to "N%", falls back to text for non-numeric values
+- **LOGIC Condition Builder**: For LOGIC-path spaces, shows structured UI (Question, YES→ destination, NO→ destination) that auto-generates condition strings
+- **Reset to Baseline**: Dockerfile copies SOURCE_FILES to immutable BASELINE at build time; new `POST /api/admin/reset-to-baseline` endpoint restores originals; "Reset to Baseline" button in editor footer
+- **SPA fallback**: Added reset endpoint to available endpoints list
+
+**Files:**
+- `src/components/editor/SpaceBrowser.tsx` (add/delete UI + dialogs)
+- `src/components/editor/DataEditor.tsx` (add/delete/reset handlers + button)
+- `src/components/editor/SpaceEditor.tsx` (card combobox, time/fee helpers, LOGIC builder)
+- `server/server.js` (reset-to-baseline endpoint)
+- `Dockerfile` (BASELINE copy step)
+
 ### Feature: Live Save for Data Editor (February 12, 2026)
 
 **Problem:** The Data Editor could only export CSVs via browser download. To apply changes, admins had to manually replace files, run Python processing scripts, and redeploy — a multi-step workflow that made quick iterations painful.
