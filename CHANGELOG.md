@@ -424,7 +424,7 @@ Game state is fetched from the server API at submit time (3s timeout, fails grac
 **Server-side:**
 - Added `POST /api/admin/verify` endpoint to Express server
 - SHA-256 password hashing with `crypto.timingSafeEqual` for timing-safe comparison
-- Default password: `unravel2026` (configurable via `ADMIN_PASSWORD_HASH` env var in docker-compose)
+- Password configurable via `ADMIN_PASSWORD_HASH` env var in docker-compose
 - Logs auth success/failure events
 
 **Frontend:**

@@ -50,8 +50,21 @@ const CONFIG = {
 };
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['https://game.unravelcodes.com', 'http://localhost:3000', 'http://localhost:3001']
+}));
 app.use(express.json({ limit: '10mb' }));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 // ===== STATIC FILE SERVING (Production) =====
 // Serve the built frontend from the dist folder
@@ -378,7 +391,7 @@ app.post('/api/admin/save-source-files', (req, res) => {
     });
   } catch (err) {
     console.error('❌ Failed to save source files:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to save source files' });
   }
 });
 
@@ -442,7 +455,7 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
     });
   } catch (err) {
     console.error('❌ Failed to reset to baseline:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to reset to baseline' });
   }
 });
 
@@ -676,7 +689,8 @@ app.get('/api/logs', (req, res) => {
       file: CONFIG.LOG_FILE
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Failed to read logs:', err.message);
+    res.status(500).json({ error: 'Failed to read logs' });
   }
 });
 
@@ -710,7 +724,8 @@ app.get('/api/logs/summary', (req, res) => {
       visitors: Array.from(uniqueIPs)
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Failed to read log summary:', err.message);
+    res.status(500).json({ error: 'Failed to read log summary' });
   }
 });
 
@@ -770,7 +785,14 @@ app.delete('/api/gamestate', (req, res) => {
   res.json({ success: true, message: 'Game state reset', previousVersion });
 });
 
+// Debug endpoints - admin only
 app.get('/api/debug/state', (req, res) => {
+  const passwordHash = req.headers['x-admin-password']
+    ? crypto.createHash('sha256').update(req.headers['x-admin-password']).digest('hex')
+    : '';
+  if (passwordHash !== CONFIG.ADMIN_PASSWORD_HASH) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const game = games.get(LEGACY_GAME_ID);
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify({
@@ -781,6 +803,12 @@ app.get('/api/debug/state', (req, res) => {
 });
 
 app.get('/api/debug/games', (req, res) => {
+  const passwordHash = req.headers['x-admin-password']
+    ? crypto.createHash('sha256').update(req.headers['x-admin-password']).digest('hex')
+    : '';
+  if (passwordHash !== CONFIG.ADMIN_PASSWORD_HASH) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const allGames = {};
   games.forEach((data, id) => {
     allGames[id] = {
@@ -880,16 +908,21 @@ app.get('/api/feedback', (req, res) => {
 
 app.get('/api/feedback/:id', (req, res) => {
   try {
-    const filePath = path.join(FEEDBACK_DIR, req.params.id);
+    const sanitizedId = path.basename(req.params.id);
+    if (!/^feedback-\d+-[a-f0-9]+\.json$/.test(sanitizedId)) {
+      return res.status(400).json({ error: 'Invalid feedback ID format' });
+    }
+    const filePath = path.join(FEEDBACK_DIR, sanitizedId);
 
-    if (!req.params.id.endsWith('.json') || !fs.existsSync(filePath)) {
+    if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Report not found' });
     }
 
     const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Feedback read error:', err.message);
+    res.status(500).json({ error: 'Failed to read feedback report' });
   }
 });
 
@@ -931,8 +964,7 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error('❌ Server error:', err);
   res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message
+    error: 'Internal Server Error'
   });
 });
 
