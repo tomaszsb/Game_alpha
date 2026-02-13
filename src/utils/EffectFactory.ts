@@ -32,7 +32,6 @@ export class EffectFactory {
     const cardSource = `card:${card.card_id}`;
     const cardName = card.card_name || 'Unknown Card';
 
-    console.log(`🏭 EFFECT_FACTORY: Creating effects from card: ${cardName} (${card.card_id})`);
 
     // Determine sourceType based on card type (B = owner, L = bank, I = investment)
     const sourceTypeMap: { [key: string]: 'owner' | 'bank' | 'investment' | 'other' } = {
@@ -260,7 +259,6 @@ export class EffectFactory {
     // Note: Target handling is now done by EffectEngineService.processCardEffects()
     // The EffectFactory just creates the base effects and passes target info via card data
     if (card.target && card.target !== '' && card.target.toLowerCase() !== 'self') {
-      console.log(`   Card has target: ${card.target} - target resolution will be handled by EffectEngineService`);
       
       // Add log effect for targeted card
       effects.push({
@@ -285,7 +283,6 @@ export class EffectFactory {
       }
     });
 
-    console.log(`🏭 EFFECT_FACTORY: Generated ${effects.length} effects from card ${cardName}`);
     return effects;
   }
 
@@ -311,8 +308,6 @@ export class EffectFactory {
     const effects: Effect[] = [];
     const spaceSource = `space:${spaceName}`;
 
-    console.log(`🏭 EFFECT_FACTORY: Creating effects from space entry: ${spaceName} (${visitType} visit)`);
-    console.log(`   Found ${spaceEffects.length} space effects to process`);
 
     // FIRST: Log effect for space entry (must be processed before any other space effects)
     // Skip logging if this is during game initialization
@@ -330,7 +325,6 @@ export class EffectFactory {
 
     // THEN: Process each space effect
     spaceEffects.forEach((spaceEffect, index) => {
-      console.log(`   Processing space effect ${index + 1}: ${spaceEffect.effect_type} - ${spaceEffect.effect_action} ${spaceEffect.effect_value}`);
 
       const effectsFromSpaceEffect = this.parseSpaceEffect(spaceEffect, playerId, spaceSource);
       effects.push(...effectsFromSpaceEffect);
@@ -338,12 +332,10 @@ export class EffectFactory {
 
     // FINALLY: Process space action if present
     if (spaceConfig && spaceConfig.action && spaceConfig.action !== '') {
-      console.log(`   Processing space action: ${spaceConfig.action}`);
       const actionEffects = this.createEffectsFromSpaceAction(spaceConfig.action, playerId, spaceName, spaceSource, playerName);
       effects.push(...actionEffects);
     }
 
-    console.log(`🏭 EFFECT_FACTORY: Generated ${effects.length} effects from space ${spaceName}`);
     return effects;
   }
 
@@ -359,7 +351,6 @@ export class EffectFactory {
   private static createEffectsFromSpaceAction(action: string, playerId: string, spaceName: string, spaceSource: string, playerName?: string): Effect[] {
     const effects: Effect[] = [];
     
-    console.log(`🎯 EFFECT_FACTORY: Processing space action '${action}' for player ${playerId} at ${spaceName}`);
     
     switch (action.toUpperCase()) {
       case 'GOTO_JAIL':
@@ -373,7 +364,6 @@ export class EffectFactory {
             action: 'space_effect'
           }
         });
-        console.log(`   Generated GOTO_JAIL trigger: existing space effects will handle penalties`);
         break;
         
       case 'PAY_TAX':
@@ -388,7 +378,6 @@ export class EffectFactory {
             reason: `Space action: Pay tax at ${spaceName}`
           }
         });
-        console.log(`   Generated RESOURCE_CHANGE effect: ${playerId} pays $500 tax`);
         break;
         
       case 'AUCTION':
@@ -410,7 +399,6 @@ export class EffectFactory {
         break;
     }
     
-    console.log(`🎯 EFFECT_FACTORY: Generated ${effects.length} effects from action '${action}'`);
     return effects;
   }
 
@@ -433,12 +421,9 @@ export class EffectFactory {
     const effects: Effect[] = [];
     const diceSource = `dice:${spaceName}`;
 
-    console.log(`🏭 EFFECT_FACTORY: Creating effects from dice roll: ${diceResult} at ${spaceName}`);
-    console.log(`   Found ${diceEffects.length} dice effects to process`);
 
     // Process each dice effect
     diceEffects.forEach((diceEffect, index) => {
-      console.log(`   Processing dice effect ${index + 1}: ${diceEffect.effect_type} for roll ${diceResult}`);
       
       const effectsFromDiceEffect = this.parseDiceEffect(diceEffect, diceResult, playerId, diceSource);
       effects.push(...effectsFromDiceEffect);
@@ -455,7 +440,6 @@ export class EffectFactory {
       }
     });
 
-    console.log(`🏭 EFFECT_FACTORY: Generated ${effects.length} effects from dice roll ${diceResult}`);
     return effects;
   }
 
@@ -479,7 +463,6 @@ export class EffectFactory {
               reason: spaceEffect.description || "Owner's personal seed money investment"
             }
           });
-          console.log(`   💰 Created OWNER_SEED_MONEY effect for player ${playerId}`);
           break;
         }
 
@@ -520,7 +503,6 @@ export class EffectFactory {
         if (ConditionEvaluator.isDiceConditionStatic(spaceEffect.condition)) {
           // This is a dice-conditional card effect - skip it here
           // It will be processed when the dice is actually rolled
-          console.log(`   ⏭️ Skipping dice-conditional card effect: condition="${spaceEffect.condition}" - handled by dice roll logic`);
           break;
         }
 
@@ -575,7 +557,6 @@ export class EffectFactory {
             reason: `${spaceEffect.description || 'Space effect'}: ${spaceEffect.effect_action} ${spaceEffect.effect_value}`
           }
         });
-        console.log(`   Created FEE_DEDUCTION effect: ${feeType} - "${spaceEffect.effect_value}"`);
         break;
 
       default:
@@ -603,11 +584,9 @@ export class EffectFactory {
     // Check for "No change" or similar values that mean nothing happens
     const noChangePatterns = ['no change', 'no effect', 'none', 'n/a', '-'];
     if (noChangePatterns.some(pattern => rollEffect.toLowerCase().trim() === pattern)) {
-      console.log(`   Dice effect for roll ${diceRoll}: ${diceEffect.effect_type} = "${rollEffect}" (no effect)`);
       return effects;
     }
 
-    console.log(`   Dice effect for roll ${diceRoll}: ${diceEffect.effect_type} = "${rollEffect}"`);
 
     // Handle "X Cards" format in effect_type (e.g., "W Cards", "B Cards")
     // This is used in DICE_ROLL_INFO.csv where the effect_type column contains the card type
@@ -634,7 +613,6 @@ export class EffectFactory {
               reason: `Dice effect: Draw ${count} ${cardType} card${count > 1 ? 's' : ''} (rolled ${diceRoll})`
             }
           });
-          console.log(`   ✅ Created CARD_DRAW effect for ${count} ${cardType} card(s)`);
 
           // Add scope recalculation if W cards are drawn
           if (cardType === 'W') {
@@ -658,7 +636,6 @@ export class EffectFactory {
               reason: `Dice effect: Remove ${count} ${cardType} card${count > 1 ? 's' : ''} (rolled ${diceRoll})`
             }
           });
-          console.log(`   ✅ Created CARD_DISCARD effect for removing ${count} ${cardType} card(s)`);
 
           // Add scope recalculation if W cards are removed
           if (cardType === 'W') {
@@ -694,7 +671,6 @@ export class EffectFactory {
               reason: `Dice effect: Replace ${count} ${cardType} card${count > 1 ? 's' : ''} - drawing new card (rolled ${diceRoll})`
             }
           });
-          console.log(`   ✅ Created CARD_DISCARD + CARD_DRAW effects for replacing ${count} ${cardType} card(s)`);
 
           // Add scope recalculation if W cards are replaced (affects scope either way)
           if (cardType === 'W') {
@@ -768,7 +744,6 @@ export class EffectFactory {
                 reason: `Design fee: ${rollEffect} of project scope (rolled ${diceRoll})`
               }
             });
-            console.log(`   ✅ Created design fee effect: ${percentage}% of project scope (${feeCategory})`);
           }
         } else {
           const moneyAmount = this.parseMoneyEffect(rollEffect);
@@ -1083,7 +1058,6 @@ export class EffectFactory {
     }
 
     const description = card.description;
-    console.log(`🎲 EFFECT_FACTORY: Parsing conditional effect for ${cardName}: ${description}`);
 
     // Extract the conditional ranges and their effects
     // Pattern: "On X-Y [effect]. On Z-W [effect]." or "On X-Y [effect]. On Z-W no effect."
@@ -1098,7 +1072,6 @@ export class EffectFactory {
       const max = parseInt(match[2]);
       const effectText = match[3].trim();
       
-      console.log(`   Found range: ${min}-${max} -> "${effectText}"`);
       
       // Parse the effect text to create actual effects
       const rangeEffects = this.parseConditionalEffectText(effectText, card, playerId, cardSource, cardName);
@@ -1115,7 +1088,6 @@ export class EffectFactory {
       return null;
     }
     
-    console.log(`🎲 EFFECT_FACTORY: Created conditional effect with ${ranges.length} ranges`);
     
     return {
       effectType: 'CONDITIONAL_EFFECT',
@@ -1178,7 +1150,6 @@ export class EffectFactory {
         }
       });
       
-      console.log(`   Parsed time effect: ${timeAmount} days`);
     }
     
     // Could add more parsing patterns here for other effect types (money, cards, etc.)

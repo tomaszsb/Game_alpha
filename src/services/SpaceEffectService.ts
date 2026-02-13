@@ -91,7 +91,6 @@ export class SpaceEffectService implements ISpaceEffectService {
           'turn_effect',
           `Draw ${drawCount} ${cardType} card${drawCount > 1 ? 's' : ''} from space effect`
         );
-        console.log(`Player ${player.name} draws ${drawCount} ${cardType} cards:`, drawnCardIds);
       }
     } else if (effect.includes('Remove') || effect.includes('Discard')) {
       const removeCount = this.diceService.parseNumericValue(effect);
@@ -129,7 +128,6 @@ export class SpaceEffectService implements ISpaceEffectService {
           'turn_effect',
           `Replace ${replaceCount} ${cardType} cards - adding new cards`
         );
-        console.log(`Player ${player.name} replaces ${replaceCount} ${cardType} cards:`, drawnCardIds);
       }
     }
 
@@ -164,7 +162,6 @@ export class SpaceEffectService implements ISpaceEffectService {
         moneyChange = -Math.floor((projectScope * percentage) / 100);
         const feeType = player.currentSpace.includes('ARCH') ? 'Architect' : 'Engineer';
         description = `${feeType} design fee: ${percentage}% of $${projectScope.toLocaleString()} = $${Math.abs(moneyChange).toLocaleString()}`;
-        console.log(`💸 ${description}`);
       } else {
         // Default: percentage of current money (for other effects)
         moneyChange = Math.floor((player.money * percentage) / 100);
@@ -234,7 +231,6 @@ export class SpaceEffectService implements ISpaceEffectService {
       quality = 'MED';
     }
 
-    console.log(`👷 Player ${player.name} contractor quality: ${quality}`);
 
     // Update player's contractor info, preserving existing multiplier if set
     const existingContractor = player.contractor || { quality: 'MED', multiplier: 1 };
@@ -277,7 +273,6 @@ export class SpaceEffectService implements ISpaceEffectService {
       return this.calculateAndDeductConstructionCost(playerId);
     }
 
-    console.log(`💰 Player ${player.name} contractor multiplier: ${multiplier}`);
 
     // Update player's contractor info, preserving existing quality if set
     const existingContractor = player.contractor || { quality: 'MED', multiplier: 1 };
@@ -326,7 +321,6 @@ export class SpaceEffectService implements ISpaceEffectService {
     // Get total work cost from W cards
     const totalWorkCost = this.gameRulesService.calculateTotalWorkCost(playerId);
     if (totalWorkCost <= 0) {
-      console.log(`🔨 No work cost to calculate (total work cost: $0)`);
       return this.stateService.getGameState();
     }
 
@@ -344,11 +338,6 @@ export class SpaceEffectService implements ISpaceEffectService {
     // Calculate construction cost
     const constructionCost = Math.round(totalWorkCost * multiplierPercent * qualityCoeff);
 
-    console.log(`🔨 CONSTRUCTION COST CALCULATION:`);
-    console.log(`   📊 Total Work Cost: $${totalWorkCost.toLocaleString()}`);
-    console.log(`   👷 Quality: ${contractor.quality} (×${qualityCoeff})`);
-    console.log(`   🎲 Multiplier: ${contractor.multiplier} (${(multiplierPercent * 100).toFixed(0)}%)`);
-    console.log(`   💵 Construction Cost: $${constructionCost.toLocaleString()}`);
 
     // Deduct the construction cost
     if (constructionCost > 0) {
@@ -398,7 +387,6 @@ export class SpaceEffectService implements ISpaceEffectService {
       // Apply percentage-based fee
       const feeAmount = Math.floor((player.money * value) / 100);
       newMoney -= feeAmount;
-      console.log(`Player ${player.name} pays ${value}% fee (${feeAmount}) based on condition: ${effect.condition}`);
     } else if (effect.effect_action === 'add_per_amount') {
       // Calculate based on condition (e.g., "per_200k" = per $200,000)
       let additionalAmount = value;
@@ -408,7 +396,6 @@ export class SpaceEffectService implements ISpaceEffectService {
         const totalBorrowed = player.loans?.reduce((sum, loan) => sum + loan.principal, 0) || 0;
         const multiplier = Math.floor(totalBorrowed / 200000);
         additionalAmount = value * multiplier;
-        console.log(`Player ${player.name} gains ${additionalAmount} money (${value} per $200K, borrowed ${totalBorrowed})`);
       } else {
         // For other conditions, use value directly (fallback)
         console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
@@ -419,7 +406,6 @@ export class SpaceEffectService implements ISpaceEffectService {
 
     newMoney = Math.max(0, newMoney); // Ensure money doesn't go below 0
 
-    console.log(`Player ${player.name} money change: ${effect.effect_action} ${value}, new total: ${newMoney}`);
 
     return this.stateService.updatePlayer({
       id: playerId,
@@ -454,7 +440,6 @@ export class SpaceEffectService implements ISpaceEffectService {
         const totalBorrowed = player.loans?.reduce((sum, loan) => sum + loan.principal, 0) || 0;
         const multiplier = Math.floor(totalBorrowed / 200000);
         additionalTime = value * multiplier;
-        console.log(`Player ${player.name} gains ${additionalTime} time (${value} per $200K, borrowed ${totalBorrowed})`);
       } else {
         // For other conditions, use value directly (fallback)
         console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
@@ -465,7 +450,6 @@ export class SpaceEffectService implements ISpaceEffectService {
 
     newTime = Math.max(0, newTime); // Ensure time doesn't go below 0
 
-    console.log(`Player ${player.name} time change: ${effect.effect_action} ${value}, new total: ${newTime}`);
 
     return this.stateService.updatePlayer({
       id: playerId,

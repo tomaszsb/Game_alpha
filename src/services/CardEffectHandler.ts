@@ -71,11 +71,9 @@ export class CardEffectHandler implements ICardEffectHandler {
     const source = payload.source || context.source;
     const reason = payload.reason || 'Effect processing';
 
-    console.log(`🔧 CARD_HANDLER: Drawing ${payload.count} ${payload.cardType} card(s) for player ${payload.playerId}`);
 
     try {
       const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
-      console.log(`    ✅ Drew ${drawnCards.length} card(s): ${drawnCards.join(', ')}`);
 
       // Show notification for L (Life Event) card draws
       this.notifyLifeEventDraw(payload.playerId, payload.cardType, drawnCards);
@@ -140,12 +138,10 @@ export class CardEffectHandler implements ICardEffectHandler {
 
     // If cardIds is empty but cardType and count are provided, determine cards at runtime
     if ((!cardIdsToDiscard || cardIdsToDiscard.length === 0) && payload.cardType && payload.count) {
-      console.log(`🔧 CARD_HANDLER: Finding ${payload.count} ${payload.cardType} card(s) to discard for player ${payload.playerId}`);
 
       const allCardsOfType = this.cardService.getPlayerCards(payload.playerId, payload.cardType);
 
       if (allCardsOfType.length === 0) {
-        console.log(`    ⚠️  Player ${payload.playerId} has no ${payload.cardType} cards to discard - effect skipped`);
         return {
           success: true,
           effectType: effect.effectType,
@@ -177,8 +173,6 @@ export class CardEffectHandler implements ICardEffectHandler {
       }
     }
 
-    console.log(`🔧 CARD_HANDLER: Discarding ${cardIdsToDiscard.length} card(s) for player ${payload.playerId}`);
-    console.log(`    Card IDs: ${cardIdsToDiscard.join(', ')}`);
 
     try {
       const discardResult = await this.cardService.discardCards(payload.playerId, cardIdsToDiscard, source, reason);
@@ -191,7 +185,6 @@ export class CardEffectHandler implements ICardEffectHandler {
         };
       }
 
-      console.log(`    ✅ Successfully discarded ${cardIdsToDiscard.length} card(s)`);
       return {
         success: true,
         effectType: effect.effectType,
@@ -221,13 +214,9 @@ export class CardEffectHandler implements ICardEffectHandler {
     }
 
     const { payload } = effect;
-    console.log(`🎴 CARD_HANDLER: Activating card ${payload.cardId} for player ${payload.playerId} for ${payload.duration} turns`);
-    console.log(`    Source: ${payload.source || context.source}`);
-    console.log(`    Reason: ${payload.reason || 'Effect processing'}`);
 
     try {
       this.cardService.activateCard(payload.playerId, payload.cardId, payload.duration);
-      console.log(`✅ Card ${payload.cardId} activated successfully for ${payload.duration} turns`);
       return { success: true, effectType: effect.effectType };
     } catch (error) {
       console.error(`❌ Error activating card ${payload.cardId}:`, error);
@@ -254,23 +243,17 @@ export class CardEffectHandler implements ICardEffectHandler {
 
     const { payload } = effect;
     try {
-      console.log(`🎴 CARD_HANDLER: Processing PLAY_CARD for ${payload.cardId} (player ${payload.playerId})`);
-      console.log(`    Source: ${payload.source}`);
 
       // Check if this is an auto-play scenario (e.g., OWNER-FUND-INITIATION)
       const isAutoPlay = payload.source?.startsWith('auto_play:');
 
       if (isAutoPlay) {
-        console.log(`    💰 Auto-play detected - applying card effects before finalizing`);
         await this.cardService.applyCardEffects(payload.playerId, payload.cardId);
-        console.log(`    ✅ Card effects applied for ${payload.cardId}`);
       } else {
-        console.log(`    ℹ️  Manual play - effects already applied by PlayerActionService`);
       }
 
       // Finalize card (move to active or discard based on duration)
       this.cardService.finalizePlayedCard(payload.playerId, payload.cardId);
-      console.log(`    ✅ Finalized card ${payload.cardId}`);
 
       return { success: true, effectType: effect.effectType };
     } catch (error) {
@@ -322,22 +305,14 @@ export class CardEffectHandler implements ICardEffectHandler {
     const isFundingSpace = fundingSpaces.includes(currentSpaceName);
     const isFundingCard = payload.cardType === 'B' || payload.cardType === 'I';
 
-    console.log(`🔍 Checking funding auto-play condition`);
-    console.log(`    - context.metadata?.spaceName = "${currentSpaceName}"`);
-    console.log(`    - isFundingSpace = ${isFundingSpace}`);
-    console.log(`    - isFundingCard = ${isFundingCard} (type: ${payload.cardType})`);
-    console.log(`    - drawnCards.length = ${drawnCards.length}`);
 
     if (!isFundingSpace || !isFundingCard || drawnCards.length === 0) {
       if (isFundingSpace && !isFundingCard) {
-        console.log(`    ℹ️ Funding space but non-funding card type (${payload.cardType}) - skipping auto-play`);
       } else {
-        console.log(`    ⚠️ Funding auto-play NOT triggered (not a funding space or no cards drawn)`);
       }
       return null;
     }
 
-    console.log(`    💰 ${currentSpaceName}: Automatically playing drawn funding card(s): ${drawnCards.join(', ')}`);
 
     // Get card details for auto-action event
     const drawnCardData = this.dataService?.getCardById(drawnCards[0]);
@@ -347,7 +322,6 @@ export class CardEffectHandler implements ICardEffectHandler {
 
     // Extract funding amount
     const fundingAmount = this.extractFundingAmount(drawnCardData, payload.cardType);
-    console.log(`    💰 Funding amount extracted: $${fundingAmount.toLocaleString()}`);
 
     // Determine event type and message
     const isOwnerFunding = currentSpaceName === 'OWNER-FUND-INITIATION';
@@ -379,7 +353,6 @@ export class CardEffectHandler implements ICardEffectHandler {
       }
     }));
 
-    console.log(`    💰 Created ${playCardEffects.length} PLAY_CARD effect(s) to auto-apply funding`);
     return {
       success: true,
       effectType: 'CARD_DRAW',
@@ -409,7 +382,6 @@ export class CardEffectHandler implements ICardEffectHandler {
     allCardsOfType: string[],
     isDiceRollReplace: boolean
   ): Promise<{ cardIds: string[]; skipped?: boolean; error?: string }> {
-    console.log(`🎲 CARD_HANDLER: Dice roll ${isDiceRollReplace ? 'replace' : 'remove'} - showing choice modal for ${payload.count} of ${allCardsOfType.length} ${payload.cardType} cards`);
 
     try {
       const options = allCardsOfType.map(cardId => {
@@ -431,11 +403,9 @@ export class CardEffectHandler implements ICardEffectHandler {
       );
 
       if (selectedCardId && selectedCardId !== '') {
-        console.log(`    Player selected card ${selectedCardId} to ${actionVerb}`);
         this.stateService.clearAwaitingChoice();
         return { cardIds: [selectedCardId] };
       } else {
-        console.log(`    Player skipped card ${actionVerb}`);
         return { cardIds: [], skipped: true };
       }
     } catch (error) {

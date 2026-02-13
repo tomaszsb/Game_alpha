@@ -135,7 +135,6 @@ export class MovementChoiceManager {
       );
     }
 
-    console.log(`🧠 Logic movement auto-selected: ${firstDestination} (${logicResult.explanation || 'first match'})`);
 
     return {
       choiceCreated: false,
@@ -159,13 +158,11 @@ export class MovementChoiceManager {
     const { isRestoration = false } = options;
     const logPrefix = isRestoration ? '🔄' : '🎬';
 
-    console.log(`${logPrefix} MovementChoiceManager.createMovementChoice - ${isRestoration ? 'Restoring' : 'Creating'} choice for player ${playerId}`);
 
     try {
       // Get player
       const player = this.stateService.getPlayer(playerId);
       if (!player) {
-        console.log(`${logPrefix} Player ${playerId} not found`);
         return { choiceCreated: false, reason: 'Player not found' };
       }
 
@@ -173,7 +170,6 @@ export class MovementChoiceManager {
       // Those choices are created AFTER dice roll in processTurnEffectsWithTracking()
       if (this.isDiceBasedMovement(playerId)) {
         const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
-        console.log(`${logPrefix} Skipping choice for ${movement?.movement_type} space ${player.currentSpace} (choice created after dice roll)`);
         return { choiceCreated: false, reason: 'Dice-based movement - choice created after roll' };
       }
 
@@ -182,7 +178,6 @@ export class MovementChoiceManager {
 
       // Defensive check
       if (!validMoves || !Array.isArray(validMoves)) {
-        console.log(`${logPrefix} No valid moves data available for player ${playerId}`);
         return { choiceCreated: false, reason: 'No valid moves data' };
       }
 
@@ -194,7 +189,6 @@ export class MovementChoiceManager {
       // Multiple moves available - present choice to player
       if (validMoves.length > 1) {
         const playerName = player.name || 'Unknown Player';
-        console.log(`${logPrefix} Player ${playerName} at choice space with ${validMoves.length} options`);
 
         const choiceOptions = this.createChoiceOptions(validMoves);
         const prompt = this.createChoicePrompt(player);
@@ -209,22 +203,18 @@ export class MovementChoiceManager {
         ).then(selectedDestination => {
           const currentPlayer = this.stateService.getPlayer(playerId);
           const name = currentPlayer?.name || 'Unknown Player';
-          console.log(`✅ Player ${name} movement choice resolved: ${selectedDestination}`);
           // Set moveIntent as safety net (usually already set by UI)
           if (!currentPlayer?.moveIntent) {
             this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
           }
         }).catch(error => {
           // Choice timed out or was cancelled - this is okay
-          console.log(`${logPrefix} Movement choice cancelled or timed out:`, error.message);
         });
 
-        console.log(`${logPrefix} Movement choice created for ${playerName} - awaiting selection`);
         return { choiceCreated: true, reason: 'Multiple valid moves - choice presented' };
       }
 
       // 0 or 1 moves - no choice needed
-      console.log(`${logPrefix} No choice needed (${validMoves.length} valid moves)`);
       return { choiceCreated: false, reason: `Only ${validMoves.length} valid move(s)` };
 
     } catch (error) {
@@ -237,7 +227,6 @@ export class MovementChoiceManager {
    * Convenience method for turn start movement choices
    */
   public async handleMovementChoices(playerId: string): Promise<MovementChoiceResult> {
-    console.log('🔴 [MovementChoiceManager] handleMovementChoices() ENTERED for:', playerId);
     return this.createMovementChoice(playerId, { isRestoration: false });
   }
 
@@ -245,7 +234,6 @@ export class MovementChoiceManager {
    * Convenience method for restoring movement choices after manual effects
    */
   public async restoreMovementChoiceIfNeeded(playerId: string): Promise<MovementChoiceResult> {
-    console.log(`🔄 [MovementChoiceManager] restoreMovementChoiceIfNeeded() for player ${playerId}`);
     return this.createMovementChoice(playerId, { isRestoration: true });
   }
 }

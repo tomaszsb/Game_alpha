@@ -149,13 +149,8 @@ export function TurnControlsWithActions({
 
   // Subscribe to state changes for movement choices
   useEffect(() => {
-    console.log('🔥 TurnControlsWithActions: Setting up movement choice subscription');
     const unsubscribe = stateService.subscribe((gameState) => {
       // This console log can stay, it's useful for debugging
-      console.log('🔥 TurnControlsWithActions: Received state update', {
-        awaitingChoice: gameState.awaitingChoice?.type || null,
-        currentPlayer: gameState.currentPlayerId
-      });
 
       // REFINED GUARD: Only block this specific state update during a move
       if (!gameState.isMoving) {
@@ -167,10 +162,6 @@ export function TurnControlsWithActions({
 
       if (gameState.awaitingChoice?.type === 'MOVEMENT') {
         setMovementChoice(gameState.awaitingChoice);
-        console.log('🔥 TurnControlsWithActions: Movement choice detected!', {
-          choice: gameState.awaitingChoice,
-          options: gameState.awaitingChoice.options
-        });
       } else if (!gameState.isMoving && !gameState.awaitingChoice) {
         setMovementChoice(null);
       }
@@ -189,7 +180,6 @@ export function TurnControlsWithActions({
     const newSelection = selectedDestination === destinationId ? null : destinationId;
     setSelectedDestination(newSelection);
 
-    console.log(`🎯 TurnControlsWithActions: Selected destination: ${newSelection || 'none'}`);
   };
 
   // Handle End Turn with movement confirmation
@@ -226,7 +216,6 @@ export function TurnControlsWithActions({
         stateService.setPlayerMoveIntent(currentPlayer.id, selectedDestination);
       }
 
-      console.log(`✅ TurnControlsWithActions: Confirmed movement to: ${selectedDestination}`);
 
       // Clear the selection
       setSelectedDestination(null);
@@ -340,36 +329,7 @@ export function TurnControlsWithActions({
   // Debug logging for dice roll button visibility - expanded for problematic spaces
   const debugSpaces = ['PM-DECISION-CHECK', 'CHEAT-BYPASS', 'REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT', 'CON-ISSUES'];
   if (debugSpaces.includes(currentPlayer.currentSpace) && isCurrentPlayersTurn) {
-    console.log('🎲 DICE ROLL BUTTON DEBUG:', {
-      canRollDice,
-      space: currentPlayer.currentSpace,
-      conditions: {
-        gamePhase: gamePhase === 'PLAY' ? '✅' : `❌ (${gamePhase})`,
-        isProcessingTurn: !isProcessingTurn ? '✅' : '❌',
-        isProcessingArrival: !isProcessingArrival ? '✅' : '❌',
-        hasPlayerRolledDice: !hasPlayerRolledDice ? '✅' : '❌ (already rolled)',
-        hasPlayerMovedThisTurn: !hasPlayerMovedThisTurn ? '✅' : '❌ (already moved)',
-        awaitingChoice: !(awaitingChoice && movementChoice?.type !== 'MOVEMENT') ? '✅' : `❌ (${movementChoice?.type})`,
-        notFundingSpace: currentPlayer.currentSpace !== 'OWNER-FUND-INITIATION' ? '✅' : '❌',
-        requiresManualDiceRoll: requiresManualDiceRoll ? '✅' : '❌'
-      },
-      spaceConfig: currentSpaceData?.config,
-      movementChoice
-    });
     // Also log manual effects for debugging
-    console.log('🔧 MANUAL EFFECTS DEBUG:', {
-      space: currentPlayer.currentSpace,
-      allSpaceEffectsCount: allSpaceEffects.length,
-      manualEffectsCount: manualEffects.length,
-      manualEffects: manualEffects.map(e => ({
-        type: e.effect_type,
-        action: e.effect_action,
-        trigger: e.trigger_type,
-        condition: e.condition,
-        description: e.description
-      })),
-      completedManualActions: completedActions.manualActions
-    });
   }
   // Allow end turn if: dice rolled OR space doesn't require dice roll
   const diceRequirementMet = hasPlayerRolledDice || !requiresManualDiceRoll;
@@ -384,29 +344,6 @@ export function TurnControlsWithActions({
 
   // Comprehensive End Turn button state logging
   if (isCurrentPlayersTurn) {
-    console.log('🔴 [END TURN] Button State Check:', {
-      canEndTurn,
-      reasons: {
-        gamePhase: gamePhase === 'PLAY' ? '✅' : `❌ (${gamePhase})`,
-        isCurrentPlayersTurn: isCurrentPlayersTurn ? '✅' : '❌',
-        isProcessingTurn: !isProcessingTurn ? '✅' : '❌ (processing)',
-        isProcessingArrival: !isProcessingArrival ? '✅' : '❌ (arrival)',
-        diceRequirement: diceRequirementMet ?
-          (hasPlayerRolledDice ? '✅ (rolled)' : '✅ (not required)') :
-          '❌ (need to roll)',
-        actionsComplete: actionCounts.completed >= actionCounts.required ?
-          `✅ (${actionCounts.completed}/${actionCounts.required})` :
-          `❌ (${actionCounts.completed}/${actionCounts.required})`,
-        movementChoice: !movementChoice ? '✅ (no choice)' :
-          hasDestinationSelected ? '✅ (destination selected)' : '❌ (need to select destination)'
-      },
-      currentSpace: currentPlayer.currentSpace,
-      requiresManualDiceRoll,
-      selectedDestination,
-      moveIntent: currentPlayer.moveIntent,
-      manualEffectsCount: manualEffects.length,
-      completedManualActions: completedActions.manualActions
-    });
   }
 
   // Get reason why End Turn button is disabled

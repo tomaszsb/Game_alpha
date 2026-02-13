@@ -96,7 +96,6 @@ export class MovementService implements IMovementService {
         const rememberedChoice = player.pathChoiceMemory['REG-DOB-TYPE-SELECT'];
         validMoves = validMoves.filter(dest => dest === rememberedChoice);
 
-        console.log(`🔒 REG-DOB-TYPE-SELECT: Filtering to remembered choice: ${rememberedChoice}`);
       }
 
       return validMoves;
@@ -136,7 +135,6 @@ export class MovementService implements IMovementService {
    * Enhanced with comprehensive validation and edge case handling.
    */
   private validateMove(playerId: string, destinationSpace: string) {
-    console.log(`🔍 Validating move: ${playerId} → ${destinationSpace}`);
 
     // Validate inputs
     if (!playerId || playerId.trim() === '') {
@@ -184,7 +182,6 @@ export class MovementService implements IMovementService {
       ? [...player.visitedSpaces, destinationSpace]
       : player.visitedSpaces;
 
-    console.log(`✅ Move validation passed: ${player.name} ${player.currentSpace} → ${destinationSpace} (${newVisitType})`);
 
     return {
       player,
@@ -208,7 +205,6 @@ export class MovementService implements IMovementService {
   }): MoveResult {
     const { player, destinationSpace, sourceSpace, newVisitType, updatedVisitedSpaces } = moveValidation;
 
-    console.log(`⚡ Executing move: ${player.name} ${sourceSpace} → ${destinationSpace}`);
 
     // Prepare the player update object (don't write to state yet)
     // Use PlayerUpdateData type to ensure all optional properties can be added later
@@ -235,7 +231,6 @@ export class MovementService implements IMovementService {
   private finalizeMove(moveResult: MoveResult): GameState {
     const { player, playerUpdate, sourceSpace, destinationSpace, newVisitType } = moveResult;
 
-    console.log(`📝 Finalizing move: ${player.name} ${sourceSpace} → ${destinationSpace}`);
 
     // Update spaceVisitLog: close previous space entry and add new one
     const gameState = this.stateService.getGameState();
@@ -268,7 +263,6 @@ export class MovementService implements IMovementService {
 
     // Add spaceVisitLog to playerUpdate
     playerUpdate.spaceVisitLog = updatedLog;
-    console.log(`📊 Journey Log: ${updatedLog.length} entries, latest: ${destinationSpace} (entryTime: ${currentTime})`);
 
     // SPECIAL: Store path choice memory for REG-DOB-TYPE-SELECT
     // Per DOB rules, once you choose Plan Exam vs Prof Cert, you're locked in for this application
@@ -276,7 +270,6 @@ export class MovementService implements IMovementService {
         player.visitType === 'First' &&
         (destinationSpace === 'REG-DOB-PLAN-EXAM' || destinationSpace === 'REG-DOB-PROF-CERT')) {
 
-      console.log(`🔒 Storing REG-DOB-TYPE-SELECT path choice: ${destinationSpace}`);
 
       // Store the choice in player's memory
       playerUpdate.pathChoiceMemory = {
@@ -286,8 +279,6 @@ export class MovementService implements IMovementService {
     }
 
     // DEBUG: Verify playerUpdate contains spaceVisitLog before calling updatePlayer
-    console.log(`📊 MovementService.finalizeMove: playerUpdate keys = ${Object.keys(playerUpdate).join(', ')}`);
-    console.log(`📊 MovementService.finalizeMove: spaceVisitLog in playerUpdate = ${!!playerUpdate.spaceVisitLog}, length = ${playerUpdate.spaceVisitLog?.length}`);
 
     // WRITE STATE: Update player's position (atomic operation)
     const updatedState = this.stateService.updatePlayer(playerUpdate);
@@ -305,7 +296,6 @@ export class MovementService implements IMovementService {
     // Note: REAL/TEMP state model handles state cleanup at turn boundaries
     // No manual snapshot clearing needed
 
-    console.log(`✅ Move completed: ${player.name} now at ${destinationSpace}`);
 
     // Note: Movement is complete. Caller should now call endMove() to process arrival
     return updatedState;
@@ -321,7 +311,6 @@ export class MovementService implements IMovementService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    console.log(`🏁 Ending move: ${player.name} at ${player.currentSpace} - triggering arrival processing`);
 
     // Note: Space entry logging moved to TurnService.startTurn to ensure proper action sequence
 
@@ -394,7 +383,6 @@ export class MovementService implements IMovementService {
       }
     });
 
-    console.log(`🎲 Dice destinations for ${spaceName} (${visitType}): ${uniqueDests.join(', ')}`);
     return uniqueDests;
   }
 
@@ -434,9 +422,7 @@ export class MovementService implements IMovementService {
     if (destination && destination.includes(' or ')) {
       const choices = destination.split(' or ').map(d => d.trim()).filter(d => d);
       destination = choices[0] || null;
-      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: "${diceOutcome[`roll_${diceRoll}` as keyof typeof diceOutcome]}" → choosing first: ${destination}`);
     } else {
-      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName} → ${destination}`);
     }
 
     return destination && destination.trim() !== '' ? destination : null;
@@ -495,24 +481,19 @@ export class MovementService implements IMovementService {
           if (pathChoice === 'REG-DOB-PLAN-EXAM') {
             // Plan Exam path: remove REG-DOB-AUDIT (Prof Cert path)
             choices = choices.filter(c => c !== 'REG-DOB-AUDIT');
-            console.log(`🔒 Filtered to Plan Exam path: removed REG-DOB-AUDIT`);
           } else if (pathChoice === 'REG-DOB-PROF-CERT') {
             // Prof Cert path: remove REG-DOB-PLAN-EXAM (Plan Exam path)
             choices = choices.filter(c => c !== 'REG-DOB-PLAN-EXAM');
-            console.log(`🔒 Filtered to Prof Cert path: removed REG-DOB-PLAN-EXAM`);
           }
 
           if (choices.length < originalCount) {
-            console.log(`🎲 Filtered choices based on path memory (${pathChoice}): [${choices.join(', ')}]`);
           }
         }
       }
 
-      console.log(`🎲 Dice roll ${diceRoll} at ${spaceName}: Player chooses from [${choices.join(', ')}]`);
       return choices;
     }
 
-    console.log(`🎲 Dice roll ${diceRoll} at ${spaceName} → single destination: ${destinationStr}`);
     return [destinationStr.trim()];
   }
 
@@ -537,7 +518,6 @@ export class MovementService implements IMovementService {
 
     if (validMoves.length === 1) {
       // Only one option - move automatically without presenting a choice
-      console.log(`🚶 Auto-moving player ${playerId} to ${validMoves[0]} (only option)`);
 
       // Use smooth timing even for auto-moves
       this.stateService.setMoving(true);
@@ -572,7 +552,6 @@ export class MovementService implements IMovementService {
 
     const prompt = `Choose your destination from ${player.currentSpace}:`;
 
-    console.log(`🎯 Presenting movement choice to ${player.name}: ${validMoves.length} options`);
 
     // Use ChoiceService to handle the choice
     const selectedDestination = await this.choiceService.createChoice(
@@ -582,19 +561,16 @@ export class MovementService implements IMovementService {
       options
     );
 
-    console.log(`✅ Player ${player.name} chose to move to: ${selectedDestination}`);
 
     // Set the moving flag with pre-movement delay to allow UI to prepare
     this.stateService.setMoving(true);
 
     // Enhanced timing: Use configurable delays for smoother transitions
     // This ensures React has time to render state changes at each phase
-    console.log(`🕐 MOVEMENT START: Preparing UI for movement (${MOVEMENT_TIMING.PRE_MOVEMENT_DELAY}ms)`);
 
     return new Promise((resolve, reject) => {
       // Phase 1: Pre-movement delay (UI preparation)
       setTimeout(async () => {
-        console.log(`🕐 MOVEMENT EXECUTING: UI prepared, executing move (${MOVEMENT_TIMING.MOVEMENT_ANIMATION_DELAY}ms animation)`);
 
         try {
           // Phase 2: Execute movement
@@ -602,13 +578,11 @@ export class MovementService implements IMovementService {
 
           // Phase 3: Post-movement delay (UI settling)
           setTimeout(() => {
-            console.log(`🕐 MOVEMENT COMPLETE: Movement finished, UI settling (${MOVEMENT_TIMING.POST_MOVEMENT_DELAY}ms)`);
             this.stateService.clearAwaitingChoice();
 
             // Final phase: Clear moving flag and resolve
             setTimeout(() => {
               this.stateService.setMoving(false);
-              console.log(`✅ MOVEMENT FINALIZED: All state updates complete`);
               resolve(result);
             }, MOVEMENT_TIMING.POST_MOVEMENT_DELAY);
           }, MOVEMENT_TIMING.MOVEMENT_ANIMATION_DELAY);
@@ -661,7 +635,6 @@ export class MovementService implements IMovementService {
       }
     }
 
-    console.log(`🧠 Logic-based movement for player ${playerId}: ${validDestinations.length} valid destinations`);
     return validDestinations;
   }
 

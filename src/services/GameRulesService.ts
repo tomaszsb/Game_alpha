@@ -336,38 +336,26 @@ export class GameRulesService implements IGameRulesService {
    */
   async checkWinCondition(playerId: string): Promise<boolean> {
     try {
-      console.log(`🏆 [WIN CHECK] Checking win condition for player ${playerId}`);
 
       // Get the player's current state
       const player = this.stateService.getPlayer(playerId);
       if (!player) {
-        console.log(`❌ [WIN CHECK] Player not found: ${playerId}`);
         return false;
       }
 
-      console.log(`🏆 [WIN CHECK] Player ${player.name} at space: ${player.currentSpace}`);
 
       // Get the space configuration for the player's current space
       const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
       if (!spaceConfig) {
-        console.log(`❌ [WIN CHECK] Space config not found for: ${player.currentSpace}`);
         return false;
       }
 
-      console.log(`🏆 [WIN CHECK] Space config:`, {
-        space: player.currentSpace,
-        phase: spaceConfig.phase,
-        is_ending_space: spaceConfig.is_ending_space,
-        is_starting_space: spaceConfig.is_starting_space
-      });
 
       // Check if the current space is marked as an ending space
       const hasWon = spaceConfig.is_ending_space === true;
 
       if (hasWon) {
-        console.log(`🎉🎉🎉 [WIN CHECK] PLAYER HAS WON! ${player.name} reached ${player.currentSpace}!`);
       } else {
-        console.log(`🏆 [WIN CHECK] Not a winning space yet (is_ending_space: ${spaceConfig.is_ending_space})`);
       }
 
       return hasWon;
@@ -388,7 +376,6 @@ export class GameRulesService implements IGameRulesService {
       const currentTurn = gameState.turn || 0;
       
       if (currentTurn >= turnLimit) {
-        console.log(`Turn limit reached: Turn ${currentTurn} >= ${turnLimit}`);
         return true;
       }
       
@@ -506,7 +493,6 @@ export class GameRulesService implements IGameRulesService {
       }
 
       // Cache miss - calculate scope
-      console.log(`📊 Calculating project scope: ${handWorkCards.length} in hand + ${activeWorkCards.length} active = ${allWorkCards.length} total W cards`);
 
       let totalScope = 0;
 
@@ -519,7 +505,6 @@ export class GameRulesService implements IGameRulesService {
           // Use cost field from CSV
           const cardCost = cardData.cost || 0;
           totalScope += cardCost;
-          console.log(`   ✅ Card ${baseCardId}: ${cardData.card_name} = $${cardCost.toLocaleString()}`);
         } else {
           console.warn(`Card data not found for base card ID: ${baseCardId} (from ${cardId})`);
         }
@@ -559,7 +544,6 @@ export class GameRulesService implements IGameRulesService {
 
       const allWorkCards = [...handWorkCards, ...activeWorkCards];
 
-      console.log(`🔨 Calculating total work cost: ${allWorkCards.length} W cards`);
 
       let totalWorkCost = 0;
 
@@ -573,12 +557,10 @@ export class GameRulesService implements IGameRulesService {
             : cardData.work_cost;
           if (!isNaN(workCost)) {
             totalWorkCost += workCost;
-            console.log(`   🔧 Card ${baseCardId}: ${cardData.card_name} work_cost = $${workCost.toLocaleString()}`);
           }
         }
       }
 
-      console.log(`   📊 Total work cost: $${totalWorkCost.toLocaleString()}`);
       return totalWorkCost;
     } catch (error) {
       console.error(`Error calculating work cost for player ${playerId}:`, error);
@@ -630,7 +612,6 @@ export class GameRulesService implements IGameRulesService {
       const workTypeDays = uniqueWorkTypes.length * DAYS_PER_WORK_TYPE;
       const estimatedDays = BASE_PATH_DAYS + workTypeDays;
 
-      console.log(`📅 Project length estimate: ${estimatedDays} days (${BASE_PATH_DAYS} base + ${uniqueWorkTypes.length} work types × ${DAYS_PER_WORK_TYPE})`);
 
       return {
         estimatedDays,
@@ -671,12 +652,6 @@ export class GameRulesService implements IGameRulesService {
       // Subtract penalty for time spent (each time unit costs 1000 points)
       score -= player.timeSpent * 1000;
 
-      console.log(`Score calculation for ${player.name}:`);
-      console.log(`  Money: +$${player.money.toLocaleString()}`);
-      console.log(`  Project Scope: +$${this.calculateProjectScope(playerId).toLocaleString()}`);
-      console.log(`  Loan Penalty: -$${(player.loans.length * 5000).toLocaleString()} (${player.loans.length} loans)`);
-      console.log(`  Time Penalty: -$${(player.timeSpent * 1000).toLocaleString()} (${player.timeSpent} time units)`);
-      console.log(`  Final Score: $${score.toLocaleString()}`);
 
       return Math.max(0, score); // Ensure score doesn't go negative
     } catch (error) {
@@ -718,7 +693,6 @@ export class GameRulesService implements IGameRulesService {
         }
       }
 
-      console.log(`Winner determined: Player ${winnerId} with score $${highestScore.toLocaleString()}`);
       return winnerId;
     } catch (error) {
       console.error('Error determining winner:', error);

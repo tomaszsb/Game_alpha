@@ -255,7 +255,6 @@ export class TurnService implements ITurnService {
       await this.processTurnEffects(playerId, diceRoll);
 
       // Process leaving space effects BEFORE movement (time spent on current space)
-      console.log(`🚪 Processing leaving space effects for ${currentPlayer.name} leaving ${currentPlayer.currentSpace}`);
       await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
 
       // Note: Movement now happens in endTurnWithMovement()
@@ -315,7 +314,6 @@ export class TurnService implements ITurnService {
           total: diceRoll
         }
       });
-      console.log(`🎲 Stored dice roll ${diceRoll} for player ${currentPlayer.name}`);
 
       // Log dice roll to action history
       this.loggingService.info(`Rolled a ${diceRoll}`, {
@@ -351,11 +349,8 @@ export class TurnService implements ITurnService {
     // Ensure all setter-injected dependencies are ready
     this.assertDependenciesReady();
 
-    console.log('🔴 [TurnService] endTurnWithMovement ENTERED - force:', force, 'skipAutoMove:', skipAutoMove);
     try {
-      console.log('🔴 [TurnService] Getting game state...');
       const gameState = this.stateService.getGameState();
-      console.log('🔴 [TurnService] Got game state - gamePhase:', gameState.gamePhase, 'currentPlayerId:', gameState.currentPlayerId);
       
       // Validation: Game must be in PLAY phase
       if (gameState.gamePhase !== 'PLAY') {
@@ -378,33 +373,25 @@ export class TurnService implements ITurnService {
         throw new Error(`Cannot end turn: Player has not completed all required actions. Required: ${gameState.requiredActions}, Completed: ${gameState.completedActionCount}`);
       }
 
-      console.log(`🏁 TurnService.endTurnWithMovement - Moving player ${currentPlayer.name} from ${currentPlayer.currentSpace}`);
 
       // Resolve any pending movement choice if player has set their moveIntent
       // This handles the case where the UI set moveIntent without resolving the choice
       // (e.g., PlayerPanel click that just sets intent, or direct calls to endTurnWithMovement)
       if (gameState.awaitingChoice?.type === 'MOVEMENT' && currentPlayer.moveIntent) {
-        console.log(`🎯 Resolving pending movement choice with intent: ${currentPlayer.moveIntent}`);
         this.choiceService.resolveChoice(gameState.awaitingChoice.id, currentPlayer.moveIntent);
       }
 
       // Process leaving space effects BEFORE movement (time spent on current space)
       // SKIP if skipAutoMove is true (e.g., after Try Again) - player is staying at same space
       if (!skipAutoMove) {
-        console.log(`🚪 Processing leaving space effects for ${currentPlayer.name} leaving ${currentPlayer.currentSpace}`);
-        console.log('🔴 [TurnService] About to call processLeavingSpaceEffects...');
         await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
-        console.log('🔴 [TurnService] processLeavingSpaceEffects completed');
       } else {
-        console.log('🔄 Skipping leaving space effects (skipAutoMove=true, e.g., Try Again)');
       }
 
       // Handle movement - check for player's move intent first
-      console.log('🔴 [TurnService] About to handle movement - moveIntent:', currentPlayer.moveIntent, 'skipAutoMove:', skipAutoMove);
       if (!skipAutoMove) {
         // Check for dice_outcome or dice movement first
         const movement = this.dataService.getMovement(currentPlayer.currentSpace, currentPlayer.visitType);
-        console.log('🔴 [TurnService] Movement data:', movement?.movement_type, 'lastDiceRoll:', currentPlayer.lastDiceRoll?.total);
         if ((movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') && currentPlayer.lastDiceRoll) {
           // Use dice roll to determine destination from DICE_ROLL_INFO.csv
           const diceRoll = currentPlayer.lastDiceRoll.total;
@@ -426,7 +413,6 @@ export class TurnService implements ITurnService {
 
           if (destination) {
             process.stderr.write(`\n!!! [MOVE_CHECK] From: ${currentPlayer.currentSpace} To: ${destination} (Roll: ${diceRoll}) !!!\n`);
-            console.log(`🎲 Dice-determined movement: ${currentPlayer.name} rolled ${diceRoll}, moving to ${destination}`);
             // Emit movement event BEFORE the move so UI can show transition overlay
             this.stateService.emitAutoAction({
               type: 'movement',
@@ -445,8 +431,6 @@ export class TurnService implements ITurnService {
           }
         } else if (currentPlayer.moveIntent) {
           // Execute the intended move
-          console.log(`🎯 Executing player's intended move to: ${currentPlayer.moveIntent}`);
-          console.log('🔴 [TurnService] About to call movementService.movePlayer...');
           // Emit movement event BEFORE the move so UI can show transition overlay
           this.stateService.emitAutoAction({
             type: 'movement',
@@ -460,17 +444,14 @@ export class TurnService implements ITurnService {
             message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${currentPlayer.moveIntent}`
           });
           await this.movementService.movePlayer(currentPlayer.id, currentPlayer.moveIntent);
-          console.log('🔴 [TurnService] movementService.movePlayer completed');
 
           // Clear the move intent after execution
           this.stateService.setPlayerMoveIntent(currentPlayer.id, null);
-          console.log('🔴 [TurnService] Cleared moveIntent');
         } else {
           // No intent set - fall back to auto-move for single destinations
           const validMoves = this.movementService.getValidMoves(currentPlayer.id);
           if (validMoves.length === 1) {
             // Only one move available - perform automatic movement
-            console.log(`🚶 Auto-moving player ${currentPlayer.name} to ${validMoves[0]} (end-of-turn move)`);
             // Emit movement event BEFORE the move so UI can show transition overlay
             this.stateService.emitAutoAction({
               type: 'movement',
@@ -487,14 +468,10 @@ export class TurnService implements ITurnService {
           }
         }
       } else {
-        console.log(`🔄 Skipping auto-movement for ${currentPlayer.name} - skip requested`);
       }
-      console.log('🔴 [TurnService] Movement handling completed');
 
       // Check for win condition before ending turn
-      console.log('🔴 [TurnService] About to check win condition...');
       const hasWon = await this.gameRulesService.checkWinCondition(gameState.currentPlayerId);
-      console.log('🔴 [TurnService] Win condition check result:', hasWon);
       if (hasWon) {
         // Player has won - end the game
         this.stateService.endGame(gameState.currentPlayerId);
@@ -502,9 +479,7 @@ export class TurnService implements ITurnService {
       }
 
       // Commit current exploration session before advancing to next player
-      console.log('🔴 [TurnService] Committing logging session...');
       this.loggingService.commitCurrentSession();
-      console.log('🔴 [TurnService] Session committed');
 
       // Commit TEMP state to REAL (new REAL/TEMP state model)
       // This finalizes all turn effects into the committed state
@@ -512,13 +487,10 @@ export class TurnService implements ITurnService {
       if (!commitResult.success) {
         console.warn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
       } else {
-        console.log('🔴 [TurnService] TEMP state committed to REAL');
       }
 
       // Advance to next player
-      console.log('🔴 [TurnService] About to call nextPlayer()...');
       const nextPlayerResult = await this.nextPlayer();
-      console.log('🔴 [TurnService] nextPlayer() completed - nextPlayerId:', nextPlayerResult.nextPlayerId);
 
       return nextPlayerResult;
     } catch (error) {
@@ -576,7 +548,6 @@ export class TurnService implements ITurnService {
 
     // Commit current exploration session before advancing to next player
     this.loggingService.commitCurrentSession();
-    console.log(`🔄 Committed exploration session for current player turn`);
 
     // Use the common nextPlayer method
     return await this.nextPlayer();
@@ -639,10 +610,8 @@ export class TurnService implements ITurnService {
    *       See ResourceService.takeOutLoan() for upfront fee implementation.
    */
   private async nextPlayer(): Promise<{ nextPlayerId: string }> {
-    console.log('🔴 [TurnService] nextPlayer() ENTERED');
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
-    console.log('🔴 [TurnService] nextPlayer() - players:', allPlayers.length, 'currentPlayerId:', gameState.currentPlayerId);
 
     if (allPlayers.length === 0) {
       throw new Error('No players in the game');
@@ -665,12 +634,9 @@ export class TurnService implements ITurnService {
 
     // STEP 2: Process active effects for all players at turn end
     // This happens at end of current turn (before turn counter advances)
-    console.log(`🕒 Processing active effects for all players at end of turn ${gameState.turn}`);
-    console.log('🔴 [TurnService] nextPlayer() - About to process active effects...');
     if (this.effectEngineService) {
       await this.effectEngineService.processActiveEffectsForAllPlayers();
     }
-    console.log('🔴 [TurnService] nextPlayer() - Active effects processed');
 
     // STEP 3: Reset re-roll flags for current player ending their turn
     // One-time use flags are cleared before next turn begins
@@ -742,12 +708,10 @@ export class TurnService implements ITurnService {
     // but BEFORE changing current player. This ensures:
     // - Turn-end processing uses the correct turn number (the turn that's ending)
     // - Next player's turn starts with the new turn number
-    console.log('🔴 [TurnService] nextPlayer() - Advancing turn counter...');
     this.stateService.advanceTurn();
 
     // STEP 6: Set next player and prepare for their turn
     // Update current player in game state
-    console.log('🔴 [TurnService] nextPlayer() - Setting current player to:', nextPlayer.id);
     this.stateService.setCurrentPlayer(nextPlayer.id);
 
     // Reset turn flags for the new turn
@@ -777,9 +741,7 @@ export class TurnService implements ITurnService {
 
     // Start next player's turn with unified function
     // This handles all arrival logic, movement choices, and turn start logging
-    console.log('🔴 [TurnService] nextPlayer() - About to call startTurn for:', nextPlayer.id);
     await this.startTurn(nextPlayer.id);
-    console.log('🔴 [TurnService] nextPlayer() - startTurn completed');
 
     return { nextPlayerId: nextPlayer.id };
   }
@@ -803,12 +765,10 @@ export class TurnService implements ITurnService {
 
     const startingHand = gameState.startingHand || [];
     if (startingHand.length === 0) {
-      console.log('📝 Quick Start: No cards captured during P1\'s turn, skipping distribution');
       this.stateService.updateGameState({ isCapturingStartingHand: false });
       return;
     }
 
-    console.log(`📝 Quick Start: Finalizing starting hand with ${startingHand.length} cards: ${startingHand.join(', ')}`);
 
     const allPlayers = gameState.players;
     const playerDecks = gameState.playerDecks ? { ...gameState.playerDecks } : {};
@@ -827,7 +787,6 @@ export class TurnService implements ITurnService {
         hand: updatedHand
       });
 
-      console.log(`   📦 Distributed starting hand to ${player.name}`);
 
       // Remove starting cards from this player's deck
       if (playerDecks[player.id]) {
@@ -857,7 +816,6 @@ export class TurnService implements ITurnService {
       action: 'quick_start_finalized'
     });
 
-    console.log(`✅ Quick Start: Starting hand finalized for ${allPlayers.length} players`);
   }
 
   /**
@@ -883,7 +841,6 @@ export class TurnService implements ITurnService {
     // Ensure all setter-injected dependencies are ready
     this.assertDependenciesReady();
 
-    console.log('🔴 [TurnService] startTurn() ENTERED for:', playerId);
     // Clear any old choices from the previous turn
     this.stateService.clearAwaitingChoice();
 
@@ -894,7 +851,6 @@ export class TurnService implements ITurnService {
       }
 
       const gameState = this.stateService.getGameState();
-      console.log('🔴 [TurnService] startTurn() - player at space:', player.currentSpace);
 
       // Log turn start for this player using simplified turn numbering
       const playerTurnNumber = (gameState.playerTurnCounts[player.id] || 0) + 1;
@@ -932,13 +888,10 @@ export class TurnService implements ITurnService {
       // 3. Mark game as fully initialized (enables Try Again feature)
       if (!this.stateService.isInitialized()) {
         this.stateService.markAsInitialized();
-        console.log('🎯 Game marked as fully initialized - Try Again now available');
       }
 
       // 4. Process space effects (including space entry logging as first effect)
-      console.log('🔴 [TurnService] startTurn() - About to process space effects...');
       await this.processSpaceEffectsAfterMovement(player.id, player.currentSpace, player.visitType, false);
-      console.log('🔴 [TurnService] startTurn() - Space effects processed');
 
       // Note: REAL/TEMP state model handles Try Again state preservation
       // TEMP state contains effects applied this turn; REAL state is preserved for reversion
@@ -947,9 +900,7 @@ export class TurnService implements ITurnService {
       this.stateService.updateGameState({ isProcessingArrival: false });
 
       // Handle movement choices after effects are processed
-      console.log('🔴 [TurnService] startTurn() - About to handle movement choices...');
       await this.handleMovementChoices(player.id);
-      console.log('🔴 [TurnService] startTurn() - Movement choices handled');
 
       // Auto-roll dice for REG dice-movement spaces (clerk/examiner makes the decision)
       // CHEAT spaces require manual roll (player actively cheating)
@@ -958,11 +909,9 @@ export class TurnService implements ITurnService {
       const isRegSpace = player.currentSpace.startsWith('REG-');
 
       if (isDiceMovementSpace && isRegSpace) {
-        console.log(`🎲 AUTO-ROLL: ${player.currentSpace} is a REG dice-movement space - auto-rolling for clerk/examiner decision`);
         // Small delay so player sees they arrived before dice rolls
         await new Promise(resolve => setTimeout(resolve, 500));
         await this.rollDiceWithFeedback(player.id);
-        console.log(`🎲 AUTO-ROLL: Dice rolled automatically for ${player.currentSpace}`);
       }
 
     } catch (error) {
@@ -1085,7 +1034,6 @@ export class TurnService implements ITurnService {
       
       // Add user messaging for OWNER-FUND-INITIATION space
       if (currentPlayer.currentSpace === 'OWNER-FUND-INITIATION') {
-        console.log(`💰 Adding user messaging for OWNER-FUND-INITIATION space`);
         spaceEffects.push({
           effectType: 'LOG',
           payload: {
@@ -1100,7 +1048,6 @@ export class TurnService implements ITurnService {
       // Combine all effects for unified processing
       const allEffects = [...spaceEffects, ...diceEffects];
       
-      console.log(`🏭 Generated ${spaceEffects.length} space effects + ${diceEffects.length} dice effects = ${allEffects.length} total effects`);
       
       if (allEffects.length > 0) {
         if (!this.effectEngineService) {
@@ -1122,17 +1069,14 @@ export class TurnService implements ITurnService {
         };
         
         // Process all effects through the unified Effect Engine
-        console.log(`🔧 Processing ${allEffects.length} space/dice effects through Effect Engine...`);
         const processingResult = await this.effectEngineService.processEffects(allEffects, effectContext);
         
         if (!processingResult.success) {
           console.error(`❌ Failed to process some space/dice effects: ${processingResult.errors.join(', ')}`);
           // Log errors but don't throw - some effects may have succeeded
         } else {
-          console.log(`✅ All space/dice effects processed successfully: ${processingResult.successfulEffects}/${processingResult.totalEffects} effects completed`);
         }
       } else {
-        console.log(`ℹ️ No space or dice effects to process for ${currentPlayer.currentSpace}`);
       }
       
       return this.stateService.getGameState();
@@ -1153,7 +1097,6 @@ export class TurnService implements ITurnService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    console.log(`🎲 Processing dice roll effects for ${currentPlayer.name} on ${currentPlayer.currentSpace} (rolled ${diceRoll})`);
 
     try {
       // Get ONLY dice effect data from DataService
@@ -1163,7 +1106,6 @@ export class TurnService implements ITurnService {
       );
 
       if (diceEffectsData.length === 0) {
-        console.log(`ℹ️ No dice effects to process for ${currentPlayer.currentSpace}`);
         return { gameState: this.stateService.getGameState(), generatedEffects: [], effectResults: undefined };
       }
 
@@ -1176,7 +1118,6 @@ export class TurnService implements ITurnService {
         currentPlayer.name
       );
 
-      console.log(`🎲 Generated ${diceEffects.length} dice effects from roll ${diceRoll}`);
 
       if (diceEffects.length > 0) {
         if (!this.effectEngineService) {
@@ -1198,14 +1139,12 @@ export class TurnService implements ITurnService {
         };
 
         // Process ONLY dice effects through the Effect Engine
-        console.log(`🔧 Processing ${diceEffects.length} dice effects through Effect Engine...`);
         const processingResult = await this.effectEngineService.processEffects(diceEffects, effectContext);
 
         if (!processingResult.success) {
           console.error(`❌ Failed to process some dice effects: ${processingResult.errors.join(', ')}`);
           // Log errors but don't throw - some effects may have succeeded
         } else {
-          console.log(`✅ All dice effects processed successfully: ${processingResult.successfulEffects}/${processingResult.totalEffects} effects completed`);
         }
 
         return { gameState: this.stateService.getGameState(), generatedEffects: diceEffects, effectResults: processingResult };
@@ -1270,12 +1209,10 @@ export class TurnService implements ITurnService {
   }
 
   private async applySpaceCardEffect(playerId: string, effect: SpaceEffect, effectType: string): Promise<GameState> {
-    console.log(`🔧 [DEBUG] applySpaceCardEffect called - effect.effect_action: "${effect.effect_action}"`);
 
     // Delegate to CardEffectService if available
     if (this.cardEffectService) {
       const result = await this.cardEffectService.executeCardEffect(playerId, effect, effectType);
-      console.log(`🃏 CardEffectService result: ${result.message}`);
 
       // Determine if action was actually completed (not skipped)
       // For replace/return/give actions, user can skip - only mark complete if cards were affected
@@ -1306,10 +1243,8 @@ export class TurnService implements ITurnService {
         }
 
         if (isImpossibleAction) {
-          console.log(`✅ Action ${effect.effect_action} auto-completed (impossible: ${result.message})`);
         }
       } else {
-        console.log(`⏭️ User skipped ${effect.effect_action} - action NOT marked as complete`);
       }
 
       // Restore movement choice if needed
@@ -1340,11 +1275,9 @@ export class TurnService implements ITurnService {
     const source = `space:${space}`;
     const reason = effect.description || 'Investment funding';
 
-    console.log(`💰 Applying investment funding for ${player.name} at ${space}`);
 
     // Step 1: Roll dice
     const diceRoll = Math.floor(Math.random() * 6) + 1;
-    console.log(`🎲 Investment funding dice roll: ${diceRoll}`);
 
     // Step 2: Apply time based on dice roll
     const diceEffects = this.dataService.getDiceEffects(space, visitType);
@@ -1354,7 +1287,6 @@ export class TurnService implements ITurnService {
       const days = parseInt(diceRollEffectValue);
       if (!isNaN(days) && days > 0) {
         this.resourceService.addTime(playerId, days, source, `Investment review: ${days} days`);
-        console.log(`⏰ Added ${days} days for investment review`);
       }
     }
 
@@ -1362,7 +1294,6 @@ export class TurnService implements ITurnService {
     const investmentBefore = player.moneySources?.investmentDeals || 0;
 
     // Step 4: Draw and apply I card
-    console.log(`🎴 Drawing I card for investment funding...`);
     await this.cardService.drawAndApplyCard(playerId, 'I', source, reason);
 
     // Step 5: Calculate and charge 5% fee on NEW investment only
@@ -1375,7 +1306,6 @@ export class TurnService implements ITurnService {
 
     if (feeAmount > 0) {
       this.resourceService.recordCost(playerId, 'investmentFee', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding');
-      console.log(`💸 Charged 5% investment fee: $${feeAmount.toLocaleString()} on new investment of $${newInvestment.toLocaleString()}`);
     }
 
     // Step 6: Mark dice as rolled
@@ -1407,7 +1337,6 @@ export class TurnService implements ITurnService {
    * Trigger a manual space effect for the current player
    */
   async triggerManualEffect(playerId: string, effectType: string): Promise<GameState> {
-    console.log(`🔧 [DEBUG] triggerManualEffect called with effectType: "${effectType}"`);
 
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
@@ -1416,27 +1345,21 @@ export class TurnService implements ITurnService {
 
     // Parse effectType - might be compound like "cards:draw_b" or simple like "money"
     const [baseType, action] = effectType.includes(':') ? effectType.split(':') : [effectType, null];
-    console.log(`🔧 [DEBUG] Parsed - baseType: "${baseType}", action: "${action}"`);
 
     // Get manual effects for current space and visit type
     const spaceEffects = this.dataService.getSpaceEffects(player.currentSpace, player.visitType);
-    console.log(`🔧 [DEBUG] Found ${spaceEffects.length} space effects for ${player.currentSpace} (${player.visitType})`);
-    console.log(`🔧 [DEBUG] Space effects:`, spaceEffects.map(e => `${e.trigger_type}:${e.effect_type}:${e.effect_action}`));
 
     const manualEffect = spaceEffects.find(effect => {
       const typeMatches = effect.trigger_type === 'manual' && effect.effect_type === baseType;
       // If action specified (e.g., "draw_b"), must match; otherwise just type match
       const actionMatches = !action || effect.effect_action === action;
-      console.log(`🔧 [DEBUG] Checking effect - trigger: ${effect.trigger_type}, type: ${effect.effect_type}, action: ${effect.effect_action} | typeMatches: ${typeMatches}, actionMatches: ${actionMatches}`);
       return typeMatches && actionMatches;
     });
 
     if (!manualEffect) {
-      console.log(`🔧 [DEBUG] ERROR: No manual effect found!`);
       throw new Error(`No manual ${effectType} effect found for ${player.currentSpace} (${player.visitType})`);
     }
 
-    console.log(`🔧 [DEBUG] Found manual effect:`, manualEffect);
 
     // Evaluate condition before applying manual effect
     const conditionMet = this.evaluateEffectCondition(playerId, manualEffect.condition);
@@ -1444,18 +1367,13 @@ export class TurnService implements ITurnService {
       throw new Error(`Manual ${effectType} effect condition not met: ${manualEffect.condition}`);
     }
 
-    console.log(`🔧 Triggering manual ${effectType} effect for player ${player.name} on ${player.currentSpace}`);
-    console.log(`🔧 Effect details: ${manualEffect.effect_action} ${manualEffect.effect_value}`);
 
     // Apply the effect based on type
     let newState = this.stateService.getGameState();
 
-    console.log(`🔧 [DEBUG] About to apply effect - baseType: "${baseType}"`);
 
     if (baseType === 'cards') {
-      console.log(`🔧 [DEBUG] Calling applySpaceCardEffect`);
       newState = await this.applySpaceCardEffect(playerId, manualEffect, effectType);
-      console.log(`🔧 [DEBUG] applySpaceCardEffect returned, player hand length:`, newState.players.find(p => p.id === playerId)?.hand.length);
     } else if (baseType === 'money') {
       // Special handling for get_investment_funding action
       if (manualEffect.effect_action === 'get_investment_funding') {
@@ -1467,7 +1385,6 @@ export class TurnService implements ITurnService {
       newState = this.applySpaceTimeEffect(playerId, manualEffect);
     } else if (baseType === 'turn') {
       // Handle turn effects (like "end_turn") - these are special and don't need processing here
-      console.log(`🏁 Processing turn effect: ${manualEffect.effect_action}`);
       // Turn effects are handled by the UI component calling onEndTurn
     } else {
       console.warn(`⚠️ Unknown manual effect type: ${baseType}`);
@@ -1480,7 +1397,6 @@ export class TurnService implements ITurnService {
       this.stateService.setPlayerCompletedManualAction(baseType, buttonText);
     }
 
-    console.log(`🔧 Manual ${effectType} effect completed for player ${player.name}`);
     return this.stateService.getGameState();
   }
 
@@ -1488,7 +1404,6 @@ export class TurnService implements ITurnService {
    * Trigger manual effect with modal feedback - similar to rollDiceWithFeedback
    */
   async triggerManualEffectWithFeedback(playerId: string, effectType: string): Promise<TurnEffectResult> {
-    console.log(`🔧 TurnService.triggerManualEffectWithFeedback - Starting for player ${playerId}, effect: ${effectType}`);
 
     const currentPlayer = this.stateService.getPlayer(playerId);
     if (!currentPlayer) {
@@ -1523,7 +1438,6 @@ export class TurnService implements ITurnService {
                          afterHand.some(id => !beforeHand.includes(id));
 
       if (!wasCompleted) {
-        console.log(`⏭️ User skipped ${action} - no feedback modal needed`);
         // Return empty effects so no modal is shown (user already knows they skipped)
         return {
           diceValue: 0,
@@ -1541,7 +1455,6 @@ export class TurnService implements ITurnService {
         };
       } else if (!handChanged) {
         // Action was marked complete but no cards changed - was impossible (e.g., no opponents)
-        console.log(`✅ ${action} was impossible/auto-completed - no feedback modal needed`);
         return {
           diceValue: 0,
           spaceName: currentPlayer.currentSpace,
@@ -1749,7 +1662,6 @@ export class TurnService implements ITurnService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    console.log(`🤝 Starting negotiation for player ${player.name} on space ${player.currentSpace}`);
 
     try {
       // Simply delegate to NegotiationService to initiate negotiation
@@ -1779,12 +1691,10 @@ export class TurnService implements ITurnService {
    * @returns Promise resolving to the action result
    */
   async tryAgainOnSpace(playerId: string): Promise<{ success: boolean; message: string; shouldAdvanceTurn?: boolean }> {
-    console.log(`🔄 Try Again requested for player ${playerId}`);
 
     try {
       // 0. Check if game is fully initialized (prevent race condition on first turn)
       if (!this.stateService.isInitialized()) {
-        console.log('🚫 Try Again blocked - game not fully initialized');
         return {
           success: false,
           message: 'Game is still initializing - Try Again will be available shortly',
@@ -1811,7 +1721,6 @@ export class TurnService implements ITurnService {
         };
       }
 
-      console.log(`🔄 ${currentPlayer.name} trying again on space ${currentPlayer.currentSpace}`);
 
       // 3. Check if space allows negotiation (try again)
       const spaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
@@ -1829,7 +1738,6 @@ export class TurnService implements ITurnService {
         .filter(effect => effect.effect_type === 'time' && effect.effect_action === 'add')
         .reduce((total, effect) => total + Number(effect.effect_value || 0), 0);
 
-      console.log(`⏰ Applying ${timePenalty} day penalty for Try Again on ${currentPlayer.currentSpace}`);
 
       // 5. Log the Try Again action
       this.loggingService.info(`Used Try Again: ${timePenalty} day penalty applied`, {
@@ -1844,7 +1752,6 @@ export class TurnService implements ITurnService {
 
       // 6. Start new exploration session for the fresh attempt
       const newSessionId = this.loggingService.startNewExplorationSession();
-      console.log(`🔄 Started new exploration session ${newSessionId} after Try Again for ${currentPlayer.name}`);
 
       // 7. Reset turn flags so player can take fresh actions after Try Again
       this.stateService.clearPlayerHasMoved();
@@ -1869,10 +1776,8 @@ export class TurnService implements ITurnService {
 
       // 9. Re-process space effects to re-apply cards and manual actions
       // This is critical for spaces like OWNER-SCOPE-INITIATION (card draws) and PM-DECISION-CHECK (manual actions)
-      console.log(`🔄 Re-processing space effects after Try Again for ${currentPlayer.currentSpace}`);
       await this.processSpaceEffectsAfterMovement(playerId, currentPlayer.currentSpace, currentPlayer.visitType, true);
 
-      console.log(`✅ ${currentPlayer.name} Try Again processed (count: ${this.stateService.getTryAgainCount(playerId)})`);
 
       // 10. Prepare success message
       const successMessage = `${currentPlayer.name} used Try Again: ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty applied.`;
@@ -2001,12 +1906,10 @@ export class TurnService implements ITurnService {
     const gameState = this.stateService.getGameState();
     const players = gameState.players;
 
-    console.log(`🏁 Placing ${players.length} players on starting spaces (no effects processing)`);
 
     // Simply ensure all players are on their starting space
     // No effects processing - that happens when they take their first turn
     for (const player of players) {
-      console.log(`📍 Placing ${player.name} on starting space: ${player.currentSpace}`);
 
       // Log the initial placement for the Game Log
       this.loggingService.info(`${player.name} placed on starting space: ${player.currentSpace}`, {
@@ -2018,7 +1921,6 @@ export class TurnService implements ITurnService {
       });
     }
 
-    console.log(`✅ All players placed on starting spaces`);
   }
 
 
@@ -2033,7 +1935,6 @@ export class TurnService implements ITurnService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    console.log(`🚪 Processing leaving space time effects for ${currentPlayer.name} leaving ${spaceName} (${visitType} visit)`);
 
     try {
       // Get space effect data from DataService for the current space
@@ -2046,11 +1947,9 @@ export class TurnService implements ITurnService {
       );
 
       if (timeEffects.length === 0) {
-        console.log(`ℹ️ No time effects for leaving ${spaceName}`);
         return;
       }
 
-      console.log(`⏰ Processing ${timeEffects.length} time effects for leaving ${spaceName}`);
 
       // Generate effects from leaving space using EffectFactory
       const leavingEffects = EffectFactory.createEffectsFromSpaceEntry(
@@ -2063,7 +1962,6 @@ export class TurnService implements ITurnService {
       );
 
       if (leavingEffects.length === 0) {
-        console.log(`ℹ️ No processed time effects for leaving ${spaceName}`);
         return;
       }
 
@@ -2083,7 +1981,6 @@ export class TurnService implements ITurnService {
       if (this.effectEngineService) {
         const result = await this.effectEngineService.processEffects(leavingEffects, effectContext);
         if (result.success) {
-          console.log(`✅ Applied ${result.successfulEffects} time effects for leaving ${spaceName}`);
         } else {
           console.warn(`⚠️ Some time effects failed for leaving ${spaceName}:`, result.errors);
         }
@@ -2104,7 +2001,6 @@ export class TurnService implements ITurnService {
    */
   public setTurnModifier(playerId: string, action: 'SKIP_TURN'): boolean {
     try {
-      console.log(`🔄 TurnService.setTurnModifier - Applying ${action} to player ${playerId}`);
       
       // Get current player state
       const player = this.stateService.getPlayer(playerId);
@@ -2123,7 +2019,6 @@ export class TurnService implements ITurnService {
           const newModifiers = { ...currentModifiers, skipTurns: currentModifiers.skipTurns + 1 };
           this.stateService.updatePlayer({ id: playerId, turnModifiers: newModifiers });
           
-          console.log(`✅ Player ${player.name} will skip their next ${newModifiers.skipTurns} turn(s)`);
           
           return true;
           
@@ -2152,7 +2047,6 @@ export class TurnService implements ITurnService {
    * Owner seed money is separate from bank loans (B cards) and investor funding (I cards)
    */
   async handleAutomaticFunding(playerId: string): Promise<TurnEffectResult> {
-    console.log(`💰 TurnService.handleAutomaticFunding - Starting for player ${playerId}`);
 
     const currentPlayer = this.stateService.getPlayer(playerId);
     if (!currentPlayer) {
@@ -2180,9 +2074,6 @@ export class TurnService implements ITurnService {
     // Round to nearest $10,000 for cleaner numbers
     const roundedSeedMoney = Math.round(ownerSeedMoney / 10000) * 10000;
 
-    console.log(`💰 Project scope: $${projectScope.toLocaleString()}`);
-    console.log(`💰 Seed money multiplier: ${(seedMoneyMultiplier * 100).toFixed(1)}%`);
-    console.log(`💰 Owner Seed Money: $${roundedSeedMoney.toLocaleString()}`);
 
     try {
       // Add owner seed money directly to player's funds

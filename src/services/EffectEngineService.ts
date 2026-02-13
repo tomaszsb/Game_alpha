@@ -189,15 +189,11 @@ export class EffectEngineService implements IEffectEngineService {
     // Ensure core setter-injected dependencies are ready
     this.assertCoreDependenciesReady();
 
-    console.log(`🚨 DEBUG: EffectEngineService.processEffects() ENTRY - ${effects.length} effects from source: ${context.source}`);
-    console.log(`🔧 EFFECT_ENGINE: Processing ${effects.length} effects from source: ${context.source}`);
     
     if (context.playerId) {
-      console.log(`   Target Player: ${context.playerId}`);
     }
     
     if (context.triggerEvent) {
-      console.log(`   Trigger Event: ${context.triggerEvent}`);
     }
 
     const results: EffectResult[] = [];
@@ -228,7 +224,6 @@ export class EffectEngineService implements IEffectEngineService {
       }
 
       const effect = effects[i];
-      console.log(`  Processing effect ${i + 1}/${effects.length}: ${effect.effectType}`);
 
       // Check if this is a dice_replace_draw effect and the previous discard was skipped
       if (effect.effectType === 'CARD_DRAW' &&
@@ -237,7 +232,6 @@ export class EffectEngineService implements IEffectEngineService {
         // Look for the previous CARD_DISCARD result
         const prevResult = results.length > 0 ? results[results.length - 1] : null;
         if (prevResult && prevResult.effectType === 'CARD_DISCARD' && prevResult.data?.skipped) {
-          console.log(`    ⏭️ Skipping CARD_DRAW because preceding replace discard was skipped`);
           results.push({
             success: true,
             effectType: effect.effectType,
@@ -254,16 +248,13 @@ export class EffectEngineService implements IEffectEngineService {
 
         if (result.success) {
           successfulEffects++;
-          console.log(`    ✅ Effect ${i + 1} completed successfully`);
 
           // Handle resultingEffects - add them to the effects array to be processed
           if (result.resultingEffects && result.resultingEffects.length > 0) {
-            console.log(`    🔄 Effect ${i + 1} generated ${result.resultingEffects.length} additional effect(s) - adding to queue`);
             effects.push(...result.resultingEffects);
           }
         } else {
           failedEffects++;
-          console.log(`    ❌ Effect ${i + 1} failed: ${result.error}`);
           errors.push(`Effect ${i + 1} (${effect.effectType}): ${result.error}`);
         }
       } catch (error) {
@@ -276,7 +267,6 @@ export class EffectEngineService implements IEffectEngineService {
         };
         results.push(result);
         errors.push(`Effect ${i + 1} (${effect.effectType}): ${errorMessage}`);
-        console.log(`    💥 Effect ${i + 1} threw exception: ${errorMessage}`);
       }
     }
 
@@ -289,7 +279,6 @@ export class EffectEngineService implements IEffectEngineService {
       errors
     };
 
-    console.log(`🔧 EFFECT_ENGINE: Batch complete - ${successfulEffects}/${effects.length} successful`);
     if (errors.length > 0) {
       console.warn(`   Errors encountered:`, errors);
     }
@@ -305,7 +294,6 @@ export class EffectEngineService implements IEffectEngineService {
    * @returns Promise resolving to effect processing result
    */
   async processEffect(effect: Effect, context: EffectContext): Promise<EffectResult> {
-    console.log(`    🎯 Processing ${effect.effectType} effect`);
     
     let success = false; // Declare success variable at method scope
 
@@ -343,7 +331,6 @@ export class EffectEngineService implements IEffectEngineService {
             const rawSeedMoney = Math.round(projectScope * seedMoneyMultiplier);
             const ownerSeedMoney = Math.round(rawSeedMoney / 10000) * 10000;
 
-            console.log(`💰 OWNER_SEED_MONEY: Scope=${projectScope.toLocaleString()}, Multiplier=${(seedMoneyMultiplier * 100).toFixed(0)}%, Amount=${ownerSeedMoney.toLocaleString()}`);
 
             // Add money with 'owner' source type
             this.resourceService.addMoney(
@@ -401,13 +388,9 @@ export class EffectEngineService implements IEffectEngineService {
           if (isChoiceEffect(effect)) {
             const { payload } = effect;
             
-            console.log(`🔧 EFFECT_ENGINE: Presenting ${payload.type} choice to player ${payload.playerId}`);
-            console.log(`    Prompt: "${payload.prompt}"`);
-            console.log(`    Options: ${payload.options.map(opt => `${opt.id}:${opt.label}`).join(', ')}`);
             
             try {
               const selection = await this.choiceService.createChoice(payload.playerId, payload.type, payload.prompt, payload.options);
-              console.log(`    ✅ Player selected: ${selection}`);
               
               // Return success with the selection - calling code can handle the choice result
               return {
@@ -473,11 +456,9 @@ export class EffectEngineService implements IEffectEngineService {
             const source = payload.source || context.source;
             const reason = payload.reason || 'Effect processing';
             
-            console.log(`🔧 EFFECT_ENGINE: Moving player ${payload.playerId} to ${payload.destinationSpace}`);
             
             try {
               const updatedState = await this.movementService.movePlayer(payload.playerId, payload.destinationSpace);
-              console.log(`    ✅ Successfully moved player to ${payload.destinationSpace}`);
               
               // Log the movement
               return {
@@ -507,9 +488,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'TURN_CONTROL':
           if (isTurnControlEffect(effect)) {
             const { payload } = effect;
-            console.log(`🔄 EFFECT_ENGINE: Executing turn control action: ${payload.action} for player ${payload.playerId}`);
-            console.log(`    Source: ${payload.source || context.source}`);
-            console.log(`    Reason: ${payload.reason || 'Effect processing'}`);
             
             try {
               // Execute turn control action through TurnService
@@ -527,7 +505,6 @@ export class EffectEngineService implements IEffectEngineService {
                     }
                   });
                   success = true;
-                  console.log(`✅ Granted re-roll ability to player ${payload.playerId}`);
                 } else {
                   console.error(`❌ Player ${payload.playerId} not found for re-roll grant`);
                   success = false;
@@ -538,7 +515,6 @@ export class EffectEngineService implements IEffectEngineService {
               }
               
               if (success) {
-                console.log(`✅ Turn control applied: ${payload.action} for player ${payload.playerId}`);
               } else {
                 console.error(`❌ Failed to apply turn control: ${payload.action} for player ${payload.playerId}`);
               }
@@ -559,9 +535,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'EFFECT_GROUP_TARGETED':
           if (isEffectGroupTargetedEffect(effect)) {
             const { payload } = effect;
-            console.log(`🎯 EFFECT_ENGINE: Processing targeted effect - ${payload.targetType}`);
-            console.log(`    Source: ${payload.source || context.source}`);
-            console.log(`    Prompt: ${payload.prompt}`);
             
             
             try {
@@ -576,7 +549,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'RECALCULATE_SCOPE':
           // DEPRECATED: Project scope is now calculated on-demand from W cards
           // This effect is kept for backwards compatibility but does nothing
-          console.log(`📊 RECALCULATE_SCOPE effect is deprecated - project scope calculated on-demand from W cards`);
           success = true; // Mark as success to avoid errors
           break;
 
@@ -584,7 +556,6 @@ export class EffectEngineService implements IEffectEngineService {
           if (isChoiceOfEffectsEffect(effect)) {
             const { payload } = effect;
             
-            console.log(`🎯 EFFECT_ENGINE: Processing choice effect for player ${payload.playerId}`);
             
             // Present choice to player using ChoiceService
             const choiceOptions = payload.options.map((option, index) => ({
@@ -611,7 +582,6 @@ export class EffectEngineService implements IEffectEngineService {
               };
             }
             
-            console.log(`🎯 Player chose: "${chosenOption.label}"`);
             
             // Recursively process the chosen effects
             const chosenEffectContext: EffectContext = {
@@ -634,7 +604,6 @@ export class EffectEngineService implements IEffectEngineService {
             const source = payload.source || context.source;
             const reason = payload.reason || 'Conditional effect processing';
             
-            console.log(`🎲 EFFECT_ENGINE: Processing conditional effect for player ${payload.playerId}`);
             
             // Get dice roll from context
             const diceRoll = context.diceRoll;
@@ -647,20 +616,17 @@ export class EffectEngineService implements IEffectEngineService {
               };
             }
             
-            console.log(`🎲 Evaluating dice roll: ${diceRoll}`);
             
             // Find the matching range
             let matchingEffects: Effect[] = [];
             for (const range of payload.condition.ranges) {
               if (diceRoll >= range.min && diceRoll <= range.max) {
                 matchingEffects = range.effects;
-                console.log(`🎯 Dice roll ${diceRoll} matches range ${range.min}-${range.max}, executing ${range.effects.length} effect(s)`);
                 break;
               }
             }
             
             if (matchingEffects.length === 0) {
-              console.log(`🎲 Dice roll ${diceRoll} matches no ranges or results in no effects`);
               success = true; // Not an error, just no effects to process
             } else {
               try {
@@ -676,7 +642,6 @@ export class EffectEngineService implements IEffectEngineService {
                   };
                 }
                 
-                console.log(`✅ Successfully processed ${matchingEffects.length} conditional effect(s)`);
               } catch (error) {
                 console.error('🚨 EFFECT_ENGINE: CONDITIONAL_EFFECT error:', error);
                 return {
@@ -698,7 +663,6 @@ export class EffectEngineService implements IEffectEngineService {
 
         case 'DURATION_STORED':
           if (isDurationStoredEffect(effect)) {
-            console.log(`⏳ EFFECT_ENGINE: Duration effect stored for processing`);
             success = true;
           }
           break;
@@ -706,9 +670,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'INITIATE_NEGOTIATION':
           if (isInitiateNegotiationEffect(effect)) {
             const { payload } = effect;
-            console.log(`🤝 EFFECT_ENGINE: Initiating ${payload.negotiationType} negotiation`);
-            console.log(`    Initiator: ${payload.initiatorId}`);
-            console.log(`    Targets: ${payload.targetPlayerIds.join(', ')}`);
 
             try {
               if (!this.negotiationService) {
@@ -728,7 +689,6 @@ export class EffectEngineService implements IEffectEngineService {
               });
 
               if (result.success) {
-                console.log(`✅ Negotiation initiated: ${result.negotiationId}`);
                 success = true;
               } else {
                 console.error(`❌ Failed to initiate negotiation: ${result.message}`);
@@ -752,9 +712,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'NEGOTIATION_RESPONSE':
           if (isNegotiationResponseEffect(effect)) {
             const { payload } = effect;
-            console.log(`🤝 EFFECT_ENGINE: Processing negotiation response: ${payload.response}`);
-            console.log(`    Player: ${payload.respondingPlayerId}`);
-            console.log(`    Negotiation: ${payload.negotiationId}`);
 
             try {
               if (!this.negotiationService) {
@@ -786,7 +743,6 @@ export class EffectEngineService implements IEffectEngineService {
               }
 
               if (result.success) {
-                console.log(`✅ Negotiation response processed: ${payload.response}`);
                 success = true;
               } else {
                 console.error(`❌ Failed to process negotiation response: ${result.message}`);
@@ -810,10 +766,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'PLAYER_AGREEMENT_REQUIRED':
           if (isPlayerAgreementRequiredEffect(effect)) {
             const { payload } = effect;
-            console.log(`🤝 EFFECT_ENGINE: Processing player agreement requirement`);
-            console.log(`    Requester: ${payload.requesterPlayerId}`);
-            console.log(`    Targets: ${payload.targetPlayerIds.join(', ')}`);
-            console.log(`    Type: ${payload.agreementType}`);
 
             try {
               // Create choices for target players to accept or decline the agreement
@@ -843,7 +795,6 @@ export class EffectEngineService implements IEffectEngineService {
                   accepted: choiceResult === 'accept'
                 });
 
-                console.log(`   Player ${targetPlayer.name} ${choiceResult === 'accept' ? 'accepted' : 'declined'} the agreement`);
               }
 
               // Store agreement results for other effects to use
@@ -1044,7 +995,6 @@ export class EffectEngineService implements IEffectEngineService {
     payload: Extract<Effect, { effectType: 'EFFECT_GROUP_TARGETED' }>['payload'], 
     context: EffectContext
   ): Promise<boolean> {
-    console.log(`🎯 EFFECT_ENGINE: Processing targeted effect with targetType: ${payload.targetType}`);
     
     // Get all players from StateService
     const allPlayers = this.stateService.getAllPlayers();
@@ -1068,7 +1018,6 @@ export class EffectEngineService implements IEffectEngineService {
         const otherPlayers = allPlayers.filter(player => player.id !== currentPlayerId);
         
         if (otherPlayers.length === 0) {
-          console.log('No other players available for targeting');
           return true; // Not an error, just no valid targets
         }
         
@@ -1076,8 +1025,6 @@ export class EffectEngineService implements IEffectEngineService {
         if (otherPlayers.length === 1) {
           const singleTarget = otherPlayers[0];
           targetPlayers = [singleTarget.id];
-          console.log(`🎯 Single target detected - applying effect automatically to: ${singleTarget.name || singleTarget.id}`);
-          console.log(`✅ Automatic targeting resolved without ChoiceService`);
           break;
         }
         
@@ -1093,7 +1040,6 @@ export class EffectEngineService implements IEffectEngineService {
           }))
         };
         
-        console.log(`🎯 Creating player choice for targeting: ${choice.options.length} options`);
         
         // Use ChoiceService to present the choice and await result
         const chosenTargetId = await this.choiceService.createChoice(
@@ -1109,24 +1055,20 @@ export class EffectEngineService implements IEffectEngineService {
         }
         
         targetPlayers = [chosenTargetId];
-        console.log(`✅ Player chosen for targeting: ${chosenTargetId}`);
         break;
         
       case 'ALL_OTHER_PLAYERS':
         targetPlayers = allPlayers
           .filter(player => player.id !== currentPlayerId)
           .map(player => player.id);
-        console.log(`🎯 Targeting all other players: ${targetPlayers.length} players`);
         break;
         
       case 'ALL_PLAYERS':
         targetPlayers = allPlayers.map(player => player.id);
-        console.log(`🎯 Targeting all players: ${targetPlayers.length} players`);
         break;
         
       case 'Self':
         targetPlayers = [currentPlayerId];
-        console.log(`🎯 Targeting self: ${currentPlayerId}`);
         break;
         
       default:
@@ -1135,7 +1077,6 @@ export class EffectEngineService implements IEffectEngineService {
     }
     
     if (targetPlayers.length === 0) {
-      console.log('No valid targets found for targeted effect');
       return true; // Not an error, just no targets
     }
     
@@ -1148,7 +1089,6 @@ export class EffectEngineService implements IEffectEngineService {
       targetedEffects.push(targetedEffect);
     }
     
-    console.log(`🎯 Generated ${targetedEffects.length} targeted effects`);
     
     // Process all targeted effects using batch processing
     const batchResult = await this.processEffects(targetedEffects, {
@@ -1157,7 +1097,6 @@ export class EffectEngineService implements IEffectEngineService {
       triggerEvent: 'CARD_PLAY' // Targeted effects are typically from card play
     });
     
-    console.log(`🎯 Targeted effects batch result: ${batchResult.successfulEffects}/${batchResult.totalEffects} successful`);
     
     return batchResult.success;
   }
@@ -1184,11 +1123,9 @@ export class EffectEngineService implements IEffectEngineService {
    * Process effects with multi-player targeting support
    */
   async processEffectsWithTargeting(effects: Effect[], context: EffectContext, targetRule?: string): Promise<BatchEffectResult> {
-    console.log(`🎯 EFFECT_ENGINE: Processing ${effects.length} effects with targeting rule: ${targetRule || 'None'}`);
 
     // If no target rule specified, default to current player
     if (!targetRule || targetRule.trim() === 'Self' || targetRule.trim() === '') {
-      console.log(`   🎯 No multi-targeting needed, processing normally`);
       return this.processEffects(effects, context);
     }
 
@@ -1202,10 +1139,8 @@ export class EffectEngineService implements IEffectEngineService {
     const targetPlayerIds = await this.targetingService.resolveTargets(sourcePlayerId, targetRule);
     const targetDescription = this.targetingService.getTargetDescription(targetPlayerIds);
     
-    console.log(`   🎯 Resolved targets: ${targetDescription} (${targetPlayerIds.length} players)`);
 
     if (targetPlayerIds.length === 0) {
-      console.log(`   🎯 No valid targets found, skipping effects`);
       return { success: true, totalEffects: effects.length, successfulEffects: 0, failedEffects: 0, results: [], errors: [] };
     }
 
@@ -1215,7 +1150,6 @@ export class EffectEngineService implements IEffectEngineService {
     const allErrors: string[] = [];
 
     for (const targetPlayerId of targetPlayerIds) {
-      console.log(`   🎯 Applying effects to target: ${targetPlayerId}`);
       
       // Clone effects with the correct target player ID
       const targetedEffects = effects.map(effect => this.cloneEffectWithNewPlayerId(effect, targetPlayerId));
@@ -1246,7 +1180,6 @@ export class EffectEngineService implements IEffectEngineService {
     const totalExpected = effects.length * targetPlayerIds.length;
     const success = totalSuccessfulEffects === totalExpected;
 
-    console.log(`🎯 Multi-target effects complete: ${totalSuccessfulEffects}/${totalExpected} successful across ${targetPlayerIds.length} players`);
 
     return {
       success: success,
@@ -1265,14 +1198,12 @@ export class EffectEngineService implements IEffectEngineService {
     // Ensure core setter-injected dependencies are ready
     this.assertCoreDependenciesReady();
 
-    console.log(`🎯🕒 EFFECT_ENGINE: Processing ${effects.length} card effects with full targeting and duration support`);
     
     const cardId = cardData?.card_id || 'unknown';
     const targetRule = cardData?.target || 'Self';
     const hasDuration = cardData && cardData.duration === 'Turns' && cardData.duration_count && parseInt(cardData.duration_count) > 0;
     const duration = hasDuration ? parseInt(cardData.duration_count) : 0;
 
-    console.log(`   Card: ${cardId}, Target: ${targetRule}, Duration: ${hasDuration ? `${duration} turns` : 'Immediate'}`);
 
     // First resolve targeting
     const sourcePlayerId = context.playerId;
@@ -1287,17 +1218,14 @@ export class EffectEngineService implements IEffectEngineService {
     } else {
       targetPlayerIds = await this.targetingService.resolveTargets(sourcePlayerId, targetRule);
       const targetDescription = this.targetingService.getTargetDescription(targetPlayerIds);
-      console.log(`   Resolved targets: ${targetDescription} (${targetPlayerIds.length} players)`);
     }
 
     if (targetPlayerIds.length === 0) {
-      console.log(`   No valid targets found, skipping effects`);
       return { success: true, totalEffects: effects.length, successfulEffects: 0, failedEffects: 0, results: [], errors: [] };
     }
 
     // Handle duration-based effects
     if (hasDuration) {
-      console.log(`   Storing effects as active for ${duration} turns on ${targetPlayerIds.length} players`);
       
       for (const targetPlayerId of targetPlayerIds) {
         for (const effect of effects) {
@@ -1326,7 +1254,6 @@ export class EffectEngineService implements IEffectEngineService {
       };
     } else {
       // Immediate effects with targeting
-      console.log(`   Applying immediate effects to ${targetPlayerIds.length} players`);
       return this.processEffectsWithTargeting(effects, context, targetRule);
     }
   }
@@ -1335,8 +1262,6 @@ export class EffectEngineService implements IEffectEngineService {
    * Process effects considering duration - if card has duration, store effects as active rather than applying immediately
    */
   async processEffectsWithDuration(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult> {
-    console.log(`🕒 EFFECT_ENGINE: Processing ${effects.length} effects with duration consideration`);
-    console.log(`🕒 Card data:`, cardData ? `${cardData.card_id} - duration: ${cardData.duration}, count: ${cardData.duration_count}` : 'No card data');
 
     // Check if this card should have duration-based effects
     const shouldUseDuration = cardData && 
@@ -1346,7 +1271,6 @@ export class EffectEngineService implements IEffectEngineService {
 
     if (shouldUseDuration) {
       const duration = parseInt(cardData.duration_count);
-      console.log(`🕒 Storing ${effects.length} effects as active for ${duration} turns`);
       
       // Store effects as active rather than applying immediately
       for (const effect of effects) {
@@ -1372,7 +1296,6 @@ export class EffectEngineService implements IEffectEngineService {
       };
     } else {
       // No duration, process effects immediately as before
-      console.log(`🕒 No duration detected, processing effects immediately`);
       return this.processEffects(effects, context);
     }
   }
@@ -1381,7 +1304,6 @@ export class EffectEngineService implements IEffectEngineService {
    * Add an active effect to a player's activeEffects list
    */
   addActiveEffect(playerId: string, effect: Effect, sourceCardId: string, duration: number): void {
-    console.log(`🕒 Adding active effect to player ${playerId} for ${duration} turns`);
     
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
@@ -1407,26 +1329,21 @@ export class EffectEngineService implements IEffectEngineService {
       activeEffects: updatedActiveEffects
     });
 
-    console.log(`✅ Added active effect ${activeEffect.effectId} to player ${playerId}`);
   }
 
   /**
    * Apply all active effects for a specific player and decrement their duration
    */
   async applyActiveEffects(playerId: string): Promise<void> {
-    console.log(`🔄 Applying active effects for player ${playerId}`);
     
     const player = this.stateService.getPlayer(playerId);
     if (!player || !player.activeEffects || player.activeEffects.length === 0) {
-      console.log(`   No active effects for player ${playerId}`);
       return;
     }
 
-    console.log(`   Processing ${player.activeEffects.length} active effects`);
     const remainingEffects = [];
 
     for (const activeEffect of player.activeEffects) {
-      console.log(`   Applying effect ${activeEffect.effectId} (${activeEffect.remainingDuration} turns remaining)`);
       
       try {
         // Create a copy of the effect with updated source for active processing
@@ -1454,9 +1371,7 @@ export class EffectEngineService implements IEffectEngineService {
             ...activeEffect,
             description: `Effect from ${activeEffect.sourceCardId} (${activeEffect.remainingDuration} turns remaining)`
           });
-          console.log(`   Effect ${activeEffect.effectId} continues for ${activeEffect.remainingDuration} more turns`);
         } else {
-          console.log(`   Effect ${activeEffect.effectId} expired and removed`);
         }
       } catch (error) {
         console.error(`   Error applying active effect ${activeEffect.effectId}:`, error);
@@ -1470,14 +1385,12 @@ export class EffectEngineService implements IEffectEngineService {
       activeEffects: remainingEffects
     });
 
-    console.log(`✅ Active effects processed for ${playerId}: ${remainingEffects.length} effects remaining`);
   }
 
   /**
    * Process active effects for all players (called at turn transitions)
    */
   async processActiveEffectsForAllPlayers(): Promise<void> {
-    console.log(`🌍 Processing active effects for all players`);
     
     const gameState = this.stateService.getGameState();
     const players = gameState.players;
@@ -1486,7 +1399,6 @@ export class EffectEngineService implements IEffectEngineService {
       await this.applyActiveEffects(player.id);
     }
 
-    console.log(`✅ Completed processing active effects for all ${players.length} players`);
   }
 
   /**

@@ -96,7 +96,6 @@ export class CardService implements ICardService {
       const preSelectedOfType = gameState.startingHand.filter(cardId => cardId.startsWith(cardType));
 
       if (preSelectedOfType.length > 0) {
-        console.log(`📚 Educational mode: Giving ${preSelectedOfType.length} pre-selected ${cardType} card(s) instead of drawing`);
 
         // Add pre-selected cards to player's hand
         const currentHand = player.hand || [];
@@ -228,7 +227,6 @@ export class CardService implements ICardService {
       this.stateService.updateGameState({
         startingHand: [...currentStartingHand, ...drawnCards]
       });
-      console.log(`📝 Quick Start: Captured ${drawnCards.length} card(s) to starting hand: ${drawnCards.join(', ')}`);
     }
 
     // Log the card draw with source tracking
@@ -269,7 +267,6 @@ export class CardService implements ICardService {
    * @returns Object with drawnCardId and success status
    */
   drawAndApplyCard(playerId: string, cardType: CardType, source: string, reason: string): { drawnCardId: string | null; success: boolean } {
-    console.log(`🎴 CARD_SERVICE: drawAndApplyCard - Drawing and applying ${cardType} card for player ${playerId}`);
     
     try {
       // Step 1: Draw the card
@@ -282,7 +279,6 @@ export class CardService implements ICardService {
       }
       
       const drawnCardId = drawnCards[0];
-      console.log(`🎴 Successfully drew card: ${drawnCardId}`);
       
       // Step 2: Apply card effects directly (bypassing cost validation/charging)
       // For automatic funding, we apply effects without charging costs
@@ -291,7 +287,6 @@ export class CardService implements ICardService {
       // Step 3: Handle card lifecycle (move to active or discard based on duration)
       this.finalizePlayedCard(playerId, drawnCardId);
       
-      console.log(`🎴 Successfully applied and processed card: ${drawnCardId}`);
       
       return { drawnCardId, success: true };
       
@@ -329,7 +324,6 @@ export class CardService implements ICardService {
         ...updatedHand.slice(handIndex + 1)
       ];
       cardRemoved = true;
-      console.log(`Removed card ${cardId} from ${playerId} hand`);
     }
 
     // Check active cards if not found in hand
@@ -341,7 +335,6 @@ export class CardService implements ICardService {
           ...updatedActiveCards.slice(activeCardIndex + 1)
         ];
         cardRemoved = true;
-        console.log(`Removed card ${cardId} from ${playerId} active cards`);
       }
     }
 
@@ -509,7 +502,6 @@ export class CardService implements ICardService {
 
   // Main card playing method
   async playCard(playerId: string, cardId: string): Promise<GameState> {
-    console.log(`Attempting to play card [${cardId}] for player [${playerId}]`);
 
     try {
       // Step 1: Validate that the card can be played (includes phase restrictions)
@@ -543,7 +535,6 @@ export class CardService implements ICardService {
           this.stateService.updateTempState(playerId, {
             money: player.money - card.cost
           });
-          console.log(`Player ${playerId} paid $${card.cost} to play card ${cardId}`);
         }
       }
       
@@ -553,19 +544,15 @@ export class CardService implements ICardService {
         if (numericDuration > 0) {
           // Card has duration - move to activeCards
           this.activateCard(playerId, cardId, numericDuration);
-          console.log(`Card [${cardId}] activated for ${numericDuration} turns`);
         } else {
           // Card has immediate effect - move to discarded
           this.moveCardToDiscarded(playerId, cardId);
-          console.log(`Card [${cardId}] used immediately and discarded`);
         }
       } else {
         // Card has immediate effect - move to discarded
         this.moveCardToDiscarded(playerId, cardId);
-        console.log(`Card [${cardId}] used immediately and discarded`);
       }
       
-      console.log(`Successfully played card [${cardId}] for player [${playerId}]`);
       
       // Log card play to action history
       const player = this.stateService.getPlayer(playerId);
@@ -897,7 +884,6 @@ export class CardService implements ICardService {
       });
     }
 
-    console.log(`Expired card ${cardId} moved to ${cardType} discard pile for player ${playerId}`);
   }
 
   // Card discard helper method
@@ -962,7 +948,6 @@ export class CardService implements ICardService {
       hand: updatedHand
     });
 
-    console.log(`Moved card ${cardId} from hand to ${cardType} discard pile for player ${playerId}`);
   }
 
   /**
@@ -970,7 +955,6 @@ export class CardService implements ICardService {
    * Used by EffectEngine for PLAY_CARD effects when card has no duration
    */
   public discardPlayedCard(playerId: string, cardId: string): void {
-    console.log(`🗑️ Discarding played card ${cardId} for player ${playerId}`);
     this.moveCardToDiscarded(playerId, cardId);
   }
 
@@ -980,7 +964,6 @@ export class CardService implements ICardService {
    * Used by EffectEngine for PLAY_CARD effects
    */
   public finalizePlayedCard(playerId: string, cardId: string): void {
-    console.log(`🎴 Finalizing played card ${cardId} for player ${playerId}`);
 
     const card = this.dataService.getCardById(cardId);
     if (!card) {
@@ -994,10 +977,8 @@ export class CardService implements ICardService {
       : 0;
 
     if (duration > 0) {
-      console.log(`🎴 Card ${cardId} has duration ${duration}, activating...`);
       this.activateCard(playerId, cardId, duration);
     } else {
-      console.log(`🎴 Card ${cardId} has no duration, discarding...`);
       this.discardPlayedCard(playerId, cardId);
     }
   }
@@ -1019,8 +1000,6 @@ export class CardService implements ICardService {
       throw new Error(error.detailed);
     }
 
-    console.log(`🎴 CARD_SERVICE: Applying effects for card ${cardId}: "${card.card_name}"`);
-    console.log(`🔍 DEBUG FUNDING: Card type=${card.card_type}, loan_amount=${card.loan_amount}, investment_amount=${card.investment_amount}, cost=${card.cost}`);
 
     // Special handling for E024 "Return to Sender"
     if (card.card_id === 'E024') {
@@ -1038,7 +1017,6 @@ export class CardService implements ICardService {
     const effects = this.parseCardIntoEffects(card, playerId);
 
     if (effects.length > 0) {
-      console.log(`🎴 CARD_SERVICE: Parsed ${effects.length} effects from card ${cardId}`);
 
       // Step 2: Process effects through UnifiedEffectEngine synchronously
       const context = {
@@ -1050,7 +1028,6 @@ export class CardService implements ICardService {
       try {
         const batchResult = await this.effectEngineService.processCardEffects(effects, context, card);
         if (batchResult.success) {
-          console.log(`✅ Successfully processed ${batchResult.successfulEffects}/${batchResult.totalEffects} card effects`);
         } else {
           console.error(`❌ Card effect processing failed: ${batchResult.errors.join(', ')}`);
           throw new Error(`Card effect processing failed: ${batchResult.errors.join(', ')}`);
@@ -1062,7 +1039,6 @@ export class CardService implements ICardService {
     }
 
     // Legacy card type logging for debugging
-    console.log(`Card type ${card.card_type} processed successfully`);
 
     return this.stateService.getGameState();
   }
@@ -1090,7 +1066,6 @@ export class CardService implements ICardService {
             reason: `${card.card_name}: ${moneyAmount > 0 ? '+' : ''}$${Math.abs(moneyAmount).toLocaleString()}`
           }
         });
-        console.log(`   💰 Added MODIFY_RESOURCE effect: ${moneyAmount > 0 ? '+' : ''}$${Math.abs(moneyAmount).toLocaleString()}`);
       }
     }
 
@@ -1116,7 +1091,6 @@ export class CardService implements ICardService {
               }
             });
           }
-          console.log(`   ⏰ Added GLOBAL TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} days to ALL ${gameState.players.length} players`);
         } else {
           // Apply to current player only
           effects.push({
@@ -1129,7 +1103,6 @@ export class CardService implements ICardService {
               reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days`
             }
           });
-          console.log(`   ⏰ Added TIME effect: ${timeAmount > 0 ? '+' : ''}${timeAmount} days`);
         }
       }
     }
@@ -1152,7 +1125,6 @@ export class CardService implements ICardService {
               reason: `${card.card_name}: Draw ${count} ${cardType} card${count > 1 ? 's' : ''}`
             }
           });
-          console.log(`   🎴 Added DRAW_CARDS effect: ${count} ${cardType} card${count > 1 ? 's' : ''}`);
         }
       }
     }
@@ -1174,7 +1146,6 @@ export class CardService implements ICardService {
             ]
           }
         });
-        console.log(`   🚶 Added PLAYER_CHOICE_MOVE effect: ${movementSpaces} spaces`);
       }
     }
 
@@ -1197,7 +1168,6 @@ export class CardService implements ICardService {
               reason: `${card.card_name}: Discard ${count} ${cardType || 'any'} card${count > 1 ? 's' : ''}`
             }
           });
-          console.log(`   🗑️ Added CARD_DISCARD effect: ${count} ${cardType || 'any'} card${count > 1 ? 's' : ''}`);
         }
       }
     }
@@ -1210,10 +1180,6 @@ export class CardService implements ICardService {
         const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'bank';
         const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Loan';
 
-        console.log(`🔍 BUG #2 DEBUG: Parsing B card ${card.card_id}`);
-        console.log(`   - loan_amount: $${loanAmount.toLocaleString()}`);
-        console.log(`   - player.currentSpace: ${player?.currentSpace}`);
-        console.log(`   - sourceType: ${sourceType}`);
 
         // Calculate interest (loan_rate is stored as percentage, e.g., 5 for 5%)
         const interestRate = card.loan_rate ? parseFloat(card.loan_rate) / 100 : 0;
@@ -1230,7 +1196,6 @@ export class CardService implements ICardService {
             reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${interestFee > 0 ? ` at ${card.loan_rate}% interest` : ''}`
           }
         });
-        console.log(`   💰 Added LOAN RESOURCE_CHANGE effect: +$${loanAmount.toLocaleString()} (${sourceLabel})`);
 
         // Deduct interest upfront for bank loans (not owner funding)
         if (interestFee > 0) {
@@ -1245,7 +1210,6 @@ export class CardService implements ICardService {
               reason: `${card.card_name}: Interest fee (${card.loan_rate}%): -$${interestFee.toLocaleString()}`
             }
           });
-          console.log(`   💸 Added INTEREST DEDUCTION effect: -$${interestFee.toLocaleString()} (${card.loan_rate}% of $${loanAmount.toLocaleString()})`);
         }
       }
     }
@@ -1259,10 +1223,6 @@ export class CardService implements ICardService {
         const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'investment';
         const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Investment';
 
-        console.log(`🔍 BUG #2 DEBUG: Parsing I card ${card.card_id}`);
-        console.log(`   - investment_amount: $${investmentAmount.toLocaleString()}`);
-        console.log(`   - player.currentSpace: ${player?.currentSpace}`);
-        console.log(`   - sourceType: ${sourceType}`);
 
         effects.push({
           effectType: 'RESOURCE_CHANGE',
@@ -1275,7 +1235,6 @@ export class CardService implements ICardService {
             reason: `${card.card_name}: ${sourceLabel} of $${investmentAmount.toLocaleString()}`
           }
         });
-        console.log(`   💰 Added ${sourceType.toUpperCase()} RESOURCE_CHANGE effect: +$${investmentAmount.toLocaleString()} (${sourceLabel})`);
       }
     }
 
@@ -1290,7 +1249,6 @@ export class CardService implements ICardService {
           reason: `Card effect: ${card.card_name}`
         }
       });
-      console.log(`   ⏭️ Added SKIP_TURN effect`);
     }
 
     return effects;
@@ -1315,16 +1273,11 @@ export class CardService implements ICardService {
     const costMatch = card.description.match(/\$([0-9,]+)/);
     if (costMatch) {
       const projectValue = parseInt(costMatch[1].replace(/,/g, ''));
-      console.log(`Work card played: ${card.card_name}`);
-      console.log(`Added project scope worth $${projectValue.toLocaleString()}`);
       
       // Work cards contribute to player's total project portfolio value
       // This could be used for win conditions or scoring in future phases
       const currentProjectValue = player.money; // For now, work cards don't change money directly
-      console.log(`Work scope acquired: ${card.card_name} (Est. $${projectValue.toLocaleString()})`);
     } else {
-      console.log(`Work card played: ${card.card_name}`);
-      console.log('Work card represents project scope for completion requirements');
     }
     
     return this.stateService.getGameState();
@@ -1341,9 +1294,7 @@ export class CardService implements ICardService {
     if (card.loan_amount) {
       const loanAmount = parseInt(card.loan_amount);
       if (!isNaN(loanAmount) && loanAmount > 0) {
-        console.log(`Bank Loan approved: ${card.card_name} - $${loanAmount.toLocaleString()}`);
         if (card.loan_rate) {
-          console.log(`Interest rate: ${card.loan_rate}%`);
         }
       }
     }
@@ -1369,7 +1320,6 @@ export class CardService implements ICardService {
         this.stateService.updateTempState(playerId, {
           money: player.money + moneyGain
         });
-        console.log(`Expeditor card provided $${moneyGain}`);
       }
     }
 
@@ -1382,7 +1332,6 @@ export class CardService implements ICardService {
         this.stateService.updateTempState(playerId, {
           timeSpent: Math.max(0, player.timeSpent - timeGain) // Reduce time spent
         });
-        console.log(`Expeditor card saved ${timeGain} time units`);
       }
     }
     
@@ -1394,7 +1343,6 @@ export class CardService implements ICardService {
       
       try {
         this.drawCards(playerId, randomCardType, 1);
-        console.log(`Expeditor card effect: Drew 1 ${randomCardType} card`);
       } catch (error) {
         console.warn(`Could not draw ${randomCardType} card:`, error);
         // Try a different card type if the first fails
@@ -1402,7 +1350,6 @@ export class CardService implements ICardService {
           if (fallbackType !== randomCardType) {
             try {
               this.drawCards(playerId, fallbackType, 1);
-              console.log(`Expeditor card effect: Drew 1 ${fallbackType} card (fallback)`);
               break;
             } catch (fallbackError) {
               // Continue to next type
@@ -1412,7 +1359,6 @@ export class CardService implements ICardService {
       }
     }
     
-    console.log(`Expeditor effect applied: ${effects}`);
     return this.stateService.getGameState();
   }
 
@@ -1425,26 +1371,20 @@ export class CardService implements ICardService {
     // Life Events cards create random events and unforeseen circumstances
     // Parse the effects_on_play field for specific benefits
     const effects = card.effects_on_play || '';
-    console.log(`Life Events card played: ${card.card_name}`);
     
     if (effects.includes('Enables')) {
-      console.log(`✅ Life event enabled: ${effects}`);
     }
     
     if (effects.includes('reduces') && effects.includes('risk')) {
-      console.log(`🛡️ Risk reduction applied: ${effects}`);
     }
     
     if (effects.includes('Prevents')) {
-      console.log(`🚫 Prevention effect activated: ${effects}`);
     }
     
     if (effects.includes('Expands')) {
-      console.log(`📈 Expansion benefit acquired: ${effects}`);
     }
     
     // Life Events cards provide random circumstances that affect gameplay
-    console.log(`Life event processed: ${card.card_name}`);
     
     return this.stateService.getGameState();
   }
@@ -1598,9 +1538,6 @@ export class CardService implements ICardService {
       const sourceInfo = source || 'manual';
       const reasonInfo = reason || `Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`;
 
-      console.log(`🗑️ Cards Discarded [${playerId}]: ${cardSummary} (Source: ${sourceInfo})`);
-      console.log(`   Reason: ${reasonInfo}`);
-      console.log(`   Card IDs: ${cardIds.join(', ')}`);
 
       // Log card discard to action history
       this.loggingService.info(`Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`, {
@@ -1631,7 +1568,6 @@ export class CardService implements ICardService {
    * return it to that player's hand, canceling its ongoing effect.
    */
   private async handleReturnToSender(playerId: string, card: any): Promise<void> {
-    console.log(`🔄 E024 "Return to Sender" played by player ${playerId}`);
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
@@ -1657,7 +1593,6 @@ export class CardService implements ICardService {
     }
 
     if (activeECards.length === 0) {
-      console.log(`🔄 No active E cards to return - card has no effect`);
       this.loggingService.info(`${card.card_name} played but no active E cards to target`, {
         playerId: playerId,
         action: 'card_no_target'
@@ -1670,7 +1605,6 @@ export class CardService implements ICardService {
     if (activeECards.length === 1) {
       // Only one target - auto-select
       selectedCard = activeECards[0];
-      console.log(`🔄 Auto-selecting only active E card: ${selectedCard.cardName}`);
     } else {
       // Multiple targets - present choice
       if (!this.choiceService) {
@@ -1697,7 +1631,6 @@ export class CardService implements ICardService {
     }
 
     if (!selectedCard) {
-      console.log(`🔄 No card selected - effect cancelled`);
       return;
     }
 
@@ -1723,7 +1656,6 @@ export class CardService implements ICardService {
       activeCards: updatedActiveCards
     });
 
-    console.log(`✅ ${selectedCard.cardName} returned to ${owner.name}'s hand`);
 
     // Log the action
     const currentPlayer = allPlayers.find(p => p.id === playerId);
@@ -1742,7 +1674,6 @@ export class CardService implements ICardService {
    * This card requires selecting an opponent and applying opposite time effects.
    */
   private async handleFavorCalledIn(playerId: string, card: any): Promise<void> {
-    console.log(`📞 E009 "Favor Called In" played by player ${playerId}`);
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
@@ -1752,7 +1683,6 @@ export class CardService implements ICardService {
     const opponents = allPlayers.filter(p => p.id !== playerId);
 
     if (opponents.length === 0) {
-      console.log(`📞 No opponents to target - single player game`);
       // Still apply benefit to self in single player (spendTime reduces time spent)
       this.resourceService.spendTime(playerId, 2, `card:${card.card_id}`, `${card.card_name}: -2 days`);
       this.loggingService.info(`${card.card_name} played - no opponents, self benefit only`, {
@@ -1767,7 +1697,6 @@ export class CardService implements ICardService {
     if (opponents.length === 1) {
       // Only one opponent - auto-select
       selectedOpponent = opponents[0];
-      console.log(`📞 Auto-selecting only opponent: ${selectedOpponent.name}`);
     } else {
       // Multiple opponents - present choice
       if (!this.choiceService) {
@@ -1793,7 +1722,6 @@ export class CardService implements ICardService {
     }
 
     if (!selectedOpponent) {
-      console.log(`📞 No opponent selected - effect cancelled`);
       return;
     }
 
@@ -1816,7 +1744,6 @@ export class CardService implements ICardService {
       `${card.card_name}: -2 days`
     );
 
-    console.log(`✅ Favor Called In: ${selectedOpponent.name} +2 days, ${currentPlayer?.name} -2 days`);
 
     // Log the action
     this.loggingService.info(`${currentPlayer?.name} called in a favor: ${selectedOpponent.name} slowed down`, {

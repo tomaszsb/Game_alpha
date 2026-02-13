@@ -33,8 +33,6 @@ export class NegotiationService {
    * @returns Promise resolving to the negotiation result
    */
   public async initiateNegotiation(playerId: string, context: any): Promise<NegotiationResult> {
-    console.log(`🤝 NegotiationService.initiateNegotiation - Player ${playerId} starting negotiation`);
-    console.log(`   Context:`, context);
     
     try {
       // Get current game state
@@ -73,9 +71,6 @@ export class NegotiationService {
       // Update game state with active negotiation
       this.stateService.updateNegotiationState(negotiationState);
       
-      console.log(`✅ Negotiation created: ${negotiationId}`);
-      console.log(`   Status: ${negotiationState.status}`);
-      console.log(`   Initiator: ${player.name || playerId}`);
       
       // Return complete result with negotiation tracking
       return {
@@ -114,8 +109,6 @@ export class NegotiationService {
    * @returns Promise resolving to the negotiation result
    */
   public async makeOffer(playerId: string, offer: { cards?: string[] }): Promise<NegotiationResult> {
-    console.log(`🤝 NegotiationService.makeOffer - Player ${playerId} making offer`);
-    console.log(`   Offer:`, offer);
     
     try {
       // Get current game state
@@ -188,9 +181,6 @@ export class NegotiationService {
         this.stateService.updateNegotiationState(updatedNegotiation);
       }
       
-      console.log(`✅ Offer accepted for negotiation: ${negotiation.negotiationId}`);
-      console.log(`   Player: ${player.name || playerId}`);
-      console.log(`   Cards offered: ${offer.cards?.join(', ') || 'none'}`);
       
       return {
         success: true,
@@ -226,7 +216,6 @@ export class NegotiationService {
    * @returns Promise resolving to the negotiation result
    */
   public async cancelNegotiation(negotiationId: string): Promise<NegotiationResult> {
-    console.log(`🤝 NegotiationService.cancelNegotiation - Cancelling negotiation ${negotiationId}`);
     
     try {
       const gameState = this.stateService.getGameState();
@@ -248,7 +237,6 @@ export class NegotiationService {
             // Restore cards from negotiation offer back to player's hand
             const restoredPlayer = this.addCardsToPlayer(player, snapshot.negotiationOffer);
             this.stateService.updatePlayer(restoredPlayer);
-            console.log(`   Restored ${snapshot.negotiationOffer.length} cards to player ${snapshot.id}`);
           }
         }
       }
@@ -256,7 +244,6 @@ export class NegotiationService {
       // Clear active negotiation
       this.stateService.updateNegotiationState(null);
       
-      console.log(`✅ Negotiation ${negotiationId} cancelled and player states restored`);
       
       return {
         success: true,
@@ -293,7 +280,6 @@ export class NegotiationService {
    * @returns Promise resolving to the negotiation result
    */
   public async completeNegotiation(negotiationId: string, agreement: any): Promise<NegotiationResult> {
-    console.log(`🤝 NegotiationService.completeNegotiation - Completing negotiation ${negotiationId}`);
     
     try {
       const gameState = this.stateService.getGameState();
@@ -311,7 +297,6 @@ export class NegotiationService {
       // Clear active negotiation
       this.stateService.updateNegotiationState(null);
       
-      console.log(`✅ Negotiation ${negotiationId} completed successfully`);
       
       return {
         success: true,
@@ -419,7 +404,6 @@ export class NegotiationService {
    * @returns Promise resolving to the negotiation result
    */
   public async acceptOffer(playerId: string): Promise<NegotiationResult> {
-    console.log(`✅ NegotiationService.acceptOffer - Player ${playerId} accepting offer`);
     
     // For now, return a success result
     // In a full implementation, this would process the actual offer acceptance
@@ -440,7 +424,6 @@ export class NegotiationService {
    * @returns Promise resolving to the negotiation result
    */
   public async declineOffer(playerId: string): Promise<NegotiationResult> {
-    console.log(`❌ NegotiationService.declineOffer - Player ${playerId} declining offer`);
     
     // For now, return a success result with declined status
     // In a full implementation, this would process the actual offer decline

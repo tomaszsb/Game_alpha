@@ -196,7 +196,6 @@ export class StateService implements IStateService {
    * Emit an auto-action event to trigger modal notifications
    */
   emitAutoAction(event: AutoActionEvent): void {
-    console.log(`📢 Auto-action event: ${event.type} for ${event.playerName}`, event);
     this.autoActionListeners.forEach(callback => {
       try {
         callback(event);
@@ -303,7 +302,6 @@ export class StateService implements IStateService {
 
     // Debug: Log spaceVisitLog updates
     if (playerData.spaceVisitLog) {
-      console.log(`📊 updatePlayer: spaceVisitLog update - from ${currentPlayer.spaceVisitLog?.length || 0} to ${playerData.spaceVisitLog.length} entries`);
     }
 
     const updatedPlayer: Player = {
@@ -317,7 +315,6 @@ export class StateService implements IStateService {
 
     // Debug: Verify spaceVisitLog was set
     if (playerData.spaceVisitLog) {
-      console.log(`📊 updatePlayer: After merge - spaceVisitLog has ${updatedPlayer.spaceVisitLog?.length || 0} entries`);
     }
 
     let newPlayers = [...this.currentState.players];
@@ -381,7 +378,6 @@ export class StateService implements IStateService {
     }
 
     const player = this.currentState.players.find(p => p.id === playerId);
-    console.log(`🎯 StateService.setCurrentPlayer - Setting current player to ${player?.name} (${playerId})`);
 
     const newState: GameState = {
       ...this.currentState,
@@ -556,8 +552,6 @@ export class StateService implements IStateService {
     // Initialize action counts for the first player
     this.updateActionCounts();
 
-    console.log(`🎴 DECK_INIT [BATTLE_ROYALE]: Created shared shuffled decks - W:${decks.W.length}, B:${decks.B.length}, E:${decks.E.length}, L:${decks.L.length}, I:${decks.I.length}`);
-    console.log('⏳ Game started but not yet initialized - waiting for player placement');
 
     return { ...this.currentState };
   }
@@ -633,12 +627,8 @@ export class StateService implements IStateService {
     // Initialize action counts for the first player
     this.updateActionCounts();
 
-    console.log(`🎴 DECK_INIT [SAME_START/${startingMode}]: Created per-player decks with seed ${seed}`);
-    console.log(`   Players: ${this.currentState.players.map(p => p.name).join(', ')}`);
     if (isQuickStart) {
-      console.log(`   📝 Quick Start: Capturing P1's draws as starting hand for all players`);
     } else if (startingMode === 'EDUCATIONAL' && preSelectedHand) {
-      console.log(`   📚 Educational: ${preSelectedHand.length} cards pre-selected (given when buttons pressed on starting space)`);
     }
 
     return { ...this.currentState };
@@ -685,13 +675,10 @@ export class StateService implements IStateService {
     }
 
     const correctStartingSpace = this.getStartingSpace();
-    console.log('🔧 Fixing starting spaces. Correct starting space should be:', correctStartingSpace);
-    console.log('🔍 Current players before fix:', this.currentState.players.map(p => ({ name: p.name, currentSpace: p.currentSpace })));
     
     const updatedPlayers = this.currentState.players.map(player => {
       // Only fix players who are still on the old incorrect starting space
       if (player.currentSpace === 'START-QUICK-PLAY-GUIDE') {
-        console.log(`🔄 Fixing player ${player.name} from ${player.currentSpace} to ${correctStartingSpace}`);
         return {
           ...player,
           currentSpace: correctStartingSpace
@@ -708,7 +695,6 @@ export class StateService implements IStateService {
     this.currentState = newState;
     this.notifyListeners();
     
-    console.log('✅ Players after fix:', newState.players.map(p => ({ name: p.name, currentSpace: p.currentSpace })));
     return { ...newState };
   }
 
@@ -721,10 +707,8 @@ export class StateService implements IStateService {
     }
 
     const correctStartingSpace = this.getStartingSpace();
-    console.log('🚨 FORCE RESET: Moving all players to:', correctStartingSpace);
     
     const updatedPlayers = this.currentState.players.map(player => {
-      console.log(`🔄 FORCE RESET: ${player.name} from ${player.currentSpace} to ${correctStartingSpace}`);
       return {
         ...player,
         currentSpace: correctStartingSpace,
@@ -740,12 +724,10 @@ export class StateService implements IStateService {
     this.currentState = newState;
     this.notifyListeners();
     
-    console.log('🎯 FORCE RESET COMPLETE. All players now at:', correctStartingSpace);
     return { ...newState };
   }
 
   setAwaitingChoice(choice: Choice): GameState {
-    console.log(`🎯 Setting awaiting choice for player ${choice.playerId}: ${choice.type} - "${choice.prompt}"`);
 
     this.currentState = {
       ...this.currentState,
@@ -791,7 +773,6 @@ export class StateService implements IStateService {
   }
 
   setPlayerMoveIntent(playerId: string, destination: string | null): GameState {
-    console.log(`🎯 Setting move intent for player ${playerId}: ${destination}`);
 
     const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
     if (playerIndex === -1) {
@@ -836,8 +817,6 @@ export class StateService implements IStateService {
   }
 
   setPlayerCompletedManualAction(effectType: string, message: string): GameState {
-    console.log(`🎯 Recording completed manual action: ${effectType}, message: "${message}"`);
-    console.log(`🎯 Current manual actions before:`, this.currentState.completedActions.manualActions);
     const newCompletedActions = {
       ...this.currentState.completedActions,
       manualActions: {
@@ -845,7 +824,6 @@ export class StateService implements IStateService {
         [effectType]: message,
       },
     };
-    console.log(`🎯 New manual actions after:`, newCompletedActions.manualActions);
 
     const newState: GameState = {
       ...this.currentState,
@@ -853,9 +831,7 @@ export class StateService implements IStateService {
     };
 
     this.currentState = newState;
-    console.log(`🎯 About to call updateActionCounts after recording ${effectType}`);
     this.updateActionCounts(); // This remains the same
-    console.log(`🎯 updateActionCounts completed. State now has requiredActions=${this.currentState.requiredActions}, completedActionCount=${this.currentState.completedActionCount}`);
     return { ...this.currentState };
   }
 
@@ -874,7 +850,6 @@ export class StateService implements IStateService {
   }
 
   clearPlayerHasMoved(): GameState {
-    console.log(`🎯 StateService.clearPlayerHasMoved - Clearing hasPlayerMovedThisTurn flag`);
     const newState: GameState = {
       ...this.currentState,
       hasPlayerMovedThisTurn: false
@@ -1004,7 +979,6 @@ export class StateService implements IStateService {
 
     this.currentState = newState;
     this.notifyListeners();
-    console.log('🎯 Game marked as fully initialized');
 
     return { ...this.currentState };
   }
@@ -1044,7 +1018,6 @@ export class StateService implements IStateService {
 
     const actionCounts = this.calculateRequiredActions(currentPlayer);
 
-    console.log(`🎯 updateActionCounts: ${currentPlayer.name} - required: ${actionCounts.required}, completed: ${actionCounts.completed}, hasRolled: ${this.currentState.hasPlayerRolledDice}, space: ${currentPlayer.currentSpace}`);
 
     this.currentState = {
       ...this.currentState,
@@ -1265,7 +1238,6 @@ export class StateService implements IStateService {
     if (options.isTryAgain) {
       const realState = this.turnStateManager.getRealState(options.playerId);
       if (realState) {
-        console.log(`🔄 Restoring player state from REAL for Try Again: ${player.hand.length} → ${realState.state.hand.length} cards`);
 
         this.updatePlayer({
           id: options.playerId,
@@ -1356,7 +1328,6 @@ export class StateService implements IStateService {
     // Without this, the player would keep cards/money/etc from the failed attempt
     if (result.success && realState) {
       const currentHand = this.getPlayer(playerId)?.hand.length ?? 0;
-      console.log(`🔄 Restoring player state from REAL after discardTempState: ${currentHand} → ${realState.state.hand.length} cards`);
 
       this.updatePlayer({
         id: playerId,
@@ -1448,14 +1419,12 @@ export class StateService implements IStateService {
   }
 
   setGameState(newState: GameState): GameState {
-    console.log('🔧 Setting entire game state atomically');
     this.currentState = newState;
     this.notifyListeners();
     return this.currentState;
   }
 
   updateGameState(stateChanges: Partial<GameState>): GameState {
-    console.log('🔧 Updating game state with partial changes');
     this.currentState = { ...this.currentState, ...stateChanges };
     this.notifyListeners();
     return this.currentState;
@@ -1590,22 +1559,16 @@ export class StateService implements IStateService {
   }
 
   private getStartingSpace(): string {
-    console.log('🎯 getStartingSpace called');
-    console.log('📊 DataService loaded?', this.dataService?.isLoaded());
     
     if (this.dataService && this.dataService.isLoaded()) {
       const gameConfigs = this.dataService.getGameConfig();
-      console.log('📋 Game configs loaded:', gameConfigs.length);
       const startingSpace = gameConfigs.find(config => config.is_starting_space);
-      console.log('🏁 Found starting space config:', startingSpace);
       if (startingSpace) {
-        console.log('✅ Using CSV starting space:', startingSpace.space_name);
         return startingSpace.space_name;
       }
     }
     
     // Updated fallback to use the correct starting space
-    console.log('⚠️ Using fallback starting space: OWNER-SCOPE-INITIATION');
     return 'OWNER-SCOPE-INITIATION';
   }
 
@@ -1746,7 +1709,6 @@ export class StateService implements IStateService {
 
   // Dice roll completion methods
   setDiceRollCompletion(message: string): GameState {
-    console.log(`🎲 Setting dice roll completion message: ${message}`);
 
     const newCompletedActions = {
       ...this.currentState.completedActions,
@@ -1788,7 +1750,6 @@ export class StateService implements IStateService {
     if (serverVersion !== undefined) {
       const currentKnownVersion = this.serverSyncService.getServerVersion();
       if (serverVersion <= currentKnownVersion) {
-        console.log(`⏭️ Rejecting stale server state (v${serverVersion} <= v${currentKnownVersion})`);
         return;
       }
       this.serverSyncService.setServerVersion(serverVersion);

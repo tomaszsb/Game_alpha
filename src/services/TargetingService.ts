@@ -32,7 +32,6 @@ export class TargetingService implements ITargetingService {
    * @returns Promise resolving to array of player IDs to target
    */
   async resolveTargets(sourcePlayerId: string, targetRule: string): Promise<string[]> {
-    console.log(`🎯 TARGETING: Resolving target rule "${targetRule}" for player ${sourcePlayerId}`);
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
@@ -45,17 +44,14 @@ export class TargetingService implements ITargetingService {
 
     switch (targetRule.trim()) {
       case 'Self':
-        console.log(`   🎯 Self targeting: [${sourcePlayerId}]`);
         return [sourcePlayerId];
 
       case 'All Players':
         const allPlayerIds = allPlayers.map(p => p.id);
-        console.log(`   🎯 All Players targeting: [${allPlayerIds.join(', ')}]`);
         return allPlayerIds;
 
       case 'All Players-Self':
         const otherPlayerIds = allPlayers.filter(p => p.id !== sourcePlayerId).map(p => p.id);
-        console.log(`   🎯 All Players-Self targeting: [${otherPlayerIds.join(', ')}]`);
         return otherPlayerIds;
 
       case 'Choose Opponent':
@@ -86,20 +82,17 @@ export class TargetingService implements ITargetingService {
    * @returns Promise resolving to array with selected opponent's ID
    */
   private async resolveChooseOpponent(sourcePlayerId: string): Promise<string[]> {
-    console.log(`   🎯 Choose Opponent: Player ${sourcePlayerId} selecting opponent`);
 
     const gameState = this.stateService.getGameState();
     const opponents = gameState.players.filter(p => p.id !== sourcePlayerId);
 
     if (opponents.length === 0) {
-      console.log(`   🎯 No opponents available for targeting`);
       return [];
     }
 
     if (opponents.length === 1) {
       // Only one opponent, auto-select
       const targetId = opponents[0].id;
-      console.log(`   🎯 Auto-selecting only opponent: ${opponents[0].name} (${targetId})`);
       return [targetId];
     }
 
@@ -118,7 +111,6 @@ export class TargetingService implements ITargetingService {
     
     if (result) {
       const selectedOpponent = opponents.find(p => p.id === result);
-      console.log(`   🎯 Player selected opponent: ${selectedOpponent?.name} (${result})`);
       return [result];
     } else {
       console.warn(`   🎯 Choose Opponent selection failed or cancelled`);
@@ -132,14 +124,12 @@ export class TargetingService implements ITargetingService {
    * @returns Promise resolving to array with selected player's ID
    */
   private async resolveChoosePlayer(sourcePlayerId: string): Promise<string[]> {
-    console.log(`   🎯 Choose Player: Player ${sourcePlayerId} selecting target`);
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
 
     if (allPlayers.length === 1) {
       // Only current player, auto-select self
-      console.log(`   🎯 Only one player in game, auto-selecting self: ${sourcePlayerId}`);
       return [sourcePlayerId];
     }
 
@@ -158,7 +148,6 @@ export class TargetingService implements ITargetingService {
     
     if (result) {
       const selectedPlayer = allPlayers.find(p => p.id === result);
-      console.log(`   🎯 Player selected target: ${selectedPlayer?.name} (${result})`);
       return [result];
     } else {
       console.warn(`   🎯 Choose Player selection failed or cancelled`);

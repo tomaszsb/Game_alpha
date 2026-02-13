@@ -113,7 +113,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         const permission = await pushNotifications.requestPermission();
         setNotificationPermission(permission);
         if (permission === 'granted') {
-          console.log('🔔 Push notifications enabled for turn alerts');
         }
       }, 2000);
       return () => clearTimeout(timer);
@@ -124,7 +123,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   useEffect(() => {
     if (!initialPreview) return;
 
-    console.log('🚀 Consuming initial preview:', initialPreview);
 
     if (initialPreview.action === 'preview_card') {
       const card = dataService.getCardById(initialPreview.id);
@@ -175,7 +173,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     const urlParams = new URLSearchParams(window.location.search);
     const playerIdParam = urlParams.get('playerId');
     if (playerIdParam) {
-      console.log(`📱 Mobile view mode enabled for player: ${playerIdParam}`);
     }
     return playerIdParam;
   });
@@ -203,7 +200,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // to avoid duplicate modals appearing simultaneously
   useEffect(() => {
     const unsubscribe = stateService.subscribeToAutoActions((event: AutoActionEvent) => {
-      console.log(`🎬 Received auto-action event:`, event);
       // Events are logged but modals are shown by the direct handlers
     });
 
@@ -442,7 +438,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     // If user manually toggles, stop auto-showing behavior
     if (shouldAutoShowMovementPath) {
       setShouldAutoShowMovementPath(false);
-      console.log(`🎯 MANUAL TOGGLE: User manually ${newVisibility ? 'showed' : 'hid'} movement path, disabling auto-show`);
     }
   };
 
@@ -475,7 +470,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
   // Handler to clear a player's device connection status (allows re-scanning QR code)
   const handleClearDeviceType = (playerId: string) => {
-    console.log(`🔄 Clearing deviceType for player ${playerId}`);
     stateService.updatePlayer({ id: playerId, deviceType: undefined });
   };
 
@@ -531,7 +525,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setIsProcessingTurn(true);
     try {
       const result = await turnService.endTurnWithMovement(false, justUsedTryAgain);
-      console.log(`End turn completed for player ${currentPlayerId}:`, result);
       setJustUsedTryAgain(false); // Reset flag after ending turn
     } catch (error) {
       console.error("Error ending turn:", error);
@@ -566,7 +559,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setIsProcessingTurn(true);
     try {
       const result = await turnService.handleAutomaticFunding(currentPlayerId);
-      console.log(`Automatic funding completed for player ${currentPlayerId}:`, result);
 
       // Show modal with funding details
       if (result && result.effects && result.effects.length > 0) {
@@ -588,14 +580,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setIsProcessingTurn(true);
     try {
       const result = await turnService.tryAgainOnSpace(currentPlayerId);
-      console.log(`Try Again completed for player ${currentPlayerId}:`, result);
 
       // If Try Again indicates turn should advance, move to next player
       if (result.success && result.shouldAdvanceTurn) {
         setJustUsedTryAgain(true); // Set flag to skip auto-movement
-        console.log('🔄 Try Again complete - advancing to next player');
         const nextResult = await turnService.endTurnWithMovement(true, true);
-        console.log(`Next player's turn: ${nextResult.nextPlayerId}`);
       }
     } catch (error) {
       console.error("Error trying again on space:", error);
@@ -613,15 +602,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       stateService.startGame();
 
       // Place players on starting spaces (no effects processing)
-      console.log('🏁 Placing players on starting spaces...');
       try {
         await turnService.placePlayersOnStartingSpaces();
-        console.log('✅ Players placed on starting spaces successfully');
 
         // Start the first turn (this will create snapshots and mark as initialized)
         const currentState = stateService.getGameState();
         if (currentState.currentPlayerId) {
-          console.log('🎬 Starting first turn for game initialization...');
           await turnService.startTurn(currentState.currentPlayerId);
         }
       } catch (error) {
@@ -881,8 +867,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         <PlayerSetup
           viewPlayerId={effectiveViewPlayerId || undefined}
           onStartGame={async (players, settings) => {
-            console.log('Starting game with players:', players);
-            console.log('Game settings:', settings);
 
             // Build game mode settings if Same Starting Point is enabled
             const gameModeSettings = settings.sameStartingPoint ? {
@@ -895,15 +879,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             stateService.startGame(gameModeSettings);
 
             // Place players on starting spaces (no effects processing)
-            console.log('🏁 Placing players on starting spaces...');
             try {
               await turnService.placePlayersOnStartingSpaces();
-              console.log('✅ Players placed on starting spaces successfully');
 
               // Start the first turn (this will create snapshots and mark as initialized)
               const currentState = stateService.getGameState();
               if (currentState.currentPlayerId) {
-                console.log('🎬 Starting first turn for game initialization...');
                 await turnService.startTurn(currentState.currentPlayerId);
               }
             } catch (error) {

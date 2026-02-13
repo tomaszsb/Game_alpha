@@ -97,7 +97,6 @@ function AppContent(): JSX.Element {
 
     const preview = getPreviewParams();
     if (preview.action && preview.id) {
-      console.log('🔍 Detected inbound preview request:', preview);
       setInitialPreview({ action: preview.action, id: preview.id });
       clearPreviewParams();
     }
@@ -113,22 +112,17 @@ function AppContent(): JSX.Element {
         ]);
 
         // Try to load state from server first (multi-device sync)
-        console.log('🌐 Attempting to load state from server...');
         const stateLoaded = await stateService.loadStateFromServer();
 
         if (!stateLoaded) {
-          console.log('📱 No server state found, using local state');
 
           // Fix any existing players who might have incorrect starting spaces
           // This addresses the caching bug where players were created before data loaded
-          console.log('🔧 Attempting to fix player starting spaces after data load...');
           stateService.fixPlayerStartingSpaces();
 
           // If that didn't work, use the aggressive fix
-          console.log('🚨 Using aggressive fix to ensure all players are on correct starting space...');
           stateService.forceResetAllPlayersToCorrectStartingSpace();
         } else {
-          console.log('✅ State loaded from server successfully');
         }
 
         setIsLoading(false);
@@ -151,7 +145,6 @@ function AppContent(): JSX.Element {
 
     // Connect WebSocket for real-time updates
     // ServerSyncService handles state updates via its WebSocket callback
-    console.log('🔌 Connecting WebSocket for real-time sync...');
     stateService.connectWebSocket();
 
     // Cleanup on unmount
@@ -178,17 +171,11 @@ function AppContent(): JSX.Element {
 
     const urlPlayerId = player?.id;
 
-    console.log(`📱 Device detection triggered for playerId: ${urlPlayerId}`);
-    console.log(`📱 Detected device type: ${deviceType}`);
-    console.log(`📱 Current players in state:`, gameState.players.map(p => p.id));
-    console.log(`📱 Player found:`, player ? 'YES' : 'NO');
     if (player) {
-      console.log(`📱 Player existing deviceType:`, player.deviceType);
     }
 
     // Only update if player exists and doesn't already have deviceType set
     if (player && !player.deviceType) {
-      console.log(`📱 Setting device type for ${urlPlayerId}: ${deviceType}`);
       stateService.updatePlayer({ id: urlPlayerId, deviceType });
     }
   }, [gameState?.players?.length, stateService]); // Only re-run when players array length changes
@@ -201,7 +188,6 @@ function AppContent(): JSX.Element {
   const urlParams = getURLParams();
   const routeInfo = getAppScreen(urlParams, gameState.gamePhase, gameState.players);
 
-  console.log('🔍 Routing info:', routeInfo);
 
   // Check for TV mode
   const isTVMode = urlParams.get('mode') === 'tv';
@@ -209,7 +195,6 @@ function AppContent(): JSX.Element {
   // TV Display Mode - during SETUP show normal GameLayout (with PlayerSetup),
   // during PLAY/END show the TV-optimized display
   if (isTVMode && gameState.gamePhase !== 'SETUP') {
-    console.log('📺 TV Display Mode enabled');
     return <TVDisplay />;
   }
 

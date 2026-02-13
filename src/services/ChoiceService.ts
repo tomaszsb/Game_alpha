@@ -60,8 +60,6 @@ export class ChoiceService implements IChoiceService {
       ...(metadata && { metadata })
     };
 
-    console.log(`🎯 Choice Created [${playerId}]: ${type} - "${prompt}"`);
-    console.log(`   Options: ${options.map(opt => `${opt.id}:${opt.label}`).join(', ')}`);
 
     // Set the choice in game state
     this.stateService.setAwaitingChoice(choice);
@@ -85,8 +83,6 @@ export class ChoiceService implements IChoiceService {
    * Resolve an active choice with the player's selection
    */
   resolveChoice(choiceId: string, selection: string): boolean {
-    console.log(`🎯 [CHOICE] Resolving Choice [${choiceId}]: Selection = "${selection}"`);
-    console.log(`🎯 [CHOICE] Pending choices in map:`, Array.from(this.pendingChoices.keys()));
 
     // Get the active choice from game state
     const activeChoice = this.getActiveChoice();
@@ -97,7 +93,6 @@ export class ChoiceService implements IChoiceService {
       return false;
     }
 
-    console.log(`🎯 [CHOICE] Active choice ID: ${activeChoice.id}, Type: ${activeChoice.type}`);
 
     if (activeChoice.id !== choiceId) {
       console.error(`❌ [CHOICE] Choice ID mismatch. Expected ${activeChoice.id}, got ${choiceId}`);
@@ -111,7 +106,6 @@ export class ChoiceService implements IChoiceService {
       return false;
     }
 
-    console.log(`✅ [CHOICE] Valid option found: ${validOption.label}`);
 
     // Get the pending promise for this choice
     const pendingChoice = this.pendingChoices.get(choiceId);
@@ -122,12 +116,10 @@ export class ChoiceService implements IChoiceService {
       return false;
     }
 
-    console.log(`✅ [CHOICE] Pending promise found, resolving...`);
 
     try {
       // Remove from pending choices
       this.pendingChoices.delete(choiceId);
-      console.log(`🎯 [CHOICE] Removed from pending map. Remaining: ${this.pendingChoices.size}`);
 
       // Resolve the promise with the selection
       pendingChoice.resolve(selection);
@@ -135,7 +127,6 @@ export class ChoiceService implements IChoiceService {
       // Clear the choice from state (so End Turn button becomes enabled)
       this.stateService.clearAwaitingChoice();
 
-      console.log(`✅ [CHOICE] Promise resolved successfully: "${validOption.label}" selected`);
       return true;
 
     } catch (error) {
@@ -150,7 +141,6 @@ export class ChoiceService implements IChoiceService {
    * Used when the action is optional and the player wants to skip it
    */
   skipChoice(choiceId: string): boolean {
-    console.log(`🎯 [CHOICE] Skipping Choice [${choiceId}]`);
 
     const activeChoice = this.getActiveChoice();
     if (!activeChoice || activeChoice.id !== choiceId) {
@@ -165,7 +155,6 @@ export class ChoiceService implements IChoiceService {
 
       // Resolve with empty string to indicate skip
       pendingChoice.resolve('');
-      console.log(`✅ [CHOICE] Choice skipped successfully`);
     }
 
     // Clear the choice from state
@@ -221,6 +210,5 @@ export class ChoiceService implements IChoiceService {
     // Clear game state
     this.stateService.clearAwaitingChoice();
     
-    console.log('🧹 All pending choices cleared');
   }
 }

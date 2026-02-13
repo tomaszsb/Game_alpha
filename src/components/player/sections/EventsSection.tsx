@@ -135,8 +135,8 @@ export const EventsSection: React.FC<EventsSectionProps> = ({
               }}>
                 <div style={{ fontWeight: 'bold', color: '#343a40' }}>{card.card_name}</div>
                 {card.description && <div style={{ color: '#495057', marginTop: '2px' }}>{card.description}</div>}
-                {ac.remainingTurns !== undefined && (
-                  <div style={{ color: '#856404', marginTop: '2px' }}>{ac.remainingTurns} turn{ac.remainingTurns !== 1 ? 's' : ''} remaining</div>
+                {ac.expirationTurn !== undefined && (
+                  <div style={{ color: '#856404', marginTop: '2px' }}>Expires turn {ac.expirationTurn}</div>
                 )}
               </div>
             );
