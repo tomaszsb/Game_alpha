@@ -19,11 +19,16 @@ All notable changes to this project will be documented in this file.
 - **LOGIC Condition Builder**: For LOGIC-path spaces, shows structured UI (Question, YES→ destination, NO→ destination) that auto-generates condition strings
 - **Reset to Baseline**: Dockerfile copies SOURCE_FILES to immutable BASELINE at build time; new `POST /api/admin/reset-to-baseline` endpoint restores originals; "Reset to Baseline" button in editor footer
 - **SPA fallback**: Added reset endpoint to available endpoints list
+- **Smart dice roll inputs**: Context-aware controls per category — card presets for W/I/E Cards, percentage spinners for Fees, quality/multiplier dropdowns, space name pickers for Next Step, text for Time outcomes
+- **Add Row form**: Category field now uses dropdown of known categories instead of free text
+- **Removed Clear Game Data button**: Doesn't belong in Data Editor (use game management instead)
+- **Removed Export button**: Redundant now that Save writes directly to server
 
 **Files:**
 - `src/components/editor/SpaceBrowser.tsx` (add/delete UI + dialogs)
-- `src/components/editor/DataEditor.tsx` (add/delete/reset handlers + button)
+- `src/components/editor/DataEditor.tsx` (add/delete/reset handlers, removed Clear/Export)
 - `src/components/editor/SpaceEditor.tsx` (card combobox, time/fee helpers, LOGIC builder)
+- `src/components/editor/DiceRollEditor.tsx` (smart context-aware roll inputs)
 - `server/server.js` (reset-to-baseline endpoint)
 - `Dockerfile` (BASELINE copy step)
 

@@ -17,6 +17,8 @@ The Data Editor now makes editing much faster with input helpers:
 - **Add spaces** with the green "+" button in the browser panel — enter a name and both First/Subsequent visits are created automatically.
 - **Delete spaces** by hovering over a space name to reveal the delete button. Both visit rows and associated dice roll data are removed.
 - **Reset to Baseline** button restores all space and dice roll data to the original defaults baked into the Docker image — the ultimate safety net.
+- **Dice roll inputs** are now context-aware: card categories show Draw/Remove/Replace presets, fee categories show percentage spinners, quality and multiplier use dropdowns, and Next Step shows space name pickers.
+- **Cleaner footer**: Removed the old "Clear Game Data" and "Export" buttons — Reset to Baseline and Save are all you need.
 
 ---
 

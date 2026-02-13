@@ -19,6 +19,8 @@ This document provides a high-level overview of the current work status for the 
   - LOGIC condition builder (Question + YES/NO destinations)
   - Add/Delete spaces with validation and confirmation
   - Reset to Baseline: Dockerfile BASELINE copy + server endpoint + UI button
+  - Smart dice roll inputs: context-aware controls per die_roll category
+  - Removed Clear Game Data and Export buttons (replaced by Reset to Baseline + Save)
 
 ### Live Save for Data Editor (February 12, 2026) ✅
 - **Status**: ✅ Complete
