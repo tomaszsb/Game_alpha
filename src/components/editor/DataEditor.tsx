@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGameContext } from '../../context/GameContext';
-import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
+import { getBackendURL } from '../../utils/networkDetection';
 import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../../utils/adminAuth';
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { DiceRollEditor } from './DiceRollEditor';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
-import { downloadSourceFiles, exportSpacesCSV, exportDiceRollCSV } from './utils/csvExport';
+import { exportSpacesCSV, exportDiceRollCSV } from './utils/csvExport';
 import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
@@ -248,45 +248,6 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     }
   }, [spacesData, diceRollData]);
 
-  // Export handlers (local download fallback)
-  const handleExport = useCallback(() => {
-    downloadSourceFiles(spacesData, diceRollData);
-  }, [spacesData, diceRollData]);
-
-  // Clear game data handler
-  const handleClearData = async () => {
-    const confirmed = window.confirm(
-      'Clear All Game Data?\n\n' +
-      'This will permanently delete:\n' +
-      '- All players\n' +
-      '- Current game progress\n' +
-      '- Game state\n\n' +
-      'The page will reload after clearing.\n\n' +
-      'Continue?'
-    );
-
-    if (!confirmed) return;
-
-    try {
-      const backendURL = getBackendURL();
-      const gameId = getCurrentGameId();
-      const apiPath = getGameStateAPIPath(gameId);
-
-      const response = await fetch(`${backendURL}${apiPath}`, {
-        method: 'DELETE'
-      });
-
-      if (response.ok) {
-        alert('Game data cleared successfully!\n\nReturning to home...');
-        window.location.href = window.location.origin + window.location.pathname;
-      } else {
-        alert(`Failed to clear game data (${response.status}). Please try again.`);
-      }
-    } catch (error) {
-      alert('Error connecting to server. Make sure the backend is running on port 3001.\n\nError: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
   // Add new space
   const handleAddSpace = useCallback((spaceName: string) => {
     // Determine default phase from the first space (or SETUP)
@@ -482,14 +443,9 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
 
         {/* Footer */}
         <div style={styles.footer}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleClearData} style={styles.clearButton}>
-              Clear Game Data
-            </button>
-            <button onClick={handleResetToBaseline} style={styles.resetButton} disabled={isSaving}>
-              Reset to Baseline
-            </button>
-          </div>
+          <button onClick={handleResetToBaseline} style={styles.resetButton} disabled={isSaving}>
+            Reset to Baseline
+          </button>
           <div style={styles.footerRight}>
             {saveStatus && (
               <span style={{
@@ -503,9 +459,6 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                 {saveStatus.message}
               </span>
             )}
-            <button onClick={handleExport} style={styles.exportSecondaryButton} disabled={isLoading || !!error}>
-              Export
-            </button>
             <button onClick={handleSave} style={styles.saveButton} disabled={isLoading || !!error || isSaving}>
               {isSaving ? 'Saving...' : 'Save'}
             </button>
@@ -741,16 +694,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: '8px'
   },
-  clearButton: {
-    background: '#dc3545',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 600
-  },
   resetButton: {
     background: 'white',
     color: '#dc3545',
@@ -760,16 +703,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 600
-  },
-  exportSecondaryButton: {
-    background: '#f8f9fa',
-    color: '#495057',
-    border: '1px solid #dee2e6',
-    padding: '8px 16px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 500
   },
   saveButton: {
     background: '#28a745',

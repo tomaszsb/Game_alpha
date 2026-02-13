@@ -10,6 +10,160 @@ interface DiceRollEditorProps {
   onDeleteDiceRoll: (index: number) => void;
 }
 
+// Presets by die_roll category
+const CARD_PRESETS = ['Draw 1', 'Draw 2', 'Draw 3', 'Remove 1', 'Replace 1', 'No change'];
+const QUALITY_PRESETS = ['HIGH', 'MED', 'LOW'];
+const DIE_ROLL_CATEGORIES = ['W Cards', 'I Cards', 'E cards', 'Fees Paid', 'Fee Paid', 'Time outcomes', 'Next Step', 'Quality', 'Multiplier'];
+
+function isCardCategory(dieRoll: string): boolean {
+  return ['W Cards', 'I Cards', 'E cards'].includes(dieRoll);
+}
+
+function isFeeCategory(dieRoll: string): boolean {
+  return ['Fees Paid', 'Fee Paid'].includes(dieRoll);
+}
+
+function isQualityCategory(dieRoll: string): boolean {
+  return dieRoll === 'Quality';
+}
+
+function isMultiplierCategory(dieRoll: string): boolean {
+  return dieRoll.trim() === 'Multiplier';
+}
+
+function isNextStepCategory(dieRoll: string): boolean {
+  return dieRoll === 'Next Step';
+}
+
+/**
+ * Smart roll input that shows context-appropriate controls based on die_roll category
+ */
+function SmartRollInput({
+  value,
+  dieRoll,
+  allSpaceNames,
+  onChange
+}: {
+  value: string;
+  dieRoll: string;
+  allSpaceNames: string[];
+  onChange: (v: string) => void;
+}): JSX.Element {
+  if (isCardCategory(dieRoll)) {
+    const isPreset = !value || CARD_PRESETS.includes(value);
+    if (isPreset) {
+      return (
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          style={styles.rollInput}
+        >
+          <option value="">--</option>
+          {CARD_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+      );
+    }
+    // Custom value — show text input
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={styles.rollInput}
+        title="Custom value"
+      />
+    );
+  }
+
+  if (isFeeCategory(dieRoll)) {
+    const feeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
+    const isPercent = !value || feeMatch;
+    if (isPercent) {
+      return (
+        <div style={styles.feeInputRow}>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={feeMatch ? feeMatch[1] : ''}
+            onChange={(e) => onChange(e.target.value ? `${e.target.value}%` : '')}
+            style={{ ...styles.rollInput, flex: 1 }}
+            placeholder="0"
+          />
+          <span style={styles.feeSuffix}>%</span>
+        </div>
+      );
+    }
+    return (
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={styles.rollInput} />
+    );
+  }
+
+  if (isQualityCategory(dieRoll)) {
+    return (
+      <select
+        value={QUALITY_PRESETS.includes(value) ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={styles.rollInput}
+      >
+        <option value="">--</option>
+        {QUALITY_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
+      </select>
+    );
+  }
+
+  if (isMultiplierCategory(dieRoll)) {
+    return (
+      <input
+        type="number"
+        min="0"
+        step="1"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={styles.rollInput}
+        placeholder="0"
+      />
+    );
+  }
+
+  if (isNextStepCategory(dieRoll)) {
+    // If value is a simple space name, use dropdown; otherwise text
+    const isSimple = !value || allSpaceNames.includes(value);
+    if (isSimple) {
+      return (
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          style={styles.rollInput}
+        >
+          <option value="">--</option>
+          {allSpaceNames.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      );
+    }
+    // Complex value (e.g., "ENG-INITIATION or PM-DECISION-CHECK")
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={styles.rollInput}
+        title="Complex destination — edit as text"
+      />
+    );
+  }
+
+  // "Time outcomes" and anything else — plain text (values are too varied)
+  return (
+    <input
+      type="text"
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+      style={styles.rollInput}
+    />
+  );
+}
+
 export function DiceRollEditor({
   diceRolls,
   selectedSpaceId,
@@ -118,13 +272,16 @@ export function DiceRollEditor({
             </div>
             <div style={styles.field}>
               <label style={styles.label}>Category</label>
-              <input
-                type="text"
+              <select
                 value={newRoll.die_roll}
                 onChange={(e) => setNewRoll({ ...newRoll, die_roll: e.target.value })}
-                placeholder="e.g., W Cards, Next Step"
-                style={styles.input}
-              />
+                style={styles.select}
+              >
+                <option value="">-- Select --</option>
+                {DIE_ROLL_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
             <div style={styles.field}>
               <label style={styles.label}>Visit Type</label>
@@ -142,11 +299,11 @@ export function DiceRollEditor({
             {[1, 2, 3, 4, 5, 6].map(num => (
               <div key={num} style={styles.rollField}>
                 <label style={styles.label}>Roll {num}</label>
-                <input
-                  type="text"
-                  value={newRoll[`roll_${num}` as keyof typeof newRoll] || ''}
-                  onChange={(e) => setNewRoll({ ...newRoll, [`roll_${num}`]: e.target.value })}
-                  style={styles.input}
+                <SmartRollInput
+                  value={newRoll[`roll_${num}` as keyof typeof newRoll] as string || ''}
+                  dieRoll={newRoll.die_roll || ''}
+                  allSpaceNames={allSpaceNames}
+                  onChange={(v) => setNewRoll({ ...newRoll, [`roll_${num}`]: v })}
                 />
               </div>
             ))}
@@ -187,11 +344,11 @@ export function DiceRollEditor({
                   {[1, 2, 3, 4, 5, 6].map(num => (
                     <div key={num} style={styles.rollCell}>
                       <span style={styles.dieNumber}>{num}</span>
-                      <input
-                        type="text"
+                      <SmartRollInput
                         value={roll[`roll_${num}` as keyof DiceRollRow] || ''}
-                        onChange={(e) => onUpdateDiceRoll(globalIndex, `roll_${num}` as keyof DiceRollRow, e.target.value)}
-                        style={styles.rollInput}
+                        dieRoll={roll.die_roll}
+                        allSpaceNames={allSpaceNames}
+                        onChange={(v) => onUpdateDiceRoll(globalIndex, `roll_${num}` as keyof DiceRollRow, v)}
                       />
                     </div>
                   ))}
@@ -389,5 +546,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
     textAlign: 'center',
     boxSizing: 'border-box'
-  }
+  },
+  feeInputRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+    width: '100%',
+  },
+  feeSuffix: {
+    fontSize: '12px',
+    color: '#495057',
+    fontWeight: 600,
+    flexShrink: 0,
+  },
 };
