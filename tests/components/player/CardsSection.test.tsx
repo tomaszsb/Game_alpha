@@ -126,24 +126,19 @@ describe('CardsSection', () => {
   describe('Basic Rendering', () => {
     it('should render the component without crashing', () => {
       renderWithContext(<CardsSection {...defaultProps} />);
-      expect(screen.getByText('CARDS')).toBeInTheDocument();
+      expect(screen.getByText('EXPEDITORS')).toBeInTheDocument();
     });
 
     it('should display total cards in hand', () => {
       renderWithContext(<CardsSection {...defaultProps} />);
-      // Check summary contains total
-      const summary = screen.getByText((content, element) => {
-        return element?.className === 'section-summary' && element?.textContent?.includes('Total: 3') || false;
-      });
-      expect(summary).toBeInTheDocument();
+      // Summary shows E card count only (2 E cards in hand)
+      expect(screen.getByText(/2 Expeditors/)).toBeInTheDocument();
     });
 
     it('should display card type counts', () => {
       renderWithContext(<CardsSection {...defaultProps} />);
-      // Check for E cards count
-      expect(screen.getByText(/E Cards \(2\)/)).toBeInTheDocument();
-      // Check for W cards count
-      expect(screen.getByText(/W Cards \(1\)/)).toBeInTheDocument();
+      // Card groups show "Expeditors (N)"
+      expect(screen.getByText(/Expeditors \(2\)/)).toBeInTheDocument();
     });
 
     it('should return null if player not found', () => {
@@ -154,22 +149,6 @@ describe('CardsSection', () => {
   });
 
   describe('Action Detection', () => {
-    it('should show action indicator when B cards dice effect available', () => {
-      const bCardDiceEffect = {
-        space_name: 'START-SPACE',
-        visit_type: 'First',
-        effect_type: 'cards',
-        card_type: 'B',
-        dice_value: 1,
-        value: 1
-      };
-      mockServices.dataService.getDiceEffects.mockReturnValue([bCardDiceEffect]);
-
-      renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
-      const indicator = screen.getByRole('status', { name: /action available/i });
-      expect(indicator).toBeInTheDocument();
-    });
-
     it('should show action indicator when E cards dice effect available', () => {
       const eCardDiceEffect = {
         space_name: 'START-SPACE',
@@ -186,22 +165,7 @@ describe('CardsSection', () => {
       expect(indicator).toBeInTheDocument();
     });
 
-    it('should show Roll for B Cards button when dice effect available', () => {
-      const bCardDiceEffect = {
-        space_name: 'START-SPACE',
-        visit_type: 'First',
-        effect_type: 'cards',
-        card_type: 'B',
-        dice_value: 1,
-        value: 1
-      };
-      mockServices.dataService.getDiceEffects.mockReturnValue([bCardDiceEffect]);
-
-      renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
-      expect(screen.getByText('Roll for B Cards')).toBeInTheDocument();
-    });
-
-    it('should show Roll for E Cards button when dice effect available', () => {
+    it('should show Roll for Expeditors button when E dice effect available', () => {
       const eCardDiceEffect = {
         space_name: 'START-SPACE',
         visit_type: 'First',
@@ -213,36 +177,10 @@ describe('CardsSection', () => {
       mockServices.dataService.getDiceEffects.mockReturnValue([eCardDiceEffect]);
 
       renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
-      expect(screen.getByText('Roll for E Cards')).toBeInTheDocument();
+      expect(screen.getByText('Roll for Expeditors')).toBeInTheDocument();
     });
 
-    it('should show both card buttons when both dice effects available', () => {
-      const bCardDiceEffect = {
-        space_name: 'START-SPACE',
-        visit_type: 'First',
-        effect_type: 'cards',
-        card_type: 'B',
-        dice_value: 1,
-        value: 1
-      };
-      const eCardDiceEffect = {
-        space_name: 'START-SPACE',
-        visit_type: 'First',
-        effect_type: 'cards',
-        card_type: 'E',
-        dice_value: 1,
-        value: 1
-      };
-      mockServices.dataService.getDiceEffects.mockReturnValue([bCardDiceEffect, eCardDiceEffect]);
-
-      renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
-      expect(screen.getByText('Roll for B Cards')).toBeInTheDocument();
-      expect(screen.getByText('Roll for E Cards')).toBeInTheDocument();
-    });
-  });
-
-  describe('Roll for Cards Actions', () => {
-    it('should call onRollDice callback for B cards', async () => {
+    it('should not show action for B cards dice effects (handled elsewhere)', () => {
       const bCardDiceEffect = {
         space_name: 'START-SPACE',
         visit_type: 'First',
@@ -252,16 +190,13 @@ describe('CardsSection', () => {
         value: 1
       };
       mockServices.dataService.getDiceEffects.mockReturnValue([bCardDiceEffect]);
-      const onRollDice = vi.fn().mockResolvedValue(undefined);
 
-      renderWithContext(<CardsSection {...defaultProps} onRollDice={onRollDice} />);
-
-      const rollButton = screen.getByText('Roll for B Cards');
-      fireEvent.click(rollButton);
-
-      expect(onRollDice).toHaveBeenCalled();
+      renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
+      expect(screen.queryByRole('status', { name: /action available/i })).not.toBeInTheDocument();
     });
+  });
 
+  describe('Roll for Cards Actions', () => {
     it('should call onRollDice callback for E cards', async () => {
       const eCardDiceEffect = {
         space_name: 'START-SPACE',
@@ -276,27 +211,27 @@ describe('CardsSection', () => {
 
       renderWithContext(<CardsSection {...defaultProps} onRollDice={onRollDice} />);
 
-      const rollButton = screen.getByText('Roll for E Cards');
+      const rollButton = screen.getByText('Roll for Expeditors');
       fireEvent.click(rollButton);
 
       expect(onRollDice).toHaveBeenCalled();
     });
 
     it('should handle roll errors', async () => {
-      const bCardDiceEffect = {
+      const eCardDiceEffect = {
         space_name: 'START-SPACE',
         visit_type: 'First',
         effect_type: 'cards',
-        card_type: 'B',
+        card_type: 'E',
         dice_value: 1,
         value: 1
       };
-      mockServices.dataService.getDiceEffects.mockReturnValue([bCardDiceEffect]);
+      mockServices.dataService.getDiceEffects.mockReturnValue([eCardDiceEffect]);
       const onRollDice = vi.fn().mockRejectedValue(new Error('Roll failed'));
 
       renderWithContext(<CardsSection {...defaultProps} onRollDice={onRollDice} />);
 
-      const rollButton = screen.getByText('Roll for B Cards');
+      const rollButton = screen.getByText('Roll for Expeditors');
       fireEvent.click(rollButton);
 
       await waitFor(() => {
@@ -305,17 +240,17 @@ describe('CardsSection', () => {
     });
   });
 
-  describe('View Discarded Button', () => {
-    it('should always show View Discarded button', () => {
+  describe('View History Button', () => {
+    it('should always show View History button', () => {
       renderWithContext(<CardsSection {...defaultProps} />);
-      expect(screen.getByText('View Discarded')).toBeInTheDocument();
+      expect(screen.getByText('View History')).toBeInTheDocument();
     });
 
-    it('should open modal when View Discarded clicked', async () => {
+    it('should open modal when View History clicked', async () => {
       renderWithContext(<CardsSection {...defaultProps} />);
 
-      const viewDiscardedButton = screen.getByText('View Discarded');
-      fireEvent.click(viewDiscardedButton);
+      const viewHistoryButton = screen.getByText('View History');
+      fireEvent.click(viewHistoryButton);
 
       // Modal should appear showing player's discard pile
       await waitFor(() => {

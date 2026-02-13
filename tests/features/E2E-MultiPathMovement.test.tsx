@@ -141,8 +141,8 @@ describe('E2E Feature: Multi-Path Movement with Real Services', () => {
     const destinationButton = screen.getByText('🎯 LEND-SCOPE-CHECK');
     fireEvent.click(destinationButton);
 
-    // Use getAllByRole and select the first End Turn button (handles multiple renders)
-    const endTurnButtons = screen.getAllByRole('button', { name: /End Turn/ });
+    // Use getAllByRole and select the first end-turn-like button (may say "Agree with Owner" or "End Turn")
+    const endTurnButtons = screen.getAllByRole('button', { name: /End Turn|Agree with Owner/ });
     fireEvent.click(endTurnButtons[0]);
 
     // 6. Assert the results - player should move to LEND-SCOPE-CHECK

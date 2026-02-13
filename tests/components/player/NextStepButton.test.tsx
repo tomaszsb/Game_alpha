@@ -36,7 +36,8 @@ describe('NextStepButton', () => {
       cardService: {} as any, // Placeholder
       choiceService: {} as any, // Placeholder
       dataService: {
-        getSpaceEffects: vi.fn().mockReturnValue([]) // Mock for tooltip building
+        getSpaceEffects: vi.fn().mockReturnValue([]),
+        getSpaceContent: vi.fn().mockReturnValue(null)
       } as any,
       effectEngineService: {} as any, // Placeholder
       loggingService: {} as any, // Placeholder

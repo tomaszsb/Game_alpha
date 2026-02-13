@@ -115,7 +115,7 @@ describe('DiceResultModal', () => {
       </GameContext.Provider>
     );
 
-    expect(screen.getByText('+2 B cards')).toBeInTheDocument();
+    expect(screen.getByText('+2 Bank Loans')).toBeInTheDocument();
     expect(screen.getByText('Draw bank loan cards')).toBeInTheDocument();
   });
 
