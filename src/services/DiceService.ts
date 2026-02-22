@@ -114,7 +114,7 @@ export class DiceService implements IDiceService {
   generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string): string {
     if (effects.length === 0) {
       const prefix = storyText ? `${storyText} ` : '';
-      return `${prefix}Rolled ${diceValue} - No special effects this turn.`;
+      return `${prefix}No special effects this turn.`;
     }
 
     // Check if only choice effects exist (no actual dice effects like cards, money, time)
@@ -123,7 +123,7 @@ export class DiceService implements IDiceService {
 
     if (hasOnlyChoiceEffect) {
       const prefix = storyText ? `${storyText} ` : '';
-      return `${prefix}Rolled ${diceValue} - No effect. Choose your destination.`;
+      return `${prefix}Choose your destination.`;
     }
 
     const summaryParts: string[] = [];
@@ -160,7 +160,7 @@ export class DiceService implements IDiceService {
       }
     });
 
-    const tone = hasPositive && !hasNegative ? 'Great roll!' :
+    const tone = hasPositive && !hasNegative ? 'Good news!' :
                 hasNegative && !hasPositive ? 'Challenging turn.' :
                 'Mixed results.';
 

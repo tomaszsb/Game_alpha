@@ -130,7 +130,7 @@ describe('DiceService', () => {
   describe('generateEffectSummary', () => {
     it('should return "no special effects" message for empty effects', () => {
       const summary = diceService.generateEffectSummary([], 4);
-      expect(summary).toBe('Rolled 4 - No special effects this turn.');
+      expect(summary).toBe('No special effects this turn.');
     });
 
     it('should generate positive summary for money gain', () => {
@@ -138,7 +138,7 @@ describe('DiceService', () => {
         { type: 'money', value: 500 }
       ];
       const summary = diceService.generateEffectSummary(effects, 6);
-      expect(summary).toContain('Great roll!');
+      expect(summary).toContain('Good news!');
       expect(summary).toContain('gained funding');
     });
 
@@ -156,7 +156,7 @@ describe('DiceService', () => {
         { type: 'cards', cardCount: 2, cardType: 'W' }
       ];
       const summary = diceService.generateEffectSummary(effects, 5);
-      expect(summary).toContain('Great roll!');
+      expect(summary).toContain('Good news!');
       expect(summary).toContain('drew 2 cards');
     });
 
@@ -183,7 +183,7 @@ describe('DiceService', () => {
         { type: 'time', value: -2 }
       ];
       const summary = diceService.generateEffectSummary(effects, 6);
-      expect(summary).toContain('Great roll!');
+      expect(summary).toContain('Good news!');
       expect(summary).toContain('gained efficiency');
     });
 
