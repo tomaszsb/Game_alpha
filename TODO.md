@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Character voice narration Phase 1: 6 character voices, speech controls, character badges (Feb 22, 2026)
 - ✅ Security hardening: CORS, headers, path traversal fix, debug endpoint auth (Feb 13, 2026)
 - ✅ Production cleanup: 586 console.log statements removed, source maps disabled (Feb 12, 2026)
 - ✅ TypeScript check clean, full test suite passing (1316 tests, 0 failures) (Feb 13, 2026)

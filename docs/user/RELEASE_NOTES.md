@@ -2,6 +2,32 @@
 
 ---
 
+## v2.29.0 - Character Voice Narration (February 22, 2026)
+
+**Release Date:** February 22, 2026
+**Version:** 2.29.0
+**Status:** Alpha Testing
+**Type:** Feature
+
+### New: Characters speak to you
+Game characters now have voices! When you land on a space and a modal opens, you'll hear the character narrate their dialogue using your device's text-to-speech:
+- **The Owner** has a deep, measured voice when discussing scope and funding
+- **The Architect** speaks with precision during design reviews
+- **The Engineer** delivers steady technical assessments
+- **The DOB Examiner** speaks slowly and authoritatively during plan reviews
+- **The Contractor** talks fast when negotiating deals
+
+### New: Character identity badges
+Each modal now shows a small badge identifying who is speaking — with their emoji, name, and project phase.
+
+### New: Speech controls
+Modal headers now include stop/replay and mute/unmute buttons. Mute preference is remembered across sessions.
+
+### Improved: First-person narrative text
+Story text for Phase 1 spaces has been rewritten in first-person character voice for a more immersive experience.
+
+---
+
 ## v2.28.1 - Security Hardening & Production Cleanup (February 13, 2026)
 
 **Release Date:** February 13, 2026

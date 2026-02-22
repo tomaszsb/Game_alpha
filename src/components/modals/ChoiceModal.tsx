@@ -10,11 +10,14 @@ import { CardReplacementModal } from './CardReplacementModal';
 import { CardType } from '../../types/DataTypes';
 import { Tooltip } from '../common/Tooltip';
 import { getMovementChoiceTooltip } from '../../utils/buttonFormatting';
+import { useModalSpeech } from '../../hooks/useModalSpeech';
+import { CharacterBadge } from './shared/CharacterBadge';
 
 export function ChoiceModal(): JSX.Element {
   const { stateService, choiceService, notificationService } = useGameContext();
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
+  const [currentSpace, setCurrentSpace] = useState<string>('');
   // Track whether the card replacement modal is temporarily hidden
   // The choice remains pending, but user can return to main panel
   const [isCardReplacementHidden, setIsCardReplacementHidden] = useState(false);
@@ -30,6 +33,7 @@ export function ChoiceModal(): JSX.Element {
       if (gameState.awaitingChoice) {
         const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
         setCurrentPlayerName(player?.name || 'Unknown Player');
+        setCurrentSpace(player?.currentSpace || '');
       }
     });
 
@@ -38,10 +42,17 @@ export function ChoiceModal(): JSX.Element {
     if (gameState.awaitingChoice) {
       const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
       setCurrentPlayerName(player?.name || 'Unknown Player');
+      setCurrentSpace(player?.currentSpace || '');
     }
 
     return unsubscribe;
   }, [stateService, awaitingChoice?.id]);
+
+  const speechControls = useModalSpeech(
+    awaitingChoice?.prompt,
+    currentSpace,
+    !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && awaitingChoice.type !== 'CARD_REPLACEMENT'
+  );
 
   const handleChoiceClick = (selectedOptionId: string) => {
     if (!awaitingChoice) return;
@@ -185,7 +196,11 @@ export function ChoiceModal(): JSX.Element {
       emoji={theme.emoji.target}
       maxWidth="500px"
       testId="choice-modal"
+      speechControls={speechControls}
     >
+      {/* Character Badge */}
+      {currentSpace && <CharacterBadge spaceName={currentSpace} />}
+
       {/* Prompt */}
       <p style={{
         margin: '0 0 20px 0',

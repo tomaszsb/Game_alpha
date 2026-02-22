@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { theme, colors } from '../../../styles/theme';
+import type { SpeechControls } from '../../../hooks/useModalSpeech';
 
 export interface ModalBaseProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export interface ModalBaseProps {
   testId?: string;
   /** Trigger shake animation for negative effects (L cards, bad outcomes) */
   shake?: boolean;
+  /** If provided, renders speech control buttons in the header */
+  speechControls?: SpeechControls;
 }
 
 /**
@@ -41,6 +44,7 @@ export function ModalBase({
   headerBorderColor,
   testId,
   shake = false,
+  speechControls,
 }: ModalBaseProps): JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -165,6 +169,22 @@ export function ModalBase({
     flexShrink: 0,
   };
 
+  const speechButtonStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    fontSize: '16px',
+    cursor: 'pointer',
+    padding: '4px',
+    borderRadius: theme.borderRadius.sm,
+    lineHeight: 1,
+    width: '28px',
+    height: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: theme.transitions.fast,
+  };
+
   const bodyStyle: React.CSSProperties = {
     flex: 1,
     overflow: 'auto',
@@ -230,6 +250,30 @@ export function ModalBase({
               {emoji && <span>{emoji}</span>}
               {title}
             </h2>
+            {speechControls && (
+              <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                <button
+                  onClick={speechControls.isSpeaking ? speechControls.stop : speechControls.replay}
+                  style={speechButtonStyle}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  aria-label={speechControls.isSpeaking ? 'Stop speech' : 'Replay speech'}
+                  title={speechControls.isSpeaking ? 'Stop' : 'Replay'}
+                >
+                  {speechControls.isSpeaking ? '⏹' : '🔄'}
+                </button>
+                <button
+                  onClick={speechControls.toggleMute}
+                  style={speechButtonStyle}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  aria-label={speechControls.muted ? 'Unmute speech' : 'Mute speech'}
+                  title={speechControls.muted ? 'Unmute' : 'Mute'}
+                >
+                  {speechControls.muted ? '🔇' : '🔊'}
+                </button>
+              </div>
+            )}
             <button
               onClick={onClose}
               style={closeButtonStyle}

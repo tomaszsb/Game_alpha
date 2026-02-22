@@ -7,6 +7,8 @@ import { colors, theme } from '../../styles/theme';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { DiceResultEffect, TurnEffectResult } from '../../types/StateTypes';
 import { useGameContext } from '../../context/GameContext';
+import { useModalSpeech } from '../../hooks/useModalSpeech';
+import { CharacterBadge } from './shared/CharacterBadge';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -24,6 +26,11 @@ interface DiceResultModalProps {
  */
 export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResultModalProps): JSX.Element | null {
   const { dataService } = useGameContext();
+  const speechControls = useModalSpeech(
+    result?.summary,
+    result?.spaceName,
+    isOpen && !!result
+  );
 
   if (!isOpen || !result) {
     return null;
@@ -261,6 +268,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       footer={footer}
       testId="dice-result-modal"
       shake={hasNegativeEffect}
+      speechControls={speechControls}
     >
       {/* Dice value subtitle when narrative title is used */}
       {isDiceRoll && narrativeTitle && (
@@ -273,6 +281,9 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
           🎲 Roll: {result.diceValue}
         </div>
       )}
+
+      {/* Character Badge */}
+      {result.spaceName && <CharacterBadge spaceName={result.spaceName} />}
 
       {/* Summary */}
       {result.summary && (

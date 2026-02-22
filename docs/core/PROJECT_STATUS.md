@@ -1,14 +1,27 @@
 # Project Status
 
-**Last Updated**: February 13, 2026
-**Current Phase**: Release Preparation Complete (v2.28.1)
-**Current Version**: 2.28.1
+**Last Updated**: February 22, 2026
+**Current Phase**: Release Preparation Complete (v2.29.0)
+**Current Version**: 2.29.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Character Voice Narration — Phase 1 (February 22, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.29.0
+- **Changes**:
+  - Web Speech API narration with 6 distinct character voice profiles
+  - SpeechService module with speak/stop/replay/mute + localStorage persistence
+  - useModalSpeech hook for modal open/close lifecycle
+  - CharacterBadge component showing character identity in modals
+  - Speech controls (stop/replay/mute) in ModalBase header
+  - DiceResultModal and ChoiceModal integration
+  - 12 CSV rows rewritten to first-person character voice
+  - Build clean, all 1344 tests passing (1 pre-existing flaky perf test)
 
 ### Security Hardening & Production Cleanup (February 13, 2026) ✅
 - **Status**: ✅ Complete

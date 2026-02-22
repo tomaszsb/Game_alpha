@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Character Voice Narration — Phase 1 (February 22, 2026)
+
+**Problem:** Game modals showed narrative text but lacked character personality. No audio feedback made gameplay feel flat.
+
+**Solution:** Added Web Speech API narration with distinct voice profiles for each character. Speech auto-plays when DiceResultModal or ChoiceModal opens and stops when they close. Character identity badges show who is "speaking."
+
+**New files:**
+- `src/services/SpeechService.ts`: Standalone speech module — voice profiles (pitch/rate/volume per character), speak/stop/replay/mute with localStorage persistence, best-English-voice auto-selection
+- `src/hooks/useModalSpeech.ts`: React hook tying speech lifecycle to modal open/close transitions
+- `src/components/modals/shared/CharacterBadge.tsx`: Compact pill badge showing character emoji, name, and phase
+
+**Modified files:**
+- `src/components/modals/shared/ModalBase.tsx`: New `speechControls` prop renders stop/replay/mute buttons in modal header
+- `src/components/modals/DiceResultModal.tsx`: Integrated useModalSpeech + CharacterBadge
+- `src/components/modals/ChoiceModal.tsx`: Integrated useModalSpeech + CharacterBadge
+- `public/data/CLEAN_FILES/SPACE_CONTENT.csv`: Rewrote 12 rows (6 Phase 1 spaces × First/Subsequent) to first-person character voice
+
+**Phase 1 voices:** Owner (deep, measured), Architect (slightly higher, precise), Engineer (low, steady), DOB Examiner (authoritative, slow), Contractor (low, fast-talking), Narrator (neutral default)
+
 ### Feature: Live Dictionary from Dashboard API (February 13, 2026)
 
 **Problem:** Game bundled GLOSSARY.csv in its Docker image. Approved dictionary terms required a game redeploy to appear.
