@@ -2,6 +2,18 @@
 
 ---
 
+## v2.29.1 - Security Hardening (February 24, 2026)
+
+**Release Date:** February 24, 2026
+**Version:** 2.29.1
+**Status:** Alpha Testing
+**Type:** Security
+
+### Improved: Server security
+The game server now runs in a more tightly locked-down container. No changes to gameplay — this is an infrastructure improvement that keeps the game isolated from other services on the server.
+
+---
+
 ## v2.29.0 - Character Voice Narration (February 22, 2026)
 
 **Release Date:** February 22, 2026

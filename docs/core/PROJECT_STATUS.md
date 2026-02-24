@@ -1,14 +1,22 @@
 # Project Status
 
-**Last Updated**: February 22, 2026
-**Current Phase**: Release Preparation Complete (v2.29.0)
-**Current Version**: 2.29.0
+**Last Updated**: February 24, 2026
+**Current Phase**: Release Preparation Complete (v2.29.1)
+**Current Version**: 2.29.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Docker Container Hardening (February 24, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.29.1
+- **Changes**:
+  - Isolated Docker network (`game-net`) — no access to other containers
+  - Read-only filesystem with tmpfs for /tmp
+  - All Linux capabilities dropped, privilege escalation blocked
 
 ### Character Voice Narration — Phase 1 (February 22, 2026) ✅
 - **Status**: ✅ Complete

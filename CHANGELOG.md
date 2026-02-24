@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security: Docker Container Hardening (February 24, 2026)
+
+**Problem:** Game container ran on default Docker bridge network with full Linux capabilities, meaning it could potentially access other containers and host resources.
+
+**Solution:** Hardened `deploy.sh` with production security best practices:
+- **Isolated network** (`game-net`): Container can't communicate with other Docker containers on the default bridge
+- **Read-only filesystem** (`--read-only`): Container can only write to `/app/data` (bind mount) and `/tmp` (tmpfs)
+- **All capabilities dropped** (`--cap-drop ALL`): No privileged Linux operations
+- **No privilege escalation** (`--security-opt no-new-privileges`): Blocks `su`/`sudo` inside container
+- **Restricted tmpfs** (`--tmpfs /tmp:noexec,nosuid,size=64m`): Temp dir exists but can't execute binaries
+
+**Modified files:**
+- `deploy.sh`: Added network creation, security flags to `docker run`
+
 ### Feature: Character Voice Narration — Phase 1 (February 22, 2026)
 
 **Problem:** Game modals showed narrative text but lacked character personality. No audio feedback made gameplay feel flat.
