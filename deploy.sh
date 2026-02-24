@@ -17,11 +17,19 @@ GIT_COMMIT=$(git rev-parse --short HEAD)
 echo "   Version: $GIT_COMMIT"
 docker build --build-arg GIT_COMMIT=$GIT_COMMIT -t game_alpha .
 
+echo "Ensuring isolated network exists..."
+docker network create game-net 2>/dev/null || true
+
 echo "Starting container..."
 docker run -d \
   --name game_alpha \
   -p 3080:3001 \
   -v "$(pwd)/server/data:/app/data" \
+  --network game-net \
+  --read-only \
+  --tmpfs /tmp:noexec,nosuid,size=64m \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
   --restart unless-stopped \
   game_alpha
 
