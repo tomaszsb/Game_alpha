@@ -11,12 +11,8 @@ services:
       - "3000:3000"   # Frontend
       - "3001:3001"   # Backend API
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - NTFY_TOPIC=unravel-game-alerts  # Change this to your own topic!
-      # Admin password hash (SHA-256). Default password: "unravel2026"
-      # Generate new: node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
-      # - ADMIN_PASSWORD_HASH=your_sha256_hash_here
+    env_file:
+      - .env  # Must contain ADMIN_PASSWORD_HASH (see .env.example)
     volumes:
       - game-data:/app/data  # Persistent storage for games and logs
 

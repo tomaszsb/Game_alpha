@@ -44,9 +44,9 @@ const CONFIG = {
   // Games file path
   GAMES_FILE: process.env.GAMES_FILE || './server/data/games.json',
 
-  // Admin password hash (SHA-256 of password, default: "unravel2026")
-  // To change: node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
-  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || 'f8ae3d3550bc96cabbc42d3c378c3bb65139032474f847af20d6e86093e7c1ef',
+  // Admin password hash (SHA-256). MUST be set via ADMIN_PASSWORD_HASH env var.
+  // Generate: node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
+  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || '',
 };
 
 // Middleware

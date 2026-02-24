@@ -46,6 +46,9 @@ Thumbs.db
 *.temp
 *.txt
 
+# Server runtime data (game state, logs, feedback)
+/server/data/
+
 # Screenshots (UAT/testing artifacts)
 /screenshots/
 initial_load.png

@@ -25,6 +25,7 @@ docker run -d \
   --name game_alpha \
   -p 3080:3001 \
   -v "$(pwd)/server/data:/app/data" \
+  --env-file .env \
   --network game-net \
   --read-only \
   --tmpfs /tmp:noexec,nosuid,size=64m \
