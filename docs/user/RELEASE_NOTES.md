@@ -11,11 +11,16 @@
 
 ### New: NPCs have faces
 Each game character now has a randomly assigned portrait that appears throughout gameplay:
-- **Story sections** show a floating portrait of the NPC speaking to you
+- **Story sections** show a floating portrait of the NPC speaking to you, with a "X says:" label
+- **PM Action instructions** are now shown separately below the story with your player avatar
 - **Choice and dice result modals** display the NPC's face in the character badge
 - **Board tiles** have subtle zone indicators — a colored left border and small emoji showing which NPC owns each space
+- **Space info modal** (click a board tile) shows NPC portrait in story and separate PM Action section
 
 Every new game randomizes appearances, so the Owner, Architect, Engineer, and other NPCs will look different each time you play. Existing saved games continue to work with the original emoji-only display.
+
+### Fixed: Data Editor sync
+The Space Data Editor now shows the same text content as the game. Previously, the editor's source data had diverged from the game's display data — edits in the editor will now correctly update what players see.
 
 ---
 

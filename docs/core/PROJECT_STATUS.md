@@ -16,9 +16,18 @@ This document provides a high-level overview of the current work status for the 
 - **Changes**:
   - Random visual appearance (ethnicity + gender) assigned to 9 NPC roles at game start
   - Shared character constants (`src/constants/characters.ts`) — single source of truth
-  - Portrait images shown in StorySection (60×60), CharacterBadge (36×36), and board tile zone indicators
+  - Portrait images with "X says:" labels in story sections and modals
+  - Separate PM Action section with player avatar for gameplay instructions
+  - Board tile zone indicators (colored left border + NPC emoji)
   - `npcAppearances` stored in GameState, synced via ServerSyncService
   - Backward compatible — old saves gracefully fall back to emoji-only
+
+### SOURCE_FILES/CLEAN_FILES Data Sync (February 28, 2026) ✅
+- **Status**: ✅ Complete
+- **Changes**:
+  - Synced SOURCE_FILES (Data Editor) with CLEAN_FILES (game) — 30 rows had diverged
+  - Regenerated CLEAN_FILES from SOURCE_FILES via processGameData pipeline
+  - Editor changes now correctly flow through to the game on save and deploy
 
 ### Docker Container Hardening (February 24, 2026) ✅
 - **Status**: ✅ Complete

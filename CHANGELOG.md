@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix: Sync SOURCE_FILES with CLEAN_FILES data (February 28, 2026)
+
+**Problem:** `SOURCE_FILES/Spaces.csv` (used by Data Editor) and `CLEAN_FILES/SPACE_CONTENT.csv` (used by game) had diverged. The Phase 1 voice narration commit (070800a) rewrote CLEAN_FILES with first-person NPC dialogue and typo fixes but never updated SOURCE_FILES. This meant:
+- Data Editor showed old third-person descriptions
+- Editor saves would overwrite the NPC dialogue with old text
+- The two datasets were completely out of sync (30 rows differed)
+
+**Solution:**
+- Updated SOURCE_FILES `Event` and `Action` columns with the current NPC dialogue text from CLEAN_FILES
+- Regenerated CLEAN_FILES from SOURCE_FILES via `processGameData()` to ensure pipeline produces correct output
+- Separated NPC story text from PM action instructions in ActionCenterPanel (they were concatenated)
+- Added "PM Action" section with player avatar in both ActionCenterPanel and SpaceInfoModal
+- Moved player avatar from panel header to PM Action section
+
+**Root cause:** CLEAN_FILES were edited directly instead of going through the SOURCE_FILES → processGameData → CLEAN_FILES pipeline
+
 ### Feature: NPC Character Identity System (February 28, 2026)
 
 **Problem:** NPCs were represented only by emoji badges and voice profiles. 77 character portrait images existed in `public/images/characters/` but were unused. NPCs lacked visual identity, making interactions feel generic.
