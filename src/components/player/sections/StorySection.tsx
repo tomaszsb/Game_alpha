@@ -27,7 +27,7 @@ export function StorySection({ story, spaceName, portraitSrc }: StorySectionProp
   const [isExpanded, setIsExpanded] = useState(true); // Default expanded so players see it
   const { openWithTerm } = useDictionaryPanel();
 
-  console.log('📖 StorySection render:', { story, spaceName, isEmpty: !story || story.trim() === '' });
+  console.log('📖 StorySection render:', { story, spaceName, portraitSrc, isEmpty: !story || story.trim() === '' });
 
   if (!story || story.trim() === '') {
     console.log('📖 StorySection: Returning null (no story)');
