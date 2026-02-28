@@ -2,6 +2,27 @@
 
 ---
 
+## v2.30.1 - UI Polish: Glossary, Active Indicators & Navigation (February 28, 2026)
+
+**Release Date:** February 28, 2026
+**Version:** 2.30.1
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### New: Glossary button in toolbar
+A new orange "Glossary" button now appears in the top toolbar (both full and collapsed views). Click it to open the dictionary panel with game term definitions — click again to close it.
+
+### New: Active indicators on toolbar buttons
+When a toolbar panel or modal is open (Rules, Log, View, Glossary), its button now shows a green dot and glow ring so you can see at a glance what's currently active.
+
+### Improved: Browser back button closes modals
+Pressing your browser's back button now closes the topmost open modal or panel instead of leaving the game entirely. This works with Rules, Glossary, Game Log, Space Explorer, and all game modals.
+
+### Improved: TV mode navigation
+The TV button now opens TV mode in the same browser tab instead of a new tab. If you're already in TV mode, clicking it returns to PC mode. A new "Back to PC" button also appears in the TV display header.
+
+---
+
 ## v2.30.0 - NPC Character Portraits (February 28, 2026)
 
 **Release Date:** February 28, 2026

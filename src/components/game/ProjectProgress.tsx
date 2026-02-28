@@ -30,14 +30,42 @@ interface ProjectProgressProps {
   collapsed?: boolean;
   /** Callback to toggle collapsed state. */
   onToggleCollapsed?: () => void;
+  /** Whether the rules modal is currently open. */
+  isRulesOpen?: boolean;
+  /** Whether the game log is currently visible. */
+  isGameLogOpen?: boolean;
+  /** Whether the display settings modal is currently open. */
+  isDisplaySettingsOpen?: boolean;
+  /** Callback to toggle the glossary panel. */
+  onToggleGlossary?: () => void;
+  /** Whether the glossary panel is currently open. */
+  isGlossaryOpen?: boolean;
 }
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
+
+  // Active indicator helpers
+  const ActiveDot = ({ show }: { show?: boolean }) => show ? (
+    <span style={{
+      position: 'absolute',
+      top: '-2px',
+      right: '-2px',
+      width: '8px',
+      height: '8px',
+      background: '#4caf50',
+      borderRadius: '50%',
+      border: '1px solid white',
+    }} />
+  ) : null;
+
+  const activeGlow = (isActive?: boolean): React.CSSProperties => isActive ? {
+    boxShadow: '0 0 0 2px #4caf50, 0 2px 4px rgba(0,0,0,0.1)',
+  } : {};
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
@@ -206,24 +234,54 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
                 backgroundColor: colors.purple.main, color: colors.white,
                 border: `2px solid ${colors.white}`, borderRadius: '8px',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
+                position: 'relative', ...activeGlow(isRulesOpen)
               }}>
                 <span>📋</span>
+                <ActiveDot show={isRulesOpen} />
+              </button>
+              <button onClick={onToggleGameLog} style={{
+                padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                backgroundColor: colors.primary.main, color: colors.white,
+                border: `2px solid ${colors.white}`, borderRadius: '8px',
+                cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
+                position: 'relative', ...activeGlow(isGameLogOpen)
+              }}>
+                <span>📜</span>
+                <ActiveDot show={isGameLogOpen} />
               </button>
               {onOpenDisplaySettings && (
                 <button onClick={onOpenDisplaySettings} style={{
                   padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
                   backgroundColor: colors.success.main, color: colors.white,
                   border: `2px solid ${colors.white}`, borderRadius: '8px',
-                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px'
+                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
+                  position: 'relative', ...activeGlow(isDisplaySettingsOpen)
                 }}>
                   <span>👁️</span>
+                  <ActiveDot show={isDisplaySettingsOpen} />
+                </button>
+              )}
+              {onToggleGlossary && (
+                <button onClick={onToggleGlossary} style={{
+                  padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                  backgroundColor: '#ff9800', color: colors.white,
+                  border: `2px solid ${colors.white}`, borderRadius: '8px',
+                  cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
+                  position: 'relative', ...activeGlow(isGlossaryOpen)
+                }}>
+                  <span>📖</span>
+                  <ActiveDot show={isGlossaryOpen} />
                 </button>
               )}
               <button onClick={() => {
                 const url = new URL(window.location.href);
-                url.searchParams.set('mode', 'tv');
-                window.open(url.toString(), '_blank');
+                if (url.searchParams.get('mode') === 'tv') {
+                  url.searchParams.delete('mode');
+                } else {
+                  url.searchParams.set('mode', 'tv');
+                }
+                window.location.href = url.toString();
               }} style={{
                 padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
                 backgroundColor: '#9c27b0', color: colors.white,
@@ -379,10 +437,13 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px'
+            gap: '4px',
+            position: 'relative',
+            ...activeGlow(isRulesOpen)
           }}>
             <span>📋</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Rules</span>
+            <ActiveDot show={isRulesOpen} />
           </button>
           <button onClick={onToggleGameLog} style={{
             padding: '6px 12px',
@@ -397,10 +458,13 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px'
+            gap: '4px',
+            position: 'relative',
+            ...activeGlow(isGameLogOpen)
           }}>
             <span>📜</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Log</span>
+            <ActiveDot show={isGameLogOpen} />
           </button>
           {onOpenDisplaySettings && (
             <button onClick={onOpenDisplaySettings} style={{
@@ -416,17 +480,47 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               whiteSpace: 'nowrap',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              position: 'relative',
+              ...activeGlow(isDisplaySettingsOpen)
             }}>
               <span>👁️</span>
               <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>View</span>
+              <ActiveDot show={isDisplaySettingsOpen} />
             </button>
           )}
-          {/* TV Mode button - opens game in dedicated TV display */}
+          {onToggleGlossary && (
+            <button onClick={onToggleGlossary} style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              backgroundColor: '#ff9800',
+              color: colors.white,
+              border: `2px solid ${colors.white}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              position: 'relative',
+              ...activeGlow(isGlossaryOpen)
+            }}>
+              <span>📖</span>
+              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Glossary</span>
+              <ActiveDot show={isGlossaryOpen} />
+            </button>
+          )}
+          {/* TV Mode button - toggles TV display in same tab */}
           <button onClick={() => {
             const url = new URL(window.location.href);
-            url.searchParams.set('mode', 'tv');
-            window.open(url.toString(), '_blank');
+            if (url.searchParams.get('mode') === 'tv') {
+              url.searchParams.delete('mode');
+            } else {
+              url.searchParams.set('mode', 'tv');
+            }
+            window.location.href = url.toString();
           }} style={{
             padding: '6px 12px',
             fontSize: '11px',

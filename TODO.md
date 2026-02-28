@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** February 13, 2026
+**Last Updated:** February 28, 2026
 **Status:** Production Ready - Release Preparation Complete
-**Current Version:** 2.28.1
+**Current Version:** 2.30.1
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ UI Enhancements: Glossary button, active indicators, back-button modal close, TV same-tab navigation (Feb 28, 2026)
 - ✅ NPC Character Identity System: random portraits for 9 NPC roles, shown in story/modals/board tiles, separate PM Action section (Feb 28, 2026)
 - ✅ Data sync fix: SOURCE_FILES and CLEAN_FILES now in sync — editor edits properly flow to game (Feb 28, 2026)
 - ✅ Docker hardening: isolated network, read-only fs, cap-drop ALL, no-new-privileges (Feb 24, 2026)

@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: UI Enhancements — Glossary, Active Indicators, Back Button, TV Mode (February 28, 2026)
+
+**Changes:**
+- **Back-button modal interception**: Browser back button now closes the topmost modal/panel instead of navigating away from the game. Priority order: DiceResult → CardDetails → Negotiation → Rules → Dictionary → SpaceExplorer → GameLog. Uses `pushState`/`popstate` with a ref to prevent stacking history entries.
+- **TV mode same-tab navigation**: TV button now navigates in the same tab (`window.location.href`) instead of opening a new tab (`window.open`). Clicking TV when already in TV mode returns to PC mode. Added "Back to PC" button in TVDisplay header.
+- **Glossary button**: New orange 📖 Glossary button in ProjectProgress toolbar (between View and TV buttons). Opens/closes the dictionary panel. Appears in both full and collapsed toolbar views.
+- **Active indicators on toolbar buttons**: Rules, Log, View, and Glossary buttons now show a green dot and glow ring when their associated panel/modal is open. Added missing Log button to collapsed toolbar view.
+- **ActionButton `isActive` prop**: New optional `isActive` boolean prop adds green ring + dot indicator via `.action-button--active` CSS class.
+- **Rules modal toggle**: Rules button now toggles (close if open) instead of always opening.
+
+**Files modified:**
+- `src/components/player/ActionButton.tsx` — `isActive` prop, conditional CSS class
+- `src/components/player/ActionButton.css` — `.action-button--active` styles
+- `src/components/game/ProjectProgress.tsx` — TV same-tab, Glossary button, active indicators, 5 new props
+- `src/components/layout/TVDisplay.tsx` — "Back to PC" button
+- `src/components/layout/GameLayout.tsx` — Back-button `useEffect`, dictionary hook, toggle handlers, new props
+
 ### Fix: Sync SOURCE_FILES with CLEAN_FILES data (February 28, 2026)
 
 **Problem:** `SOURCE_FILES/Spaces.csv` (used by Data Editor) and `CLEAN_FILES/SPACE_CONTENT.csv` (used by game) had diverged. The Phase 1 voice narration commit (070800a) rewrote CLEAN_FILES with first-person NPC dialogue and typo fixes but never updated SOURCE_FILES. This meant:

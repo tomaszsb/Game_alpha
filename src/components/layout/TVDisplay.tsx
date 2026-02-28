@@ -109,6 +109,25 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           >
             📋 Rules
           </button>
+          <button
+            onClick={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('mode');
+              window.location.href = url.toString();
+            }}
+            style={{
+              padding: '8px 16px',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '2px solid rgba(255,255,255,0.5)',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            🖥️ Back to PC
+          </button>
         </div>
 
         {/* Current player indicator */}

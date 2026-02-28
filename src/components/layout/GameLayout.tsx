@@ -26,6 +26,7 @@ import { AutoActionEvent } from '../../services/StateService';
 import { haptics } from '../../utils/haptics';
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
+import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -70,6 +71,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     gameRulesService,
     resourceService
   };
+  // Dictionary panel control
+  const { isOpen: isDictionaryOpen, openPanel: openDictionary, closePanel: closeDictionary } = useDictionaryPanel();
+
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -216,6 +220,51 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       console.error('Failed to save display settings:', error);
     }
   }, [visiblePanels]);
+
+  // Back-button modal interception
+  const historyPushedRef = useRef(false);
+  const anyModalOpen = isRulesModalOpen || isNegotiationModalOpen || isCardDetailsModalOpen ||
+    isDiceResultModalOpen || isSpaceExplorerVisible || isGameLogVisible || isDictionaryOpen;
+
+  useEffect(() => {
+    if (anyModalOpen && !historyPushedRef.current) {
+      window.history.pushState({ modalOpen: true }, '');
+      historyPushedRef.current = true;
+    }
+    if (!anyModalOpen) {
+      historyPushedRef.current = false;
+    }
+  }, [anyModalOpen]);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // Close the topmost modal in priority order
+      if (isDiceResultModalOpen) {
+        setIsDiceResultModalOpen(false);
+      } else if (isCardDetailsModalOpen) {
+        setIsCardDetailsModalOpen(false);
+        setSelectedCard(null);
+      } else if (isNegotiationModalOpen) {
+        setIsNegotiationModalOpen(false);
+      } else if (isRulesModalOpen) {
+        setIsRulesModalOpen(false);
+      } else if (isDictionaryOpen) {
+        closeDictionary();
+      } else if (isSpaceExplorerVisible) {
+        setIsSpaceExplorerVisible(false);
+      } else if (isGameLogVisible) {
+        setIsGameLogVisible(false);
+      } else {
+        // No modal was open, let the browser handle it normally
+        return;
+      }
+      // Reset ref so next open pushes a fresh entry
+      historyPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isDiceResultModalOpen, isCardDetailsModalOpen, isNegotiationModalOpen, isRulesModalOpen, isDictionaryOpen, isSpaceExplorerVisible, isGameLogVisible, closeDictionary]);
 
   // Helper function to determine if a player panel should be shown
   const shouldShowPlayerPanel = (playerId: string): boolean => {
@@ -401,12 +450,16 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setIsNegotiationModalOpen(false);
   };
 
-  // Handlers for rules modal
-  const handleOpenRulesModal = () => {
-    // Close any open side panels when modal opens
-    setIsMovementPathVisible(false);
-    setIsSpaceExplorerVisible(false);
-    setIsRulesModalOpen(true);
+  // Handlers for rules modal (toggle behavior)
+  const handleToggleRulesModal = () => {
+    if (isRulesModalOpen) {
+      setIsRulesModalOpen(false);
+    } else {
+      // Close any open side panels when modal opens
+      setIsMovementPathVisible(false);
+      setIsSpaceExplorerVisible(false);
+      setIsRulesModalOpen(true);
+    }
   };
 
   const handleCloseRulesModal = () => {
@@ -453,6 +506,15 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
   // Handler for game log toggle
   const handleToggleGameLog = () => setIsGameLogVisible(prev => !prev);
+
+  // Handler for glossary toggle
+  const handleToggleGlossary = () => {
+    if (isDictionaryOpen) {
+      closeDictionary();
+    } else {
+      openDictionary();
+    }
+  };
 
   // Handler for display settings
   const handleTogglePanel = (playerId: string) => {
@@ -697,10 +759,15 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 dataService={dataService}
                 gameRulesService={gameRulesService}
                 onToggleGameLog={handleToggleGameLog}
-                onOpenRulesModal={handleOpenRulesModal}
+                onOpenRulesModal={handleToggleRulesModal}
                 onOpenDisplaySettings={() => setIsDisplaySettingsOpen(true)}
                 collapsed={isProgressCollapsed}
                 onToggleCollapsed={() => setIsProgressCollapsed(prev => !prev)}
+                isRulesOpen={isRulesModalOpen}
+                isGameLogOpen={isGameLogVisible}
+                isDisplaySettingsOpen={isDisplaySettingsOpen}
+                onToggleGlossary={handleToggleGlossary}
+                isGlossaryOpen={isDictionaryOpen}
               />
             </div>
           )}

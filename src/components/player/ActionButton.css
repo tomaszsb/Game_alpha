@@ -70,6 +70,23 @@
   background: var(--error-hover, #c82333);
 }
 
+/* Active state - green ring and dot indicator */
+.action-button--active {
+  box-shadow: 0 0 0 2px #4caf50;
+  position: relative;
+}
+
+.action-button--active::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  background: #4caf50;
+  border-radius: 50%;
+}
+
 /* Loading spinner - uses centralized spin animation */
 .loading-spinner {
   width: 14px;

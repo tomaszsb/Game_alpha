@@ -1,14 +1,25 @@
 # Project Status
 
 **Last Updated**: February 28, 2026
-**Current Phase**: Release Preparation Complete (v2.30.0)
-**Current Version**: 2.30.0
+**Current Phase**: Release Preparation Complete (v2.30.1)
+**Current Version**: 2.30.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### UI Enhancements: Glossary, Active Indicators, Back Button, TV Mode (February 28, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.30.1
+- **Changes**:
+  - Browser back button closes topmost modal/panel instead of navigating away
+  - TV mode navigates in same tab with toggle behavior; "Back to PC" button in TV header
+  - Glossary button in toolbar opens/closes dictionary panel
+  - Active indicators (green dot + glow) on Rules, Log, View, Glossary buttons
+  - ActionButton `isActive` prop with green ring + dot CSS
+  - Rules button now toggles instead of always opening
 
 ### NPC Character Identity System (February 28, 2026) ✅
 - **Status**: ✅ Complete

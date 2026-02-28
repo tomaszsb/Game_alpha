@@ -22,6 +22,9 @@ export interface ActionButtonProps {
 
   /** Whether to show loading state with spinner */
   isLoading?: boolean;
+
+  /** Whether the button is in an active/selected state */
+  isActive?: boolean;
 }
 
 /**
@@ -64,11 +67,12 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   disabled = false,
   ariaLabel,
-  isLoading = false
+  isLoading = false,
+  isActive = false
 }) => {
   return (
     <button
-      className={`action-button action-button--${variant}`}
+      className={`action-button action-button--${variant}${isActive ? ' action-button--active' : ''}`}
       onClick={onClick}
       disabled={disabled || isLoading}
       aria-label={ariaLabel || label}
