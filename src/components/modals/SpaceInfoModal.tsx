@@ -147,7 +147,7 @@ export function SpaceInfoModal({
       {content?.action_description && (
         <div style={sectionStyle}>
           <h3 style={sectionHeadingStyle}>
-            📋 PM Action
+            🏗️ PM Action
           </h3>
           <div style={{
             padding: '10px 12px',

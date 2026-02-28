@@ -327,7 +327,6 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       <div className="action-center__context">
         {/* Space Header */}
         <div className="action-center__space-header">
-          <span className="action-center__avatar">{player.avatar}</span>
           <div className="action-center__space-info">
             <div className="action-center__player-name">{player.name}</div>
             <div className="action-center__space-name">
@@ -409,7 +408,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             alignItems: 'flex-start',
             gap: '8px',
           }}>
-            <span style={{ fontSize: '16px', flexShrink: 0 }}>📋</span>
+            <span style={{ fontSize: '20px', flexShrink: 0 }}>{player.avatar}</span>
             <span><strong>PM Action:</strong> {spaceAction}</span>
           </div>
         )}
