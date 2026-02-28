@@ -32,10 +32,7 @@ export function useNpcPortrait() {
    * or null if appearances aren't set or the space has no NPC mapping.
    */
   function getPortraitForSpace(spaceName: string): string | null {
-    if (!appearances) {
-      console.log('🖼️ useNpcPortrait: no appearances in state');
-      return null;
-    }
+    if (!appearances) return null;
     const prefix = extractPrefix(spaceName);
     const info = CHARACTER_MAP[prefix];
     if (!info || info.imageRoles.length === 0) return null;

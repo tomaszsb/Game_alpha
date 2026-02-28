@@ -580,11 +580,6 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         />
       )}
 
-      {/* DEBUG: Show portrait path */}
-      {<div style={{background:'yellow',padding:'4px',fontSize:'10px'}}>
-        portrait: {getPortraitForSpace(player.currentSpace) || 'NULL'} | story: {spaceStory ? 'YES' : 'NO'} | space: {player.currentSpace}
-      </div>}
-
       <StorySection
         story={spaceStory}
         spaceName={player.currentSpace}

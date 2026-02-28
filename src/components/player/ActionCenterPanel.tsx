@@ -11,6 +11,8 @@ import { EventsSection } from './sections/EventsSection';
 import { PlayerLogSection } from './sections/PlayerLogSection';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL } from '../../utils/networkDetection';
+import { useNpcPortrait } from '../../hooks/useNpcPortrait';
+import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import './ActionCenterPanel.css';
 
 export interface ActionCenterPanelProps {
@@ -63,6 +65,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   completedActions = { manualActions: {} }
 }) => {
   const { openWithTerm } = useDictionaryPanel();
+  const { getPortraitForSpace } = useNpcPortrait();
 
   // State
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -351,6 +354,28 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             className={`action-center__story ${!storyExpanded && spaceStory.length > 200 ? 'action-center__story--truncated' : ''}`}
             onClick={() => spaceStory.length > 200 && setStoryExpanded(!storyExpanded)}
           >
+            {(() => {
+              const portraitSrc = player ? getPortraitForSpace(player.currentSpace) : null;
+              const prefix = player ? extractPrefix(player.currentSpace) : null;
+              const npcInfo = prefix ? CHARACTER_MAP[prefix] : null;
+              return portraitSrc ? (
+                <img
+                  src={portraitSrc}
+                  alt={npcInfo?.name || 'NPC'}
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    float: 'left',
+                    marginRight: '10px',
+                    marginBottom: '4px',
+                    border: `2px solid ${npcInfo?.color || '#ccc'}`,
+                    shapeOutside: 'circle(50%)',
+                  }}
+                />
+              ) : null;
+            })()}
             <TextWithTerms text={spaceStory} onTermClick={(term) => openWithTerm(term.id)} />
             {!storyExpanded && spaceStory.length > 200 && (
               <button className="action-center__story-expand" onClick={(e) => { e.stopPropagation(); setStoryExpanded(true); }}>
