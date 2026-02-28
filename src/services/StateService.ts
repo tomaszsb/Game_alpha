@@ -19,6 +19,7 @@ import {
   CreateTempOptions
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
+import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances, NpcImageRole } from '../constants/characters';
 import { Choice } from '../types/CommonTypes';
 import { TurnStateManager } from './TurnStateManager';
 import { ServerSyncService, StateProvider } from './ServerSyncService';
@@ -544,6 +545,7 @@ export class StateService implements IStateService {
       gameMode: 'BATTLE_ROYALE',
       decks,
       discardPiles,
+      npcAppearances: this.randomizeNpcAppearances(),
       isInitialized: false // Game is not fully initialized until players are placed
     };
 
@@ -619,6 +621,7 @@ export class StateService implements IStateService {
       isCapturingStartingHand: isQuickStart,
       decks,
       discardPiles,
+      npcAppearances: this.randomizeNpcAppearances(),
       isInitialized: false
     };
 
@@ -1645,6 +1648,27 @@ export class StateService implements IStateService {
   }
 
   // Utility method to shuffle an array (Fisher-Yates shuffle)
+  /**
+   * Generate random NPC appearances — one per image role.
+   * Builds a pool of 8 combos (4 ethnicities × 2 genders), shuffles,
+   * then assigns round-robin to the 9 roles.
+   */
+  private randomizeNpcAppearances(): NpcAppearances {
+    const pool: NpcAppearance[] = [];
+    for (const ethnicity of ALL_ETHNICITIES) {
+      for (const gender of ALL_GENDERS) {
+        pool.push({ ethnicity, gender });
+      }
+    }
+    const shuffled = this.shuffleArray(pool);
+
+    const appearances = {} as NpcAppearances;
+    ALL_IMAGE_ROLES.forEach((role, i) => {
+      appearances[role] = shuffled[i % shuffled.length];
+    });
+    return appearances;
+  }
+
   private shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {

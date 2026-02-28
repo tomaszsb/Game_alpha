@@ -11,6 +11,7 @@ import { CardType } from '../../types/DataTypes';
 import { Tooltip } from '../common/Tooltip';
 import { getMovementChoiceTooltip } from '../../utils/buttonFormatting';
 import { useModalSpeech } from '../../hooks/useModalSpeech';
+import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 
 export function ChoiceModal(): JSX.Element {
@@ -47,6 +48,8 @@ export function ChoiceModal(): JSX.Element {
 
     return unsubscribe;
   }, [stateService, awaitingChoice?.id]);
+
+  const { getPortraitForSpace } = useNpcPortrait();
 
   const speechControls = useModalSpeech(
     awaitingChoice?.prompt,
@@ -199,7 +202,7 @@ export function ChoiceModal(): JSX.Element {
       speechControls={speechControls}
     >
       {/* Character Badge */}
-      {currentSpace && <CharacterBadge spaceName={currentSpace} />}
+      {currentSpace && <CharacterBadge spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />}
 
       {/* Prompt */}
       <p style={{

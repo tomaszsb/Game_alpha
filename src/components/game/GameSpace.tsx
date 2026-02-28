@@ -1,6 +1,7 @@
 import React from 'react';
 import { colors, theme } from '../../styles/theme';
 import { Space, Player } from '../../types/DataTypes';
+import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 
 /**
  * Props for the GameSpace component.
@@ -88,6 +89,10 @@ export function GameSpace({
     }
   }, []);
 
+  // NPC zone info for this space
+  const npcPrefix = extractPrefix(space.name);
+  const npcInfo = CHARACTER_MAP[npcPrefix] || null;
+
   // Determine visual styling based on movement state
   const getBorderColor = () => {
     if (isCurrentPlayerSpace && showMovementIndicators) return colors.primary.main;
@@ -115,6 +120,7 @@ export function GameSpace({
     <div
       style={{
         border: `${getBorderWidth()} solid ${getBorderColor()}`,
+        borderLeft: npcInfo ? `4px solid ${npcInfo.color}` : undefined,
         borderRadius: '8px',
         padding: '12px',
         margin: '4px',
@@ -310,6 +316,24 @@ export function GameSpace({
                         )}
                       </div>
                     ))}      </div>
+
+      {/* NPC zone indicator */}
+      {npcInfo && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '2px',
+            left: '4px',
+            fontSize: '12px',
+            opacity: 0.6,
+            lineHeight: 1,
+            pointerEvents: 'none',
+          }}
+          title={`${npcInfo.name} — ${npcInfo.phase}`}
+        >
+          {npcInfo.emoji}
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,8 @@ interface StorySectionProps {
   story: string;
   /** The space name for context */
   spaceName: string;
+  /** Optional NPC portrait image URL */
+  portraitSrc?: string | null;
 }
 
 /**
@@ -21,7 +23,7 @@ interface StorySectionProps {
  * @param {StorySectionProps} props - The props for the component.
  * @returns {JSX.Element} The rendered StorySection component.
  */
-export function StorySection({ story, spaceName }: StorySectionProps) {
+export function StorySection({ story, spaceName, portraitSrc }: StorySectionProps) {
   const [isExpanded, setIsExpanded] = useState(true); // Default expanded so players see it
   const { openWithTerm } = useDictionaryPanel();
 
@@ -51,6 +53,23 @@ export function StorySection({ story, spaceName }: StorySectionProps) {
         border: '2px solid #4caf50',
         fontWeight: '500' // Make it slightly bold for prominence
       }}>
+        {portraitSrc && (
+          <img
+            src={portraitSrc}
+            alt="NPC"
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              float: 'left',
+              marginRight: '12px',
+              marginBottom: '4px',
+              border: '2px solid #4caf50',
+              shapeOutside: 'circle(50%)',
+            }}
+          />
+        )}
         <TextWithTerms
           text={story}
           onTermClick={(term) => openWithTerm(term.id)}

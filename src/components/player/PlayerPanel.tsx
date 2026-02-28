@@ -13,6 +13,7 @@ import { ConnectionStatus } from '../common/ConnectionStatus';
 import { Choice } from '../../types/CommonTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { getBackendURL } from '../../utils/networkDetection';
+import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import './PlayerPanel.css';
 
 // Spring animation config for desktop panels
@@ -125,6 +126,9 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   onManualEffectResult,
   completedActions = { manualActions: {} }
 }) => {
+  // NPC portrait hook
+  const { getPortraitForSpace } = useNpcPortrait();
+
   // Section expand/collapse state
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
 
@@ -579,6 +583,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       <StorySection
         story={spaceStory}
         spaceName={player.currentSpace}
+        portraitSrc={getPortraitForSpace(player.currentSpace)}
       />
 
       <ProjectScopeSection

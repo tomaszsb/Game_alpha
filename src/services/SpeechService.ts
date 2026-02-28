@@ -2,6 +2,8 @@
 // Web Speech API wrapper for character voice narration.
 // Standalone module — no game state deps, not part of ServiceProvider.
 
+import { CHARACTER_MAP, extractPrefix } from '../constants/characters';
+
 export interface VoiceProfile {
   pitch: number;    // 0–2, default 1
   rate: number;     // 0.1–10, default 1
@@ -9,14 +11,14 @@ export interface VoiceProfile {
   name: string;     // character display name
 }
 
-/** Voice profiles keyed by space prefix */
+/** Voice profiles keyed by space prefix (pitch/rate/volume are voice-specific, name from CHARACTER_MAP) */
 export const CHARACTER_PROFILES: Record<string, VoiceProfile> = {
-  OWNER:     { pitch: 0.9,  rate: 0.95, volume: 1,   name: 'The Owner' },
-  ARCH:      { pitch: 1.1,  rate: 1.0,  volume: 0.9, name: 'The Architect' },
-  ENG:       { pitch: 0.85, rate: 1.05, volume: 0.9, name: 'The Engineer' },
-  'REG-DOB': { pitch: 1.0,  rate: 0.9,  volume: 1,   name: 'DOB Examiner' },
-  'REG-FDNY':{ pitch: 0.95, rate: 0.85, volume: 1,   name: 'FDNY Inspector' },
-  CON:       { pitch: 0.8,  rate: 1.1,  volume: 1,   name: 'The Contractor' },
+  OWNER:     { pitch: 0.9,  rate: 0.95, volume: 1,   name: CHARACTER_MAP['OWNER'].name },
+  ARCH:      { pitch: 1.1,  rate: 1.0,  volume: 0.9, name: CHARACTER_MAP['ARCH'].name },
+  ENG:       { pitch: 0.85, rate: 1.05, volume: 0.9, name: CHARACTER_MAP['ENG'].name },
+  'REG-DOB': { pitch: 1.0,  rate: 0.9,  volume: 1,   name: CHARACTER_MAP['REG-DOB'].name },
+  'REG-FDNY':{ pitch: 0.95, rate: 0.85, volume: 1,   name: CHARACTER_MAP['REG-FDNY'].name },
+  CON:       { pitch: 0.8,  rate: 1.1,  volume: 1,   name: CHARACTER_MAP['CON'].name },
   NARRATOR:  { pitch: 1.0,  rate: 1.0,  volume: 0.9, name: 'Narrator' },
 };
 
@@ -46,15 +48,6 @@ function pickVoice(): void {
 if (typeof speechSynthesis !== 'undefined') {
   pickVoice();
   speechSynthesis.addEventListener('voiceschanged', pickVoice);
-}
-
-/** Extract character prefix from a space name like "OWNER-SCOPE-INITIATION" */
-function extractPrefix(spaceName: string): string {
-  if (spaceName.startsWith('REG-DOB'))  return 'REG-DOB';
-  if (spaceName.startsWith('REG-FDNY')) return 'REG-FDNY';
-  // First segment before the first hyphen
-  const idx = spaceName.indexOf('-');
-  return idx > 0 ? spaceName.substring(0, idx) : spaceName;
 }
 
 export function getProfileForSpace(spaceName: string): VoiceProfile {

@@ -1,6 +1,7 @@
 import { Player, ActiveCard, ActiveEffect, Loan, MoneySources, Expenditures, CostEntry, CostBreakdown, SpaceVisitRecord } from './DataTypes';
 import { Effect } from './EffectTypes';
 import { Choice } from './CommonTypes';
+import type { NpcAppearances } from '../constants/characters';
 
 export type GamePhase = 'SETUP' | 'PLAY' | 'END';
 
@@ -308,6 +309,13 @@ export interface GameState {
   // Starting hand tracking
   startingHand?: string[];  // Captured/selected starting cards
   isCapturingStartingHand?: boolean;  // True during P1's first turn (Quick Start)
+
+  // ============================================================
+  // NPC Character Identity System
+  // ============================================================
+  // Random visual appearance assigned to each NPC role at game start.
+  // Optional so existing saved games load without migration.
+  npcAppearances?: NpcAppearances;
 }
 
 export interface PlayerAction {

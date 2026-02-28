@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: NPC Character Identity System (February 28, 2026)
+
+**Problem:** NPCs were represented only by emoji badges and voice profiles. 77 character portrait images existed in `public/images/characters/` but were unused. NPCs lacked visual identity, making interactions feel generic.
+
+**Solution:** At game start, randomly assign a visual appearance (ethnicity + gender) to each of the 9 NPC image roles. Show their portrait in story sections, modals, and as subtle indicators on board tiles.
+
+**New files:**
+- `src/constants/characters.ts`: Shared character constants — single source of truth for CHARACTER_MAP, extractPrefix, NPC image role mappings, types (`NpcAppearance`, `NpcAppearances`, `NpcImageRole`), and `getNpcImagePath()` helper
+- `src/hooks/useNpcPortrait.ts`: React hook that reads `npcAppearances` from game state and resolves portrait image paths per space
+
+**Modified files:**
+- `src/types/StateTypes.ts`: Added optional `npcAppearances` field to GameState interface
+- `src/services/StateService.ts`: Added `randomizeNpcAppearances()` method (Fisher-Yates shuffle of 8 appearance combos across 9 roles); called from both `startGameBattleRoyale()` and `startGameSameStart()`
+- `src/services/SpeechService.ts`: Now imports CHARACTER_MAP + extractPrefix from shared constants (removed inline duplicates)
+- `src/components/modals/shared/CharacterBadge.tsx`: Added `portraitSrc` prop — shows 36×36 circular portrait when provided, falls back to emoji
+- `src/components/player/sections/StorySection.tsx`: Added `portraitSrc` prop — shows 60×60 floating portrait inside story box with text wrap
+- `src/components/modals/ChoiceModal.tsx`: Wired `useNpcPortrait` hook, passes portrait to CharacterBadge
+- `src/components/modals/DiceResultModal.tsx`: Same pattern as ChoiceModal
+- `src/components/player/PlayerPanel.tsx`: Wired `useNpcPortrait` hook, passes portrait to StorySection
+- `src/components/game/GameSpace.tsx`: Added NPC emoji indicator (bottom-left corner) + colored left-border per NPC zone
+
+**Design decisions:**
+- `npcAppearances` is optional in GameState so old saved games load without migration (graceful fallback to emoji-only)
+- No portraits on board tiles (too small) — just emoji + zone color border
+- 8 appearance combos (4 ethnicities × 2 genders) shuffled and assigned round-robin to 9 roles (one combo repeats)
+- No localStorage — appearances stored in GameState, synced via existing ServerSyncService
+
 ### Security: Docker Container Hardening (February 24, 2026)
 
 **Problem:** Game container ran on default Docker bridge network with full Linux capabilities, meaning it could potentially access other containers and host resources.

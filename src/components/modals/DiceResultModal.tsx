@@ -8,6 +8,7 @@ import { FormatUtils } from '../../utils/FormatUtils';
 import { DiceResultEffect, TurnEffectResult } from '../../types/StateTypes';
 import { useGameContext } from '../../context/GameContext';
 import { useModalSpeech } from '../../hooks/useModalSpeech';
+import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 
 // Re-export for convenience
@@ -26,6 +27,7 @@ interface DiceResultModalProps {
  */
 export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResultModalProps): JSX.Element | null {
   const { dataService } = useGameContext();
+  const { getPortraitForSpace } = useNpcPortrait();
   const speechControls = useModalSpeech(
     result?.summary,
     result?.spaceName,
@@ -283,7 +285,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       )}
 
       {/* Character Badge */}
-      {result.spaceName && <CharacterBadge spaceName={result.spaceName} />}
+      {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} />}
 
       {/* Summary */}
       {result.summary && (

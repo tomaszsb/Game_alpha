@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ NPC Character Identity System: random portraits for 9 NPC roles, shown in story/modals/board tiles (Feb 28, 2026)
 - ✅ Docker hardening: isolated network, read-only fs, cap-drop ALL, no-new-privileges (Feb 24, 2026)
 - ✅ Character voice narration Phase 1: 6 character voices, speech controls, character badges (Feb 22, 2026)
 - ✅ Security hardening: CORS, headers, path traversal fix, debug endpoint auth (Feb 13, 2026)

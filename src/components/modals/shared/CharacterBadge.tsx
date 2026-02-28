@@ -3,35 +3,15 @@
 
 import React from 'react';
 import { colors, theme } from '../../../styles/theme';
-
-interface CharacterInfo {
-  emoji: string;
-  name: string;
-  phase: string;
-  color: string;
-}
-
-const CHARACTER_MAP: Record<string, CharacterInfo> = {
-  OWNER:      { emoji: '👔', name: 'The Owner',        phase: 'Initiation',   color: '#2196F3' },
-  ARCH:       { emoji: '📐', name: 'The Architect',    phase: 'Design',       color: '#9C27B0' },
-  ENG:        { emoji: '⚙️', name: 'The Engineer',     phase: 'Engineering',  color: '#FF9800' },
-  'REG-DOB':  { emoji: '📋', name: 'DOB Examiner',     phase: 'Regulatory',   color: '#f44336' },
-  'REG-FDNY': { emoji: '🚒', name: 'FDNY Inspector',   phase: 'Regulatory',   color: '#f44336' },
-  CON:        { emoji: '🏗️', name: 'The Contractor',   phase: 'Construction', color: '#4CAF50' },
-};
-
-function extractPrefix(spaceName: string): string {
-  if (spaceName.startsWith('REG-DOB'))  return 'REG-DOB';
-  if (spaceName.startsWith('REG-FDNY')) return 'REG-FDNY';
-  const idx = spaceName.indexOf('-');
-  return idx > 0 ? spaceName.substring(0, idx) : spaceName;
-}
+import { CHARACTER_MAP, extractPrefix } from '../../../constants/characters';
 
 interface CharacterBadgeProps {
   spaceName: string;
+  /** Optional portrait image URL. When provided, replaces the emoji with a circular portrait. */
+  portraitSrc?: string | null;
 }
 
-export function CharacterBadge({ spaceName }: CharacterBadgeProps): JSX.Element | null {
+export function CharacterBadge({ spaceName, portraitSrc }: CharacterBadgeProps): JSX.Element | null {
   const prefix = extractPrefix(spaceName);
   const info = CHARACTER_MAP[prefix];
   if (!info) return null;
@@ -48,7 +28,22 @@ export function CharacterBadge({ spaceName }: CharacterBadgeProps): JSX.Element 
       borderLeft: `3px solid ${info.color}`,
       fontSize: '13px',
     }}>
-      <span style={{ fontSize: '16px' }}>{info.emoji}</span>
+      {portraitSrc ? (
+        <img
+          src={portraitSrc}
+          alt={info.name}
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: `2px solid ${info.color}`,
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <span style={{ fontSize: '16px' }}>{info.emoji}</span>
+      )}
       <span style={{ fontWeight: 600, color: colors.text.primary }}>{info.name}</span>
       <span style={{ color: colors.text.secondary, fontSize: '12px' }}>— {info.phase}</span>
     </div>

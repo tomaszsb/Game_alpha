@@ -2,6 +2,23 @@
 
 ---
 
+## v2.30.0 - NPC Character Portraits (February 28, 2026)
+
+**Release Date:** February 28, 2026
+**Version:** 2.30.0
+**Status:** Alpha Testing
+**Type:** Feature
+
+### New: NPCs have faces
+Each game character now has a randomly assigned portrait that appears throughout gameplay:
+- **Story sections** show a floating portrait of the NPC speaking to you
+- **Choice and dice result modals** display the NPC's face in the character badge
+- **Board tiles** have subtle zone indicators — a colored left border and small emoji showing which NPC owns each space
+
+Every new game randomizes appearances, so the Owner, Architect, Engineer, and other NPCs will look different each time you play. Existing saved games continue to work with the original emoji-only display.
+
+---
+
 ## v2.29.1 - Security Hardening (February 24, 2026)
 
 **Release Date:** February 24, 2026

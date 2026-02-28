@@ -1,14 +1,24 @@
 # Project Status
 
-**Last Updated**: February 24, 2026
-**Current Phase**: Release Preparation Complete (v2.29.1)
-**Current Version**: 2.29.1
+**Last Updated**: February 28, 2026
+**Current Phase**: Release Preparation Complete (v2.30.0)
+**Current Version**: 2.30.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### NPC Character Identity System (February 28, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.30.0
+- **Changes**:
+  - Random visual appearance (ethnicity + gender) assigned to 9 NPC roles at game start
+  - Shared character constants (`src/constants/characters.ts`) — single source of truth
+  - Portrait images shown in StorySection (60×60), CharacterBadge (36×36), and board tile zone indicators
+  - `npcAppearances` stored in GameState, synced via ServerSyncService
+  - Backward compatible — old saves gracefully fall back to emoji-only
 
 ### Docker Container Hardening (February 24, 2026) ✅
 - **Status**: ✅ Complete
