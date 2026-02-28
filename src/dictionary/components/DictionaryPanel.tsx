@@ -39,10 +39,14 @@ export function DictionaryPanel({
   const [remoteConfig, setRemoteConfig] = useState<ServiceVisibility | null>(null);
   const [isIframeLoading, setIsIframeLoading] = useState(false);
 
-  // Use embedded dashboard only when opened with a specific term to look up.
-  // When browsing (no initialTermId), always use local dictionary mode so
-  // search and category filtering work.
-  const effectiveEmbedded = useEmbeddedDashboard && !!initialTermId;
+  // Track which term to show in embedded iframe (set when user clicks a term
+  // from the browse list, or when opened with initialTermId)
+  const [embeddedTermId, setEmbeddedTermId] = useState<string | null>(null);
+
+  // Use embedded dashboard when viewing a specific term (either from initialTermId
+  // or from clicking a term in the browse list)
+  const activeEmbeddedTermId = initialTermId || embeddedTermId;
+  const effectiveEmbedded = useEmbeddedDashboard && !!activeEmbeddedTermId;
 
   // Fetch remote config when panel opens
   useEffect(() => {
@@ -63,10 +67,10 @@ export function DictionaryPanel({
 
   // Set iframe loading state when embedded mode opens with a term
   useEffect(() => {
-    if (isOpen && useEmbeddedDashboard && initialTermId) {
+    if (isOpen && effectiveEmbedded) {
       setIsIframeLoading(true);
     }
-  }, [isOpen, useEmbeddedDashboard, initialTermId]);
+  }, [isOpen, effectiveEmbedded, activeEmbeddedTermId]);
 
   // Handle escape key
   useEffect(() => {
@@ -110,6 +114,11 @@ export function DictionaryPanel({
   }, [terms, categoryFilter, searchQuery, search, config?.showDraftTerms]);
 
   const handleTermClick = (term: GlossaryTerm) => {
+    if (useEmbeddedDashboard) {
+      // Show rich dashboard view for this term
+      setEmbeddedTermId(term.id);
+      setIsIframeLoading(true);
+    }
     setSelectedTerm(term);
     config?.onTermClick?.(term);
   };
@@ -117,13 +126,27 @@ export function DictionaryPanel({
   const handleRelatedTermClick = (termId: string) => {
     const term = getTerm(termId);
     if (term) {
+      if (useEmbeddedDashboard) {
+        setEmbeddedTermId(termId);
+        setIsIframeLoading(true);
+      }
       setSelectedTerm(term);
     }
   };
 
   const handleBack = () => {
     setSelectedTerm(null);
+    setEmbeddedTermId(null);
   };
+
+  // Reset browse state when panel closes
+  useEffect(() => {
+    if (!isOpen) {
+      setEmbeddedTermId(null);
+      setSelectedTerm(null);
+      setSearchQuery('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -223,7 +246,7 @@ export function DictionaryPanel({
                 </div>
               )}
               <iframe
-                src={`${DASHBOARD_BASE_URL}?id=${encodeURIComponent(initialTermId)}&view=game&embedded=true`}
+                src={`${DASHBOARD_BASE_URL}?id=${encodeURIComponent(activeEmbeddedTermId!)}&view=game&embedded=true`}
                 style={{
                   width: '100%',
                   height: '100%',
