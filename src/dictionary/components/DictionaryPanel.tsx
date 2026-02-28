@@ -39,6 +39,11 @@ export function DictionaryPanel({
   const [remoteConfig, setRemoteConfig] = useState<ServiceVisibility | null>(null);
   const [isIframeLoading, setIsIframeLoading] = useState(false);
 
+  // Use embedded dashboard only when opened with a specific term to look up.
+  // When browsing (no initialTermId), always use local dictionary mode so
+  // search and category filtering work.
+  const effectiveEmbedded = useEmbeddedDashboard && !!initialTermId;
+
   // Fetch remote config when panel opens
   useEffect(() => {
     if (isOpen) {
@@ -207,7 +212,7 @@ export function DictionaryPanel({
         {/* Content */}
         <div className="dictionary-content">
           {/* Embedded Dashboard Mode - renders iframe with dashboard content */}
-          {useEmbeddedDashboard && initialTermId && (
+          {effectiveEmbedded && (
             <>
               {isIframeLoading && (
                 <div className="dictionary-loading">
@@ -233,19 +238,19 @@ export function DictionaryPanel({
           )}
 
           {/* Local Dictionary Mode - shows locally loaded terms */}
-          {!useEmbeddedDashboard && isLoading && (
+          {!effectiveEmbedded && isLoading && (
             <div className="dictionary-loading">
               Loading dictionary...
             </div>
           )}
 
-          {!useEmbeddedDashboard && error && (
+          {!effectiveEmbedded && error && (
             <div className="dictionary-error">
               Error loading dictionary: {error}
             </div>
           )}
 
-          {!useEmbeddedDashboard && !isLoading && !error && selectedTerm && (
+          {!effectiveEmbedded && !isLoading && !error && selectedTerm && (
             <div className={`dictionary-term-detail dictionary-mode-${mode}`}>
               <div className="dictionary-term-detail__header">
                 <h3 className="dictionary-term-detail__title">{selectedTerm.term}</h3>
@@ -421,7 +426,7 @@ export function DictionaryPanel({
             </div>
           )}
 
-          {!useEmbeddedDashboard && !isLoading && !error && !selectedTerm && (
+          {!effectiveEmbedded && !isLoading && !error && !selectedTerm && (
             <div className="dictionary-term-list">
               {displayTerms.length === 0 ? (
                 <div className="dictionary-empty">
