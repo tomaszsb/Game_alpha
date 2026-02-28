@@ -112,7 +112,15 @@
       "Bash(docker:*)",
       "Bash(docker.exe version:*)",
       "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"docker version\")",
-      "WebFetch(domain:vitest.dev)"
+      "WebFetch(domain:vitest.dev)",
+      "Bash(for f in feedback-1770609191294-f63f3e61.json feedback-1770616431716-91199a9e.json)",
+      "Bash(while IFS=, read -r space visit title story action outcome negotiate)",
+      "Bash(do echo \"$space | $visit | $title | negotiate=$negotiate\")",
+      "Bash(})",
+      "Bash({)",
+      "Bash(ip:*)",
+      "WebFetch(domain:www.pixellab.ai)",
+      "WebFetch(domain:api.pixellab.ai)"
     ],
     "deny": [],
     "ask": []
