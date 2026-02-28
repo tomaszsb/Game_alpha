@@ -3,6 +3,7 @@ import { colors } from '../../styles/theme';
 import { GameSpace } from './GameSpace';
 import { SpaceInfoModal } from '../modals/SpaceInfoModal';
 import { useGameContext } from '../../context/GameContext';
+import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { Space, Player } from '../../types/DataTypes';
 
 const MIN_ZOOM = 0.5;
@@ -20,6 +21,7 @@ interface GameBoardProps {
  */
 export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Element {
   const { dataService, stateService, movementService } = useGameContext();
+  const { getPortraitForSpace } = useNpcPortrait();
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
@@ -487,6 +489,7 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
         spaceName={selectedSpaceForInfo || ''}
         {...getSpaceDetails()}
         playersOnSpace={selectedSpaceForInfo ? getPlayersOnSpace(selectedSpaceForInfo) : []}
+        portraitSrc={selectedSpaceForInfo ? getPortraitForSpace(selectedSpaceForInfo) : null}
       />
     </div>
   );

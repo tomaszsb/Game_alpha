@@ -4,6 +4,7 @@ import React from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../types/DataTypes';
+import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 
 interface SpaceInfoModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface SpaceInfoModalProps {
   diceEffects: DiceEffect[];
   playersOnSpace: Player[];
   connections: string[];
+  portraitSrc?: string | null;
 }
 
 export function SpaceInfoModal({
@@ -26,7 +28,8 @@ export function SpaceInfoModal({
   effects,
   diceEffects,
   playersOnSpace,
-  connections
+  connections,
+  portraitSrc
 }: SpaceInfoModalProps): JSX.Element | null {
   if (!isOpen) return null;
 
@@ -88,26 +91,57 @@ export function SpaceInfoModal({
       )}
 
       {/* Story/Description */}
-      {content?.story && (
-        <div style={sectionStyle}>
-          <h3 style={sectionHeadingStyle}>
-            {theme.emoji.story} Story
-          </h3>
-          <p style={{
-            margin: 0,
-            color: colors.text.secondary,
-            fontSize: '14px',
-            lineHeight: '1.6',
-            fontStyle: 'italic',
-            padding: '12px',
-            backgroundColor: colors.background.secondary,
-            borderRadius: theme.borderRadius.sm,
-            borderLeft: `3px solid ${colors.primary.main}`,
-          }}>
-            {content.story}
-          </p>
-        </div>
-      )}
+      {content?.story && (() => {
+        const prefix = extractPrefix(spaceName);
+        const npcInfo = CHARACTER_MAP[prefix];
+        return (
+          <div style={sectionStyle}>
+            <h3 style={sectionHeadingStyle}>
+              {theme.emoji.story} Story
+            </h3>
+            <div style={{
+              margin: 0,
+              color: colors.text.secondary,
+              fontSize: '14px',
+              lineHeight: '1.6',
+              fontStyle: 'italic',
+              padding: '12px',
+              backgroundColor: colors.background.secondary,
+              borderRadius: theme.borderRadius.sm,
+              borderLeft: `3px solid ${npcInfo?.color || colors.primary.main}`,
+            }}>
+              {portraitSrc && npcInfo && (
+                <div style={{
+                  float: 'left',
+                  marginRight: '10px',
+                  marginBottom: '4px',
+                  textAlign: 'center',
+                }}>
+                  <img
+                    src={portraitSrc}
+                    alt={npcInfo.name}
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: `2px solid ${npcInfo.color}`,
+                      display: 'block',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: '10px',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                    color: npcInfo.color,
+                  }}>{npcInfo.name} says:</span>
+                </div>
+              )}
+              {content.story}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Effects */}
       {effects.length > 0 && (

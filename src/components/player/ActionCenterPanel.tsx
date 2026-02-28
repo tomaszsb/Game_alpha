@@ -358,22 +358,32 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               const portraitSrc = player ? getPortraitForSpace(player.currentSpace) : null;
               const prefix = player ? extractPrefix(player.currentSpace) : null;
               const npcInfo = prefix ? CHARACTER_MAP[prefix] : null;
-              return portraitSrc ? (
-                <img
-                  src={portraitSrc}
-                  alt={npcInfo?.name || 'NPC'}
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    float: 'left',
-                    marginRight: '10px',
-                    marginBottom: '4px',
-                    border: `2px solid ${npcInfo?.color || '#ccc'}`,
-                    shapeOutside: 'circle(50%)',
-                  }}
-                />
+              return portraitSrc && npcInfo ? (
+                <div style={{
+                  float: 'left',
+                  marginRight: '10px',
+                  marginBottom: '4px',
+                  textAlign: 'center',
+                }}>
+                  <img
+                    src={portraitSrc}
+                    alt={npcInfo.name}
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: `2px solid ${npcInfo.color}`,
+                      display: 'block',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: '10px',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                    color: npcInfo.color,
+                  }}>{npcInfo.name} says:</span>
+                </div>
               ) : null;
             })()}
             <TextWithTerms text={spaceStory} onTermClick={(term) => openWithTerm(term.id)} />
