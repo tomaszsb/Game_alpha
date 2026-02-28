@@ -143,6 +143,26 @@ export function SpaceInfoModal({
         );
       })()}
 
+      {/* PM Action Instructions */}
+      {content?.action_description && (
+        <div style={sectionStyle}>
+          <h3 style={sectionHeadingStyle}>
+            📋 PM Action
+          </h3>
+          <div style={{
+            padding: '10px 12px',
+            backgroundColor: '#e8f4fd',
+            borderRadius: theme.borderRadius.sm,
+            borderLeft: '3px solid #2196F3',
+            fontSize: '14px',
+            color: '#1565C0',
+            lineHeight: '1.5',
+          }}>
+            {content.action_description}
+          </div>
+        </div>
+      )}
+
       {/* Effects */}
       {effects.length > 0 && (
         <div style={sectionStyle}>

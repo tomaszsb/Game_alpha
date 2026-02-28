@@ -71,6 +71,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState('');
   const [spaceStory, setSpaceStory] = useState('');
+  const [spaceAction, setSpaceAction] = useState('');
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [movementChoice, setMovementChoice] = useState<Choice | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
@@ -96,11 +97,11 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         const space = gameServices.dataService.getSpaceByName(player.currentSpace);
         if (space?.content?.length) {
           const visitContent = space.content.find(c => c.visit_type === player.visitType);
-          const storyText = visitContent?.story || '';
-          const actionText = visitContent?.action_description || '';
-          setSpaceStory([storyText, actionText].filter(Boolean).join(' '));
+          setSpaceStory(visitContent?.story || '');
+          setSpaceAction(visitContent?.action_description || '');
         } else {
           setSpaceStory('');
+          setSpaceAction('');
         }
 
         // Dice movement state
@@ -348,7 +349,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Story */}
+        {/* NPC Story */}
         {spaceStory && (
           <div
             className={`action-center__story ${!storyExpanded && spaceStory.length > 200 ? 'action-center__story--truncated' : ''}`}
@@ -392,6 +393,24 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 read more...
               </button>
             )}
+          </div>
+        )}
+
+        {/* PM Action Instructions */}
+        {spaceAction && (
+          <div style={{
+            padding: '8px 12px',
+            backgroundColor: '#e8f4fd',
+            borderRadius: '8px',
+            borderLeft: '3px solid #2196F3',
+            fontSize: '13px',
+            color: '#1565C0',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+          }}>
+            <span style={{ fontSize: '16px', flexShrink: 0 }}>📋</span>
+            <span><strong>PM Action:</strong> {spaceAction}</span>
           </div>
         )}
 
