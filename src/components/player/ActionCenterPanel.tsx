@@ -133,9 +133,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       const space = gameServices.dataService.getSpaceByName(player.currentSpace);
       if (space?.content?.length) {
         const visitContent = space.content.find(c => c.visit_type === player.visitType);
-        const storyText = visitContent?.story || '';
-        const actionText = visitContent?.action_description || '';
-        setSpaceStory([storyText, actionText].filter(Boolean).join(' '));
+        setSpaceStory(visitContent?.story || '');
+        setSpaceAction(visitContent?.action_description || '');
       }
       const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
       setIsDiceMovementSpace(movement?.movement_type === 'dice');
