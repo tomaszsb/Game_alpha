@@ -294,7 +294,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     players.some(p => shouldShowPlayerPanel(p.id));
 
   // If no panels should be shown, hide the entire panel column
-  const hidePanelColumn = !effectiveViewPlayerId && !shouldShowAnyPanel;
+  // During PLAY phase, always hide — the ProgressBarMap handles player controls
+  const hidePanelColumn = !effectiveViewPlayerId && (!shouldShowAnyPanel || gamePhase === 'PLAY');
 
   // Add responsive CSS styles to document head
   React.useEffect(() => {
