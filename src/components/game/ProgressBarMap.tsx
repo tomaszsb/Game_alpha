@@ -26,6 +26,40 @@ const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }>
   'END':          { bg: '#e0f2f1', text: '#00695c', border: '#009688' },
 };
 
+// Short display name for compact nodes
+const NPC_PREFIXES = ['OWNER-', 'ARCH-', 'ENG-', 'REG-DOB-', 'REG-FDNY-', 'CON-', 'PM-', 'LEND-', 'BANK-', 'INVESTOR-', 'CHEAT-'];
+const SPECIAL_NAMES: Record<string, string> = {
+  'FINISH': 'Finish',
+  'PM-DECISION-CHECK': 'PM Check',
+  'START-QUICK-PLAY-GUIDE': 'Quick Play',
+};
+
+function shortDisplayName(spaceName: string): string {
+  if (SPECIAL_NAMES[spaceName]) return SPECIAL_NAMES[spaceName];
+  let name = spaceName;
+  for (const prefix of NPC_PREFIXES) {
+    if (name.startsWith(prefix)) { name = name.slice(prefix.length); break; }
+  }
+  // Title-case: SCOPE-INITIATION → Scope Init
+  return name.split('-').map(w => {
+    if (w.length <= 2) return w; // keep short words as-is (e.g. "or")
+    const lc = w.toLowerCase();
+    // Abbreviate long words
+    if (lc === 'initiation') return 'Init';
+    if (lc === 'application') return 'App';
+    if (lc === 'inspection') return 'Insp';
+    if (lc === 'certificate') return 'Cert';
+    if (lc === 'approval') return 'Appr';
+    if (lc === 'construction') return 'Constr';
+    if (lc === 'preliminary') return 'Prelim';
+    if (lc === 'examination') return 'Exam';
+    if (lc === 'review') return 'Rev';
+    if (lc === 'decision') return 'Dec';
+    if (lc === 'check') return 'Chk';
+    return w.charAt(0).toUpperCase() + lc.slice(1);
+  }).join(' ');
+}
+
 // Side quest path_types (case-insensitive match)
 function isSideQuestType(pathType: string): boolean {
   return pathType.toLowerCase().includes('side quest');
@@ -88,7 +122,9 @@ function buildSnakePath(
       const dice = dataService.getDiceOutcome(spaceName, vt);
       if (dice) {
         [dice.roll_1, dice.roll_2, dice.roll_3, dice.roll_4, dice.roll_5, dice.roll_6]
-          .filter((d: string | undefined): d is string => !!d && spaceSet.has(d))
+          .filter((d: string | undefined): d is string => !!d)
+          .flatMap(d => d.split(' or ').map(s => s.trim()))
+          .filter(d => spaceSet.has(d))
           .forEach(d => dests.add(d));
       }
     }
@@ -306,7 +342,7 @@ export function ProgressBarMap({
   // Hover debounce
   const handleMouseEnter = useCallback((name: string) => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => setHoveredSpace(name), 200);
+    hoverTimerRef.current = setTimeout(() => setHoveredSpace(name), 80);
   }, []);
   const handleMouseLeave = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -375,6 +411,20 @@ export function ProgressBarMap({
       );
     }
 
+    // Valid move: show medium GameSpace tile
+    if (isValidMove) {
+      return (
+        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
+          onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
+          <div className="pbm-expanded-tile">
+            <GameSpace space={space} playersOnSpace={playersHere}
+              isValidMoveDestination={true} isCurrentPlayerSpace={false}
+              showMovementIndicators={true} />
+          </div>
+        </motion.div>
+      );
+    }
+
     // Hovered: show GameSpace tile
     if (isHovered) {
       return (
@@ -382,8 +432,8 @@ export function ProgressBarMap({
           onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
           <div className="pbm-expanded-tile">
             <GameSpace space={space} playersOnSpace={playersHere}
-              isValidMoveDestination={isValidMove} isCurrentPlayerSpace={false}
-              showMovementIndicators={isValidMove} />
+              isValidMoveDestination={false} isCurrentPlayerSpace={false}
+              showMovementIndicators={false} />
           </div>
         </motion.div>
       );
@@ -394,7 +444,7 @@ export function ProgressBarMap({
       <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
         onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
         <div className={nodeClass} style={nodeStyle} title={spaceName}>
-          <span>{spaceName}</span>
+          <span>{shortDisplayName(spaceName)}</span>
           {playersHere.length > 0 && (
             <div className="pbm-node-avatars">
               {playersHere.slice(0, 3).map(p => (
@@ -414,10 +464,12 @@ export function ProgressBarMap({
     <div key={key} className={`pbm-connector${visited ? ' pbm-connector--visited' : ''}`} />
   );
 
-  const renderBranch = (branch: PathBranch) => (
+  const renderBranch = (branch: PathBranch) => {
+    const bpc = PHASE_COLORS[branch.label.toUpperCase()] || PHASE_COLORS[branch.label] || { bg: '#f5f5f5', text: '#616161', border: '#9e9e9e' };
+    return (
     <div key={`${branch.parentSpace}-${branch.label}`} className="pbm-branch">
       <div className={`pbm-branch-connector${isVisited(branch.nodes[0] || '') ? ' pbm-branch-connector--visited' : ''}`} />
-      <div className="pbm-branch-label">{branch.label}</div>
+      <div className="pbm-branch-label" style={{ color: bpc.text, background: bpc.bg }}>{branch.label}</div>
       <div className="pbm-branch-nodes">
         <div className="pbm-branch-row">
           {branch.nodes.map((spaceName, ni) => (
@@ -430,6 +482,7 @@ export function ProgressBarMap({
       </div>
     </div>
   );
+  };
 
   // Unique phases for legend
   const legendPhases = useMemo(() => {
@@ -449,25 +502,21 @@ export function ProgressBarMap({
           return (
             <React.Fragment key={`${group.phase}-${si}`}>
               {si > 0 && <div className="pbm-phase-connector" />}
-              <div className="pbm-phase">
-                <span className="pbm-phase-label" style={{ background: pc.bg, color: pc.text }}>
-                  {group.label}
-                </span>
-                <div className="pbm-phase-row">
-                  {group.mainNodes.map((spaceName, ni) => {
-                    const branches = group.branches.get(spaceName) || [];
-                    return (
-                      <React.Fragment key={spaceName}>
-                        {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          {renderNode(spaceName)}
-                          {branches.map(b => renderBranch(b))}
-                        </div>
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-              </div>
+              <span className="pbm-phase-label" style={{ background: pc.bg, color: pc.text, borderColor: pc.border }}>
+                {group.label}
+              </span>
+              {group.mainNodes.map((spaceName, ni) => {
+                const branches = group.branches.get(spaceName) || [];
+                return (
+                  <React.Fragment key={spaceName}>
+                    {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      {renderNode(spaceName)}
+                      {branches.map(b => renderBranch(b))}
+                    </div>
+                  </React.Fragment>
+                );
+              })}
             </React.Fragment>
           );
         })}

@@ -10,44 +10,31 @@
   scrollbar-width: thin;
 }
 
-/* Main snake path — wrapping flex row */
+/* Main snake path — one continuous wrapping flex row */
 .pbm-snake {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 0;
+  row-gap: 8px;
   position: relative;
 }
 
-/* Phase section — contains label + nodes */
-.pbm-phase {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-right: 4px;
-}
-
-.pbm-phase:last-child {
-  margin-right: 0;
-}
-
-/* Phase label above nodes */
+/* Phase label — inline pill badge in the snake row */
 .pbm-phase-label {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  margin-bottom: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid;
+  margin: 0 4px;
   white-space: nowrap;
-}
-
-/* Row of nodes within a phase */
-.pbm-phase-row {
-  display: flex;
-  align-items: center;
-  gap: 0;
+  flex-shrink: 0;
 }
 
 /* A node slot (node + optional branch) */
@@ -197,14 +184,15 @@
   gap: 0;
 }
 
-/* Branch label */
+/* Branch label — uses phase colors from inline style */
 .pbm-branch-label {
   font-size: 8px;
   font-weight: 600;
-  color: #adb5bd;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin-bottom: 2px;
+  padding: 1px 5px;
+  border-radius: 6px;
 }
 
 /* Expanded PlayerPanel inline */
