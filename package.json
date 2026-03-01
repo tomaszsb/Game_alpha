@@ -75,8 +75,7 @@
     "html2canvas": "^1.4.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "react-force-graph-2d": "^1.29.1"
+    "react-dom": "^19.2.3"
   },
   "keywords": [
     "typescript",

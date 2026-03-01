@@ -1,60 +1,275 @@
-/* ProgressBarMap - Force graph mini map below the game board */
+/* ProgressBarMap — Snake path with side quest legs */
 
 .progress-bar-map {
+  padding: 10px 16px;
   background: #f8f9fa;
   border: 2px solid #dee2e6;
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+}
+
+/* Main snake path — wrapping flex row */
+.pbm-snake {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0;
   position: relative;
 }
 
-/* Graph container */
-.pbm-graph-container {
-  width: 100%;
-  height: 180px;
+/* Phase section — contains label + nodes */
+.pbm-phase {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-right: 4px;
+}
+
+.pbm-phase:last-child {
+  margin-right: 0;
+}
+
+/* Phase label above nodes */
+.pbm-phase-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+
+/* Row of nodes within a phase */
+.pbm-phase-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* A node slot (node + optional branch) */
+.pbm-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   position: relative;
 }
 
-/* Player panel below graph — always visible for current player */
-.pbm-player-panel {
-  border-top: 2px solid #dee2e6;
+/* Connector line between nodes (horizontal) */
+.pbm-connector {
+  width: 16px;
+  height: 2px;
+  background: #dee2e6;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.pbm-connector--visited {
+  background: #007bff;
+}
+
+/* Cross-phase connector (between phase groups) */
+.pbm-phase-connector {
+  width: 20px;
+  height: 2px;
+  background: #adb5bd;
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 2px;
+  border-radius: 1px;
+}
+
+/* Space node */
+.pbm-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+  border: 2px solid #dee2e6;
   background: #fff;
+  color: #495057;
+  white-space: nowrap;
+  min-height: 26px;
+  user-select: none;
+  text-align: center;
+  line-height: 1.2;
 }
 
-/* Expanded GameSpace tile for valid move / hover preview */
-.pbm-expanded-tile-overlay {
+.pbm-node:hover {
+  transform: scale(1.12);
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Node states */
+.pbm-node--visited {
+  background: #e3f2fd;
+  border-color: #90caf9;
+  color: #1565c0;
+}
+
+.pbm-node--current {
+  background: #007bff;
+  border-color: #0056b3;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 5px 10px;
+  animation: pbm-pulse-glow 2s infinite;
+  z-index: 2;
+}
+
+.pbm-node--valid-move {
+  border-color: #ffc107 !important;
+  background: #fff8e1;
+  animation: pbm-pulse-border 2s infinite;
+}
+
+.pbm-node--has-players {
+  border-width: 2.5px;
+}
+
+/* Player avatars on nodes */
+.pbm-node-avatars {
   position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  width: 200px;
+  bottom: -7px;
+  right: -5px;
+  display: flex;
+  gap: 1px;
+  z-index: 3;
+}
+
+.pbm-node-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  border: 1.5px solid #fff;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  color: #fff;
+}
+
+/* Side quest branch — vertical leg hanging below a node */
+.pbm-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* Vertical connector for branches */
+.pbm-branch-connector {
+  width: 2px;
+  height: 12px;
+  background: #dee2e6;
+  flex-shrink: 0;
+}
+
+.pbm-branch-connector--visited {
+  background: #007bff;
+}
+
+/* Branch nodes container (can have multiple nodes in a row or column) */
+.pbm-branch-nodes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.pbm-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Branch label */
+.pbm-branch-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: #adb5bd;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+/* Expanded PlayerPanel inline */
+.pbm-expanded-panel {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 480px;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 2px solid #007bff;
   background: #fff;
-  border: 2px solid #dee2e6;
+  margin: 4px 0;
 }
 
-/* Phase legend bar */
+/* Expanded GameSpace tile for hover/click */
+.pbm-expanded-tile {
+  flex: 0 0 auto;
+  width: 160px;
+  min-height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Choice fork — two paths diverging */
+.pbm-fork {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.pbm-fork-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Animations */
+@keyframes pbm-pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(0, 123, 255, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(0, 123, 255, 0.7); }
+}
+
+@keyframes pbm-pulse-border {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 193, 7, 0.3); }
+  50% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
+}
+
+/* Phase legend */
 .pbm-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 4px 12px 6px;
-  border-top: 1px solid #dee2e6;
-  background: #fff;
+  gap: 8px;
+  padding: 4px 0 0;
   justify-content: center;
+  border-top: 1px solid #eee;
+  margin-top: 6px;
 }
 
 .pbm-legend-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-size: 9px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
   color: #495057;
 }
 
@@ -62,17 +277,6 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* Animations */
-@keyframes pbm-pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(0, 123, 255, 0.7);
-  }
 }
 
 /* Hide on mobile */
