@@ -273,19 +273,84 @@
   min-height: 32px;
 }
 
+/* Fork connector columns — CSS lines instead of glyphs */
 .pbm-fork-connector-col {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   width: 14px;
   flex-shrink: 0;
+  align-self: stretch;
 }
 
-.pbm-fork-glyph {
-  font-size: 12px;
-  line-height: 1;
-  color: #6c757d;
-  font-weight: 700;
+/* Vertical line segment */
+.pbm-fork-connector-col::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 3px;
+  background: #adb5bd;
+}
+
+/* Horizontal arm at center */
+.pbm-fork-connector-col::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #adb5bd;
+  transform: translateY(-50%);
+}
+
+/* Top branch opening: vertical from center to bottom */
+.pbm-fork-open--top::before {
+  top: 50%;
+  bottom: 0;
+}
+
+/* Bottom branch opening: vertical from top to center */
+.pbm-fork-open--bot::before {
+  top: 0;
+  bottom: 50%;
+}
+
+/* Fork merge columns */
+.pbm-fork-merge-col {
+  position: relative;
+  width: 14px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.pbm-fork-merge-col::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  width: 3px;
+  background: #adb5bd;
+}
+
+.pbm-fork-merge-col::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #adb5bd;
+  transform: translateY(-50%);
+}
+
+/* Top branch merge: vertical from center to bottom */
+.pbm-fork-merge--top::before {
+  top: 50%;
+  bottom: 0;
+}
+
+/* Bottom branch merge: vertical from top to center */
+.pbm-fork-merge--bot::before {
+  top: 0;
+  bottom: 50%;
 }
 
 /* Legs — vertical column: above node, parent node, below node */
@@ -294,13 +359,15 @@
   flex-direction: column;
   align-items: center;
   position: relative;
+  gap: 0;
 }
 
 .pbm-legs-vconnector {
   width: 3px;
-  height: 10px;
+  height: 14px;
   background: #adb5bd;
   flex-shrink: 0;
+  margin: -1px 0; /* overlap slightly with node borders to eliminate gap */
 }
 
 /* Animations */
@@ -314,54 +381,10 @@
   50% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
 }
 
-/* Current space floating popover */
-.pbm-current-popover {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 280px;
-  max-width: 280px;
-  background: #fff;
-  border: 2px solid #007bff;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 11px;
-  line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 20;
-  margin-top: 4px;
-  pointer-events: none;
-}
-
-.pbm-current-popover::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  background: #fff;
-  border-top: 2px solid #007bff;
-  border-left: 2px solid #007bff;
-  transform: translateX(-50%) rotate(45deg);
-}
-
-/* Fork merge glyphs */
-.pbm-fork-merge-col {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  flex-shrink: 0;
-}
-
-.pbm-fork-merge-glyph {
-  font-size: 12px;
-  line-height: 1;
-  color: #6c757d;
-  font-weight: 700;
+/* Current space variant of expanded detail */
+.pbm-expanded-detail--current {
+  border-color: #007bff;
+  animation: pbm-pulse-glow 2s infinite;
 }
 
 /* Phase legend */

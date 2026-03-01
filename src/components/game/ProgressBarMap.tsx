@@ -242,40 +242,38 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
-    // Current space: compact blue pulsing node with floating popover
+    // Current space: full expanded detail tile (same as clicked, but blue-accented)
     if (isCurrentSpace) {
       const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
       const npcName = npcInfo?.name;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
-          <div className={nodeClass} style={nodeStyle} title={spaceName}>
-            <span>{shortDisplayName(spaceName)}</span>
+          <div className="pbm-expanded-detail pbm-expanded-detail--current">
+            <div className="pbm-detail-header" style={{ borderLeftColor: '#007bff' }}>
+              <strong>{spaceName}</strong>
+              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
+            </div>
+            {content?.story && (
+              <div className="pbm-detail-story">
+                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
+                <p>{content.story}</p>
+              </div>
+            )}
+            {content?.action_description && (
+              <div className="pbm-detail-action">
+                <strong>PM Action:</strong> {content.action_description}
+              </div>
+            )}
             {playersHere.length > 0 && (
-              <div className="pbm-node-avatars">
-                {playersHere.slice(0, 3).map(p => (
-                  <div key={p.id} className="pbm-node-avatar"
-                    style={{ background: p.color || '#007bff' }} title={p.name}>
+              <div className="pbm-detail-players">
+                {playersHere.map(p => (
+                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
                     {p.avatar || p.name.charAt(0)}
-                  </div>
+                  </span>
                 ))}
               </div>
             )}
           </div>
-          {(content?.story || content?.action_description) && (
-            <div className="pbm-current-popover">
-              {content.story && (
-                <div className="pbm-detail-story">
-                  {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
-                  <p>{content.story}</p>
-                </div>
-              )}
-              {content.action_description && (
-                <div className="pbm-detail-action">
-                  <strong>PM Action:</strong> {content.action_description}
-                </div>
-              )}
-            </div>
-          )}
         </motion.div>
       );
     }
@@ -371,17 +369,13 @@ export function ProgressBarMap({
     <div key={key} className="pbm-connector" />
   );
 
-  // Render a fork segment (parallel branches, no labels — text is in the boxes)
+  // Render a fork segment (parallel branches with CSS line connectors)
   const renderFork = (seg: Extract<PathSegment, { type: 'fork' }>, segIdx: number) => {
     return (
       <div key={`fork-${segIdx}`} className="pbm-fork">
         {seg.branches.map((branch, bi) => (
           <div key={bi} className="pbm-fork-branch">
-            <div className="pbm-fork-connector-col">
-              <span className={`pbm-fork-glyph ${bi === 0 ? 'pbm-fork-glyph--top' : 'pbm-fork-glyph--bot'}`}>
-                {bi === 0 ? '\u252C' : '\u2514'}
-              </span>
-            </div>
+            <div className={`pbm-fork-connector-col ${bi === 0 ? 'pbm-fork-open--top' : 'pbm-fork-open--bot'}`} />
             {branch.nodes.map((spaceName) => (
               <React.Fragment key={spaceName}>
                 {renderConnector(`fc-${spaceName}`)}
@@ -391,11 +385,7 @@ export function ProgressBarMap({
             {seg.merge && (
               <>
                 {renderConnector(`fm-${bi}`)}
-                <div className="pbm-fork-merge-col">
-                  <span className="pbm-fork-merge-glyph">
-                    {bi === 0 ? '\u2518' : '\u2510'}
-                  </span>
-                </div>
+                <div className={`pbm-fork-merge-col ${bi === 0 ? 'pbm-fork-merge--top' : 'pbm-fork-merge--bot'}`} />
               </>
             )}
           </div>
