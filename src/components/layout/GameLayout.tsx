@@ -294,8 +294,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     players.some(p => shouldShowPlayerPanel(p.id));
 
   // If no panels should be shown, hide the entire panel column
-  // During PLAY phase, always hide — the ProgressBarMap handles player controls
-  const hidePanelColumn = !effectiveViewPlayerId && (!shouldShowAnyPanel || gamePhase === 'PLAY');
+  // During PLAY phase, always show the left panel for the current player's controls
+  const hidePanelColumn = !effectiveViewPlayerId && !shouldShowAnyPanel && gamePhase !== 'PLAY' && !currentPlayerId;
 
   // Add responsive CSS styles to document head
   React.useEffect(() => {
@@ -794,7 +794,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               {gamePhase === 'PLAY' ? (
                 <div className="game-player-panels">
                   {(() => {
-                    const visiblePlayers = players.filter(p => shouldShowPlayerPanel(p.id));
+                    // Always include current player during PLAY; also show unconnected players
+                    const visiblePlayers = players.filter(p => p.id === currentPlayerId || shouldShowPlayerPanel(p.id));
                     const hasMultipleLocal = visiblePlayers.length > 1;
                     return visiblePlayers.map(player => {
                       const isCurrentPlayer = player.id === currentPlayerId;
