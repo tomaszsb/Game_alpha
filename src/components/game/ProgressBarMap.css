@@ -150,48 +150,6 @@
   color: #fff;
 }
 
-/* Branches section — rendered below the main snake path */
-.pbm-branches-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  padding: 6px 0 0;
-  border-top: 1px dashed #dee2e6;
-  margin-top: 6px;
-  align-items: center;
-}
-
-/* Side quest branch — horizontal inline group */
-.pbm-branch {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
-/* Branch label — uses phase colors from inline style */
-.pbm-branch-label {
-  font-size: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 1px 5px;
-  border-radius: 6px;
-  margin-right: 4px;
-  white-space: nowrap;
-}
-
-/* Branch nodes container */
-.pbm-branch-nodes {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
-.pbm-branch-row {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
 
 /* Expanded PlayerPanel inline */
 .pbm-expanded-panel {
@@ -215,16 +173,88 @@
   cursor: pointer;
 }
 
-/* Fully expanded detail view (clicked) */
+/* Fully expanded detail view (clicked) — story + action panel */
 .pbm-expanded-detail {
   flex: 0 0 auto;
-  width: 280px;
+  width: 320px;
+  max-width: 90vw;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
   border: 2px solid #495057;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   z-index: 10;
+  background: #fff;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pbm-detail-header {
+  border-left: 4px solid #007bff;
+  padding-left: 8px;
+  margin-bottom: 8px;
+}
+
+.pbm-detail-header strong {
+  font-size: 13px;
+  color: #212529;
+}
+
+.pbm-detail-title {
+  display: block;
+  font-size: 11px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.pbm-detail-story {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.pbm-detail-npc {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.pbm-detail-story p {
+  margin: 0;
+  color: #343a40;
+}
+
+.pbm-detail-action {
+  background: #e8f4fd;
+  border-left: 3px solid #2196F3;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  color: #343a40;
+}
+
+.pbm-detail-players {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.pbm-detail-player-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #fff;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
 /* Choice fork — two paths diverging */

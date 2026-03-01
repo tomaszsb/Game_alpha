@@ -413,15 +413,38 @@ export function ProgressBarMap({
       );
     }
 
-    // Expanded (clicked) tile — full detail GameSpace
+    // Expanded (clicked) tile — show space story + action detail
     if (isExpanded) {
+      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const npcName = npcInfo?.name;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
           onMouseLeave={() => { handleMouseLeave(); setExpandedSpace(null); }}>
           <div className="pbm-expanded-detail" onClick={() => setExpandedSpace(null)}>
-            <GameSpace space={space} playersOnSpace={playersHere}
-              isValidMoveDestination={isValidMove} isCurrentPlayerSpace={false}
-              showMovementIndicators={isValidMove} />
+            <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
+              <strong>{spaceName}</strong>
+              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
+            </div>
+            {content?.story && (
+              <div className="pbm-detail-story">
+                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
+                <p>{content.story}</p>
+              </div>
+            )}
+            {content?.action_description && (
+              <div className="pbm-detail-action">
+                <strong>PM Action:</strong> {content.action_description}
+              </div>
+            )}
+            {playersHere.length > 0 && (
+              <div className="pbm-detail-players">
+                {playersHere.map(p => (
+                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
+                    {p.avatar || p.name.charAt(0)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       );
@@ -480,24 +503,16 @@ export function ProgressBarMap({
     <div key={key} className={`pbm-connector${visited ? ' pbm-connector--visited' : ''}`} />
   );
 
-  const renderBranch = (branch: PathBranch) => {
-    const bpc = PHASE_COLORS[branch.label.toUpperCase()] || PHASE_COLORS[branch.label] || { bg: '#f5f5f5', text: '#616161', border: '#9e9e9e' };
-    return (
-    <div key={`${branch.parentSpace}-${branch.label}`} className="pbm-branch">
-      <div className="pbm-branch-label" style={{ color: bpc.text, background: bpc.bg }}>{branch.label}</div>
-      <div className="pbm-branch-nodes">
-        <div className="pbm-branch-row">
-          {branch.nodes.map((spaceName, ni) => (
-            <React.Fragment key={spaceName}>
-              {ni > 0 && renderConnector(isVisited(spaceName), `bc-${spaceName}`)}
-              {renderNode(spaceName)}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    </div>
+  const renderBranchNodes = (branch: PathBranch) => (
+    <React.Fragment key={`${branch.parentSpace}-${branch.label}`}>
+      {branch.nodes.map((spaceName, ni) => (
+        <React.Fragment key={spaceName}>
+          {renderConnector(isVisited(spaceName), `bc-${spaceName}`)}
+          {renderNode(spaceName)}
+        </React.Fragment>
+      ))}
+    </React.Fragment>
   );
-  };
 
   return (
     <div className="progress-bar-map">
@@ -505,32 +520,19 @@ export function ProgressBarMap({
         {phaseGroups.map((group, si) => (
           <React.Fragment key={`${group.phase}-${si}`}>
             {si > 0 && <div className="pbm-phase-connector" />}
-            {group.mainNodes.map((spaceName, ni) => (
-              <React.Fragment key={spaceName}>
-                {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
-                {renderNode(spaceName)}
-              </React.Fragment>
-            ))}
+            {group.mainNodes.map((spaceName, ni) => {
+              const branches = group.branches.get(spaceName) || [];
+              return (
+                <React.Fragment key={spaceName}>
+                  {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
+                  {renderNode(spaceName)}
+                  {branches.map(b => renderBranchNodes(b))}
+                </React.Fragment>
+              );
+            })}
           </React.Fragment>
         ))}
       </div>
-
-      {/* Branches rendered below main path */}
-      {(() => {
-        const allBranches: { parent: string; branch: PathBranch }[] = [];
-        for (const group of phaseGroups) {
-          for (const nodeName of group.mainNodes) {
-            const branches = group.branches.get(nodeName);
-            if (branches) branches.forEach(b => allBranches.push({ parent: nodeName, branch: b }));
-          }
-        }
-        if (allBranches.length === 0) return null;
-        return (
-          <div className="pbm-branches-section">
-            {allBranches.map(({ parent, branch }) => renderBranch(branch))}
-          </div>
-        );
-      })()}
 
       <div className="pbm-legend">
         {Object.entries(PHASE_COLORS).map(([phase, pc]) => (
