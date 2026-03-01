@@ -1,7 +1,7 @@
-/* ProgressBarMap - Mini map dot strip below the game board */
+/* ProgressBarMap - Mini map path strip below the game board */
 
 .progress-bar-map {
-  padding: 8px 12px;
+  padding: 10px 16px;
   background: #f8f9fa;
   border: 2px solid #dee2e6;
   border-radius: 8px;
@@ -9,58 +9,76 @@
   scrollbar-width: thin;
 }
 
-/* Phase group container */
+/* Phase group wrapper — label above, nodes below */
 .pbm-phase-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .pbm-phase-group:last-child {
   margin-bottom: 0;
 }
 
-/* Phase label */
+/* Phase label — sits above nodes */
 .pbm-phase-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 3px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  margin-bottom: 4px;
+  display: inline-block;
 }
 
-/* Side quest indent */
-.pbm-side-quest {
-  margin-left: 16px;
+/* Node row — nodes and connecting lines */
+.pbm-node-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
   position: relative;
 }
 
-.pbm-side-quest::before {
+/* Side quest indent */
+.pbm-phase-group--side-quest {
+  margin-left: 24px;
+  position: relative;
+}
+
+.pbm-phase-group--side-quest::before {
   content: '';
   position: absolute;
-  left: -10px;
-  top: 4px;
-  bottom: 4px;
+  left: -14px;
+  top: 0;
+  bottom: 0;
   width: 2px;
   background: #dee2e6;
   border-radius: 1px;
 }
 
-/* Dot styles */
-.pbm-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+/* Connecting line between nodes */
+.pbm-connector {
+  width: 20px;
+  height: 2px;
+  background: #dee2e6;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.pbm-connector--visited {
+  background: #007bff;
+}
+
+/* Node styles — rectangular, full space name */
+.pbm-node {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
-  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
   cursor: pointer;
   position: relative;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -68,59 +86,70 @@
   border-width: 2px;
   border-style: solid;
   user-select: none;
+  min-width: 48px;
+  min-height: 28px;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.pbm-dot:hover {
-  transform: scale(1.1);
+.pbm-node:hover {
+  transform: scale(1.08);
+  z-index: 2;
 }
 
-/* Dot states */
-.pbm-dot--unvisited {
+/* Node states */
+.pbm-node--unvisited {
   background: #fff;
   border-color: #dee2e6;
   color: #adb5bd;
 }
 
-.pbm-dot--visited {
+.pbm-node--visited {
   background: #e3f2fd;
-  border-color: #007bff;
-  color: #007bff;
+  border-color: #90caf9;
+  color: #1565c0;
 }
 
-.pbm-dot--current {
+.pbm-node--current {
   background: #007bff;
   border-color: #0056b3;
   color: #fff;
   animation: pbm-pulse-glow 2s infinite;
+  z-index: 1;
 }
 
-.pbm-dot--valid-move {
-  border-color: #ffc107;
+.pbm-node--valid-move {
+  border-color: #ffc107 !important;
   animation: pbm-pulse-border 2s infinite;
 }
 
-/* Player avatars on dots */
-.pbm-dot-avatars {
+/* NPC color left accent — applied via inline style */
+
+/* Player avatars on nodes */
+.pbm-node-avatars {
   position: absolute;
-  bottom: -4px;
+  bottom: -6px;
   right: -4px;
   display: flex;
   gap: 1px;
+  z-index: 3;
 }
 
-.pbm-dot-avatar {
-  width: 14px;
-  height: 14px;
+.pbm-node-avatar {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
-  border: 1px solid #fff;
+  font-size: 9px;
+  border: 1.5px solid #fff;
   line-height: 1;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
-/* Expanded item - active space showing player panel */
+/* Expanded item — active space showing player panel */
 .pbm-expanded-panel {
   flex: 0 0 auto;
   width: 100%;
@@ -132,7 +161,7 @@
   background: #fff;
 }
 
-/* Expanded item - GameSpace tile for valid moves / hover */
+/* Expanded item — GameSpace tile for valid moves / hover */
 .pbm-expanded-tile {
   flex: 0 0 auto;
   width: 160px;

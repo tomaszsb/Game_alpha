@@ -1,7 +1,7 @@
 // src/components/game/SpaceDot.tsx
 //
-// Individual dot in the ProgressBarMap. Four visual states:
-// - default: 32px circle with abbreviation and tiny player avatars
+// Individual node in the ProgressBarMap. Four visual states:
+// - default: Rectangular node with full space name and tiny player avatars
 // - active: Current player's space → renders PlayerPanelWrapper inline
 // - validMove: Valid next destination → renders GameSpace tile inline
 // - hovered: Mouse hover → renders GameSpace tile temporarily
@@ -12,20 +12,7 @@ import { Space, Player } from '../../types/DataTypes';
 import { GameSpace } from './GameSpace';
 import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { IServiceContainer } from '../../types/ServiceContracts';
-
-/** Abbreviation logic: split on '-', take first char of each part, max 4 chars */
-function getAbbreviation(spaceName: string): string {
-  // Special cases
-  const specials: Record<string, string> = {
-    'FINISH': 'FIN',
-    'PM-DECISION-CHECK': 'PM',
-    'CHEAT-BYPASS': 'CHT',
-  };
-  if (specials[spaceName]) return specials[spaceName];
-
-  const parts = spaceName.split('-');
-  return parts.map(p => p.charAt(0)).join('').slice(0, 4);
-}
+import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 
 type DotState = 'default' | 'active' | 'validMove' | 'hovered';
 
@@ -87,18 +74,27 @@ export const SpaceDot: React.FC<SpaceDotProps> = ({
     dotState = 'hovered';
   }
 
-  const isExpanded = dotState !== 'default';
-
-  // Determine visited state for default dots
+  // Determine visited state for default nodes
   const currentPlayer = allPlayers.find(p => p.id === currentPlayerId);
   const isVisited = currentPlayer?.visitedSpaces?.includes(space.name) ?? false;
 
-  const dotClassName = [
-    'pbm-dot',
-    dotState === 'default' && (isVisited ? 'pbm-dot--visited' : 'pbm-dot--unvisited'),
-    dotState === 'default' && isValidMove && 'pbm-dot--valid-move',
-    isCurrentPlayerSpace && dotState === 'active' && 'pbm-dot--current',
+  // Get NPC color for left accent
+  const npcPrefix = extractPrefix(space.name);
+  const npcInfo = CHARACTER_MAP[npcPrefix] || null;
+
+  const nodeClassName = [
+    'pbm-node',
+    dotState === 'default' && (isVisited ? 'pbm-node--visited' : 'pbm-node--unvisited'),
+    dotState === 'default' && isValidMove && 'pbm-node--valid-move',
+    isCurrentPlayerSpace && dotState === 'active' && 'pbm-node--current',
   ].filter(Boolean).join(' ');
+
+  // Inline style for NPC color accent
+  const nodeStyle: React.CSSProperties = {};
+  if (npcInfo && dotState === 'default') {
+    nodeStyle.borderLeftWidth = '3px';
+    nodeStyle.borderLeftColor = npcInfo.color;
+  }
 
   return (
     <motion.div
@@ -138,16 +134,16 @@ export const SpaceDot: React.FC<SpaceDotProps> = ({
           />
         </div>
       ) : (
-        // Default: collapsed dot
-        <div className={dotClassName} title={space.name}>
-          <span>{getAbbreviation(space.name)}</span>
+        // Default: rectangular node with full space name
+        <div className={nodeClassName} style={nodeStyle} title={space.name}>
+          <span>{space.name}</span>
           {/* Player avatars */}
           {playersOnSpace.length > 0 && (
-            <div className="pbm-dot-avatars">
+            <div className="pbm-node-avatars">
               {playersOnSpace.slice(0, 3).map(player => (
                 <div
                   key={player.id}
-                  className="pbm-dot-avatar"
+                  className="pbm-node-avatar"
                   style={{ background: player.color || '#007bff' }}
                   title={player.name}
                 >

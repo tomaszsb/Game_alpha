@@ -1,29 +1,31 @@
 // src/components/game/ProgressBarMap.tsx
 //
-// Mini map: compact dot strip of all game spaces, grouped by phase.
+// Mini map: compact node strip of all game spaces, grouped by phase.
+// Phase labels sit above the node row. Nodes are connected by lines.
 // The active space expands inline to show the PlayerPanelWrapper.
 // Valid move spaces expand to show GameSpace tiles.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { SpaceDot } from './SpaceDot';
 import { Space, Player } from '../../types/DataTypes';
 import { IServiceContainer } from '../../types/ServiceContracts';
+import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import './ProgressBarMap.css';
 
-// Phase display config
+// Phase display config — colors match CHARACTER_MAP / NPC colors
 const PHASE_COLORS: Record<string, { bg: string; text: string }> = {
-  'Setup': { bg: '#e3f2fd', text: '#1565c0' },
-  'Owner': { bg: '#e8f5e9', text: '#2e7d32' },
-  'Design': { bg: '#f3e5f5', text: '#7b1fa2' },
-  'Regulatory': { bg: '#fff3e0', text: '#e65100' },
-  'Construction': { bg: '#fce4ec', text: '#c62828' },
-  'End': { bg: '#e0f2f1', text: '#00695c' },
-  'Funding': { bg: '#fff8e1', text: '#f57f17' },
+  'SETUP':        { bg: '#e3f2fd', text: '#1565c0' },
+  'OWNER':        { bg: '#e3f2fd', text: '#1976d2' },
+  'FUNDING':      { bg: '#fff8e1', text: '#f57f17' },
+  'DESIGN':       { bg: '#f3e5f5', text: '#7b1fa2' },
+  'REGULATORY':   { bg: '#ffebee', text: '#c62828' },
+  'CONSTRUCTION': { bg: '#e8f5e9', text: '#2e7d32' },
+  'END':          { bg: '#e0f2f1', text: '#00695c' },
 };
 
-// Side quest phases that get indented
-const SIDE_QUEST_PHASES = ['Funding'];
+// Phases that are side quests (indented with branch indicator)
+const SIDE_QUEST_PHASES = new Set(['FUNDING']);
 
 interface ProgressBarMapProps {
   gameServices: IServiceContainer;
@@ -128,26 +130,21 @@ export function ProgressBarMap({
     };
   }, []);
 
-  // Group spaces by phase
-  const phaseGroups: PhaseGroup[] = React.useMemo(() => {
+  // Group spaces by phase (using config.phase which is uppercase: SETUP, OWNER, etc.)
+  const phaseGroups: PhaseGroup[] = useMemo(() => {
     const groups: PhaseGroup[] = [];
-    let currentPhase = '';
+    let lastPhase = '';
+    let lastIsSideQuest = false;
 
     for (const space of spaces) {
       const config = dataService.getGameConfigBySpace(space.name);
-      const phase = config?.phase || 'Unknown';
-      const pathType = config?.path_type || '';
-      const isSideQuest = SIDE_QUEST_PHASES.includes(phase) || pathType === 'side_quest';
+      const phase = config?.phase || 'UNKNOWN';
+      const isSideQuest = SIDE_QUEST_PHASES.has(phase);
 
-      if (phase !== currentPhase || isSideQuest !== groups[groups.length - 1]?.isSideQuest) {
-        // Check if we already have a group for this phase+sidequest combo
-        const existingIdx = groups.findIndex(g => g.phase === phase && g.isSideQuest === isSideQuest);
-        if (existingIdx >= 0) {
-          groups[existingIdx].spaces.push(space);
-        } else {
-          groups.push({ phase, spaces: [space], isSideQuest });
-          currentPhase = phase;
-        }
+      if (phase !== lastPhase || isSideQuest !== lastIsSideQuest) {
+        groups.push({ phase, spaces: [space], isSideQuest });
+        lastPhase = phase;
+        lastIsSideQuest = isSideQuest;
       } else {
         groups[groups.length - 1].spaces.push(space);
       }
@@ -160,55 +157,69 @@ export function ProgressBarMap({
     return players.filter(p => p.currentSpace === spaceName);
   };
 
+  // Check if a space has been visited by current player (for connector coloring)
   const currentPlayer = players.find(p => p.id === currentPlayerId);
+  const isVisited = (spaceName: string) =>
+    currentPlayer?.visitedSpaces?.includes(spaceName) ?? false;
 
   return (
     <div className="progress-bar-map">
       {phaseGroups.map((group) => {
         const phaseColor = PHASE_COLORS[group.phase] || { bg: '#f5f5f5', text: '#616161' };
+        const groupClass = `pbm-phase-group${group.isSideQuest ? ' pbm-phase-group--side-quest' : ''}`;
+
         return (
-          <div
-            key={`${group.phase}-${group.isSideQuest}`}
-            className={`pbm-phase-group ${group.isSideQuest ? 'pbm-side-quest' : ''}`}
-          >
+          <div key={`${group.phase}-${group.isSideQuest}`} className={groupClass}>
+            {/* Phase label above the nodes */}
             <span
               className="pbm-phase-label"
               style={{ background: phaseColor.bg, color: phaseColor.text }}
             >
               {group.phase}
             </span>
-            {group.spaces.map((space) => {
-              const playersOnSpace = getPlayersOnSpace(space.name);
-              const isCurrentPlayerSpace = currentPlayer?.currentSpace === space.name;
-              const isValidMove = validMoves.includes(space.name);
-              const isHovered = hoveredSpace === space.name && !isCurrentPlayerSpace && !isValidMove;
 
-              return (
-                <SpaceDot
-                  key={space.name}
-                  space={space}
-                  playersOnSpace={playersOnSpace}
-                  allPlayers={players}
-                  currentPlayerId={currentPlayerId}
-                  isCurrentPlayerSpace={isCurrentPlayerSpace}
-                  isValidMove={isValidMove}
-                  isHovered={isHovered}
-                  onMouseEnter={() => handleMouseEnter(space.name)}
-                  onMouseLeave={handleMouseLeave}
-                  gameServices={gameServices}
-                  onTryAgain={onTryAgain}
-                  playerNotification={currentPlayerId ? playerNotifications[currentPlayerId] : undefined}
-                  onRollDice={onRollDice}
-                  onAutomaticFunding={onAutomaticFunding}
-                  onManualEffectResult={onManualEffectResult}
-                  completedActions={completedActions}
-                  onToggleSpaceExplorer={onToggleSpaceExplorer}
-                  onToggleMovementPath={onToggleMovementPath}
-                  isSpaceExplorerVisible={isSpaceExplorerVisible}
-                  isMovementPathVisible={isMovementPathVisible}
-                />
-              );
-            })}
+            {/* Node row with connecting lines */}
+            <div className="pbm-node-row">
+              {group.spaces.map((space, idx) => {
+                const playersOnSpace = getPlayersOnSpace(space.name);
+                const isCurrentPlayerSpace = currentPlayer?.currentSpace === space.name;
+                const isValidMove = validMoves.includes(space.name);
+                const isHoveredSpace = hoveredSpace === space.name && !isCurrentPlayerSpace && !isValidMove;
+
+                return (
+                  <React.Fragment key={space.name}>
+                    {/* Connecting line before each node (except the first) */}
+                    {idx > 0 && (
+                      <div
+                        className={`pbm-connector${isVisited(space.name) ? ' pbm-connector--visited' : ''}`}
+                      />
+                    )}
+                    <SpaceDot
+                      space={space}
+                      playersOnSpace={playersOnSpace}
+                      allPlayers={players}
+                      currentPlayerId={currentPlayerId}
+                      isCurrentPlayerSpace={isCurrentPlayerSpace}
+                      isValidMove={isValidMove}
+                      isHovered={isHoveredSpace}
+                      onMouseEnter={() => handleMouseEnter(space.name)}
+                      onMouseLeave={handleMouseLeave}
+                      gameServices={gameServices}
+                      onTryAgain={onTryAgain}
+                      playerNotification={currentPlayerId ? playerNotifications[currentPlayerId] : undefined}
+                      onRollDice={onRollDice}
+                      onAutomaticFunding={onAutomaticFunding}
+                      onManualEffectResult={onManualEffectResult}
+                      completedActions={completedActions}
+                      onToggleSpaceExplorer={onToggleSpaceExplorer}
+                      onToggleMovementPath={onToggleMovementPath}
+                      isSpaceExplorerVisible={isSpaceExplorerVisible}
+                      isMovementPathVisible={isMovementPathVisible}
+                    />
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
         );
       })}
