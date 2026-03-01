@@ -233,13 +233,13 @@ describe('E2E-01: Happy Path with New UI', () => {
     const rollDiceSpy = vi.spyOn(gameServices.turnService, 'rollDice').mockReturnValue(4);
 
     // Wait for manual action buttons to appear (ActionCenterPanel renders these as text buttons)
-    const pickUpCardsButton = await screen.findByRole('button', { name: /Discuss & hire some Expeditors/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /Agree on scope of work with Owner/i });
+    const pickUpCardsButton = await screen.findByRole('button', { name: /Draw 3 E cards/i }, { timeout: 5000 });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /Roll for W Cards/i });
 
-    // UI Interaction 1: Execute Manual Action "Discuss & hire some Expeditors"
+    // UI Interaction 1: Execute Manual Action "Draw 3 E cards"
     fireEvent.click(pickUpCardsButton);
 
-    // UI Interaction 2: Execute Manual Action "Agree on scope of work with Owner"
+    // UI Interaction 2: Execute Manual Action "Roll for W Cards"
     fireEvent.click(rollForWCardsButton);
 
     // Wait for "End Turn" to become enabled
@@ -260,21 +260,8 @@ describe('E2E-01: Happy Path with New UI', () => {
       expect(screen.getAllByText(/OWNER-FUND-INITIATION/i).length).toBeGreaterThan(0);
     }, { timeout: 5000 });
 
-    // OWNER-FUND-INITIATION has a manual owner_seed_money effect
-    // Player must click the funding button before End Turn is enabled
-    await waitFor(() => {
-      const player = gameServices.stateService.getPlayer(actualPlayerId);
-      expect(player).toBeTruthy();
-    }, { timeout: 5000 });
-
-    // Click the manual funding button to accept owner's funding
-    await waitFor(() => {
-      const fundingButton = screen.getByRole('button', { name: /Accept Owner/i });
-      expect(fundingButton).toBeInTheDocument();
-      fireEvent.click(fundingButton);
-    }, { timeout: 5000 });
-
-    // "End Turn" should now be enabled after completing the manual action
+    // OWNER-FUND-INITIATION has only auto effects (card draws + time)
+    // End Turn should be enabled immediately since there are no manual actions
     await waitFor(() => {
       const etButton = screen.getByRole('button', { name: /End Turn/i });
       expect(etButton).toBeEnabled();
