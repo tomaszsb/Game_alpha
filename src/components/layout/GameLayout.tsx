@@ -695,7 +695,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       className="game-interface-responsive"
       style={{
         gridTemplateRows: gamePhase === 'PLAY'
-          ? (isGameLogVisible ? 'auto auto auto auto' : 'auto auto auto')
+          ? (isGameLogVisible ? 'auto 1fr auto auto' : 'auto 1fr auto')
           : '1fr auto',
         // Dynamic columns: 1 column if no panels shown, 2 columns otherwise
         gridTemplateColumns: hidePanelColumn ? '1fr' : undefined

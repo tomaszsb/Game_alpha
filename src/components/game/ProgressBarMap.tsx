@@ -242,15 +242,37 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
-    // Current space: show as GameSpace tile (same size as valid-move tiles)
+    // Current space: show detail view (story + action) with blue glow
     if (isCurrentSpace) {
+      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const npcName = npcInfo?.name;
       return (
-        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
-          onClick={() => setExpandedSpace(isExpanded ? null : spaceName)}>
-          <div className="pbm-expanded-tile pbm-expanded-tile--current">
-            <GameSpace space={space} playersOnSpace={playersHere}
-              isValidMoveDestination={false} isCurrentPlayerSpace={true}
-              showMovementIndicators={false} />
+        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
+          <div className="pbm-expanded-detail pbm-expanded-detail--current">
+            <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
+              <strong>{spaceName}</strong>
+              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
+            </div>
+            {content?.story && (
+              <div className="pbm-detail-story">
+                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
+                <p>{content.story}</p>
+              </div>
+            )}
+            {content?.action_description && (
+              <div className="pbm-detail-action">
+                <strong>PM Action:</strong> {content.action_description}
+              </div>
+            )}
+            {playersHere.length > 0 && (
+              <div className="pbm-detail-players">
+                {playersHere.map(p => (
+                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
+                    {p.avatar || p.name.charAt(0)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       );
@@ -388,8 +410,8 @@ export function ProgressBarMap({
           </div>
           {/* SVG diagonal lines overlaying the gap between parent and branches */}
           <svg className="pbm-legs-lines" viewBox="0 0 30 72" preserveAspectRatio="none">
-            <line x1="0" y1="36" x2="30" y2="6" stroke="#adb5bd" strokeWidth="2" />
-            <line x1="0" y1="36" x2="30" y2="66" stroke="#adb5bd" strokeWidth="2" />
+            <line x1="0" y1="36" x2="30" y2="6" stroke="#6c757d" strokeWidth="3" />
+            <line x1="0" y1="36" x2="30" y2="66" stroke="#6c757d" strokeWidth="3" />
           </svg>
         </div>
       </div>
