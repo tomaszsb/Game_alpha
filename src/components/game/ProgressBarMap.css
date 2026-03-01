@@ -1,4 +1,4 @@
-/* ProgressBarMap — Snake path with side quest legs */
+/* ProgressBarMap — Snake path with U-turns and parallel branches */
 
 .progress-bar-map {
   padding: 10px 16px;
@@ -10,31 +10,47 @@
   scrollbar-width: thin;
 }
 
-/* Main snake path — one continuous wrapping flex row */
+/* Main snake container */
 .pbm-snake {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 0;
-  row-gap: 8px;
   position: relative;
 }
 
-/* Phase label — inline pill badge in the snake row */
-.pbm-phase-label {
-  display: inline-flex;
+/* Each row of the snake */
+.pbm-row {
+  display: flex;
   align-items: center;
-  align-self: center;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px solid;
-  margin: 0 4px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+.pbm-row--reverse {
+  flex-direction: row-reverse;
+}
+
+/* U-turn connector between rows */
+.pbm-uturn {
+  width: 100%;
+  height: 16px;
+  position: relative;
+}
+
+.pbm-uturn-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: #dee2e6;
+}
+
+.pbm-uturn--right .pbm-uturn-line {
+  right: 12px;
+}
+
+.pbm-uturn--left .pbm-uturn-line {
+  left: 12px;
 }
 
 /* A node slot (node + optional branch) */
@@ -58,25 +74,14 @@
   background: #007bff;
 }
 
-/* Cross-phase connector (between phase groups) */
-.pbm-phase-connector {
-  width: 20px;
-  height: 2px;
-  background: #adb5bd;
-  flex-shrink: 0;
-  align-self: center;
-  margin: 0 2px;
-  border-radius: 1px;
-}
-
-/* Space node */
+/* Space node — compact */
 .pbm-node {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   cursor: pointer;
   position: relative;
@@ -85,8 +90,10 @@
   border: 2px solid #dee2e6;
   background: #fff;
   color: #495057;
-  white-space: nowrap;
-  min-height: 26px;
+  white-space: normal;
+  word-break: break-word;
+  min-height: 22px;
+  max-width: 80px;
   user-select: none;
   text-align: center;
   line-height: 1.2;
@@ -149,7 +156,6 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
   color: #fff;
 }
-
 
 /* Expanded PlayerPanel inline */
 .pbm-expanded-panel {
@@ -257,18 +263,45 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
-/* Choice fork — two paths diverging */
+/* Fork — parallel branches */
 .pbm-fork {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 0;
+  position: relative;
 }
 
-.pbm-fork-row {
+.pbm-fork-branch {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
+  min-height: 28px;
+}
+
+.pbm-fork-connector-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.pbm-fork-glyph {
+  font-size: 12px;
+  line-height: 1;
+  color: #adb5bd;
+  font-weight: 700;
+}
+
+.pbm-fork-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #868e96;
+  letter-spacing: 0.3px;
+  min-width: 28px;
+  flex-shrink: 0;
+  text-align: center;
 }
 
 /* Animations */
