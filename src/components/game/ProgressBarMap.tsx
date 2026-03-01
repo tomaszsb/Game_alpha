@@ -57,7 +57,7 @@ function shortDisplayName(spaceName: string): string {
 
 type PathSegment =
   | { type: 'node'; name: string }
-  | { type: 'fork'; branches: { nodes: string[] }[] }
+  | { type: 'fork'; branches: { nodes: string[] }[]; merge?: boolean }
   | { type: 'legs'; parent: string; above: string; below: string };
 
 const GAME_PATH: PathSegment[] = [
@@ -85,7 +85,7 @@ const GAME_PATH: PathSegment[] = [
     { nodes: ['REG-FDNY-FEE-REVIEW', 'REG-FDNY-PLAN-EXAM'] },
   ]},
   // DOB choice branch
-  { type: 'fork', branches: [
+  { type: 'fork', merge: true, branches: [
     { nodes: ['REG-DOB-PLAN-EXAM'] },
     { nodes: ['REG-DOB-PROF-CERT', 'REG-DOB-AUDIT'] },
   ]},
@@ -242,8 +242,10 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
-    // Current space: compact blue pulsing node (detail shown below snake)
+    // Current space: compact blue pulsing node with floating popover
     if (isCurrentSpace) {
+      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const npcName = npcInfo?.name;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
           <div className={nodeClass} style={nodeStyle} title={spaceName}>
@@ -259,6 +261,21 @@ export function ProgressBarMap({
               </div>
             )}
           </div>
+          {(content?.story || content?.action_description) && (
+            <div className="pbm-current-popover">
+              {content.story && (
+                <div className="pbm-detail-story">
+                  {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
+                  <p>{content.story}</p>
+                </div>
+              )}
+              {content.action_description && (
+                <div className="pbm-detail-action">
+                  <strong>PM Action:</strong> {content.action_description}
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       );
     }
@@ -371,34 +388,31 @@ export function ProgressBarMap({
                 {renderNode(spaceName)}
               </React.Fragment>
             ))}
+            {seg.merge && (
+              <>
+                {renderConnector(`fm-${bi}`)}
+                <div className="pbm-fork-merge-col">
+                  <span className="pbm-fork-merge-glyph">
+                    {bi === 0 ? '\u2518' : '\u2510'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
     );
   };
 
-  // Render a legs segment — parent node with one child above and one below, diagonal lines
+  // Render a legs segment — vertical column: above, parent, below
   const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
     return (
       <div key={`legs-${segIdx}`} className="pbm-legs">
-        {/* Left: parent node */}
-        <div className="pbm-legs-parent">
-          {renderNode(seg.parent)}
-        </div>
-        {/* Right column: above node, below node, with SVG diagonal lines */}
-        <div className="pbm-legs-branches">
-          <div className="pbm-legs-branch-above">
-            {renderNode(seg.above)}
-          </div>
-          <div className="pbm-legs-branch-below">
-            {renderNode(seg.below)}
-          </div>
-          {/* SVG diagonal lines overlaying the gap between parent and branches */}
-          <svg className="pbm-legs-lines" viewBox="0 0 30 72" preserveAspectRatio="none">
-            <line x1="0" y1="36" x2="30" y2="6" stroke="#6c757d" strokeWidth="3" />
-            <line x1="0" y1="36" x2="30" y2="66" stroke="#6c757d" strokeWidth="3" />
-          </svg>
-        </div>
+        {renderNode(seg.above)}
+        <div className="pbm-legs-vconnector" />
+        {renderNode(seg.parent)}
+        <div className="pbm-legs-vconnector" />
+        {renderNode(seg.below)}
       </div>
     );
   };
@@ -455,36 +469,6 @@ export function ProgressBarMap({
           );
         })}
       </div>
-
-      {/* Current space detail panel */}
-      {currentPlayer?.currentSpace && (() => {
-        const space = spacesMap.get(currentPlayer.currentSpace);
-        if (!space) return null;
-        const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
-        const npcPrefix = extractPrefix(currentPlayer.currentSpace);
-        const npcInfo = CHARACTER_MAP[npcPrefix];
-        const accentColor = npcInfo?.color;
-        const npcName = npcInfo?.name;
-        return (
-          <div className="pbm-current-detail" style={{ borderLeftColor: accentColor || '#007bff' }}>
-            <div className="pbm-current-detail-header">
-              <strong>{currentPlayer.currentSpace}</strong>
-              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
-            </div>
-            {content?.story && (
-              <div className="pbm-detail-story">
-                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
-                <p>{content.story}</p>
-              </div>
-            )}
-            {content?.action_description && (
-              <div className="pbm-detail-action">
-                <strong>PM Action:</strong> {content.action_description}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       <div className="pbm-legend">
         {Object.entries(PHASE_COLORS).map(([phase, pc]) => (

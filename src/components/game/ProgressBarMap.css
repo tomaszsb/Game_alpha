@@ -51,11 +51,11 @@
 }
 
 .pbm-uturn--right .pbm-uturn-line {
-  right: 12px;
+  right: 37px;
 }
 
 .pbm-uturn--left .pbm-uturn-line {
-  left: 12px;
+  left: 37px;
 }
 
 /* A node slot (node + optional branch) */
@@ -288,41 +288,19 @@
   font-weight: 700;
 }
 
-/* Legs — parent node with one child above and one below, diagonal lines */
+/* Legs — vertical column: above node, parent node, below node */
 .pbm-legs {
   display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.pbm-legs-parent {
-  display: flex;
-  align-items: center;
-  z-index: 1;
-}
-
-.pbm-legs-branches {
-  display: flex;
   flex-direction: column;
-  gap: 4px;
-  position: relative;
-  margin-left: 30px; /* space for the diagonal lines */
-}
-
-.pbm-legs-branch-above,
-.pbm-legs-branch-below {
-  display: flex;
   align-items: center;
+  position: relative;
 }
 
-.pbm-legs-lines {
-  position: absolute;
-  left: -30px;
-  top: 0;
-  width: 30px;
-  height: 100%;
-  pointer-events: none;
-  overflow: visible;
+.pbm-legs-vconnector {
+  width: 3px;
+  height: 10px;
+  background: #adb5bd;
+  flex-shrink: 0;
 }
 
 /* Animations */
@@ -336,25 +314,54 @@
   50% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
 }
 
-/* Current space detail panel — below snake rows */
-.pbm-current-detail {
-  border-left: 4px solid #007bff;
+/* Current space floating popover */
+.pbm-current-popover {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  max-width: 280px;
   background: #fff;
+  border: 2px solid #007bff;
   border-radius: 6px;
-  padding: 8px 12px;
-  margin-top: 8px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 11px;
   line-height: 1.4;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 20;
+  margin-top: 4px;
+  pointer-events: none;
 }
 
-.pbm-current-detail-header {
-  margin-bottom: 6px;
+.pbm-current-popover::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-top: 2px solid #007bff;
+  border-left: 2px solid #007bff;
+  transform: translateX(-50%) rotate(45deg);
 }
 
-.pbm-current-detail-header strong {
-  font-size: 13px;
-  color: #212529;
+/* Fork merge glyphs */
+.pbm-fork-merge-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.pbm-fork-merge-glyph {
+  font-size: 12px;
+  line-height: 1;
+  color: #6c757d;
+  font-weight: 700;
 }
 
 /* Phase legend */
