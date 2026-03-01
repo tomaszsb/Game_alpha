@@ -1,15 +1,12 @@
 // src/components/game/ProgressBarMap.tsx
 //
 // Snake-path mini map with hardcoded path order, U-turn rows, and parallel branches.
-// Current player's node expands inline to show PlayerPanelWrapper.
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGameContext } from '../../context/GameContext';
 import { GameSpace } from './GameSpace';
-import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { Space, Player } from '../../types/DataTypes';
-import { IServiceContainer } from '../../types/ServiceContracts';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import './ProgressBarMap.css';
 
@@ -115,35 +112,13 @@ function segmentSlotCount(seg: PathSegment): number {
 const springTransition = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
 interface ProgressBarMapProps {
-  gameServices: IServiceContainer;
   currentPlayerId: string | null;
   players: Player[];
-  onTryAgain: () => Promise<void>;
-  playerNotifications: Record<string, string>;
-  onRollDice: () => Promise<void>;
-  onAutomaticFunding: () => Promise<void>;
-  onManualEffectResult: (result: any) => void;
-  completedActions: { diceRoll: string | undefined; manualActions: Record<string, string> };
-  onToggleSpaceExplorer: () => void;
-  onToggleMovementPath: () => void;
-  isSpaceExplorerVisible: boolean;
-  isMovementPathVisible: boolean;
 }
 
 export function ProgressBarMap({
-  gameServices,
   currentPlayerId,
   players,
-  onTryAgain,
-  playerNotifications,
-  onRollDice,
-  onAutomaticFunding,
-  onManualEffectResult,
-  completedActions,
-  onToggleSpaceExplorer,
-  onToggleMovementPath,
-  isSpaceExplorerVisible,
-  isMovementPathVisible,
 }: ProgressBarMapProps): JSX.Element {
   const { dataService, stateService, movementService } = useGameContext();
 
@@ -265,30 +240,6 @@ export function ProgressBarMap({
     }
     if (playersHere.length > 0 && !isCurrentSpace && !isValidMove) {
       nodeStyle.borderColor = accentColor || '#28a745';
-    }
-
-    // Active: expand to PlayerPanelWrapper
-    if (isCurrentSpace && currentPlayerId) {
-      return (
-        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
-          <div className="pbm-expanded-panel">
-            <PlayerPanelWrapper
-              gameServices={gameServices}
-              playerId={currentPlayerId}
-              onTryAgain={onTryAgain}
-              playerNotification={currentPlayerId ? playerNotifications[currentPlayerId] : undefined}
-              onRollDice={onRollDice}
-              onAutomaticFunding={onAutomaticFunding}
-              onManualEffectResult={onManualEffectResult}
-              completedActions={completedActions}
-              onToggleSpaceExplorer={onToggleSpaceExplorer}
-              onToggleMovementPath={onToggleMovementPath}
-              isSpaceExplorerVisible={isSpaceExplorerVisible}
-              isMovementPathVisible={isMovementPathVisible}
-            />
-          </div>
-        </motion.div>
-      );
     }
 
     // Expanded (clicked) tile

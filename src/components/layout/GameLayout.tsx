@@ -905,28 +905,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* ProgressBarMap - replaces board during PLAY phase */}
+          {/* ProgressBarMap - snake map in right column during PLAY phase */}
           {gamePhase === 'PLAY' && (
-            <div style={{ gridColumn: '1 / -1', gridRow: '2' }}>
+            <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
               <ProgressBarMap
-                gameServices={gameServices}
                 currentPlayerId={currentPlayerId}
                 players={players}
-                onTryAgain={handleTryAgain}
-                playerNotifications={playerNotifications}
-                onRollDice={handleRollDice}
-                onAutomaticFunding={handleAutomaticFunding}
-                onManualEffectResult={(result) => {
-                  if (result && result.effects && result.effects.length > 0) {
-                    setDiceResult(result);
-                    setIsDiceResultModalOpen(true);
-                  }
-                }}
-                completedActions={completedActions}
-                onToggleSpaceExplorer={handleToggleSpaceExplorer}
-                onToggleMovementPath={handleToggleMovementPath}
-                isSpaceExplorerVisible={isSpaceExplorerVisible}
-                isMovementPathVisible={isMovementPathVisible}
               />
             </div>
           )}
