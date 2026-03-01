@@ -138,29 +138,37 @@ export function ProgressBarMap({
       };
     });
 
-    // Build links from movement data
+    // Build links from movement data AND dice outcomes
     const nodeIds = new Set(nodes.map(n => n.id));
     const links: GraphLink[] = [];
     const linkSet = new Set<string>();
 
+    const addLink = (from: string, to: string) => {
+      const key = `${from}->${to}`;
+      if (!linkSet.has(key) && nodeIds.has(from) && nodeIds.has(to)) {
+        linkSet.add(key);
+        links.push({ source: from, target: to });
+      }
+    };
+
     for (const space of gameSpaces) {
       for (const visitType of ['First', 'Subsequent'] as const) {
+        // Movement destinations
         const movement = dataService.getMovement(space.name, visitType);
-        if (!movement) continue;
-        const dests = [
-          movement.destination_1,
-          movement.destination_2,
-          movement.destination_3,
-          movement.destination_4,
-          movement.destination_5,
-        ].filter((d): d is string => !!d && nodeIds.has(d));
+        if (movement) {
+          [movement.destination_1, movement.destination_2, movement.destination_3,
+           movement.destination_4, movement.destination_5]
+            .filter((d): d is string => !!d)
+            .forEach(dest => addLink(space.name, dest));
+        }
 
-        for (const dest of dests) {
-          const key = `${space.name}->${dest}`;
-          if (!linkSet.has(key)) {
-            linkSet.add(key);
-            links.push({ source: space.name, target: dest });
-          }
+        // Dice outcome destinations (e.g. REG-DOB-FINAL-REVIEW → FINISH)
+        const diceOutcome = dataService.getDiceOutcome(space.name, visitType);
+        if (diceOutcome) {
+          [diceOutcome.roll_1, diceOutcome.roll_2, diceOutcome.roll_3,
+           diceOutcome.roll_4, diceOutcome.roll_5, diceOutcome.roll_6]
+            .filter((d): d is string => !!d)
+            .forEach(dest => addLink(space.name, dest));
         }
       }
     }
@@ -375,18 +383,19 @@ export function ProgressBarMap({
     return isCurrentLink ? 2.5 : 1;
   }, [currentPlayer]);
 
-  // Handle node click — show expanded panel/tile
+  // Handle node click — show expanded GameSpace tile (not for current player — that's always shown)
   const handleNodeClick = useCallback((node: any) => {
+    // Don't toggle for current player space — it's always shown below
+    if (currentPlayer?.currentSpace === node.id) return;
     setSelectedNode(prev => prev === node.id ? null : node.id);
-  }, []);
+  }, [currentPlayer]);
 
-  // Find the space object for the selected node
+  // Find the space object for the selected/clicked node
   const selectedSpace = useMemo(() => {
     if (!selectedNode) return null;
     return graphData.nodes.find(n => n.id === selectedNode)?.space || null;
   }, [selectedNode, graphData.nodes]);
 
-  const isSelectedCurrent = currentPlayer?.currentSpace === selectedNode;
   const isSelectedValidMove = selectedNode ? validMoves.includes(selectedNode) : false;
 
   return (
@@ -424,28 +433,8 @@ export function ProgressBarMap({
           enableNodeDrag={false}
         />
 
-        {/* Expanded panel overlay for selected node */}
-        {selectedNode && selectedSpace && isSelectedCurrent && currentPlayerId && (
-          <div className="pbm-expanded-overlay">
-            <PlayerPanelWrapper
-              gameServices={gameServices}
-              playerId={currentPlayerId}
-              onTryAgain={onTryAgain}
-              playerNotification={currentPlayerId ? playerNotifications[currentPlayerId] : undefined}
-              onRollDice={onRollDice}
-              onAutomaticFunding={onAutomaticFunding}
-              onManualEffectResult={onManualEffectResult}
-              completedActions={completedActions}
-              onToggleSpaceExplorer={onToggleSpaceExplorer}
-              onToggleMovementPath={onToggleMovementPath}
-              isSpaceExplorerVisible={isSpaceExplorerVisible}
-              isMovementPathVisible={isMovementPathVisible}
-            />
-          </div>
-        )}
-
-        {/* Expanded GameSpace tile for selected non-current node */}
-        {selectedNode && selectedSpace && !isSelectedCurrent && (
+        {/* Expanded GameSpace tile for clicked non-current node */}
+        {selectedNode && selectedSpace && (
           <div className="pbm-expanded-tile-overlay">
             <GameSpace
               space={selectedSpace}
@@ -467,6 +456,26 @@ export function ProgressBarMap({
           </div>
         ))}
       </div>
+
+      {/* Current player's panel — always shown below the graph */}
+      {currentPlayerId && (
+        <div className="pbm-player-panel">
+          <PlayerPanelWrapper
+            gameServices={gameServices}
+            playerId={currentPlayerId}
+            onTryAgain={onTryAgain}
+            playerNotification={currentPlayerId ? playerNotifications[currentPlayerId] : undefined}
+            onRollDice={onRollDice}
+            onAutomaticFunding={onAutomaticFunding}
+            onManualEffectResult={onManualEffectResult}
+            completedActions={completedActions}
+            onToggleSpaceExplorer={onToggleSpaceExplorer}
+            onToggleMovementPath={onToggleMovementPath}
+            isSpaceExplorerVisible={isSpaceExplorerVisible}
+            isMovementPathVisible={isMovementPathVisible}
+          />
+        </div>
+      )}
     </div>
   );
 }

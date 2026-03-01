@@ -695,7 +695,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       className="game-interface-responsive"
       style={{
         gridTemplateRows: gamePhase === 'PLAY'
-          ? (isGameLogVisible ? 'auto 1fr auto auto auto' : 'auto 1fr auto auto')
+          ? (isGameLogVisible ? 'auto auto auto auto' : 'auto auto auto')
           : '1fr auto',
         // Dynamic columns: 1 column if no panels shown, 2 columns otherwise
         gridTemplateColumns: hidePanelColumn ? '1fr' : undefined
@@ -857,23 +857,21 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* Center Panel - Game Board */}
-          <div
-            style={{
-              gridColumn: hidePanelColumn ? '1' : '2',
-              gridRow: gamePhase === 'PLAY' ? '2' : '1',
-              background: colors.white,
-              border: `3px solid ${colors.game.boardTitle}`,
-              borderRadius: '8px',
-              padding: '0',
-              overflow: 'hidden',
-              maxWidth: '100%',
-              boxSizing: 'border-box'
-            }}
-          >
-            {gamePhase === 'PLAY' ? (
-              <GameBoard />
-            ) : (
+          {/* Center Panel - Game Board (hidden during PLAY — ProgressBarMap replaces it) */}
+          {gamePhase !== 'PLAY' && (
+            <div
+              style={{
+                gridColumn: hidePanelColumn ? '1' : '2',
+                gridRow: '1',
+                background: colors.white,
+                border: `3px solid ${colors.game.boardTitle}`,
+                borderRadius: '8px',
+                padding: '0',
+                overflow: 'hidden',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
               <div
                 style={{
                   display: 'flex',
@@ -904,12 +902,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* ProgressBarMap - Mini map below board (desktop only, PLAY phase only) */}
+          {/* ProgressBarMap - replaces board during PLAY phase */}
           {gamePhase === 'PLAY' && (
-            <div style={{ gridColumn: '1 / -1', gridRow: '3' }}>
+            <div style={{ gridColumn: '1 / -1', gridRow: '2' }}>
               <ProgressBarMap
                 gameServices={gameServices}
                 currentPlayerId={currentPlayerId}
@@ -940,7 +938,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         <div
           style={{
             gridColumn: '1 / -1',
-            gridRow: gamePhase === 'PLAY' ? '4' : '2',
+            gridRow: gamePhase === 'PLAY' ? '3' : '2',
             background: colors.secondary.bg,
             border: `2px solid ${colors.secondary.light}`,
             borderRadius: '8px',
@@ -1052,7 +1050,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       {!effectiveViewPlayerId && (
         <div style={{
           gridColumn: '1 / -1',
-          gridRow: isGameLogVisible ? '5' : '4',
+          gridRow: isGameLogVisible ? '4' : '3',
           backgroundColor: colors.primary.light,
           padding: '0.25rem 0.5rem',
           fontSize: '0.7rem',

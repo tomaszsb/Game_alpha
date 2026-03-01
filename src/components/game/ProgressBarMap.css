@@ -15,20 +15,10 @@
   position: relative;
 }
 
-/* Expanded panel overlay — shown when a node is clicked */
-.pbm-expanded-overlay {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
-  max-width: 460px;
-  min-width: 280px;
-  max-height: 100%;
-  overflow-y: auto;
-  border-radius: 0 8px 8px 0;
-  border-left: 2px solid #007bff;
+/* Player panel below graph — always visible for current player */
+.pbm-player-panel {
+  border-top: 2px solid #dee2e6;
   background: #fff;
-  box-shadow: -4px 0 12px rgba(0,0,0,0.1);
 }
 
 /* Expanded GameSpace tile for valid move / hover preview */
