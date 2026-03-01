@@ -102,9 +102,9 @@ const GAME_PATH: PathSegment[] = [
 function segmentSlotCount(seg: PathSegment): number {
   if (seg.type === 'node') return 1;
   if (seg.type === 'legs') return 2; // parent + leg space
-  // Fork: width = max branch length + connector column
+  // Fork: width = max branch length + opening arm + optional merge arm
   const maxBranch = Math.max(...seg.branches.map(b => b.nodes.length));
-  return maxBranch + 1;
+  return maxBranch + 1 + (seg.merge ? 1 : 0);
 }
 
 // ------- Component -------
@@ -242,38 +242,42 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
-    // Current space: full expanded detail tile (same as clicked, but blue-accented)
+    // Current space: compact blue node inline + floating detail overlay
     if (isCurrentSpace) {
       const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
       const npcName = npcInfo?.name;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
-          <div className="pbm-expanded-detail pbm-expanded-detail--current">
-            <div className="pbm-detail-header" style={{ borderLeftColor: '#007bff' }}>
-              <strong>{spaceName}</strong>
-              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
-            </div>
-            {content?.story && (
-              <div className="pbm-detail-story">
-                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
-                <p>{content.story}</p>
-              </div>
-            )}
-            {content?.action_description && (
-              <div className="pbm-detail-action">
-                <strong>PM Action:</strong> {content.action_description}
-              </div>
-            )}
+          <div className={nodeClass} style={nodeStyle} title={spaceName}>
+            <span>{shortDisplayName(spaceName)}</span>
             {playersHere.length > 0 && (
-              <div className="pbm-detail-players">
-                {playersHere.map(p => (
-                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
+              <div className="pbm-node-avatars">
+                {playersHere.slice(0, 3).map(p => (
+                  <div key={p.id} className="pbm-node-avatar"
+                    style={{ background: p.color || '#007bff' }} title={p.name}>
                     {p.avatar || p.name.charAt(0)}
-                  </span>
+                  </div>
                 ))}
               </div>
             )}
           </div>
+          {(content?.story || content?.action_description) && (
+            <div className="pbm-current-overlay">
+              <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
+                <strong>{spaceName}</strong>
+              </div>
+              {content?.story && (
+                <div className="pbm-detail-story">
+                  <p>{npcName && <><strong>{npcName}:</strong>{' '}</>}{content.story}</p>
+                </div>
+              )}
+              {content?.action_description && (
+                <div className="pbm-detail-action">
+                  <strong>PM Action:</strong> {content.action_description}
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       );
     }
@@ -369,39 +373,33 @@ export function ProgressBarMap({
     <div key={key} className="pbm-connector" />
   );
 
-  // Render a fork segment (parallel branches with CSS line connectors)
+  // Render a fork segment — single vertical lines + flex arms
   const renderFork = (seg: Extract<PathSegment, { type: 'fork' }>, segIdx: number) => {
+    const forkClass = `pbm-fork${seg.merge ? ' pbm-fork--merge' : ''}`;
     return (
-      <div key={`fork-${segIdx}`} className="pbm-fork">
+      <div key={`fork-${segIdx}`} className={forkClass}>
         {seg.branches.map((branch, bi) => (
           <div key={bi} className="pbm-fork-branch">
-            <div className={`pbm-fork-connector-col ${bi === 0 ? 'pbm-fork-open--top' : 'pbm-fork-open--bot'}`} />
+            <div className="pbm-fork-arm" />
             {branch.nodes.map((spaceName) => (
               <React.Fragment key={spaceName}>
                 {renderConnector(`fc-${spaceName}`)}
                 {renderNode(spaceName)}
               </React.Fragment>
             ))}
-            {seg.merge && (
-              <>
-                {renderConnector(`fm-${bi}`)}
-                <div className={`pbm-fork-merge-col ${bi === 0 ? 'pbm-fork-merge--top' : 'pbm-fork-merge--bot'}`} />
-              </>
-            )}
+            {seg.merge && <div className="pbm-fork-arm pbm-fork-arm--merge" />}
           </div>
         ))}
       </div>
     );
   };
 
-  // Render a legs segment — vertical column: above, parent, below
+  // Render a legs segment — vertical column with continuous background line
   const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
     return (
       <div key={`legs-${segIdx}`} className="pbm-legs">
         {renderNode(seg.above)}
-        <div className="pbm-legs-vconnector" />
         {renderNode(seg.parent)}
-        <div className="pbm-legs-vconnector" />
         {renderNode(seg.below)}
       </div>
     );

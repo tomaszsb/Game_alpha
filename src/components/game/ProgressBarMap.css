@@ -258,12 +258,36 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
-/* Fork — parallel branches (no labels, text stays in boxes) */
+/* Fork — parallel branches with CSS line connectors */
 .pbm-fork {
   display: flex;
   flex-direction: column;
   gap: 0;
   position: relative;
+}
+
+/* Vertical opening line spanning full fork height */
+.pbm-fork::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #adb5bd;
+  z-index: 1;
+}
+
+/* Vertical merge line on right side (only when .pbm-fork--merge) */
+.pbm-fork--merge::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #adb5bd;
+  z-index: 1;
 }
 
 .pbm-fork-branch {
@@ -273,101 +297,46 @@
   min-height: 32px;
 }
 
-/* Fork connector columns — CSS lines instead of glyphs */
-.pbm-fork-connector-col {
-  position: relative;
+/* Horizontal arm from vertical line to first node (or last node to merge line) */
+.pbm-fork-arm {
   width: 14px;
-  flex-shrink: 0;
-  align-self: stretch;
-}
-
-/* Vertical line segment */
-.pbm-fork-connector-col::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  width: 3px;
-  background: #adb5bd;
-}
-
-/* Horizontal arm at center */
-.pbm-fork-connector-col::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
   height: 3px;
   background: #adb5bd;
-  transform: translateY(-50%);
-}
-
-/* Top branch opening: vertical from center to bottom */
-.pbm-fork-open--top::before {
-  top: 50%;
-  bottom: 0;
-}
-
-/* Bottom branch opening: vertical from top to center */
-.pbm-fork-open--bot::before {
-  top: 0;
-  bottom: 50%;
-}
-
-/* Fork merge columns */
-.pbm-fork-merge-col {
-  position: relative;
-  width: 14px;
   flex-shrink: 0;
-  align-self: stretch;
+  z-index: 1;
 }
 
-.pbm-fork-merge-col::before {
-  content: '';
-  position: absolute;
-  right: 0;
-  width: 3px;
-  background: #adb5bd;
+/* Merge arm stretches to fill remaining space to reach merge vertical line */
+.pbm-fork-arm--merge {
+  flex: 1;
+  min-width: 14px;
 }
 
-.pbm-fork-merge-col::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: #adb5bd;
-  transform: translateY(-50%);
-}
-
-/* Top branch merge: vertical from center to bottom */
-.pbm-fork-merge--top::before {
-  top: 50%;
-  bottom: 0;
-}
-
-/* Bottom branch merge: vertical from top to center */
-.pbm-fork-merge--bot::before {
-  top: 0;
-  bottom: 50%;
-}
-
-/* Legs — vertical column: above node, parent node, below node */
+/* Legs — vertical column with continuous background connector line */
 .pbm-legs {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  gap: 0;
+  gap: 4px;
 }
 
-.pbm-legs-vconnector {
+/* Continuous vertical line behind all legs nodes */
+.pbm-legs::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
   width: 3px;
-  height: 14px;
+  transform: translateX(-50%);
   background: #adb5bd;
-  flex-shrink: 0;
-  margin: -1px 0; /* overlap slightly with node borders to eliminate gap */
+  z-index: 0;
+}
+
+/* Ensure nodes sit above the background line */
+.pbm-legs > * {
+  z-index: 1;
 }
 
 /* Animations */
@@ -381,10 +350,23 @@
   50% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
 }
 
-/* Current space variant of expanded detail */
-.pbm-expanded-detail--current {
-  border-color: #007bff;
-  animation: pbm-pulse-glow 2s infinite;
+/* Current space floating detail overlay (doesn't disrupt inline layout) */
+.pbm-current-overlay {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  max-width: 80vw;
+  background: #fff;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 20;
+  pointer-events: none;
 }
 
 /* Phase legend */
