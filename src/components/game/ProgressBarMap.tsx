@@ -232,12 +232,6 @@ export function ProgressBarMap({
   // Canvas node renderer
   const nodeCanvasObject = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const label = node.name;
-    const fontSize = Math.max(10 / globalScale, 3);
-    ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-    const textWidth = ctx.measureText(label).width;
-    const padding = 4 / globalScale;
-    const boxWidth = textWidth + padding * 2;
-    const boxHeight = fontSize + padding * 2;
 
     const isCurrentSpace = currentPlayer?.currentSpace === node.id;
     const isValidMove = validMoves.includes(node.id);
@@ -245,12 +239,42 @@ export function ProgressBarMap({
     const playersHere = getPlayersOnSpace(node.id);
     const visited = isVisited(node.id);
 
-    // Node background
-    ctx.beginPath();
-    const radius = 3 / globalScale;
+    // Differentiated sizing: current space is largest, valid moves medium, rest default
+    let fontScale = 1;
+    let paddingScale = 1;
+    let borderWidth = 1;
+    if (isCurrentSpace) {
+      fontScale = 1.4;
+      paddingScale = 1.8;
+      borderWidth = 2.5;
+    } else if (isValidMove) {
+      fontScale = 1.15;
+      paddingScale = 1.4;
+      borderWidth = 2;
+    } else if (isHovered) {
+      fontScale = 1.15;
+      paddingScale = 1.4;
+      borderWidth = 1.5;
+    } else if (playersHere.length > 0) {
+      fontScale = 1.1;
+      paddingScale = 1.2;
+      borderWidth = 1.5;
+    }
+
+    const fontSize = Math.max(12 * fontScale / globalScale, 3);
+    ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    const textWidth = ctx.measureText(label).width;
+    const paddingH = 8 * paddingScale / globalScale;
+    const paddingV = 6 * paddingScale / globalScale;
+    const boxWidth = textWidth + paddingH * 2;
+    const boxHeight = fontSize + paddingV * 2;
+
+    // Node background - rounded rect
+    const radius = 4 / globalScale;
     const x = node.x - boxWidth / 2;
     const y = node.y - boxHeight / 2;
-    // Rounded rect
+
+    ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + boxWidth - radius, y);
     ctx.quadraticCurveTo(x + boxWidth, y, x + boxWidth, y + radius);
@@ -274,19 +298,19 @@ export function ProgressBarMap({
       ctx.fillStyle = '#fff8e1';
       ctx.fill();
       ctx.strokeStyle = '#ffc107';
-      ctx.lineWidth = 2 / globalScale;
+      ctx.lineWidth = borderWidth / globalScale;
       ctx.stroke();
     } else if (visited) {
       ctx.fillStyle = '#e3f2fd';
       ctx.fill();
       ctx.strokeStyle = node.color;
-      ctx.lineWidth = 1.5 / globalScale;
+      ctx.lineWidth = borderWidth / globalScale;
       ctx.stroke();
     } else {
       ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.strokeStyle = '#dee2e6';
-      ctx.lineWidth = 1 / globalScale;
+      ctx.lineWidth = borderWidth / globalScale;
       ctx.stroke();
     }
 
@@ -375,12 +399,13 @@ export function ProgressBarMap({
           graphData={graphData}
           nodeCanvasObject={nodeCanvasObject}
           nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D, globalScale: number) => {
-            const fontSize = Math.max(10 / globalScale, 3);
+            const fontSize = Math.max(12 / globalScale, 3);
             ctx.font = `600 ${fontSize}px sans-serif`;
             const textWidth = ctx.measureText(node.name).width;
-            const padding = 4 / globalScale;
-            const boxWidth = textWidth + padding * 2;
-            const boxHeight = fontSize + padding * 2;
+            const paddingH = 8 / globalScale;
+            const paddingV = 6 / globalScale;
+            const boxWidth = textWidth + paddingH * 2;
+            const boxHeight = fontSize + paddingV * 2;
             ctx.fillStyle = color;
             ctx.fillRect(node.x - boxWidth / 2, node.y - boxHeight / 2, boxWidth, boxHeight);
           }}
