@@ -308,6 +308,7 @@ export function ProgressBarMap({
   const [spacesMap, setSpacesMap] = useState<Map<string, Space>>(new Map());
   const [validMoves, setValidMoves] = useState<string[]>([]);
   const [hoveredSpace, setHoveredSpace] = useState<string | null>(null);
+  const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load spaces into map
@@ -362,7 +363,8 @@ export function ProgressBarMap({
 
     const isCurrentSpace = currentPlayer?.currentSpace === spaceName;
     const isValidMove = validMoves.includes(spaceName);
-    const isHovered = hoveredSpace === spaceName && !isCurrentSpace && !isValidMove;
+    const isExpanded = expandedSpace === spaceName;
+    const isHovered = hoveredSpace === spaceName && !isCurrentSpace && !isExpanded;
     const playersHere = getPlayersOnSpace(spaceName);
     const visited = isVisited(spaceName);
 
@@ -411,12 +413,26 @@ export function ProgressBarMap({
       );
     }
 
-    // Valid move: show medium GameSpace tile
+    // Expanded (clicked) tile — full detail GameSpace
+    if (isExpanded) {
+      return (
+        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
+          onMouseLeave={() => { handleMouseLeave(); setExpandedSpace(null); }}>
+          <div className="pbm-expanded-detail" onClick={() => setExpandedSpace(null)}>
+            <GameSpace space={space} playersOnSpace={playersHere}
+              isValidMoveDestination={isValidMove} isCurrentPlayerSpace={false}
+              showMovementIndicators={isValidMove} />
+          </div>
+        </motion.div>
+      );
+    }
+
+    // Valid move: show medium GameSpace tile, click to expand
     if (isValidMove) {
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
           onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-          <div className="pbm-expanded-tile">
+          <div className="pbm-expanded-tile" onClick={() => setExpandedSpace(spaceName)}>
             <GameSpace space={space} playersOnSpace={playersHere}
               isValidMoveDestination={true} isCurrentPlayerSpace={false}
               showMovementIndicators={true} />
@@ -425,12 +441,12 @@ export function ProgressBarMap({
       );
     }
 
-    // Hovered: show GameSpace tile
+    // Hovered: show GameSpace tile, click to expand
     if (isHovered) {
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
           onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-          <div className="pbm-expanded-tile">
+          <div className="pbm-expanded-tile" onClick={() => setExpandedSpace(spaceName)}>
             <GameSpace space={space} playersOnSpace={playersHere}
               isValidMoveDestination={false} isCurrentPlayerSpace={false}
               showMovementIndicators={false} />
@@ -486,23 +502,17 @@ export function ProgressBarMap({
   return (
     <div className="progress-bar-map">
       <div className="pbm-snake">
-        {phaseGroups.map((group, si) => {
-          const pc = PHASE_COLORS[group.phase] || { bg: '#f5f5f5', text: '#616161', border: '#9e9e9e' };
-          return (
-            <React.Fragment key={`${group.phase}-${si}`}>
-              {si > 0 && <div className="pbm-phase-connector" />}
-              <span className="pbm-phase-label" style={{ background: pc.bg, color: pc.text, borderColor: pc.border }}>
-                {group.label}
-              </span>
-              {group.mainNodes.map((spaceName, ni) => (
-                <React.Fragment key={spaceName}>
-                  {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
-                  {renderNode(spaceName)}
-                </React.Fragment>
-              ))}
-            </React.Fragment>
-          );
-        })}
+        {phaseGroups.map((group, si) => (
+          <React.Fragment key={`${group.phase}-${si}`}>
+            {si > 0 && <div className="pbm-phase-connector" />}
+            {group.mainNodes.map((spaceName, ni) => (
+              <React.Fragment key={spaceName}>
+                {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
+                {renderNode(spaceName)}
+              </React.Fragment>
+            ))}
+          </React.Fragment>
+        ))}
       </div>
 
       {/* Branches rendered below main path */}

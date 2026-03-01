@@ -205,13 +205,26 @@
   margin: 4px 0;
 }
 
-/* Expanded GameSpace tile for hover/click */
+/* Expanded GameSpace tile for hover/valid-move (medium) */
 .pbm-expanded-tile {
   flex: 0 0 auto;
   width: 160px;
   min-height: 80px;
   border-radius: 8px;
   overflow: hidden;
+  cursor: pointer;
+}
+
+/* Fully expanded detail view (clicked) */
+.pbm-expanded-detail {
+  flex: 0 0 auto;
+  width: 280px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid #495057;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  z-index: 10;
 }
 
 /* Choice fork — two paths diverging */
