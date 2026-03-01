@@ -193,7 +193,7 @@ export function ProgressBarMap({
   }, [stateService, movementService]);
 
   // Split GAME_PATH into rows based on container width
-  const NODE_WIDTH = 86; // node ~70px + connector ~16px
+  const NODE_WIDTH = 90; // node ~74px + connector ~16px
   const rows = useMemo(() => {
     const slotsPerRow = Math.max(4, Math.floor(containerWidth / NODE_WIDTH));
     const result: PathSegment[][] = [];
@@ -405,23 +405,27 @@ export function ProgressBarMap({
     );
   };
 
-  // Render a legs segment — parent node with one child above and one below, diagonal SVG lines
+  // Render a legs segment — parent node with one child above and one below, diagonal lines
   const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
     return (
       <div key={`legs-${segIdx}`} className="pbm-legs">
-        <div className="pbm-legs-above">
-          {renderNode(seg.above)}
-        </div>
-        <div className="pbm-legs-center">
+        {/* Left: parent node */}
+        <div className="pbm-legs-parent">
           {renderNode(seg.parent)}
-          {/* Diagonal lines from parent to above and below */}
-          <svg className="pbm-legs-svg" viewBox="0 0 40 80" preserveAspectRatio="none">
-            <line x1="4" y1="40" x2="36" y2="8" stroke="#adb5bd" strokeWidth="2" />
-            <line x1="4" y1="40" x2="36" y2="72" stroke="#adb5bd" strokeWidth="2" />
-          </svg>
         </div>
-        <div className="pbm-legs-below">
-          {renderNode(seg.below)}
+        {/* Right column: above node, below node, with SVG diagonal lines */}
+        <div className="pbm-legs-branches">
+          <div className="pbm-legs-branch-above">
+            {renderNode(seg.above)}
+          </div>
+          <div className="pbm-legs-branch-below">
+            {renderNode(seg.below)}
+          </div>
+          {/* SVG diagonal lines overlaying the gap between parent and branches */}
+          <svg className="pbm-legs-lines" viewBox="0 0 30 72" preserveAspectRatio="none">
+            <line x1="0" y1="36" x2="30" y2="6" stroke="#adb5bd" strokeWidth="2" />
+            <line x1="0" y1="36" x2="30" y2="66" stroke="#adb5bd" strokeWidth="2" />
+          </svg>
         </div>
       </div>
     );
