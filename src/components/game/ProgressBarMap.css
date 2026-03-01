@@ -150,35 +150,19 @@
   color: #fff;
 }
 
-/* Side quest branch — vertical leg hanging below a node */
+/* Branches section — rendered below the main snake path */
+.pbm-branches-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 6px 0 0;
+  border-top: 1px dashed #dee2e6;
+  margin-top: 6px;
+  align-items: center;
+}
+
+/* Side quest branch — horizontal inline group */
 .pbm-branch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 2px;
-}
-
-/* Vertical connector for branches */
-.pbm-branch-connector {
-  width: 2px;
-  height: 12px;
-  background: #dee2e6;
-  flex-shrink: 0;
-}
-
-.pbm-branch-connector--visited {
-  background: #007bff;
-}
-
-/* Branch nodes container (can have multiple nodes in a row or column) */
-.pbm-branch-nodes {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-}
-
-.pbm-branch-row {
   display: flex;
   align-items: center;
   gap: 0;
@@ -190,9 +174,23 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin-bottom: 2px;
   padding: 1px 5px;
   border-radius: 6px;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+/* Branch nodes container */
+.pbm-branch-nodes {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.pbm-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
 
 /* Expanded PlayerPanel inline */

@@ -468,7 +468,6 @@ export function ProgressBarMap({
     const bpc = PHASE_COLORS[branch.label.toUpperCase()] || PHASE_COLORS[branch.label] || { bg: '#f5f5f5', text: '#616161', border: '#9e9e9e' };
     return (
     <div key={`${branch.parentSpace}-${branch.label}`} className="pbm-branch">
-      <div className={`pbm-branch-connector${isVisited(branch.nodes[0] || '') ? ' pbm-branch-connector--visited' : ''}`} />
       <div className="pbm-branch-label" style={{ color: bpc.text, background: bpc.bg }}>{branch.label}</div>
       <div className="pbm-branch-nodes">
         <div className="pbm-branch-row">
@@ -484,16 +483,6 @@ export function ProgressBarMap({
   );
   };
 
-  // Unique phases for legend
-  const legendPhases = useMemo(() => {
-    const seen = new Set<string>();
-    return phaseGroups.filter(g => {
-      if (seen.has(g.phase)) return false;
-      seen.add(g.phase);
-      return true;
-    });
-  }, [phaseGroups]);
-
   return (
     <div className="progress-bar-map">
       <div className="pbm-snake">
@@ -505,34 +494,41 @@ export function ProgressBarMap({
               <span className="pbm-phase-label" style={{ background: pc.bg, color: pc.text, borderColor: pc.border }}>
                 {group.label}
               </span>
-              {group.mainNodes.map((spaceName, ni) => {
-                const branches = group.branches.get(spaceName) || [];
-                return (
-                  <React.Fragment key={spaceName}>
-                    {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      {renderNode(spaceName)}
-                      {branches.map(b => renderBranch(b))}
-                    </div>
-                  </React.Fragment>
-                );
-              })}
+              {group.mainNodes.map((spaceName, ni) => (
+                <React.Fragment key={spaceName}>
+                  {ni > 0 && renderConnector(isVisited(spaceName), `mc-${spaceName}`)}
+                  {renderNode(spaceName)}
+                </React.Fragment>
+              ))}
             </React.Fragment>
           );
         })}
       </div>
 
+      {/* Branches rendered below main path */}
+      {(() => {
+        const allBranches: { parent: string; branch: PathBranch }[] = [];
+        for (const group of phaseGroups) {
+          for (const nodeName of group.mainNodes) {
+            const branches = group.branches.get(nodeName);
+            if (branches) branches.forEach(b => allBranches.push({ parent: nodeName, branch: b }));
+          }
+        }
+        if (allBranches.length === 0) return null;
+        return (
+          <div className="pbm-branches-section">
+            {allBranches.map(({ parent, branch }) => renderBranch(branch))}
+          </div>
+        );
+      })()}
+
       <div className="pbm-legend">
-        {legendPhases.map(g => {
-          const pc = PHASE_COLORS[g.phase];
-          if (!pc) return null;
-          return (
-            <div key={g.phase} className="pbm-legend-item">
-              <div className="pbm-legend-dot" style={{ background: pc.border }} />
-              <span>{g.label}</span>
-            </div>
-          );
-        })}
+        {Object.entries(PHASE_COLORS).map(([phase, pc]) => (
+          <div key={phase} className="pbm-legend-item">
+            <div className="pbm-legend-dot" style={{ background: pc.border }} />
+            <span>{phase.charAt(0) + phase.slice(1).toLowerCase()}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
