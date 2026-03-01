@@ -242,6 +242,20 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
+    // Current space: show as GameSpace tile (same size as valid-move tiles)
+    if (isCurrentSpace) {
+      return (
+        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
+          onClick={() => setExpandedSpace(isExpanded ? null : spaceName)}>
+          <div className="pbm-expanded-tile pbm-expanded-tile--current">
+            <GameSpace space={space} playersOnSpace={playersHere}
+              isValidMoveDestination={false} isCurrentPlayerSpace={true}
+              showMovementIndicators={false} />
+          </div>
+        </motion.div>
+      );
+    }
+
     // Expanded (clicked) tile
     if (isExpanded) {
       const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];

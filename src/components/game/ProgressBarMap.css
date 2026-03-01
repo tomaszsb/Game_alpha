@@ -166,6 +166,13 @@
   color: #fff;
 }
 
+/* Current space tile — highlighted with blue glow */
+.pbm-expanded-tile--current {
+  border: 2px solid #007bff;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
+  border-radius: 8px;
+}
+
 /* Expanded GameSpace tile for hover/valid-move (medium) */
 .pbm-expanded-tile {
   flex: 0 0 auto;
