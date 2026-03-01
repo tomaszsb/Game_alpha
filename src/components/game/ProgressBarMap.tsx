@@ -60,23 +60,20 @@ function shortDisplayName(spaceName: string): string {
 
 type PathSegment =
   | { type: 'node'; name: string }
-  | { type: 'fork'; branches: { label: string; nodes: string[] }[] };
+  | { type: 'fork'; branches: { nodes: string[] }[] }
+  | { type: 'legs'; parent: string; above: string; below: string };
 
 const GAME_PATH: PathSegment[] = [
   // SETUP
   { type: 'node', name: 'OWNER-SCOPE-INITIATION' },
   { type: 'node', name: 'OWNER-FUND-INITIATION' },
-  // OWNER
-  { type: 'node', name: 'PM-DECISION-CHECK' },
-  { type: 'fork', branches: [
-    { label: 'Scope', nodes: ['OWNER-DECISION-REVIEW'] },
-    { label: 'Cheat', nodes: ['CHEAT-BYPASS'] },
-  ]},
+  // OWNER — legs above/below PM Check
+  { type: 'legs', parent: 'PM-DECISION-CHECK', above: 'OWNER-DECISION-REVIEW', below: 'CHEAT-BYPASS' },
   // FUNDING
   { type: 'node', name: 'LEND-SCOPE-CHECK' },
   { type: 'fork', branches: [
-    { label: 'Bank', nodes: ['BANK-FUND-REVIEW'] },
-    { label: 'Investor', nodes: ['INVESTOR-FUND-REVIEW'] },
+    { nodes: ['BANK-FUND-REVIEW'] },
+    { nodes: ['INVESTOR-FUND-REVIEW'] },
   ]},
   // DESIGN
   { type: 'node', name: 'ARCH-INITIATION' },
@@ -87,13 +84,13 @@ const GAME_PATH: PathSegment[] = [
   { type: 'node', name: 'ENG-SCOPE-CHECK' },
   // REGULATORY (DOB + FDNY parallel)
   { type: 'fork', branches: [
-    { label: 'DOB', nodes: ['REG-DOB-FEE-REVIEW', 'REG-DOB-TYPE-SELECT'] },
-    { label: 'FDNY', nodes: ['REG-FDNY-FEE-REVIEW', 'REG-FDNY-PLAN-EXAM'] },
+    { nodes: ['REG-DOB-FEE-REVIEW', 'REG-DOB-TYPE-SELECT'] },
+    { nodes: ['REG-FDNY-FEE-REVIEW', 'REG-FDNY-PLAN-EXAM'] },
   ]},
   // DOB choice branch
   { type: 'fork', branches: [
-    { label: 'Regular', nodes: ['REG-DOB-PLAN-EXAM'] },
-    { label: 'Prof', nodes: ['REG-DOB-PROF-CERT', 'REG-DOB-AUDIT'] },
+    { nodes: ['REG-DOB-PLAN-EXAM'] },
+    { nodes: ['REG-DOB-PROF-CERT', 'REG-DOB-AUDIT'] },
   ]},
   // CONSTRUCTION
   { type: 'node', name: 'CON-INITIATION' },
@@ -107,9 +104,10 @@ const GAME_PATH: PathSegment[] = [
 // Estimate how many "slots" a segment takes (for row splitting)
 function segmentSlotCount(seg: PathSegment): number {
   if (seg.type === 'node') return 1;
-  // Fork: width = max branch length + label
+  if (seg.type === 'legs') return 2; // parent + leg space
+  // Fork: width = max branch length + connector column
   const maxBranch = Math.max(...seg.branches.map(b => b.nodes.length));
-  return maxBranch + 1; // +1 for fork connector/label column
+  return maxBranch + 1;
 }
 
 // ------- Component -------
@@ -197,14 +195,17 @@ export function ProgressBarMap({
   // Split GAME_PATH into rows based on container width
   const NODE_WIDTH = 86; // node ~70px + connector ~16px
   const rows = useMemo(() => {
-    const slotsPerRow = Math.max(3, Math.floor(containerWidth / NODE_WIDTH));
+    const slotsPerRow = Math.max(4, Math.floor(containerWidth / NODE_WIDTH));
     const result: PathSegment[][] = [];
     let currentRow: PathSegment[] = [];
     let currentSlots = 0;
 
-    for (const seg of GAME_PATH) {
+    for (let i = 0; i < GAME_PATH.length; i++) {
+      const seg = GAME_PATH[i];
       const slots = segmentSlotCount(seg);
-      if (currentRow.length > 0 && currentSlots + slots > slotsPerRow) {
+      // Check if this is the last segment — if so, try to keep it on the current row
+      const isLast = i === GAME_PATH.length - 1;
+      if (currentRow.length > 0 && currentSlots + slots > slotsPerRow && !isLast) {
         result.push(currentRow);
         currentRow = [seg];
         currentSlots = slots;
@@ -381,19 +382,18 @@ export function ProgressBarMap({
     <div key={key} className={`pbm-connector${visited ? ' pbm-connector--visited' : ''}`} />
   );
 
-  // Render a fork segment (parallel branches)
+  // Render a fork segment (parallel branches, no labels — text is in the boxes)
   const renderFork = (seg: Extract<PathSegment, { type: 'fork' }>, segIdx: number) => {
     return (
       <div key={`fork-${segIdx}`} className="pbm-fork">
         {seg.branches.map((branch, bi) => (
-          <div key={branch.label} className="pbm-fork-branch">
+          <div key={bi} className="pbm-fork-branch">
             <div className="pbm-fork-connector-col">
               <span className={`pbm-fork-glyph ${bi === 0 ? 'pbm-fork-glyph--top' : 'pbm-fork-glyph--bot'}`}>
                 {bi === 0 ? '\u252C' : '\u2514'}
               </span>
             </div>
-            <span className="pbm-fork-label">{branch.label}</span>
-            {branch.nodes.map((spaceName, ni) => (
+            {branch.nodes.map((spaceName) => (
               <React.Fragment key={spaceName}>
                 {renderConnector(isVisited(spaceName), `fc-${spaceName}`)}
                 {renderNode(spaceName)}
@@ -405,6 +405,28 @@ export function ProgressBarMap({
     );
   };
 
+  // Render a legs segment — parent node with one child above and one below, diagonal SVG lines
+  const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
+    return (
+      <div key={`legs-${segIdx}`} className="pbm-legs">
+        <div className="pbm-legs-above">
+          {renderNode(seg.above)}
+        </div>
+        <div className="pbm-legs-center">
+          {renderNode(seg.parent)}
+          {/* Diagonal lines from parent to above and below */}
+          <svg className="pbm-legs-svg" viewBox="0 0 40 80" preserveAspectRatio="none">
+            <line x1="4" y1="40" x2="36" y2="8" stroke="#adb5bd" strokeWidth="2" />
+            <line x1="4" y1="40" x2="36" y2="72" stroke="#adb5bd" strokeWidth="2" />
+          </svg>
+        </div>
+        <div className="pbm-legs-below">
+          {renderNode(seg.below)}
+        </div>
+      </div>
+    );
+  };
+
   // Render a single segment
   const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean) => {
     if (seg.type === 'fork') {
@@ -412,6 +434,14 @@ export function ProgressBarMap({
         <React.Fragment key={`seg-${segIdx}`}>
           {showLeadConnector && renderConnector(false, `lc-${segIdx}`)}
           {renderFork(seg, segIdx)}
+        </React.Fragment>
+      );
+    }
+    if (seg.type === 'legs') {
+      return (
+        <React.Fragment key={`seg-${segIdx}`}>
+          {showLeadConnector && renderConnector(isVisited(seg.parent), `lc-${segIdx}`)}
+          {renderLegs(seg, segIdx)}
         </React.Fragment>
       );
     }
@@ -429,7 +459,6 @@ export function ProgressBarMap({
         {rows.map((row, ri) => {
           const isReversed = ri % 2 === 1;
           const displayRow = isReversed ? [...row].reverse() : row;
-          // Track global segment index for keys
           let globalOffset = 0;
           for (let r = 0; r < ri; r++) globalOffset += rows[r].length;
 
@@ -442,10 +471,8 @@ export function ProgressBarMap({
               )}
               <div className={`pbm-row ${isReversed ? 'pbm-row--reverse' : ''}`}>
                 {displayRow.map((seg, si) => {
-                  // For reversed rows, compute the original index
                   const origIdx = isReversed ? (globalOffset + row.length - 1 - si) : (globalOffset + si);
-                  const showConnector = isReversed ? (si > 0) : (si > 0);
-                  return renderSegment(seg, origIdx, showConnector);
+                  return renderSegment(seg, origIdx, si > 0);
                 })}
               </div>
             </React.Fragment>
