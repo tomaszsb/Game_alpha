@@ -16,6 +16,7 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { MovementPathVisualization } from '../game/MovementPathVisualization';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
+import { ProgressBarMap } from '../game/ProgressBarMap';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
@@ -693,7 +694,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       className="game-interface-responsive"
       style={{
         gridTemplateRows: gamePhase === 'PLAY'
-          ? (isGameLogVisible ? 'auto 1fr auto auto' : 'auto 1fr auto')
+          ? (isGameLogVisible ? 'auto 1fr auto auto auto' : 'auto 1fr auto auto')
           : '1fr auto',
         // Dynamic columns: 1 column if no panels shown, 2 columns otherwise
         gridTemplateColumns: hidePanelColumn ? '1fr' : undefined
@@ -904,6 +905,32 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               </div>
             )}
           </div>
+
+          {/* ProgressBarMap - Mini map below board (desktop only, PLAY phase only) */}
+          {gamePhase === 'PLAY' && (
+            <div style={{ gridColumn: '1 / -1', gridRow: '3' }}>
+              <ProgressBarMap
+                gameServices={gameServices}
+                currentPlayerId={currentPlayerId}
+                players={players}
+                onTryAgain={handleTryAgain}
+                playerNotifications={playerNotifications}
+                onRollDice={handleRollDice}
+                onAutomaticFunding={handleAutomaticFunding}
+                onManualEffectResult={(result) => {
+                  if (result && result.effects && result.effects.length > 0) {
+                    setDiceResult(result);
+                    setIsDiceResultModalOpen(true);
+                  }
+                }}
+                completedActions={completedActions}
+                onToggleSpaceExplorer={handleToggleSpaceExplorer}
+                onToggleMovementPath={handleToggleMovementPath}
+                isSpaceExplorerVisible={isSpaceExplorerVisible}
+                isMovementPathVisible={isMovementPathVisible}
+              />
+            </div>
+          )}
         </>
       )}
 
@@ -912,7 +939,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         <div
           style={{
             gridColumn: '1 / -1',
-            gridRow: gamePhase === 'PLAY' ? '3' : '2',
+            gridRow: gamePhase === 'PLAY' ? '4' : '2',
             background: colors.secondary.bg,
             border: `2px solid ${colors.secondary.light}`,
             borderRadius: '8px',
@@ -1024,7 +1051,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       {!effectiveViewPlayerId && (
         <div style={{
           gridColumn: '1 / -1',
-          gridRow: isGameLogVisible ? '4' : '3',
+          gridRow: isGameLogVisible ? '5' : '4',
           backgroundColor: colors.primary.light,
           padding: '0.25rem 0.5rem',
           fontSize: '0.7rem',
