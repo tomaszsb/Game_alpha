@@ -242,34 +242,19 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
-    // Current space: show detail view (story + action) with blue glow
+    // Current space: compact blue pulsing node (detail shown below snake)
     if (isCurrentSpace) {
-      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
-      const npcName = npcInfo?.name;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
-          <div className="pbm-expanded-detail pbm-expanded-detail--current">
-            <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
-              <strong>{spaceName}</strong>
-              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
-            </div>
-            {content?.story && (
-              <div className="pbm-detail-story">
-                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
-                <p>{content.story}</p>
-              </div>
-            )}
-            {content?.action_description && (
-              <div className="pbm-detail-action">
-                <strong>PM Action:</strong> {content.action_description}
-              </div>
-            )}
+          <div className={nodeClass} style={nodeStyle} title={spaceName}>
+            <span>{shortDisplayName(spaceName)}</span>
             {playersHere.length > 0 && (
-              <div className="pbm-detail-players">
-                {playersHere.map(p => (
-                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
+              <div className="pbm-node-avatars">
+                {playersHere.slice(0, 3).map(p => (
+                  <div key={p.id} className="pbm-node-avatar"
+                    style={{ background: p.color || '#007bff' }} title={p.name}>
                     {p.avatar || p.name.charAt(0)}
-                  </span>
+                  </div>
                 ))}
               </div>
             )}
@@ -365,8 +350,8 @@ export function ProgressBarMap({
     );
   };
 
-  const renderConnector = (visited: boolean, key: string) => (
-    <div key={key} className={`pbm-connector${visited ? ' pbm-connector--visited' : ''}`} />
+  const renderConnector = (key: string) => (
+    <div key={key} className="pbm-connector" />
   );
 
   // Render a fork segment (parallel branches, no labels — text is in the boxes)
@@ -382,7 +367,7 @@ export function ProgressBarMap({
             </div>
             {branch.nodes.map((spaceName) => (
               <React.Fragment key={spaceName}>
-                {renderConnector(isVisited(spaceName), `fc-${spaceName}`)}
+                {renderConnector(`fc-${spaceName}`)}
                 {renderNode(spaceName)}
               </React.Fragment>
             ))}
@@ -423,7 +408,7 @@ export function ProgressBarMap({
     if (seg.type === 'fork') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
-          {showLeadConnector && renderConnector(false, `lc-${segIdx}`)}
+          {showLeadConnector && renderConnector(`lc-${segIdx}`)}
           {renderFork(seg, segIdx)}
         </React.Fragment>
       );
@@ -431,14 +416,14 @@ export function ProgressBarMap({
     if (seg.type === 'legs') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
-          {showLeadConnector && renderConnector(isVisited(seg.parent), `lc-${segIdx}`)}
+          {showLeadConnector && renderConnector(`lc-${segIdx}`)}
           {renderLegs(seg, segIdx)}
         </React.Fragment>
       );
     }
     return (
       <React.Fragment key={`seg-${segIdx}-${seg.name}`}>
-        {showLeadConnector && renderConnector(isVisited(seg.name), `lc-${segIdx}`)}
+        {showLeadConnector && renderConnector(`lc-${segIdx}`)}
         {renderNode(seg.name)}
       </React.Fragment>
     );
@@ -470,6 +455,36 @@ export function ProgressBarMap({
           );
         })}
       </div>
+
+      {/* Current space detail panel */}
+      {currentPlayer?.currentSpace && (() => {
+        const space = spacesMap.get(currentPlayer.currentSpace);
+        if (!space) return null;
+        const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+        const npcPrefix = extractPrefix(currentPlayer.currentSpace);
+        const npcInfo = CHARACTER_MAP[npcPrefix];
+        const accentColor = npcInfo?.color;
+        const npcName = npcInfo?.name;
+        return (
+          <div className="pbm-current-detail" style={{ borderLeftColor: accentColor || '#007bff' }}>
+            <div className="pbm-current-detail-header">
+              <strong>{currentPlayer.currentSpace}</strong>
+              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
+            </div>
+            {content?.story && (
+              <div className="pbm-detail-story">
+                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
+                <p>{content.story}</p>
+              </div>
+            )}
+            {content?.action_description && (
+              <div className="pbm-detail-action">
+                <strong>PM Action:</strong> {content.action_description}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="pbm-legend">
         {Object.entries(PHASE_COLORS).map(([phase, pc]) => (

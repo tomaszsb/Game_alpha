@@ -75,9 +75,6 @@
   align-self: center;
 }
 
-.pbm-connector--visited {
-  background: #007bff;
-}
 
 /* Space node — compact, uniform width */
 .pbm-node {
@@ -166,11 +163,6 @@
   color: #fff;
 }
 
-/* Current space detail — highlighted with blue glow */
-.pbm-expanded-detail--current {
-  border-color: #007bff;
-  box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
-}
 
 /* Expanded GameSpace tile for hover/valid-move (medium) */
 .pbm-expanded-tile {
@@ -342,6 +334,27 @@
 @keyframes pbm-pulse-border {
   0%, 100% { box-shadow: 0 0 4px rgba(255, 193, 7, 0.3); }
   50% { box-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
+}
+
+/* Current space detail panel — below snake rows */
+.pbm-current-detail {
+  border-left: 4px solid #007bff;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.pbm-current-detail-header {
+  margin-bottom: 6px;
+}
+
+.pbm-current-detail-header strong {
+  font-size: 13px;
+  color: #212529;
 }
 
 /* Phase legend */
