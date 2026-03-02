@@ -247,7 +247,7 @@ export function ProgressBarMap({
 
     const npcPrefix = extractPrefix(spaceName);
     const npcInfo = CHARACTER_MAP[npcPrefix];
-    const accentColor = npcInfo?.color;
+    const accentColor = npcInfo?.color ?? PHASE_COLORS[phaseMap.get(spaceName) ?? '']?.border;
 
     const nodeClass = [
       'pbm-node',
@@ -266,16 +266,29 @@ export function ProgressBarMap({
       nodeStyle.borderColor = accentColor || '#28a745';
     }
 
-    // Current space: compact blue node inline + floating detail overlay
+    // Current space: medium inline card with story + action
     if (isCurrentSpace) {
       const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
       const npcName = npcInfo?.name;
+      const storyText = content?.story || '';
+      const actionText = content?.action_description || '';
+      const truncate = (s: string, max: number) => s.length > max ? s.slice(0, max) + '…' : s;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
-          <div className={nodeClass} style={nodeStyle} title={spaceName}>
-            <span>{shortDisplayName(spaceName)}</span>
+          <div className="pbm-node--current-card" style={{ borderLeftColor: accentColor || '#007bff' }}>
+            <div className="pbm-current-card-name">{shortDisplayName(spaceName)}</div>
+            {storyText && (
+              <div className="pbm-current-card-story">
+                {npcName && <strong>{npcName}: </strong>}{truncate(storyText, 120)}
+              </div>
+            )}
+            {actionText && (
+              <div className="pbm-current-card-action">
+                <strong>Action:</strong> {truncate(actionText, 100)}
+              </div>
+            )}
             {playersHere.length > 0 && (
-              <div className="pbm-node-avatars">
+              <div className="pbm-node-avatars" style={{ bottom: -5, right: -3 }}>
                 {playersHere.slice(0, 3).map(p => (
                   <div key={p.id} className="pbm-node-avatar"
                     style={{ background: p.color || '#007bff' }} title={p.name}>
@@ -285,23 +298,6 @@ export function ProgressBarMap({
               </div>
             )}
           </div>
-          {(content?.story || content?.action_description) && (
-            <div className="pbm-current-overlay">
-              <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
-                <strong>{spaceName}</strong>
-              </div>
-              {content?.story && (
-                <div className="pbm-detail-story">
-                  <p>{npcName && <><strong>{npcName}:</strong>{' '}</>}{content.story}</p>
-                </div>
-              )}
-              {content?.action_description && (
-                <div className="pbm-detail-action">
-                  <strong>PM Action:</strong> {content.action_description}
-                </div>
-              )}
-            </div>
-          )}
         </motion.div>
       );
     }
@@ -343,15 +339,24 @@ export function ProgressBarMap({
       );
     }
 
-    // Valid move: show medium GameSpace tile
+    // Valid move: compact node with yellow highlight (expands on click)
     if (isValidMove) {
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
           onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-          <div className="pbm-expanded-tile" onClick={() => setExpandedSpace(spaceName)}>
-            <GameSpace space={space} playersOnSpace={playersHere}
-              isValidMoveDestination={true} isCurrentPlayerSpace={false}
-              showMovementIndicators={true} />
+          <div className={nodeClass} style={nodeStyle} title={spaceName}
+            onClick={() => setExpandedSpace(spaceName)}>
+            <span>{shortDisplayName(spaceName)}</span>
+            {playersHere.length > 0 && (
+              <div className="pbm-node-avatars">
+                {playersHere.slice(0, 3).map(p => (
+                  <div key={p.id} className="pbm-node-avatar"
+                    style={{ background: p.color || '#007bff' }} title={p.name}>
+                    {p.avatar || p.name.charAt(0)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       );
@@ -407,7 +412,6 @@ export function ProgressBarMap({
     const anyBranchVisited = branchVisited.some(Boolean);
     return (
       <div key={`fork-${segIdx}`} className={forkClass}>
-        <div className="pbm-fork-split-icon">&#9095;</div>
         {seg.branches.map((branch, bi) => {
           const dimmed = anyBranchVisited && !branchVisited[bi];
           return (
@@ -446,30 +450,11 @@ export function ProgressBarMap({
     return null;
   };
 
-  // Render a phase chip
-  const renderPhaseChip = (phase: string) => {
-    const colors = PHASE_COLORS[phase] || { bg: '#eee', text: '#333', border: '#999' };
-    return (
-      <div className="pbm-phase-chip" style={{
-        background: colors.bg,
-        color: colors.text,
-        borderColor: colors.border,
-      }}>
-        {phase.charAt(0) + phase.slice(1).toLowerCase()}
-      </div>
-    );
-  };
-
-  // Render a single segment with optional phase chip
-  const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean, prevPhase: string | null) => {
-    const spaceName = getSegmentFirstSpace(seg);
-    const phase = spaceName ? (phaseMap.get(spaceName) ?? null) : null;
-    const phaseChanged = phase && phase !== prevPhase;
-
+  // Render a single segment (no phase chip — handled by phase groups)
+  const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean) => {
     if (seg.type === 'fork') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
-          {phaseChanged && renderPhaseChip(phase)}
           {showLeadConnector && renderConnector(`lc-${segIdx}`)}
           {renderFork(seg, segIdx)}
         </React.Fragment>
@@ -478,7 +463,6 @@ export function ProgressBarMap({
     if (seg.type === 'legs') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
-          {phaseChanged && renderPhaseChip(phase)}
           {showLeadConnector && renderConnector(`lc-${segIdx}`)}
           {renderLegs(seg, segIdx)}
         </React.Fragment>
@@ -486,7 +470,6 @@ export function ProgressBarMap({
     }
     return (
       <React.Fragment key={`seg-${segIdx}-${seg.name}`}>
-        {phaseChanged && renderPhaseChip(phase)}
         {showLeadConnector && renderConnector(`lc-${segIdx}`)}
         {renderNode(seg.name)}
       </React.Fragment>
@@ -502,15 +485,19 @@ export function ProgressBarMap({
           let globalOffset = 0;
           for (let r = 0; r < ri; r++) globalOffset += rows[r].length;
 
-          // Track phase across all prior rows to detect phase changes
-          let prevPhase: string | null = null;
-          // Compute prevPhase from all segments before this row
-          for (let pr = 0; pr < ri; pr++) {
-            for (const s of rows[pr]) {
-              const sp = getSegmentFirstSpace(s);
-              if (sp) prevPhase = phaseMap.get(sp) ?? prevPhase;
+          // Group consecutive segments by phase for phase-group wrappers
+          const phaseGroups: { phase: string | null; items: { seg: PathSegment; origIdx: number; si: number }[] }[] = [];
+          displayRow.forEach((seg, si) => {
+            const origIdx = isReversed ? (globalOffset + row.length - 1 - si) : (globalOffset + si);
+            const sp = getSegmentFirstSpace(seg);
+            const phase = sp ? (phaseMap.get(sp) ?? null) : null;
+            const lastGroup = phaseGroups[phaseGroups.length - 1];
+            if (lastGroup && lastGroup.phase === phase) {
+              lastGroup.items.push({ seg, origIdx, si });
+            } else {
+              phaseGroups.push({ phase, items: [{ seg, origIdx, si }] });
             }
-          }
+          });
 
           return (
             <React.Fragment key={`row-${ri}`}>
@@ -520,13 +507,22 @@ export function ProgressBarMap({
                 </div>
               )}
               <div className={`pbm-row ${isReversed ? 'pbm-row--reverse' : ''}`}>
-                {displayRow.map((seg, si) => {
-                  const origIdx = isReversed ? (globalOffset + row.length - 1 - si) : (globalOffset + si);
-                  const result = renderSegment(seg, origIdx, si > 0, prevPhase);
-                  // Update prevPhase for the next segment
-                  const sp = getSegmentFirstSpace(seg);
-                  if (sp) prevPhase = phaseMap.get(sp) ?? prevPhase;
-                  return result;
+                {phaseGroups.map((group, gi) => {
+                  const colors = group.phase ? PHASE_COLORS[group.phase] : null;
+                  const inner = group.items.map(({ seg, origIdx, si }) =>
+                    renderSegment(seg, origIdx, si > 0)
+                  );
+                  if (colors && group.phase) {
+                    return (
+                      <div key={`pg-${ri}-${gi}`} className="pbm-phase-group" style={{ borderTopColor: colors.border }}>
+                        <span className="pbm-phase-label" style={{ color: colors.text }}>
+                          {group.phase.charAt(0) + group.phase.slice(1).toLowerCase()}
+                        </span>
+                        {inner}
+                      </div>
+                    );
+                  }
+                  return <React.Fragment key={`pg-${ri}-${gi}`}>{inner}</React.Fragment>;
                 })}
               </div>
             </React.Fragment>
