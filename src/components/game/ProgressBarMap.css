@@ -35,27 +35,34 @@
   flex-direction: row-reverse;
 }
 
-/* U-turn connector between rows */
+/* U-turn connector between rows — curved */
 .pbm-uturn {
   width: 100%;
-  height: 20px;
+  height: 24px;
   position: relative;
 }
 
 .pbm-uturn-line {
   position: absolute;
   top: 0;
-  width: 3px;
+  width: 24px;
   height: 100%;
-  background: #adb5bd;
+  border: 3px solid #adb5bd;
+  box-sizing: border-box;
 }
 
+/* Right U-turn (row ends right → next row starts right) */
 .pbm-uturn--right .pbm-uturn-line {
-  right: 37px;
+  right: 26px;
+  border-left: none;
+  border-radius: 0 12px 12px 0;
 }
 
+/* Left U-turn (row ends left → next row starts left) */
 .pbm-uturn--left .pbm-uturn-line {
-  left: 37px;
+  left: 26px;
+  border-right: none;
+  border-radius: 12px 0 0 12px;
 }
 
 /* A node slot (node + optional branch) */
@@ -66,13 +73,36 @@
   position: relative;
 }
 
-/* Connector line between nodes (horizontal) */
+/* Connector line between nodes (horizontal) with directional arrow */
 .pbm-connector {
   width: 20px;
   height: 3px;
   background: #adb5bd;
   flex-shrink: 0;
   align-self: center;
+  position: relative;
+}
+
+/* Arrow pointing right (default flow) */
+.pbm-connector::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid #adb5bd;
+}
+
+/* Arrow pointing left for reversed rows */
+.pbm-row--reverse .pbm-connector::after {
+  right: auto;
+  left: -1px;
+  border-left: none;
+  border-right: 5px solid #adb5bd;
 }
 
 
@@ -125,8 +155,22 @@
   padding: 5px 10px;
   width: auto;
   height: auto;
+  min-height: 32px;
   animation: pbm-pulse-glow 2s infinite;
   z-index: 2;
+}
+
+/* "You are here" pin marker above current node */
+.pbm-node--current::before {
+  content: '\25BC';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #007bff;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
 }
 
 .pbm-node--valid-move {
@@ -258,6 +302,22 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
+/* Phase chip — inline pill at phase boundaries */
+.pbm-phase-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  border: 1.5px solid;
+  flex-shrink: 0;
+  align-self: center;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
 /* Fork — parallel branches with CSS line connectors */
 .pbm-fork {
   display: flex;
@@ -266,7 +326,7 @@
   position: relative;
 }
 
-/* Vertical opening line spanning full fork height */
+/* Vertical opening line spanning full fork height — rounded ends */
 .pbm-fork::before {
   content: '';
   position: absolute;
@@ -275,10 +335,11 @@
   bottom: 0;
   width: 3px;
   background: #adb5bd;
+  border-radius: 3px;
   z-index: 1;
 }
 
-/* Vertical merge line on right side (only when .pbm-fork--merge) */
+/* Vertical merge line on right side — rounded ends */
 .pbm-fork--merge::after {
   content: '';
   position: absolute;
@@ -287,7 +348,20 @@
   bottom: 0;
   width: 3px;
   background: #adb5bd;
+  border-radius: 3px;
   z-index: 1;
+}
+
+/* Fork split icon */
+.pbm-fork-split-icon {
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #6c757d;
+  z-index: 2;
+  line-height: 1;
 }
 
 .pbm-fork-branch {
@@ -295,6 +369,12 @@
   align-items: center;
   gap: 0;
   min-height: 32px;
+  transition: opacity 0.3s ease;
+}
+
+/* Dim branches the player didn't take */
+.pbm-fork-branch--dimmed {
+  opacity: 0.4;
 }
 
 /* Horizontal arm from vertical line to first node (or last node to merge line) */

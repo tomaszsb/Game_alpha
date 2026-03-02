@@ -209,6 +209,30 @@ export function ProgressBarMap({
   const getPlayersOnSpace = useCallback((n: string) => players.filter(p => p.currentSpace === n), [players]);
   const isVisited = useCallback((n: string) => currentPlayer?.visitedSpaces?.includes(n) ?? false, [currentPlayer]);
 
+  // Build spaceName→phase map for phase chips
+  const phaseMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const seg of GAME_PATH) {
+      if (seg.type === 'node') {
+        const cfg = dataService.getGameConfigBySpace(seg.name);
+        if (cfg?.phase) map.set(seg.name, cfg.phase.toUpperCase());
+      } else if (seg.type === 'legs') {
+        for (const n of [seg.parent, seg.above, seg.below]) {
+          const cfg = dataService.getGameConfigBySpace(n);
+          if (cfg?.phase) map.set(n, cfg.phase.toUpperCase());
+        }
+      } else if (seg.type === 'fork') {
+        for (const branch of seg.branches) {
+          for (const n of branch.nodes) {
+            const cfg = dataService.getGameConfigBySpace(n);
+            if (cfg?.phase) map.set(n, cfg.phase.toUpperCase());
+          }
+        }
+      }
+    }
+    return map;
+  }, [dataService]);
+
   // Render a single node
   const renderNode = (spaceName: string) => {
     const space = spacesMap.get(spaceName);
@@ -376,20 +400,29 @@ export function ProgressBarMap({
   // Render a fork segment — single vertical lines + flex arms
   const renderFork = (seg: Extract<PathSegment, { type: 'fork' }>, segIdx: number) => {
     const forkClass = `pbm-fork${seg.merge ? ' pbm-fork--merge' : ''}`;
+    // Determine if any branch has been visited (for dimming untaken branches)
+    const branchVisited = seg.branches.map(branch =>
+      branch.nodes.some(n => isVisited(n))
+    );
+    const anyBranchVisited = branchVisited.some(Boolean);
     return (
       <div key={`fork-${segIdx}`} className={forkClass}>
-        {seg.branches.map((branch, bi) => (
-          <div key={bi} className="pbm-fork-branch">
-            <div className="pbm-fork-arm" />
-            {branch.nodes.map((spaceName) => (
-              <React.Fragment key={spaceName}>
-                {renderConnector(`fc-${spaceName}`)}
-                {renderNode(spaceName)}
-              </React.Fragment>
-            ))}
-            {seg.merge && <div className="pbm-fork-arm pbm-fork-arm--merge" />}
-          </div>
-        ))}
+        <div className="pbm-fork-split-icon">&#9095;</div>
+        {seg.branches.map((branch, bi) => {
+          const dimmed = anyBranchVisited && !branchVisited[bi];
+          return (
+            <div key={bi} className={`pbm-fork-branch${dimmed ? ' pbm-fork-branch--dimmed' : ''}`}>
+              <div className="pbm-fork-arm" />
+              {branch.nodes.map((spaceName) => (
+                <React.Fragment key={spaceName}>
+                  {renderConnector(`fc-${spaceName}`)}
+                  {renderNode(spaceName)}
+                </React.Fragment>
+              ))}
+              {seg.merge && <div className="pbm-fork-arm pbm-fork-arm--merge" />}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -405,11 +438,38 @@ export function ProgressBarMap({
     );
   };
 
-  // Render a single segment
-  const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean) => {
+  // Get the first space name of a segment (for phase lookup)
+  const getSegmentFirstSpace = (seg: PathSegment): string | null => {
+    if (seg.type === 'node') return seg.name;
+    if (seg.type === 'legs') return seg.above;
+    if (seg.type === 'fork') return seg.branches[0]?.nodes[0] ?? null;
+    return null;
+  };
+
+  // Render a phase chip
+  const renderPhaseChip = (phase: string) => {
+    const colors = PHASE_COLORS[phase] || { bg: '#eee', text: '#333', border: '#999' };
+    return (
+      <div className="pbm-phase-chip" style={{
+        background: colors.bg,
+        color: colors.text,
+        borderColor: colors.border,
+      }}>
+        {phase.charAt(0) + phase.slice(1).toLowerCase()}
+      </div>
+    );
+  };
+
+  // Render a single segment with optional phase chip
+  const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean, prevPhase: string | null) => {
+    const spaceName = getSegmentFirstSpace(seg);
+    const phase = spaceName ? (phaseMap.get(spaceName) ?? null) : null;
+    const phaseChanged = phase && phase !== prevPhase;
+
     if (seg.type === 'fork') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
+          {phaseChanged && renderPhaseChip(phase)}
           {showLeadConnector && renderConnector(`lc-${segIdx}`)}
           {renderFork(seg, segIdx)}
         </React.Fragment>
@@ -418,6 +478,7 @@ export function ProgressBarMap({
     if (seg.type === 'legs') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
+          {phaseChanged && renderPhaseChip(phase)}
           {showLeadConnector && renderConnector(`lc-${segIdx}`)}
           {renderLegs(seg, segIdx)}
         </React.Fragment>
@@ -425,6 +486,7 @@ export function ProgressBarMap({
     }
     return (
       <React.Fragment key={`seg-${segIdx}-${seg.name}`}>
+        {phaseChanged && renderPhaseChip(phase)}
         {showLeadConnector && renderConnector(`lc-${segIdx}`)}
         {renderNode(seg.name)}
       </React.Fragment>
@@ -440,6 +502,16 @@ export function ProgressBarMap({
           let globalOffset = 0;
           for (let r = 0; r < ri; r++) globalOffset += rows[r].length;
 
+          // Track phase across all prior rows to detect phase changes
+          let prevPhase: string | null = null;
+          // Compute prevPhase from all segments before this row
+          for (let pr = 0; pr < ri; pr++) {
+            for (const s of rows[pr]) {
+              const sp = getSegmentFirstSpace(s);
+              if (sp) prevPhase = phaseMap.get(sp) ?? prevPhase;
+            }
+          }
+
           return (
             <React.Fragment key={`row-${ri}`}>
               {ri > 0 && (
@@ -450,7 +522,11 @@ export function ProgressBarMap({
               <div className={`pbm-row ${isReversed ? 'pbm-row--reverse' : ''}`}>
                 {displayRow.map((seg, si) => {
                   const origIdx = isReversed ? (globalOffset + row.length - 1 - si) : (globalOffset + si);
-                  return renderSegment(seg, origIdx, si > 0);
+                  const result = renderSegment(seg, origIdx, si > 0, prevPhase);
+                  // Update prevPhase for the next segment
+                  const sp = getSegmentFirstSpace(seg);
+                  if (sp) prevPhase = phaseMap.get(sp) ?? prevPhase;
+                  return result;
                 })}
               </div>
             </React.Fragment>
