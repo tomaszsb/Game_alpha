@@ -1,11 +1,11 @@
 // src/components/game/ProgressBarMap.tsx
 //
-// Snake-path mini map with hardcoded path order, U-turn rows, and parallel branches.
+// Snake-path mini map — fixed-width slot grid with adaptive row splitting.
+// Each tile occupies a 120px slot. Connector lines inside slots auto-fill
+// remaining space, so expanded tiles grow in-place without shifting layout.
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { useGameContext } from '../../context/GameContext';
-import { GameSpace } from './GameSpace';
 import { Space, Player } from '../../types/DataTypes';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import './ProgressBarMap.css';
@@ -53,6 +53,10 @@ function shortDisplayName(spaceName: string): string {
   }).join(' ');
 }
 
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max) + '…' : s;
+}
+
 // ------- Hardcoded path definition -------
 
 type PathSegment =
@@ -98,18 +102,17 @@ const GAME_PATH: PathSegment[] = [
   { type: 'node', name: 'FINISH' },
 ];
 
-// Estimate how many "slots" a segment takes (for row splitting)
+// Slot width = 120px tile area + 20px connector = 140px per segment
+const SLOT_WIDTH = 140;
+
 function segmentSlotCount(seg: PathSegment): number {
   if (seg.type === 'node') return 1;
-  if (seg.type === 'legs') return 2; // parent + leg space
-  // Fork: width = max branch length + opening arm + optional merge arm
+  if (seg.type === 'legs') return 2;
   const maxBranch = Math.max(...seg.branches.map(b => b.nodes.length));
   return maxBranch + 1 + (seg.merge ? 1 : 0);
 }
 
 // ------- Component -------
-
-const springTransition = { type: 'spring' as const, stiffness: 300, damping: 25 };
 
 interface ProgressBarMapProps {
   currentPlayerId: string | null;
@@ -130,28 +133,23 @@ export function ProgressBarMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load spaces into map
   useEffect(() => {
     const map = new Map<string, Space>();
     for (const s of dataService.getAllSpaces()) map.set(s.name, s);
     setSpacesMap(map);
   }, [dataService]);
 
-  // Measure container width
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
+      for (const entry of entries) setContainerWidth(entry.contentRect.width);
     });
     ro.observe(el);
     setContainerWidth(el.clientWidth);
     return () => ro.disconnect();
   }, []);
 
-  // Subscribe to valid moves
   useEffect(() => {
     const unsubscribe = stateService.subscribe((gs) => {
       if (gs.gamePhase === 'PLAY' && gs.currentPlayerId && !gs.hasPlayerMovedThisTurn && !gs.isMoving) {
@@ -168,17 +166,14 @@ export function ProgressBarMap({
   }, [stateService, movementService]);
 
   // Split GAME_PATH into rows based on container width
-  const NODE_WIDTH = 90; // node ~74px + connector ~16px
   const rows = useMemo(() => {
-    const slotsPerRow = Math.max(4, Math.floor(containerWidth / NODE_WIDTH));
+    const slotsPerRow = Math.max(4, Math.floor(containerWidth / SLOT_WIDTH));
     const result: PathSegment[][] = [];
     let currentRow: PathSegment[] = [];
     let currentSlots = 0;
-
     for (let i = 0; i < GAME_PATH.length; i++) {
       const seg = GAME_PATH[i];
       const slots = segmentSlotCount(seg);
-      // Check if this is the last segment — if so, try to keep it on the current row
       const isLast = i === GAME_PATH.length - 1;
       if (currentRow.length > 0 && currentSlots + slots > slotsPerRow && !isLast) {
         result.push(currentRow);
@@ -196,7 +191,7 @@ export function ProgressBarMap({
   // Hover debounce
   const handleMouseEnter = useCallback((name: string) => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => setHoveredSpace(name), 80);
+    hoverTimerRef.current = setTimeout(() => setHoveredSpace(name), 120);
   }, []);
   const handleMouseLeave = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -209,7 +204,7 @@ export function ProgressBarMap({
   const getPlayersOnSpace = useCallback((n: string) => players.filter(p => p.currentSpace === n), [players]);
   const isVisited = useCallback((n: string) => currentPlayer?.visitedSpaces?.includes(n) ?? false, [currentPlayer]);
 
-  // Build spaceName→phase map for phase chips
+  // Build spaceName→phase map
   const phaseMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const seg of GAME_PATH) {
@@ -233,10 +228,25 @@ export function ProgressBarMap({
     return map;
   }, [dataService]);
 
-  // Render a single node
+  // Helper: render player avatars
+  const renderAvatars = (playersHere: Player[]) => {
+    if (playersHere.length === 0) return null;
+    return (
+      <div className="pbm-node-avatars">
+        {playersHere.slice(0, 3).map(p => (
+          <div key={p.id} className="pbm-node-avatar"
+            style={{ background: p.color || '#007bff' }} title={p.name}>
+            {p.avatar || p.name.charAt(0)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Render a single node inside a fixed-width slot
   const renderNode = (spaceName: string) => {
     const space = spacesMap.get(spaceName);
-    if (!space) return <span key={spaceName} className="pbm-node">{spaceName}</span>;
+    if (!space) return <div key={spaceName} className="pbm-slot"><div className="pbm-slot-line" /><div className="pbm-node">{spaceName}</div><div className="pbm-slot-line" /></div>;
 
     const isCurrentSpace = currentPlayer?.currentSpace === spaceName;
     const isValidMove = validMoves.includes(spaceName);
@@ -249,138 +259,90 @@ export function ProgressBarMap({
     const npcInfo = CHARACTER_MAP[npcPrefix];
     const accentColor = npcInfo?.color ?? PHASE_COLORS[phaseMap.get(spaceName) ?? '']?.border;
 
-    const nodeClass = [
-      'pbm-node',
-      isCurrentSpace && 'pbm-node--current',
-      !isCurrentSpace && isValidMove && 'pbm-node--valid-move',
-      !isCurrentSpace && !isValidMove && visited && 'pbm-node--visited',
-      playersHere.length > 0 && !isCurrentSpace && 'pbm-node--has-players',
-    ].filter(Boolean).join(' ');
+    let tileContent: JSX.Element;
 
-    const nodeStyle: React.CSSProperties = {};
-    if (accentColor && !isCurrentSpace) {
-      nodeStyle.borderLeftWidth = '3px';
-      nodeStyle.borderLeftColor = accentColor;
-    }
-    if (playersHere.length > 0 && !isCurrentSpace && !isValidMove) {
-      nodeStyle.borderColor = accentColor || '#28a745';
-    }
-
-    // Current space: medium inline card with story + action
     if (isCurrentSpace) {
       const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
       const npcName = npcInfo?.name;
-      const storyText = content?.story || '';
-      const actionText = content?.action_description || '';
-      const truncate = (s: string, max: number) => s.length > max ? s.slice(0, max) + '…' : s;
-      return (
-        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot">
-          <div className="pbm-node--current-card" style={{ borderLeftColor: accentColor || '#007bff' }}>
-            <div className="pbm-current-card-name">{shortDisplayName(spaceName)}</div>
-            {storyText && (
-              <div className="pbm-current-card-story">
-                {npcName && <strong>{npcName}: </strong>}{truncate(storyText, 120)}
-              </div>
-            )}
-            {actionText && (
-              <div className="pbm-current-card-action">
-                <strong>Action:</strong> {truncate(actionText, 100)}
-              </div>
-            )}
-            {playersHere.length > 0 && (
-              <div className="pbm-node-avatars" style={{ bottom: -5, right: -3 }}>
-                {playersHere.slice(0, 3).map(p => (
-                  <div key={p.id} className="pbm-node-avatar"
-                    style={{ background: p.color || '#007bff' }} title={p.name}>
-                    {p.avatar || p.name.charAt(0)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      );
-    }
-
-    // Expanded (clicked) — render compact node with highlight; detail shown in panel below map
-    if (isExpanded) {
-      return (
-        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
-          onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-          <div className={nodeClass + ' pbm-node--expanded'} style={nodeStyle} title={spaceName}
-            onClick={() => setExpandedSpace(null)}>
-            <span>{shortDisplayName(spaceName)}</span>
-            {playersHere.length > 0 && (
-              <div className="pbm-node-avatars">
-                {playersHere.slice(0, 3).map(p => (
-                  <div key={p.id} className="pbm-node-avatar"
-                    style={{ background: p.color || '#007bff' }} title={p.name}>
-                    {p.avatar || p.name.charAt(0)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      );
-    }
-
-    // Valid move: compact node with yellow highlight (expands on click)
-    if (isValidMove) {
-      return (
-        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
-          onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-          <div className={nodeClass} style={nodeStyle} title={spaceName}
-            onClick={() => setExpandedSpace(spaceName)}>
-            <span>{shortDisplayName(spaceName)}</span>
-            {playersHere.length > 0 && (
-              <div className="pbm-node-avatars">
-                {playersHere.slice(0, 3).map(p => (
-                  <div key={p.id} className="pbm-node-avatar"
-                    style={{ background: p.color || '#007bff' }} title={p.name}>
-                    {p.avatar || p.name.charAt(0)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      );
-    }
-
-    // Hovered: show GameSpace tile
-    if (isHovered) {
-      return (
-        <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
-          onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-          <div className="pbm-expanded-tile" onClick={() => setExpandedSpace(spaceName)}>
-            <GameSpace space={space} playersOnSpace={playersHere}
-              isValidMoveDestination={false} isCurrentPlayerSpace={false}
-              showMovementIndicators={false} />
-          </div>
-        </motion.div>
-      );
-    }
-
-    // Default: compact node
-    return (
-      <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
-        onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
-        <div className={nodeClass} style={nodeStyle} title={spaceName}
-          onClick={() => setExpandedSpace(spaceName)}>
-          <span>{shortDisplayName(spaceName)}</span>
-          {playersHere.length > 0 && (
-            <div className="pbm-node-avatars">
-              {playersHere.slice(0, 3).map(p => (
-                <div key={p.id} className="pbm-node-avatar"
-                  style={{ background: p.color || '#007bff' }} title={p.name}>
-                  {p.avatar || p.name.charAt(0)}
-                </div>
-              ))}
+      tileContent = (
+        <div className="pbm-card pbm-card--current" style={{ borderLeftColor: accentColor || '#007bff' }}>
+          <div className="pbm-card-name pbm-card-name--current">{shortDisplayName(spaceName)}</div>
+          {content?.story && (
+            <div className="pbm-card-story">
+              {npcName && <strong>{npcName}: </strong>}{truncate(content.story, 100)}
             </div>
           )}
+          {content?.action_description && (
+            <div className="pbm-card-action">
+              <strong>Action:</strong> {truncate(content.action_description, 80)}
+            </div>
+          )}
+          {renderAvatars(playersHere)}
         </div>
-      </motion.div>
+      );
+    } else if (isExpanded) {
+      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const npcName = npcInfo?.name;
+      tileContent = (
+        <div className="pbm-card pbm-card--expanded" style={{ borderLeftColor: accentColor || '#007bff' }}>
+          <div className="pbm-card-name">{shortDisplayName(spaceName)}</div>
+          {content?.story && (
+            <div className="pbm-card-story">
+              {npcName && <strong>{npcName}: </strong>}{truncate(content.story, 100)}
+            </div>
+          )}
+          {content?.action_description && (
+            <div className="pbm-card-action">
+              <strong>Action:</strong> {truncate(content.action_description, 80)}
+            </div>
+          )}
+          {renderAvatars(playersHere)}
+        </div>
+      );
+    } else if (isHovered && !isValidMove) {
+      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      tileContent = (
+        <div className="pbm-card pbm-card--hover" style={{ borderLeftColor: accentColor || '#007bff' }}>
+          <div className="pbm-card-name">{shortDisplayName(spaceName)}</div>
+          {content?.story && (
+            <div className="pbm-card-story">{truncate(content.story, 60)}</div>
+          )}
+          {renderAvatars(playersHere)}
+        </div>
+      );
+    } else {
+      // Compact node (default, valid-move, visited)
+      const nodeClass = [
+        'pbm-node',
+        isValidMove && 'pbm-node--valid-move',
+        !isValidMove && visited && 'pbm-node--visited',
+        playersHere.length > 0 && 'pbm-node--has-players',
+      ].filter(Boolean).join(' ');
+      const nodeStyle: React.CSSProperties = {};
+      if (accentColor) {
+        nodeStyle.borderLeftWidth = '3px';
+        nodeStyle.borderLeftColor = accentColor;
+      }
+      if (playersHere.length > 0 && !isValidMove) {
+        nodeStyle.borderColor = accentColor || '#28a745';
+      }
+      tileContent = (
+        <div className={nodeClass} style={nodeStyle} title={spaceName}>
+          <span>{shortDisplayName(spaceName)}</span>
+          {renderAvatars(playersHere)}
+        </div>
+      );
+    }
+
+    return (
+      <div key={spaceName} className="pbm-slot"
+        onMouseEnter={() => handleMouseEnter(spaceName)}
+        onMouseLeave={handleMouseLeave}
+        onClick={() => setExpandedSpace(isExpanded ? null : spaceName)}>
+        <div className="pbm-slot-line" />
+        {tileContent}
+        <div className="pbm-slot-line" />
+      </div>
     );
   };
 
@@ -388,10 +350,8 @@ export function ProgressBarMap({
     <div key={key} className="pbm-connector" />
   );
 
-  // Render a fork segment — single vertical lines + flex arms
   const renderFork = (seg: Extract<PathSegment, { type: 'fork' }>, segIdx: number) => {
     const forkClass = `pbm-fork${seg.merge ? ' pbm-fork--merge' : ''}`;
-    // Determine if any branch has been visited (for dimming untaken branches)
     const branchVisited = seg.branches.map(branch =>
       branch.nodes.some(n => isVisited(n))
     );
@@ -417,7 +377,6 @@ export function ProgressBarMap({
     );
   };
 
-  // Render a legs segment — vertical column with continuous background line
   const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
     return (
       <div key={`legs-${segIdx}`} className="pbm-legs">
@@ -428,7 +387,6 @@ export function ProgressBarMap({
     );
   };
 
-  // Get the first space name of a segment (for phase lookup)
   const getSegmentFirstSpace = (seg: PathSegment): string | null => {
     if (seg.type === 'node') return seg.name;
     if (seg.type === 'legs') return seg.above;
@@ -436,7 +394,6 @@ export function ProgressBarMap({
     return null;
   };
 
-  // Render a single segment (no phase chip — handled by phase groups)
   const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean) => {
     if (seg.type === 'fork') {
       return (
@@ -470,8 +427,7 @@ export function ProgressBarMap({
           let globalOffset = 0;
           for (let r = 0; r < ri; r++) globalOffset += rows[r].length;
 
-          // Group consecutive segments by phase for phase-group wrappers
-          // Note: row-reverse CSS handles visual reversal — no array reversal needed
+          // Group consecutive segments by phase
           const phaseGroups: { phase: string | null; items: { seg: PathSegment; origIdx: number; si: number }[] }[] = [];
           row.forEach((seg, si) => {
             const origIdx = globalOffset + si;
@@ -493,6 +449,7 @@ export function ProgressBarMap({
                 </div>
               )}
               <div className={`pbm-row ${isReversed ? 'pbm-row--reverse' : ''}`}>
+                {ri > 0 && <div className="pbm-turn-entry" />}
                 {phaseGroups.map((group, gi) => {
                   const colors = group.phase ? PHASE_COLORS[group.phase] : null;
                   const inner = group.items.map(({ seg, origIdx, si }) =>
@@ -516,45 +473,6 @@ export function ProgressBarMap({
           );
         })}
       </div>
-
-      {expandedSpace && (() => {
-        const space = spacesMap.get(expandedSpace);
-        if (!space) return null;
-        const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
-        const npcPrefix = extractPrefix(expandedSpace);
-        const npcInfo = CHARACTER_MAP[npcPrefix];
-        const npcName = npcInfo?.name;
-        const accentColor = npcInfo?.color ?? PHASE_COLORS[phaseMap.get(expandedSpace) ?? '']?.border;
-        const playersHere = getPlayersOnSpace(expandedSpace);
-        return (
-          <div className="pbm-expanded-panel" onClick={() => setExpandedSpace(null)}>
-            <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
-              <strong>{expandedSpace}</strong>
-              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
-            </div>
-            {content?.story && (
-              <div className="pbm-detail-story">
-                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
-                <p>{content.story}</p>
-              </div>
-            )}
-            {content?.action_description && (
-              <div className="pbm-detail-action">
-                <strong>PM Action:</strong> {content.action_description}
-              </div>
-            )}
-            {playersHere.length > 0 && (
-              <div className="pbm-detail-players">
-                {playersHere.map(p => (
-                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
-                    {p.avatar || p.name.charAt(0)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       <div className="pbm-legend">
         {Object.entries(PHASE_COLORS).map(([phase, pc]) => (
