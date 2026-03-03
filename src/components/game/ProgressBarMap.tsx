@@ -302,35 +302,21 @@ export function ProgressBarMap({
       );
     }
 
-    // Expanded (clicked) tile
+    // Expanded (clicked) — render compact node with highlight; detail shown in panel below map
     if (isExpanded) {
-      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
-      const npcName = npcInfo?.name;
       return (
         <motion.div key={spaceName} layout transition={springTransition} className="pbm-slot"
-          onMouseLeave={() => { handleMouseLeave(); setExpandedSpace(null); }}>
-          <div className="pbm-expanded-detail" onClick={() => setExpandedSpace(null)}>
-            <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
-              <strong>{spaceName}</strong>
-              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
-            </div>
-            {content?.story && (
-              <div className="pbm-detail-story">
-                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
-                <p>{content.story}</p>
-              </div>
-            )}
-            {content?.action_description && (
-              <div className="pbm-detail-action">
-                <strong>PM Action:</strong> {content.action_description}
-              </div>
-            )}
+          onMouseEnter={() => handleMouseEnter(spaceName)} onMouseLeave={handleMouseLeave}>
+          <div className={nodeClass + ' pbm-node--expanded'} style={nodeStyle} title={spaceName}
+            onClick={() => setExpandedSpace(null)}>
+            <span>{shortDisplayName(spaceName)}</span>
             {playersHere.length > 0 && (
-              <div className="pbm-detail-players">
-                {playersHere.map(p => (
-                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
+              <div className="pbm-node-avatars">
+                {playersHere.slice(0, 3).map(p => (
+                  <div key={p.id} className="pbm-node-avatar"
+                    style={{ background: p.color || '#007bff' }} title={p.name}>
                     {p.avatar || p.name.charAt(0)}
-                  </span>
+                  </div>
                 ))}
               </div>
             )}
@@ -481,14 +467,14 @@ export function ProgressBarMap({
       <div className="pbm-snake">
         {rows.map((row, ri) => {
           const isReversed = ri % 2 === 1;
-          const displayRow = isReversed ? [...row].reverse() : row;
           let globalOffset = 0;
           for (let r = 0; r < ri; r++) globalOffset += rows[r].length;
 
           // Group consecutive segments by phase for phase-group wrappers
+          // Note: row-reverse CSS handles visual reversal — no array reversal needed
           const phaseGroups: { phase: string | null; items: { seg: PathSegment; origIdx: number; si: number }[] }[] = [];
-          displayRow.forEach((seg, si) => {
-            const origIdx = isReversed ? (globalOffset + row.length - 1 - si) : (globalOffset + si);
+          row.forEach((seg, si) => {
+            const origIdx = globalOffset + si;
             const sp = getSegmentFirstSpace(seg);
             const phase = sp ? (phaseMap.get(sp) ?? null) : null;
             const lastGroup = phaseGroups[phaseGroups.length - 1];
@@ -524,11 +510,51 @@ export function ProgressBarMap({
                   }
                   return <React.Fragment key={`pg-${ri}-${gi}`}>{inner}</React.Fragment>;
                 })}
+                {ri < rows.length - 1 && <div className="pbm-row-spacer" />}
               </div>
             </React.Fragment>
           );
         })}
       </div>
+
+      {expandedSpace && (() => {
+        const space = spacesMap.get(expandedSpace);
+        if (!space) return null;
+        const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+        const npcPrefix = extractPrefix(expandedSpace);
+        const npcInfo = CHARACTER_MAP[npcPrefix];
+        const npcName = npcInfo?.name;
+        const accentColor = npcInfo?.color ?? PHASE_COLORS[phaseMap.get(expandedSpace) ?? '']?.border;
+        const playersHere = getPlayersOnSpace(expandedSpace);
+        return (
+          <div className="pbm-expanded-panel" onClick={() => setExpandedSpace(null)}>
+            <div className="pbm-detail-header" style={{ borderLeftColor: accentColor || '#007bff' }}>
+              <strong>{expandedSpace}</strong>
+              {content?.title && <span className="pbm-detail-title">{content.title}</span>}
+            </div>
+            {content?.story && (
+              <div className="pbm-detail-story">
+                {npcName && <span className="pbm-detail-npc">{npcName} says:</span>}
+                <p>{content.story}</p>
+              </div>
+            )}
+            {content?.action_description && (
+              <div className="pbm-detail-action">
+                <strong>PM Action:</strong> {content.action_description}
+              </div>
+            )}
+            {playersHere.length > 0 && (
+              <div className="pbm-detail-players">
+                {playersHere.map(p => (
+                  <span key={p.id} className="pbm-detail-player-badge" style={{ background: p.color || '#007bff' }}>
+                    {p.avatar || p.name.charAt(0)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="pbm-legend">
         {Object.entries(PHASE_COLORS).map(([phase, pc]) => (

@@ -29,23 +29,29 @@
   align-items: center;
   gap: 0;
   flex-wrap: nowrap;
+  position: relative;
+  z-index: 1;
 }
 
 .pbm-row--reverse {
   flex-direction: row-reverse;
 }
 
-/* U-turn connector between rows — curved */
+/* U-turn connector between rows — curved, overlaps rows via negative margins */
 .pbm-uturn {
   width: 100%;
-  height: 28px;
+  height: 36px;
+  margin-top: -18px;
+  margin-bottom: -18px;
   position: relative;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .pbm-uturn-line {
   position: absolute;
   top: 0;
-  width: 24px;
+  width: 37px;
   height: 100%;
   border: 3px solid #adb5bd;
   box-sizing: border-box;
@@ -53,16 +59,35 @@
 
 /* Right U-turn (row ends right → next row starts right) */
 .pbm-uturn--right .pbm-uturn-line {
-  right: 34px;
+  right: 0;
   border-left: none;
-  border-radius: 0 12px 12px 0;
+  border-radius: 0 14px 14px 0;
 }
 
 /* Left U-turn (row ends left → next row starts left) */
 .pbm-uturn--left .pbm-uturn-line {
-  left: 34px;
+  left: 0;
   border-right: none;
-  border-radius: 12px 0 0 12px;
+  border-radius: 14px 0 0 14px;
+}
+
+/* Spacer fills remaining row width with a horizontal connector line */
+.pbm-row-spacer {
+  flex: 1;
+  align-self: stretch;
+  position: relative;
+  min-width: 4px;
+}
+
+.pbm-row-spacer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #adb5bd;
+  transform: translateY(-50%);
 }
 
 /* A node slot (node + optional branch) */
@@ -205,21 +230,24 @@
   cursor: pointer;
 }
 
-/* Fully expanded detail view (clicked) — story + action panel */
-.pbm-expanded-detail {
-  flex: 0 0 auto;
-  width: 320px;
-  max-width: 90vw;
+/* Expanded node highlight (selected, detail shown in panel below) */
+.pbm-node--expanded {
+  border-color: #495057 !important;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.15);
+  transform: scale(1.05);
+}
+
+/* Expanded detail panel below the snake map */
+.pbm-expanded-panel {
   border-radius: 8px;
-  overflow: hidden;
   cursor: pointer;
   border: 2px solid #495057;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   background: #fff;
   padding: 10px 12px;
   font-size: 12px;
   line-height: 1.4;
+  margin-top: 6px;
 }
 
 .pbm-detail-header {
