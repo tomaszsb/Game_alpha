@@ -37,19 +37,7 @@ function shortDisplayName(spaceName: string): string {
   }
   return name.split('-').map(w => {
     if (w.length <= 2) return w;
-    const lc = w.toLowerCase();
-    if (lc === 'initiation') return 'Init';
-    if (lc === 'application') return 'App';
-    if (lc === 'inspection') return 'Insp';
-    if (lc === 'certificate') return 'Cert';
-    if (lc === 'approval') return 'Appr';
-    if (lc === 'construction') return 'Constr';
-    if (lc === 'preliminary') return 'Prelim';
-    if (lc === 'examination') return 'Exam';
-    if (lc === 'review') return 'Rev';
-    if (lc === 'decision') return 'Dec';
-    if (lc === 'check') return 'Chk';
-    return w.charAt(0).toUpperCase() + lc.slice(1);
+    return w.charAt(0).toUpperCase() + w.toLowerCase().slice(1);
   }).join(' ');
 }
 
@@ -306,10 +294,11 @@ export function ProgressBarMap({
           {renderAvatars(playersHere)}
         </div>
       );
-    } else if (isHovered && !isValidMove) {
+    } else if (isHovered) {
       const content = pickContent();
+      const hoverBorder = isValidMove ? '#ffc107' : (accentColor || '#007bff');
       tileContent = (
-        <div className="pbm-card pbm-card--hover" style={{ borderLeftColor: accentColor || '#007bff' }}>
+        <div className={`pbm-card pbm-card--hover${isValidMove ? ' pbm-card--valid-move' : ''}`} style={{ borderLeftColor: hoverBorder }}>
           <div className="pbm-card-name">{shortDisplayName(spaceName)}</div>
           {content?.story && (
             <div className="pbm-card-story">{truncate(content.story, 60)}</div>
@@ -388,7 +377,7 @@ export function ProgressBarMap({
     return (
       <div key={`legs-${segIdx}`} className="pbm-legs">
         {renderNode(seg.above, { hideLeft: true, hideRight: true })}
-        {renderNode(seg.parent, { hideLeft: true, hideRight: true })}
+        {renderNode(seg.parent)}
         {renderNode(seg.below, { hideLeft: true, hideRight: true })}
       </div>
     );

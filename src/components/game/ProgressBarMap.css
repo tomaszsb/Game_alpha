@@ -44,6 +44,7 @@
   align-items: center;
   cursor: pointer;
   box-sizing: border-box;
+  overflow: visible;
   /* Debug grid — visible dashed outline */
   border: 1px dashed #bbb;
   border-radius: 4px;
@@ -58,19 +59,22 @@
 }
 
 /* ===== U-TURN ===== */
+/* Small gap between rows; the line extends into both rows via negative offsets */
 .pbm-uturn {
   width: 100%;
-  height: 14px;
+  height: 6px;
   position: relative;
+  overflow: visible;
 }
 
 .pbm-uturn-line {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: -24px;
+  bottom: -24px;
   width: 4px;
   background: #adb5bd;
   border-radius: 2px;
+  z-index: 2;
 }
 
 /* Align uturn line flush with container edge */
@@ -112,7 +116,7 @@
 
 /* ===== CONNECTOR (between slots) ===== */
 .pbm-connector {
-  width: 20px;
+  width: 14px;
   height: 4px;
   background: #adb5bd;
   flex-shrink: 0;
@@ -165,7 +169,7 @@
   user-select: none;
   text-align: center;
   line-height: 1.15;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -197,13 +201,20 @@
   border: 2px solid #dee2e6;
   border-left: 4px solid #007bff;
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
 }
 
 .pbm-card--hover {
   width: 100px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Valid-move hover card — yellow accent */
+.pbm-card--valid-move {
+  border-color: #ffc107;
+  background: #fff8e1;
+  animation: pbm-pulse-border 2s infinite;
 }
 
 .pbm-card--expanded {
@@ -247,11 +258,11 @@
   font-size: 9px;
 }
 
-/* ===== PLAYER AVATARS — top-right of tile ===== */
+/* ===== PLAYER AVATARS — top-right, fully visible ===== */
 .pbm-node-avatars {
   position: absolute;
-  top: -7px;
-  right: -5px;
+  top: -8px;
+  right: -4px;
   display: flex;
   gap: 1px;
   z-index: 3;
@@ -271,19 +282,19 @@
   color: #fff;
 }
 
-/* ===== PHASE GROUPS — stretch to row height so borders align ===== */
+/* ===== PHASE GROUPS — use margin-top so content stays aligned ===== */
 .pbm-phase-group {
   position: relative;
   display: flex;
   align-items: stretch;
   border-top: 2px solid;
-  padding-top: 10px;
+  margin-top: 14px;
   overflow: visible;
 }
 
 .pbm-phase-label {
   position: absolute;
-  top: -8px;
+  top: -9px;
   left: 4px;
   font-size: 8px;
   font-weight: 700;
@@ -303,7 +314,7 @@
   align-self: center;
 }
 
-/* Opening vertical line — spans from center of first branch to center of last */
+/* Opening vertical line — spans between branch centers */
 .pbm-fork::before {
   content: '';
   position: absolute;
@@ -316,7 +327,7 @@
   z-index: 1;
 }
 
-/* Closing vertical line — ALL forks get a merge line on right */
+/* Closing vertical line on ALL forks */
 .pbm-fork::after {
   content: '';
   position: absolute;
@@ -342,7 +353,7 @@
 }
 
 .pbm-fork-arm {
-  width: 14px;
+  width: 8px;
   height: 4px;
   background: #adb5bd;
   flex-shrink: 0;
@@ -351,7 +362,7 @@
 
 .pbm-fork-arm--merge {
   flex: 1;
-  min-width: 14px;
+  min-width: 8px;
 }
 
 /* ===== LEGS — centered in row, not stretched ===== */
