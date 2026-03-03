@@ -1,8 +1,7 @@
 // src/components/game/ProgressBarMap.tsx
 //
 // Snake-path mini map — fixed-width slot grid with adaptive row splitting.
-// Each tile occupies a 120px slot. Connector lines inside slots auto-fill
-// remaining space, so expanded tiles grow in-place without shifting layout.
+// Fork vertical lines and u-turn connections are calculated from known heights.
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameContext } from '../../context/GameContext';
@@ -10,7 +9,6 @@ import { Space, Player } from '../../types/DataTypes';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import './ProgressBarMap.css';
 
-// Phase display colors
 const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   'SETUP':        { bg: '#e3f2fd', text: '#1565c0', border: '#2196F3' },
   'OWNER':        { bg: '#e3f2fd', text: '#1565c0', border: '#2196F3' },
@@ -21,7 +19,6 @@ const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }>
   'END':          { bg: '#e0f2f1', text: '#00695c', border: '#009688' },
 };
 
-// Short display name for compact nodes
 const NPC_PREFIXES = ['OWNER-', 'ARCH-', 'ENG-', 'REG-DOB-', 'REG-FDNY-', 'CON-', 'PM-', 'LEND-', 'BANK-', 'INVESTOR-', 'CHEAT-'];
 const SPECIAL_NAMES: Record<string, string> = {
   'FINISH': 'Finish',
@@ -45,7 +42,7 @@ function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
 
-// ------- Hardcoded path definition -------
+// ------- Path definition -------
 
 type PathSegment =
   | { type: 'node'; name: string }
@@ -53,51 +50,43 @@ type PathSegment =
   | { type: 'legs'; parent: string; above: string; below: string };
 
 const GAME_PATH: PathSegment[] = [
-  // SETUP
   { type: 'node', name: 'OWNER-SCOPE-INITIATION' },
   { type: 'node', name: 'OWNER-FUND-INITIATION' },
-  // OWNER — legs above/below PM Check
   { type: 'legs', parent: 'PM-DECISION-CHECK', above: 'OWNER-DECISION-REVIEW', below: 'CHEAT-BYPASS' },
-  // FUNDING
   { type: 'node', name: 'LEND-SCOPE-CHECK' },
   { type: 'fork', branches: [
     { nodes: ['BANK-FUND-REVIEW'] },
     { nodes: ['INVESTOR-FUND-REVIEW'] },
   ]},
-  // DESIGN
   { type: 'node', name: 'ARCH-INITIATION' },
   { type: 'node', name: 'ARCH-FEE-REVIEW' },
   { type: 'node', name: 'ARCH-SCOPE-CHECK' },
   { type: 'node', name: 'ENG-INITIATION' },
   { type: 'node', name: 'ENG-FEE-REVIEW' },
   { type: 'node', name: 'ENG-SCOPE-CHECK' },
-  // REGULATORY (DOB + FDNY parallel)
   { type: 'fork', branches: [
     { nodes: ['REG-DOB-FEE-REVIEW', 'REG-DOB-TYPE-SELECT'] },
     { nodes: ['REG-FDNY-FEE-REVIEW', 'REG-FDNY-PLAN-EXAM'] },
   ]},
-  // DOB choice branch
   { type: 'fork', merge: true, branches: [
     { nodes: ['REG-DOB-PLAN-EXAM'] },
     { nodes: ['REG-DOB-PROF-CERT', 'REG-DOB-AUDIT'] },
   ]},
-  // CONSTRUCTION
   { type: 'node', name: 'CON-INITIATION' },
   { type: 'node', name: 'CON-ISSUES' },
   { type: 'node', name: 'CON-INSPECT' },
-  // FINAL
   { type: 'node', name: 'REG-DOB-FINAL-REVIEW' },
   { type: 'node', name: 'FINISH' },
 ];
 
-// Slot width = 120px tile area + 20px connector = 140px per segment
-const SLOT_WIDTH = 140;
+// --- Known heights for calculations ---
+const BRANCH_H = 36; // fork branch fixed height
+const SLOT_WIDTH = 134; // 120px slot + 14px connector
 
 function segmentSlotCount(seg: PathSegment): number {
   if (seg.type === 'node') return 1;
-  if (seg.type === 'legs') return 2;
-  const maxBranch = Math.max(...seg.branches.map(b => b.nodes.length));
-  return maxBranch + 1 + (seg.merge ? 1 : 0);
+  if (seg.type === 'legs') return 1;
+  return Math.max(...seg.branches.map(b => b.nodes.length));
 }
 
 // ------- Component -------
@@ -153,7 +142,6 @@ export function ProgressBarMap({
     return unsubscribe;
   }, [stateService, movementService]);
 
-  // Split GAME_PATH into rows based on container width
   const rows = useMemo(() => {
     const slotsPerRow = Math.max(4, Math.floor(containerWidth / SLOT_WIDTH));
     const result: PathSegment[][] = [];
@@ -176,7 +164,6 @@ export function ProgressBarMap({
     return result;
   }, [containerWidth]);
 
-  // Hover debounce
   const handleMouseEnter = useCallback((name: string) => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = setTimeout(() => setHoveredSpace(name), 120);
@@ -192,7 +179,6 @@ export function ProgressBarMap({
   const getPlayersOnSpace = useCallback((n: string) => players.filter(p => p.currentSpace === n), [players]);
   const isVisited = useCallback((n: string) => currentPlayer?.visitedSpaces?.includes(n) ?? false, [currentPlayer]);
 
-  // Build spaceName→phase map
   const phaseMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const seg of GAME_PATH) {
@@ -216,7 +202,6 @@ export function ProgressBarMap({
     return map;
   }, [dataService]);
 
-  // Helper: render player avatars
   const renderAvatars = (playersHere: Player[]) => {
     if (playersHere.length === 0) return null;
     return (
@@ -231,7 +216,6 @@ export function ProgressBarMap({
     );
   };
 
-  // Render a single node inside a fixed-width slot
   const renderNode = (spaceName: string, slotOpts?: { hideLeft?: boolean; hideRight?: boolean }) => {
     const space = spacesMap.get(spaceName);
     if (!space) return <div key={spaceName} className="pbm-slot"><div className="pbm-slot-line" /><div className="pbm-node">{spaceName}</div><div className="pbm-slot-line" /></div>;
@@ -247,14 +231,13 @@ export function ProgressBarMap({
     const npcInfo = CHARACTER_MAP[npcPrefix];
     const accentColor = npcInfo?.color ?? PHASE_COLORS[phaseMap.get(spaceName) ?? '']?.border;
 
-    let tileContent: JSX.Element;
-
-    // Pick content based on visit status: show Subsequent for visited spaces
     const pickContent = () => {
       if (!space.content?.length) return undefined;
       if (visited) return space.content.find(c => c.visit_type === 'Subsequent') || space.content[0];
       return space.content.find(c => c.visit_type === 'First') || space.content[0];
     };
+
+    let tileContent: JSX.Element;
 
     if (isCurrentSpace) {
       const content = pickContent();
@@ -307,7 +290,6 @@ export function ProgressBarMap({
         </div>
       );
     } else {
-      // Compact node (default, valid-move, visited)
       const nodeClass = [
         'pbm-node',
         isValidMove && 'pbm-node--valid-move',
@@ -347,13 +329,26 @@ export function ProgressBarMap({
   );
 
   const renderFork = (seg: Extract<PathSegment, { type: 'fork' }>, segIdx: number) => {
-    const forkClass = `pbm-fork${seg.merge ? ' pbm-fork--merge' : ''}`;
+    const numBranches = seg.branches.length;
+    // Calculate vertical line positions from known branch heights
+    const firstArmY = BRANCH_H / 2; // center of first branch
+    const lastArmY = (numBranches - 1) * BRANCH_H + BRANCH_H / 2; // center of last branch
+    const vlineTop = firstArmY;
+    const vlineHeight = lastArmY - firstArmY;
+
     const branchVisited = seg.branches.map(branch =>
       branch.nodes.some(n => isVisited(n))
     );
     const anyBranchVisited = branchVisited.some(Boolean);
+
     return (
-      <div key={`fork-${segIdx}`} className={forkClass}>
+      <div key={`fork-${segIdx}`} className="pbm-fork">
+        {/* Left vertical line — calculated position */}
+        <div className="pbm-fork-vline pbm-fork-vline--left"
+          style={{ top: `${vlineTop}px`, height: `${vlineHeight}px` }} />
+        {/* Right vertical line — calculated position */}
+        <div className="pbm-fork-vline pbm-fork-vline--right"
+          style={{ top: `${vlineTop}px`, height: `${vlineHeight}px` }} />
         {seg.branches.map((branch, bi) => {
           const dimmed = anyBranchVisited && !branchVisited[bi];
           return (
@@ -373,15 +368,13 @@ export function ProgressBarMap({
     );
   };
 
-  const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
-    return (
-      <div key={`legs-${segIdx}`} className="pbm-legs">
-        {renderNode(seg.above, { hideLeft: true, hideRight: true })}
-        {renderNode(seg.parent)}
-        {renderNode(seg.below, { hideLeft: true, hideRight: true })}
-      </div>
-    );
-  };
+  const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => (
+    <div key={`legs-${segIdx}`} className="pbm-legs">
+      {renderNode(seg.above, { hideLeft: true, hideRight: true })}
+      {renderNode(seg.parent)}
+      {renderNode(seg.below, { hideLeft: true, hideRight: true })}
+    </div>
+  );
 
   const getSegmentFirstSpace = (seg: PathSegment): string | null => {
     if (seg.type === 'node') return seg.name;
@@ -423,7 +416,6 @@ export function ProgressBarMap({
           let globalOffset = 0;
           for (let r = 0; r < ri; r++) globalOffset += rows[r].length;
 
-          // Group consecutive segments by phase
           const phaseGroups: { phase: string | null; items: { seg: PathSegment; origIdx: number; si: number }[] }[] = [];
           row.forEach((seg, si) => {
             const origIdx = globalOffset + si;
@@ -439,13 +431,12 @@ export function ProgressBarMap({
 
           return (
             <React.Fragment key={`row-${ri}`}>
-              {ri > 0 && (
-                <div className={`pbm-uturn ${isReversed ? 'pbm-uturn--right' : 'pbm-uturn--left'}`}>
-                  <div className="pbm-uturn-line" />
-                </div>
-              )}
+              {/* U-turn gap (no line — spacer/entry extensions handle the connection) */}
+              {ri > 0 && <div className="pbm-uturn" />}
               <div className={`pbm-row ${isReversed ? 'pbm-row--reverse' : ''}`}>
-                {ri > 0 && <div className="pbm-turn-entry" />}
+                {ri > 0 && (
+                  <div className={`pbm-turn-entry ${isReversed ? 'pbm-turn-entry--right' : 'pbm-turn-entry--left'}`} />
+                )}
                 {phaseGroups.map((group, gi) => {
                   const colors = group.phase ? PHASE_COLORS[group.phase] : null;
                   const inner = group.items.map(({ seg, origIdx, si }, itemIdx) => {
@@ -466,7 +457,9 @@ export function ProgressBarMap({
                   }
                   return <React.Fragment key={`pg-${ri}-${gi}`}>{inner}</React.Fragment>;
                 })}
-                {ri < rows.length - 1 && <div className="pbm-row-spacer" />}
+                {ri < rows.length - 1 && (
+                  <div className={`pbm-row-spacer ${isReversed ? 'pbm-row-spacer--left' : 'pbm-row-spacer--right'}`} />
+                )}
               </div>
             </React.Fragment>
           );
