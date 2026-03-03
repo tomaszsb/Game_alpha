@@ -244,7 +244,7 @@ export function ProgressBarMap({
   };
 
   // Render a single node inside a fixed-width slot
-  const renderNode = (spaceName: string) => {
+  const renderNode = (spaceName: string, slotOpts?: { hideLeft?: boolean; hideRight?: boolean }) => {
     const space = spacesMap.get(spaceName);
     if (!space) return <div key={spaceName} className="pbm-slot"><div className="pbm-slot-line" /><div className="pbm-node">{spaceName}</div><div className="pbm-slot-line" /></div>;
 
@@ -261,8 +261,15 @@ export function ProgressBarMap({
 
     let tileContent: JSX.Element;
 
+    // Pick content based on visit status: show Subsequent for visited spaces
+    const pickContent = () => {
+      if (!space.content?.length) return undefined;
+      if (visited) return space.content.find(c => c.visit_type === 'Subsequent') || space.content[0];
+      return space.content.find(c => c.visit_type === 'First') || space.content[0];
+    };
+
     if (isCurrentSpace) {
-      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const content = pickContent();
       const npcName = npcInfo?.name;
       tileContent = (
         <div className="pbm-card pbm-card--current" style={{ borderLeftColor: accentColor || '#007bff' }}>
@@ -281,7 +288,7 @@ export function ProgressBarMap({
         </div>
       );
     } else if (isExpanded) {
-      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const content = pickContent();
       const npcName = npcInfo?.name;
       tileContent = (
         <div className="pbm-card pbm-card--expanded" style={{ borderLeftColor: accentColor || '#007bff' }}>
@@ -300,7 +307,7 @@ export function ProgressBarMap({
         </div>
       );
     } else if (isHovered && !isValidMove) {
-      const content = space.content?.find(c => c.visit_type === 'First') || space.content?.[0];
+      const content = pickContent();
       tileContent = (
         <div className="pbm-card pbm-card--hover" style={{ borderLeftColor: accentColor || '#007bff' }}>
           <div className="pbm-card-name">{shortDisplayName(spaceName)}</div>
@@ -339,9 +346,9 @@ export function ProgressBarMap({
         onMouseEnter={() => handleMouseEnter(spaceName)}
         onMouseLeave={handleMouseLeave}
         onClick={() => setExpandedSpace(isExpanded ? null : spaceName)}>
-        <div className="pbm-slot-line" />
+        {!slotOpts?.hideLeft && <div className="pbm-slot-line" />}
         {tileContent}
-        <div className="pbm-slot-line" />
+        {!slotOpts?.hideRight && <div className="pbm-slot-line" />}
       </div>
     );
   };
@@ -363,13 +370,13 @@ export function ProgressBarMap({
           return (
             <div key={bi} className={`pbm-fork-branch${dimmed ? ' pbm-fork-branch--dimmed' : ''}`}>
               <div className="pbm-fork-arm" />
-              {branch.nodes.map((spaceName) => (
+              {branch.nodes.map((spaceName, ni) => (
                 <React.Fragment key={spaceName}>
-                  {renderConnector(`fc-${spaceName}`)}
+                  {ni > 0 && renderConnector(`fc-${spaceName}`)}
                   {renderNode(spaceName)}
                 </React.Fragment>
               ))}
-              {seg.merge && <div className="pbm-fork-arm pbm-fork-arm--merge" />}
+              <div className={`pbm-fork-arm${seg.merge ? ' pbm-fork-arm--merge' : ''}`} />
             </div>
           );
         })}
@@ -380,9 +387,9 @@ export function ProgressBarMap({
   const renderLegs = (seg: Extract<PathSegment, { type: 'legs' }>, segIdx: number) => {
     return (
       <div key={`legs-${segIdx}`} className="pbm-legs">
-        {renderNode(seg.above)}
-        {renderNode(seg.parent)}
-        {renderNode(seg.below)}
+        {renderNode(seg.above, { hideLeft: true, hideRight: true })}
+        {renderNode(seg.parent, { hideLeft: true, hideRight: true })}
+        {renderNode(seg.below, { hideLeft: true, hideRight: true })}
       </div>
     );
   };
@@ -394,7 +401,7 @@ export function ProgressBarMap({
     return null;
   };
 
-  const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean) => {
+  const renderSegment = (seg: PathSegment, segIdx: number, showLeadConnector: boolean, edgeOpts?: { hideLeft?: boolean; hideRight?: boolean }) => {
     if (seg.type === 'fork') {
       return (
         <React.Fragment key={`seg-${segIdx}`}>
@@ -414,7 +421,7 @@ export function ProgressBarMap({
     return (
       <React.Fragment key={`seg-${segIdx}-${seg.name}`}>
         {showLeadConnector && renderConnector(`lc-${segIdx}`)}
-        {renderNode(seg.name)}
+        {renderNode(seg.name, edgeOpts)}
       </React.Fragment>
     );
   };
@@ -452,9 +459,12 @@ export function ProgressBarMap({
                 {ri > 0 && <div className="pbm-turn-entry" />}
                 {phaseGroups.map((group, gi) => {
                   const colors = group.phase ? PHASE_COLORS[group.phase] : null;
-                  const inner = group.items.map(({ seg, origIdx, si }) =>
-                    renderSegment(seg, origIdx, si > 0)
-                  );
+                  const inner = group.items.map(({ seg, origIdx, si }, itemIdx) => {
+                    const isFirstEver = ri === 0 && gi === 0 && itemIdx === 0;
+                    const isLastEver = ri === rows.length - 1 && gi === phaseGroups.length - 1 && itemIdx === group.items.length - 1;
+                    const edgeOpts = (isFirstEver || isLastEver) ? { hideLeft: isFirstEver, hideRight: isLastEver } : undefined;
+                    return renderSegment(seg, origIdx, si > 0, edgeOpts);
+                  });
                   if (colors && group.phase) {
                     return (
                       <div key={`pg-${ri}-${gi}`} className="pbm-phase-group" style={{ borderTopColor: colors.border }}>

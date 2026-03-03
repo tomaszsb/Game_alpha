@@ -1,7 +1,7 @@
 /* ProgressBarMap — Fixed-width slot grid with snake path */
 
 .progress-bar-map {
-  padding: 10px 16px;
+  padding: 14px 28px;
   background: #f8f9fa;
   border: 2px solid #dee2e6;
   border-radius: 8px;
@@ -23,12 +23,13 @@
   flex: 1;
 }
 
-/* Each row of the snake */
+/* Each row — stretch so all items share same height (lines align) */
 .pbm-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
   flex-wrap: nowrap;
+  overflow: visible;
 }
 
 .pbm-row--reverse {
@@ -36,33 +37,30 @@
 }
 
 /* ===== FIXED-WIDTH SLOT ===== */
-/* Each tile occupies a 120px slot. Internal flex lines auto-fill
-   remaining space as tiles grow/shrink. */
 .pbm-slot {
   width: 120px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   cursor: pointer;
-  /* Debug grid — light gray outline to visualize slot boundaries */
-  border: 1px dashed #e0e0e0;
-  border-radius: 4px;
   box-sizing: border-box;
+  /* Debug grid — visible dashed outline */
+  border: 1px dashed #bbb;
+  border-radius: 4px;
 }
 
 /* Internal connector lines that fill space around the tile */
 .pbm-slot-line {
   flex: 1;
-  height: 3px;
+  height: 4px;
   background: #adb5bd;
   min-width: 0;
 }
 
 /* ===== U-TURN ===== */
-/* Vertical line at container edge connecting rows */
 .pbm-uturn {
   width: 100%;
-  height: 10px;
+  height: 14px;
   position: relative;
 }
 
@@ -70,21 +68,21 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 4px;
   background: #adb5bd;
   border-radius: 2px;
 }
 
+/* Align uturn line flush with container edge */
 .pbm-uturn--right .pbm-uturn-line {
-  right: 6px;
+  right: 0;
 }
 
 .pbm-uturn--left .pbm-uturn-line {
-  left: 6px;
+  left: 0;
 }
 
 /* ===== SPACER ===== */
-/* Fills remaining row width to container edge with horizontal line */
 .pbm-row-spacer {
   flex: 1;
   align-self: stretch;
@@ -98,33 +96,31 @@
   top: 50%;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
   background: #adb5bd;
   transform: translateY(-50%);
 }
 
 /* ===== TURN ENTRY ===== */
-/* Short horizontal line from uturn edge to first slot */
 .pbm-turn-entry {
   width: 10px;
-  height: 3px;
+  height: 4px;
   background: #adb5bd;
   flex-shrink: 0;
   align-self: center;
 }
 
-/* ===== CONNECTOR ===== */
-/* Horizontal connector with directional arrow between slots */
+/* ===== CONNECTOR (between slots) ===== */
 .pbm-connector {
   width: 20px;
-  height: 3px;
+  height: 4px;
   background: #adb5bd;
   flex-shrink: 0;
   align-self: center;
   position: relative;
 }
 
-/* Arrow pointing right (default flow) */
+/* Arrow pointing right */
 .pbm-connector::after {
   content: '';
   position: absolute;
@@ -133,9 +129,9 @@
   transform: translateY(-50%);
   width: 0;
   height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 5px solid #adb5bd;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid #adb5bd;
 }
 
 /* Arrow pointing left for reversed rows */
@@ -143,7 +139,7 @@
   right: auto;
   left: -1px;
   border-left: none;
-  border-right: 5px solid #adb5bd;
+  border-right: 6px solid #adb5bd;
 }
 
 /* ===== COMPACT NODE ===== */
@@ -165,7 +161,7 @@
   white-space: normal;
   word-break: break-word;
   width: 74px;
-  min-height: 26px;
+  min-height: 34px;
   user-select: none;
   text-align: center;
   line-height: 1.15;
@@ -190,7 +186,6 @@
 }
 
 /* ===== CARD (hover, expanded, current) ===== */
-/* Shared card base */
 .pbm-card {
   border-radius: 6px;
   padding: 5px 7px;
@@ -206,20 +201,17 @@
   cursor: pointer;
 }
 
-/* Hover card — 100px wide */
 .pbm-card--hover {
   width: 100px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-/* Expanded card — fills full slot width */
 .pbm-card--expanded {
   width: 112px;
   border-color: #495057;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Current space card — blue accent, pulsing */
 .pbm-card--current {
   width: 112px;
   border-color: #e3f2fd;
@@ -255,10 +247,10 @@
   font-size: 9px;
 }
 
-/* ===== PLAYER AVATARS ===== */
+/* ===== PLAYER AVATARS — top-right of tile ===== */
 .pbm-node-avatars {
   position: absolute;
-  bottom: -7px;
+  top: -7px;
   right: -5px;
   display: flex;
   gap: 1px;
@@ -279,13 +271,14 @@
   color: #fff;
 }
 
-/* ===== PHASE GROUPS ===== */
+/* ===== PHASE GROUPS — stretch to row height so borders align ===== */
 .pbm-phase-group {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   border-top: 2px solid;
   padding-top: 10px;
+  overflow: visible;
 }
 
 .pbm-phase-label {
@@ -301,35 +294,36 @@
   line-height: 1;
 }
 
-/* ===== FORK ===== */
+/* ===== FORK — centered in row, not stretched ===== */
 .pbm-fork {
   display: flex;
   flex-direction: column;
   gap: 0;
   position: relative;
+  align-self: center;
 }
 
-/* Vertical opening line spanning full fork height */
+/* Opening vertical line — spans from center of first branch to center of last */
 .pbm-fork::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+  top: 18px;
+  bottom: 18px;
+  width: 4px;
   background: #adb5bd;
   border-radius: 3px;
   z-index: 1;
 }
 
-/* Vertical merge line on right side */
-.pbm-fork--merge::after {
+/* Closing vertical line — ALL forks get a merge line on right */
+.pbm-fork::after {
   content: '';
   position: absolute;
   right: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+  top: 18px;
+  bottom: 18px;
+  width: 4px;
   background: #adb5bd;
   border-radius: 3px;
   z-index: 1;
@@ -339,7 +333,7 @@
   display: flex;
   align-items: center;
   gap: 0;
-  min-height: 32px;
+  min-height: 36px;
   transition: opacity 0.3s ease;
 }
 
@@ -349,7 +343,7 @@
 
 .pbm-fork-arm {
   width: 14px;
-  height: 3px;
+  height: 4px;
   background: #adb5bd;
   flex-shrink: 0;
   z-index: 1;
@@ -360,23 +354,23 @@
   min-width: 14px;
 }
 
-/* ===== LEGS ===== */
+/* ===== LEGS — centered in row, not stretched ===== */
 .pbm-legs {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   gap: 4px;
+  align-self: center;
 }
 
-/* Continuous vertical line behind all leg nodes */
 .pbm-legs::before {
   content: '';
   position: absolute;
   left: 50%;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 4px;
   transform: translateX(-50%);
   background: #adb5bd;
   z-index: 0;
