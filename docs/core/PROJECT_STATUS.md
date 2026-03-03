@@ -1,14 +1,26 @@
 # Project Status
 
-**Last Updated**: February 28, 2026
-**Current Phase**: Release Preparation Complete (v2.30.1)
-**Current Version**: 2.30.1
+**Last Updated**: March 3, 2026
+**Current Phase**: Release Preparation Complete (v2.31.0)
+**Current Version**: 2.31.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Snake Map — Fixed-Width Slot Grid (March 3, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.31.0
+- **Changes**:
+  - Complete rewrite of ProgressBarMap with fixed-width 120px slot grid layout
+  - Calculated fork vertical lines using explicit `<div>` elements (replaces CSS pseudo-elements)
+  - Fixed-height fork branches (36px) with overflow:visible — no more stubs on hover/click
+  - U-turn connections via spacer/entry CSS extensions through 6px gap
+  - Three tile states: compact (74px), hover (100px), expanded/current (120px)
+  - Phase groups, direction arrows, fork dimming, visited content, player avatars
+  - Adaptive row splitting based on container width
 
 ### UI Enhancements: Glossary, Active Indicators, Back Button, TV Mode (February 28, 2026) ✅
 - **Status**: ✅ Complete

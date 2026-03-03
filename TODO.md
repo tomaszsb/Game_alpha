@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** February 28, 2026
+**Last Updated:** March 3, 2026
 **Status:** Production Ready - Release Preparation Complete
-**Current Version:** 2.30.1
+**Current Version:** 2.31.0
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Snake Map fixed-width slot grid: calculated fork lines, fixed-height branches, u-turn via spacer/entry extensions, 3 tile states (compact/hover/expanded), phase groups, adaptive row splitting (Mar 3, 2026)
 - ✅ UI Enhancements: Glossary button, active indicators, back-button modal close, TV same-tab navigation (Feb 28, 2026)
 - ✅ NPC Character Identity System: random portraits for 9 NPC roles, shown in story/modals/board tiles, separate PM Action section (Feb 28, 2026)
 - ✅ Data sync fix: SOURCE_FILES and CLEAN_FILES now in sync — editor edits properly flow to game (Feb 28, 2026)
@@ -76,6 +77,23 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] Test from multiple devices
 - [ ] Monitor for critical issues (first 24 hours)
 - [ ] Announce release
+
+---
+
+## 🧹 **Snake Map Cleanup** (after snake map is finalized)
+
+### Dead imports in GameLayout.tsx
+- [ ] Remove unused `GameBoard` import (line 14) — `<GameBoard>` is never rendered
+- [ ] Remove unused `MovementPathVisualization` import (line 16) — never rendered
+- [ ] Remove static placeholder center panel (lines 861-906) — "Game board will be displayed here" dead UI
+
+### GameBoard.tsx — keep file for TVDisplay, but clean up
+- [ ] Remove `validMoves` state — set but never read (`highlightedMoves` is what drives moves)
+- [ ] Remove `console.log` debug statements (lines 244, 246)
+
+### ProgressBarMap.tsx
+- [ ] Simplify `PHASE_COLORS` — `bg` and `text` fields are never used, only `border`
+- [ ] Replace `motion.div` + `springTransition` with plain `<div>` — path is hardcoded/static, layout animations add overhead for no visual benefit
 
 ---
 

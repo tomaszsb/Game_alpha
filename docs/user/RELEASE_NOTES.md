@@ -2,6 +2,30 @@
 
 ---
 
+## v2.31.0 - Snake Map Overhaul (March 3, 2026)
+
+**Release Date:** March 3, 2026
+**Version:** 2.31.0
+**Status:** Alpha Testing
+**Type:** Feature
+
+### Redesigned: Progress map layout
+The snake-path mini map has been completely rebuilt with a fixed-width grid layout. Every game space now occupies a consistent slot width, so tiles stay aligned across rows and nothing shifts when you interact with them.
+
+### New: Hover and click to expand tiles
+Hover over any tile to see a summary card with the space name and story text. Click to expand further and see the full action description. The current space always shows full details with a blue pulsing glow.
+
+### Fixed: Fork connections
+Vertical lines connecting fork branches (like the Bank/Investor funding choice or DOB/FDNY regulatory tracks) now connect precisely to the horizontal arms. Previously, hovering or clicking tiles in forks caused vertical "stubs" to appear — this no longer happens.
+
+### Fixed: U-turn connections
+The vertical lines at row ends now properly connect to the horizontal track lines. Previously there was a visible gap between the U-turn and the track.
+
+### Improved: Visited space content
+Spaces you've already visited now show the "return visit" text when you hover or expand them, matching what you'd see if you landed there again.
+
+---
+
 ## v2.30.1 - UI Polish: Glossary, Active Indicators & Navigation (February 28, 2026)
 
 **Release Date:** February 28, 2026

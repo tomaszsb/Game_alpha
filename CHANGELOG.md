@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Feature: Snake Map — Fixed-Width Slot Grid with Calculated Connections (March 3, 2026)
+
+**Problem:** The snake-path mini map had persistent layout issues across 7+ iterations:
+- Fork vertical lines created "stubs" when tiles were hovered/clicked (branches changed height, making CSS pseudo-element positions wrong)
+- U-turn connections at row ends never touched the horizontal lines
+- Tiles misaligned across rows due to inaccurate slot counting in row splitting
+- Large voids in rows (e.g., after funding fork) because segments over-counted their width
+
+**Solution: Fixed-width slot grid with calculated vertical lines**
+
+**Core architecture:**
+- **Fixed 120px slots**: Each tile occupies a fixed-width slot. Compact nodes (74px), hover cards (100px), and expanded/current cards (120px) render inside the slot. Internal `flex: 1` connector lines auto-fill remaining space.
+- **Calculated fork vertical lines**: Replaced CSS `::before`/`::after` pseudo-elements with explicit `<div>` elements positioned using `top` and `height` calculated from `BRANCH_H = 36px`. Formula: `vlineTop = BRANCH_H / 2`, `vlineHeight = (numBranches - 1) * BRANCH_H`.
+- **Fixed-height fork branches**: `height: 36px; overflow: visible` — hover/expanded cards overflow visually without changing branch layout, eliminating vertical stubs.
+- **U-turn via spacer/entry extensions**: Instead of a separate U-turn line div, the row spacer's `::before` extends downward and the turn-entry's `::before` extends upward through a 6px gap, meeting to form the vertical connection. Direction classes (`--left`/`--right`) position extensions at the correct edge.
+- **Accurate slot counting**: `segmentSlotCount` returns 1 for legs (vertical column), `maxBranchLength` for forks (not +1). `SLOT_WIDTH = 134` (120px slot + 14px connector).
+
+**Tile states (all render directly inside slot, no overlays):**
+| State | Width | Content |
+|-------|-------|---------|
+| Compact | 74px | Name, colored accent border, player avatars |
+| Hover (120ms delay) | 100px | Name + truncated story (60 chars) |
+| Expanded (click) | 120px | Name + story (100 chars) + action (80 chars) |
+| Current space | 120px | Blue pulsing card with full content |
+| Valid move | 74px | Yellow pulsing border, hover shows content |
+
+**Other features:**
+- Phase groups with colored top border and label
+- Direction arrows on connectors (reverse on RTL rows)
+- Fork branch dimming (unvisited branches dim when one is visited)
+- Visited spaces show "Subsequent" visit_type content
+- Player avatars positioned top-right of tiles
+- NPC accent colors on tile left borders
+- Adaptive row splitting based on container width
+- Legend showing all phase colors
+
+**Files modified:**
+- `src/components/game/ProgressBarMap.tsx` — Complete rewrite: hardcoded path definition, fixed-width slot rendering, calculated fork vertical lines, direct tile rendering (no GameSpace import), hover/expand states, phase grouping, adaptive row splitting
+- `src/components/game/ProgressBarMap.css` — Complete rewrite: slot grid layout, fork-vline positioning, fixed-height branches, spacer/entry vertical extensions with direction classes, card styles (hover/expanded/current), removed overlay approach
+
+**Commits:** e0d1d95 through b609c44 (15 iterations)
+
 ### Feature: UI Enhancements — Glossary, Active Indicators, Back Button, TV Mode (February 28, 2026)
 
 **Changes:**
