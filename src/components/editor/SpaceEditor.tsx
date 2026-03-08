@@ -35,22 +35,6 @@ const SECTION_COLORS = {
   buttons: '#868e96',
 };
 
-function getEndTurnLabel(title: string, negotiate: string): string {
-  if (negotiate !== 'YES' || !title) return 'End Turn';
-  const t = title.toLowerCase();
-  if (t.includes('owner')) return 'Agree with Owner';
-  if (t.includes('fee')) return 'Accept Fee';
-  if (t.includes('scope')) return 'Accept Scope';
-  if (t.includes('fund')) return 'Accept Funding';
-  if (t.includes('exam') || t.includes('audit') || t.includes('review')) return 'Accept Result';
-  if (t.includes('contractor') || t.includes('change order')) return 'Accept Terms';
-  return 'Accept & End Turn';
-}
-
-function getTryAgainLabel(negotiate: string): string {
-  return negotiate === 'YES' ? '🔄 Negotiate' : '🔄 Try Again';
-}
-
 export function SpaceEditor({
   spaceFirst,
   spaceSubsequent,
@@ -77,9 +61,6 @@ export function SpaceEditor({
   const handleChange = (field: keyof SpaceRow, value: string) => {
     onFieldChange(visitType, field, value);
   };
-
-  const endTurnLabel = getEndTurnLabel(currentSpace.Title, currentSpace.Negotiate);
-  const tryAgainLabel = getTryAgainLabel(currentSpace.Negotiate);
 
   return (
     <div style={styles.container}>
@@ -156,17 +137,28 @@ export function SpaceEditor({
           </div>
         </fieldset>
 
-        {/* Button Labels — computed from Title + Negotiate */}
+        {/* Button Labels */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
-          <legend style={styles.legend}>🎮 Button Labels (computed from Title + Negotiate)</legend>
+          <legend style={styles.legend}>🎮 Button Labels</legend>
           <div style={styles.fieldRow}>
+            <Field
+              label="End Turn Label"
+              value={currentSpace.end_turn_label}
+              onChange={(v) => handleChange('end_turn_label', v)}
+              placeholder="End Turn"
+            />
+            <Field
+              label="Try Again Label"
+              value={currentSpace.try_again_label}
+              onChange={(v) => handleChange('try_again_label', v)}
+              placeholder="Try Again"
+            />
             <div style={styles.field}>
-              <label style={styles.label}>End Turn →</label>
-              <span style={styles.btnPreviewGreen}>{endTurnLabel}</span>
-            </div>
-            <div style={styles.field}>
-              <label style={styles.label}>Try Again →</label>
-              <span style={styles.btnPreviewYellow}>{tryAgainLabel}</span>
+              <label style={styles.label}>Preview</label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <span style={styles.btnPreviewGreen}>{currentSpace.end_turn_label || 'End Turn'}</span>
+                <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
+              </div>
             </div>
           </div>
         </fieldset>

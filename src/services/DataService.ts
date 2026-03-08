@@ -325,7 +325,9 @@ export class DataService implements IDataService {
         story: values[3],
         action_description: values[4],
         outcome_description: values[5],
-        can_negotiate: values[6].toUpperCase() === 'YES'
+        can_negotiate: values[6].toUpperCase() === 'YES',
+        end_turn_label: values[7] || 'End Turn',
+        try_again_label: values[8] || 'Try Again'
       };
     });
   }

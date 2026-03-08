@@ -31,21 +31,6 @@ const DICE_TYPE_CONFIG: Record<string, { emoji: string; color: string; label: st
 
 const DIE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
-function getEndTurnLabel(title: string, negotiate: string): string {
-  if (negotiate !== 'YES' || !title) return 'End Turn';
-  const t = title.toLowerCase();
-  if (t.includes('owner')) return 'Agree with Owner';
-  if (t.includes('fee')) return 'Accept Fee';
-  if (t.includes('scope')) return 'Accept Scope';
-  if (t.includes('fund')) return 'Accept Funding';
-  if (t.includes('exam') || t.includes('audit') || t.includes('review')) return 'Accept Result';
-  if (t.includes('contractor') || t.includes('change order')) return 'Accept Terms';
-  return 'Accept & End Turn';
-}
-
-function getTryAgainLabel(negotiate: string): string {
-  return negotiate === 'YES' ? '🔄 Negotiate' : '🔄 Try Again';
-}
 
 export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: PlayerPreviewPanelProps): JSX.Element {
   if (!currentSpace) {
@@ -85,8 +70,8 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
     if (v) destinations.push(v);
   }
 
-  const endTurnLabel = getEndTurnLabel(currentSpace.Title, currentSpace.Negotiate);
-  const tryAgainLabel = getTryAgainLabel(currentSpace.Negotiate);
+  const endTurnLabel = currentSpace.end_turn_label || 'End Turn';
+  const tryAgainLabel = currentSpace.try_again_label || 'Try Again';
 
   return (
     <div style={styles.panel}>

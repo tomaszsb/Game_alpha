@@ -256,12 +256,14 @@ function processSpaceContent(spacesCsv) {
     story: row.Event || '',
     action_description: row.Action || '',
     outcome_description: row.Outcome || '',
-    can_negotiate: row.Negotiate || 'No'
+    can_negotiate: row.Negotiate || 'No',
+    end_turn_label: row.end_turn_label || 'End Turn',
+    try_again_label: row.try_again_label || 'Try Again'
   }));
 
   const fieldnames = [
     'space_name', 'visit_type', 'title', 'story', 'action_description',
-    'outcome_description', 'can_negotiate'
+    'outcome_description', 'can_negotiate', 'end_turn_label', 'try_again_label'
   ];
 
   return toCsv(contents, fieldnames);

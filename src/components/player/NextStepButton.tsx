@@ -109,22 +109,13 @@ function buildRemainingActionsTooltip(
   return `Complete ${remaining} actions: ${pendingActions.join(', ')}`;
 }
 
-// Get context-sensitive End Turn label based on space content
+// Get End Turn label from space data (now stored in CSV)
 function getEndTurnLabel(gameServices: IServiceContainer, playerId: string): string {
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return 'End Turn';
 
   const spaceContent = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
-  if (!spaceContent?.can_negotiate || !spaceContent.title) return 'End Turn';
-
-  const title = spaceContent.title.toLowerCase();
-  if (title.includes('owner')) return 'Agree with Owner';
-  if (title.includes('fee')) return 'Accept Fee';
-  if (title.includes('scope')) return 'Accept Scope';
-  if (title.includes('fund')) return 'Accept Funding';
-  if (title.includes('exam') || title.includes('audit') || title.includes('review')) return 'Accept Result';
-  if (title.includes('contractor') || title.includes('change order')) return 'Accept Terms';
-  return 'Accept & End Turn';
+  return spaceContent?.end_turn_label || 'End Turn';
 }
 
 // Function to determine the state of the Next Step Button

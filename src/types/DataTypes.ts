@@ -88,6 +88,8 @@ export interface SpaceContent {
   action_description: string;
   outcome_description: string;
   can_negotiate: boolean;
+  end_turn_label?: string;
+  try_again_label?: string;
   special_action?: string;
   content_text?: string;
   requires_choice?: boolean;

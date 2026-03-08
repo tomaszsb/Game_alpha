@@ -29,7 +29,8 @@ export function exportSpacesCSV(spaces: SpaceRow[]): string {
     'w_card', 'b_card', 'i_card', 'l_card', 'e_card',
     'Time', 'Fee',
     'space_1', 'space_2', 'space_3', 'space_4', 'space_5',
-    'Negotiate', 'requires_dice_roll', 'path', 'rolls'
+    'Negotiate', 'requires_dice_roll', 'path', 'rolls',
+    'end_turn_label', 'try_again_label'
   ];
 
   const rows = spaces.map(space => [
@@ -55,7 +56,9 @@ export function exportSpacesCSV(spaces: SpaceRow[]): string {
     escapeCSV(space.Negotiate),
     escapeCSV(space.requires_dice_roll),
     escapeCSV(space.path),
-    escapeCSV(space.rolls)
+    escapeCSV(space.rolls),
+    escapeCSV(space.end_turn_label),
+    escapeCSV(space.try_again_label)
   ].join(','));
 
   return [headers.join(','), ...rows].join('\n') + '\n';

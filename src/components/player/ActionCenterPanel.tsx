@@ -559,7 +559,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             disabled={!canEndTurn || isEndingTurn}
             title={endTurnTooltip || (canEndTurn ? 'All actions complete - click to end your turn' : '')}
           >
-            <div>{isEndingTurn ? 'Processing...' : 'End Turn'}</div>
+            <div>{isEndingTurn ? 'Processing...' : (spaceContent?.end_turn_label || 'End Turn')}</div>
             {endTurnTooltip && (
               <div className="action-center__end-turn-subtitle">{endTurnTooltip}</div>
             )}
@@ -570,7 +570,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               onClick={() => onTryAgain(playerId)}
               title="Restore to snapshot saved when you arrived at this space"
             >
-              🔄 Renegotiate — I'll take more time
+              {spaceContent?.try_again_label || '🔄 Try Again'}
             </button>
           )}
         </div>

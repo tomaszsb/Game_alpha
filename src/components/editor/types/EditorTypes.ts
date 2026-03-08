@@ -30,6 +30,8 @@ export interface SpaceRow {
   requires_dice_roll: string; // Yes/No
   path: string;       // Path type
   rolls: string;      // Dice roll count
+  end_turn_label: string;   // Custom end turn button label
+  try_again_label: string;  // Custom try again / negotiate button label
 }
 
 /**
