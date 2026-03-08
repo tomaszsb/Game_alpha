@@ -4,7 +4,6 @@ import { getBackendURL } from '../../utils/networkDetection';
 import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../../utils/adminAuth';
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
-import { DiceRollEditor } from './DiceRollEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
 import { exportSpacesCSV, exportDiceRollCSV } from './utils/csvExport';
@@ -109,7 +108,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
   const [phaseFilter, setPhaseFilter] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'spaces' | 'diceRolls'>('spaces');
+  // activeTab removed — dice rolls now inline in SpaceEditor
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -367,28 +366,6 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
           <button onClick={handleClose} style={styles.closeButton}>&times;</button>
         </div>
 
-        {/* Tab Bar */}
-        <div style={styles.tabBar}>
-          <button
-            onClick={() => setActiveTab('spaces')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'spaces' ? styles.tabActive : {})
-            }}
-          >
-            Spaces ({allSpaceNames.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('diceRolls')}
-            style={{
-              ...styles.tab,
-              ...(activeTab === 'diceRolls' ? styles.tabActive : {})
-            }}
-          >
-            Dice Rolls ({diceRollData.length})
-          </button>
-        </div>
-
         {/* Content */}
         <div style={styles.content}>
           {isLoading ? (
@@ -403,7 +380,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                 cp -r data/SOURCE_FILES public/data/
               </code>
             </div>
-          ) : activeTab === 'spaces' ? (
+          ) : (
             <div style={styles.splitPanel}>
               <div style={styles.browserPanel}>
                 <SpaceBrowser
@@ -424,8 +401,12 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                   spaceSubsequent={spaceSubsequent}
                   visitType={visitType}
                   allSpaceNames={allSpaceNames}
+                  diceRollData={diceRollData}
                   onVisitTypeChange={setVisitType}
                   onFieldChange={handleFieldChange}
+                  onUpdateDiceRoll={handleDiceRollUpdate}
+                  onAddDiceRoll={handleAddDiceRoll}
+                  onDeleteDiceRoll={handleDeleteDiceRoll}
                 />
               </div>
               <div style={styles.previewPanel}>
@@ -436,15 +417,6 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                 />
               </div>
             </div>
-          ) : (
-            <DiceRollEditor
-              diceRolls={diceRollData}
-              selectedSpaceId={selectedSpaceId}
-              allSpaceNames={allSpaceNames}
-              onUpdateDiceRoll={handleDiceRollUpdate}
-              onAddDiceRoll={handleAddDiceRoll}
-              onDeleteDiceRoll={handleDeleteDiceRoll}
-            />
           )}
         </div>
 
@@ -613,28 +585,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     padding: '4px 10px',
     color: '#333'
-  },
-  tabBar: {
-    display: 'flex',
-    borderBottom: '1px solid #dee2e6',
-    backgroundColor: '#f8f9fa'
-  },
-  tab: {
-    padding: '10px 20px',
-    border: 'none',
-    background: 'none',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 500,
-    color: '#495057',
-    borderBottom: '2px solid transparent',
-    marginBottom: '-1px'
-  },
-  tabActive: {
-    color: '#007bff',
-    fontWeight: 600,
-    borderBottomColor: '#007bff',
-    backgroundColor: 'white'
   },
   content: {
     flex: 1,
