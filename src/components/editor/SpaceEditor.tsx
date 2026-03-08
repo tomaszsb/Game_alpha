@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { SpaceRow, DiceRollRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS } from './types/EditorTypes';
+import { SpaceRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS } from './types/EditorTypes';
+// Note: Player Preview has been moved to PlayerPreviewPanel.tsx (right-side panel)
 
 interface SpaceEditorProps {
   spaceFirst: SpaceRow | null;
   spaceSubsequent: SpaceRow | null;
   visitType: 'First' | 'Subsequent';
   allSpaceNames: string[];
-  diceRollData: DiceRollRow[];
   onVisitTypeChange: (visitType: 'First' | 'Subsequent') => void;
   onFieldChange: (visitType: 'First' | 'Subsequent', field: keyof SpaceRow, value: string) => void;
 }
@@ -27,50 +27,18 @@ const SECTION_COLORS = {
   cards: '#6f42c1',
   costs: '#fd7e14',
   movement: '#007bff',
-  buttons: '#868e96',
 };
 
-function getEndTurnLabel(title: string, negotiate: string): string {
-  if (negotiate !== 'YES' || !title) return 'End Turn';
-  const t = title.toLowerCase();
-  if (t.includes('owner')) return 'Agree with Owner';
-  if (t.includes('fee')) return 'Accept Fee';
-  if (t.includes('scope')) return 'Accept Scope';
-  if (t.includes('fund')) return 'Accept Funding';
-  if (t.includes('exam') || t.includes('audit') || t.includes('review')) return 'Accept Result';
-  if (t.includes('contractor') || t.includes('change order')) return 'Accept Terms';
-  return 'Accept & End Turn';
-}
-
-function getTryAgainLabel(negotiate: string): string {
-  return negotiate === 'YES' ? '🔄 Negotiate' : '🔄 Try Again';
-}
-
-// Dice roll type display config
-const DICE_TYPE_COLORS: Record<string, { emoji: string; color: string; label: string }> = {
-  'W Cards': { emoji: '🏗️', color: '#6f42c1', label: 'W Cards' },
-  'I Cards': { emoji: '💰', color: '#28a745', label: 'I Cards' },
-  'E cards': { emoji: '⚡', color: '#ff9800', label: 'E Cards' },
-  'Fees Paid': { emoji: '💰', color: '#dc3545', label: 'Fees' },
-  'Fee Paid': { emoji: '💰', color: '#dc3545', label: 'Fees' },
-  'Time outcomes': { emoji: '⏱️', color: '#fd7e14', label: 'Time/Destination' },
-  'Quality': { emoji: '⭐', color: '#17a2b8', label: 'Quality' },
-  'Multiplier': { emoji: '✖️', color: '#6610f2', label: 'Multiplier' },
-  'Multiplier ': { emoji: '✖️', color: '#6610f2', label: 'Multiplier' },
-  'Next Step': { emoji: '🚶', color: '#007bff', label: 'Next Step' },
-};
 
 export function SpaceEditor({
   spaceFirst,
   spaceSubsequent,
   visitType,
   allSpaceNames,
-  diceRollData,
   onVisitTypeChange,
   onFieldChange
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
-  const [previewOpen, setPreviewOpen] = useState(true);
 
   if (!currentSpace) {
     return (
@@ -84,51 +52,6 @@ export function SpaceEditor({
   const handleChange = (field: keyof SpaceRow, value: string) => {
     onFieldChange(visitType, field, value);
   };
-
-  // Collect active effects for preview
-  const effects: { emoji: string; label: string; value: string; color: string }[] = [];
-  const cardFields: { key: keyof SpaceRow; type: string }[] = [
-    { key: 'w_card', type: 'W' },
-    { key: 'b_card', type: 'B' },
-    { key: 'i_card', type: 'I' },
-    { key: 'l_card', type: 'L' },
-    { key: 'e_card', type: 'E' },
-  ];
-  for (const cf of cardFields) {
-    const val = currentSpace[cf.key];
-    if (val) {
-      const cc = CARD_COLORS[cf.type];
-      effects.push({ emoji: cc.emoji, label: `${cc.label} Card`, value: val, color: cc.primary });
-    }
-  }
-  if (currentSpace.Time) {
-    effects.push({ emoji: '⏱️', label: 'Time', value: currentSpace.Time, color: '#fd7e14' });
-  }
-  if (currentSpace.Fee) {
-    effects.push({ emoji: '💰', label: 'Fee', value: currentSpace.Fee, color: '#28a745' });
-  }
-
-  // Dice roll effects (from DiceRoll Info.csv)
-  const spaceDiceRolls = diceRollData.filter(
-    dr => dr.space_name === currentSpace.space_name && dr.visit_type === visitType
-  );
-  for (const dr of spaceDiceRolls) {
-    const diceType = DICE_TYPE_COLORS[dr.die_roll] || { emoji: '🎲', color: '#6c757d', label: dr.die_roll };
-    const rollValues = [dr.roll_1, dr.roll_2, dr.roll_3, dr.roll_4, dr.roll_5, dr.roll_6].filter(Boolean);
-    const uniqueValues = [...new Set(rollValues)];
-    const summary = uniqueValues.length <= 3 ? uniqueValues.join(', ') : `${uniqueValues[0]}...${uniqueValues[uniqueValues.length - 1]}`;
-    effects.push({ emoji: diceType.emoji, label: `Dice: ${diceType.label}`, value: summary, color: diceType.color });
-  }
-
-  // Movement destinations
-  const destinations: string[] = [];
-  for (let i = 1; i <= 5; i++) {
-    const v = currentSpace[`space_${i}` as keyof SpaceRow];
-    if (v) destinations.push(v);
-  }
-
-  const endTurnLabel = getEndTurnLabel(currentSpace.Title, currentSpace.Negotiate);
-  const tryAgainLabel = getTryAgainLabel(currentSpace.Negotiate);
 
   return (
     <div style={styles.container}>
@@ -158,68 +81,6 @@ export function SpaceEditor({
       </div>
 
       <div style={styles.formContainer}>
-        {/* Player Preview (collapsible) */}
-        <div style={styles.previewContainer}>
-          <div
-            style={styles.previewHeader}
-            onClick={() => setPreviewOpen(!previewOpen)}
-          >
-            <span>👁️ Player Preview</span>
-            <span style={{ fontSize: '12px', color: '#868e96' }}>{previewOpen ? '▼' : '▶'}</span>
-          </div>
-          {previewOpen && (
-            <div style={styles.previewBody}>
-              {/* Story box */}
-              {currentSpace.Event ? (
-                <div style={styles.previewStory}>
-                  <div style={styles.previewStoryLabel}>📖 Story</div>
-                  <div style={styles.previewStoryText}>{currentSpace.Event}</div>
-                </div>
-              ) : (
-                <div style={styles.previewEmpty}>No story text</div>
-              )}
-
-              {/* Effects summary */}
-              {effects.length > 0 && (
-                <div style={styles.previewEffects}>
-                  <div style={styles.previewEffectsLabel}>⚡ Effects</div>
-                  <div style={styles.previewEffectsList}>
-                    {effects.map((eff, i) => (
-                      <div key={i} style={styles.previewEffectItem}>
-                        <span style={{ ...styles.previewEffectBadge, backgroundColor: eff.color + '18', color: eff.color, borderColor: eff.color + '40' }}>
-                          {eff.emoji} {eff.label}
-                        </span>
-                        <span style={styles.previewEffectValue}>{eff.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Button labels */}
-              <div style={styles.previewButtons}>
-                <div style={styles.previewButtonsLabel}>🎮 Button Labels</div>
-                <div style={styles.previewButtonRow}>
-                  <span style={styles.previewBtnEndTurn}>{endTurnLabel}</span>
-                  <span style={styles.previewBtnTryAgain}>{tryAgainLabel}</span>
-                </div>
-              </div>
-
-              {/* Movement destinations */}
-              {destinations.length > 0 && (
-                <div style={styles.previewMovement}>
-                  <div style={styles.previewMovementLabel}>🚶 Next Spaces</div>
-                  <div style={styles.previewDestList}>
-                    {destinations.map((d, i) => (
-                      <span key={i} style={styles.previewDestChip}>{d}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
         {/* Group 1: Identity & Config */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.identity}` }}>
           <legend style={styles.legend}>🏷️ Identity & Config</legend>
@@ -387,23 +248,6 @@ export function SpaceEditor({
           )}
         </fieldset>
 
-        {/* Group 6: Button Labels Preview */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
-          <legend style={styles.legend}>🎮 Button Labels Preview</legend>
-          <div style={styles.buttonPreviewRow}>
-            <div style={styles.buttonPreviewItem}>
-              <span style={styles.buttonPreviewLabel}>End Turn shows:</span>
-              <span style={styles.buttonPreviewEndTurn}>{endTurnLabel}</span>
-            </div>
-            <div style={styles.buttonPreviewItem}>
-              <span style={styles.buttonPreviewLabel}>Try Again shows:</span>
-              <span style={styles.buttonPreviewTryAgain}>{tryAgainLabel}</span>
-            </div>
-          </div>
-          <div style={styles.buttonPreviewHint}>
-            Based on Title="{currentSpace.Title || '(empty)'}" + Negotiate="{currentSpace.Negotiate || '(empty)'}"
-          </div>
-        </fieldset>
       </div>
     </div>
   );
@@ -982,175 +826,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     border: '1px solid',
     verticalAlign: 'middle',
-  },
-
-  // Preview panel
-  previewContainer: {
-    border: '1px solid #dee2e6',
-    borderRadius: '6px',
-    marginBottom: '16px',
-    backgroundColor: '#fafbfc',
-    overflow: 'hidden',
-  },
-  previewHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8px 14px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: '#343a40',
-    backgroundColor: '#f1f3f5',
-    userSelect: 'none',
-  },
-  previewBody: {
-    padding: '12px 14px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  previewStory: {},
-  previewStoryLabel: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: '#495057',
-    marginBottom: '4px',
-  },
-  previewStoryText: {
-    fontSize: '14px',
-    lineHeight: '1.5',
-    color: '#2c3e50',
-    padding: '10px 12px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '6px',
-    border: '2px solid #4caf50',
-    fontWeight: 500,
-  },
-  previewEmpty: {
-    fontSize: '13px',
-    color: '#adb5bd',
-    fontStyle: 'italic',
-  },
-  previewEffects: {},
-  previewEffectsLabel: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: '#495057',
-    marginBottom: '4px',
-  },
-  previewEffectsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  previewEffectItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '13px',
-  },
-  previewEffectBadge: {
-    display: 'inline-block',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    fontWeight: 600,
-    border: '1px solid',
-  },
-  previewEffectValue: {
-    color: '#343a40',
-    fontSize: '13px',
-  },
-  previewButtons: {},
-  previewButtonsLabel: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: '#495057',
-    marginBottom: '4px',
-  },
-  previewButtonRow: {
-    display: 'flex',
-    gap: '8px',
-  },
-  previewBtnEndTurn: {
-    display: 'inline-block',
-    padding: '5px 14px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    borderRadius: '4px',
-    fontSize: '13px',
-    fontWeight: 600,
-  },
-  previewBtnTryAgain: {
-    display: 'inline-block',
-    padding: '5px 14px',
-    backgroundColor: '#ffc107',
-    color: '#212529',
-    borderRadius: '4px',
-    fontSize: '13px',
-    fontWeight: 600,
-  },
-  previewMovement: {},
-  previewMovementLabel: {
-    fontSize: '11px',
-    fontWeight: 600,
-    color: '#495057',
-    marginBottom: '4px',
-  },
-  previewDestList: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '6px',
-  },
-  previewDestChip: {
-    display: 'inline-block',
-    padding: '3px 10px',
-    backgroundColor: '#e3f2fd',
-    color: '#007bff',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: 500,
-    border: '1px solid #007bff40',
-  },
-
-  // Button Labels Preview fieldset
-  buttonPreviewRow: {
-    display: 'flex',
-    gap: '20px',
-    marginBottom: '8px',
-  },
-  buttonPreviewItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  buttonPreviewLabel: {
-    fontSize: '12px',
-    color: '#495057',
-  },
-  buttonPreviewEndTurn: {
-    display: 'inline-block',
-    padding: '4px 12px',
-    backgroundColor: '#28a745',
-    color: 'white',
-    borderRadius: '4px',
-    fontSize: '13px',
-    fontWeight: 600,
-  },
-  buttonPreviewTryAgain: {
-    display: 'inline-block',
-    padding: '4px 12px',
-    backgroundColor: '#ffc107',
-    color: '#212529',
-    borderRadius: '4px',
-    fontSize: '13px',
-    fontWeight: 600,
-  },
-  buttonPreviewHint: {
-    fontSize: '11px',
-    color: '#868e96',
-    fontStyle: 'italic',
   },
 
   // Combo / helper styles

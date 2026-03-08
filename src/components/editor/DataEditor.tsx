@@ -5,6 +5,7 @@ import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { DiceRollEditor } from './DiceRollEditor';
+import { PlayerPreviewPanel } from './PlayerPreviewPanel';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
 import { exportSpacesCSV, exportDiceRollCSV } from './utils/csvExport';
 import { colors } from '../../styles/theme';
@@ -423,9 +424,15 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                   spaceSubsequent={spaceSubsequent}
                   visitType={visitType}
                   allSpaceNames={allSpaceNames}
-                  diceRollData={diceRollData}
                   onVisitTypeChange={setVisitType}
                   onFieldChange={handleFieldChange}
+                />
+              </div>
+              <div style={styles.previewPanel}>
+                <PlayerPreviewPanel
+                  currentSpace={visitType === 'First' ? spaceFirst : spaceSubsequent}
+                  visitType={visitType}
+                  diceRollData={diceRollData}
                 />
               </div>
             </div>
@@ -564,9 +571,9 @@ const styles: Record<string, React.CSSProperties> = {
   modal: {
     background: 'white',
     borderRadius: '8px',
-    width: '95%',
-    maxWidth: '1400px',
-    height: '90vh',
+    width: '97%',
+    maxWidth: '1700px',
+    height: '92vh',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden'
@@ -650,6 +657,14 @@ const styles: Record<string, React.CSSProperties> = {
     height: '100%',
     overflow: 'hidden',
     backgroundColor: '#f8f9fa'
+  },
+  previewPanel: {
+    width: '340px',
+    minWidth: '300px',
+    height: '100%',
+    overflow: 'hidden',
+    borderLeft: '2px solid #e0e0e0',
+    backgroundColor: 'white'
   },
   loading: {
     display: 'flex',
