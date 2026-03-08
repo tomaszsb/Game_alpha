@@ -75,6 +75,41 @@ if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
 
+// ===== WRITABLE DATA DIR FOR SOURCE/CLEAN FILES =====
+// Docker runs --read-only, so /app/dist is immutable.
+// Copy baked-in data to writable /app/data on first run.
+const writableDataDir = path.join(CONFIG.DATA_DIR, 'game-data');
+const writableSourceDir = path.join(writableDataDir, 'SOURCE_FILES');
+const writableCleanDir = path.join(writableDataDir, 'CLEAN_FILES');
+const writableBaselineDir = path.join(writableDataDir, 'BASELINE');
+
+function initWritableData() {
+  const distDataDir = path.join(distPath, 'data');
+  // Only initialize if writable dir doesn't have SOURCE_FILES yet
+  if (!fs.existsSync(path.join(writableSourceDir, 'Spaces.csv'))) {
+    console.log('📋 Initializing writable data from dist...');
+    for (const sub of ['SOURCE_FILES', 'CLEAN_FILES', 'BASELINE']) {
+      const src = path.join(distDataDir, sub);
+      const dst = path.join(writableDataDir, sub);
+      if (fs.existsSync(src)) {
+        fs.mkdirSync(dst, { recursive: true });
+        for (const file of fs.readdirSync(src)) {
+          fs.copyFileSync(path.join(src, file), path.join(dst, file));
+        }
+        console.log(`   Copied ${sub}/`);
+      }
+    }
+  } else {
+    console.log('📋 Writable data dir already initialized');
+  }
+}
+
+if (fs.existsSync(distPath)) {
+  initWritableData();
+  // Serve writable data dir BEFORE dist so edited files take precedence
+  app.use('/data', express.static(writableDataDir));
+}
+
 // ===== MULTI-GAME STATE STORAGE =====
 const games = new Map();
 let nextGameNumber = 1;
@@ -366,18 +401,16 @@ app.post('/api/admin/save-source-files', (req, res) => {
   }
 
   try {
-    // Write SOURCE_FILES to dist
-    const sourceDir = path.join(distPath, 'data', 'SOURCE_FILES');
-    const cleanDir = path.join(distPath, 'data', 'CLEAN_FILES');
+    // Write SOURCE_FILES to writable data dir
+    fs.mkdirSync(writableSourceDir, { recursive: true });
+    fs.mkdirSync(writableCleanDir, { recursive: true });
+    fs.writeFileSync(path.join(writableSourceDir, 'Spaces.csv'), spacesCSV, 'utf-8');
+    fs.writeFileSync(path.join(writableSourceDir, 'DiceRoll Info.csv'), diceRollCSV, 'utf-8');
 
-    fs.mkdirSync(sourceDir, { recursive: true });
-    fs.writeFileSync(path.join(sourceDir, 'Spaces.csv'), spacesCSV, 'utf-8');
-    fs.writeFileSync(path.join(sourceDir, 'DiceRoll Info.csv'), diceRollCSV, 'utf-8');
-
-    console.log('📝 SOURCE_FILES written to dist');
+    console.log('📝 SOURCE_FILES written to writable data dir');
 
     // Regenerate CLEAN_FILES
-    const results = processGameData(spacesCSV, diceRollCSV, cleanDir);
+    const results = processGameData(spacesCSV, diceRollCSV, writableCleanDir);
     console.log(`✅ CLEAN_FILES regenerated (${results.length} files)`);
 
     logVisitor(req, 'SAVE_SOURCE_FILES', {
@@ -414,11 +447,7 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
   }
 
   try {
-    const baselineDir = path.join(distPath, 'data', 'BASELINE');
-    const sourceDir = path.join(distPath, 'data', 'SOURCE_FILES');
-    const cleanDir = path.join(distPath, 'data', 'CLEAN_FILES');
-
-    if (!fs.existsSync(baselineDir)) {
+    if (!fs.existsSync(writableBaselineDir)) {
       return res.status(404).json({
         success: false,
         error: 'No baseline found. This feature requires a Docker deployment with BASELINE files.'
@@ -426,19 +455,20 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
     }
 
     // Copy all CSV files from BASELINE to SOURCE_FILES
-    fs.mkdirSync(sourceDir, { recursive: true });
-    const baselineFiles = fs.readdirSync(baselineDir).filter(f => f.endsWith('.csv'));
+    fs.mkdirSync(writableSourceDir, { recursive: true });
+    fs.mkdirSync(writableCleanDir, { recursive: true });
+    const baselineFiles = fs.readdirSync(writableBaselineDir).filter(f => f.endsWith('.csv'));
 
     for (const file of baselineFiles) {
-      fs.copyFileSync(path.join(baselineDir, file), path.join(sourceDir, file));
+      fs.copyFileSync(path.join(writableBaselineDir, file), path.join(writableSourceDir, file));
     }
 
     console.log(`📋 Copied ${baselineFiles.length} baseline files to SOURCE_FILES`);
 
     // Read the restored files and regenerate CLEAN_FILES
-    const spacesCSV = fs.readFileSync(path.join(sourceDir, 'Spaces.csv'), 'utf-8');
-    const diceRollCSV = fs.readFileSync(path.join(sourceDir, 'DiceRoll Info.csv'), 'utf-8');
-    const results = processGameData(spacesCSV, diceRollCSV, cleanDir);
+    const spacesCSV = fs.readFileSync(path.join(writableSourceDir, 'Spaces.csv'), 'utf-8');
+    const diceRollCSV = fs.readFileSync(path.join(writableSourceDir, 'DiceRoll Info.csv'), 'utf-8');
+    const results = processGameData(spacesCSV, diceRollCSV, writableCleanDir);
 
     console.log(`✅ CLEAN_FILES regenerated from baseline (${results.length} files)`);
 
