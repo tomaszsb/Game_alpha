@@ -66,18 +66,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// ===== STATIC FILE SERVING (Production) =====
-// Serve the built frontend from the dist folder
-// This allows running everything on a single port
-const distPath = process.env.DIST_PATH || path.join(process.cwd(), 'dist');
-if (fs.existsSync(distPath)) {
-  console.log(`📁 Serving static files from: ${distPath}`);
-  app.use(express.static(distPath));
-}
-
 // ===== WRITABLE DATA DIR FOR SOURCE/CLEAN FILES =====
 // Docker runs --read-only, so /app/dist is immutable.
-// Copy baked-in data to writable /app/data on first run.
+// Copy baked-in data to writable /app/data/game-data on first run.
+// Writable route is registered BEFORE dist static so edits take precedence.
+const distPath = process.env.DIST_PATH || path.join(process.cwd(), 'dist');
 const writableDataDir = path.join(CONFIG.DATA_DIR, 'game-data');
 const writableSourceDir = path.join(writableDataDir, 'SOURCE_FILES');
 const writableCleanDir = path.join(writableDataDir, 'CLEAN_FILES');
@@ -85,8 +78,16 @@ const writableBaselineDir = path.join(writableDataDir, 'BASELINE');
 
 function initWritableData() {
   const distDataDir = path.join(distPath, 'data');
-  // Only initialize if writable dir doesn't have SOURCE_FILES yet
-  if (!fs.existsSync(path.join(writableSourceDir, 'Spaces.csv'))) {
+  const versionFile = path.join(writableDataDir, '.version');
+  const currentVersion = process.env.VITE_GIT_COMMIT || 'dev';
+  const existingVersion = fs.existsSync(versionFile) ? fs.readFileSync(versionFile, 'utf-8').trim() : '';
+
+  // Re-init BASELINE on every deploy (so reset-to-baseline uses latest)
+  // Only re-init SOURCE/CLEAN if no prior edits exist (first deploy)
+  const needsFullInit = !fs.existsSync(path.join(writableSourceDir, 'Spaces.csv'));
+  const needsBaselineUpdate = currentVersion !== existingVersion;
+
+  if (needsFullInit) {
     console.log('📋 Initializing writable data from dist...');
     for (const sub of ['SOURCE_FILES', 'CLEAN_FILES', 'BASELINE']) {
       const src = path.join(distDataDir, sub);
@@ -99,15 +100,36 @@ function initWritableData() {
         console.log(`   Copied ${sub}/`);
       }
     }
+  } else if (needsBaselineUpdate) {
+    // Update BASELINE from new build but keep user-edited SOURCE/CLEAN
+    const baselineSrc = path.join(distDataDir, 'BASELINE');
+    if (fs.existsSync(baselineSrc)) {
+      fs.mkdirSync(writableBaselineDir, { recursive: true });
+      for (const file of fs.readdirSync(baselineSrc)) {
+        fs.copyFileSync(path.join(baselineSrc, file), path.join(writableBaselineDir, file));
+      }
+      console.log('📋 Updated BASELINE from new deploy');
+    }
   } else {
     console.log('📋 Writable data dir already initialized');
   }
+
+  // Write version marker
+  fs.mkdirSync(writableDataDir, { recursive: true });
+  fs.writeFileSync(versionFile, currentVersion);
 }
 
 if (fs.existsSync(distPath)) {
   initWritableData();
-  // Serve writable data dir BEFORE dist so edited files take precedence
+  // Serve writable data BEFORE dist so edited CSVs take precedence
   app.use('/data', express.static(writableDataDir));
+}
+
+// ===== STATIC FILE SERVING (Production) =====
+// Serve the built frontend from the dist folder (after writable data route)
+if (fs.existsSync(distPath)) {
+  console.log(`📁 Serving static files from: ${distPath}`);
+  app.use(express.static(distPath));
 }
 
 // ===== MULTI-GAME STATE STORAGE =====
