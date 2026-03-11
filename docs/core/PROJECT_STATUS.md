@@ -1,7 +1,7 @@
 # Project Status
 
-**Last Updated**: March 3, 2026
-**Current Phase**: Release Preparation Complete (v2.31.0)
+**Last Updated**: March 10, 2026
+**Current Phase**: Pre-Beta — Codebase Audit Complete (v2.31.0)
 **Current Version**: 2.31.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
@@ -9,6 +9,19 @@ This document provides a high-level overview of the current work status for the 
 ---
 
 ## Recently Completed
+
+### Codebase Audit & Cleanup — Pre-Beta Hardening (March 10, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.31.0
+- **Changes**:
+  - 20 code issues identified and fixed (duplicates, dead code, stale config, missing implementations)
+  - Merged MovementChoiceManager → MovementService, DiscardedCardsModal → DiscardPileModal
+  - Created centralized DebugMode utility, consolidated remoteConfig.ts
+  - CSS deduplication (@keyframes centralized), button colors moved to CSS variables
+  - Build target changed to es2020 for TV browser compatibility
+  - 8 test files fixed (0 regressions), DataEditor tests updated for current UI
+  - Documentation cross-referenced and updated (ARCHITECTURE.md, CLAUDE.md, TODO.md, TESTING_GUIDE.md)
+  - All 1398 tests passing (93 files, 0 failures), TypeScript clean, production build clean
 
 ### Snake Map — Fixed-Width Slot Grid (March 3, 2026) ✅
 - **Status**: ✅ Complete

@@ -2,7 +2,6 @@ import { ITurnService, IDataService, IStateService, IGameRulesService, ICardServ
 import { NegotiationService } from './NegotiationService';
 import { DiceService } from './DiceService';
 import { SpaceEffectService } from './SpaceEffectService';
-import { MovementChoiceManager } from './MovementChoiceManager';
 import { SpaceArrivalProcessor } from './SpaceArrivalProcessor';
 import { DiceRollProcessor } from './DiceRollProcessor';
 import { GameState, Player, DiceResultEffect, TurnEffectResult, CreateTempOptions } from '../types/StateTypes';
@@ -26,7 +25,6 @@ export class TurnService implements ITurnService {
   private readonly diceService: IDiceService;
   private readonly spaceEffectService: ISpaceEffectService;
   private readonly conditionEvaluator: ConditionEvaluator;
-  private readonly movementChoiceManager: MovementChoiceManager;
   private readonly spaceArrivalProcessor: SpaceArrivalProcessor;
   private readonly diceRollProcessor: DiceRollProcessor;
   private readonly notificationService?: INotificationService;
@@ -57,14 +55,6 @@ export class TurnService implements ITurnService {
     );
     // Create ConditionEvaluator with GameRulesService for scope conditions
     this.conditionEvaluator = new ConditionEvaluator(gameRulesService);
-    // Create MovementChoiceManager for unified movement choice handling
-    this.movementChoiceManager = new MovementChoiceManager(
-      stateService,
-      dataService,
-      movementService,
-      choiceService,
-      notificationService
-    );
     // Create SpaceArrivalProcessor for space arrival effect processing
     this.spaceArrivalProcessor = new SpaceArrivalProcessor(
       dataService,
@@ -936,20 +926,20 @@ export class TurnService implements ITurnService {
    * @private
    */
   /**
-   * Handle movement choices at turn start - delegates to MovementChoiceManager
+   * Handle movement choices at turn start - delegates to MovementService
    */
   private async handleMovementChoices(playerId: string): Promise<void> {
-    await this.movementChoiceManager.handleMovementChoices(playerId);
+    await this.movementService.handleMovementChoices(playerId);
   }
 
   /**
-   * Restores movement choice if the current space requires one - delegates to MovementChoiceManager
+   * Restores movement choice if the current space requires one - delegates to MovementService
    * Used after completing manual effects that clear the choice state
    *
    * @private
    */
   private async restoreMovementChoiceIfNeeded(playerId: string): Promise<void> {
-    await this.movementChoiceManager.restoreMovementChoiceIfNeeded(playerId);
+    await this.movementService.restoreMovementChoiceIfNeeded(playerId);
   }
 
   rollDice(): number {

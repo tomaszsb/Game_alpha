@@ -398,40 +398,26 @@ export class NegotiationService {
   }
 
   /**
-   * Accept the current offer in an active negotiation
-   * 
-   * @param playerId - The ID of the player accepting the offer
-   * @returns Promise resolving to the negotiation result
+   * No-op: Negotiation accept/decline is handled by the Try Again (Renegotiate) button.
+   * These methods exist only to satisfy the INegotiationService interface contract.
    */
-  public async acceptOffer(playerId: string): Promise<NegotiationResult> {
-    
-    // For now, return a success result
-    // In a full implementation, this would process the actual offer acceptance
+  public async acceptOffer(_playerId: string): Promise<NegotiationResult> {
     return {
       success: true,
-      message: 'Offer accepted successfully',
+      message: 'Negotiation is handled via Renegotiate (Try Again)',
       newState: this.stateService.getGameState(),
-      negotiationId: 'temp-negotiation-id',
+      negotiationId: '',
       effects: [],
       data: { accepted: true }
     };
   }
 
-  /**
-   * Decline the current offer in an active negotiation
-   * 
-   * @param playerId - The ID of the player declining the offer
-   * @returns Promise resolving to the negotiation result
-   */
-  public async declineOffer(playerId: string): Promise<NegotiationResult> {
-    
-    // For now, return a success result with declined status
-    // In a full implementation, this would process the actual offer decline
+  public async declineOffer(_playerId: string): Promise<NegotiationResult> {
     return {
       success: true,
-      message: 'Offer declined',
+      message: 'Negotiation is handled via Renegotiate (Try Again)',
       newState: this.stateService.getGameState(),
-      negotiationId: 'temp-negotiation-id',
+      negotiationId: '',
       effects: [],
       data: { declined: true }
     };

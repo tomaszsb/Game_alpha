@@ -470,6 +470,15 @@ export interface IMovementService {
   // Choice-based movement methods
   handleMovementChoice(playerId: string): Promise<GameState>;
   handleMovementChoiceV2(playerId: string): Promise<GameState>;
+
+  // Movement choice management (merged from MovementChoiceManager)
+  isDiceBasedMovement(playerId: string): boolean;
+  isLogicMovement(playerId: string): boolean;
+  handleLogicMovement(playerId: string): import('../services/MovementService').MovementChoiceResult;
+  createMovementChoice(playerId: string, options?: import('../services/MovementService').MovementChoiceOptions): Promise<import('../services/MovementService').MovementChoiceResult>;
+  handleMovementChoices(playerId: string): Promise<import('../services/MovementService').MovementChoiceResult>;
+  restoreMovementChoiceIfNeeded(playerId: string): Promise<import('../services/MovementService').MovementChoiceResult>;
+  setNotificationService(service: INotificationService): void;
 }
 
 export interface IGameRulesService {

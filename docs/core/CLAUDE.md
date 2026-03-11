@@ -32,7 +32,7 @@ taskkill /F /IM chrome.exe
 
 **Working Directory**: `/mnt/d/unravel/current_game/game_alpha/`
 
-**Status**: Production-ready codebase (January 2026)
+**Status**: Pre-Beta (v2.31.0) — Alpha complete, preparing for external testing
 
 **Directory Structure:**
 ```
@@ -44,7 +44,7 @@ game_alpha/
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
 │   └── styles/                  # CSS and styling
-├── tests/                        # Test suite (~1,027 tests, 100% passing in batches)
+├── tests/                        # Test suite (1398 tests, 93 files, 100% passing)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -230,9 +230,9 @@ The archive folder is for:
 
 ## 🎯 **MISSION & RESPONSIBILITIES**
 
-**Status:** Game Alpha (Unravel Codes: The Game) is **PRODUCTION READY** (October 2025)
+**Status:** Game Alpha (Unravel Codes: The Game) is in **PRE-BETA** phase (March 2026)
 
-Your mission is to maintain and enhance the Game Alpha production system, a fully functional multi-player board game built with modern architectural best practices.
+Your mission is to maintain and enhance Game Alpha, a fully functional multi-player board game built with modern architectural best practices, currently preparing for Beta/external testing.
 
 **Current Focus:** User Acceptance Testing (UAT) and production polish.
 

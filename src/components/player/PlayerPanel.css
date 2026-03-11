@@ -3,27 +3,7 @@
 /* Import desktop glassmorphism theme */
 @import '../../styles/desktop-theme.css';
 
-/* Bounce animation for movement transition */
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-/* Pulse animation for wait screen */
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-}
+/* bounce and pulse animations are defined in animations.css (imported above) */
 
 .player-panel {
   display: flex;

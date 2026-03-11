@@ -286,7 +286,11 @@ export const createMockMovementService = (): any => ({
   getDiceDestination: vi.fn(),
   
   // Choice-based movement methods
-  handleMovementChoice: vi.fn()
+  handleMovementChoice: vi.fn(),
+  handleMovementChoiceV2: vi.fn(),
+  handleMovementChoices: vi.fn(),
+  restoreMovementChoiceIfNeeded: vi.fn(),
+  createMovementChoice: vi.fn(),
 });
 
 export const createMockNegotiationService = (): any => ({

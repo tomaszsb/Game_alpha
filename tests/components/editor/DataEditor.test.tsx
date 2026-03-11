@@ -87,15 +87,17 @@ describe('DataEditor', () => {
       renderEditor();
 
       await waitFor(() => {
-        expect(screen.getByText('Spaces (2)')).toBeInTheDocument();
+        // After loading, the split panel renders with space names in the browser
+        expect(screen.getByText('TEST-SPACE-1')).toBeInTheDocument();
+        expect(screen.getByText('TEST-SPACE-2')).toBeInTheDocument();
       });
     });
 
-    it('loads and displays dice rolls count', async () => {
+    it('loads and shows editor placeholder after fetch completes', async () => {
       renderEditor();
 
       await waitFor(() => {
-        expect(screen.getByText('Dice Rolls (3)')).toBeInTheDocument();
+        expect(screen.getByText('Select a space to edit')).toBeInTheDocument();
       });
     });
   });
@@ -188,8 +190,8 @@ describe('DataEditor', () => {
         expect(screen.getByDisplayValue('Test event 1')).toBeInTheDocument();
       });
 
-      // Click Subsequent button
-      fireEvent.click(screen.getByText('Subsequent'));
+      // Click Subsequent button (labelled "Sub" in UI)
+      fireEvent.click(screen.getByText('Sub'));
 
       await waitFor(() => {
         expect(screen.getByDisplayValue('Test event 1 sub')).toBeInTheDocument();
@@ -217,43 +219,13 @@ describe('DataEditor', () => {
     });
   });
 
-  describe('Tab Navigation', () => {
-    it('switches to Dice Rolls tab', async () => {
-      renderEditor();
-
-      await waitFor(() => {
-        expect(screen.getByText('Dice Rolls (3)')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Dice Rolls (3)'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Dice Roll Info')).toBeInTheDocument();
-      });
-    });
-
-    it('switches back to Spaces tab', async () => {
-      renderEditor();
-
-      await waitFor(() => {
-        expect(screen.getByText('Dice Rolls (3)')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Dice Rolls (3)'));
-      fireEvent.click(screen.getByText('Spaces (2)'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Select a space to edit')).toBeInTheDocument();
-      });
-    });
-  });
-
   describe('Close Behavior', () => {
     it('closes without warning when no changes made', async () => {
       renderEditor();
 
       await waitFor(() => {
-        expect(screen.getByText('Spaces (2)')).toBeInTheDocument();
+        // Wait for loading to complete
+        expect(screen.getByText('TEST-SPACE-1')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('×'));

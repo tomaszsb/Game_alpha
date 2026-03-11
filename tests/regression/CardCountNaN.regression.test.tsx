@@ -106,6 +106,9 @@ describe('CardCountNaN Regression Tests', () => {
       getDiceDestination: vi.fn(),
       handleMovementChoice: vi.fn(),
       handleMovementChoiceV2: vi.fn(),
+      handleMovementChoices: vi.fn(),
+      restoreMovementChoiceIfNeeded: vi.fn(),
+      createMovementChoice: vi.fn(),
     };
 
     mockNegotiationService = {

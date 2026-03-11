@@ -175,7 +175,7 @@ export default defineConfig({
       }
     },
     // Optimize for performance
-    target: 'esnext',
+    target: 'es2020',
     minify: 'terser',
     terserOptions: {
       compress: {

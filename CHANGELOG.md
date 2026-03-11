@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Codebase Audit & Cleanup — Pre-Beta Hardening (March 10, 2026)
+
+**Scope:** Comprehensive audit of code, tests, configuration, and documentation before beta.
+
+**Code cleanup (20 items):**
+- Removed duplicate `GameState` interface from DataTypes.ts (legacy 5-field version vs 60+ field version in StateTypes.ts)
+- Removed duplicate `ActionButton` component (src/components/common/ was copy of player/ActionButton)
+- Cleaned empty else block in CardEffectHandler.ts (auto-play vs manual-play branching)
+- Simplified NegotiationService accept/decline to no-ops (negotiation = Try Again button)
+- Created centralized `DebugMode` utility (src/utils/debug.ts) with localStorage persistence + window.__debug
+- Updated PlayerDebug to use DebugMode (only renders when enabled, close button to disable)
+- Merged MovementChoiceManager into MovementService (eliminated single-consumer wrapper)
+- Merged DiscardedCardsModal into DiscardPileModal (two modals showing same data)
+- Removed dead `cost = 0 // TODO` code from TimeSection.tsx
+- Consolidated duplicate remoteConfig.ts (dictionary version → shared utils version)
+- Replaced inline formatMoney in ProjectScopeSection with FormatUtils.formatMoney
+- Deduplicated CSS @keyframes (bounce, pulse) — centralized in animations.css
+- Replaced hardcoded button colors with CSS variables in NextStepButton.css
+- Changed Vite build target from 'esnext' to 'es2020' for TV browser compatibility
+- Implemented PlayerViewStateService.buildTurnSummary() using globalActionLog
+- Moved backup CSVs from public/data/archive/ to data/ (not served to users)
+- Deleted unused scripts/ directory (4 migration scripts)
+- Deleted orphaned git branch (xenodochial-brown)
+
+**Documentation updates:**
+- ARCHITECTURE.md: React 18→19, removed stale service count, updated status to Pre-Beta v2.31.0, added SpeechService/WebSocketSyncService, removed MovementChoiceManager, updated size limits
+- CLAUDE.md: Updated status to Pre-Beta v2.31.0
+- TODO.md: Updated status to Pre-Beta — Codebase audit cleanup complete
+
+**Test fixes (8 files, 0 regressions):**
+- Rewrote DiscardPileModal.test.tsx for merged modal + GameContext wrapper
+- Deleted orphaned DiscardedCardsModal.test.tsx
+- Added handleMovementChoices/restoreMovementChoiceIfNeeded to mock MovementService in TurnService, ManualFunding, CardCountNaN, E066-reroll tests and shared mockServices.ts
+- Updated NegotiationService tests for no-op accept/decline behavior
+- Fixed DataEditor tests for removed tab UI (dice rolls inlined) and renamed button labels (1st/Sub)
+
+**Result:** 1398 tests passing, 0 failures, 93 test files, TypeScript clean, production build clean.
+
 ### Feature: Snake Map — Fixed-Width Slot Grid with Calculated Connections (March 3, 2026)
 
 **Problem:** The snake-path mini map had persistent layout issues across 7+ iterations:

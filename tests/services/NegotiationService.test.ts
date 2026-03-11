@@ -196,26 +196,24 @@ describe('NegotiationService', () => {
   });
 
   describe('acceptOffer', () => {
-    it('should accept an offer successfully', async () => {
+    it('should return no-op message (negotiation handled via Try Again)', async () => {
       // Act
       const result = await negotiationService.acceptOffer(mockPlayerId);
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('Offer accepted successfully');
-      expect(result.data?.accepted).toBe(true);
+      expect(result.message).toContain('Renegotiate');
     });
   });
 
   describe('declineOffer', () => {
-    it('should decline an offer successfully', async () => {
+    it('should return no-op message (negotiation handled via Try Again)', async () => {
       // Act
       const result = await negotiationService.declineOffer(mockPlayerId);
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('Offer declined');
-      expect(result.data?.declined).toBe(true);
+      expect(result.message).toContain('Renegotiate');
     });
   });
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '../../../types/DataTypes';
-import { ActionButton } from '../../common/ActionButton';
+import { ActionButton } from '../ActionButton';
 import { ExpandableSection } from '../ExpandableSection';
 
 /**

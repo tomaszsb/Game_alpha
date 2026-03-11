@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
+import { FormatUtils } from '../../../utils/FormatUtils';
 import './ProjectScopeSection.css';
 
 /**
@@ -152,13 +153,8 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   }, [playerId, handKey, activeCardsKey]);
   const totalCosts = workTypeGroups.reduce((sum, group) => sum + group.subtotal, 0);
 
-  // Format money
-  const formatMoney = (amount: number | undefined) => {
-    if (amount === undefined || amount === null || isNaN(amount)) {
-      return '$0';
-    }
-    return `$${amount.toLocaleString()}`;
-  };
+  const formatMoney = (amount: number | undefined) =>
+    FormatUtils.formatMoney(amount ?? 0, { compact: false });
 
   // Handler for manual effects
   const handleManualEffect = async (effectType: string) => {

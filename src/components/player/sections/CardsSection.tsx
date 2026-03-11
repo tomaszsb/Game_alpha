@@ -404,7 +404,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
             <ActionButton label="View History" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View discard history" />
           </div>
         </div>
-        <DiscardPileModal gameServices={gameServices} playerId={playerId} isOpen={showDiscardedModal} onClose={() => setShowDiscardedModal(false)} />
+        <DiscardPileModal isOpen={showDiscardedModal} onClose={() => setShowDiscardedModal(false)} onOpenCardDetailsModal={handleCardDetailsOpen} />
         {selectedCardForDetails && (
           <CardDetailsModal isOpen={true} onClose={handleCardDetailsClose} card={gameServices.dataService.getCardById(selectedCardForDetails) || null} currentPlayer={player} otherPlayers={gameServices.stateService.getAllPlayers().filter(p => p.id !== playerId)} cardService={gameServices.cardService} />
         )}
@@ -556,10 +556,9 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
 
       {/* Discarded Cards Modal */}
       <DiscardPileModal
-        gameServices={gameServices}
-        playerId={playerId}
         isOpen={showDiscardedModal}
         onClose={() => setShowDiscardedModal(false)}
+        onOpenCardDetailsModal={handleCardDetailsOpen}
       />
 
       {/* Card Details Modal */}

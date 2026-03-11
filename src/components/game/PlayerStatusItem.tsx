@@ -8,7 +8,7 @@ import { CardPortfolioDashboard } from './CardPortfolioDashboard';
 import { TurnControlsWithActions } from './TurnControlsWithActions';
 import { useGameContext } from '../../context/GameContext';
 import { FormatUtils } from '../../utils/FormatUtils';
-import { DiscardedCardsModal } from '../modals/DiscardedCardsModal';
+import { DiscardPileModal } from '../modals/DiscardPileModal';
 import { ResponsiveSheet } from '../modals/ResponsiveSheet';
 import { SpaceExplorerPanel } from './SpaceExplorerPanel';
 import { MovementPathVisualization } from './MovementPathVisualization';
@@ -686,9 +686,8 @@ export function PlayerStatusItem({
       </ResponsiveSheet>
 
       {/* Discarded Cards Modal */}
-      <DiscardedCardsModal
-        player={player}
-        isVisible={showDiscardedCards}
+      <DiscardPileModal
+        isOpen={showDiscardedCards}
         onClose={() => setShowDiscardedCards(false)}
         onOpenCardDetailsModal={onOpenCardDetailsModal}
       />

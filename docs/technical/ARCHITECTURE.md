@@ -1,8 +1,8 @@
 # Architecture Guide - Unravel Codes: The Game
 
-**Last Updated:** January 27, 2026
-**Status:** Alpha Testing (v2.12)
-**Test Coverage:** ~1,027 tests passing (in batches)
+**Last Updated:** March 10, 2026
+**Status:** Pre-Beta (v2.31.0)
+**Test Coverage:** 1398 tests passing (93 files, 0 failures)
 
 ---
 
@@ -34,7 +34,7 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ### Technology Stack
 
-- **Frontend:** React 18, TypeScript, Vite
+- **Frontend:** React 19, TypeScript, Vite
 - **Backend:** Express (Node.js) for multi-device state sync
 - **Testing:** Vitest, React Testing Library
 - **Styling:** CSS3 with CSS variables
@@ -44,7 +44,7 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ## Core Services
 
-### Service Overview (26 Service Files)
+### Service Overview
 
 All services are fully typed and comply with TypeScript strict mode:
 
@@ -76,10 +76,12 @@ PlayerViewStateService // Mobile view state management
 DiceService           // Dice rolling and outcome lookup
 SpaceEffectService    // Space effect retrieval
 DiceRollProcessor     // Dice roll processing with callbacks
-MovementChoiceManager // Movement choice creation and management
+// MovementChoiceManager merged into MovementService (March 2026)
 SpaceArrivalProcessor // Space arrival effect processing
 TurnStateManager      // REAL/TEMP state lifecycle management
 TooltipService        // Tooltip content management
+SpeechService         // Text-to-speech character voice narration
+WebSocketSyncService  // WebSocket real-time state synchronization
 ```
 
 ### Service Dependency Pattern
@@ -845,7 +847,7 @@ npm test tests/services/TurnService.test.tsx
 ### File Size Limits
 
 - **Components:** <1,000 lines (prefer <400)
-- **Services:** <300 lines
+- **Services:** <800 lines (prefer <400)
 - **Utilities:** <150 lines
 - **Tests:** No limit (comprehensive coverage required)
 
@@ -896,5 +898,5 @@ For related architecture topics, see:
 
 ---
 
-**Last Updated:** January 15, 2026
+**Last Updated:** March 10, 2026
 **Maintained By:** Claude (AI Lead Programmer)

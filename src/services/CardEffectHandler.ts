@@ -244,12 +244,10 @@ export class CardEffectHandler implements ICardEffectHandler {
     const { payload } = effect;
     try {
 
-      // Check if this is an auto-play scenario (e.g., OWNER-FUND-INITIATION)
-      const isAutoPlay = payload.source?.startsWith('auto_play:');
-
-      if (isAutoPlay) {
+      // Auto-play cards (e.g., OWNER-FUND-INITIATION) need their effects applied here.
+      // Manual card plays already had effects processed by PlayerActionService before reaching this point.
+      if (payload.source?.startsWith('auto_play:')) {
         await this.cardService.applyCardEffects(payload.playerId, payload.cardId);
-      } else {
       }
 
       // Finalize card (move to active or discard based on duration)

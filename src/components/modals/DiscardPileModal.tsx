@@ -1,62 +1,57 @@
 // src/components/modals/DiscardPileModal.tsx
 
-import React, { useState, useEffect } from 'react';
-import { IServiceContainer } from '../../types/ServiceContracts';
+import React, { useState } from 'react';
 import { Card } from '../../types/DataTypes';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { CardTypeBadge, getCardTypeColors } from '../common/CardTypeBadge';
 import { colors, theme } from '../../styles/theme';
+import { useGameContext } from '../../context/GameContext';
 
 interface DiscardPileModalProps {
-  gameServices: IServiceContainer;
-  playerId: string;
   isOpen: boolean;
   onClose: () => void;
+  onOpenCardDetailsModal?: (cardId: string) => void;
 }
 
-export function DiscardPileModal({ gameServices, playerId, isOpen, onClose }: DiscardPileModalProps) {
-  const [discardedCards, setDiscardedCards] = useState<Card[]>([]);
+/**
+ * DiscardPileModal displays all discarded cards from the global discard piles.
+ * Features: filter by card type, sort controls, click-to-view card details.
+ */
+export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: DiscardPileModalProps) {
+  const { stateService, dataService } = useGameContext();
   const [filterType, setFilterType] = useState<'all' | 'W' | 'B' | 'E' | 'L' | 'I'>('all');
   const [sortBy, setSortBy] = useState<'type' | 'name' | 'turn'>('turn');
 
-  useEffect(() => {
-    if (!isOpen) return;
+  if (!isOpen) return null;
 
-    const fetchDiscardedCards = () => {
-      const allDiscardedCardIds: string[] = [];
-      const gameState = gameServices.stateService.getGameState();
+  const gameState = stateService.getGameState();
+  const discardPiles = gameState.discardPiles || {};
 
-      for (const cardType of ['W', 'B', 'E', 'L', 'I']) {
-        allDiscardedCardIds.push(...(gameState.discardPiles[cardType as keyof typeof gameState.discardPiles] || []));
+  // Collect all discarded cards
+  const allDiscardedCards: Card[] = [];
+  for (const cardType of ['W', 'B', 'E', 'L', 'I']) {
+    const cardIds = discardPiles[cardType as keyof typeof discardPiles] || [];
+    for (const cardId of cardIds) {
+      const card = dataService.getCardById(cardId);
+      if (card) {
+        allDiscardedCards.push(card);
       }
+    }
+  }
 
-      const cards = allDiscardedCardIds
-        .map(cardId => gameServices.dataService.getCardById(cardId))
-        .filter((card): card is Card => card !== undefined);
-
-      setDiscardedCards(cards);
-    };
-
-    fetchDiscardedCards();
-
-    const unsubscribe = gameServices.stateService.subscribe(() => {
-      fetchDiscardedCards();
-    });
-
-    return unsubscribe;
-  }, [isOpen, gameServices, playerId]);
-
-  const filteredCards = discardedCards.filter(card =>
+  // Filter
+  const filteredCards = allDiscardedCards.filter(card =>
     filterType === 'all' || card.card_type === filterType
   );
 
+  // Sort
   const sortedCards = [...filteredCards].sort((a, b) => {
     if (sortBy === 'type') return a.card_type.localeCompare(b.card_type);
     if (sortBy === 'name') return a.card_name.localeCompare(b.card_name);
     return a.card_name.localeCompare(b.card_name);
   });
 
-  const playerName = gameServices.stateService.getPlayer(playerId)?.name || 'Player';
+  const isClickable = !!onOpenCardDetailsModal;
 
   const selectStyle: React.CSSProperties = {
     padding: '10px 12px',
@@ -87,9 +82,9 @@ export function DiscardPileModal({ gameServices, playerId, isOpen, onClose }: Di
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title={`Discard Pile - ${playerName}`}
+      title="Discard Pile"
       emoji={theme.emoji.discard}
-      maxWidth="500px"
+      maxWidth="600px"
       footer={footer}
       testId="discard-pile-modal"
     >
@@ -128,37 +123,80 @@ export function DiscardPileModal({ gameServices, playerId, isOpen, onClose }: Di
 
       {/* Card List */}
       {sortedCards.length === 0 ? (
-        <p style={{ textAlign: 'center', color: colors.text.secondary, padding: '20px' }}>
-          Discard pile is empty.
-        </p>
+        <div style={{
+          textAlign: 'center',
+          color: colors.text.secondary,
+          fontSize: '16px',
+          fontStyle: 'italic',
+          padding: '40px 24px',
+        }}>
+          {allDiscardedCards.length === 0
+            ? 'No discarded cards yet'
+            : 'No cards match the selected filter'}
+        </div>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '8px',
+        }}>
           {sortedCards.map(card => {
             const cardColors = getCardTypeColors(card.card_type);
             return (
-              <li key={card.card_id} style={{
-                backgroundColor: cardColors.bg,
-                borderRadius: theme.borderRadius.sm,
-                padding: '12px 16px',
-                marginBottom: '8px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                border: `2px solid ${cardColors.border}`,
-                gap: '12px',
-              }}>
-                <span style={{
-                  fontWeight: '600',
-                  color: cardColors.text,
-                  flex: 1,
-                }}>
-                  {card.card_name}
-                </span>
-                <CardTypeBadge type={card.card_type} size="sm" variant="pill" />
-              </li>
+              <div
+                key={card.card_id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  backgroundColor: cardColors.bg,
+                  border: `2px solid ${cardColors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  padding: '10px 12px',
+                  cursor: isClickable ? 'pointer' : 'default',
+                  transition: theme.transitions.fast,
+                  minHeight: isClickable ? theme.mobile.minTapTarget : undefined,
+                }}
+                onClick={isClickable ? () => onOpenCardDetailsModal!(card.card_id) : undefined}
+                onMouseEnter={isClickable ? (e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = theme.shadows.sm;
+                } : undefined}
+                onMouseLeave={isClickable ? (e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                } : undefined}
+                title={isClickable ? `Click to view: ${card.card_name}` : card.card_name}
+              >
+                <CardTypeBadge type={card.card_type} size="sm" variant="pill" showLabel={false} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontWeight: '600',
+                    color: cardColors.text,
+                    marginBottom: '2px',
+                    fontSize: '14px',
+                  }}>
+                    {card.card_name}
+                  </div>
+                  {card.description && (
+                    <div style={{
+                      color: colors.text.secondary,
+                      fontSize: '12px',
+                      lineHeight: '1.3',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
+                      {card.description}
+                    </div>
+                  )}
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
 
       {/* Card Count */}

@@ -67,12 +67,9 @@ npm run test:isolated       # Ultra-fast pure logic tests
 
 | Test Category         | Tests                   | Status                |
 |-----------------------|-------------------------|-----------------------|
-| Service Tests         | 564 tests (24 files)    | ✅ Passing            |
-| Component Tests       | 306 tests (28 files)    | ✅ Passing            |
-| E2E/Regression/Other  | ~157 tests (35 files)   | ✅ Passing            |
-| **Full Suite**        | **~1,027 tests (87 files)** | **✅ Passing in batches** |
+| **Full Suite**        | **1398 tests (93 files)** | **✅ All Passing** |
 
-*Note: Test counts updated January 27, 2026. Tests must be run in batches due to module-level mock isolation issues - running all together may hang.*
+*Note: Test counts updated March 10, 2026 after codebase audit. Full suite runs in ~68 seconds.*
 
 ## 🛠️ Writing Tests
 

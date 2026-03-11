@@ -87,8 +87,6 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
   // Check if there are any time manual actions available
   const hasTimeActions = timeManualEffects.length > 0;
 
-  // Calculate cost (days required for current action) - may need to be implemented
-  const cost = 0; // TODO: Implement cost calculation if needed
   const elapsed = player.timeSpent;
 
   const handleManualEffect = async (effectType: string) => {
@@ -309,13 +307,6 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
           </div>
         )}
 
-        {/* Cost info if applicable */}
-        {cost > 0 && (
-          <div className="stat-line">
-            <span className="stat-label">Upcoming Cost:</span>
-            <span className="stat-value">{cost}d</span>
-          </div>
-        )}
       </div>
     </ExpandableSection>
   );

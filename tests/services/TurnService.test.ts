@@ -155,6 +155,9 @@ const mockMovementService: anyIMovementService = {
   getDiceDestination: vi.fn(),
   handleMovementChoice: vi.fn(),
   handleMovementChoiceV2: vi.fn(),
+  handleMovementChoices: vi.fn(),
+  restoreMovementChoiceIfNeeded: vi.fn(),
+  createMovementChoice: vi.fn(),
 };
 
 const mockNegotiationService = {

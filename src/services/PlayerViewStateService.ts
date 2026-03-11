@@ -554,16 +554,48 @@ export class PlayerViewStateService implements IPlayerViewStateService {
   /**
    * Build turn summary for SUMMARY_MODE.
    */
-  private buildTurnSummary(_player: Player, _gameState: GameState): TurnSummary {
-    // TODO: Implement turn summary based on action log
-    // For now, return minimal summary
+  private buildTurnSummary(player: Player, gameState: GameState): TurnSummary {
+    // Build summary from the global action log for this player's current turn
+    const playerLogs = (gameState.globalActionLog || []).filter(
+      entry => entry.playerId === player.id &&
+               entry.isCommitted &&
+               entry.globalTurnNumber === gameState.globalTurnCount
+    );
+
+    let moneyChange = 0;
+    let timeChange = 0;
+    const cardsDrawn: string[] = [];
+    const cardsDiscarded: string[] = [];
+    const effectsApplied: string[] = [];
+
+    for (const entry of playerLogs) {
+      switch (entry.type) {
+        case 'resource_change':
+          if (entry.details?.resourceType === 'money') moneyChange += (entry.details.amount ?? 0);
+          if (entry.details?.resourceType === 'time') timeChange += (entry.details.amount ?? 0);
+          effectsApplied.push(entry.description);
+          break;
+        case 'card_draw':
+          cardsDrawn.push(entry.details?.cardName ?? entry.description);
+          break;
+        case 'card_discard':
+          cardsDiscarded.push(entry.details?.cardName ?? entry.description);
+          break;
+        case 'space_effect':
+        case 'dice_roll':
+        case 'manual_action':
+          effectsApplied.push(entry.description);
+          break;
+      }
+    }
+
     return {
-      spaceVisited: _player.currentSpace,
-      moneyChange: 0,
-      timeChange: 0,
-      cardsDrawn: [],
-      cardsDiscarded: [],
-      effectsApplied: []
+      spaceVisited: player.currentSpace,
+      moneyChange,
+      timeChange,
+      cardsDrawn,
+      cardsDiscarded,
+      effectsApplied
     };
   }
 

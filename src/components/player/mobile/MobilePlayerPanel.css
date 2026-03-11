@@ -1,3 +1,6 @@
+/* Import centralized animations */
+@import '../../../styles/animations.css';
+
 /* src/components/player/mobile/MobilePlayerPanel.css
  *
  * Styles for the mobile player panel components.
@@ -316,16 +319,7 @@
    Animations
    ============================================================ */
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
-}
+/* pulse animation defined in animations.css (imported at top) */
 
 /* ============================================================
    Responsive Adjustments

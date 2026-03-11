@@ -28,6 +28,7 @@ import { haptics } from '../../utils/haptics';
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
+import { PlayerDebug } from '../debug/PlayerDebug';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -1048,6 +1049,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         </div>
       )}
 
+      <PlayerDebug />
     </div>
   );
 }

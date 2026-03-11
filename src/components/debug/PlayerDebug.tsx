@@ -1,13 +1,32 @@
 // Debug component to check player data rendering
+// Only renders when debug mode is enabled (toggle via window.__debug.enable())
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { colors } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
+import { DebugMode } from '../../utils/debug';
 
-export function PlayerDebug(): JSX.Element {
+export function PlayerDebug(): JSX.Element | null {
   const { stateService } = useGameContext();
   const gameState = stateService.getGameState();
-  
+
+  const [debugEnabled, setDebugEnabled] = useState(() => DebugMode.isEnabled());
+
+  const handleStorageChange = useCallback((e: StorageEvent) => {
+    if (e.key === 'game_debug_mode') {
+      setDebugEnabled(DebugMode.isEnabled());
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [handleStorageChange]);
+
+  if (!debugEnabled) {
+    return null;
+  }
+
   return (
     <div style={{
       position: 'fixed',
@@ -23,12 +42,28 @@ export function PlayerDebug(): JSX.Element {
       maxHeight: '400px',
       overflow: 'auto'
     }}>
-      <h4 style={{ margin: '0 0 8px 0', color: colors.primary.main }}>🐛 Player Debug Info</h4>
-      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 8px 0' }}>
+        <h4 style={{ margin: 0, color: colors.primary.main }}>Player Debug Info</h4>
+        <button
+          onClick={() => DebugMode.disable()}
+          style={{
+            background: 'none',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '10px',
+            padding: '2px 6px',
+            color: colors.text.secondary,
+          }}
+        >
+          Close
+        </button>
+      </div>
+
       <div><strong>Game Phase:</strong> {gameState.gamePhase}</div>
       <div><strong>Current Player ID:</strong> {gameState.currentPlayerId || 'None'}</div>
       <div><strong>Players Count:</strong> {gameState.players.length}</div>
-      
+
       {gameState.players.map((player, index) => (
         <div key={player.id} style={{
           border: `1px solid ${colors.secondary.border}`,
@@ -45,7 +80,7 @@ export function PlayerDebug(): JSX.Element {
           <div><strong>Time:</strong> {player.timeSpent} days</div>
           <div><strong>Color:</strong> {player.color}</div>
           <div><strong>Avatar:</strong> {player.avatar}</div>
-          
+
           <div><strong>Hand:</strong> {player.hand?.length || 0} cards</div>
           <div style={{ marginLeft: '10px', fontSize: '10px' }}>
             {player.hand?.join(', ') || 'No cards'}

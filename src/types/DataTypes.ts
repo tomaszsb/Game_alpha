@@ -234,14 +234,6 @@ export interface Player {
   };
 }
 
-export interface GameState {
-  players: Player[];
-  currentPlayerIndex: number;
-  gamePhase: string;
-  isGameOver: boolean;
-  winner?: string;
-}
-
 export interface Card {
   card_id: string;
   card_name: string;
