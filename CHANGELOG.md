@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### BoardV3 — Data-driven board with SVG arrows (March 16, 2026)
+
+**Replaced ProgressBarMap with BoardV3** — the game board is now fully data-driven with SVG arrow routing.
+
+**New files:**
+- `src/components/board/BoardV3.tsx` — Main board component (~570 lines)
+- `src/components/board/BoardV3.css` — Board styles with pre-allocated 190px slots
+- `src/utils/boardLayout.ts` — Pure logic engine (path building, edge building, row splitting) with 83 tests
+- `tests/utils/boardLayout.test.ts` — Comprehensive test suite
+
+**Key improvements over ProgressBarMap:**
+- Data-driven path: `buildGamePathFromData()` reads CSV data instead of hardcoded GAME_PATH array
+- SVG arrow system: 3-pass routing (route edges → separate parallel lines → render with rounded corners)
+- Obstacle avoidance: arrows route around expanded cards (L-shape, Z-shape fallback)
+- Fan-out trunk routing: PM Check → 6+ branches through single shared vertical line
+- Mini-fork rendering: stacked sub-branches within fork rows (Bank/Investor, Plan Exam/Prof Cert)
+- Convergence nodes: cross-branch arrows with dedicated 50px padding for routing space
+- Pre-allocated 190px slot width: tile expansion doesn't shift layout or deform arrows
+- Gap-based return arrow routing: horizontal segments cross through gaps between branch rows
+
+**Integration:**
+- Wired into `GameLayout.tsx` replacing `<ProgressBarMap>` during PLAY phase
+- Uses existing DataService for CSV data, existing game state for player positions
+- Supports all existing interactions: hover preview, click expand, valid move highlighting
+
 ### Codebase Audit & Cleanup — Pre-Beta Hardening (March 10, 2026)
 
 **Scope:** Comprehensive audit of code, tests, configuration, and documentation before beta.

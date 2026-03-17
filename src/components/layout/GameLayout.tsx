@@ -17,6 +17,7 @@ import { MovementPathVisualization } from '../game/MovementPathVisualization';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { ProgressBarMap } from '../game/ProgressBarMap';
+import { BoardV3 } from '../board/BoardV3';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
@@ -907,10 +908,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* ProgressBarMap - snake map in right column during PLAY phase */}
+          {/* BoardV3 - data-driven snake map with SVG arrows during PLAY phase */}
           {gamePhase === 'PLAY' && (
             <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
-              <ProgressBarMap
+              <BoardV3
                 currentPlayerId={currentPlayerId}
                 players={players}
               />

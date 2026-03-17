@@ -2,6 +2,27 @@
 
 ---
 
+## v2.32.0 - Board V3: SVG Arrows & Pre-Allocated Layout (March 16, 2026)
+
+**Release Date:** March 16, 2026
+**Version:** 2.32.0
+**Status:** Alpha Testing
+**Type:** Feature
+
+### Redesigned: SVG arrow connections
+The board now uses SVG arrows to show connections between spaces instead of CSS lines. Arrows route around obstacles, use rounded corners, and are color-coded by game phase. Fork branches and cross-branch connections are clearly visible.
+
+### Improved: Stable layout on interaction
+All board slots are now pre-allocated at full card width (190px). Hovering or expanding a tile no longer shifts neighboring tiles or arrows — everything stays in place.
+
+### Removed: Owner and Funding phase headers
+The Owner and Funding phase group borders have been removed from the board for a cleaner look. Phase colors still appear in the legend.
+
+### Technical: Data-driven board path
+The board path is now built directly from game CSV data instead of a hardcoded path array. This means any changes to game spaces in the Data Editor automatically update the board layout.
+
+---
+
 ## v2.31.0 - Snake Map Overhaul (March 3, 2026)
 
 **Release Date:** March 3, 2026

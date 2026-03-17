@@ -1,14 +1,27 @@
 # Project Status
 
-**Last Updated**: March 10, 2026
-**Current Phase**: Pre-Beta — Codebase Audit Complete (v2.31.0)
-**Current Version**: 2.31.0
+**Last Updated**: March 16, 2026
+**Current Phase**: Pre-Beta — BoardV3 Production (v2.32.0)
+**Current Version**: 2.32.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### BoardV3 — SVG Arrows & Pre-Allocated Layout (March 16, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.32.0
+- **Changes**:
+  - Migrated standalone BoardV3 prototype to React production component
+  - Pre-allocated 190px slots eliminate layout shift on hover/expand
+  - SVG arrow system with 3-pass routing: obstacle avoidance, parallel line separation, rounded corners
+  - Data-driven path built from CSV via buildGamePathFromData()
+  - DataService adapter layer converts typed objects to boardLayout string-indexed types
+  - 83 unit tests for pure logic in boardLayout.ts
+  - Replaces ProgressBarMap in GameLayout
+  - Owner/Funding phase group headers removed for cleaner board
 
 ### Codebase Audit & Cleanup — Pre-Beta Hardening (March 10, 2026) ✅
 - **Status**: ✅ Complete
