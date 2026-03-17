@@ -16,6 +16,8 @@ COPY package*.json ./
 RUN npm install -g npm@latest
 
 # Install ALL dependencies (including build tools)
+# Skip Puppeteer browser download — not needed in production
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci
 
 # Copy source code
