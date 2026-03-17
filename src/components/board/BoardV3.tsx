@@ -302,16 +302,15 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
 
   // ---- SVG Arrow Drawing (imperative, runs after render) ----
   useLayoutEffect(() => {
-    // Double-rAF ensures layout is fully painted before measuring
+    let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
         drawArrows();
       });
-      // Store raf2 for cleanup — not critical since drawArrows is idempotent
-      (raf1 as unknown as { raf2: number }).raf2 = raf2;
     });
     return () => {
       cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
     };
   });
 
