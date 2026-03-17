@@ -36,7 +36,9 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
   const [hoveredSpace, setHoveredSpace] = useState<string | null>(null);
   const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  const [zoomScale, setZoomScale] = useState<number | null>(null); // null = fit-to-screen
   const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -301,6 +303,34 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
       </div>
     );
   };
+
+  // ---- Fit-to-screen scale calculation ----
+  const [fitScale, setFitScale] = useState(1);
+
+  useLayoutEffect(() => {
+    if (zoomScale !== null) return;
+    const outer = containerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    // Measure at scale=1 to find natural size
+    inner.style.transform = 'scale(1)';
+    inner.style.transformOrigin = 'top left';
+    const naturalW = inner.scrollWidth;
+    const naturalH = inner.scrollHeight;
+    const availW = outer.clientWidth - 8; // small padding
+    const availH = outer.clientHeight - 40; // room for legend + controls
+    if (naturalW > 0 && naturalH > 0) {
+      const s = Math.min(availW / naturalW, availH / naturalH, 1);
+      setFitScale(s);
+      inner.style.transform = `scale(${s})`;
+    }
+  });
+
+  const activeScale = zoomScale !== null ? zoomScale : fitScale;
+
+  const handleZoomIn = () => setZoomScale(Math.min((activeScale) + 0.1, 2));
+  const handleZoomOut = () => setZoomScale(Math.max((activeScale) - 0.1, 0.2));
+  const handleZoomFit = () => setZoomScale(null);
 
   // ---- SVG Arrow Drawing (imperative, runs after render) ----
   useLayoutEffect(() => {
@@ -740,8 +770,17 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
   // ---- Main render ----
   return (
     <div className="board-v3" ref={containerRef}>
-      <svg className="svg-arrows" ref={svgRef} />
-      <div className="pbm-snake">
+      <div className="pbm-zoom-controls">
+        <button className="pbm-zoom-btn" onClick={handleZoomOut} title="Zoom out">−</button>
+        <button className="pbm-zoom-btn" onClick={handleZoomFit} title="Fit to screen">Fit</button>
+        <button className="pbm-zoom-btn" onClick={handleZoomIn} title="Zoom in">+</button>
+        <span className="pbm-zoom-label">{Math.round(activeScale * 100)}%</span>
+      </div>
+      <div className="pbm-zoom-wrapper">
+        <div className="pbm-zoom-inner" ref={innerRef}
+          style={{ transform: `scale(${activeScale})`, transformOrigin: 'top left' }}>
+          <svg className="svg-arrows" ref={svgRef} />
+          <div className="pbm-snake">
         {rows.map((row, ri) => {
           const isReversed = ri % 2 === 1;
           let globalOffset = 0;
@@ -798,6 +837,8 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
             </React.Fragment>
           );
         })}
+      </div>
+        </div>
       </div>
       <div className="pbm-legend">
         {Object.entries(PHASE_COLORS).map(([phase, pc]) => (

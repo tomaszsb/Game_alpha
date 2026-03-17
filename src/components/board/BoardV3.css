@@ -320,6 +320,53 @@
   border-radius: 50%;
 }
 
+/* ===== ZOOM CONTROLS ===== */
+.board-v3 .pbm-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 4px;
+  flex-shrink: 0;
+}
+
+.board-v3 .pbm-zoom-btn {
+  width: 28px;
+  height: 22px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #fff;
+  color: #495057;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.board-v3 .pbm-zoom-btn:hover {
+  background: #e9ecef;
+}
+
+.board-v3 .pbm-zoom-label {
+  font-size: 9px;
+  color: #6c757d;
+  min-width: 30px;
+  text-align: center;
+}
+
+.board-v3 .pbm-zoom-wrapper {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.board-v3 .pbm-zoom-inner {
+  position: relative;
+  transform-origin: top left;
+}
+
 /* ===== ANIMATIONS ===== */
 @keyframes board-v3-pulse-glow {
   0%, 100% { box-shadow: 0 0 4px rgba(0, 123, 255, 0.4); }
