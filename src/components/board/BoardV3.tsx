@@ -348,34 +348,46 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
 
   function drawArrows() {
     const svg = svgRef.current;
-    const container = containerRef.current;
-    if (!svg || !container) return;
+    const inner = innerRef.current;
+    if (!svg || !inner) return;
 
-    const cRect = container.getBoundingClientRect();
-    const containerW = container.scrollWidth;
+    // Measure relative to the unscaled inner container
+    const scale = activeScale;
+    const cRect = inner.getBoundingClientRect();
+    const containerW = inner.scrollWidth;
 
     svg.setAttribute('width', String(containerW));
-    svg.setAttribute('height', String(container.scrollHeight));
+    svg.setAttribute('height', String(inner.scrollHeight));
     svg.style.width = containerW + 'px';
-    svg.style.height = container.scrollHeight + 'px';
+    svg.style.height = inner.scrollHeight + 'px';
+
+    // Build set of visible spaces (visited + valid moves + current)
+    const visibleSpaces = new Set<string>();
+    if (currentPlayer) {
+      if (currentPlayer.currentSpace) visibleSpaces.add(currentPlayer.currentSpace);
+      currentPlayer.visitedSpaces?.forEach(s => visibleSpaces.add(s));
+    }
+    validMoves.forEach(s => visibleSpaces.add(s));
+    // Also add spaces where any player sits
+    players.forEach(p => { if (p.currentSpace) visibleSpaces.add(p.currentSpace); });
 
     // ---- Measure tile positions ----
     const rects: Record<string, { left: number; right: number; top: number; bottom: number; cx: number; cy: number }> = {};
-    container.querySelectorAll('[data-space]').forEach(el => {
+    inner.querySelectorAll('[data-space]').forEach(el => {
       const htmlEl = el as HTMLElement;
       const node = htmlEl.querySelector('.pbm-node');
       const card = htmlEl.querySelector('.pbm-card');
       const tile = (node || card) as HTMLElement | null;
       if (!tile) return;
       const b = tile.getBoundingClientRect();
-      const sl = container.scrollLeft, st = container.scrollTop;
+      // Undo CSS scale to get unscaled coordinates
       const r = {
-        left: b.left - cRect.left + sl,
-        right: b.right - cRect.left + sl,
-        top: b.top - cRect.top + st,
-        bottom: b.bottom - cRect.top + st,
-        cx: (b.left + b.right) / 2 - cRect.left + sl,
-        cy: (b.top + b.bottom) / 2 - cRect.top + st,
+        left: (b.left - cRect.left) / scale,
+        right: (b.right - cRect.left) / scale,
+        top: (b.top - cRect.top) / scale,
+        bottom: (b.bottom - cRect.top) / scale,
+        cx: ((b.left + b.right) / 2 - cRect.left) / scale,
+        cy: ((b.top + b.bottom) / 2 - cRect.top) / scale,
       };
       if (card && !node) {
         r.cx = (r.left + r.right) / 2;
@@ -550,6 +562,8 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
 
     for (const edge of EDGES) {
       const [from, to, edgeTag] = edge;
+      // Only draw arrows connecting visible (visited/valid/current) spaces
+      if (!visibleSpaces.has(from) && !visibleSpaces.has(to)) continue;
       const isMerge = edgeTag === 'merge';
       const a = rects[from], b = rects[to];
       if (!a || !b) continue;
