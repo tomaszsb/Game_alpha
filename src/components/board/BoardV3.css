@@ -131,6 +131,10 @@
   border-width: 2.5px;
 }
 
+.board-v3 .pbm-node--undiscovered {
+  opacity: 0.25;
+}
+
 /* ===== CARD (hover / expanded / current) ===== */
 .board-v3 .pbm-card {
   border-radius: 6px;

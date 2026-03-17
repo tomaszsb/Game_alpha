@@ -221,11 +221,13 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
       );
     }
 
+    const undiscovered = !visited && !isValid && !isCurrent && playersHere.length === 0;
     const nodeClass = [
       'pbm-node',
       isValid && 'pbm-node--valid-move',
       !isValid && visited && 'pbm-node--visited',
       playersHere.length > 0 && 'pbm-node--has-players',
+      undiscovered && 'pbm-node--undiscovered',
     ].filter(Boolean).join(' ');
 
     return (
