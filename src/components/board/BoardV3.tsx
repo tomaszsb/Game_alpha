@@ -562,8 +562,8 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
 
     for (const edge of EDGES) {
       const [from, to, edgeTag] = edge;
-      // Only draw arrows connecting visible (visited/valid/current) spaces
-      if (!visibleSpaces.has(from) && !visibleSpaces.has(to)) continue;
+      // Only draw arrows where both endpoints are visible (visited/valid/current)
+      if (!visibleSpaces.has(from) || !visibleSpaces.has(to)) continue;
       const isMerge = edgeTag === 'merge';
       const a = rects[from], b = rects[to];
       if (!a || !b) continue;
