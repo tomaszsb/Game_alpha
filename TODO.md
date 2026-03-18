@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** March 16, 2026
-**Status:** Pre-Beta — BoardV3 migrated to production
-**Current Version:** 2.32.0
+**Last Updated:** March 18, 2026
+**Status:** Pre-Beta — Editor hardening
+**Current Version:** 2.33.0
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Space Data Editor: card button labels (5 new CSV columns), title in header, path in movement section, negotiate-based preview, 27 regression tests (Mar 18, 2026)
 - ✅ BoardV3 production migration: pre-allocated 190px slots, SVG arrow system with obstacle avoidance, data-driven path from CSV, 83 unit tests, replaces ProgressBarMap (Mar 16, 2026)
 - ✅ Snake Map fixed-width slot grid: calculated fork lines, fixed-height branches, u-turn via spacer/entry extensions, 3 tile states (compact/hover/expanded), phase groups, adaptive row splitting (Mar 3, 2026)
 - ✅ UI Enhancements: Glossary button, active indicators, back-button modal close, TV same-tab navigation (Feb 28, 2026)

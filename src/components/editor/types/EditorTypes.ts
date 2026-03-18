@@ -32,6 +32,11 @@ export interface SpaceRow {
   rolls: string;      // Dice roll count
   end_turn_label: string;   // Custom end turn button label
   try_again_label: string;  // Custom try again / negotiate button label
+  w_card_label: string;     // Custom button label for W card action
+  b_card_label: string;     // Custom button label for B card action
+  i_card_label: string;     // Custom button label for I card action
+  l_card_label: string;     // Custom button label for L card action
+  e_card_label: string;     // Custom button label for E card action
 }
 
 /**

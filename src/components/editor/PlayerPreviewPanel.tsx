@@ -72,6 +72,7 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
 
   const endTurnLabel = currentSpace.end_turn_label || 'End Turn';
   const tryAgainLabel = currentSpace.try_again_label || 'Try Again';
+  const showTryAgain = currentSpace.Negotiate === 'YES';
 
   return (
     <div style={styles.panel}>
@@ -234,7 +235,9 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
       {/* ZONE 3: Turn Controls — matches action-center__turn-controls */}
       <div style={styles.turnControls}>
         <div style={styles.endTurnBtn}>{endTurnLabel}</div>
-        <div style={styles.tryAgainBtn}>{tryAgainLabel}</div>
+        {showTryAgain && (
+          <div style={styles.tryAgainBtn}>{tryAgainLabel}</div>
+        )}
       </div>
     </div>
   );

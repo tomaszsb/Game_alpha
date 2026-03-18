@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Space Data Editor — Regression Tests & Missing Fields (March 18, 2026)
+
+**Comprehensive editor regression test suite and missing field additions.**
+
+**Editor UI improvements:**
+- Title (display name) moved to header bar — inline editable between space name and 1st/Sub toggle
+- Path Type dropdown moved from Identity & Config to Movement Destinations section — switching to LOGIC is now right next to the movement fields it controls
+- Negotiate/Try Again button preview now hides based on `Negotiate=NO` dropdown, not on empty label
+- Cards section reorganized: 5-column grid layout with button label inputs next to each card dropdown
+
+**New data columns — card action button labels (5 new CSV columns):**
+- `w_card_label`, `b_card_label`, `i_card_label`, `l_card_label`, `e_card_label`
+- Custom per-space button labels for card action buttons (e.g., "Hire Expeditor" instead of "Draw 3 E cards")
+- When empty, falls back to auto-generated label from processGameData.js
+- Labels flow through SPACE_EFFECTS.csv `description` field → ActionCenterPanel button rendering
+
+**Updated files:**
+- `src/components/editor/types/EditorTypes.ts` — 5 new SpaceRow fields
+- `src/components/editor/DataEditor.tsx` — parse + default new columns
+- `src/components/editor/utils/csvExport.ts` — export new columns
+- `src/components/editor/SpaceEditor.tsx` — CardFieldWithLabel component, title in header, path in movement, negotiate-based preview
+- `src/components/editor/PlayerPreviewPanel.tsx` — try again button hides when Negotiate=NO
+- `server/processGameData.js` — use custom label for SPACE_EFFECTS description
+- `public/data/SOURCE_FILES/Spaces.csv` — header updated with 5 new columns
+
+**Test improvements:**
+- Updated mock CSV from 22 to 30 columns (was missing Title, end_turn_label, try_again_label, and 5 new label columns)
+- Added LOGIC path test space for movement builder coverage
+- 27 regression tests covering: all Identity fields, Button Labels, Story & Narrative, Cards with labels, Movement (direct + LOGIC), Dice Roll Outcomes, field editing, all fieldset sections
+- Fixed pre-existing close button test broken by delete buttons
+
 ### BoardV3 — Data-driven board with SVG arrows (March 16, 2026)
 
 **Replaced ProgressBarMap with BoardV3** — the game board is now fully data-driven with SVG arrow routing.

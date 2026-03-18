@@ -23,6 +23,8 @@ ENG-INITIATION,First,Engineer Search,Time to find a structural engineer. More ca
 ENG-INITIATION,Subsequent,Engineer Redesign Review,I've been going over the structural calculations. We might need some changes here.,The engineer reviews the specs. Watch carefully for the verdict.,,YES
 ENG-FEE-REVIEW,First,Engineer Fee Review,Engineer negotiates their initial fees.,Every penny counts - you get your best man involved.,,YES
 ENG-FEE-REVIEW,Subsequent,Engineer Additional Fees,Engineer negotiates additional architect fees.,How do we make this sound like it is included in the original fee?,,YES
+ENG-BUDGET-CHECK,First,Engineer Budget Check,The engineer's numbers don't add up. Time to review the structural budget.,Review the engineer's budget breakdown and approve or flag discrepancies.,,NO
+ENG-BUDGET-CHECK,Subsequent,Engineer Budget Revision,Back to the budget table. The engineer has revised their cost estimates.,Check the updated figures. Every dollar counts at this stage.,,NO
 ENG-SCOPE-CHECK,First,Engineer Scope Check,Engineer's team finished their design. Time for another final presentation.,I am not building a rocket ship. Why is this taking so long? What will the design be?,,YES
 ENG-SCOPE-CHECK,Subsequent,Engineer Design Review,Engineer subsequent design review determination.,The roll of drawings you got does not look any different. You wonder if there are changes.,,YES
 OWNER-DECISION-REVIEW,First,Owner Decision Review,Some decisions require owners input. Especially when owner wants it THEIR WAY.,The owners ponder and tell you their plans.,,YES
@@ -31,6 +33,8 @@ CHEAT-BYPASS,First,Cheat Bypass,Let's get this shit done at any cost! they said�
 CHEAT-BYPASS,Subsequent,Cheat Bypass Retry,Cheating last time did not go so well. You still want to try but are a lot more careful.,Review path and fees are determined by 1 dice roll.,,No
 REG-DOB-FEE-REVIEW,First,DOB Fee Review,Owner pays DOB fees.,Fork over the cash…And hire a few staff.,,NO
 REG-DOB-FEE-REVIEW,Subsequent,DOB Additional Fees,Determine if additional fees are due to Department of Buildings.,hope not to fork over more cash…And replace staff.,,YES
+REG-DOB-SITE-VISIT,First,DOB Site Visit,A DOB inspector wants to see the site before processing your application.,Prepare the site and escort the inspector. Hope nothing looks out of place.,,NO
+REG-DOB-SITE-VISIT,Subsequent,DOB Site Re-inspection,The inspector is back for a follow-up visit. Apparently something was missed.,Make sure all previous issues have been addressed before the walkthrough.,,NO
 REG-DOB-TYPE-SELECT,First,DOB Path Selection,Project manager chooses (slow and low risk) or (fast and high risk) path at DOB.,You have a choice to say Plan Exam (slow) or Prof Cert (fast).,,NO
 REG-DOB-TYPE-SELECT,Subsequent,DOB Processing Wait,Waiting for Clerks to process files or for appointment.,Hurry Up and Wait…,,NO
 REG-DOB-PLAN-EXAM,First,DOB Plan Exam,Let me review these plans. I need to verify everything meets building code.,Wait for the examiner's determination. You can negotiate if the result is unfavorable.,,YES
@@ -47,6 +51,8 @@ CON-INITIATION,First,Contractor Selection,"Alright, let's talk business. You nee
 CON-INITIATION,Subsequent,Change Order Negotiation,"Look, things changed on site. We need to renegotiate the terms.",The contractor wants a change order. Negotiate the time extension.,,YES
 CON-ISSUES,First,Construction Issues,Construction many time unearths unforeseen issues in the field.,You attempt to resolve everything on the spot because delays are expensive.,,No
 CON-ISSUES,Subsequent,More Construction Issues,Problems never stop at a construction site - but every day counts.,Once again you try to prevent issues. No time for delays.,,No
+CON-SAFETY-BRIEF,First,Safety Briefing,Before the inspector arrives you need to make sure everyone is on the same page.,Brief the crew on safety protocols and check all permits are posted.,,NO
+CON-SAFETY-BRIEF,Subsequent,Safety Refresher,Another inspection means another safety review. The crew is getting tired of these.,Quick refresher on protocols. At least this time they know the drill.,,NO
 CON-INSPECT,First,Construction Inspection,That inspector looks fresh this is either good or bad news.,You notice a safety violation and distract the inspector making him look the other way - will it work?,,No
 CON-INSPECT,Subsequent,Follow-up Inspection,Inspector Johnes never liked you; but at least he tries to be fair.,Luckily the Frank's team just finished in time for this inspection. You think it should be smooth sailing.,,No
 REG-DOB-FINAL-REVIEW,First,DOB Final Review,The clerks are having a birthday party. Everything is delayed an hour,At least the clerks will be happy - you think when you hand in the final files.,,YES

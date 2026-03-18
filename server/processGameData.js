@@ -292,6 +292,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
 
     // Card effects (from Spaces.csv columns)
     const cardTypes = { w_card: 'W', b_card: 'B', i_card: 'I', l_card: 'L', e_card: 'E' };
+    const cardLabelCols = { w_card: 'w_card_label', b_card: 'b_card_label', i_card: 'i_card_label', l_card: 'l_card_label', e_card: 'e_card_label' };
     for (const [colName, cardLetter] of Object.entries(cardTypes)) {
       const cardValue = (row[colName] || '').trim();
       if (!cardValue) continue;
@@ -303,6 +304,10 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         triggerType = 'auto';
       }
 
+      // Use custom button label from CSV if provided, otherwise auto-generate
+      const customLabel = (row[cardLabelCols[colName]] || '').trim();
+      const description = customLabel || `${cardValue} ${cardLetter} cards`;
+
       effects.push({
         space_name: spaceName,
         visit_type: visitType,
@@ -310,7 +315,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         effect_action: `draw_${cardLetter}`,
         effect_value: cardValue,
         condition: '',
-        description: `${cardValue} ${cardLetter} cards`,
+        description: description,
         trigger_type: triggerType
       });
     }

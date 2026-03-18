@@ -2,6 +2,26 @@
 
 ---
 
+## v2.33.0 - Space Data Editor: Custom Button Labels & Layout Improvements (March 18, 2026)
+
+**Release Date:** March 18, 2026
+**Version:** 2.33.0
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### New: Custom button labels for card actions
+You can now set custom button labels for each card action in the Space Data Editor. Instead of the auto-generated "Draw 1 W cards", you can write player-friendly text like "Add Work Package" or "Hire Expeditor". Leave the label empty to use the auto-generated default.
+
+### Improved: Editor layout
+- The space display name (Title) is now editable directly in the header bar next to the space name, making it quicker to find and edit.
+- The Path Type dropdown has moved to the Movement Destinations section, so switching between direct and LOGIC movement is right where you see its effect.
+- The Try Again / Negotiate button preview now hides based on the Negotiate dropdown being set to NO, rather than the label being empty.
+
+### Fixed: Editor regression test coverage
+The editor test suite has been expanded from 14 to 27 tests, covering all fields, sections, and edit operations. Previously missing test coverage for Title, button labels, and LOGIC movement builder has been added.
+
+---
+
 ## v2.32.0 - Board V3: SVG Arrows & Pre-Allocated Layout (March 16, 2026)
 
 **Release Date:** March 16, 2026

@@ -1,14 +1,25 @@
 # Project Status
 
-**Last Updated**: March 16, 2026
-**Current Phase**: Pre-Beta — BoardV3 Production (v2.32.0)
-**Current Version**: 2.32.0
+**Last Updated**: March 18, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.0)
+**Current Version**: 2.33.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Space Data Editor: Card Labels, Title, Path, Preview (March 18, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.33.0
+- **Changes**:
+  - 5 new CSV columns for custom card button labels (w/b/i/l/e_card_label)
+  - Title field moved to header bar (inline editable between space name and 1st/Sub toggle)
+  - Path Type dropdown moved to Movement section
+  - Negotiate-based preview: Try Again button hidden when Negotiate=NO
+  - Card button labels flow through processGameData to SPACE_EFFECTS.csv description field
+  - 27 regression tests covering all editor sections and field types
 
 ### BoardV3 — SVG Arrows & Pre-Allocated Layout (March 16, 2026) ✅
 - **Status**: ✅ Complete

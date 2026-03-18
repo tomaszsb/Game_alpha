@@ -64,9 +64,20 @@ export function SpaceEditor({
 
   return (
     <div style={styles.container}>
-      {/* Header with space name and visit type toggle */}
+      {/* Header with space name, title, and visit type toggle */}
       <div style={styles.header}>
-        <h3 style={styles.spaceName}>{currentSpace.space_name}</h3>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={styles.spaceName}>{currentSpace.space_name}</h3>
+            <input
+              type="text"
+              value={currentSpace.Title || ''}
+              onChange={(e) => handleChange('Title', e.target.value)}
+              placeholder="Display name..."
+              style={styles.titleInline}
+            />
+          </div>
+        </div>
         <div style={styles.visitToggle}>
           <button
             onClick={() => onVisitTypeChange('First')}
@@ -103,14 +114,6 @@ export function SpaceEditor({
               onChange={(v) => handleChange('phase', v)}
             />
             <SelectField
-              label="Path"
-              value={currentSpace.path}
-              options={PATH_TYPES as unknown as string[]}
-              onChange={(v) => handleChange('path', v)}
-            />
-          </div>
-          <div style={styles.fieldRow}>
-            <SelectField
               label="Dice Roll?"
               value={currentSpace.requires_dice_roll}
               options={YES_NO_LOWER_OPTIONS as unknown as string[]}
@@ -127,12 +130,6 @@ export function SpaceEditor({
               value={currentSpace.Negotiate}
               options={YES_NO_OPTIONS as unknown as string[]}
               onChange={(v) => handleChange('Negotiate', v)}
-            />
-            <Field
-              label="Title (Display Name)"
-              value={currentSpace.Title}
-              onChange={(v) => handleChange('Title', v)}
-              placeholder="e.g., Owner Scope Initiation"
             />
           </div>
         </fieldset>
@@ -157,7 +154,9 @@ export function SpaceEditor({
               <label style={styles.label}>Preview</label>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <span style={styles.btnPreviewGreen}>{currentSpace.end_turn_label || 'End Turn'}</span>
-                <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
+                {currentSpace.Negotiate === 'YES' && (
+                  <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
+                )}
               </div>
             </div>
           </div>
@@ -186,18 +185,23 @@ export function SpaceEditor({
           />
         </fieldset>
 
-        {/* Card Effects + Time & Costs side by side */}
+        {/* Card Effects + Time & Costs */}
         <div style={styles.fieldRow}>
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.cards}`, flex: 1 }}>
             <legend style={styles.legend}>🃏 Cards</legend>
-            <div style={styles.fieldRow}>
-              <CardField type="W" value={currentSpace.w_card} onChange={(v) => handleChange('w_card', v)} />
-              <CardField type="B" value={currentSpace.b_card} onChange={(v) => handleChange('b_card', v)} />
-              <CardField type="I" value={currentSpace.i_card} onChange={(v) => handleChange('i_card', v)} />
+            <div style={styles.cardGrid}>
+              <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label}
+                onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} />
+              <CardFieldWithLabel type="B" value={currentSpace.b_card} label={currentSpace.b_card_label}
+                onChange={(v) => handleChange('b_card', v)} onLabelChange={(v) => handleChange('b_card_label', v)} />
+              <CardFieldWithLabel type="I" value={currentSpace.i_card} label={currentSpace.i_card_label}
+                onChange={(v) => handleChange('i_card', v)} onLabelChange={(v) => handleChange('i_card_label', v)} />
+              <CardFieldWithLabel type="L" value={currentSpace.l_card} label={currentSpace.l_card_label}
+                onChange={(v) => handleChange('l_card', v)} onLabelChange={(v) => handleChange('l_card_label', v)} />
+              <CardFieldWithLabel type="E" value={currentSpace.e_card} label={currentSpace.e_card_label}
+                onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} />
             </div>
             <div style={styles.fieldRow}>
-              <CardField type="L" value={currentSpace.l_card} onChange={(v) => handleChange('l_card', v)} />
-              <CardField type="E" value={currentSpace.e_card} onChange={(v) => handleChange('e_card', v)} />
               <div style={styles.field}>
                 <label style={styles.label}>⏱️ Time</label>
                 <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
@@ -206,6 +210,7 @@ export function SpaceEditor({
                 <label style={styles.label}>💰 Fee</label>
                 <FeeInput value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
               </div>
+              <div style={{ flex: 3 }} />
             </div>
           </fieldset>
         </div>
@@ -229,6 +234,15 @@ export function SpaceEditor({
         {/* Movement */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.movement}` }}>
           <legend style={styles.legend}>🚶 Movement Destinations</legend>
+          <div style={{ ...styles.fieldRow, marginBottom: '6px' }}>
+            <SelectField
+              label="Path Type"
+              value={currentSpace.path}
+              options={PATH_TYPES as unknown as string[]}
+              onChange={(v) => handleChange('path', v)}
+            />
+            <div style={{ flex: 3 }} />
+          </div>
           {currentSpace.path === 'LOGIC' ? (
             <LogicBuilder
               currentSpace={currentSpace}
@@ -332,6 +346,78 @@ function CardField({ type, value, onChange }: { type: string; value: string; onC
           <option value="__custom__">Custom...</option>
         </select>
       )}
+    </div>
+  );
+}
+
+function CardFieldWithLabel({ type, value, label, onChange, onLabelChange }: {
+  type: string; value: string; label: string; onChange: (v: string) => void; onLabelChange: (v: string) => void;
+}): JSX.Element {
+  const cc = CARD_COLORS[type];
+  const isPreset = !value || CARD_PRESETS.includes(value);
+  const [useCustom, setUseCustom] = useState(!isPreset && !!value);
+
+  return (
+    <div style={styles.cardWithLabel}>
+      <label style={{ ...styles.label, color: cc.text }}>
+        <span style={{ ...styles.cardBadge, backgroundColor: cc.bg, borderColor: cc.border, color: cc.primary }}>
+          {cc.emoji} {type}
+        </span>
+      </label>
+      <div style={{ display: 'flex', gap: '3px' }}>
+        {useCustom ? (
+          <div style={{ ...styles.comboRow, flex: 1 }}>
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Custom..."
+              style={{
+                ...styles.input,
+                flex: 1,
+                backgroundColor: value ? cc.bg : undefined,
+                borderColor: value ? cc.border + '60' : undefined,
+              }}
+            />
+            <button
+              onClick={() => { setUseCustom(false); if (!CARD_PRESETS.includes(value)) onChange(''); }}
+              style={styles.comboToggle}
+              title="Switch to dropdown"
+            >▼</button>
+          </div>
+        ) : (
+          <select
+            value={value || ''}
+            onChange={(e) => {
+              if (e.target.value === '__custom__') setUseCustom(true);
+              else onChange(e.target.value);
+            }}
+            style={{
+              ...styles.select,
+              flex: 1,
+              backgroundColor: value ? cc.bg : undefined,
+              borderColor: value ? cc.border + '60' : undefined,
+            }}
+          >
+            <option value="">--</option>
+            {CARD_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
+            <option value="__custom__">Custom...</option>
+          </select>
+        )}
+        <input
+          type="text"
+          value={label || ''}
+          onChange={(e) => onLabelChange(e.target.value)}
+          placeholder="Button label..."
+          disabled={!value}
+          style={{
+            ...styles.input,
+            flex: 1,
+            fontSize: '11px',
+            opacity: value ? 1 : 0.4,
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -544,7 +630,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 12px', borderBottom: '1px solid #dee2e6',
     display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa',
   },
-  spaceName: { margin: 0, fontSize: '15px', fontWeight: 600, color: '#212529' },
+  spaceName: { margin: 0, fontSize: '15px', fontWeight: 600, color: '#212529', flexShrink: 0 },
+  titleInline: {
+    padding: '3px 8px', fontSize: '13px', border: '1px solid #ced4da',
+    borderRadius: '3px', flex: 1, minWidth: '120px', color: '#495057',
+    fontStyle: 'italic' as const, boxSizing: 'border-box' as const,
+  },
   visitToggle: { display: 'flex', gap: '2px' },
   toggleButton: {
     padding: '4px 10px', border: '1px solid #ced4da', backgroundColor: 'white',
@@ -558,6 +649,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   legend: { fontSize: '11px', fontWeight: 600, color: '#495057', padding: '0 4px' },
   fieldRow: { display: 'flex', gap: '6px', marginBottom: '6px' },
+  cardGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '6px',
+  },
+  cardWithLabel: { display: 'flex', flexDirection: 'column' as const, minWidth: 0 },
   field: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
   textareaField: { display: 'flex', flexDirection: 'column', marginBottom: '6px' },
   label: { fontSize: '10px', fontWeight: 600, color: '#343a40', marginBottom: '2px' },

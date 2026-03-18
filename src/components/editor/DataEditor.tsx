@@ -261,7 +261,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       Time: '', Fee: '',
       space_1: '', space_2: '', space_3: '', space_4: '', space_5: '',
       Negotiate: '', requires_dice_roll: '', path: 'Main', rolls: '',
-      end_turn_label: 'End Turn', try_again_label: 'Try Again'
+      end_turn_label: 'End Turn', try_again_label: 'Try Again',
+      w_card_label: '', b_card_label: '', i_card_label: '', l_card_label: '', e_card_label: ''
     };
     const newSubsequent: SpaceRow = { ...newFirst, visit_type: 'Subsequent' };
     setSpacesData(prev => [...prev, newFirst, newSubsequent]);
@@ -482,7 +483,12 @@ function parseSpacesCSV(csvText: string): SpaceRow[] {
       path: values[21] || '',
       rolls: values[22] || '',
       end_turn_label: values[23] || '',
-      try_again_label: values[24] || ''
+      try_again_label: values[24] || '',
+      w_card_label: values[25] || '',
+      b_card_label: values[26] || '',
+      i_card_label: values[27] || '',
+      l_card_label: values[28] || '',
+      e_card_label: values[29] || ''
     };
   }).filter(row => row.space_name); // Filter out empty rows
 }
