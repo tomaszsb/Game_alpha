@@ -195,13 +195,8 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
                 key={i}
                 className="action-center__action-btn"
                 disabled
-                style={{
-                  borderColor: card.config.primary,
-                  backgroundColor: card.config.bg,
-                  color: card.config.primary,
-                }}
               >
-                {card.config.emoji} {card.label || `${card.value} ${card.type} cards`}
+                {card.label || `${card.value} ${card.type} cards`}
               </button>
             ))}
           </>

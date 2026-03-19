@@ -72,6 +72,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const [currentPlayerName, setCurrentPlayerName] = useState('');
   const [spaceStory, setSpaceStory] = useState('');
   const [spaceAction, setSpaceAction] = useState('');
+  const [spaceOutcome, setSpaceOutcome] = useState('');
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [movementChoice, setMovementChoice] = useState<Choice | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
@@ -99,9 +100,11 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           const visitContent = space.content.find(c => c.visit_type === player.visitType);
           setSpaceStory(visitContent?.story || '');
           setSpaceAction(visitContent?.action_description || '');
+          setSpaceOutcome(visitContent?.outcome_description || '');
         } else {
           setSpaceStory('');
           setSpaceAction('');
+          setSpaceOutcome('');
         }
 
         // Dice movement state
@@ -135,6 +138,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         const visitContent = space.content.find(c => c.visit_type === player.visitType);
         setSpaceStory(visitContent?.story || '');
         setSpaceAction(visitContent?.action_description || '');
+        setSpaceOutcome(visitContent?.outcome_description || '');
       }
       const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
       setIsDiceMovementSpace(movement?.movement_type === 'dice');
@@ -409,6 +413,24 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           }}>
             <span style={{ fontSize: '20px', flexShrink: 0 }}>{player.avatar}</span>
             <span><strong>PM Action:</strong> {spaceAction}</span>
+          </div>
+        )}
+
+        {/* Outcome */}
+        {spaceOutcome && (
+          <div style={{
+            padding: '8px 12px',
+            backgroundColor: '#f3e5f5',
+            borderRadius: '8px',
+            borderLeft: '3px solid #7b1fa2',
+            fontSize: '13px',
+            color: '#4a148c',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+          }}>
+            <span style={{ fontSize: '20px', flexShrink: 0 }}>📋</span>
+            <span><strong>Outcome:</strong> {spaceOutcome}</span>
           </div>
         )}
 
