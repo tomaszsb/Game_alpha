@@ -1,5 +1,6 @@
 import React from 'react';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
+import '../player/ActionCenterPanel.css';
 
 interface PlayerPreviewPanelProps {
   currentSpace: SpaceRow | null;
@@ -35,14 +36,14 @@ const DIE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: PlayerPreviewPanelProps): JSX.Element {
   if (!currentSpace) {
     return (
-      <div style={styles.emptyState}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: '#fafafa' }}>
         <div style={{ fontSize: '48px', marginBottom: '12px' }}>👁️</div>
         <div style={{ color: '#495057', fontSize: '14px' }}>Select a space to preview</div>
       </div>
     );
   }
 
-  // Collect card effects
+  // Collect card effects with labels
   const cardEffects: { type: string; value: string; label: string; config: typeof CARD_COLORS['W'] }[] = [];
   const cardFields: { key: keyof SpaceRow; labelKey: keyof SpaceRow; type: string }[] = [
     { key: 'w_card', labelKey: 'w_card_label', type: 'W' },
@@ -75,145 +76,164 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
   const showTryAgain = currentSpace.Negotiate === 'YES';
 
   return (
-    <div style={styles.panel}>
-      {/* ZONE 1: Context — matches action-center__context */}
-      <div style={styles.context}>
+    <div className="action-center" style={{ height: '100%', overflow: 'hidden' }}>
+      {/* ===== ZONE 1: Context ===== */}
+      <div className="action-center__context">
         {/* Space Header */}
-        <div style={styles.spaceHeader}>
-          <div style={styles.spaceInfo}>
-            <div style={styles.visitBadge}>
+        <div className="action-center__space-header">
+          <div className="action-center__space-info">
+            <div className="action-center__player-name">
               {visitType === 'First' ? '1st Visit' : 'Subsequent'}
             </div>
-            <div style={styles.spaceName}>
+            <div className="action-center__space-name">
               📍 {currentSpace.space_name}
               {currentSpace.Title && (
-                <span style={styles.spaceTitle}> — {currentSpace.Title}</span>
+                <span className="action-center__space-title"> - {currentSpace.Title}</span>
               )}
             </div>
           </div>
           {currentSpace.phase && (
-            <span style={styles.phaseBadge}>{currentSpace.phase}</span>
+            <span className="action-center__phase-badge">{currentSpace.phase}</span>
           )}
         </div>
 
         {/* Story */}
         {currentSpace.Event ? (
-          <div style={styles.story}>
+          <div className="action-center__story">
             {currentSpace.Event}
           </div>
         ) : (
-          <div style={styles.noContent}>No story text</div>
+          <div style={{ fontSize: '12px', color: '#adb5bd', fontStyle: 'italic', padding: '4px 0' }}>No story text</div>
         )}
 
-        {/* Action */}
+        {/* PM Action */}
         {currentSpace.Action ? (
-          <div style={styles.actionBox}>
-            <span style={{ fontSize: '16px', flexShrink: 0 }}>🎯</span>
+          <div style={{
+            padding: '8px 12px',
+            backgroundColor: '#e8f4fd',
+            borderRadius: '8px',
+            borderLeft: '3px solid #2196F3',
+            fontSize: '13px',
+            color: '#1565C0',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+          }}>
+            <span style={{ fontSize: '20px', flexShrink: 0 }}>🎯</span>
             <span><strong>PM Action:</strong> {currentSpace.Action}</span>
           </div>
         ) : (
-          <div style={styles.noContent}>No action text</div>
+          <div style={{ fontSize: '12px', color: '#adb5bd', fontStyle: 'italic', padding: '4px 0' }}>No action text</div>
         )}
 
         {/* Outcome */}
         {currentSpace.Outcome ? (
-          <div style={styles.outcomeBox}>
+          <div style={{
+            padding: '8px 12px',
+            backgroundColor: '#f3e5f5',
+            borderRadius: '8px',
+            borderLeft: '3px solid #7b1fa2',
+            fontSize: '13px',
+            color: '#4a148c',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+          }}>
             <span style={{ fontSize: '16px', flexShrink: 0 }}>📋</span>
             <span><strong>Outcome:</strong> {currentSpace.Outcome}</span>
           </div>
         ) : (
-          <div style={styles.noContent}>No outcome text</div>
+          <div style={{ fontSize: '12px', color: '#adb5bd', fontStyle: 'italic', padding: '4px 0' }}>No outcome text</div>
         )}
 
-        {/* Quick Stats Bar */}
-        <div style={styles.statsBar}>
+        {/* Quick Stats */}
+        <div className="action-center__stats">
           {currentSpace.Time && (
-            <div style={styles.stat}>
-              <span style={styles.statIcon}>⏱</span>
-              <span style={styles.statValue}>{currentSpace.Time}</span>
+            <div className="action-center__stat">
+              <span className="action-center__stat-icon">⏱</span>
+              <span className="action-center__stat-value">{currentSpace.Time}</span>
             </div>
           )}
           {currentSpace.Fee && (
-            <div style={styles.stat}>
-              <span style={styles.statIcon}>💰</span>
-              <span style={styles.statValue}>{currentSpace.Fee}</span>
+            <div className="action-center__stat">
+              <span className="action-center__stat-icon">💰</span>
+              <span className="action-center__stat-value">{currentSpace.Fee}</span>
             </div>
           )}
           {currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
-            <div style={{ ...styles.stat, borderColor: '#ff9800', background: '#fff3e0' }}>
-              <span style={styles.statIcon}>🎲</span>
-              <span style={{ ...styles.statValue, color: '#e65100' }}>
+            <div className="action-center__stat" style={{ borderColor: '#ff9800', background: '#fff3e0' }}>
+              <span className="action-center__stat-icon">🎲</span>
+              <span className="action-center__stat-value" style={{ color: '#e65100' }}>
                 {currentSpace.rolls ? `${currentSpace.rolls} roll${currentSpace.rolls !== '1' ? 's' : ''}` : 'Dice'}
               </span>
             </div>
           )}
           {currentSpace.Negotiate === 'YES' && (
-            <div style={{ ...styles.stat, borderColor: '#ffc107', background: '#fff8e1' }}>
-              <span style={styles.statIcon}>🤝</span>
-              <span style={{ ...styles.statValue, color: '#f57f17' }}>Negotiate</span>
+            <div className="action-center__stat" style={{ borderColor: '#ffc107', background: '#fff8e1' }}>
+              <span className="action-center__stat-icon">🤝</span>
+              <span className="action-center__stat-value" style={{ color: '#f57f17' }}>Negotiate</span>
             </div>
           )}
           {currentSpace.path && currentSpace.path !== 'Main' && (
-            <div style={{ ...styles.stat, borderColor: '#6f42c1', background: '#f3e5f5' }}>
-              <span style={{ ...styles.statValue, color: '#6f42c1', fontSize: '11px' }}>{currentSpace.path}</span>
+            <div className="action-center__stat" style={{ borderColor: '#6f42c1', background: '#f3e5f5' }}>
+              <span className="action-center__stat-value" style={{ color: '#6f42c1', fontSize: '11px' }}>{currentSpace.path}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* ZONE 2: Effects & Dice — matches action-center__actions */}
-      <div style={styles.actions}>
-        {/* Card Effects */}
+      {/* ===== ZONE 2: Actions ===== */}
+      <div className="action-center__actions" style={{ flex: 1, overflowY: 'auto' }}>
+        {/* (C) Card Action Buttons */}
         {cardEffects.length > 0 && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>🃏 (C) ACTIONS</div>
+          <>
+            <div className="action-center__required-actions-header">
+              🃏 (C) ACTIONS ({cardEffects.length})
+            </div>
             {cardEffects.map((card, i) => (
-              <div key={i} style={styles.cardEffect}>
-                <span style={{
-                  ...styles.cardBadge,
+              <button
+                key={i}
+                className="action-center__action-btn"
+                disabled
+                style={{
+                  borderColor: card.config.primary,
                   backgroundColor: card.config.bg,
                   color: card.config.primary,
-                  borderColor: card.config.primary + '60',
-                }}>
-                  {card.config.emoji} {card.type}
-                </span>
-                <span style={styles.cardValue}>{card.value}</span>
-                {card.label && (
-                  <span style={{
-                    ...styles.cardBtnLabel,
-                    backgroundColor: card.config.bg,
-                    color: card.config.primary,
-                    borderColor: card.config.primary + '40',
-                  }}>
-                    {card.label}
-                  </span>
-                )}
-              </div>
+                }}
+              >
+                {card.config.emoji} {card.label || `${card.value} ${card.type} cards`}
+              </button>
             ))}
-          </div>
+          </>
         )}
 
-        {/* Dice Rolls — full breakdown */}
+        {/* (D) Dice Roll Outcomes */}
         {spaceDiceRolls.length > 0 && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>🎲 (D) ACTIONS</div>
+          <>
+            <div className="action-center__required-actions-header">
+              🎲 (D) ACTIONS
+            </div>
             {spaceDiceRolls.map((dr, idx) => {
               const config = DICE_TYPE_CONFIG[dr.die_roll] || { emoji: '🎲', color: '#6c757d', label: dr.die_roll };
               const rolls = [dr.roll_1, dr.roll_2, dr.roll_3, dr.roll_4, dr.roll_5, dr.roll_6];
               return (
-                <div key={idx} style={styles.diceRollGroup}>
-                  <div style={{
-                    ...styles.diceRollLabel,
-                    color: config.color,
-                  }}>
+                <div key={idx} style={{
+                  padding: '6px 8px',
+                  backgroundColor: '#fafafa',
+                  borderRadius: '6px',
+                  border: '1px solid #e0e0e0',
+                  marginBottom: '4px',
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '4px', color: config.color }}>
                     {config.emoji} {config.label}
                   </div>
-                  <div style={styles.diceGrid}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '2px' }}>
                     {rolls.map((val, ri) => (
-                      <div key={ri} style={styles.diceCell}>
-                        <span style={styles.dieFace}>{DIE_FACES[ri]}</span>
+                      <div key={ri} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                        <span style={{ fontSize: '14px', lineHeight: 1 }}>{DIE_FACES[ri]}</span>
                         <span style={{
-                          ...styles.diceValue,
+                          fontSize: '10px', fontWeight: 600, textAlign: 'center',
+                          lineHeight: '1.2', wordBreak: 'break-word',
                           color: val ? '#343a40' : '#ced4da',
                         }}>
                           {val || '—'}
@@ -224,295 +244,33 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
                 </div>
               );
             })}
-          </div>
+          </>
         )}
 
-        {/* Movement Destinations */}
+        {/* Movement Choices */}
         {destinations.length > 0 && (
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>🚶 NEXT SPACES</div>
-            <div style={styles.destList}>
-              {destinations.map((d, i) => (
-                <div key={i} style={styles.destBtn}>
-                  🎯 {d}
-                </div>
-              ))}
-            </div>
+          <div className="action-center__movement">
+            <div className="action-center__movement-header">🚶 CHOOSE YOUR DESTINATION</div>
+            {destinations.map((d, i) => (
+              <button key={i} className="action-center__movement-btn" disabled>
+                🎯 {d}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {/* ZONE 3: Turn Controls — matches action-center__turn-controls */}
-      <div style={styles.turnControls}>
-        <div style={styles.endTurnBtn}>{endTurnLabel}</div>
+      {/* ===== Turn Controls ===== */}
+      <div className="action-center__turn-controls">
+        <button className="action-center__end-turn-btn" disabled={false}>
+          {endTurnLabel}
+        </button>
         {showTryAgain && (
-          <div style={styles.tryAgainBtn}>{tryAgainLabel}</div>
+          <button className="action-center__try-again-btn">
+            {tryAgainLabel}
+          </button>
         )}
       </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  panel: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    fontSize: '13px',
-    backgroundColor: 'white',
-    overflow: 'hidden',
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    backgroundColor: '#fafafa',
-  },
-
-  // Zone 1: Context
-  context: {
-    flexShrink: 0,
-    padding: '8px',
-    borderBottom: '2px solid #e0e0e0',
-    background: '#fafafa',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  spaceHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  spaceInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  visitBadge: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#343a40',
-    marginBottom: '2px',
-  },
-  spaceName: {
-    fontSize: '14px',
-    fontWeight: 'bold',
-    color: '#1565c0',
-  },
-  spaceTitle: {
-    fontSize: '11px',
-    color: '#495057',
-    fontWeight: 'normal',
-  },
-  phaseBadge: {
-    display: 'inline-block',
-    padding: '2px 8px',
-    borderRadius: '10px',
-    fontSize: '10px',
-    fontWeight: 'bold',
-    color: 'white',
-    background: '#2196f3',
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
-  },
-  story: {
-    fontSize: '13px',
-    lineHeight: '1.5',
-    color: '#2c3e50',
-    padding: '8px',
-    background: '#f8f9fa',
-    borderRadius: '6px',
-    border: '2px solid #4caf50',
-    fontWeight: 500,
-  },
-  actionBox: {
-    padding: '8px 10px',
-    backgroundColor: '#e8f4fd',
-    borderRadius: '8px',
-    borderLeft: '3px solid #2196F3',
-    fontSize: '12px',
-    color: '#1565C0',
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '8px',
-  },
-  outcomeBox: {
-    padding: '8px 10px',
-    backgroundColor: '#f3e5f5',
-    borderRadius: '8px',
-    borderLeft: '3px solid #7b1fa2',
-    fontSize: '12px',
-    color: '#4a148c',
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '8px',
-  },
-  noContent: {
-    fontSize: '12px',
-    color: '#adb5bd',
-    fontStyle: 'italic',
-    padding: '4px 0',
-  },
-  statsBar: {
-    display: 'flex',
-    gap: '4px',
-    flexWrap: 'wrap',
-  },
-  stat: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '3px',
-    padding: '3px 8px',
-    borderRadius: '6px',
-    background: 'white',
-    border: '1px solid #e0e0e0',
-    fontSize: '11px',
-  },
-  statIcon: {
-    fontSize: '12px',
-  },
-  statValue: {
-    fontWeight: 'bold',
-    color: '#343a40',
-  },
-
-  // Zone 2: Actions
-  actions: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  section: {
-    marginBottom: '4px',
-  },
-  sectionHeader: {
-    fontSize: '11px',
-    fontWeight: 'bold',
-    color: '#343a40',
-    marginBottom: '6px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  cardEffect: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '4px 8px',
-    backgroundColor: '#fafafa',
-    borderRadius: '4px',
-    marginBottom: '3px',
-  },
-  cardBadge: {
-    display: 'inline-block',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: 700,
-    border: '1px solid',
-    flexShrink: 0,
-  },
-  cardValue: {
-    fontSize: '12px',
-    color: '#343a40',
-  },
-  cardBtnLabel: {
-    marginLeft: 'auto',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    fontSize: '10px',
-    fontWeight: 700,
-    border: '1px solid',
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
-  },
-
-  // Dice rolls
-  diceRollGroup: {
-    marginBottom: '8px',
-    padding: '6px 8px',
-    backgroundColor: '#fafafa',
-    borderRadius: '6px',
-    border: '1px solid #e0e0e0',
-  },
-  diceRollLabel: {
-    fontSize: '12px',
-    fontWeight: 700,
-    marginBottom: '4px',
-  },
-  diceGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
-    gap: '2px',
-  },
-  diceCell: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '1px',
-  },
-  dieFace: {
-    fontSize: '14px',
-    lineHeight: 1,
-  },
-  diceValue: {
-    fontSize: '10px',
-    fontWeight: 600,
-    textAlign: 'center',
-    lineHeight: '1.2',
-    wordBreak: 'break-word',
-  },
-
-  // Destinations
-  destList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  destBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    padding: '6px 10px',
-    borderRadius: '6px',
-    background: '#2196f3',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: '12px',
-  },
-
-  // Zone 3: Turn Controls
-  turnControls: {
-    flexShrink: 0,
-    padding: '8px',
-    borderTop: '2px solid #e0e0e0',
-    background: '#fafafa',
-    display: 'flex',
-    gap: '8px',
-  },
-  endTurnBtn: {
-    flex: 1,
-    padding: '10px',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    fontSize: '13px',
-    textAlign: 'center',
-    background: '#4caf50',
-    color: 'white',
-  },
-  tryAgainBtn: {
-    flex: 1,
-    padding: '10px',
-    border: '2px solid #ff9800',
-    borderRadius: '8px',
-    background: '#fff3e0',
-    color: '#e65100',
-    fontWeight: 'bold',
-    fontSize: '12px',
-    textAlign: 'center',
-  },
-};
