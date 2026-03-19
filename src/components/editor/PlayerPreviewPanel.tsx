@@ -8,29 +8,6 @@ interface PlayerPreviewPanelProps {
   diceRollData: DiceRollRow[];
 }
 
-// Card type colors matching theme
-const CARD_COLORS: Record<string, { primary: string; bg: string; emoji: string; label: string }> = {
-  W: { primary: '#6f42c1', bg: '#f3e5f5', emoji: '🏗️', label: 'Scope Worktypes' },
-  B: { primary: '#007bff', bg: '#e3f2fd', emoji: '🏦', label: 'Bank' },
-  I: { primary: '#28a745', bg: '#e8f5e9', emoji: '💰', label: 'Investor' },
-  L: { primary: '#dc3545', bg: '#fce4ec', emoji: '🎲', label: 'Life Event' },
-  E: { primary: '#ff9800', bg: '#fff3e0', emoji: '⚡', label: 'Expeditor' },
-};
-
-const DICE_TYPE_CONFIG: Record<string, { emoji: string; color: string; label: string }> = {
-  'W Cards': { emoji: '🏗️', color: '#6f42c1', label: 'W Cards' },
-  'I Cards': { emoji: '💰', color: '#28a745', label: 'I Cards' },
-  'E cards': { emoji: '⚡', color: '#ff9800', label: 'E Cards' },
-  'Fees Paid': { emoji: '💰', color: '#dc3545', label: 'Fees' },
-  'Fee Paid': { emoji: '💰', color: '#dc3545', label: 'Fees' },
-  'Time outcomes': { emoji: '⏱️', color: '#fd7e14', label: 'Time/Destination' },
-  'Quality': { emoji: '⭐', color: '#17a2b8', label: 'Quality' },
-  'Multiplier': { emoji: '✖️', color: '#6610f2', label: 'Multiplier' },
-  'Multiplier ': { emoji: '✖️', color: '#6610f2', label: 'Multiplier' },
-  'Next Step': { emoji: '🚶', color: '#007bff', label: 'Next Step' },
-};
-
-const DIE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
 
 export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: PlayerPreviewPanelProps): JSX.Element {
@@ -44,7 +21,7 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
   }
 
   // Collect card effects with labels
-  const cardEffects: { type: string; value: string; label: string; config: typeof CARD_COLORS['W'] }[] = [];
+  const cardEffects: { type: string; value: string; label: string }[] = [];
   const cardFields: { key: keyof SpaceRow; labelKey: keyof SpaceRow; type: string }[] = [
     { key: 'w_card', labelKey: 'w_card_label', type: 'W' },
     { key: 'b_card', labelKey: 'b_card_label', type: 'B' },
@@ -55,7 +32,7 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
   for (const cf of cardFields) {
     const val = currentSpace[cf.key];
     if (val) {
-      cardEffects.push({ type: cf.type, value: val, label: currentSpace[cf.labelKey] || '', config: CARD_COLORS[cf.type] });
+      cardEffects.push({ type: cf.type, value: val, label: currentSpace[cf.labelKey] || '' });
     }
   }
 
@@ -184,63 +161,36 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
 
       {/* ===== ZONE 2: Actions ===== */}
       <div className="action-center__actions" style={{ flex: 1, overflowY: 'auto' }}>
-        {/* (C) Card Action Buttons */}
-        {cardEffects.length > 0 && (
-          <>
-            <div className="action-center__required-actions-header">
-              🃏 (C) ACTIONS ({cardEffects.length})
-            </div>
-            {cardEffects.map((card, i) => (
-              <button
-                key={i}
-                className="action-center__action-btn"
-                disabled
-              >
-                {card.label || `${card.value} ${card.type} cards`}
-              </button>
-            ))}
-          </>
-        )}
-
-        {/* (D) Dice Roll Outcomes */}
-        {spaceDiceRolls.length > 0 && (
-          <>
-            <div className="action-center__required-actions-header">
-              🎲 (D) ACTIONS
-            </div>
-            {spaceDiceRolls.map((dr, idx) => {
-              const config = DICE_TYPE_CONFIG[dr.die_roll] || { emoji: '🎲', color: '#6c757d', label: dr.die_roll };
-              const rolls = [dr.roll_1, dr.roll_2, dr.roll_3, dr.roll_4, dr.roll_5, dr.roll_6];
-              return (
-                <div key={idx} style={{
-                  padding: '6px 8px',
-                  backgroundColor: '#fafafa',
-                  borderRadius: '6px',
-                  border: '1px solid #e0e0e0',
-                  marginBottom: '4px',
-                }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '4px', color: config.color }}>
-                    {config.emoji} {config.label}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '2px' }}>
-                    {rolls.map((val, ri) => (
-                      <div key={ri} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
-                        <span style={{ fontSize: '14px', lineHeight: 1 }}>{DIE_FACES[ri]}</span>
-                        <span style={{
-                          fontSize: '10px', fontWeight: 600, textAlign: 'center',
-                          lineHeight: '1.2', wordBreak: 'break-word',
-                          color: val ? '#343a40' : '#ced4da',
-                        }}>
-                          {val || '—'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </>
-        )}
+        {/* YOUR ACTIONS — combined card + dice, matching the game */}
+        {(cardEffects.length > 0 || spaceDiceRolls.length > 0) && (() => {
+          const diceTypes = [...new Set(spaceDiceRolls.map(dr => dr.die_roll))];
+          const totalActions = cardEffects.length + diceTypes.length;
+          return (
+            <>
+              <div className="action-center__required-actions-header">
+                📋 YOUR ACTIONS ({totalActions})
+              </div>
+              {cardEffects.map((card, i) => (
+                <button
+                  key={`card-${i}`}
+                  className="action-center__action-btn"
+                  disabled
+                >
+                  {card.label || `${card.value} ${card.type} cards`}
+                </button>
+              ))}
+              {diceTypes.map((dieRoll, idx) => (
+                <button
+                  key={`dice-${idx}`}
+                  className="action-center__action-btn action-center__action-btn--dice"
+                  disabled
+                >
+                  🎲 Roll for {dieRoll}
+                </button>
+              ))}
+            </>
+          );
+        })()}
 
         {/* Movement Choices */}
         {destinations.length > 0 && (

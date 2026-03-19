@@ -397,12 +397,12 @@ describe('DataEditor', () => {
       });
     });
 
-    it('renders (D) Actions section when requires_dice_roll is Yes', async () => {
+    it('renders YOUR ACTIONS section with dice buttons when requires_dice_roll is Yes', async () => {
       await selectSpace('TEST-SPACE-1');
 
       await waitFor(() => {
-        // Dice rolls section should appear since requires_dice_roll=Yes
-        expect(screen.getByText(/\(D\) Actions/)).toBeInTheDocument();
+        // YOUR ACTIONS section should appear with dice + card actions
+        expect(screen.getByText(/YOUR ACTIONS/)).toBeInTheDocument();
       });
     });
 
