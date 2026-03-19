@@ -52,6 +52,7 @@ export interface DiceRollRow {
   roll_4: string;
   roll_5: string;
   roll_6: string;
+  button_label: string;  // Custom button label (e.g., "Roll for Scope Worktypes")
 }
 
 /**

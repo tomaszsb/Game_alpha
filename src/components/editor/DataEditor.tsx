@@ -509,7 +509,8 @@ function parseDiceRollCSV(csvText: string): DiceRollRow[] {
       roll_3: values[5] || '',
       roll_4: values[6] || '',
       roll_5: values[7] || '',
-      roll_6: values[8] || ''
+      roll_6: values[8] || '',
+      button_label: values[9] || ''
     };
   }).filter(row => row.space_name); // Filter out empty rows
 }

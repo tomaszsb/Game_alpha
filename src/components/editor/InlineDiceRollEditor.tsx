@@ -86,6 +86,7 @@ export function InlineDiceRollEditor({
       die_roll: addCategory,
       visit_type: visitType,
       roll_1: '', roll_2: '', roll_3: '', roll_4: '', roll_5: '', roll_6: '',
+      button_label: '',
     });
     setAddCategory('');
   };
@@ -119,6 +120,16 @@ export function InlineDiceRollEditor({
                 />
               </div>
             ))}
+          </div>
+          <div style={s.labelRow}>
+            <label style={s.labelText}>Button:</label>
+            <input
+              type="text"
+              value={roll.button_label || ''}
+              onChange={(e) => onUpdateDiceRoll(idx, 'button_label', e.target.value)}
+              placeholder={`Roll for ${roll.die_roll}`}
+              style={s.labelInput}
+            />
           </div>
         </div>
       ))}
@@ -167,6 +178,16 @@ const s: Record<string, React.CSSProperties> = {
   rollInput: {
     width: '100%', padding: '3px 2px', fontSize: '10px',
     border: '1px solid #ced4da', borderRadius: '2px', textAlign: 'center' as const,
+    boxSizing: 'border-box' as const,
+  },
+  labelRow: {
+    display: 'flex', gap: '4px', alignItems: 'center', padding: '3px 6px',
+    borderTop: '1px solid #e0e0e0',
+  },
+  labelText: { fontSize: '10px', fontWeight: 600, color: '#343a40', flexShrink: 0 },
+  labelInput: {
+    flex: 1, padding: '2px 4px', fontSize: '11px',
+    border: '1px solid #ced4da', borderRadius: '2px',
     boxSizing: 'border-box' as const,
   },
   addRow: { display: 'flex', gap: '4px', alignItems: 'center' },

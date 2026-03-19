@@ -179,15 +179,19 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
                   {card.label || `${card.value} ${card.type} cards`}
                 </button>
               ))}
-              {diceTypes.map((dieRoll, idx) => (
-                <button
-                  key={`dice-${idx}`}
-                  className="action-center__action-btn action-center__action-btn--dice"
-                  disabled
-                >
-                  🎲 Roll for {dieRoll}
-                </button>
-              ))}
+              {diceTypes.map((dieRoll, idx) => {
+                const dr = spaceDiceRolls.find(r => r.die_roll === dieRoll);
+                const label = dr?.button_label || `Roll for ${dieRoll}`;
+                return (
+                  <button
+                    key={`dice-${idx}`}
+                    className="action-center__action-btn action-center__action-btn--dice"
+                    disabled
+                  >
+                    🎲 {label}
+                  </button>
+                );
+              })}
             </>
           );
         })()}

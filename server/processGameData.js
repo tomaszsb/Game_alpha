@@ -283,7 +283,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
     if (dieRoll === 'Next Step') continue;
     const key = `${dr.space_name}|${dr.visit_type}`;
     if (!diceRollLookup.has(key)) diceRollLookup.set(key, []);
-    diceRollLookup.get(key).push({ die_roll: dieRoll });
+    diceRollLookup.get(key).push({ die_roll: dieRoll, button_label: (dr.button_label || '').trim() });
   }
 
   for (const row of rows) {
@@ -331,7 +331,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         effect_action: 'dice_outcome',
         effect_value: entry.die_roll,
         condition: '',
-        description: `Roll for ${entry.die_roll}`,
+        description: entry.button_label || `Roll for ${entry.die_roll}`,
         trigger_type: 'manual'
       });
     }

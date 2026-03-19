@@ -74,7 +74,7 @@ export function exportSpacesCSV(spaces: SpaceRow[]): string {
  * Export DiceRollRow array to DiceRoll Info.csv format
  */
 export function exportDiceRollCSV(diceRolls: DiceRollRow[]): string {
-  const headers = ['space_name', 'die_roll', 'visit_type', '1', '2', '3', '4', '5', '6'];
+  const headers = ['space_name', 'die_roll', 'visit_type', '1', '2', '3', '4', '5', '6', 'button_label'];
 
   const rows = diceRolls.map(roll => [
     escapeCSV(roll.space_name),
@@ -85,7 +85,8 @@ export function exportDiceRollCSV(diceRolls: DiceRollRow[]): string {
     escapeCSV(roll.roll_3),
     escapeCSV(roll.roll_4),
     escapeCSV(roll.roll_5),
-    escapeCSV(roll.roll_6)
+    escapeCSV(roll.roll_6),
+    escapeCSV(roll.button_label)
   ].join(','));
 
   return [headers.join(','), ...rows].join('\n') + '\n';
