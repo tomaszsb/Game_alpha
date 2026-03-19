@@ -17,7 +17,7 @@ interface SpaceEditorProps {
 
 // Card type colors matching theme.ts cardTypes
 const CARD_COLORS: Record<string, { primary: string; bg: string; border: string; text: string; emoji: string; label: string }> = {
-  W: { primary: '#6f42c1', bg: '#f3e5f5', border: '#6f42c1', text: '#4a148c', emoji: '🏗️', label: 'Work' },
+  W: { primary: '#6f42c1', bg: '#f3e5f5', border: '#6f42c1', text: '#4a148c', emoji: '🏗️', label: 'Scope Worktypes' },
   B: { primary: '#007bff', bg: '#e3f2fd', border: '#007bff', text: '#0d47a1', emoji: '🏦', label: 'Bank' },
   I: { primary: '#28a745', bg: '#e8f5e9', border: '#28a745', text: '#1b5e20', emoji: '💰', label: 'Investor' },
   L: { primary: '#dc3545', bg: '#fce4ec', border: '#dc3545', text: '#b71c1c', emoji: '🎲', label: 'Life Event' },
@@ -188,7 +188,7 @@ export function SpaceEditor({
         {/* Card Effects + Time & Costs */}
         <div style={styles.fieldRow}>
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.cards}`, flex: 1 }}>
-            <legend style={styles.legend}>🃏 Cards</legend>
+            <legend style={styles.legend}>🃏 (C) Actions</legend>
             <div style={styles.cardGrid}>
               <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label}
                 onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} />
@@ -218,7 +218,7 @@ export function SpaceEditor({
         {/* Dice Rolls — inline */}
         {currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }}>
-            <legend style={styles.legend}>🎲 Dice Roll Outcomes</legend>
+            <legend style={styles.legend}>🎲 (D) Actions</legend>
             <InlineDiceRollEditor
               diceRolls={diceRollData}
               spaceName={currentSpace.space_name}

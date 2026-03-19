@@ -397,12 +397,12 @@ describe('DataEditor', () => {
       });
     });
 
-    it('renders Dice Roll Outcomes section when requires_dice_roll is Yes', async () => {
+    it('renders (D) Actions section when requires_dice_roll is Yes', async () => {
       await selectSpace('TEST-SPACE-1');
 
       await waitFor(() => {
         // Dice rolls section should appear since requires_dice_roll=Yes
-        expect(screen.getByText(/Dice Roll Outcomes/)).toBeInTheDocument();
+        expect(screen.getByText(/\(D\) Actions/)).toBeInTheDocument();
       });
     });
 
@@ -462,7 +462,7 @@ describe('DataEditor', () => {
         expect.stringContaining('Identity & Config'),
         expect.stringContaining('Button Labels'),
         expect.stringContaining('Story & Narrative'),
-        expect.stringContaining('Cards'),
+        expect.stringContaining('(C) Actions'),
         expect.stringContaining('Movement Destinations'),
       ]));
     });

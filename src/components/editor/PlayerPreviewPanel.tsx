@@ -9,7 +9,7 @@ interface PlayerPreviewPanelProps {
 
 // Card type colors matching theme
 const CARD_COLORS: Record<string, { primary: string; bg: string; emoji: string; label: string }> = {
-  W: { primary: '#6f42c1', bg: '#f3e5f5', emoji: '🏗️', label: 'Work' },
+  W: { primary: '#6f42c1', bg: '#f3e5f5', emoji: '🏗️', label: 'Scope Worktypes' },
   B: { primary: '#007bff', bg: '#e3f2fd', emoji: '🏦', label: 'Bank' },
   I: { primary: '#28a745', bg: '#e8f5e9', emoji: '💰', label: 'Investor' },
   L: { primary: '#dc3545', bg: '#fce4ec', emoji: '🎲', label: 'Life Event' },
@@ -43,18 +43,18 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
   }
 
   // Collect card effects
-  const cardEffects: { type: string; value: string; config: typeof CARD_COLORS['W'] }[] = [];
-  const cardFields: { key: keyof SpaceRow; type: string }[] = [
-    { key: 'w_card', type: 'W' },
-    { key: 'b_card', type: 'B' },
-    { key: 'i_card', type: 'I' },
-    { key: 'l_card', type: 'L' },
-    { key: 'e_card', type: 'E' },
+  const cardEffects: { type: string; value: string; label: string; config: typeof CARD_COLORS['W'] }[] = [];
+  const cardFields: { key: keyof SpaceRow; labelKey: keyof SpaceRow; type: string }[] = [
+    { key: 'w_card', labelKey: 'w_card_label', type: 'W' },
+    { key: 'b_card', labelKey: 'b_card_label', type: 'B' },
+    { key: 'i_card', labelKey: 'i_card_label', type: 'I' },
+    { key: 'l_card', labelKey: 'l_card_label', type: 'L' },
+    { key: 'e_card', labelKey: 'e_card_label', type: 'E' },
   ];
   for (const cf of cardFields) {
     const val = currentSpace[cf.key];
     if (val) {
-      cardEffects.push({ type: cf.type, value: val, config: CARD_COLORS[cf.type] });
+      cardEffects.push({ type: cf.type, value: val, label: currentSpace[cf.labelKey] || '', config: CARD_COLORS[cf.type] });
     }
   }
 
@@ -166,7 +166,7 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
         {/* Card Effects */}
         {cardEffects.length > 0 && (
           <div style={styles.section}>
-            <div style={styles.sectionHeader}>🃏 CARD EFFECTS</div>
+            <div style={styles.sectionHeader}>🃏 (C) ACTIONS</div>
             {cardEffects.map((card, i) => (
               <div key={i} style={styles.cardEffect}>
                 <span style={{
@@ -178,6 +178,16 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
                   {card.config.emoji} {card.type}
                 </span>
                 <span style={styles.cardValue}>{card.value}</span>
+                {card.label && (
+                  <span style={{
+                    ...styles.cardBtnLabel,
+                    backgroundColor: card.config.bg,
+                    color: card.config.primary,
+                    borderColor: card.config.primary + '40',
+                  }}>
+                    {card.label}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -186,7 +196,7 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
         {/* Dice Rolls — full breakdown */}
         {spaceDiceRolls.length > 0 && (
           <div style={styles.section}>
-            <div style={styles.sectionHeader}>🎲 DICE ROLL OUTCOMES</div>
+            <div style={styles.sectionHeader}>🎲 (D) ACTIONS</div>
             {spaceDiceRolls.map((dr, idx) => {
               const config = DICE_TYPE_CONFIG[dr.die_roll] || { emoji: '🎲', color: '#6c757d', label: dr.die_roll };
               const rolls = [dr.roll_1, dr.roll_2, dr.roll_3, dr.roll_4, dr.roll_5, dr.roll_6];
@@ -409,6 +419,16 @@ const styles: Record<string, React.CSSProperties> = {
   cardValue: {
     fontSize: '12px',
     color: '#343a40',
+  },
+  cardBtnLabel: {
+    marginLeft: 'auto',
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '10px',
+    fontWeight: 700,
+    border: '1px solid',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
 
   // Dice rolls
