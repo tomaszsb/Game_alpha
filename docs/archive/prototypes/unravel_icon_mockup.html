@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unravel Codes: Hand-Held Icon Library</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --purple: #6f42c1;
+            --success: #28a745;
+            --warning: #ff9800;
+            --danger: #dc3545;
+            --yarn: #e2e8f0; /* Light gray for the yarn "hand" */
+            --bg: #f1f5f9;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 40px; color: #1e293b; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; }
+        .icon-card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 24px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .icon-card:hover { transform: translateY(-5px); }
+        .icon-svg { width: 80px; height: 100px; margin-bottom: 15px; }
+        .label { font-weight: bold; font-size: 0.95rem; margin-bottom: 5px; }
+        .replaces { font-size: 0.75rem; color: #64748b; }
+
+        /* Shared Yarn Hand Path */
+        .yarn-hand {
+            fill: none;
+            stroke: #cbd5e1;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-bottom: 50px;">
+        <h1 style="margin-bottom: 10px;">Unravel Codes: Themed Icons</h1>
+        <p style="color: #64748b;">Custom SVG icons "held" by the Unravel yarn thread.</p>
+    </div>
+
+    <div class="grid">
+        <!-- WORK ICON (Held) -->
+        <div class="icon-card">
+            <svg class="icon-svg" viewBox="0 0 40 50">
+                <!-- The Yarn Thread/Hand -->
+                <path class="yarn-hand" d="M10,45 Q15,35 20,35 T30,25 Q35,15 25,10 T10,15" stroke-dasharray="2,2"/>
+                <!-- The Icon -->
+                <g transform="translate(12, 12) scale(0.7)" stroke="#6f42c1" fill="none" stroke-width="2">
+                    <path d="M3 21h18M3 7v14M21 7v14M2 7h20M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M7 12h10" />
+                </g>
+            </svg>
+            <div class="label">Work Cards</div>
+            <div class="replaces">Held by Thread 🏗️</div>
+        </div>
+
+        <!-- BANK ICON (Held) -->
+        <div class="icon-card">
+            <svg class="icon-svg" viewBox="0 0 40 50">
+                <path class="yarn-hand" d="M30,45 Q25,35 20,35 T10,25 Q5,15 15,10 T30,15" stroke-dasharray="2,2"/>
+                <g transform="translate(12, 10) scale(0.7)" stroke="#007bff" fill="none" stroke-width="2">
+                    <path d="M3 21h18M3 10h18M12 3L2 10h20L12 3z" />
+                    <rect x="7" y="10" width="2" height="11"/>
+                    <rect x="15" y="10" width="2" height="11"/>
+                </g>
+            </svg>
+            <div class="label">Bank / Loans</div>
+            <div class="replaces">Held by Thread 🏦</div>
+        </div>
+
+        <!-- MONEY ICON (Held) -->
+        <div class="icon-card">
+            <svg class="icon-svg" viewBox="0 0 40 50">
+                <path class="yarn-hand" d="M20,45 V35 Q20,20 10,20 Q30,20 30,35 V45" stroke-dasharray="2,2"/>
+                <g transform="translate(12, 15) scale(0.7)" stroke="#28a745" fill="none" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 18V6" />
+                </g>
+            </svg>
+            <div class="label">Funding</div>
+            <div class="replaces">Held by Thread 💰</div>
+        </div>
+
+        <!-- RISK ICON (Held) -->
+        <div class="icon-card">
+            <svg class="icon-svg" viewBox="0 0 40 50">
+                <path class="yarn-hand" d="M10,40 Q20,40 20,25 T30,10" stroke-dasharray="2,2"/>
+                <g transform="translate(10, 10) scale(0.8)" stroke="#dc3545" fill="none" stroke-width="2">
+                    <rect x="2" y="2" width="16" height="16" rx="2" />
+                    <circle cx="7" cy="7" r="1" fill="currentColor"/>
+                    <circle cx="13" cy="13" r="1" fill="currentColor"/>
+                </g>
+            </svg>
+            <div class="label">Life Events</div>
+            <div class="replaces">Held by Thread 🎲</div>
+        </div>
+
+        <!-- EXPEDITE ICON (Held) -->
+        <div class="icon-card">
+            <svg class="icon-svg" viewBox="0 0 40 50">
+                <path class="yarn-hand" d="M5,45 L15,30 Q20,15 35,5" stroke-dasharray="2,2"/>
+                <g transform="translate(12, 10) scale(0.7)" stroke="#ff9800" fill="none" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </g>
+            </svg>
+            <div class="label">Expeditor</div>
+            <div class="replaces">Held by Thread ⚡</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 60px; text-align: center; color: #64748b; font-size: 0.9rem;">
+        <p>This "Held" style directly incorporates your <strong>Unravel</strong> branding into the UI symbols.<br>
+        The dashed line represents the yarn thread weaving through the icons.</p>
+    </div>
+</body>
+</html>

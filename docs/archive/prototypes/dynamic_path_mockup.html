@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Path - Board Mockup</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --secondary: #6c757d;
+            --bg: #f8f9fa;
+            --white: #ffffff;
+            --transition: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        /* Main Game Area */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Sidebar HUD */
+        .sidebar {
+            position: fixed;
+            left: 20px;
+            top: 80px;
+            width: 180px;
+            background: white;
+            padding: 1.2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            z-index: 50;
+        }
+
+        .stat-item {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .stat-label { color: var(--secondary); }
+        .stat-value { font-weight: bold; }
+
+        /* The Progress Bar Board */
+        .board-path {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 50px;
+            background: white;
+            border-radius: 100px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            max-width: 85vw;
+            transition: all 0.5s var(--transition);
+        }
+
+        /* Space Tile Styling */
+        .space {
+            width: 25px;
+            height: 25px;
+            border-radius: 100px;
+            background: #dee2e6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s var(--transition);
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* States */
+        .space.active {
+            width: 300px;
+            height: 180px;
+            border-radius: 20px;
+            background: white;
+            border: 3px solid var(--accent-color);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            cursor: default;
+            overflow: visible;
+        }
+
+        .space.available {
+            width: 80px;
+            height: 80px;
+            background: var(--accent-color);
+            animation: pulse-move 2s infinite;
+        }
+
+        .space.available::after {
+            content: 'GO';
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* Magnification on Hover */
+        .space:not(.active):hover {
+            transform: scale(3) translateY(-5px);
+            z-index: 100;
+            background: var(--accent-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Content inside Active Space */
+        .active-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+
+        .space.active .active-content {
+            display: flex;
+        }
+
+        .space-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+
+        .space-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .space-desc {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            line-height: 1.3;
+            margin-bottom: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-roll { background: var(--primary); color: white; }
+        .btn-end { background: var(--success); color: white; }
+
+        /* Player Icon */
+        .player-icon {
+            position: absolute;
+            top: -45px;
+            font-size: 2.5rem;
+            transition: all 0.5s var(--transition);
+        }
+
+        /* Animations */
+        @keyframes pulse-move {
+            0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 123, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+        }
+
+        .instruction {
+            margin-top: 50px;
+            color: #adb5bd;
+            text-align: center;
+            max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="font-size: 1.8rem;">🏗️</span>
+            <h2 style="margin: 0; font-size: 1.3rem;">Code2027: Dynamic Path</h2>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 0.85rem;">
+            Interactive Prototype
+        </div>
+    </header>
+
+    <div class="sidebar">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <div style="font-size: 2.2rem;">👤</div>
+            <div style="font-weight: bold; margin-top: 5px;">Alice</div>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">💰 Money</span>
+            <span class="stat-value">$150,000</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">⏱️ Time</span>
+            <span class="stat-value">12w</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">📐 Scope</span>
+            <span class="stat-value">4.2M</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="board" class="board-path">
+            <!-- Spaces will be injected by JS -->
+        </div>
+
+        <div class="instruction">
+            <p><strong>Hover</strong> over dots to inspect spaces.<br>
+            <strong>Click</strong> the pulsing blue circle to advance your turn.</p>
+        </div>
+    </div>
+
+    <script>
+        const spaces = [
+            { id: 0, name: 'START', type: 'S', color: '#6c757d', title: 'Beginning', desc: 'Starting your development journey.' },
+            { id: 1, name: 'SCOPE', type: 'D', color: '#6f42c1', title: 'Design Scope', desc: 'Determine the total square footage and hiring needs.' },
+            { id: 2, name: 'BANK', type: 'B', color: '#007bff', title: 'Funding', desc: 'Secure loans from the bank or private investors.' },
+            { id: 3, name: 'PERMIT', type: 'R', color: '#ff9800', title: 'Permitting', desc: 'Submit plans to DOB and wait for professional certification.' },
+            { id: 4, name: 'SITE', type: 'C', color: '#28a745', title: 'Construction', desc: 'Break ground and manage site safety and inspections.' },
+            { id: 5, name: 'FINISH', type: 'F', color: '#dc3545', title: 'Completion', desc: 'Certificate of Occupancy achieved!' }
+        ];
+
+        let currentId = 1;
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            spaces.forEach((space) => {
+                const el = document.createElement('div');
+                el.className = 'space';
+                el.style.setProperty('--accent-color', space.color);
+                
+                if (space.id === currentId) {
+                    el.classList.add('active');
+                    el.innerHTML = `
+                        <div class="player-icon">👤</div>
+                        <div class="active-content">
+                            <div class="space-label">${space.name}</div>
+                            <div class="space-title">${space.title}</div>
+                            <div class="space-desc">${space.desc}</div>
+                            <div class="button-group">
+                                <button class="btn btn-roll">🎲 Action</button>
+                                <button class="btn btn-end">⏹️ End Turn</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (space.id === currentId + 1) {
+                    el.classList.add('available');
+                    el.onclick = () => {
+                        currentId = space.id;
+                        renderBoard();
+                    };
+                }
+
+                board.appendChild(el);
+            });
+        }
+
+        // Initial Render
+        renderBoard();
+    </script>
+</body>
+</html>
