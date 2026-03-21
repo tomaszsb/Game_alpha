@@ -482,7 +482,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         {/* E Card Callout */}
         {isMyTurn && playableECards.length > 0 && (
           <div className="action-center__e-card-callout">
-            <div className="action-center__e-card-header">⚡ EXPEDITOR CARD AVAILABLE</div>
+            <div className="action-center__e-card-header">⚡ EXPEDITOR READY TO HELP</div>
             {playableECards.map(cardId => {
               const card = gameServices.dataService.getCardById(cardId);
               if (!card) return null;
