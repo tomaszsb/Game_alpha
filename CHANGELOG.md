@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Life Event Modal (March 21, 2026)
+
+**L card draws now show a modal announcement.**
+
+Previously, auto-drawn Life Event cards only showed a small red notification banner. Now they trigger the DiceResultModal with the card name and description, matching the behavior of other important game events.
+
+**Updated files:**
+- `src/services/CardEffectHandler.ts` — emit auto-action event on L card draw
+- `src/components/layout/GameLayout.tsx` — handle life_event auto-action to show modal
+
 ### OWNER-FUND-INITIATION — Fix Double Money Bug (March 21, 2026)
 
 **Fixed double-counting of money at Owner Funding space.**

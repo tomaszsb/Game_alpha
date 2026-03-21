@@ -22,7 +22,7 @@ import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
 import { NotificationUtils } from '../../utils/NotificationUtils';
-import { GamePhase, Player } from '../../types/StateTypes';
+import { GamePhase, Player, DiceResultEffect } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { haptics } from '../../utils/haptics';
@@ -202,18 +202,36 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     );
   }, [notificationService]);
 
-  // Subscribe to auto-action events for logging only
-  // Note: Modal display is handled by the action handlers (handleRollDice, handleManualEffect, etc.)
-  // to avoid duplicate modals appearing simultaneously
+  // Subscribe to auto-action events — show modals for life events
   useEffect(() => {
     const unsubscribe = stateService.subscribeToAutoActions((event: AutoActionEvent) => {
-      // Events are logged but modals are shown by the direct handlers
+      if (event.type === 'life_event' && event.cardId) {
+        const card = dataService.getCardById(event.cardId);
+        const effects: DiceResultEffect[] = [{
+          type: 'card_draw',
+          description: `🎲 Life Event: ${event.cardName || 'Unknown'}`,
+          cardType: 'L',
+          cardIds: [event.cardId]
+        }];
+        if (card?.description) {
+          effects.push({
+            type: 'info',
+            description: card.description
+          });
+        }
+        setDiceResult({
+          effects,
+          summary: event.message,
+          spaceName: event.spaceName
+        });
+        setIsDiceResultModalOpen(true);
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [stateService]);
+  }, [stateService, dataService]);
 
   // Persist visiblePanels to localStorage whenever it changes
   useEffect(() => {

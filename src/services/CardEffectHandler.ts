@@ -273,11 +273,12 @@ export class CardEffectHandler implements ICardEffectHandler {
     const player = this.stateService.getPlayer(playerId);
     if (!player) return;
 
-    const cardNames = drawnCards.map(cardId => {
+    const cardDetails = drawnCards.map(cardId => {
       const card = this.dataService?.getCardById(cardId);
-      return card?.name || cardId;
+      return { id: cardId, name: card?.card_name || card?.name || cardId, description: card?.description || '' };
     });
 
+    const cardNames = cardDetails.map(c => c.name);
     const notificationMessage = drawnCards.length === 1
       ? `🎲 Life Event: ${cardNames[0]}`
       : `🎲 Life Events: ${cardNames.join(', ')}`;
@@ -295,6 +296,21 @@ export class CardEffectHandler implements ICardEffectHandler {
         notificationDuration: 5000
       }
     );
+
+    // Emit auto-action event to trigger modal in UI
+    const cardDetail = cardDetails[0];
+    this.stateService.emitAutoAction({
+      type: 'life_event',
+      playerId,
+      playerName: player.name,
+      playerColor: player.color,
+      cardType: 'L',
+      cardName: cardDetail.name,
+      cardId: cardDetail.id,
+      success: true,
+      spaceName: player.currentSpace,
+      message: notificationMessage
+    });
   }
 
   private checkFundingAutoPlay(payload: any, drawnCards: string[], context: EffectContext): EffectResult | null {

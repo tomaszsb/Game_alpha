@@ -9,6 +9,9 @@
 **Status:** Alpha Testing
 **Type:** Bug Fix
 
+### New: Life Event modal announcement
+When a Life Event card is drawn, a modal now pops up showing the card name and description — so you don't miss important events that affect your game.
+
 ### Fixed: Double money at Owner Funding Initiation
 Players were receiving money twice at the Owner Funding space — once from owner seed money and again from an auto-drawn bank/investor card. The auto card draw has been removed. Owner funding is now applied automatically on arrival with no button needed, matching the intended game design.
 
