@@ -343,14 +343,6 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
 
-        {/* Notification */}
-        {playerNotification && (
-          <div className="action-center__notification">
-            <span>📢</span>
-            <span>{playerNotification}</span>
-          </div>
-        )}
-
         {/* NPC Story */}
         {spaceStory && (
           <div
@@ -395,6 +387,14 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 read more...
               </button>
             )}
+          </div>
+        )}
+
+        {/* Notification — between story and PM action */}
+        {playerNotification && (
+          <div className="action-center__notification">
+            <span>📢</span>
+            <span>{playerNotification}</span>
           </div>
         )}
 

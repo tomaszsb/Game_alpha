@@ -1,14 +1,22 @@
 # Project Status
 
 **Last Updated**: March 21, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.1)
-**Current Version**: 2.33.1
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.2)
+**Current Version**: 2.33.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Owner Funding: Fix Double Money Bug (March 21, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.33.2
+- **Changes**:
+  - Removed auto B/I card draws from OWNER-FUND-INITIATION (was double-counting money)
+  - Added safety net in CardService to skip B/I card money at this space
+  - Moved notification placement below story, above PM action
 
 ### Editor Preview: Single-Destination Auto-Move Fix (March 21, 2026) ✅
 - **Status**: ✅ Complete

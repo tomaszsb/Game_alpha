@@ -1,4 +1,5 @@
 space_name,visit_type,effect_type,effect_action,effect_value,condition,description,trigger_type
+,try_again_label,cards,draw_W,e_card_label,,e_card_label W cards,manual
 START-QUICK-PLAY-GUIDE,First,cards,draw_W,The scope of work is W cards. Here you learn how to add remove or change scope. Just remember 20% design fee is the max.,,The scope of work is W cards. Here you learn how to add remove or change scope. Just remember 20% design fee is the max. W cards,manual
 START-QUICK-PLAY-GUIDE,First,cards,draw_B,You can not build if you do not have $ - Bank will lend you a little $ rather quickly and at a low rate.,,You can not build if you do not have $ - Bank will lend you a little $ rather quickly and at a low rate. B cards,manual
 START-QUICK-PLAY-GUIDE,First,cards,draw_I,You can not build if you do not have $ - Investor will lend you a lot of $ rather slowly and at a higher rate.,,You can not build if you do not have $ - Investor will lend you a lot of $ rather slowly and at a higher rate. I cards,manual
@@ -17,11 +18,7 @@ OWNER-SCOPE-INITIATION,First,time,add,1,,Spend 1 day,auto
 OWNER-SCOPE-INITIATION,Subsequent,cards,draw_E,Draw 3,,Draw 3 E cards,manual
 OWNER-SCOPE-INITIATION,Subsequent,dice,dice_outcome,W Cards,,Roll for W Cards,manual
 OWNER-SCOPE-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
-OWNER-FUND-INITIATION,First,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
-OWNER-FUND-INITIATION,First,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
 OWNER-FUND-INITIATION,First,time,add,1,,Spend 1 day,auto
-OWNER-FUND-INITIATION,Subsequent,cards,draw_B,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope ≤ $ 4 M (fees do not matter this turn as it is owner's money) B cards,auto
-OWNER-FUND-INITIATION,Subsequent,cards,draw_I,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money),,Draw 1 if scope > $ 4 M (fees do not matter this turn as it is owner's money) I cards,auto
 OWNER-FUND-INITIATION,Subsequent,time,add,1,,Spend 1 day,auto
 PM-DECISION-CHECK,First,cards,draw_L,Draw 1 if you roll a 1,,Draw 1 if you roll a 1 L cards,auto
 PM-DECISION-CHECK,First,cards,draw_E,Replace 1,,Replace 1 E cards,manual

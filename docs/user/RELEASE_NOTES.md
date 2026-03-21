@@ -2,6 +2,21 @@
 
 ---
 
+## v2.33.2 - Fix Owner Funding Double Money (March 21, 2026)
+
+**Release Date:** March 21, 2026
+**Version:** 2.33.2
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Double money at Owner Funding Initiation
+Players were receiving money twice at the Owner Funding space — once from the Get Funding button (owner seed money) and again from an auto-drawn bank/investor card. The auto card draw has been removed. Only the owner seed money is now applied, matching the intended game design.
+
+### Fixed: Notification appears below story
+The notification banner (e.g. dice results, funding messages) now appears between the NPC story and the PM Action section, instead of above the story.
+
+---
+
 ## v2.33.1 - Editor Preview Fix: Single-Destination Spaces (March 21, 2026)
 
 **Release Date:** March 21, 2026

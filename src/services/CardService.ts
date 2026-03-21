@@ -1173,68 +1173,69 @@ export class CardService implements ICardService {
     }
 
     // RESOURCE_CHANGE effects from loan_amount field (B cards)
+    // Skip money effects at OWNER-FUND-INITIATION — funding is handled by handleAutomaticFunding
     if (card.card_type === 'B' && card.loan_amount) {
       const loanAmount = parseInt(card.loan_amount, 10);
       if (!isNaN(loanAmount) && loanAmount > 0) {
         const player = this.stateService.getPlayer(playerId);
-        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'bank';
-        const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Loan';
+        const isOwnerFundingSpace = player?.currentSpace === 'OWNER-FUND-INITIATION';
 
+        if (!isOwnerFundingSpace) {
+          // Calculate interest (loan_rate is stored as percentage, e.g., 5 for 5%)
+          const interestRate = card.loan_rate ? parseFloat(card.loan_rate) / 100 : 0;
+          const interestFee = Math.round(loanAmount * interestRate);
 
-        // Calculate interest (loan_rate is stored as percentage, e.g., 5 for 5%)
-        const interestRate = card.loan_rate ? parseFloat(card.loan_rate) / 100 : 0;
-        const interestFee = sourceType === 'bank' ? Math.round(loanAmount * interestRate) : 0;
-
-        effects.push({
-          effectType: 'RESOURCE_CHANGE',
-          payload: {
-            playerId: playerId,
-            resource: 'MONEY',
-            amount: loanAmount,
-            source: cardSource,
-            sourceType: sourceType,
-            reason: `${card.card_name}: ${sourceLabel} of $${loanAmount.toLocaleString()}${interestFee > 0 ? ` at ${card.loan_rate}% interest` : ''}`
-          }
-        });
-
-        // Deduct interest upfront for bank loans (not owner funding)
-        if (interestFee > 0) {
           effects.push({
             effectType: 'RESOURCE_CHANGE',
             payload: {
               playerId: playerId,
               resource: 'MONEY',
-              amount: -interestFee,
+              amount: loanAmount,
               source: cardSource,
-              sourceType: 'other',
-              reason: `${card.card_name}: Interest fee (${card.loan_rate}%): -$${interestFee.toLocaleString()}`
+              sourceType: 'bank',
+              reason: `${card.card_name}: Loan of $${loanAmount.toLocaleString()}${interestFee > 0 ? ` at ${card.loan_rate}% interest` : ''}`
             }
           });
+
+          // Deduct interest upfront for bank loans
+          if (interestFee > 0) {
+            effects.push({
+              effectType: 'RESOURCE_CHANGE',
+              payload: {
+                playerId: playerId,
+                resource: 'MONEY',
+                amount: -interestFee,
+                source: cardSource,
+                sourceType: 'other',
+                reason: `${card.card_name}: Interest fee (${card.loan_rate}%): -$${interestFee.toLocaleString()}`
+              }
+            });
+          }
         }
       }
     }
 
     // RESOURCE_CHANGE effects from investment_amount field (I cards)
+    // Skip money effects at OWNER-FUND-INITIATION — funding is handled by handleAutomaticFunding
     if (card.card_type === 'I' && card.investment_amount) {
       const investmentAmount = parseInt(card.investment_amount, 10);
       if (!isNaN(investmentAmount) && investmentAmount > 0) {
         const player = this.stateService.getPlayer(playerId);
-        // At OWNER-FUND-INITIATION, seed money from I cards counts as owner funding
-        const sourceType = player?.currentSpace === 'OWNER-FUND-INITIATION' ? 'owner' : 'investment';
-        const sourceLabel = sourceType === 'owner' ? 'Owner funding' : 'Investment';
+        const isOwnerFundingSpace = player?.currentSpace === 'OWNER-FUND-INITIATION';
 
-
-        effects.push({
-          effectType: 'RESOURCE_CHANGE',
-          payload: {
-            playerId: playerId,
-            resource: 'MONEY',
-            amount: investmentAmount,
-            source: cardSource,
-            sourceType: sourceType,
-            reason: `${card.card_name}: ${sourceLabel} of $${investmentAmount.toLocaleString()}`
-          }
-        });
+        if (!isOwnerFundingSpace) {
+          effects.push({
+            effectType: 'RESOURCE_CHANGE',
+            payload: {
+              playerId: playerId,
+              resource: 'MONEY',
+              amount: investmentAmount,
+              source: cardSource,
+              sourceType: 'investment',
+              reason: `${card.card_name}: Investment of $${investmentAmount.toLocaleString()}`
+            }
+          });
+        }
       }
     }
 
