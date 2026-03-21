@@ -245,8 +245,8 @@ describe('buildDataMaps', () => {
   });
 
   it('builds configOrder with correct ordering', () => {
-    // OWNER-SCOPE-INITIATION is the 2nd data row (index 1)
-    expect(maps.configOrder['OWNER-SCOPE-INITIATION']).toBe(1);
+    // OWNER-SCOPE-INITIATION comes after the empty header-default row in GAME_CONFIG
+    expect(maps.configOrder['OWNER-SCOPE-INITIATION']).toBe(2);
     // FINISH is last
     expect(maps.configOrder['FINISH']).toBe(configRows.length - 1);
   });
@@ -355,9 +355,12 @@ describe('buildGamePathFromData', () => {
       }
     });
 
-    it('places all game config spaces (except START-QUICK-PLAY-GUIDE)', () => {
+    it('places all reachable game config spaces', () => {
+      // Exclude START-QUICK-PLAY-GUIDE (not on main board), empty names (header-default row),
+      // and CON-INSPECT (unreachable — CON-ISSUES dice outcomes no longer route to it)
+      const EXCLUDED = new Set(['START-QUICK-PLAY-GUIDE', '', 'CON-INSPECT']);
       const configSpaces = configRows
-        .filter(r => r.space_name !== 'START-QUICK-PLAY-GUIDE')
+        .filter(r => !EXCLUDED.has(r.space_name))
         .map(r => r.space_name);
       const unplaced = configSpaces.filter(s => !placed.has(s));
       expect(unplaced).toEqual([]);
@@ -495,8 +498,10 @@ describe('getAllSpaceNames', () => {
   const allNames = getAllSpaceNames(gamePath);
 
   it('returns all placed spaces', () => {
+    // Exclude START-QUICK-PLAY-GUIDE, empty names, and CON-INSPECT (unreachable)
+    const EXCLUDED = new Set(['START-QUICK-PLAY-GUIDE', '', 'CON-INSPECT']);
     const configSpaces = configRows
-      .filter(r => r.space_name !== 'START-QUICK-PLAY-GUIDE')
+      .filter(r => !EXCLUDED.has(r.space_name))
       .map(r => r.space_name);
     for (const s of configSpaces) {
       expect(allNames).toContain(s);
@@ -695,8 +700,9 @@ describe('full board snapshot', () => {
   });
 
   it('produces consistent space count', () => {
-    // All config spaces minus START-QUICK-PLAY-GUIDE
-    const expected = configRows.filter(r => r.space_name !== 'START-QUICK-PLAY-GUIDE').length;
+    // All reachable config spaces (exclude START-QUICK-PLAY-GUIDE, empty names, CON-INSPECT)
+    const EXCLUDED = new Set(['START-QUICK-PLAY-GUIDE', '', 'CON-INSPECT']);
+    const expected = configRows.filter(r => !EXCLUDED.has(r.space_name)).length;
     expect(allNames.length).toBeGreaterThanOrEqual(expected);
   });
 

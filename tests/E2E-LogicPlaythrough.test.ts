@@ -138,12 +138,9 @@ describe('Logic E2E: Full Game Playthrough', () => {
     await playStep('ENG-SCOPE-CHECK', 'REG-DOB-FEE-REVIEW');
     await playStep('REG-DOB-FEE-REVIEW');
     await playStep('REG-DOB-TYPE-SELECT', 'REG-DOB-PROF-CERT');
-    await playStep('REG-DOB-PROF-CERT', undefined, 3);
-    await playStep('REG-FDNY-FEE-REVIEW', 'CON-INITIATION');
-    await playStep('CON-INITIATION');
-    await playStep('CON-ISSUES', undefined, 1);
-    await playStep('CON-INSPECT', undefined, 1);
-    await playStep('REG-DOB-FINAL-REVIEW', undefined, 1);
+    await playStep('REG-DOB-PROF-CERT', undefined, 1);   // roll 1 → REG-DOB-AUDIT
+    await playStep('REG-DOB-AUDIT', undefined, 1);       // roll 1 → REG-DOB-FINAL-REVIEW
+    await playStep('REG-DOB-FINAL-REVIEW', undefined, 1); // roll 1 → FINISH
 
     expect(stateService.getPlayer(playerId)!.currentSpace).toBe('FINISH');
     expect(stateService.getGameState().isGameOver).toBe(true);
