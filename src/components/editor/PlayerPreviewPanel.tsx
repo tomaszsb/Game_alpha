@@ -196,8 +196,8 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
           );
         })()}
 
-        {/* Movement Choices */}
-        {destinations.length > 0 && (
+        {/* Movement Choices — only show choice UI when 2+ destinations */}
+        {destinations.length > 1 && (
           <div className="action-center__movement">
             <div className="action-center__movement-header">🚶 CHOOSE YOUR DESTINATION</div>
             {destinations.map((d, i) => (
@@ -205,6 +205,14 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
                 🎯 {d}
               </button>
             ))}
+          </div>
+        )}
+        {destinations.length === 1 && (
+          <div className="action-center__movement">
+            <div className="action-center__movement-header">🚶 NEXT DESTINATION</div>
+            <div style={{ padding: '6px 12px', fontSize: '13px', color: '#495057' }}>
+              ➡️ {destinations[0]} <span style={{ color: '#adb5bd', fontSize: '11px' }}>(auto-move)</span>
+            </div>
           </div>
         )}
       </div>

@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Editor Preview — Single-Destination Auto-Move (March 21, 2026)
+
+**Editor preview now matches game behavior for single-destination spaces.**
+
+- Editor preview shows "NEXT DESTINATION → X (auto-move)" when only 1 destination exists
+- "CHOOSE YOUR DESTINATION" with choice buttons only appears for 2+ destinations
+- Previously, every space with any destination showed the choice UI — misleading for spaces like OWNER-SCOPE-INITIATION that auto-move in the actual game
+
+**TODO.md cleanup:**
+- Trimmed Recently Completed (kept Mar 2026 only, older moved here)
+- Removed completed Phase 4 and Dictionary Integration sections
+- Updated ProgressBarMap cleanup task: delete files (never rendered, fully replaced by BoardV3)
+
+**Updated files:**
+- `src/components/editor/PlayerPreviewPanel.tsx` — conditional rendering for 1 vs 2+ destinations
+- `TODO.md` — cleanup and date update
+
 ### Space Data Editor — Regression Tests & Missing Fields (March 18, 2026)
 
 **Comprehensive editor regression test suite and missing field additions.**

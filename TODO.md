@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** March 18, 2026
+**Last Updated:** March 21, 2026
 **Status:** Pre-Beta — Editor hardening
 **Current Version:** 2.33.0
 
@@ -22,15 +22,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - ✅ Space Data Editor: card button labels (5 new CSV columns), title in header, path in movement section, negotiate-based preview, 27 regression tests (Mar 18, 2026)
 - ✅ BoardV3 production migration: pre-allocated 190px slots, SVG arrow system with obstacle avoidance, data-driven path from CSV, 83 unit tests, replaces ProgressBarMap (Mar 16, 2026)
 - ✅ Snake Map fixed-width slot grid: calculated fork lines, fixed-height branches, u-turn via spacer/entry extensions, 3 tile states (compact/hover/expanded), phase groups, adaptive row splitting (Mar 3, 2026)
-- ✅ UI Enhancements: Glossary button, active indicators, back-button modal close, TV same-tab navigation (Feb 28, 2026)
-- ✅ NPC Character Identity System: random portraits for 9 NPC roles, shown in story/modals/board tiles, separate PM Action section (Feb 28, 2026)
-- ✅ Data sync fix: SOURCE_FILES and CLEAN_FILES now in sync — editor edits properly flow to game (Feb 28, 2026)
-- ✅ Docker hardening: isolated network, read-only fs, cap-drop ALL, no-new-privileges (Feb 24, 2026)
-- ✅ Character voice narration Phase 1: 6 character voices, speech controls, character badges (Feb 22, 2026)
-- ✅ Security hardening: CORS, headers, path traversal fix, debug endpoint auth (Feb 13, 2026)
-- ✅ Production cleanup: 586 console.log statements removed, source maps disabled (Feb 12, 2026)
-- ✅ TypeScript check clean, full test suite passing (1316 tests, 0 failures) (Feb 13, 2026)
-- ✅ Data Editor input helpers, add/delete spaces, baseline reset, smart dice roll inputs (Feb 12, 2026)
 
 *For full history, see CHANGELOG.md*
 
@@ -59,18 +50,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🚀 **PHASE 4: Release Preparation** ✅ COMPLETE
-*Completed: February 13, 2026*
-
-- ✅ 586 console.log statements removed from 16 files
-- ✅ Security audit: CORS restricted, security headers added, path traversal fixed, debug endpoints locked, error messages sanitized, source maps disabled
-- ✅ TypeScript strict check passes clean
-- ✅ Production build verified, deployed
-- ✅ 1316 tests passing (88 files, 0 failures)
-- ✅ Documentation updated
-
----
-
 ## 🎉 **PHASE 5: Public Release** (Launch Day)
 *Status: NOT STARTED*
 
@@ -93,9 +72,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] Remove `validMoves` state — set but never read (`highlightedMoves` is what drives moves)
 - [ ] Remove `console.log` debug statements (lines 244, 246)
 
-### ProgressBarMap.tsx
-- [ ] Simplify `PHASE_COLORS` — `bg` and `text` fields are never used, only `border`
-- [ ] Replace `motion.div` + `springTransition` with plain `<div>` — path is hardcoded/static, layout animations add overhead for no visual benefit
+### ProgressBarMap.tsx + ProgressBarMap.css
+- [ ] Delete both files — `<ProgressBarMap>` is never rendered anywhere, fully replaced by BoardV3
 
 ---
 
@@ -113,11 +91,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] Performance monitoring (TTI, FCP, CLS)
 - [ ] Real device testing (iPhone SE, Galaxy, budget Android)
 - [ ] Network throttling tests (Slow 3G)
-
-### Dictionary Integration ✅ (Feb 13, 2026)
-- [x] Switch `loadTerms()` to fetch from dashboard API (`GET /api/glossary/live`) with CSV fallback
-- [x] Verify `GlossaryTerm` JSON shape matches game's interface
-- [x] Confirm `dictionaryBridge.ts` URL pattern still works
 
 ### Native App (Long-term)
 - [ ] Evaluate Capacitor for wrapping React app in native shell

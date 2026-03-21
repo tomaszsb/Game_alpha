@@ -2,6 +2,18 @@
 
 ---
 
+## v2.33.1 - Editor Preview Fix: Single-Destination Spaces (March 21, 2026)
+
+**Release Date:** March 21, 2026
+**Version:** 2.33.1
+**Status:** Alpha Testing
+**Type:** Fix
+
+### Fixed: Editor preview no longer shows "Choose your destination" for single-destination spaces
+Spaces with only one next destination (like Owner Scope Initiation) now show "Next Destination → X (auto-move)" in the editor preview, matching the actual game behavior where the player is moved automatically. The "Choose your destination" buttons only appear when there are 2 or more destinations.
+
+---
+
 ## v2.33.0 - Space Data Editor: Custom Button Labels & Layout Improvements (March 18, 2026)
 
 **Release Date:** March 18, 2026

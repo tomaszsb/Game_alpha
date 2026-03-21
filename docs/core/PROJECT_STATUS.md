@@ -1,14 +1,21 @@
 # Project Status
 
-**Last Updated**: March 18, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.0)
-**Current Version**: 2.33.0
+**Last Updated**: March 21, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.1)
+**Current Version**: 2.33.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Editor Preview: Single-Destination Auto-Move Fix (March 21, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.33.1
+- **Changes**:
+  - Editor preview shows "NEXT DESTINATION (auto-move)" for single-destination spaces
+  - "CHOOSE YOUR DESTINATION" only shown for 2+ destinations, matching game behavior
 
 ### Space Data Editor: Card Labels, Title, Path, Preview (March 18, 2026) ✅
 - **Status**: ✅ Complete
