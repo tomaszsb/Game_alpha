@@ -13,6 +13,7 @@ Players were receiving money from two sources: owner seed money (via Get Funding
 - Removed auto B/I card draws from OWNER-FUND-INITIATION in Spaces.csv (both First and Subsequent)
 - Added safety net in CardService: B/I card money effects are skipped at OWNER-FUND-INITIATION
 - Regenerated CLEAN_FILES (SPACE_EFFECTS.csv now only has time effect for this space)
+- Owner funding now auto-applied on arrival in TurnService.startTurn() — no button needed
 
 **Notification placement fix:**
 - Moved notification (📢) from above NPC story to between story and PM action across all spaces
@@ -21,6 +22,7 @@ Players were receiving money from two sources: owner seed money (via Get Funding
 - `public/data/SOURCE_FILES/Spaces.csv` — removed b_card and i_card for OWNER-FUND-INITIATION
 - `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` — regenerated, card effects removed
 - `src/services/CardService.ts` — skip B/I card money at OWNER-FUND-INITIATION
+- `src/services/TurnService.ts` — auto-trigger handleAutomaticFunding on arrival
 - `src/components/player/ActionCenterPanel.tsx` — notification moved below story
 
 ### Editor Preview — Single-Destination Auto-Move (March 21, 2026)

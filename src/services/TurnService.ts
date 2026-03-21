@@ -889,6 +889,11 @@ export class TurnService implements ITurnService {
       // 5. Unlock UI after processing is complete
       this.stateService.updateGameState({ isProcessingArrival: false });
 
+      // Auto-apply owner funding at OWNER-FUND-INITIATION (no button needed)
+      if (player.currentSpace === 'OWNER-FUND-INITIATION') {
+        await this.handleAutomaticFunding(player.id);
+      }
+
       // Handle movement choices after effects are processed
       await this.handleMovementChoices(player.id);
 
