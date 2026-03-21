@@ -298,9 +298,10 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
       if (!cardValue) continue;
 
       let triggerType = 'manual';
-      if (spaceName === 'OWNER-FUND-INITIATION' && ['B', 'I'].includes(cardLetter)) {
+      // L cards are always auto — life events are surprises, not player choices
+      if (cardLetter === 'L') {
         triggerType = 'auto';
-      } else if (spaceName === 'PM-DECISION-CHECK' && cardLetter === 'L') {
+      } else if (spaceName === 'OWNER-FUND-INITIATION' && ['B', 'I'].includes(cardLetter)) {
         triggerType = 'auto';
       }
 
