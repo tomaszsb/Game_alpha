@@ -1,14 +1,21 @@
 # Project Status
 
 **Last Updated**: March 21, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.2)
-**Current Version**: 2.33.2
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.3)
+**Current Version**: 2.33.3
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Negotiate Button Visibility Fix (March 21, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.33.3
+- **Changes**:
+  - Negotiate button now shows on negotiable spaces even with 0 completed actions
+  - Added ActionCenterPanel component tests (6 tests)
 
 ### Owner Funding: Fix Double Money Bug (March 21, 2026) ✅
 - **Status**: ✅ Complete

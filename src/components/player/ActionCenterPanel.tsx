@@ -586,13 +586,13 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               <div className="action-center__end-turn-subtitle">{endTurnTooltip}</div>
             )}
           </button>
-          {onTryAgain && gameState.completedActionCount > 0 && (
+          {onTryAgain && (gameState.completedActionCount > 0 || spaceContent?.can_negotiate) && (
             <button
               className="action-center__try-again-btn"
               onClick={() => onTryAgain(playerId)}
-              title="Restore to snapshot saved when you arrived at this space"
+              title={spaceContent?.can_negotiate ? 'Negotiate for different terms (costs time)' : 'Restore to snapshot saved when you arrived at this space'}
             >
-              {spaceContent?.try_again_label || '🔄 Try Again'}
+              {spaceContent?.try_again_label || (spaceContent?.can_negotiate ? '🔄 Negotiate' : '🔄 Try Again')}
             </button>
           )}
         </div>

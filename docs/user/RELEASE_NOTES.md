@@ -2,6 +2,18 @@
 
 ---
 
+## v2.33.3 - Negotiate Button Fix (March 21, 2026)
+
+**Release Date:** March 21, 2026
+**Version:** 2.33.3
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Negotiate button now visible on Owner Funding space
+On spaces that allow negotiation (like Owner Funding Initiation), the Negotiate button was missing. It now appears alongside the "Agree with Owner" button so you can choose to negotiate for different terms.
+
+---
+
 ## v2.33.2 - Fix Owner Funding Double Money (March 21, 2026)
 
 **Release Date:** March 21, 2026

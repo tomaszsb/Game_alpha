@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Negotiate Button Visibility Fix (March 21, 2026)
+
+**Negotiate button now shows on negotiable spaces regardless of completed action count.**
+
+Previously, the negotiate/try-again button in ActionCenterPanel required `completedActionCount > 0` to appear. On spaces like OWNER-FUND-INITIATION where `can_negotiate=YES`, this meant the button was hidden even though negotiation should be available.
+
+- Changed condition to also show button when `spaceContent.can_negotiate` is true
+- Default label falls back to "🔄 Negotiate" on negotiable spaces (instead of "🔄 Try Again")
+- Added 6 new component tests for ActionCenterPanel negotiate button visibility
+
+**Updated files:**
+- `src/components/player/ActionCenterPanel.tsx` — button visibility condition
+- `tests/components/player/ActionCenterPanel.test.tsx` — new test file (6 tests)
+
 ### Life Event Modal (March 21, 2026)
 
 **L card draws now show a modal announcement.**
