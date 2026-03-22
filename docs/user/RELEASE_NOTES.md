@@ -2,6 +2,21 @@
 
 ---
 
+## v2.33.6 - Code Audit Cleanup (March 22, 2026)
+
+**Release Date:** March 22, 2026
+**Version:** 2.33.6
+**Status:** Alpha Testing
+**Type:** Cleanup
+
+### Removed dead code
+Removed ~5,200 lines of unused components (PlayerPanel, TurnControlsWithActions, ProgressBarMap, and related files). No gameplay impact — these were all replaced by ActionCenterPanel and BoardV3.
+
+### Cleaned up GameBoard
+Removed debug logging and unused state from the TV display board component.
+
+---
+
 ## v2.33.5 - Mobile Panel Visibility Fix (March 22, 2026)
 
 **Release Date:** March 22, 2026

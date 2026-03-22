@@ -1,14 +1,24 @@
 # Project Status
 
-**Last Updated**: March 21, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.5)
-**Current Version**: 2.33.5
+**Last Updated**: March 22, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.6)
+**Current Version**: 2.33.6
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Code Audit Cleanup Sprint (March 22, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.33.6
+- **Changes**:
+  - Removed ~5,200 lines of dead code: PlayerPanel, TurnControlsWithActions, PlayerStatusPanel, PlayerStatusItem, NextStepButton, ProgressBarMap (6 source + 5 test files)
+  - Cleaned GameLayout (dead imports) and GameBoard (unused state, debug logs)
+  - Fixed mobile panel visibility — connected players' panels now hide on host screen
+  - Added 9 player panel visibility tests, 6 ActionCenterPanel negotiate button tests
+  - Test count: 1493 tests across 91 files (all passing)
 
 ### L Card Dice Condition Fix (March 21, 2026) ✅
 - **Status**: ✅ Complete
