@@ -1,14 +1,21 @@
 # Project Status
 
 **Last Updated**: March 21, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.3)
-**Current Version**: 2.33.3
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.4)
+**Current Version**: 2.33.4
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### L Card Dice Condition Fix (March 21, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.33.4
+- **Changes**:
+  - L card effects now have `dice_roll_N` condition — 1-in-6 chance per space
+  - Previously fired on every arrival due to empty condition column
 
 ### Negotiate Button Visibility Fix (March 21, 2026) ✅
 - **Status**: ✅ Complete

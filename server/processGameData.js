@@ -309,13 +309,22 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
       const customLabel = (row[cardLabelCols[colName]] || '').trim();
       const description = customLabel || `${cardValue} ${cardLetter} cards`;
 
+      // Extract dice condition from L card descriptions like "Draw 1 if you roll a 3"
+      let condition = '';
+      if (cardLetter === 'L') {
+        const diceMatch = cardValue.match(/roll\s+a\s+(\d)/i);
+        if (diceMatch) {
+          condition = `dice_roll_${diceMatch[1]}`;
+        }
+      }
+
       effects.push({
         space_name: spaceName,
         visit_type: visitType,
         effect_type: 'cards',
         effect_action: `draw_${cardLetter}`,
         effect_value: cardValue,
-        condition: '',
+        condition: condition,
         description: description,
         trigger_type: triggerType
       });

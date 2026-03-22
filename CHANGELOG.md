@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### L Card Dice Condition Fix (March 21, 2026)
+
+**Life Event cards now correctly require a matching dice roll (1-in-6 chance).**
+
+`processGameData.js` was generating L card effects with an empty `condition` column, so they fired on every space arrival. The l_card text in Spaces.csv contains "Draw 1 if you roll a N" — the dice number is now extracted and stored as `condition: 'dice_roll_N'` in SPACE_EFFECTS.csv. Tutorial space (START-QUICK-PLAY-GUIDE) has no dice condition and still always draws.
+
+**Updated files:**
+- `server/processGameData.js` — parse dice condition from L card description text
+- `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` — regenerated with dice_roll_N conditions
+
 ### Negotiate Button Visibility Fix (March 21, 2026)
 
 **Negotiate button now shows on negotiable spaces regardless of completed action count.**

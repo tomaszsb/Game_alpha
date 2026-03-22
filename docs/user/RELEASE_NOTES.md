@@ -2,6 +2,18 @@
 
 ---
 
+## v2.33.4 - Life Event Dice Condition Fix (March 21, 2026)
+
+**Release Date:** March 21, 2026
+**Version:** 2.33.4
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Life Events now require a matching dice roll
+Life Event (L) cards were being drawn on every space that listed them, instead of only when you roll the right number. Each space has a specific dice value (1-6) that triggers the Life Event — giving a 1-in-6 chance per space, as intended.
+
+---
+
 ## v2.33.3 - Negotiate Button Fix (March 21, 2026)
 
 **Release Date:** March 21, 2026
