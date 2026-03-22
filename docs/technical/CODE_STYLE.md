@@ -228,8 +228,8 @@ async performAction(): Promise<Result> {
 
 **CSS Modules pattern:**
 ```css
-/* PlayerPanel.css */
-.player-panel {
+/* ActionCenterPanel.css */
+.action-center {
   display: flex;
   flex-direction: column;
 }

@@ -15,7 +15,7 @@ This document describes the complete logic flow when a player enters a new space
 3. [processSpaceEffectsAfterMovement() Details](#3-processspaceeffectsaftermovement-details)
 4. [handleMovementChoices() Details](#4-handlemovementchoices-details)
 5. [Player Panel Rendering](#5-player-panel-rendering)
-6. [NextStepButton Decision Tree](#6-nextstepbutton-decision-tree)
+6. [End Turn Decision Logic](#6-end-turn-decision-logic)
 7. [Movement Choice Display](#7-movement-choice-display)
 8. [Section Manual Action Buttons](#8-section-manual-action-buttons)
 9. [Dice Roll Button Decision Tree](#9-dice-roll-button-decision-tree)
@@ -213,96 +213,72 @@ flowchart LR
 
 ---
 
-## 5. Player Panel Rendering
+## 5. ActionCenterPanel Rendering
 
 ```mermaid
 flowchart TD
-    subgraph PANEL["PlayerPanel Component"]
-        PP1["Header (avatar, name, location)"]
-        PP1 --> PP2{"showMovementTransition?"}
-        PP2 -->|YES| PP3["Movement Overlay"]
-        PP2 -->|NO| PP4
-        PP3 --> PP4{"isMyTurn?"}
-        PP4 -->|NO| PP5["Wait Banner"]
-        PP4 -->|YES| PP6
-        PP5 --> PP6
+    subgraph PANEL["ActionCenterPanel Component"]
+        PP1["NPC Portrait + Space Title"]
+        PP1 --> PP2["Story Section"]
+        PP2 --> PP3["Notification Banner"]
+        PP3 --> PP4["PM Action Description"]
+        PP4 --> PP5["Outcome Description"]
 
-        PP6["WinConditionBanner"]
-        PP6 --> PP7{"currentCard exists?"}
-        PP7 -->|YES| PP8["CurrentCardSection"]
-        PP7 -->|NO| PP9
-        PP8 --> PP9
+        PP5 --> PP6{"Expeditor E cards<br/>available?"}
+        PP6 -->|YES| PP7["Expeditor Ready Banner"]
+        PP6 -->|NO| PP8
+        PP7 --> PP8
 
-        PP9["StorySection"]
-        PP9 --> PP10["ProjectScopeSection"]
-        PP10 --> PP11["FinancesSection"]
-        PP11 --> PP12["TimeSection"]
-        PP12 --> PP13["CardsSection"]
+        PP8{"Dice movement space<br/>& not yet rolled?"}
+        PP8 -->|YES| PP9["Roll Dice Button"]
+        PP8 -->|NO| PP10
+        PP9 --> PP10
 
-        PP13 --> PP14{"awaitingChoice?.type<br/>=== 'MOVEMENT'?"}
-        PP14 -->|YES| PP15["Movement Choice Buttons"]
+        PP10{"Manual effects<br/>pending?"}
+        PP10 -->|YES| PP11["Action Buttons"]
+        PP10 -->|NO| PP12
+        PP11 --> PP12
+
+        PP12{"Movement choice<br/>awaiting?"}
+        PP12 -->|YES| PP13["Destination Buttons"]
+        PP12 -->|NO| PP14
+        PP13 --> PP14
+
+        PP14{"isMyTurn?"}
+        PP14 -->|YES| PP15["End Turn Button<br/>(custom label from CSV)"]
         PP14 -->|NO| PP16
-        PP15 --> PP16
+        PP15 --> PP17{"can_negotiate OR<br/>completedActionCount > 0?"}
+        PP17 -->|YES| PP18["Negotiate / Try Again Button"]
+        PP17 -->|NO| PP16
+        PP18 --> PP16
 
-        PP16["NextStepButton"]
-        PP16 --> PP17{"isMyTurn?"}
-        PP17 -->|YES| PP18["TryAgainButton"]
-        PP17 -->|NO| PP19([End])
-        PP18 --> PP19
+        PP16["Reference Tabs<br/>(money, time, expeditors, events, scope, log)"]
     end
 ```
 
 ---
 
-## 6. NextStepButton Decision Tree
+## 6. End Turn Decision Logic
 
-```mermaid
-flowchart TD
-    subgraph NSB["NextStepButton.getNextStepState()"]
-        N1([Start]) --> N2{"currentPlayerId<br/>=== playerId?"}
-        N2 -->|NO| N3["visible: false"]
-        N2 -->|YES| N4{"awaitingChoice !== null?"}
-
-        N4 -->|NO| N8
-        N4 -->|YES| N5{"awaitingChoice.type<br/>=== 'MOVEMENT'?"}
-
-        N5 -->|YES| N6{"moveIntent set?"}
-        N5 -->|NO| N7["disabled: true<br/>tooltip: 'Complete [choice] first'"]
-
-        N6 -->|YES| N8
-        N6 -->|NO| N7A["disabled: true<br/>tooltip: 'Select destination first'"]
-
-        N8{"requiredActions <=<br/>completedActionCount?"}
-        N8 -->|NO| N9["disabled: true<br/>tooltip: 'Complete N more actions'"]
-        N8 -->|YES| N10["disabled: false<br/>label: 'End Turn'"]
-    end
-
-    style N3 fill:#cccccc
-    style N7 fill:#FF6B6B,color:#fff
-    style N7A fill:#FF6B6B,color:#fff
-    style N9 fill:#FFD700
-    style N10 fill:#90EE90
-```
-
-### Text Version:
 ```
 1. Is it my turn? (currentPlayerId === playerId)
-   NO  → visible: false (hide button)
+   NO  → Turn controls hidden
    YES → Continue
 
-2. Is there a blocking choice awaiting?
-   YES, type === 'MOVEMENT' AND moveIntent set?
-        → Continue to check 3
-   YES, type === 'MOVEMENT' AND NO moveIntent?
-        → disabled: true, tooltip: "Select destination first"
-   YES, other type (CARD, DICE...)?
-        → disabled: true, tooltip: "Complete [choice type] first"
-   NO  → Continue
-
-3. Are all required actions complete?
+2. Are all required actions complete?
    requiredActions <= completedActionCount?
-   NO  → disabled: true, tooltip: "Complete N more actions"
-   YES → disabled: false, label: "End Turn"
+   NO  → End Turn disabled, tooltip: "N actions remaining"
+   YES → Continue
+
+3. Is there a blocking movement choice?
+   awaitingChoice.type === 'MOVEMENT' AND NO moveIntent?
+        → End Turn disabled
+   Otherwise → End Turn enabled (label from spaceContent.end_turn_label)
+
+4. Show Negotiate/Try Again button?
+   can_negotiate === true OR completedActionCount > 0?
+   YES → Show button (label from spaceContent.try_again_label)
+   NO  → Hide button
 ```
 
 ---
@@ -531,7 +507,7 @@ flowchart TD
         R1 --> R2{"awaitingChoice<br/>MOVEMENT?"}
         R2 -->|YES| R3["Show destination buttons"]
         R2 -->|NO| R4
-        R3 --> R4["NextStepButton evaluates"]
+        R3 --> R4["ActionCenterPanel evaluates"]
         R4 --> R5{"All actions<br/>complete?"}
         R5 -->|NO| R6["Button disabled"]
         R5 -->|YES| R7["Button enabled"]
@@ -565,8 +541,8 @@ flowchart TD
 | Component/Service | File Path | Key Functions |
 |-------------------|-----------|---------------|
 | TurnService | `src/services/TurnService.ts` | `startTurn()`, `processSpaceEffectsAfterMovement()`, `handleMovementChoices()`, `filterSpaceEffectsByCondition()` |
-| PlayerPanel | `src/components/player/PlayerPanel.tsx` | Main container component |
-| NextStepButton | `src/components/player/NextStepButton.tsx` | `getNextStepState()` |
+| ActionCenterPanel | `src/components/player/ActionCenterPanel.tsx` | Main game UI panel (story, actions, turn controls) |
+| PlayerPanelWrapper | `src/components/player/PlayerPanelWrapper.tsx` | Responsive wrapper for ActionCenterPanel |
 | ConditionEvaluator | `src/utils/ConditionEvaluator.ts` | `evaluate()`, `isDiceCondition()`, `anyEffectNeedsDiceRoll()`, `isDiceConditionStatic()` |
 | EffectFactory | `src/utils/EffectFactory.ts` | `createEffectsFromSpaceEntry()`, `parseSpaceEffect()` |
 | EffectEngineService | `src/services/EffectEngineService.ts` | `processEffects()` |
@@ -587,11 +563,11 @@ Dice-movement spaces (where dice determines destination) now have contextual beh
 
 | Space Type | Who Decides | Behavior | Code Location |
 |------------|-------------|----------|---------------|
-| **CHEAT-*** | Player cheating | Manual button in PlayerPanel | `PlayerPanel.tsx` - Shows orange "Roll Dice" button |
+| **CHEAT-*** | Player cheating | Manual button in ActionCenterPanel | `ActionCenterPanel.tsx` - Shows dice roll button |
 | **REG-*** | Clerk/Examiner | Auto-rolls in `startTurn()` | `TurnService.ts` - Auto-roll after `handleMovementChoices()` |
 
 **Implementation Details:**
-- `PlayerPanel.tsx`: Shows dice button only when `player.currentSpace.startsWith('CHEAT')`
+- `ActionCenterPanel.tsx`: Shows dice roll button for dice-movement spaces when player hasn't rolled yet
 - `TurnService.startTurn()`: After `handleMovementChoices()`, checks if space is a REG dice-movement space and auto-rolls
 - 0.5s delay before auto-roll so player sees they arrived first
 

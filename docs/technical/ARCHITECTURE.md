@@ -641,7 +641,7 @@ stateService.subscribeWithSelector(
 **Benefits:**
 - Components only re-render when their relevant data changes
 - Reduces cascade re-renders during turn transitions
-- NextStepButton: ignores money/card/time changes, only responds to action-related state
+- ActionCenterPanel turn controls: only respond to action-related state changes
 - GameBoard: ignores player resources, only responds to position/movement changes
 
 **When to Use:**

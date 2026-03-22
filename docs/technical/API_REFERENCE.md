@@ -291,73 +291,36 @@ interface ICardEffectHandler {
 
 ### Player Panel Components
 
-#### PlayerPanel
-**Location:** `src/components/player/PlayerPanel.tsx`
+#### ActionCenterPanel
+**Location:** `src/components/player/ActionCenterPanel.tsx`
 
-Main container for player-specific UI with mobile-first responsive design.
+Main game UI panel — handles all player actions, story display, and turn controls. Rendered via `PlayerPanelWrapper` which provides responsive behavior.
 
 ```typescript
-interface PlayerPanelProps {
+interface ActionCenterPanelProps {
   gameServices: IServiceContainer;
   playerId: string;
+  onTryAgain?: (playerId: string) => Promise<void>;
+  playerNotification?: string;
+  onRollDice?: () => Promise<void>;
+  onAutomaticFunding?: () => Promise<void>;
+  onManualEffectResult?: (result: TurnEffectResult) => void;
+  completedActions?: {
+    diceRoll?: string;
+    manualActions: { [effectType: string]: string };
+  };
 }
-
-<PlayerPanel
-  gameServices={serviceContainer}
-  playerId="player1"
-/>
 ```
 
-**Features:**
-- Expandable sections with action indicators
-- Persistent "Next Step" button
-- QR code for multi-device support
-- Dynamic section visibility
+**Layout zones:**
+- **Zone 1:** NPC portrait, story, notification, PM action, outcome
+- **Zone 2:** Action buttons (dice roll, manual effects, movement choice), turn controls (End Turn / Negotiate)
+- **Zone 3:** Reference tabs (money, time, expeditors, events, scope, log)
 
-#### ExpandableSection
-**Location:** `src/components/player/ExpandableSection.tsx`
-
-Generic collapsible section container with action indicator.
-
-```typescript
-interface ExpandableSectionProps {
-  title: string;
-  hasAction?: boolean;           // Show red dot indicator
-  actionCount?: number;          // Number of pending actions
-  defaultExpanded?: boolean;
-  children: React.ReactNode;
-}
-
-<ExpandableSection
-  title="Cards"
-  hasAction={true}
-  actionCount={2}
-  defaultExpanded={false}
->
-  <CardsSection {...props} />
-</ExpandableSection>
-```
-
-#### NextStepButton
-**Location:** `src/components/player/NextStepButton.tsx`
-
-Always-visible button showing next available action or end turn.
-
-```typescript
-interface NextStepButtonProps {
-  gameServices: IServiceContainer;
-  playerId: string;
-}
-
-<NextStepButton
-  gameServices={serviceContainer}
-  playerId="player1"
-/>
-```
-
-**States:**
-- **Enabled:** "End Turn" (no pending actions)
-- **Disabled:** "X actions remaining" (grayed out)
+**Key behaviors:**
+- Negotiate button shows on spaces with `can_negotiate=true` even with 0 completed actions
+- End Turn button uses `spaceContent.end_turn_label` for custom labels (e.g., "Agree with Owner")
+- Panel hidden on host screen when player connects on their own device
 
 ### Section Components
 
