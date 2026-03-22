@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### GameLayout & GameBoard Cleanup (March 22, 2026)
+
+**Removed dead imports and unused state from core layout components.**
+
+- `GameLayout.tsx` — removed unused `GameBoard` and `MovementPathVisualization` imports
+- `GameBoard.tsx` — removed `validMoves` state (set but never read; `highlightedMoves` drives moves) and two debug `console.log` statements
+
 ### Fix: Hide Player Panel on Host When Player Connected on Mobile (March 22, 2026)
 
 **Player panels on the host/TV screen now correctly hide when the player connects on their own device.**
