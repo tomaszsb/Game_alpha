@@ -25,7 +25,6 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-  const [validMoves, setValidMoves] = useState<string[]>([]);
   const [highlightedMoves, setHighlightedMoves] = useState<string[]>([]);
   const [gamePhase, setGamePhase] = useState<string>('SETUP');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -236,20 +235,6 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
         setGamePhase(selected.gamePhase);
 
         // REFINED GUARD: Only block this specific state update during a move
-        if (!selected.isMoving) {
-          if (selected.gamePhase === 'PLAY' && selected.currentPlayerId && !selected.hasPlayerMovedThisTurn) {
-            try {
-              const moves = movementService.getValidMoves(selected.currentPlayerId);
-              setValidMoves(moves);
-              console.log(`🎯 BOARD: Player ${selected.currentPlayerId} has ${moves.length} valid moves:`, moves);
-            } catch (error) {
-              console.log(`🎯 BOARD: No valid moves for player ${selected.currentPlayerId}:`, error);
-              setValidMoves([]);
-            }
-          } else {
-            setValidMoves([]);
-          }
-        }
 
         // Cache movement choices to prevent them from disappearing during animation
         if (selected.awaitingChoiceType === 'MOVEMENT' && !selected.isMoving && selected.currentPlayerId) {
@@ -267,15 +252,6 @@ export function GameBoard({ disableZoom = false }: GameBoardProps = {}): JSX.Ele
     setPlayers(gameState.players);
     setCurrentPlayerId(gameState.currentPlayerId);
     setGamePhase(gameState.gamePhase);
-
-    if (gameState.gamePhase === 'PLAY' && gameState.currentPlayerId && !gameState.hasPlayerMovedThisTurn) {
-      try {
-        const moves = movementService.getValidMoves(gameState.currentPlayerId);
-        setValidMoves(moves);
-      } catch (error) {
-        setValidMoves([]);
-      }
-    }
 
     return unsubscribe;
   }, [stateService, movementService]);

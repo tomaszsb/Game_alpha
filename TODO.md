@@ -84,13 +84,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🧹 **Snake Map Cleanup** (after snake map is finalized)
 
 ### Dead imports in GameLayout.tsx
-- [ ] Remove unused `GameBoard` import (line 14) — `<GameBoard>` is never rendered
-- [ ] Remove unused `MovementPathVisualization` import (line 16) — never rendered
+- [x] Removed unused `GameBoard` and `MovementPathVisualization` imports (Mar 22, 2026)
 - [ ] Remove static placeholder center panel (lines 861-906) — "Game board will be displayed here" dead UI
 
 ### GameBoard.tsx — keep file for TVDisplay, but clean up
-- [ ] Remove `validMoves` state — set but never read (`highlightedMoves` is what drives moves)
-- [ ] Remove `console.log` debug statements (lines 244, 246)
+- [x] Removed unused `validMoves` state and debug console.logs (Mar 22, 2026)
 
 ### ProgressBarMap.tsx + ProgressBarMap.css
 - [x] Deleted both files and unused import in GameLayout — fully replaced by BoardV3 (Mar 22, 2026)
