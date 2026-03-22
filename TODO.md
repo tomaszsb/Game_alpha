@@ -93,7 +93,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] Remove `console.log` debug statements (lines 244, 246)
 
 ### ProgressBarMap.tsx + ProgressBarMap.css
-- [ ] Delete both files — `<ProgressBarMap>` is never rendered anywhere, fully replaced by BoardV3
+- [x] Deleted both files and unused import in GameLayout — fully replaced by BoardV3 (Mar 22, 2026)
 
 ---
 

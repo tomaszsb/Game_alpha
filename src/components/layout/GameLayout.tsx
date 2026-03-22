@@ -16,7 +16,6 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { MovementPathVisualization } from '../game/MovementPathVisualization';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
-import { ProgressBarMap } from '../game/ProgressBarMap';
 import { BoardV3 } from '../board/BoardV3';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
@@ -878,7 +877,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* Center Panel - Game Board (hidden during PLAY — ProgressBarMap replaces it) */}
+          {/* Center Panel - Game Board (hidden during PLAY — BoardV3 replaces it) */}
           {gamePhase !== 'PLAY' && (
             <div
               style={{
