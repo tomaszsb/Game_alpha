@@ -58,7 +58,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     resourceService
   } = useGameContext();
 
-  // Create service container for new PlayerPanel component
+  // Create service container for ActionCenterPanel
   const gameServices = {
     stateService,
     dataService,
@@ -557,7 +557,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     stateService.updatePlayer({ id: playerId, deviceType: undefined });
   };
 
-  // Action handlers for TurnControlsWithActions component
+  // Action handlers for ActionCenterPanel
   const handleRollDice = async () => {
     if (!currentPlayerId) return;
     setJustUsedTryAgain(false); // Clear Try Again flag when player takes action

@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Dead Code Cleanup (March 22, 2026)
+
+**Removed 6 unused source files and 5 test files.**
+
+PlayerPanel, NextStepButton, TurnControlsWithActions, PlayerStatusPanel, and PlayerStatusItem were all dead code — never rendered in the game. ActionCenterPanel replaced them. Updated PlayerPanelWrapper to import props from ActionCenterPanel instead of PlayerPanel.
+
+**Deleted source files:**
+- `src/components/player/PlayerPanel.tsx`, `PlayerPanel.css`, `NextStepButton.tsx`
+- `src/components/game/TurnControlsWithActions.tsx`, `PlayerStatusPanel.tsx`, `PlayerStatusItem.tsx`
+
+**Deleted test files:**
+- `tests/components/player/PlayerPanel.test.tsx`, `PlayerPanel.integration.test.tsx`, `NextStepButton.test.tsx`
+- `tests/components/TurnControlsWithActions.test.tsx`
+- `tests/features/E2E-MultiPathMovement.test.tsx`
+
+**Updated:**
+- `src/components/player/PlayerPanelWrapper.tsx` — import props from ActionCenterPanel
+- `src/components/layout/GameLayout.tsx` — updated comments
+
 ### L Card Dice Condition Fix (March 21, 2026)
 
 **Life Event cards now correctly require a matching dice roll (1-in-6 chance).**

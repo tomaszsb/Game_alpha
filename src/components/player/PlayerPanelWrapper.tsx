@@ -3,11 +3,9 @@
 // Wrapper that renders the unified ActionCenterPanel for all screen sizes.
 
 import React from 'react';
-import { IServiceContainer } from '../../types/ServiceContracts';
-import { PlayerPanelProps } from './PlayerPanel';
-import { ActionCenterPanel } from './ActionCenterPanel';
+import { ActionCenterPanel, ActionCenterPanelProps } from './ActionCenterPanel';
 
-export interface PlayerPanelWrapperProps extends PlayerPanelProps {
+export interface PlayerPanelWrapperProps extends ActionCenterPanelProps {
   /** Force mobile view regardless of screen size (for testing) */
   forceMobile?: boolean;
 

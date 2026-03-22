@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** March 21, 2026
+**Last Updated:** March 22, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.33.0
+**Current Version:** 2.33.4
 
 ---
 
@@ -58,6 +58,26 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] Test from multiple devices
 - [ ] Monitor for critical issues (first 24 hours)
 - [ ] Announce release
+
+---
+
+## 🧹 **Code Audit Recommendations** (March 2026)
+*Source: External code audit — high professional quality overall, three risk areas identified*
+
+### 1. Structured CSV columns over parsed text (High Priority)
+- [ ] Audit all regex-parsing of description text for game logic (e.g., L card dice conditions were parsed from "Draw 1 if you roll a 3" — now fixed with `dice_roll_N` condition column)
+- [ ] Identify remaining cases where EffectFactory parses free-text strings for rules
+- [ ] Add dedicated CSV columns for any logic currently embedded in descriptions
+
+### 2. TurnService decomposition (Medium Priority)
+- [ ] Extract more logic from TurnService (84KB) into focused sub-handlers
+- [ ] Follow the pattern already established with CardEffectHandler, SpaceArrivalProcessor
+- [ ] Keep TurnService as an orchestrator, not an implementor
+
+### 3. Dead code cleanup (Medium Priority)
+- [x] Remove `PlayerPanel.tsx`, `NextStepButton.tsx`, `PlayerStatusPanel.tsx`, `PlayerStatusItem.tsx`, `TurnControlsWithActions.tsx` and their tests (Mar 22, 2026)
+- [ ] Review `MobilePlayerPanel.tsx` — currently unused but may inform future mobile work
+- [ ] Audit for other unused components/services
 
 ---
 
