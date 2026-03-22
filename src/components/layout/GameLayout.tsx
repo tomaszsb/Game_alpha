@@ -314,8 +314,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     players.some(p => shouldShowPlayerPanel(p.id));
 
   // If no panels should be shown, hide the entire panel column
-  // During PLAY phase, always show the left panel for the current player's controls
-  const hidePanelColumn = !effectiveViewPlayerId && !shouldShowAnyPanel && gamePhase !== 'PLAY' && !currentPlayerId;
+  // This includes PLAY phase when all players are connected on their own devices
+  const hidePanelColumn = !effectiveViewPlayerId && !shouldShowAnyPanel;
 
   // Add responsive CSS styles to document head
   React.useEffect(() => {
@@ -814,8 +814,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               {gamePhase === 'PLAY' ? (
                 <div className="game-player-panels">
                   {(() => {
-                    // Always include current player during PLAY; also show unconnected players
-                    const visiblePlayers = players.filter(p => p.id === currentPlayerId || shouldShowPlayerPanel(p.id));
+                    // Show panels only for players not connected on their own device
+                    const visiblePlayers = players.filter(p => shouldShowPlayerPanel(p.id));
                     const hasMultipleLocal = visiblePlayers.length > 1;
                     return visiblePlayers.map(player => {
                       const isCurrentPlayer = player.id === currentPlayerId;

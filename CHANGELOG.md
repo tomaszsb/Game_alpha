@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix: Hide Player Panel on Host When Player Connected on Mobile (March 22, 2026)
+
+**Player panels on the host/TV screen now correctly hide when the player connects on their own device.**
+
+Previously, the current player's panel always showed on the host screen even if they were connected on mobile — due to a `p.id === currentPlayerId` override in the visibility filter. Removed this override so `shouldShowPlayerPanel` is the sole authority. Also removed the `gamePhase !== 'PLAY'` guard on `hidePanelColumn` so the panel column can hide during gameplay when all players are on their own devices.
+
+**Updated files:**
+- `src/components/layout/GameLayout.tsx` — remove current-player override, simplify hidePanelColumn
+- `tests/components/layout/playerPanelVisibility.test.ts` — 9 new tests for visibility logic
+
 ### Dead Code Cleanup (March 22, 2026)
 
 **Removed 6 unused source files and 5 test files.**

@@ -2,6 +2,18 @@
 
 ---
 
+## v2.33.5 - Mobile Panel Visibility Fix (March 22, 2026)
+
+**Release Date:** March 22, 2026
+**Version:** 2.33.5
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Player panels hide on host screen when player connects on phone
+When a player connects to the game on their phone, their action panel on the host/TV screen now correctly disappears. Previously it stayed visible even though the player was playing on their own device.
+
+---
+
 ## v2.33.4 - Life Event Dice Condition Fix (March 21, 2026)
 
 **Release Date:** March 21, 2026

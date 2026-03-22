@@ -1,8 +1,8 @@
 # Project Status
 
 **Last Updated**: March 21, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.4)
-**Current Version**: 2.33.4
+**Current Phase**: Pre-Beta — Editor Hardening (v2.33.5)
+**Current Version**: 2.33.5
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
