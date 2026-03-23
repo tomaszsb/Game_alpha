@@ -366,18 +366,20 @@ export class DataService implements IDataService {
       'duration', 'duration_count', 'turn_effect', 'activation_timing',
       'loan_amount', 'loan_rate', 'investment_amount', 'work_cost',
       'money_effect', 'tick_modifier',
-      'draw_cards', 'discard_cards', 'target', 'scope', 'work_type_restriction'
+      'draw_cards', 'discard_cards', 'target', 'scope', 'work_type_restriction',
+      'card_mechanic', 'dice_range_1_min', 'dice_range_1_max', 'dice_range_1_time',
+      'dice_range_2_min', 'dice_range_2_max', 'dice_range_2_time', 'investor_payout'
     ];
-    
-    if (header.length !== expectedColumns.length) {
-      throw new Error(`CARDS_EXPANDED.csv header must have exactly ${expectedColumns.length} columns. Found: ${header.length}`);
+
+    if (header.length < 22) {
+      throw new Error(`CARDS_EXPANDED.csv header must have at least 22 columns. Found: ${header.length}`);
     }
     
     return lines.slice(1).map((line, index) => {
       const values = this.parseCsvLine(line);
       
-      if (values.length !== expectedColumns.length) {
-        throw new Error(`CARDS_EXPANDED.csv row ${index + 2} must have exactly ${expectedColumns.length} columns. Found: ${values.length}`);
+      if (values.length < 22) {
+        throw new Error(`CARDS_EXPANDED.csv row ${index + 2} must have at least 22 columns. Found: ${values.length}`);
       }
       
       const cardType = values[2] as CardType;
@@ -420,7 +422,17 @@ export class DataService implements IDataService {
         draw_cards: values[17] || undefined,
         discard_cards: values[18] || undefined,
         target: values[19] || undefined,
-        scope: values[20] || undefined
+        scope: values[20] || undefined,
+
+        // Structured effect columns (optional, for eliminating text parsing)
+        card_mechanic: (values[22] === 'choice' || values[22] === 'dice_conditional') ? values[22] as Card['card_mechanic'] : undefined,
+        dice_range_1_min: values[23] ? parseInt(values[23]) : undefined,
+        dice_range_1_max: values[24] ? parseInt(values[24]) : undefined,
+        dice_range_1_time: values[25] ? parseInt(values[25]) : undefined,
+        dice_range_2_min: values[26] ? parseInt(values[26]) : undefined,
+        dice_range_2_max: values[27] ? parseInt(values[27]) : undefined,
+        dice_range_2_time: values[28] ? parseInt(values[28]) : undefined,
+        investor_payout: values[29] ? parseInt(values[29]) : undefined,
       };
     });
   }

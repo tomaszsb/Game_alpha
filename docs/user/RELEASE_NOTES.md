@@ -2,6 +2,23 @@
 
 ---
 
+## v2.34.0 - Code Audit Sprint (March 23, 2026)
+
+**Release Date:** March 23, 2026
+**Version:** 2.34.0
+**Status:** Alpha Testing
+**Type:** Architecture Cleanup
+
+### Cleaner, faster, more maintainable
+Major internal cleanup based on external code audit recommendations. No gameplay changes — all improvements are under the hood.
+
+- Removed 37 unused files (abandoned mobile UI, orphaned components)
+- Split the largest service file into focused handlers for easier testing
+- Game card effects now use structured data columns instead of parsing text descriptions — more reliable and easier to maintain
+- Fixed 6 card time-effect values that were incorrectly set to zero
+
+---
+
 ## v2.33.6 - Code Audit Cleanup (March 22, 2026)
 
 **Release Date:** March 22, 2026

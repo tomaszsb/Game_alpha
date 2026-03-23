@@ -267,6 +267,16 @@ export interface Card {
   target?: string;
   scope?: string;
 
+  // Structured effect columns (replaces description/name regex parsing)
+  card_mechanic?: 'choice' | 'dice_conditional';
+  dice_range_1_min?: number;
+  dice_range_1_max?: number;
+  dice_range_1_time?: number;
+  dice_range_2_min?: number;
+  dice_range_2_max?: number;
+  dice_range_2_time?: number;
+  investor_payout?: number;
+
   // Turn control mechanics
   turn_skip?: string;
 

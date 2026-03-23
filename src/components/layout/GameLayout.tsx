@@ -791,134 +791,77 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* Left Panel - Player Panels (only show if at least one panel is visible) */}
-          {!hidePanelColumn && (
+          {/* Left Panel - Player Panels (only show during PLAY if at least one panel is visible) */}
+          {gamePhase === 'PLAY' && !hidePanelColumn && (
             <div
               style={{
                 gridColumn: '1',
-                gridRow: gamePhase === 'PLAY' ? '2' : '1',
+                gridRow: '2',
                 background: colors.background.light,
                 border: `3px solid ${colors.primary.main}`,
                 borderRadius: '8px',
-                padding: gamePhase === 'PLAY' ? '4px' : '15px',
+                padding: '4px',
                 overflow: 'hidden',
                 position: 'relative',
                 minHeight: 0,
-                display: gamePhase === 'PLAY' ? 'flex' : undefined,
-                flexDirection: gamePhase === 'PLAY' ? 'column' : undefined,
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              {gamePhase === 'PLAY' ? (
-                <div className="game-player-panels">
-                  {(() => {
-                    // Show panels only for players not connected on their own device
-                    const visiblePlayers = players.filter(p => shouldShowPlayerPanel(p.id));
-                    const hasMultipleLocal = visiblePlayers.length > 1;
-                    return visiblePlayers.map(player => {
-                      const isCurrentPlayer = player.id === currentPlayerId;
-                      // When multiple local panels, collapse non-current players to a mini bar
-                      if (hasMultipleLocal && !isCurrentPlayer) {
-                        return (
-                          <div key={player.id} className="game-player-panel-item" style={{
-                            flex: '0 0 auto',
-                            minHeight: 'auto',
-                            padding: '6px 10px',
-                            background: '#f5f5f5',
-                            borderRadius: '6px',
-                            border: '1px solid #e0e0e0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '0.8rem',
-                            color: '#757575',
-                          }}>
-                            <span style={{ fontSize: '1.2rem' }}>{player.avatar}</span>
-                            <span style={{ fontWeight: 'bold', color: '#343a40' }}>{player.name}</span>
-                            <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>📍 {player.currentSpace}</span>
-                          </div>
-                        );
-                      }
+              <div className="game-player-panels">
+                {(() => {
+                  // Show panels only for players not connected on their own device
+                  const visiblePlayers = players.filter(p => shouldShowPlayerPanel(p.id));
+                  const hasMultipleLocal = visiblePlayers.length > 1;
+                  return visiblePlayers.map(player => {
+                    const isCurrentPlayer = player.id === currentPlayerId;
+                    // When multiple local panels, collapse non-current players to a mini bar
+                    if (hasMultipleLocal && !isCurrentPlayer) {
                       return (
-                        <div key={player.id} className="game-player-panel-item">
-                          <PlayerPanelWrapper
-                            gameServices={gameServices}
-                            playerId={player.id}
-                            onToggleSpaceExplorer={handleToggleSpaceExplorer}
-                            onToggleMovementPath={handleToggleMovementPath}
-                            isSpaceExplorerVisible={isSpaceExplorerVisible}
-                            isMovementPathVisible={isMovementPathVisible}
-                            onTryAgain={handleTryAgain}
-                            playerNotification={playerNotifications[player.id]}
-                            onRollDice={handleRollDice}
-                            onAutomaticFunding={handleAutomaticFunding}
-                            onManualEffectResult={(result) => {
-                              if (result && result.effects && result.effects.length > 0) {
-                                setDiceResult(result);
-                                setIsDiceResultModalOpen(true);
-                              }
-                            }}
-                            completedActions={completedActions}
-                          />
+                        <div key={player.id} className="game-player-panel-item" style={{
+                          flex: '0 0 auto',
+                          minHeight: 'auto',
+                          padding: '6px 10px',
+                          background: '#f5f5f5',
+                          borderRadius: '6px',
+                          border: '1px solid #e0e0e0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '0.8rem',
+                          color: '#757575',
+                        }}>
+                          <span style={{ fontSize: '1.2rem' }}>{player.avatar}</span>
+                          <span style={{ fontWeight: 'bold', color: '#343a40' }}>{player.name}</span>
+                          <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>📍 {player.currentSpace}</span>
                         </div>
                       );
-                    });
-                  })()}
-                </div>
-              ) : (
-                <>
-                  <h3>👤 Player Panel</h3>
-                  <div style={{ color: colors.text.secondary }}>
-                    Player information will be displayed here
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Center Panel - Game Board (hidden during PLAY — BoardV3 replaces it) */}
-          {gamePhase !== 'PLAY' && (
-            <div
-              style={{
-                gridColumn: hidePanelColumn ? '1' : '2',
-                gridRow: '1',
-                background: colors.white,
-                border: `3px solid ${colors.game.boardTitle}`,
-                borderRadius: '8px',
-                padding: '0',
-                overflow: 'hidden',
-                maxWidth: '100%',
-                boxSizing: 'border-box'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  padding: '20px'
-                }}
-              >
-                <h2 style={{ color: colors.game.boardTitle }}>🎯 Game Board</h2>
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                  <div
-                    style={{
-                      background: colors.primary.light,
-                      border: `3px solid ${colors.primary.main}`,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      marginBottom: '20px'
-                    }}
-                  >
-                    <h3 style={{ margin: '0 0 10px 0', color: colors.primary.text }}>
-                      Current Space
-                    </h3>
-                    <p style={{ margin: '0', color: colors.text.secondary }}>
-                      Game board will be displayed here
-                    </p>
-                  </div>
-                </div>
+                    }
+                    return (
+                      <div key={player.id} className="game-player-panel-item">
+                        <PlayerPanelWrapper
+                          gameServices={gameServices}
+                          playerId={player.id}
+                          onToggleSpaceExplorer={handleToggleSpaceExplorer}
+                          onToggleMovementPath={handleToggleMovementPath}
+                          isSpaceExplorerVisible={isSpaceExplorerVisible}
+                          isMovementPathVisible={isMovementPathVisible}
+                          onTryAgain={handleTryAgain}
+                          playerNotification={playerNotifications[player.id]}
+                          onRollDice={handleRollDice}
+                          onAutomaticFunding={handleAutomaticFunding}
+                          onManualEffectResult={(result) => {
+                            if (result && result.effects && result.effects.length > 0) {
+                              setDiceResult(result);
+                              setIsDiceResultModalOpen(true);
+                            }
+                          }}
+                          completedActions={completedActions}
+                        />
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}

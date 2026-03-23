@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Code Audit Sprint — Phase 1-3 (March 23, 2026)
+
+**Three-phase cleanup addressing external code audit recommendations.**
+
+#### Phase 1: Dead Code Cleanup
+Deleted 37 unused files (~50+ KB) across 4 categories:
+- `src/components/player/mobile/` — entire abandoned mobile experiment (21 files: 13 .tsx/.ts + 8 .css)
+- `src/components/game/financial/` — unused financial subcomponents (8 files)
+- Individual orphaned components: `CardPortfolioDashboard.tsx`, `MovementPathVisualization.tsx`, `FinancialStatusDisplay.tsx`, `DiceRoller.tsx`
+- `NextStepButton.css` (orphaned CSS), `PlayerViewStateService.ts` (unused service)
+- 5 corresponding test files
+- Removed dead placeholder UI in `GameLayout.tsx` — "Game board will be displayed here" center panel and "Player information will be displayed here" fallback (~55 lines)
+
+#### Phase 2: TurnService Decomposition (2,148 → 1,984 lines)
+Extracted two new handlers following existing DiceRollProcessor/SpaceArrivalProcessor pattern:
+- **`TurnTransitionHandler.ts`** (218 lines) — extracted from `nextPlayer()` (136 → 27 lines): card expirations, active effects, re-roll resets, turn-end logging, skip-turn logic, turn advance
+- **`MovementExecutor.ts`** (141 lines) — extracted from `endTurnWithMovement()` (153 → ~70 lines): dice-based movement, player intent movement, auto-move fallback
+
+#### Phase 3: Structured CSV Columns (CARDS_EXPANDED.csv)
+Added 8 structured columns to replace regex parsing of free-text descriptions:
+- `card_mechanic` — `choice` or `dice_conditional` (replaces `description.includes(' or ')` and `description.includes('Roll a die')`)
+- `dice_range_1_min/max/time`, `dice_range_2_min/max/time` — structured dice conditional data for 14 cards (replaces regex `On (\d+)-(\d+)\s+([^.]+)\.`)
+- `investor_payout` — explicit payout amounts for 20 I cards (replaces card_name parsing for "angel investor", "venture capital", etc.)
+- Fixed `tick_modifier` for 6 cards with incorrect zero values (L037, L040, L043, L045, E011, E016)
+- Updated `EffectFactory.ts` and `CardService.ts` to prefer structured columns with legacy fallback
+- Changed DataService column validation from strict `===` to `>=` for forward compatibility
+
+**Updated files:**
+- `src/services/TurnTransitionHandler.ts` (new)
+- `src/services/MovementExecutor.ts` (new)
+- `src/services/TurnService.ts` (decomposed)
+- `src/utils/EffectFactory.ts` (structured columns)
+- `src/services/CardService.ts` (structured columns)
+- `src/services/DataService.ts` (new column parsing)
+- `src/types/DataTypes.ts` (Card interface extended)
+- `src/components/layout/GameLayout.tsx` (dead UI removed)
+- `public/data/CLEAN_FILES/CARDS_EXPANDED.csv` (8 new columns + tick_modifier fixes)
+
 ### GameLayout & GameBoard Cleanup (March 22, 2026)
 
 **Removed dead imports and unused state from core layout components.**

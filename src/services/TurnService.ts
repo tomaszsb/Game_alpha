@@ -4,6 +4,8 @@ import { DiceService } from './DiceService';
 import { SpaceEffectService } from './SpaceEffectService';
 import { SpaceArrivalProcessor } from './SpaceArrivalProcessor';
 import { DiceRollProcessor } from './DiceRollProcessor';
+import { TurnTransitionHandler } from './TurnTransitionHandler';
+import { MovementExecutor } from './MovementExecutor';
 import { GameState, Player, DiceResultEffect, TurnEffectResult, CreateTempOptions } from '../types/StateTypes';
 import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
@@ -27,6 +29,8 @@ export class TurnService implements ITurnService {
   private readonly conditionEvaluator: ConditionEvaluator;
   private readonly spaceArrivalProcessor: SpaceArrivalProcessor;
   private readonly diceRollProcessor: DiceRollProcessor;
+  private readonly movementExecutor: MovementExecutor;
+  private readonly turnTransitionHandler: TurnTransitionHandler;
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
   private cardEffectService?: ICardEffectService;
@@ -79,6 +83,24 @@ export class TurnService implements ITurnService {
     this.diceRollProcessor.setProcessDiceRollEffectsCallback(
       (playerId, diceRoll) => this.processDiceRollEffects(playerId, diceRoll)
     );
+    // Create MovementExecutor for movement execution during end-of-turn
+    this.movementExecutor = new MovementExecutor(
+      dataService,
+      stateService,
+      movementService
+    );
+    // Create TurnTransitionHandler for turn-end processing and player advancement
+    this.turnTransitionHandler = new TurnTransitionHandler(
+      stateService,
+      cardService,
+      loggingService,
+      effectEngineService,
+      notificationService
+    );
+    // Set the callback for finalizing quick start hand (needed because it accesses TurnService internals)
+    this.turnTransitionHandler.setFinalizeQuickStartHandCallback(
+      () => this.finalizeQuickStartHand()
+    );
   }
 
   /**
@@ -87,6 +109,7 @@ export class TurnService implements ITurnService {
   public setEffectEngineService(effectEngineService: IEffectEngineService): void {
     this.effectEngineService = effectEngineService;
     this.spaceArrivalProcessor.setEffectEngineService(effectEngineService);
+    this.turnTransitionHandler.setEffectEngineService(effectEngineService);
   }
 
   /**
@@ -378,87 +401,8 @@ export class TurnService implements ITurnService {
       } else {
       }
 
-      // Handle movement - check for player's move intent first
-      if (!skipAutoMove) {
-        // Check for dice_outcome or dice movement first
-        const movement = this.dataService.getMovement(currentPlayer.currentSpace, currentPlayer.visitType);
-        if ((movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') && currentPlayer.lastDiceRoll) {
-          // Use dice roll to determine destination from DICE_ROLL_INFO.csv
-          const diceRoll = currentPlayer.lastDiceRoll.total;
-
-          // Use DICE_OUTCOMES.csv for dice-based movement
-          // TODO: Implement getDiceRollDestinations in DataService if DICE_ROLL_INFO.csv is needed
-          // const destinations = this.dataService.getDiceRollDestinations(currentPlayer.currentSpace, currentPlayer.visitType);
-          let destination: string | null = null;
-
-          // Use existing dice outcome logic
-          destination = this.movementService.getDiceDestination(currentPlayer.currentSpace, currentPlayer.visitType, diceRoll);
-
-          // Original code commented out for future implementation:
-          // if (destinations.length >= diceRoll) {
-          //   destination = destinations[diceRoll - 1];
-          // } else {
-          //   destination = this.movementService.getDiceDestination(currentPlayer.currentSpace, currentPlayer.visitType, diceRoll);
-          // }
-
-          if (destination) {
-            process.stderr.write(`\n!!! [MOVE_CHECK] From: ${currentPlayer.currentSpace} To: ${destination} (Roll: ${diceRoll}) !!!\n`);
-            // Emit movement event BEFORE the move so UI can show transition overlay
-            this.stateService.emitAutoAction({
-              type: 'movement',
-              playerId: currentPlayer.id,
-              playerName: currentPlayer.name,
-              playerColor: currentPlayer.color,
-              spaceName: currentPlayer.currentSpace,
-              fromSpace: currentPlayer.currentSpace,
-              toSpace: destination,
-              success: true,
-              message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${destination}`
-            });
-            await this.movementService.movePlayer(currentPlayer.id, destination);
-          } else {
-            console.warn(`🎲 No destination found for dice roll ${diceRoll} at ${currentPlayer.currentSpace}`);
-          }
-        } else if (currentPlayer.moveIntent) {
-          // Execute the intended move
-          // Emit movement event BEFORE the move so UI can show transition overlay
-          this.stateService.emitAutoAction({
-            type: 'movement',
-            playerId: currentPlayer.id,
-            playerName: currentPlayer.name,
-            playerColor: currentPlayer.color,
-            spaceName: currentPlayer.currentSpace,
-            fromSpace: currentPlayer.currentSpace,
-            toSpace: currentPlayer.moveIntent,
-            success: true,
-            message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${currentPlayer.moveIntent}`
-          });
-          await this.movementService.movePlayer(currentPlayer.id, currentPlayer.moveIntent);
-
-          // Clear the move intent after execution
-          this.stateService.setPlayerMoveIntent(currentPlayer.id, null);
-        } else {
-          // No intent set - fall back to auto-move for single destinations
-          const validMoves = this.movementService.getValidMoves(currentPlayer.id);
-          if (validMoves.length === 1) {
-            // Only one move available - perform automatic movement
-            // Emit movement event BEFORE the move so UI can show transition overlay
-            this.stateService.emitAutoAction({
-              type: 'movement',
-              playerId: currentPlayer.id,
-              playerName: currentPlayer.name,
-              playerColor: currentPlayer.color,
-              spaceName: currentPlayer.currentSpace,
-              fromSpace: currentPlayer.currentSpace,
-              toSpace: validMoves[0],
-              success: true,
-              message: `${currentPlayer.name} moved from ${currentPlayer.currentSpace} to ${validMoves[0]}`
-            });
-            await this.movementService.movePlayer(currentPlayer.id, validMoves[0]);
-          }
-        }
-      } else {
-      }
+      // Execute movement (delegates to MovementExecutor)
+      await this.movementExecutor.executeMovement(currentPlayer, gameState, skipAutoMove);
 
       // Check for win condition before ending turn
       const hasWon = await this.gameRulesService.checkWinCondition(gameState.currentPlayerId);
@@ -613,127 +557,19 @@ export class TurnService implements ITurnService {
       throw new Error('Current player not found in player list');
     }
 
-    // STEP 1: Process card expirations BEFORE turn advances
-    // This ensures turnsRemaining counter works correctly:
-    // - Card activated turn 5 with duration=3
-    // - Turn 5 ends: turnsRemaining-- (now 2), turn advances to 6
-    // - Turn 6 ends: turnsRemaining-- (now 1), turn advances to 7
-    // - Turn 7 ends: turnsRemaining-- (now 0), EXPIRE, turn advances to 8
-    // Result: Card active for turns 5, 6, 7 = 3 turns ✅
-    this.cardService.endOfTurn();
+    // STEPS 1-4.5: Process end-of-turn effects (card expirations, active effects,
+    // re-roll resets, turn-end logging, quick start finalization)
+    await this.turnTransitionHandler.processEndOfTurn(gameState.currentPlayerId);
 
-    // STEP 2: Process active effects for all players at turn end
-    // This happens at end of current turn (before turn counter advances)
-    if (this.effectEngineService) {
-      await this.effectEngineService.processActiveEffectsForAllPlayers();
-    }
-
-    // STEP 3: Reset re-roll flags for current player ending their turn
-    // One-time use flags are cleared before next turn begins
-    const currentPlayer = allPlayers[currentPlayerIndex];
-    if (currentPlayer.turnModifiers?.canReRoll) {
-      this.stateService.updatePlayer({
-        id: currentPlayer.id,
-        turnModifiers: {
-          ...currentPlayer.turnModifiers,
-          canReRoll: false
-        }
-      });
-    }
-
-    // STEP 4: Log turn end for current player
-    // TIMING NOTE: Uses globalTurnCount + 1 to match turn_start numbering
-    // Why +1? Turn hasn't advanced yet (still N-1), but we want to log "Turn N ended"
-    // to match "Turn N started" from the beginning of this turn.
-    // This is intentional and ensures turn start/end logs have matching numbers.
-    this.loggingService.info(`Turn ${gameState.globalTurnCount + 1} ended`, {
-      playerId: currentPlayer.id,
-      playerName: currentPlayer.name,
-      action: 'turn_end',
-      turn: gameState.globalTurnCount + 1,
-      space: currentPlayer.currentSpace
-    });
-
-    // STEP 4.5: Quick Start mode - finalize starting hand after P1's first turn
-    // This distributes P1's captured card draws to all other players
-    if (gameState.isCapturingStartingHand && currentPlayerIndex === 0) {
-      this.finalizeQuickStartHand();
-    }
-
-    // Determine next player (wrap around to first player if at end)
-    let nextPlayerIndex = (currentPlayerIndex + 1) % allPlayers.length;
-    let nextPlayer = allPlayers[nextPlayerIndex];
-
-    // Use while loop to handle multiple consecutive turn skips without recursion
-    while (nextPlayer.turnModifiers && nextPlayer.turnModifiers.skipTurns > 0) {
-      const turnModifiers = nextPlayer.turnModifiers;
-
-      // Log turn skip
-      this.loggingService.info(`Turn skipped (${turnModifiers.skipTurns} remaining)`, {
-        playerId: nextPlayer.id,
-        playerName: nextPlayer.name,
-        action: 'skipTurn',
-        skipCount: turnModifiers.skipTurns,
-        reason: 'effect_modifier'
-      });
-
-      // Decrement skip count
-      const newModifiers = { ...turnModifiers, skipTurns: turnModifiers.skipTurns - 1 };
-      this.stateService.updatePlayer({ id: nextPlayer.id, turnModifiers: newModifiers });
-
-      // If no more skips remaining, clean up
-      if (newModifiers.skipTurns <= 0) {
-        const restoredModifiers = { ...newModifiers, skipTurns: 0 };
-        this.stateService.updatePlayer({ id: nextPlayer.id, turnModifiers: restoredModifiers });
-        // Skip turns cleared
-      }
-
-      // Move to the next player in sequence
-      nextPlayerIndex = (nextPlayerIndex + 1) % allPlayers.length;
-      nextPlayer = this.stateService.getGameState().players[nextPlayerIndex]; // Get fresh player data
-    }
-
-    // STEP 5: Advance turn counter
-    // TIMING NOTE: This happens AFTER all turn-end processing (expirations, effects, logging)
-    // but BEFORE changing current player. This ensures:
-    // - Turn-end processing uses the correct turn number (the turn that's ending)
-    // - Next player's turn starts with the new turn number
-    this.stateService.advanceTurn();
-
-    // STEP 6: Set next player and prepare for their turn
-    // Update current player in game state
-    this.stateService.setCurrentPlayer(nextPlayer.id);
-
-    // Reset turn flags for the new turn
-    this.stateService.clearPlayerHasMoved();
-    this.stateService.clearPlayerHasRolledDice();
-    this.stateService.clearTurnActions();
-    this.stateService.clearPlayerMoveIntent(nextPlayer.id);
-
-    // Send End Turn notification for the previous player AFTER all state changes are complete
-    if (this.notificationService) {
-      const prevGameState = this.stateService.getGameState();
-      const turnNumber = prevGameState.globalTurnCount; // Previous turn that just ended
-      this.notificationService.notify(
-        {
-          short: 'Turn Ended',
-          medium: `🏁 Turn ${turnNumber} ended`,
-          detailed: `${currentPlayer.name} ended Turn ${turnNumber} at ${currentPlayer.currentSpace}`
-        },
-        {
-          playerId: currentPlayer.id,
-          playerName: currentPlayer.name,
-          actionType: 'endTurn',
-          notificationDuration: 3000
-        }
-      );
-    }
+    // STEPS 5-6: Advance to next player (skip-turn logic, advance turn counter,
+    // set current player, reset turn flags, send end-turn notification)
+    const nextPlayerId = this.turnTransitionHandler.advanceToNextPlayer(currentPlayerIndex, allPlayers);
 
     // Start next player's turn with unified function
     // This handles all arrival logic, movement choices, and turn start logging
-    await this.startTurn(nextPlayer.id);
+    await this.startTurn(nextPlayerId);
 
-    return { nextPlayerId: nextPlayer.id };
+    return { nextPlayerId };
   }
 
   /**

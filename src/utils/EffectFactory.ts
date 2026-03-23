@@ -57,8 +57,10 @@ export class EffectFactory {
     }
 
     // === CHOICE OF EFFECTS (Player Choice Between Options) ===
-    // Check if card has "or" choice mechanics in description
-    if (card.description && card.description.includes(' or ')) {
+    // Prefer structured card_mechanic column; fall back to description parsing
+    const isChoice = card.card_mechanic === 'choice' ||
+      (!card.card_mechanic && card.description?.includes(' or '));
+    if (isChoice) {
       const choiceEffect = this.parseChoiceOfEffects(card, playerId, cardSource, cardName);
       if (choiceEffect) {
         effects.push(choiceEffect);
@@ -68,8 +70,10 @@ export class EffectFactory {
     }
 
     // === CONDITIONAL EFFECTS (Dice Roll Based) ===
-    // Check if card has conditional dice roll mechanics in description
-    if (card.description && card.description.includes('Roll a die')) {
+    // Prefer structured card_mechanic column; fall back to description parsing
+    const isDiceConditional = card.card_mechanic === 'dice_conditional' ||
+      (!card.card_mechanic && card.description?.includes('Roll a die'));
+    if (isDiceConditional) {
       const conditionalEffect = this.parseConditionalEffect(card, playerId, cardSource, cardName);
       if (conditionalEffect) {
         effects.push(conditionalEffect);
@@ -1048,11 +1052,55 @@ export class EffectFactory {
    * @returns CONDITIONAL_EFFECT or null if parsing fails
    */
   private static parseConditionalEffect(
-    card: Card, 
-    playerId: string, 
-    cardSource: string, 
+    card: Card,
+    playerId: string,
+    cardSource: string,
     cardName: string
   ): Effect | null {
+    // === Structured data path: use dice_range columns if available ===
+    if (card.dice_range_1_min != null) {
+      const ranges: Array<{ min: number; max: number; effects: Effect[] }> = [];
+
+      // Range 1
+      const r1Effects: Effect[] = card.dice_range_1_time !== 0 ? [{
+        effectType: 'RESOURCE_CHANGE' as const,
+        payload: {
+          playerId,
+          resource: 'TIME',
+          amount: card.dice_range_1_time!,
+          source: cardSource,
+          reason: `${cardName}: dice conditional`
+        }
+      }] : [];
+      ranges.push({ min: card.dice_range_1_min, max: card.dice_range_1_max!, effects: r1Effects });
+
+      // Range 2 (if defined)
+      if (card.dice_range_2_min != null) {
+        const r2Effects: Effect[] = card.dice_range_2_time !== 0 ? [{
+          effectType: 'RESOURCE_CHANGE' as const,
+          payload: {
+            playerId,
+            resource: 'TIME',
+            amount: card.dice_range_2_time!,
+            source: cardSource,
+            reason: `${cardName}: dice conditional`
+          }
+        }] : [];
+        ranges.push({ min: card.dice_range_2_min, max: card.dice_range_2_max!, effects: r2Effects });
+      }
+
+      return {
+        effectType: 'CONDITIONAL_EFFECT',
+        payload: {
+          playerId,
+          condition: { type: 'DICE_ROLL', ranges },
+          source: cardSource,
+          reason: `${cardName}: Conditional dice roll effect`
+        }
+      };
+    }
+
+    // === Legacy fallback: parse description text ===
     if (!card.description || !card.description.includes('Roll a die')) {
       return null;
     }
@@ -1062,33 +1110,33 @@ export class EffectFactory {
     // Extract the conditional ranges and their effects
     // Pattern: "On X-Y [effect]. On Z-W [effect]." or "On X-Y [effect]. On Z-W no effect."
     const ranges: Array<{ min: number; max: number; effects: Effect[] }> = [];
-    
+
     // Match patterns like "On 1-3 increase the current filing time by 5 days"
     const rangePattern = /On (\d+)-(\d+)\s+([^.]+)\./g;
     let match;
-    
+
     while ((match = rangePattern.exec(description)) !== null) {
       const min = parseInt(match[1]);
       const max = parseInt(match[2]);
       const effectText = match[3].trim();
-      
-      
+
+
       // Parse the effect text to create actual effects
       const rangeEffects = this.parseConditionalEffectText(effectText, card, playerId, cardSource, cardName);
-      
+
       ranges.push({
         min,
         max,
         effects: rangeEffects
       });
     }
-    
+
     if (ranges.length === 0) {
       console.warn(`   Could not parse conditional ranges from: ${description}`);
       return null;
     }
-    
-    
+
+
     return {
       effectType: 'CONDITIONAL_EFFECT',
       payload: {

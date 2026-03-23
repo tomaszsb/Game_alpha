@@ -1,14 +1,23 @@
 # Project Status
 
-**Last Updated**: March 22, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.33.6)
-**Current Version**: 2.33.6
+**Last Updated**: March 23, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.34.0)
+**Current Version**: 2.34.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Code Audit Sprint — Full (March 23, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.34.0
+- **Changes**:
+  - Phase 1: Deleted 37 unused files (~50+ KB) — MobilePlayerPanel, CardPortfolioDashboard, MovementPathVisualization, FinancialStatusDisplay, DiceRoller, PlayerViewStateService, financial subcomponents. Removed dead placeholder UI in GameLayout.
+  - Phase 2: TurnService decomposed — extracted TurnTransitionHandler (218 lines) and MovementExecutor (141 lines). TurnService 2,148 → 1,984 lines.
+  - Phase 3: Added 8 structured CSV columns to CARDS_EXPANDED.csv replacing regex parsing. Updated EffectFactory + CardService with structured-data-first, legacy-fallback approach. Fixed 6 incorrect tick_modifier values.
+  - Test count: 1393 tests across 86 files (all passing)
 
 ### Code Audit Cleanup Sprint (March 22, 2026) ✅
 - **Status**: ✅ Complete
@@ -18,7 +27,6 @@ This document provides a high-level overview of the current work status for the 
   - Cleaned GameLayout (dead imports) and GameBoard (unused state, debug logs)
   - Fixed mobile panel visibility — connected players' panels now hide on host screen
   - Added 9 player panel visibility tests, 6 ActionCenterPanel negotiate button tests
-  - Test count: 1493 tests across 91 files (all passing)
 
 ### L Card Dice Condition Fix (March 21, 2026) ✅
 - **Status**: ✅ Complete

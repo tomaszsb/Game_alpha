@@ -1309,51 +1309,96 @@ export class CardService implements ICardService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    // Parse E card effects from effects_on_play field
-    const effects = card.effects_on_play || '';
-    
-    if (effects.includes('gain $')) {
-      // Extract money amount
-      const moneyMatch = effects.match(/gain \$(\d+)/);
-      if (moneyMatch) {
-        const moneyGain = parseInt(moneyMatch[1]);
-        // Update via TEMP state (or main state if no TEMP exists)
+    // Prefer structured columns (money_effect, tick_modifier) over parsing effects_on_play text
+    let hasStructuredData = false;
+
+    // Apply money effect from structured column
+    if (card.money_effect) {
+      const moneyVal = parseInt(card.money_effect);
+      if (!isNaN(moneyVal) && moneyVal !== 0) {
+        hasStructuredData = true;
         this.stateService.updateTempState(playerId, {
-          money: player.money + moneyGain
+          money: player.money + moneyVal
         });
       }
     }
 
-    if (effects.includes('time units')) {
-      // Extract time amount
-      const timeMatch = effects.match(/(\d+)\s+time\s+units/);
-      if (timeMatch) {
-        const timeGain = parseInt(timeMatch[1]);
-        // Update via TEMP state (or main state if no TEMP exists)
+    // Apply time effect from structured column
+    if (card.tick_modifier) {
+      const tickVal = parseInt(card.tick_modifier);
+      if (!isNaN(tickVal) && tickVal !== 0) {
+        hasStructuredData = true;
+        // Negative tick_modifier = reduce time spent (benefit), positive = increase
         this.stateService.updateTempState(playerId, {
-          timeSpent: Math.max(0, player.timeSpent - timeGain) // Reduce time spent
+          timeSpent: Math.max(0, player.timeSpent + tickVal)
         });
       }
     }
-    
-    if (effects.includes('Draw 1 card')) {
-      // Draw 1 additional card of any type
-      // For now, we'll draw a random card type (W, B, I, L, E)
-      const cardTypes: CardType[] = ['W', 'B', 'I', 'L', 'E'];
-      const randomCardType = cardTypes[Math.floor(Math.random() * cardTypes.length)];
-      
-      try {
-        this.drawCards(playerId, randomCardType, 1);
-      } catch (error) {
-        console.warn(`Could not draw ${randomCardType} card:`, error);
-        // Try a different card type if the first fails
-        for (const fallbackType of cardTypes) {
-          if (fallbackType !== randomCardType) {
-            try {
-              this.drawCards(playerId, fallbackType, 1);
-              break;
-            } catch (fallbackError) {
-              // Continue to next type
+
+    // Apply card draw from structured column
+    if (card.draw_cards) {
+      const drawCount = parseInt(card.draw_cards);
+      if (!isNaN(drawCount) && drawCount > 0) {
+        hasStructuredData = true;
+        const cardTypes: CardType[] = ['W', 'B', 'I', 'L', 'E'];
+        const randomCardType = cardTypes[Math.floor(Math.random() * cardTypes.length)];
+        try {
+          this.drawCards(playerId, randomCardType, drawCount);
+        } catch (error) {
+          console.warn(`Could not draw ${randomCardType} card:`, error);
+          for (const fallbackType of cardTypes) {
+            if (fallbackType !== randomCardType) {
+              try {
+                this.drawCards(playerId, fallbackType, drawCount);
+                break;
+              } catch (fallbackError) {
+                // Continue to next type
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Legacy fallback: parse effects_on_play text if no structured data was found
+    if (!hasStructuredData) {
+      const effects = card.effects_on_play || '';
+
+      if (effects.includes('gain $')) {
+        const moneyMatch = effects.match(/gain \$(\d+)/);
+        if (moneyMatch) {
+          const moneyGain = parseInt(moneyMatch[1]);
+          this.stateService.updateTempState(playerId, {
+            money: player.money + moneyGain
+          });
+        }
+      }
+
+      if (effects.includes('time units')) {
+        const timeMatch = effects.match(/(\d+)\s+time\s+units/);
+        if (timeMatch) {
+          const timeGain = parseInt(timeMatch[1]);
+          this.stateService.updateTempState(playerId, {
+            timeSpent: Math.max(0, player.timeSpent - timeGain)
+          });
+        }
+      }
+
+      if (effects.includes('Draw 1 card')) {
+        const cardTypes: CardType[] = ['W', 'B', 'I', 'L', 'E'];
+        const randomCardType = cardTypes[Math.floor(Math.random() * cardTypes.length)];
+        try {
+          this.drawCards(playerId, randomCardType, 1);
+        } catch (error) {
+          console.warn(`Could not draw ${randomCardType} card:`, error);
+          for (const fallbackType of cardTypes) {
+            if (fallbackType !== randomCardType) {
+              try {
+                this.drawCards(playerId, fallbackType, 1);
+                break;
+              } catch (fallbackError) {
+                // Continue to next type
+              }
             }
           }
         }
@@ -1396,21 +1441,28 @@ export class CardService implements ICardService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    // Parse investor loan effects from card name and description
+    // Determine investor payout: prefer structured investor_payout column, fall back to card_name parsing
     let moneyGain = 0;
-    const cardName = card.card_name.toLowerCase();
-    
-    if (cardName.includes('angel investor')) {
-      moneyGain = 50000;
-    } else if (cardName.includes('venture capital')) {
-      moneyGain = 200000;
-    } else if (cardName.includes('government grant')) {
-      moneyGain = 100000;
-    } else if (cardName.includes('crowdfunding')) {
-      // Variable based on player's current project value
-      moneyGain = Math.floor(player.money * 0.2) + 10000;
+
+    if (card.investor_payout != null) {
+      // Structured column: negative value = percentage formula (e.g., -20 = 20% of money + 10000)
+      if (card.investor_payout < 0) {
+        moneyGain = Math.floor(player.money * Math.abs(card.investor_payout) / 100) + 10000;
+      } else {
+        moneyGain = card.investor_payout;
+      }
     } else {
-      moneyGain = 25000; // Default investor loan amount
+      // Legacy fallback: parse card name
+      const cardName = card.card_name.toLowerCase();
+      if (cardName.includes('angel investor')) {
+        moneyGain = 50000;
+      } else if (cardName.includes('venture capital')) {
+        moneyGain = 200000;
+      } else if (cardName.includes('crowdfunding')) {
+        moneyGain = Math.floor(player.money * 0.2) + 10000;
+      } else {
+        moneyGain = 25000;
+      }
     }
     
     if (moneyGain > 0) {
