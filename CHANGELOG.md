@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug Fix: REG-DOB-TYPE-SELECT movement (March 23, 2026)
+- Fixed: Players were permanently stuck at REG-DOB-TYPE-SELECT on subsequent visits — `movement_type` was `none` with no destinations
+- **Root cause:** SOURCE_FILES/Spaces.csv had placeholder text `"Option from first visit"` instead of actual space IDs (`REG-DOB-PLAN-EXAM`, `REG-DOB-PROF-CERT`) in the subsequent visit row
+- `processGameData.js` correctly identified this as a stateful movement pattern but found zero valid space names after filtering, producing `movement_type: none`
+- Fix: Replaced placeholder text with actual destination space IDs, regenerated CLEAN_FILES
+
 ### Code Audit Sprint — Phase 1-3 (March 23, 2026)
 
 **Three-phase cleanup addressing external code audit recommendations.**

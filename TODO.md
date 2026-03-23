@@ -2,7 +2,7 @@
 
 **Last Updated:** March 23, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.34.0
+**Current Version:** 2.34.1
 
 ---
 

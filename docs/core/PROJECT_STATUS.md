@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 23, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.34.0)
-**Current Version**: 2.34.0
+**Current Phase**: Pre-Beta — Editor Hardening (v2.34.1)
+**Current Version**: 2.34.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Bug Fix: REG-DOB-TYPE-SELECT (March 23, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.34.1
+- **Changes**: Fixed players permanently stuck at DOB Path Selection on subsequent visits — destination columns had placeholder text instead of actual space IDs
 
 ### Code Audit Sprint — Full (March 23, 2026) ✅
 - **Status**: ✅ Complete

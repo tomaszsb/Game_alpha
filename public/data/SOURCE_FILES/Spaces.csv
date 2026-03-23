@@ -66,7 +66,7 @@ REG-DOB-FEE-REVIEW,REGULATORY,Subsequent,DOB Additional Fees,Determine if additi
 ,Accept Fee,Negotiate
 REG-DOB-TYPE-SELECT,REGULATORY,First,DOB Path Selection,Project manager chooses (slow and low risk) or (fast and high risk) path at DOB.,You have a choice to say Plan Exam (slow) or Prof Cert (fast).,,,,,Draw 1 if you roll a 1,,10 days,,REG-DOB-PLAN-EXAM,REG-DOB-PROF-CERT,,,,NO,No,Single choice,
 ,End Turn,Try Again
-REG-DOB-TYPE-SELECT,REGULATORY,Subsequent,DOB Processing Wait,Waiting for Clerks to process files or for appointment.,Hurry Up and Wait…,,,,,Draw 1 if you roll a 2,,10 days,,Option from first visit,Option from first visit,,,,NO,No,Single choice,
+REG-DOB-TYPE-SELECT,REGULATORY,Subsequent,DOB Processing Wait,Waiting for Clerks to process files or for appointment.,Hurry Up and Wait…,,,,,Draw 1 if you roll a 2,,10 days,,REG-DOB-PLAN-EXAM,REG-DOB-PROF-CERT,,,,NO,No,Single choice,
 ,End Turn,Try Again
 REG-DOB-PLAN-EXAM,REGULATORY,First,DOB Plan Exam,Let me review these plans. I need to verify everything meets building code.,Wait for the examiner's determination. You can negotiate if the result is unfavorable.,,,,,Draw 1 if you roll a 3,,10 days,,,,,,,YES,Yes,Regular,1
 ,Accept Result,Negotiate

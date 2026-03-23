@@ -2,6 +2,18 @@
 
 ---
 
+## v2.34.1 - DOB Path Fix (March 23, 2026)
+
+**Release Date:** March 23, 2026
+**Version:** 2.34.1
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Players stuck at DOB Path Selection
+Players who returned to the DOB Path Selection space on subsequent visits were unable to continue — they could not choose Plan Exam or Prof Cert and were permanently stuck. This is now fixed.
+
+---
+
 ## v2.34.0 - Code Audit Sprint (March 23, 2026)
 
 **Release Date:** March 23, 2026
