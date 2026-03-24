@@ -9,6 +9,7 @@ import { CardsSection } from './sections/CardsSection';
 import { ProjectScopeSection } from './sections/ProjectScopeSection';
 import { EventsSection } from './sections/EventsSection';
 import { PlayerLogSection } from './sections/PlayerLogSection';
+import { ProjectLedger } from './sections/ProjectLedger';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL } from '../../utils/networkDetection';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
@@ -29,7 +30,7 @@ export interface ActionCenterPanelProps {
   };
 }
 
-type ReferenceTab = 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
+type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
 
 // Helper to format effect action for display
 function formatEffectAction(effectType: string, effectAction?: string): string {
@@ -333,8 +334,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   }
 
   const tabConfig: { key: ReferenceTab; icon: string; label: string; hasBadge: boolean }[] = [
-    { key: 'money', icon: '💰', label: 'Money', hasBadge: hasMoneyActions },
-    { key: 'scope', icon: '📐', label: 'Scope', hasBadge: false },
+    { key: 'ledger', icon: '📊', label: 'Ledger', hasBadge: hasMoneyActions },
     { key: 'expeditors', icon: '⚡', label: 'Expeditors', hasBadge: hasECardActions || playableECards.length > 0 },
     { key: 'events', icon: '🎲', label: 'Events', hasBadge: hasLCardActions },
     { key: 'time', icon: '⏱', label: 'Time', hasBadge: false },
@@ -659,15 +659,10 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         {/* Tab Content */}
         {activeTab && (
           <div className="action-center__tab-content">
-            {activeTab === 'money' && (
-              <FinancesSection
+            {activeTab === 'ledger' && (
+              <ProjectLedger
                 gameServices={gameServices}
                 playerId={playerId}
-                onRollDice={onRollDice}
-                onAutomaticFunding={onAutomaticFunding}
-                onManualEffectResult={onManualEffectResult}
-                completedActions={completedActions}
-                isMyTurn={isMyTurn}
                 renderMode="content"
               />
             )}
@@ -701,16 +696,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 renderMode="content"
               />
             )}
-            {activeTab === 'scope' && (
-              <ProjectScopeSection
-                gameServices={gameServices}
-                playerId={playerId}
-                onRollDice={onRollDice}
-                completedActions={completedActions}
-                isMyTurn={isMyTurn}
-                renderMode="content"
-              />
-            )}
+            {/* Money and Scope tabs replaced by Ledger above */}
             {activeTab === 'log' && (
               <PlayerLogSection
                 gameServices={gameServices}

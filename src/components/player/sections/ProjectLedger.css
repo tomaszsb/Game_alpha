@@ -1,0 +1,347 @@
+/* ProjectLedger.css — Pro Ledger styles matching project_ledger_click.html mockup */
+
+.project-ledger {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+
+/* Tab navigation */
+.ledger-tab-nav {
+  display: flex;
+  background: #1a252f;
+  padding: 3px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.ledger-tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  color: #bdc3c7;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.ledger-tab-btn.active {
+  color: white;
+  border-bottom-color: #3498db;
+}
+
+/* Column headers */
+.ledger-col-headers {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  padding: 6px 10px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #95a5a6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #eee;
+  border-radius: 4px;
+  margin: 6px 0;
+}
+
+.ledger-col-headers span:not(:first-child) {
+  text-align: right;
+}
+
+/* Category block */
+.ledger-category {
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #dcdde1;
+  overflow: hidden;
+}
+
+/* Category header — 3-column grid */
+.ledger-cat-header {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.ledger-cat-title {
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ledger-cat-arrow {
+  font-size: 8px;
+  color: #95a5a6;
+  width: 10px;
+}
+
+.ledger-cat-budget {
+  font-weight: 600;
+  font-size: 10px;
+  text-align: right;
+  color: #95a5a6;
+}
+
+.ledger-cat-actual {
+  font-weight: 800;
+  font-size: 11px;
+  text-align: right;
+}
+
+/* Category progress bar */
+.ledger-cat-progress {
+  height: 3px;
+  background: #f0f0f0;
+  width: 100%;
+}
+
+.ledger-cat-progress-fill {
+  height: 100%;
+  transition: width 0.4s ease-out;
+}
+
+/* Category color theming */
+.cat-teal .ledger-cat-actual { color: #16a085; }
+.cat-teal .ledger-cat-progress-fill { background: #16a085; }
+
+.cat-orange .ledger-cat-actual { color: #f39c12; }
+.cat-orange .ledger-cat-progress-fill { background: #f39c12; }
+
+.cat-green .ledger-cat-actual { color: #27ae60; }
+.cat-green .ledger-cat-progress-fill { background: #27ae60; }
+
+.cat-red .ledger-cat-actual { color: #e74c3c; }
+.cat-red .ledger-cat-progress-fill { background: #e74c3c; }
+
+.cat-purple .ledger-cat-actual { color: #8e44ad; }
+.cat-purple .ledger-cat-progress-fill { background: #8e44ad; }
+
+.cat-contingency .ledger-cat-actual { color: #8e44ad; }
+.cat-contingency .ledger-cat-progress-fill { background: #8e44ad; }
+
+/* Line items (expanded) */
+.ledger-cat-items {
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  padding-bottom: 2px;
+}
+
+.ledger-item-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  padding: 5px 12px 5px 28px;
+  font-size: 10px;
+  border-bottom: 1px solid #f5f5f5;
+  align-items: center;
+}
+
+.ledger-item-row:last-child {
+  border-bottom: none;
+}
+
+.ledger-item-name {
+  color: #7f8c8d;
+}
+
+.ledger-item-budget {
+  text-align: right;
+  color: #95a5a6;
+}
+
+.ledger-item-actual {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Design ratio bar */
+.ledger-ratio-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #fff9e6;
+  border: 1px solid #ffe0a0;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.ledger-ratio-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #2c3e50;
+  white-space: nowrap;
+}
+
+.ledger-ratio-track {
+  flex: 1;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  position: relative;
+}
+
+.ledger-ratio-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s;
+}
+
+.ledger-ratio-threshold {
+  position: absolute;
+  left: 100%; /* 20% threshold displayed at right edge of track (since fill is scaled 5×) */
+  top: -2px;
+  width: 2px;
+  height: 10px;
+  background: #e74c3c;
+}
+
+.ledger-ratio-value {
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Variance view */
+.ledger-variance-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ledger-variance-stat {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  background: #2c3e50;
+  border-radius: 8px;
+  color: white;
+}
+
+.ledger-variance-stat-label {
+  font-size: 9px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ledger-variance-stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.ledger-variance-stat-value.green { color: #2ecc71; }
+.ledger-variance-stat-value.purple { color: #bb86fc; }
+
+.ledger-variance-rows {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #dcdde1;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.ledger-variance-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  padding: 10px 12px;
+  font-size: 11px;
+  border-bottom: 1px solid #f5f5f5;
+  align-items: center;
+}
+
+.ledger-variance-row:last-child {
+  border-bottom: none;
+}
+
+.ledger-variance-row span:last-child {
+  text-align: right;
+  font-weight: 700;
+}
+
+/* Health summary box */
+.ledger-health-summary {
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dcdde1;
+}
+
+.ledger-health-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8e44ad;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ledger-health-stats {
+  display: flex;
+  gap: 6px;
+}
+
+.ledger-health-stat {
+  flex: 1;
+  text-align: center;
+  padding: 6px;
+  background: white;
+  border-radius: 6px;
+}
+
+.ledger-health-stat-label {
+  font-size: 9px;
+  color: #95a5a6;
+}
+
+.ledger-health-stat-value {
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.ledger-health-stat-value.green { color: #27ae60; }
+.ledger-health-stat-value.blue { color: #3498db; }
+.ledger-health-stat-value.purple { color: #8e44ad; }
+
+/* Footer */
+.ledger-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: white;
+  border-top: 2px solid #2c3e50;
+  margin-top: 8px;
+  border-radius: 0 0 6px 6px;
+}
+
+.ledger-footer-label {
+  font-weight: 700;
+  font-size: 11px;
+  color: #7f8c8d;
+}
+
+.ledger-footer-value {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.ledger-footer-value.blue { color: #3498db; }
+.ledger-footer-value.green { color: #27ae60; }
+
+/* Color utilities */
+.green { color: #27ae60; }
+.red { color: #e74c3c; }
+.blue { color: #3498db; }
+.purple { color: #8e44ad; }
