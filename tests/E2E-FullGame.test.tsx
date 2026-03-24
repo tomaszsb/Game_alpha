@@ -205,7 +205,7 @@ describe('E2E Full Playthrough', () => {
 
   const dismissOverlay = async () => {
     try {
-      const overlay = await screen.findByText(/You have moved!/i, {}, { timeout: 1000 });
+      const overlay = await screen.findByText(/your turn!/i, {}, { timeout: 1000 });
       fireEvent.click(overlay);
     } catch (e) {}
   };

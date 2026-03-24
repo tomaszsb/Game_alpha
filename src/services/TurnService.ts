@@ -1225,7 +1225,13 @@ export class TurnService implements ITurnService {
     // Card effects handle this inside applySpaceCardEffect (before restoreMovementChoiceIfNeeded)
     if (baseType !== 'cards') {
       const { text: buttonText } = formatManualEffectButton(manualEffect);
-      this.stateService.setPlayerCompletedManualAction(baseType, buttonText);
+      // Store compound key (e.g., 'money:add_money') for precise matching
+      const compoundKey = manualEffect.effect_action ? `${baseType}:${manualEffect.effect_action}` : baseType;
+      this.stateService.setPlayerCompletedManualAction(compoundKey, buttonText);
+      // Also store effect_action for fallback matching
+      if (manualEffect.effect_action) {
+        this.stateService.setPlayerCompletedManualAction(manualEffect.effect_action, buttonText);
+      }
     }
 
     return this.stateService.getGameState();

@@ -368,8 +368,17 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
       currentPlayer.visitedSpaces?.forEach(s => visibleSpaces.add(s));
     }
     validMoves.forEach(s => visibleSpaces.add(s));
-    // Also add spaces where any player sits
+    // Also add spaces where any player sits (for avatar display, NOT for arrow rendering)
     players.forEach(p => { if (p.currentSpace) visibleSpaces.add(p.currentSpace); });
+
+    // Arrow-eligible spaces: only current player's path (visited + current + valid moves)
+    // Other players' spaces are visible for avatars but should NOT generate arrows
+    const arrowEligibleSpaces = new Set<string>();
+    if (currentPlayer) {
+      if (currentPlayer.currentSpace) arrowEligibleSpaces.add(currentPlayer.currentSpace);
+      currentPlayer.visitedSpaces?.forEach(s => arrowEligibleSpaces.add(s));
+    }
+    validMoves.forEach(s => arrowEligibleSpaces.add(s));
 
     // ---- Measure tile positions ----
     const rects: Record<string, { left: number; right: number; top: number; bottom: number; cx: number; cy: number }> = {};
@@ -562,8 +571,9 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
 
     for (const edge of EDGES) {
       const [from, to, edgeTag] = edge;
-      // Only draw arrows where both endpoints are visible (visited/valid/current)
-      if (!visibleSpaces.has(from) || !visibleSpaces.has(to)) continue;
+      // Only draw arrows where both endpoints are on the current player's path
+      // (not from other players' positions which are visible only for avatars)
+      if (!arrowEligibleSpaces.has(from) || !arrowEligibleSpaces.has(to)) continue;
       const isMerge = edgeTag === 'merge';
       const a = rects[from], b = rects[to];
       if (!a || !b) continue;

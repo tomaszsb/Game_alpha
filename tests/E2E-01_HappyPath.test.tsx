@@ -251,8 +251,8 @@ describe('E2E-01: Happy Path with New UI', () => {
     // UI Interaction 3: Click "End Turn" to trigger movement
     fireEvent.click(endTurnButton);
 
-    // DISMISS THE OVERLAY - "You have moved!"
-    const overlay = await screen.findByText(/You have moved!/i, {}, { timeout: 5000 });
+    // DISMISS THE OVERLAY - "Player, your turn!"
+    const overlay = await screen.findByText(/your turn!/i, {}, { timeout: 5000 });
     fireEvent.click(overlay);
 
     // After End Turn, the player moves to OWNER-FUND-INITIATION

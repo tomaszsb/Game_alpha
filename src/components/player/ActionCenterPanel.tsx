@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
 import { Choice } from '../../types/CommonTypes';
 import { AutoActionEvent } from '../../services/StateService';
@@ -83,6 +83,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const [activeTab, setActiveTab] = useState<ReferenceTab>(null);
   const [showMovementTransition, setShowMovementTransition] = useState(false);
   const [movementTransition, setMovementTransition] = useState<{ from: string; to: string } | null>(null);
+  const previousCurrentPlayerIdRef = useRef<string | null>(null);
+  const previousSpaceRef = useRef<string | null>(null);
+  const showMovementTransitionRef = useRef(false);
 
   // Subscribe to game state
   useEffect(() => {
@@ -90,6 +93,39 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       const player = gameState.players.find(p => p.id === playerId);
       const newCurrentPlayerId = gameState.currentPlayerId;
       const currentPlayer = gameState.players.find(p => p.id === newCurrentPlayerId);
+
+      // Detect turn transition TO this player (multi-player scenario)
+      const turnJustStartedForThisPlayer =
+        previousCurrentPlayerIdRef.current !== null &&
+        previousCurrentPlayerIdRef.current !== playerId &&
+        newCurrentPlayerId === playerId;
+
+      // Also detect same-player movement (single-player or turn continuation)
+      const isCurrentPlayer = newCurrentPlayerId === playerId;
+      const spaceChanged = previousSpaceRef.current !== null && previousSpaceRef.current !== player?.currentSpace;
+
+      // Show movement transition overlay on turn change or space change
+      const shouldShowTransition =
+        !showMovementTransitionRef.current && // Don't trigger if already showing
+        (turnJustStartedForThisPlayer || (isCurrentPlayer && spaceChanged)) &&
+        previousSpaceRef.current !== null && player?.currentSpace;
+
+      if (shouldShowTransition && player) {
+        setMovementTransition({
+          from: previousSpaceRef.current!,
+          to: player.currentSpace
+        });
+        setShowMovementTransition(true);
+        showMovementTransitionRef.current = true;
+        setTimeout(() => {
+          setShowMovementTransition(false);
+          showMovementTransitionRef.current = false;
+        }, 5000);
+      }
+
+      // Update tracking refs
+      previousCurrentPlayerIdRef.current = newCurrentPlayerId;
+      previousSpaceRef.current = player?.currentSpace || null;
       setCurrentPlayerId(newCurrentPlayerId);
       setCurrentPlayerName(currentPlayer?.name || '');
 
@@ -128,8 +164,11 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     // Initialize
     const gameState = gameServices.stateService.getGameState();
     const player = gameServices.stateService.getPlayer(playerId);
-    setCurrentPlayerId(gameState.currentPlayerId);
-    const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+    const initialCurrentPlayerId = gameState.currentPlayerId;
+    setCurrentPlayerId(initialCurrentPlayerId);
+    previousCurrentPlayerIdRef.current = initialCurrentPlayerId; // Initialize to current so first render doesn't trigger transition
+    if (player) previousSpaceRef.current = player.currentSpace;
+    const currentPlayer = gameState.players.find(p => p.id === initialCurrentPlayerId);
     setCurrentPlayerName(currentPlayer?.name || '');
 
     if (player) {
@@ -153,17 +192,11 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     return unsubscribe;
   }, [gameServices, playerId]);
 
-  // Subscribe to movement events
+  // Subscribe to auto-action events (non-movement events like dice rolls, effects)
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribeToAutoActions((event: AutoActionEvent) => {
-      if (event.type === 'movement' && event.playerId === playerId) {
-        setMovementTransition({
-          from: event.fromSpace || event.spaceName,
-          to: event.toSpace || ''
-        });
-        setShowMovementTransition(true);
-        setTimeout(() => setShowMovementTransition(false), 5000);
-      }
+      // Movement transitions are handled by the state-based subscription above
+      // This subscription is kept for other auto-action event types
     });
     return () => { unsubscribe(); };
   }, [gameServices.stateService, playerId]);
@@ -211,12 +244,13 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       const isDiceCompleted = completedActions.diceRoll !== undefined;
 
       const completedKeys = Object.keys(completedActions.manualActions);
+      // Match by exact compound key (e.g., 'dice:dice_outcome') or specific effect_action
+      // Do NOT match by bare effect_type — that disables all siblings of the same type
       const isCompleted = isDiceEffect ? isDiceCompleted : completedKeys.some(
         key => key === effectKey ||
-               key === effect.effect_type ||
-               key.startsWith(effect.effect_type + ':') ||
+               (effect.effect_action && key === effect.effect_action) ||
                key.toLowerCase() === effectKey.toLowerCase() ||
-               key.toLowerCase().startsWith(effect.effect_type.toLowerCase() + ':')
+               (effect.effect_action && key.toLowerCase() === effect.effect_action.toLowerCase())
       );
 
       return {
@@ -313,16 +347,17 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       {showMovementTransition && movementTransition && (
         <div
           className="action-center__movement-overlay"
-          onClick={() => setShowMovementTransition(false)}
+          onClick={() => { setShowMovementTransition(false); showMovementTransitionRef.current = false; }}
           style={{ backgroundColor: player.color ? `${player.color}ee` : 'rgba(33, 150, 243, 0.95)' }}
         >
-          <div style={{ fontSize: '3rem', marginBottom: '20px', animation: 'bounce 1s infinite' }}>🚶</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '10px' }}>You have moved!</div>
-          <div style={{ fontSize: '1.1rem', color: 'white' }}>
-            <div style={{ marginBottom: '10px' }}><strong>From:</strong> {movementTransition.from}</div>
-            <div><strong>To:</strong> {movementTransition.to}</div>
+          <div style={{ fontSize: '3rem', marginBottom: '16px', animation: 'bounce 1s infinite' }}>🚶</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
+            {player.name}, your turn!
           </div>
-          <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', marginTop: '30px' }}>Tap anywhere to continue</div>
+          <div style={{ fontSize: '1.1rem', color: 'white' }}>
+            You moved from <strong>{movementTransition.from}</strong> to <strong>{movementTransition.to}</strong>
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', marginTop: '20px' }}>Tap to continue</div>
         </div>
       )}
 
