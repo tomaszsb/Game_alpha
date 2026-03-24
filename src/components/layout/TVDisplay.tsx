@@ -36,6 +36,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showActionOverlay, setShowActionOverlay] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isProgressExpanded, setIsProgressExpanded] = useState(false);
 
   const gameId = getCurrentGameId();
 
@@ -162,17 +163,19 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
       <main style={styles.main}>
         {/* Collapsed progress bar — one-line summary so the board gets the space */}
         {gamePhase === 'PLAY' && (
-          <ProjectProgress
-            players={players}
-            currentPlayerId={currentPlayerId}
-            dataService={dataService}
-            gameRulesService={gameRulesService}
-            onToggleGameLog={() => {}}
-            onOpenRulesModal={() => {}}
-            hideButtons
-            compact
-            collapsed
-          />
+          <div onClick={() => setIsProgressExpanded(!isProgressExpanded)} style={{ cursor: 'pointer' }}>
+            <ProjectProgress
+              players={players}
+              currentPlayerId={currentPlayerId}
+              dataService={dataService}
+              gameRulesService={gameRulesService}
+              onToggleGameLog={() => {}}
+              onOpenRulesModal={() => {}}
+              hideButtons
+              compact
+              collapsed={!isProgressExpanded}
+            />
+          </div>
         )}
 
         {/* Game board - takes most of the screen */}

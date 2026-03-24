@@ -46,6 +46,9 @@ export function PlayerSetup({
     return unsubscribe;
   }, [stateService]);
 
+  // TV mode detection
+  const isTVMode = new URLSearchParams(window.location.search).get('mode') === 'tv';
+
   // Track wide screen for QR column visibility
   const [isWideScreen, setIsWideScreen] = useState(() => window.innerWidth > 900);
   useEffect(() => {
@@ -518,10 +521,49 @@ export function PlayerSetup({
               validationResult={addPlayerValidation}
             />
           )}
+
+          {/* TV mode: inline game settings + start button (no separate right column) */}
+          {isTVMode && (
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ ...styles.label, margin: 0, whiteSpace: 'nowrap' }}>Win Condition</label>
+                <select
+                  value={gameSettings.winCondition}
+                  onChange={(e) => setGameSettings({ ...gameSettings, winCondition: e.target.value })}
+                  style={{ ...styles.select, width: 'auto', minWidth: '140px' }}
+                >
+                  <option value="FIRST_TO_FINISH">First to Finish</option>
+                  <option value="HIGHEST_SCORE">Highest Score</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={handleStartGame}
+                disabled={isStarting}
+                style={{
+                  background: isStarting ? colors.secondary.main : `linear-gradient(45deg, ${colors.success.text}, ${colors.success.main})`,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.75rem 2rem',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold',
+                  cursor: isStarting ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 12px rgba(44, 85, 48, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  marginLeft: 'auto',
+                }}
+              >
+                {isStarting ? '🎲 Starting...' : '🚀 Start Game'}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Right column: Settings + Admin + Start */}
-        <div style={styles.settingsColumn}>
+        {/* Right column: Settings + Admin + Start (hidden in TV mode) */}
+        {!isTVMode && <div style={styles.settingsColumn}>
           {/* Game settings section */}
           <div style={styles.settingsBlock}>
             <h3 style={styles.sectionTitleSmall}>
@@ -868,7 +910,7 @@ export function PlayerSetup({
           >
             {isStarting ? '🎲 Starting Game...' : '🚀 Start Game'}
           </button>
-        </div>
+        </div>}
       </main>
 
       {/* Footer */}
