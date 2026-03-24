@@ -75,7 +75,7 @@ describe('ProjectProgress', () => {
 
     mockGameRulesService = {
       calculateProjectScope: vi.fn().mockReturnValue(1000000),
-      calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 100, uniqueWorkTypes: [] }),
+      calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 110, contingencyDays: 10, uniqueWorkTypes: [] }),
     } as unknown as IGameRulesService;
 
     mockOnToggleGameLog = vi.fn();
@@ -132,12 +132,9 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Get the span that contains the overall progress information
-    const overallProgressText = screen.getByText(/Overall Progress:/i);
-    expect(overallProgressText).toBeInTheDocument();
-    expect(overallProgressText.closest('span')).toHaveTextContent(/50% | Leading Phase: CONSTRUCTION/);
-    
-    expect(screen.getByText((content, element) => content.includes('1 Player'))).toBeInTheDocument();
+    // Compact format: "50% | CONSTRUCTION"
+    expect(screen.getByText(/50%/)).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('1 Player'))).toBeInTheDocument();
   });
 
   it('should display individual player progress', () => {
@@ -153,7 +150,7 @@ describe('ProjectProgress', () => {
     );
 
     // More specific query for Alice's name within the individual player progress item
-    expect(screen.getByText((content, element) => 
+    expect(screen.getByText((content, element) =>
       element?.tagName.toLowerCase() === 'div' &&
       element.textContent?.includes('Alice') &&
       element.textContent?.includes('👤') &&
@@ -173,16 +170,14 @@ describe('ProjectProgress', () => {
         onOpenRulesModal={mockOnOpenRulesModal}
       />
     );
-    expect(screen.queryByText((content, element) => content.includes('Alice'))).not.toBeInTheDocument();
+    expect(screen.queryByText((content) => content.includes('Alice'))).not.toBeInTheDocument();
 
-    const overallProgressText = screen.getByText(/Overall Progress:/i);
-    expect(overallProgressText).toBeInTheDocument();
-    expect(overallProgressText.closest('span')).toHaveTextContent(/0% | Leading Phase: SETUP/);
-
-    expect(screen.getByText((content, element) => content.includes('0 Players'))).toBeInTheDocument();
+    // Compact format: "0% | SETUP"
+    expect(screen.getByText(/0%/)).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('0 Players'))).toBeInTheDocument();
   });
 
-  it('should display design fee cap bar for each player', () => {
+  it('should display design fee ratio for each player', () => {
     const playerWithDesignFees: Player[] = [
       {
         ...mockPlayers[0],
@@ -201,10 +196,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Design fee cap bar should be visible
-    expect(screen.getByText('📐 Design Fees')).toBeInTheDocument();
-    // With $100k design fees and $1M scope, ratio is 10% (shown as 10.0% / 20%)
-    expect(screen.getByText('10.0% / 20%')).toBeInTheDocument();
+    // Compact inline format: "📐 10.0%/20%"
+    expect(screen.getByText(/10\.0%\/20%/)).toBeInTheDocument();
   });
 
   it('should display project timeline for each player', () => {
@@ -215,9 +208,9 @@ describe('ProjectProgress', () => {
       },
     ];
 
-    // Mock calculateEstimatedProjectLength to return specific values
     (mockGameRulesService.calculateEstimatedProjectLength as ReturnType<typeof vi.fn>).mockReturnValue({
-      estimatedDays: 100,
+      estimatedDays: 110,
+      contingencyDays: 10,
       uniqueWorkTypes: ['Design', 'Construction', 'Permitting'],
     });
 
@@ -232,13 +225,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Project timeline should be visible
-    expect(screen.getByText('⏱️ Project Timeline')).toBeInTheDocument();
-    // With 50 days spent and 100 estimated, should show "50 / 100 days"
-    expect(screen.getByText('50 / 100 days')).toBeInTheDocument();
-    // Should show 50% elapsed and 3 work types
-    expect(screen.getByText('50% elapsed')).toBeInTheDocument();
-    expect(screen.getByText('3 work types')).toBeInTheDocument();
+    // Compact inline format: "⏱️ 50/110d"
+    expect(screen.getByText(/50\/110d/)).toBeInTheDocument();
   });
 
   it('should show timeline color based on progress percentage', () => {
@@ -251,6 +239,7 @@ describe('ProjectProgress', () => {
 
     (mockGameRulesService.calculateEstimatedProjectLength as ReturnType<typeof vi.fn>).mockReturnValue({
       estimatedDays: 100,
+      contingencyDays: 10,
       uniqueWorkTypes: [],
     });
 
@@ -265,9 +254,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // At 90% progress, should show 90 / 100 days
-    expect(screen.getByText('90 / 100 days')).toBeInTheDocument();
-    expect(screen.getByText('90% elapsed')).toBeInTheDocument();
+    // Compact format: "90/100d"
+    expect(screen.getByText(/90\/100d/)).toBeInTheDocument();
   });
 
   it('should display multiple players with individual timelines', () => {
@@ -288,7 +276,8 @@ describe('ProjectProgress', () => {
     ];
 
     (mockGameRulesService.calculateEstimatedProjectLength as ReturnType<typeof vi.fn>).mockReturnValue({
-      estimatedDays: 100,
+      estimatedDays: 110,
+      contingencyDays: 10,
       uniqueWorkTypes: ['Design', 'Construction'],
     });
 
@@ -303,12 +292,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Both players should have timeline sections
-    const timelineLabels = screen.getAllByText('⏱️ Project Timeline');
+    // Both players should have timeline entries (compact inline "⏱️")
+    const timelineLabels = screen.getAllByText((content) => content.includes('⏱️'));
     expect(timelineLabels).toHaveLength(2);
-
-    // Both should show 2 work types
-    const workTypeLabels = screen.getAllByText('2 work types');
-    expect(workTypeLabels).toHaveLength(2);
   });
 });

@@ -203,7 +203,7 @@ export const createMockGameRulesService = (): any => ({
   calculateProjectScope: vi.fn().mockReturnValue(0),
 
   // Project timeline calculation methods
-  calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 100, uniqueWorkTypes: [] }),
+  calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 110, contingencyDays: 10, uniqueWorkTypes: [] }),
 
   // Condition evaluation methods
   evaluateCondition: vi.fn().mockReturnValue(true),

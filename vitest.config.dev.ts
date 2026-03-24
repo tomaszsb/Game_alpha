@@ -25,12 +25,8 @@ export default defineConfig({
     // Force-exit reporter prevents post-test hang from open handles
     pool: 'threads',
     fileParallelism: true,
-    poolOptions: {
-      threads: {
-        maxThreads: 4,
-        minThreads: 2,
-      }
-    },
+    maxWorkers: 4,
+    minWorkers: 2,
 
     // Standard timeouts
     testTimeout: 30000,       // 30 seconds

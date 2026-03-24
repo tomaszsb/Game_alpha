@@ -48,7 +48,7 @@ describe('CardCountNaN Regression Tests', () => {
       canPlayerTakeAction: vi.fn().mockReturnValue(true),
       checkWinCondition: vi.fn(),
       calculateProjectScope: vi.fn().mockReturnValue(0),
-      calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 100, uniqueWorkTypes: [] }),
+      calculateEstimatedProjectLength: vi.fn().mockReturnValue({ estimatedDays: 110, contingencyDays: 10, uniqueWorkTypes: [] }),
       calculatePlayerScore: vi.fn(),
       determineWinner: vi.fn(),
       checkTurnLimit: vi.fn(),
