@@ -245,6 +245,7 @@ export function PlayerList({
                     level="M"
                     includeMargin={false}
                     fgColor={player.color || colors.primary.main}
+                    style={{ width: '100%', height: 'auto', maxWidth: '100px' }}
                   />
                 </div>
                 <div style={{

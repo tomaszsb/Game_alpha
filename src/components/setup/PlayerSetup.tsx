@@ -476,6 +476,7 @@ export function PlayerSetup({
                           level="M"
                           includeMargin={false}
                           fgColor={player.color || colors.primary.main}
+                          style={{ width: '100%', height: 'auto', maxWidth: '120px' }}
                         />
                       </div>
                       <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem', fontWeight: 'bold' }}>

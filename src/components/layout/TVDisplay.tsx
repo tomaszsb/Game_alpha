@@ -257,15 +257,16 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                     )}
                   </div>
 
-                  {/* QR Code */}
+                  {/* QR Code — scales to fit sidebar */}
                   {!isConnected && (
                     <div style={styles.qrWrapper}>
                       <QRCodeSVG
                         value={playerURL}
-                        size={100}
+                        size={80}
                         level="M"
                         includeMargin={false}
                         fgColor={player.color || colors.primary.main}
+                        style={{ width: '100%', maxWidth: '80px', height: 'auto' }}
                       />
                     </div>
                   )}
@@ -324,7 +325,7 @@ const styles: { [key: string]: React.CSSProperties } = {
       "main main sidebar"
       "footer footer footer"
     `,
-    gridTemplateColumns: '1fr auto 280px',
+    gridTemplateColumns: '1fr auto 220px',
     gridTemplateRows: 'auto 1fr auto',
     height: '100vh',
     width: '100vw',
@@ -390,12 +391,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     gridArea: 'main',
     display: 'flex',
     flexDirection: 'column',
-    padding: '1rem',
+    padding: '0.5rem',
     overflow: 'hidden',
-    gap: '1rem',
+    gap: '0.25rem',
+    minHeight: 0,
   },
   boardSection: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: 'white',
     borderRadius: '12px',
     overflow: 'hidden',
@@ -444,10 +447,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     gridArea: 'sidebar',
     backgroundColor: 'white',
     borderLeft: `2px solid ${colors.secondary.border}`,
-    padding: '1rem',
+    padding: '0.5rem',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'auto',
+    overflow: 'hidden',
   },
   sidebarTitle: {
     fontSize: '1.25rem',
@@ -459,8 +462,10 @@ const styles: { [key: string]: React.CSSProperties } = {
   playerList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '1rem',
+    gap: '0.5rem',
     flex: 1,
+    overflow: 'hidden',
+    justifyContent: 'space-evenly',
   },
   waitingForPlayers: {
     display: 'flex',
@@ -477,12 +482,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     animation: 'pulse 1.5s ease-in-out infinite',
   },
   playerCard: {
-    padding: '0.75rem',
+    padding: '0.4rem',
     borderRadius: '8px',
     border: '2px solid',
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.5rem',
+    gap: '0.25rem',
+    flex: '0 1 auto',
+    minHeight: 0,
   },
   playerInfo: {
     display: 'flex',
