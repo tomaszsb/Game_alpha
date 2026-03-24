@@ -309,18 +309,18 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
   const containerStyle = {
     background: `linear-gradient(135deg, ${colors.secondary.bg}, ${colors.primary.light})`,
-    borderRadius: '12px',
-    padding: compact ? '8px' : '16px',
-    margin: compact ? '4px 0' : '16px 0',
+    borderRadius: '8px',
+    padding: compact ? '4px 6px' : '6px 10px',
+    margin: compact ? '2px 0' : '4px 0',
     border: `2px solid ${colors.primary.main}`,
-    boxShadow: '0 4px 16px rgba(33, 150, 243, 0.2)'
+    boxShadow: '0 2px 8px rgba(33, 150, 243, 0.15)'
   };
 
   const titleStyle = {
-    fontSize: '1rem',
+    fontSize: '0.75rem',
     fontWeight: 'bold' as const,
     color: colors.primary.text,
-    marginBottom: '12px',
+    marginBottom: '0',
     textAlign: 'center' as const,
     textTransform: 'uppercase' as const,
     letterSpacing: '1px'
@@ -328,9 +328,9 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
   const progressBarContainerStyle = {
     background: colors.secondary.light,
-    borderRadius: '8px',
-    height: compact ? '8px' : '12px',
-    marginBottom: compact ? '6px' : '12px',
+    borderRadius: '4px',
+    height: compact ? '5px' : '6px',
+    marginBottom: compact ? '2px' : '4px',
     overflow: 'hidden',
     position: 'relative' as const
   };
@@ -340,55 +340,55 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
     height: '100%',
     width: `${overallProgress.averageProgress}%`,
     transition: 'width 0.3s ease',
-    borderRadius: '8px'
+    borderRadius: '4px'
   };
 
   const phaseIndicatorsStyle = {
     display: 'flex',
     justifyContent: 'space-between',
-    marginBottom: compact ? '8px' : '16px',
-    padding: '0 8px'
+    marginBottom: compact ? '2px' : '4px',
+    padding: '0 4px'
   };
 
   const phaseIndicatorStyle = (phase: string, index: number) => ({
-    fontSize: compact ? '0.6rem' : '0.7rem',
+    fontSize: compact ? '0.5rem' : '0.55rem',
     fontWeight: 'bold' as const,
     color: overallProgress.averageProgress >= ((index + 1) / phases.length) * 100 ? colors.success.main : colors.secondary.main,
     textAlign: 'center' as const,
-    minWidth: compact ? '40px' : '60px'
+    minWidth: compact ? '30px' : '40px'
   });
 
   const playersGridStyle = {
     display: 'grid',
-    gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? '150px' : '200px'}, 1fr))`,
-    gap: compact ? '4px' : '8px',
-    marginTop: compact ? '4px' : '8px'
+    gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? '140px' : '180px'}, 1fr))`,
+    gap: compact ? '2px' : '4px',
+    marginTop: compact ? '2px' : '4px'
   };
 
   const playerItemStyle = {
     background: colors.white,
-    borderRadius: '8px',
-    padding: compact ? '4px 8px' : '8px 12px',
+    borderRadius: '6px',
+    padding: compact ? '3px 6px' : '4px 8px',
     border: `1px solid ${colors.secondary.border}`,
-    fontSize: compact ? '0.75rem' : '0.8rem'
+    fontSize: compact ? '0.65rem' : '0.7rem'
   };
 
   const playerNameStyle = {
     fontWeight: 'bold' as const,
     color: colors.secondary.dark,
-    marginBottom: '4px'
+    marginBottom: '1px'
   };
 
   const playerPhaseStyle = {
     color: colors.secondary.main,
-    fontSize: '0.75rem'
+    fontSize: '0.6rem'
   };
 
   const playerProgressBarStyle = {
     background: colors.secondary.light,
-    borderRadius: '4px',
-    height: '4px',
-    marginTop: '4px',
+    borderRadius: '3px',
+    height: '3px',
+    marginTop: '2px',
     overflow: 'hidden'
   };
 
@@ -401,19 +401,18 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
   return (
     <div style={containerStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div style={titleStyle}>
-            🚀 Project Progress Overview
+            🚀 Progress
           </div>
-          {/* Game Code Badge (Dec 29, 2025) */}
           {getCurrentGameId() && (
             <div style={{
-              padding: '4px 10px',
+              padding: '2px 6px',
               backgroundColor: colors.primary.main,
               color: 'white',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
+              borderRadius: '4px',
+              fontSize: '0.6rem',
               fontWeight: 'bold',
               fontFamily: 'monospace',
               letterSpacing: '1px'
@@ -423,96 +422,26 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           )}
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
-        {!hideButtons && <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={onOpenRulesModal} style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            backgroundColor: colors.purple.main,
-            color: colors.white,
-            border: `2px solid ${colors.white}`,
-            borderRadius: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            position: 'relative',
-            ...activeGlow(isRulesOpen)
-          }}>
-            <span>📋</span>
-            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Rules</span>
-            <ActiveDot show={isRulesOpen} />
-          </button>
-          <button onClick={onToggleGameLog} style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            backgroundColor: colors.primary.main,
-            color: colors.white,
-            border: `2px solid ${colors.white}`,
-            borderRadius: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            position: 'relative',
-            ...activeGlow(isGameLogOpen)
-          }}>
-            <span>📜</span>
-            <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Log</span>
-            <ActiveDot show={isGameLogOpen} />
-          </button>
-          {onOpenDisplaySettings && (
-            <button onClick={onOpenDisplaySettings} style={{
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              backgroundColor: colors.success.main,
-              color: colors.white,
-              border: `2px solid ${colors.white}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              position: 'relative',
-              ...activeGlow(isDisplaySettingsOpen)
+        {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {[
+            { onClick: onOpenRulesModal, icon: '📋', label: 'Rules', bg: colors.purple.main, active: isRulesOpen },
+            { onClick: onToggleGameLog, icon: '📜', label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
+            ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: '👁️', label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
+            ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: '📖', label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),
+          ].map((btn, i) => (
+            <button key={i} onClick={btn.onClick} style={{
+              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+              backgroundColor: btn.bg, color: colors.white,
+              border: `1px solid ${colors.white}`, borderRadius: '6px',
+              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+              alignItems: 'center', gap: '2px', position: 'relative',
+              ...activeGlow(btn.active)
             }}>
-              <span>👁️</span>
-              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>View</span>
-              <ActiveDot show={isDisplaySettingsOpen} />
+              <span>{btn.icon}</span>
+              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>{btn.label}</span>
+              <ActiveDot show={btn.active} />
             </button>
-          )}
-          {onToggleGlossary && (
-            <button onClick={onToggleGlossary} style={{
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              backgroundColor: '#ff9800',
-              color: colors.white,
-              border: `2px solid ${colors.white}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              position: 'relative',
-              ...activeGlow(isGlossaryOpen)
-            }}>
-              <span>📖</span>
-              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Glossary</span>
-              <ActiveDot show={isGlossaryOpen} />
-            </button>
-          )}
-          {/* TV Mode button - toggles TV display in same tab */}
+          ))}
           <button onClick={() => {
             const url = new URL(window.location.href);
             if (url.searchParams.get('mode') === 'tv') {
@@ -522,66 +451,41 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             }
             window.location.href = url.toString();
           }} style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            backgroundColor: '#9c27b0',
-            color: colors.white,
-            border: `2px solid ${colors.white}`,
-            borderRadius: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
+            padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+            backgroundColor: '#9c27b0', color: colors.white,
+            border: `1px solid ${colors.white}`, borderRadius: '6px',
+            cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+            alignItems: 'center', gap: '2px'
           }}>
             <span>📺</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>TV</span>
           </button>
           <button onClick={toggleFullscreen} style={{
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            backgroundColor: isFullscreen ? '#e65100' : '#1565c0',
-            color: colors.white,
-            border: `2px solid ${colors.white}`,
-            borderRadius: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
+            padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+            backgroundColor: isFullscreen ? '#e65100' : '#1565c0', color: colors.white,
+            border: `1px solid ${colors.white}`, borderRadius: '6px',
+            cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+            alignItems: 'center', gap: '2px'
           }}>
             <span>⛶</span>
             <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>{isFullscreen ? 'Exit' : 'Full'}</span>
           </button>
           {onToggleCollapsed && (
             <button onClick={onToggleCollapsed} style={{
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              backgroundColor: '#ff5722',
-              color: colors.white,
-              border: `2px solid ${colors.white}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
+              backgroundColor: '#ff5722', color: colors.white,
+              border: `1px solid ${colors.white}`, borderRadius: '6px',
+              cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex',
+              alignItems: 'center', gap: '2px'
             }}>
               <span>▲</span>
-              <span style={{ display: window.innerWidth >= 768 ? 'inline' : 'none' }}>Collapse</span>
             </button>
           )}
         </div>}
       </div>
 
       {/* Overall Progress Bar */}
-      <div style={{ ...progressBarContainerStyle, marginBottom: '12px' }}>
+      <div style={{ ...progressBarContainerStyle, marginBottom: '4px' }}>
         <div style={progressBarFillStyle}></div>
       </div>
 
@@ -597,19 +501,19 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
       {/* Goal Banner - hidden in compact mode */}
       {!compact && (
         <div style={{
-          padding: '10px 16px',
+          padding: '3px 8px',
           backgroundColor: colors.success.bg,
-          borderRadius: '8px',
-          border: `2px solid ${colors.success.main}`,
-          marginBottom: '16px',
+          borderRadius: '4px',
+          border: `1px solid ${colors.success.main}`,
+          marginBottom: '4px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '12px'
+          gap: '6px'
         }}>
-          <span style={{ fontSize: '1.2rem' }}>🎯</span>
+          <span style={{ fontSize: '0.7rem' }}>🎯</span>
           <span style={{
-            fontSize: '0.95rem',
+            fontSize: '0.65rem',
             fontWeight: 'bold',
             color: colors.text.success
           }}>
@@ -623,22 +527,21 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: compact ? '8px' : '16px',
-        marginBottom: compact ? '6px' : '16px',
-        fontSize: compact ? '0.75rem' : '0.85rem',
+        gap: compact ? '4px' : '6px',
+        marginBottom: compact ? '2px' : '4px',
+        fontSize: compact ? '0.6rem' : '0.65rem',
         color: colors.secondary.dark,
-        flexWrap: compact ? 'wrap' as const : undefined
+        flexWrap: 'wrap'
       }}>
         <span>
-          <strong>Overall Progress:</strong> {Math.round(overallProgress.averageProgress)}% | 
-          <strong> Leading Phase:</strong> {overallProgress.leadingPhase}
+          <strong>{Math.round(overallProgress.averageProgress)}%</strong> | {overallProgress.leadingPhase}
         </span>
         <div style={{
           background: colors.primary.light,
           color: colors.primary.text,
-          padding: '4px 8px',
-          borderRadius: '12px',
-          fontSize: '0.8rem',
+          padding: '1px 6px',
+          borderRadius: '8px',
+          fontSize: '0.6rem',
           fontWeight: 'bold'
         }}>
           {players.length} {players.length === 1 ? 'Player' : 'Players'}
@@ -647,12 +550,12 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
           <div style={{
             background: colors.success.bg,
             color: colors.text.success,
-            padding: '4px 8px',
-            borderRadius: '12px',
-            fontSize: '0.8rem',
+            padding: '1px 6px',
+            borderRadius: '8px',
+            fontSize: '0.6rem',
             fontWeight: 'bold'
           }}>
-            Current Turn: {currentPlayer.name}
+            ▶ {currentPlayer.name}
           </div>
         )}
         {currentPlayer && (() => {
@@ -663,16 +566,15 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               style={{
                 background: colors.warning.bg,
                 color: colors.warning.text,
-                padding: '4px 8px',
-                borderRadius: '12px',
-                fontSize: '0.8rem',
-                fontWeight: 'bold',
-                textAlign: 'center'
+                padding: '1px 6px',
+                borderRadius: '8px',
+                fontSize: '0.6rem',
+                fontWeight: 'bold'
               }}
               title={spaceTitle}
             >
-              📍 {currentPlayer.currentSpace} ({currentPlayer.visitType} Visit)
-              {spaceTitle && <span style={{ fontWeight: 'normal', fontSize: '0.75rem', display: 'block' }}>{spaceTitle}</span>}
+              📍 {currentPlayer.currentSpace}
+              {spaceTitle && <span style={{ fontWeight: 'normal', fontSize: '0.55rem' }}> — {spaceTitle}</span>}
             </div>
           );
         })()}
@@ -704,136 +606,23 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 <div style={playerProgressBarStyle}>
                   <div style={getPlayerProgressBarFill(playerProgress.progress)}></div>
                 </div>
-                <div style={{
-                  fontSize: '0.7rem',
-                  color: colors.secondary.main,
-                  marginTop: '2px'
-                }}>
-                  {Math.round(playerProgress.progress)}% complete
-                </div>
-
-                {/* Design Fee Cap Bar */}
-                <div style={{
-                  marginTop: compact ? '4px' : '8px',
-                  padding: compact ? '3px' : '6px',
-                  backgroundColor: '#fafafa',
-                  borderRadius: '4px',
-                  border: '1px solid #e0e0e0'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '4px',
-                    flexWrap: 'nowrap',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden'
-                  }}>
-                    <span style={{ fontSize: '0.6rem', color: '#666', fontWeight: 'bold' }}>
-                      📐 Design Fees
-                    </span>
-                    <span style={{
-                      fontSize: '0.6rem',
-                      color: designFeeColor,
-                      fontWeight: 'bold'
-                    }}>
-                      {designFeeRatio.toFixed(1)}%{'\u00A0'}/{'\u00A0'}20%
-                    </span>
-                  </div>
-                  <div style={{
-                    position: 'relative',
-                    height: '8px',
-                    backgroundColor: '#e0e0e0',
-                    borderRadius: '4px',
-                    overflow: 'visible'
-                  }}>
-                    {/* Design fee bar */}
-                    <div style={{
-                      width: `${Math.min(designFeeRatio * 5, 100)}%`, // Scale: 20% = 100% of bar
-                      height: '100%',
-                      backgroundColor: designFeeColor,
-                      borderRadius: '4px',
-                      transition: 'width 0.3s ease'
-                    }} />
-                    {/* 20% threshold marker */}
-                    <div style={{
-                      position: 'absolute',
-                      left: '100%', // 20% threshold = end of bar
-                      top: '-2px',
-                      height: '12px',
-                      width: '2px',
-                      backgroundColor: '#d32f2f',
-                      borderRadius: '1px'
-                    }} />
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginTop: '2px',
-                    fontSize: '0.6rem',
-                    color: '#999'
-                  }}>
-                    <span>${(designFees / 1000).toFixed(0)}k</span>
-                    <span>Cap: ${(projectScope * 0.2 / 1000).toFixed(0)}k</span>
+                {/* Design Fee + Timeline — compact inline bars */}
+                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
+                  <span style={{ whiteSpace: 'nowrap' }}>📐 <span style={{ color: designFeeColor, fontWeight: 'bold' }}>{designFeeRatio.toFixed(1)}%/20%</span></span>
+                  <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ width: `${Math.min(designFeeRatio * 5, 100)}%`, height: '100%', backgroundColor: designFeeColor, borderRadius: '2px' }} />
                   </div>
                 </div>
-
-                {/* Project Timeline Bar */}
                 {(() => {
                   const timeline = getPlayerTimeline(player);
                   if (!timeline) return null;
                   const timelineColor = timeline.progressPercent >= 100 ? '#f44336' :
                                         timeline.progressPercent >= 75 ? '#ff9800' : '#4caf50';
                   return (
-                    <div style={{
-                      marginTop: compact ? '4px' : '8px',
-                      padding: compact ? '3px' : '6px',
-                      backgroundColor: '#fafafa',
-                      borderRadius: '4px',
-                      border: '1px solid #e0e0e0'
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '4px'
-                      }}>
-                        <span style={{ fontSize: '0.65rem', color: '#666', fontWeight: 'bold' }}>
-                          ⏱️ Project Timeline
-                        </span>
-                        <span style={{
-                          fontSize: '0.65rem',
-                          color: timelineColor,
-                          fontWeight: 'bold'
-                        }}>
-                          {timeline.totalDays} / {timeline.estimatedDays} days
-                        </span>
-                      </div>
-                      <div style={{
-                        position: 'relative',
-                        height: '8px',
-                        backgroundColor: '#e0e0e0',
-                        borderRadius: '4px',
-                        overflow: 'hidden'
-                      }}>
-                        {/* Timeline progress bar */}
-                        <div style={{
-                          width: `${Math.min(timeline.progressPercent, 100)}%`,
-                          height: '100%',
-                          backgroundColor: timelineColor,
-                          borderRadius: '4px',
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        marginTop: '2px',
-                        fontSize: '0.6rem',
-                        color: '#999'
-                      }}>
-                        <span>{Math.round(timeline.progressPercent)}% elapsed</span>
-                        <span>{timeline.uniqueWorkTypes} work types</span>
+                    <div style={{ marginTop: '1px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
+                      <span style={{ whiteSpace: 'nowrap' }}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}/{timeline.estimatedDays}d</span></span>
+                      <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(timeline.progressPercent, 100)}%`, height: '100%', backgroundColor: timelineColor, borderRadius: '2px' }} />
                       </div>
                     </div>
                   );

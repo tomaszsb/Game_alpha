@@ -356,6 +356,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               return portraitSrc && npcInfo ? (
                 <div style={{
                   float: 'left',
+                  width: '56px',
                   marginRight: '10px',
                   marginBottom: '4px',
                   textAlign: 'center',
@@ -364,19 +365,25 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                     src={portraitSrc}
                     alt={npcInfo.name}
                     style={{
-                      width: '52px',
-                      height: '52px',
+                      width: '40px',
+                      height: '40px',
                       borderRadius: '50%',
                       objectFit: 'cover',
                       border: `2px solid ${npcInfo.color}`,
                       display: 'block',
+                      margin: '0 auto',
                     }}
                   />
                   <span style={{
-                    fontSize: '10px',
+                    fontSize: '9px',
                     fontStyle: 'normal',
                     fontWeight: 600,
                     color: npcInfo.color,
+                    lineHeight: 1.1,
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}>{npcInfo.name} says:</span>
                 </div>
               ) : null;

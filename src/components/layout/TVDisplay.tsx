@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
-import { GameBoard } from '../game/GameBoard';
+import { BoardV3 } from '../board/BoardV3';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
@@ -160,7 +160,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
 
       {/* Main content area */}
       <main style={styles.main}>
-        {/* Full Project Progress panel - reuses the same component as main game view */}
+        {/* Collapsed progress bar — one-line summary so the board gets the space */}
         {gamePhase === 'PLAY' && (
           <ProjectProgress
             players={players}
@@ -171,13 +171,17 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             onOpenRulesModal={() => {}}
             hideButtons
             compact
+            collapsed
           />
         )}
 
         {/* Game board - takes most of the screen */}
         <div style={styles.boardSection}>
           {gamePhase === 'PLAY' ? (
-            <GameBoard disableZoom />
+            <BoardV3
+              currentPlayerId={currentPlayerId}
+              players={players}
+            />
           ) : gamePhase === 'SETUP' ? (
             <div style={styles.setupMessage}>
               <h2 style={styles.setupTitle}>Scan to Join!</h2>

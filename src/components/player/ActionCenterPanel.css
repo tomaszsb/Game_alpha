@@ -74,6 +74,7 @@
   border: 2px solid #4caf50;
   font-weight: 500;
   margin-bottom: 6px;
+  overflow: auto;
 }
 
 .action-center__story--truncated {
