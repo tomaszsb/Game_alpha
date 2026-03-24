@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ProjectLedger data model rework (March 24, 2026)
+- **New Scope section** at top of Project Uses — shows W-card names and `cost` values (project value being built), blue color theme
+- **Contractor section reworked** — budget = sum of `work_cost` (base construction cost), actual = `expenditures.construction` (real costs after dice rolls), shows quality/multiplier when contractor is hired
+- **Design fees separated** — Architectural and Engineering line items from `costHistory` shown independently (fallback "Design Fees" when no detailed history)
+- **Deficit indicator** — red "Funding Gap" bar when total commitments (scope + design + regulatory + contingency) exceed total funding sources. Shows in both ledger and variance views
+- **Category reorder**: Scope → Design → Regulatory → Contractor → Contingency
+- **CSS additions**: `.cat-blue` color class, `.ledger-deficit-bar` styles
+
 ### Bug Fix: REG-DOB-TYPE-SELECT movement (March 23, 2026)
 - Fixed: Players were permanently stuck at REG-DOB-TYPE-SELECT on subsequent visits — `movement_type` was `none` with no destinations
 - **Root cause:** SOURCE_FILES/Spaces.csv had placeholder text `"Option from first visit"` instead of actual space IDs (`REG-DOB-PLAN-EXAM`, `REG-DOB-PROF-CERT`) in the subsequent visit row

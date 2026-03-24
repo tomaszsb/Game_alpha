@@ -2,6 +2,18 @@
 
 ---
 
+## v2.34.2 - Pro Ledger Improvements (March 24, 2026)
+
+**Release Date:** March 24, 2026
+**Version:** 2.34.2
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### Smarter financial tracking
+The Pro Ledger now properly separates what you're building (Project Scope) from what it costs to build it (Contractor). A new **Project Scope** section at the top shows your W-cards and their values. The **Contractor** section now shows actual construction costs from dice rolls, including your contractor quality and multiplier. Architectural and Engineering fees are shown separately under Design. A red **Funding Gap** warning appears when your project commitments exceed your available funding.
+
+---
+
 ## v2.34.1 - DOB Path Fix (March 23, 2026)
 
 **Release Date:** March 23, 2026

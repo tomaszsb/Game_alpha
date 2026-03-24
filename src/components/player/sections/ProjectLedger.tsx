@@ -47,16 +47,33 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
     const ex = player.expenditures || { design: 0, fees: 0, construction: 0 };
     const projectScope = gameServices.gameRulesService.calculateProjectScope(playerId);
 
-    // Budget assumptions: design is ~20% of scope, regulatory ~5%, contingency 10%
-    const designBudget = Math.round(projectScope * 0.20);
-    const regulatoryBudget = Math.round(projectScope * 0.05);
-    const constructionBudget = projectScope;
-    const totalUseBudget = designBudget + regulatoryBudget + constructionBudget;
+    // W-cards for scope line items (cost = project value, work_cost = construction base)
+    const hand = player.hand || [];
+    const activeCards = (player.activeCards || []).map(ac => ac.cardId);
+    const allCardIds = [...hand, ...activeCards];
+    const wCards = allCardIds
+      .map(id => gameServices.dataService.getCardById(id))
+      .filter(c => c && c.card_type === 'W');
+
+    // Scope = sum of W-card cost values (what we're building)
+    const totalScope = wCards.reduce((sum, c) => sum + parseFloat(String(c!.cost || 0)), 0);
+
+    // Construction budget = sum of W-card work_cost values (base construction cost before dice)
+    const constructionBaseCost = wCards.reduce((sum, c) => sum + parseFloat(String(c!.work_cost || 0)), 0);
+
+    // Budget assumptions: design ~20% of scope, regulatory ~5%, contingency 10%
+    const designBudget = Math.round(totalScope * 0.20);
+    const regulatoryBudget = Math.round(totalScope * 0.05);
+    const totalUseBudget = designBudget + regulatoryBudget + constructionBaseCost;
     const contingencyBudget = Math.round(totalUseBudget * 0.10);
 
     const totalSources = ms.ownerFunding + ms.bankLoans + ms.investmentDeals + ms.other;
     const totalSpent = ex.design + ex.fees + ex.construction;
     const cashOnHand = player.money;
+
+    // Deficit: total commitments vs available funds
+    const totalCommitments = totalScope + designBudget + regulatoryBudget + contingencyBudget;
+    const deficit = totalCommitments - totalSources;
 
     // Contingency: any overrun vs budget gets absorbed here
     const designOverrun = Math.max(0, ex.design - designBudget);
@@ -64,15 +81,13 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
     const contingencyUsed = designOverrun + regulatoryOverrun;
 
     // Design ratio
-    const designRatio = projectScope > 0 ? (ex.design / projectScope) * 100 : 0;
+    const designRatio = totalScope > 0 ? (ex.design / totalScope) * 100 : 0;
 
-    // W-cards for contractor line items
-    const hand = player.hand || [];
-    const activeCards = (player.activeCards || []).map(ac => ac.cardId);
-    const allCardIds = [...hand, ...activeCards];
-    const wCards = allCardIds
-      .map(id => gameServices.dataService.getCardById(id))
-      .filter(c => c && c.card_type === 'W');
+    // Contractor info
+    const contractor = player.contractor;
+    const qualityLabel = contractor ? { HIGH: 'High', MED: 'Medium', LOW: 'Low' }[contractor.quality] : null;
+    const qualityCoeff = contractor ? { HIGH: 1.5, MED: 1.0, LOW: 0.6 }[contractor.quality] : 1.0;
+    const multiplierFactor = contractor ? contractor.multiplier * 0.1 : 0;
 
     // Funding breakdown from fundingHistory
     const fundingHistory = player.fundingHistory || [];
@@ -94,7 +109,7 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
         id: 'owner-equity',
         icon: '👤',
         name: 'Owner Equity',
-        budget: ms.ownerFunding, // Target = actual for sources (they set their own target)
+        budget: ms.ownerFunding,
         actual: ms.ownerFunding,
         colorClass: 'cat-teal',
         items: ownerFundingItems.length > 0
@@ -129,8 +144,23 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
       });
     }
 
-    // Use categories
+    // Use categories — reordered: Scope → Design → Regulatory → Contractor → Contingency
     const uses: CategoryData[] = [
+      // SCOPE: What we're building (W-card face values)
+      {
+        id: 'scope',
+        icon: '🏢',
+        name: 'Project Scope',
+        budget: totalScope,
+        actual: totalScope, // Scope is committed once cards are drawn
+        colorClass: 'cat-blue',
+        items: wCards.map(c => ({
+          name: c!.card_name || c!.card_id,
+          budget: parseFloat(String(c!.cost || 0)),
+          actual: parseFloat(String(c!.cost || 0)),
+        })),
+      },
+      // DESIGN: Architectural + Engineering fees
       {
         id: 'design',
         icon: '📐',
@@ -141,12 +171,17 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
         items: [
           ...(archCosts.length > 0
             ? archCosts.map(c => ({ name: c.description || 'Architectural', budget: 0, actual: c.amount }))
-            : ex.design > 0 ? [{ name: 'Architectural & Engineering', budget: designBudget, actual: ex.design }] : []),
+            : []),
           ...(engCosts.length > 0
             ? engCosts.map(c => ({ name: c.description || 'Engineering', budget: 0, actual: c.amount }))
             : []),
+          // Fallback if no detailed cost history but design spending exists
+          ...(archCosts.length === 0 && engCosts.length === 0 && ex.design > 0
+            ? [{ name: 'Design Fees', budget: designBudget, actual: ex.design }]
+            : []),
         ],
       },
+      // REGULATORY
       {
         id: 'regulatory',
         icon: '📋',
@@ -160,19 +195,21 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
           ...investFeeCosts.map(c => ({ name: c.description || 'Investment Fee', budget: 0, actual: c.amount })),
         ],
       },
+      // CONTRACTOR: Actual construction costs from dice rolls
       {
         id: 'contractor',
         icon: '🏗️',
-        name: 'Contractor',
-        budget: constructionBudget,
+        name: contractor ? `Contractor (${qualityLabel})` : 'Contractor',
+        budget: constructionBaseCost,
         actual: ex.construction,
         colorClass: 'cat-purple',
-        items: wCards.map(c => ({
-          name: c!.card_name || c!.card_id,
-          budget: parseFloat(String(c!.cost || 0)),
-          actual: parseFloat(String(c!.work_cost || 0)),
-        })),
+        items: contractor ? [
+          { name: `Quality: ${qualityLabel}`, budget: 0, actual: 0 },
+          { name: `Multiplier: ${contractor.multiplier}`, budget: 0, actual: 0 },
+          ...(ex.construction > 0 ? [{ name: 'Construction to date', budget: constructionBaseCost, actual: ex.construction }] : []),
+        ] : undefined,
       },
+      // CONTINGENCY
       {
         id: 'contingency',
         icon: '🛡️',
@@ -184,7 +221,7 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
     ];
 
     // ROI
-    const projectedValue = projectScope + ex.design; // Built value
+    const projectedValue = totalScope + ex.design;
     const roi = ms.ownerFunding > 0 ? projectedValue / ms.ownerFunding : 0;
 
     return {
@@ -196,12 +233,15 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
       contingencyBudget,
       contingencyUsed,
       designRatio,
-      projectScope,
+      projectScope: totalScope,
       projectedValue,
       roi,
       designBudget,
       regulatoryBudget,
-      constructionBudget,
+      constructionBaseCost,
+      deficit,
+      totalCommitments,
+      contractor,
     };
   }, [player, playerId, gameServices]);
 
@@ -313,6 +353,15 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
               {data.designRatio.toFixed(1)}%
             </span>
           </div>
+
+          {/* Deficit indicator */}
+          {data.deficit > 0 && (
+            <div className="ledger-deficit-bar">
+              <span className="ledger-deficit-icon">⚠️</span>
+              <span className="ledger-deficit-label">Funding Gap</span>
+              <span className="ledger-deficit-value">{fmt(data.deficit)}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -337,19 +386,9 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
           </div>
 
           <div className="ledger-variance-rows">
+            {/* Design variance (index 1) */}
             <div className="ledger-variance-row" style={{ background: '#f0faf0' }}>
               <span>📐 Design</span>
-              <span></span>
-              <span className={data.uses[0].actual <= data.uses[0].budget ? 'green' : 'red'}>
-                {data.uses[0].actual <= data.uses[0].budget
-                  ? `${fmt(data.uses[0].budget - data.uses[0].actual)} under ✓`
-                  : `(${fmt(data.uses[0].actual - data.uses[0].budget)}) over`}
-              </span>
-            </div>
-            <div className="ledger-variance-row" style={{
-              background: data.uses[1].actual > data.uses[1].budget ? '#fff5f5' : '#f0faf0'
-            }}>
-              <span>📋 Regulatory</span>
               <span></span>
               <span className={data.uses[1].actual <= data.uses[1].budget ? 'green' : 'red'}>
                 {data.uses[1].actual <= data.uses[1].budget
@@ -357,15 +396,29 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
                   : `(${fmt(data.uses[1].actual - data.uses[1].budget)}) over`}
               </span>
             </div>
+            {/* Regulatory variance (index 2) */}
+            <div className="ledger-variance-row" style={{
+              background: data.uses[2].actual > data.uses[2].budget ? '#fff5f5' : '#f0faf0'
+            }}>
+              <span>📋 Regulatory</span>
+              <span></span>
+              <span className={data.uses[2].actual <= data.uses[2].budget ? 'green' : 'red'}>
+                {data.uses[2].actual <= data.uses[2].budget
+                  ? `${fmt(data.uses[2].budget - data.uses[2].actual)} under ✓`
+                  : `(${fmt(data.uses[2].actual - data.uses[2].budget)}) over`}
+              </span>
+            </div>
+            {/* Contractor variance (index 3) */}
             <div className="ledger-variance-row">
               <span>🏗️ Contractor</span>
               <span></span>
               <span style={{ color: '#7f8c8d' }}>
-                {data.uses[2].actual < data.uses[2].budget
-                  ? `${fmt(data.uses[2].budget - data.uses[2].actual)} remaining`
-                  : 'Complete ✓'}
+                {data.uses[3].actual < data.uses[3].budget
+                  ? `${fmt(data.uses[3].budget - data.uses[3].actual)} remaining`
+                  : data.uses[3].actual > 0 ? `${fmt(data.uses[3].actual)} spent` : 'Not started'}
               </span>
             </div>
+            {/* Contingency/Buffer */}
             <div className="ledger-variance-row" style={{
               background: data.contingencyUsed > 0 ? '#fef5f5' : '#f5fff5'
             }}>
@@ -377,6 +430,14 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
                   : `+${fmt(data.contingencyBudget)} saved ✓`}
               </span>
             </div>
+            {/* Deficit row */}
+            {data.deficit > 0 && (
+              <div className="ledger-variance-row" style={{ background: '#fff5f5' }}>
+                <span>⚠️ Funding Gap</span>
+                <span></span>
+                <span className="red">{fmt(data.deficit)} short</span>
+              </div>
+            )}
           </div>
 
           {/* Health summary */}

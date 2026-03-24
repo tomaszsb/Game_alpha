@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: March 23, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.34.1)
-**Current Version**: 2.34.1
+**Last Updated**: March 24, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.34.2)
+**Current Version**: 2.34.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### ProjectLedger Data Model Rework (March 24, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.34.2
+- **Changes**: New Scope section (W-card values), contractor costs from dice rolls (not card face values), separated architectural/engineering fees, deficit indicator when commitments exceed funding, reordered categories (Scope → Design → Regulatory → Contractor → Contingency)
 
 ### Bug Fix: REG-DOB-TYPE-SELECT (March 23, 2026) ✅
 - **Status**: ✅ Complete

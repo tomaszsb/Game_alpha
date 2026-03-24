@@ -315,7 +315,7 @@ interface ActionCenterPanelProps {
 **Layout zones:**
 - **Zone 1:** NPC portrait, story, notification, PM action, outcome
 - **Zone 2:** Action buttons (dice roll, manual effects, movement choice), turn controls (End Turn / Negotiate)
-- **Zone 3:** Reference tabs (money, time, expeditors, events, scope, log)
+- **Zone 3:** Reference tabs (ledger, expeditors, events, time, log)
 
 **Key behaviors:**
 - Negotiate button shows on spaces with `can_negotiate=true` even with 0 completed actions
@@ -335,6 +335,28 @@ interface CurrentCardSectionProps {
   playerId: string;
 }
 ```
+
+#### ProjectLedger
+**Location:** `src/components/player/sections/ProjectLedger.tsx`
+
+Pro Ledger replacing the old Money + Scope tabs. Two sub-views: **Pro Ledger** (Capital Stack sources + Project Uses) and **Variance** (ROI, over/under analysis, health summary).
+
+```typescript
+interface ProjectLedgerProps {
+  gameServices: IServiceContainer;
+  playerId: string;
+  renderMode?: 'accordion' | 'content';
+}
+```
+
+**Project Uses categories** (in order): Scope (W-card values), Design/Prof. (arch + eng fees), Regulatory, Contractor (dice-roll costs), Contingency.
+
+**Data sources:**
+- Scope: W-card `cost` fields (project value)
+- Contractor budget: W-card `work_cost` fields (base construction cost)
+- Contractor actual: `expenditures.construction` (after dice rolls)
+- Design: `costHistory` entries with `architectural` / `engineering` categories
+- Deficit: total commitments vs total funding sources
 
 #### FinancesSection
 **Location:** `src/components/player/sections/FinancesSection.tsx`

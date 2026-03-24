@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** March 23, 2026
+**Last Updated:** March 24, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.34.1
+**Current Version:** 2.34.2
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ ProjectLedger data model rework: new Scope section, contractor costs from dice rolls, separated arch/eng fees, deficit indicator, reordered categories (Mar 24, 2026)
 - ✅ Code Audit Sprint: dead code cleanup (37 files), TurnService decomposition (2 new handlers), structured CSV columns (8 new CARDS_EXPANDED columns replacing regex parsing) (Mar 23, 2026)
 - ✅ Space Data Editor: card button labels (5 new CSV columns), title in header, path in movement section, negotiate-based preview, 27 regression tests (Mar 18, 2026)
 - ✅ BoardV3 production migration: pre-allocated 190px slots, SVG arrow system with obstacle avoidance, data-driven path from CSV, 83 unit tests, replaces ProgressBarMap (Mar 16, 2026)
