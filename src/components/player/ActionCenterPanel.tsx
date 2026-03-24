@@ -333,11 +333,22 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     }
   }
 
-  const tabConfig: { key: ReferenceTab; icon: string; label: string; hasBadge: boolean }[] = [
-    { key: 'ledger', icon: '📊', label: 'Ledger', hasBadge: hasMoneyActions },
+  // Ledger deficit/surplus for tab coloring
+  const ms = player.moneySources || { ownerFunding: 0, bankLoans: 0, investmentDeals: 0, other: 0 };
+  const totalFunding = ms.ownerFunding + ms.bankLoans + ms.investmentDeals + ms.other;
+  const wCards = useMemo(() => {
+    const allCardIds = [...(player.hand || []), ...(player.activeCards || []).map(ac => ac.cardId)];
+    return allCardIds.map(id => gameServices.dataService.getCardById(id)).filter(c => c && c.card_type === 'W');
+  }, [player.hand, player.activeCards, gameServices.dataService]);
+  const totalScope = wCards.reduce((sum, c) => sum + parseFloat(String(c!.cost || 0)), 0);
+  const hasFundingGap = totalScope > 0 && totalFunding < totalScope;
+  const hasFundingSurplus = totalFunding > totalScope && totalScope > 0;
+
+  const tabConfig: { key: ReferenceTab; icon: string; label: string; hasBadge: boolean; color?: string }[] = [
+    { key: 'ledger', icon: '📊', label: 'Ledger', hasBadge: hasMoneyActions, color: hasFundingGap ? '#e74c3c' : hasFundingSurplus ? '#27ae60' : undefined },
     { key: 'expeditors', icon: '⚡', label: 'Expeditors', hasBadge: hasECardActions || playableECards.length > 0 },
-    { key: 'events', icon: '🎲', label: 'Events', hasBadge: hasLCardActions },
-    { key: 'time', icon: '⏱', label: 'Time', hasBadge: false },
+    { key: 'events', icon: '🎲', label: 'Life Events', hasBadge: hasLCardActions },
+    { key: 'time', icon: '⏱', label: `${player.timeSpent || 0}d`, hasBadge: false },
     { key: 'log', icon: '📜', label: 'Log', hasBadge: false },
   ];
 
@@ -648,6 +659,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               key={tab.key}
               className={`action-center__tab ${activeTab === tab.key ? 'action-center__tab--active' : ''}`}
               onClick={() => setActiveTab(activeTab === tab.key ? null : tab.key)}
+              style={tab.color ? { color: tab.color } : undefined}
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
