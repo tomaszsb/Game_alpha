@@ -514,6 +514,7 @@ export interface IGameRulesService {
     estimatedDays: number;
     basePathDays: number;
     workTypeDays: number;
+    contingencyDays: number;
     uniqueWorkTypes: string[];
   };
 

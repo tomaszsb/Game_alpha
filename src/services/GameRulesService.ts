@@ -578,16 +578,19 @@ export class GameRulesService implements IGameRulesService {
     estimatedDays: number;
     basePathDays: number;
     workTypeDays: number;
+    contingencyDays: number;
     uniqueWorkTypes: string[];
   } {
     const BASE_PATH_DAYS = 300; // Minimum project path time estimate
     const DAYS_PER_WORK_TYPE = 100; // Additional days per work type
+    const CONTINGENCY_RATE = 0.10; // 10% contingency for unexpected issues (life events)
 
     try {
       const player = this.stateService.getPlayer(playerId);
       if (!player) {
         console.error(`Player ${playerId} not found when calculating project length`);
-        return { estimatedDays: BASE_PATH_DAYS, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, uniqueWorkTypes: [] };
+        const contingency = Math.round(BASE_PATH_DAYS * CONTINGENCY_RATE);
+        return { estimatedDays: BASE_PATH_DAYS + contingency, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, contingencyDays: contingency, uniqueWorkTypes: [] };
       }
 
       // Get all W cards for this player from BOTH hand and activeCards
@@ -610,18 +613,21 @@ export class GameRulesService implements IGameRulesService {
 
       const uniqueWorkTypes = Array.from(workTypes);
       const workTypeDays = uniqueWorkTypes.length * DAYS_PER_WORK_TYPE;
-      const estimatedDays = BASE_PATH_DAYS + workTypeDays;
-
+      const subtotal = BASE_PATH_DAYS + workTypeDays;
+      const contingencyDays = Math.round(subtotal * CONTINGENCY_RATE);
+      const estimatedDays = subtotal + contingencyDays;
 
       return {
         estimatedDays,
         basePathDays: BASE_PATH_DAYS,
         workTypeDays,
+        contingencyDays,
         uniqueWorkTypes
       };
     } catch (error) {
       console.error(`Error calculating project length for player ${playerId}:`, error);
-      return { estimatedDays: BASE_PATH_DAYS, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, uniqueWorkTypes: [] };
+      const contingency = Math.round(BASE_PATH_DAYS * CONTINGENCY_RATE);
+      return { estimatedDays: BASE_PATH_DAYS + contingency, basePathDays: BASE_PATH_DAYS, workTypeDays: 0, contingencyDays: contingency, uniqueWorkTypes: [] };
     }
   }
 

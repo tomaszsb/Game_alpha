@@ -111,6 +111,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
       return {
         totalDays,
         estimatedDays: projectLengthInfo.estimatedDays,
+        contingencyDays: projectLengthInfo.contingencyDays,
         progressPercent,
         uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
       };
@@ -618,11 +619,17 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                   if (!timeline) return null;
                   const timelineColor = timeline.progressPercent >= 100 ? '#f44336' :
                                         timeline.progressPercent >= 75 ? '#ff9800' : '#4caf50';
+                  // Show contingency boundary on the bar (contingency is last 10% of estimated)
+                  const contingencyStart = timeline.estimatedDays > 0
+                    ? ((timeline.estimatedDays - timeline.contingencyDays) / timeline.estimatedDays) * 100
+                    : 90;
                   return (
                     <div style={{ marginTop: '1px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
-                      <span style={{ whiteSpace: 'nowrap' }}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}/{timeline.estimatedDays}d</span></span>
-                      <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
+                      <span style={{ whiteSpace: 'nowrap' }} title={`Base + Work Types + 10% Contingency`}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}/{timeline.estimatedDays}d</span></span>
+                      <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                         <div style={{ width: `${Math.min(timeline.progressPercent, 100)}%`, height: '100%', backgroundColor: timelineColor, borderRadius: '2px' }} />
+                        {/* Contingency boundary marker */}
+                        <div style={{ position: 'absolute', left: `${contingencyStart}%`, top: 0, width: '1px', height: '100%', backgroundColor: '#ff9800' }} title="Contingency (10%)" />
                       </div>
                     </div>
                   );
