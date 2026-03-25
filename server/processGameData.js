@@ -324,12 +324,30 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         }
       }
 
+      // Parse card action from value text (e.g., "Return 1", "Replace 1", "Give 1", "Draw 1")
+      let cardAction = `draw_${cardLetter}`;
+      let cardCount = cardValue;
+      const actionMatch = cardValue.match(/^(Return|Replace|Give|Draw)\s+(\d+)/i);
+      if (actionMatch) {
+        const verb = actionMatch[1].toLowerCase();
+        cardCount = actionMatch[2];
+        if (verb === 'return') {
+          cardAction = `return_${cardLetter.toLowerCase()}`;
+        } else if (verb === 'replace') {
+          cardAction = `replace_${cardLetter.toLowerCase()}`;
+        } else if (verb === 'give') {
+          cardAction = `give_${cardLetter.toLowerCase()}`;
+        } else {
+          cardAction = `draw_${cardLetter}`;
+        }
+      }
+
       effects.push({
         space_name: spaceName,
         visit_type: visitType,
         effect_type: 'cards',
-        effect_action: `draw_${cardLetter}`,
-        effect_value: cardValue,
+        effect_action: cardAction,
+        effect_value: cardCount,
         condition: condition,
         description: description,
         trigger_type: triggerType

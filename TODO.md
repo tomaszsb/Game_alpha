@@ -2,7 +2,7 @@
 
 **Last Updated:** March 25, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.34.3
+**Current Version:** 2.34.4
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Fix card return/replace/give modals — processGameData mapped all card actions to draw_E, 11 spaces affected, 7 new pipeline tests (Mar 25, 2026)
 - ✅ Glossary highlighting fix (TextWithTerms race condition), Quick Stats row removed, End Turn subtitle black text, 5 new tests + 20 fixed tests (Mar 25, 2026)
 - ✅ ProjectLedger data model rework: new Scope section, contractor costs from dice rolls, separated arch/eng fees, deficit indicator, reordered categories (Mar 24, 2026)
 - ✅ Code Audit Sprint: dead code cleanup (37 files), TurnService decomposition (2 new handlers), structured CSV columns (8 new CARDS_EXPANDED columns replacing regex parsing) (Mar 23, 2026)

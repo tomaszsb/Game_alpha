@@ -2,6 +2,18 @@
 
 ---
 
+## v2.34.4 - Card Action Modals Restored (March 25, 2026)
+
+**Release Date:** March 25, 2026
+**Version:** 2.34.4
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixed: Return, Replace, and Give card buttons now show selection modal
+When you land on a space that asks you to return or replace an Expeditor card, clicking the button now correctly opens a card selection modal so you can choose which card to return or swap. Previously, these buttons were silently drawing a new card instead.
+
+---
+
 ## v2.34.3 - Glossary Fix & Cleaner Layout (March 25, 2026)
 
 **Release Date:** March 25, 2026

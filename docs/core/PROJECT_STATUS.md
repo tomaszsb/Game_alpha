@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 25, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.34.3)
-**Current Version**: 2.34.3
+**Current Phase**: Pre-Beta — Editor Hardening (v2.34.4)
+**Current Version**: 2.34.4
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Card Action Modals Restored (March 25, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.34.4
+- **Changes**: Fixed processGameData.js mapping all card column values to draw_E — return/replace/give verbs now correctly parsed. 11 spaces fixed, 7 new pipeline tests
 
 ### Glossary Fix & UI Cleanup (March 25, 2026) ✅
 - **Status**: ✅ Complete

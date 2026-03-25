@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix card return/replace/give modals — data pipeline bug (March 25, 2026)
+- **Bug fix: processGameData.js hardcoded all card effects to `draw_X`** — "Return 1", "Replace 1", and "Give 1" in SOURCE_FILES e_card column were all mapped to `draw_E` instead of `return_e`, `replace_e`, `give_e`. This broke the card selection modal for 11 spaces (ARCH-FEE-REVIEW, PM-DECISION-CHECK, CON-ISSUES, etc.)
+- **Root cause**: Line 331 in `processGameData.js` used `effect_action: draw_${cardLetter}` for every card column value regardless of the verb prefix
+- **Fix**: Parse verb prefix (Return/Replace/Give/Draw) from card value to generate correct `effect_action`, and extract numeric count as `effect_value`
+- **Regenerated CLEAN_FILES**: `SPACE_EFFECTS.csv` — 11 rows corrected from `draw_E` to `return_e`/`replace_e`
+- **New test**: `tests/server/processGameData.test.ts` — 7 tests covering action parsing, numeric extraction, L card dice conditions, and regression test against real SOURCE_FILES
+
 ### Glossary highlighting fix & UI cleanup (March 25, 2026)
 - **Bug fix: TextWithTerms not highlighting glossary terms** — `useMemo` only depended on `text`, not on whether terms had loaded. Added `useDictionaryContext().terms` as a dependency so component re-renders after async term loading completes
 - **New test**: `tests/dictionary/TextWithTerms.test.tsx` — 5 tests covering term highlighting after async load, alias matches, case-insensitive matching, click callbacks
