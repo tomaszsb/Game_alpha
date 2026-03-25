@@ -42,6 +42,17 @@ export class CardEffectService implements ICardEffectService {
     private readonly choiceService: IChoiceService
   ) {}
 
+  private getTypeName(cardType: string): string {
+    switch (cardType) {
+      case 'W': return 'Work';
+      case 'B': return 'Bank';
+      case 'E': return 'Expeditor';
+      case 'L': return 'Life Events';
+      case 'I': return 'Investment';
+      default: return cardType;
+    }
+  }
+
   /**
    * Execute a card effect from a space
    *
@@ -208,14 +219,14 @@ export class CardEffectService implements ICardEffectService {
         const cardData = this.dataService.getCardById(cardId);
         return {
           id: cardId,
-          label: cardData ? cardData.card_name : `${cardType} Card ${cardId}`
+          label: cardData ? cardData.card_name : `${cardType} ${cardId}`
         };
       });
 
       const selectedCardId = await this.choiceService.createChoice(
         playerId,
         'CARD_REPLACEMENT',
-        `Choose ${replaceCount} ${cardType} card${replaceCount !== 1 ? 's' : ''} to replace:`,
+        `Choose ${replaceCount} ${this.getTypeName(cardType)} to replace:`,
         options,
         { newCardType: cardType, replaceCount }
       );
@@ -275,14 +286,14 @@ export class CardEffectService implements ICardEffectService {
             const cardData = this.dataService.getCardById(cardId);
             return {
               id: cardId,
-              label: cardData ? cardData.card_name : `${cardType} Card ${cardId}`
+              label: cardData ? cardData.card_name : `${cardType} ${cardId}`
             };
           });
 
           const selectedCardId = await this.choiceService.createChoice(
             playerId,
             'CARD_SELECTION',
-            `Select ${cardType} card to return (${i + 1} of ${returnCount}):`,
+            `Select ${this.getTypeName(cardType)} to return (${i + 1} of ${returnCount}):`,
             options
           );
 
@@ -351,14 +362,14 @@ export class CardEffectService implements ICardEffectService {
         const cardData = this.dataService.getCardById(cardId);
         return {
           id: cardId,
-          label: cardData ? cardData.card_name : `${cardType} Card ${cardId}`
+          label: cardData ? cardData.card_name : `${cardType} ${cardId}`
         };
       });
 
       const selectedCardId = await this.choiceService.createChoice(
         playerId,
         'CARD_GIVE',
-        `Select ${cardType} card to give to ${targetPlayer.name}:`,
+        `Select ${this.getTypeName(cardType)} to give to ${targetPlayer.name}:`,
         options,
         { targetPlayerId: targetPlayer.id, targetPlayerName: targetPlayer.name }
       );
@@ -420,7 +431,7 @@ export class CardEffectService implements ICardEffectService {
         const cardData = this.dataService.getCardById(cardId);
         return {
           id: cardId,
-          label: cardData ? cardData.card_name : `E Card ${cardId}`
+          label: cardData ? cardData.card_name : `Expeditor ${cardId}`
         };
       });
 
@@ -428,7 +439,7 @@ export class CardEffectService implements ICardEffectService {
       const selectedCardId = await this.choiceService.createChoice(
         playerId,
         'CARD_GIVE',
-        `Select E card to give to the player on your ${directionText} (${targetPlayer.name}):`,
+        `Select Expeditor to reassign to ${targetPlayer.name} (on your ${directionText}):`,
         options,
         { targetPlayerId: targetPlayer.id, targetPlayerName: targetPlayer.name }
       );

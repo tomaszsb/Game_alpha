@@ -106,7 +106,7 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     } else if (actionLower.startsWith('replace_')) {
       text = `Replace ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     } else if (actionLower.startsWith('give_')) {
-      text = `Give ${getCardTypeName(cardType)} to opponent`;
+      text = `Give ${getCardTypeName(cardType)} to other player`;
     } else if (actionLower.startsWith('return_')) {
       text = `Return ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     } else {

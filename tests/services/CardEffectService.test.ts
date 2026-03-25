@@ -235,7 +235,7 @@ describe('CardEffectService', () => {
       expect(mockChoiceService.createChoice).toHaveBeenCalledWith(
         'player1',
         'CARD_REPLACEMENT',
-        'Choose 1 E card to replace:',
+        'Choose 1 Expeditor to replace:',
         expect.any(Array),
         { newCardType: 'E', replaceCount: 1 }
       );
@@ -301,7 +301,7 @@ describe('CardEffectService', () => {
       expect(mockChoiceService.createChoice).toHaveBeenCalledWith(
         'player1',
         'CARD_SELECTION',
-        'Select E card to return (1 of 1):',
+        'Select Expeditor to return (1 of 1):',
         expect.any(Array)
       );
     });
