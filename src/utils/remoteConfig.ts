@@ -71,6 +71,13 @@ export async function fetchRemoteConfig(mode: string = 'game'): Promise<ServiceV
         return configCache[mode] || null;
     }
 
+    // Skip cross-origin fetch — dashboard API doesn't support CORS
+    // Use the bundled default config instead
+    if (!window.location.origin.includes('dashboard.unravelcodes.com')) {
+        lastFetchTime = now;
+        return (configCache as any)[mode] || null;
+    }
+
     try {
         const response = await fetch(API_ENDPOINT);
         if (!response.ok) {
