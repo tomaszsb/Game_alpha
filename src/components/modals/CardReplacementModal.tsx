@@ -10,12 +10,16 @@ import { CardDetailsModal } from './CardDetailsModal';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import '../common/CardDisplay.css';
 
+type CardSelectionMode = 'replace' | 'return' | 'give';
+
 interface CardReplacementModalProps {
   isOpen: boolean;
   player: Player | null;
   cardType: CardType;
   maxReplacements: number;
   newCardType?: CardType; // The type of card the player will receive
+  mode?: CardSelectionMode; // Defaults to 'replace' for backwards compatibility
+  targetPlayerName?: string; // For 'give' mode — who receives the card
   onReplace: (selectedCardIds: string[], newCardType: CardType) => void;
   onCancel: () => void;
 }
@@ -30,6 +34,8 @@ export function CardReplacementModal({
   cardType,
   maxReplacements,
   newCardType,
+  mode = 'replace',
+  targetPlayerName,
   onReplace,
   onCancel
 }: CardReplacementModalProps): JSX.Element | null {
@@ -84,6 +90,32 @@ export function CardReplacementModal({
   const currentCardColors = getCardTypeColors(cardType);
   const currentCardEmoji = getCardTypeEmoji(cardType);
 
+  // Mode-specific text
+  const modeConfig = {
+    replace: {
+      title: `Replace ${getCardTypeName(cardType)} Cards`,
+      instruction: `Select up to ${maxReplacements} card${maxReplacements > 1 ? 's' : ''} to replace`,
+      confirmText: `Replace ${selectedCardIds.length} Card${selectedCardIds.length !== 1 ? 's' : ''}`,
+      emptyText: `No ${getCardTypeName(cardType)} cards available to replace`,
+      floatingText: `Complete Card Replacement (${cardType})`,
+    },
+    return: {
+      title: `Return ${getCardTypeName(cardType)} Card${maxReplacements > 1 ? 's' : ''}`,
+      instruction: `Select ${maxReplacements > 1 ? `up to ${maxReplacements}` : 'a'} card${maxReplacements > 1 ? 's' : ''} to return`,
+      confirmText: `Return ${selectedCardIds.length} Card${selectedCardIds.length !== 1 ? 's' : ''}`,
+      emptyText: `No ${getCardTypeName(cardType)} cards available to return`,
+      floatingText: `Complete Card Return (${cardType})`,
+    },
+    give: {
+      title: `Give ${getCardTypeName(cardType)} Card${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      instruction: `Select a card to give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      confirmText: `Give Card${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      emptyText: `No ${getCardTypeName(cardType)} cards available to give`,
+      floatingText: `Complete Card Give (${cardType})`,
+    },
+  };
+  const texts = modeConfig[mode];
+
   // Footer content
   const footer = (
     <>
@@ -123,7 +155,7 @@ export function CardReplacementModal({
             }
           }}
         >
-          Replace {selectedCardIds.length} Card{selectedCardIds.length !== 1 ? 's' : ''}
+          {texts.confirmText}
         </button>
       </div>
     </>
@@ -134,7 +166,7 @@ export function CardReplacementModal({
     <ModalBase
       isOpen={isOpen}
       onClose={handleCancel}
-      title={`Replace ${getCardTypeName(cardType)} Cards`}
+      title={texts.title}
       emoji={currentCardEmoji}
       maxWidth="700px"
       headerColor={currentCardColors.bg}
@@ -149,7 +181,7 @@ export function CardReplacementModal({
         marginBottom: '16px',
         fontSize: '16px'
       }}>
-        Select up to {maxReplacements} card{maxReplacements > 1 ? 's' : ''} to replace
+        {texts.instruction}
       </p>
 
       {/* New card type notification */}
@@ -180,7 +212,7 @@ export function CardReplacementModal({
         }}>
           <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>{theme.emoji.cards}</span>
           <p style={{ fontSize: '18px', margin: 0 }}>
-            No {getCardTypeName(cardType)} cards available to replace
+            {texts.emptyText}
           </p>
         </div>
       ) : (

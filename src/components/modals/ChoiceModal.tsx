@@ -51,10 +51,11 @@ export function ChoiceModal(): JSX.Element {
 
   const { getPortraitForSpace } = useNpcPortrait();
 
+  const isCardChoiceType = awaitingChoice?.type === 'CARD_REPLACEMENT' || awaitingChoice?.type === 'CARD_SELECTION' || awaitingChoice?.type === 'CARD_GIVE';
   const speechControls = useModalSpeech(
     awaitingChoice?.prompt,
     currentSpace,
-    !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && awaitingChoice.type !== 'CARD_REPLACEMENT'
+    !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && !isCardChoiceType
   );
 
   const handleChoiceClick = (selectedOptionId: string) => {
@@ -88,11 +89,16 @@ export function ChoiceModal(): JSX.Element {
     return <></>;
   }
 
-  // Handle CARD_REPLACEMENT choice with dedicated modal
-  if (awaitingChoice.type === 'CARD_REPLACEMENT') {
+  // Handle all card choice types with the unified CardReplacementModal
+  if (awaitingChoice.type === 'CARD_REPLACEMENT' || awaitingChoice.type === 'CARD_SELECTION' || awaitingChoice.type === 'CARD_GIVE') {
+    const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
+    const mode = awaitingChoice.type === 'CARD_REPLACEMENT' ? 'replace'
+      : awaitingChoice.type === 'CARD_SELECTION' ? 'return'
+      : 'give';
+
     // If user clicked "Return to Main Panel", show a floating indicator to return
     if (isCardReplacementHidden) {
-      const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
+      const modeLabels = { replace: 'Card Replacement', return: 'Card Return', give: 'Card Give' };
       return (
         <div
           style={{
@@ -129,7 +135,7 @@ export function ChoiceModal(): JSX.Element {
             }}
           >
             <span>⚠️</span>
-            <span>Complete Card Replacement ({cardType})</span>
+            <span>Complete {modeLabels[mode]} ({cardType})</span>
           </button>
         </div>
       );
@@ -138,9 +144,11 @@ export function ChoiceModal(): JSX.Element {
     const gameState = stateService.getGameState();
     const player = gameState.players.find(p => p.id === awaitingChoice.playerId);
 
-    const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
     const maxReplacements = (awaitingChoice.metadata?.replaceCount as number) || 1;
-    const newCardType = awaitingChoice.metadata?.newCardType as CardType | undefined;
+    const newCardType = awaitingChoice.type === 'CARD_REPLACEMENT'
+      ? awaitingChoice.metadata?.newCardType as CardType | undefined
+      : undefined;
+    const targetPlayerName = awaitingChoice.metadata?.targetPlayerName as string | undefined;
 
     return (
       <CardReplacementModal
@@ -149,9 +157,11 @@ export function ChoiceModal(): JSX.Element {
         cardType={cardType}
         maxReplacements={maxReplacements}
         newCardType={newCardType}
+        mode={mode}
+        targetPlayerName={targetPlayerName}
         onReplace={(selectedCardIds, replacementType) => {
           if (selectedCardIds.length > 0) {
-            console.log(`🔄 CardReplacement: Attempting to replace cards: ${selectedCardIds.join(', ')}`);
+            console.log(`🔄 Card ${mode}: Attempting with cards: ${selectedCardIds.join(', ')}`);
             selectedCardIds.forEach((cardId, index) => {
               if (index === 0) {
                 handleChoiceClick(cardId);
@@ -162,7 +172,7 @@ export function ChoiceModal(): JSX.Element {
         onCancel={() => {
           // Hide the modal but keep the choice pending
           // Player can return to complete it via the pending action indicator
-          console.log('Card replacement modal hidden - choice remains pending');
+          console.log(`Card ${mode} modal hidden - choice remains pending`);
           setIsCardReplacementHidden(true);
         }}
       />
@@ -171,14 +181,7 @@ export function ChoiceModal(): JSX.Element {
 
   // Get contextual help text based on choice type
   const getHelpText = () => {
-    switch (awaitingChoice.type) {
-      case 'CARD_SELECTION':
-        return 'Select the card you want to use for this action.';
-      case 'CARD_GIVE':
-        return 'Choose which card to give to your opponent.';
-      default:
-        return 'Make your selection to continue.';
-    }
+    return 'Make your selection to continue.';
   };
 
   const choiceButtonStyle: React.CSSProperties = {

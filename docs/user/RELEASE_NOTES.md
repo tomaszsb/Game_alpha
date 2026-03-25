@@ -2,6 +2,18 @@
 
 ---
 
+## v2.34.5 - Consistent Card Selection Experience (March 25, 2026)
+
+**Release Date:** March 25, 2026
+**Version:** 2.34.5
+**Status:** Alpha Testing
+**Type:** UI Improvement
+
+### All card actions now share the same visual experience
+Whether you're returning, replacing, or giving a card, you now see the same card selection modal with card artwork, details buttons, and clear instructions. Previously, return and give actions used plain text buttons while replace used the full card display — now all three look and work the same way.
+
+---
+
 ## v2.34.4 - Card Action Modals Restored (March 25, 2026)
 
 **Release Date:** March 25, 2026

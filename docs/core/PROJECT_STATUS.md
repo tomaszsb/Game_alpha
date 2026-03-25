@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 25, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.34.4)
-**Current Version**: 2.34.4
+**Current Phase**: Pre-Beta — Editor Hardening (v2.34.5)
+**Current Version**: 2.34.5
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Unified Card Selection Modals (March 25, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.34.5
+- **Changes**: All card choice types (return, replace, give) now use the same CardReplacementModal with card artwork and details, instead of plain text buttons for return/give
 
 ### Card Action Modals Restored (March 25, 2026) ✅
 - **Status**: ✅ Complete

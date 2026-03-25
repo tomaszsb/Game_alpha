@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Unified card selection modals (March 25, 2026)
+- **Unified card selection UI**: All card choice types (CARD_REPLACEMENT, CARD_SELECTION, CARD_GIVE) now route through `CardReplacementModal` with mode-specific text
+- **ChoiceModal.tsx**: Extended card choice routing to handle `CARD_SELECTION` → `mode='return'` and `CARD_GIVE` → `mode='give'` (previously these fell through to generic text buttons)
+- **CardReplacementModal.tsx**: Added `CardSelectionMode` type (`replace`/`return`/`give`), `mode` and `targetPlayerName` props, `modeConfig` object with mode-aware title, instruction, confirm text, empty state, and floating indicator text
+- **Floating indicator**: Now shows mode-specific label ("Card Return", "Card Give", "Card Replacement") instead of hardcoded "Card Replacement"
+- **newCardType notification**: Only shown in `replace` mode, not return/give
+
 ### Fix card return/replace/give modals — data pipeline bug (March 25, 2026)
 - **Bug fix: processGameData.js hardcoded all card effects to `draw_X`** — "Return 1", "Replace 1", and "Give 1" in SOURCE_FILES e_card column were all mapped to `draw_E` instead of `return_e`, `replace_e`, `give_e`. This broke the card selection modal for 11 spaces (ARCH-FEE-REVIEW, PM-DECISION-CHECK, CON-ISSUES, etc.)
 - **Root cause**: Line 331 in `processGameData.js` used `effect_action: draw_${cardLetter}` for every card column value regardless of the verb prefix
