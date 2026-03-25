@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### CORS console error fix (March 25, 2026)
+- **Fix: Skip cross-origin remote config fetch** — `remoteConfig.ts` was fetching from `dashboard.unravelcodes.com` when running on `game.unravelcodes.com`, causing CORS errors in console. Now uses bundled default config when not on dashboard origin.
+
 ### Unified card selection modals (March 25, 2026)
 - **Unified card selection UI**: All card choice types (CARD_REPLACEMENT, CARD_SELECTION, CARD_GIVE) now route through `CardReplacementModal` with mode-specific text
 - **ChoiceModal.tsx**: Extended card choice routing to handle `CARD_SELECTION` → `mode='return'` and `CARD_GIVE` → `mode='give'` (previously these fell through to generic text buttons)

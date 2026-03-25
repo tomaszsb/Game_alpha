@@ -245,8 +245,8 @@ describe('buildDataMaps', () => {
   });
 
   it('builds configOrder with correct ordering', () => {
-    // OWNER-SCOPE-INITIATION comes after the empty header-default row in GAME_CONFIG
-    expect(maps.configOrder['OWNER-SCOPE-INITIATION']).toBe(2);
+    // OWNER-SCOPE-INITIATION comes after START-QUICK-PLAY-GUIDE in GAME_CONFIG
+    expect(maps.configOrder['OWNER-SCOPE-INITIATION']).toBe(1);
     // FINISH is last
     expect(maps.configOrder['FINISH']).toBe(configRows.length - 1);
   });
