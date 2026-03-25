@@ -2,6 +2,21 @@
 
 ---
 
+## v2.34.3 - Glossary Fix & Cleaner Layout (March 25, 2026)
+
+**Release Date:** March 25, 2026
+**Version:** 2.34.3
+**Status:** Alpha Testing
+**Type:** Bug Fix / UI Improvement
+
+### Glossary terms now highlight properly
+Words that appear in the glossary are once again highlighted and clickable in story text, action descriptions, and card details. Clicking a highlighted term opens its definition in the dictionary panel.
+
+### Cleaner player panel
+The quick stats row (money, time, expeditors, scope) has been removed — all that information is already available in the reference tabs at the bottom. The "actions remaining" text on the End Turn button is now easier to read.
+
+---
+
 ## v2.34.2 - Pro Ledger Improvements (March 24, 2026)
 
 **Release Date:** March 24, 2026

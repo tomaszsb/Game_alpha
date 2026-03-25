@@ -98,44 +98,6 @@
 }
 
 /* Quick Stats Bar */
-.action-center__stats {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.action-center__stat {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: white;
-  border: 1px solid #e0e0e0;
-  font-size: 0.75rem;
-  flex: 1 1 auto;
-  min-width: 60px;
-  justify-content: center;
-}
-
-.action-center__stat-icon {
-  font-size: 0.8rem;
-}
-
-.action-center__stat-value {
-  font-weight: bold;
-  color: #343a40;
-}
-
-.action-center__stat--warning .action-center__stat-value {
-  color: #f44336;
-}
-
-.action-center__stat--spark {
-  border-color: #22c55e;
-  background: #dcfce7;
-}
-
 /* ===== ZONE 2: Actions ===== */
 .action-center__actions {
   flex: 0 0 auto;
@@ -391,6 +353,7 @@
   font-weight: normal;
   opacity: 0.8;
   margin-top: 2px;
+  color: #000;
 }
 
 .action-center__try-again-btn {

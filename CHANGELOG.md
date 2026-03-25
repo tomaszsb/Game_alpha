@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Glossary highlighting fix & UI cleanup (March 25, 2026)
+- **Bug fix: TextWithTerms not highlighting glossary terms** — `useMemo` only depended on `text`, not on whether terms had loaded. Added `useDictionaryContext().terms` as a dependency so component re-renders after async term loading completes
+- **New test**: `tests/dictionary/TextWithTerms.test.tsx` — 5 tests covering term highlighting after async load, alias matches, case-insensitive matching, click callbacks
+- **Fixed pre-existing test failures**: `tests/dictionary/terms.test.ts` — 20 tests were failing because `loadTerms()` cross-origin guard skipped the API mock in jsdom. Fixed by setting `window.location.origin` to match dashboard API origin in test setup
+- **Removed Quick Stats row** — `$460,000 | 12d | 0/2 | $420,000` display removed from ActionCenterPanel (redundant with tab bar). Cleaned up unused CSS classes (`action-center__stats`, `action-center__stat*`) and `projectScope`/`designFees`/`designFeeRatio` variables
+- **End Turn subtitle text now black** — "X actions remaining" text on disabled End Turn button changed from inherited `#999` gray to `#000` black for readability
+
 ### ProjectLedger data model rework (March 24, 2026)
 - **New Scope section** at top of Project Uses — shows W-card names and `cost` values (project value being built), blue color theme
 - **Contractor section reworked** — budget = sum of `work_cost` (base construction cost), actual = `expenditures.construction` (real costs after dice rolls), shows quality/multiplier when contractor is hired

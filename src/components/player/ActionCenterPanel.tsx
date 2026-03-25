@@ -214,11 +214,6 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const spaceConfig = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const currentPhase = spaceConfig?.phase;
 
-  // Quick stats calculations
-  const projectScope = gameServices.gameRulesService.calculateProjectScope(playerId);
-  const designFees = player.expenditures?.design || 0;
-  const designFeeRatio = projectScope > 0 ? (designFees / projectScope) * 100 : 0;
-
   // Playable E cards
   const playableECards = useMemo(() => {
     return (player.hand || []).filter(cardId => {
@@ -487,40 +482,6 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Quick Stats */}
-        <div className="action-center__stats">
-          <div className={`action-center__stat ${player.money < projectScope && projectScope > 0 ? 'action-center__stat--warning' : ''}`}>
-            <span className="action-center__stat-icon">💰</span>
-            <span className="action-center__stat-value">${(player.money || 0).toLocaleString()}</span>
-          </div>
-          <div className="action-center__stat">
-            <span className="action-center__stat-icon">⏱</span>
-            <span className="action-center__stat-value">{player.timeSpent || 0}d</span>
-          </div>
-          <div className={`action-center__stat ${playableECards.length > 0 ? 'action-center__stat--spark' : ''}`}>
-            <span className="action-center__stat-icon">⚡</span>
-            <span className="action-center__stat-value">
-              {playableECards.length}/{(player.hand || []).filter(id => { const c = gameServices.dataService.getCardById(id); return c && c.card_type === 'E'; }).length}
-            </span>
-          </div>
-          <div className="action-center__stat">
-            <span className="action-center__stat-icon">📐</span>
-            <span className="action-center__stat-value">${projectScope.toLocaleString()}</span>
-          </div>
-          {designFeeRatio >= 10 && projectScope > 0 && (
-            <div className="action-center__stat" style={{
-              borderColor: designFeeRatio >= 20 ? '#f44336' : designFeeRatio >= 15 ? '#ff5722' : '#ff9800'
-            }}>
-              <span style={{
-                fontSize: '0.65rem',
-                fontWeight: 'bold',
-                color: designFeeRatio >= 20 ? '#f44336' : designFeeRatio >= 15 ? '#ff5722' : '#ff9800'
-              }}>
-                {designFeeRatio >= 20 ? '🚨' : '⚠️'} {designFeeRatio.toFixed(0)}%/20%
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ===== ZONE 2: Actions ===== */}

@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: March 24, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.34.2)
-**Current Version**: 2.34.2
+**Last Updated**: March 25, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.34.3)
+**Current Version**: 2.34.3
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Glossary Fix & UI Cleanup (March 25, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.34.3
+- **Changes**: Fixed TextWithTerms race condition (glossary terms not highlighting), removed redundant Quick Stats row, made End Turn subtitle text black. Added 5 new component tests, fixed 20 pre-existing test failures in terms.test.ts
 
 ### ProjectLedger Data Model Rework (March 24, 2026) ✅
 - **Status**: ✅ Complete

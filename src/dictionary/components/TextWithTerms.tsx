@@ -8,6 +8,7 @@
 import React, { useMemo } from 'react';
 import { GlossaryTerm, TextWithTermsProps } from '../types';
 import { getGlossaryWords, findTermByWord } from '../data/terms';
+import { useDictionaryContext } from '../context/DictionaryContext';
 import './DictionaryPanel.css';
 
 interface TextSegment {
@@ -97,7 +98,9 @@ export function TextWithTerms({
   className,
   style
 }: TextWithTermsProps): JSX.Element {
-  const segments = useMemo(() => parseTextWithTerms(text), [text]);
+  // Depend on context terms so we re-render when async loading completes
+  const { terms } = useDictionaryContext();
+  const segments = useMemo(() => parseTextWithTerms(text), [text, terms]);
 
   const handleTermClick = (term: GlossaryTerm, e: React.MouseEvent) => {
     e.preventDefault();
