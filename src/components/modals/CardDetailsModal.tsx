@@ -51,7 +51,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
 
       notificationService.notify(
         NotificationUtils.createSuccessNotification(
-          'Card Transferred',
+          'Transferred',
           `${card.card_name} transferred to ${targetPlayerName}`,
           currentPlayer.name
         ),
@@ -69,7 +69,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
     } catch (error: any) {
       notificationService.notify(
         NotificationUtils.createErrorNotification(
-          'Card Transfer',
+          'Transfer Failed',
           error.message,
           currentPlayer.name
         ),
@@ -102,7 +102,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
           textAlign: 'center',
           color: colors.secondary.main
         }}>
-          Loading card details...
+          Loading details...
         </div>
       </ModalBase>
     );
@@ -127,7 +127,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
             e.currentTarget.style.opacity = '1';
           }}
         >
-          ↔ Transfer Card
+          ↔ Transfer
         </button>
       )}
       <button
@@ -186,7 +186,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
           color: 'white',
           backgroundColor: cardColors.primary
         }}>
-          {cardEmoji} {cardType} Card
+          {cardEmoji} {cardType}
         </span>
         <span style={{
           fontSize: '0.75rem',
@@ -233,7 +233,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
             textTransform: 'uppercase',
             letterSpacing: '0.5px'
           }}>
-            {theme.emoji.effects} Effects When Played
+            {theme.emoji.effects} Effects When Activated
           </h3>
           <div style={{
             background: colors.special.cardEffects.positive,
@@ -374,7 +374,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
             margin: 0,
             marginBottom: '12px'
           }}>
-            Select player to transfer card to:
+            Select player to transfer to:
           </h4>
           <div style={{
             display: 'flex',
@@ -436,7 +436,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
                 cursor: selectedTargetPlayer ? 'pointer' : 'not-allowed'
               }}
             >
-              Transfer Card
+              Transfer
             </button>
           </div>
         </div>

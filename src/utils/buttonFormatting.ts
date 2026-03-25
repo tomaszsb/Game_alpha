@@ -110,7 +110,7 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     } else if (actionLower.startsWith('return_')) {
       text = `Return ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     } else {
-      text = `Pick up ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
+      text = `Get ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
     }
   } else if (effect.effect_type === 'turn') {
     text = effect.description || 'End Turn';
@@ -149,25 +149,25 @@ export function formatDiceRollButton(
     switch (firstEffect.effect_type) {
       case 'cards': {
         const ct = firstEffect.card_type?.toUpperCase() || '';
-        if (ct === 'E') return 'Roll to Hire Expeditors';
-        if (ct === 'W') return 'Roll for Work Packages';
-        if (ct === 'B') return 'Roll for Bank Loans';
-        if (ct === 'I') return 'Roll for Investments';
-        if (ct === 'L') return 'Roll for Life Events';
-        return ct ? `Roll for ${ct} Cards` : 'Roll for Effects';
+        if (ct === 'E') return 'Hire Expeditors';
+        if (ct === 'W') return 'Get Work Packages';
+        if (ct === 'B') return 'Apply for Bank Loans';
+        if (ct === 'I') return 'Seek Investments';
+        if (ct === 'L') return 'Check for Life Events';
+        return 'Determine Effects';
       }
 
       case 'money':
-        return firstEffect.card_type === 'fee' ? "Roll for Fee Amount" : "Roll for Money";
+        return firstEffect.card_type === 'fee' ? "Determine Fee Amount" : "Determine Funding";
 
       case 'time':
-        return "Roll for Time Penalty";
+        return "Determine Time Impact";
 
       case 'quality':
-        return "Roll for Quality";
+        return "Assess Quality";
 
       default:
-        return "Roll for Effects";
+        return "Determine Effects";
     }
   }
 
@@ -179,11 +179,11 @@ export function formatDiceRollButton(
   if (diceConditionEffects.length > 0) {
     const effectTypes = diceConditionEffects.map(effect => effect.effect_type);
     if (effectTypes.includes('cards')) {
-      return "Roll for Bonus";
+      return "Check for Bonus";
     } else if (effectTypes.includes('money')) {
-      return "Roll for Bonus Money";
+      return "Check for Bonus Funding";
     } else {
-      return "Roll for Bonus Effects";
+      return "Check for Bonus Effects";
     }
   }
 
@@ -202,12 +202,12 @@ export function formatDiceRollButton(
     const uniqueDestinations = new Set(destinations);
 
     if (uniqueDestinations.size > 1) {
-      return "Roll for Next Location";
+      return "Determine Next Step";
     }
   }
 
   // Default fallback
-  return "Roll Dice";
+  return "Determine Outcome";
 }
 
 /**
@@ -228,7 +228,7 @@ function getCardTypeName(cardType: string): string {
  * Create standardized dice roll feedback message with outcomes
  */
 export function formatDiceRollFeedback(diceValue: number, effects: any[]): string {
-  let unifiedDescription = `Rolled ${diceValue}`;
+  let unifiedDescription = `Result: ${diceValue}`;
   const outcomes: string[] = [];
 
   effects?.forEach(effect => {
@@ -428,15 +428,15 @@ export function getDiceRollTooltip(
 
   if (diceConditionEffects.length > 0) {
     return {
-      tooltip: 'Roll the dice to determine bonus effects. Your roll may trigger additional cards or resources.',
-      context: 'Some spaces have conditional effects based on dice results.'
+      tooltip: 'Check for bonus effects. The outcome may trigger additional resources.',
+      context: 'Some spaces have conditional effects based on the outcome.'
     };
   }
 
   // Default dice tooltip
   return {
-    tooltip: 'Roll the dice to determine your outcome for this space.',
-    context: 'Each roll can affect cards, money, time, or your next destination.'
+    tooltip: 'Determine your outcome for this space.',
+    context: 'The outcome can affect resources, money, time, or your next destination.'
   };
 }
 

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Remove game terminology from player-facing text (March 25, 2026)
+- **Purged "card", "dice", "roll", "play", "draw", "discard" from all player-visible UI text** across 20 files
+- **"Card" replacements**: type-specific names (Expeditor, Work Package, Bank Loan, etc.) or "resource" for generic references
+- **"Dice"/"Roll" replacements**: action-oriented language — "Determine Fee Amount", "Hire Expeditors", "Get Work Packages", "Determine Next Step", "Assess Quality" instead of "Roll for X"
+- **"Play Card" → "Activate"**, "Play Expeditor" → "Activate Expeditor", "Effects on Play" → "Effects When Activated"
+- **"Discard Pile" → "Resource History"**, "No discarded cards yet" → "No resources used yet"
+- **"Card Details" → "Details"**, "Card Back" → "Back", "Card Types" → "Resource Types"
+- **"Board Game" → "Project Management Simulation"** on back view
+- **Notifications**: "Played card" → "Activated", "Rolled X" → "Result: X"
+- **Rules modal**: "Roll Dice" step → "Determine Outcome", "W Cards (Work)" → "Work Packages (W)", "pick up E cards" → "hire expeditors"
+- **Files changed**: CardModal, CardContent, CardActions, CardDetailsModal, CardReplacementModal, DiscardPileModal, DiceResultModal, EducationalCardSelectionModal, RulesModal, ActionCenterPanel, CardsSection, EventsSection, FinancesSection, ProjectScopeSection, TimeSection, SpaceExplorerPanel, TVDisplay, NotificationUtils, buttonFormatting
+
 ### CORS console error fix (March 25, 2026)
 - **Fix: Skip cross-origin remote config fetch** — `remoteConfig.ts` was fetching from `dashboard.unravelcodes.com` when running on `game.unravelcodes.com`, causing CORS errors in console. Now uses bundled default config when not on dashboard origin.
 

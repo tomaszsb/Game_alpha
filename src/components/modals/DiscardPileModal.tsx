@@ -82,7 +82,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="Discard Pile"
+      title="Resource History"
       emoji={theme.emoji.discard}
       maxWidth="600px"
       footer={footer}
@@ -100,7 +100,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as typeof filterType)}
           style={selectStyle}
-          aria-label="Filter cards by type"
+          aria-label="Filter by type"
         >
           <option value="all">All Types</option>
           <option value="W">{colors.game.cardTypes.W.emoji} Work</option>
@@ -114,7 +114,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
           style={selectStyle}
-          aria-label="Sort cards by"
+          aria-label="Sort by"
         >
           <option value="name">Sort by Name</option>
           <option value="type">Sort by Type</option>
@@ -131,8 +131,8 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
           padding: '40px 24px',
         }}>
           {allDiscardedCards.length === 0
-            ? 'No discarded cards yet'
-            : 'No cards match the selected filter'}
+            ? 'No resources used yet'
+            : 'No results match the selected filter'}
         </div>
       ) : (
         <div style={{
@@ -206,7 +206,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
         color: colors.text.secondary,
         fontSize: '14px',
       }}>
-        {sortedCards.length} card{sortedCards.length !== 1 ? 's' : ''} in discard pile
+        {sortedCards.length} resource{sortedCards.length !== 1 ? 's' : ''} in history
       </div>
     </ModalBase>
   );

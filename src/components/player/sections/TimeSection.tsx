@@ -110,7 +110,7 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
   // Helper to format button label from effect
   const getButtonLabel = (effect: any): string => {
     if (effect.description) return effect.description;
-    if (effect.effect_type === 'time') return 'Roll for Time';
+    if (effect.effect_type === 'time') return 'Determine Time Impact';
     return effect.effect_type;
   };
 

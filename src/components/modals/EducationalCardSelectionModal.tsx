@@ -165,7 +165,7 @@ export function EducationalCardSelectionModal({
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
       <div style={selectionSummaryStyle}>
         <span style={{ fontWeight: '500' }}>
-          {selectionCounts.total} card{selectionCounts.total !== 1 ? 's' : ''} selected
+          {selectionCounts.total} selected
         </span>
         {selectionCounts.w > 0 && (
           <span style={countBadgeStyle('W')}>{selectionCounts.w} W</span>
@@ -203,7 +203,7 @@ export function EducationalCardSelectionModal({
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="Select Starting Cards"
+      title="Select Starting Resources"
       emoji="📚"
       footer={footer}
       maxWidth="1000px"

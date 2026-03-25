@@ -301,7 +301,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     try {
       await onRollDice();
     } catch (err) {
-      setError('Failed to roll dice. Please try again.');
+      setError('Something went wrong. Please try again.');
       console.error('Dice roll error:', err);
     } finally {
       setIsRollingDice(false);
@@ -362,11 +362,11 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   // Helper to get dice roll button label based on space
   const getDiceButtonLabel = (): string => {
     if (player.currentSpace.includes('ARCH')) {
-      return 'Roll for Architect Fee';
+      return 'Determine Architect Fee';
     } else if (player.currentSpace.includes('ENG')) {
-      return 'Roll for Engineer Fee';
+      return 'Determine Engineer Fee';
     }
-    return 'Roll for Fee';
+    return 'Determine Fee';
   };
 
   // Create header actions (action buttons always visible)
@@ -382,7 +382,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
             onClick={handleDiceRoll}
             disabled={!isMyTurn || isLoading || isRollingDice}
             isLoading={isRollingDice}
-            ariaLabel={isMyTurn ? "Roll dice to determine design fee percentage" : "Wait for your turn"}
+            ariaLabel={isMyTurn ? "Determine design fee percentage" : "Wait for your turn"}
           />
         );
       })()}

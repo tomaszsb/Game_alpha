@@ -197,7 +197,7 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
     try {
       await onRollDice();
     } catch (err) {
-      setError('Failed to roll dice. Please try again.');
+      setError('Something went wrong. Please try again.');
       console.error('Dice roll error:', err);
     } finally {
       setIsRollingDice(false);
@@ -220,12 +220,12 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
         const isDiceCompleted = completedActions.diceRoll !== undefined;
         return wCardDiceEffects.length > 0 && onRollDice && !isDiceCompleted && (
           <ActionButton
-            label={isMyTurn ? "Roll for Work Packages" : "⏳ Wait for your turn"}
+            label={isMyTurn ? "Get Work Packages" : "⏳ Wait for your turn"}
             variant="primary"
             onClick={handleDiceRoll}
             disabled={!isMyTurn || isLoading || isRollingDice}
             isLoading={isRollingDice}
-            ariaLabel={isMyTurn ? "Roll dice to gain work packages" : "Wait for your turn"}
+            ariaLabel={isMyTurn ? "Get work packages for your project" : "Wait for your turn"}
           />
         );
       })()}

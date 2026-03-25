@@ -27,7 +27,7 @@ export function CardActions({
   onFlip = () => {},
   canPlay = true,
   isFlipped = false,
-  playButtonText = "Play Card"
+  playButtonText = "Activate"
 }: CardActionsProps): JSX.Element {
   
   // Access the PlayerActionService via context
@@ -65,7 +65,7 @@ export function CardActions({
     } catch (error) {
       // Display error to user with descriptive message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Failed to play card: ${errorMessage}`);
+      alert(`Failed to activate: ${errorMessage}`);
       console.error('Card play error:', error);
     }
   };
@@ -171,7 +171,7 @@ export function CardActions({
           }}
           onMouseEnter={canPlay ? handleMouseEnter : undefined}
           onMouseLeave={canPlay ? handleMouseLeave : undefined}
-          title={canPlay ? `Click to ${playButtonText.toLowerCase()}` : "This card cannot be played right now"}
+          title={canPlay ? `Click to ${playButtonText.toLowerCase()}` : "This cannot be activated right now"}
         >
           🎴 {playButtonText}
         </button>
@@ -183,7 +183,7 @@ export function CardActions({
         style={flipButtonStyle}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        title={isFlipped ? "View card details" : "View card back"}
+        title={isFlipped ? "View details" : "View back"}
       >
         🔄 {isFlipped ? "View Front" : "View Back"}
       </button>

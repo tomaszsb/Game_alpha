@@ -178,7 +178,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
     try {
       await onRollDice();
     } catch (err) {
-      setError('Failed to roll dice. Please try again.');
+      setError('Something went wrong. Please try again.');
       console.error('Dice roll error:', err);
     } finally {
       setIsRollingDice(false);
@@ -199,7 +199,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
 
   // Helper to format dice button label
   const getDiceButtonLabel = (cardType: string): string => {
-    return 'Roll for Expeditors';
+    return 'Hire Expeditors';
   };
 
   // Create header actions (action buttons always visible)
@@ -218,7 +218,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
             onClick={handleDiceRoll}
             disabled={!isMyTurn || isLoading || isRollingDice}
             isLoading={isRollingDice}
-            ariaLabel={isMyTurn ? `Roll dice to gain ${effect.card_type} type cards` : "Wait for your turn"}
+            ariaLabel={isMyTurn ? `Roll to gain ${effect.card_type} type resources` : "Wait for your turn"}
           />
         );
       })}
@@ -310,7 +310,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
     try {
       await gameServices.cardService.playCard(playerId, cardId);
     } catch (err: any) {
-      setError(err.message || 'Failed to play card. Please try again.');
+      setError(err.message || 'Failed to activate. Please try again.');
       console.error(`Card play error:`, err);
     } finally {
       setIsLoading(false);
@@ -332,7 +332,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
           fontWeight: 'bold',
           animation: 'pulse 2s infinite'
         }}>
-          ⚡ {playableCount} playable
+          ⚡ {playableCount} available
         </span>
       )}
     </span>
@@ -361,7 +361,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                         <span className="card-type-name">Expeditors ({cardsOfType.length})</span>
                         {playableInGroup > 0 && (
                           <span style={{ marginLeft: '8px', padding: '1px 6px', backgroundColor: '#22c55e', color: 'white', borderRadius: '8px', fontSize: '9px', fontWeight: 'bold' }}>
-                            ⚡ {playableInGroup} playable
+                            ⚡ {playableInGroup} available
                           </span>
                         )}
                       </span>
@@ -379,11 +379,11 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                               </div>
                               {item.card.card_type === 'E' && isPlayable && (
                                 <div className="card-action-row">
-                                  <ActionButton label="Play Expeditor" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Play ${item.card.card_name}`} />
+                                  <ActionButton label="Activate Expeditor" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Activate ${item.card.card_name}`} />
                                 </div>
                               )}
                               {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
-                                <div className="card-restriction-message">Can only be played during {item.card.phase_restriction} phase{currentPhase && ` (Current: ${currentPhase})`}</div>
+                                <div className="card-restriction-message">Can only be activated during {item.card.phase_restriction} phase{currentPhase && ` (Current: ${currentPhase})`}</div>
                               )}
                             </>
                           );
@@ -401,7 +401,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
             <div className="empty-state">No expeditors hired yet.</div>
           )}
           <div className="card-actions">
-            <ActionButton label="View History" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View discard history" />
+            <ActionButton label="View History" variant="secondary" onClick={handleViewDiscarded} disabled={isLoading} ariaLabel="View resource history" />
           </div>
         </div>
         <DiscardPileModal isOpen={showDiscardedModal} onClose={() => setShowDiscardedModal(false)} onOpenCardDetailsModal={handleCardDetailsOpen} />
@@ -471,7 +471,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                           fontSize: '9px',
                           fontWeight: 'bold'
                         }}>
-                          ⚡ {playableInGroup} playable
+                          ⚡ {playableInGroup} available
                         </span>
                       )}
                     </span>
@@ -499,18 +499,18 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                             {item.card.card_type === 'E' && isPlayable && (
                               <div className="card-action-row">
                                 <ActionButton
-                                  label="Play Expeditor"
+                                  label="Activate Expeditor"
                                   variant="primary"
                                   onClick={() => handlePlayCard(item.id)}
                                   disabled={isLoading}
                                   isLoading={isLoading}
-                                  ariaLabel={`Play ${item.card.card_name}`}
+                                  ariaLabel={`Activate ${item.card.card_name}`}
                                 />
                               </div>
                             )}
                             {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
                               <div className="card-restriction-message">
-                                Can only be played during {item.card.phase_restriction} phase
+                                Can only be activated during {item.card.phase_restriction} phase
                                 {currentPhase && ` (Current: ${currentPhase})`}
                               </div>
                             )}
@@ -548,7 +548,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
             variant="secondary"
             onClick={handleViewDiscarded}
             disabled={isLoading}
-            ariaLabel="View discard history"
+            ariaLabel="View resource history"
           />
         </div>
       </div>

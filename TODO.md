@@ -2,7 +2,7 @@
 
 **Last Updated:** March 25, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.34.4
+**Current Version:** 2.35.0
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Real-world language — removed "card", "dice", "roll", "play", "draw", "discard" from all player-facing UI across 20 files (Mar 25, 2026)
 - ✅ Unified card selection modals — return/replace/give all use CardReplacementModal with card artwork and details (Mar 25, 2026)
 - ✅ Fix card return/replace/give modals — processGameData mapped all card actions to draw_E, 11 spaces affected, 7 new pipeline tests (Mar 25, 2026)
 - ✅ Glossary highlighting fix (TextWithTerms race condition), Quick Stats row removed, End Turn subtitle black text, 5 new tests + 20 fixed tests (Mar 25, 2026)

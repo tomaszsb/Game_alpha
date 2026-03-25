@@ -682,7 +682,7 @@ export function SpaceExplorerPanel({
                     color: colors.text.primary,
                     margin: '0 0 8px 0'
                   }}>
-                    🎲 Dice Roll Effects ({spaceDetails.diceEffects.length}):
+                    🎲 Roll Outcomes ({spaceDetails.diceEffects.length}):
                   </h5>
                   {spaceDetails.diceEffects.map((effect, index) => (
                     <div

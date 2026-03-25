@@ -43,14 +43,14 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
           fontWeight: 'bold',
           margin: '0 0 10px 0'
         }}>
-          Card Back
+          Back
         </h3>
         <p style={{
           fontSize: '1rem',
           opacity: 0.9,
           margin: 0
         }}>
-          Project Management Board Game
+          Project Management Simulation
         </p>
       </div>
     );
@@ -80,13 +80,13 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
           fontSize: '1.2rem',
           margin: '0 0 10px 0'
         }}>
-          No Card Selected
+          No Resource Selected
         </h3>
         <p style={{
           margin: 0,
           opacity: 0.7
         }}>
-          Please select a card to view its details.
+          Please select a resource to view its details.
         </p>
       </div>
     );
@@ -224,7 +224,7 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
               alignItems: 'center',
               gap: '6px'
             }}>
-              {theme.emoji.effects} Effects on Play
+              {theme.emoji.effects} Effects When Activated
             </div>
             <div style={{
               color: colors.text.dark,

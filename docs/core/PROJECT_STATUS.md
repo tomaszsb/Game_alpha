@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 25, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.34.5)
-**Current Version**: 2.34.5
+**Current Phase**: Pre-Beta — Editor Hardening (v2.35.0)
+**Current Version**: 2.35.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Real-World Language — Remove Game Jargon (March 25, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.35.0
+- **Changes**: Replaced "card", "dice", "roll", "play", "draw", "discard" with project management terminology across 20 files. Buttons, modals, notifications, and rules all use real-world language.
 
 ### Unified Card Selection Modals (March 25, 2026) ✅
 - **Status**: ✅ Complete

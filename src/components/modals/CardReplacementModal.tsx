@@ -91,27 +91,28 @@ export function CardReplacementModal({
   const currentCardEmoji = getCardTypeEmoji(cardType);
 
   // Mode-specific text
+  const typeName = getCardTypeName(cardType);
   const modeConfig = {
     replace: {
-      title: `Replace ${getCardTypeName(cardType)} Cards`,
-      instruction: `Select up to ${maxReplacements} card${maxReplacements > 1 ? 's' : ''} to replace`,
-      confirmText: `Replace ${selectedCardIds.length} Card${selectedCardIds.length !== 1 ? 's' : ''}`,
-      emptyText: `No ${getCardTypeName(cardType)} cards available to replace`,
-      floatingText: `Complete Card Replacement (${cardType})`,
+      title: `Replace ${typeName}`,
+      instruction: `Select up to ${maxReplacements} to replace`,
+      confirmText: `Replace ${selectedCardIds.length}`,
+      emptyText: `No ${typeName} available to replace`,
+      floatingText: `Complete ${typeName} Replacement`,
     },
     return: {
-      title: `Return ${getCardTypeName(cardType)} Card${maxReplacements > 1 ? 's' : ''}`,
-      instruction: `Select ${maxReplacements > 1 ? `up to ${maxReplacements}` : 'a'} card${maxReplacements > 1 ? 's' : ''} to return`,
-      confirmText: `Return ${selectedCardIds.length} Card${selectedCardIds.length !== 1 ? 's' : ''}`,
-      emptyText: `No ${getCardTypeName(cardType)} cards available to return`,
-      floatingText: `Complete Card Return (${cardType})`,
+      title: `Return ${typeName}`,
+      instruction: `Select ${maxReplacements > 1 ? `up to ${maxReplacements}` : 'one'} to return`,
+      confirmText: `Return ${selectedCardIds.length}`,
+      emptyText: `No ${typeName} available to return`,
+      floatingText: `Complete ${typeName} Return`,
     },
     give: {
-      title: `Give ${getCardTypeName(cardType)} Card${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
-      instruction: `Select a card to give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
-      confirmText: `Give Card${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
-      emptyText: `No ${getCardTypeName(cardType)} cards available to give`,
-      floatingText: `Complete Card Give (${cardType})`,
+      title: `Give ${typeName}${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      instruction: `Select one to give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      confirmText: `Give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      emptyText: `No ${typeName} available to give`,
+      floatingText: `Complete ${typeName} Transfer`,
     },
   };
   const texts = modeConfig[mode];
@@ -120,7 +121,7 @@ export function CardReplacementModal({
   const footer = (
     <>
       <div style={{ fontSize: '14px', color: colors.text.secondary }}>
-        {selectedCardIds.length} of {maxReplacements} cards selected
+        {selectedCardIds.length} of {maxReplacements} selected
       </div>
       <div style={{ display: 'flex', gap: '12px' }}>
         <button
@@ -198,7 +199,7 @@ export function CardReplacementModal({
             fontWeight: '600',
             color: colors.text.primary
           }}>
-            {getCardTypeEmoji(newCardType)} You will receive a new <strong>{getCardTypeName(newCardType)}</strong> card
+            {getCardTypeEmoji(newCardType)} You will receive a new <strong>{getCardTypeName(newCardType)}</strong>
           </span>
         </div>
       )}

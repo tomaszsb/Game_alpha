@@ -99,7 +99,7 @@ export const EventsSection: React.FC<EventsSectionProps> = ({
             onClick={() => handleManualEffect(effectKey)}
             disabled={!isMyTurn || isLoading}
             isLoading={isLoading}
-            ariaLabel={isMyTurn ? 'Draw a life event card' : 'Wait for your turn'}
+            ariaLabel={isMyTurn ? 'Trigger a life event' : 'Wait for your turn'}
           />
         );
       })}

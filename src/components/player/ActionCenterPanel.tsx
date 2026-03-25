@@ -41,13 +41,13 @@ function formatEffectAction(effectType: string, effectAction?: string): string {
       'draw_w': 'Add Work Package',
       'draw_l': 'Life Event',
       'draw_e': 'Hire Expeditor',
-      'draw_n': 'Draw N Card (Negotiation)'
+      'draw_n': 'Negotiate'
     };
     return cardTypeMap[effectAction] || effectAction.replace('draw_', '').toUpperCase();
   }
   const typeMap: { [key: string]: string } = {
-    'dice': 'Roll Dice',
-    'cards': 'Pick Up',
+    'dice': 'Determine Outcome',
+    'cards': 'Get Resource',
     'money': 'Get Funding',
     'time': 'Time Action',
     'movement': 'Select Destination'
@@ -525,7 +525,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             onClick={handleDiceRoll}
             disabled={isRollingDice}
           >
-            {isRollingDice ? '🎲 Rolling...' : '🎲 Roll Dice for Movement'}
+            {isRollingDice ? '🎲 Deciding...' : '🎲 Determine Next Step'}
           </button>
         )}
 

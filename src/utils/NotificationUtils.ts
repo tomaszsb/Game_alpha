@@ -22,8 +22,8 @@ export class NotificationUtils {
 
     return {
       short: `${diceValue}`,
-      medium: `🎲 Rolled ${diceValue} → ${effectSummary || 'No effects'}`,
-      detailed: `${playerName} rolled a ${diceValue}${effectSummary ? ` and gained: ${effectSummary}` : ''}`
+      medium: `🎲 Result: ${diceValue} → ${effectSummary || 'No effects'}`,
+      detailed: `${playerName} got ${diceValue}${effectSummary ? ` and gained: ${effectSummary}` : ''}`
     };
   }
 
@@ -83,9 +83,9 @@ export class NotificationUtils {
     }).join(', ');
 
     return {
-      short: `✓ Card`,
-      medium: `🃏 Played ${cardName}${effectSummary ? ` → ${effectSummary}` : ''}`,
-      detailed: `${playerName} played card "${cardName}"${effectSummary ? ` with effects: ${effectSummary}` : ''}`
+      short: `✓`,
+      medium: `🃏 Activated ${cardName}${effectSummary ? ` → ${effectSummary}` : ''}`,
+      detailed: `${playerName} activated "${cardName}"${effectSummary ? ` with effects: ${effectSummary}` : ''}`
     };
   }
 

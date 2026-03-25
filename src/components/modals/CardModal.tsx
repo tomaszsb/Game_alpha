@@ -84,7 +84,7 @@ export function CardModal(): JSX.Element | null {
           handleClose();
         } catch (error: any) {
           console.error('Failed to play card:', error);
-          alert(`Cannot play card: ${error.message}`);
+          alert(`Cannot activate: ${error.message}`);
         }
       }
     }
@@ -112,7 +112,7 @@ export function CardModal(): JSX.Element | null {
       onFlip={handleFlip}
       canPlay={canPlay && !isFlipped}
       isFlipped={isFlipped}
-      playButtonText={cardData?.effects_on_play ? "Activate Effect" : "Play Card"}
+      playButtonText={cardData?.effects_on_play ? "Activate Effect" : "Activate"}
     />
   );
 
@@ -120,7 +120,7 @@ export function CardModal(): JSX.Element | null {
     <ModalBase
       isOpen={true}
       onClose={handleClose}
-      title={isFlipped ? "Card Back" : (cardData?.card_name || "Card Details")}
+      title={isFlipped ? "Back" : (cardData?.card_name || "Details")}
       emoji={isFlipped ? theme.emoji.cards : cardEmoji}
       maxWidth="600px"
       headerColor={cardColors?.bg}
@@ -144,7 +144,7 @@ export function CardModal(): JSX.Element | null {
             fontSize: '12px',
             fontWeight: 'bold',
           }}>
-            {cardEmoji} {cardData.card_type} Card
+            {cardEmoji} {cardData.card_type}
           </span>
         </div>
       )}

@@ -281,7 +281,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                         ${(player.money / 1000).toFixed(0)}K
                       </span>
                       <span style={styles.statItem}>
-                        {player.hand?.length || 0} cards
+                        {player.hand?.length || 0} resources
                       </span>
                     </div>
                   )}

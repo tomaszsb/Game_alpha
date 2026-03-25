@@ -2,6 +2,18 @@
 
 ---
 
+## v2.35.0 - Real-World Language (March 25, 2026)
+
+**Release Date:** March 25, 2026
+**Version:** 2.35.0
+**Status:** Alpha Testing
+**Type:** UI Improvement
+
+### The game now speaks your language
+All buttons, modals, and notifications have been updated to use real-world project management terminology instead of board game jargon. You'll no longer see "roll dice", "play card", or "discard pile" — instead you'll see "determine fee amount", "activate expeditor", and "resource history". The game should feel more like managing a real construction project.
+
+---
+
 ## v2.34.5 - Consistent Card Selection Experience (March 25, 2026)
 
 **Release Date:** March 25, 2026

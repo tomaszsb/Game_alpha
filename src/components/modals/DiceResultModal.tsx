@@ -195,7 +195,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
   const isDiceRoll = result.diceValue > 0;
   const narrativeTitle = spaceContent?.title || '';
   const title = isDiceRoll
-    ? (narrativeTitle ? narrativeTitle : `Roll: ${result.diceValue}`)
+    ? (narrativeTitle ? narrativeTitle : `Result: ${result.diceValue}`)
     : 'Action Result';
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
 
@@ -280,7 +280,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
           fontSize: '13px',
           marginBottom: '12px'
         }}>
-          🎲 Roll: {result.diceValue}
+          🎲 Result: {result.diceValue}
         </div>
       )}
 

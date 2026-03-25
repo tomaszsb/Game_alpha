@@ -90,10 +90,10 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
           </h3>
           <ol style={listStyle}>
             <li style={listItemStyle}>
-              <strong>Roll Dice:</strong> Roll dice to determine movement and receive space effects
+              <strong>Determine Outcome:</strong> Each space has different possible outcomes that affect your project
             </li>
             <li style={listItemStyle}>
-              <strong>Complete Actions:</strong> Perform any required manual actions (like picking up cards)
+              <strong>Complete Actions:</strong> Perform any required actions (like hiring expeditors or securing funding)
             </li>
             <li style={listItemStyle}>
               <strong>End Turn:</strong> Once all actions are completed, end your turn to advance
@@ -103,32 +103,32 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
 
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            {theme.emoji.cards} Card Types
+            {theme.emoji.cards} Resource Types
           </h3>
           <div style={cardGridStyle}>
             <div>
               <strong style={{ color: colors.game.cardTypes.W.primary }}>
-                {colors.game.cardTypes.W.emoji} W Cards (Work):
+                {colors.game.cardTypes.W.emoji} Work Packages (W):
               </strong> Construction work scopes and project requirements
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.B.primary }}>
-                {colors.game.cardTypes.B.emoji} B Cards (Bank):
+                {colors.game.cardTypes.B.emoji} Bank Loans (B):
               </strong> Funding and financial resources
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.E.primary }}>
-                {colors.game.cardTypes.E.emoji} E Cards (Expeditor):
+                {colors.game.cardTypes.E.emoji} Expeditors (E):
               </strong> Filing representatives who can help or hinder application processes
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.L.primary }}>
-                {colors.game.cardTypes.L.emoji} L Cards (Life Events):
+                {colors.game.cardTypes.L.emoji} Life Events (L):
               </strong> Random events like new laws, weather delays, and unforeseen circumstances
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.I.primary }}>
-                {colors.game.cardTypes.I.emoji} I Cards (Investor):
+                {colors.game.cardTypes.I.emoji} Investors (I):
               </strong> Investment opportunities and funding partners
             </div>
           </div>
@@ -140,7 +140,7 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
           </h3>
           <ul style={listStyle}>
             <li style={listItemStyle}>
-              <strong>OWNER-SCOPE-INITIATION:</strong> Define project scope and pick up E cards
+              <strong>OWNER-SCOPE-INITIATION:</strong> Define project scope and hire expeditors
             </li>
             <li style={listItemStyle}>
               <strong>OWNER-FUND-INITIATION:</strong> Secure initial funding
