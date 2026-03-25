@@ -22,8 +22,8 @@ CON-ISSUES,Next Step,First,CON-INSPECT,CON-INSPECT,REG-FDNY-FEE-REVIEW,REG-DOB-F
 CON-ISSUES,Next Step,Subsequent,CON-INSPECT,CON-INSPECT,CON-INSPECT,CON-INSPECT,REG-FDNY-FEE-REVIEW,REG-DOB-FEE-REVIEW,
 CON-ISSUES,Time outcomes,First,1 day,15 days,1 day,1 day,1 day,1 day,
 CON-ISSUES,Time outcomes,Subsequent,1 day,1 day,1 day,15 days,1 day,1 day,
-ENG-FEE-REVIEW,Time outcomes,First,2%,2%,4%,4%,6%,6%,
-ENG-FEE-REVIEW,Time outcomes,Subsequent,0%,0%,1%,1%,2%,2%,
+ENG-FEE-REVIEW,Fees Paid,First,2%,2%,4%,4%,6%,6%,
+ENG-FEE-REVIEW,Fees Paid,Subsequent,0%,0%,1%,1%,2%,2%,
 ENG-INITIATION,Next Step,Subsequent,PM-DECISION-CHECK or REG-DOB-FEE-REVIEW,PM-DECISION-CHECK or REG-DOB-FEE-REVIEW,PM-DECISION-CHECK or REG-DOB-FEE-REVIEW,ENG-FEE-REVIEW,ENG-FEE-REVIEW,ENG-FEE-REVIEW,
 ENG-SCOPE-CHECK,W Cards,First,Remove 1,Draw 1,Replace 1,No change,No change,No change,
 ENG-SCOPE-CHECK,W Cards,Subsequent,Remove 1,Draw 1,Replace 1,No change,No change,No change,

@@ -77,10 +77,10 @@ ENG-INITIATION,First,time,add,5,,Spend 5 days,auto
 ENG-INITIATION,Subsequent,cards,draw_L,Draw 1 if you roll a 2,dice_roll_2,Draw 1 if you roll a 2 L cards,auto
 ENG-INITIATION,Subsequent,time,add,5,,Spend 5 days,auto
 ENG-FEE-REVIEW,First,cards,draw_L,Draw 1 if you roll a 3,dice_roll_3,Draw 1 if you roll a 3 L cards,auto
-ENG-FEE-REVIEW,First,dice,dice_outcome,Time outcomes,,Roll for Time outcomes,manual
+ENG-FEE-REVIEW,First,dice,dice_outcome,Fees Paid,,Roll for Fees Paid,manual
 ENG-FEE-REVIEW,First,time,add,50,,Spend 50 days,auto
 ENG-FEE-REVIEW,Subsequent,cards,draw_L,Draw 1 if you roll a 4,dice_roll_4,Draw 1 if you roll a 4 L cards,auto
-ENG-FEE-REVIEW,Subsequent,dice,dice_outcome,Time outcomes,,Roll for Time outcomes,manual
+ENG-FEE-REVIEW,Subsequent,dice,dice_outcome,Fees Paid,,Roll for Fees Paid,manual
 ENG-FEE-REVIEW,Subsequent,time,add,15,,Spend 15 days,auto
 ENG-SCOPE-CHECK,First,cards,draw_L,Draw 1 if you roll a 5,dice_roll_5,Draw 1 if you roll a 5 L cards,auto
 ENG-SCOPE-CHECK,First,dice,dice_outcome,W Cards,,Roll for W Cards,manual
