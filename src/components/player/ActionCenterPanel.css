@@ -252,6 +252,7 @@
 .action-center__action-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   width: 100%;
   max-width: 100%;
@@ -266,7 +267,7 @@
   cursor: pointer;
   transition: all 0.15s;
   min-height: 48px;
-  text-align: left;
+  text-align: center;
   word-break: break-word;
 }
 
@@ -367,6 +368,7 @@
   border: none;
   border-radius: 8px;
   font-weight: bold;
+  text-align: center;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.15s;

@@ -1,5 +1,4 @@
 space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_players,requires_dice_roll
-,end_turn_label,,No,No,1,4,Yes
 START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No
 OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes
 OWNER-FUND-INITIATION,SETUP,Main,Yes,No,1,4,No

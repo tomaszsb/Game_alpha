@@ -154,7 +154,8 @@ function processMovement(spacesCsv, diceRollCsv) {
   const movements = [];
 
   for (const row of spacesRows) {
-    const spaceName = row.space_name;
+    const spaceName = (row.space_name || '').trim();
+    if (!spaceName) continue; // skip button label rows
     const visitType = row.visit_type;
     const pathVal = (row.path || '').trim();
     const allDestColumns = getAllDestColumns(row);
@@ -220,7 +221,8 @@ function processGameConfig(spacesCsv) {
   const configs = {};
 
   for (const row of rows) {
-    const spaceName = row.space_name;
+    const spaceName = (row.space_name || '').trim();
+    if (!spaceName) continue; // skip button label rows with empty space_name
     if (configs[spaceName]) continue; // first occurrence wins (dedup)
 
     const phase = row.phase || '';
@@ -249,7 +251,7 @@ function processGameConfig(spacesCsv) {
 
 function processSpaceContent(spacesCsv) {
   const rows = parseCsvWithHeaders(spacesCsv);
-  const contents = rows.map(row => ({
+  const contents = rows.filter(row => (row.space_name || '').trim()).map(row => ({
     space_name: row.space_name,
     visit_type: row.visit_type,
     title: row.Title || row.Event || '',
@@ -287,7 +289,8 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
   }
 
   for (const row of rows) {
-    const spaceName = row.space_name;
+    const spaceName = (row.space_name || '').trim();
+    if (!spaceName) continue; // skip button label rows
     const visitType = row.visit_type;
 
     // Card effects (from Spaces.csv columns)

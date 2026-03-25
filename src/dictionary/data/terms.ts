@@ -132,8 +132,10 @@ export async function loadTerms(): Promise<GlossaryTerm[]> {
     return termsCache;
   }
 
-  // Try dashboard API first (live data)
+  // Try dashboard API first (live data) — skip if cross-origin to avoid CORS console errors
+  const isSameOrigin = window.location.origin === new URL(GLOSSARY_API_URL).origin;
   try {
+    if (!isSameOrigin) throw new Error('Cross-origin — skip to CSV fallback');
     const response = await fetch(GLOSSARY_API_URL);
     if (response.ok) {
       const rawTerms = await response.json();
