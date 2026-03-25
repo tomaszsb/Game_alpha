@@ -220,6 +220,9 @@ function processGameConfig(spacesCsv) {
   const rows = parseCsvWithHeaders(spacesCsv);
   const configs = {};
 
+  // Known starting space — first space on the Main path where gameplay begins
+  const STARTING_SPACE = 'OWNER-SCOPE-INITIATION';
+
   for (const row of rows) {
     const spaceName = (row.space_name || '').trim();
     if (!spaceName) continue; // skip button label rows with empty space_name
@@ -227,7 +230,7 @@ function processGameConfig(spacesCsv) {
 
     const phase = row.phase || '';
     const pathType = row.path || '';
-    const isStarting = (phase === 'SETUP' && pathType === 'Main');
+    const isStarting = (spaceName === STARTING_SPACE);
 
     configs[spaceName] = {
       space_name: spaceName,
