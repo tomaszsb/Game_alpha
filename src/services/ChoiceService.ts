@@ -50,6 +50,15 @@ export class ChoiceService implements IChoiceService {
       }
     }
 
+    // Cancel any existing pending choice before creating a new one
+    // This prevents orphaned promises that timeout with console errors
+    const existingChoice = this.getActiveChoice();
+    if (existingChoice && this.pendingChoices.has(existingChoice.id)) {
+      const pending = this.pendingChoices.get(existingChoice.id)!;
+      this.pendingChoices.delete(existingChoice.id);
+      pending.resolve(''); // Resolve with empty to indicate cancellation
+    }
+
     // Create the choice object
     const choice: Choice = {
       id: choiceId,
