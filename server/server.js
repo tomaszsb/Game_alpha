@@ -75,6 +75,41 @@ const writableDataDir = path.join(CONFIG.DATA_DIR, 'game-data');
 const writableSourceDir = path.join(writableDataDir, 'SOURCE_FILES');
 const writableCleanDir = path.join(writableDataDir, 'CLEAN_FILES');
 const writableBaselineDir = path.join(writableDataDir, 'BASELINE');
+const backupsDir = path.join(writableDataDir, 'backups');
+
+// Back up SOURCE_FILES before destructive operations (save, reset, init).
+// Keeps the 2 most recent snapshots so editor data can be recovered.
+function backupSourceFiles(reason) {
+  const spacesPath = path.join(writableSourceDir, 'Spaces.csv');
+  if (!fs.existsSync(spacesPath)) return; // nothing to back up
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const snapshotDir = path.join(backupsDir, `${timestamp}_${reason}`);
+  fs.mkdirSync(snapshotDir, { recursive: true });
+
+  for (const file of fs.readdirSync(writableSourceDir)) {
+    fs.copyFileSync(
+      path.join(writableSourceDir, file),
+      path.join(snapshotDir, file)
+    );
+  }
+  console.log(`💾 Backup created: ${path.basename(snapshotDir)}`);
+
+  // Prune: keep only the 2 most recent snapshots
+  const snapshots = fs.readdirSync(backupsDir)
+    .filter(d => fs.statSync(path.join(backupsDir, d)).isDirectory())
+    .sort()
+    .reverse();
+
+  for (const old of snapshots.slice(2)) {
+    const oldPath = path.join(backupsDir, old);
+    for (const f of fs.readdirSync(oldPath)) {
+      fs.unlinkSync(path.join(oldPath, f));
+    }
+    fs.rmdirSync(oldPath);
+    console.log(`🗑️  Pruned old backup: ${old}`);
+  }
+}
 
 function initWritableData() {
   const distDataDir = path.join(distPath, 'data');
@@ -88,6 +123,7 @@ function initWritableData() {
   const needsBaselineUpdate = currentVersion !== existingVersion;
 
   if (needsFullInit) {
+    backupSourceFiles('pre-init');
     console.log('📋 Initializing writable data from dist...');
     for (const sub of ['SOURCE_FILES', 'CLEAN_FILES', 'BASELINE']) {
       const src = path.join(distDataDir, sub);
@@ -423,6 +459,7 @@ app.post('/api/admin/save-source-files', (req, res) => {
   }
 
   try {
+    backupSourceFiles('pre-save');
     // Write SOURCE_FILES to writable data dir
     fs.mkdirSync(writableSourceDir, { recursive: true });
     fs.mkdirSync(writableCleanDir, { recursive: true });
@@ -476,6 +513,7 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
       });
     }
 
+    backupSourceFiles('pre-reset');
     // Copy all CSV files from BASELINE to SOURCE_FILES
     fs.mkdirSync(writableSourceDir, { recursive: true });
     fs.mkdirSync(writableCleanDir, { recursive: true });
