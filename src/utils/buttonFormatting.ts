@@ -3,6 +3,7 @@
 import React from 'react';
 import { SpaceEffect, DiceEffect } from '../types/DataTypes';
 import { getTooltipService, ActionTooltip } from '../services/TooltipService';
+import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';
 
 export interface ButtonInfo {
   text: string;
@@ -149,25 +150,25 @@ export function formatDiceRollButton(
     switch (firstEffect.effect_type) {
       case 'cards': {
         const ct = firstEffect.card_type?.toUpperCase() || '';
-        if (ct === 'E') return 'Hire Expeditors';
-        if (ct === 'W') return 'Get Work Packages';
-        if (ct === 'B') return 'Apply for Bank Loans';
-        if (ct === 'I') return 'Seek Investments';
-        if (ct === 'L') return 'Check for Life Events';
-        return 'Determine Effects';
+        if (ct === 'E') return DICE_BUTTON.EXPEDITOR;
+        if (ct === 'W') return DICE_BUTTON.WORK;
+        if (ct === 'B') return DICE_BUTTON.BANK;
+        if (ct === 'I') return DICE_BUTTON.INVESTMENT;
+        if (ct === 'L') return DICE_BUTTON.LIFE_EVENT;
+        return DICE_BUTTON.EFFECTS;
       }
 
       case 'money':
-        return firstEffect.card_type === 'fee' ? "Determine Fee Amount" : "Determine Funding";
+        return firstEffect.card_type === 'fee' ? DICE_BUTTON.FEE : DICE_BUTTON.FUNDING;
 
       case 'time':
-        return "Determine Time Impact";
+        return DICE_BUTTON.TIME;
 
       case 'quality':
-        return "Assess Quality";
+        return DICE_BUTTON.QUALITY;
 
       default:
-        return "Determine Effects";
+        return DICE_BUTTON.EFFECTS;
     }
   }
 
@@ -179,11 +180,11 @@ export function formatDiceRollButton(
   if (diceConditionEffects.length > 0) {
     const effectTypes = diceConditionEffects.map(effect => effect.effect_type);
     if (effectTypes.includes('cards')) {
-      return "Check for Bonus";
+      return DICE_BUTTON.BONUS;
     } else if (effectTypes.includes('money')) {
-      return "Check for Bonus Funding";
+      return DICE_BUTTON.BONUS_FUNDING;
     } else {
-      return "Check for Bonus Effects";
+      return DICE_BUTTON.BONUS_EFFECTS;
     }
   }
 
@@ -202,12 +203,12 @@ export function formatDiceRollButton(
     const uniqueDestinations = new Set(destinations);
 
     if (uniqueDestinations.size > 1) {
-      return "Determine Next Step";
+      return DICE_BUTTON.NEXT_STEP;
     }
   }
 
   // Default fallback
-  return "Determine Outcome";
+  return DICE_BUTTON.OUTCOME;
 }
 
 /**
@@ -228,33 +229,34 @@ function getCardTypeName(cardType: string): string {
  * Create standardized dice roll feedback message with outcomes
  */
 export function formatDiceRollFeedback(diceValue: number, effects: any[]): string {
-  let unifiedDescription = `Result: ${diceValue}`;
+  let unifiedDescription = DICE_FEEDBACK.prefix(diceValue);
   const outcomes: string[] = [];
 
   effects?.forEach(effect => {
     switch (effect.type) {
       case 'cards':
-        outcomes.push(`Got ${effect.cardCount} ${getCardTypeName(effect.cardType)}${effect.cardCount !== 1 ? 's' : ''}`);
+        outcomes.push(DICE_FEEDBACK.got(effect.cardCount, getCardTypeName(effect.cardType), effect.cardCount !== 1 ? 's' : ''));
         break;
       case 'money':
         if (effect.value !== undefined) {
           const moneyOutcome = effect.value > 0
-            ? `Gained $${Math.abs(effect.value)}`
-            : `Spent $${Math.abs(effect.value)}`;
+            ? DICE_FEEDBACK.gained(Math.abs(effect.value))
+            : DICE_FEEDBACK.spent(Math.abs(effect.value));
           outcomes.push(moneyOutcome);
         }
         break;
       case 'time':
         if (effect.value !== undefined) {
+          const unit = Math.abs(effect.value) !== 1 ? 'days' : 'day';
           const timeOutcome = effect.value > 0
-            ? `Time Penalty: ${Math.abs(effect.value)} day${Math.abs(effect.value) !== 1 ? 's' : ''}`
-            : `Time Saved: ${Math.abs(effect.value)} day${Math.abs(effect.value) !== 1 ? 's' : ''}`;
+            ? DICE_FEEDBACK.timePenalty(Math.abs(effect.value), unit)
+            : DICE_FEEDBACK.timeSaved(Math.abs(effect.value), unit);
           outcomes.push(timeOutcome);
         }
         break;
       case 'movement':
         if (effect.destination) {
-          outcomes.push(`Moved to ${effect.destination}`);
+          outcomes.push(DICE_FEEDBACK.movedTo(effect.destination));
         }
         break;
       default:
@@ -268,8 +270,7 @@ export function formatDiceRollFeedback(diceValue: number, effects: any[]): strin
   if (outcomes.length > 0) {
     unifiedDescription += ` → ${outcomes.join(', ')}`;
   } else {
-    // Add space name context when no specific effects
-    unifiedDescription += ` on current space`;
+    unifiedDescription += ` ${DICE_FEEDBACK.ON_CURRENT_SPACE}`;
   }
 
   return unifiedDescription;
@@ -284,7 +285,7 @@ export function formatActionFeedback(effects: any[]): string {
   effects?.forEach(effect => {
     switch (effect.type) {
       case 'cards':
-        outcomes.push(`Got ${effect.cardCount} ${getCardTypeName(effect.cardType)}${effect.cardCount !== 1 ? 's' : ''}`);
+        outcomes.push(DICE_FEEDBACK.got(effect.cardCount, getCardTypeName(effect.cardType), effect.cardCount !== 1 ? 's' : ''));
         break;
       case 'money':
         if (effect.value !== undefined) {
@@ -296,20 +297,21 @@ export function formatActionFeedback(effects: any[]): string {
         break;
       case 'time':
         if (effect.value !== undefined) {
+          const unit = Math.abs(effect.value) !== 1 ? 'days' : 'day';
           const timeOutcome = effect.value > 0
-            ? `Time Penalty: ${Math.abs(effect.value)} day${Math.abs(effect.value) !== 1 ? 's' : ''}`
-            : `Time Bonus: ${Math.abs(effect.value)} day${Math.abs(effect.value) !== 1 ? 's' : ''}`;
+            ? DICE_FEEDBACK.timePenalty(Math.abs(effect.value), unit)
+            : DICE_FEEDBACK.timeBonus(Math.abs(effect.value), unit);
           outcomes.push(timeOutcome);
         }
         break;
       case 'movement':
-        outcomes.push(`Moved to ${effect.destination || 'new location'}`);
+        outcomes.push(DICE_FEEDBACK.movedTo(effect.destination || 'new location'));
         break;
     }
   });
 
   if (outcomes.length === 0) {
-    return 'Action completed';
+    return DICE_FEEDBACK.ACTION_COMPLETED;
   }
 
   return outcomes.join(', ');

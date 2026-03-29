@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { CardReplacementModal } from '../../../src/components/modals/CardReplacementModal';
 import { Player, Card } from '../../../src/types/DataTypes';
 import { DataService } from '../../../src/services/DataService';
+import { CARD_REPLACE } from '../../../src/constants/uiStrings';
 
 // Mock GameContext
 const mockDataService = {
@@ -90,8 +91,8 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText('Replace Work Cards')).toBeInTheDocument();
-    expect(screen.getByText(/Select up to 2 cards to replace/)).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.title('Replace', 'Work'))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(CARD_REPLACE.instruction(2)))).toBeInTheDocument();
     expect(screen.getByText('Foundation Work')).toBeInTheDocument();
     expect(screen.getByText('Electrical Upgrade')).toBeInTheDocument();
   });
@@ -108,7 +109,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.queryByText('Replace Work Cards')).not.toBeInTheDocument();
+    expect(screen.queryByText(CARD_REPLACE.title('Replace', 'Work'))).not.toBeInTheDocument();
   });
 
   it('should not render when player is null', () => {
@@ -123,7 +124,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.queryByText('Replace Work Cards')).not.toBeInTheDocument();
+    expect(screen.queryByText(CARD_REPLACE.title('Replace', 'Work'))).not.toBeInTheDocument();
   });
 
   it('should display message when no cards available', () => {
@@ -143,7 +144,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText('No Work cards available to replace')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.empty('Work', 'replace'))).toBeInTheDocument();
   });
 
   it('should handle card selection and deselection', () => {
@@ -161,20 +162,20 @@ describe('CardReplacementModal', () => {
     const foundationCard = screen.getByText('Foundation Work').closest('div');
     const electricalCard = screen.getByText('Electrical Upgrade').closest('div');
 
-    // Initially no cards selected
-    expect(screen.getByText('0 of 2 cards selected')).toBeInTheDocument();
+    // Initially no selected
+    expect(screen.getByText(CARD_REPLACE.counter(0, 2))).toBeInTheDocument();
 
     // Select first card
     fireEvent.click(foundationCard!);
-    expect(screen.getByText('1 of 2 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(1, 2))).toBeInTheDocument();
 
     // Select second card
     fireEvent.click(electricalCard!);
-    expect(screen.getByText('2 of 2 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(2, 2))).toBeInTheDocument();
 
     // Deselect first card
     fireEvent.click(foundationCard!);
-    expect(screen.getByText('1 of 2 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(1, 2))).toBeInTheDocument();
   });
 
   it('should prevent selecting more cards than maxReplacements', () => {
@@ -194,11 +195,11 @@ describe('CardReplacementModal', () => {
 
     // Select first card
     fireEvent.click(foundationCard!);
-    expect(screen.getByText('1 of 1 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(1, 1))).toBeInTheDocument();
 
     // Try to select second card - should not work
     fireEvent.click(electricalCard!);
-    expect(screen.getByText('1 of 1 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(1, 1))).toBeInTheDocument();
   });
 
   it('should display card details with proper formatting', () => {
@@ -249,7 +250,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const replaceButton = screen.getByText(/Replace \d+ Card/);
+    const replaceButton = screen.getByText(new RegExp(`Replace \\d+`));
     
     // Initially disabled
     expect(replaceButton).toBeDisabled();
@@ -260,7 +261,7 @@ describe('CardReplacementModal', () => {
 
     // Should now be enabled
     expect(replaceButton).not.toBeDisabled();
-    expect(screen.getByText('Replace 1 Card')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.confirm('Replace', 1))).toBeInTheDocument();
   });
 
   it('should call onReplace with selected cards and same card type', () => {
@@ -280,7 +281,7 @@ describe('CardReplacementModal', () => {
     fireEvent.click(foundationCard!);
 
     // Click replace - should use same card type (W)
-    const replaceButton = screen.getByText('Replace 1 Card');
+    const replaceButton = screen.getByText(CARD_REPLACE.confirm('Replace', 1));
     fireEvent.click(replaceButton);
 
     expect(mockOnReplace).toHaveBeenCalledWith(['W1'], 'W');
@@ -298,7 +299,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const cancelButton = screen.getByText('Return to Main Panel');
+    const cancelButton = screen.getByText(CARD_REPLACE.RETURN_BUTTON);
     fireEvent.click(cancelButton);
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
@@ -316,7 +317,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const backdrop = screen.getByText('Replace Work Cards').closest('div')?.parentElement?.parentElement;
+    const backdrop = screen.getByText('Replace Work').closest('div')?.parentElement?.parentElement;
     fireEvent.click(backdrop!);
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
@@ -337,10 +338,10 @@ describe('CardReplacementModal', () => {
     // Select a card
     const foundationCard = screen.getByText('Foundation Work').closest('div');
     fireEvent.click(foundationCard!);
-    expect(screen.getByText('1 of 2 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(1, 2))).toBeInTheDocument();
 
     // Cancel using Return to Main Panel button
-    const cancelButton = screen.getByText('Return to Main Panel');
+    const cancelButton = screen.getByText(CARD_REPLACE.RETURN_BUTTON);
     fireEvent.click(cancelButton);
 
     // Re-render the same component to check if its internal state was reset
@@ -355,7 +356,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText('0 of 2 cards selected')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.counter(0, 2))).toBeInTheDocument();
   });
 
   it('should handle different card types correctly', () => {
@@ -383,7 +384,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText('Replace Bank Cards')).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.title('Replace', 'Bank'))).toBeInTheDocument();
     expect(screen.getByText('Marketing Campaign')).toBeInTheDocument();
   });
 

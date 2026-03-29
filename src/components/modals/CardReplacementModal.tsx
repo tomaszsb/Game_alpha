@@ -8,6 +8,7 @@ import { CardDisplay } from '../common/CardDisplay';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { CardDetailsModal } from './CardDetailsModal';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import { CARD_REPLACE } from '../../constants/uiStrings';
 import '../common/CardDisplay.css';
 
 type CardSelectionMode = 'replace' | 'return' | 'give';
@@ -94,24 +95,24 @@ export function CardReplacementModal({
   const typeName = getCardTypeName(cardType);
   const modeConfig = {
     replace: {
-      title: `Replace ${typeName}`,
-      instruction: `Select up to ${maxReplacements} to replace`,
-      confirmText: `Replace ${selectedCardIds.length}`,
-      emptyText: `No ${typeName} available to replace`,
+      title: CARD_REPLACE.title('Replace', typeName),
+      instruction: CARD_REPLACE.instruction(maxReplacements),
+      confirmText: CARD_REPLACE.confirm('Replace', selectedCardIds.length),
+      emptyText: CARD_REPLACE.empty(typeName, 'replace'),
       floatingText: `Complete ${typeName} Replacement`,
     },
     return: {
-      title: `Return ${typeName}`,
-      instruction: `Select ${maxReplacements > 1 ? `up to ${maxReplacements}` : 'one'} to return`,
-      confirmText: `Return ${selectedCardIds.length}`,
-      emptyText: `No ${typeName} available to return`,
+      title: CARD_REPLACE.title('Return', typeName),
+      instruction: CARD_REPLACE.instructionReturn(maxReplacements),
+      confirmText: CARD_REPLACE.confirm('Return', selectedCardIds.length),
+      emptyText: CARD_REPLACE.empty(typeName, 'return'),
       floatingText: `Complete ${typeName} Return`,
     },
     give: {
       title: `Give ${typeName}${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
       instruction: `Select one to give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
       confirmText: `Give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
-      emptyText: `No ${typeName} available to give`,
+      emptyText: CARD_REPLACE.empty(typeName, 'give'),
       floatingText: `Complete ${typeName} Transfer`,
     },
   };
@@ -121,7 +122,7 @@ export function CardReplacementModal({
   const footer = (
     <>
       <div style={{ fontSize: '14px', color: colors.text.secondary }}>
-        {selectedCardIds.length} of {maxReplacements} selected
+        {CARD_REPLACE.counter(selectedCardIds.length, maxReplacements)}
       </div>
       <div style={{ display: 'flex', gap: '12px' }}>
         <button
@@ -135,7 +136,7 @@ export function CardReplacementModal({
           }}
           title="Return to the main game panel - you can come back to complete this action"
         >
-          Return to Main Panel
+          {CARD_REPLACE.RETURN_BUTTON}
         </button>
         <button
           style={{

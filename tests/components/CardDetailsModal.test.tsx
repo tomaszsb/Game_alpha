@@ -14,6 +14,7 @@ import { CardDetailsModal } from '../../src/components/modals/CardDetailsModal';
 import { Player } from '../../src/types/StateTypes';
 import { Card } from '../../src/types/DataTypes';
 import { createAllMockServices } from '../mocks/mockServices';
+import { CARD_DETAILS } from '../../src/constants/uiStrings';
 
 describe('CardDetailsModal', () => {
   beforeEach(() => {
@@ -122,18 +123,18 @@ describe('CardDetailsModal', () => {
     expect(screen.getByText('Permit Expeditor')).toBeInTheDocument();
 
     // Click "Transfer Card" button to show transfer UI
-    const transferButton = screen.getByText('↔ Transfer Card');
+    const transferButton = screen.getByText(CARD_DETAILS.TRANSFER_TOGGLE);
     fireEvent.click(transferButton);
 
     // Verify transfer UI is displayed
-    expect(screen.getByText('Select player to transfer card to:')).toBeInTheDocument();
+    expect(screen.getByText(CARD_DETAILS.TRANSFER_HEADING)).toBeInTheDocument();
 
     // Select the first other player
     const targetPlayerRadio = screen.getByDisplayValue('player2');
     fireEvent.click(targetPlayerRadio);
 
     // Click the final "Transfer Card" confirmation button (it should be enabled after selecting a player)
-    const confirmTransferButton = screen.getByRole('button', { name: 'Transfer Card' });
+    const confirmTransferButton = screen.getByRole('button', { name: CARD_DETAILS.TRANSFER_CONFIRM });
     fireEvent.click(confirmTransferButton);
 
     // Assert that cardService.transferCard was called with correct arguments
@@ -148,8 +149,8 @@ describe('CardDetailsModal', () => {
     expect(mockServices.notificationService.notify).toHaveBeenCalledWith(
       {
         short: '✓',
-        medium: '✅ Card Transferred complete',
-        detailed: 'Current Player successfully completed Card Transferred: Permit Expeditor transferred to Other Player 1'
+        medium: '✅ Transferred complete',
+        detailed: 'Current Player successfully completed Transferred: Permit Expeditor transferred to Other Player 1'
       },
       {
         playerId: 'player1',
@@ -175,7 +176,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Click "Transfer Card" button to show transfer UI
-    const transferButton = screen.getByText('↔ Transfer Card');
+    const transferButton = screen.getByText(CARD_DETAILS.TRANSFER_TOGGLE);
     fireEvent.click(transferButton);
 
     // Select a target player
@@ -183,7 +184,7 @@ describe('CardDetailsModal', () => {
     fireEvent.click(targetPlayerRadio);
 
     // Click the final "Transfer Card" confirmation button
-    const confirmTransferButton = screen.getByRole('button', { name: 'Transfer Card' });
+    const confirmTransferButton = screen.getByRole('button', { name: CARD_DETAILS.TRANSFER_CONFIRM });
     fireEvent.click(confirmTransferButton);
 
     // Assert that cardService.transferCard was called
@@ -198,8 +199,8 @@ describe('CardDetailsModal', () => {
     expect(mockServices.notificationService.notify).toHaveBeenCalledWith(
       {
         short: 'Error',
-        medium: '❌ Card Transfer failed',
-        detailed: 'Current Player encountered error during Card Transfer: Transfer failed: Player not found'
+        medium: '❌ Transfer Failed failed',
+        detailed: 'Current Player encountered error during Transfer Failed: Transfer failed: Player not found'
       },
       {
         playerId: 'player1',
@@ -219,7 +220,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Verify "Transfer Card" button is available for E-type card
-    expect(screen.getByText('↔ Transfer Card')).toBeInTheDocument();
+    expect(screen.getByText(CARD_DETAILS.TRANSFER_TOGGLE)).toBeInTheDocument();
   });
 
   it('should not display transfer UI for non-transferable card types', () => {
@@ -244,7 +245,7 @@ describe('CardDetailsModal', () => {
     );
 
     // Verify "Transfer Card" button is NOT available for W-type card
-    expect(screen.queryByText('↔ Transfer Card')).not.toBeInTheDocument();
+    expect(screen.queryByText(CARD_DETAILS.TRANSFER_TOGGLE)).not.toBeInTheDocument();
   });
 
   it('should not show transfer UI when modal is closed', () => {
@@ -269,18 +270,18 @@ describe('CardDetailsModal', () => {
     );
 
     // Click "Transfer Card" to show transfer UI
-    const transferButton = screen.getByText('↔ Transfer Card');
+    const transferButton = screen.getByText(CARD_DETAILS.TRANSFER_TOGGLE);
     fireEvent.click(transferButton);
 
     // Verify transfer UI is shown
-    expect(screen.getByText('Select player to transfer card to:')).toBeInTheDocument();
+    expect(screen.getByText(CARD_DETAILS.TRANSFER_HEADING)).toBeInTheDocument();
 
     // Select a player and attempt transfer
     const targetPlayerRadio = screen.getByDisplayValue('player2');
     fireEvent.click(targetPlayerRadio);
 
     // Verify that the transfer card button is now enabled and available
-    const confirmButton = screen.getByRole('button', { name: 'Transfer Card' });
+    const confirmButton = screen.getByRole('button', { name: CARD_DETAILS.TRANSFER_CONFIRM });
     expect(confirmButton).toBeInTheDocument();
     expect(confirmButton).not.toBeDisabled();
   });

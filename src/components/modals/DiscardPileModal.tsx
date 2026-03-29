@@ -6,6 +6,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { CardTypeBadge, getCardTypeColors } from '../common/CardTypeBadge';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
+import { DISCARD_PILE } from '../../constants/uiStrings';
 
 interface DiscardPileModalProps {
   isOpen: boolean;
@@ -100,7 +101,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
           value={filterType}
           onChange={(e) => setFilterType(e.target.value as typeof filterType)}
           style={selectStyle}
-          aria-label="Filter by type"
+          aria-label={DISCARD_PILE.FILTER_LABEL}
         >
           <option value="all">All Types</option>
           <option value="W">{colors.game.cardTypes.W.emoji} Work</option>
@@ -131,7 +132,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
           padding: '40px 24px',
         }}>
           {allDiscardedCards.length === 0
-            ? 'No resources used yet'
+            ? DISCARD_PILE.EMPTY_STATE
             : 'No results match the selected filter'}
         </div>
       ) : (

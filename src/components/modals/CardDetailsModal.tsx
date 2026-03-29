@@ -11,6 +11,7 @@ import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { openInDictionary } from '../../utils/dictionaryBridge';
+import { CARD_DETAILS } from '../../constants/uiStrings';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -127,7 +128,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
             e.currentTarget.style.opacity = '1';
           }}
         >
-          ↔ Transfer
+          {CARD_DETAILS.TRANSFER_TOGGLE}
         </button>
       )}
       <button
@@ -374,7 +375,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
             margin: 0,
             marginBottom: '12px'
           }}>
-            Select player to transfer to:
+            {CARD_DETAILS.TRANSFER_HEADING}
           </h4>
           <div style={{
             display: 'flex',
@@ -436,7 +437,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
                 cursor: selectedTargetPlayer ? 'pointer' : 'not-allowed'
               }}
             >
-              Transfer
+              {CARD_DETAILS.TRANSFER_CONFIRM}
             </button>
           </div>
         </div>

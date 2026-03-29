@@ -2,7 +2,7 @@
 
 **Last Updated:** March 29, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.36.0
+**Current Version:** 2.36.1
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Centralize UI strings — `src/constants/uiStrings.ts` shared by source + tests, fixed 57 stale test failures, 6 test files updated (Mar 29, 2026)
 - ✅ Fix card replacement spinner, duplicate Expeditor tab buttons, Try Again choice leak — 3 bug fixes, 5 new/updated tests (Mar 29, 2026)
 - ✅ `roll_group` column for independent dice rolls — editor field, data pipeline, processing logic, 7 new tests (Mar 29, 2026)
 - ✅ Real-world language — removed "card", "dice", "roll", "play", "draw", "discard" from all player-facing UI across 20 files (Mar 25, 2026)

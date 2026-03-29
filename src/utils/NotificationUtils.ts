@@ -2,6 +2,7 @@
 
 import { NotificationContent } from '../services/NotificationService';
 import { FormatUtils } from './FormatUtils';
+import { NOTIF } from '../constants/uiStrings';
 
 export class NotificationUtils {
 
@@ -22,8 +23,8 @@ export class NotificationUtils {
 
     return {
       short: `${diceValue}`,
-      medium: `🎲 Result: ${diceValue} → ${effectSummary || 'No effects'}`,
-      detailed: `${playerName} got ${diceValue}${effectSummary ? ` and gained: ${effectSummary}` : ''}`
+      medium: NOTIF.diceRollMedium(diceValue, effectSummary),
+      detailed: NOTIF.diceRollDetailed(playerName, diceValue, effectSummary),
     };
   }
 
@@ -83,9 +84,9 @@ export class NotificationUtils {
     }).join(', ');
 
     return {
-      short: `✓`,
-      medium: `🃏 Activated ${cardName}${effectSummary ? ` → ${effectSummary}` : ''}`,
-      detailed: `${playerName} activated "${cardName}"${effectSummary ? ` with effects: ${effectSummary}` : ''}`
+      short: NOTIF.cardPlayShort,
+      medium: NOTIF.cardPlayMedium(cardName, effectSummary),
+      detailed: NOTIF.cardPlayDetailed(playerName, cardName, effectSummary),
     };
   }
 

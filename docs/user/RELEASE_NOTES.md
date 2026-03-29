@@ -2,6 +2,18 @@
 
 ---
 
+## v2.36.1 - Test Stability (March 29, 2026)
+
+**Release Date:** March 29, 2026
+**Version:** 2.36.1
+**Status:** Alpha Testing
+**Type:** Internal / Code Quality
+
+### Under the hood
+- Centralized all UI text into a shared constants file so future label changes won't break tests. Fixed 57 stale test assertions that were left over from the v2.35.0 language update. No user-visible changes.
+
+---
+
 ## v2.36.0 - Bug Fixes & Independent Dice Rolls (March 29, 2026)
 
 **Release Date:** March 29, 2026

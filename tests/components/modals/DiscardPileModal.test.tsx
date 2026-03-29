@@ -5,6 +5,7 @@ import { DiscardPileModal } from '../../../src/components/modals/DiscardPileModa
 import { GameContext } from '../../../src/context/GameContext';
 import { IServiceContainer, IDataService, IStateService } from '../../../src/types/ServiceContracts';
 import { Card } from '../../../src/types/DataTypes';
+import { DISCARD_PILE } from '../../../src/constants/uiStrings';
 
 describe('DiscardPileModal', () => {
   beforeEach(() => {
@@ -79,7 +80,7 @@ describe('DiscardPileModal', () => {
   it('should filter cards by type', () => {
     renderWithContext({ isOpen: true, onClose: mockOnClose });
 
-    fireEvent.change(screen.getByLabelText('Filter cards by type'), { target: { value: 'W' } });
+    fireEvent.change(screen.getByLabelText(DISCARD_PILE.FILTER_LABEL), { target: { value: 'W' } });
     expect(screen.getByText('Work Card')).toBeInTheDocument();
     expect(screen.queryByText('Expeditor Card')).not.toBeInTheDocument();
   });
@@ -98,6 +99,6 @@ describe('DiscardPileModal', () => {
     } as any);
 
     renderWithContext({ isOpen: true, onClose: mockOnClose });
-    expect(screen.getByText(/No discarded cards yet/i)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(DISCARD_PILE.EMPTY_STATE, 'i'))).toBeInTheDocument();
   });
 });

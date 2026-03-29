@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Centralize UI strings to prevent test brittleness (March 29, 2026)
+- **Refactor: Created `src/constants/uiStrings.ts`** — centralized UI text constants so both source components and tests import from the same file. Changing a button label now only requires editing one file instead of hunting through source + test files.
+- **Constants groups**: `DICE_BUTTON` (15 dice roll button labels), `DICE_FEEDBACK` (feedback format helpers), `NOTIF` (notification format helpers), `CARD_REPLACE` (modal text templates), `CARD_DETAILS` (transfer labels), `DISCARD_PILE` (empty state/filter text)
+- **Updated 5 source files**: `buttonFormatting.ts`, `NotificationUtils.ts`, `CardReplacementModal.tsx`, `CardDetailsModal.tsx`, `DiscardPileModal.tsx`
+- **Fixed 6 stale test files** (57 failures from v2.35.0 language update): `buttonFormatting.test.ts`, `NotificationUtils.test.ts`, `CardReplacementModal.test.tsx`, `CardDetailsModal.test.tsx`, `DiscardPileModal.test.tsx`, `csvExport.test.ts` — all now import from `uiStrings.ts` instead of hardcoding text
+- **Test suite**: 1398 tests passing, 0 failures
+
 ### Fix card replacement spinner, duplicate action buttons, Try Again choice leak (March 29, 2026)
 - **Bug fix: Card replacement cancel button caused infinite spinner** — `ChoiceModal.onCancel` hid the modal without resolving the pending choice promise. Changed to call `choiceService.skipChoice()` which resolves the promise with empty string. Removed `isCardReplacementHidden` state and floating indicator (no longer needed since cancel fully completes the action).
 - **Bug fix: Duplicate action buttons in Expeditor tab** — `CardsSection` rendered its own action buttons (Replace, Hire, etc.) in addition to the same buttons in ActionCenterPanel's YOUR ACTIONS section. Removed action button rendering from CardsSection; all manual effect and dice roll buttons now only appear in ActionCenterPanel. Cleaned up dead code (unused handlers, state).

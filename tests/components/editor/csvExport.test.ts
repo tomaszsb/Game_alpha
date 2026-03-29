@@ -181,7 +181,7 @@ describe('csvExport', () => {
       const lines = result.trim().split('\n');
 
       expect(lines.length).toBe(1);
-      expect(lines[0]).toBe('space_name,die_roll,visit_type,1,2,3,4,5,6,button_label');
+      expect(lines[0]).toBe('space_name,die_roll,visit_type,1,2,3,4,5,6,button_label,roll_group');
     });
 
     it('exports single dice roll row correctly', () => {
@@ -195,14 +195,15 @@ describe('csvExport', () => {
         roll_4: 'Draw 2',
         roll_5: 'Draw 3',
         roll_6: 'Draw 3',
-        button_label: ''
+        button_label: '',
+        roll_group: ''
       }];
 
       const result = exportDiceRollCSV(diceRolls);
       const lines = result.trim().split('\n');
 
       expect(lines.length).toBe(2);
-      expect(lines[1]).toBe('TEST-SPACE,W Cards,First,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,');
+      expect(lines[1]).toBe('TEST-SPACE,W Cards,First,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,,');
     });
 
     it('exports multiple dice roll rows', () => {
@@ -217,7 +218,8 @@ describe('csvExport', () => {
           roll_4: 'Draw 2',
           roll_5: 'Draw 3',
           roll_6: 'Draw 3',
-          button_label: ''
+          button_label: '',
+          roll_group: ''
         },
         {
           space_name: 'SPACE-1',
@@ -229,7 +231,8 @@ describe('csvExport', () => {
           roll_4: 'SPACE-3',
           roll_5: 'SPACE-4',
           roll_6: 'SPACE-4',
-          button_label: ''
+          button_label: '',
+          roll_group: ''
         }
       ];
 
@@ -252,13 +255,14 @@ describe('csvExport', () => {
         roll_4: '',
         roll_5: '',
         roll_6: 'Value 6',
-        button_label: ''
+        button_label: '',
+        roll_group: ''
       }];
 
       const result = exportDiceRollCSV(diceRolls);
       const lines = result.trim().split('\n');
 
-      expect(lines[1]).toBe('TEST-SPACE,Test,First,Value 1,,,,,Value 6,');
+      expect(lines[1]).toBe('TEST-SPACE,Test,First,Value 1,,,,,Value 6,,');
     });
   });
 });

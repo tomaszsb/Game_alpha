@@ -7,6 +7,7 @@ import {
   formatActionFeedback
 } from '../../src/utils/buttonFormatting';
 import { SpaceEffect, DiceEffect } from '../../src/types/DataTypes';
+import { DICE_BUTTON, DICE_FEEDBACK } from '../../src/constants/uiStrings';
 
 describe('buttonFormatting', () => {
   // Mock colors object for styling tests
@@ -204,7 +205,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Work Packages');
+      expect(result).toBe(DICE_BUTTON.WORK);
     });
 
     it('should format button for dice effects with money', () => {
@@ -221,7 +222,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Money');
+      expect(result).toBe(DICE_BUTTON.FUNDING);
     });
 
     it('should format button for dice effects with fee', () => {
@@ -239,7 +240,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Fee Amount');
+      expect(result).toBe(DICE_BUTTON.FEE);
     });
 
     it('should format button for dice effects with time', () => {
@@ -256,7 +257,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Time Penalty');
+      expect(result).toBe(DICE_BUTTON.TIME);
     });
 
     it('should format button for dice effects with quality', () => {
@@ -273,7 +274,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Quality');
+      expect(result).toBe(DICE_BUTTON.QUALITY);
     });
 
     it('should format button for unknown dice effect type', () => {
@@ -290,7 +291,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Effects');
+      expect(result).toBe(DICE_BUTTON.EFFECTS);
     });
 
     it('should format button for space effects with dice condition for cards', () => {
@@ -305,7 +306,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], spaceEffects, null);
-      expect(result).toBe('Roll for Bonus');
+      expect(result).toBe(DICE_BUTTON.BONUS);
     });
 
     it('should format button for space effects with dice condition for money', () => {
@@ -320,7 +321,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], spaceEffects, null);
-      expect(result).toBe('Roll for Bonus Money');
+      expect(result).toBe(DICE_BUTTON.BONUS_FUNDING);
     });
 
     it('should format button for space effects with dice condition for other effects', () => {
@@ -335,12 +336,12 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], spaceEffects, null);
-      expect(result).toBe('Roll for Bonus Effects');
+      expect(result).toBe(DICE_BUTTON.BONUS_EFFECTS);
     });
 
     it('should format button for movement with multiple destinations', () => {
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], [], mockDiceOutcome);
-      expect(result).toBe('Roll for Next Location');
+      expect(result).toBe(DICE_BUTTON.NEXT_STEP);
     });
 
     it('should format button for movement with single destination', () => {
@@ -356,12 +357,12 @@ describe('buttonFormatting', () => {
       };
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], [], singleDestinationOutcome);
-      expect(result).toBe('Roll Dice');
+      expect(result).toBe(DICE_BUTTON.OUTCOME);
     });
 
     it('should return default text when no effects or outcomes', () => {
       const result = formatDiceRollButton('TEST_SPACE', 'First', [], [], null);
-      expect(result).toBe('Roll Dice');
+      expect(result).toBe(DICE_BUTTON.OUTCOME);
     });
 
     it('should handle missing card_type in dice effects', () => {
@@ -379,7 +380,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollButton('TEST_SPACE', 'First', diceEffects, [], null);
-      expect(result).toBe('Roll for Effects');
+      expect(result).toBe(DICE_BUTTON.EFFECTS);
     });
   });
 
@@ -392,7 +393,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(4, effects);
-      expect(result).toBe('Rolled 4 → Got 2 Works');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.got(2, 'Work', 's')}`);
     });
 
     it('should format feedback with single card effect', () => {
@@ -403,7 +404,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(3, effects);
-      expect(result).toBe('Rolled 3 → Got 1 Bank');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(3)} → ${DICE_FEEDBACK.got(1, 'Bank', '')}`);
     });
 
     it('should format feedback with positive money effect', () => {
@@ -413,7 +414,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(5, effects);
-      expect(result).toBe('Rolled 5 → Gained $500');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(5)} → ${DICE_FEEDBACK.gained(500)}`);
     });
 
     it('should format feedback with negative money effect', () => {
@@ -423,7 +424,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(2, effects);
-      expect(result).toBe('Rolled 2 → Spent $200');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(2)} → ${DICE_FEEDBACK.spent(200)}`);
     });
 
     it('should format feedback with positive time effect', () => {
@@ -433,7 +434,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(1, effects);
-      expect(result).toBe('Rolled 1 → Time Penalty: 3 days');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(1)} → ${DICE_FEEDBACK.timePenalty(3, 'days')}`);
     });
 
     it('should format feedback with single day time effect', () => {
@@ -443,7 +444,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(1, effects);
-      expect(result).toBe('Rolled 1 → Time Penalty: 1 day');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(1)} → ${DICE_FEEDBACK.timePenalty(1, 'day')}`);
     });
 
     it('should format feedback with negative time effect', () => {
@@ -453,7 +454,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(6, effects);
-      expect(result).toBe('Rolled 6 → Time Saved: 2 days');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(6)} → ${DICE_FEEDBACK.timeSaved(2, 'days')}`);
     });
 
     it('should format feedback with movement effect', () => {
@@ -463,7 +464,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(4, effects);
-      expect(result).toBe('Rolled 4 → Moved to BANK-SELECTION');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.movedTo('BANK-SELECTION')}`);
     });
 
     it('should format feedback with multiple effects', () => {
@@ -474,7 +475,7 @@ describe('buttonFormatting', () => {
       ];
 
       const result = formatDiceRollFeedback(6, effects);
-      expect(result).toBe('Rolled 6 → Got 1 Expeditor, Gained $300, Time Saved: 1 day');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(6)} → ${DICE_FEEDBACK.got(1, 'Expeditor', '')}, ${DICE_FEEDBACK.gained(300)}, ${DICE_FEEDBACK.timeSaved(1, 'day')}`);
     });
 
     it('should format feedback with unknown effect type', () => {
@@ -484,22 +485,22 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(3, effects);
-      expect(result).toBe('Rolled 3 → Something happened');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(3)} → Something happened`);
     });
 
     it('should format feedback with no effects', () => {
       const result = formatDiceRollFeedback(2, []);
-      expect(result).toBe('Rolled 2 on current space');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(2)} ${DICE_FEEDBACK.ON_CURRENT_SPACE}`);
     });
 
     it('should format feedback with null effects', () => {
       const result = formatDiceRollFeedback(5, null);
-      expect(result).toBe('Rolled 5 on current space');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(5)} ${DICE_FEEDBACK.ON_CURRENT_SPACE}`);
     });
 
     it('should format feedback with undefined effects', () => {
       const result = formatDiceRollFeedback(1, undefined);
-      expect(result).toBe('Rolled 1 on current space');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(1)} ${DICE_FEEDBACK.ON_CURRENT_SPACE}`);
     });
 
     it('should handle effects with missing properties gracefully', () => {
@@ -513,7 +514,7 @@ describe('buttonFormatting', () => {
 
       const result = formatDiceRollFeedback(4, effects);
       // The function processes the cards effect with undefined values
-      expect(result).toBe('Rolled 4 → Got undefined undefineds');
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.got(undefined as any, undefined as any, 's')}`);
     });
 
     it('should handle all card types correctly', () => {
@@ -529,7 +530,7 @@ describe('buttonFormatting', () => {
       cardTypes.forEach(({ cardType, expected }) => {
         const effects = [{ type: 'cards', cardCount: 1, cardType }];
         const result = formatDiceRollFeedback(3, effects);
-        expect(result).toBe(`Rolled 3 → Got 1 ${expected}`);
+        expect(result).toBe(`${DICE_FEEDBACK.prefix(3)} → ${DICE_FEEDBACK.got(1, expected, '')}`);
       });
     });
   });
@@ -619,12 +620,12 @@ describe('buttonFormatting', () => {
 
     it('should return default message for no effects', () => {
       const result = formatActionFeedback([]);
-      expect(result).toBe('Action completed');
+      expect(result).toBe(DICE_FEEDBACK.ACTION_COMPLETED);
     });
 
     it('should handle undefined effects', () => {
       const result = formatActionFeedback(undefined);
-      expect(result).toBe('Action completed');
+      expect(result).toBe(DICE_FEEDBACK.ACTION_COMPLETED);
     });
   });
 });

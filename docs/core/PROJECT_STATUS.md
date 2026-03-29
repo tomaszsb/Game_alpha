@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 29, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.0)
-**Current Version**: 2.36.0
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.1)
+**Current Version**: 2.36.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Centralized UI Strings & Test Stability (March 29, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.1
+- **Changes**: Created `src/constants/uiStrings.ts` — UI text shared between source and tests. Fixed 57 stale test failures across 6 test files from the v2.35.0 language update. Button label changes now only need one file edit.
 
 ### Bug Fixes & Independent Dice Rolls (March 29, 2026) ✅
 - **Status**: ✅ Complete

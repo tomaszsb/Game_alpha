@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NotificationUtils } from '../../src/utils/NotificationUtils';
 import { FormatUtils } from '../../src/utils/FormatUtils';
+import { NOTIF } from '../../src/constants/uiStrings';
 
 // Mock FormatUtils since it's used in some notifications
 vi.mock('../../src/utils/FormatUtils', () => ({
@@ -25,8 +26,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '4',
-        medium: '🎲 Rolled 4 → 2 W, +$500',
-        detailed: 'Alice rolled a 4 and gained: 2 W, +$500'
+        medium: NOTIF.diceRollMedium(4, '2 W, +$500'),
+        detailed: NOTIF.diceRollDetailed('Alice', 4, '2 W, +$500'),
       });
     });
 
@@ -40,8 +41,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '1',
-        medium: '🎲 Rolled 1 → --2d, -$100',
-        detailed: 'Bob rolled a 1 and gained: --2d, -$100'
+        medium: NOTIF.diceRollMedium(1, '--2d, -$100'),
+        detailed: NOTIF.diceRollDetailed('Bob', 1, '--2d, -$100'),
       });
     });
 
@@ -50,8 +51,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '3',
-        medium: '🎲 Rolled 3 → No effects',
-        detailed: 'Charlie rolled a 3'
+        medium: NOTIF.diceRollMedium(3, ''),
+        detailed: NOTIF.diceRollDetailed('Charlie', 3, ''),
       });
     });
 
@@ -64,8 +65,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '5',
-        medium: '🎲 Rolled 5 → unknown_effect',
-        detailed: 'Dave rolled a 5 and gained: unknown_effect'
+        medium: NOTIF.diceRollMedium(5, 'unknown_effect'),
+        detailed: NOTIF.diceRollDetailed('Dave', 5, 'unknown_effect'),
       });
     });
   });
@@ -150,9 +151,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createCardPlayNotification('Investment Card', effects, 'Alice');
 
       expect(result).toEqual({
-        short: '✓ Card',
-        medium: '🃏 Played Investment Card → +$1,000, +1 B',
-        detailed: 'Alice played card "Investment Card" with effects: +$1,000, +1 B'
+        short: NOTIF.cardPlayShort,
+        medium: NOTIF.cardPlayMedium('Investment Card', '+$1,000, +1 B'),
+        detailed: NOTIF.cardPlayDetailed('Alice', 'Investment Card', '+$1,000, +1 B'),
       });
       expect(FormatUtils.formatMoney).toHaveBeenCalledWith(1000);
     });
@@ -165,9 +166,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createCardPlayNotification('Efficiency Card', effects, 'Bob');
 
       expect(result).toEqual({
-        short: '✓ Card',
-        medium: '🃏 Played Efficiency Card → --3 days',
-        detailed: 'Bob played card "Efficiency Card" with effects: --3 days'
+        short: NOTIF.cardPlayShort,
+        medium: NOTIF.cardPlayMedium('Efficiency Card', '--3 days'),
+        detailed: NOTIF.cardPlayDetailed('Bob', 'Efficiency Card', '--3 days'),
       });
     });
 
@@ -175,9 +176,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createCardPlayNotification('Simple Card', [], 'Charlie');
 
       expect(result).toEqual({
-        short: '✓ Card',
-        medium: '🃏 Played Simple Card',
-        detailed: 'Charlie played card "Simple Card"'
+        short: NOTIF.cardPlayShort,
+        medium: NOTIF.cardPlayMedium('Simple Card', ''),
+        detailed: NOTIF.cardPlayDetailed('Charlie', 'Simple Card', ''),
       });
     });
 
@@ -189,9 +190,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createCardPlayNotification('Mystery Card', effects, 'Dave');
 
       expect(result).toEqual({
-        short: '✓ Card',
-        medium: '🃏 Played Mystery Card → Special effect triggered',
-        detailed: 'Dave played card "Mystery Card" with effects: Special effect triggered'
+        short: NOTIF.cardPlayShort,
+        medium: NOTIF.cardPlayMedium('Mystery Card', 'Special effect triggered'),
+        detailed: NOTIF.cardPlayDetailed('Dave', 'Mystery Card', 'Special effect triggered'),
       });
     });
 
@@ -203,9 +204,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createCardPlayNotification('Unknown Card', effects, 'Eve');
 
       expect(result).toEqual({
-        short: '✓ Card',
-        medium: '🃏 Played Unknown Card → unknown_effect',
-        detailed: 'Eve played card "Unknown Card" with effects: unknown_effect'
+        short: NOTIF.cardPlayShort,
+        medium: NOTIF.cardPlayMedium('Unknown Card', 'unknown_effect'),
+        detailed: NOTIF.cardPlayDetailed('Eve', 'Unknown Card', 'unknown_effect'),
       });
     });
   });
@@ -366,8 +367,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '2',
-        medium: '🎲 Rolled 2 → -$500',
-        detailed: 'Alice rolled a 2 and gained: -$500'
+        medium: NOTIF.diceRollMedium(2, '-$500'),
+        detailed: NOTIF.diceRollDetailed('Alice', 2, '-$500'),
       });
     });
 
@@ -381,8 +382,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '3',
-        medium: '🎲 Rolled 3 → -$0, -0d',
-        detailed: 'Bob rolled a 3 and gained: -$0, -0d'
+        medium: NOTIF.diceRollMedium(3, '-$0, -0d'),
+        detailed: NOTIF.diceRollDetailed('Bob', 3, '-$0, -0d'),
       });
     });
   });
