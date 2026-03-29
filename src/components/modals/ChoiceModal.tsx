@@ -19,16 +19,8 @@ export function ChoiceModal(): JSX.Element {
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
   const [currentSpace, setCurrentSpace] = useState<string>('');
-  // Track whether the card replacement modal is temporarily hidden
-  // The choice remains pending, but user can return to main panel
-  const [isCardReplacementHidden, setIsCardReplacementHidden] = useState(false);
-
   useEffect(() => {
     const unsubscribe = stateService.subscribe((gameState) => {
-      // Reset hidden state when a new choice appears
-      if (gameState.awaitingChoice?.id !== awaitingChoice?.id) {
-        setIsCardReplacementHidden(false);
-      }
       setAwaitingChoice(gameState.awaitingChoice);
 
       if (gameState.awaitingChoice) {
@@ -96,51 +88,6 @@ export function ChoiceModal(): JSX.Element {
       : awaitingChoice.type === 'CARD_SELECTION' ? 'return'
       : 'give';
 
-    // If user clicked "Return to Main Panel", show a floating indicator to return
-    if (isCardReplacementHidden) {
-      const modeLabels = { replace: 'Card Replacement', return: 'Card Return', give: 'Card Give' };
-      return (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            zIndex: 1000
-          }}
-        >
-          <button
-            onClick={() => setIsCardReplacementHidden(false)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 20px',
-              backgroundColor: colors.warning.main,
-              color: colors.white,
-              border: 'none',
-              borderRadius: theme.borderRadius.lg,
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              animation: 'pulse 2s infinite'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.warning.dark || '#d97706';
-              e.currentTarget.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = colors.warning.main;
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-          >
-            <span>⚠️</span>
-            <span>Complete {modeLabels[mode]} ({cardType})</span>
-          </button>
-        </div>
-      );
-    }
-
     const gameState = stateService.getGameState();
     const player = gameState.players.find(p => p.id === awaitingChoice.playerId);
 
@@ -170,10 +117,11 @@ export function ChoiceModal(): JSX.Element {
           }
         }}
         onCancel={() => {
-          // Hide the modal but keep the choice pending
-          // Player can return to complete it via the pending action indicator
-          console.log(`Card ${mode} modal hidden - choice remains pending`);
-          setIsCardReplacementHidden(true);
+          // Skip the choice — resolve the promise with empty string so the
+          // awaiting async function (CardEffectService) can complete and
+          // the action button stops spinning.
+          console.log(`Card ${mode} skipped by player`);
+          choiceService.skipChoice(awaitingChoice.id);
         }}
       />
     );

@@ -447,13 +447,15 @@ function processDiceEffects(diceRollCsv) {
       roll_3: row['3'] || '',
       roll_4: row['4'] || '',
       roll_5: row['5'] || '',
-      roll_6: row['6'] || ''
+      roll_6: row['6'] || '',
+      roll_group: row.roll_group || ''
     });
   }
 
   const fieldnames = [
     'space_name', 'visit_type', 'effect_type', 'card_type',
-    'roll_1', 'roll_2', 'roll_3', 'roll_4', 'roll_5', 'roll_6'
+    'roll_1', 'roll_2', 'roll_3', 'roll_4', 'roll_5', 'roll_6',
+    'roll_group'
   ];
 
   return toCsv(effects, fieldnames);

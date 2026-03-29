@@ -1,4 +1,4 @@
-﻿space_name,die_roll,visit_type,1,2,3,4,5,6,button_label
+﻿space_name,die_roll,visit_type,1,2,3,4,5,6,button_label,roll_group
 OWNER-SCOPE-INITIATION,W Cards,First,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,
 OWNER-SCOPE-INITIATION,W Cards,Subsequent,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,
 ARCH-FEE-REVIEW,Fees Paid,First,8%,8%,10%,10%,12%,12%,

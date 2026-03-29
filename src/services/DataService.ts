@@ -308,7 +308,8 @@ export class DataService implements IDataService {
         roll_3: values[6] || undefined,
         roll_4: values[7] || undefined,
         roll_5: values[8] || undefined,
-        roll_6: values[9] || undefined
+        roll_6: values[9] || undefined,
+        roll_group: values[10] || undefined
       };
     });
   }

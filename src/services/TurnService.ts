@@ -922,7 +922,7 @@ export class TurnService implements ITurnService {
    * Process ONLY dice effects (not space effects) for a dice roll
    * Returns the effects that were generated for feedback purposes and the processing results
    */
-  async processDiceRollEffects(playerId: string, diceRoll: number): Promise<{ gameState: GameState, generatedEffects: Effect[], effectResults?: import('../types/EffectTypes').BatchEffectResult }> {
+  async processDiceRollEffects(playerId: string, diceRoll: number): Promise<{ gameState: GameState, generatedEffects: Effect[], effectResults?: import('../types/EffectTypes').BatchEffectResult, rollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }> }> {
     const currentPlayer = this.stateService.getPlayer(playerId);
     if (!currentPlayer) {
       throw new Error(`Player ${playerId} not found`);
@@ -940,19 +940,37 @@ export class TurnService implements ITurnService {
         return { gameState: this.stateService.getGameState(), generatedEffects: [], effectResults: undefined };
       }
 
-      // Generate ONLY effects from dice roll using EffectFactory
-      const diceEffects = EffectFactory.createEffectsFromDiceRoll(
-        diceEffectsData,
-        playerId,
-        currentPlayer.currentSpace,
-        diceRoll,
-        currentPlayer.name
-      );
+      // Group dice effects by roll_group. Empty/undefined roll_group all share one roll.
+      const groups = new Map<string, typeof diceEffectsData>();
+      for (const effect of diceEffectsData) {
+        const key = effect.roll_group || '';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(effect);
+      }
 
+      // Roll separately for each group. The first/default group uses the passed-in diceRoll.
+      const allDiceEffects: Effect[] = [];
+      const rollGroupResults: Array<{ rollGroup: string; diceValue: number; effectCount: number }> = [];
+      let isFirstGroup = true;
 
-      if (diceEffects.length > 0) {
+      for (const [groupKey, groupEffects] of groups) {
+        const groupDiceRoll = isFirstGroup ? diceRoll : this.diceRollProcessor.rollDice();
+        isFirstGroup = false;
+
+        const effects = EffectFactory.createEffectsFromDiceRoll(
+          groupEffects,
+          playerId,
+          currentPlayer.currentSpace,
+          groupDiceRoll,
+          currentPlayer.name
+        );
+        allDiceEffects.push(...effects);
+        rollGroupResults.push({ rollGroup: groupKey, diceValue: groupDiceRoll, effectCount: effects.length });
+      }
+
+      if (allDiceEffects.length > 0) {
         if (!this.effectEngineService) {
-          console.error(`❌ EffectEngineService not available - cannot process ${diceEffects.length} dice effects`);
+          console.error(`❌ EffectEngineService not available - cannot process ${allDiceEffects.length} dice effects`);
           throw new Error('EffectEngineService not initialized - dice effects cannot be processed');
         }
 
@@ -969,19 +987,19 @@ export class TurnService implements ITurnService {
           }
         };
 
-        // Process ONLY dice effects through the Effect Engine
-        const processingResult = await this.effectEngineService.processEffects(diceEffects, effectContext);
+        // Process ALL dice effects through the Effect Engine
+        const processingResult = await this.effectEngineService.processEffects(allDiceEffects, effectContext);
 
         if (!processingResult.success) {
           console.error(`❌ Failed to process some dice effects: ${processingResult.errors.join(', ')}`);
-          // Log errors but don't throw - some effects may have succeeded
-        } else {
         }
 
-        return { gameState: this.stateService.getGameState(), generatedEffects: diceEffects, effectResults: processingResult };
+        // Only include rollGroups when there are multiple groups
+        const rollGroups = rollGroupResults.length > 1 ? rollGroupResults : undefined;
+        return { gameState: this.stateService.getGameState(), generatedEffects: allDiceEffects, effectResults: processingResult, rollGroups };
       }
 
-      return { gameState: this.stateService.getGameState(), generatedEffects: diceEffects, effectResults: undefined };
+      return { gameState: this.stateService.getGameState(), generatedEffects: allDiceEffects, effectResults: undefined };
     } catch (error) {
       console.error(`❌ Error processing dice effects for ${currentPlayer.name}:`, error);
       throw error;
@@ -1594,6 +1612,13 @@ export class TurnService implements ITurnService {
       this.stateService.clearPlayerHasMoved();
       this.stateService.clearPlayerHasRolledDice();
       this.stateService.clearTurnActions();
+
+      // 7b. Cancel any pending choice (e.g., card replacement modal) so the
+      // awaiting promise resolves and the action button stops spinning
+      const activeChoice = this.choiceService?.getActiveChoice?.();
+      if (activeChoice) {
+        this.choiceService.skipChoice(activeChoice.id);
+      }
 
       // 8. Use REAL/TEMP state model for Try Again:
       // - Discard current TEMP state (which has effects applied)

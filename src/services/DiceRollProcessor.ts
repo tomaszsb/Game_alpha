@@ -14,6 +14,7 @@ export interface DiceRollEffectsResult {
   gameState: any;
   generatedEffects: Effect[];
   effectResults?: { results: Array<{ data?: { cardIds?: string[]; skipped?: boolean } }> };
+  rollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }>;
 }
 
 /**
@@ -37,6 +38,7 @@ export type ProcessDiceRollEffectsCallback = (
  */
 export class DiceRollProcessor {
   private processDiceRollEffectsCallback?: ProcessDiceRollEffectsCallback;
+  private lastRollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }>;
 
   constructor(
     private dataService: IDataService,
@@ -126,6 +128,7 @@ export class DiceRollProcessor {
 
     // Roll dice
     const diceRoll = this.rollDice();
+    this.lastRollGroups = undefined;
     console.log(`🎲 ROLL_DICE_FEEDBACK: Dice roll result: ${diceRoll}`);
 
     // Process effects and track changes
@@ -154,6 +157,7 @@ export class DiceRollProcessor {
 
     // Calculate project time info for the modal
     const result = this.buildTurnEffectResult(currentPlayer, diceRoll, effects, summary, hasChoices, canReRoll);
+    result.rollGroups = this.lastRollGroups;
 
     console.log(`🎲 ROLL_DICE_FEEDBACK: ========== END ==========`);
     return result;
@@ -254,7 +258,10 @@ export class DiceRollProcessor {
     }
 
     // Process effects using the callback
-    const { generatedEffects, effectResults } = await this.processDiceRollEffectsCallback(playerId, diceRoll);
+    const { generatedEffects, effectResults, rollGroups } = await this.processDiceRollEffectsCallback(playerId, diceRoll);
+
+    // Store roll groups for the caller to pick up
+    this.lastRollGroups = rollGroups;
 
     // Convert generated effects to DiceResultEffect format
     this.convertEffectsToResults(generatedEffects, effectResults, effects, currentPlayer);

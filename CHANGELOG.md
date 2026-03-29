@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix card replacement spinner, duplicate action buttons, Try Again choice leak (March 29, 2026)
+- **Bug fix: Card replacement cancel button caused infinite spinner** — `ChoiceModal.onCancel` hid the modal without resolving the pending choice promise. Changed to call `choiceService.skipChoice()` which resolves the promise with empty string. Removed `isCardReplacementHidden` state and floating indicator (no longer needed since cancel fully completes the action).
+- **Bug fix: Duplicate action buttons in Expeditor tab** — `CardsSection` rendered its own action buttons (Replace, Hire, etc.) in addition to the same buttons in ActionCenterPanel's YOUR ACTIONS section. Removed action button rendering from CardsSection; all manual effect and dice roll buttons now only appear in ActionCenterPanel. Cleaned up dead code (unused handlers, state).
+- **Bug fix: Try Again didn't cancel pending choices** — Using Try Again while a card replacement choice was pending left the choice promise hanging. Added `choiceService.skipChoice()` to the Try Again flow (with optional chaining for test compatibility).
+- **Tests**: 1 new Try Again choice cancellation test, 3 updated CardsSection tests, `skipChoice` added to mock services
+
+### Add `roll_group` column for independent dice rolls per space (March 29, 2026)
+- **Feature: `roll_group` column in DiceRoll Info CSV** — Effects with the same `roll_group` value (within a space+visitType) share a single dice roll. Different `roll_group` values get independent dice rolls. Empty/undefined = all effects share one roll (backward compatible with all existing data).
+- **Data pipeline**: Added `roll_group` to SOURCE CSV header, `processGameData.js` passthrough, `DICE_EFFECTS.csv` output, `DataService` parser (column 10), `csvExport`, `DataEditor` import
+- **Type changes**: `roll_group?: string` on `DiceEffect`, `RollGroupResult` interface and `rollGroups?` on `TurnEffectResult`, `rollGroups?` on `DiceRollEffectsResult`
+- **Processing logic**: `TurnService.processDiceRollEffects` groups effects by `roll_group`, rolls separately per group (first group uses passed-in dice value, additional groups call `diceRollProcessor.rollDice()`). `DiceRollProcessor` propagates `rollGroups` through to `TurnEffectResult`.
+- **Editor**: Added "Roll Group" input field to `InlineDiceRollEditor`, `roll_group` field to `DiceRollRow` type and `DiceRollEditor` add handler
+- **Tests**: 2 EffectFactory backward-compat tests, 4 TurnService roll_group grouping tests, 1 DataService CSV parsing test
+- **Files changed** (22 files): DataTypes.ts, StateTypes.ts, DiceRollProcessor.ts, TurnService.ts, DataService.ts, EffectFactory (tests), processGameData.js, InlineDiceRollEditor, DiceRollEditor, EditorTypes.ts, csvExport.ts, DataEditor.tsx, ChoiceModal.tsx, CardsSection.tsx, SOURCE/CLEAN CSVs, 6 test files
+
 ### Remove game terminology from player-facing text (March 25, 2026)
 - **Purged "card", "dice", "roll", "play", "draw", "discard" from all player-visible UI text** across 20 files
 - **"Card" replacements**: type-specific names (Expeditor, Work Package, Bank Loan, etc.) or "resource" for generic references

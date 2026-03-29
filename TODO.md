@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** March 25, 2026
+**Last Updated:** March 29, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.35.0
+**Current Version:** 2.36.0
 
 ---
 
@@ -19,6 +19,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Fix card replacement spinner, duplicate Expeditor tab buttons, Try Again choice leak — 3 bug fixes, 5 new/updated tests (Mar 29, 2026)
+- ✅ `roll_group` column for independent dice rolls — editor field, data pipeline, processing logic, 7 new tests (Mar 29, 2026)
 - ✅ Real-world language — removed "card", "dice", "roll", "play", "draw", "discard" from all player-facing UI across 20 files (Mar 25, 2026)
 - ✅ Unified card selection modals — return/replace/give all use CardReplacementModal with card artwork and details (Mar 25, 2026)
 - ✅ Fix card return/replace/give modals — processGameData mapped all card actions to draw_E, 11 spaces affected, 7 new pipeline tests (Mar 25, 2026)

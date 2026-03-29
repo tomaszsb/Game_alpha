@@ -88,7 +88,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   const [isExpanded, setIsExpanded] = useState(false); // Internal state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isRollingDice, setIsRollingDice] = useState(false);
+  // isRollingDice removed — dice roll buttons are now in ActionCenterPanel
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [expandedCardType, setExpandedCardType] = useState<CardType | null>(null);
   const [showDiscardedModal, setShowDiscardedModal] = useState(false);
@@ -149,111 +149,9 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   });
   const playableCount = playableECards.length;
 
-  const handleManualEffect = async (effectType: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await gameServices.turnService.triggerManualEffectWithFeedback(playerId, effectType);
-
-      // Trigger the onManualEffectResult callback if provided
-      if (onManualEffectResult && result) {
-        onManualEffectResult(result);
-      }
-    } catch (err) {
-      setError(`Failed to perform ${effectType} action. Please try again.`);
-      console.error(`Manual effect error (${effectType}):`, err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handler for dice roll
-  const handleDiceRoll = async () => {
-    if (!onRollDice) return;
-
-    setIsRollingDice(true);
-    setError(null);
-
-    try {
-      await onRollDice();
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
-      console.error('Dice roll error:', err);
-    } finally {
-      setIsRollingDice(false);
-    }
-  };
-
-  // Helper to format button label from manual effect
-  const getManualEffectButtonLabel = (effect: any): string => {
-    if (effect.description) return effect.description;
-    const action = effect.effect_action?.toLowerCase();
-    if (action === 'draw_e') return 'Hire Expeditor';
-    if (action === 'replace_e') return 'Change Expeditor';
-    if (action === 'give_e') return 'Fire Expeditor';
-    if (action === 'return_e') return 'Expeditor Left';
-    if (action === 'transfer') return 'Expeditor Reassigned';
-    return 'Expeditor Action';
-  };
-
-  // Helper to format dice button label
-  const getDiceButtonLabel = (cardType: string): string => {
-    return 'Hire Expeditors';
-  };
-
-  // Create header actions (action buttons always visible)
-  const headerActions = (cardManualEffects.length > 0 || cardDiceEffects.length > 0) ? (
-    <>
-      {/* Dice roll buttons for cards (excluding W which is in Project Scope) */}
-      {cardDiceEffects.map((effect, index) => {
-        // Check if dice roll is completed
-        const isDiceCompleted = completedActions.diceRoll !== undefined;
-
-        return onRollDice && !isDiceCompleted && (
-          <ActionButton
-            key={`dice-${index}`}
-            label={isMyTurn ? getDiceButtonLabel(effect.card_type || '') : "⏳ Wait for your turn"}
-            variant="primary"
-            onClick={handleDiceRoll}
-            disabled={!isMyTurn || isLoading || isRollingDice}
-            isLoading={isRollingDice}
-            ariaLabel={isMyTurn ? `Roll to gain ${effect.card_type} type resources` : "Wait for your turn"}
-          />
-        );
-      })}
-
-      {/* Manual effect buttons */}
-      {cardManualEffects.map((effect, index) => {
-        // Use compound key (e.g., "cards:replace_E") for specific effect identification
-        const effectKey = effect.effect_action
-          ? `${effect.effect_type}:${effect.effect_action}`
-          : effect.effect_type;
-
-        // Check if this specific manual effect is completed using compound key OR simple key
-        // Support case-insensitive matching for robustness
-        const completedKeys = Object.keys(completedActions.manualActions);
-        const isEffectCompleted = completedKeys.some(key =>
-          key === effectKey ||
-          key === effect.effect_type ||
-          key.toLowerCase() === effectKey.toLowerCase() ||
-          key.toLowerCase() === effect.effect_type.toLowerCase()
-        );
-
-        return !isEffectCompleted && (
-          <ActionButton
-            key={`manual-${index}`}
-            label={isMyTurn ? getManualEffectButtonLabel(effect) : "⏳ Wait for your turn"}
-            variant="primary"
-            onClick={() => handleManualEffect(effectKey)}
-            disabled={!isMyTurn || isLoading}
-            isLoading={isLoading}
-            ariaLabel={isMyTurn ? `Perform ${effect.effect_action} action` : "Wait for your turn"}
-          />
-        );
-      })}
-    </>
-  ) : undefined;
+  // No action buttons here — all manual effects (draw_e, replace_e, etc.) and dice
+  // effects are rendered in ActionCenterPanel's YOUR ACTIONS section to avoid duplication.
+  const headerActions = undefined;
 
   const handleViewDiscarded = () => {
     setShowDiscardedModal(true);

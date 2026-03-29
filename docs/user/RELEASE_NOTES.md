@@ -2,6 +2,21 @@
 
 ---
 
+## v2.36.0 - Bug Fixes & Independent Dice Rolls (March 29, 2026)
+
+**Release Date:** March 29, 2026
+**Version:** 2.36.0
+**Status:** Alpha Testing
+**Type:** Bug Fix + Feature
+
+### Fixes and improvements
+- **Fixed spinning button when skipping expeditor changes** — Previously, pressing "Return to Main Panel" on the card selection screen would leave the action button spinning forever. Now it properly cancels the action so you can continue your turn.
+- **Removed duplicate action buttons from Expeditor tab** — Action buttons like "Change Expeditor" no longer appear in both the Expeditor tab and the Actions section. They now only appear in the Actions section where they belong.
+- **Try Again now properly resets pending actions** — Using Try Again while a card selection was in progress no longer leaves ghost actions hanging.
+- **Independent dice rolls per space** — The editor now supports a "Roll Group" field on dice roll entries. Effects with different roll groups get their own independent dice rolls, while effects in the same group (or with no group) share a single roll as before.
+
+---
+
 ## v2.35.0 - Real-World Language (March 25, 2026)
 
 **Release Date:** March 25, 2026

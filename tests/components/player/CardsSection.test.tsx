@@ -165,7 +165,7 @@ describe('CardsSection', () => {
       expect(indicator).toBeInTheDocument();
     });
 
-    it('should show Roll for Expeditors button when E dice effect available', () => {
+    it('should not show action buttons in CardsSection (actions are in ActionCenterPanel)', () => {
       const eCardDiceEffect = {
         space_name: 'START-SPACE',
         visit_type: 'First',
@@ -177,7 +177,9 @@ describe('CardsSection', () => {
       mockServices.dataService.getDiceEffects.mockReturnValue([eCardDiceEffect]);
 
       renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
-      expect(screen.getByText('Roll for Expeditors')).toBeInTheDocument();
+      // Action buttons are now only in ActionCenterPanel, not duplicated in CardsSection
+      expect(screen.queryByText('Roll for Expeditors')).not.toBeInTheDocument();
+      expect(screen.queryByText('Hire Expeditor')).not.toBeInTheDocument();
     });
 
     it('should not show action for B cards dice effects (handled elsewhere)', () => {
@@ -197,7 +199,7 @@ describe('CardsSection', () => {
   });
 
   describe('Roll for Cards Actions', () => {
-    it('should call onRollDice callback for E cards', async () => {
+    it('should not render dice roll buttons (handled by ActionCenterPanel)', () => {
       const eCardDiceEffect = {
         space_name: 'START-SPACE',
         visit_type: 'First',
@@ -207,36 +209,12 @@ describe('CardsSection', () => {
         value: 1
       };
       mockServices.dataService.getDiceEffects.mockReturnValue([eCardDiceEffect]);
-      const onRollDice = vi.fn().mockResolvedValue(undefined);
 
-      renderWithContext(<CardsSection {...defaultProps} onRollDice={onRollDice} />);
+      renderWithContext(<CardsSection {...defaultProps} onRollDice={vi.fn()} />);
 
-      const rollButton = screen.getByText('Roll for Expeditors');
-      fireEvent.click(rollButton);
-
-      expect(onRollDice).toHaveBeenCalled();
-    });
-
-    it('should handle roll errors', async () => {
-      const eCardDiceEffect = {
-        space_name: 'START-SPACE',
-        visit_type: 'First',
-        effect_type: 'cards',
-        card_type: 'E',
-        dice_value: 1,
-        value: 1
-      };
-      mockServices.dataService.getDiceEffects.mockReturnValue([eCardDiceEffect]);
-      const onRollDice = vi.fn().mockRejectedValue(new Error('Roll failed'));
-
-      renderWithContext(<CardsSection {...defaultProps} onRollDice={onRollDice} />);
-
-      const rollButton = screen.getByText('Roll for Expeditors');
-      fireEvent.click(rollButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('Failed to roll dice. Please try again.')).toBeInTheDocument();
-      });
+      // Dice roll buttons are now only in ActionCenterPanel
+      expect(screen.queryByText('Roll for Expeditors')).not.toBeInTheDocument();
+      expect(screen.queryByText('Hire Expeditor')).not.toBeInTheDocument();
     });
   });
 

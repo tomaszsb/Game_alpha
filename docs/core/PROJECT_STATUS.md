@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: March 25, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.35.0)
-**Current Version**: 2.35.0
+**Last Updated**: March 29, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.0)
+**Current Version**: 2.36.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Bug Fixes & Independent Dice Rolls (March 29, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.0
+- **Changes**: Fixed card replacement spinner (cancel now resolves promise), removed duplicate action buttons from Expeditor tab, Try Again cancels pending choices. Added `roll_group` column to dice effects for independent rolls per space. 12 new/updated tests across 6 test files.
 
 ### Real-World Language — Remove Game Jargon (March 25, 2026) ✅
 - **Status**: ✅ Complete

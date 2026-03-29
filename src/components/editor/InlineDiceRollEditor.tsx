@@ -87,6 +87,7 @@ export function InlineDiceRollEditor({
       visit_type: visitType,
       roll_1: '', roll_2: '', roll_3: '', roll_4: '', roll_5: '', roll_6: '',
       button_label: '',
+      roll_group: '',
     });
     setAddCategory('');
   };
@@ -128,6 +129,16 @@ export function InlineDiceRollEditor({
               value={roll.button_label || ''}
               onChange={(e) => onUpdateDiceRoll(idx, 'button_label', e.target.value)}
               placeholder={`Roll for ${roll.die_roll}`}
+              style={s.labelInput}
+            />
+          </div>
+          <div style={s.labelRow}>
+            <label style={s.labelText}>Roll Group:</label>
+            <input
+              type="text"
+              value={roll.roll_group || ''}
+              onChange={(e) => onUpdateDiceRoll(idx, 'roll_group', e.target.value)}
+              placeholder="(blank = shared roll)"
               style={s.labelInput}
             />
           </div>

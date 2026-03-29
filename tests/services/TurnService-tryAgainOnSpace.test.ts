@@ -228,4 +228,57 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect(realState).not.toBeNull();
     // Note: The exact accumulated value depends on how applyToRealState handles the penalty
   });
+
+  it('should cancel any pending choice when Try Again is used', async () => {
+    // Setup with a mock choiceService that has an active choice
+    const mockChoiceService = {
+      getActiveChoice: vi.fn().mockReturnValue({ id: 'choice-123', type: 'CARD_REPLACEMENT' }),
+      skipChoice: vi.fn().mockReturnValue(true),
+      createChoice: vi.fn(),
+      resolveChoice: vi.fn(),
+      hasActiveChoice: vi.fn().mockReturnValue(true)
+    };
+
+    const loggingService2 = new LoggingService(stateService);
+
+    // Create a new TurnService with the mock choiceService in the correct position
+    const turnService2 = new TurnService(
+      dataService,
+      stateService,
+      gameRulesService,
+      {} as any,  // cardService
+      {} as any,  // resourceService
+      {} as any,  // movementService
+      {} as any,  // negotiationService
+      loggingService2,
+      mockChoiceService as any  // choiceService (9th arg)
+    );
+    vi.spyOn(turnService2 as any, 'nextPlayer').mockResolvedValue({ nextPlayerId: 'player2' });
+
+    // Setup player
+    stateService.addPlayer('Player 1');
+    stateService.startGame();
+    const gameState = stateService.getGameStateDeepCopy();
+    const player1 = gameState.players[0];
+    player1.currentSpace = 'OWNER-SCOPE-INITIATION';
+    player1.visitType = 'First';
+    stateService.setGameState(gameState);
+    stateService.createTempStateFromReal({
+      playerId: player1.id,
+      spaceName: 'OWNER-SCOPE-INITIATION',
+      visitType: 'First'
+    });
+
+    (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true });
+    (dataService.getSpaceEffects as any).mockReturnValue([{
+      effect_type: 'time', effect_action: 'add', effect_value: 1
+    }]);
+
+    const result = await turnService2.tryAgainOnSpace(player1.id);
+
+    expect(result.success).toBe(true);
+    // Verify the pending choice was cancelled
+    expect(mockChoiceService.getActiveChoice).toHaveBeenCalled();
+    expect(mockChoiceService.skipChoice).toHaveBeenCalledWith('choice-123');
+  });
 });

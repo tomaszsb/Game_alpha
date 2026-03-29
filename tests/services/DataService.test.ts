@@ -21,8 +21,9 @@ START,First,DEST1,DEST2,DEST3,DEST4,DEST5,DEST6`;
 const mockSpaceEffectsCsv = `space_name,visit_type,effect_type,effect_action,effect_value,condition,description,trigger_type
 START,First,money,add,100,always,Get $100,auto`;
 
-const mockDiceEffectsCsv = `space_name,visit_type,effect_type,card_type,roll_1,roll_2,roll_3,roll_4,roll_5,roll_6
-START,First,cards,W,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3`;
+const mockDiceEffectsCsv = `space_name,visit_type,effect_type,card_type,roll_1,roll_2,roll_3,roll_4,roll_5,roll_6,roll_group
+START,First,cards,W,Draw 1,Draw 1,Draw 2,Draw 2,Draw 3,Draw 3,
+START,First,time,,1 day,2 days,3 days,4 days,5 days,6 days,groupA`;
 
 const mockSpaceContentCsv = `space_name,visit_type,title,story,action_description,outcome_description,can_negotiate
 START,First,Welcome,You have arrived.,Begin your journey.,You moved on.,No`;
@@ -101,5 +102,15 @@ describe('DataService', () => {
     const configs = dataService.getGameConfig();
     expect(configs).toHaveLength(1);
     expect(configs[0].space_name).toBe('START');
+  });
+
+  it('should parse roll_group column from DICE_EFFECTS.csv', async () => {
+    await dataService.loadData();
+    const diceEffects = dataService.getDiceEffects('START', 'First');
+    expect(diceEffects).toHaveLength(2);
+    // First row has empty roll_group
+    expect(diceEffects[0].roll_group).toBeUndefined();
+    // Second row has roll_group = 'groupA'
+    expect(diceEffects[1].roll_group).toBe('groupA');
   });
 });

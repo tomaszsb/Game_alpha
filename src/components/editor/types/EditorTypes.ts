@@ -53,6 +53,7 @@ export interface DiceRollRow {
   roll_5: string;
   roll_6: string;
   button_label: string;  // Custom button label (e.g., "Roll for Scope Worktypes")
+  roll_group: string;    // Group name — effects with same roll_group share one dice roll; blank = all share one roll
 }
 
 /**

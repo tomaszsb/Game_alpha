@@ -214,7 +214,9 @@ export function DiceRollEditor({
       roll_3: newRoll.roll_3 || '',
       roll_4: newRoll.roll_4 || '',
       roll_5: newRoll.roll_5 || '',
-      roll_6: newRoll.roll_6 || ''
+      roll_6: newRoll.roll_6 || '',
+      button_label: '',
+      roll_group: ''
     });
 
     setShowAddForm(false);

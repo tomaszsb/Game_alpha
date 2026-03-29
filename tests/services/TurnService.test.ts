@@ -1092,4 +1092,131 @@ describe('TurnService', () => {
       });
     });
   });
+
+  describe('processDiceRollEffects - roll_group grouping', () => {
+    beforeEach(() => {
+      mockStateService.getPlayer.mockReturnValue(mockPlayers[0]);
+      mockEffectEngineService.processEffects.mockResolvedValue({
+        success: true,
+        successfulEffects: 2,
+        failedEffects: 0,
+        errors: [],
+        results: []
+      });
+    });
+
+    it('should use single dice roll when all effects have empty roll_group', async () => {
+      // Two effects with no roll_group — both should use the passed-in diceRoll (4)
+      mockDataService.getDiceEffects.mockReturnValue([
+        {
+          space_name: 'CHEAT-BYPASS', visit_type: 'First',
+          effect_type: 'time', roll_1: '1 day', roll_2: '2 days', roll_3: '3 days',
+          roll_4: '4 days', roll_5: '60 days', roll_6: '365 days'
+          // no roll_group
+        },
+        {
+          space_name: 'CHEAT-BYPASS', visit_type: 'First',
+          effect_type: 'Next Step', card_type: 'Next',
+          roll_1: 'SPACE-A', roll_2: 'SPACE-B', roll_3: 'SPACE-C',
+          roll_4: 'SPACE-D', roll_5: 'SPACE-E', roll_6: 'SPACE-F'
+        }
+      ]);
+
+      const result = await turnService.processDiceRollEffects('player1', 4);
+
+      // Should have called processEffects once with all effects combined
+      expect(mockEffectEngineService.processEffects).toHaveBeenCalledTimes(1);
+      // Should NOT have rollGroups (only 1 group)
+      expect(result.rollGroups).toBeUndefined();
+    });
+
+    it('should roll separately for different roll_groups', async () => {
+      // Two effects in different groups — should get independent dice rolls
+      mockDataService.getDiceEffects.mockReturnValue([
+        {
+          space_name: 'CON-INITIATION', visit_type: 'First',
+          effect_type: 'time', roll_1: '1 day', roll_2: '2 days', roll_3: '3 days',
+          roll_4: '4 days', roll_5: '5 days', roll_6: '6 days',
+          roll_group: 'A'
+        },
+        {
+          space_name: 'CON-INITIATION', visit_type: 'First',
+          effect_type: 'money', roll_1: '0%', roll_2: '2%', roll_3: '4%',
+          roll_4: '6%', roll_5: '8%', roll_6: '10%',
+          roll_group: 'B'
+        }
+      ]);
+
+      const result = await turnService.processDiceRollEffects('player1', 3);
+
+      // Should have called processEffects once with combined effects from both groups
+      expect(mockEffectEngineService.processEffects).toHaveBeenCalledTimes(1);
+      // Should have 2 rollGroups
+      expect(result.rollGroups).toBeDefined();
+      expect(result.rollGroups).toHaveLength(2);
+      expect(result.rollGroups![0].rollGroup).toBe('A');
+      expect(result.rollGroups![0].diceValue).toBe(3); // First group uses passed-in value
+      expect(result.rollGroups![1].rollGroup).toBe('B');
+      // Second group gets an independent roll (1-6)
+      expect(result.rollGroups![1].diceValue).toBeGreaterThanOrEqual(1);
+      expect(result.rollGroups![1].diceValue).toBeLessThanOrEqual(6);
+    });
+
+    it('should group effects with same roll_group together', async () => {
+      // Three effects: two share group A, one in group B
+      mockDataService.getDiceEffects.mockReturnValue([
+        {
+          space_name: 'TEST-SPACE', visit_type: 'First',
+          effect_type: 'time', roll_1: '1 day', roll_2: '2 days', roll_3: '3 days',
+          roll_4: '4 days', roll_5: '5 days', roll_6: '6 days',
+          roll_group: 'A'
+        },
+        {
+          space_name: 'TEST-SPACE', visit_type: 'First',
+          effect_type: 'cards', card_type: 'W',
+          roll_1: 'Draw 1', roll_2: 'Draw 1', roll_3: 'Draw 2',
+          roll_4: 'Draw 2', roll_5: 'Draw 3', roll_6: 'Draw 3',
+          roll_group: 'A'
+        },
+        {
+          space_name: 'TEST-SPACE', visit_type: 'First',
+          effect_type: 'money', roll_1: '0%', roll_2: '2%', roll_3: '4%',
+          roll_4: '6%', roll_5: '8%', roll_6: '10%',
+          roll_group: 'B'
+        }
+      ]);
+
+      const result = await turnService.processDiceRollEffects('player1', 5);
+
+      expect(result.rollGroups).toHaveLength(2);
+      // Group A has 2 effects (time + cards), plus LOG effects from EffectFactory
+      expect(result.rollGroups![0].rollGroup).toBe('A');
+      expect(result.rollGroups![0].diceValue).toBe(5); // first group uses passed-in value
+      // Group B has 1 effect (money), plus LOG effects
+      expect(result.rollGroups![1].rollGroup).toBe('B');
+    });
+
+    it('should treat empty and undefined roll_group as same default group', async () => {
+      mockDataService.getDiceEffects.mockReturnValue([
+        {
+          space_name: 'TEST-SPACE', visit_type: 'First',
+          effect_type: 'time', roll_1: '1 day', roll_2: '2 days', roll_3: '3 days',
+          roll_4: '4 days', roll_5: '5 days', roll_6: '6 days',
+          roll_group: ''  // empty string
+        },
+        {
+          space_name: 'TEST-SPACE', visit_type: 'First',
+          effect_type: 'cards', card_type: 'W',
+          roll_1: 'Draw 1', roll_2: 'Draw 1', roll_3: 'Draw 2',
+          roll_4: 'Draw 2', roll_5: 'Draw 3', roll_6: 'Draw 3'
+          // undefined (no roll_group property)
+        }
+      ]);
+
+      const result = await turnService.processDiceRollEffects('player1', 2);
+
+      // Both should be in the same default group — no rollGroups returned
+      expect(result.rollGroups).toBeUndefined();
+    });
+  });
 });

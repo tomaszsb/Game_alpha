@@ -525,4 +525,59 @@ describe('EffectFactory', () => {
       expect(moneyEffect?.payload.percentageOfScope).toBeUndefined();
     });
   });
+
+  describe('createEffectsFromDiceRoll - roll_group support', () => {
+    it('should process dice effects with roll_group field (backward compat)', () => {
+      // Effects with empty roll_group should work identically to effects without it
+      const diceEffects = [
+        {
+          space_name: 'TEST-SPACE',
+          visit_type: 'First' as const,
+          effect_type: 'time',
+          roll_1: '1 day', roll_2: '2 days', roll_3: '3 days',
+          roll_4: '4 days', roll_5: '5 days', roll_6: '6 days',
+          roll_group: ''  // empty = default group
+        },
+        {
+          space_name: 'TEST-SPACE',
+          visit_type: 'First' as const,
+          effect_type: 'Next Step',
+          card_type: 'Next',
+          roll_1: 'SPACE-A', roll_2: 'SPACE-A', roll_3: 'SPACE-B',
+          roll_4: 'SPACE-B', roll_5: 'SPACE-C', roll_6: 'SPACE-C',
+          roll_group: ''
+        }
+      ];
+
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects, mockPlayerId, 'TEST-SPACE', 3, 'Test Player'
+      );
+
+      // Both effects should use the same dice roll value (3)
+      const timeEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffect).toBeDefined();
+      expect(timeEffect?.payload.amount).toBe(3);
+    });
+
+    it('should process dice effects with roll_group undefined (backward compat)', () => {
+      // Effects without roll_group field at all should work
+      const diceEffects = [{
+        space_name: 'ARCH-FEE-REVIEW',
+        visit_type: 'First' as const,
+        effect_type: 'money',
+        card_type: '',
+        roll_1: '8%', roll_2: '8%', roll_3: '10%',
+        roll_4: '10%', roll_5: '12%', roll_6: '12%'
+        // no roll_group field
+      }];
+
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects, mockPlayerId, 'ARCH-FEE-REVIEW', 1, 'Test Player'
+      );
+
+      const moneyEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE');
+      expect(moneyEffect).toBeDefined();
+      expect(moneyEffect?.payload.percentageOfScope).toBe(8);
+    });
+  });
 });

@@ -78,6 +78,7 @@ export interface DiceEffect {
   effect_value?: string | number;
   condition?: string;
   description?: string;
+  roll_group?: string;
 }
 
 export interface SpaceContent {

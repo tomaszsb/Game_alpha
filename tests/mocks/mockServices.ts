@@ -322,6 +322,8 @@ export const createMockChoiceService = (): any => ({
   createChoice: vi.fn(),
   resolveChoice: vi.fn(),
   
+  skipChoice: vi.fn(),
+
   // Choice query methods
   getActiveChoice: vi.fn(),
   hasActiveChoice: vi.fn()

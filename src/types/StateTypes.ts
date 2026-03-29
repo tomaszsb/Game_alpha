@@ -409,6 +409,12 @@ export interface DiceResultEffect {
   destination?: string;  // For single movement destination
 }
 
+export interface RollGroupResult {
+  rollGroup: string;
+  diceValue: number;
+  effectCount: number;
+}
+
 export interface TurnEffectResult {
   diceValue: number;
   spaceName: string;
@@ -416,6 +422,7 @@ export interface TurnEffectResult {
   summary: string;
   hasChoices: boolean;
   canReRoll?: boolean; // True if player can re-roll dice this turn
+  rollGroups?: RollGroupResult[]; // Per-group dice values when multiple roll groups exist
   // Project time tracking (optional - included when time effects are present)
   projectTime?: {
     actionDays: number;        // Days spent on this action
