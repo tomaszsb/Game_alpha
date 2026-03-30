@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix Try Again/Negotiate pay-and-wait model (March 30, 2026)
+- **Bug fix: Try Again now advances the turn** — Previously `shouldAdvanceTurn` was `false`, letting the player retry immediately on the same turn. Changed to `true` so the player pays the time penalty and waits for next round (pay-and-wait model). `GameLayout.handleTryAgain` already handled this flag correctly.
+- **Bug fix: End Turn button state after Try Again** — Added `updateActionCounts()` calls in `StateService.clearTurnActions()` and `StateService.discardTempState()` so the required-actions count recalculates immediately after state reset, preventing the End Turn button from being incorrectly enabled.
+- **Regression test**: `tests/regression/TryAgainVisitType.test.ts` — validates full Try Again flow: success → shouldAdvanceTurn → endTurnWithMovement → next player active → time penalty applied.
+- **Files changed** (3 files): TurnService.ts, StateService.ts, TryAgainVisitType.test.ts
+
 ### Block useless time-reduction cards & expand glossary highlighting (March 29, 2026)
 - **Bug fix: Expeditor cards that only reduce time are now blocked when timeSpent is 0** — Previously, cards like "Process Improvement" (-6 days) could be played at game start when no time had been spent, wasting the card with zero effect (`Math.max(0, 0-6) = 0`). Added `isTimeReductionBlockedByZeroTime()` guard to `GameRulesService.canPlayCard()`, mirrored in `CardsSection` (green highlight) and `ActionCenterPanel` (EXPEDITOR READY callout). Cards with additional effects (money, draw) remain playable.
 - **Feature: Glossary term highlighting expanded to all narrative text** — `TextWithTerms` was only used in `StorySection`, `ActionCenterPanel` (story), and `CardDetailsModal`. Added to 7 more components: `SpaceInfoModal` (story + action), `BoardV3` (card popups), `ActionCenterPanel` (E-card callout), `CurrentCardSection` (story/action/outcomes), `CardDisplay` (descriptions in compact + detailed variants — propagates to all card lists), `DiscardPileModal` (card descriptions), `SpaceExplorerPanel` (story/action/outcomes).

@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: March 29, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.2)
-**Current Version**: 2.36.2
+**Last Updated**: March 30, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.3)
+**Current Version**: 2.36.3
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Try Again/Negotiate Fix (March 30, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.3
+- **Changes**: Fixed Try Again to advance the turn (pay-and-wait model) instead of letting player retry immediately. Added `updateActionCounts()` calls to keep End Turn button state consistent after reset. Added regression test.
 
 ### Smart Card Play & Glossary Everywhere (March 29, 2026) ✅
 - **Status**: ✅ Complete

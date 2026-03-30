@@ -2,6 +2,19 @@
 
 ---
 
+## v2.36.3 - Try Again Fix (March 30, 2026)
+
+**Release Date:** March 30, 2026
+**Version:** 2.36.3
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixes
+- **Try Again now properly ends your turn** — Previously, using Try Again let you retry the space immediately on the same turn. Now it correctly applies the time penalty and passes the turn to the next player, so you retry on your next turn (as intended by the game rules).
+- **End Turn button no longer stays enabled after Try Again** — The button now correctly disables when your actions are reset.
+
+---
+
 ## v2.36.2 - Smart Card Play & Glossary Everywhere (March 29, 2026)
 
 **Release Date:** March 29, 2026
