@@ -217,7 +217,7 @@ interface ITurnService {
 
   // Turn actions
   rollDice(playerId: string): Promise<DiceRollResult>;
-  tryAgainOnSpace(playerId: string): Promise<void>;
+  tryAgainOnSpace(playerId: string): Promise<TurnEffectResult>; // { success, message, shouldAdvanceTurn: true }
 
   // Win conditions
   checkWinCondition(playerId: string): boolean;

@@ -568,9 +568,15 @@ As of December 2025, the "Try Again" feature uses an explicit **REAL + TEMPORARY
 // Turn lifecycle:
 // 1. Turn starts → createTempStateFromReal() creates working copy
 // 2. All effects → Apply to TEMP state only
-// 3. Try Again → applyToRealState(penalty), discardTempState(), fresh TEMP
+// 3. Try Again → applyToRealState(penalty), discardTempState(), endTurnWithMovement()
 // 4. End Turn → commitTempToReal() finalizes all changes
 ```
+
+**Try Again uses the "Pay-and-Wait" model (v2.36.3):**
+- Player pays the time penalty (applied to REAL state) and their turn ends immediately
+- `tryAgainOnSpace()` returns `shouldAdvanceTurn: true`, and the caller (`GameLayout.handleTryAgain`) calls `endTurnWithMovement()` to advance to the next player
+- The player retries the space on their next turn with a fresh TEMP state
+- `clearTurnActions()` and `discardTempState()` both call `updateActionCounts()` to keep the End Turn button state consistent after reset
 
 **Key State Types (StateTypes.ts):**
 ```typescript
