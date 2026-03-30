@@ -1661,11 +1661,11 @@ export class TurnService implements ITurnService {
         );
       }
 
-      // 11. Return success - player stays on space to retry with fresh state
+      // 11. Return success - turn will advance, player retries next round
       return {
         success: true,
         message: successMessage,
-        shouldAdvanceTurn: false
+        shouldAdvanceTurn: true
       };
 
     } catch (error) {

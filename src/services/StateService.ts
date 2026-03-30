@@ -890,6 +890,7 @@ export class StateService implements IStateService {
     };
 
     this.currentState = newState;
+    this.updateActionCounts();
     this.notifyListeners();
     return { ...this.currentState };
   }
@@ -1348,6 +1349,7 @@ export class StateService implements IStateService {
         fundingHistory: [...realState.state.fundingHistory],
         activeEffects: [...realState.state.activeEffects],
       });
+      this.updateActionCounts();
     }
 
     return result;
