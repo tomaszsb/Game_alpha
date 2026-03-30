@@ -97,6 +97,11 @@ export class GameRulesService implements IGameRulesService {
       // If currentActivityPhase is null (player not on a phased space), allow any cards to be played
     }
 
+    // Block cards whose only effect is a time reduction when timeSpent is already 0
+    if (card && this.isTimeReductionBlockedByZeroTime(card, playerId)) {
+      return false;
+    }
+
     return true;
   }
 
@@ -301,6 +306,28 @@ export class GameRulesService implements IGameRulesService {
    * Checks if a card type requires the player's turn to play
    * @private
    */
+  private isTimeReductionBlockedByZeroTime(card: any, playerId: string): boolean {
+    if (!card.tick_modifier) return false;
+    const tickVal = parseInt(card.tick_modifier, 10);
+    if (isNaN(tickVal) || tickVal >= 0) return false;
+
+    const player = this.stateService.getPlayer(playerId);
+    if (!player || player.timeSpent > 0) return false;
+
+    // Card has a negative tick_modifier and timeSpent is 0
+    // Only block if there are no other beneficial effects
+    if (card.money_effect) {
+      const moneyVal = parseInt(card.money_effect, 10);
+      if (!isNaN(moneyVal) && moneyVal !== 0) return false;
+    }
+    if (card.draw_cards) {
+      const drawVal = parseInt(card.draw_cards, 10);
+      if (!isNaN(drawVal) && drawVal > 0) return false;
+    }
+
+    return true;
+  }
+
   private cardRequiresPlayerTurn(cardType: CardType): boolean {
     // Business rule: Most cards require player's turn, but some might be playable anytime
     // For now, assume all cards require player's turn

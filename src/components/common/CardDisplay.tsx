@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Card } from '../../types/DataTypes';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import './CardDisplay.css';
 
 /**
@@ -66,6 +67,7 @@ export function CardDisplay({
   onSelect,
   cardTypeIcon
 }: CardDisplayProps) {
+  const { openWithTerm } = useDictionaryPanel();
   const highlightClass = highlight !== 'none' ? `card-display--${highlight}` : '';
   const selectableClass = selectable ? 'card-display--selectable' : '';
   const selectedClass = isSelected ? 'card-display--selected' : '';
@@ -106,7 +108,7 @@ export function CardDisplay({
           <div className="card-display__info">
             <div className="card-display__name">{card.card_name}</div>
             {card.description && (
-              <div className="card-display__description">{card.description}</div>
+              <div className="card-display__description"><TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} /></div>
             )}
           </div>
           {displayAmount && (
@@ -154,7 +156,7 @@ export function CardDisplay({
           {card.description && (
             <div className="card-display__detail-row">
               <span className="card-display__detail-label">Description:</span>
-              <span className="card-display__detail-value">{card.description}</span>
+              <span className="card-display__detail-value"><TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} /></span>
             </div>
           )}
           {card.work_type_restriction && (

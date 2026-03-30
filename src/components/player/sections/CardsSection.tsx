@@ -189,15 +189,26 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
     }
   };
 
-  // Check if an E card can be played based on phase restriction
+  // Check if an E card can be played based on phase restriction and effect applicability
   const canPlayCard = (card: any): boolean => {
     if (card.card_type !== 'E') return false;
 
-    // If no phase restriction or restriction is "Any", card can always be played
-    if (!card.phase_restriction || card.phase_restriction === 'Any') return true;
+    // Check phase restriction
+    if (card.phase_restriction && card.phase_restriction !== 'Any') {
+      if (currentPhase?.toUpperCase() !== card.phase_restriction.toUpperCase()) return false;
+    }
 
-    // Otherwise, check if current phase matches the restriction
-    return currentPhase?.toUpperCase() === card.phase_restriction.toUpperCase();
+    // Block time-reduction-only cards when timeSpent is 0
+    if (card.tick_modifier) {
+      const tickVal = parseInt(card.tick_modifier, 10);
+      if (!isNaN(tickVal) && tickVal < 0 && (player.timeSpent || 0) === 0) {
+        const hasMoney = card.money_effect && parseInt(card.money_effect, 10) !== 0;
+        const hasDraw = card.draw_cards && parseInt(card.draw_cards, 10) > 0;
+        if (!hasMoney && !hasDraw) return false;
+      }
+    }
+
+    return true;
   };
 
   // Handle playing a card

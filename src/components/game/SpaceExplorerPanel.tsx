@@ -4,6 +4,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../types/DataTypes';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { openInDictionary } from '../../utils/dictionaryBridge';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 
 interface SpaceDetails {
   space: Space;
@@ -30,6 +31,7 @@ export function SpaceExplorerPanel({
   initialSelectedSpace
 }: SpaceExplorerPanelProps): JSX.Element {
   const { dataService, stateService, movementService } = useGameContext();
+  const { openWithTerm } = useDictionaryPanel();
   const [allSpaces, setAllSpaces] = useState<Space[]>([]);
   const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
   const [spaceDetails, setSpaceDetails] = useState<SpaceDetails | null>(null);
@@ -522,7 +524,7 @@ export function SpaceExplorerPanel({
                       Story Text:
                     </div>
                     <div style={{ marginBottom: '12px' }}>
-                      {spaceDetails.content.story || 'No story content available'}
+                      <TextWithTerms text={spaceDetails.content.story || 'No story content available'} onTermClick={(term) => openWithTerm(term.id)} />
                     </div>
 
                     {/* Action Description */}
@@ -532,7 +534,7 @@ export function SpaceExplorerPanel({
                           Action Required:
                         </div>
                         <div style={{ marginBottom: '12px' }}>
-                          {spaceDetails.content.action_description}
+                          <TextWithTerms text={spaceDetails.content.action_description} onTermClick={(term) => openWithTerm(term.id)} />
                         </div>
                       </>
                     )}
@@ -544,7 +546,7 @@ export function SpaceExplorerPanel({
                           Potential Outcomes:
                         </div>
                         <div>
-                          {spaceDetails.content.outcome_description}
+                          <TextWithTerms text={spaceDetails.content.outcome_description} onTermClick={(term) => openWithTerm(term.id)} />
                         </div>
                       </>
                     )}

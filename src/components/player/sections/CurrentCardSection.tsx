@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '../../../types/DataTypes';
 import { ActionButton } from '../ActionButton';
 import { ExpandableSection } from '../ExpandableSection';
+import { TextWithTerms, useDictionaryPanel } from '../../../dictionary';
 
 /**
  * Props for the CurrentCardSection component.
@@ -30,6 +31,7 @@ function getChoiceVariant(label: string) {
  * @returns {JSX.Element} The rendered CurrentCardSection component.
  */
 export function CurrentCardSection({ card, onChoice }: CurrentCardSectionProps) {
+  const { openWithTerm } = useDictionaryPanel();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -65,9 +67,9 @@ export function CurrentCardSection({ card, onChoice }: CurrentCardSectionProps) 
       error={error || undefined}
     >
       <div className="card-content">
-        <div className="card-story">{card.story || card.description}</div>
-        <div className="card-action-required">{card.actionRequired}</div>
-        <div className="card-outcomes">{card.potentialOutcomes}</div>
+        <div className="card-story"><TextWithTerms text={card.story || card.description || ''} onTermClick={(term) => openWithTerm(term.id)} /></div>
+        {card.actionRequired && <div className="card-action-required"><TextWithTerms text={card.actionRequired} onTermClick={(term) => openWithTerm(term.id)} /></div>}
+        {card.potentialOutcomes && <div className="card-outcomes"><TextWithTerms text={card.potentialOutcomes} onTermClick={(term) => openWithTerm(term.id)} /></div>}
 
         {choices.length > 0 && (
           <div className="card-choices">

@@ -6,6 +6,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { CardTypeBadge, getCardTypeColors } from '../common/CardTypeBadge';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { DISCARD_PILE } from '../../constants/uiStrings';
 
 interface DiscardPileModalProps {
@@ -20,6 +21,7 @@ interface DiscardPileModalProps {
  */
 export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: DiscardPileModalProps) {
   const { stateService, dataService } = useGameContext();
+  const { openWithTerm } = useDictionaryPanel();
   const [filterType, setFilterType] = useState<'all' | 'W' | 'B' | 'E' | 'L' | 'I'>('all');
   const [sortBy, setSortBy] = useState<'type' | 'name' | 'turn'>('turn');
 
@@ -190,7 +192,7 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
                     }}>
-                      {card.description}
+                      <TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} />
                     </div>
                   )}
                 </div>

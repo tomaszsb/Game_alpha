@@ -2,6 +2,19 @@
 
 ---
 
+## v2.36.2 - Smart Card Play & Glossary Everywhere (March 29, 2026)
+
+**Release Date:** March 29, 2026
+**Version:** 2.36.2
+**Status:** Alpha Testing
+**Type:** Bug Fix + Enhancement
+
+### Fixes and improvements
+- **Expeditor cards that can't help are no longer offered** — If an expeditor card's only benefit is reducing filing time but you haven't spent any time yet, it will no longer appear as playable. This prevents wasting a useful card with no effect.
+- **Glossary terms now highlighted everywhere** — Clickable glossary terms (highlighted words that open the dictionary) now appear in board space popups, card descriptions, the space explorer, discard pile, and more — not just the story panel.
+
+---
+
 ## v2.36.1 - Test Stability (March 29, 2026)
 
 **Release Date:** March 29, 2026

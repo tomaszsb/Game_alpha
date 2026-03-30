@@ -6,6 +6,7 @@ import { GameContext } from '../../../src/context/GameContext';
 import { IServiceContainer, IDataService, IStateService } from '../../../src/types/ServiceContracts';
 import { Card } from '../../../src/types/DataTypes';
 import { DISCARD_PILE } from '../../../src/constants/uiStrings';
+import { DictionaryProvider } from '../../../src/dictionary';
 
 describe('DiscardPileModal', () => {
   beforeEach(() => {
@@ -59,9 +60,11 @@ describe('DiscardPileModal', () => {
 
   const renderWithContext = (props: { isOpen: boolean; onClose: () => void; onOpenCardDetailsModal?: (cardId: string) => void }) => {
     return render(
-      <GameContext.Provider value={mockGameServices}>
-        <DiscardPileModal {...props} />
-      </GameContext.Provider>
+      <DictionaryProvider>
+        <GameContext.Provider value={mockGameServices}>
+          <DiscardPileModal {...props} />
+        </GameContext.Provider>
+      </DictionaryProvider>
     );
   };
 

@@ -2,7 +2,7 @@
 
 **Last Updated:** March 29, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.36.1
+**Current Version:** 2.36.2
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Block useless time-reduction cards when timeSpent=0, expand glossary highlighting to 7 more components (Mar 29, 2026)
 - ✅ Centralize UI strings — `src/constants/uiStrings.ts` shared by source + tests, fixed 57 stale test failures, 6 test files updated (Mar 29, 2026)
 - ✅ Fix card replacement spinner, duplicate Expeditor tab buttons, Try Again choice leak — 3 bug fixes, 5 new/updated tests (Mar 29, 2026)
 - ✅ `roll_group` column for independent dice rolls — editor field, data pipeline, processing logic, 7 new tests (Mar 29, 2026)
@@ -105,7 +106,59 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [x] Deleted both files and unused import in GameLayout — fully replaced by BoardV3 (Mar 22, 2026)
 
 ---
+## plan to fix negotiate button
 
+Here is the comprehensive summary of our research, the evolution of our understanding, and the final technical plan to resolve the "Try Again/Negotiate" and movement issues.
+
+  1. The Research Process: What We Found
+  We started by tracing the history of the "Try Again" button through the CHANGELOG.md and the core service files (TurnService.ts, StateService.ts, ActionCenterPanel.tsx).
+
+  Key Findings:
+   * Service vs. UI Disconnect: The UI was showing the button based on "any completed action," but the backend service was hard-coded to reject the action unless the space was explicitly marked
+     can_negotiate=true.
+   * State De-sync: When a turn was reset via "Try Again," the StateService reverted money and cards but failed to trigger a recalculation of "Required Actions." This left the "End Turn" button enabled
+     incorrectly.
+   * Premature Movement: On multi-path spaces, the code was resolving the "Movement Choice" as soon as a destination was clicked, instead of waiting for the player to click the "End Turn" (CSV-labeled) button.
+
+  ---
+
+  2. Correcting Assumptions
+  During our discussion, we pivoted on several key architectural points to align with your vision:
+
+   * Turn Flow (The "Wait" Rule):
+       * Initial Assumption: I thought "Try Again" let you stay on the space and retry immediately.
+       * Correction: You clarified that "Try Again" must apply the penalty and immediately end the turn, forcing the player to wait for the next round to try that space again.
+   * Visit Type Preservation:
+       * Initial Assumption: I thought "Try Again" might always reset to a "First Visit."
+       * Correction: You clarified that if the original attempt was a Subsequent Visit, the retry must also be a Subsequent Visit. The history must be reverted exactly to the state before that specific attempt
+         began.
+   * Button Labels:
+       * Initial Assumption: I suggested dynamic labels like "Confirm Move."
+       * Correction: You clarified that we must strictly use the labels defined in the CSV (via the Space Editor), as those are the "source of truth." We only need to fix the timing of the movement logic.
+
+  ---
+
+  3. Detailed Fix Plan
+
+  Step 1: Turn Service Logic (The "Pay-and-Wait" Model)
+   * Update TurnService.tryAgainOnSpace to set shouldAdvanceTurn: true.
+   * In the "Try Again" flow, before advancing the turn, I will modify the player's visitedSpaces and spaceVisitLog to remove the entry for the current space. This ensures the next round's arrival is processed
+     with the correct visit type (preserving First/Subsequent status).
+
+  Step 2: Movement Timing (The "Confirm" Rule)
+   * Modify the interaction between ActionCenterPanel and TurnService.
+   * When a player selects a destination on a multi-path space, it will only update the moveIntent state.
+   * The actual movePlayer and endTurnWithMovement calls will be restricted to the "End Turn" (CSV-labeled) button click. I will disable any "Auto-resolve" logic in the MovementService.
+
+  Step 3: State Synchronization (The "UI Refresh" Rule)
+   * Modify StateService.ts to call updateActionCounts() inside the clearTurnActions and discardTempState methods.
+   * This ensures that as soon as "Try Again" is clicked, the game state recognizes that 0 actions are now complete, correctly disabling the "End Turn" button for that player before the turn advances.
+
+  Step 4: Regression Prevention (The "Validation" Rule)
+  I will implement a new test suite, tests/regression/TryAgainVisitType.test.ts, which will:
+   1. Verify that "Try Again" on a Subsequent Visit results in a Subsequent Visit next round.
+   2. Verify that selecting a destination does not change the player's coordinates until the final button is clicked.
+   3. Verify that the "Try Again" button ends the turn and applies the time penalty to the player's persistent state.
 ## 🔮 **FUTURE: Nice-to-Have Improvements**
 
 ### Mobile & PWA

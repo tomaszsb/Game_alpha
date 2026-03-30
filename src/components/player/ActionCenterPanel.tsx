@@ -219,10 +219,21 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     return (player.hand || []).filter(cardId => {
       const card = gameServices.dataService.getCardById(cardId);
       if (!card || card.card_type !== 'E') return false;
-      if (!card.phase_restriction || card.phase_restriction === 'Any') return true;
-      return currentPhase?.toUpperCase() === card.phase_restriction.toUpperCase();
+      if (card.phase_restriction && card.phase_restriction !== 'Any') {
+        if (currentPhase?.toUpperCase() !== card.phase_restriction.toUpperCase()) return false;
+      }
+      // Block time-reduction-only cards when timeSpent is 0
+      if (card.tick_modifier) {
+        const tickVal = parseInt(card.tick_modifier, 10);
+        if (!isNaN(tickVal) && tickVal < 0 && (player.timeSpent || 0) === 0) {
+          const hasMoney = card.money_effect && parseInt(card.money_effect, 10) !== 0;
+          const hasDraw = card.draw_cards && parseInt(card.draw_cards, 10) > 0;
+          if (!hasMoney && !hasDraw) return false;
+        }
+      }
+      return true;
     });
-  }, [player.hand, currentPhase, gameServices.dataService]);
+  }, [player.hand, currentPhase, player.timeSpent, gameServices.dataService]);
 
   // Required actions
   const pendingActions = useMemo(() => {
@@ -503,8 +514,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
               return (
                 <div key={cardId} className="action-center__e-card-item">
                   <div className="action-center__e-card-info">
-                    <div className="action-center__e-card-name">{card.card_name}</div>
-                    {card.description && <div className="action-center__e-card-desc">{card.description}</div>}
+                    <div className="action-center__e-card-name"><TextWithTerms text={card.card_name} onTermClick={(term) => openWithTerm(term.id)} /></div>
+                    {card.description && <div className="action-center__e-card-desc"><TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} /></div>}
                   </div>
                   <button
                     className="action-center__e-card-play"

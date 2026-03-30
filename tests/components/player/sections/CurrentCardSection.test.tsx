@@ -3,6 +3,10 @@ import { render, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { CurrentCardSection } from '../../../../src/components/player/sections/CurrentCardSection';
 import { Card } from '../../../../src/types/DataTypes';
+import { DictionaryProvider } from '../../../../src/dictionary';
+
+const renderWithDictionary = (ui: React.ReactElement) =>
+  render(<DictionaryProvider>{ui}</DictionaryProvider>);
 
 const mockCard: Card = {
   card_id: 'test-card',
@@ -25,7 +29,7 @@ describe('CurrentCardSection', () => {
   });
 
   it('should render the card details', () => {
-    const { getByText } = render(
+    const { getByText } = renderWithDictionary(
       <CurrentCardSection card={mockCard} onChoice={vi.fn()} />
     );
 
@@ -36,7 +40,7 @@ describe('CurrentCardSection', () => {
   });
 
   it('should render the choice buttons', () => {
-    const { getByText } = render(
+    const { getByText } = renderWithDictionary(
       <CurrentCardSection card={mockCard} onChoice={vi.fn()} />
     );
 
@@ -46,7 +50,7 @@ describe('CurrentCardSection', () => {
 
   it('should call onChoice with the correct choice id when a button is clicked', async () => {
     const onChoice = vi.fn();
-    const { getByText } = render(
+    const { getByText } = renderWithDictionary(
       <CurrentCardSection card={mockCard} onChoice={onChoice} />
     );
 
@@ -59,7 +63,7 @@ describe('CurrentCardSection', () => {
 
   it('should show a loading skeleton when a choice is being processed', async () => {
     const onChoice = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
-    const { getByText, container } = render(
+    const { getByText, container } = renderWithDictionary(
       <CurrentCardSection card={mockCard} onChoice={onChoice} />
     );
 
@@ -79,7 +83,7 @@ describe('CurrentCardSection', () => {
 
   it('should show an error message if onChoice throws an error', async () => {
     const onChoice = vi.fn(() => Promise.reject(new Error('Test error')));
-    const { getByText } = render(
+    const { getByText } = renderWithDictionary(
       <CurrentCardSection card={mockCard} onChoice={onChoice} />
     );
 
@@ -103,7 +107,7 @@ describe('CurrentCardSection', () => {
       },
     };
     const onChoice = vi.fn();
-    const { getByText } = render(
+    const { getByText } = renderWithDictionary(
       <CurrentCardSection card={longDescriptionCard} onChoice={onChoice} />
     );
 

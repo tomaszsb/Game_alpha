@@ -6,6 +6,9 @@ import { CardReplacementModal } from '../../../src/components/modals/CardReplace
 import { Player, Card } from '../../../src/types/DataTypes';
 import { DataService } from '../../../src/services/DataService';
 import { CARD_REPLACE } from '../../../src/constants/uiStrings';
+import { DictionaryProvider } from '../../../src/dictionary';
+
+const renderWithDictionary = (ui: React.ReactElement) => render(<DictionaryProvider>{ui}</DictionaryProvider>);
 
 // Mock GameContext
 const mockDataService = {
@@ -80,7 +83,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should render when open with valid player and cards', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -98,7 +101,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should not render when closed', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={false}
         player={mockPlayer}
@@ -113,7 +116,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should not render when player is null', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={null}
@@ -133,7 +136,7 @@ describe('CardReplacementModal', () => {
       hand: []
     };
 
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={emptyPlayer}
@@ -148,7 +151,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should handle card selection and deselection', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -179,7 +182,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should prevent selecting more cards than maxReplacements', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -203,7 +206,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should display card details with proper formatting', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -221,7 +224,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should show newCardType notification when specified', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -239,7 +242,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should enable Replace button when cards are selected', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -265,7 +268,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should call onReplace with selected cards and same card type', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -288,7 +291,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should call onCancel when Return to Main Panel button is clicked', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -306,7 +309,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should call onCancel when backdrop is clicked', () => {
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -324,7 +327,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should reset selection state when cancelled', () => {
-    const { rerender } = render(
+    const { rerender } = renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={mockPlayer}
@@ -346,14 +349,16 @@ describe('CardReplacementModal', () => {
 
     // Re-render the same component to check if its internal state was reset
     rerender(
-      <CardReplacementModal
-        isOpen={true}
-        player={mockPlayer}
-        cardType="W"
-        maxReplacements={2}
-        onReplace={mockOnReplace}
-        onCancel={mockOnCancel}
-      />
+      <DictionaryProvider>
+        <CardReplacementModal
+          isOpen={true}
+          player={mockPlayer}
+          cardType="W"
+          maxReplacements={2}
+          onReplace={mockOnReplace}
+          onCancel={mockOnCancel}
+        />
+      </DictionaryProvider>
     );
 
     expect(screen.getByText(CARD_REPLACE.counter(0, 2))).toBeInTheDocument();
@@ -373,7 +378,7 @@ describe('CardReplacementModal', () => {
       description: 'Launch comprehensive marketing campaign'
     });
 
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={businessPlayer}
@@ -404,7 +409,7 @@ describe('CardReplacementModal', () => {
       hand: ['W3']
     };
 
-    render(
+    renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
         player={playerWithLongCard}

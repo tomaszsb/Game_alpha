@@ -5,6 +5,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../types/DataTypes';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 
 interface SpaceInfoModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function SpaceInfoModal({
   connections,
   portraitSrc
 }: SpaceInfoModalProps): JSX.Element | null {
+  const { openWithTerm } = useDictionaryPanel();
   if (!isOpen) return null;
 
   const sectionStyle: React.CSSProperties = {
@@ -137,7 +139,7 @@ export function SpaceInfoModal({
                   }}>{npcInfo.name} says:</span>
                 </div>
               )}
-              {content.story}
+              <TextWithTerms text={content.story} onTermClick={(term) => openWithTerm(term.id)} />
             </div>
           </div>
         );
@@ -158,7 +160,7 @@ export function SpaceInfoModal({
             color: '#1565C0',
             lineHeight: '1.5',
           }}>
-            {content.action_description}
+            <TextWithTerms text={content.action_description} onTermClick={(term) => openWithTerm(term.id)} />
           </div>
         </div>
       )}

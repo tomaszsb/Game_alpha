@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Block useless time-reduction cards & expand glossary highlighting (March 29, 2026)
+- **Bug fix: Expeditor cards that only reduce time are now blocked when timeSpent is 0** — Previously, cards like "Process Improvement" (-6 days) could be played at game start when no time had been spent, wasting the card with zero effect (`Math.max(0, 0-6) = 0`). Added `isTimeReductionBlockedByZeroTime()` guard to `GameRulesService.canPlayCard()`, mirrored in `CardsSection` (green highlight) and `ActionCenterPanel` (EXPEDITOR READY callout). Cards with additional effects (money, draw) remain playable.
+- **Feature: Glossary term highlighting expanded to all narrative text** — `TextWithTerms` was only used in `StorySection`, `ActionCenterPanel` (story), and `CardDetailsModal`. Added to 7 more components: `SpaceInfoModal` (story + action), `BoardV3` (card popups), `ActionCenterPanel` (E-card callout), `CurrentCardSection` (story/action/outcomes), `CardDisplay` (descriptions in compact + detailed variants — propagates to all card lists), `DiscardPileModal` (card descriptions), `SpaceExplorerPanel` (story/action/outcomes).
+- **Test fixes**: Added `DictionaryProvider` wrapper to 4 test files: `CurrentCardSection.test.tsx`, `DiscardPileModal.test.tsx`, `CardReplacementModal.test.tsx`, `CardsSection.test.tsx`
+- **Files changed** (15 files): GameRulesService.ts, ActionCenterPanel.tsx, CardsSection.tsx, SpaceInfoModal.tsx, BoardV3.tsx, CurrentCardSection.tsx, CardDisplay.tsx, DiscardPileModal.tsx, SpaceExplorerPanel.tsx, 4 test files, TODO.md
+
 ### Centralize UI strings to prevent test brittleness (March 29, 2026)
 - **Refactor: Created `src/constants/uiStrings.ts`** — centralized UI text constants so both source components and tests import from the same file. Changing a button label now only requires editing one file instead of hunting through source + test files.
 - **Constants groups**: `DICE_BUTTON` (15 dice roll button labels), `DICE_FEEDBACK` (feedback format helpers), `NOTIF` (notification format helpers), `CARD_REPLACE` (modal text templates), `CARD_DETAILS` (transfer labels), `DISCARD_PILE` (empty state/filter text)

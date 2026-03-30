@@ -12,6 +12,7 @@ import { CardsSection } from '../../../src/components/player/sections/CardsSecti
 import { createAllMockServices } from '../../mocks/mockServices';
 import { Player, GameState } from '../../../types/StateTypes';
 import { GameContext } from '../../../src/context/GameContext';
+import { DictionaryProvider } from '../../../src/dictionary';
 
 describe('CardsSection', () => {
   const mockServices = createAllMockServices();
@@ -77,9 +78,11 @@ describe('CardsSection', () => {
   // Helper to render component with GameContext
   const renderWithContext = (ui: React.ReactElement) => {
     return render(
-      <GameContext.Provider value={mockServices}>
-        {ui}
-      </GameContext.Provider>
+      <DictionaryProvider>
+        <GameContext.Provider value={mockServices}>
+          {ui}
+        </GameContext.Provider>
+      </DictionaryProvider>
     );
   };
 

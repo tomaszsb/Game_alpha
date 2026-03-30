@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 29, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.1)
-**Current Version**: 2.36.1
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.2)
+**Current Version**: 2.36.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Smart Card Play & Glossary Everywhere (March 29, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.2
+- **Changes**: Blocked time-reduction-only cards when timeSpent=0 (prevents wasting cards with no effect). Expanded glossary highlighting (`TextWithTerms`) from 3 components to 10 — now covers board popups, card displays, space explorer, discard pile, and more. Fixed 4 test files with DictionaryProvider wrapper.
 
 ### Centralized UI Strings & Test Stability (March 29, 2026) ✅
 - **Status**: ✅ Complete

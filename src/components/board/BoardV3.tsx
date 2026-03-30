@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffe
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import {
   BOARD, PHASE_COLORS, PathSegment, ForkBranch, BranchItem, Edge, Point,
   ConfigRow, MovementRow, DiceRow,
@@ -31,6 +32,7 @@ interface BoardV3Props {
 
 export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
   const { dataService, stateService, movementService } = useGameContext();
+  const { openWithTerm } = useDictionaryPanel();
 
   const [validMoves, setValidMoves] = useState<string[]>([]);
   const [hoveredSpace, setHoveredSpace] = useState<string | null>(null);
@@ -210,12 +212,12 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
           <div className={`pbm-card-name${nameCls}`}>{shortName(spaceName)}</div>
           {content?.story && (
             <div className="pbm-card-story">
-              {npcName && <strong>{npcName}: </strong>}{truncate(content.story, storyMax)}
+              {npcName && <strong>{npcName}: </strong>}<TextWithTerms text={truncate(content.story, storyMax)} onTermClick={(term) => openWithTerm(term.id)} />
             </div>
           )}
           {!isHov && content?.action_description && (
             <div className="pbm-card-action">
-              <strong>Action:</strong> {truncate(content.action_description, 80)}
+              <strong>Action:</strong> <TextWithTerms text={truncate(content.action_description, 80)} onTermClick={(term) => openWithTerm(term.id)} />
             </div>
           )}
           {renderAvatars(playersHere)}
