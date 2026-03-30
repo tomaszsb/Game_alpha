@@ -129,14 +129,11 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect(result.message).toContain('Player 1 used Try Again');
     expect(result.message).toContain('1 day');
 
-    // Critical: shouldAdvanceTurn must be false so the player stays on the space to retry
-    expect(result.shouldAdvanceTurn).toBe(false);
+    // Pay-and-wait: shouldAdvanceTurn must be true so the turn ends
+    expect(result.shouldAdvanceTurn).toBe(true);
 
-    // Check that Try Again count was incremented
-    expect(stateService.getTryAgainCount(player1.id)).toBe(1);
-
-    // Check that a fresh TEMP state was created
-    expect(stateService.hasActiveTempState(player1.id)).toBe(true);
+    // TEMP state should be discarded (turn is ending)
+    expect(stateService.hasActiveTempState(player1.id)).toBe(false);
   });
 
   it('should fail if no active TEMP state exists', async () => {
@@ -184,7 +181,7 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect((turnService as any).nextPlayer).not.toHaveBeenCalled();
   });
 
-  it('should accumulate penalties across multiple Try Again attempts', async () => {
+  it('should apply time penalty to REAL state and discard TEMP', async () => {
     // Setup
     stateService.addPlayer('Player 1');
     stateService.startGame();
@@ -192,7 +189,7 @@ describe('TurnService.tryAgainOnSpace', () => {
     const player1 = gameState.players[0];
     player1.currentSpace = 'OWNER-SCOPE-INITIATION';
     player1.visitType = 'First';
-    player1.timeSpent = 0;
+    player1.timeSpent = 5;
     stateService.setGameState(gameState);
 
     // Create initial TEMP state
@@ -207,26 +204,19 @@ describe('TurnService.tryAgainOnSpace', () => {
     (dataService.getSpaceEffects as vi.Mock).mockReturnValue([{
       effect_type: 'time',
       effect_action: 'add',
-      effect_value: 2 // 2 day penalty per Try Again
+      effect_value: 2 // 2 day penalty
     }]);
 
-    // First Try Again
-    const result1 = await turnService.tryAgainOnSpace(player1.id);
-    expect(result1.success).toBe(true);
-    expect(result1.shouldAdvanceTurn).toBe(false);
-    expect(stateService.getTryAgainCount(player1.id)).toBe(1);
+    const result = await turnService.tryAgainOnSpace(player1.id);
+    expect(result.success).toBe(true);
+    expect(result.shouldAdvanceTurn).toBe(true);
 
-    // Second Try Again
-    const result2 = await turnService.tryAgainOnSpace(player1.id);
-    expect(result2.success).toBe(true);
-    expect(result2.shouldAdvanceTurn).toBe(false);
-    expect(stateService.getTryAgainCount(player1.id)).toBe(2);
+    // TEMP should be discarded (turn is ending)
+    expect(stateService.hasActiveTempState(player1.id)).toBe(false);
 
-    // Penalties should accumulate in REAL state
-    // Each Try Again adds 2 days to REAL, so after 2 attempts: 2 + 2 = 4 days
-    const realState = stateService.getEffectivePlayerState(player1.id);
-    expect(realState).not.toBeNull();
-    // Note: The exact accumulated value depends on how applyToRealState handles the penalty
+    // Player's main state should reflect the penalty (restored from REAL which has penalty)
+    const player = stateService.getPlayer(player1.id)!;
+    expect(player.timeSpent).toBe(7); // 5 + 2 day penalty
   });
 
   it('should cancel any pending choice when Try Again is used', async () => {

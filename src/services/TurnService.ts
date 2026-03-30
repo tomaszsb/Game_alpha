@@ -1605,46 +1605,24 @@ export class TurnService implements ITurnService {
         isCommitted: true
       });
 
-      // 6. Start new exploration session for the fresh attempt
-      const newSessionId = this.loggingService.startNewExplorationSession();
-
-      // 7. Reset turn flags so player can take fresh actions after Try Again
-      this.stateService.clearPlayerHasMoved();
-      this.stateService.clearPlayerHasRolledDice();
-      this.stateService.clearTurnActions();
-
-      // 7b. Cancel any pending choice (e.g., card replacement modal) so the
+      // 6. Cancel any pending choice (e.g., card replacement modal) so the
       // awaiting promise resolves and the action button stops spinning
       const activeChoice = this.choiceService?.getActiveChoice?.();
       if (activeChoice) {
         this.choiceService.skipChoice(activeChoice.id);
       }
 
-      // 8. Use REAL/TEMP state model for Try Again:
-      // - Discard current TEMP state (which has effects applied)
-      // - Create fresh TEMP from REAL with time penalty applied to REAL first
+      // 7. Pay-and-wait model: apply penalty to REAL, discard TEMP
+      // The turn will end immediately — player retries on their next turn
+      // (startTurn will create fresh TEMP and process space effects then)
+      this.stateService.applyToRealState(playerId, { timeSpent: timePenalty });
       this.stateService.discardTempState(playerId);
-      const tryAgainTempOptions: CreateTempOptions = {
-        playerId,
-        spaceName: currentPlayer.currentSpace,
-        visitType: currentPlayer.visitType,
-        isTryAgain: true,
-        tryAgainPenalty: timePenalty
-      };
-      const tempResult = this.stateService.createTempStateFromReal(tryAgainTempOptions);
-      if (!tempResult.success) {
-        throw new Error(`Failed to create Try Again state: ${tempResult.error}`);
-      }
-
-      // 9. Re-process space effects to re-apply cards and manual actions
-      // This is critical for spaces like OWNER-SCOPE-INITIATION (card draws) and PM-DECISION-CHECK (manual actions)
-      await this.processSpaceEffectsAfterMovement(playerId, currentPlayer.currentSpace, currentPlayer.visitType, true);
 
 
-      // 10. Prepare success message
+      // 8. Prepare success message
       const successMessage = `${currentPlayer.name} used Try Again: ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty applied.`;
 
-      // 10. Send Try Again notification
+      // 9. Send Try Again notification
       if (this.notificationService) {
         this.notificationService.notify(
           {
@@ -1661,7 +1639,7 @@ export class TurnService implements ITurnService {
         );
       }
 
-      // 11. Return success - turn will advance, player retries next round
+      // 10. Return success - turn will advance, player retries next round
       return {
         success: true,
         message: successMessage,
