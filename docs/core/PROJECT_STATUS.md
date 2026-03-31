@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 31, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.5)
-**Current Version**: 2.36.5
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.6)
+**Current Version**: 2.36.6
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Affordability Checks & Try Again Visibility (March 31, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.6
+- **Changes**: Routed 4 unprotected money deduction paths through ResourceService with canAfford() validation. Fixed Try Again button appearing on non-negotiable spaces (now gated by can_negotiate).
 
 ### Fix Phantom Space CON-SAFETY-BRIEF (March 31, 2026) ✅
 - **Status**: ✅ Complete

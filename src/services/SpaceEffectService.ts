@@ -377,40 +377,39 @@ export class SpaceEffectService implements ISpaceEffectService {
     const value = typeof effect.effect_value === 'string' ?
       parseInt(effect.effect_value) : effect.effect_value;
 
-    let newMoney = player.money;
-
     if (effect.effect_action === 'add') {
-      newMoney += value;
+      this.resourceService.addMoney(playerId, value, 'space_effect', `Space effect: add $${value}`);
     } else if (effect.effect_action === 'subtract') {
-      newMoney -= value;
+      if (!this.resourceService.canAfford(playerId, value)) {
+        console.warn(`⚠️ Space effect: Player cannot afford $${value} subtract (has $${player.money}). Spending remaining balance.`);
+        if (player.money > 0) {
+          this.resourceService.spendMoney(playerId, player.money, 'space_effect', `Space effect: subtract $${value} (capped)`);
+        }
+      } else {
+        this.resourceService.spendMoney(playerId, value, 'space_effect', `Space effect: subtract $${value}`);
+      }
     } else if (effect.effect_action === 'fee_percent') {
-      // Apply percentage-based fee
       const feeAmount = Math.floor((player.money * value) / 100);
-      newMoney -= feeAmount;
+      if (feeAmount > 0) {
+        this.resourceService.spendMoney(playerId, feeAmount, 'space_effect', `Space effect: ${value}% fee ($${feeAmount})`);
+      }
     } else if (effect.effect_action === 'add_per_amount') {
-      // Calculate based on condition (e.g., "per_200k" = per $200,000)
       let additionalAmount = value;
 
       if (effect.condition === 'per_200k') {
-        // Calculate amount based on total borrowed (sum of all loan principals)
         const totalBorrowed = player.loans?.reduce((sum, loan) => sum + loan.principal, 0) || 0;
         const multiplier = Math.floor(totalBorrowed / 200000);
         additionalAmount = value * multiplier;
       } else {
-        // For other conditions, use value directly (fallback)
         console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
       }
 
-      newMoney += additionalAmount;
+      if (additionalAmount > 0) {
+        this.resourceService.addMoney(playerId, additionalAmount, 'space_effect', `Space effect: add_per_amount $${additionalAmount}`);
+      }
     }
 
-    newMoney = Math.max(0, newMoney); // Ensure money doesn't go below 0
-
-
-    return this.stateService.updatePlayer({
-      id: playerId,
-      money: newMoney
-    });
+    return this.stateService.getGameState();
   }
 
   /**

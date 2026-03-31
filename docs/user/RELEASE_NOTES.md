@@ -2,6 +2,19 @@
 
 ---
 
+## v2.36.6 - Financial Safety & Try Again Fix (March 31, 2026)
+
+**Release Date:** March 31, 2026
+**Version:** 2.36.6
+**Status:** Alpha Testing
+**Type:** Bug Fix
+
+### Fixes
+- **Spending more money than you have is now properly blocked everywhere** — Several transaction types (card costs, space fees, expeditor effects) could previously bypass the affordability check, potentially draining your wallet to zero without warning. All money deductions now validate your balance first.
+- **Try Again button no longer appears on spaces that don't support it** — Previously the button would show up after completing actions on any space, but silently do nothing when clicked on non-negotiable spaces. Now it only appears where negotiation is actually available.
+
+---
+
 ## v2.36.5 - Construction Path Fix (March 31, 2026)
 
 **Release Date:** March 31, 2026

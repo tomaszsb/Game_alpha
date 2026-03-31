@@ -53,6 +53,7 @@ describe('SpaceEffectService', () => {
     mockResourceService = {
       addMoney: vi.fn().mockReturnValue(true),
       spendMoney: vi.fn().mockReturnValue(true),
+      canAfford: vi.fn().mockReturnValue(true),
       addTime: vi.fn().mockReturnValue(true),
       spendTime: vi.fn().mockReturnValue(true)
     } as unknown as IResourceService;
@@ -384,11 +385,8 @@ describe('SpaceEffectService', () => {
 
       spaceEffectService.applySpaceMoneyEffect('player1', effect);
 
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'player1',
-          money: 1005000 // 1000000 + 5000
-        })
+      expect(mockResourceService.addMoney).toHaveBeenCalledWith(
+        'player1', 5000, 'space_effect', expect.any(String)
       );
     });
 
@@ -404,11 +402,30 @@ describe('SpaceEffectService', () => {
 
       spaceEffectService.applySpaceMoneyEffect('player1', effect);
 
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'player1',
-          money: 997000 // 1000000 - 3000
-        })
+      expect(mockResourceService.canAfford).toHaveBeenCalledWith('player1', 3000);
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1', 3000, 'space_effect', expect.any(String)
+      );
+    });
+
+    it('should spend remaining balance when subtract exceeds funds', () => {
+      const poorPlayer = createMockPlayer({ money: 500 });
+      (mockStateService.getPlayer as ReturnType<typeof vi.fn>).mockReturnValue(poorPlayer);
+      (mockResourceService.canAfford as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      const effect: SpaceEffect = {
+        space_name: 'TEST',
+        visit_type: 'First',
+        trigger_type: 'auto',
+        effect_type: 'money',
+        effect_action: 'subtract',
+        effect_value: 3000
+      };
+
+      spaceEffectService.applySpaceMoneyEffect('player1', effect);
+
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1', 500, 'space_effect', expect.any(String)
       );
     });
 
@@ -424,11 +441,9 @@ describe('SpaceEffectService', () => {
 
       spaceEffectService.applySpaceMoneyEffect('player1', effect);
 
-      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'player1',
-          money: 900000 // 1000000 - 10%
-        })
+      // 10% of 1,000,000 = 100,000
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1', 100000, 'space_effect', expect.any(String)
       );
     });
   });

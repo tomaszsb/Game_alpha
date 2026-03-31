@@ -74,6 +74,9 @@ describe('CardService - Enhanced Coverage', () => {
     mockDataService = createMockDataService();
     mockStateService = createMockStateService();
     mockResourceService = createMockResourceService();
+    mockResourceService.canAfford.mockReturnValue(true);
+    mockResourceService.spendMoney.mockReturnValue(true);
+    mockResourceService.addMoney.mockReturnValue(true);
     mockLoggingService = createMockLoggingService();
     mockGameRulesService = createMockGameRulesService();
     

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Affordability checks & Try Again button visibility (March 31, 2026)
+- **Bug fix: 4 money deduction paths now check affordability** — CardService.playCard(), SpaceEffectService.applySpaceMoneyEffect(), and CardService.applyExpeditorCardEffect() all bypassed ResourceService and deducted money via direct state mutation with no `canAfford()` check. Rerouted all 4 paths through `ResourceService.spendMoney()`/`addMoney()` which validates affordability before deducting. Space subtract effects now spend remaining balance when insufficient (instead of silently clamping to $0).
+- **Bug fix: Try Again button no longer appears on non-negotiable spaces** — Button showed on all spaces after any completed action (e.g., CON-ISSUES), but `tryAgainOnSpace()` requires `can_negotiate: Yes` and silently failed. Now the button only renders when `spaceContent.can_negotiate` is true. `ActionCenterPanel.tsx`
+- **Test updates**: Added `canAfford`/`spendMoney`/`addMoney` mock defaults to CardService and SpaceEffectService tests. Added new test for insufficient-funds capping on space subtract effects. 94 tests pass across 5 test files.
+- **Files changed** (5 files): CardService.ts, SpaceEffectService.ts, ActionCenterPanel.tsx, CardService.test.ts, SpaceEffectService.test.ts
+
 ### Fix phantom space CON-SAFETY-BRIEF in dice outcomes (March 31, 2026)
 - **Data fix: Remove test space CON-SAFETY-BRIEF** — This space was added as a test artifact in DICE_OUTCOMES.csv but never defined in SPACE_CONTENT.csv or MOVEMENT.csv. Landing on it caused repeated `No movement data found` console warnings and left the player stuck with no valid moves. Replaced all 6 references with `CON-INSPECT` (matching the source `DiceRoll Info.csv`). Updated stale comment in `E2E-AllPaths.test.ts`.
 - **Files changed** (2 files): DICE_OUTCOMES.csv, E2E-AllPaths.test.ts

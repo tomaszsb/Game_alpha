@@ -525,16 +525,11 @@ export class CardService implements ICardService {
       if (card.cost && card.cost > 0) {
         // Skip cost charging for funding cards (B = Bank loans, I = Investor funding)
         if (card.card_type !== 'B' && card.card_type !== 'I') {
-          const player = this.stateService.getPlayer(playerId);
-          if (!player) {
-            const error = ErrorNotifications.invalidState(`Player ${playerId} not found`);
-            throw new Error(error.detailed);
+          if (!this.resourceService.canAfford(playerId, card.cost)) {
+            const player = this.stateService.getPlayer(playerId);
+            throw new Error(`Cannot afford card '${card.card_name}'. Cost: $${card.cost}, Available: $${player?.money ?? 0}`);
           }
-
-          // Update via TEMP state (or main state if no TEMP exists)
-          this.stateService.updateTempState(playerId, {
-            money: player.money - card.cost
-          });
+          this.resourceService.spendMoney(playerId, card.cost, 'card_play', `Played card: ${card.card_name}`);
         }
       }
       
@@ -1317,9 +1312,16 @@ export class CardService implements ICardService {
       const moneyVal = parseInt(card.money_effect);
       if (!isNaN(moneyVal) && moneyVal !== 0) {
         hasStructuredData = true;
-        this.stateService.updateTempState(playerId, {
-          money: player.money + moneyVal
-        });
+        if (moneyVal > 0) {
+          this.resourceService.addMoney(playerId, moneyVal, 'expeditor_card', `Expeditor card: ${card.card_name}`);
+        } else {
+          const cost = Math.abs(moneyVal);
+          if (this.resourceService.canAfford(playerId, cost)) {
+            this.resourceService.spendMoney(playerId, cost, 'expeditor_card', `Expeditor card: ${card.card_name}`);
+          } else {
+            console.warn(`⚠️ Expeditor card ${card.card_name}: Player cannot afford $${cost} (has $${player.money})`);
+          }
+        }
       }
     }
 
@@ -1368,9 +1370,7 @@ export class CardService implements ICardService {
         const moneyMatch = effects.match(/gain \$(\d+)/);
         if (moneyMatch) {
           const moneyGain = parseInt(moneyMatch[1]);
-          this.stateService.updateTempState(playerId, {
-            money: player.money + moneyGain
-          });
+          this.resourceService.addMoney(playerId, moneyGain, 'expeditor_card', `Expeditor card: ${card.card_name}`);
         }
       }
 
