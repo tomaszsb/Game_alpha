@@ -1016,6 +1016,35 @@ app.get('/api/feedback/:id', (req, res) => {
   }
 });
 
+app.patch('/api/feedback/:id', (req, res) => {
+  try {
+    const sanitizedId = path.basename(req.params.id);
+    if (!/^feedback-\d+-[a-f0-9]+\.json$/.test(sanitizedId)) {
+      return res.status(400).json({ error: 'Invalid feedback ID format' });
+    }
+    const filePath = path.join(FEEDBACK_DIR, sanitizedId);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const { resolved } = req.body;
+    
+    if (typeof resolved !== 'boolean') {
+      return res.status(400).json({ error: 'resolved field must be a boolean' });
+    }
+
+    data.resolved = resolved;
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    
+    res.json({ success: true, id: sanitizedId, resolved: data.resolved });
+  } catch (err) {
+    console.error('Feedback update error:', err.message);
+    res.status(500).json({ error: 'Failed to update feedback report' });
+  }
+});
+
 // ===== SPA FALLBACK & ERROR HANDLERS =====
 // For non-API routes, serve index.html (SPA client-side routing)
 app.use((req, res, next) => {
