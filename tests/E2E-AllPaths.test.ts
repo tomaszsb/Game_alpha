@@ -358,8 +358,8 @@ describe('E2E Path Coverage: All Decision Points', () => {
       const afterPlanExam = await playTurn(playerId, 'REG-DOB-PLAN-EXAM', { roll: 1 });
       expect(afterPlanExam).toBe('REG-FDNY-FEE-REVIEW');
 
-      // Note: CON-ISSUES dice outcomes now route to CON-SAFETY-BRIEF (not CON-INSPECT),
-      // so the construction→FINISH path is blocked. PLAN-EXAM routing is verified above.
+      // CON-ISSUES dice outcomes route to CON-INSPECT.
+      // PLAN-EXAM routing is verified above.
     }, 90000);
 
   });

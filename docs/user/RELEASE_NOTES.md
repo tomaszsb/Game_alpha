@@ -2,6 +2,18 @@
 
 ---
 
+## v2.36.5 - Construction Path Fix (March 31, 2026)
+
+**Release Date:** March 31, 2026
+**Version:** 2.36.5
+**Status:** Alpha Testing
+**Type:** Data Fix
+
+### Fixes
+- **Construction path no longer gets stuck** — Rolling certain numbers on the Construction Issues space would send you to a non-existent space, leaving you unable to move. The dice outcomes now correctly route you to the Construction Inspection space.
+
+---
+
 ## v2.36.4 - Bug Report Fixes (March 30, 2026)
 
 **Release Date:** March 30, 2026

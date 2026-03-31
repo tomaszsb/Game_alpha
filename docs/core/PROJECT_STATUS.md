@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: March 30, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.4)
-**Current Version**: 2.36.4
+**Last Updated**: March 31, 2026
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.5)
+**Current Version**: 2.36.5
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Fix Phantom Space CON-SAFETY-BRIEF (March 31, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.5
+- **Changes**: Removed test artifact `CON-SAFETY-BRIEF` from DICE_OUTCOMES.csv — space was never defined, caused console spam and stuck players. Replaced with `CON-INSPECT` per source data.
 
 ### Bug Report Fixes & Fee Editor (March 30, 2026) ✅
 - **Status**: ✅ Complete

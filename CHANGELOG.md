@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix phantom space CON-SAFETY-BRIEF in dice outcomes (March 31, 2026)
+- **Data fix: Remove test space CON-SAFETY-BRIEF** — This space was added as a test artifact in DICE_OUTCOMES.csv but never defined in SPACE_CONTENT.csv or MOVEMENT.csv. Landing on it caused repeated `No movement data found` console warnings and left the player stuck with no valid moves. Replaced all 6 references with `CON-INSPECT` (matching the source `DiceRoll Info.csv`). Updated stale comment in `E2E-AllPaths.test.ts`.
+- **Files changed** (2 files): DICE_OUTCOMES.csv, E2E-AllPaths.test.ts
+
 ### Bug report fixes, fee/fees editor, feedback API (March 30, 2026)
 - **UI: "Create Game" → "Start Game"** — Landing page button relabeled from "Create Game" to "Start Game" per user feedback. `GameLobby.tsx`
 - **Editor: Fee vs Fees dropdown differentiation** — "Fees Paid" now shows percentage input (`%` suffix), "Fee Paid" now shows fixed dollar input (`$` prefix). Previously both were percentage-only. Updated in both `DiceRollEditor.tsx` and `InlineDiceRollEditor.tsx`
