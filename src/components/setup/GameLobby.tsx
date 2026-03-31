@@ -267,7 +267,7 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
               cursor: creating ? 'wait' : 'pointer',
             }}
           >
-            {creating ? 'Creating...' : 'Create Game'}
+            {creating ? 'Starting...' : 'Start Game'}
           </button>
         </section>
 

@@ -2,6 +2,22 @@
 
 ---
 
+## v2.36.4 - Bug Report Fixes (March 30, 2026)
+
+**Release Date:** March 30, 2026
+**Version:** 2.36.4
+**Status:** Alpha Testing
+**Type:** Bug Fix + Enhancement
+
+### Fixes
+- **"Start Game" button** — The landing page now says "Start Game" instead of "Create Game" for a clearer first impression.
+- **Fee types in editor** — The data editor now distinguishes between "Fee Paid" (fixed dollar amount, e.g. $5.00) and "Fees Paid" (percentage, e.g. 5%). Previously both showed a percentage input.
+
+### Backend
+- **Feedback resolution API** — Bug reports can now be marked as resolved via the dashboard.
+
+---
+
 ## v2.36.3 - Try Again Fix (March 30, 2026)
 
 **Release Date:** March 30, 2026

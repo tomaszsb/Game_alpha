@@ -381,6 +381,11 @@ export class TurnService implements ITurnService {
         throw new Error('Current player not found');
       }
 
+      // DEBUG: Log end turn attempt at OWNER-SCOPE-INITIATION
+      if (currentPlayer.currentSpace === 'OWNER-SCOPE-INITIATION') {
+        console.log(`🔍 END TURN DEBUG [${currentPlayer.name}@${currentPlayer.currentSpace}]: force=${force}, required=${gameState.requiredActions}, completed=${gameState.completedActionCount}, hand=${currentPlayer.hand.length} cards, W cards=${currentPlayer.hand.filter(c => c.startsWith('W')).length}, diceRolled=${gameState.hasPlayerRolledDice}`);
+      }
+
       // Validation: Check if all required actions are completed (skip if force = true for Try Again)
       if (!force && gameState.requiredActions > gameState.completedActionCount) {
         throw new Error(`Cannot end turn: Player has not completed all required actions. Required: ${gameState.requiredActions}, Completed: ${gameState.completedActionCount}`);
@@ -692,6 +697,11 @@ export class TurnService implements ITurnService {
         visibility: 'player',
         isCommitted: true  // Force turn_start to be immediately visible in log
       });
+
+      // DEBUG: Log turn start state for scope bug diagnosis
+      if (player.currentSpace === 'OWNER-SCOPE-INITIATION' || player.currentSpace === 'OWNER-FUND-INITIATION') {
+        console.log(`🔍 START TURN DEBUG [${player.name}@${player.currentSpace}]: hand=[${player.hand.join(', ')}], W cards=${player.hand.filter(c => c.startsWith('W')).length}, money=${player.money}, projectScope=${player.projectScope}`);
+      }
 
       // 1. Start new exploration session for transactional logging
       const sessionId = this.loggingService.startNewExplorationSession();
@@ -1899,6 +1909,10 @@ export class TurnService implements ITurnService {
 
     // Calculate project scope from W cards (single source of truth)
     const projectScope = this.gameRulesService.calculateProjectScope(playerId);
+
+    if (projectScope === 0) {
+      console.error(`🚨 SCOPE BUG: Player ${currentPlayer.name} (${playerId}) at OWNER-FUND-INITIATION with 0 project scope. Hand: [${currentPlayer.hand.join(', ')}], W cards: ${currentPlayer.hand.filter(c => c.startsWith('W')).length}, activeCards: ${(currentPlayer.activeCards || []).length}`);
+    }
 
     // Store project scope on player (permanent record)
     this.stateService.updatePlayer({

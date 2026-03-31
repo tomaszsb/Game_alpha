@@ -2,7 +2,7 @@
 
 **Last Updated:** March 30, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.36.3
+**Current Version:** 2.36.4
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Bug report fixes: "Start Game" button, Fee vs Fees editor differentiation, feedback PATCH API, scope bug diagnostic logging (Mar 30, 2026)
 - ✅ Fix Try Again/Negotiate: pay-and-wait model (shouldAdvanceTurn), updateActionCounts in clearTurnActions/discardTempState, regression test (Mar 30, 2026)
 - ✅ Block useless time-reduction cards when timeSpent=0, expand glossary highlighting to 7 more components (Mar 29, 2026)
 - ✅ Centralize UI strings — `src/constants/uiStrings.ts` shared by source + tests, fixed 57 stale test failures, 6 test files updated (Mar 29, 2026)

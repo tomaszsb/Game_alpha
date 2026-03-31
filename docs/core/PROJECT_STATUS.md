@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 30, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.3)
-**Current Version**: 2.36.3
+**Current Phase**: Pre-Beta — Editor Hardening (v2.36.4)
+**Current Version**: 2.36.4
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Bug Report Fixes & Fee Editor (March 30, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.36.4
+- **Changes**: Renamed "Create Game" to "Start Game", differentiated Fee Paid ($) vs Fees Paid (%) in editor, added PATCH /api/feedback/:id endpoint, added diagnostic logging for scope bug investigation.
 
 ### Try Again/Negotiate Fix (March 30, 2026) ✅
 - **Status**: ✅ Complete

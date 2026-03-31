@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Bug report fixes, fee/fees editor, feedback API (March 30, 2026)
+- **UI: "Create Game" → "Start Game"** — Landing page button relabeled from "Create Game" to "Start Game" per user feedback. `GameLobby.tsx`
+- **Editor: Fee vs Fees dropdown differentiation** — "Fees Paid" now shows percentage input (`%` suffix), "Fee Paid" now shows fixed dollar input (`$` prefix). Previously both were percentage-only. Updated in both `DiceRollEditor.tsx` and `InlineDiceRollEditor.tsx`
+- **Diagnostic logging: Scope bug investigation** — Added `🔍` debug logging at OWNER-SCOPE-INITIATION and OWNER-FUND-INITIATION to diagnose how players can leave without W cards (causes $0 seed money). Logs action requirements, completed actions, hand contents, and dice roll state at `startTurn`, `endTurn`, and `calculateRequiredActions`
+- **API: PATCH /api/feedback/:id** — New endpoint to mark feedback reports as resolved (`{ resolved: true }`). Validates ID format and boolean type. `server/server.js`
+- **Files changed** (5 files): GameLobby.tsx, DiceRollEditor.tsx, InlineDiceRollEditor.tsx, StateService.ts, TurnService.ts, server.js
+
 ### Fix Try Again/Negotiate pay-and-wait model (March 30, 2026)
 - **Bug fix: Try Again now advances the turn** — Previously `shouldAdvanceTurn` was `false`, letting the player retry immediately on the same turn. Changed to `true` so the player pays the time penalty and waits for next round (pay-and-wait model). `GameLayout.handleTryAgain` already handled this flag correctly.
 - **Bug fix: End Turn button state after Try Again** — Added `updateActionCounts()` calls in `StateService.clearTurnActions()` and `StateService.discardTempState()` so the required-actions count recalculates immediately after state reset, preventing the End Turn button from being incorrectly enabled.

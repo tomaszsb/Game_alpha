@@ -29,7 +29,7 @@ function SmartRollInput({ value, dieRoll, allSpaceNames, onChange }: {
     }
     return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
   }
-  if (['Fees Paid', 'Fee Paid'].includes(dieRoll)) {
+  if (dieRoll === 'Fees Paid') {
     const m = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
     if (!value || m) {
       return (
@@ -38,6 +38,20 @@ function SmartRollInput({ value, dieRoll, allSpaceNames, onChange }: {
             onChange={(e) => onChange(e.target.value ? `${e.target.value}%` : '')}
             style={{ ...s.rollInput, flex: 1 }} placeholder="0" />
           <span style={{ fontSize: '10px', color: '#495057' }}>%</span>
+        </div>
+      );
+    }
+    return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={s.rollInput} />;
+  }
+  if (dieRoll === 'Fee Paid') {
+    const m = value?.match(/^\$?\s*(\d+(?:\.\d+)?)$/);
+    if (!value || m) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+          <span style={{ fontSize: '10px', color: '#495057' }}>$</span>
+          <input type="number" min="0" step="0.01" value={m ? m[1] : ''}
+            onChange={(e) => onChange(e.target.value ? `$${e.target.value}` : '')}
+            style={{ ...s.rollInput, flex: 1 }} placeholder="0.00" />
         </div>
       );
     }

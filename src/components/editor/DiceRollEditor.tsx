@@ -19,8 +19,12 @@ function isCardCategory(dieRoll: string): boolean {
   return ['W Cards', 'I Cards', 'E cards'].includes(dieRoll);
 }
 
-function isFeeCategory(dieRoll: string): boolean {
-  return ['Fees Paid', 'Fee Paid'].includes(dieRoll);
+function isPercentFeeCategory(dieRoll: string): boolean {
+  return dieRoll === 'Fees Paid';
+}
+
+function isFixedFeeCategory(dieRoll: string): boolean {
+  return dieRoll === 'Fee Paid';
 }
 
 function isQualityCategory(dieRoll: string): boolean {
@@ -75,7 +79,7 @@ function SmartRollInput({
     );
   }
 
-  if (isFeeCategory(dieRoll)) {
+  if (isPercentFeeCategory(dieRoll)) {
     const feeMatch = value?.match(/^(\d+(?:\.\d+)?)\s*%$/);
     const isPercent = !value || feeMatch;
     if (isPercent) {
@@ -91,6 +95,30 @@ function SmartRollInput({
             placeholder="0"
           />
           <span style={styles.feeSuffix}>%</span>
+        </div>
+      );
+    }
+    return (
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={styles.rollInput} />
+    );
+  }
+
+  if (isFixedFeeCategory(dieRoll)) {
+    const dollarMatch = value?.match(/^\$?\s*(\d+(?:\.\d+)?)$/);
+    const isDollar = !value || dollarMatch;
+    if (isDollar) {
+      return (
+        <div style={styles.feeInputRow}>
+          <span style={styles.feeSuffix}>$</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={dollarMatch ? dollarMatch[1] : ''}
+            onChange={(e) => onChange(e.target.value ? `$${e.target.value}` : '')}
+            style={{ ...styles.rollInput, flex: 1 }}
+            placeholder="0.00"
+          />
         </div>
       );
     }

@@ -1119,12 +1119,16 @@ export class StateService implements IStateService {
           completed++;
         }
       });
+      // DEBUG: Log action requirements at OWNER-SCOPE-INITIATION to diagnose scope bug
+      if (player.currentSpace === 'OWNER-SCOPE-INITIATION') {
+        console.log(`🔍 ACTION DEBUG [${player.name}@${player.currentSpace}]: required=${required}, completed=${completed}, types=[${availableTypes}], diceRolled=${this.currentState.hasPlayerRolledDice}, manualActions=${JSON.stringify(this.currentState.completedActions.manualActions)}, hand=${player.hand.length} cards`);
+      }
     } catch (error) {
       console.error('Error calculating required actions:', error);
       // Fallback to basic turn requirements
       return { required: 1, completed: this.currentState.hasPlayerMovedThisTurn ? 1 : 0, availableTypes: ['movement'] };
     }
-    
+
     return { required, completed, availableTypes };
   }
 
