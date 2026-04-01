@@ -1,8 +1,8 @@
 # Architecture Guide - Unravel Codes: The Game
 
-**Last Updated:** March 10, 2026
-**Status:** Pre-Beta (v2.31.0)
-**Test Coverage:** 1398 tests passing (93 files, 0 failures)
+**Last Updated:** March 31, 2026
+**Status:** Pre-Beta (v2.37.0)
+**Test Coverage:** 1462 tests passing (91 files, 0 failures)
 
 ---
 

@@ -3,6 +3,7 @@
 import { Card, CardType, SpaceEffect, DiceEffect, GameConfig } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { ConditionEvaluator } from './ConditionEvaluator';
+import { extractNumeric, extractPositiveNumeric, extractPercentage, parseCardTypeFromText, parseCardActionFromText, parseCardDrawFormat, determineFeeType } from './parseUtils';
 
 /**
  * Effect Factory Utility
@@ -540,16 +541,8 @@ export class EffectFactory {
       case 'fee':
         // Fee effects are percentage-based loan fees that require player state to calculate
         // Determine fee type from description
-        const feeDesc = String(spaceEffect.effect_value).toLowerCase();
-        let feeType: 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED' = 'LOAN_PERCENTAGE';
-
-        if (feeDesc.includes('dice') || feeDesc.includes('roll')) {
-          feeType = 'DICE_BASED';
-        } else if (feeDesc.includes('%')) {
-          feeType = 'LOAN_PERCENTAGE';
-        } else {
-          feeType = 'FIXED';
-        }
+        // Use structured fee_type from CSV when available, fall back to runtime detection
+        const feeType = spaceEffect.fee_type || determineFeeType(String(spaceEffect.effect_value));
 
         effects.push({
           effectType: 'FEE_DEDUCTION',
@@ -595,16 +588,12 @@ export class EffectFactory {
     // Handle "X Cards" format in effect_type (e.g., "W Cards", "B Cards")
     // This is used in DICE_ROLL_INFO.csv where the effect_type column contains the card type
     // rollEffect can be "Draw 1", "Remove 1", "Replace 1", etc.
-    const cardTypeMatch = diceEffect.effect_type.match(/^([WBELI])\s*Cards?$/i);
-    if (cardTypeMatch) {
-      const cardType = cardTypeMatch[1].toUpperCase() as CardType;
-      const countMatch = rollEffect.match(/(\d+)/);
-      if (countMatch) {
-        const count = parseInt(countMatch[1]);
-
-        // Parse action word (Remove, Draw, Replace)
-        const actionMatch = rollEffect.match(/^(Remove|Draw|Replace)\s+/i);
-        const actionWord = actionMatch ? actionMatch[1].toLowerCase() : 'draw';
+    const cardType = parseCardTypeFromText(diceEffect.effect_type);
+    if (cardType) {
+      const parsed = parseCardActionFromText(rollEffect);
+      if (parsed) {
+        const count = parsed.count;
+        const actionWord = parsed.action;
 
         if (actionWord === 'draw') {
           effects.push({
@@ -697,9 +686,9 @@ export class EffectFactory {
         if (diceEffect.card_type) {
           // For dice effects, rollEffect is like "Draw 3" and card_type is separate
           // Extract the number from rollEffect and use the card_type from the dice effect
-          const countMatch = rollEffect.match(/(\d+)/);
-          if (countMatch) {
-            const count = parseInt(countMatch[1]);
+          const parsedAction = parseCardActionFromText(rollEffect);
+          if (parsedAction) {
+            const count = parsedAction.count;
             const cardDrawEffectPayload = {
               effectType: 'CARD_DRAW' as const,
               payload: {
@@ -729,26 +718,25 @@ export class EffectFactory {
         }
         break;
 
-      case 'money':
-        // Check if this is a percentage-based fee effect
-        if (rollEffect.includes('%')) {
-          const percentage = parseFloat(rollEffect.replace('%', '').trim());
-          if (!isNaN(percentage) && percentage > 0) {
-            // Determine fee category based on source (space name)
-            const feeCategory: 'architectural' | 'engineering' = source.includes('ARCH') ? 'architectural' : 'engineering';
-            effects.push({
-              effectType: 'RESOURCE_CHANGE',
-              payload: {
-                playerId,
-                resource: 'MONEY',
-                amount: 0,  // Will be calculated in EffectEngineService based on project scope
-                percentageOfScope: percentage,
-                feeCategory,
-                source,
-                reason: `Design fee: ${rollEffect} of project scope (rolled ${diceRoll})`
-              }
-            });
-          }
+      case 'money': {
+        // Use structured flag from CSV when available, fall back to runtime detection
+        const isPercentage = diceEffect.roll_is_percentage ?? rollEffect.includes('%');
+        const percentage = isPercentage ? extractPercentage(rollEffect) : null;
+        if (percentage !== null && percentage > 0) {
+          // Determine fee category based on source (space name)
+          const feeCategory: 'architectural' | 'engineering' = source.includes('ARCH') ? 'architectural' : 'engineering';
+          effects.push({
+            effectType: 'RESOURCE_CHANGE',
+            payload: {
+              playerId,
+              resource: 'MONEY',
+              amount: 0,  // Will be calculated in EffectEngineService based on project scope
+              percentageOfScope: percentage,
+              feeCategory,
+              source,
+              reason: `Design fee: ${rollEffect} of project scope (rolled ${diceRoll})`
+            }
+          });
         } else {
           const moneyAmount = this.parseMoneyEffect(rollEffect);
           if (moneyAmount !== 0) {
@@ -765,6 +753,7 @@ export class EffectFactory {
           }
         }
         break;
+      }
 
       case 'time':
         const timeAmount = this.parseTimeEffect(rollEffect);
@@ -809,11 +798,7 @@ export class EffectFactory {
    * Parse effect value with action context (e.g., "add", "subtract")
    */
   private static parseEffectValue(effectValue: string | number, effectAction: string): number {
-    let value = typeof effectValue === 'number' ? effectValue : parseInt(String(effectValue).replace(/[^\d-]/g, ''));
-    
-    if (isNaN(value)) {
-      value = 0;
-    }
+    let value = extractNumeric(typeof effectValue === 'number' ? effectValue : String(effectValue));
 
     // Apply action context
     if (effectAction.toLowerCase().includes('subtract') || effectAction.toLowerCase().includes('lose') || effectAction.toLowerCase().includes('pay')) {
@@ -866,76 +851,50 @@ export class EffectFactory {
    * Parse money effect string (e.g., "+50000", "-25000", "10% of current")
    */
   private static parseMoneyEffect(moneyEffect: string): number {
-    const cleanEffect = moneyEffect.trim();
-    
     // Handle percentage effects (e.g., "10% of current")
-    if (cleanEffect.includes('%')) {
+    if (extractPercentage(moneyEffect) !== null) {
       // NOTE: Percentage-based money effects not supported in current card set
-      // If future cards need this, will require passing player state to this method
       console.warn(`EFFECT_FACTORY: Percentage effects not implemented: ${moneyEffect}`);
       return 0;
     }
 
-    // Handle fixed amount effects (e.g., "+50000", "-25000")
-    const amount = parseInt(cleanEffect.replace(/[^-\d]/g, ''));
-    return isNaN(amount) ? 0 : amount;
+    return extractNumeric(moneyEffect);
   }
 
   /**
    * Parse time effect string (e.g., "+2", "-1", "0")
    */
   private static parseTimeEffect(timeEffect: string): number {
-    const cleanEffect = timeEffect.trim();
-    const amount = parseInt(cleanEffect.replace(/[^-\d]/g, ''));
-    return isNaN(amount) ? 0 : amount;
+    return extractNumeric(timeEffect);
   }
 
   /**
    * Parse card draw effect string (e.g., "2 W", "1 B", "3 E")
    */
   private static parseCardDrawEffect(drawEffect: string): Array<{ cardType: CardType; count: number }> {
-    const draws: Array<{ cardType: CardType; count: number }> = [];
-    const cleanEffect = drawEffect.trim();
-
-    // Simple parsing - assumes format like "2 W" or "1 B"
-    const match = cleanEffect.match(/(\d+)\s*([WBEIL])/i);
-    if (match) {
-      const count = parseInt(match[1]);
-      const cardType = match[2].toUpperCase() as CardType;
-      
-      if (['W', 'B', 'E', 'I', 'L'].includes(cardType)) {
-        draws.push({ cardType, count });
-      }
-    }
-
-    return draws;
+    const parsed = parseCardDrawFormat(drawEffect);
+    return parsed ? [parsed] : [];
   }
 
   /**
    * Parse loan amount (e.g., "50000", "100000")
    */
   private static parseLoanAmount(loanAmount: string): number {
-    const cleanAmount = loanAmount.trim().replace(/[^\d]/g, '');
-    const amount = parseInt(cleanAmount);
-    return isNaN(amount) ? 0 : amount;
+    return extractPositiveNumeric(loanAmount);
   }
 
   /**
    * Parse time modifier (e.g., "+1", "-2", "0")
    */
   private static parseTickModifier(tickModifier: string): number {
-    const cleanModifier = tickModifier.trim();
-    const modifier = parseInt(cleanModifier.replace(/[^-\d]/g, ''));
-    return isNaN(modifier) ? 0 : modifier;
+    return extractNumeric(tickModifier);
   }
 
   /**
    * Parse turn skip count (e.g., "1", "2")
    */
   private static parseTurnSkip(turnSkip: string): number {
-    const cleanSkip = turnSkip.trim().replace(/[^\d]/g, '');
-    const skip = parseInt(cleanSkip);
-    return isNaN(skip) ? 0 : skip;
+    return extractPositiveNumeric(turnSkip);
   }
 
   /**
@@ -943,13 +902,12 @@ export class EffectFactory {
    */
   private static parseDuration(duration: string): number {
     const cleanDuration = duration.trim().toLowerCase();
-    
+
     if (cleanDuration === 'permanent' || cleanDuration === 'infinite') {
       return 999; // Use 999 as "permanent" duration
     }
 
-    const durationNum = parseInt(cleanDuration.replace(/[^\d]/g, ''));
-    return isNaN(durationNum) ? 0 : durationNum;
+    return extractPositiveNumeric(duration);
   }
 
   // === UTILITY METHODS ===

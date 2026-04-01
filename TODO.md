@@ -2,7 +2,7 @@
 
 **Last Updated:** March 31, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.36.6
+**Current Version:** 2.37.0
 
 ---
 
@@ -19,22 +19,13 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Code audit recommendations — all items resolved: `parseUtils.ts` (8 shared utilities), `fee_type` column in SPACE_EFFECTS.csv, 3 metadata columns in DICE_EFFECTS.csv, 62 new tests (Mar 31, 2026)
 - ✅ Affordability checks on all money paths + Try Again button gated by can_negotiate (Mar 31, 2026)
 - ✅ Fix phantom space CON-SAFETY-BRIEF — test artifact in DICE_OUTCOMES.csv replaced with CON-INSPECT (Mar 31, 2026)
 - ✅ Bug report fixes: "Start Game" button, Fee vs Fees editor differentiation, feedback PATCH API, scope bug diagnostic logging (Mar 30, 2026)
 - ✅ Fix Try Again/Negotiate: pay-and-wait model (shouldAdvanceTurn), updateActionCounts in clearTurnActions/discardTempState, regression test (Mar 30, 2026)
-- ✅ Block useless time-reduction cards when timeSpent=0, expand glossary highlighting to 7 more components (Mar 29, 2026)
-- ✅ Centralize UI strings — `src/constants/uiStrings.ts` shared by source + tests, fixed 57 stale test failures, 6 test files updated (Mar 29, 2026)
-- ✅ Fix card replacement spinner, duplicate Expeditor tab buttons, Try Again choice leak — 3 bug fixes, 5 new/updated tests (Mar 29, 2026)
-- ✅ `roll_group` column for independent dice rolls — editor field, data pipeline, processing logic, 7 new tests (Mar 29, 2026)
-- ✅ Real-world language — removed "card", "dice", "roll", "play", "draw", "discard" from all player-facing UI across 20 files (Mar 25, 2026)
-- ✅ Unified card selection modals — return/replace/give all use CardReplacementModal with card artwork and details (Mar 25, 2026)
-- ✅ Fix card return/replace/give modals — processGameData mapped all card actions to draw_E, 11 spaces affected, 7 new pipeline tests (Mar 25, 2026)
-- ✅ Glossary highlighting fix (TextWithTerms race condition), Quick Stats row removed, End Turn subtitle black text, 5 new tests + 20 fixed tests (Mar 25, 2026)
-- ✅ ProjectLedger data model rework: new Scope section, contractor costs from dice rolls, separated arch/eng fees, deficit indicator, reordered categories (Mar 24, 2026)
-- ✅ Code Audit Sprint: dead code cleanup (37 files), TurnService decomposition (2 new handlers), structured CSV columns (8 new CARDS_EXPANDED columns replacing regex parsing) (Mar 23, 2026)
-- ✅ Space Data Editor: card button labels (5 new CSV columns), title in header, path in movement section, negotiate-based preview, 27 regression tests (Mar 18, 2026)
-- ✅ BoardV3 production migration: pre-allocated 190px slots, SVG arrow system with obstacle avoidance, data-driven path from CSV, 83 unit tests, replaces ProgressBarMap (Mar 16, 2026)
+
+*For full history, see CHANGELOG.md*
 
 *For full history, see CHANGELOG.md*
 
@@ -80,34 +71,20 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ### 1. Structured CSV columns over parsed text (High Priority)
 - [x] Audit all regex-parsing of description text for game logic — 44 operations found across 14 files (Mar 23, 2026)
 - [x] Phase 1: CARDS_EXPANDED.csv — added 8 structured columns (card_mechanic, dice ranges, investor_payout), updated EffectFactory + CardService (Mar 23, 2026)
-- [ ] Phase 2: SPACE_EFFECTS.csv — add `fee_type` column, structured `card_action`/`card_count` (requires processGameData.js changes)
-- [ ] Phase 3: DICE_EFFECTS.csv — structured roll columns (low priority, current parsing works well)
-- [ ] Encapsulate remaining regex in EffectFactory/CardService into reusable utility functions with tests
+- [x] Phase 2: SPACE_EFFECTS.csv — added `fee_type` column (LOAN_PERCENTAGE, FIXED, DICE_BASED) (Mar 31, 2026)
+- [x] Phase 3: DICE_EFFECTS.csv — added `roll_action`, `roll_is_percentage`, `roll_numeric_only` metadata columns (Mar 31, 2026)
+- [x] Encapsulate remaining regex — created `src/utils/parseUtils.ts` with 8 reusable utilities, 43 tests (Mar 31, 2026)
 
 ### 2. TurnService decomposition (Medium Priority)
 - [x] Extract TurnTransitionHandler from `nextPlayer()` — 136 → 27 lines (Mar 23, 2026)
 - [x] Extract MovementExecutor from `endTurnWithMovement()` — 153 → ~70 lines (Mar 23, 2026)
 - [x] TurnService reduced from 2,148 → 1,984 lines (Mar 23, 2026)
-- [ ] Stress test MovementExecutor edge cases (multi-path intersections)
+- [x] Stress test MovementExecutor edge cases — 19 tests covering dice/intent/auto-move/edge cases (Mar 31, 2026)
 
 ### 3. Dead code cleanup (Medium Priority)
 - [x] Remove `PlayerPanel.tsx`, `NextStepButton.tsx`, `PlayerStatusPanel.tsx`, `PlayerStatusItem.tsx`, `TurnControlsWithActions.tsx` and their tests (Mar 22, 2026)
 - [x] Deleted MobilePlayerPanel (21 files), CardPortfolioDashboard, MovementPathVisualization, FinancialStatusDisplay, DiceRoller, PlayerViewStateService + 5 test files (Mar 23, 2026)
 - [x] Removed dead placeholder UI in GameLayout.tsx (Mar 23, 2026)
-
----
-
-## 🧹 **Snake Map Cleanup** (after snake map is finalized)
-
-### Dead imports in GameLayout.tsx
-- [x] Removed unused `GameBoard` and `MovementPathVisualization` imports (Mar 22, 2026)
-- [x] Removed static placeholder center panel and player panel placeholder (Mar 23, 2026)
-
-### GameBoard.tsx — keep file for TVDisplay, but clean up
-- [x] Removed unused `validMoves` state and debug console.logs (Mar 22, 2026)
-
-### ProgressBarMap.tsx + ProgressBarMap.css
-- [x] Deleted both files and unused import in GameLayout — fully replaced by BoardV3 (Mar 22, 2026)
 
 ---
 

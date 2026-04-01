@@ -130,7 +130,7 @@ describe('ActionCenterPanel - Negotiate Button', () => {
     expect(screen.queryByText('Try Again')).not.toBeInTheDocument();
   });
 
-  it('should show try-again button on non-negotiable space when actions are completed', () => {
+  it('should NOT show try-again button on non-negotiable space even when actions are completed', () => {
     mockGameState.completedActionCount = 1;
 
     mockServices.dataService.getSpaceContent.mockReturnValue({
@@ -152,8 +152,8 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       { gameServices: mockServices }
     );
 
-    // Try Again should show because completedActionCount > 0
-    expect(screen.getByText('Try Again')).toBeInTheDocument();
+    // Try Again should NOT show on non-negotiable spaces regardless of action count
+    expect(screen.queryByText('Try Again')).not.toBeInTheDocument();
   });
 
   it('should use default "Negotiate" label when can_negotiate is true but no custom label', () => {

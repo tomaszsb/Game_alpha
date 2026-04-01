@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: March 31, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.36.6)
-**Current Version**: 2.36.6
+**Current Phase**: Pre-Beta — Editor Hardening (v2.37.0)
+**Current Version**: 2.37.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Code Audit Recommendations Complete (March 31, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.37.0
+- **Changes**: Created shared `parseUtils.ts` (8 utilities replacing ~20 inline regex). Added `fee_type` column to SPACE_EFFECTS.csv and `roll_action`/`roll_is_percentage`/`roll_numeric_only` to DICE_EFFECTS.csv — fee/roll type now determined at pipeline time. 62 new tests (43 parseUtils + 19 MovementExecutor). All code audit TODO items resolved.
 
 ### Affordability Checks & Try Again Visibility (March 31, 2026) ✅
 - **Status**: ✅ Complete

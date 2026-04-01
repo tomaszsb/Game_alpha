@@ -392,6 +392,15 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
     // Fee effect
     const feeValue = (row.Fee || '').trim();
     if (feeValue && !['', '0', '0%'].includes(feeValue)) {
+      // Determine fee_type at pipeline time instead of runtime regex
+      const feeValLower = feeValue.toLowerCase();
+      let feeType = 'FIXED';
+      if (feeValLower.includes('dice') || feeValLower.includes('roll')) {
+        feeType = 'DICE_BASED';
+      } else if (feeValLower.includes('%')) {
+        feeType = 'LOAN_PERCENTAGE';
+      }
+
       effects.push({
         space_name: spaceName,
         visit_type: visitType,
@@ -400,14 +409,15 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         effect_value: feeValue,
         condition: '',
         description: `Pay ${feeValue} fees`,
-        trigger_type: 'auto'
+        trigger_type: 'auto',
+        fee_type: feeType
       });
     }
   }
 
   const fieldnames = [
     'space_name', 'visit_type', 'effect_type', 'effect_action', 'effect_value',
-    'condition', 'description', 'trigger_type'
+    'condition', 'description', 'trigger_type', 'fee_type'
   ];
 
   return toCsv(effects, fieldnames);
@@ -437,6 +447,31 @@ function processDiceEffects(diceRollCsv) {
       cardType = dieRollRaw.includes(' ') ? dieRollRaw.split(' ')[0] : dieRollRaw;
     }
 
+    // Analyze roll values to determine row-level metadata
+    const rollValues = [row['1'], row['2'], row['3'], row['4'], row['5'], row['6']]
+      .map(v => (v || '').trim())
+      .filter(v => v !== '');
+
+    let rollAction = '';
+    let rollIsPercentage = false;
+    let rollNumericOnly = false;
+
+    if (rollValues.length > 0) {
+      // Check if all values are percentages
+      rollIsPercentage = rollValues.every(v => v.includes('%'));
+      // Check if all values are just numbers (possibly with +/- prefix)
+      rollNumericOnly = rollValues.every(v => /^[+-]?\d+$/.test(v));
+
+      // Determine the action pattern from the first non-empty roll value
+      const sample = rollValues[0].toLowerCase();
+      if (/^draw\s/i.test(sample)) rollAction = 'draw';
+      else if (/^remove\s/i.test(sample)) rollAction = 'remove';
+      else if (/^replace\s/i.test(sample)) rollAction = 'replace';
+      else if (rollIsPercentage) rollAction = 'fee';
+      else if (effectType === 'time') rollAction = 'time';
+      else if (effectType === 'money') rollAction = 'money';
+    }
+
     effects.push({
       space_name: spaceName,
       visit_type: visitType,
@@ -448,14 +483,17 @@ function processDiceEffects(diceRollCsv) {
       roll_4: row['4'] || '',
       roll_5: row['5'] || '',
       roll_6: row['6'] || '',
-      roll_group: row.roll_group || ''
+      roll_group: row.roll_group || '',
+      roll_action: rollAction,
+      roll_is_percentage: rollIsPercentage ? 'true' : 'false',
+      roll_numeric_only: rollNumericOnly ? 'true' : 'false'
     });
   }
 
   const fieldnames = [
     'space_name', 'visit_type', 'effect_type', 'card_type',
     'roll_1', 'roll_2', 'roll_3', 'roll_4', 'roll_5', 'roll_6',
-    'roll_group'
+    'roll_group', 'roll_action', 'roll_is_percentage', 'roll_numeric_only'
   ];
 
   return toCsv(effects, fieldnames);

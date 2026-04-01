@@ -2,6 +2,23 @@
 
 ---
 
+## v2.37.0 - Code Quality & Data Pipeline Improvements (March 31, 2026)
+
+**Release Date:** March 31, 2026
+**Version:** 2.37.0
+**Status:** Alpha Testing
+**Type:** Internal Refactor
+
+### Improvements
+- **More reliable game data processing** — Fee types and dice roll metadata are now computed once when game data is generated, instead of being figured out on-the-fly during gameplay. This makes effects more predictable and easier to debug.
+- **Better test coverage** — Added 62 new automated tests covering movement logic and data parsing, catching edge cases before they reach players.
+
+### Technical (no player-visible changes)
+- Created shared parsing utilities, replacing ~20 scattered regex patterns with 8 well-tested functions
+- Added structured columns to SPACE_EFFECTS.csv (`fee_type`) and DICE_EFFECTS.csv (`roll_action`, `roll_is_percentage`, `roll_numeric_only`)
+
+---
+
 ## v2.36.6 - Financial Safety & Try Again Fix (March 31, 2026)
 
 **Release Date:** March 31, 2026

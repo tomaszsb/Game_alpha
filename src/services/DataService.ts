@@ -289,6 +289,11 @@ export class DataService implements IDataService {
         spaceEffect.trigger_type = values[7].trim() as 'manual' | 'auto';
       }
 
+      // Add fee_type if it exists (column 8)
+      if (values[8] && values[8].trim()) {
+        spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+      }
+
       return spaceEffect;
     });
   }
@@ -309,7 +314,10 @@ export class DataService implements IDataService {
         roll_4: values[7] || undefined,
         roll_5: values[8] || undefined,
         roll_6: values[9] || undefined,
-        roll_group: values[10] || undefined
+        roll_group: values[10] || undefined,
+        roll_action: values[11] || undefined,
+        roll_is_percentage: values[12] === 'true',
+        roll_numeric_only: values[13] === 'true'
       };
     });
   }

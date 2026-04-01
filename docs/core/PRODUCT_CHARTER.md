@@ -3,9 +3,9 @@
 **Status**: PRE-BETA — March 2026
 **Core Game Complete**: Fully playable multi-player board game with external access deployed
 **Public URL**: `https://game.unravelcodes.com`
-**Test Status**: 1398 tests passing across 93 test files (100% success rate)
-**Version**: 2.31.0
-**Last Updated**: March 10, 2026
+**Test Status**: 1462 tests passing across 91 test files (100% success rate)
+**Version**: 2.37.0
+**Last Updated**: March 31, 2026
 
 ## 1. Mission Progress - Production Ready
 

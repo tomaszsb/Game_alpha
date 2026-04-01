@@ -32,7 +32,7 @@ taskkill /F /IM chrome.exe
 
 **Working Directory**: `/mnt/d/unravel/current_game/game_alpha/`
 
-**Status**: Pre-Beta (v2.31.0) — Alpha complete, preparing for external testing
+**Status**: Pre-Beta (v2.37.0) — Alpha complete, preparing for external testing
 
 **Directory Structure:**
 ```

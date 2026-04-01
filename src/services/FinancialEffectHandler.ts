@@ -15,6 +15,7 @@ import {
   isResourceChangeEffect,
   isFeeDeductionEffect
 } from '../types/EffectTypes';
+import { extractPercentage, parseFeeFromDescription } from '../utils/parseUtils';
 
 /**
  * FinancialEffectHandler - Handles RESOURCE_CHANGE and FEE_DEDUCTION effects
@@ -450,19 +451,19 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         console.log(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
       } else {
         // Check for fixed percentage
-        const percentMatch = feeDesc.match(/(\d+)%/);
-        if (percentMatch) {
-          const percent = parseInt(percentMatch[1]) / 100;
+        const percentValue = extractPercentage(feeDesc);
+        if (percentValue !== null) {
+          const percent = percentValue / 100;
           feeAmount = Math.round(totalLoanAmount * percent);
-          console.log(`    ${percentMatch[1]}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+          console.log(`    ${percentValue}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
         }
       }
     } else if (payload.feeType === 'DICE_BASED') {
       return null; // Indicates dice roll required
     } else if (payload.feeType === 'FIXED') {
-      const amountMatch = payload.feeDescription.match(/\$?([\d,]+)/);
-      if (amountMatch) {
-        feeAmount = parseInt(amountMatch[1].replace(/,/g, ''));
+      const parsed = parseFeeFromDescription(payload.feeDescription);
+      if (parsed && parsed.type === 'fixed') {
+        feeAmount = parsed.value;
       }
     }
 

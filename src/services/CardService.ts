@@ -3,6 +3,7 @@ import { GameState, Player } from '../types/StateTypes';
 import { CardType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { ErrorNotifications } from '../utils/ErrorNotifications';
+import { parseCardDrawFormat } from '../utils/parseUtils';
 
 export class CardService implements ICardService {
   private readonly dataService: IDataService;
@@ -1104,11 +1105,10 @@ export class CardService implements ICardService {
 
     // DRAW_CARDS effects from draw_cards field
     if (card.draw_cards && card.draw_cards.trim() !== '') {
-      const drawMatch = card.draw_cards.match(/(\d+)\s*([WBELIS]?)/);
-      if (drawMatch) {
-        const count = parseInt(drawMatch[1], 10);
-        const cardType = drawMatch[2] || 'W'; // Default to Work cards if no type specified
-        
+      const drawParsed = parseCardDrawFormat(card.draw_cards);
+      if (drawParsed) {
+        const { count, cardType } = drawParsed;
+
         if (count > 0) {
           effects.push({
             effectType: 'CARD_DRAW',
@@ -1146,10 +1146,9 @@ export class CardService implements ICardService {
 
     // CARD_DISCARD effects from discard_cards field
     if (card.discard_cards && card.discard_cards.trim() !== '') {
-      const discardMatch = card.discard_cards.match(/(\d+)\s*([WBELIS]?)/);
-      if (discardMatch) {
-        const count = parseInt(discardMatch[1], 10);
-        const cardType = discardMatch[2];
+      const discardParsed = parseCardDrawFormat(card.discard_cards);
+      if (discardParsed) {
+        const { count, cardType } = discardParsed;
 
         if (count > 0) {
           effects.push({

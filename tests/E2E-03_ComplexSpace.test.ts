@@ -139,7 +139,12 @@ describe('E2E-03: Complex Space Features Test', () => {
     expect(result.success).toBe(true);
     expect(result.message).toContain('penalty');
 
-    // 3. Verify dice state was reset (player can re-roll)
+    // Try Again returns shouldAdvanceTurn: true — the caller advances the turn,
+    // which resets dice/move flags via nextPlayer()
+    expect(result.shouldAdvanceTurn).toBe(true);
+    await turnService.nextPlayer();
+
+    // 3. Verify dice state was reset (player can re-roll on next turn)
     const finalGameState = stateService.getGameState();
     expect(finalGameState.hasPlayerRolledDice).toBe(false);
     expect(finalGameState.hasPlayerMovedThisTurn).toBe(false);

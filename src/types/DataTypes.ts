@@ -61,6 +61,7 @@ export interface SpaceEffect {
   condition: string;
   description: string;
   trigger_type?: 'manual' | 'auto';
+  fee_type?: 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
 }
 
 export interface DiceEffect {
@@ -79,6 +80,9 @@ export interface DiceEffect {
   condition?: string;
   description?: string;
   roll_group?: string;
+  roll_action?: string;
+  roll_is_percentage?: boolean;
+  roll_numeric_only?: boolean;
 }
 
 export interface SpaceContent {

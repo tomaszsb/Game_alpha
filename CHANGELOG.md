@@ -2,7 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.37.0] - 2026-03-31
+
+### Code audit: Structured CSV columns, shared parse utilities, MovementExecutor tests (March 31, 2026)
+- **Refactor: Created `src/utils/parseUtils.ts`** — 8 reusable parsing utilities replacing ~20 inline regex patterns scattered across EffectFactory, FinancialEffectHandler, and CardService. Functions: `extractNumeric`, `extractPositiveNumeric`, `extractPercentage`, `parseCardTypeFromText`, `parseCardActionFromText`, `parseCardDrawFormat`, `parseFeeFromDescription`, `determineFeeType`.
+- **Pipeline: Added `fee_type` column to SPACE_EFFECTS.csv** — Fee type (LOAN_PERCENTAGE, FIXED, DICE_BASED) now determined at pipeline time in `processGameData.js` instead of runtime string-matching in EffectFactory. Added to SpaceEffect interface, DataService parser (column 8), and EffectFactory (with fallback for backward compat).
+- **Pipeline: Added structured metadata columns to DICE_EFFECTS.csv** — 3 new columns: `roll_action` (draw/remove/replace/fee/time/money), `roll_is_percentage` (true/false), `roll_numeric_only` (true/false). Determined at pipeline time by analyzing roll values. Added to DiceEffect interface, DataService parser, and EffectFactory (uses `roll_is_percentage` flag for fee detection).
+- **EffectFactory simplified**: 10 private parsing methods reduced to 1-2 line delegations to parseUtils. `parseEffectValue`, `parseMoneyEffect`, `parseTimeEffect`, `parseLoanAmount`, `parseTickModifier`, `parseTurnSkip`, `parseDuration`, `parseCardDrawEffect` all now use shared utilities.
+- **FinancialEffectHandler**: Replaced inline regex for percentage extraction (`/(\d+)%/`) and fixed amount parsing (`/\$?([\d,]+)/`) with `extractPercentage` and `parseFeeFromDescription`.
+- **CardService**: Replaced regex in `draw_cards` and `discard_cards` parsing with `parseCardDrawFormat`.
+- **Tests**: 43 new parseUtils tests, 19 new MovementExecutor stress tests (dice/intent/auto-move/edge cases). 126 existing tests pass unchanged across 4 related test suites.
+- **Files changed** (10 source + 2 test + 2 CSV): parseUtils.ts (NEW), EffectFactory.ts, FinancialEffectHandler.ts, CardService.ts, DataTypes.ts, DataService.ts, processGameData.js, SPACE_EFFECTS.csv, DICE_EFFECTS.csv, MovementExecutor.test.ts (NEW), parseUtils.test.ts (NEW)
+
+### Test fixes & Try Again correctness (March 31, 2026)
+- **Bug fix: Dice percentage detection fallback** — `EffectFactory.parseDiceEffect` used `roll_is_percentage || false` which broke backward compat when the new structured column wasn't present. Changed to `roll_is_percentage ?? rollEffect.includes('%')` so percentage fees still work with legacy data.
+- **Bug fix: Try Again button strictly gated by can_negotiate** — Removed `completedActionCount > 0` fallback from ActionCenterPanel condition. Try Again/Negotiate button now only appears on spaces with `can_negotiate: true`, never on non-negotiable spaces.
+- **Test fix: E2E-03 try-again test** — Test called `tryAgainOnSpace()` but didn't call `nextPlayer()` afterward, even though `shouldAdvanceTurn: true` means the caller must advance the turn to reset dice/move flags. Added `nextPlayer()` call to match actual game flow.
+- **Test fix: ActionCenterPanel negotiate tests** — Updated test expectation: non-negotiable spaces should NOT show Try Again button even when `completedActionCount > 0`.
+- **Files changed** (4 files): EffectFactory.ts, ActionCenterPanel.tsx, E2E-03_ComplexSpace.test.ts, ActionCenterPanel.test.tsx
 
 ### Affordability checks & Try Again button visibility (March 31, 2026)
 - **Bug fix: 4 money deduction paths now check affordability** — CardService.playCard(), SpaceEffectService.applySpaceMoneyEffect(), and CardService.applyExpeditorCardEffect() all bypassed ResourceService and deducted money via direct state mutation with no `canAfford()` check. Rerouted all 4 paths through `ResourceService.spendMoney()`/`addMoney()` which validates affordability before deducting. Space subtract effects now spend remaining balance when insufficient (instead of silently clamping to $0).
