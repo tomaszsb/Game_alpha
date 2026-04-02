@@ -263,7 +263,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       Negotiate: '', requires_dice_roll: '', path: 'Main', rolls: '',
       end_turn_label: 'End Turn', try_again_label: 'Try Again',
       w_card_label: '', b_card_label: '', i_card_label: '', l_card_label: '', e_card_label: '',
-      shake_on: '', tts_field: ''
+      shake_on: '', tts_field: '',
+      w_card_narrative: '', b_card_narrative: '', i_card_narrative: '', l_card_narrative: '', e_card_narrative: ''
     };
     const newSubsequent: SpaceRow = { ...newFirst, visit_type: 'Subsequent' };
     setSpacesData(prev => [...prev, newFirst, newSubsequent]);
@@ -491,7 +492,12 @@ function parseSpacesCSV(csvText: string): SpaceRow[] {
       l_card_label: values[28] || '',
       e_card_label: values[29] || '',
       shake_on: values[30] || '',
-      tts_field: values[31] || ''
+      tts_field: values[31] || '',
+      w_card_narrative: values[32] || '',
+      b_card_narrative: values[33] || '',
+      i_card_narrative: values[34] || '',
+      l_card_narrative: values[35] || '',
+      e_card_narrative: values[36] || ''
     };
   }).filter(row => row.space_name); // Filter out empty rows
 }

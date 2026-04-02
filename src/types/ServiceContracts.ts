@@ -151,6 +151,7 @@ export interface IDataService {
   // Content methods
   getSpaceContent(spaceName: string, visitType: VisitType): SpaceContent | undefined;
   getAllSpaceContent(): SpaceContent[];
+  getEffectNarrative(spaceName: string, visitType: VisitType, effectAction: string): string | undefined;
   
   // Card methods
   getCards(): Card[];

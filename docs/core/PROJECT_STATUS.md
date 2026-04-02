@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: April 1, 2026
-**Current Phase**: Pre-Beta — Modal Standardization (v2.38.0)
-**Current Version**: 2.38.0
+**Current Phase**: Pre-Beta — Modal Standardization (v2.39.0)
+**Current Version**: 2.39.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Per-Action Narrative (April 1, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.39.0
+- **Changes**: Added `narrative` column to SPACE_EFFECTS.csv, populated from 5 new Spaces.csv columns (`w_card_narrative` through `e_card_narrative`). Created NarrativeBlock shared component. DiceResultModal, CardModal, ChoiceModal show per-action narrative when available. Editor has expandable narrative textareas per card action. 1482 tests passing.
 
 ### Data-Driven Modal Shake & TTS (April 1, 2026) ✅
 - **Status**: ✅ Complete

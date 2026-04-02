@@ -10,6 +10,8 @@ import { useGameContext } from '../../context/GameContext';
 import { ActiveModal } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { shouldShake } from '../../utils/modalConfig';
+import { NarrativeBlock } from './shared/NarrativeBlock';
+import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 
 /**
  * CardModal is the main container component that composes CardContent and CardActions
@@ -17,6 +19,7 @@ import { shouldShake } from '../../utils/modalConfig';
  */
 export function CardModal(): JSX.Element | null {
   const { stateService, dataService, cardService, gameRulesService } = useGameContext();
+  const { getPortraitForSpace } = useNpcPortrait();
   const [isFlipped, setIsFlipped] = useState(false);
   const [activeModal, setActiveModal] = useState<ActiveModal | null>(null);
   const [cardData, setCardData] = useState<Card | null>(null);
@@ -155,6 +158,15 @@ export function CardModal(): JSX.Element | null {
           </span>
         </div>
       )}
+
+      {/* Per-action narrative (from SPACE_EFFECTS narrative column) */}
+      {!isFlipped && currentPlayer && cardData?.card_type && (() => {
+        const narrative = dataService.getEffectNarrative(
+          currentPlayer.currentSpace, currentPlayer.visitType, `draw_${cardData.card_type}`
+        );
+        if (!narrative) return null;
+        return <NarrativeBlock text={narrative} spaceName={currentPlayer.currentSpace} portraitSrc={getPortraitForSpace(currentPlayer.currentSpace)} />;
+      })()}
 
       {/* CardContent handles the actual card display */}
       <CardContent

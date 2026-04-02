@@ -144,6 +144,13 @@ export class DataService implements IDataService {
     return [...this.spaceContents];
   }
 
+  getEffectNarrative(spaceName: string, visitType: VisitType, effectAction: string): string | undefined {
+    const effect = this.spaceEffects.find(
+      e => e.space_name === spaceName && e.visit_type === visitType && e.effect_action === effectAction
+    );
+    return effect?.narrative || undefined;
+  }
+
   // Private CSV loading methods
   private async loadGameConfig(): Promise<void> {
     const response = await fetch('/data/CLEAN_FILES/GAME_CONFIG.csv?_=' + Date.now()); // Cache busting
@@ -292,6 +299,11 @@ export class DataService implements IDataService {
       // Add fee_type if it exists (column 8)
       if (values[8] && values[8].trim()) {
         spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+      }
+
+      // Add narrative if it exists (column 9)
+      if (values[9] && values[9].trim()) {
+        spaceEffect.narrative = values[9].trim();
       }
 
       return spaceEffect;

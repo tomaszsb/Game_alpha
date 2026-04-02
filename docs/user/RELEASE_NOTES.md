@@ -2,6 +2,20 @@
 
 ---
 
+## v2.39.0 - Per-Action Narrative (April 1, 2026)
+
+**Release Date:** April 1, 2026
+**Version:** 2.39.0
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### Improvements
+- **Per-action story text in modals** — Each card action (W/B/I/L/E) can now have its own narrative text that appears in the modal when that card is drawn. This replaces the generic space-level story with context-specific narrative for each action type.
+- **Narrative in card, dice, and choice modals** — When a per-action narrative is configured, it appears as an italicized story block with NPC portrait above the main modal content, providing context for what's happening.
+- **Editor support** — Each card action row in the Space Data Editor now has an expandable "+ narrative" button to add per-action story text.
+
+---
+
 ## v2.38.0 - Data-Driven Modal Behavior (March 31, 2026)
 
 **Release Date:** March 31, 2026

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.0] - 2026-04-01
+
+### Per-action narrative (Phase 2 modal standardization) (April 1, 2026)
+- **New: `narrative` column in SPACE_EFFECTS.csv** — Per-action story text that appears in the modal that performs each action. Populated from Spaces.csv card narrative columns (`w_card_narrative` through `e_card_narrative`).
+- **New: `NarrativeBlock.tsx`** — Reusable styled component for per-action narrative text in modals. Uses `TextWithTerms` for dictionary linking, NPC portrait, and consistent border styling.
+- **Modals updated**: DiceResultModal, CardModal, and ChoiceModal now show per-action narrative when available (above the main content). Falls back to no narrative if column is empty.
+- **New: `getEffectNarrative()` method on DataService** — Looks up narrative text by space name, visit type, and effect action.
+- **Editor: Per-action narrative textareas** — Each card action row (W/B/I/L/E) in SpaceEditor now has an expandable narrative textarea for per-action story text.
+- **Spaces.csv**: 5 new columns (positions 32-36): `w_card_narrative`, `b_card_narrative`, `i_card_narrative`, `l_card_narrative`, `e_card_narrative`. Initially empty (backward compatible).
+- **Pipeline**: `processGameData.js` maps card narrative columns to `narrative` field in SPACE_EFFECTS.csv.
+- **Files changed** (13): NarrativeBlock.tsx (NEW), DataTypes.ts, ServiceContracts.ts, DataService.ts, processGameData.js, DiceResultModal.tsx, CardModal.tsx, ChoiceModal.tsx, SpaceEditor.tsx, DataEditor.tsx, EditorTypes.ts, csvExport.ts, Spaces.csv, SPACE_EFFECTS.csv, mockServices.ts
+
+---
+
 ## [2.38.0] - 2026-04-01
 
 ### Data-driven modal shake & TTS (April 1, 2026)

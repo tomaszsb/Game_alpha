@@ -14,6 +14,7 @@ import { useModalSpeech } from '../../hooks/useModalSpeech';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 import { getTtsText } from '../../utils/modalConfig';
+import { NarrativeBlock } from './shared/NarrativeBlock';
 
 export function ChoiceModal(): JSX.Element {
   const { stateService, choiceService, notificationService, dataService } = useGameContext();
@@ -159,6 +160,15 @@ export function ChoiceModal(): JSX.Element {
     >
       {/* Character Badge */}
       {currentSpace && <CharacterBadge spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />}
+
+      {/* Per-action narrative (if available for the choice's source effect) */}
+      {currentSpace && awaitingChoice.metadata?.effectAction && (() => {
+        const narrative = dataService.getEffectNarrative(
+          currentSpace, 'First', awaitingChoice.metadata.effectAction as string
+        );
+        if (!narrative) return null;
+        return <NarrativeBlock text={narrative} spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />;
+      })()}
 
       {/* Prompt */}
       <p style={{

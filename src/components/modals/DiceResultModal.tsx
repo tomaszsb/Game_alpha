@@ -11,6 +11,7 @@ import { useModalSpeech } from '../../hooks/useModalSpeech';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 import { shouldShake, getTtsText } from '../../utils/modalConfig';
+import { NarrativeBlock } from './shared/NarrativeBlock';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -278,6 +279,19 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
 
       {/* Character Badge */}
       {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} />}
+
+      {/* Per-action narrative (from SPACE_EFFECTS narrative column) */}
+      {(() => {
+        if (!result.spaceName) return null;
+        // Find the first card effect's narrative for this dice result
+        const cardEffect = result.effects.find(e => e.type === 'cards' && e.cardType);
+        if (!cardEffect?.cardType) return null;
+        const narrative = dataService.getEffectNarrative(
+          result.spaceName, 'First', `draw_${cardEffect.cardType}`
+        );
+        if (!narrative) return null;
+        return <NarrativeBlock text={narrative} spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} />;
+      })()}
 
       {/* Summary */}
       {result.summary && (

@@ -39,6 +39,11 @@ export interface SpaceRow {
   e_card_label: string;     // Custom button label for E card action
   shake_on: string;         // When modal shakes: '', 'negative', 'always'
   tts_field: string;        // Which text to read aloud: '', 'story', 'action', 'outcome', 'summary'
+  w_card_narrative: string; // Per-action narrative for W card modal
+  b_card_narrative: string; // Per-action narrative for B card modal
+  i_card_narrative: string; // Per-action narrative for I card modal
+  l_card_narrative: string; // Per-action narrative for L card modal
+  e_card_narrative: string; // Per-action narrative for E card modal
 }
 
 /**

@@ -302,6 +302,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
     // Card effects (from Spaces.csv columns)
     const cardTypes = { w_card: 'W', b_card: 'B', i_card: 'I', l_card: 'L', e_card: 'E' };
     const cardLabelCols = { w_card: 'w_card_label', b_card: 'b_card_label', i_card: 'i_card_label', l_card: 'l_card_label', e_card: 'e_card_label' };
+    const cardNarrativeCols = { w_card: 'w_card_narrative', b_card: 'b_card_narrative', i_card: 'i_card_narrative', l_card: 'l_card_narrative', e_card: 'e_card_narrative' };
     for (const [colName, cardLetter] of Object.entries(cardTypes)) {
       const cardValue = (row[colName] || '').trim();
       if (!cardValue) continue;
@@ -345,6 +346,9 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         }
       }
 
+      // Per-action narrative text from Spaces.csv (e.g., w_card_narrative)
+      const narrative = (row[cardNarrativeCols[colName]] || '').trim();
+
       effects.push({
         space_name: spaceName,
         visit_type: visitType,
@@ -353,7 +357,8 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
         effect_value: cardCount,
         condition: condition,
         description: description,
-        trigger_type: triggerType
+        trigger_type: triggerType,
+        narrative: narrative
       });
     }
 
@@ -420,7 +425,7 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
 
   const fieldnames = [
     'space_name', 'visit_type', 'effect_type', 'effect_action', 'effect_value',
-    'condition', 'description', 'trigger_type', 'fee_type'
+    'condition', 'description', 'trigger_type', 'fee_type', 'narrative'
   ];
 
   return toCsv(effects, fieldnames);

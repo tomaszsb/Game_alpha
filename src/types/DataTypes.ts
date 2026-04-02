@@ -62,6 +62,7 @@ export interface SpaceEffect {
   description: string;
   trigger_type?: 'manual' | 'auto';
   fee_type?: 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+  narrative?: string;
 }
 
 export interface DiceEffect {

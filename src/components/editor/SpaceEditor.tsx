@@ -204,16 +204,16 @@ export function SpaceEditor({
           <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.cards}`, flex: 1 }}>
             <legend style={styles.legend}>🃏 (C) Actions</legend>
             <div style={styles.cardGrid}>
-              <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label}
-                onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} />
-              <CardFieldWithLabel type="B" value={currentSpace.b_card} label={currentSpace.b_card_label}
-                onChange={(v) => handleChange('b_card', v)} onLabelChange={(v) => handleChange('b_card_label', v)} />
-              <CardFieldWithLabel type="I" value={currentSpace.i_card} label={currentSpace.i_card_label}
-                onChange={(v) => handleChange('i_card', v)} onLabelChange={(v) => handleChange('i_card_label', v)} />
-              <CardFieldWithLabel type="L" value={currentSpace.l_card} label={currentSpace.l_card_label}
-                onChange={(v) => handleChange('l_card', v)} onLabelChange={(v) => handleChange('l_card_label', v)} />
-              <CardFieldWithLabel type="E" value={currentSpace.e_card} label={currentSpace.e_card_label}
-                onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} />
+              <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label} narrative={currentSpace.w_card_narrative}
+                onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} onNarrativeChange={(v) => handleChange('w_card_narrative', v)} />
+              <CardFieldWithLabel type="B" value={currentSpace.b_card} label={currentSpace.b_card_label} narrative={currentSpace.b_card_narrative}
+                onChange={(v) => handleChange('b_card', v)} onLabelChange={(v) => handleChange('b_card_label', v)} onNarrativeChange={(v) => handleChange('b_card_narrative', v)} />
+              <CardFieldWithLabel type="I" value={currentSpace.i_card} label={currentSpace.i_card_label} narrative={currentSpace.i_card_narrative}
+                onChange={(v) => handleChange('i_card', v)} onLabelChange={(v) => handleChange('i_card_label', v)} onNarrativeChange={(v) => handleChange('i_card_narrative', v)} />
+              <CardFieldWithLabel type="L" value={currentSpace.l_card} label={currentSpace.l_card_label} narrative={currentSpace.l_card_narrative}
+                onChange={(v) => handleChange('l_card', v)} onLabelChange={(v) => handleChange('l_card_label', v)} onNarrativeChange={(v) => handleChange('l_card_narrative', v)} />
+              <CardFieldWithLabel type="E" value={currentSpace.e_card} label={currentSpace.e_card_label} narrative={currentSpace.e_card_narrative}
+                onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} onNarrativeChange={(v) => handleChange('e_card_narrative', v)} />
             </div>
             <div style={styles.fieldRow}>
               <div style={styles.field}>
@@ -364,9 +364,10 @@ function CardField({ type, value, onChange }: { type: string; value: string; onC
   );
 }
 
-function CardFieldWithLabel({ type, value, label, onChange, onLabelChange }: {
-  type: string; value: string; label: string; onChange: (v: string) => void; onLabelChange: (v: string) => void;
+function CardFieldWithLabel({ type, value, label, narrative, onChange, onLabelChange, onNarrativeChange }: {
+  type: string; value: string; label: string; narrative?: string; onChange: (v: string) => void; onLabelChange: (v: string) => void; onNarrativeChange?: (v: string) => void;
 }): JSX.Element {
+  const [showNarrative, setShowNarrative] = useState(!!narrative);
   const cc = CARD_COLORS[type];
   const isPreset = !value || CARD_PRESETS.includes(value);
   const [useCustom, setUseCustom] = useState(!isPreset && !!value);
@@ -432,6 +433,30 @@ function CardFieldWithLabel({ type, value, label, onChange, onLabelChange }: {
           }}
         />
       </div>
+      {value && onNarrativeChange && (
+        <div style={{ marginTop: '2px' }}>
+          {showNarrative ? (
+            <textarea
+              value={narrative || ''}
+              onChange={(e) => onNarrativeChange(e.target.value)}
+              placeholder="Per-action narrative (shown in modal)..."
+              rows={2}
+              style={{
+                ...styles.input,
+                width: '100%',
+                fontSize: '11px',
+                fontStyle: 'italic',
+                resize: 'vertical',
+              }}
+            />
+          ) : (
+            <button
+              onClick={() => setShowNarrative(true)}
+              style={{ fontSize: '10px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+            >+ narrative</button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
