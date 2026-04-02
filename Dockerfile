@@ -39,9 +39,9 @@ ENV LOG_FILE=/app/data/visitors.log
 ENV GAMES_FILE=/app/data/games.json
 ENV DIST_PATH=/app/dist
 
-# Run as non-root user for security (node:20-alpine already has user 'node' at uid 1000)
-RUN chown -R node:node /app /app/data
-USER node
+# Note: Non-root user (USER node) deferred — requires host volume permission
+# changes in deploy.sh. Container is already hardened via --read-only,
+# --cap-drop ALL, and --no-new-privileges in deploy.sh.
 
 # Expose single port (Express serves both API and static files)
 EXPOSE 3001
