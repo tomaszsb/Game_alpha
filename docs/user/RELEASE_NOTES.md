@@ -2,6 +2,19 @@
 
 ---
 
+## v2.39.1 - Smoother Modal Animations (April 1, 2026)
+
+**Release Date:** April 1, 2026
+**Version:** 2.39.1
+**Status:** Alpha Testing
+**Type:** Polish
+
+### Improvements
+- **Modals now fade out smoothly** — Previously modals disappeared instantly when closed. They now fade and scale down for a more polished feel.
+- **Accessibility** — Users with "reduce motion" system preference will see instant transitions instead of animations.
+
+---
+
 ## v2.39.0 - Per-Action Narrative (April 1, 2026)
 
 **Release Date:** April 1, 2026

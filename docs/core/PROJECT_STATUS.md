@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: April 1, 2026
-**Current Phase**: Pre-Beta — Modal Standardization (v2.39.0)
-**Current Version**: 2.39.0
+**Current Phase**: Pre-Beta — Modal Standardization Complete (v2.39.1)
+**Current Version**: 2.39.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Animation Polish (April 1, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.39.1
+- **Changes**: Migrated ModalBase from inline CSS keyframes to framer-motion. Entry/exit/shake animations now use motion variants with AnimatePresence. `prefers-reduced-motion` respected. Removed inline `<style>` block.
 
 ### Per-Action Narrative (April 1, 2026) ✅
 - **Status**: ✅ Complete

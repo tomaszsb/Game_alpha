@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.1] - 2026-04-01
+
+### Animation polish (Phase 3 modal standardization) (April 1, 2026)
+- **Migrated ModalBase to framer-motion** — Replaced inline CSS `@keyframes` (modalSlideIn, modalShake) with framer-motion `AnimatePresence` and variants. Entry: scale+fade+slide. Exit: scale+fade (AnimatePresence). Shake: keyframe values via motion transition.
+- **Exit animations** — Modals now fade out smoothly instead of disappearing instantly. AnimatePresence wraps the modal render; exit variant defined as `{ opacity: 0, scale: 0.95, y: 10 }`.
+- **prefers-reduced-motion** — Checked once at module level via `matchMedia`. When active: shake keyframes suppressed, transition duration set to 0.
+- **Removed inline `<style>` block** — No more injected CSS keyframes; all animation handled by framer-motion runtime.
+- **Bundle impact**: +37KB gzipped (framer-motion was already a dependency via ResponsiveSheet but is now also used in ModalBase).
+- **Files changed** (1): ModalBase.tsx
+
+---
+
 ## [2.39.0] - 2026-04-01
 
 ### Per-action narrative (Phase 2 modal standardization) (April 1, 2026)

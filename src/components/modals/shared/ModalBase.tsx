@@ -1,7 +1,9 @@
 // src/components/modals/shared/ModalBase.tsx
 // Shared modal wrapper component with consistent styling and mobile-friendly design
+// Uses framer-motion for entry, exit, and shake animations
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { theme, colors } from '../../../styles/theme';
 import type { SpeechControls } from '../../../hooks/useModalSpeech';
 
@@ -22,11 +24,40 @@ export interface ModalBaseProps {
   speechControls?: SpeechControls;
 }
 
+// Check reduced motion preference once at module level
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Animation variants
+const overlayVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: -10 },
+  visible: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.95, y: 10 },
+};
+
+const shakeTransition = prefersReducedMotion
+  ? {}
+  : {
+      x: {
+        type: 'keyframes' as const,
+        values: [0, -8, 8, -8, 8, -6, 6, -4, 4, 0],
+        duration: 0.4,
+        delay: 0.15,
+      },
+    };
+
 /**
  * ModalBase - Standardized modal wrapper for consistent UI across the app.
  *
  * Features:
- * - Consistent overlay, border radius, and shadows
+ * - Smooth entry and exit animations via framer-motion
+ * - Shake animation for negative effects with prefers-reduced-motion support
  * - Standard close button (top-right)
  * - Escape key and click-outside-to-close support
  * - Mobile-responsive design with touch-friendly targets
@@ -90,10 +121,6 @@ export function ModalBase({
     }
   }, [onClose]);
 
-  if (!isOpen) {
-    return null;
-  }
-
   // Responsive styles
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
@@ -109,11 +136,6 @@ export function ModalBase({
     padding: isMobile ? theme.mobile.modal.padding : theme.modal.overlay.padding,
   };
 
-  // Determine animation - shake after slide-in for negative effects
-  const animationValue = shake
-    ? `modalSlideIn ${theme.modal.animation.duration} ${theme.modal.animation.easing}, modalShake 0.4s ease-out 0.15s`
-    : `modalSlideIn ${theme.modal.animation.duration} ${theme.modal.animation.easing}`;
-
   const containerStyle: React.CSSProperties = {
     backgroundColor: theme.modal.container.background,
     borderRadius: isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius,
@@ -125,8 +147,6 @@ export function ModalBase({
     flexDirection: 'column',
     overflow: 'hidden',
     position: 'relative',
-    // Animation - with optional shake for negative effects
-    animation: animationValue,
   };
 
   const headerStyle: React.CSSProperties = {
@@ -159,7 +179,6 @@ export function ModalBase({
     padding: '8px',
     borderRadius: theme.borderRadius.sm,
     lineHeight: 1,
-    // Touch-friendly size
     minWidth: theme.mobile.minTapTarget,
     minHeight: theme.mobile.minTapTarget,
     display: 'flex',
@@ -189,7 +208,6 @@ export function ModalBase({
     flex: 1,
     overflow: 'auto',
     padding: isMobile ? '16px' : theme.modal.body.padding,
-    // Smooth scrolling for touch devices
     WebkitOverflowScrolling: 'touch',
   };
 
@@ -202,110 +220,107 @@ export function ModalBase({
     flexWrap: 'wrap',
   };
 
+  // Transition config (fast for reduced motion)
+  const transitionConfig = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.2, ease: [0.4, 0, 0.2, 1] };
+
   return (
-    <>
-      {/* Inject animation keyframes */}
-      <style>
-        {`
-          @keyframes modalSlideIn {
-            from {
-              opacity: 0;
-              transform: scale(0.95) translateY(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: scale(1) translateY(0);
-            }
-          }
-          @keyframes modalShake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
-            20%, 40%, 60%, 80% { transform: translateX(8px); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            @keyframes modalShake {
-              0%, 100% { transform: translateX(0); }
-            }
-          }
-        `}
-      </style>
-      <div
-        style={overlayStyle}
-        onClick={handleBackdropClick}
-        data-testid={testId ? `${testId}-overlay` : 'modal-overlay'}
-      >
-        <div
-          ref={modalRef}
-          style={containerStyle}
-          onClick={(e) => e.stopPropagation()}
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-title"
-          data-testid={testId}
-        >
-          {/* Header */}
-          <div style={headerStyle}>
-            <h2 id="modal-title" style={titleStyle}>
-              {emoji && <span>{emoji}</span>}
-              {title}
-            </h2>
-            {speechControls && (
-              <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            style={overlayStyle}
+            onClick={handleBackdropClick}
+            data-testid={testId ? `${testId}-overlay` : 'modal-overlay'}
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={transitionConfig}
+          >
+            {/* Modal container */}
+            <motion.div
+              ref={modalRef}
+              style={containerStyle}
+              onClick={(e) => e.stopPropagation()}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-title"
+              data-testid={testId}
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={transitionConfig}
+              {...(shake && !prefersReducedMotion ? { animate: { ...modalVariants.visible, x: 0 }, transition: { ...transitionConfig, ...shakeTransition } } : {})}
+            >
+              {/* Header */}
+              <div style={headerStyle}>
+                <h2 id="modal-title" style={titleStyle}>
+                  {emoji && <span>{emoji}</span>}
+                  {title}
+                </h2>
+                {speechControls && (
+                  <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                    <button
+                      onClick={speechControls.isSpeaking ? speechControls.stop : speechControls.replay}
+                      style={speechButtonStyle}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      aria-label={speechControls.isSpeaking ? 'Stop speech' : 'Replay speech'}
+                      title={speechControls.isSpeaking ? 'Stop' : 'Replay'}
+                    >
+                      {speechControls.isSpeaking ? '⏹' : '🔄'}
+                    </button>
+                    <button
+                      onClick={speechControls.toggleMute}
+                      style={speechButtonStyle}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      aria-label={speechControls.muted ? 'Unmute speech' : 'Mute speech'}
+                      title={speechControls.muted ? 'Unmute' : 'Mute'}
+                    >
+                      {speechControls.muted ? '🔇' : '🔊'}
+                    </button>
+                  </div>
+                )}
                 <button
-                  onClick={speechControls.isSpeaking ? speechControls.stop : speechControls.replay}
-                  style={speechButtonStyle}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                  aria-label={speechControls.isSpeaking ? 'Stop speech' : 'Replay speech'}
-                  title={speechControls.isSpeaking ? 'Stop' : 'Replay'}
+                  onClick={onClose}
+                  style={closeButtonStyle}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.secondary.light;
+                    e.currentTarget.style.color = theme.modal.closeButton.hoverColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = theme.modal.closeButton.color;
+                  }}
+                  aria-label="Close modal"
+                  title="Close"
                 >
-                  {speechControls.isSpeaking ? '⏹' : '🔄'}
-                </button>
-                <button
-                  onClick={speechControls.toggleMute}
-                  style={speechButtonStyle}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                  aria-label={speechControls.muted ? 'Unmute speech' : 'Mute speech'}
-                  title={speechControls.muted ? 'Unmute' : 'Mute'}
-                >
-                  {speechControls.muted ? '🔇' : '🔊'}
+                  {theme.emoji.close}
                 </button>
               </div>
-            )}
-            <button
-              onClick={onClose}
-              style={closeButtonStyle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = colors.secondary.light;
-                e.currentTarget.style.color = theme.modal.closeButton.hoverColor;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = theme.modal.closeButton.color;
-              }}
-              aria-label="Close modal"
-              title="Close"
-            >
-              {theme.emoji.close}
-            </button>
-          </div>
 
-          {/* Body */}
-          <div style={bodyStyle}>
-            {children}
-          </div>
+              {/* Body */}
+              <div style={bodyStyle}>
+                {children}
+              </div>
 
-          {/* Footer (optional) */}
-          {footer && (
-            <div style={footerStyle}>
-              {footer}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+              {/* Footer (optional) */}
+              {footer && (
+                <div style={footerStyle}>
+                  {footer}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
