@@ -9,6 +9,7 @@ import { CardActions } from './CardActions';
 import { useGameContext } from '../../context/GameContext';
 import { ActiveModal } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
+import { shouldShake } from '../../utils/modalConfig';
 
 /**
  * CardModal is the main container component that composes CardContent and CardActions
@@ -99,8 +100,14 @@ export function CardModal(): JSX.Element | null {
   const cardColors = cardData ? getCardTypeColors(cardData.card_type) : null;
   const cardEmoji = cardData ? getCardTypeEmoji(cardData.card_type) : theme.emoji.cards;
 
-  // L cards are negative life events - trigger shake animation
-  const isNegativeCard = cardData?.card_type === 'L';
+  // Data-driven shake: uses shake_on config from current space
+  const currentPlayer = stateService.getGameState().players.find(
+    p => p.id === stateService.getGameState().currentPlayerId
+  );
+  const spaceContent = currentPlayer
+    ? dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType)
+    : undefined;
+  const isNegativeCard = shouldShake(spaceContent?.shake_on, { cardType: cardData?.card_type });
 
   // Custom footer with CardActions
   const footer = (

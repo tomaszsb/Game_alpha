@@ -2,7 +2,7 @@
 
 **Last Updated:** March 31, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.37.0
+**Current Version:** 2.38.0
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Phase 1 Modal Standardization — data-driven shake & TTS via `shake_on`/`tts_field` columns, editor dropdowns, 4 modals updated, 20 new tests (Mar 31, 2026)
 - ✅ Code audit recommendations — all items resolved: `parseUtils.ts` (8 shared utilities), `fee_type` column in SPACE_EFFECTS.csv, 3 metadata columns in DICE_EFFECTS.csv, 62 new tests (Mar 31, 2026)
 - ✅ Affordability checks on all money paths + Try Again button gated by can_negotiate (Mar 31, 2026)
 - ✅ Fix phantom space CON-SAFETY-BRIEF — test artifact in DICE_OUTCOMES.csv replaced with CON-INSPECT (Mar 31, 2026)
@@ -85,6 +86,17 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [x] Remove `PlayerPanel.tsx`, `NextStepButton.tsx`, `PlayerStatusPanel.tsx`, `PlayerStatusItem.tsx`, `TurnControlsWithActions.tsx` and their tests (Mar 22, 2026)
 - [x] Deleted MobilePlayerPanel (21 files), CardPortfolioDashboard, MovementPathVisualization, FinancialStatusDisplay, DiceRoller, PlayerViewStateService + 5 test files (Mar 23, 2026)
 - [x] Removed dead placeholder UI in GameLayout.tsx (Mar 23, 2026)
+
+---
+
+## 🎨 **UI Improvements**
+
+### Progress Bar — Financial Overview
+- [ ] Add money breakdown visualization to progress bar area
+  - Show total project scope as full bar (one color)
+  - Overlay with stacked segments: owner money, bank money, investor money
+  - Overlay all with money spent so far
+  - Visual indicator of funding gap / surplus
 
 ---
 

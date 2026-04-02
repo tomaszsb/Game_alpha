@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SpaceRow, DiceRollRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS } from './types/EditorTypes';
+import { SpaceRow, DiceRollRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 
 interface SpaceEditorProps {
@@ -183,6 +183,20 @@ export function SpaceEditor({
             onChange={(v) => handleChange('Outcome', v)}
             rows={2}
           />
+          <div style={styles.fieldRow}>
+            <SelectField
+              label="Shake On"
+              value={currentSpace.shake_on}
+              options={[...SHAKE_OPTIONS]}
+              onChange={(v) => handleChange('shake_on', v)}
+            />
+            <SelectField
+              label="TTS Field"
+              value={currentSpace.tts_field}
+              options={[...TTS_FIELD_OPTIONS]}
+              onChange={(v) => handleChange('tts_field', v)}
+            />
+          </div>
         </fieldset>
 
         {/* Card Effects + Time & Costs */}

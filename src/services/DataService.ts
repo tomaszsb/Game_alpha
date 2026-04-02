@@ -336,7 +336,9 @@ export class DataService implements IDataService {
         outcome_description: values[5],
         can_negotiate: values[6].toUpperCase() === 'YES',
         end_turn_label: values[7] || 'End Turn',
-        try_again_label: values[8] || 'Try Again'
+        try_again_label: values[8] || 'Try Again',
+        shake_on: values[9] || '',
+        tts_field: values[10] || ''
       };
     });
   }

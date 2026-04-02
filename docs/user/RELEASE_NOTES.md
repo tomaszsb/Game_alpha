@@ -2,6 +2,20 @@
 
 ---
 
+## v2.38.0 - Data-Driven Modal Behavior (March 31, 2026)
+
+**Release Date:** March 31, 2026
+**Version:** 2.38.0
+**Status:** Alpha Testing
+**Type:** Enhancement
+
+### Improvements
+- **Modal shake and read-aloud are now configurable per space** — Previously only certain modals would shake on negative outcomes or read text aloud, with no way to change it. Now each space can be configured with when to shake (`negative`, `always`, or never) and which text to read aloud (`story`, `action`, `outcome`, or `summary`).
+- **Space Info modal now supports text-to-speech** — Landing on a space with a story can now read it aloud, matching the behavior already available on dice result and choice modals.
+- **New editor controls** — The Space Data Editor now has "Shake On" and "TTS Field" dropdowns in the Story & Narrative section, giving game designers direct control over modal behavior without touching code.
+
+---
+
 ## v2.37.0 - Code Quality & Data Pipeline Improvements (March 31, 2026)
 
 **Release Date:** March 31, 2026

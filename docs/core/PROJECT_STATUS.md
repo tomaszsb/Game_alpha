@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: March 31, 2026
-**Current Phase**: Pre-Beta — Editor Hardening (v2.37.0)
-**Current Version**: 2.37.0
+**Last Updated**: April 1, 2026
+**Current Phase**: Pre-Beta — Modal Standardization (v2.38.0)
+**Current Version**: 2.38.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Data-Driven Modal Shake & TTS (April 1, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.38.0
+- **Changes**: Added `shake_on` and `tts_field` columns to SPACE_CONTENT.csv. Modal shake and text-to-speech are now configured per-space in the Data Editor instead of hardcoded. SpaceInfoModal gained TTS support. 20 new tests. 1482 total passing.
 
 ### Code Audit Recommendations Complete (March 31, 2026) ✅
 - **Status**: ✅ Complete

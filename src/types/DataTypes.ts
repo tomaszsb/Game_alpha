@@ -95,6 +95,8 @@ export interface SpaceContent {
   can_negotiate: boolean;
   end_turn_label?: string;
   try_again_label?: string;
+  shake_on?: string;
+  tts_field?: string;
   special_action?: string;
   content_text?: string;
   requires_choice?: boolean;

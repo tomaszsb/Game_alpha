@@ -10,6 +10,7 @@ import { useGameContext } from '../../context/GameContext';
 import { useModalSpeech } from '../../hooks/useModalSpeech';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
+import { shouldShake, getTtsText } from '../../utils/modalConfig';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -28,8 +29,14 @@ interface DiceResultModalProps {
 export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResultModalProps): JSX.Element | null {
   const { dataService } = useGameContext();
   const { getPortraitForSpace } = useNpcPortrait();
+
+  // Look up space content early (needed for data-driven shake/TTS config)
+  const spaceContent = result?.spaceName
+    ? dataService.getSpaceContent(result.spaceName, 'First')
+    : undefined;
+
   const speechControls = useModalSpeech(
-    result?.summary,
+    getTtsText(spaceContent?.tts_field, spaceContent, result?.summary),
     result?.spaceName,
     isOpen && !!result
   );
@@ -186,11 +193,6 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     );
   };
 
-  // Look up space content for narrative title
-  const spaceContent = result.spaceName
-    ? dataService.getSpaceContent(result.spaceName, 'First')
-    : undefined;
-
   // Determine title and emoji based on dice value
   const isDiceRoll = result.diceValue > 0;
   const narrativeTitle = spaceContent?.title || '';
@@ -199,18 +201,8 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     : 'Action Result';
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
 
-  // Check for negative effects (L cards, money loss, time loss) to trigger shake
-  const hasNegativeEffect = result.effects.some(effect => {
-    // L card draws are negative life events
-    if (effect.type === 'cards' && effect.cardType === 'L') return true;
-    // Money loss
-    if (effect.type === 'money' && effect.value !== undefined && effect.value < 0) return true;
-    // Time loss (positive time value = days added = bad)
-    if (effect.type === 'time' && effect.value !== undefined && effect.value > 0) return true;
-    // Card removal
-    if (effect.type === 'cards' && effect.cardAction === 'remove') return true;
-    return false;
-  });
+  // Data-driven shake: uses shake_on config from space content
+  const hasNegativeEffect = shouldShake(spaceContent?.shake_on, { effects: result.effects });
 
   const footer = (
     <>

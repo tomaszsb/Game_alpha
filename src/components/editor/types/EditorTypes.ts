@@ -37,6 +37,8 @@ export interface SpaceRow {
   i_card_label: string;     // Custom button label for I card action
   l_card_label: string;     // Custom button label for L card action
   e_card_label: string;     // Custom button label for E card action
+  shake_on: string;         // When modal shakes: '', 'negative', 'always'
+  tts_field: string;        // Which text to read aloud: '', 'story', 'action', 'outcome', 'summary'
 }
 
 /**
@@ -102,3 +104,6 @@ export const PATH_TYPES = [
  */
 export const YES_NO_OPTIONS = ['YES', 'NO'] as const;
 export const YES_NO_LOWER_OPTIONS = ['Yes', 'No'] as const;
+
+export const SHAKE_OPTIONS = ['', 'negative', 'always'] as const;
+export const TTS_FIELD_OPTIONS = ['', 'story', 'action', 'outcome', 'summary'] as const;

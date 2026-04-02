@@ -13,9 +13,10 @@ import { getMovementChoiceTooltip } from '../../utils/buttonFormatting';
 import { useModalSpeech } from '../../hooks/useModalSpeech';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
+import { getTtsText } from '../../utils/modalConfig';
 
 export function ChoiceModal(): JSX.Element {
-  const { stateService, choiceService, notificationService } = useGameContext();
+  const { stateService, choiceService, notificationService, dataService } = useGameContext();
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
   const [currentSpace, setCurrentSpace] = useState<string>('');
@@ -44,8 +45,12 @@ export function ChoiceModal(): JSX.Element {
   const { getPortraitForSpace } = useNpcPortrait();
 
   const isCardChoiceType = awaitingChoice?.type === 'CARD_REPLACEMENT' || awaitingChoice?.type === 'CARD_SELECTION' || awaitingChoice?.type === 'CARD_GIVE';
+
+  // Data-driven TTS: use tts_field config from space content, fall back to prompt
+  const choiceSpaceContent = currentSpace ? dataService.getSpaceContent(currentSpace, 'First') : undefined;
+  const ttsText = getTtsText(choiceSpaceContent?.tts_field, choiceSpaceContent, awaitingChoice?.prompt);
   const speechControls = useModalSpeech(
-    awaitingChoice?.prompt,
+    ttsText,
     currentSpace,
     !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && !isCardChoiceType
   );

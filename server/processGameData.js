@@ -263,12 +263,15 @@ function processSpaceContent(spacesCsv) {
     outcome_description: row.Outcome || '',
     can_negotiate: row.Negotiate || 'No',
     end_turn_label: row.end_turn_label || 'End Turn',
-    try_again_label: row.try_again_label || 'Try Again'
+    try_again_label: row.try_again_label || 'Try Again',
+    shake_on: row.shake_on || '',
+    tts_field: row.tts_field || ''
   }));
 
   const fieldnames = [
     'space_name', 'visit_type', 'title', 'story', 'action_description',
-    'outcome_description', 'can_negotiate', 'end_turn_label', 'try_again_label'
+    'outcome_description', 'can_negotiate', 'end_turn_label', 'try_again_label',
+    'shake_on', 'tts_field'
   ];
 
   return toCsv(contents, fieldnames);

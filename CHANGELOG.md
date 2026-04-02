@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.38.0] - 2026-04-01
+
+### Data-driven modal shake & TTS (April 1, 2026)
+- **New: `shake_on` column in SPACE_CONTENT.csv** — Controls when modals shake. Values: `""` (none), `"negative"` (on negative effects/L-cards), `"always"`. Replaces hardcoded shake logic in DiceResultModal and CardModal.
+- **New: `tts_field` column in SPACE_CONTENT.csv** — Controls which text is read aloud. Values: `""` (none), `"story"`, `"action"`, `"outcome"`, `"summary"`. Replaces hardcoded TTS in DiceResultModal and ChoiceModal.
+- **New: SpaceInfoModal TTS** — SpaceInfoModal can now read story text aloud (was previously silent). Enabled via `tts_field: "story"` in space data.
+- **New: `src/utils/modalConfig.ts`** — `shouldShake()` and `getTtsText()` utility functions. 20 unit tests.
+- **Editor: Shake On & TTS Field dropdowns** — Added to Story & Narrative section in SpaceEditor. Configurable per-space, per-visit-type.
+- **Data migration: Spaces.csv** — Merged 2-line header into single line (32 columns). Pre-populated: 45 spaces with `shake_on: "negative"`, 54 spaces with `tts_field` set.
+- **Pipeline**: `processGameData.js` passes through new columns to SPACE_CONTENT.csv.
+- **Files changed** (15): modalConfig.ts (NEW), modalConfig.test.ts (NEW), DataTypes.ts, DataService.ts, processGameData.js, DiceResultModal.tsx, CardModal.tsx, ChoiceModal.tsx, SpaceInfoModal.tsx, SpaceEditor.tsx, DataEditor.tsx, EditorTypes.ts, csvExport.ts, Spaces.csv, SPACE_CONTENT.csv
+
+---
+
 ## [2.37.0] - 2026-03-31
 
 ### Code audit: Structured CSV columns, shared parse utilities, MovementExecutor tests (March 31, 2026)

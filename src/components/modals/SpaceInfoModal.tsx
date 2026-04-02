@@ -6,6 +6,8 @@ import { colors, theme } from '../../styles/theme';
 import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../types/DataTypes';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
+import { useModalSpeech } from '../../hooks/useModalSpeech';
+import { getTtsText } from '../../utils/modalConfig';
 
 interface SpaceInfoModalProps {
   isOpen: boolean;
@@ -33,6 +35,11 @@ export function SpaceInfoModal({
   portraitSrc
 }: SpaceInfoModalProps): JSX.Element | null {
   const { openWithTerm } = useDictionaryPanel();
+
+  // Data-driven TTS: read the configured text field aloud when modal opens
+  const ttsText = getTtsText(content?.tts_field, content);
+  const speechControls = useModalSpeech(ttsText, spaceName, isOpen);
+
   if (!isOpen) return null;
 
   const sectionStyle: React.CSSProperties = {
@@ -75,6 +82,7 @@ export function SpaceInfoModal({
       maxWidth="600px"
       footer={footer}
       testId="space-info-modal"
+      speechControls={speechControls}
     >
       {/* Phase Badge */}
       {space?.config?.phase && (
