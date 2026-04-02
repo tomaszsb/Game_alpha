@@ -407,14 +407,35 @@ app.get('/health', (req, res) => {
     timestamp: formatTimestamp(),
     activeGames: games.size,
     games: gameList,
-    ntfyTopic: CONFIG.NTFY_TOPIC,
     websocket: getRoomStats()
   });
 });
 
+// ===== ADMIN RATE LIMITING =====
+const adminAttempts = new Map(); // IP -> { count, resetAt }
+const RATE_LIMIT = { maxAttempts: 5, windowMs: 15 * 60 * 1000 }; // 5 per 15 min
+
+function checkAdminRateLimit(req, res) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = adminAttempts.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= RATE_LIMIT.maxAttempts) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      res.status(429).json({ success: false, error: `Too many attempts. Retry after ${retryAfter}s` });
+      return false;
+    }
+    entry.count++;
+  } else {
+    adminAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT.windowMs });
+  }
+  return true;
+}
+
 // ===== ADMIN AUTHENTICATION =====
 
 app.post('/api/admin/verify', (req, res) => {
+  if (!checkAdminRateLimit(req, res)) return;
   const { password } = req.body;
   if (!password) {
     return res.status(400).json({ success: false, error: 'Password required' });

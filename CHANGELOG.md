@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.2] - 2026-04-02
+
+### April 2026 audit fixes (April 2, 2026)
+- **CRITICAL fix: `process.stderr.write()` in MovementExecutor.ts** — Node.js API used in browser code; replaced with `console.error()`. Was crashing every player move.
+- **Security: Admin rate limiting** — Added in-memory rate limiter (5 attempts per 15 min) on `/api/admin/verify` endpoint. Returns 429 with retry-after on excess.
+- **Security: NTFY_TOPIC removed from /health** — Public health endpoint no longer exposes the notification channel name.
+- **Security: Non-root Docker user** — Dockerfile now creates `appuser:appgroup` (uid/gid 1000) and runs the server process as that user.
+- **Fix: `.gitignore` blanket `*.txt` rule** — Replaced with specific exclusions (`console_log_audit.txt`, `npm-debug.txt`) so documentation .txt files can be committed.
+- **Fix: Hardcoded config URL** — `remoteConfig.ts` now reads `VITE_CONFIG_URL` env var with fallback to the current dashboard URL.
+- **Editor fix: Duplicate empty dropdown options** — SelectField for shake_on/tts_field filtered out empty string from options array (was showing both `--` and blank option).
+- **Audit review**: NegotiationService accept/decline confirmed as intentional no-ops (negotiation uses Try Again). CardEffectHandler manual play skip confirmed correct (playCard already calls applyCardEffects).
+- **Files changed** (7): MovementExecutor.ts, server.js, Dockerfile, .gitignore, remoteConfig.ts, SpaceEditor.tsx, TODO.md
+
+---
+
 ## [2.39.1] - 2026-04-01
 
 ### Animation polish (Phase 3 modal standardization) (April 1, 2026)

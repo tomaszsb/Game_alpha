@@ -71,7 +71,7 @@ export class MovementExecutor {
         // }
 
         if (destination) {
-          process.stderr.write(`\n!!! [MOVE_CHECK] From: ${player.currentSpace} To: ${destination} (Roll: ${diceRoll}) !!!\n`);
+          console.error(`[MOVE_CHECK] From: ${player.currentSpace} To: ${destination} (Roll: ${diceRoll})`);
           // Emit movement event BEFORE the move so UI can show transition overlay
           this.stateService.emitAutoAction({
             type: 'movement',

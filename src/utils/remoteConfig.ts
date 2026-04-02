@@ -27,7 +27,7 @@ export interface ServiceVisibility {
     [key: string]: boolean;
 }
 
-const API_ENDPOINT = 'https://dashboard.unravelcodes.com/api/public/config/services';
+const API_ENDPOINT = import.meta.env.VITE_CONFIG_URL || 'https://dashboard.unravelcodes.com/api/public/config/services';
 
 // Default config (fallback)
 const DEFAULT_CONFIG: Record<string, ServiceVisibility> = {

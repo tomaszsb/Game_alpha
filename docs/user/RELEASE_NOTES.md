@@ -2,6 +2,20 @@
 
 ---
 
+## v2.39.2 - Security & Stability Fixes (April 2, 2026)
+
+**Release Date:** April 2, 2026
+**Version:** 2.39.2
+**Status:** Alpha Testing
+**Type:** Bug Fix + Security
+
+### Fixes
+- **Player moves no longer crash** — A debug statement using a server-only API was accidentally left in client code, causing every player move to fail silently. Fixed.
+- **Admin login rate limited** — The editor login now blocks after 5 failed attempts for 15 minutes, preventing automated password guessing.
+- **Server runs more securely** — Docker container no longer runs as root user.
+
+---
+
 ## v2.39.1 - Smoother Modal Animations (April 1, 2026)
 
 **Release Date:** April 1, 2026

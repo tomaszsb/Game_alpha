@@ -2,7 +2,7 @@
 
 **Last Updated:** March 31, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.39.1
+**Current Version:** 2.39.2
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ April 2026 audit fixes — process.stderr crash, admin rate limiting, non-root Docker, NTFY exposure, .gitignore, config URL (Apr 2, 2026)
 - ✅ Phase 3 Animation Polish — ModalBase migrated to framer-motion, exit animations, prefers-reduced-motion support (Apr 1, 2026)
 - ✅ Phase 2 Per-Action Narrative — `narrative` column in SPACE_EFFECTS, NarrativeBlock component, 3 modals updated, editor narrative textareas (Apr 1, 2026)
 - ✅ Phase 1 Modal Standardization — data-driven shake & TTS via `shake_on`/`tts_field` columns, editor dropdowns, 4 modals updated, 20 new tests (Mar 31, 2026)
@@ -99,6 +100,34 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
   - Overlay with stacked segments: owner money, bank money, investor money
   - Overlay all with money spent so far
   - Visual indicator of funding gap / surplus
+
+---
+
+## 🔒 **April 2026 Code Audit — Remaining Items**
+*Source: External code audit (April 2026) — 437 files reviewed*
+
+### Security (Fix Before Beta)
+- [ ] WebSocket authentication — require player token, validate before allowing state subscriptions
+- [ ] WebSocket state_push schema validation — verify structure before accepting client state
+- [ ] Consolidate money formatting — FinancesSection uses `.toLocaleString()` directly; should use `FormatUtils.formatMoney()` everywhere
+
+### Polish (Fix Before Beta)
+- [ ] Console.log cleanup — ~301 statements in service layer; add debug mode toggle for production
+- [ ] Fix interactive `<div onClick>` → `<button>` in ProjectLedger.tsx + FinancesSection.tsx for accessibility
+- [ ] Replace `any` types in EffectTypes.ts, ServiceContracts.ts with proper interfaces
+
+### Already Fixed (April 2, 2026)
+- [x] MovementExecutor.ts `process.stderr.write()` → `console.error()` (was crashing in browser)
+- [x] Health endpoint no longer exposes NTFY_TOPIC
+- [x] Admin rate limiting (5 attempts per 15 min) on `/api/admin/verify`
+- [x] Dockerfile runs as non-root user
+- [x] `.gitignore` `*.txt` blanket rule → specific exclusions
+- [x] `remoteConfig.ts` URL configurable via `VITE_CONFIG_URL` env var
+- [x] E2E Happy Path test confirmed passing (not skipped)
+
+### Not Bugs (Audit Misread)
+- NegotiationService `acceptOffer`/`declineOffer` — intentional no-ops; negotiation works via Try Again button
+- CardEffectHandler manual card plays — `CardService.playCard()` already calls `applyCardEffects()`; handler skips for manual plays to avoid double-processing
 
 ---
 

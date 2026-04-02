@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: April 1, 2026
-**Current Phase**: Pre-Beta — Modal Standardization Complete (v2.39.1)
-**Current Version**: 2.39.1
+**Current Phase**: Pre-Beta — Audit Fixes (v2.39.2)
+**Current Version**: 2.39.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### April 2026 Audit Fixes (April 2, 2026) ✅
+- **Status**: ✅ Complete (critical/high items)
+- **Version**: 2.39.2
+- **Changes**: Fixed `process.stderr.write()` crash in MovementExecutor, added admin rate limiting, non-root Docker user, removed NTFY_TOPIC from health endpoint, fixed .gitignore blanket *.txt rule, made config URL env-configurable. Remaining items (WebSocket auth, console.log cleanup, money formatting) tracked in TODO.
 
 ### Animation Polish (April 1, 2026) ✅
 - **Status**: ✅ Complete

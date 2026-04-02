@@ -39,6 +39,11 @@ ENV LOG_FILE=/app/data/visitors.log
 ENV GAMES_FILE=/app/data/games.json
 ENV DIST_PATH=/app/dist
 
+# Run as non-root user for security
+RUN addgroup -g 1000 -S appgroup && adduser -u 1000 -S appuser -G appgroup
+RUN chown -R appuser:appgroup /app /app/data
+USER appuser
+
 # Expose single port (Express serves both API and static files)
 EXPOSE 3001
 

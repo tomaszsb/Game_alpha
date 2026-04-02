@@ -187,13 +187,13 @@ export function SpaceEditor({
             <SelectField
               label="Shake On"
               value={currentSpace.shake_on}
-              options={[...SHAKE_OPTIONS]}
+              options={[...SHAKE_OPTIONS].filter(o => o !== '')}
               onChange={(v) => handleChange('shake_on', v)}
             />
             <SelectField
               label="TTS Field"
               value={currentSpace.tts_field}
-              options={[...TTS_FIELD_OPTIONS]}
+              options={[...TTS_FIELD_OPTIONS].filter(o => o !== '')}
               onChange={(v) => handleChange('tts_field', v)}
             />
           </div>
