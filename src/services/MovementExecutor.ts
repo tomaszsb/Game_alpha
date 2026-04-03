@@ -2,6 +2,7 @@
 // Extracted from TurnService - handles movement execution during end-of-turn
 
 import { IDataService, IStateService, IMovementService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { Player } from '../types/StateTypes';
 import { GameState } from '../types/StateTypes';
 
@@ -87,7 +88,7 @@ export class MovementExecutor {
           await this.movementService.movePlayer(player.id, destination);
           return { moved: true, fromSpace: player.currentSpace, toSpace: destination, reason: 'dice' };
         } else {
-          console.warn(`🎲 No destination found for dice roll ${diceRoll} at ${player.currentSpace}`);
+          debugWarn(`🎲 No destination found for dice roll ${diceRoll} at ${player.currentSpace}`);
           return { moved: false, fromSpace: player.currentSpace, toSpace: null, reason: 'none' };
         }
       } else if (player.moveIntent) {

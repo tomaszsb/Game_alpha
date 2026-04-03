@@ -6,6 +6,7 @@
  */
 
 import { GlossaryTerm, TermCategory } from '../types';
+import { debugWarn } from '../../utils/debugLog';
 
 // Cache for loaded terms
 let termsCache: GlossaryTerm[] | null = null;
@@ -164,7 +165,7 @@ export async function loadTerms(): Promise<GlossaryTerm[]> {
     }
   }
 
-  console.warn('Dictionary: failed to load from API and CSV fallbacks');
+  debugWarn('Dictionary: failed to load from API and CSV fallbacks');
   termsCache = [];
   return termsCache;
 }

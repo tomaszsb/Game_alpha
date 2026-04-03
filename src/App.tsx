@@ -15,6 +15,7 @@ import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dicti
 import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
 import { FeedbackButton } from './components/feedback/FeedbackButton';
+import { debugWarn } from './utils/debugLog';
 
 /**
  * LoadingScreen component displays while the application initializes
@@ -214,7 +215,7 @@ function AppContent(): JSX.Element {
 
   // Show warning if invalid player ID in URL
   if (routeInfo.playerId && !routeInfo.isValidPlayer) {
-    console.warn(`Invalid player ID in URL: ${routeInfo.playerId}`);
+    debugWarn(`Invalid player ID in URL: ${routeInfo.playerId}`);
   }
 
   // Default: show normal game view (no player locking)

@@ -2,6 +2,23 @@
 
 ---
 
+## v2.39.4 - Financial Overview + Bug Fixes (April 3, 2026)
+
+**Release Date:** April 3, 2026
+**Version:** 2.39.4
+**Status:** Alpha Testing
+**Type:** Feature + Bug Fix
+
+### New Feature
+- **Financial overview in progress bar** — Each player now shows a stacked funding bar: how much money came from the owner (green), bank (blue), and investors (orange) vs total project scope. A striped overlay shows money spent. The funding gap or "Fully funded" status is shown at a glance. The collapsed progress bar also shows a quick funding summary.
+
+### Fixes
+- **Removed test cards from the game deck** — Six test cards (like "Efficiency Accelerator") that did nothing when played have been removed.
+- **Can't leave scope space without work cards** — Players must draw Work cards at the scope initiation space. This prevents the bug where a player would arrive at funding with $0 scope and receive $0 from the owner.
+- **Cleaner browser console** — Debug logging is now suppressed in production. If you need to see debug output, add `?debug=true` to the URL.
+
+---
+
 ## v2.39.3 - Security + Polish (April 2, 2026)
 
 **Release Date:** April 2, 2026

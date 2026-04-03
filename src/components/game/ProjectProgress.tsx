@@ -6,6 +6,7 @@ import { Player } from '../../types/StateTypes';
 import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
+import { FormatUtils } from '../../utils/FormatUtils';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -197,6 +198,20 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             ▶ {currentPlayer.name}'s Turn
           </span>
         )}
+        {currentPlayer && (() => {
+          const scope = playerProjectScopes[currentPlayer.id] || 0;
+          if (scope === 0) return null;
+          const funded = (currentPlayer.moneySources?.ownerFunding || 0) + (currentPlayer.moneySources?.bankLoans || 0) + (currentPlayer.moneySources?.investmentDeals || 0);
+          const spent = (currentPlayer.expenditures?.design || 0) + (currentPlayer.expenditures?.fees || 0) + (currentPlayer.expenditures?.construction || 0);
+          const gap = scope - funded;
+          return (
+            <span style={{ fontSize: '0.75rem', color: colors.secondary.dark }}>
+              💰 {FormatUtils.formatMoney(funded)}/{FormatUtils.formatMoney(scope)}
+              {spent > 0 && <span style={{ color: '#f44336' }}> (-{FormatUtils.formatMoney(spent)})</span>}
+              {gap > 0 && <span style={{ color: '#f44336', fontWeight: 'bold' }}> Gap {FormatUtils.formatMoney(gap)}</span>}
+            </span>
+          );
+        })()}
         <span style={{ fontSize: '0.8rem', color: colors.secondary.dark }}>
           {Math.round(overallProgress.averageProgress)}%
         </span>
@@ -607,6 +622,52 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 <div style={playerProgressBarStyle}>
                   <div style={getPlayerProgressBarFill(playerProgress.progress)}></div>
                 </div>
+                {/* Financial Overview — stacked funding vs scope bar */}
+                {projectScope > 0 && (() => {
+                  const owner = player.moneySources?.ownerFunding || 0;
+                  const bank = player.moneySources?.bankLoans || 0;
+                  const investor = player.moneySources?.investmentDeals || 0;
+                  const totalFunded = owner + bank + investor;
+                  const totalSpent = (player.expenditures?.design || 0) + (player.expenditures?.fees || 0) + (player.expenditures?.construction || 0);
+                  const fundingGap = projectScope - totalFunded;
+                  const pctOf = (v: number) => Math.min((v / projectScope) * 100, 100);
+                  const fmt = (n: number) => FormatUtils.formatMoney(n);
+
+                  return (
+                    <div style={{ marginTop: '2px', fontSize: '0.55rem', color: '#666' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1px' }}>
+                        <span>💰 Funded {fmt(totalFunded)}/{fmt(projectScope)}</span>
+                        <span style={{ color: fundingGap > 0 ? '#f44336' : '#4caf50', fontWeight: 'bold' }}>
+                          {fundingGap > 0 ? `Gap ${fmt(fundingGap)}` : 'Fully funded'}
+                        </span>
+                      </div>
+                      {/* Stacked funding bar */}
+                      <div style={{ height: '6px', backgroundColor: '#e0e0e0', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+                        {/* Owner (green) */}
+                        <div style={{ position: 'absolute', left: 0, top: 0, width: `${pctOf(owner)}%`, height: '100%', backgroundColor: '#4caf50' }} title={`Owner: ${fmt(owner)}`} />
+                        {/* Bank (blue) */}
+                        <div style={{ position: 'absolute', left: `${pctOf(owner)}%`, top: 0, width: `${pctOf(bank)}%`, height: '100%', backgroundColor: '#2196f3' }} title={`Bank: ${fmt(bank)}`} />
+                        {/* Investor (orange) */}
+                        <div style={{ position: 'absolute', left: `${pctOf(owner + bank)}%`, top: 0, width: `${pctOf(investor)}%`, height: '100%', backgroundColor: '#ff9800' }} title={`Investor: ${fmt(investor)}`} />
+                        {/* Spent overlay (dark stripe from left) */}
+                        {totalSpent > 0 && (
+                          <div style={{
+                            position: 'absolute', left: 0, top: 0,
+                            width: `${pctOf(totalSpent)}%`, height: '100%',
+                            background: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px)',
+                          }} title={`Spent: ${fmt(totalSpent)}`} />
+                        )}
+                      </div>
+                      {/* Legend */}
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '1px', fontSize: '0.5rem', color: '#888' }}>
+                        <span><span style={{ color: '#4caf50' }}>■</span> Owner</span>
+                        <span><span style={{ color: '#2196f3' }}>■</span> Bank</span>
+                        <span><span style={{ color: '#ff9800' }}>■</span> Invest</span>
+                        {totalSpent > 0 && <span style={{ marginLeft: 'auto' }}>▓ Spent {fmt(totalSpent)}</span>}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {/* Design Fee + Timeline — compact inline bars */}
                 <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
                   <span style={{ whiteSpace: 'nowrap' }}>📐 <span style={{ color: designFeeColor, fontWeight: 'bold' }}>{designFeeRatio.toFixed(1)}%/20%</span></span>

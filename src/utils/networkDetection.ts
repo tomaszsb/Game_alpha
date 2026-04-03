@@ -1,5 +1,7 @@
 // src/utils/networkDetection.ts
 
+import { debugLog, debugWarn } from './debugLog';
+
 /**
  * Network detection utilities for multi-device support
  * Handles URL generation for QR codes and server communication
@@ -162,7 +164,7 @@ export async function detectBackendURL(): Promise<string> {
       });
 
       if (response.ok) {
-        console.log(`✅ Detected backend server at ${url}`);
+        debugLog(`✅ Detected backend server at ${url}`);
         return url;
       }
     } catch (e) {
@@ -172,7 +174,7 @@ export async function detectBackendURL(): Promise<string> {
   }
 
   // Fallback to best guess if detection failed
-  console.warn('⚠️  Could not detect backend server, using default');
+  debugWarn('⚠️  Could not detect backend server, using default');
   return `${protocol}//${hostname}:${frontendPort + 1}`;
 }
 

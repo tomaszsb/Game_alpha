@@ -3,6 +3,7 @@ import { colors } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { ActionLogEntry } from '../../types/StateTypes';
 import { formatActionDescription } from '../../utils/actionLogFormatting';
+import { debugWarn } from '../../utils/debugLog';
 
 interface PlayerTurnGroup {
   playerId: string;
@@ -114,7 +115,7 @@ export function GameLog(): JSX.Element {
 
       // Skip this group if no turn_start action found (malformed data)
       if (!turnStartAction) {
-        console.warn(`No turn_start action found for turn key: ${turnKey}`);
+        debugWarn(`No turn_start action found for turn key: ${turnKey}`);
         return;
       }
 

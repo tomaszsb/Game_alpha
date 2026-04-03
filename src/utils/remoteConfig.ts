@@ -1,4 +1,6 @@
 
+import { debugWarn } from './debugLog';
+
 /**
  * Remote Configuration Service (Game Alpha)
  * Fetches visibility settings from the Dashboard API
@@ -81,7 +83,7 @@ export async function fetchRemoteConfig(mode: string = 'game'): Promise<ServiceV
     try {
         const response = await fetch(API_ENDPOINT);
         if (!response.ok) {
-            console.warn(`Failed to fetch remote config: ${response.status}`);
+            debugWarn(`Failed to fetch remote config: ${response.status}`);
             return (configCache as any)[mode] || null;
         }
 
@@ -91,7 +93,7 @@ export async function fetchRemoteConfig(mode: string = 'game'): Promise<ServiceV
 
         return data[mode] || null;
     } catch (error) {
-        console.warn('Error fetching remote config:', error);
+        debugWarn('Error fetching remote config:', error);
         return (configCache as any)[mode] || null;
     }
 }

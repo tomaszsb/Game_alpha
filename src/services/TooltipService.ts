@@ -1,6 +1,7 @@
 // src/services/TooltipService.ts
 
 import { DataService } from './DataService';
+import { debugLog } from '../utils/debugLog';
 
 export interface ActionTooltip {
   action_type: string;
@@ -31,7 +32,7 @@ export class TooltipService {
       const csvText = await response.text();
       this.parseCSV(csvText);
       this.loaded = true;
-      console.log(`TooltipService: Loaded ${this.tooltips.size} tooltips`);
+      debugLog(`TooltipService: Loaded ${this.tooltips.size} tooltips`);
     } catch (error) {
       console.error('TooltipService: Failed to load tooltips', error);
     }

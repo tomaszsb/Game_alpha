@@ -1,4 +1,5 @@
 import { IPlayerActionService, IDataService, IStateService, IGameRulesService, IMovementService, ITurnService, IEffectEngineService, ILoggingService } from '../types/ServiceContracts';
+import { debugLog } from '../utils/debugLog';
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 
@@ -79,7 +80,7 @@ export class PlayerActionService implements IPlayerActionService {
 
       // 5. Generate effects from the card using EffectFactory
       const effects = EffectFactory.createEffectsFromCard(card, playerId);
-      console.log(`🏭 Generated ${effects.length} effects from card ${card.card_name}`);
+      debugLog(`🏭 Generated ${effects.length} effects from card ${card.card_name}`);
 
       // 6. Create effect processing context
       const effectContext: EffectContext = {
@@ -95,16 +96,16 @@ export class PlayerActionService implements IPlayerActionService {
       };
 
       // 7. Process all effects through the Effect Engine (with targeting and duration awareness)
-      console.log(`🔧 Processing card effects through Effect Engine with targeting support...`);
-      console.log('SERVICE: About to wait for Effect Engine...');
+      debugLog(`🔧 Processing card effects through Effect Engine with targeting support...`);
+      debugLog('SERVICE: About to wait for Effect Engine...');
       const processingResult = await this.effectEngineService.processCardEffects(effects, effectContext, card);
-      console.log('SERVICE: Effect Engine has finished.');
+      debugLog('SERVICE: Effect Engine has finished.');
       
       if (!processingResult.success) {
         throw new Error(`Failed to process card effects: ${processingResult.errors.join(', ')}`);
       }
 
-      console.log(`✅ Card effects processed successfully: ${processingResult.successfulEffects}/${processingResult.totalEffects} effects completed`);
+      debugLog(`✅ Card effects processed successfully: ${processingResult.successfulEffects}/${processingResult.totalEffects} effects completed`);
 
       // 8. The Effect Engine has now handled all card effects including:
       //    - Card cost deduction (via RESOURCE_CHANGE effects from EffectFactory)
@@ -116,7 +117,7 @@ export class PlayerActionService implements IPlayerActionService {
       //    - Any other card-specific effects
 
       // 9. Handle card lifecycle (move from hand to discard/active) - this only affects the source player
-      console.log(`🔧 Processing card lifecycle for source player...`);
+      debugLog(`🔧 Processing card lifecycle for source player...`);
       const playCardEffect: Effect = {
         effectType: 'PLAY_CARD',
         payload: {

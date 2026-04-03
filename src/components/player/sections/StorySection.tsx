@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExpandableSection } from '../ExpandableSection';
 import { TextWithTerms, useDictionaryPanel } from '../../../dictionary';
+import { debugLog } from '../../../utils/debugLog';
 
 /**
  * Props for the StorySection component.
@@ -27,10 +28,10 @@ export function StorySection({ story, spaceName, portraitSrc }: StorySectionProp
   const [isExpanded, setIsExpanded] = useState(true); // Default expanded so players see it
   const { openWithTerm } = useDictionaryPanel();
 
-  console.log('📖 StorySection render:', { story, spaceName, portraitSrc, isEmpty: !story || story.trim() === '' });
+  debugLog('📖 StorySection render:', { story, spaceName, portraitSrc, isEmpty: !story || story.trim() === '' });
 
   if (!story || story.trim() === '') {
-    console.log('📖 StorySection: Returning null (no story)');
+    debugLog('📖 StorySection: Returning null (no story)');
     return null; // Don't render if there's no story
   }
 

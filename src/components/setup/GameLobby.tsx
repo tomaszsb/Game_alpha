@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/theme';
 import { getBackendURL } from '../../utils/networkDetection';
 import { verifyAdminPassword, isAdminAuthenticated } from '../../utils/adminAuth';
+import { debugLog } from '../../utils/debugLog';
 
 interface GitHubSyncStatus {
   status: 'checking' | 'in-sync' | 'out-of-sync' | 'error';
@@ -79,7 +80,7 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
           setSyncStatus({ status: 'error' });
         }
       } catch (err) {
-        console.log('Could not check GitHub sync:', err);
+        debugLog('Could not check GitHub sync:', err);
         setSyncStatus({ status: 'error' });
       }
     };
@@ -101,7 +102,7 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
         setActiveGames(games);
       }
     } catch (err) {
-      console.log('Could not fetch games:', err);
+      debugLog('Could not fetch games:', err);
     } finally {
       setGamesLoading(false);
     }

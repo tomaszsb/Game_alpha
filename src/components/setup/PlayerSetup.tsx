@@ -12,6 +12,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
+import { debugLog } from '../../utils/debugLog';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -183,7 +184,7 @@ export function PlayerSetup({
         setActiveGames(games);
       }
     } catch (err) {
-      console.log('Could not fetch games:', err);
+      debugLog('Could not fetch games:', err);
     } finally {
       setGamesLoading(false);
     }

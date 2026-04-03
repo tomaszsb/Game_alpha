@@ -1,4 +1,5 @@
 import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService, IChoiceService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
 import { CardType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
@@ -152,7 +153,7 @@ export class CardService implements ICardService {
       if (availableDeck.length === 0) {
         if (discardPile.length === 0) {
           const error = ErrorNotifications.cardDrawFailed(cardType, 'Deck and discard pile both empty');
-          console.warn(error.medium);
+          debugWarn(error.medium);
           break; // Cannot draw any more cards
         }
 
@@ -275,7 +276,7 @@ export class CardService implements ICardService {
 
       if (drawnCards.length === 0) {
         const error = ErrorNotifications.cardDrawFailed(cardType, 'No cards available in deck');
-        console.warn(error.medium);
+        debugWarn(error.medium);
         return { drawnCardId: null, success: false };
       }
       
@@ -343,7 +344,7 @@ export class CardService implements ICardService {
     // and cards shouldn't be removed once discarded (except for reshuffling)
 
     if (!cardRemoved) {
-      console.warn(`Could not find card ${cardId} in player ${playerId}'s collections`);
+      debugWarn(`Could not find card ${cardId} in player ${playerId}'s collections`);
     }
 
     // Update via TEMP state (or main state if no TEMP exists)
@@ -406,7 +407,7 @@ export class CardService implements ICardService {
     // Fallback: Extract card type from card ID format for backwards compatibility
     const cardTypePart = cardId.split('_')[0];
     if (this.isValidCardType(cardTypePart)) {
-      console.warn(`getCardType fallback: Using ID parsing for card ${cardId}. Consider updating card data.`);
+      debugWarn(`getCardType fallback: Using ID parsing for card ${cardId}. Consider updating card data.`);
       return cardTypePart as CardType;
     }
     
@@ -986,7 +987,7 @@ export class CardService implements ICardService {
 
     const card = this.dataService.getCardById(cardId);
     if (!card) {
-      console.warn(`Card ${cardId} not found in database`);
+      debugWarn(`Card ${cardId} not found in database`);
       return this.stateService.getGameState();
     }
 
@@ -1318,7 +1319,7 @@ export class CardService implements ICardService {
           if (this.resourceService.canAfford(playerId, cost)) {
             this.resourceService.spendMoney(playerId, cost, 'expeditor_card', `Expeditor card: ${card.card_name}`);
           } else {
-            console.warn(`⚠️ Expeditor card ${card.card_name}: Player cannot afford $${cost} (has $${player.money})`);
+            debugWarn(`⚠️ Expeditor card ${card.card_name}: Player cannot afford $${cost} (has $${player.money})`);
           }
         }
       }
@@ -1346,7 +1347,7 @@ export class CardService implements ICardService {
         try {
           this.drawCards(playerId, randomCardType, drawCount);
         } catch (error) {
-          console.warn(`Could not draw ${randomCardType} card:`, error);
+          debugWarn(`Could not draw ${randomCardType} card:`, error);
           for (const fallbackType of cardTypes) {
             if (fallbackType !== randomCardType) {
               try {
@@ -1389,7 +1390,7 @@ export class CardService implements ICardService {
         try {
           this.drawCards(playerId, randomCardType, 1);
         } catch (error) {
-          console.warn(`Could not draw ${randomCardType} card:`, error);
+          debugWarn(`Could not draw ${randomCardType} card:`, error);
           for (const fallbackType of cardTypes) {
             if (fallbackType !== randomCardType) {
               try {
@@ -1481,7 +1482,7 @@ export class CardService implements ICardService {
   discardCards(playerId: string, cardIds: string[], source?: string, reason?: string): boolean {
     if (!cardIds || cardIds.length === 0) {
       const error = ErrorNotifications.cardDiscardFailed('unknown', 'No cards provided');
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 

@@ -4,6 +4,7 @@
 
 import { GameState } from '../types/StateTypes';
 import { getBackendURL, getGameStateAPIPath, getCurrentGameId, getCurrentGameToken } from '../utils/networkDetection';
+import { debugLog, debugWarn } from '../utils/debugLog';
 import { getWebSocketService, ConnectionState, StateUpdateCallback } from './WebSocketSyncService';
 
 /**
@@ -50,7 +51,7 @@ export class ServerSyncService {
       this.serverUrl = getBackendURL();
       return true;
     } catch (error) {
-      console.warn('Cannot determine backend URL, disabling server sync:', error);
+      debugWarn('Cannot determine backend URL, disabling server sync:', error);
       this.syncEnabled = false;
       return false;
     }
@@ -67,7 +68,7 @@ export class ServerSyncService {
 
     const gameId = getCurrentGameId();
     if (!gameId) {
-      console.log('No game ID, skipping WebSocket connection');
+      debugLog('No game ID, skipping WebSocket connection');
       return;
     }
 
@@ -80,7 +81,7 @@ export class ServerSyncService {
         this.lastKnownServerVersion = version;
         // Update state through the provider (skips sync to avoid loop)
         this.stateProvider.setCurrentState(state, version);
-        console.log(`📥 WebSocket state update applied (v${version})`);
+        debugLog(`📥 WebSocket state update applied (v${version})`);
       }
     });
     this.webSocketUnsubscribers.push(stateUnsubscribe);
@@ -88,7 +89,7 @@ export class ServerSyncService {
     // Subscribe to connection state changes
     const connUnsubscribe = wsService.onConnectionChange((state) => {
       this.webSocketConnected = state === 'connected';
-      console.log(`🔌 WebSocket connection: ${state}`);
+      debugLog(`🔌 WebSocket connection: ${state}`);
     });
     this.webSocketUnsubscribers.push(connUnsubscribe);
 
@@ -181,12 +182,12 @@ export class ServerSyncService {
       if (!response.ok) {
         // Check for version conflict (409 Conflict)
         if (response.status === 409) {
-          console.warn(`⚠️ State sync rejected: server has newer version. Fetching latest state...`);
+          debugWarn(`⚠️ State sync rejected: server has newer version. Fetching latest state...`);
           // Fetch the latest state from server to resolve conflict
           await this.loadFromServer();
           return;
         }
-        console.warn(`Failed to sync state to server: ${response.status} ${response.statusText}`);
+        debugWarn(`Failed to sync state to server: ${response.status} ${response.statusText}`);
       } else {
         const result = await response.json();
         // Update our known server version to prevent future conflicts
@@ -196,7 +197,7 @@ export class ServerSyncService {
         // Debug: Log spaceVisitLog sync status
         const player = state.players?.[0];
         const logLength = player?.spaceVisitLog?.length || 0;
-        console.log(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''} - spaceVisitLog: ${logLength} entries`);
+        debugLog(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''} - spaceVisitLog: ${logLength} entries`);
       }
     } catch (error) {
       // Fail silently - server may not be running (development mode)
@@ -219,7 +220,7 @@ export class ServerSyncService {
     try {
       const gameId = getCurrentGameId();
       const apiPath = getGameStateAPIPath(gameId);
-      console.log(`📥 Loading state from server...${gameId ? ` [${gameId}]` : ''}`);
+      debugLog(`📥 Loading state from server...${gameId ? ` [${gameId}]` : ''}`);
       const fetchHeaders: Record<string, string> = {};
       const token = getCurrentGameToken();
       if (token) {
@@ -228,12 +229,12 @@ export class ServerSyncService {
       const response = await fetch(`${this.serverUrl}${apiPath}`, { headers: fetchHeaders });
 
       if (response.status === 404) {
-        console.log('No server state found, using local state');
+        debugLog('No server state found, using local state');
         return false;
       }
 
       if (!response.ok) {
-        console.warn(`Failed to load state from server: ${response.status} ${response.statusText}`);
+        debugWarn(`Failed to load state from server: ${response.status} ${response.statusText}`);
         return false;
       }
 
@@ -249,17 +250,17 @@ export class ServerSyncService {
         // Debug: Log spaceVisitLog status when loading
         const player = state.players?.[0];
         const logLength = player?.spaceVisitLog?.length || 0;
-        console.log(`✅ State loaded from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
-        console.log(`   Players: ${state.players?.length || 0}`);
-        console.log(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
-        console.log(`   Player 0 spaceVisitLog: ${logLength} entries`);
+        debugLog(`✅ State loaded from server (v${stateVersion})${gameId ? ` [${gameId}]` : ''}`);
+        debugLog(`   Players: ${state.players?.length || 0}`);
+        debugLog(`   Phase: ${state.gamePhase || 'UNKNOWN'}`);
+        debugLog(`   Player 0 spaceVisitLog: ${logLength} entries`);
         return true;
       }
 
       return false;
     } catch (error) {
       // Server not available - continue with local state
-      console.log('Server not available, using local state');
+      debugLog('Server not available, using local state');
       return false;
     }
   }
@@ -285,7 +286,7 @@ export class ServerSyncService {
    */
   public setSyncEnabled(enabled: boolean): void {
     this.syncEnabled = enabled;
-    console.log(`Server sync ${enabled ? 'enabled' : 'disabled'}`);
+    debugLog(`Server sync ${enabled ? 'enabled' : 'disabled'}`);
   }
 
   /**

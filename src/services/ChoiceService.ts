@@ -1,4 +1,5 @@
 import { IChoiceService, IStateService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { Choice } from '../types/CommonTypes';
 
 /**
@@ -153,7 +154,7 @@ export class ChoiceService implements IChoiceService {
 
     const activeChoice = this.getActiveChoice();
     if (!activeChoice || activeChoice.id !== choiceId) {
-      console.warn(`⚠️ [CHOICE] Cannot skip - no matching active choice`);
+      debugWarn(`⚠️ [CHOICE] Cannot skip - no matching active choice`);
       return false;
     }
 

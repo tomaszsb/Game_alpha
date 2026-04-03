@@ -1,4 +1,5 @@
 import { IStateService, IDataService, IGameRulesService } from '../types/ServiceContracts';
+import { debugLog, debugWarn } from '../utils/debugLog';
 import {
   GameState,
   Player,
@@ -274,7 +275,7 @@ export class StateService implements IStateService {
 
     // Ensure data is loaded before creating player with correct starting space
     if (this.dataService && !this.dataService.isLoaded()) {
-      console.warn('DataService not loaded yet, using fallback starting space. Consider ensuring data is loaded before adding players.');
+      debugWarn('DataService not loaded yet, using fallback starting space. Consider ensuring data is loaded before adding players.');
     }
 
     const newPlayer: Player = this.createNewPlayer(name);
@@ -673,7 +674,7 @@ export class StateService implements IStateService {
   // This can be called after data is loaded to correct any players with wrong starting spaces
   fixPlayerStartingSpaces(): GameState {
     if (!this.dataService || !this.dataService.isLoaded()) {
-      console.warn('Cannot fix starting spaces: DataService not loaded');
+      debugWarn('Cannot fix starting spaces: DataService not loaded');
       return { ...this.currentState };
     }
 
@@ -705,7 +706,7 @@ export class StateService implements IStateService {
   // This ignores current space and resets everyone
   forceResetAllPlayersToCorrectStartingSpace(): GameState {
     if (!this.dataService || !this.dataService.isLoaded()) {
-      console.warn('Cannot force reset starting spaces: DataService not loaded');
+      debugWarn('Cannot force reset starting spaces: DataService not loaded');
       return { ...this.currentState };
     }
 
@@ -1121,7 +1122,7 @@ export class StateService implements IStateService {
       });
       // DEBUG: Log action requirements at OWNER-SCOPE-INITIATION to diagnose scope bug
       if (player.currentSpace === 'OWNER-SCOPE-INITIATION') {
-        console.log(`🔍 ACTION DEBUG [${player.name}@${player.currentSpace}]: required=${required}, completed=${completed}, types=[${availableTypes}], diceRolled=${this.currentState.hasPlayerRolledDice}, manualActions=${JSON.stringify(this.currentState.completedActions.manualActions)}, hand=${player.hand.length} cards`);
+        debugLog(`🔍 ACTION DEBUG [${player.name}@${player.currentSpace}]: required=${required}, completed=${completed}, types=[${availableTypes}], diceRolled=${this.currentState.hasPlayerRolledDice}, manualActions=${JSON.stringify(this.currentState.completedActions.manualActions)}, hand=${player.hand.length} cards`);
       }
     } catch (error) {
       console.error('Error calculating required actions:', error);
@@ -1144,7 +1145,7 @@ export class StateService implements IStateService {
     }
 
     // Fallback for when GameRulesService hasn't been set yet (during initialization)
-    console.warn('GameRulesService not set in StateService, using fallback condition evaluation');
+    debugWarn('GameRulesService not set in StateService, using fallback condition evaluation');
     switch (condition) {
       case 'always':
         return true;

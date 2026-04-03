@@ -15,6 +15,7 @@ import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 import { getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
+import { debugLog } from '../../utils/debugLog';
 
 export function ChoiceModal(): JSX.Element {
   const { stateService, choiceService, notificationService, dataService } = useGameContext();
@@ -109,7 +110,7 @@ export function ChoiceModal(): JSX.Element {
         targetPlayerName={targetPlayerName}
         onReplace={(selectedCardIds, replacementType) => {
           if (selectedCardIds.length > 0) {
-            console.log(`🔄 Card ${mode}: Attempting with cards: ${selectedCardIds.join(', ')}`);
+            debugLog(`🔄 Card ${mode}: Attempting with cards: ${selectedCardIds.join(', ')}`);
             selectedCardIds.forEach((cardId, index) => {
               if (index === 0) {
                 handleChoiceClick(cardId);
@@ -121,7 +122,7 @@ export function ChoiceModal(): JSX.Element {
           // Skip the choice — resolve the promise with empty string so the
           // awaiting async function (CardEffectService) can complete and
           // the action button stops spinning.
-          console.log(`Card ${mode} skipped by player`);
+          debugLog(`Card ${mode} skipped by player`);
           choiceService.skipChoice(awaitingChoice.id);
         }}
       />

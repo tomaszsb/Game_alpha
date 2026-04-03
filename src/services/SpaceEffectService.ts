@@ -1,4 +1,5 @@
 import { IStateService, ICardService, IResourceService, IGameRulesService, IDiceService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
 import { DiceEffect, SpaceEffect, CardType } from '../types/DataTypes';
 
@@ -66,7 +67,7 @@ export class SpaceEffectService implements ISpaceEffectService {
         return this.applyMultiplierEffect(playerId, rollEffect);
 
       default:
-        console.warn(`Unknown effect type: ${effect.effect_type}`);
+        debugWarn(`Unknown effect type: ${effect.effect_type}`);
         return currentState;
     }
   }
@@ -227,7 +228,7 @@ export class SpaceEffectService implements ISpaceEffectService {
     } else if (qualityUpper === 'LOW') {
       quality = 'LOW';
     } else {
-      console.warn(`Unknown quality level: ${effect}, defaulting to MED`);
+      debugWarn(`Unknown quality level: ${effect}, defaulting to MED`);
       quality = 'MED';
     }
 
@@ -259,7 +260,7 @@ export class SpaceEffectService implements ISpaceEffectService {
     const multiplier = parseInt(effect.trim(), 10);
 
     if (isNaN(multiplier) || multiplier < 1 || multiplier > 6) {
-      console.warn(`Invalid multiplier: ${effect}, defaulting to 3`);
+      debugWarn(`Invalid multiplier: ${effect}, defaulting to 3`);
       const existingContractor = player.contractor || { quality: 'MED', multiplier: 3 };
       this.stateService.updatePlayer({
         id: playerId,
@@ -314,7 +315,7 @@ export class SpaceEffectService implements ISpaceEffectService {
 
     const contractor = player.contractor;
     if (!contractor) {
-      console.warn(`No contractor info for player ${playerId}, skipping construction cost`);
+      debugWarn(`No contractor info for player ${playerId}, skipping construction cost`);
       return this.stateService.getGameState();
     }
 
@@ -381,7 +382,7 @@ export class SpaceEffectService implements ISpaceEffectService {
       this.resourceService.addMoney(playerId, value, 'space_effect', `Space effect: add $${value}`);
     } else if (effect.effect_action === 'subtract') {
       if (!this.resourceService.canAfford(playerId, value)) {
-        console.warn(`⚠️ Space effect: Player cannot afford $${value} subtract (has $${player.money}). Spending remaining balance.`);
+        debugWarn(`⚠️ Space effect: Player cannot afford $${value} subtract (has $${player.money}). Spending remaining balance.`);
         if (player.money > 0) {
           this.resourceService.spendMoney(playerId, player.money, 'space_effect', `Space effect: subtract $${value} (capped)`);
         }
@@ -401,7 +402,7 @@ export class SpaceEffectService implements ISpaceEffectService {
         const multiplier = Math.floor(totalBorrowed / 200000);
         additionalAmount = value * multiplier;
       } else {
-        console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
+        debugWarn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
       }
 
       if (additionalAmount > 0) {
@@ -441,7 +442,7 @@ export class SpaceEffectService implements ISpaceEffectService {
         additionalTime = value * multiplier;
       } else {
         // For other conditions, use value directly (fallback)
-        console.warn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
+        debugWarn(`Unknown add_per_amount condition: ${effect.condition}, using base value`);
       }
 
       newTime += additionalTime;
@@ -479,7 +480,7 @@ export class SpaceEffectService implements ISpaceEffectService {
     }
 
     // Unknown condition
-    console.warn(`Unknown transfer condition: ${condition}`);
+    debugWarn(`Unknown transfer condition: ${condition}`);
     return null;
   }
 }

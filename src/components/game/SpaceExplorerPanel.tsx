@@ -5,6 +5,7 @@ import { Space, SpaceContent, SpaceEffect, DiceEffect, Player } from '../../type
 import { FormatUtils } from '../../utils/FormatUtils';
 import { openInDictionary } from '../../utils/dictionaryBridge';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
+import { debugWarn } from '../../utils/debugLog';
 
 interface SpaceDetails {
   space: Space;
@@ -111,7 +112,7 @@ export function SpaceExplorerPanel({
         }
       });
     } catch (error) {
-      console.warn('Error loading space connections:', error);
+      debugWarn('Error loading space connections:', error);
     }
 
     setSpaceDetails({

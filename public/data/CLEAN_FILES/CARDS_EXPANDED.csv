@@ -323,12 +323,6 @@ W173,Installation of dual-fuel boiler system for increased resilience,W,Installa
 W174,Creation of kinetic facade signage for entertainment district,W,Creation of kinetic facade signage for entertainment district,Apply Work,420000,Any,Permanent,0,,Immediate,0,0,0,420000,,0,,,Self,Single,Sign,,,,,,,,
 W175,Installation of solar canopy over parking lot with EV charging stations,W,Installation of solar canopy over parking lot with EV charging stations,Apply Work,680000,Any,Permanent,0,,Immediate,0,0,0,680000,,0,,,Self,Single,Solar,,,,,,,,
 W176,Upgrade of standpipe system in high-rise to support higher pressure requirements,W,Upgrade of standpipe system in high-rise to support higher pressure requirements,Apply Work,350000,Any,Permanent,0,,Immediate,0,0,0,350000,,0,,,Self,Single,Standpipe,,,,,,,,
-TEST001,Finance Combo Master,B,Master loan that gets better with investor backing,Apply Loan,0,Any,Permanent,0,,,0,500000,5,0,25000,0,,,Self,Single,,,,,,,,,
-TEST002,Strategic Investment Fund,I,Investment that chains into more opportunities,Apply Investment,0,Any,Permanent,0,,,0,1000000,0,0,50000,0,,,Self,Single,,,,,,,,,25000
-TEST003,Master Project Coordination,W,Work project that benefits from team diversity,Apply Work,0,Any,Permanent,0,,,0,0,0,0,,15,,,Self,Single,Complex,,,,,,,,
-TEST004,Efficiency Accelerator,E,Expeditor that amplifies all other cards this turn,Apply Efficiency,0,Any,Turns,2,,Player Controlled,0,0,0,0,,25,,,All Players-Self,Multiple,,,,,,,,,
-TEST005,Work-Life Synergist,L,Life card that creates powerful combinations,Apply Life Balance,0,Any,Permanent,0,,,0,0,0,0,,3,,,Choose Player,Single,,,,,,,,,
-TEST006,Cascade Funding,B,Bank card that triggers investment opportunities,Apply Loan,0,Any,Permanent,0,,,0,800000,4,0,75000,0,,,Self,Single,,,,,,,,,
 E008,Overtime,E,Pay a junior expeditor ($1000) to reduce the current filing time by 2 days.,Apply Card,0,Any,Immediate,0,,Player Controlled,0,0,0,Immediate,-1000,-2,,,Self,Single,,,,,,,,,
 E020,Expeditor Training,E,Reduce the current filing time by 1 day for each Expeditor Card played this turn.,Apply Card,0,Any,Immediate,0,,Player Controlled,0,0,0,Immediate,,-1,,,Self,Single,,,,,,,,,
 E024,Return to Sender,E,Cancel an active Expeditor card effect and return it to its owner's hand.,Apply Card,0,Any,Immediate,0,,Player Controlled,0,0,0,0,,0,,,Self,Single,,,,,,,,,

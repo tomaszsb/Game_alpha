@@ -11,6 +11,7 @@
  */
 
 import { ICardService, IStateService, IDataService, IChoiceService } from '../types/ServiceContracts';
+import { debugLog } from '../utils/debugLog';
 import { SpaceEffect, CardType } from '../types/DataTypes';
 import { Player } from '../types/StateTypes';
 
@@ -75,7 +76,7 @@ export class CardEffectService implements ICardEffectService {
     const action = effect.effect_action.toLowerCase();
     const value = this.parseEffectValue(effect.effect_value);
 
-    console.log(`🃏 [CardEffectService] Executing ${action} with value ${value} for player ${player.name}`);
+    debugLog(`🃏 [CardEffectService] Executing ${action} with value ${value} for player ${player.name}`);
 
     switch (action) {
       case 'draw_w':
@@ -142,7 +143,7 @@ export class CardEffectService implements ICardEffectService {
     cardType: CardType,
     count: number
   ): CardEffectResult {
-    console.log(`🃏 Drawing ${count} ${cardType} card(s) for ${player.name}`);
+    debugLog(`🃏 Drawing ${count} ${cardType} card(s) for ${player.name}`);
 
     const drawnCards = this.cardService.drawCards(
       playerId,
@@ -159,7 +160,7 @@ export class CardEffectService implements ICardEffectService {
     const isFundingCard = cardType === 'B' || cardType === 'I';
 
     if (isFundingSpace && isFundingCard && drawnCards.length > 0) {
-      console.log(`💰 ${player.currentSpace}: Auto-playing ${drawnCards.length} funding card(s)`);
+      debugLog(`💰 ${player.currentSpace}: Auto-playing ${drawnCards.length} funding card(s)`);
       for (const cardId of drawnCards) {
         this.cardService.applyCardEffects(playerId, cardId);
         this.cardService.finalizePlayedCard(playerId, cardId);
@@ -186,7 +187,7 @@ export class CardEffectService implements ICardEffectService {
     const replaceCount = Math.min(count, currentCards.length);
 
     if (replaceCount === 0) {
-      console.log(`${player.name} has no ${cardType} cards to replace`);
+      debugLog(`${player.name} has no ${cardType} cards to replace`);
       return { success: true, cardsAffected: [], message: `No ${cardType} cards to replace` };
     }
 
@@ -213,7 +214,7 @@ export class CardEffectService implements ICardEffectService {
       affectedCards.push(...newCards);
     } else {
       // Multiple cards - create choice for which to replace
-      console.log(`${player.name} has ${currentCards.length} ${cardType} cards, creating choice for replacement`);
+      debugLog(`${player.name} has ${currentCards.length} ${cardType} cards, creating choice for replacement`);
 
       const options = currentCards.map(cardId => {
         const cardData = this.dataService.getCardById(cardId);
@@ -232,11 +233,11 @@ export class CardEffectService implements ICardEffectService {
       );
 
       if (selectedCardId && selectedCardId !== '') {
-        console.log(`Player selected card ${selectedCardId} for replacement`);
+        debugLog(`Player selected card ${selectedCardId} for replacement`);
         this.cardService.replaceCard(playerId, selectedCardId, cardType);
         affectedCards.push(selectedCardId);
       } else {
-        console.log(`Player skipped card replacement`);
+        debugLog(`Player skipped card replacement`);
       }
 
       this.stateService.clearAwaitingChoice();
@@ -262,7 +263,7 @@ export class CardEffectService implements ICardEffectService {
     const returnCount = Math.min(count, currentCards.length);
 
     if (returnCount === 0) {
-      console.log(`${player.name} has no ${cardType} cards to return`);
+      debugLog(`${player.name} has no ${cardType} cards to return`);
       return { success: true, cardsAffected: [], message: `No ${cardType} cards to return` };
     }
 
@@ -273,7 +274,7 @@ export class CardEffectService implements ICardEffectService {
       cardsToReturn.push(currentCards[0]);
     } else {
       // Multiple cards - need to choose which to return
-      console.log(`${player.name} has ${currentCards.length} ${cardType} cards, need to return ${returnCount}`);
+      debugLog(`${player.name} has ${currentCards.length} ${cardType} cards, need to return ${returnCount}`);
 
       for (let i = 0; i < returnCount; i++) {
         const remainingCards = currentCards.filter(id => !cardsToReturn.includes(id));
@@ -312,7 +313,7 @@ export class CardEffectService implements ICardEffectService {
         'manual_effect',
         `Manual action: Return ${cardsToReturn.length} ${cardType} card${cardsToReturn.length > 1 ? 's' : ''}`
       );
-      console.log(`${player.name} returns ${cardType} cards: ${cardsToReturn.join(', ')}`);
+      debugLog(`${player.name} returns ${cardType} cards: ${cardsToReturn.join(', ')}`);
     }
 
     return {
@@ -339,14 +340,14 @@ export class CardEffectService implements ICardEffectService {
     const targetPlayer = players[nextPlayerIndex];
 
     if (targetPlayer.id === playerId) {
-      console.log(`${player.name} is the only player, cannot give card to self`);
+      debugLog(`${player.name} is the only player, cannot give card to self`);
       return { success: true, cardsAffected: [], message: 'Cannot give card to self' };
     }
 
     const currentCards = this.cardService.getPlayerCards(playerId, cardType);
 
     if (currentCards.length === 0) {
-      console.log(`${player.name} has no ${cardType} cards to give`);
+      debugLog(`${player.name} has no ${cardType} cards to give`);
       return { success: true, cardsAffected: [], message: `No ${cardType} cards to give` };
     }
 
@@ -356,7 +357,7 @@ export class CardEffectService implements ICardEffectService {
       cardToGive = currentCards[0];
     } else {
       // Multiple cards - create choice
-      console.log(`${player.name} has ${currentCards.length} ${cardType} cards, creating choice`);
+      debugLog(`${player.name} has ${currentCards.length} ${cardType} cards, creating choice`);
 
       const options = currentCards.map(cardId => {
         const cardData = this.dataService.getCardById(cardId);
@@ -388,7 +389,7 @@ export class CardEffectService implements ICardEffectService {
         'manual_effect',
         `Manual action: Give ${cardType} card to ${targetPlayer.name}`
       );
-      console.log(`${player.name} gives ${cardType} card ${cardToGive} to ${targetPlayer.name}`);
+      debugLog(`${player.name} gives ${cardType} card ${cardToGive} to ${targetPlayer.name}`);
       return { success: true, cardsAffected: [cardToGive], message: `Gave card to ${targetPlayer.name}` };
     }
 
@@ -406,7 +407,7 @@ export class CardEffectService implements ICardEffectService {
     const targetPlayer = this.getTargetPlayer(playerId, effect.condition);
 
     if (!targetPlayer) {
-      console.log(`${player.name} could not transfer cards - no target player found`);
+      debugLog(`${player.name} could not transfer cards - no target player found`);
       return { success: true, cardsAffected: [], message: 'No target player found' };
     }
 
@@ -414,7 +415,7 @@ export class CardEffectService implements ICardEffectService {
     const eCards = this.cardService.getPlayerCards(playerId, 'E');
 
     if (eCards.length === 0) {
-      console.log(`${player.name} has no E cards to transfer`);
+      debugLog(`${player.name} has no E cards to transfer`);
       return { success: true, cardsAffected: [], message: 'No E cards to transfer' };
     }
 
@@ -425,7 +426,7 @@ export class CardEffectService implements ICardEffectService {
       cardToTransfer = eCards[0];
     } else {
       // Multiple E cards - let player choose
-      console.log(`${player.name} has ${eCards.length} E cards, creating choice`);
+      debugLog(`${player.name} has ${eCards.length} E cards, creating choice`);
 
       const options = eCards.map(cardId => {
         const cardData = this.dataService.getCardById(cardId);
@@ -458,7 +459,7 @@ export class CardEffectService implements ICardEffectService {
         'manual_effect',
         `Manual action: Transfer E card to ${targetPlayer.name}`
       );
-      console.log(`${player.name} transfers E card ${cardToTransfer} to ${targetPlayer.name}`);
+      debugLog(`${player.name} transfers E card ${cardToTransfer} to ${targetPlayer.name}`);
       return { success: true, cardsAffected: [cardToTransfer], message: `Gave E card to ${targetPlayer.name}` };
     }
 

@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated**: April 2, 2026
-**Current Phase**: Pre-Beta — Bug Fixes (v2.39.3)
-**Current Version**: 2.39.3
+**Last Updated**: April 3, 2026
+**Current Phase**: Pre-Beta — Bug Fixes (v2.39.4)
+**Current Version**: 2.39.4
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
@@ -10,15 +10,20 @@ This document provides a high-level overview of the current work status for the 
 
 ## Recently Completed
 
+### Console.log cleanup + TEST cards (April 3, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.39.4
+- **Changes**: 203 console.log/warn calls gated behind debug flag (`?debug=true`). Removed 6 TEST cards from production deck. Financial overview bar in progress panel (stacked owner/bank/investor funding vs scope, spent overlay, gap indicator). Scope-zero guard prevents leaving OWNER-SCOPE-INITIATION without W cards. All "Fix Before Beta" audit items resolved.
+
 ### WebSocket Auth + Schema Validation + Polish (April 2, 2026) ✅
 - **Status**: ✅ Complete
 - **Version**: 2.39.3
-- **Changes**: Game token authentication on WebSocket connections and HTTP state endpoints. State_push schema validation (both WS and HTTP). Fixed modal exit animations (9 modals). Consolidated money formatting to FormatUtils across 5 UI files. div→button accessibility fix in ProjectLedger. Replaced all `any` types in EffectTypes.ts + ServiceContracts.ts with proper interfaces. All "Fix Before Beta" security and polish items now resolved except console.log cleanup.
+- **Changes**: Game token authentication on WebSocket connections and HTTP state endpoints. State_push schema validation (both WS and HTTP). Fixed modal exit animations (9 modals). Consolidated money formatting to FormatUtils across 5 UI files. div→button accessibility fix in ProjectLedger. Replaced all `any` types in EffectTypes.ts + ServiceContracts.ts with proper interfaces.
 
 ### April 2026 Audit Fixes (April 2, 2026) ✅
 - **Status**: ✅ Complete (critical/high items)
 - **Version**: 2.39.2
-- **Changes**: Fixed `process.stderr.write()` crash in MovementExecutor, added admin rate limiting, non-root Docker user, removed NTFY_TOPIC from health endpoint, fixed .gitignore blanket *.txt rule, made config URL env-configurable. Remaining items (WebSocket auth, console.log cleanup, money formatting) tracked in TODO.
+- **Changes**: Fixed `process.stderr.write()` crash in MovementExecutor, added admin rate limiting, non-root Docker user, removed NTFY_TOPIC from health endpoint, fixed .gitignore blanket *.txt rule, made config URL env-configurable.
 
 ### Animation Polish (April 1, 2026) ✅
 - **Status**: ✅ Complete

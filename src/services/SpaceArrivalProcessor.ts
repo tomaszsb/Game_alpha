@@ -2,6 +2,7 @@
 // Extracted from TurnService - handles space arrival effect processing
 
 import { IDataService, IStateService, ICardService, ILoggingService, IEffectEngineService, IGameRulesService } from '../types/ServiceContracts';
+import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
 import { Player } from '../types/StateTypes';
 import { SpaceEffect, CardType, VisitType } from '../types/DataTypes';
@@ -83,7 +84,7 @@ export class SpaceArrivalProcessor {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    console.log(`🏠 Processing arrival space effects for ${currentPlayer.name} at ${spaceName} (${visitType} visit)`);
+    debugLog(`🏠 Processing arrival space effects for ${currentPlayer.name} at ${spaceName} (${visitType} visit)`);
 
     try {
       // Get space effect data from DataService for the arrival space
@@ -96,7 +97,7 @@ export class SpaceArrivalProcessor {
       if (needsDiceRoll) {
         // Roll dice once for this space - used for all dice-dependent condition evaluations
         diceRoll = Math.floor(Math.random() * 6) + 1;
-        console.log(`🎲 Rolled ${diceRoll} for condition evaluation at ${spaceName}`);
+        debugLog(`🎲 Rolled ${diceRoll} for condition evaluation at ${spaceName}`);
 
         // Log the dice roll
         this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} at ${spaceName}`, {
@@ -131,7 +132,7 @@ export class SpaceArrivalProcessor {
       );
 
       if (filteredSpaceEffects.length === 0) {
-        console.log(`ℹ️ No automatic space effects for arrival at ${spaceName}`);
+        debugLog(`ℹ️ No automatic space effects for arrival at ${spaceName}`);
         return;
       }
 
@@ -147,11 +148,11 @@ export class SpaceArrivalProcessor {
       );
 
       if (spaceEffects.length === 0) {
-        console.log(`ℹ️ No processed space effects for arrival at ${spaceName}`);
+        debugLog(`ℹ️ No processed space effects for arrival at ${spaceName}`);
         return;
       }
 
-      console.log(`⚡ Processing ${spaceEffects.length} space arrival effects for ${spaceName}`);
+      debugLog(`⚡ Processing ${spaceEffects.length} space arrival effects for ${spaceName}`);
 
       // Create effect context for space arrival
       const effectContext = {
@@ -169,12 +170,12 @@ export class SpaceArrivalProcessor {
       if (this.effectEngineService) {
         const result = await this.effectEngineService.processEffects(spaceEffects, effectContext);
         if (result.success) {
-          console.log(`✅ Applied ${result.successfulEffects} space arrival effects for ${spaceName}`);
+          debugLog(`✅ Applied ${result.successfulEffects} space arrival effects for ${spaceName}`);
         } else {
-          console.warn(`⚠️ Some space arrival effects failed for ${spaceName}:`, result.errors);
+          debugWarn(`⚠️ Some space arrival effects failed for ${spaceName}:`, result.errors);
         }
       } else {
-        console.warn(`⚠️ EffectEngineService not available - skipping space arrival effects for ${spaceName}`);
+        debugWarn(`⚠️ EffectEngineService not available - skipping space arrival effects for ${spaceName}`);
       }
     } catch (error) {
       console.error(`❌ Error processing space arrival effects for ${spaceName}:`, error);
@@ -209,7 +210,7 @@ export class SpaceArrivalProcessor {
       const requiredRoll = parseInt(effect.condition.replace('dice_roll_', ''), 10);
 
       // Effect passed condition check, so dice matched - draw the card
-      console.log(`🎯 Dice roll ${diceRoll} matches ${requiredRoll}! Drawing ${cardType} card for ${currentPlayer.name}`);
+      debugLog(`🎯 Dice roll ${diceRoll} matches ${requiredRoll}! Drawing ${cardType} card for ${currentPlayer.name}`);
 
       try {
         const drawnCardIds = this.cardService.drawCards(
@@ -263,7 +264,7 @@ export class SpaceArrivalProcessor {
 
     // Log if dice was rolled but no card effects matched (for debugging)
     if (diceCardEffects.length === 0 && needsDiceRoll) {
-      console.log(`🎲 Dice roll ${diceRoll} - no matching card effects at ${spaceName}`);
+      debugLog(`🎲 Dice roll ${diceRoll} - no matching card effects at ${spaceName}`);
     }
   }
 }

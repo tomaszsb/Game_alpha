@@ -6,6 +6,7 @@ import {
   ResourceValidation
 } from '../types/ServiceContracts';
 import { ErrorNotifications } from '../utils/ErrorNotifications';
+import { debugLog, debugWarn } from '../utils/debugLog';
 
 /**
  * Unified Resource Management Service
@@ -34,7 +35,7 @@ export class ResourceService implements IResourceService {
   addMoney(playerId: string, amount: number, source: string, reason?: string, sourceType?: 'bank' | 'investment' | 'owner' | 'other'): boolean {
     if (amount <= 0) {
       const error = ErrorNotifications.resourceOperationFailed('add', 'money', `Invalid amount: ${amount}`);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
@@ -49,7 +50,7 @@ export class ResourceService implements IResourceService {
   spendMoney(playerId: string, amount: number, source: string, reason?: string, category?: keyof import('../types/DataTypes').Expenditures): boolean {
     if (amount <= 0) {
       const error = ErrorNotifications.resourceOperationFailed('spend', 'money', `Invalid amount: ${amount}`);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
@@ -62,7 +63,7 @@ export class ResourceService implements IResourceService {
 
     if (!this.canAfford(playerId, amount)) {
       const error = ErrorNotifications.insufficientFunds(amount, player.money);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
@@ -86,8 +87,8 @@ export class ResourceService implements IResourceService {
         expenditures: updatedExpenditures
       });
 
-      console.log(`💸 Expenditure tracked [${playerId}]: $${amount.toLocaleString()} in ${category} category`);
-      console.log(`   Total ${category}: $${updatedExpenditures[category].toLocaleString()}`);
+      debugLog(`💸 Expenditure tracked [${playerId}]: $${amount.toLocaleString()} in ${category} category`);
+      debugLog(`   Total ${category}: $${updatedExpenditures[category].toLocaleString()}`);
 
       return true;
     }
@@ -122,7 +123,7 @@ export class ResourceService implements IResourceService {
   ): boolean {
     if (amount <= 0) {
       const error = ErrorNotifications.resourceOperationFailed('record', 'cost', `Invalid amount: ${amount}`);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
@@ -134,7 +135,7 @@ export class ResourceService implements IResourceService {
 
     if (!this.canAfford(playerId, amount)) {
       const error = ErrorNotifications.insufficientFunds(amount, player.money);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
@@ -190,7 +191,7 @@ export class ResourceService implements IResourceService {
     });
 
     // Log the transaction for debugging
-    console.log(`💸 Cost Recorded [${playerId}]: ${category} - $${amount.toLocaleString()} - ${description}`);
+    debugLog(`💸 Cost Recorded [${playerId}]: ${category} - $${amount.toLocaleString()} - ${description}`);
 
     return true;
   }
@@ -335,8 +336,8 @@ export class ResourceService implements IResourceService {
 
       // Log to console for debugging
       const changeDescription = this.formatChangeDescription(changes);
-      console.log(`💰 Resource Update [${playerId}]: ${changeDescription} (Source: ${changes.source})`);
-      console.log(`   Balance: $${balanceBefore.money.toLocaleString()} → $${balanceAfter.money.toLocaleString()}, Time: ${balanceBefore.timeSpent} → ${balanceAfter.timeSpent}`);
+      debugLog(`💰 Resource Update [${playerId}]: ${changeDescription} (Source: ${changes.source})`);
+      debugLog(`   Balance: $${balanceBefore.money.toLocaleString()} → $${balanceAfter.money.toLocaleString()}, Time: ${balanceBefore.timeSpent} → ${balanceAfter.timeSpent}`);
 
       return true;
 
@@ -485,13 +486,13 @@ export class ResourceService implements IResourceService {
   takeOutLoan(playerId: string, amount: number, interestRate: number): boolean {
     if (amount <= 0) {
       const error = ErrorNotifications.resourceOperationFailed('take', 'loan', `Invalid amount: ${amount}`);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
     if (interestRate < 0) {
       const error = ErrorNotifications.resourceOperationFailed('take', 'loan', `Invalid interest rate: ${interestRate}`);
-      console.warn(error.medium);
+      debugWarn(error.medium);
       return false;
     }
 
@@ -561,9 +562,9 @@ export class ResourceService implements IResourceService {
         return false;
       }
 
-      console.log(`💰 LOAN: Player ${player.name} took loan for $${amount.toLocaleString()} at ${(interestRate * 100).toFixed(1)}% interest`);
-      console.log(`💸 INTEREST FEE: Charged upfront fee of $${interestFee.toLocaleString()}`);
-      console.log(`💵 NET RECEIVED: Player receives $${(amount - interestFee).toLocaleString()}`);
+      debugLog(`💰 LOAN: Player ${player.name} took loan for $${amount.toLocaleString()} at ${(interestRate * 100).toFixed(1)}% interest`);
+      debugLog(`💸 INTEREST FEE: Charged upfront fee of $${interestFee.toLocaleString()}`);
+      debugLog(`💵 NET RECEIVED: Player receives $${(amount - interestFee).toLocaleString()}`);
       return true;
       
     } catch (error) {

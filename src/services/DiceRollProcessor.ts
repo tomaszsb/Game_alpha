@@ -2,6 +2,7 @@
 // Extracted from TurnService - handles dice roll processing with feedback
 
 import { IDataService, IStateService, IGameRulesService, IDiceService, IChoiceService, IMovementService } from '../types/ServiceContracts';
+import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
 import { DiceResultEffect, TurnEffectResult, Player } from '../types/StateTypes';
 import { formatDiceRollFeedback } from '../utils/buttonFormatting';
@@ -117,8 +118,8 @@ export class DiceRollProcessor {
    * Roll dice and process effects with detailed feedback for UI
    */
   public async rollDiceWithFeedback(playerId: string): Promise<TurnEffectResult> {
-    console.log(`🎲 ROLL_DICE_FEEDBACK: ========== START ==========`);
-    console.log(`🎲 ROLL_DICE_FEEDBACK: playerId: ${playerId}`);
+    debugLog(`🎲 ROLL_DICE_FEEDBACK: ========== START ==========`);
+    debugLog(`🎲 ROLL_DICE_FEEDBACK: playerId: ${playerId}`);
 
     const currentPlayer = this.stateService.getPlayer(playerId);
     if (!currentPlayer) {
@@ -129,12 +130,12 @@ export class DiceRollProcessor {
     // Roll dice
     const diceRoll = this.rollDice();
     this.lastRollGroups = undefined;
-    console.log(`🎲 ROLL_DICE_FEEDBACK: Dice roll result: ${diceRoll}`);
+    debugLog(`🎲 ROLL_DICE_FEEDBACK: Dice roll result: ${diceRoll}`);
 
     // Process effects and track changes
     const effects: DiceResultEffect[] = [];
     await this.processTurnEffectsWithTracking(playerId, diceRoll, effects);
-    console.log(`🎲 ROLL_DICE_FEEDBACK: Number of effects: ${effects.length}`);
+    debugLog(`🎲 ROLL_DICE_FEEDBACK: Number of effects: ${effects.length}`);
 
     // Mark dice roll states
     this.stateService.setPlayerHasRolledDice();
@@ -159,7 +160,7 @@ export class DiceRollProcessor {
     const result = this.buildTurnEffectResult(currentPlayer, diceRoll, effects, summary, hasChoices, canReRoll);
     result.rollGroups = this.lastRollGroups;
 
-    console.log(`🎲 ROLL_DICE_FEEDBACK: ========== END ==========`);
+    debugLog(`🎲 ROLL_DICE_FEEDBACK: ========== END ==========`);
     return result;
   }
 
@@ -253,7 +254,7 @@ export class DiceRollProcessor {
     if (!currentPlayer) return;
 
     if (!this.processDiceRollEffectsCallback) {
-      console.warn('DiceRollProcessor: processDiceRollEffectsCallback not set');
+      debugWarn('DiceRollProcessor: processDiceRollEffectsCallback not set');
       return;
     }
 
@@ -284,7 +285,7 @@ export class DiceRollProcessor {
 
       // Skip effects that were skipped by the user
       if (effectResult?.data?.skipped) {
-        console.log(`   ⏭️ Skipping display of skipped effect: ${effect.effectType}`);
+        debugLog(`   ⏭️ Skipping display of skipped effect: ${effect.effectType}`);
         return;
       }
 
@@ -304,7 +305,7 @@ export class DiceRollProcessor {
       } else if (effect.effectType === 'CARD_DISCARD') {
         const isReplaceDiscard = effect.payload.source?.includes(':dice_replace');
         if (isReplaceDiscard) {
-          console.log(`   ⏭️ Skipping display of replace discard - will show in draw effect`);
+          debugLog(`   ⏭️ Skipping display of replace discard - will show in draw effect`);
           return;
         }
 
@@ -405,7 +406,7 @@ export class DiceRollProcessor {
         destination: singleDest
       });
 
-      console.log(`🎲 Single dice destination: ${singleDest} - auto-selecting`);
+      debugLog(`🎲 Single dice destination: ${singleDest} - auto-selecting`);
       this.stateService.setPlayerMoveIntent(playerId, singleDest);
 
       // Show explanation if player is being sent back to a review/exam space
@@ -443,7 +444,7 @@ export class DiceRollProcessor {
 
       this.choiceService.createChoice(playerId, 'MOVEMENT', prompt, options)
         .then(selectedDestination => {
-          console.log(`✅ Player ${currentPlayer.name || playerId} selected destination (dice_outcome): ${selectedDestination}`);
+          debugLog(`✅ Player ${currentPlayer.name || playerId} selected destination (dice_outcome): ${selectedDestination}`);
           this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
 
           const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, selectedDestination);
@@ -464,10 +465,10 @@ export class DiceRollProcessor {
           }
         })
         .catch(() => {
-          console.log(`🔄 Movement choice created for dice_outcome (will be resolved when player selects destination)`);
+          debugLog(`🔄 Movement choice created for dice_outcome (will be resolved when player selects destination)`);
         });
     } else {
-      console.warn(`⚠️ No destinations found for dice roll ${diceRoll} at ${currentPlayer.currentSpace}`);
+      debugWarn(`⚠️ No destinations found for dice roll ${diceRoll} at ${currentPlayer.currentSpace}`);
     }
   }
 }

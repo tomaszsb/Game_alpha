@@ -1,5 +1,6 @@
 import { IStateService, LogLevel, LogPayload, ILoggingService } from '../types/ServiceContracts';
 import { ActionLogEntry } from '../types/StateTypes';
+import { debugLog, debugWarn, debugDebug } from '../utils/debugLog';
 
 export class LoggingService implements ILoggingService {
   private stateService: IStateService;
@@ -103,20 +104,20 @@ export class LoggingService implements ILoggingService {
     // Persist to action history
     this.stateService.logToActionHistory(logEntry);
 
-    // Log to browser console based on level
+    // Log to browser console — errors always shown, others gated by debug mode
     switch (level) {
       case LogLevel.ERROR:
         console.error(`[ERROR] ${message}`, payload);
         break;
       case LogLevel.WARN:
-        console.warn(`[WARN] ${message}`, payload);
+        debugWarn(`[WARN] ${message}`, payload);
         break;
       case LogLevel.DEBUG:
-        console.debug(`[DEBUG] ${message}`, payload);
+        debugDebug(`[DEBUG] ${message}`, payload);
         break;
       case LogLevel.INFO:
       default:
-        console.log(`[INFO] ${message}`, payload);
+        debugLog(`[INFO] ${message}`, payload);
         break;
     }
   }

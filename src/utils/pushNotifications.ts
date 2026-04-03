@@ -5,6 +5,8 @@
 // Works even when the browser tab is in the background
 // Created: February 4, 2026
 
+import { debugLog } from './debugLog';
+
 /**
  * Check if browser supports the Notification API
  */
@@ -28,26 +30,26 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission | 'unsupported'> {
   if (!isNotificationSupported()) {
-    console.log('🔔 Push notifications not supported in this browser');
+    debugLog('🔔 Push notifications not supported in this browser');
     return 'unsupported';
   }
 
   // Already granted
   if (Notification.permission === 'granted') {
-    console.log('🔔 Notification permission already granted');
+    debugLog('🔔 Notification permission already granted');
     return 'granted';
   }
 
   // Already denied (can't re-request)
   if (Notification.permission === 'denied') {
-    console.log('🔔 Notification permission was denied');
+    debugLog('🔔 Notification permission was denied');
     return 'denied';
   }
 
   // Request permission
   try {
     const permission = await Notification.requestPermission();
-    console.log(`🔔 Notification permission: ${permission}`);
+    debugLog(`🔔 Notification permission: ${permission}`);
     return permission;
   } catch (error) {
     console.error('🔔 Error requesting notification permission:', error);
@@ -67,7 +69,7 @@ export function sendTurnNotification(playerName: string, spaceName?: string): vo
 
   // Don't notify if the page is visible and focused
   if (document.visibilityState === 'visible' && document.hasFocus()) {
-    console.log('🔔 Skipping notification - tab is focused');
+    debugLog('🔔 Skipping notification - tab is focused');
     return;
   }
 
@@ -100,7 +102,7 @@ export function sendTurnNotification(playerName: string, spaceName?: string): vo
       notification.close();
     }, 10000);
 
-    console.log('🔔 Turn notification sent');
+    debugLog('🔔 Turn notification sent');
   } catch (error) {
     console.error('🔔 Error sending notification:', error);
   }

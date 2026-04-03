@@ -1,5 +1,7 @@
 // src/utils/PerformanceMonitor.ts
 
+import { debugLog, debugWarn } from './debugLog';
+
 export interface PerformanceMeasurement {
   name: string;
   startTime: number;
@@ -22,7 +24,7 @@ export class PerformanceMonitor {
     };
 
     this.measurements.set(name, measurement);
-    console.log(`⏱️ PERF: Starting ${name}`, metadata || '');
+    debugLog(`⏱️ PERF: Starting ${name}`, metadata || '');
   }
 
   static endMeasurement(name: string): number | null {
@@ -30,7 +32,7 @@ export class PerformanceMonitor {
 
     const measurement = this.measurements.get(name);
     if (!measurement) {
-      console.warn(`⚠️ PERF: No measurement started for "${name}"`);
+      debugWarn(`⚠️ PERF: No measurement started for "${name}"`);
       return null;
     }
 
@@ -40,7 +42,7 @@ export class PerformanceMonitor {
     measurement.endTime = endTime;
     measurement.duration = duration;
 
-    console.log(`✅ PERF: ${name} completed in ${duration.toFixed(2)}ms`);
+    debugLog(`✅ PERF: ${name} completed in ${duration.toFixed(2)}ms`);
     return duration;
   }
 

@@ -16,6 +16,7 @@ import {
   isFeeDeductionEffect
 } from '../types/EffectTypes';
 import { extractPercentage, parseFeeFromDescription } from '../utils/parseUtils';
+import { debugLog, debugWarn } from '../utils/debugLog';
 
 /**
  * FinancialEffectHandler - Handles RESOURCE_CHANGE and FEE_DEDUCTION effects
@@ -79,7 +80,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         // Calculate project scope dynamically from W cards
         const projectScope = this.gameRulesService.calculateProjectScope(payload.playerId);
         actualAmount = -Math.floor((projectScope * payload.percentageOfScope) / 100);
-        console.log(`🔧 FINANCIAL_HANDLER: Calculating design fee: ${payload.percentageOfScope}% of ${projectScope.toLocaleString()} = ${Math.abs(actualAmount).toLocaleString()}`);
+        debugLog(`🔧 FINANCIAL_HANDLER: Calculating design fee: ${payload.percentageOfScope}% of ${projectScope.toLocaleString()} = ${Math.abs(actualAmount).toLocaleString()}`);
 
         // Track as design expenditure if fee category is provided
         if (payload.feeCategory && actualAmount < 0) {
@@ -88,7 +89,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       }
     }
 
-    console.log(`🔧 FINANCIAL_HANDLER: Processing ${payload.resource} change for player ${payload.playerId} by ${actualAmount}`);
+    debugLog(`🔧 FINANCIAL_HANDLER: Processing ${payload.resource} change for player ${payload.playerId} by ${actualAmount}`);
 
     if (payload.resource === 'MONEY') {
       success = this.processMoneyChange(payload.playerId, actualAmount, source, reason, sourceType, payload);
@@ -124,15 +125,15 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
 
     const { payload } = effect;
-    console.log(`💰 FINANCIAL_HANDLER: Processing FEE_DEDUCTION`);
-    console.log(`    Player: ${payload.playerId}`);
-    console.log(`    Fee Type: ${payload.feeType}`);
-    console.log(`    Description: ${payload.feeDescription}`);
+    debugLog(`💰 FINANCIAL_HANDLER: Processing FEE_DEDUCTION`);
+    debugLog(`    Player: ${payload.playerId}`);
+    debugLog(`    Fee Type: ${payload.feeType}`);
+    debugLog(`    Description: ${payload.feeDescription}`);
 
     try {
       const player = this.stateService.getPlayer(payload.playerId);
       if (!player) {
-        console.warn(`Player ${payload.playerId} not found for fee deduction`);
+        debugWarn(`Player ${payload.playerId} not found for fee deduction`);
         return {
           success: false,
           effectType: effect.effectType,
@@ -142,13 +143,13 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
 
       // Calculate fee amount based on fee type
       const totalLoanAmount = (player.loans || []).reduce((sum, loan) => sum + loan.principal, 0);
-      console.log(`    Total loan amount: $${totalLoanAmount}`);
+      debugLog(`    Total loan amount: $${totalLoanAmount}`);
 
       const feeAmount = this.calculateFeeAmount(payload, totalLoanAmount, context);
 
       if (feeAmount === null) {
         // Dice-based fee - requires dice roll context
-        console.log(`    Dice-based fee - requires dice roll context, skipping calculation`);
+        debugLog(`    Dice-based fee - requires dice roll context, skipping calculation`);
         this.loggingService.info(`Fee deduction pending: ${payload.feeDescription} (dice roll required)`, {
           playerId: payload.playerId,
           action: 'fee_pending',
@@ -161,7 +162,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         return this.applyFeeDeduction(payload, player, feeAmount, totalLoanAmount, context);
       } else if (totalLoanAmount === 0 && payload.feeType === 'LOAN_PERCENTAGE') {
         // No loan means no fee to pay
-        console.log(`    ℹ️  No loan amount - fee does not apply`);
+        debugLog(`    ℹ️  No loan amount - fee does not apply`);
         this.loggingService.info(`Fee not applicable: No loan to charge against`, {
           playerId: payload.playerId,
           action: 'fee_skipped',
@@ -169,7 +170,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         });
         return { success: true, effectType: effect.effectType };
       } else {
-        console.warn(`    ⚠️  Could not calculate fee amount from: ${payload.feeDescription}`);
+        debugWarn(`    ⚠️  Could not calculate fee amount from: ${payload.feeDescription}`);
         return { success: true, effectType: effect.effectType };
       }
     } catch (error) {
@@ -272,14 +273,14 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     const designFeeRatio = playerScope > 0 ? (totalDesignFees / playerScope) * 100 : 0;
 
     if (designFeeRatio >= 20) {
-      console.log(`⛔ DESIGN FEE CAP EXCEEDED: ${designFeeRatio.toFixed(1)}% (${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()})`);
+      debugLog(`⛔ DESIGN FEE CAP EXCEEDED: ${designFeeRatio.toFixed(1)}% (${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()})`);
 
       const spaceConfig = this.dataService ? this.dataService.getGameConfigBySpace(updatedPlayer.currentSpace) : null;
       const currentPhase = (spaceConfig && spaceConfig.phase) ? spaceConfig.phase.toUpperCase() : 'UNKNOWN';
 
       if (currentPhase === 'DESIGN') {
         // DESIGN phase: Game Over (loss)
-        console.log(`💀 GAME OVER: Design fees exceeded 20% cap during DESIGN phase`);
+        debugLog(`💀 GAME OVER: Design fees exceeded 20% cap during DESIGN phase`);
         this.stateService.emitAutoAction({
           type: 'life_event',
           playerId: playerId,
@@ -291,7 +292,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         this.stateService.endGame();
       } else {
         // CONSTRUCTION phase or later: Apply time penalty
-        console.log(`⚠️ PENALTY: Design fees exceeded 20% cap during ${currentPhase} phase - applying time penalty`);
+        debugLog(`⚠️ PENALTY: Design fees exceeded 20% cap during ${currentPhase} phase - applying time penalty`);
         const timePenalty = 2;
         this.resourceService.addTime(playerId, timePenalty, 'penalty', 'Design fee cap exceeded - time penalty');
 
@@ -372,7 +373,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
   private checkBankruptcy(playerId: string): void {
     const updatedPlayer = this.stateService.getPlayer(playerId);
     if (updatedPlayer && updatedPlayer.money < 0) {
-      console.log(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
+      debugLog(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
 
       this.stateService.emitAutoAction({
         type: 'life_event',
@@ -448,14 +449,14 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         } else {
           feeAmount = Math.round(totalLoanAmount * 0.03);
         }
-        console.log(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+        debugLog(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
       } else {
         // Check for fixed percentage
         const percentValue = extractPercentage(feeDesc);
         if (percentValue !== null) {
           const percent = percentValue / 100;
           feeAmount = Math.round(totalLoanAmount * percent);
-          console.log(`    ${percentValue}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+          debugLog(`    ${percentValue}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
         }
       }
     } else if (payload.feeType === 'DICE_BASED') {
@@ -475,7 +476,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     const canAfford = this.resourceService.canAfford(payload.playerId, feeAmount);
 
     if (!canAfford) {
-      console.log(`    ❌ Cannot afford fee: $${feeAmount.toLocaleString()} (player has $${player.money.toLocaleString()})`);
+      debugLog(`    ❌ Cannot afford fee: $${feeAmount.toLocaleString()} (player has $${player.money.toLocaleString()})`);
 
       this.loggingService.warn(`Fee payment failed: insufficient funds for $${feeAmount.toLocaleString()}`, {
         playerId: payload.playerId,
@@ -515,7 +516,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     );
 
     if (deductionResult) {
-      console.log(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
+      debugLog(`    ✅ Deducted fee: $${feeAmount.toLocaleString()}`);
 
       this.loggingService.info(`Fee paid: $${feeAmount.toLocaleString()} (${payload.feeDescription})`, {
         playerId: payload.playerId,

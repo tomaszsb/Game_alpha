@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** March 31, 2026
-**Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.39.3
+**Last Updated:** April 3, 2026
+**Status:** Pre-Beta — Bug fixes + polish
+**Current Version:** 2.39.4
 
 ---
 
@@ -19,6 +19,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Console.log cleanup — 203 console.log/warn calls replaced with debug-gated `debugLog`/`debugWarn` across 30 files; suppressed in production, enable via `?debug=true` or `localStorage` (Apr 3, 2026)
+- ✅ Remove TEST cards from production — TEST001-TEST006 test artifacts removed from CARDS_EXPANDED.csv (Apr 3, 2026)
+- ✅ Progress Bar Financial Overview — stacked funding bar (owner/bank/investor) vs scope, spent overlay, funding gap indicator, compact summary in collapsed mode (Apr 3, 2026)
+- ✅ Scope-zero guard — players cannot leave OWNER-SCOPE-INITIATION without W cards (Apr 3, 2026)
 - ✅ WebSocket authentication + schema validation — game token auth on WS/HTTP, state structure validation (Apr 2, 2026)
 - ✅ Fix modal exit animations — modals pass computed `isOpen` to ModalBase instead of early-returning null; 9 modals fixed (Apr 2, 2026)
 - ✅ April 2026 audit fixes — process.stderr crash, admin rate limiting, non-root Docker, NTFY exposure, .gitignore, config URL (Apr 2, 2026)
@@ -30,8 +34,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - ✅ Fix phantom space CON-SAFETY-BRIEF — test artifact in DICE_OUTCOMES.csv replaced with CON-INSPECT (Mar 31, 2026)
 - ✅ Bug report fixes: "Start Game" button, Fee vs Fees editor differentiation, feedback PATCH API, scope bug diagnostic logging (Mar 30, 2026)
 - ✅ Fix Try Again/Negotiate: pay-and-wait model (shouldAdvanceTurn), updateActionCounts in clearTurnActions/discardTempState, regression test (Mar 30, 2026)
-
-*For full history, see CHANGELOG.md*
 
 *For full history, see CHANGELOG.md*
 
@@ -96,75 +98,40 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🎨 **UI Improvements**
 
-### Progress Bar — Financial Overview
-- [ ] Add money breakdown visualization to progress bar area
-  - Show total project scope as full bar (one color)
-  - Overlay with stacked segments: owner money, bank money, investor money
-  - Overlay all with money spent so far
-  - Visual indicator of funding gap / surplus
+### Progress Bar — Financial Overview ✅
+- [x] Add money breakdown visualization to progress bar area (Apr 3, 2026)
+  - Total scope as bar background, stacked owner/bank/investor segments
+  - Spent overlay, funding gap indicator, compact collapsed summary
 
 ---
 
-## 🔒 **April 2026 Code Audit — Remaining Items**
+## 🔒 **April 2026 Code Audit — Completed**
 *Source: External code audit (April 2026) — 437 files reviewed*
 
-### Security (Fix Before Beta)
+### Security & Logic ✅
 - [x] WebSocket authentication — game token generated on creation, validated on WS connect and HTTP state endpoints (Apr 2, 2026)
 - [x] WebSocket state_push schema validation — validates top-level state structure (players, gamePhase, etc.) on both WS and HTTP push (Apr 2, 2026)
 - [x] Consolidate money formatting — FinancesSection, ProjectLedger, CardDisplay, buttonFormatting, ErrorNotifications now use `FormatUtils.formatMoney()` (Apr 2, 2026)
+- [x] MovementExecutor.ts `process.stderr.write()` → `console.error()` crash fix (Apr 2, 2026)
+- [x] Admin rate limiting (5 attempts per 15 min) on `/api/admin/verify` (Apr 2, 2026)
+- [x] Docker hardening (Reverted non-root user due to volume issues; other hardening active) (Apr 2, 2026)
+- [x] Modal exit animations visible (fb1, Apr 2, 2026)
 
-### Polish (Fix Before Beta)
-- [ ] Console.log cleanup — ~301 statements in service layer; add debug mode toggle for production
-- [x] Fix interactive `<div onClick>` → `<button>` in ProjectLedger.tsx for accessibility (FinancesSection already used buttons) (Apr 2, 2026)
-- [x] Replace `any` types in EffectTypes.ts (5), ServiceContracts.ts (6) with proper interfaces — `Record<string, unknown>`, `Player`, `SpaceEffect[]`, `Card`, etc. (Apr 2, 2026)
-
-### Already Fixed (April 2, 2026)
-- [x] MovementExecutor.ts `process.stderr.write()` → `console.error()` (was crashing in browser)
-- [x] Health endpoint no longer exposes NTFY_TOPIC
-- [x] Admin rate limiting (5 attempts per 15 min) on `/api/admin/verify`
-- [x] Dockerfile runs as non-root user
-- [x] `.gitignore` `*.txt` blanket rule → specific exclusions
-- [x] `remoteConfig.ts` URL configurable via `VITE_CONFIG_URL` env var
-- [x] E2E Happy Path test confirmed passing (not skipped)
-
-### Not Bugs (Audit Misread)
-- NegotiationService `acceptOffer`/`declineOffer` — intentional no-ops; negotiation works via Try Again button
-- CardEffectHandler manual card plays — `CardService.playCard()` already calls `applyCardEffects()`; handler skips for manual plays to avoid double-processing
+### Accessibility & Types ✅
+- [x] Fix interactive `<div onClick>` → `<button>` in ProjectLedger.tsx (Apr 2, 2026)
+- [x] Replace `any` types in EffectTypes.ts and ServiceContracts.ts (Apr 2, 2026)
 
 ---
 
-## 🐛 **Bug Reports from Feedback Dashboard** (April 2, 2026)
-*Source: Production feedback reports — 3 new items from 5 reviewed (2 already fixed in v2.36.4)*
-
-- [x] Modal exit animations not visible — Fixed: modals no longer `return null` before ModalBase; instead pass computed `isOpen` prop so AnimatePresence can animate exit (fb1, Apr 2)
-- [ ] Editor UX for per-action narrative unclear — user couldn't find where to edit modal-specific stories. The "+ narrative" expand button below each card action may not be discoverable enough. Consider always-visible textarea or better labelling (fb2, Apr 2)
-- [ ] Player reports not receiving money — "I didn't get money" with no further details. Needs investigation next time it reproduces; no game state available in report (fb3, Mar 29)
-
----
-
-## 🔮 **FUTURE: Nice-to-Have Improvements**
-
-### Mobile & PWA
-- [ ] App icons (192x192, 512x512) for PWA install
-- [ ] Offline support / Service Worker (for poor WiFi venues)
-- [ ] Screen orientation lock
-- [ ] Skeleton loaders for slow networks
-- [ ] Replace emoji icons with icon library (Lucide/Heroicons)
-
-### Testing
-- [ ] Mobile device testing with Playwright emulation
-- [ ] Performance monitoring (TTI, FCP, CLS)
-- [ ] Real device testing (iPhone SE, Galaxy, budget Android)
-- [ ] Network throttling tests (Slow 3G)
-
-### Native App (Long-term)
-- [ ] Evaluate Capacitor for wrapping React app in native shell
+## 🚀 **Deployment Status**
+- **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
+- **Current Version**: v2.39.4
+- **Last Deploy**: April 3, 2026
+- **Status**: Stable
 
 ---
 
-## 📚 **Reference**
+## 📝 **Remaining Backlog**
 
-- **Completed work:** See `CHANGELOG.md`
-- **Project overview:** See `docs/core/PRODUCT_CHARTER.md`
-- **Current status:** See `docs/core/PROJECT_STATUS.md`
-- **Technical debt:** See `docs/technical/TECHNICAL_DEBT.md`
+### High Priority
+- [ ] Editor UX for per-action narrative — make "+ narrative" expander more discoverable

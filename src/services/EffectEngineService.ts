@@ -16,6 +16,7 @@ import {
   IFinancialEffectHandler,
   ICardEffectHandler
 } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { NegotiationService } from './NegotiationService';
 import { 
   Effect, 
@@ -220,7 +221,7 @@ export class EffectEngineService implements IEffectEngineService {
 
       // Warning when approaching batch limit
       if (effects.length >= EffectEngineService.BATCH_WARNING_THRESHOLD && i === EffectEngineService.BATCH_WARNING_THRESHOLD) {
-        console.warn(`⚠️ Effect batch size approaching limit: ${effects.length}/${EffectEngineService.MAX_EFFECTS_PER_BATCH}`);
+        debugWarn(`⚠️ Effect batch size approaching limit: ${effects.length}/${EffectEngineService.MAX_EFFECTS_PER_BATCH}`);
       }
 
       const effect = effects[i];
@@ -280,7 +281,7 @@ export class EffectEngineService implements IEffectEngineService {
     };
 
     if (errors.length > 0) {
-      console.warn(`   Errors encountered:`, errors);
+      debugWarn(`   Errors encountered:`, errors);
     }
 
     return batchResult;
@@ -510,7 +511,7 @@ export class EffectEngineService implements IEffectEngineService {
                   success = false;
                 }
               } else {
-                console.warn(`Unsupported turn control action "${payload.action}" encountered and ignored.`);
+                debugWarn(`Unsupported turn control action "${payload.action}" encountered and ignored.`);
                 success = true; // The effect is "successfully" ignored, not a failure.
               }
               
@@ -774,7 +775,7 @@ export class EffectEngineService implements IEffectEngineService {
               for (const targetPlayerId of payload.targetPlayerIds) {
                 const targetPlayer = this.stateService.getPlayer(targetPlayerId);
                 if (!targetPlayer) {
-                  console.warn(`Target player ${targetPlayerId} not found, skipping`);
+                  debugWarn(`Target player ${targetPlayerId} not found, skipping`);
                   continue;
                 }
 
@@ -962,7 +963,7 @@ export class EffectEngineService implements IEffectEngineService {
    */
   validateEffects(effects: Effect[], context: EffectContext): boolean {
     if (!effects || effects.length === 0) {
-      console.warn('EFFECT_ENGINE: No effects to validate');
+      debugWarn('EFFECT_ENGINE: No effects to validate');
       return true; // Empty array is technically valid
     }
 

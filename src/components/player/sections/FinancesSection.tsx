@@ -6,6 +6,7 @@ import { CardDisplay } from '../../common/CardDisplay';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import './FinancesSection.css';
+import { debugLog } from '../../../utils/debugLog';
 
 /** Format money consistently using FormatUtils (full dollars, no abbreviation) */
 const fmt = (n: number) => FormatUtils.formatMoney(n, { compact: false });
@@ -551,7 +552,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
       hasAction={hasMoneyActions}
       isExpanded={isExpanded}
       onToggle={() => {
-        console.log('FINANCES toggle clicked, isExpanded:', isExpanded, '-> will be:', !isExpanded);
+        debugLog('FINANCES toggle clicked, isExpanded:', isExpanded, '-> will be:', !isExpanded);
         setIsExpanded(!isExpanded);
       }}
       ariaControls="finances-content"

@@ -4,6 +4,7 @@
 
 import { GameState } from '../types/StateTypes';
 import { getCurrentGameToken } from '../utils/networkDetection';
+import { debugLog, debugWarn } from '../utils/debugLog';
 
 /**
  * Message types from server
@@ -114,7 +115,7 @@ export class WebSocketSyncService {
 
     // Don't reconnect if already connected to same game
     if (this.isConnected() && this.ws) {
-      console.log('WebSocket already connected');
+      debugLog('WebSocket already connected');
       return;
     }
 
@@ -150,11 +151,11 @@ export class WebSocketSyncService {
         wsUrl += `&playerId=${playerId}`;
       }
 
-      console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
+      debugLog(`🔌 Connecting to WebSocket: ${wsUrl}`);
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('🔌 WebSocket connected');
+        debugLog('🔌 WebSocket connected');
         this.setConnectionState('connected');
         this.reconnectAttempts = 0;
 
@@ -178,7 +179,7 @@ export class WebSocketSyncService {
       };
 
       this.ws.onclose = (event) => {
-        console.log(`🔌 WebSocket closed: code=${event.code}, reason=${event.reason}`);
+        debugLog(`🔌 WebSocket closed: code=${event.code}, reason=${event.reason}`);
         this.stopHeartbeat();
 
         // Don't reconnect if intentionally closed (code 1000)
@@ -234,7 +235,7 @@ export class WebSocketSyncService {
    */
   pushState(state: GameState, version: number): void {
     if (!this.isConnected() || !this.gameId) {
-      console.warn('Cannot push state: WebSocket not connected');
+      debugWarn('Cannot push state: WebSocket not connected');
       return;
     }
 
@@ -305,7 +306,7 @@ export class WebSocketSyncService {
             this.stateUpdateCallbacks.forEach(cb => {
               cb(message.payload!.state!, newVersion);
             });
-            console.log(`📥 WebSocket state update (v${newVersion})`);
+            debugLog(`📥 WebSocket state update (v${newVersion})`);
           }
         }
         break;
@@ -313,7 +314,7 @@ export class WebSocketSyncService {
       case 'version_update':
         if (message.payload?.stateVersion !== undefined) {
           this.lastKnownVersion = message.payload.stateVersion;
-          console.log(`📥 WebSocket version update (v${this.lastKnownVersion})`);
+          debugLog(`📥 WebSocket version update (v${this.lastKnownVersion})`);
         }
         break;
 
@@ -324,12 +325,12 @@ export class WebSocketSyncService {
       case 'error':
         console.error('WebSocket server error:', message.payload?.message);
         if (message.payload?.code === 'VERSION_CONFLICT') {
-          console.warn('Version conflict detected - server will send updated state');
+          debugWarn('Version conflict detected - server will send updated state');
         }
         break;
 
       default:
-        console.warn('Unknown WebSocket message type:', message.type);
+        debugWarn('Unknown WebSocket message type:', message.type);
     }
   }
 
@@ -348,7 +349,7 @@ export class WebSocketSyncService {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('Max reconnection attempts reached, giving up');
+      debugLog('Max reconnection attempts reached, giving up');
       this.setConnectionState('disconnected');
       return;
     }
@@ -359,7 +360,7 @@ export class WebSocketSyncService {
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 16000);
     this.reconnectAttempts++;
 
-    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    debugLog(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(() => {
       if (this.serverUrl && this.gameId) {
@@ -377,7 +378,7 @@ export class WebSocketSyncService {
         // Check if we've received a pong recently (within 2 heartbeat intervals)
         const timeSinceLastPong = Date.now() - this.lastPongTime;
         if (timeSinceLastPong > this.heartbeatInterval * 2) {
-          console.warn('No pong received, connection may be stale');
+          debugWarn('No pong received, connection may be stale');
           // Force reconnect
           this.ws?.close(4000, 'Heartbeat timeout');
           return;

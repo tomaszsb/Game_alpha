@@ -9,6 +9,7 @@ import {
   StateTransitionResult,
   CreateTempOptions
 } from '../types/StateTypes';
+import { debugLog } from '../utils/debugLog';
 
 /**
  * TurnStateManager handles the REAL/TEMP state model that enables Try Again functionality.
@@ -105,7 +106,7 @@ export class TurnStateManager {
   ): StateTransitionResult {
     const { playerId, spaceName, visitType, isTryAgain = false, tryAgainPenalty = 0 } = options;
 
-    console.log(`🔄 Creating TEMP state from REAL for player ${playerId} at ${spaceName} (Try Again: ${isTryAgain})`);
+    debugLog(`🔄 Creating TEMP state from REAL for player ${playerId} at ${spaceName} (Try Again: ${isTryAgain})`);
 
     // If Try Again, first apply penalty to REAL state
     if (isTryAgain && tryAgainPenalty > 0) {
@@ -124,7 +125,7 @@ export class TurnStateManager {
     // Always create REAL state if it doesn't exist yet — this captures the pre-effect
     // snapshot so Try Again can restore to it later
     if (!realState) {
-      console.log(`📸 Capturing initial REAL state for player ${playerId} (${Object.keys(sourceState).length} fields)`);
+      debugLog(`📸 Capturing initial REAL state for player ${playerId} (${Object.keys(sourceState).length} fields)`);
       this.turnStateModel = {
         ...this.turnStateModel,
         realStates: {
@@ -172,7 +173,7 @@ export class TurnStateManager {
         : this.turnStateModel.tryAgainCounts
     };
 
-    console.log(`✅ TEMP state created for player ${playerId} (Try Again count: ${this.turnStateModel.tryAgainCounts[playerId] || 0})`);
+    debugLog(`✅ TEMP state created for player ${playerId} (Try Again count: ${this.turnStateModel.tryAgainCounts[playerId] || 0})`);
 
     return {
       success: true,
@@ -188,7 +189,7 @@ export class TurnStateManager {
    * @returns The committed state for updating the main player state
    */
   public commitTempToReal(playerId: string): StateTransitionResult & { committedState?: MutablePlayerState } {
-    console.log(`💾 Committing TEMP state to REAL for player ${playerId}`);
+    debugLog(`💾 Committing TEMP state to REAL for player ${playerId}`);
 
     const tempState = this.turnStateModel.tempStates[playerId];
     if (!tempState) {
@@ -222,7 +223,7 @@ export class TurnStateManager {
       }
     };
 
-    console.log(`✅ TEMP state committed to REAL for player ${playerId}`);
+    debugLog(`✅ TEMP state committed to REAL for player ${playerId}`);
 
     return {
       success: true,
@@ -236,11 +237,11 @@ export class TurnStateManager {
    * After calling this, createTempStateFromReal should be called to create a fresh TEMP.
    */
   public discardTempState(playerId: string): StateTransitionResult {
-    console.log(`🗑️ Discarding TEMP state for player ${playerId}`);
+    debugLog(`🗑️ Discarding TEMP state for player ${playerId}`);
 
     const tempState = this.turnStateModel.tempStates[playerId];
     if (!tempState) {
-      console.log(`ℹ️ No TEMP state to discard for player ${playerId}`);
+      debugLog(`ℹ️ No TEMP state to discard for player ${playerId}`);
       return { success: true }; // Not an error - just nothing to discard
     }
 
@@ -253,7 +254,7 @@ export class TurnStateManager {
       }
     };
 
-    console.log(`✅ TEMP state discarded for player ${playerId}`);
+    debugLog(`✅ TEMP state discarded for player ${playerId}`);
     return { success: true };
   }
 
@@ -267,7 +268,7 @@ export class TurnStateManager {
     changes: Partial<MutablePlayerState>,
     globalTurnCount: number
   ): StateTransitionResult {
-    console.log(`📝 Applying changes to REAL state for player ${playerId}:`, changes);
+    debugLog(`📝 Applying changes to REAL state for player ${playerId}:`, changes);
 
     // Get existing REAL state or create from current player
     const existingReal = this.turnStateModel.realStates[playerId];
@@ -320,7 +321,7 @@ export class TurnStateManager {
       }
     };
 
-    console.log(`✅ Changes applied to REAL state for player ${playerId}`);
+    debugLog(`✅ Changes applied to REAL state for player ${playerId}`);
     return { success: true, newRealState };
   }
 
@@ -370,7 +371,7 @@ export class TurnStateManager {
 
     if (!tempState) {
       // No TEMP state - caller should update main player state directly
-      console.log(`ℹ️ No TEMP state for player ${playerId}, update main state instead`);
+      debugLog(`ℹ️ No TEMP state for player ${playerId}, update main state instead`);
       return { success: true, updatedState: undefined };
     }
 

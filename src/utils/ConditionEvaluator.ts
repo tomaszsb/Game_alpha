@@ -1,6 +1,7 @@
 import { Player } from '../types/StateTypes';
 import { IGameRulesService } from '../types/ServiceContracts';
 import { SpaceEffect } from '../types/DataTypes';
+import { debugWarn } from './debugLog';
 
 /**
  * ConditionEvaluator - Evaluates effect conditions against player state
@@ -71,7 +72,7 @@ export class ConditionEvaluator {
           return this.gameRulesService.evaluateCondition(player.id, condition, diceRoll);
         }
         // Fallback if no GameRulesService
-        console.warn(`GameRulesService not available for scope condition: ${condition}`);
+        debugWarn(`GameRulesService not available for scope condition: ${condition}`);
         return true;
       }
 
@@ -110,7 +111,7 @@ export class ConditionEvaluator {
       }
 
       // Fallback for unknown conditions
-      console.warn(`Unknown effect condition: "${condition}" - defaulting to true`);
+      debugWarn(`Unknown effect condition: "${condition}" - defaulting to true`);
       return true;
 
     } catch (error) {

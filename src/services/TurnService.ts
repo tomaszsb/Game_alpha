@@ -1,4 +1,5 @@
 import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult, INotificationService } from '../types/ServiceContracts';
+import { debugLog, debugWarn } from '../utils/debugLog';
 import { NegotiationService } from './NegotiationService';
 import { DiceService } from './DiceService';
 import { SpaceEffectService } from './SpaceEffectService';
@@ -205,7 +206,7 @@ export class TurnService implements ITurnService {
   private generateCardIds(cardType: string, count: number): string[] {
     const cardsOfType = this.dataService.getCardsByType(cardType as any);
     if (cardsOfType.length === 0) {
-      console.warn(`No cards of type ${cardType} found in CSV data`);
+      debugWarn(`No cards of type ${cardType} found in CSV data`);
       return [];
     }
 
@@ -240,7 +241,7 @@ export class TurnService implements ITurnService {
       const gameState = this.stateService.getGameState();
       // State validation check
       if (gameState.hasPlayerMovedThisTurn) {
-        console.warn(`🎮 TurnService.takeTurn - Player ${playerId} has already moved, clearing flag and continuing (AI turn recovery)`);
+        debugWarn(`🎮 TurnService.takeTurn - Player ${playerId} has already moved, clearing flag and continuing (AI turn recovery)`);
         this.stateService.clearPlayerHasMoved();
       }
 
@@ -383,7 +384,7 @@ export class TurnService implements ITurnService {
 
       // DEBUG: Log end turn attempt at OWNER-SCOPE-INITIATION
       if (currentPlayer.currentSpace === 'OWNER-SCOPE-INITIATION') {
-        console.log(`🔍 END TURN DEBUG [${currentPlayer.name}@${currentPlayer.currentSpace}]: force=${force}, required=${gameState.requiredActions}, completed=${gameState.completedActionCount}, hand=${currentPlayer.hand.length} cards, W cards=${currentPlayer.hand.filter(c => c.startsWith('W')).length}, diceRolled=${gameState.hasPlayerRolledDice}`);
+        debugLog(`🔍 END TURN DEBUG [${currentPlayer.name}@${currentPlayer.currentSpace}]: force=${force}, required=${gameState.requiredActions}, completed=${gameState.completedActionCount}, hand=${currentPlayer.hand.length} cards, W cards=${currentPlayer.hand.filter(c => c.startsWith('W')).length}, diceRolled=${gameState.hasPlayerRolledDice}`);
       }
 
       // Validation: Check if all required actions are completed (skip if force = true for Try Again)
@@ -391,6 +392,13 @@ export class TurnService implements ITurnService {
         throw new Error(`Cannot end turn: Player has not completed all required actions. Required: ${gameState.requiredActions}, Completed: ${gameState.completedActionCount}`);
       }
 
+      // Guard: Cannot leave OWNER-SCOPE-INITIATION with zero scope (no W cards)
+      if (currentPlayer.currentSpace === 'OWNER-SCOPE-INITIATION' && !skipAutoMove) {
+        const wCardCount = currentPlayer.hand.filter(c => c.startsWith('W')).length;
+        if (wCardCount === 0) {
+          throw new Error('You must draw Work cards before leaving this space. Your project needs a scope!');
+        }
+      }
 
       // Resolve any pending movement choice if player has set their moveIntent
       // This handles the case where the UI set moveIntent without resolving the choice
@@ -424,7 +432,7 @@ export class TurnService implements ITurnService {
       // This finalizes all turn effects into the committed state
       const commitResult = this.stateService.commitTempToReal(gameState.currentPlayerId);
       if (!commitResult.success) {
-        console.warn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
+        debugWarn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
       } else {
       }
 
@@ -700,7 +708,7 @@ export class TurnService implements ITurnService {
 
       // DEBUG: Log turn start state for scope bug diagnosis
       if (player.currentSpace === 'OWNER-SCOPE-INITIATION' || player.currentSpace === 'OWNER-FUND-INITIATION') {
-        console.log(`🔍 START TURN DEBUG [${player.name}@${player.currentSpace}]: hand=[${player.hand.join(', ')}], W cards=${player.hand.filter(c => c.startsWith('W')).length}, money=${player.money}, projectScope=${player.projectScope}`);
+        debugLog(`🔍 START TURN DEBUG [${player.name}@${player.currentSpace}]: hand=[${player.hand.join(', ')}], W cards=${player.hand.filter(c => c.startsWith('W')).length}, money=${player.money}, projectScope=${player.projectScope}`);
       }
 
       // 1. Start new exploration session for transactional logging
@@ -715,7 +723,7 @@ export class TurnService implements ITurnService {
       };
       const tempResult = this.stateService.createTempStateFromReal(tempOptions);
       if (!tempResult.success) {
-        console.warn(`⚠️ Failed to create TEMP state: ${tempResult.error}`);
+        debugWarn(`⚠️ Failed to create TEMP state: ${tempResult.error}`);
       }
 
       // 2. Lock UI to prevent player actions during arrival processing
@@ -1033,7 +1041,7 @@ export class TurnService implements ITurnService {
         return this.applySpaceTimeEffect(playerId, effect);
       
       default:
-        console.warn(`Unknown space effect type: ${effect.effect_type}`);
+        debugWarn(`Unknown space effect type: ${effect.effect_type}`);
         return currentState;
     }
   }
@@ -1246,7 +1254,7 @@ export class TurnService implements ITurnService {
       // Handle turn effects (like "end_turn") - these are special and don't need processing here
       // Turn effects are handled by the UI component calling onEndTurn
     } else {
-      console.warn(`⚠️ Unknown manual effect type: ${baseType}`);
+      debugWarn(`⚠️ Unknown manual effect type: ${baseType}`);
     }
 
     // Mark action as complete for non-card effects (money, time)
@@ -1734,7 +1742,7 @@ export class TurnService implements ITurnService {
   private evaluateEffectCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
-      console.warn(`Player ${playerId} not found for condition evaluation`);
+      debugWarn(`Player ${playerId} not found for condition evaluation`);
       return false;
     }
     return this.conditionEvaluator.evaluate(player, condition, diceRoll);
@@ -1832,10 +1840,10 @@ export class TurnService implements ITurnService {
         const result = await this.effectEngineService.processEffects(leavingEffects, effectContext);
         if (result.success) {
         } else {
-          console.warn(`⚠️ Some time effects failed for leaving ${spaceName}:`, result.errors);
+          debugWarn(`⚠️ Some time effects failed for leaving ${spaceName}:`, result.errors);
         }
       } else {
-        console.warn(`⚠️ EffectEngineService not available - skipping time effects for leaving ${spaceName}`);
+        debugWarn(`⚠️ EffectEngineService not available - skipping time effects for leaving ${spaceName}`);
       }
     } catch (error) {
       console.error(`❌ Error processing leaving space time effects for ${spaceName}:`, error);

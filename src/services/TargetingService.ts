@@ -1,6 +1,7 @@
 // src/services/TargetingService.ts
 
 import { IStateService, IChoiceService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { Player } from '../types/StateTypes';
 import { Choice } from '../types/CommonTypes';
 
@@ -61,7 +62,7 @@ export class TargetingService implements ITargetingService {
         return await this.resolveChoosePlayer(sourcePlayerId);
 
       default:
-        console.warn(`🎯 Unknown target rule: "${targetRule}", defaulting to Self`);
+        debugWarn(`🎯 Unknown target rule: "${targetRule}", defaulting to Self`);
         return [sourcePlayerId];
     }
   }
@@ -113,7 +114,7 @@ export class TargetingService implements ITargetingService {
       const selectedOpponent = opponents.find(p => p.id === result);
       return [result];
     } else {
-      console.warn(`   🎯 Choose Opponent selection failed or cancelled`);
+      debugWarn(`   🎯 Choose Opponent selection failed or cancelled`);
       return [];
     }
   }
@@ -150,7 +151,7 @@ export class TargetingService implements ITargetingService {
       const selectedPlayer = allPlayers.find(p => p.id === result);
       return [result];
     } else {
-      console.warn(`   🎯 Choose Player selection failed or cancelled`);
+      debugWarn(`   🎯 Choose Player selection failed or cancelled`);
       return [];
     }
   }

@@ -1,6 +1,7 @@
 // src/services/NegotiationService.ts
 
 import { IStateService, IEffectEngineService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { NegotiationResult, NegotiationState } from '../types/StateTypes';
 
 /**
@@ -46,7 +47,7 @@ export class NegotiationService {
       
       // Check if there's already an active negotiation
       if (gameState.activeNegotiation) {
-        console.warn(`   Active negotiation already exists: ${gameState.activeNegotiation.negotiationId}`);
+        debugWarn(`   Active negotiation already exists: ${gameState.activeNegotiation.negotiationId}`);
         return {
           success: false,
           message: 'Another negotiation is already in progress',

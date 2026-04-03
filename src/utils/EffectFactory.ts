@@ -4,6 +4,7 @@ import { Card, CardType, SpaceEffect, DiceEffect, GameConfig } from '../types/Da
 import { Effect } from '../types/EffectTypes';
 import { ConditionEvaluator } from './ConditionEvaluator';
 import { extractNumeric, extractPositiveNumeric, extractPercentage, parseCardTypeFromText, parseCardActionFromText, parseCardDrawFormat, determineFeeType } from './parseUtils';
+import { debugWarn } from './debugLog';
 
 /**
  * Effect Factory Utility
@@ -400,7 +401,7 @@ export class EffectFactory {
         break;
         
       default:
-        console.warn(`   Unknown space action '${action}' at ${spaceName} - no effects generated`);
+        debugWarn(`   Unknown space action '${action}' at ${spaceName} - no effects generated`);
         break;
     }
     
@@ -557,7 +558,7 @@ export class EffectFactory {
         break;
 
       default:
-        console.warn(`Unknown space effect type: ${spaceEffect.effect_type}`);
+        debugWarn(`Unknown space effect type: ${spaceEffect.effect_type}`);
         break;
     }
 
@@ -676,7 +677,7 @@ export class EffectFactory {
           }
         }
       } else {
-        console.warn(`   ⚠️ Could not parse card count from: "${rollEffect}"`);
+        debugWarn(`   ⚠️ Could not parse card count from: "${rollEffect}"`);
       }
       return effects;
     }
@@ -711,10 +712,10 @@ export class EffectFactory {
               });
             }
           } else {
-            console.warn(`   ⚠️ Could not parse dice effect count from: "${rollEffect}"`);
+            debugWarn(`   ⚠️ Could not parse dice effect count from: "${rollEffect}"`);
           }
         } else {
-          console.warn(`   ⚠️ Dice effect missing card_type:`, diceEffect);
+          debugWarn(`   ⚠️ Dice effect missing card_type:`, diceEffect);
         }
         break;
 
@@ -772,7 +773,7 @@ export class EffectFactory {
         break;
 
       default:
-        console.warn(`Unknown dice effect type: ${diceEffect.effect_type}`);
+        debugWarn(`Unknown dice effect type: ${diceEffect.effect_type}`);
         break;
     }
 
@@ -837,7 +838,7 @@ export class EffectFactory {
     }
     
     if (!cardType) {
-      console.warn(`Could not determine card type from action: ${effectAction}`);
+      debugWarn(`Could not determine card type from action: ${effectAction}`);
       return null;
     }
     
@@ -854,7 +855,7 @@ export class EffectFactory {
     // Handle percentage effects (e.g., "10% of current")
     if (extractPercentage(moneyEffect) !== null) {
       // NOTE: Percentage-based money effects not supported in current card set
-      console.warn(`EFFECT_FACTORY: Percentage effects not implemented: ${moneyEffect}`);
+      debugWarn(`EFFECT_FACTORY: Percentage effects not implemented: ${moneyEffect}`);
       return 0;
     }
 
@@ -1090,7 +1091,7 @@ export class EffectFactory {
     }
 
     if (ranges.length === 0) {
-      console.warn(`   Could not parse conditional ranges from: ${description}`);
+      debugWarn(`   Could not parse conditional ranges from: ${description}`);
       return null;
     }
 

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.4] - 2026-04-03
+
+### Console.log cleanup + TEST card removal (April 3, 2026)
+- **Console.log debug gating** — Created `src/utils/debugLog.ts` with `debugLog()`, `debugWarn()`, `debugDebug()` functions gated behind a debug flag. Enable via URL param `?debug=true` or `localStorage.setItem('debug', 'true')`. In production, all log/warn/debug output is suppressed; `console.error` is never suppressed. Replaced 203 raw `console.log`/`console.warn` calls across 30 files (21 services, 7 components, 2 utils). LoggingService still writes to action history regardless of debug mode — only console output is gated.
+- **Remove TEST cards from production** — Removed 6 test artifact cards (TEST001-TEST006) from `CARDS_EXPANDED.csv`. These were test cards with incomplete mechanics (e.g., "Efficiency Accelerator" with unsupported `Apply Efficiency` action) that appeared in the production card deck. Reported by user via feedback dashboard.
+- **Files changed** (32): debugLog.ts (new), LoggingService.ts, 21 service files, 7 component files, 2 util files, CARDS_EXPANDED.csv
+
+### Progress Bar Financial Overview (April 3, 2026)
+- **Financial overview bar per player** — Added stacked funding visualization in ProjectProgress player cards. Shows total scope as bar background with owner (green), bank (blue), and investor (orange) segments. Spent money rendered as diagonal stripe overlay. Funding gap displayed with red "Gap $X" or green "Fully funded" label. Legend below bar.
+- **Collapsed bar summary** — Current player's financial summary shown in collapsed progress bar: `💰 $1.5M/$2M (-$300K) Gap $500K`.
+- **Files changed** (1): ProjectProgress.tsx
+
+### Scope-zero guard (April 3, 2026)
+- **Fix: Cannot leave OWNER-SCOPE-INITIATION with zero scope** — Added guard in `endTurn()` that checks player has at least one W card before allowing departure from OWNER-SCOPE-INITIATION. Throws descriptive error: "You must draw Work cards before leaving this space." This prevents the bug where players reach OWNER-FUND-INITIATION with $0 scope, causing seed money to be $0.
+- **Files changed** (1): TurnService.ts
+
+### Feedback dashboard findings (April 3, 2026)
+- **fb-Apr3-1**: Progress bar financial overview → implemented above
+- **fb-Apr3-2**: TEST cards in production → fixed (removed TEST001-TEST006)
+- **fb-Apr3-3**: "Didn't receive money" → root cause fixed (scope-zero guard above)
+
+---
+
 ## [2.39.3] - 2026-04-02
 
 ### WebSocket auth, schema validation, money formatting, modal animations (April 2, 2026)
@@ -32,7 +55,7 @@ All notable changes to this project will be documented in this file.
 - **CRITICAL fix: `process.stderr.write()` in MovementExecutor.ts** — Node.js API used in browser code; replaced with `console.error()`. Was crashing every player move.
 - **Security: Admin rate limiting** — Added in-memory rate limiter (5 attempts per 15 min) on `/api/admin/verify` endpoint. Returns 429 with retry-after on excess.
 - **Security: NTFY_TOPIC removed from /health** — Public health endpoint no longer exposes the notification channel name.
-- **Security: Non-root Docker user** — Dockerfile now creates `appuser:appgroup` (uid/gid 1000) and runs the server process as that user.
+- **Security: Non-root Docker user (REVERTED)** — Dockerfile update initially implemented but **reverted** (commit `e13895c`) due to host volume permission conflicts (`/server/data` owned by root). Container remains hardened via `--read-only`, `--cap-drop ALL`, and `--security-opt no-new-privileges`. Non-root user deferred to future `deploy.sh` infrastructure update.
 - **Fix: `.gitignore` blanket `*.txt` rule** — Replaced with specific exclusions (`console_log_audit.txt`, `npm-debug.txt`) so documentation .txt files can be committed.
 - **Fix: Hardcoded config URL** — `remoteConfig.ts` now reads `VITE_CONFIG_URL` env var with fallback to the current dashboard URL.
 - **Editor fix: Duplicate empty dropdown options** — SelectField for shake_on/tts_field filtered out empty string from options array (was showing both `--` and blank option).

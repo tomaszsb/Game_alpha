@@ -1,6 +1,7 @@
 // src/services/MovementService.ts
 
 import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType } from '../types/DataTypes';
 
@@ -94,13 +95,13 @@ export class MovementService implements IMovementService {
 
     // Validate player state
     if (!player.currentSpace || player.currentSpace.trim() === '') {
-      console.warn(`Player ${playerId} has invalid currentSpace: "${player.currentSpace}"`);
+      debugWarn(`Player ${playerId} has invalid currentSpace: "${player.currentSpace}"`);
       return [];
     }
 
     const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
     if (!movement) {
-      console.warn(`No movement data found for space ${player.currentSpace} with visit type ${player.visitType}`);
+      debugWarn(`No movement data found for space ${player.currentSpace} with visit type ${player.visitType}`);
       return [];
     }
 
@@ -186,7 +187,7 @@ export class MovementService implements IMovementService {
 
     // Prevent moving to the same space (edge case)
     if (player.currentSpace === destinationSpace) {
-      console.warn(`Player ${playerId} attempting to move to current space ${destinationSpace}`);
+      debugWarn(`Player ${playerId} attempting to move to current space ${destinationSpace}`);
       // Allow this but log it - some game mechanics might require it
     }
 
@@ -425,13 +426,13 @@ export class MovementService implements IMovementService {
   getDiceDestination(spaceName: string, visitType: VisitType, diceRoll: number): string | null {
     // Validate dice roll range (single die: 1-6)
     if (diceRoll < 1 || diceRoll > 6) {
-      console.warn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
+      debugWarn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
       return null;
     }
 
     const diceOutcome = this.dataService.getDiceOutcome(spaceName, visitType);
     if (!diceOutcome) {
-      console.warn(`No dice outcome data for ${spaceName} (${visitType})`);
+      debugWarn(`No dice outcome data for ${spaceName} (${visitType})`);
       return null;
     }
 
@@ -467,13 +468,13 @@ export class MovementService implements IMovementService {
   getDiceDestinationChoices(spaceName: string, visitType: VisitType, diceRoll: number, playerId?: string): string[] {
     // Validate dice roll range (single die: 1-6)
     if (diceRoll < 1 || diceRoll > 6) {
-      console.warn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
+      debugWarn(`Invalid dice roll: ${diceRoll}. Must be 1-6.`);
       return [];
     }
 
     const diceOutcome = this.dataService.getDiceOutcome(spaceName, visitType);
     if (!diceOutcome) {
-      console.warn(`No dice outcome data for ${spaceName} (${visitType})`);
+      debugWarn(`No dice outcome data for ${spaceName} (${visitType})`);
       return [];
     }
 
@@ -766,7 +767,7 @@ export class MovementService implements IMovementService {
 
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
-      console.warn(`Player ${playerId} not found for condition evaluation`);
+      debugWarn(`Player ${playerId} not found for condition evaluation`);
       return false;
     }
 
@@ -837,7 +838,7 @@ export class MovementService implements IMovementService {
         }
       }
 
-      console.warn(`🧠 Unknown movement condition: ${condition}`);
+      debugWarn(`🧠 Unknown movement condition: ${condition}`);
       return false;
 
     } catch (error) {
@@ -1020,7 +1021,7 @@ export class MovementService implements IMovementService {
       return { choiceCreated: false, reason: `Only ${validMoves.length} valid move(s)` };
 
     } catch (error) {
-      console.warn(`${logPrefix} Error creating movement choice:`, error);
+      debugWarn(`${logPrefix} Error creating movement choice:`, error);
       return { choiceCreated: false, reason: `Error: ${error}` };
     }
   }

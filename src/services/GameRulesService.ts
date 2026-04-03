@@ -1,6 +1,7 @@
 // src/services/GameRulesService.ts
 
 import { IGameRulesService, IDataService, IStateService } from '../types/ServiceContracts';
+import { debugWarn } from '../utils/debugLog';
 import { CardType } from '../types/DataTypes';
 
 /**
@@ -533,7 +534,7 @@ export class GameRulesService implements IGameRulesService {
           const cardCost = cardData.cost || 0;
           totalScope += cardCost;
         } else {
-          console.warn(`Card data not found for base card ID: ${baseCardId} (from ${cardId})`);
+          debugWarn(`Card data not found for base card ID: ${baseCardId} (from ${cardId})`);
         }
       }
 
@@ -750,7 +751,7 @@ export class GameRulesService implements IGameRulesService {
 
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
-      console.warn(`Player ${playerId} not found for condition evaluation`);
+      debugWarn(`Player ${playerId} not found for condition evaluation`);
       return false;
     }
 
@@ -797,7 +798,7 @@ export class GameRulesService implements IGameRulesService {
       }
 
       // Unknown condition - default to false
-      console.warn(`Unknown condition: "${condition}", defaulting to false`);
+      debugWarn(`Unknown condition: "${condition}", defaulting to false`);
       return false;
     } catch (error) {
       console.error(`Error evaluating condition "${condition}":`, error);

@@ -1,8 +1,8 @@
 # Unravel Codes: The Game
 
-**Status:** Alpha Testing (January 2026)
-**Version:** 2.12
-**Test Coverage:** ~1,027 tests passing (100% success rate when run in batches)
+**Status:** Alpha Testing (April 2026)
+**Version:** 2.39.3
+**Test Coverage:** ~1,014 tests passing (100% success rate)
 **Public URL:** `https://game.unravelcodes.com`
 
 ## Overview
@@ -139,116 +139,49 @@ game_alpha/
 ## Key Features
 
 ### Gameplay Features
-- **Dynamic Movement System:** Players navigate through construction phases with fixed paths, dice-based movement, and conditional choices
-- **Resource Management:** Track money (from bank loans, investments, owner funding) and time (project duration)
-- **Card System:** Five card types (W-Work, B-Bank, E-Expeditor, L-Life Events, I-Investment) with 404 unique cards
-- **Multi-Player Effects:** Cards that affect other players, requiring negotiation and strategic interactions
-- **Try Again Mechanic:** Snapshot-based undo system for exploring different choices
+- **Dynamic Movement System:** Players navigate through construction phases with fixed paths, dice-based movement, and conditional choices.
+- **Resource Management:** Track money (from bank loans, investments, owner funding) and time (project duration).
+- **Card System:** Five card types (W-Work, B-Bank, E-Expeditor, L-Life Events, I-Investment) with 404 unique cards.
+- **NPC Character Portraits:** 9 distinct NPC roles with randomized appearances and first-person narratives.
+- **Multi-Player Effects:** Cards that affect other players, requiring negotiation and strategic interactions.
+- **Try Again Mechanic:** Snapshot-based undo system for exploring different choices.
 
 ### Technical Features
-- **Service-Oriented Architecture:** Clean separation of concerns with dependency injection
-- **Immutable State Management:** Predictable state updates with snapshot support
-- **Transactional Logging:** 100% accurate game log with exploration session tracking
-- **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play
-- **Comprehensive Testing:** ~1,027 tests covering services, components, and E2E scenarios
-- **TypeScript Strict Mode:** 100% type-safe codebase with strict mode compliance
+- **Security-First Architecture:** WebSocket authentication, state schema validation, and admin rate limiting.
+- **Service-Oriented Architecture:** Clean separation of concerns with dependency injection and 26 specialized services.
+- **Immutable State Management:** Predictable state updates with snapshot support and version tracking.
+- **Transactional Logging:** 100% accurate game log with exploration session tracking.
+- **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play.
+- **Comprehensive Testing:** ~1,014 tests covering services, components, and E2E scenarios.
 
 ## Technology Stack
 
-- **Frontend:** React 18, TypeScript, Vite
-- **Backend:** Express (Node.js)
-- **Testing:** Vitest, React Testing Library
-- **Styling:** CSS3 with CSS variables and animations
-- **Data:** CSV-based game configuration
-- **State Management:** Custom immutable state service with subscriber pattern
-
-## Documentation
-
-### Quick Navigation
-
-**📖 Start Here:**
-- **[README.md](README.md)** (this file) - Project overview, quick start
-- **[TODO.md](TODO.md)** - Current goals and active tasks
-- **[CHANGELOG.md](CHANGELOG.md)** - Complete technical history
-
-**👨‍💻 For Developers:**
-- **[ARCHITECTURE.md](docs/technical/ARCHITECTURE.md)** - System design, patterns, services
-- **[API_REFERENCE.md](docs/technical/API_REFERENCE.md)** - Component and service APIs
-- **[TURN_PROCESSING_FLOW.md](docs/technical/TURN_PROCESSING_FLOW.md)** - Turn flow decision trees and diagrams
-- **[TESTING_GUIDE.md](docs/technical/TESTING_GUIDE.md)** - Test strategy and patterns
-- **[CODE_STYLE.md](docs/technical/CODE_STYLE.md)** - Code conventions and standards
-
-**👥 For Users:**
-- **[USER_MANUAL.md](docs/user/USER_MANUAL.md)** - How to play the game
-- **[RELEASE_NOTES.md](docs/user/RELEASE_NOTES.md)** - New features and changes
-
-**📊 Project Management:**
-- **[PROJECT_STATUS.md](docs/core/PROJECT_STATUS.md)** - Current health metrics
-- **[CLAUDE.md](docs/core/CLAUDE.md)** - AI assistant charter (for Claude)
-
-### Documentation By Audience
-
-**New Developers:**
-1. Start with [README.md](README.md) for project overview
-2. Read [ARCHITECTURE.md](docs/technical/ARCHITECTURE.md) for system design
-3. Review [API_REFERENCE.md](docs/technical/API_REFERENCE.md) for component/service APIs
-4. Check [CODE_STYLE.md](docs/technical/CODE_STYLE.md) before writing code
-5. Follow [TESTING_GUIDE.md](docs/technical/TESTING_GUIDE.md) for testing
-
-**Project Managers:**
-1. Check [PROJECT_STATUS.md](docs/core/PROJECT_STATUS.md) for current state
-2. Review [TODO.md](TODO.md) for active work and priorities
-3. Track progress in [CHANGELOG.md](CHANGELOG.md)
-
-**End Users:**
-1. Read [USER_MANUAL.md](docs/user/USER_MANUAL.md) to learn how to play
-2. Check [RELEASE_NOTES.md](docs/user/RELEASE_NOTES.md) for latest features
-
-## Development Workflow
-
-### Code Quality Standards
-- All code: TypeScript with strict type checking
-- Testing: Comprehensive test coverage for all changes
-- Components: Single responsibility, <200 lines preferred
-- Services: Focused, well-documented, testable
-- Architecture: Follow established patterns and conventions
-
-### Before Committing
-1. Run relevant test batches to ensure no regressions
-2. Verify TypeScript compilation (`npm run typecheck`)
-3. Update documentation if needed
-4. Follow commit message conventions
-
-### TypeScript Strict Mode
-- **Status:** ✅ 0 errors - Full strict mode compliance achieved (November 30, 2025)
-- All legacy type issues resolved
+- **Frontend:** React 19, TypeScript, Vite 7
+- **Backend:** Express (Node.js 20)
+- **Testing:** Vitest 4, React Testing Library
+- **Styling:** CSS3 with CSS variables and Framer Motion animations
+- **Data:** CSV-based game configuration with automated processing pipeline
 
 ## Recent Updates
 
-### January 9, 2026
-- Implemented contextual dice roll behavior for dice-movement spaces
-- CHEAT spaces: Manual "Roll Dice" button (player actively cheating)
-- REG spaces: Auto-rolls on arrival (clerk/examiner decision)
-- Fixed critical gameplay blockers on REG-DOB-PLAN-EXAM, REG-DOB-PROF-CERT, CHEAT-BYPASS
+### April 2, 2026 (v2.39.3)
+- **Security Hardening**: Implemented WebSocket authentication (X-Game-Token) and state schema validation.
+- **Accessibility**: Converted Pro Ledger headers to buttons with `aria-expanded` support.
+- **UX Polish**: Fixed modal exit animations (9 modals) and consolidated money formatting.
+- **Critical Fix**: Resolved `process.stderr` crash in browser-side movement code.
 
-### November 27-28, 2025
-- Fixed button positioning issues in Player Panel (buttons no longer float over game board)
-- Simplified NextStepButton to only handle "End Turn" action
-- Enhanced development workflow: `npm run dev` now starts both frontend and backend servers
-- Reduced TypeScript errors from 28+ to 12
-- Organized documentation with new `docs/archive/` directory
+### April 1, 2026 (v2.39.1)
+- **Animation Overhaul**: Migrated ModalBase to Framer Motion for smooth entry/exit/shake animations.
+- **Per-Action Narrative**: Added per-action story text in modals configured via Space Data Editor.
 
-### November 24, 2025
-- Implemented short URL system for QR codes (`?p=P1` instead of long player IDs)
-- Added Display Settings feature for per-player panel visibility control
-- Optimized layout to hide player columns when all panels are hidden
-- Enhanced device detection for mobile and desktop connections
+### March 31, 2026 (v2.37.0)
+- **Data-Driven Pipeline**: Fee types and dice roll metadata now computed at processing time.
+- **Affordability Gating**: All financial paths now require `canAfford()` validation in ResourceService.
 
-### November 14, 2025
-- Fixed critical CSV processing bugs in movement system
-- Implemented path choice memory for regulatory compliance
-- Enhanced data validation and processing tools
-- All E2E tests passing including happy path scenarios
+### March 23, 2026 (v2.34.0)
+- **Code Audit Cleanup**: Removed ~5,200 lines of dead code and deleted 37 unused files.
+- **Service Decomposition**: Refactored TurnService into MovementExecutor and TurnTransitionHandler.
+
 
 ## Contributing
 
