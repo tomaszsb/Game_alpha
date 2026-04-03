@@ -1,0 +1,25 @@
+{
+  "name": "Unravel Codes: The Game",
+  "short_name": "Unravel",
+  "description": "A board game about building trades and construction permits",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#007bff",
+  "background_color": "#f5f5f5",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["games", "education"],
+  "lang": "en-US"
+}

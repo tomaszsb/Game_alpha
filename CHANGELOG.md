@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.3] - 2026-04-02
+
+### WebSocket auth, schema validation, money formatting, modal animations (April 2, 2026)
+- **Security: WebSocket authentication** — Game creation now generates a 16-char hex token. Token is required for all WebSocket connections (validated on connect, close with 4001 if invalid) and HTTP state endpoints (via `X-Game-Token` header). Token is embedded in shareable game URLs (`?g=G1&token=...`). Legacy games auto-generate a token on first access. Unauthenticated clients cannot subscribe to games or push state.
+- **Security: state_push schema validation** — Both WebSocket `state_push` and HTTP `POST /api/games/:gameId/state` now validate the top-level game state structure before accepting: checks `players` (array of objects with id/name/money), `gamePhase` (string), `currentPlayerId` (string|null), `gameRound` (number), `isGameOver` (boolean). Malformed payloads are rejected with descriptive error messages.
+- **Files changed** (8): server/websocket.js, server/server.js, networkDetection.ts, WebSocketSyncService.ts, ServerSyncService.ts, GameLobby.tsx, App.tsx
+
+### Accessibility + type safety (April 2, 2026)
+- **Accessibility: div→button in ProjectLedger** — Changed `<div className="ledger-cat-header" onClick>` to `<button>` with `aria-expanded` and `aria-label` attributes. Added button reset styles in CSS. FinancesSection already used buttons — no changes needed.
+- **Type safety: Replace `any` types** — Replaced all `any` types in EffectTypes.ts (5 occurrences: `offerData`, `requestData`, `responseData`, `agreementData`, `metadata` → `Record<string, unknown>`) and ServiceContracts.ts (6 occurrences: `NegotiationState | null`, `SpaceEffect[]`, `Player`, `Card`, `Record<string, unknown>`, `{ cards?: string[] }`). Zero `any` types remain in either file.
+- **Files changed** (4): ProjectLedger.tsx, ProjectLedger.css, EffectTypes.ts, ServiceContracts.ts
+
+### Consolidate money formatting + fix modal exit animations (April 2, 2026)
+- **Consolidate money formatting** — Replaced 33 raw `.toLocaleString()` calls in FinancesSection with `FormatUtils.formatMoney()` for consistent `en-US` locale formatting. Also updated ProjectLedger, CardDisplay, buttonFormatting, and ErrorNotifications (5 files, ~38 replacements total). Service-layer console.log usages left as-is.
+- **Files changed** (5): FinancesSection.tsx, ProjectLedger.tsx, CardDisplay.tsx, buttonFormatting.ts, ErrorNotifications.ts
+
+### Fix modal exit animations (April 2, 2026)
+- **Fix: Modal exit animations now visible** — All modals previously returned `null` or `<></>` before ModalBase could render, preventing framer-motion's AnimatePresence from playing exit animations. Fixed by passing computed `isOpen` prop to ModalBase instead of early-returning.
+- **State-driven modals (CardModal, ChoiceModal, EndGameModal)**: Changed `isOpen={true}` to computed conditions (e.g., `isOpen={activeModal?.type === 'CARD'}`), removed early returns. CardModal no longer clears `cardData` on close so content persists during exit animation.
+- **Prop-driven modals (DiceResultModal, SpaceInfoModal, DiscardPileModal, CardDetailsModal, CardReplacementModal, NegotiationModal)**: Removed `if (!isOpen) return null` guards. Modals with nullable data props render a closed `<ModalBase isOpen={false}>` fallback instead of `null`.
+- **Files changed** (9): CardModal.tsx, ChoiceModal.tsx, EndGameModal.tsx, DiceResultModal.tsx, SpaceInfoModal.tsx, DiscardPileModal.tsx, CardDetailsModal.tsx, CardReplacementModal.tsx, NegotiationModal.tsx
+
+---
+
 ## [2.39.2] - 2026-04-02
 
 ### April 2026 audit fixes (April 2, 2026)

@@ -3,6 +3,7 @@
 import React from 'react';
 import { SpaceEffect, DiceEffect } from '../types/DataTypes';
 import { getTooltipService, ActionTooltip } from '../services/TooltipService';
+import { FormatUtils } from './FormatUtils';
 import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';
 
 export interface ButtonInfo {
@@ -290,8 +291,8 @@ export function formatActionFeedback(effects: any[]): string {
       case 'money':
         if (effect.value !== undefined) {
           const moneyOutcome = effect.value > 0
-            ? `Gained $${Math.abs(effect.value).toLocaleString()}`
-            : `Spent $${Math.abs(effect.value).toLocaleString()}`;
+            ? `Gained ${FormatUtils.formatMoney(Math.abs(effect.value), { compact: false })}`
+            : `Spent ${FormatUtils.formatMoney(Math.abs(effect.value), { compact: false })}`;
           outcomes.push(moneyOutcome);
         }
         break;

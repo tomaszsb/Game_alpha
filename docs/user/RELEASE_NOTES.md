@@ -2,6 +2,26 @@
 
 ---
 
+## v2.39.3 - Security + Polish (April 2, 2026)
+
+**Release Date:** April 2, 2026
+**Version:** 2.39.3
+**Status:** Alpha Testing
+**Type:** Security + Bug Fix
+
+### Security
+- **Games now require a secret token** — When you create a new game, a unique token is generated and embedded in the shareable URL. Only players with the correct URL can join or modify game state. This prevents unauthorized access to your games.
+
+### Fixes
+- **Modal close animations now work** — Modals (cards, choices, dice results, space info, etc.) now smoothly fade out when dismissed instead of vanishing instantly.
+- **Consistent money formatting** — All money displays now use the same formatting function for consistency across the UI.
+
+### Accessibility & Code Quality
+- **Improved keyboard navigation** — Ledger category headers are now proper buttons, accessible via keyboard and screen readers.
+- **Stronger type safety** — Replaced all loose `any` types in effect and service interfaces with proper typed contracts.
+
+---
+
 ## v2.39.2 - Security & Stability Fixes (April 2, 2026)
 
 **Release Date:** April 2, 2026

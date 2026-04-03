@@ -3,7 +3,7 @@
 // WebSocket provides sub-100ms updates; HTTP provides reliability for state pushes
 
 import { GameState } from '../types/StateTypes';
-import { getBackendURL, getGameStateAPIPath, getCurrentGameId } from '../utils/networkDetection';
+import { getBackendURL, getGameStateAPIPath, getCurrentGameId, getCurrentGameToken } from '../utils/networkDetection';
 import { getWebSocketService, ConnectionState, StateUpdateCallback } from './WebSocketSyncService';
 
 /**
@@ -163,11 +163,17 @@ export class ServerSyncService {
     try {
       const gameId = getCurrentGameId();
       const apiPath = getGameStateAPIPath(gameId);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      const token = getCurrentGameToken();
+      if (token) {
+        headers['X-Game-Token'] = token;
+      }
+
       const response = await fetch(`${this.serverUrl}${apiPath}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         // Include clientVersion to enable server-side conflict detection
         body: JSON.stringify({ state, clientVersion: this.lastKnownServerVersion })
       });
@@ -214,7 +220,12 @@ export class ServerSyncService {
       const gameId = getCurrentGameId();
       const apiPath = getGameStateAPIPath(gameId);
       console.log(`📥 Loading state from server...${gameId ? ` [${gameId}]` : ''}`);
-      const response = await fetch(`${this.serverUrl}${apiPath}`);
+      const fetchHeaders: Record<string, string> = {};
+      const token = getCurrentGameToken();
+      if (token) {
+        fetchHeaders['X-Game-Token'] = token;
+      }
+      const response = await fetch(`${this.serverUrl}${apiPath}`, { headers: fetchHeaders });
 
       if (response.status === 404) {
         console.log('No server state found, using local state');

@@ -1,0 +1,42 @@
+card_id,card_name,card_type,description,effects_on_play,cost,phase_restriction
+W001,Lobby renovation and security upgrade for corporate headquarters,W,Lobby renovation and security upgrade for corporate headquarters,Apply Work,150000,Any
+W002,Conversion of attic space into habitable loft in single-family home,W,Conversion of attic space into habitable loft in single-family home,Apply Work,80000,Any
+W003,Installation of green wall and rooftop garden for eco-friendly office building,W,Installation of green wall and rooftop garden for eco-friendly office building,Apply Work,200000,Any
+W004,Renovation of historic theater including restoration of ornate plasterwork,W,Renovation of historic theater including restoration of ornate plasterwork,Apply Work,950000,Any
+W005,Construction of new emergency department addition to existing hospital,W,Construction of new emergency department addition to existing hospital,Apply Work,4500000,Any
+W006,Adaptive reuse of abandoned warehouse into mixed-use development,W,Adaptive reuse of abandoned warehouse into mixed-use development,Apply Work,3000000,Any
+W007,Energy-efficient retrofit of 1960s office building,W,Energy-efficient retrofit of 1960s office building,Apply Work,1200000,Any
+W008,Expansion of public library with new children's wing,W,Expansion of public library with new children's wing,Apply Work,2500000,Any
+W009,Conversion of strip mall into senior living community,W,Conversion of strip mall into senior living community,Apply Work,5000000,Any
+W010,Restoration of fire-damaged apartment building,W,Restoration of fire-damaged apartment building,Apply Work,800000,Any
+W011,Construction of rooftop amenity space for luxury condominium,W,Construction of rooftop amenity space for luxury condominium,Apply Work,600000,Any
+W012,Renovation of industrial space into trendy restaurant,W,Renovation of industrial space into trendy restaurant,Apply Work,450000,Any
+W013,Accessibility upgrades for historic courthouse,W,Accessibility upgrades for historic courthouse,Apply Work,350000,Any
+W014,Conversion of former school into affordable housing units,W,Conversion of former school into affordable housing units,Apply Work,4000000,Any
+W015,Facade restoration of Art Deco skyscraper,W,Facade restoration of Art Deco skyscraper,Apply Work,1800000,Any
+W016,Construction of new visitor center for national park,W,Construction of new visitor center for national park,Apply Work,2000000,Any
+W017,Renovation of airport terminal for improved passenger flow,W,Renovation of airport terminal for improved passenger flow,Apply Work,7500000,Any
+W018,Conversion of big box store into indoor vertical farm,W,Conversion of big box store into indoor vertical farm,Apply Work,3500000,Any
+W019,Seismic retrofit and renovation of city hall,W,Seismic retrofit and renovation of city hall,Apply Work,6000000,Any
+W020,Construction of new performing arts center on university campus,W,Construction of new performing arts center on university campus,Apply Work,12000000,Any
+B001,Small Business Loan,B,Low interest loan for initial funding,Apply Loan,0,Any
+B002,Startup Capital Loan,B,Low interest loan for initial project expenses,Apply Loan,0,Any
+B003,New Venture Loan,B,Low interest loan for growing projects,Apply Loan,0,Any
+B004,Small Building Fund,B,Low interest loan for small construction projects,Apply Loan,0,Any
+B005,Retail Space Loan,B,Low interest loan for retail development,Apply Loan,0,Any
+E001,Equipment Upgrade,E,Upgrade project equipment to improve team efficiency and output quality.,All work actions gain +1 effectiveness for 3 turns.,1,Development
+E002,Safety Equipment,E,Essential safety equipment to protect team members and comply with regulations.,Prevent next negative effect and reduce risk by 25%.,2,Any
+E003,Hardware Setup,E,Set up essential hardware infrastructure for project operations.,Gain 2 time units and all tech actions cost 50% less for 2 turns.,1,Any
+E004,Technology Integration,E,Integrate new technologies to streamline project workflows.,Draw 1 card of any type and gain $200.,1,Any
+E005,Tool Maintenance,E,Regular maintenance of tools and equipment to ensure peak performance.,All equipment effects last 1 additional turn.,0,Any
+E006,Automation System,E,Implement automation to reduce manual work and improve accuracy.,undefined,2,Development
+L001,Business License,L,Required business license for legal operation.,Enables certain business actions and reduces regulatory risk.,500,Any
+L002,Construction Permit,L,Official permit required for construction activities.,Enables construction work and ensures code compliance.,1000,Planning
+L003,Environmental Clearance,L,Environmental impact assessment and clearance documentation.,Reduces environmental risks and enables eco-friendly bonuses.,2000,Planning
+L004,Safety Certification,L,Comprehensive safety certification for high-risk operations.,Prevents safety incidents and enables advanced work types.,1500,Development
+L005,Operating License,L,License to operate in specific jurisdictions or industries.,Expands available markets and reduces legal complications.,800,Any
+I001,Angel Investor,I,Early-stage investor interested in innovative projects.,Gain $50000 and draw 1 B card but give up 10% equity.,0,Planning
+I002,Venture Capital,I,Institutional investor for scaling operations.,Gain $200000 and draw 2 B cards but give up 20% equity.,0,Development
+I003,Strategic Partner,I,Industry partner offering expertise and resources.,Gain access to special actions and reduce next 3 action costs by 25%.,1,Any
+I004,Government Grant,I,Non-dilutive funding from government programs.,Gain $100000 with no equity cost but must meet specific criteria.,0,Planning
+I005,Crowdfunding Campaign,I,Community-based funding initiative.,Gain variable funding based on current project appeal and market conditions.,2,Marketing

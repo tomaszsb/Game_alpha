@@ -42,14 +42,17 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     isOpen && !!result
   );
 
-  if (!isOpen || !result) {
-    return null;
-  }
-
-  // Defensive checks
-  if (!result.effects || !Array.isArray(result.effects)) {
-    console.error('DiceResultModal: result.effects is not a valid array', result);
-    return null;
+  // When result is unavailable, render a closed ModalBase so AnimatePresence
+  // can play the exit animation (same component instance via React reconciliation).
+  if (!result || !Array.isArray(result.effects)) {
+    if (result && !Array.isArray(result.effects)) {
+      console.error('DiceResultModal: result.effects is not a valid array', result);
+    }
+    return (
+      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="dice-result-modal">
+        {null}
+      </ModalBase>
+    );
   }
 
   const handleConfirm = () => {

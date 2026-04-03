@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SVG Arrows Prototype — ProgressBarMap</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #e9ecef; padding: 20px; }
+  h1 { font-size: 16px; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #6c757d; margin-bottom: 12px; }
+  .controls { margin-bottom: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  .controls label { display: flex; align-items: center; gap: 4px; }
+  .controls select { font-size: 13px; padding: 3px 6px; }
+
+  /* ===== MAP CONTAINER ===== */
+  .progress-bar-map {
+    padding: 14px 28px;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: visible;
+    position: relative;
+  }
+
+  .pbm-snake {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  /* ===== SVG OVERLAY — sits on top of everything ===== */
+  #svg-arrows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 10;
+    overflow: visible;
+  }
+  .svg-edge {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ===== ROWS ===== */
+  .pbm-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex-wrap: nowrap;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+    background: #f8f9fa;
+  }
+  .pbm-row--reverse {
+    flex-direction: row-reverse;
+  }
+
+  /* ===== U-TURN GAP ===== */
+  .pbm-uturn {
+    width: 100%;
+    height: 10px;
+    position: relative;
+    overflow: visible;
+    z-index: 0;
+  }
+
+  /* ===== SLOTS — tiles only, NO inline connector lines ===== */
+  .pbm-slot {
+    width: 120px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    overflow: visible;
+    position: relative;
+    padding: 2px 0;
+  }
+
+  /* ===== SPACER (pushes row to edge) ===== */
+  .pbm-row-spacer {
+    flex: 1;
+    min-width: 20px;
+  }
+
+  /* ===== TURN ENTRY (small gap at row start) ===== */
+  .pbm-turn-entry {
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ===== COMPACT NODE ===== */
+  .pbm-node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 5px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    border: 2px solid #dee2e6;
+    background: #fff;
+    color: #495057;
+    white-space: normal;
+    word-break: break-word;
+    width: 74px;
+    min-height: 34px;
+    user-select: none;
+    text-align: center;
+    line-height: 1.15;
+    overflow: visible;
+  }
+  .pbm-node--valid-move {
+    border-color: #ffc107 !important;
+    background: #fff8e1;
+    animation: pbm-pulse-border 2s infinite;
+  }
+  .pbm-node--visited {
+    background: #e3f2fd;
+    border-color: #90caf9;
+    color: #1565c0;
+  }
+
+  /* ===== CARD (hover / expanded / current) ===== */
+  .pbm-card {
+    border-radius: 6px;
+    padding: 5px 7px;
+    font-size: 10px;
+    line-height: 1.3;
+    box-sizing: border-box;
+    border: 2px solid #dee2e6;
+    border-left: 4px solid #007bff;
+    background: #fff;
+    overflow: visible;
+    cursor: pointer;
+    white-space: normal;
+    word-break: break-word;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .pbm-card--hover {
+    width: 100px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .pbm-card--expanded {
+    width: 120px;
+    border-color: #495057;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+  }
+  .pbm-card--current {
+    width: 120px;
+    border-color: #e3f2fd;
+    box-shadow: 0 3px 12px rgba(0,123,255,0.25);
+    animation: pbm-pulse-glow 2s infinite;
+  }
+  .pbm-card-name { font-weight: 700; font-size: 10px; color: #212529; margin-bottom: 2px; }
+  .pbm-card-name--current { color: #007bff; }
+  .pbm-card-story { color: #343a40; margin-bottom: 2px; font-size: 9px; }
+  .pbm-card-action { color: #1565c0; background: #e8f4fd; border-radius: 3px; padding: 2px 4px; font-size: 9px; }
+
+  /* ===== FORK ===== */
+  .pbm-fork {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    align-self: center;
+  }
+  .pbm-fork-branch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    height: 36px;
+    overflow: visible;
+    padding: 0 4px;
+  }
+  .pbm-fork-branch--dimmed { opacity: 0.4; }
+
+  /* ===== LEGS ===== */
+  .pbm-legs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    gap: 4px;
+    align-self: center;
+  }
+
+  /* ===== PHASE GROUP ===== */
+  .pbm-phase-group {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    border-top: 2px solid;
+    margin-top: 14px;
+    overflow: visible;
+  }
+  .pbm-phase-label {
+    position: absolute;
+    top: -9px;
+    left: 4px;
+    font-size: 8px;
+    font-weight: 700;
+    background: #f8f9fa;
+    padding: 0 3px;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    line-height: 1;
+  }
+
+  /* ===== PLAYER AVATARS ===== */
+  .pbm-node-avatars {
+    position: absolute;
+    top: -8px;
+    right: -4px;
+    display: flex;
+    gap: 1px;
+    z-index: 11;
+  }
+  .pbm-node-avatar {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    color: #fff;
+  }
+
+  /* ===== LEGEND ===== */
+  .pbm-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0 0;
+    justify-content: center;
+    border-top: 1px solid #eee;
+    margin-top: 6px;
+  }
+  .pbm-legend-item { display: flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 600; color: #495057; }
+  .pbm-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  @keyframes pbm-pulse-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(0,123,255,0.4); }
+    50% { box-shadow: 0 0 12px rgba(0,123,255,0.7); }
+  }
+  @keyframes pbm-pulse-border {
+    0%, 100% { box-shadow: 0 0 4px rgba(255,193,7,0.3); }
+    50% { box-shadow: 0 0 10px rgba(255,193,7,0.6); }
+  }
+</style>
+</head>
+<body>
+<h1>SVG Arrows Prototype</h1>
+<p class="subtitle">Current ProgressBarMap tile layout + SVG overlay arrows (from elk_prototype). No CSS flex connectors.</p>
+
+<div class="controls">
+  <label>Current space:
+    <select id="currentSelect"></select>
+  </label>
+  <label>Hover test:
+    <select id="hoverSelect"><option value="">None</option></select>
+  </label>
+  <label>Expand test:
+    <select id="expandSelect"><option value="">None</option></select>
+  </label>
+  <label><input type="checkbox" id="showVisited" checked> Show visited</label>
+</div>
+
+<div class="progress-bar-map" id="map-container">
+  <svg id="svg-arrows"></svg>
+  <div class="pbm-snake" id="pbm-snake"></div>
+  <div class="pbm-legend" id="legend"></div>
+</div>
+
+<script>
+// ===== Game path definition (same as ProgressBarMap.tsx) =====
+const GAME_PATH = [
+  { type: 'node', name: 'OWNER-SCOPE-INITIATION' },
+  { type: 'node', name: 'OWNER-FUND-INITIATION' },
+  { type: 'legs', parent: 'PM-DECISION-CHECK', above: 'OWNER-DECISION-REVIEW', below: 'CHEAT-BYPASS' },
+  { type: 'node', name: 'LEND-SCOPE-CHECK' },
+  { type: 'fork', branches: [
+    { nodes: ['BANK-FUND-REVIEW'] },
+    { nodes: ['INVESTOR-FUND-REVIEW'] },
+  ]},
+  { type: 'node', name: 'ARCH-INITIATION' },
+  { type: 'node', name: 'ARCH-FEE-REVIEW' },
+  { type: 'node', name: 'ARCH-SCOPE-CHECK' },
+  { type: 'node', name: 'ENG-INITIATION' },
+  { type: 'node', name: 'ENG-FEE-REVIEW' },
+  { type: 'node', name: 'ENG-SCOPE-CHECK' },
+  { type: 'fork', branches: [
+    { nodes: ['REG-DOB-FEE-REVIEW', 'REG-DOB-TYPE-SELECT'] },
+    { nodes: ['REG-FDNY-FEE-REVIEW', 'REG-FDNY-PLAN-EXAM'] },
+  ]},
+  { type: 'fork', merge: true, branches: [
+    { nodes: ['REG-DOB-PLAN-EXAM'] },
+    { nodes: ['REG-DOB-PROF-CERT', 'REG-DOB-AUDIT'] },
+  ]},
+  { type: 'node', name: 'CON-INITIATION' },
+  { type: 'node', name: 'CON-ISSUES' },
+  { type: 'node', name: 'CON-INSPECT' },
+  { type: 'node', name: 'REG-DOB-FINAL-REVIEW' },
+  { type: 'node', name: 'FINISH' },
+];
+
+// ===== Phase colors =====
+const PHASE_MAP = {
+  'OWNER-SCOPE-INITIATION': 'SETUP', 'OWNER-FUND-INITIATION': 'OWNER',
+  'PM-DECISION-CHECK': 'OWNER', 'OWNER-DECISION-REVIEW': 'OWNER', 'CHEAT-BYPASS': 'OWNER',
+  'LEND-SCOPE-CHECK': 'FUNDING',
+  'BANK-FUND-REVIEW': 'FUNDING', 'INVESTOR-FUND-REVIEW': 'FUNDING',
+  'ARCH-INITIATION': 'DESIGN', 'ARCH-FEE-REVIEW': 'DESIGN', 'ARCH-SCOPE-CHECK': 'DESIGN',
+  'ENG-INITIATION': 'DESIGN', 'ENG-FEE-REVIEW': 'DESIGN', 'ENG-SCOPE-CHECK': 'DESIGN',
+  'REG-DOB-FEE-REVIEW': 'REGULATORY', 'REG-DOB-TYPE-SELECT': 'REGULATORY',
+  'REG-FDNY-FEE-REVIEW': 'REGULATORY', 'REG-FDNY-PLAN-EXAM': 'REGULATORY',
+  'REG-DOB-PLAN-EXAM': 'REGULATORY', 'REG-DOB-PROF-CERT': 'REGULATORY', 'REG-DOB-AUDIT': 'REGULATORY',
+  'CON-INITIATION': 'CONSTRUCTION', 'CON-ISSUES': 'CONSTRUCTION', 'CON-INSPECT': 'CONSTRUCTION',
+  'REG-DOB-FINAL-REVIEW': 'REGULATORY',
+  'FINISH': 'END',
+};
+
+const PHASE_COLORS = {
+  'SETUP':        { border: '#2196F3', text: '#1565c0' },
+  'OWNER':        { border: '#2196F3', text: '#1565c0' },
+  'FUNDING':      { border: '#FF9800', text: '#f57f17' },
+  'DESIGN':       { border: '#9C27B0', text: '#7b1fa2' },
+  'REGULATORY':   { border: '#f44336', text: '#c62828' },
+  'CONSTRUCTION': { border: '#4CAF50', text: '#2e7d32' },
+  'END':          { border: '#009688', text: '#00695c' },
+};
+
+const NPC_PREFIXES = ['OWNER-', 'ARCH-', 'ENG-', 'REG-DOB-', 'REG-FDNY-', 'CON-', 'PM-', 'LEND-', 'BANK-', 'INVESTOR-', 'CHEAT-'];
+
+function shortName(s) {
+  const specials = { 'FINISH': 'Finish', 'PM-DECISION-CHECK': 'PM Check', 'START-QUICK-PLAY-GUIDE': 'Quick Play' };
+  if (specials[s]) return specials[s];
+  let name = s;
+  for (const p of NPC_PREFIXES) { if (name.startsWith(p)) { name = name.slice(p.length); break; } }
+  return name.split('-').map(w => w.length <= 2 ? w : w.charAt(0).toUpperCase() + w.toLowerCase().slice(1)).join(' ');
+}
+
+function phaseColor(name) {
+  const p = PHASE_MAP[name];
+  return p ? (PHASE_COLORS[p]?.border || '#adb5bd') : '#adb5bd';
+}
+
+function phaseOf(name) { return PHASE_MAP[name] || null; }
+
+// ===== Collect all space names =====
+function getAllSpaces() {
+  const names = [];
+  for (const seg of GAME_PATH) {
+    if (seg.type === 'node') names.push(seg.name);
+    else if (seg.type === 'legs') names.push(seg.above, seg.parent, seg.below);
+    else if (seg.type === 'fork') seg.branches.forEach(b => names.push(...b.nodes));
+  }
+  return names;
+}
+
+// ===== Build edges (sequential connections) =====
+function buildEdges() {
+  const edges = [];
+  let prev = [];
+  for (const seg of GAME_PATH) {
+    if (seg.type === 'node') {
+      for (const p of prev) edges.push([p, seg.name]);
+      prev = [seg.name];
+    } else if (seg.type === 'legs') {
+      for (const p of prev) edges.push([p, seg.parent]);
+      edges.push([seg.parent, seg.above]);
+      edges.push([seg.parent, seg.below]);
+      prev = [seg.parent];
+    } else if (seg.type === 'fork') {
+      const outs = [];
+      for (const br of seg.branches) {
+        for (let i = 0; i < br.nodes.length; i++) {
+          if (i === 0) { for (const p of prev) edges.push([p, br.nodes[0]]); }
+          else edges.push([br.nodes[i-1], br.nodes[i]]);
+        }
+        outs.push(br.nodes[br.nodes.length - 1]);
+      }
+      prev = outs;
+    }
+  }
+  return edges;
+}
+
+// ===== State =====
+let currentSpace = 'OWNER-SCOPE-INITIATION';
+let hoveredSpace = null;
+let expandedSpace = null;
+let visitedSpaces = new Set(['OWNER-SCOPE-INITIATION']);
+const EDGES = buildEdges();
+const ALL_SPACES = getAllSpaces();
+
+// ===== Row splitting =====
+const SLOT_WIDTH = 134;
+const BRANCH_H = 36;
+
+function segSlots(seg) {
+  if (seg.type === 'node' || seg.type === 'legs') return 1;
+  return Math.max(...seg.branches.map(b => b.nodes.length));
+}
+
+function splitRows(containerWidth) {
+  const slotsPerRow = Math.max(4, Math.floor(containerWidth / SLOT_WIDTH));
+  const rows = [];
+  let row = [], slots = 0;
+  for (let i = 0; i < GAME_PATH.length; i++) {
+    const seg = GAME_PATH[i];
+    const s = segSlots(seg);
+    const isLast = i === GAME_PATH.length - 1;
+    if (row.length > 0 && slots + s > slotsPerRow && !isLast) {
+      rows.push(row);
+      row = [seg]; slots = s;
+    } else {
+      row.push(seg); slots += s;
+    }
+  }
+  if (row.length) rows.push(row);
+  return rows;
+}
+
+// ===== Render tiles (no connectors) =====
+function renderTiles() {
+  const container = document.getElementById('map-container');
+  const snake = document.getElementById('pbm-snake');
+  const containerWidth = container.clientWidth - 56; // minus padding
+  const rows = splitRows(containerWidth);
+
+  let html = '';
+  let globalIdx = 0;
+
+  for (let ri = 0; ri < rows.length; ri++) {
+    const row = rows[ri];
+    const isReversed = ri % 2 === 1;
+
+    if (ri > 0) html += '<div class="pbm-uturn"></div>';
+
+    html += `<div class="pbm-row ${isReversed ? 'pbm-row--reverse' : ''}">`;
+
+    // Turn entry
+    if (ri > 0) {
+      html += `<div class="pbm-turn-entry"></div>`;
+    }
+
+    // Phase grouping
+    let lastPhase = null;
+    let groupOpen = false;
+
+    for (let si = 0; si < row.length; si++) {
+      const seg = row[si];
+      const firstSpace = seg.type === 'node' ? seg.name :
+                          seg.type === 'legs' ? seg.above :
+                          seg.branches[0]?.nodes[0];
+      const phase = phaseOf(firstSpace);
+
+      // Close previous group if phase changed
+      if (groupOpen && phase !== lastPhase) {
+        html += '</div>';
+        groupOpen = false;
+      }
+
+      // Open new phase group
+      if (phase && phase !== lastPhase) {
+        const pc = PHASE_COLORS[phase];
+        html += `<div class="pbm-phase-group" style="border-top-color: ${pc.border}">`;
+        html += `<span class="pbm-phase-label" style="color: ${pc.text}">${phase.charAt(0) + phase.slice(1).toLowerCase()}</span>`;
+        groupOpen = true;
+      }
+      lastPhase = phase;
+
+      // Render segment
+      if (seg.type === 'node') {
+        html += renderNodeHTML(seg.name);
+      } else if (seg.type === 'legs') {
+        html += renderLegsHTML(seg);
+      } else if (seg.type === 'fork') {
+        html += renderForkHTML(seg);
+      }
+      globalIdx++;
+    }
+
+    if (groupOpen) html += '</div>';
+
+    // Spacer
+    if (ri < rows.length - 1) {
+      html += `<div class="pbm-row-spacer"></div>`;
+    }
+
+    html += '</div>';
+  }
+
+  snake.innerHTML = html;
+
+  // Add click/hover listeners
+  snake.querySelectorAll('[data-space]').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      hoveredSpace = el.dataset.space;
+      renderAll();
+    });
+    el.addEventListener('mouseleave', () => {
+      hoveredSpace = null;
+      renderAll();
+    });
+    el.addEventListener('click', () => {
+      expandedSpace = expandedSpace === el.dataset.space ? null : el.dataset.space;
+      renderAll();
+    });
+  });
+
+  // Legend
+  const legendEl = document.getElementById('legend');
+  legendEl.innerHTML = Object.entries(PHASE_COLORS).map(([phase, pc]) =>
+    `<div class="pbm-legend-item"><div class="pbm-legend-dot" style="background:${pc.border}"></div><span>${phase.charAt(0) + phase.slice(1).toLowerCase()}</span></div>`
+  ).join('');
+}
+
+function renderNodeHTML(name) {
+  const isCurrent = name === currentSpace;
+  const isHov = name === hoveredSpace && !isCurrent && expandedSpace !== name;
+  const isExp = expandedSpace === name;
+  const isValid = false; // Could be wired up
+  const visited = visitedSpaces.has(name);
+  const accentColor = phaseColor(name);
+
+  if (isCurrent) {
+    return `<div class="pbm-slot" data-space="${name}">
+      <div class="pbm-card pbm-card--current" style="border-left-color:${accentColor}">
+        <div class="pbm-card-name pbm-card-name--current">${shortName(name)}</div>
+        <div class="pbm-card-story">Current space - story text would appear here with full content visible.</div>
+        <div class="pbm-card-action"><strong>Action:</strong> Take your turn action here.</div>
+      </div>
+    </div>`;
+  }
+  if (isExp) {
+    return `<div class="pbm-slot" data-space="${name}">
+      <div class="pbm-card pbm-card--expanded" style="border-left-color:${accentColor}">
+        <div class="pbm-card-name">${shortName(name)}</div>
+        <div class="pbm-card-story">Expanded view with story text content shown here.</div>
+        <div class="pbm-card-action"><strong>Action:</strong> Description of the action.</div>
+      </div>
+    </div>`;
+  }
+  if (isHov) {
+    return `<div class="pbm-slot" data-space="${name}">
+      <div class="pbm-card pbm-card--hover" style="border-left-color:${accentColor}">
+        <div class="pbm-card-name">${shortName(name)}</div>
+        <div class="pbm-card-story">Hover preview text...</div>
+      </div>
+    </div>`;
+  }
+
+  const cls = ['pbm-node'];
+  if (visited) cls.push('pbm-node--visited');
+  const style = `border-left: 3px solid ${accentColor}`;
+  return `<div class="pbm-slot" data-space="${name}">
+    <div class="${cls.join(' ')}" style="${style}"><span>${shortName(name)}</span></div>
+  </div>`;
+}
+
+function renderLegsHTML(seg) {
+  return `<div class="pbm-legs" data-space="${seg.parent}">
+    ${renderSlotInner(seg.above)}
+    ${renderSlotInner(seg.parent)}
+    ${renderSlotInner(seg.below)}
+  </div>`;
+}
+
+function renderSlotInner(name) {
+  const visited = visitedSpaces.has(name);
+  const isCurrent = name === currentSpace;
+  const accentColor = phaseColor(name);
+  const cls = ['pbm-node'];
+  if (visited) cls.push('pbm-node--visited');
+  if (isCurrent) return `<div class="pbm-slot" data-space="${name}"><div class="pbm-card pbm-card--current" style="border-left-color:${accentColor}"><div class="pbm-card-name pbm-card-name--current">${shortName(name)}</div></div></div>`;
+  return `<div class="pbm-slot" data-space="${name}"><div class="${cls.join(' ')}" style="border-left: 3px solid ${accentColor}"><span>${shortName(name)}</span></div></div>`;
+}
+
+function renderForkHTML(seg) {
+  let html = '<div class="pbm-fork">';
+  for (let bi = 0; bi < seg.branches.length; bi++) {
+    const br = seg.branches[bi];
+    html += '<div class="pbm-fork-branch">';
+    for (let ni = 0; ni < br.nodes.length; ni++) {
+      html += renderNodeHTML(br.nodes[ni]);
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// ===== SVG Arrow Drawing — routing-aware =====
+function drawArrows() {
+  const svg = document.getElementById('svg-arrows');
+  const container = document.getElementById('map-container');
+  const cRect = container.getBoundingClientRect();
+  const containerW = container.scrollWidth;
+  const containerH = container.scrollHeight;
+
+  svg.setAttribute('width', containerW);
+  svg.setAttribute('height', containerH);
+  svg.style.width = containerW + 'px';
+  svg.style.height = containerH + 'px';
+
+  // ---- Measure tile positions ----
+  const rects = {};
+  container.querySelectorAll('[data-space]').forEach(el => {
+    const tile = el.querySelector('.pbm-node, .pbm-card');
+    if (!tile) return;
+    const b = tile.getBoundingClientRect();
+    const sl = container.scrollLeft, st = container.scrollTop;
+    rects[el.dataset.space] = {
+      left: b.left - cRect.left + sl,
+      right: b.right - cRect.left + sl,
+      top: b.top - cRect.top + st,
+      bottom: b.bottom - cRect.top + st,
+      cx: (b.left + b.right) / 2 - cRect.left + sl,
+      cy: (b.top + b.bottom) / 2 - cRect.top + st,
+      width: b.width,
+      height: b.height,
+    };
+  });
+
+  // ---- Build row map (space → row index) ----
+  const cw = container.clientWidth - 56;
+  const rows = splitRows(cw);
+  const tileRowMap = {};
+  for (let ri = 0; ri < rows.length; ri++) {
+    for (const seg of rows[ri]) {
+      if (seg.type === 'node') tileRowMap[seg.name] = ri;
+      else if (seg.type === 'legs') {
+        tileRowMap[seg.parent] = ri;
+        tileRowMap[seg.above] = ri;
+        tileRowMap[seg.below] = ri;
+      } else if (seg.type === 'fork') {
+        for (const br of seg.branches) br.nodes.forEach(n => { tileRowMap[n] = ri; });
+      }
+    }
+  }
+
+  // ---- Classify special edges ----
+  const legsEdgeSet = new Set();
+  for (const seg of GAME_PATH) {
+    if (seg.type === 'legs') {
+      legsEdgeSet.add(seg.parent + '->' + seg.above);
+      legsEdgeSet.add(seg.parent + '->' + seg.below);
+    }
+  }
+
+  // ---- Helpers ----
+  function pt(name, side) {
+    const r = rects[name];
+    if (!r) return null;
+    switch (side) {
+      case 'right':  return { x: r.right,  y: r.cy };
+      case 'left':   return { x: r.left,   y: r.cy };
+      case 'top':    return { x: r.cx,     y: r.top };
+      case 'bottom': return { x: r.cx,     y: r.bottom };
+    }
+    return null;
+  }
+
+  const EDGE_MARGIN = 14; // px from container edge for u-turn routing
+  const CORNER_R = 8;     // radius for rounded corners
+
+  // Build an SVG path string with rounded corners at waypoints
+  function smoothPath(pts) {
+    if (pts.length < 2) return '';
+    if (pts.length === 2) {
+      return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+    }
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const prev = pts[i - 1], curr = pts[i], next = pts[i + 1];
+      // Vector from prev to curr
+      const dx1 = curr.x - prev.x, dy1 = curr.y - prev.y;
+      const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+      // Vector from curr to next
+      const dx2 = next.x - curr.x, dy2 = next.y - curr.y;
+      const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+      // Clamp radius to half the shortest segment
+      const r = Math.min(CORNER_R, len1 / 2, len2 / 2);
+      if (r < 1) {
+        d += ` L ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
+        continue;
+      }
+      // Points where the arc starts/ends
+      const ax = curr.x - (dx1 / len1) * r;
+      const ay = curr.y - (dy1 / len1) * r;
+      const bx = curr.x + (dx2 / len2) * r;
+      const by = curr.y + (dy2 / len2) * r;
+      d += ` L ${ax.toFixed(1)} ${ay.toFixed(1)}`;
+      d += ` Q ${curr.x.toFixed(1)} ${curr.y.toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}`;
+    }
+    const last = pts[pts.length - 1];
+    d += ` L ${last.x.toFixed(1)} ${last.y.toFixed(1)}`;
+    return d;
+  }
+
+  // ---- Route each edge ----
+  const edgePaths = [];
+
+  for (const [from, to] of EDGES) {
+    const a = rects[from], b = rects[to];
+    if (!a || !b) continue;
+    const color = phaseColor(from);
+    const isLegs = legsEdgeSet.has(from + '->' + to);
+    const fromRow = tileRowMap[from];
+    const toRow = tileRowMap[to];
+    const isCrossRow = fromRow !== undefined && toRow !== undefined && fromRow !== toRow;
+
+    let pts = null;
+
+    if (isLegs) {
+      // ---- LEGS: straight vertical ----
+      const dy = b.cy - a.cy;
+      pts = [pt(from, dy > 0 ? 'bottom' : 'top'), pt(to, dy > 0 ? 'top' : 'bottom')];
+
+    } else if (isCrossRow) {
+      // ---- U-TURN: route via container edge ----
+      // Even rows go L→R (u-turn on RIGHT), odd rows go R→L (u-turn on LEFT)
+      const goRight = fromRow % 2 === 0;
+
+      const p1 = pt(from, 'bottom');
+      const p2 = pt(to, 'top');
+      if (!p1 || !p2) continue;
+
+      // If tiles are nearly aligned horizontally, just go straight down
+      if (Math.abs(p1.x - p2.x) < 30) {
+        pts = [p1, p2];
+      } else {
+        // Route via the container edge
+        const edgeX = goRight
+          ? containerW - EDGE_MARGIN
+          : EDGE_MARGIN;
+
+        pts = [
+          p1,
+          { x: p1.x, y: p1.y + 8 },
+          { x: edgeX, y: p1.y + 8 },
+          { x: edgeX, y: p2.y - 8 },
+          { x: p2.x, y: p2.y - 8 },
+          p2
+        ];
+      }
+
+    } else {
+      // ---- SAME ROW ----
+      const dx = b.cx - a.cx;
+      const dy = b.cy - a.cy;
+
+      if (Math.abs(dy) < 8) {
+        // Horizontal neighbors — straight line
+        const p1 = pt(from, dx > 0 ? 'right' : 'left');
+        const p2 = pt(to, dx > 0 ? 'left' : 'right');
+        pts = [p1, p2];
+      } else {
+        // Fork entry/exit — L-shape routing
+        // Exit horizontally, then turn vertically to reach target
+        const exitSide = dx > 0 ? 'right' : 'left';
+        const entrySide = dx > 0 ? 'left' : 'right';
+        const p1 = pt(from, exitSide);
+        const p2 = pt(to, entrySide);
+        if (!p1 || !p2) continue;
+
+        // Corner X: midpoint between source exit and target entry
+        const gap = 10;
+        const cornerX = dx > 0
+          ? Math.min(p1.x + gap, (p1.x + p2.x) / 2)
+          : Math.max(p1.x - gap, (p1.x + p2.x) / 2);
+
+        pts = [p1, { x: cornerX, y: p1.y }, { x: cornerX, y: p2.y }, p2];
+      }
+    }
+
+    if (pts && pts[0] && pts[pts.length - 1]) {
+      edgePaths.push({ from, to, pts, color });
+    }
+  }
+
+  // ---- Render SVG with markers and paths ----
+  let svgHTML = '<defs>';
+  const usedColors = new Set(edgePaths.map(e => e.color));
+  for (const c of usedColors) {
+    const id = 'arr-' + c.replace('#', '');
+    svgHTML += `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">`;
+    svgHTML += `<path d="M 0 0 L 10 5 L 0 10 z" fill="${c}"/>`;
+    svgHTML += '</marker>';
+  }
+  svgHTML += '</defs>';
+
+  for (const ep of edgePaths) {
+    const { pts, color } = ep;
+    const mid = 'arr-' + color.replace('#', '');
+    const d = smoothPath(pts);
+    svgHTML += `<path class="svg-edge" d="${d}" stroke="${color}" marker-end="url(#${mid})"/>`;
+  }
+
+  svg.innerHTML = svgHTML;
+}
+
+// ===== Full render =====
+function renderAll() {
+  if (document.getElementById('showVisited').checked) {
+    // Mark first few spaces as visited for testing
+    const allSpaces = getAllSpaces();
+    const idx = allSpaces.indexOf(currentSpace);
+    visitedSpaces = new Set(allSpaces.slice(0, Math.max(idx, 1)));
+  } else {
+    visitedSpaces = new Set([currentSpace]);
+  }
+
+  renderTiles();
+  // Use requestAnimationFrame to let layout settle before measuring
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      drawArrows();
+    });
+  });
+}
+
+// ===== Controls =====
+function setupControls() {
+  const spaces = getAllSpaces();
+  const currentSel = document.getElementById('currentSelect');
+  const hoverSel = document.getElementById('hoverSelect');
+  const expandSel = document.getElementById('expandSelect');
+
+  for (const s of spaces) {
+    currentSel.innerHTML += `<option value="${s}">${shortName(s)}</option>`;
+    hoverSel.innerHTML += `<option value="${s}">${shortName(s)}</option>`;
+    expandSel.innerHTML += `<option value="${s}">${shortName(s)}</option>`;
+  }
+
+  currentSel.value = currentSpace;
+
+  currentSel.addEventListener('change', () => {
+    currentSpace = currentSel.value;
+    renderAll();
+  });
+  hoverSel.addEventListener('change', () => {
+    hoveredSpace = hoverSel.value || null;
+    renderAll();
+  });
+  expandSel.addEventListener('change', () => {
+    expandedSpace = expandSel.value || null;
+    renderAll();
+  });
+  document.getElementById('showVisited').addEventListener('change', () => renderAll());
+}
+
+// Redraw on resize
+let resizeTimer;
+new ResizeObserver(() => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderAll, 100);
+}).observe(document.getElementById('map-container'));
+
+// Init
+setupControls();
+renderAll();
+</script>
+</body>
+</html>

@@ -49,8 +49,9 @@ export function CardModal(): JSX.Element | null {
           setCanPlay(false);
         }
       } else {
-        setCardData(null);
-        setCanPlay(false);
+        // Don't clear cardData/canPlay here — ModalBase needs the last-known
+        // content to render during the exit animation (AnimatePresence).
+        // Data is updated next time a CARD modal opens.
       }
     });
 
@@ -69,10 +70,9 @@ export function CardModal(): JSX.Element | null {
     return unsubscribe;
   }, [stateService, dataService, gameRulesService]);
 
-  // Don't render if modal is not active
-  if (!activeModal || activeModal.type !== 'CARD') {
-    return null;
-  }
+  // Compute isOpen — ModalBase's AnimatePresence needs the component in the
+  // tree to play exit animations, so we never return null.
+  const isOpen = activeModal?.type === 'CARD';
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -128,7 +128,7 @@ export function CardModal(): JSX.Element | null {
 
   return (
     <ModalBase
-      isOpen={true}
+      isOpen={isOpen}
       onClose={handleClose}
       title={isFlipped ? "Back" : (cardData?.card_name || "Details")}
       emoji={isFlipped ? theme.emoji.cards : cardEmoji}

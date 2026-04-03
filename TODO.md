@@ -2,7 +2,7 @@
 
 **Last Updated:** March 31, 2026
 **Status:** Pre-Beta — Editor hardening
-**Current Version:** 2.39.2
+**Current Version:** 2.39.3
 
 ---
 
@@ -19,6 +19,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ WebSocket authentication + schema validation — game token auth on WS/HTTP, state structure validation (Apr 2, 2026)
+- ✅ Fix modal exit animations — modals pass computed `isOpen` to ModalBase instead of early-returning null; 9 modals fixed (Apr 2, 2026)
 - ✅ April 2026 audit fixes — process.stderr crash, admin rate limiting, non-root Docker, NTFY exposure, .gitignore, config URL (Apr 2, 2026)
 - ✅ Phase 3 Animation Polish — ModalBase migrated to framer-motion, exit animations, prefers-reduced-motion support (Apr 1, 2026)
 - ✅ Phase 2 Per-Action Narrative — `narrative` column in SPACE_EFFECTS, NarrativeBlock component, 3 modals updated, editor narrative textareas (Apr 1, 2026)
@@ -107,14 +109,14 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 *Source: External code audit (April 2026) — 437 files reviewed*
 
 ### Security (Fix Before Beta)
-- [ ] WebSocket authentication — require player token, validate before allowing state subscriptions
-- [ ] WebSocket state_push schema validation — verify structure before accepting client state
-- [ ] Consolidate money formatting — FinancesSection uses `.toLocaleString()` directly; should use `FormatUtils.formatMoney()` everywhere
+- [x] WebSocket authentication — game token generated on creation, validated on WS connect and HTTP state endpoints (Apr 2, 2026)
+- [x] WebSocket state_push schema validation — validates top-level state structure (players, gamePhase, etc.) on both WS and HTTP push (Apr 2, 2026)
+- [x] Consolidate money formatting — FinancesSection, ProjectLedger, CardDisplay, buttonFormatting, ErrorNotifications now use `FormatUtils.formatMoney()` (Apr 2, 2026)
 
 ### Polish (Fix Before Beta)
 - [ ] Console.log cleanup — ~301 statements in service layer; add debug mode toggle for production
-- [ ] Fix interactive `<div onClick>` → `<button>` in ProjectLedger.tsx + FinancesSection.tsx for accessibility
-- [ ] Replace `any` types in EffectTypes.ts, ServiceContracts.ts with proper interfaces
+- [x] Fix interactive `<div onClick>` → `<button>` in ProjectLedger.tsx for accessibility (FinancesSection already used buttons) (Apr 2, 2026)
+- [x] Replace `any` types in EffectTypes.ts (5), ServiceContracts.ts (6) with proper interfaces — `Record<string, unknown>`, `Player`, `SpaceEffect[]`, `Card`, etc. (Apr 2, 2026)
 
 ### Already Fixed (April 2, 2026)
 - [x] MovementExecutor.ts `process.stderr.write()` → `console.error()` (was crashing in browser)
@@ -128,6 +130,15 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ### Not Bugs (Audit Misread)
 - NegotiationService `acceptOffer`/`declineOffer` — intentional no-ops; negotiation works via Try Again button
 - CardEffectHandler manual card plays — `CardService.playCard()` already calls `applyCardEffects()`; handler skips for manual plays to avoid double-processing
+
+---
+
+## 🐛 **Bug Reports from Feedback Dashboard** (April 2, 2026)
+*Source: Production feedback reports — 3 new items from 5 reviewed (2 already fixed in v2.36.4)*
+
+- [x] Modal exit animations not visible — Fixed: modals no longer `return null` before ModalBase; instead pass computed `isOpen` prop so AnimatePresence can animate exit (fb1, Apr 2)
+- [ ] Editor UX for per-action narrative unclear — user couldn't find where to edit modal-specific stories. The "+ narrative" expand button below each card action may not be discoverable enough. Consider always-visible textarea or better labelling (fb2, Apr 2)
+- [ ] Player reports not receiving money — "I didn't get money" with no further details. Needs investigation next time it reproduces; no game state available in report (fb3, Mar 29)
 
 ---
 

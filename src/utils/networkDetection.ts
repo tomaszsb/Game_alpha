@@ -15,6 +15,15 @@ export function getCurrentGameId(): string | undefined {
 }
 
 /**
+ * Get the current game token from URL parameters
+ * @returns Game token if present, undefined otherwise
+ */
+export function getCurrentGameToken(): string | undefined {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('token') || undefined;
+}
+
+/**
  * Get the current server URL using the actual network address
  * This ensures QR codes work from other devices on the same network
  *
@@ -49,6 +58,12 @@ export function getServerURL(playerId?: string, shortId?: string, gameId?: strin
   const effectiveGameId = gameId || getCurrentGameId();
   if (effectiveGameId) {
     params.set('g', effectiveGameId);
+  }
+
+  // Include game token for authentication
+  const token = getCurrentGameToken();
+  if (token) {
+    params.set('token', token);
   }
 
   // Add player parameter (prefer shortId if available)

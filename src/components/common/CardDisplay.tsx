@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Card } from '../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
+import { FormatUtils } from '../../utils/FormatUtils';
 import './CardDisplay.css';
 
 /**
@@ -169,7 +170,7 @@ export function CardDisplay({
             <div className="card-display__detail-row">
               <span className="card-display__detail-label">Cost:</span>
               <span className="card-display__detail-value">
-                ${Number(card.work_cost).toLocaleString()}
+                {FormatUtils.formatMoney(Number(card.work_cost), { compact: false })}
               </span>
             </div>
           )}

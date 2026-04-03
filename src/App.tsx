@@ -242,9 +242,13 @@ export function App(): JSX.Element {
 
   // If no game ID, show lobby (handles mode selection, create, join, browse)
   if (!gameId) {
-    const handleJoinGame = (selectedGameId: string, mode?: 'tv') => {
+    const handleJoinGame = (selectedGameId: string, mode?: 'tv', token?: string) => {
       const url = new URL(window.location.href);
       url.searchParams.set('g', selectedGameId);
+
+      if (token) {
+        url.searchParams.set('token', token);
+      }
 
       if (mode === 'tv') {
         url.searchParams.set('mode', 'tv');

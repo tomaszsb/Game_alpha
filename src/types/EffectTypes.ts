@@ -175,8 +175,8 @@ export type Effect =
         context: {
           description: string;
           requiresAgreement: boolean;
-          offerData?: any;
-          requestData?: any;
+          offerData?: Record<string, unknown>;
+          requestData?: Record<string, unknown>;
         };
         source?: string;
       };
@@ -187,7 +187,7 @@ export type Effect =
         respondingPlayerId: string;
         negotiationId: string;
         response: 'ACCEPT' | 'DECLINE' | 'COUNTER_OFFER';
-        responseData?: any;
+        responseData?: Record<string, unknown>;
         source?: string;
       };
     }
@@ -197,7 +197,7 @@ export type Effect =
         requesterPlayerId: string;
         targetPlayerIds: string[];
         agreementType: 'CARD_TRANSFER' | 'RESOURCE_SHARE' | 'JOINT_ACTION' | 'PROTECTION_DEAL';
-        agreementData: any;
+        agreementData: Record<string, unknown>;
         prompt: string;
         source?: string;
       };
@@ -232,7 +232,7 @@ export interface EffectContext {
   playerId?: string;
   triggerEvent?: 'CARD_PLAY' | 'SPACE_ENTRY' | 'SPACE_EXIT' | 'DICE_ROLL' | 'TURN_START' | 'TURN_END' | 'ACTIVE_EFFECT';
   diceRoll?: number; // Required for CONDITIONAL_EFFECT processing
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -248,7 +248,7 @@ export interface EffectResult {
   resultingEffects?: Effect[];  // Some effects may trigger additional effects
   data?: {
     cardIds?: string[];  // IDs of cards that were drawn, removed, or affected
-    [key: string]: any;  // Allow for other effect-specific data
+    [key: string]: unknown;  // Allow for other effect-specific data
   };
 }
 

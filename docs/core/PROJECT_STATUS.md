@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: April 1, 2026
-**Current Phase**: Pre-Beta — Audit Fixes (v2.39.2)
-**Current Version**: 2.39.2
+**Last Updated**: April 2, 2026
+**Current Phase**: Pre-Beta — Bug Fixes (v2.39.3)
+**Current Version**: 2.39.3
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### WebSocket Auth + Schema Validation + Polish (April 2, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.39.3
+- **Changes**: Game token authentication on WebSocket connections and HTTP state endpoints. State_push schema validation (both WS and HTTP). Fixed modal exit animations (9 modals). Consolidated money formatting to FormatUtils across 5 UI files. div→button accessibility fix in ProjectLedger. Replaced all `any` types in EffectTypes.ts + ServiceContracts.ts with proper interfaces. All "Fix Before Beta" security and polish items now resolved except console.log cleanup.
 
 ### April 2026 Audit Fixes (April 2, 2026) ✅
 - **Status**: ✅ Complete (critical/high items)

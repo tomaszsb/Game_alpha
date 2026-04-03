@@ -82,13 +82,8 @@ export function ChoiceModal(): JSX.Element {
     }
   };
 
-  // Don't render if no choice is awaiting or if it's a MOVEMENT choice (handled by TurnControls)
-  if (!awaitingChoice || awaitingChoice.type === 'MOVEMENT') {
-    return <></>;
-  }
-
-  // Handle all card choice types with the unified CardReplacementModal
-  if (awaitingChoice.type === 'CARD_REPLACEMENT' || awaitingChoice.type === 'CARD_SELECTION' || awaitingChoice.type === 'CARD_GIVE') {
+  // Card choice types get their own modal (separate AnimatePresence lifecycle)
+  if (awaitingChoice && isCardChoiceType) {
     const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
     const mode = awaitingChoice.type === 'CARD_REPLACEMENT' ? 'replace'
       : awaitingChoice.type === 'CARD_SELECTION' ? 'return'
@@ -133,10 +128,8 @@ export function ChoiceModal(): JSX.Element {
     );
   }
 
-  // Get contextual help text based on choice type
-  const getHelpText = () => {
-    return 'Make your selection to continue.';
-  };
+  // Compute isOpen — always render ModalBase so AnimatePresence can play exit animations
+  const isRegularChoice = !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && !isCardChoiceType;
 
   const choiceButtonStyle: React.CSSProperties = {
     ...modalButtonStyles.primary,
@@ -150,7 +143,7 @@ export function ChoiceModal(): JSX.Element {
 
   return (
     <ModalBase
-      isOpen={true}
+      isOpen={isRegularChoice}
       onClose={() => {}}
       title="Make Your Choice"
       emoji={theme.emoji.target}
@@ -162,7 +155,7 @@ export function ChoiceModal(): JSX.Element {
       {currentSpace && <CharacterBadge spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />}
 
       {/* Per-action narrative (if available for the choice's source effect) */}
-      {currentSpace && awaitingChoice.metadata?.effectAction && (() => {
+      {currentSpace && awaitingChoice?.metadata?.effectAction && (() => {
         const narrative = dataService.getEffectNarrative(
           currentSpace, 'First', awaitingChoice.metadata.effectAction as string
         );
@@ -171,18 +164,20 @@ export function ChoiceModal(): JSX.Element {
       })()}
 
       {/* Prompt */}
-      <p style={{
-        margin: '0 0 20px 0',
-        color: colors.text.secondary,
-        fontSize: '16px',
-        textAlign: 'center',
-      }}>
-        <strong>{currentPlayerName}:</strong> {awaitingChoice.prompt}
-      </p>
+      {awaitingChoice && (
+        <p style={{
+          margin: '0 0 20px 0',
+          color: colors.text.secondary,
+          fontSize: '16px',
+          textAlign: 'center',
+        }}>
+          <strong>{currentPlayerName}:</strong> {awaitingChoice.prompt}
+        </p>
+      )}
 
       {/* Choice Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {awaitingChoice.options.map((option) => {
+        {awaitingChoice?.options.map((option) => {
           const choiceTooltip = awaitingChoice.type === 'MOVEMENT'
             ? getMovementChoiceTooltip(option.id)
             : { tooltip: option.label, context: '' };
@@ -222,7 +217,7 @@ export function ChoiceModal(): JSX.Element {
           color: colors.secondary.main,
           textAlign: 'center'
         }}>
-          {theme.emoji.info} {getHelpText()}
+          {theme.emoji.info} Make your selection to continue.
         </p>
       </div>
     </ModalBase>

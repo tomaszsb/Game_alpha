@@ -40,11 +40,6 @@ export function EndGameModal(): JSX.Element {
     window.location.href = window.location.origin + window.location.pathname;
   };
 
-  // Don't render if game is not over or there's no winner
-  if (!isGameOver || !winnerName) {
-    return <></>;
-  }
-
   const footer = (
     <button
       onClick={handlePlayAgain}
@@ -67,7 +62,7 @@ export function EndGameModal(): JSX.Element {
 
   return (
     <ModalBase
-      isOpen={true}
+      isOpen={isGameOver && !!winnerName}
       onClose={handlePlayAgain}
       title="Game Complete!"
       emoji={theme.emoji.celebration}

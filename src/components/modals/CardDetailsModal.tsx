@@ -83,10 +83,6 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   // Show loading state if card data is not available
   if (!card) {
     return (

@@ -1,13 +1,16 @@
 // server/websocket.js
 // WebSocket module for real-time game state synchronization
 // Provides sub-100ms updates for TV displays and instant turn notifications
+// Authentication: requires valid game token on connect and for state_push
+// Schema validation: validates state_push payload structure before accepting
 
 import { WebSocketServer } from 'ws';
+import crypto from 'crypto';
 
 // Room management: gameId -> Set<WebSocket>
 const rooms = new Map();
 
-// Client tracking: WebSocket -> { gameId, playerId }
+// Client tracking: WebSocket -> { gameId, playerId, authenticated }
 const clients = new Map();
 
 // Message types
@@ -24,17 +27,39 @@ export function initializeWebSocket(server, games) {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
   wss.on('connection', (ws, req) => {
-    // Parse gameId from query string: ws://server/ws?gameId=G1
+    // Parse connection params: ws://server/ws?gameId=G1&playerId=P1&token=abc123
     const url = new URL(req.url, `http://${req.headers.host}`);
     const gameId = url.searchParams.get('gameId');
     const playerId = url.searchParams.get('playerId') || null;
+    const token = url.searchParams.get('token') || null;
 
     console.log(`🔌 WebSocket connected: gameId=${gameId}, playerId=${playerId}`);
 
-    // Track this client
-    clients.set(ws, { gameId: null, playerId });
+    // Validate token if gameId is provided
+    let authenticated = false;
+    if (gameId && token) {
+      const game = games.get(gameId);
+      if (game) {
+        // Auto-generate token for legacy games
+        if (!game.token) {
+          game.token = crypto.randomBytes(8).toString('hex');
+          console.log(`🔑 Auto-generated token for legacy game ${gameId}`);
+        }
+        authenticated = (token === game.token);
+      }
+    }
 
-    // Auto-subscribe if gameId provided in URL
+    if (gameId && !authenticated) {
+      console.warn(`🔒 WebSocket auth failed: gameId=${gameId}`);
+      sendError(ws, 'Authentication failed: invalid or missing game token');
+      ws.close(4001, 'Authentication failed');
+      return;
+    }
+
+    // Track this client
+    clients.set(ws, { gameId: null, playerId, authenticated });
+
+    // Auto-subscribe if gameId provided in URL (already authenticated)
     if (gameId) {
       subscribeToGame(ws, gameId);
     }
@@ -172,6 +197,29 @@ function sendCurrentState(ws, gameId, games) {
 }
 
 /**
+ * Validate top-level structure of a game state payload.
+ * Returns null if valid, or an error string describing the first issue found.
+ */
+export function validateStateSchema(state) {
+  if (!state || typeof state !== 'object') return 'state must be an object';
+  if (!Array.isArray(state.players)) return 'state.players must be an array';
+  if (typeof state.gamePhase !== 'string') return 'state.gamePhase must be a string';
+  if (state.currentPlayerId !== null && typeof state.currentPlayerId !== 'string')
+    return 'state.currentPlayerId must be string or null';
+  if (typeof state.gameRound !== 'number') return 'state.gameRound must be a number';
+  if (typeof state.isGameOver !== 'boolean') return 'state.isGameOver must be a boolean';
+  // Validate each player has required fields
+  for (let i = 0; i < state.players.length; i++) {
+    const p = state.players[i];
+    if (!p || typeof p !== 'object') return `state.players[${i}] must be an object`;
+    if (typeof p.id !== 'string') return `state.players[${i}].id must be a string`;
+    if (typeof p.name !== 'string') return `state.players[${i}].name must be a string`;
+    if (typeof p.money !== 'number') return `state.players[${i}].money must be a number`;
+  }
+  return null; // valid
+}
+
+/**
  * Handle state push from client (not typically used - HTTP POST preferred for reliability)
  */
 function handleStatePush(ws, gameId, payload, games) {
@@ -180,9 +228,24 @@ function handleStatePush(ws, gameId, payload, games) {
     return;
   }
 
+  // Verify client is authenticated for this game
+  const clientInfo = clients.get(ws);
+  if (!clientInfo?.authenticated) {
+    sendError(ws, 'Authentication required for state_push');
+    return;
+  }
+
   const game = games.get(gameId);
   if (!game) {
     sendError(ws, `Game ${gameId} not found`);
+    return;
+  }
+
+  // Schema validation
+  const schemaError = validateStateSchema(payload.state);
+  if (schemaError) {
+    console.warn(`⚠️ [${gameId}] state_push schema validation failed: ${schemaError}`);
+    sendError(ws, `Invalid state: ${schemaError}`);
     return;
   }
 

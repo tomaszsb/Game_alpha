@@ -245,10 +245,7 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
     };
   }, [player, playerId, gameServices]);
 
-  const fmt = (n: number) => {
-    if (Math.abs(n) >= 1000) return `$${(n / 1000).toFixed(0)}k`;
-    return `$${n.toLocaleString()}`;
-  };
+  const fmt = (n: number) => FormatUtils.formatMoney(n);
 
   const pct = (actual: number, budget: number) => {
     if (budget <= 0) return 0;
@@ -262,10 +259,12 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
 
     return (
       <div key={cat.id} className={`ledger-category ${cat.colorClass}`}>
-        <div
+        <button
           className="ledger-cat-header"
           onClick={() => hasItems && toggleCategory(cat.id)}
           style={{ cursor: hasItems ? 'pointer' : 'default' }}
+          aria-expanded={isExpanded}
+          aria-label={`${cat.name} category${hasItems ? '' : ' (empty)'}`}
         >
           <span className="ledger-cat-title">
             {hasItems && <span className="ledger-cat-arrow">{isExpanded ? '▼' : '▶'}</span>}
@@ -274,7 +273,7 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
           </span>
           <span className="ledger-cat-budget">{fmt(cat.budget)}</span>
           <span className="ledger-cat-actual">{fmt(cat.actual)}</span>
-        </div>
+        </button>
         <div className="ledger-cat-progress">
           <div
             className="ledger-cat-progress-fill"

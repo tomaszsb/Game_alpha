@@ -20,7 +20,7 @@ interface GameInfo {
 }
 
 interface GameLobbyProps {
-  onJoinGame: (gameId: string, mode?: 'tv') => void;
+  onJoinGame: (gameId: string, mode?: 'tv', token?: string) => void;
 }
 
 export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
@@ -141,7 +141,7 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
 
       if (response.ok) {
         const data = await response.json();
-        onJoinGame(data.gameId, selectedMode === 'tv' ? 'tv' : undefined);
+        onJoinGame(data.gameId, selectedMode === 'tv' ? 'tv' : undefined, data.token);
       } else {
         setError('Failed to create game. Try again.');
       }

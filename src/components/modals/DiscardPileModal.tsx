@@ -25,8 +25,6 @@ export function DiscardPileModal({ isOpen, onClose, onOpenCardDetailsModal }: Di
   const [filterType, setFilterType] = useState<'all' | 'W' | 'B' | 'E' | 'L' | 'I'>('all');
   const [sortBy, setSortBy] = useState<'type' | 'name' | 'turn'>('turn');
 
-  if (!isOpen) return null;
-
   const gameState = stateService.getGameState();
   const discardPiles = gameState.discardPiles || {};
 

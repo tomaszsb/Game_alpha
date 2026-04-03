@@ -40,8 +40,6 @@ export function SpaceInfoModal({
   const ttsText = getTtsText(content?.tts_field, content);
   const speechControls = useModalSpeech(ttsText, spaceName, isOpen);
 
-  if (!isOpen) return null;
-
   const sectionStyle: React.CSSProperties = {
     marginBottom: '20px',
   };

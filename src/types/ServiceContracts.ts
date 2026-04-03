@@ -26,7 +26,7 @@ export enum LogLevel {
 }
 
 export interface LogPayload {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ILoggingService {
@@ -207,7 +207,7 @@ export interface IStateService {
   resetGame(): GameState;
   
   // Negotiation management methods
-  updateNegotiationState(negotiationState: any): GameState;
+  updateNegotiationState(negotiationState: NegotiationState | null): GameState;
 
   // Utility methods
   fixPlayerStartingSpaces(): GameState;
@@ -354,7 +354,7 @@ export interface ITurnService {
   handleAutomaticFunding(playerId: string): Promise<import('./StateTypes').TurnEffectResult>;
 
   // Condition filtering for UI components (with optional dice roll for dice-dependent conditions)
-  filterSpaceEffectsByCondition(spaceEffects: any[], player: any, diceRoll?: number): any[];
+  filterSpaceEffectsByCondition(spaceEffects: SpaceEffect[], player: Player, diceRoll?: number): SpaceEffect[];
 }
 
 export interface ICardService {
@@ -554,7 +554,7 @@ export interface IEffectEngineService {
   processActiveEffectsForAllPlayers(): Promise<void>;
 
   // Card-specific processing with targeting support
-  processCardEffects(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult>;
+  processCardEffects(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult>;
 
   // Validation methods
   validateEffect(effect: Effect, context: EffectContext): boolean;
@@ -569,8 +569,8 @@ export interface ITargetingService {
 
 export interface INegotiationService {
   // Core negotiation methods
-  initiateNegotiation(playerId: string, context: any): Promise<NegotiationResult>;
-  makeOffer(playerId: string, offer: any): Promise<NegotiationResult>;
+  initiateNegotiation(playerId: string, context: Record<string, unknown>): Promise<NegotiationResult>;
+  makeOffer(playerId: string, offer: { cards?: string[] }): Promise<NegotiationResult>;
   acceptOffer(playerId: string): Promise<NegotiationResult>;
   declineOffer(playerId: string): Promise<NegotiationResult>;
 

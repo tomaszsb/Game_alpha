@@ -1,0 +1,194 @@
+// src/utils/networkDetection.ts
+
+/**
+ * Network detection utilities for multi-device support
+ * Handles URL generation for QR codes and server communication
+ */
+
+/**
+ * Get the current game ID from URL parameters
+ * @returns Game ID if present, undefined otherwise
+ */
+export function getCurrentGameId(): string | undefined {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('g') || undefined;
+}
+
+/**
+ * Get the current server URL using the actual network address
+ * This ensures QR codes work from other devices on the same network
+ *
+ * @param playerId Optional player ID or short ID to include in URL
+ * @param shortId Optional short ID to use for URL (e.g., "P1" instead of full ID)
+ * @param gameId Optional game ID to include in URL (e.g., "G1")
+ * @returns Full URL to access the app (with optional player and game parameters)
+ *
+ * @example
+ * getServerURL()
+ * // => "http://192.168.1.100:3000"
+ *
+ * getServerURL("player_123", "P1", "G1")
+ * // => "http://192.168.1.100:3000?g=G1&p=P1"
+ */
+export function getServerURL(playerId?: string, shortId?: string, gameId?: string): string {
+  // Use window.location to get the actual hostname and port
+  // This will be the network IP when running with `npm run dev -- --host`
+  const protocol = window.location.protocol; // http: or https:
+  const hostname = window.location.hostname; // 192.168.x.x or localhost
+  const port = window.location.port; // 3000 (or empty for default ports)
+
+  // Build base URL
+  const baseURL = port
+    ? `${protocol}//${hostname}:${port}`
+    : `${protocol}//${hostname}`;
+
+  // Build query parameters
+  const params = new URLSearchParams();
+
+  // Use game ID from parameter or current URL
+  const effectiveGameId = gameId || getCurrentGameId();
+  if (effectiveGameId) {
+    params.set('g', effectiveGameId);
+  }
+
+  // Add player parameter (prefer shortId if available)
+  if (shortId) {
+    params.set('p', shortId);
+  } else if (playerId) {
+    params.set('playerId', playerId);
+  }
+
+  const queryString = params.toString();
+  return queryString ? `${baseURL}?${queryString}` : baseURL;
+}
+
+/**
+ * Get the API path for game state, supporting both multi-game and legacy modes
+ * @param gameId Optional game ID
+ * @returns API path (e.g., "/api/games/G1/state" or "/api/gamestate")
+ */
+export function getGameStateAPIPath(gameId?: string): string {
+  const effectiveGameId = gameId || getCurrentGameId();
+  if (effectiveGameId) {
+    return `/api/games/${effectiveGameId}/state`;
+  }
+  return '/api/gamestate';
+}
+
+/**
+ * Get the backend server URL for API calls
+ * Backend typically runs on port 3001, but may use a different port if 3001 is taken
+ * This function will try to detect the actual backend port
+ *
+ * Priority:
+ * 1. Environment variable VITE_SERVER_URL (production)
+ * 2. Same origin if not on standard dev ports (production single-port mode)
+ * 3. Auto-detect based on frontend port (development)
+ *
+ * @returns Backend server URL
+ *
+ * @example
+ * getBackendURL()
+ * // => "http://192.168.1.100:3001" (dev) or "" (same-origin production)
+ */
+export function getBackendURL(): string {
+  // 1. Check environment variable first (production)
+  if (import.meta.env.VITE_SERVER_URL) {
+    return import.meta.env.VITE_SERVER_URL as string;
+  }
+
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const frontendPort = parseInt(window.location.port || '80');
+
+  // 2. If not on standard dev ports (3000, 5173), assume single-port production mode
+  //    Return empty string to use same-origin (relative URLs)
+  if (frontendPort !== 3000 && frontendPort !== 5173) {
+    // Production: Express serves both frontend and API on same port
+    // Use same-origin (empty string) for relative URLs - works with any port including default 80/443
+    return '';
+  }
+
+  // 3. Auto-detect for development (frontend=3000/5173, backend=+1)
+  const backendPort = frontendPort + 1;
+
+  return `${protocol}//${hostname}:${backendPort}`;
+}
+
+/**
+ * Detect the actual backend port by trying common ports
+ * Call this once at app startup and cache the result
+ *
+ * @returns Promise that resolves to the backend URL
+ */
+export async function detectBackendURL(): Promise<string> {
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const frontendPort = parseInt(window.location.port || '80');
+
+  // Ports to try in order of likelihood
+  const portsToTry = [
+    frontendPort + 1,  // Most likely: frontend + 1
+    3001,              // Default backend port
+    frontendPort + 2,  // If frontend is on 3001, backend might be on 3002
+    3002,              // Backend's second choice
+    3003               // Backend's third choice
+  ];
+
+  // Remove duplicates
+  const uniquePorts = [...new Set(portsToTry)];
+
+  for (const port of uniquePorts) {
+    const url = `${protocol}//${hostname}:${port}`;
+    try {
+      const response = await fetch(`${url}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(1000) // 1 second timeout
+      });
+
+      if (response.ok) {
+        console.log(`✅ Detected backend server at ${url}`);
+        return url;
+      }
+    } catch (e) {
+      // Port didn't respond, try next one
+      continue;
+    }
+  }
+
+  // Fallback to best guess if detection failed
+  console.warn('⚠️  Could not detect backend server, using default');
+  return `${protocol}//${hostname}:${frontendPort + 1}`;
+}
+
+/**
+ * Check if the app is running on localhost vs network
+ * Useful for debugging and showing warnings
+ *
+ * @returns true if running on localhost, false if on network IP
+ */
+export function isLocalhost(): boolean {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+/**
+ * Get a user-friendly network address for display
+ * Shows a warning if running on localhost (QR codes won't work from other devices)
+ *
+ * @returns Object with address and warning message
+ */
+export function getNetworkInfo(): { address: string; isLocalhost: boolean; warning?: string } {
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+  const address = port ? `${hostname}:${port}` : hostname;
+  const localhost = isLocalhost();
+
+  return {
+    address,
+    isLocalhost: localhost,
+    warning: localhost
+      ? 'Running on localhost - QR codes will only work on this device. Run with `npm run dev -- --host` to enable network access.'
+      : undefined
+  };
+}

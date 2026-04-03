@@ -68,6 +68,12 @@
   grid-template-columns: 1.5fr 1fr 1fr;
   align-items: center;
   padding: 10px 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
 }
 
 .ledger-cat-title {

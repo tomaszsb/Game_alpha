@@ -1,5 +1,7 @@
 // src/utils/ErrorNotifications.ts
 
+import { FormatUtils } from './FormatUtils';
+
 /**
  * ErrorNotifications Utility
  *
@@ -22,8 +24,8 @@ export const ErrorNotifications = {
    */
   insufficientFunds: (required: number, available: number): ErrorMessage => ({
     short: '❌ Not enough money',
-    medium: `Need $${required.toLocaleString()}, have $${available.toLocaleString()}`,
-    detailed: `Cannot complete action. Required: $${required.toLocaleString()}, Available: $${available.toLocaleString()}. Consider drawing funding cards or taking a loan.`
+    medium: `Need ${FormatUtils.formatMoney(required, { compact: false })}, have ${FormatUtils.formatMoney(available, { compact: false })}`,
+    detailed: `Cannot complete action. Required: ${FormatUtils.formatMoney(required, { compact: false })}, Available: ${FormatUtils.formatMoney(available, { compact: false })}. Consider drawing funding cards or taking a loan.`
   }),
 
   /**

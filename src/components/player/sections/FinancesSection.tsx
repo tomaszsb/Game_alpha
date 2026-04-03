@@ -4,7 +4,11 @@ import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { CardDisplay } from '../../common/CardDisplay';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
+import { FormatUtils } from '../../../utils/FormatUtils';
 import './FinancesSection.css';
+
+/** Format money consistently using FormatUtils (full dollars, no abbreviation) */
+const fmt = (n: number) => FormatUtils.formatMoney(n, { compact: false });
 
 /**
  * Props for the FinancesSection component
@@ -438,7 +442,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
         color: financialMetrics.projectScope > 0 ? moneyVsScopeColor : 'inherit',
         fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : 'normal'
       }}>
-        {financialMetrics.projectScope > 0 && moneyVsScopeIcon} Cash: ${financialMetrics.cashOnHand.toLocaleString()}
+        {financialMetrics.projectScope > 0 && moneyVsScopeIcon} Cash: {fmt(financialMetrics.cashOnHand)}
       </span>
       {financialMetrics.projectScope > 0 && (
         <span style={{
@@ -472,11 +476,11 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
             <div className="stat-grid">
               <div className="stat-item">
                 <span className="stat-label">Project Scope</span>
-                <span className="stat-value">${financialMetrics.projectScope.toLocaleString()}</span>
+                <span className="stat-value">{fmt(financialMetrics.projectScope)}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Total Budget</span>
-                <span className="stat-value">${financialMetrics.totalBudget.toLocaleString()}</span>
+                <span className="stat-value">{fmt(financialMetrics.totalBudget)}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Cash on Hand</span>
@@ -487,7 +491,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                     fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : undefined
                   }}
                 >
-                  {financialMetrics.projectScope > 0 && moneyVsScopeIcon} ${financialMetrics.cashOnHand.toLocaleString()}
+                  {financialMetrics.projectScope > 0 && moneyVsScopeIcon} {fmt(financialMetrics.cashOnHand)}
                 </span>
               </div>
             </div>
@@ -499,10 +503,10 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
             <div className="financial-section">
               <h3 className="section-heading">💸 Expenditures</h3>
               <div className="stat-list">
-                <div className="stat-item"><span className="stat-label">Design</span><span className="stat-value">${expenditures.design.toLocaleString()}</span></div>
-                <div className="stat-item"><span className="stat-label">Fees</span><span className="stat-value">${expenditures.fees.toLocaleString()}</span></div>
-                <div className="stat-item"><span className="stat-label">Construction</span><span className="stat-value">${expenditures.construction.toLocaleString()}</span></div>
-                <div className="stat-item stat-total"><span className="stat-label">Total Spent</span><span className="stat-value">${financialMetrics.totalExpenditures.toLocaleString()}</span></div>
+                <div className="stat-item"><span className="stat-label">Design</span><span className="stat-value">{fmt(expenditures.design)}</span></div>
+                <div className="stat-item"><span className="stat-label">Fees</span><span className="stat-value">{fmt(expenditures.fees)}</span></div>
+                <div className="stat-item"><span className="stat-label">Construction</span><span className="stat-value">{fmt(expenditures.construction)}</span></div>
+                <div className="stat-item stat-total"><span className="stat-label">Total Spent</span><span className="stat-value">{fmt(financialMetrics.totalExpenditures)}</span></div>
               </div>
             </div>
           )}
@@ -518,7 +522,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                 <div className="stat-item">
                   <span className="stat-label">Budget Variance</span>
                   <span className={`stat-value ${financialMetrics.budgetVariance < 0 ? 'stat-negative' : 'stat-positive'}`}>
-                    ${Math.abs(financialMetrics.budgetVariance).toLocaleString()}{financialMetrics.budgetVariance >= 0 ? ' under' : ' over'}
+                    {fmt(Math.abs(financialMetrics.budgetVariance))}{financialMetrics.budgetVariance >= 0 ? ' under' : ' over'}
                   </span>
                 </div>
               </div>
@@ -564,11 +568,11 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
           <div className="stat-grid">
             <div className="stat-item">
               <span className="stat-label">Project Scope</span>
-              <span className="stat-value">${financialMetrics.projectScope.toLocaleString()}</span>
+              <span className="stat-value">{fmt(financialMetrics.projectScope)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Total Budget</span>
-              <span className="stat-value">${financialMetrics.totalBudget.toLocaleString()}</span>
+              <span className="stat-value">{fmt(financialMetrics.totalBudget)}</span>
             </div>
             <div className="stat-item">
               <span className="stat-label">Cash on Hand</span>
@@ -579,7 +583,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                   fontWeight: financialMetrics.projectScope > 0 && financialMetrics.cashOnHand < financialMetrics.projectScope ? 'bold' : undefined
                 }}
               >
-                {financialMetrics.projectScope > 0 && moneyVsScopeIcon} ${financialMetrics.cashOnHand.toLocaleString()}
+                {financialMetrics.projectScope > 0 && moneyVsScopeIcon} {fmt(financialMetrics.cashOnHand)}
               </span>
             </div>
           </div>
@@ -595,19 +599,19 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
             <div className="stat-list">
               <div className="stat-item">
                 <span className="stat-label">Design</span>
-                <span className="stat-value">${expenditures.design.toLocaleString()}</span>
+                <span className="stat-value">{fmt(expenditures.design)}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Fees</span>
-                <span className="stat-value">${expenditures.fees.toLocaleString()}</span>
+                <span className="stat-value">{fmt(expenditures.fees)}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Construction</span>
-                <span className="stat-value">${expenditures.construction.toLocaleString()}</span>
+                <span className="stat-value">{fmt(expenditures.construction)}</span>
               </div>
               <div className="stat-item stat-total">
                 <span className="stat-label">Total Spent</span>
-                <span className="stat-value">${financialMetrics.totalExpenditures.toLocaleString()}</span>
+                <span className="stat-value">{fmt(financialMetrics.totalExpenditures)}</span>
               </div>
             </div>
           </div>
@@ -629,14 +633,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('bank-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Bank Fees</span>
                     </span>
-                    <span className="category-amount">${player.costs.bank.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.bank)}</span>
                   </button>
                   {expandedSources.has('bank-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'bank').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -655,14 +659,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('investor-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Investor Fees</span>
                     </span>
-                    <span className="category-amount">${player.costs.investor.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.investor)}</span>
                   </button>
                   {expandedSources.has('investor-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'investor').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -681,14 +685,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('expeditor-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Expeditor Fees</span>
                     </span>
-                    <span className="category-amount">${player.costs.expeditor.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.expeditor)}</span>
                   </button>
                   {expandedSources.has('expeditor-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'expeditor').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -707,14 +711,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('architectural-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Architectural Fees</span>
                     </span>
-                    <span className="category-amount">${player.costs.architectural.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.architectural)}</span>
                   </button>
                   {expandedSources.has('architectural-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'architectural').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -733,14 +737,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('engineering-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Engineering Fees</span>
                     </span>
-                    <span className="category-amount">${player.costs.engineering.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.engineering)}</span>
                   </button>
                   {expandedSources.has('engineering-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'engineering').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -759,14 +763,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('regulatory-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Regulatory Fees</span>
                     </span>
-                    <span className="category-amount">${player.costs.regulatory.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.regulatory)}</span>
                   </button>
                   {expandedSources.has('regulatory-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'regulatory').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -785,14 +789,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="expand-icon">{expandedSources.has('miscellaneous-costs') ? '▼' : '▶'}</span>
                       <span className="category-name">Miscellaneous</span>
                     </span>
-                    <span className="category-amount">${player.costs.miscellaneous.toLocaleString()}</span>
+                    <span className="category-amount">{fmt(player.costs.miscellaneous)}</span>
                   </button>
                   {expandedSources.has('miscellaneous-costs') && (
                     <div className="cost-details">
                       {player.costHistory?.filter(c => c.category === 'miscellaneous').map((cost, idx) => (
                         <div key={idx} className="cost-entry">
                           <span className="cost-description">{cost.description}</span>
-                          <span className="cost-amount">${cost.amount.toLocaleString()}</span>
+                          <span className="cost-amount">{fmt(cost.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -803,7 +807,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
               {/* Total Costs */}
               <div className="stat-item stat-total">
                 <span className="stat-label">Total Costs</span>
-                <span className="stat-value">${player.costs.total.toLocaleString()}</span>
+                <span className="stat-value">{fmt(player.costs.total)}</span>
               </div>
             </div>
           </div>
@@ -829,7 +833,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
               <div className="stat-item">
                 <span className="stat-label">Budget Variance</span>
                 <span className={`stat-value ${financialMetrics.budgetVariance < 0 ? 'stat-negative' : 'stat-positive'}`}>
-                  ${Math.abs(financialMetrics.budgetVariance).toLocaleString()}
+                  {fmt(Math.abs(financialMetrics.budgetVariance))}
                   {financialMetrics.budgetVariance >= 0 ? ' under' : ' over'}
                 </span>
               </div>
@@ -860,7 +864,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
                       <span className="source-name">{source.name}</span>
                     </span>
                     {source.amount > 0 && (
-                      <span className="source-amount">${source.amount.toLocaleString()}</span>
+                      <span className="source-amount">{fmt(source.amount)}</span>
                     )}
                   </button>
                   {isExpanded && (

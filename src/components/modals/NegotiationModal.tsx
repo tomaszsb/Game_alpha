@@ -228,8 +228,13 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     }
   }, [isOpen, negotiation]);
 
-  if (!isOpen || !currentPlayer) {
-    return null;
+  // When player is unavailable, render closed ModalBase for exit animation
+  if (!currentPlayer) {
+    return (
+      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="negotiation-modal">
+        {null}
+      </ModalBase>
+    );
   }
 
   // Show loading state if negotiation hasn't been initialized yet

@@ -1,0 +1,292 @@
+import React, { useState } from 'react';
+import { colors, theme } from '../../styles/theme';
+import { Player, CardType } from '../../types/DataTypes';
+import { Card } from '../../types/DataTypes';
+import { useGameContext } from '../../context/GameContext';
+import { FormatUtils } from '../../utils/FormatUtils';
+import { CardDisplay } from '../common/CardDisplay';
+import { ModalBase, modalButtonStyles } from './shared/ModalBase';
+import { CardDetailsModal } from './CardDetailsModal';
+import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import '../common/CardDisplay.css';
+
+type CardSelectionMode = 'replace' | 'return' | 'give';
+
+interface CardReplacementModalProps {
+  isOpen: boolean;
+  player: Player | null;
+  cardType: CardType;
+  maxReplacements: number;
+  newCardType?: CardType; // The type of card the player will receive
+  mode?: CardSelectionMode; // Defaults to 'replace' for backwards compatibility
+  targetPlayerName?: string; // For 'give' mode — who receives the card
+  onReplace: (selectedCardIds: string[], newCardType: CardType) => void;
+  onCancel: () => void;
+}
+
+/**
+ * CardReplacementModal allows players to select which cards to replace
+ * Uses ModalBase for consistent styling and mobile-friendly design
+ */
+export function CardReplacementModal({
+  isOpen,
+  player,
+  cardType,
+  maxReplacements,
+  newCardType,
+  mode = 'replace',
+  targetPlayerName,
+  onReplace,
+  onCancel
+}: CardReplacementModalProps): JSX.Element | null {
+  const { dataService, stateService, cardService } = useGameContext();
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [detailCardId, setDetailCardId] = useState<string | null>(null);
+
+  // Replacement card type is always the same as the current type (or newCardType if specified)
+  const replacementCardType = newCardType || cardType;
+
+  if (!isOpen || !player) {
+    return null;
+  }
+
+  const availableCards = player.hand.filter(cardId => cardId.startsWith(cardType));
+  const canReplace = selectedCardIds.length > 0 && selectedCardIds.length <= maxReplacements;
+
+  const handleCardToggle = (cardId: string) => {
+    setSelectedCardIds(prev => {
+      const isSelected = prev.includes(cardId);
+      if (isSelected) {
+        return prev.filter(id => id !== cardId);
+      } else if (prev.length < maxReplacements) {
+        return [...prev, cardId];
+      }
+      return prev;
+    });
+  };
+
+  const handleConfirm = () => {
+    if (canReplace) {
+      onReplace(selectedCardIds, replacementCardType);
+      setSelectedCardIds([]);
+    }
+  };
+
+  const handleCancel = () => {
+    setSelectedCardIds([]);
+    onCancel();
+  };
+
+  const getCardDetails = (cardId: string): Card | null => {
+    return dataService.getCardById(cardId) || null;
+  };
+
+  const getCardTypeName = (type: CardType): string => {
+    const cardColors = getCardTypeColors(type);
+    return cardColors.label;
+  };
+
+  // Get card type colors from the centralized theme
+  const currentCardColors = getCardTypeColors(cardType);
+  const currentCardEmoji = getCardTypeEmoji(cardType);
+
+  // Mode-specific text
+  const typeName = getCardTypeName(cardType);
+  const modeConfig = {
+    replace: {
+      title: `Replace ${typeName}`,
+      instruction: `Select up to ${maxReplacements} to replace`,
+      confirmText: `Replace ${selectedCardIds.length}`,
+      emptyText: `No ${typeName} available to replace`,
+      floatingText: `Complete ${typeName} Replacement`,
+    },
+    return: {
+      title: `Return ${typeName}`,
+      instruction: `Select ${maxReplacements > 1 ? `up to ${maxReplacements}` : 'one'} to return`,
+      confirmText: `Return ${selectedCardIds.length}`,
+      emptyText: `No ${typeName} available to return`,
+      floatingText: `Complete ${typeName} Return`,
+    },
+    give: {
+      title: `Give ${typeName}${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      instruction: `Select one to give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      confirmText: `Give${targetPlayerName ? ` to ${targetPlayerName}` : ''}`,
+      emptyText: `No ${typeName} available to give`,
+      floatingText: `Complete ${typeName} Transfer`,
+    },
+  };
+  const texts = modeConfig[mode];
+
+  // Footer content
+  const footer = (
+    <>
+      <div style={{ fontSize: '14px', color: colors.text.secondary }}>
+        {selectedCardIds.length} of {maxReplacements} selected
+      </div>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <button
+          style={modalButtonStyles.secondary}
+          onClick={handleCancel}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = colors.secondary.bg;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = colors.secondary.light;
+          }}
+          title="Return to the main game panel - you can come back to complete this action"
+        >
+          Return to Main Panel
+        </button>
+        <button
+          style={{
+            ...modalButtonStyles.primary,
+            opacity: canReplace ? 1 : 0.6,
+            cursor: canReplace ? 'pointer' : 'not-allowed'
+          }}
+          onClick={handleConfirm}
+          disabled={!canReplace}
+          onMouseEnter={(e) => {
+            if (canReplace) {
+              e.currentTarget.style.opacity = '0.9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (canReplace) {
+              e.currentTarget.style.opacity = '1';
+            }
+          }}
+        >
+          {texts.confirmText}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+    <ModalBase
+      isOpen={isOpen}
+      onClose={handleCancel}
+      title={texts.title}
+      emoji={currentCardEmoji}
+      maxWidth="700px"
+      headerColor={currentCardColors.bg}
+      headerBorderColor={currentCardColors.primary}
+      footer={footer}
+      testId="card-replacement-modal"
+    >
+      {/* Instruction */}
+      <p style={{
+        color: colors.text.secondary,
+        margin: 0,
+        marginBottom: '16px',
+        fontSize: '16px'
+      }}>
+        {texts.instruction}
+      </p>
+
+      {/* New card type notification */}
+      {newCardType && (
+        <div style={{
+          padding: '12px 16px',
+          backgroundColor: getCardTypeColors(newCardType).bg,
+          borderRadius: theme.borderRadius.md,
+          border: `2px solid ${getCardTypeColors(newCardType).primary}`,
+          marginBottom: '20px'
+        }}>
+          <span style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: colors.text.primary
+          }}>
+            {getCardTypeEmoji(newCardType)} You will receive a new <strong>{getCardTypeName(newCardType)}</strong>
+          </span>
+        </div>
+      )}
+
+      {/* Card Grid or Empty State */}
+      {availableCards.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
+          color: colors.text.secondary
+        }}>
+          <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>{theme.emoji.cards}</span>
+          <p style={{ fontSize: '18px', margin: 0 }}>
+            {texts.emptyText}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '12px',
+            marginBottom: '20px'
+          }}>
+            {availableCards.map(cardId => {
+              const card = getCardDetails(cardId);
+              const isSelected = selectedCardIds.includes(cardId);
+
+              if (!card) return null;
+
+              const detailsButton = (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailCardId(cardId);
+                  }}
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    backgroundColor: colors.primary.main,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: theme.borderRadius.sm,
+                    cursor: 'pointer',
+                    transition: theme.transitions.fast,
+                    minHeight: theme.mobile.minTapTarget
+                  }}
+                >
+                  {theme.emoji.info} Details
+                </button>
+              );
+
+              return (
+                <CardDisplay
+                  key={cardId}
+                  card={card}
+                  variant="compact"
+                  selectable={true}
+                  isSelected={isSelected}
+                  selectedColor={currentCardColors.primary}
+                  onSelect={() => handleCardToggle(cardId)}
+                  cardTypeIcon={getCardTypeEmoji(cardType)}
+                  displayAmount={FormatUtils.formatCardCost(card.cost || 0)}
+                  actions={detailsButton}
+                />
+              );
+            })}
+          </div>
+
+        </>
+      )}
+    </ModalBase>
+
+      {/* Nested CardDetailsModal for viewing card details */}
+      {detailCardId && (
+        <div style={{ position: 'fixed', zIndex: 1100 }}>
+          <CardDetailsModal
+            isOpen={true}
+            onClose={() => setDetailCardId(null)}
+            card={getCardDetails(detailCardId)}
+            currentPlayer={player}
+            otherPlayers={stateService.getGameState().players.filter(p => p.id !== player?.id)}
+            cardService={cardService}
+          />
+        </div>
+      )}
+    </>
+  );
+}

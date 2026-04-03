@@ -1,0 +1,180 @@
+/* Import centralized animations */
+@import '../../../styles/animations.css';
+
+.time-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Reuse stat-line styles from FinancesSection */
+.time-content .stat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.time-content .stat-label {
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.time-content .stat-value {
+  font-weight: 600;
+  color: var(--text-color, #333);
+  font-size: 15px;
+}
+
+.visited-spaces-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  padding: 8px 0;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #dee2e6;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -20px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: white;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.timeline-item--current .timeline-marker {
+  font-size: 14px;
+}
+
+.timeline-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  /* Consistent transition: 200ms ease (from animationConstants.ts) */
+  transition: all 0.2s ease;
+}
+
+.timeline-item--current .timeline-content {
+  background: #e7f5ff;
+  border-color: #339af0;
+  font-weight: 600;
+}
+
+.timeline-space-name {
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.timeline-item--current .timeline-space-name {
+  color: #1971c2;
+  font-weight: 600;
+}
+
+.timeline-badge {
+  padding: 2px 8px;
+  background: #339af0;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.empty-state {
+  padding: 16px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+/* Active Effects Section */
+.active-effects-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.active-effects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.active-effect-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border: 1px solid #ffb74d;
+  border-radius: 6px;
+  border-left: 4px solid #ff9800;
+}
+
+.active-effect-item .effect-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.active-effect-item .effect-content {
+  flex: 1;
+}
+
+.active-effect-item .effect-description {
+  font-size: 13px;
+  color: #5d4037;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.active-effect-item .effect-duration {
+  margin-top: 4px;
+  font-weight: 600;
+}

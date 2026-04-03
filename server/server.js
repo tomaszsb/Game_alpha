@@ -13,7 +13,7 @@ import { createServer } from 'http';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { initializeWebSocket, broadcastStateUpdate, getRoomStats } from './websocket.js';
+import { initializeWebSocket, broadcastStateUpdate, getRoomStats, validateStateSchema } from './websocket.js';
 import { processGameData } from './processGameData.js';
 
 const app = express();
@@ -392,6 +392,47 @@ function generateGameId() {
   return id;
 }
 
+/**
+ * Generate a random game token for authentication
+ * @returns {string} 16-character hex token
+ */
+function generateGameToken() {
+  return crypto.randomBytes(8).toString('hex');
+}
+
+/**
+ * Validate game token from request.
+ * Returns the game object if valid, or sends an error response and returns null.
+ * Auto-generates a token for legacy games that don't have one.
+ */
+function validateGameToken(req, res, gameId) {
+  const game = games.get(gameId);
+  if (!game) {
+    res.status(404).json({ error: `Game ${gameId} not found` });
+    return null;
+  }
+
+  // Auto-generate token for legacy games
+  if (!game.token) {
+    game.token = generateGameToken();
+    isDirty = true;
+    console.log(`🔑 Auto-generated token for legacy game ${gameId}`);
+  }
+
+  const clientToken = req.headers['x-game-token'] || req.query.token;
+  if (!clientToken) {
+    res.status(401).json({ error: 'Game token required (X-Game-Token header or ?token= query)' });
+    return null;
+  }
+
+  if (clientToken !== game.token) {
+    res.status(403).json({ error: 'Invalid game token' });
+    return null;
+  }
+
+  return game;
+}
+
 // ===== HEALTH CHECK =====
 app.get('/health', (req, res) => {
   const gameList = Array.from(games.entries()).map(([id, data]) => ({
@@ -593,11 +634,13 @@ app.get('/api/games', (req, res) => {
 
 app.post('/api/games', async (req, res) => {
   const gameId = generateGameId();
+  const token = generateGameToken();
   const now = formatTimestamp();
 
   games.set(gameId, {
     state: null,
     version: 0,
+    token,
     createdAt: now,
     lastActivity: now
   });
@@ -617,6 +660,7 @@ app.post('/api/games', async (req, res) => {
   res.json({
     success: true,
     gameId,
+    token,
     message: `Game ${gameId} created. Share this code with players!`
   });
 });
@@ -641,11 +685,9 @@ app.delete('/api/games/:gameId', (req, res) => {
 app.get('/api/games/:gameId/state', (req, res) => {
   const { gameId } = req.params;
 
-  if (!games.has(gameId)) {
-    return res.status(404).json({ error: 'Game not found', gameId });
-  }
+  const game = validateGameToken(req, res, gameId);
+  if (!game) return;
 
-  const game = games.get(gameId);
   touchGame(gameId);
 
   if (!game.state) {
@@ -655,9 +697,6 @@ app.get('/api/games/:gameId/state', (req, res) => {
       stateVersion: 0
     });
   }
-
-  // Log only first access (when loading game)
-  // Don't log polling requests to avoid spam
 
   res.json({
     state: game.state,
@@ -670,22 +709,37 @@ app.post('/api/games/:gameId/state', async (req, res) => {
   const { gameId } = req.params;
   const { state, clientVersion } = req.body;
 
-  // Auto-create game if it doesn't exist
+  // Auto-create game if it doesn't exist (with token from client)
   if (!games.has(gameId)) {
+    const clientToken = req.headers['x-game-token'] || req.query.token;
+    if (!clientToken) {
+      return res.status(401).json({ error: 'Game token required to create game' });
+    }
     games.set(gameId, {
       state: null,
       version: 0,
+      token: clientToken,
       createdAt: formatTimestamp(),
       lastActivity: formatTimestamp()
     });
     console.log(`🎮 Game auto-created: ${gameId}`);
   }
 
+  // Validate token
+  const game = validateGameToken(req, res, gameId);
+  if (!game) return;
+
   if (!state) {
     return res.status(400).json({ error: 'State is required', received: req.body });
   }
 
-  const game = games.get(gameId);
+  // Schema validation
+  const schemaError = validateStateSchema(state);
+  if (schemaError) {
+    console.warn(`⚠️ [${gameId}] HTTP state_push schema validation failed: ${schemaError}`);
+    return res.status(400).json({ error: `Invalid state: ${schemaError}` });
+  }
+
   const previousPlayerCount = game.state?.players?.length || 0;
   const newPlayerCount = state.players?.length || 0;
 

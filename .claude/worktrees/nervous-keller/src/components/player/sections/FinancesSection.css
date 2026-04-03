@@ -1,0 +1,271 @@
+/* Import centralized animations */
+@import '../../../styles/animations.css';
+
+.finances-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--text-color, #333);
+  font-size: 15px;
+}
+
+.money-sources-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.sources-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #27ae60;
+  padding: 6px 0;
+  margin-bottom: 4px;
+}
+
+.money-source-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.money-source-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  color: #2c3e50;
+}
+
+.money-source-header:hover {
+  color: #1a252f;
+}
+
+.source-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.money-source-header .expand-icon {
+  font-size: 10px;
+  color: #7f8c8d;
+}
+
+.source-name {
+  font-size: 0.9rem;
+}
+
+.source-amount {
+  font-weight: 600;
+  color: #27ae60;
+}
+
+.source-details {
+  padding-left: 24px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+.source-description {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  font-weight: 400;
+}
+
+/* New Financial Sections Layout */
+.financial-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.financial-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.section-heading {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  padding: 0;
+}
+
+/* Grid layout for Scope & Budget section */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+/* List layout for Expenditures and Financial Health */
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Stat item styling */
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.stat-grid .stat-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.stat-total {
+  background: #e8f4f8;
+  border-top: 2px solid #3498db;
+  font-weight: 600;
+}
+
+.stat-highlight {
+  color: #27ae60;
+  font-weight: 700;
+}
+
+/* Warning styling for over-budget items */
+.stat-warning {
+  background: #fff3cd;
+  border-left: 3px solid #ff9800;
+}
+
+.stat-warning-message {
+  padding: 8px;
+  background: #fff3cd;
+  border-left: 3px solid #ff9800;
+  font-size: 0.85rem;
+  color: #856404;
+  margin-top: 4px;
+}
+
+/* Color coding for budget variance */
+.stat-positive {
+  color: #27ae60;
+}
+
+.stat-negative {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* Cost tracking section styling */
+.cost-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cost-category-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.cost-category-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  color: #2c3e50;
+  /* Consistent background transition: 200ms ease (from animationConstants.ts) */
+  transition: background-color 0.2s ease;
+}
+
+.cost-category-header:hover {
+  background: #e9ecef;
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cost-category-header .expand-icon {
+  font-size: 10px;
+  color: #7f8c8d;
+}
+
+.category-name {
+  font-size: 0.9rem;
+}
+
+.category-amount {
+  font-weight: 600;
+  color: #e74c3c;
+}
+
+.cost-details {
+  padding: 8px 12px 8px 32px;
+  background: #ffffff;
+  border-left: 2px solid #e9ecef;
+  margin-left: 12px;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.cost-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.cost-entry:not(:last-child) {
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.cost-description {
+  color: #5f6368;
+  font-weight: 400;
+}
+
+.cost-entry .cost-amount {
+  font-weight: 600;
+  color: #e74c3c;
+  white-space: nowrap;
+  margin-left: 12px;
+}

@@ -1,0 +1,252 @@
+flowchart TD
+    %% ==================== LEGEND ====================
+    subgraph LEGEND["LEGEND"]
+        direction LR
+        subgraph SHAPES["Shapes"]
+            L_TERM([Terminal: Start/End])
+            L_PROCESS[Process: Action Step]
+            L_DECISION{Decision: Yes/No}
+        end
+        subgraph COLORS["Colors"]
+            L_RED[Blocked / Locked / Error]
+            L_GREEN[Enabled / Unlocked / Ready]
+            L_YELLOW[Early Exit / Skip / Warning]
+            L_BLUE[Choice / UI Interaction]
+            L_PURPLE[Real State Operation]
+            L_ORANGE[Temporary State Operation]
+        end
+    end
+    style L_RED fill:#FF6B6B,color:#fff
+    style L_GREEN fill:#90EE90
+    style L_YELLOW fill:#FFD700
+    style L_BLUE fill:#87CEEB
+    style L_PURPLE fill:#DDA0DD
+    style L_ORANGE fill:#FFA500
+
+    %% ==================== STATE MODEL REFERENCE ====================
+    subgraph STATE_MODEL["Real + Temporary State Model"]
+        direction LR
+        subgraph REAL_STATE["Real State (Committed)"]
+            RS1["Persists across turns
+Updated on:
+- Exit from space (time cost)
+- Try Again (time penalty)
+- End Turn (commit temp)"]
+        end
+        subgraph TEMP_STATE["Temporary State (Working)"]
+            TS1["Created fresh each turn
+All effects applied here
+Discarded on Try Again
+Committed on End Turn"]
+        end
+        REAL_STATE --> |"Copy on turn start"| TEMP_STATE
+        TEMP_STATE --> |"Commit on End Turn"| REAL_STATE
+    end
+    style RS1 fill:#DDA0DD
+    style TS1 fill:#FFA500
+
+    %% ==================== END PREVIOUS TURN ====================
+    START([Previous Player Ends Turn]) --> EXIT_SPACE
+
+    subgraph EXIT_PREV["Exit Previous Space - operates on REAL state"]
+        EXIT_SPACE["Calculate time cost for leaving space"]
+        EXIT_SPACE --> APPLY_TIME["Add time cost to REAL state"]
+        APPLY_TIME --> SAVE_REAL["Save REAL state - this is the checkpoint"]
+        SAVE_REAL --> CLEAR_TEMP["Discard any temporary state"]
+    end
+    style EXIT_SPACE fill:#DDA0DD
+    style APPLY_TIME fill:#DDA0DD
+    style SAVE_REAL fill:#DDA0DD
+    style CLEAR_TEMP fill:#DDA0DD
+
+    CLEAR_TEMP --> ADVANCE
+    ADVANCE["Advance to next player"] --> CREATE_TEMP
+
+    %% ==================== NEW TURN STARTS ====================
+    subgraph NEW_TURN["New Turn Starts - create TEMPORARY state"]
+        CREATE_TEMP["Create TEMPORARY state from REAL state"]
+        CREATE_TEMP --> LOCK["Lock UI during processing"]
+        LOCK --> MOVE_PLAYER["Player selects destination and moves"]
+        MOVE_PLAYER --> PROCESS_ARRIVAL
+    end
+    style CREATE_TEMP fill:#FFA500
+
+    %% ==================== PROCESS ARRIVAL EFFECTS ====================
+    %% ASPIRATIONAL: Unified condition system - no special dice text parsing
+    subgraph ARRIVAL["Process Arrival - all effects on TEMPORARY state"]
+        PROCESS_ARRIVAL["getSpaceEffects(spaceName, visitType) - Returns SpaceEffect[] from CSV"]
+        PROCESS_ARRIVAL --> NEED_DICE{Any effects need dice roll?}
+
+        NEED_DICE -->|YES| ROLL_ONCE["Roll dice once for this space"]
+        NEED_DICE -->|NO| FILTER_COND
+        ROLL_ONCE --> FILTER_COND
+
+        FILTER_COND["filterSpaceEffectsByCondition:
+Pass diceRoll to evaluateCondition
+Unified filter for: scope_le_4M, dice_roll_3, high, low
+No text parsing needed"]
+        FILTER_COND --> SEPARATE["Separate by trigger_type"]
+
+        SEPARATE --> AUTO_EFFECTS["Auto effects - trigger_type = auto"]
+        SEPARATE --> MANUAL_EFFECTS["Manual effects - trigger_type = manual"]
+        SEPARATE --> TIME_EFFECTS["Time effects - deferred to space exit"]
+
+        %% Effect Processing Pipeline - inline
+        AUTO_EFFECTS --> CREATE_EFFECTS_ASP["EffectFactory.createEffectsFromSpaceEntry"]
+        CREATE_EFFECTS_ASP --> PARSE_EFFECT_ASP["parseSpaceEffect - read effect_type, effect_action, effect_value"]
+        PARSE_EFFECT_ASP --> BUILD_EFFECT_ASP["Build Effect object with effectType and payload"]
+        BUILD_EFFECT_ASP --> RUN_ENGINE_ASP["EffectEngineService.processEffects - loop through Effect array"]
+
+        RUN_ENGINE_ASP --> SWITCH_TYPE_ASP{Switch on effectType}
+        SWITCH_TYPE_ASP -->|RESOURCE_CHANGE| DO_RESOURCE_ASP["updatePlayer - add/subtract money, time, scope"]
+        SWITCH_TYPE_ASP -->|CARD_DRAW| DO_CARD_ASP["cardService.drawCards - draw from deck, add to hand"]
+        SWITCH_TYPE_ASP -->|FEE_DEDUCTION| DO_FEE_ASP["Calculate percent of project scope, deduct from money"]
+        SWITCH_TYPE_ASP -->|LOG| DO_LOG_ASP["loggingService.info - record action in game log"]
+
+        DO_RESOURCE_ASP --> WRITE_TEMP["Write changes to TEMPORARY state - not committed yet"]
+        DO_CARD_ASP --> WRITE_TEMP
+        DO_FEE_ASP --> WRITE_TEMP
+        DO_LOG_ASP --> NEXT_EFFECT_ASP{More effects?}
+        WRITE_TEMP --> NEXT_EFFECT_ASP
+        NEXT_EFFECT_ASP -->|YES| SWITCH_TYPE_ASP
+        NEXT_EFFECT_ASP -->|NO| DONE_EFFECTS["All auto effects applied to TEMPORARY"]
+
+        MANUAL_EFFECTS --> CALC_BUTTONS["Calculate action buttons - Roll for Fee, Draw Card, etc."]
+    end
+    style PROCESS_ARRIVAL fill:#FFA500
+    style FILTER_COND fill:#90EE90
+    style CREATE_EFFECTS_ASP fill:#87CEEB
+    style PARSE_EFFECT_ASP fill:#87CEEB
+    style BUILD_EFFECT_ASP fill:#87CEEB
+    style RUN_ENGINE_ASP fill:#87CEEB
+    style SWITCH_TYPE_ASP fill:#87CEEB
+    style WRITE_TEMP fill:#FFA500
+
+    DONE_EFFECTS --> UNLOCK["Unlock UI"]
+    CALC_BUTTONS --> UNLOCK
+    UNLOCK --> SHOW_CHOICES
+
+    %% ==================== HANDLE MOVEMENT CHOICES ====================
+    subgraph CHOICES["Movement Choices"]
+        SHOW_CHOICES["Check movement options for next move"]
+        SHOW_CHOICES --> IS_DICE{Dice determines next move?}
+        IS_DICE -->|YES| SKIP_CHOICE([Show after dice roll])
+        IS_DICE -->|NO| MULTI_DEST{Multiple destinations?}
+        MULTI_DEST -->|NO| SINGLE([One destination - auto-select])
+        MULTI_DEST -->|YES| SHOW_PICKER["Show destination picker"]
+    end
+
+    SKIP_CHOICE --> RENDER
+    SINGLE --> RENDER
+    SHOW_PICKER --> RENDER
+
+    %% ==================== RENDER UI ====================
+    subgraph RENDER_UI["Render Player Panel - shows TEMPORARY state"]
+        RENDER["Draw UI from TEMPORARY state"]
+        RENDER --> SHOW_SECTIONS["Show: Money, Time, Cards, Scope, etc."]
+        SHOW_SECTIONS --> SHOW_ACTIONS["Show available actions"]
+        SHOW_ACTIONS --> CALC_BUTTON["Calculate End Turn button state"]
+    end
+    style RENDER fill:#FFA500
+    style SHOW_SECTIONS fill:#FFA500
+
+    CALC_BUTTON --> WAIT
+
+    %% ==================== PLAYER ACTIONS ====================
+    WAIT{What does player do?}
+    WAIT -->|Manual action| DO_ACTION["Execute action on TEMPORARY"]
+    WAIT -->|Roll Dice| DO_DICE["Process dice on TEMPORARY"]
+    WAIT -->|Select destination| SET_DEST["Record move intent"]
+    WAIT -->|Try Again| TRY_AGAIN
+    WAIT -->|End Turn| END_TURN
+
+    DO_ACTION --> RENDER
+    DO_DICE --> RENDER
+    SET_DEST --> RENDER
+    style DO_ACTION fill:#FFA500
+    style DO_DICE fill:#FFA500
+
+    %% ==================== TRY AGAIN ====================
+    subgraph TRY_AGAIN_FLOW["Try Again - add time to REAL, reset TEMPORARY"]
+        TRY_AGAIN["Calculate time penalty from space effects"]
+        TRY_AGAIN --> ADD_PENALTY["Add time penalty to REAL state"]
+        ADD_PENALTY --> WIPE_TEMP["Discard TEMPORARY state"]
+        WIPE_TEMP --> FRESH_TEMP["Create fresh TEMPORARY from updated REAL"]
+    end
+    style TRY_AGAIN fill:#FFD700
+    style ADD_PENALTY fill:#DDA0DD
+    style WIPE_TEMP fill:#FFA500
+    style FRESH_TEMP fill:#FFA500
+
+    FRESH_TEMP --> PROCESS_ARRIVAL
+
+    %% ==================== END TURN ====================
+    subgraph END_TURN_FLOW["End Turn - commit TEMPORARY to REAL"]
+        END_TURN["Validate all required actions complete"]
+        END_TURN --> COMMIT["TEMPORARY state becomes REAL state"]
+        COMMIT --> NEXT_PLAYER["Move to next player"]
+    end
+    style COMMIT fill:#90EE90
+
+    NEXT_PLAYER --> START
+
+    %% ==================== KEY BENEFITS ====================
+    subgraph BENEFITS["Key Benefits of This Model"]
+        B1["No snapshot existence checks needed
+Always process all effects on TEMPORARY"]
+        B2["Clear separation of concerns
+REAL = committed, TEMPORARY = working"]
+        B3["Multiple Try Again naturally supported
+Each Try Again: penalty to REAL, fresh TEMP"]
+        B4["Time penalties accumulate correctly
+Added to REAL before creating new TEMP"]
+        B5["Unified condition system
+All dice/scope conditions in one filter
+No text parsing of descriptions"]
+    end
+
+    %% ==================== DICE CONDITION CONSOLIDATION ====================
+    subgraph DICE_CONSOLIDATION["Dice Condition Consolidation"]
+        direction LR
+        subgraph DICE_CURRENT["Current: Multiple Paths"]
+            DC1["1. applyDiceRollChanceEffect()
+   parses 'draw_l_on_1' text
+2. processSpaceEffectsAfterMovement()
+   parses 'if you roll a 3' text
+3. evaluateCondition()
+   checks 'dice_roll_3' condition
+THREE different implementations!"]
+        end
+        subgraph DICE_ASPIRATIONAL["Aspirational: Single Path"]
+            DA1["CSV uses condition column:
+  condition='dice_roll_3'
+
+filterSpaceEffectsByCondition()
+handles ALL conditions uniformly
+
+No text parsing needed"]
+        end
+    end
+    style DC1 fill:#FF6B6B,color:#fff
+    style DA1 fill:#90EE90
+
+    %% ==================== COMPARISON ====================
+    subgraph COMPARISON["Current vs Aspirational"]
+        direction LR
+        subgraph CURRENT["Current Implementation"]
+            C1["Save snapshot AFTER effects
+Check hasPreSpaceEffectSnapshot
+Skip effects if snapshot exists
+Complex conditional logic
+Multiple dice condition paths"]
+        end
+        subgraph ASPIRATIONAL["Aspirational Model"]
+            A1["Save REAL on exit
+Always create fresh TEMP
+Always apply all effects
+Simple, predictable flow
+Unified condition filtering"]
+        end
+    end
+    style C1 fill:#FF6B6B,color:#fff
+    style A1 fill:#90EE90

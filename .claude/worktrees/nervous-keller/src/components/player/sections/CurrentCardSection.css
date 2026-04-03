@@ -1,0 +1,61 @@
+.current-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.card-story {
+  padding: 12px;
+  background: var(--secondary-bg, #f8f9fa);
+  border-left: 3px solid var(--primary-color, #007bff);
+  border-radius: 4px;
+  color: var(--text-color, #333);
+  font-style: italic;
+}
+
+.card-action-required {
+  padding: 10px 12px;
+  background: var(--info-bg, #e7f3ff);
+  border: 1px solid var(--info-border, #b3d7ff);
+  border-radius: 4px;
+  color: var(--text-color, #333);
+}
+
+.card-action-required strong {
+  color: var(--primary-color, #007bff);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.card-outcomes {
+  padding: 10px 12px;
+  background: var(--warning-bg, #fff3cd);
+  border: 1px solid var(--warning-border, #ffc107);
+  border-radius: 4px;
+  color: var(--text-color, #333);
+}
+
+.card-outcomes strong {
+  color: var(--warning-text, #856404);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.card-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 2px solid var(--border-color, #ddd);
+}
+
+/* Responsive layout for choice buttons */
+@media (min-width: 480px) {
+  .card-choices {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

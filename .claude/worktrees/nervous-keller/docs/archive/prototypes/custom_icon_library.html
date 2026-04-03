@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code2027 Custom Icon Library</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --purple: #6f42c1;
+            --success: #28a745;
+            --warning: #ff9800;
+            --danger: #dc3545;
+            --bg: #f8fafc;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 40px; color: #1e293b; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .icon-card { background: white; padding: 25px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .icon-svg { width: 64px; height: 64px; margin-bottom: 15px; }
+        .label { font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; }
+        .replaces { font-size: 0.75rem; color: #64748b; }
+        
+        /* Icon Colors */
+        .color-work { color: var(--purple); fill: none; stroke: currentColor; }
+        .color-bank { color: var(--primary); fill: none; stroke: currentColor; }
+        .color-funding { color: var(--success); fill: none; stroke: currentColor; }
+        .color-risk { color: var(--danger); fill: none; stroke: currentColor; }
+        .color-expedite { color: var(--warning); fill: none; stroke: currentColor; }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-bottom: 10px;">Code2027 Icon System</h1>
+    <p style="text-align: center; color: #64748b; margin-bottom: 50px;">Custom SVG line-art replacements for generic emojis.</p>
+
+    <div class="grid">
+        <!-- WORK ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg color-work" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18M3 7v14M21 7v14M2 7h20M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M7 12h10M7 16h10" />
+            </svg>
+            <div class="label">Work / Construction</div>
+            <div class="replaces">Replaces: 🏗️</div>
+        </div>
+
+        <!-- BANK ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg color-bank" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18M3 10h18M5 10v11M9 10v11M13 10v11M17 10v11M12 3L2 10h20L12 3z" />
+            </svg>
+            <div class="label">Bank / Loan</div>
+            <div class="replaces">Replaces: 🏦</div>
+        </div>
+
+        <!-- FUNDING ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg color-funding" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 18V6" />
+            </svg>
+            <div class="label">Investor / Money</div>
+            <div class="replaces">Replaces: 💰</div>
+        </div>
+
+        <!-- RISK ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg color-risk" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            <div class="label">Life Event / Risk</div>
+            <div class="replaces">Replaces: 🎲</div>
+        </div>
+
+        <!-- EXPEDITE ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg color-expedite" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            <div class="label">Expeditor / Speed</div>
+            <div class="replaces">Replaces: ⚡</div>
+        </div>
+
+        <!-- TIME ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg" style="color:#64748b; stroke:currentColor; fill:none;" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <div class="label">Time / Schedule</div>
+            <div class="replaces">Replaces: ⏱️</div>
+        </div>
+
+        <!-- RULES ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg" style="color:#64748b; stroke:currentColor; fill:none;" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 7H20v14H6.5A2.5 2.5 0 0 1 4 18.5v-14z" />
+            </svg>
+            <div class="label">Rules / Manual</div>
+            <div class="replaces">Replaces: 📖</div>
+        </div>
+
+        <!-- NEGOTIATION ICON -->
+        <div class="icon-card">
+            <svg class="icon-svg" style="color:#64748b; stroke:currentColor; fill:none;" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <div class="label">Negotiation</div>
+            <div class="replaces">Replaces: 🤝</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 50px; background: white; padding: 30px; border-radius: 16px; border: 2px dashed #cbd5e1;">
+        <h3 style="margin-top:0">Why use these instead of emojis?</h3>
+        <ul style="line-height: 1.6;">
+            <li><strong>Thematic Consistency:</strong> They look like professional blueprint symbols rather than a mobile chat.</li>
+            <li><strong>Color Scalability:</strong> We can dynamically change their color based on game state (e.g., turning a Work icon red if it's over budget).</li>
+            <li><strong>Accessible:</strong> They render reliably on all OS versions (some Android versions have very different emojis than iOS).</li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -3,6 +3,7 @@
 // Provides sub-100ms updates for TV displays and instant turn notifications
 
 import { GameState } from '../types/StateTypes';
+import { getCurrentGameToken } from '../utils/networkDetection';
 
 /**
  * Message types from server
@@ -141,6 +142,10 @@ export class WebSocketSyncService {
       }
 
       let wsUrl = `${wsProtocol}://${wsHost}/ws?gameId=${gameId}`;
+      const token = getCurrentGameToken();
+      if (token) {
+        wsUrl += `&token=${encodeURIComponent(token)}`;
+      }
       if (playerId) {
         wsUrl += `&playerId=${playerId}`;
       }

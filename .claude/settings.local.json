@@ -143,7 +143,19 @@
       "Bash(mv /mnt/d/unravel/Current_Game/CSV-Validation-Guide.md /mnt/d/unravel/Current_Game/README.md /mnt/d/unravel/Projects/Game_Archive/old_docs/)",
       "Bash(rm -rf /mnt/d/unravel/Projects/Dictionary_Scraper)",
       "Bash(mv /mnt/d/unravel/Current_Game/dictionary /mnt/d/unravel/Projects/Dictionary_Scraper)",
-      "Bash(rm /mnt/d/unravel/Current_Game/install.sh /mnt/d/unravel/Current_Game/package-lock.json)"
+      "Bash(rm /mnt/d/unravel/Current_Game/install.sh /mnt/d/unravel/Current_Game/package-lock.json)",
+      "Bash(git commit:*)",
+      "Bash(first visit\" instead of actual space IDs. Replaced with:*)",
+      "Bash(ssh unraid:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//mnt/d/unravel/current_game/game_alpha/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f''''{k}: {v}''''\\) for k,v in d.items\\(\\) if k != ''''screenshot'''']\")",
+      "Read(//tmp/claude-1000/-mnt-d-unravel-current_game-game_alpha/baff7055-00b8-4124-abd6-5d8af8778a26/tasks/**)",
+      "Read(//tmp/claude-1000/**)",
+      "Bash(ssh unraid \"python3 -c \"\":*)",
+      "Bash(perl -pe 's/\\\\$\\\\{\\(.*?\\)\\\\.toLocaleString\\\\\\(\\\\\\)\\\\}/{fmt\\($1\\)}/g' src/components/player/sections/FinancesSection.tsx)",
+      "Bash(perl:*)"
     ],
     "deny": [],
     "ask": []

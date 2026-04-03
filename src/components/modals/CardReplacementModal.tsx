@@ -47,8 +47,13 @@ export function CardReplacementModal({
   // Replacement card type is always the same as the current type (or newCardType if specified)
   const replacementCardType = newCardType || cardType;
 
-  if (!isOpen || !player) {
-    return null;
+  // When player is unavailable, render closed ModalBase for exit animation
+  if (!player) {
+    return (
+      <ModalBase isOpen={false} onClose={onCancel} title="" emoji="" testId="card-replacement-modal">
+        {null}
+      </ModalBase>
+    );
   }
 
   const availableCards = player.hand.filter(cardId => cardId.startsWith(cardType));
