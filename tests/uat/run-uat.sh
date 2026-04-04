@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🎮 Game Alpha UAT Runner"
+echo "🎮 Game Beta UAT Runner"
 echo "========================="
 echo ""
 

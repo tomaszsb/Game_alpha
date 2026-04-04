@@ -2,7 +2,7 @@
 import { debugWarn } from './debugLog';
 
 /**
- * Remote Configuration Service (Game Alpha)
+ * Remote Configuration Service (Game Beta)
  * Fetches visibility settings from the Dashboard API
  */
 

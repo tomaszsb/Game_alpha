@@ -371,7 +371,7 @@ export function PlayerSetup({
         </main>
 
         <footer style={styles.footer}>
-          <strong>Alpha Version</strong> - Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+          <strong>Beta Version</strong> - Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
         </footer>
       </div>
     );
@@ -916,7 +916,7 @@ export function PlayerSetup({
 
       {/* Footer */}
       <footer style={styles.footer}>
-        <strong>Alpha Version</strong> - We're improving daily.
+        <strong>Beta Version</strong> - We're improving daily.
         {' '}Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
       </footer>
 

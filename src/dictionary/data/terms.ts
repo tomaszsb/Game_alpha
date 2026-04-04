@@ -89,7 +89,7 @@ const GLOSSARY_API_URL = 'https://dashboard.unravelcodes.com/api/glossary/live';
 
 // CSV fallback paths (used when dashboard is unreachable)
 const CSV_PATHS = [
-  '/data/CLEAN_FILES/GLOSSARY.csv',  // game_alpha location
+  '/data/CLEAN_FILES/GLOSSARY.csv',  // game_beta location
   '/data/GLOSSARY.csv',               // standalone dictionary location
 ];
 

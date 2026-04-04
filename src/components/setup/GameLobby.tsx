@@ -397,7 +397,7 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
 
       {/* Footer */}
       <footer style={styles.footer}>
-        <span>Alpha Version</span>
+        <span>Beta Version</span>
         <span style={styles.footerDot}>•</span>
         <a href="mailto:game@unravelcodes.com" style={styles.footerLink}>
           game@unravelcodes.com
