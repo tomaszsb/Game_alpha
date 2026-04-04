@@ -959,4 +959,233 @@ describe('MovementService', () => {
       });
     });
   });
+
+  describe('Resume from side quest (mainPathResumePoint)', () => {
+    const pmDecisionMovement: Movement = {
+      space_name: 'PM-DECISION-CHECK',
+      visit_type: 'Subsequent',
+      movement_type: 'choice',
+      destination_1: 'LEND-SCOPE-CHECK',
+      destination_2: 'ARCH-INITIATION',
+      destination_3: 'CHEAT-BYPASS',
+      destination_4: 'PM-DECISION-CHECK',
+      destination_5: 'OWNER-DECISION-REVIEW'
+    };
+
+    const archScopeMovement: Movement = {
+      space_name: 'ARCH-SCOPE-CHECK',
+      visit_type: 'First',
+      movement_type: 'choice',
+      destination_1: 'PM-DECISION-CHECK',
+      destination_2: 'ENG-INITIATION'
+    };
+
+    it('should add resume point destinations at PM-DECISION-CHECK when mainPathResumePoint is set', () => {
+      const player: Player = {
+        ...mockPlayer,
+        currentSpace: 'PM-DECISION-CHECK',
+        visitType: 'Subsequent',
+        visitedSpaces: ['OWNER-SCOPE-INITIATION', 'PM-DECISION-CHECK', 'ARCH-INITIATION', 'ARCH-FEE-REVIEW', 'ARCH-SCOPE-CHECK'],
+        mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockImplementation((spaceName: string, _visitType: string) => {
+        if (spaceName === 'PM-DECISION-CHECK') return pmDecisionMovement;
+        if (spaceName === 'ARCH-SCOPE-CHECK') return archScopeMovement;
+        return undefined;
+      });
+
+      const result = movementService.getValidMoves('player1');
+
+      // Standard PM-DECISION-CHECK destinations
+      expect(result).toContain('LEND-SCOPE-CHECK');
+      expect(result).toContain('ARCH-INITIATION');
+      expect(result).toContain('CHEAT-BYPASS');
+      // Resume point destination (from ARCH-SCOPE-CHECK)
+      expect(result).toContain('ENG-INITIATION');
+    });
+
+    it('should not duplicate destinations already in the standard list', () => {
+      const player: Player = {
+        ...mockPlayer,
+        currentSpace: 'PM-DECISION-CHECK',
+        visitType: 'Subsequent',
+        visitedSpaces: ['PM-DECISION-CHECK', 'ARCH-SCOPE-CHECK'],
+        mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockImplementation((spaceName: string, _visitType: string) => {
+        if (spaceName === 'PM-DECISION-CHECK') return pmDecisionMovement;
+        if (spaceName === 'ARCH-SCOPE-CHECK') return archScopeMovement;
+        return undefined;
+      });
+
+      const result = movementService.getValidMoves('player1');
+
+      // PM-DECISION-CHECK appears in both standard and resume destinations — should not be duplicated
+      const pmCount = result.filter(d => d === 'PM-DECISION-CHECK').length;
+      expect(pmCount).toBe(1);
+    });
+
+    it('should not add resume destinations when hasUsedCheatBypass is true', () => {
+      const player: Player = {
+        ...mockPlayer,
+        currentSpace: 'PM-DECISION-CHECK',
+        visitType: 'Subsequent',
+        visitedSpaces: ['PM-DECISION-CHECK', 'ARCH-SCOPE-CHECK', 'CHEAT-BYPASS'],
+        mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+        hasUsedCheatBypass: true,
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockReturnValue(pmDecisionMovement);
+
+      const result = movementService.getValidMoves('player1');
+
+      // Should NOT include ENG-INITIATION — cheat bypass disables resume
+      expect(result).not.toContain('ENG-INITIATION');
+      // Standard destinations should still be there
+      expect(result).toContain('LEND-SCOPE-CHECK');
+      expect(result).toContain('ARCH-INITIATION');
+    });
+
+    it('should not add resume destinations when mainPathResumePoint is null', () => {
+      const player: Player = {
+        ...mockPlayer,
+        currentSpace: 'PM-DECISION-CHECK',
+        visitType: 'Subsequent',
+        visitedSpaces: ['PM-DECISION-CHECK'],
+        mainPathResumePoint: null,
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockReturnValue(pmDecisionMovement);
+
+      const result = movementService.getValidMoves('player1');
+
+      expect(result).toEqual(['LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS', 'PM-DECISION-CHECK', 'OWNER-DECISION-REVIEW']);
+    });
+
+    it('should not add resume destinations on non-PM-DECISION-CHECK spaces', () => {
+      const player: Player = {
+        ...mockPlayer,
+        currentSpace: 'ARCH-SCOPE-CHECK',
+        visitType: 'First',
+        visitedSpaces: ['ARCH-SCOPE-CHECK'],
+        mainPathResumePoint: 'SOME-SPACE',
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockReturnValue(archScopeMovement);
+
+      const result = movementService.getValidMoves('player1');
+
+      // Just the standard ARCH-SCOPE-CHECK destinations
+      expect(result).toEqual(['PM-DECISION-CHECK', 'ENG-INITIATION']);
+    });
+
+    describe('finalizeMove tracking', () => {
+      it('should set mainPathResumePoint when arriving at PM-DECISION-CHECK from a Main path space', async () => {
+        const player: Player = {
+          ...mockPlayer,
+          currentSpace: 'ARCH-SCOPE-CHECK',
+          visitType: 'First',
+          visitedSpaces: ['ARCH-SCOPE-CHECK'],
+          spaceVisitLog: [{ spaceName: 'ARCH-SCOPE-CHECK', entryTurn: 1, entryTime: 0, daysSpent: 0 }],
+        };
+
+        const movement: Movement = {
+          space_name: 'ARCH-SCOPE-CHECK',
+          visit_type: 'First',
+          movement_type: 'choice',
+          destination_1: 'PM-DECISION-CHECK',
+          destination_2: 'ENG-INITIATION'
+        };
+
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockDataService.getMovement.mockReturnValue(movement);
+        mockDataService.getGameConfigBySpace.mockImplementation((spaceName: string) => {
+          if (spaceName === 'ARCH-SCOPE-CHECK') {
+            return { space_name: 'ARCH-SCOPE-CHECK', phase: 'DESIGN', path_type: 'Main', is_starting_space: false, is_ending_space: false, min_players: 1, max_players: 4, requires_dice_roll: true } as GameConfig;
+          }
+          return undefined;
+        });
+        mockStateService.updatePlayer.mockReturnValue(mockGameState);
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+
+        await movementService.movePlayer('player1', 'PM-DECISION-CHECK');
+
+        // Check that updatePlayer was called with mainPathResumePoint
+        const updateCall = mockStateService.updatePlayer.mock.calls[0][0];
+        expect(updateCall.mainPathResumePoint).toBe('ARCH-SCOPE-CHECK');
+      });
+
+      it('should set hasUsedCheatBypass and clear resume point when moving to CHEAT-BYPASS', async () => {
+        const player: Player = {
+          ...mockPlayer,
+          currentSpace: 'PM-DECISION-CHECK',
+          visitType: 'First',
+          visitedSpaces: ['PM-DECISION-CHECK'],
+          mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+          spaceVisitLog: [{ spaceName: 'PM-DECISION-CHECK', entryTurn: 1, entryTime: 0, daysSpent: 0 }],
+        };
+
+        const movement: Movement = {
+          space_name: 'PM-DECISION-CHECK',
+          visit_type: 'First',
+          movement_type: 'choice',
+          destination_1: 'CHEAT-BYPASS'
+        };
+
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockDataService.getMovement.mockReturnValue(movement);
+        mockDataService.getGameConfigBySpace.mockReturnValue(undefined);
+        mockStateService.updatePlayer.mockReturnValue(mockGameState);
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+
+        await movementService.movePlayer('player1', 'CHEAT-BYPASS');
+
+        const updateCall = mockStateService.updatePlayer.mock.calls[0][0];
+        expect(updateCall.hasUsedCheatBypass).toBe(true);
+        expect(updateCall.mainPathResumePoint).toBeNull();
+      });
+
+      it('should NOT set mainPathResumePoint when arriving at PM-DECISION-CHECK from a side quest space', async () => {
+        const player: Player = {
+          ...mockPlayer,
+          currentSpace: 'BANK-FUND-REVIEW',
+          visitType: 'First',
+          visitedSpaces: ['BANK-FUND-REVIEW'],
+          mainPathResumePoint: 'ARCH-SCOPE-CHECK', // Already set from earlier
+          spaceVisitLog: [{ spaceName: 'BANK-FUND-REVIEW', entryTurn: 1, entryTime: 0, daysSpent: 0 }],
+        };
+
+        const movement: Movement = {
+          space_name: 'BANK-FUND-REVIEW',
+          visit_type: 'First',
+          movement_type: 'fixed',
+          destination_1: 'PM-DECISION-CHECK'
+        };
+
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockDataService.getMovement.mockReturnValue(movement);
+        mockDataService.getGameConfigBySpace.mockImplementation((spaceName: string) => {
+          if (spaceName === 'BANK-FUND-REVIEW') {
+            return { space_name: 'BANK-FUND-REVIEW', phase: 'FUNDING', path_type: 'Side quest money', is_starting_space: false, is_ending_space: false, min_players: 1, max_players: 4, requires_dice_roll: false } as GameConfig;
+          }
+          return undefined;
+        });
+        mockStateService.updatePlayer.mockReturnValue(mockGameState);
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+
+        await movementService.movePlayer('player1', 'PM-DECISION-CHECK');
+
+        // Should NOT overwrite the existing resume point
+        const updateCall = mockStateService.updatePlayer.mock.calls[0][0];
+        expect(updateCall.mainPathResumePoint).toBeUndefined();
+      });
+    });
+  });
 });

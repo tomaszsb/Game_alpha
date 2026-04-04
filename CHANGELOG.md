@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.5] - 2026-04-03
+
+### Resume from side quest at PM-DECISION-CHECK (April 3, 2026)
+- **Resume-from-side-quest logic** — When a player leaves the main path (e.g., ARCH-SCOPE-CHECK) to get funding and returns to PM-DECISION-CHECK, they now see the destinations from where they left off (e.g., ENG-INITIATION) in addition to the standard PM-DECISION-CHECK choices. Ported from code2025 archive (`enhanceMovesForPMDecisionCheck`). Uses `mainPathResumePoint` on Player to track the last main-path space before a side quest detour, and `path_type` from GAME_CONFIG to detect main vs side quest spaces.
+- **CHEAT-BYPASS disables resume** — When a player visits CHEAT-BYPASS, `hasUsedCheatBypass` is set and the resume point is cleared. This is the "point of no return" — no shortcut back to where you left off.
+- **8 new tests** — 5 tests for `getValidMoves` resume logic (with resume point, no duplicates, cheat bypass blocks it, null resume point, non-PM spaces) and 3 tests for `finalizeMove` tracking (sets resume from main path, sets cheat flag, preserves existing resume from side quest).
+- **Files changed** (4): `src/types/DataTypes.ts` (Player interface), `src/types/StateTypes.ts` (PlayerUpdateData), `src/services/MovementService.ts` (getValidMoves + finalizeMove), `tests/services/MovementService.test.ts`
+
+---
+
 ## [2.39.4] - 2026-04-03
 
 ### Console.log cleanup + TEST card removal (April 3, 2026)

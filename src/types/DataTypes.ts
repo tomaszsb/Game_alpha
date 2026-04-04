@@ -240,6 +240,11 @@ export interface Player {
     multiplier: number; // 1-6, affects base construction cost
     hiredAt?: string; // Space where contractor was hired (for tracking)
   };
+  // Resume point: last main-path space before player detoured to a side quest
+  // When returning from side quest to PM-DECISION-CHECK, this space's destinations are offered
+  mainPathResumePoint?: string | null;
+  // Set when player visits CHEAT-BYPASS — disables resume logic (point of no return)
+  hasUsedCheatBypass?: boolean;
 }
 
 export interface Card {

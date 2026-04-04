@@ -2,6 +2,19 @@
 
 ---
 
+## v2.39.5 - Resume From Side Quest (April 3, 2026)
+
+**Release Date:** April 3, 2026
+**Version:** 2.39.5
+**Status:** Alpha Testing
+**Type:** Gameplay Fix
+
+### Gameplay
+- **Return to where you left off** — When you detour from the main path to get funding (bank, investor) and return to PM Decision Check, you now see the choices from where you left off. For example, if you were at Architect Scope Check and went to get money, when you return to PM Decision you'll see "Engineering Initiation" as an option — no need to redo architecture.
+- **Cheat Bypass is a point of no return** — If you take the Cheat Bypass shortcut, the "return to where you left off" feature is disabled. You chose to skip ahead — no going back.
+
+---
+
 ## v2.39.4 - Financial Overview + Bug Fixes (April 3, 2026)
 
 **Release Date:** April 3, 2026

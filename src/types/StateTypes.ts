@@ -384,6 +384,8 @@ export interface PlayerUpdateData {
     multiplier: number;
     hiredAt?: string;
   };
+  mainPathResumePoint?: string | null;
+  hasUsedCheatBypass?: boolean;
 }
 
 export type PlayerCards = {

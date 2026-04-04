@@ -128,6 +128,23 @@ export class MovementService implements IMovementService {
 
       }
 
+      // SPECIAL HANDLING: Resume from side quest at PM-DECISION-CHECK
+      // If player detoured to a side quest (funding, etc.) and returned to PM-DECISION-CHECK,
+      // offer the destinations from the main-path space where they left off
+      if (player.currentSpace === 'PM-DECISION-CHECK' &&
+          player.mainPathResumePoint &&
+          !player.hasUsedCheatBypass) {
+        const resumeMovement = this.dataService.getMovement(
+          player.mainPathResumePoint,
+          this.hasPlayerVisitedSpace(player, player.mainPathResumePoint) ? 'Subsequent' : 'First'
+        );
+        if (resumeMovement) {
+          const resumeDestinations = this.extractDestinationsFromMovement(resumeMovement)
+            .filter(dest => dest !== 'PM-DECISION-CHECK' && !validMoves.includes(dest));
+          validMoves = [...validMoves, ...resumeDestinations];
+        }
+      }
+
       return validMoves;
     } catch (error) {
       console.error(`Error getting valid moves for player ${playerId}:`, error);
@@ -306,6 +323,24 @@ export class MovementService implements IMovementService {
         ...player.pathChoiceMemory,
         'REG-DOB-TYPE-SELECT': destinationSpace as 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT'
       };
+    }
+
+    // SPECIAL: Track main-path resume point for side quest return
+    // When arriving at PM-DECISION-CHECK, check if we came from a main-path space.
+    // If so, store the source as the resume point so we can offer its destinations
+    // when the player returns from a side quest (funding, etc.)
+    if (destinationSpace === 'PM-DECISION-CHECK') {
+      const sourceConfig = this.dataService.getGameConfigBySpace(sourceSpace);
+      const sourcePath = sourceConfig?.path_type?.toLowerCase() || '';
+      if (sourcePath === 'main') {
+        playerUpdate.mainPathResumePoint = sourceSpace;
+      }
+    }
+
+    // SPECIAL: Mark CHEAT-BYPASS usage — disables resume-from-side-quest logic
+    if (destinationSpace === 'CHEAT-BYPASS') {
+      playerUpdate.hasUsedCheatBypass = true;
+      playerUpdate.mainPathResumePoint = null; // Clear resume point
     }
 
     // DEBUG: Verify playerUpdate contains spaceVisitLog before calling updatePlayer

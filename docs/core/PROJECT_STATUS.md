@@ -1,14 +1,19 @@
 # Project Status
 
 **Last Updated**: April 3, 2026
-**Current Phase**: Pre-Beta — Bug Fixes (v2.39.4)
-**Current Version**: 2.39.4
+**Current Phase**: Pre-Beta — Bug Fixes (v2.39.5)
+**Current Version**: 2.39.5
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Resume from side quest (April 3, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.39.5
+- **Changes**: PM-DECISION-CHECK now offers resume destinations from the main-path space where the player detoured to a side quest. CHEAT-BYPASS disables this (point of no return). 8 new tests. Ported from code2025 archive.
 
 ### Console.log cleanup + TEST cards (April 3, 2026) ✅
 - **Status**: ✅ Complete
