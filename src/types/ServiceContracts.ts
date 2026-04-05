@@ -280,7 +280,7 @@ export interface IStateService {
   updateTempState(playerId: string, changes: Partial<import('./StateTypes').MutablePlayerState>): import('./StateTypes').StateTransitionResult;
 
   // Cost ledger (Workstream 2 — Beta Try Again semantics)
-  recordTurnOutflow(playerId: string, entry: { moneySpent?: number; cardConsumed?: string }): void;
+  recordTurnOutflow(playerId: string, entry: { moneySpent?: number; cardConsumed?: string; lifeEventDrawn?: string }): void;
   getTurnOutflow(playerId: string): import('./StateTypes').TurnCostLedger;
   getRealPlayerState(playerId: string): import('./StateTypes').MutablePlayerState | null;
 }

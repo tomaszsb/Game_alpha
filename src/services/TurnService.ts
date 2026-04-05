@@ -1644,10 +1644,19 @@ export class TurnService implements ITurnService {
         if (ledger.moneySpent > 0) {
           changes.money = realState.money - ledger.moneySpent;
         }
-        if (ledger.cardsConsumed.length > 0) {
-          changes.hand = realState.hand.filter(
+        // Hand = (REAL hand) − played cards + drawn L cards
+        // Played cards stay consumed; L cards drawn this turn persist because
+        // a law change doesn't unchange just because the player retries.
+        const hasHandChange =
+          ledger.cardsConsumed.length > 0 || ledger.lifeEventsDrawn.length > 0;
+        if (hasHandChange) {
+          let newHand = realState.hand.filter(
             (c) => !ledger.cardsConsumed.includes(c)
           );
+          if (ledger.lifeEventsDrawn.length > 0) {
+            newHand = [...newHand, ...ledger.lifeEventsDrawn];
+          }
+          changes.hand = newHand;
         }
       }
       this.stateService.applyToRealState(playerId, changes);

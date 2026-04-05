@@ -115,6 +115,25 @@ describe('Beta Try Again semantics', () => {
     expect(handAfter, 'played card must not return to hand').not.toContain(CARD_ID);
   });
 
+  it('L cards drawn during the turn are PERMANENT after Try Again (a law change does not unchange)', async () => {
+    const { stateService, cardService, turnService, playerId } = await setupNegotiableTurn();
+    const handBefore = stateService.getPlayer(playerId)!.hand.length;
+
+    // Draw an L card during the turn — represents a law change / life event.
+    const drawn = cardService.drawCards(playerId, 'L', 1, 'test', 'life event during turn');
+    expect(drawn.length).toBe(1);
+    const lCardId = drawn[0];
+    expect(stateService.getPlayer(playerId)!.hand).toContain(lCardId);
+
+    const result = await turnService.tryAgainOnSpace(playerId);
+    expect(result.success).toBe(true);
+
+    const handAfter = stateService.getPlayer(playerId)!.hand;
+    expect(handAfter, 'L card must remain in hand after Try Again').toContain(lCardId);
+    // Net hand delta is +1 (the L card), not 0
+    expect(handAfter.length).toBe(handBefore + 1);
+  });
+
   it('time penalty from the space applies on Try Again (existing rule, must not regress)', async () => {
     const { stateService, turnService, dataService, playerId } = await setupNegotiableTurn();
 

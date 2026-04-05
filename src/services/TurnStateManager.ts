@@ -424,17 +424,21 @@ export class TurnStateManager {
    */
   public recordTurnOutflow(
     playerId: string,
-    entry: { moneySpent?: number; cardConsumed?: string }
+    entry: { moneySpent?: number; cardConsumed?: string; lifeEventDrawn?: string }
   ): void {
     const existing: TurnCostLedger = this.turnStateModel.costLedgers?.[playerId] ?? {
       moneySpent: 0,
-      cardsConsumed: []
+      cardsConsumed: [],
+      lifeEventsDrawn: []
     };
     const updated: TurnCostLedger = {
       moneySpent: existing.moneySpent + (entry.moneySpent ?? 0),
       cardsConsumed: entry.cardConsumed
         ? [...existing.cardsConsumed, entry.cardConsumed]
-        : existing.cardsConsumed
+        : existing.cardsConsumed,
+      lifeEventsDrawn: entry.lifeEventDrawn
+        ? [...(existing.lifeEventsDrawn ?? []), entry.lifeEventDrawn]
+        : (existing.lifeEventsDrawn ?? [])
     };
     this.turnStateModel = {
       ...this.turnStateModel,
@@ -453,7 +457,8 @@ export class TurnStateManager {
     return (
       this.turnStateModel.costLedgers?.[playerId] ?? {
         moneySpent: 0,
-        cardsConsumed: []
+        cardsConsumed: [],
+        lifeEventsDrawn: []
       }
     );
   }

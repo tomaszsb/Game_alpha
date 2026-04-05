@@ -165,8 +165,9 @@ export interface TurnStateModel {
  * these values are added to the REAL state so they survive the TEMP rollback.
  */
 export interface TurnCostLedger {
-  moneySpent: number;       // sum of money spent via spendMoney / recordCost
-  cardsConsumed: string[];  // card IDs played by user-initiated playCard
+  moneySpent: number;          // sum of money spent via spendMoney / recordCost
+  cardsConsumed: string[];     // card IDs played by user-initiated playCard
+  lifeEventsDrawn: string[];   // L card IDs drawn this turn — permanent (a law change doesn't unchange)
 }
 
 /**

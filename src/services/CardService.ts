@@ -223,6 +223,16 @@ export class CardService implements ICardService {
     // This ensures cards are preserved when commitTempToReal is called
     this.stateService.updateTempState(playerId, { hand: updatedHand });
 
+    // Workstream 2: L cards are permanent — a law change doesn't unchange
+    // just because the player keeps negotiating. Record each drawn L card
+    // on the turn ledger so it survives Try Again. (Other card types draw
+    // on the revertible inflow path, handled by the TEMP rollback.)
+    if (cardType === 'L') {
+      for (const drawnId of drawnCards) {
+        this.stateService.recordTurnOutflow(playerId, { lifeEventDrawn: drawnId });
+      }
+    }
+
     // Quick Start mode: capture drawn cards to starting hand if capturing
     if (gameState.isCapturingStartingHand && drawnCards.length > 0) {
       const currentStartingHand = gameState.startingHand || [];
