@@ -520,6 +520,12 @@ export class CardService implements ICardService {
         throw new Error(error.detailed);
       }
 
+      // Workstream 2: this is the user-initiated play path. Record the
+      // card as consumed in the turn ledger so Try Again doesn't return it
+      // to hand. (Auto-played cards go through CardEffectHandler and do
+      // NOT call playCard, so they are correctly excluded from the ledger.)
+      this.stateService.recordTurnOutflow(playerId, { cardConsumed: cardId });
+
       // Step 3: Apply card effects FIRST (validate they work before charging cost)
       await this.applyCardEffects(playerId, cardId);
 

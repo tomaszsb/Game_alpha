@@ -66,4 +66,30 @@ describe('Ghost Player', () => {
     expect(hardFailures, summary).toHaveLength(0);
     expect(batch.wins, summary).toBeGreaterThanOrEqual(Math.floor(batch.total * 0.9));
   }, 600000);
+
+  // TRY-AGAIN-HAPPY VARIANT — same gate as strict, but every game aggressively
+  // uses Try Again on negotiable spaces. Exists to catch state-revert regressions
+  // in Workstream 2 (snapshot Try Again). If snapshot restore leaks state (money
+  // not reverted, cards not removed, etc.), accumulated drift over many retries
+  // will crash or stall these games while the base strict test still passes.
+  it('try-again-happy: 50 games exercising Try Again, no exceptions, ≥90% wins', async () => {
+    const batch = await runGhostBatch(50, { maxTurns: 300, tryAgainProbability: 0.2 });
+
+    const hardFailures = batch.failures.filter(
+      (f: GhostGameResult) => f.reason === 'EXCEPTION' || f.reason === 'INVARIANT_VIOLATION'
+    );
+
+    const summary =
+      `\n[try-again-happy] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
+      batch.failures
+        .slice(0, 8)
+        .map((f: GhostGameResult, i: number) => {
+          const err = f.error ? f.error.split('\n')[0] : '';
+          return `  #${i + 1} ${f.reason} turns=${f.turns} space=${f.finalSpace} :: ${err}\n      trail: ${f.trail.slice(-5).join(' → ')}`;
+        })
+        .join('\n');
+
+    expect(hardFailures, summary).toHaveLength(0);
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(Math.floor(batch.total * 0.9));
+  }, 900000);
 });

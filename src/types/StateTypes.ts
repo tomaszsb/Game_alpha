@@ -148,6 +148,25 @@ export interface TurnStateModel {
   tryAgainCounts: {
     [playerId: string]: number;
   };
+
+  // Workstream 2 (v3.0 Beta): Cost ledger — tracks player outflows that must
+  // STICK across Try Again. Populated by ResourceService.spendMoney and
+  // CardService.playCard during the turn; applied to REAL at tryAgainOnSpace
+  // time; reset on commitTempToReal and when a fresh turn starts.
+  //
+  // See: docs/core/SCOPE_GUARD.md "Beta Try Again semantics"
+  costLedgers?: {
+    [playerId: string]: TurnCostLedger | undefined;
+  };
+}
+
+/**
+ * Per-turn ledger of outflows the player is responsible for. On Try Again,
+ * these values are added to the REAL state so they survive the TEMP rollback.
+ */
+export interface TurnCostLedger {
+  moneySpent: number;       // sum of money spent via spendMoney / recordCost
+  cardsConsumed: string[];  // card IDs played by user-initiated playCard
 }
 
 /**

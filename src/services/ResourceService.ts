@@ -87,6 +87,9 @@ export class ResourceService implements IResourceService {
         expenditures: updatedExpenditures
       });
 
+      // Workstream 2: record outflow so it sticks across Try Again
+      this.stateService.recordTurnOutflow(playerId, { moneySpent: amount });
+
       debugLog(`💸 Expenditure tracked [${playerId}]: $${amount.toLocaleString()} in ${category} category`);
       debugLog(`   Total ${category}: $${updatedExpenditures[category].toLocaleString()}`);
 
@@ -189,6 +192,9 @@ export class ResourceService implements IResourceService {
         [expenditureCategory]: (player.expenditures?.[expenditureCategory] || 0) + amount
       } : player.expenditures
     });
+
+    // Workstream 2: record outflow so it sticks across Try Again
+    this.stateService.recordTurnOutflow(playerId, { moneySpent: amount });
 
     // Log the transaction for debugging
     debugLog(`💸 Cost Recorded [${playerId}]: ${category} - $${amount.toLocaleString()} - ${description}`);
@@ -325,6 +331,14 @@ export class ResourceService implements IResourceService {
         moneySources: updatedMoneySources,
         fundingHistory
       });
+
+      // Workstream 2: money outflows via the legacy updateResources path
+      // also record to the turn ledger so they stick across Try Again.
+      // (Inflows — positive changes.money — intentionally do NOT record;
+      // they should revert when the player retries.)
+      if (changes.money !== undefined && changes.money < 0) {
+        this.stateService.recordTurnOutflow(playerId, { moneySpent: -changes.money });
+      }
 
       const balanceAfter = {
         money: newMoney,

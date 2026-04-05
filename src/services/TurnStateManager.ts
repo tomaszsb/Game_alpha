@@ -6,6 +6,7 @@ import {
   MutablePlayerState,
   PlayerTurnState,
   TurnStateModel,
+  TurnCostLedger,
   StateTransitionResult,
   CreateTempOptions
 } from '../types/StateTypes';
@@ -32,7 +33,8 @@ export class TurnStateManager {
       realStates: {},
       tempStates: {},
       activeTurnPlayers: [],
-      tryAgainCounts: {}
+      tryAgainCounts: {},
+      costLedgers: {}
     };
   }
 
@@ -44,7 +46,8 @@ export class TurnStateManager {
       realStates: {},
       tempStates: {},
       activeTurnPlayers: [],
-      tryAgainCounts: {}
+      tryAgainCounts: {},
+      costLedgers: {}
     };
   }
 
@@ -408,5 +411,63 @@ export class TurnStateManager {
    */
   public getRealState(playerId: string): PlayerTurnState | null {
     return this.turnStateModel.realStates[playerId] || null;
+  }
+
+  // ============================================================================
+  // Cost ledger (Workstream 2) — tracks outflows that stick across Try Again
+  // ============================================================================
+
+  /**
+   * Record an outflow for a player's current turn. Idempotent-safe: multiple
+   * calls accumulate. Called from ResourceService (money spends) and
+   * CardService.playCard (user-initiated card consumption).
+   */
+  public recordTurnOutflow(
+    playerId: string,
+    entry: { moneySpent?: number; cardConsumed?: string }
+  ): void {
+    const existing: TurnCostLedger = this.turnStateModel.costLedgers?.[playerId] ?? {
+      moneySpent: 0,
+      cardsConsumed: []
+    };
+    const updated: TurnCostLedger = {
+      moneySpent: existing.moneySpent + (entry.moneySpent ?? 0),
+      cardsConsumed: entry.cardConsumed
+        ? [...existing.cardsConsumed, entry.cardConsumed]
+        : existing.cardsConsumed
+    };
+    this.turnStateModel = {
+      ...this.turnStateModel,
+      costLedgers: {
+        ...(this.turnStateModel.costLedgers ?? {}),
+        [playerId]: updated
+      }
+    };
+  }
+
+  /**
+   * Get the current turn's outflow ledger for a player.
+   * Returns a zero-initialized ledger if none exists.
+   */
+  public getTurnOutflow(playerId: string): TurnCostLedger {
+    return (
+      this.turnStateModel.costLedgers?.[playerId] ?? {
+        moneySpent: 0,
+        cardsConsumed: []
+      }
+    );
+  }
+
+  /**
+   * Clear the ledger for a player (called on commit and fresh turn start).
+   */
+  public resetTurnOutflow(playerId: string): void {
+    this.turnStateModel = {
+      ...this.turnStateModel,
+      costLedgers: {
+        ...(this.turnStateModel.costLedgers ?? {}),
+        [playerId]: undefined
+      }
+    };
   }
 }

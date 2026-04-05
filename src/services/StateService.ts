@@ -16,6 +16,7 @@ import {
   MutablePlayerState,
   PlayerTurnState,
   TurnStateModel,
+  TurnCostLedger,
   StateTransitionResult,
   CreateTempOptions
 } from '../types/StateTypes';
@@ -1267,6 +1268,13 @@ export class StateService implements IStateService {
       }
     }
 
+    // Fresh turn (not a Try Again retry) — start with an empty ledger.
+    // Try Again retries intentionally preserve the ledger so outflows from
+    // the prior attempt remain sticky.
+    if (!options.isTryAgain) {
+      this.turnStateManager.resetTurnOutflow(options.playerId);
+    }
+
     const result = this.turnStateManager.createTempStateFromReal(
       options,
       player,
@@ -1277,12 +1285,49 @@ export class StateService implements IStateService {
     return result;
   }
 
+  // ============================================================================
+  // Cost ledger passthroughs (Workstream 2 — Beta Try Again semantics)
+  // ============================================================================
+
+  /**
+   * Record an outflow for the player's current turn. Player-initiated
+   * spends/card-plays call this so the cost sticks across Try Again.
+   */
+  public recordTurnOutflow(
+    playerId: string,
+    entry: { moneySpent?: number; cardConsumed?: string }
+  ): void {
+    this.syncTurnStateToManager();
+    this.turnStateManager.recordTurnOutflow(playerId, entry);
+    this.syncTurnStateFromManager();
+  }
+
+  /**
+   * Read the accumulated outflow ledger for a player's current turn.
+   */
+  public getTurnOutflow(playerId: string): TurnCostLedger {
+    this.syncTurnStateToManager();
+    return this.turnStateManager.getTurnOutflow(playerId);
+  }
+
+  /**
+   * Get the REAL (turn-start) state for a player, if one exists.
+   * Returns null when the player is between turns or has never been active.
+   */
+  public getRealPlayerState(playerId: string): MutablePlayerState | null {
+    this.syncTurnStateToManager();
+    const real = this.turnStateManager.getRealState(playerId);
+    return real?.state ?? null;
+  }
+
   /**
    * Commit TEMP state to REAL state for a player.
    * Called at the end of a player's turn.
    */
   public commitTempToReal(playerId: string): StateTransitionResult {
     this.syncTurnStateToManager();
+    // Ledger is per-turn — committing a turn retires the ledger.
+    this.turnStateManager.resetTurnOutflow(playerId);
     const result = this.turnStateManager.commitTempToReal(playerId);
     this.syncTurnStateFromManager();
 

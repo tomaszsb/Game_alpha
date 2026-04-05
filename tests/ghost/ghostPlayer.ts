@@ -33,6 +33,13 @@ export interface GhostGameOptions {
   maxTurns?: number;
   playerName?: string;
   verbose?: boolean;
+  /**
+   * Probability (0..1) that the ghost will invoke Try Again on any turn where
+   * the current space allows it (can_negotiate = true). Default 0 — the base
+   * ghost never uses Try Again. The "try-again-happy" variant uses ~0.2 so
+   * every strict run exercises the Try Again code path and its state reverts.
+   */
+  tryAgainProbability?: number;
 }
 
 /**
@@ -135,6 +142,31 @@ export async function playOneGame(
       // If so, loop back so the isGameOver check at the top can record the WIN.
       const gs = stateService.getGameState();
       if (gs.isGameOver || gs.gamePhase !== 'PLAY') continue;
+
+      // Randomly invoke Try Again on spaces that allow it. This exercises the
+      // snapshot-revert code path so the try-again-happy ghost variant catches
+      // regressions in the state-restore logic.
+      const tryAgainProb = options.tryAgainProbability ?? 0;
+      if (tryAgainProb > 0 && Math.random() < tryAgainProb) {
+        const pp = stateService.getPlayer(playerId);
+        const spaceContent = pp ? dataService.getSpaceContent(pp.currentSpace, pp.visitType) : null;
+        if (spaceContent?.can_negotiate) {
+          const handBefore = pp?.hand?.length ?? 0;
+          const timeBefore = pp?.timeSpent ?? 0;
+          const moneyBefore = pp?.money ?? 0;
+          const tryResult = await turnService.tryAgainOnSpace(playerId);
+          if (tryResult.success && tryResult.shouldAdvanceTurn) {
+            const after = stateService.getPlayer(playerId);
+            trail.push(
+              `  tryAgain@${pp?.currentSpace} hand:${handBefore}→${after?.hand?.length ?? 0} ` +
+                `time:${timeBefore}→${after?.timeSpent ?? 0} $:${moneyBefore}→${after?.money ?? 0}`
+            );
+            await turnService.endTurnWithMovement(true, true);
+            continue;
+          }
+          trail.push(`  tryAgain failed: ${tryResult.message}`);
+        }
+      }
 
       await turnService.endTurnWithMovement(true);
     }

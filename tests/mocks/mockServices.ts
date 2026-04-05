@@ -155,6 +155,11 @@ export const createMockStateService = (): any => ({
   getTryAgainCount: vi.fn().mockReturnValue(0),
   updateTempState: vi.fn().mockReturnValue({ success: true }),
 
+  // Cost ledger methods (Workstream 2 — Beta Try Again semantics)
+  recordTurnOutflow: vi.fn(),
+  getTurnOutflow: vi.fn().mockReturnValue({ moneySpent: 0, cardsConsumed: [] }),
+  getRealPlayerState: vi.fn().mockReturnValue(null),
+
   // Legacy snapshot methods (deprecated, kept for backward compatibility)
   savePreSpaceEffectSnapshot: vi.fn(),
   clearPreSpaceEffectSnapshot: vi.fn(),

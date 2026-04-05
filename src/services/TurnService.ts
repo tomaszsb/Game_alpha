@@ -7,7 +7,7 @@ import { SpaceArrivalProcessor } from './SpaceArrivalProcessor';
 import { DiceRollProcessor } from './DiceRollProcessor';
 import { TurnTransitionHandler } from './TurnTransitionHandler';
 import { MovementExecutor } from './MovementExecutor';
-import { GameState, Player, DiceResultEffect, TurnEffectResult, CreateTempOptions } from '../types/StateTypes';
+import { GameState, Player, DiceResultEffect, TurnEffectResult, CreateTempOptions, MutablePlayerState } from '../types/StateTypes';
 import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
@@ -1630,10 +1630,27 @@ export class TurnService implements ITurnService {
         this.choiceService.skipChoice(activeChoice.id);
       }
 
-      // 7. Pay-and-wait model: apply penalty to REAL, discard TEMP
-      // The turn will end immediately — player retries on their next turn
-      // (startTurn will create fresh TEMP and process space effects then)
-      this.stateService.applyToRealState(playerId, { timeSpent: timePenalty });
+      // 7. Beta Try Again (Workstream 2): outflows stick, inflows revert.
+      // Read the turn's cost ledger — it accumulates everything the player
+      // has PAID or PLAYED during the attempt (money spends, cards
+      // consumed via user-initiated playCard). The time penalty is always
+      // additive; the ledger contents are applied to REAL so they survive
+      // the TEMP rollback.
+      const ledger = this.stateService.getTurnOutflow(playerId);
+      const realState = this.stateService.getRealPlayerState(playerId);
+
+      const changes: Partial<MutablePlayerState> = { timeSpent: timePenalty };
+      if (realState) {
+        if (ledger.moneySpent > 0) {
+          changes.money = realState.money - ledger.moneySpent;
+        }
+        if (ledger.cardsConsumed.length > 0) {
+          changes.hand = realState.hand.filter(
+            (c) => !ledger.cardsConsumed.includes(c)
+          );
+        }
+      }
+      this.stateService.applyToRealState(playerId, changes);
       this.stateService.discardTempState(playerId);
 
 
