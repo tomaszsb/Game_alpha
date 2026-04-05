@@ -27,6 +27,8 @@ import { EffectEngineService } from '../../src/services/EffectEngineService';
 import { NegotiationService } from '../../src/services/NegotiationService';
 import { TurnService } from '../../src/services/TurnService';
 import { CardEffectService } from '../../src/services/CardEffectService';
+import { CardEffectHandler } from '../../src/services/CardEffectHandler';
+import { FinancialEffectHandler } from '../../src/services/FinancialEffectHandler';
 
 class NodeDataService extends DataService {
   async loadData(): Promise<void> {
@@ -98,7 +100,20 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
   );
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);
+  effectEngineService.setNotificationService(notificationService);
   cardService.setEffectEngineService(effectEngineService);
+  cardService.setChoiceService(choiceService);
+
+  // Wire FinancialEffectHandler — required for RESOURCE_CHANGE effects from cards/spaces.
+  const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+  effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+
+  // Wire CardEffectHandler — required for CARD_DRAW / CARD_DISCARD / card activation effects.
+  // Without this, dice-triggered card draws silently return empty arrays.
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
+  cardEffectHandler.setDataService(dataService);
+  cardEffectHandler.setNotificationService(notificationService);
+  effectEngineService.setCardEffectHandler(cardEffectHandler);
 
   const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
   turnService.setCardEffectService(cardEffectService);

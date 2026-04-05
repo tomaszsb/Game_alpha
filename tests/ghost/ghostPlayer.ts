@@ -109,7 +109,12 @@ export async function playOneGame(
       const movement = dataService.getMovement(refreshed.currentSpace, refreshed.visitType);
 
       if (movement?.movement_type === 'choice') {
-        const dests = collectDestinations(movement);
+        // Use MovementService.getValidMoves so we respect any runtime filtering
+        // (e.g. spaces that present 2 CSV destinations but only allow one based
+        // on prior player state). Falling back to raw CSV dests mirrors the old
+        // behavior if the service somehow returns nothing.
+        let dests = services.movementService.getValidMoves(playerId);
+        if (!dests || dests.length === 0) dests = collectDestinations(movement);
         if (dests.length === 0) {
           return fail('INVARIANT_VIOLATION', `Choice movement from ${refreshed.currentSpace} has no destinations`, turn);
         }
@@ -125,6 +130,11 @@ export async function playOneGame(
 
       // Final choice resolution (rolling dice may have introduced one)
       await resolveAnyPendingChoice(services);
+
+      // A space effect or dice roll may have ended the game (e.g. reaching FINISH).
+      // If so, loop back so the isGameOver check at the top can record the WIN.
+      const gs = stateService.getGameState();
+      if (gs.isGameOver || gs.gamePhase !== 'PLAY') continue;
 
       await turnService.endTurnWithMovement(true);
     }
