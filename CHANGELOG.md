@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.40.0] - 2026-04-06
+
+### v3.0-beta Workstream 1: Ghost Player regression gate (April 4, 2026)
+- **Ghost Player** — Headless bot that plays the game by picking random valid actions, exercising real service code paths without a UI. Catches silent breakages in any space, card, or effect before students hit them.
+- **Strict CI gate** — 50 games must pass with zero exceptions/invariant violations and ≥90% win rate. Current baseline: 48/50 wins, avgTurns≈110.
+- **Space coverage gate** — 50 games must collectively visit every non-excluded space in GAME_CONFIG.csv. Only START-QUICK-PLAY-GUIDE (tutorial-only) is excluded. Catches orphaned branches from data edits.
+- **Files added**: `tests/ghost/bootstrapServices.ts`, `tests/ghost/ghostPlayer.ts`, `tests/ghost/ghostPlayer.test.ts`, `tests/ghost/coverage.test.ts`, `docs/core/GHOST_PLAYER_FINDINGS.md`
+- **Bugs found and fixed**: Finding #1 (CardEffectHandler wiring gap in headless bootstrap — resolved); Finding #2 (~2/50 bots loop at PM-DECISION-CHECK with huge hands — accepted, bot-strategy artifact)
+
+### v3.0-beta Workstream 2: Beta Try Again semantics (April 5, 2026)
+- **Outflows stick, inflows revert** — Money the player PAID during a turn remains paid after Try Again; cards the player PLAYED stay consumed. Money RECEIVED and cards DRAWN still revert. Time penalty still applies (unchanged). Unlimited retries (unchanged).
+- **L cards are permanent** — Life Event cards drawn during a turn persist across Try Again because "a law change doesn't unchange just because you keep negotiating."
+- **Cost ledger mechanism** — Per-turn `TurnCostLedger` on TurnStateManager tracks `moneySpent`, `cardsConsumed`, and `lifeEventsDrawn`. Hooked at `ResourceService.spendMoney`/`recordCost`/`updateResources` (money outflows) and `CardService.playCard` (user-initiated only — auto_play excluded) and `CardService.drawCards` (L cards only). Applied to REAL before TEMP discard in `tryAgainOnSpace`. Cleared on `commitTempToReal` and fresh-turn `createTempStateFromReal`.
+- **Try-again-happy ghost variant** — New ghost test runs 50 games with p=0.2 Try Again on negotiable spaces. Catches state-revert drift that the base strict test misses.
+- **7 semantics tests** — Pin down the Beta Try Again rules: money-paid sticks, money-received reverts, cards-drawn revert, card-played sticks, L-card permanent, time penalty applies, unlimited retries each burn penalty.
+- **Files changed** (11): `StateTypes.ts`, `ServiceContracts.ts`, `TurnStateManager.ts`, `StateService.ts`, `TurnService.ts`, `ResourceService.ts`, `CardService.ts`, `ghostPlayer.ts`, `ghostPlayer.test.ts`, `tryAgainSemantics.test.ts` (new), `mockServices.ts`
+
+---
+
 ## [2.39.5] - 2026-04-03
 
 ### Resume from side quest at PM-DECISION-CHECK (April 3, 2026)

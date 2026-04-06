@@ -1,14 +1,24 @@
 # Project Status
 
-**Last Updated**: April 3, 2026
-**Current Phase**: Pre-Beta — Bug Fixes (v2.39.5)
-**Current Version**: 2.39.5
+**Last Updated**: April 6, 2026
+**Current Phase**: Beta — Regression gates in place (v2.40.0)
+**Current Version**: 2.40.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### v3.0-beta Workstream 2: Beta Try Again semantics (April 5-6, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.40.0
+- **Changes**: Money paid sticks, cards played stay consumed, money received reverts, cards drawn revert. L cards permanent. Per-turn cost ledger mechanism (TurnCostLedger on TurnStateManager). 7 semantics tests + try-again-happy ghost variant (50 games at p=0.2).
+
+### v3.0-beta Workstream 1: Ghost Player (April 4, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.40.0
+- **Changes**: Headless bot plays 50 random games — catches silent breakages in any space/card/effect. Strict gate (zero exceptions, ≥90% wins). Space coverage gate (every GAME_CONFIG.csv space visited at least once). Two findings: #1 resolved (bootstrap wiring gap), #2 accepted (~2/50 bots loop — bot-strategy artifact).
 
 ### Resume from side quest (April 3, 2026) ✅
 - **Status**: ✅ Complete

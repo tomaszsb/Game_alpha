@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 3, 2026
-**Status:** Pre-Beta — Bug fixes + polish
-**Current Version:** 2.39.4
+**Last Updated:** April 6, 2026
+**Status:** Beta — regression gates in place
+**Current Version:** 2.40.0
 
 ---
 
@@ -19,6 +19,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Ghost Player regression gate — headless bot plays 50 random games, catches silent breakages in any space/card/effect. Strict gate (zero exceptions, ≥90% wins) + space coverage gate (every GAME_CONFIG.csv space visited). (Apr 4, 2026)
+- ✅ Beta Try Again semantics — money paid sticks, cards played stay consumed, money received reverts, cards drawn revert. L cards permanent. Cost ledger + 7 semantics tests + try-again-happy ghost variant. (Apr 5-6, 2026)
 - ✅ Resume from side quest — PM-DECISION-CHECK now offers destinations from the main-path space where the player detoured, so they can skip back to where they left off instead of redoing completed phases. CHEAT-BYPASS disables this (point of no return). 8 new tests. (Apr 3, 2026)
 - ✅ Console.log cleanup — 203 console.log/warn calls replaced with debug-gated `debugLog`/`debugWarn` across 30 files; suppressed in production, enable via `?debug=true` or `localStorage` (Apr 3, 2026)
 - ✅ Remove TEST cards from production — TEST001-TEST006 test artifacts removed from CARDS_EXPANDED.csv (Apr 3, 2026)

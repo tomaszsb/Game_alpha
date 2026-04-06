@@ -2,6 +2,24 @@
 
 ---
 
+## v2.40.0 - Beta Try Again + Ghost Player (April 6, 2026)
+
+**Release Date:** April 6, 2026
+**Version:** 2.40.0
+**Status:** Beta
+**Type:** Gameplay Improvement + Quality Assurance
+
+### Try Again — Now Mimics Real Negotiation
+- **What you spend stays spent** — If you paid money or played a card during your turn, those costs stick even if you use Try Again. Just like in real life: time wasted, money spent, resources used — they don't come back.
+- **What you received goes back** — Money offered by the other party, cards drawn from the deck — those revert when you retry. The other side takes back their offer.
+- **Life Events are permanent** — If you drew a Life Event (L) card, that stays in your hand. A law change doesn't unchange just because you keep negotiating.
+- **Unlimited retries** — You can use Try Again as many times as you want. Each retry costs you the time penalty for that space.
+
+### Behind the Scenes
+- **Ghost Player** — An automated bot now plays 50+ full games after every code change. If any space, card, or effect breaks, the bot catches it before students see it. Every space in the game is covered.
+
+---
+
 ## v2.39.5 - Resume From Side Quest (April 3, 2026)
 
 **Release Date:** April 3, 2026
