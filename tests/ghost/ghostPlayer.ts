@@ -168,7 +168,19 @@ export async function playOneGame(
         }
       }
 
-      await turnService.endTurnWithMovement(true);
+      // Verify action completion before ending turn (mirrors real UI guard)
+      const preEndState = stateService.getGameState();
+      if (preEndState.requiredActions > preEndState.completedActionCount) {
+        return fail(
+          'INVARIANT_VIOLATION',
+          `Action mismatch at ${stateService.getPlayer(playerId)?.currentSpace}: ` +
+            `required=${preEndState.requiredActions}, completed=${preEndState.completedActionCount}, ` +
+            `manualActions=${JSON.stringify(preEndState.completedActions?.manualActions)}`,
+          turn
+        );
+      }
+
+      await turnService.endTurnWithMovement();
     }
 
     return fail('TURN_CAP', `Game did not finish within ${maxTurns} turns`, maxTurns);
@@ -192,8 +204,8 @@ function checkInvariants(player: any, dataService: any): string | null {
   // Verify the space actually exists in the data
   const effects = dataService.getSpaceEffects(player.currentSpace, player.visitType);
   const movement = dataService.getMovement(player.currentSpace, player.visitType);
-  if (!effects && !movement) {
-    return `space "${player.currentSpace}" (${player.visitType}) not found in data tables`;
+  if ((!effects || effects.length === 0) && !movement) {
+    return `space "${player.currentSpace}" (${player.visitType}) not found in data tables (effects=${effects?.length ?? 'null'}, movement=${!!movement})`;
   }
   return null;
 }
@@ -246,13 +258,25 @@ async function triggerManualSpaceEffects(
       const key = `${effect.effect_type}:${effect.effect_action}`;
       try {
         const promise = turnService.triggerManualEffect(playerId, key);
-        await new Promise((r) => setTimeout(r, 5));
-        const choice = stateService.getGameState().awaitingChoice;
-        if (choice && choice.type !== 'MOVEMENT' && choice.options.length > 0) {
-          const pick = choice.options[Math.floor(Math.random() * choice.options.length)];
-          choiceService.resolveChoice(choice.id, pick.id);
+        // Poll for pending choice — triggerManualEffect sets awaitingChoice
+        // synchronously inside createChoice before the promise hangs.
+        // Poll up to 50ms (10 × 5ms) to be safe across environments.
+        for (let wait = 0; wait < 10; wait++) {
+          const choice = stateService.getGameState().awaitingChoice;
+          if (choice && choice.type !== 'MOVEMENT' && choice.options.length > 0) {
+            const pick = choice.options[Math.floor(Math.random() * choice.options.length)];
+            choiceService.resolveChoice(choice.id, pick.id);
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 5));
         }
-        await promise;
+        // Await with a 10s timeout to prevent hanging if choice was never resolved
+        await Promise.race([
+          promise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error(
+            `triggerManualEffect(${key}) timed out after 10s — choice may not have been resolved`
+          )), 10000))
+        ]);
         const pp = stateService.getPlayer(playerId);
         const w = pp?.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
         trail.push(`  triggered(${key}) → hand=${pp?.hand?.length ?? 0}(W=${w})`);
@@ -294,10 +318,13 @@ export async function runGhostBatch(
   wins: number;
   failures: GhostGameResult[];
   avgTurns: number;
+  longGames: number;
 }> {
   const failures: GhostGameResult[] = [];
   let wins = 0;
   let totalTurns = 0;
+  let longGames = 0;
+  const LONG_GAME_THRESHOLD = 60;
 
   for (let i = 0; i < gameCount; i++) {
     const services = await bootstrapHeadlessServices();
@@ -305,6 +332,10 @@ export async function runGhostBatch(
     totalTurns += result.turns;
     if (result.success) {
       wins++;
+      if (result.turns > LONG_GAME_THRESHOLD) {
+        longGames++;
+        console.warn(`⚠️ Long game #${i + 1}: ${result.turns} turns (possible loop). Final space: ${result.finalSpace}`);
+      }
     } else {
       failures.push(result);
     }
@@ -315,5 +346,6 @@ export async function runGhostBatch(
     wins,
     failures,
     avgTurns: totalTurns / gameCount,
+    longGames,
   };
 }

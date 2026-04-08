@@ -98,21 +98,20 @@ export class ChoiceService implements IChoiceService {
     const activeChoice = this.getActiveChoice();
 
     if (!activeChoice) {
-      console.error(`❌ [CHOICE] No active choice found in state`);
-      console.error(`❌ [CHOICE] Pending choices map:`, this.pendingChoices.size);
+      console.error(`❌ [CHOICE] resolveChoice FAILED: No active choice in state. choiceId=${choiceId}, selection=${selection}, pendingCount=${this.pendingChoices.size}`);
       return false;
     }
 
 
     if (activeChoice.id !== choiceId) {
-      console.error(`❌ [CHOICE] Choice ID mismatch. Expected ${activeChoice.id}, got ${choiceId}`);
+      console.error(`❌ [CHOICE] resolveChoice FAILED: ID mismatch. expected=${activeChoice.id}, got=${choiceId}, type=${activeChoice.type}, selection=${selection}`);
       return false;
     }
 
     // Validate the selection against available options
     const validOption = activeChoice.options.find(option => option.id === selection);
     if (!validOption) {
-      console.error(`❌ [CHOICE] Invalid selection "${selection}". Valid options: ${activeChoice.options.map(opt => opt.id).join(', ')}`);
+      console.error(`❌ [CHOICE] resolveChoice FAILED: Invalid selection "${selection}". type=${activeChoice.type}, validOptions=[${activeChoice.options.map(opt => opt.id).join(', ')}]`);
       return false;
     }
 
@@ -120,9 +119,7 @@ export class ChoiceService implements IChoiceService {
     // Get the pending promise for this choice
     const pendingChoice = this.pendingChoices.get(choiceId);
     if (!pendingChoice) {
-      console.error(`❌ [CHOICE] No pending promise found for choice ${choiceId}`);
-      console.error(`❌ [CHOICE] This usually means the choice was created as display-only`);
-      console.error(`❌ [CHOICE] All choices must be created via createChoice() to be resolvable`);
+      console.error(`❌ [CHOICE] resolveChoice FAILED: No pending promise for choice ${choiceId}. type=${activeChoice.type}, selection=${selection}. Choice was likely created as display-only (not via createChoice).`);
       return false;
     }
 

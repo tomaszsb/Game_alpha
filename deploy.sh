@@ -12,6 +12,9 @@ echo "Stopping existing container..."
 docker stop game_alpha 2>/dev/null || true
 docker rm game_alpha 2>/dev/null || true
 
+echo "Clearing editor data cache (forces fresh data from build)..."
+rm -rf "$(pwd)/server/data/game-data" 2>/dev/null || true
+
 echo "Building new image..."
 GIT_COMMIT=$(git rev-parse --short HEAD)
 echo "   Version: $GIT_COMMIT"

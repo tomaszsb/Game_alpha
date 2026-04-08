@@ -2,6 +2,25 @@
 
 ---
 
+## v2.41.0 - G148 Playtest Fixes (April 8, 2026)
+
+**Release Date:** April 8, 2026
+**Version:** 2.41.0
+**Status:** Beta
+**Type:** Bug Fix + Quality Assurance
+
+### Gameplay Fixes
+- **Fixed: Getting stuck with no way to move** — If the game ever fails to figure out where to move you, you'll now see an error message instead of being silently stuck. Previously, certain spaces with missing data could leave you clicking "End Turn" with nothing happening.
+- **Fixed: Test space causing loops** — A leftover test space (CON-SAFETY-BRIEF) was replaced with the correct destination, preventing players from getting trapped in an endless loop through Construction phases.
+- **Investigating: Card actions not registering** — In some cases, "Return Expeditor" and "Draw Expeditor" actions close the dialog but don't count as completed, blocking End Turn. Added tracking to pinpoint the exact cause on next occurrence.
+
+### Behind the Scenes
+- **Smarter automated testing** — The Ghost Player bot now checks that all required actions are completed before ending a turn (just like a real player). Previously it could skip past broken actions without noticing.
+- **Data validation test** — A new test checks that every space in the game has valid movement data, catching missing or broken spaces before they reach players.
+- **Deploy improvements** — Every deployment now clears cached game data, preventing stale information from persisting.
+
+---
+
 ## v2.40.0 - Beta Try Again + Ghost Player (April 6, 2026)
 
 **Release Date:** April 6, 2026

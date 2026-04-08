@@ -72,7 +72,7 @@ export class MovementExecutor {
         // }
 
         if (destination) {
-          console.error(`[MOVE_CHECK] From: ${player.currentSpace} To: ${destination} (Roll: ${diceRoll})`);
+          // Movement logged via emitAutoAction below
           // Emit movement event BEFORE the move so UI can show transition overlay
           this.stateService.emitAutoAction({
             type: 'movement',
@@ -88,7 +88,18 @@ export class MovementExecutor {
           await this.movementService.movePlayer(player.id, destination);
           return { moved: true, fromSpace: player.currentSpace, toSpace: destination, reason: 'dice' };
         } else {
-          debugWarn(`🎲 No destination found for dice roll ${diceRoll} at ${player.currentSpace}`);
+          console.error(`[MovementExecutor] STUCK: No destination for dice roll ${diceRoll} at ${player.currentSpace} (${player.visitType}). Player ${player.name} cannot move.`);
+          this.stateService.emitAutoAction({
+            type: 'movement',
+            playerId: player.id,
+            playerName: player.name,
+            playerColor: player.color,
+            spaceName: player.currentSpace,
+            fromSpace: player.currentSpace,
+            toSpace: null,
+            success: false,
+            message: `⚠️ Movement failed: no destination found for dice roll ${diceRoll} at ${player.currentSpace}. Please contact support or reload.`
+          });
           return { moved: false, fromSpace: player.currentSpace, toSpace: null, reason: 'none' };
         }
       } else if (player.moveIntent) {
@@ -132,6 +143,20 @@ export class MovementExecutor {
           });
           await this.movementService.movePlayer(player.id, validMoves[0]);
           return { moved: true, fromSpace: player.currentSpace, toSpace: validMoves[0], reason: 'auto' };
+        }
+        if (validMoves.length === 0) {
+          console.error(`[MovementExecutor] STUCK: No valid moves and no moveIntent at ${player.currentSpace} (${player.visitType}). Player ${player.name} cannot move. validMoves=[], lastDiceRoll=${JSON.stringify(player.lastDiceRoll)}`);
+          this.stateService.emitAutoAction({
+            type: 'movement',
+            playerId: player.id,
+            playerName: player.name,
+            playerColor: player.color,
+            spaceName: player.currentSpace,
+            fromSpace: player.currentSpace,
+            toSpace: null,
+            success: false,
+            message: `⚠️ Movement failed: no valid destinations from ${player.currentSpace}. Please contact support or reload.`
+          });
         }
         return { moved: false, fromSpace: player.currentSpace, toSpace: null, reason: 'none' };
       }

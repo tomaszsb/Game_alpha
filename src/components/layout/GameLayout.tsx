@@ -202,6 +202,14 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Subscribe to auto-action events — show modals for life events
   useEffect(() => {
     const unsubscribe = stateService.subscribeToAutoActions((event: AutoActionEvent) => {
+      // Movement failure — surface error to player
+      if (event.type === 'movement' && event.success === false) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification('movement', event.message || 'Movement could not be resolved', event.playerName),
+          { playerId: event.playerId, playerName: event.playerName, actionType: 'movement_error' }
+        );
+        return;
+      }
       if (event.type === 'life_event' && event.cardId) {
         const card = dataService.getCardById(event.cardId);
         const effects: DiceResultEffect[] = [{

@@ -1112,6 +1112,7 @@ export class TurnService implements ITurnService {
         if (isImpossibleAction) {
         }
       } else {
+        console.error(`[ManualAction] NOT COMPLETED: effectType=${effectType}, action=${action}, cardsAffected=${result.cardsAffected.length}, message=${result.message}, isSkippable=${isSkippableAction}, isImpossible=${isImpossibleAction}. Action will NOT be marked complete — End Turn will stay disabled.`);
       }
 
       // Restore movement choice if needed
@@ -1311,6 +1312,7 @@ export class TurnService implements ITurnService {
                          afterHand.some(id => !beforeHand.includes(id));
 
       if (!wasCompleted) {
+        console.error(`[ManualAction] SKIPPED/FAILED: effectType=${effectType}, action=${action}, space=${currentPlayer.currentSpace}, handBefore=${beforeHand.length}, handAfter=${afterHand.length}, handChanged=${beforeHand.length !== afterHand.length || beforeHand.some(id => !afterHand.includes(id))}. manualActions=${JSON.stringify(afterState.completedActions?.manualActions)}`);
         // Return empty effects so no modal is shown (user already knows they skipped)
         return {
           diceValue: 0,

@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.41.0] - 2026-04-08
+
+### G148 Playtest Bug Fixes + Ghost Player Hardening (April 8, 2026)
+
+**Source:** Full 2-player playthrough bug report (game G148, 41 rounds). 6 bugs found — 2 critical (game-breaking), 2 high, 2 medium. Root cause analysis revealed blind spots in Ghost Player that let all 6 bugs slip through.
+
+#### Bug Fixes
+- **BUG-005/006: MovementExecutor silent failure** — When all 3 movement strategies fail (dice destination not found, no moveIntent, no auto-move), MovementExecutor now logs `console.error` with full context and emits a `success: false` auto-action event. GameLayout listens for failed movement events and shows an error notification to the player. Previously the player was permanently stuck with no indication.
+- **BUG-003/005: Stale CON-SAFETY-BRIEF data on live server** — Local CSVs were fixed Mar 31, but the editor's writable Docker volume still had old data. Deploy script now clears `server/data/game-data/` on every deploy, forcing fresh data from the build.
+- **BUG-001/002: Debug breadcrumbs for manual action tracking** — Added `console.error` instrumentation to 3 code paths where manual card actions ("Return 1 E cards", "Draw 3 E cards") could silently fail: `ChoiceService.resolveChoice` (4 failure paths with structured context), `TurnService.applySpaceCardEffect` (wasActuallyCompleted=false path), `TurnService.triggerManualEffectWithFeedback` (skipped-action path with hand diff and manualActions state). Root cause not yet isolated — breadcrumbs will pinpoint it on next reproduction.
+
+#### Ghost Player Hardening
+- **Removed `force=true` bypass** — Ghost no longer skips the required-actions check on `endTurnWithMovement()`. If manual effects fail to register as completed, the ghost fails like a real player would. This was the root cause of missing BUG-001/002 — the ghost never validated action completion.
+- **Fixed invariant check truthy bug** — `checkInvariants` checked `!effects && !movement` but `getSpaceEffects()` returns `[]` (truthy) for unknown spaces. Changed to `effects.length === 0 && !movement`.
+- **Replaced 5ms setTimeout hack** — Manual effect choice resolution now uses a polling loop (10 × 5ms) + 10s timeout on the promise to prevent hanging. Previous single 5ms delay could miss async choices.
+- **Action-completion assertion** — Before ending each turn, ghost asserts `completedActionCount >= requiredActions`. Mismatch reports as INVARIANT_VIOLATION with space, counts, and manualActions state.
+- **Game-length heuristic** — Games exceeding 60 turns logged as warnings (possible loop trap). `runGhostBatch` returns `longGames` count.
+
+#### New Test: Static CSV Data Integrity (`tests/ghost/dataIntegrity.test.ts`)
+- Every GAME_CONFIG space has a MOVEMENT entry (catches orphaned spaces)
+- Every DICE_OUTCOMES row has all 6 rolls populated (catches incomplete dice data)
+- Every destination in DICE_OUTCOMES exists in GAME_CONFIG (handles "or" choices)
+- Every destination in MOVEMENT exists in GAME_CONFIG (catches phantom destinations)
+- Runs in <1s — catches the class of bug that caused BUG-005 at test time, not play time.
+
+#### Files Changed
+- `deploy.sh` — clear editor data cache on every deploy
+- `src/services/MovementExecutor.ts` — error handling on both failure paths
+- `src/components/layout/GameLayout.tsx` — listen for failed movement events
+- `src/services/ChoiceService.ts` — structured error context on resolveChoice failures
+- `src/services/TurnService.ts` — debug breadcrumbs on manual action paths
+- `tests/ghost/ghostPlayer.ts` — remove force=true, fix invariant, add assertions
+- `tests/ghost/dataIntegrity.test.ts` — new static CSV validation test (5 tests)
+- `TODO.md` — G148 bug tracking section with investigation findings
+
+---
+
 ## [2.40.0] - 2026-04-06
 
 ### v3.0-beta Workstream 1: Ghost Player regression gate (April 4, 2026)
