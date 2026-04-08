@@ -420,7 +420,7 @@ export type { Player, ActiveCard, ActiveEffect } from './DataTypes';
 
 // Dice result feedback types
 export interface DiceResultEffect {
-  type: 'money' | 'time' | 'cards' | 'movement' | 'choice';
+  type: 'money' | 'time' | 'cards' | 'movement' | 'choice' | 'card_draw' | 'info';
   description: string;
   value?: number;
   cardType?: string;

@@ -2,6 +2,18 @@
 
 ---
 
+## v2.41.1 - Card Action Fix (April 8, 2026)
+
+**Release Date:** April 8, 2026
+**Version:** 2.41.1
+**Status:** Beta
+**Type:** Bug Fix
+
+### Gameplay Fix
+- **Fixed: Card actions not registering (BUG-001/002)** — "Return Expeditor" and "Draw Expeditor" actions could close the dialog without counting as completed, blocking End Turn. Root cause identified: a timing issue where the game's sync system could overwrite your completed action before saving it. This has been fixed — manual card actions now reliably register as complete.
+
+---
+
 ## v2.41.0 - G148 Playtest Fixes (April 8, 2026)
 
 **Release Date:** April 8, 2026

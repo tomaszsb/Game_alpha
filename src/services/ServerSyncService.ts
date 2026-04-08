@@ -161,6 +161,16 @@ export class ServerSyncService {
 
     this.isSyncing = true;
 
+    // Pre-increment WebSocket version to suppress self-echo during HTTP round-trip.
+    // The server broadcasts state_update to ALL WS clients (including sender) after
+    // an HTTP POST. This broadcast can arrive before the HTTP response, causing the
+    // client to overwrite its own local state with the (stale) server echo — losing
+    // any changes made between the sync capture and the echo arrival (e.g., a
+    // completedAction set after a choice was resolved). By pre-setting the expected
+    // version, the WS handler rejects the echo (V+1 > V+1 = false).
+    const previousWsVersion = getWebSocketService().getLastKnownVersion();
+    getWebSocketService().setLastKnownVersion(previousWsVersion + 1);
+
     try {
       const gameId = getCurrentGameId();
       const apiPath = getGameStateAPIPath(gameId);
@@ -180,6 +190,9 @@ export class ServerSyncService {
       });
 
       if (!response.ok) {
+        // Restore WS version — our sync failed
+        getWebSocketService().setLastKnownVersion(previousWsVersion);
+
         // Check for version conflict (409 Conflict)
         if (response.status === 409) {
           debugWarn(`⚠️ State sync rejected: server has newer version. Fetching latest state...`);
@@ -192,7 +205,7 @@ export class ServerSyncService {
         const result = await response.json();
         // Update our known server version to prevent future conflicts
         this.lastKnownServerVersion = result.stateVersion;
-        // Sync version with WebSocket service
+        // Sync version with WebSocket service (use actual server version, not our estimate)
         getWebSocketService().setLastKnownVersion(result.stateVersion);
         // Debug: Log spaceVisitLog sync status
         const player = state.players?.[0];
@@ -200,6 +213,8 @@ export class ServerSyncService {
         debugLog(`✅ State synced to server (v${result.stateVersion})${gameId ? ` [${gameId}]` : ''} - spaceVisitLog: ${logLength} entries`);
       }
     } catch (error) {
+      // Restore WS version — network failure
+      getWebSocketService().setLastKnownVersion(previousWsVersion);
       // Fail silently - server may not be running (development mode)
     } finally {
       this.isSyncing = false;

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.41.1] - 2026-04-08
+
+### BUG-001/002 Root Cause Fix — WebSocket Self-Echo Race Condition
+
+**Root cause:** When `ServerSyncService.syncToServer` sends an HTTP POST, the server broadcasts the state via WebSocket to ALL clients — including the sender. This broadcast can arrive before the HTTP response. During the async gap (e.g., while a player is resolving a card choice), the echo overwrites local state that already has `completedActions` set, causing the action to appear incomplete.
+
+**Race sequence:**
+1. Player clicks manual action → state change → debounced sync starts (500ms)
+2. Sync fires → captures state (without completedAction) → HTTP POST
+3. Server stores state, increments version V+1, broadcasts to all WS clients
+4. Player resolves choice → `setPlayerCompletedManualAction` updates local state
+5. WS echo arrives → V+1 > V → `setCurrentState` overwrites → completedAction LOST
+
+**Fix (`ServerSyncService.ts`):** Pre-increment WebSocket `lastKnownVersion` before the HTTP POST. The WS handler's version check (`newVersion > lastKnownVersion`) rejects the echo: `(V+1) > (V+1) = false`. On POST failure (409/network), restore the version.
+
+**Also fixed:** `DiceResultEffect` type union in `StateTypes.ts` — added `'card_draw' | 'info'` to match values used in `GameLayout.tsx` life event handler.
+
 ## [2.41.0] - 2026-04-08
 
 ### G148 Playtest Bug Fixes + Ghost Player Hardening (April 8, 2026)

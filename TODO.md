@@ -2,7 +2,7 @@
 
 **Last Updated:** April 7, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.41.0
+**Current Version:** 2.41.1
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ BUG-001/002 root cause fix — WebSocket self-echo race condition. Server echo during HTTP POST round-trip could overwrite completedActions. Fix: pre-increment WS version before POST to suppress echo. Also fixed DiceResultEffect type union. (Apr 8, 2026)
 - ✅ G148 playtest bug fixes — MovementExecutor error handling (BUG-006), deploy cache clear (BUG-003/005), manual action debug breadcrumbs (BUG-001/002), ghost player hardened (force=true removed, invariant fix, action-completion assertion, game-length heuristic), static CSV data integrity test (5 tests). (Apr 8, 2026)
 - ✅ Ghost Player regression gate — headless bot plays 50 random games, catches silent breakages in any space/card/effect. Strict gate (zero exceptions, ≥90% wins) + space coverage gate (every GAME_CONFIG.csv space visited). (Apr 4, 2026)
 - ✅ Beta Try Again semantics — money paid sticks, cards played stay consumed, money received reverts, cards drawn revert. L cards permanent. Cost ledger + 7 semantics tests + try-again-happy ghost variant. (Apr 5-6, 2026)
@@ -47,23 +48,23 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 *Source: Full playthrough bug report — 6 bugs found, 2 critical. See `docs/user/bug_report.docx`*
 
 ### Critical — Game-Breaking
-- [ ] **BUG-005/006: Stale CON-SAFETY-BRIEF data on live server** — local CSVs were fixed (Mar 31) but the editor's writable volume on the server still has old data referencing CON-SAFETY-BRIEF. Fix: clear the editor volume (`docker exec game_alpha rm -rf /app/data/game-data && docker restart game_alpha`) and redeploy.
-- [ ] **BUG-006: MovementExecutor silent failure** — when all 3 movement strategies fail, no error is surfaced. Player is stuck with no indication. Fix: after all strategies exhaust, log `console.error` with full context and surface a visible error toast. Consider a "Reset Position" escape hatch.
+- [x] **BUG-005/006: Stale CON-SAFETY-BRIEF data on live server** — deploy.sh now clears editor cache before build. (Apr 8, 2026)
+- [x] **BUG-006: MovementExecutor silent failure** — both failure paths now log console.error and surface error toast to player. (Apr 8, 2026)
 
 ### High — Blocks Gameplay Flow
-- [ ] **BUG-001/002: Manual action completion not registering** — "Return 1 E cards" (CON-INSPECT) and "Draw 3 E cards" (REG-DOB-FINAL-REVIEW) dialogs close but `completedActionCount` does not increment, leaving End Turn disabled. Code trace shows the backend path (TurnService→CardEffectService→ChoiceService→setPlayerCompletedManualAction) is correct. Root cause likely one of: (a) ChoiceModal `handleChoiceClick` encounters stale `awaitingChoice` from React state closure, (b) WebSocket `state_update` echo overwrites local `completedActions` between manual action completion and next render, (c) `resolveChoice` validation fails silently (card ID mismatch between `getPlayerCards` which includes activeCards vs `player.hand.filter` in CardReplacementModal). Fix: add `console.error` breadcrumbs to `resolveChoice` failure paths, `applySpaceCardEffect` wasActuallyCompleted=false path, and `triggerManualEffectWithFeedback` skipped-action path. Then reproduce with debug logging enabled to isolate the exact failure point.
-- [ ] **BUG-003: CON-ISSUES loop trap** — CON-SAFETY-BRIEF replaced CON-INSPECT at CON-ISSUES dice outcomes. Local CSVs already fixed (Mar 31) — CON-INSPECT restored for dice 1-2 (First) and 1-4 (Subsequent). ✅ Data fix already in codebase, just needs deploy with cache clear.
+- [x] **BUG-001/002: Manual action completion not registering** — Root cause: WebSocket self-echo race condition. Server broadcasts state_update to ALL clients (including sender) after HTTP POST. The echo arrives before the HTTP response, overwrites local state that already has the completedAction set. Fix: pre-increment WS known version before HTTP POST so echo is rejected (V+1 > V+1 = false). Debug breadcrumbs also added for future diagnosis. (Apr 8, 2026)
+- [x] **BUG-003: CON-ISSUES loop trap** — Deploy with cache clear fixes this. (Apr 8, 2026)
 
 ### Medium — Game Balance
 - [ ] **BUG-004: Winning path dice odds too low** — CON-INSPECT First gives 50% chance of REG-DOB-FINAL-REVIEW; **Subsequent already gives 83%** (dice 1-5). First visit low odds are a design choice — only Subsequent matters for loop escapes. ✅ Already acceptable, can close if creator agrees.
 
 ### Ghost Player Hardening (prevent future blind spots)
-- [ ] **Remove `force=true` from ghost `endTurnWithMovement`** — ghost currently bypasses the required-actions check, masking manual action failures (root cause of missing BUG-001/002). Ghost should fail when actions aren't completed, just like a real player.
-- [ ] **Fix invariant check truthy bug** — `ghostPlayer.ts:195` checks `!effects && !movement` but `getSpaceEffects()` returns `[]` (truthy) for unknown spaces. Fix: check `effects.length === 0 && !movement` instead.
-- [ ] **Add static CSV data validation test** — verify every space in GAME_CONFIG.csv has a MOVEMENT.csv entry, and every dice-movement space has DICE_EFFECTS entries for all 6 rolls. Catch data gaps at test time, not at play time.
-- [ ] **Add action-completion assertion to ghost** — after triggering manual effects, assert `completedActionCount === requiredActions` before ending the turn. If mismatch, report as invariant violation.
-- [ ] **Add game-length heuristic to ghost** — flag games that take >60 turns as suspicious (possible loop trap). Not a hard failure, but log for review.
-- [ ] **Replace 5ms setTimeout hack** — `ghostPlayer.ts:249` uses `setTimeout(r, 5)` to wait for async choices. Replace with a proper await or polling loop on `awaitingChoice`.
+- [x] **Remove `force=true` from ghost `endTurnWithMovement`** — ghost now fails when actions aren't completed. (Apr 8, 2026)
+- [x] **Fix invariant check truthy bug** — now checks `effects.length === 0 && !movement`. (Apr 8, 2026)
+- [x] **Add static CSV data validation test** — 5 tests verify GAME_CONFIG↔MOVEMENT↔DICE_OUTCOMES cross-references. (Apr 8, 2026)
+- [x] **Add action-completion assertion to ghost** — asserts `completedActionCount === requiredActions` before ending turn. (Apr 8, 2026)
+- [x] **Add game-length heuristic to ghost** — flags games >60 turns as suspicious. (Apr 8, 2026)
+- [x] **Replace 5ms setTimeout hack** — replaced with polling loop + 10s Promise.race timeout. (Apr 8, 2026)
 
 ---
 
@@ -153,8 +154,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🚀 **Deployment Status**
 - **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.39.4
-- **Last Deploy**: April 3, 2026
+- **Current Version**: v2.41.1
+- **Last Deploy**: April 8, 2026
 - **Status**: Stable
 
 ---

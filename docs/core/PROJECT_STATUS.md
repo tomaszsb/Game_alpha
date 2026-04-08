@@ -1,8 +1,8 @@
 # Project Status
 
 **Last Updated**: April 8, 2026
-**Current Phase**: Beta — Regression gates in place (v2.41.0)
-**Current Version**: 2.41.0
+**Current Phase**: Beta — Regression gates in place (v2.41.1)
+**Current Version**: 2.41.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
@@ -12,7 +12,7 @@ This document provides a high-level overview of the current work status for the 
 
 ### G148 Playtest Bug Fixes + Ghost Player Hardening (April 8, 2026) ✅
 - **Status**: ✅ Complete
-- **Version**: 2.41.0
+- **Version**: 2.41.1
 - **Changes**: MovementExecutor error handling (BUG-006), deploy cache clear (BUG-003/005), debug breadcrumbs for manual action failures (BUG-001/002). Ghost Player hardened: removed force=true bypass, fixed invariant check, action-completion assertion, game-length heuristic. New static CSV data integrity test (5 tests). Source: G148 full playthrough bug report.
 
 ### v3.0-beta Workstream 2: Beta Try Again semantics (April 5-6, 2026) ✅
