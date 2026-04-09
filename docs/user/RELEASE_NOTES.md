@@ -24,7 +24,7 @@
 ### Gameplay Fixes
 - **Fixed: Getting stuck with no way to move** — If the game ever fails to figure out where to move you, you'll now see an error message instead of being silently stuck. Previously, certain spaces with missing data could leave you clicking "End Turn" with nothing happening.
 - **Fixed: Test space causing loops** — A leftover test space (CON-SAFETY-BRIEF) was replaced with the correct destination, preventing players from getting trapped in an endless loop through Construction phases.
-- **Investigating: Card actions not registering** — In some cases, "Return Expeditor" and "Draw Expeditor" actions close the dialog but don't count as completed, blocking End Turn. Added tracking to pinpoint the exact cause on next occurrence.
+- **Fixed: Card actions not registering** — Fixed in v2.41.1 (see above).
 
 ### Behind the Scenes
 - **Smarter automated testing** — The Ghost Player bot now checks that all required actions are completed before ending a turn (just like a real player). Previously it could skip past broken actions without noticing.

@@ -56,7 +56,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [x] **BUG-003: CON-ISSUES loop trap** — Deploy with cache clear fixes this. (Apr 8, 2026)
 
 ### Medium — Game Balance
-- [ ] **BUG-004: Winning path dice odds too low** — CON-INSPECT First gives 50% chance of REG-DOB-FINAL-REVIEW; **Subsequent already gives 83%** (dice 1-5). First visit low odds are a design choice — only Subsequent matters for loop escapes. ✅ Already acceptable, can close if creator agrees.
+- [x] **BUG-004: Winning path dice odds too low** — CON-INSPECT Subsequent gives 83% (dice 1-5), First 50% is intentional design choice. Closed per creator approval. (Apr 8, 2026)
 
 ### Ghost Player Hardening (prevent future blind spots)
 - [x] **Remove `force=true` from ghost `endTurnWithMovement`** — ghost now fails when actions aren't completed. (Apr 8, 2026)

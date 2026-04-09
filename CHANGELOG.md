@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file.
 
 **Also fixed:** `DiceResultEffect` type union in `StateTypes.ts` — added `'card_draw' | 'info'` to match values used in `GameLayout.tsx` life event handler.
 
+**Closed:** BUG-004 (dice odds) — CON-INSPECT Subsequent gives 83% chance (dice 1-5), First visit 50% is intentional. Closed per creator approval.
+
 ## [2.41.0] - 2026-04-08
 
 ### G148 Playtest Bug Fixes + Ghost Player Hardening (April 8, 2026)
