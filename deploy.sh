@@ -12,8 +12,17 @@ echo "Stopping existing container..."
 docker stop game_alpha 2>/dev/null || true
 docker rm game_alpha 2>/dev/null || true
 
-echo "Clearing editor data cache (forces fresh data from build)..."
-rm -rf "$(pwd)/server/data/game-data" 2>/dev/null || true
+# Preserve editor data across deploys (customized CSV content)
+EDITOR_DATA="$(pwd)/server/data/game-data"
+EDITOR_BACKUP="$(pwd)/server/data/.game-data-backup"
+if [ -d "$EDITOR_DATA/SOURCE_FILES" ] && [ "$(ls -A "$EDITOR_DATA/SOURCE_FILES" 2>/dev/null)" ]; then
+  echo "Backing up editor data..."
+  rm -rf "$EDITOR_BACKUP" 2>/dev/null || true
+  cp -a "$EDITOR_DATA" "$EDITOR_BACKUP"
+else
+  echo "No editor data to preserve (will use build defaults)"
+fi
+rm -rf "$EDITOR_DATA" 2>/dev/null || true
 
 echo "Building new image..."
 GIT_COMMIT=$(git rev-parse --short HEAD)
@@ -36,6 +45,20 @@ docker run -d \
   --security-opt no-new-privileges \
   --restart unless-stopped \
   game_alpha
+
+# Restore editor data if we backed it up
+if [ -d "$EDITOR_BACKUP" ]; then
+  echo "Restoring editor data from backup..."
+  # Wait briefly for container to create fresh game-data dir
+  sleep 2
+  # Overwrite the fresh defaults with the backed-up editor content
+  cp -a "$EDITOR_BACKUP/SOURCE_FILES" "$EDITOR_DATA/SOURCE_FILES"
+  cp -a "$EDITOR_BACKUP/CLEAN_FILES" "$EDITOR_DATA/CLEAN_FILES"
+  rm -rf "$EDITOR_BACKUP"
+  echo "   Editor data restored successfully"
+else
+  echo "No editor backup to restore (using build defaults)"
+fi
 
 echo ""
 echo "Cleaning up orphaned images..."
