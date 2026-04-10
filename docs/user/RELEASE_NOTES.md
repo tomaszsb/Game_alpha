@@ -17,6 +17,10 @@
 ### For Game Designers
 Open the Data Editor, select a space, and look for `+ modal config` buttons under each card action (W/B/I/L/E) and under Time/Fee fields. Each expander gives you 4 fields to customize what players see when that action triggers.
 
+### Bug Fixes
+- **Deploy no longer wipes editor data**: Previously, every deploy reset all customized CSV content to defaults. Editor saves now persist across deploys.
+- **Test suite**: Repaired 12 pre-existing test failures across E2E and unit tests
+
 ---
 
 ## v2.41.1 - Card Action Fix (April 8, 2026)

@@ -14,6 +14,8 @@ This document provides a high-level overview of the current work status for the 
 - **Status**: ✅ Complete
 - **Version**: 2.42.0
 - **Changes**: Per-action modal customization via Data Editor. ModalConfig.csv data model, template interpolation, pipeline integration (processGameData → DataService → TurnService → DiceResultModal), editor UI with `+ modal config` expanders on all card/cost actions.
+- **Test fixes**: Repaired 12 pre-existing test failures (effect handler wiring, scope-zero guard, debugLog mocks, multiple-element queries, overlay timing)
+- **Deploy fix**: deploy.sh now preserves editor data across deploys instead of wiping it
 
 ### G148 Playtest Bug Fixes + Ghost Player Hardening (April 8, 2026) ✅
 - **Status**: ✅ Complete

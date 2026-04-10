@@ -19,6 +19,18 @@ All notable changes to this project will be documented in this file.
 
 **Files changed:** 13 modified, 2 new (`ModalConfig.csv`, `templateInterpolation.ts`)
 
+### Test Suite Repair (12 pre-existing failures)
+
+- **E2E tests (6 files):** Added missing `FinancialEffectHandler`/`CardEffectHandler` wiring; replaced bare `rollDice()` with `rollDiceWithFeedback()` + state reset to satisfy scope-zero guard; fixed `CardEffectHandler` constructor args
+- **debugLog migration (4 files):** Added `vi.mock` for `debugLog` module in tests that spy on `console.log`/`console.warn`
+- **ProjectProgress:** Changed `getByText` to `getAllByText` for elements rendered in multiple places
+- **DataEditor:** Added `ModalConfig.csv` fetch mock handler
+- **HappyPath:** Made movement overlay dismissal non-blocking
+
+### Deploy Script Fix
+
+- `deploy.sh` was unconditionally deleting editor data (`game-data/`) on every deploy, destroying all customized CSV content. Now backs up editor data before rebuild and restores after container start.
+
 ## [2.41.1] - 2026-04-08
 
 ### BUG-001/002 Root Cause Fix — WebSocket Self-Echo Race Condition
