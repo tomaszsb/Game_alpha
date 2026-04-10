@@ -2,6 +2,23 @@
 
 ---
 
+## v2.42.0 - Per-Action Modal Editor (April 9, 2026)
+
+**Release Date:** April 9, 2026
+**Version:** 2.42.0
+**Status:** Beta
+**Type:** Feature
+
+### What's New
+- **Customizable modals**: Every action modal (card draws, time costs, fee payments) can now have custom titles, descriptions, button labels, and summaries — all editable through the Data Editor
+- **Per-action configuration**: Click `+ modal config` under any card action or cost field in the editor to override what the player sees in that modal
+- **Template variables**: Use `{count}`, `{cardType}`, `{amount}` in descriptions and summaries for dynamic text
+
+### For Game Designers
+Open the Data Editor, select a space, and look for `+ modal config` buttons under each card action (W/B/I/L/E) and under Time/Fee fields. Each expander gives you 4 fields to customize what players see when that action triggers.
+
+---
+
 ## v2.41.1 - Card Action Fix (April 8, 2026)
 
 **Release Date:** April 8, 2026

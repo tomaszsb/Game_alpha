@@ -5,8 +5,8 @@ import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
-import { SpaceRow, DiceRollRow } from './types/EditorTypes';
-import { exportSpacesCSV, exportDiceRollCSV } from './utils/csvExport';
+import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
+import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV, parseModalConfigCSV } from './utils/csvExport';
 import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
@@ -103,6 +103,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
   // Editor state
   const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
   const [diceRollData, setDiceRollData] = useState<DiceRollRow[]>([]);
+  const [modalConfigData, setModalConfigData] = useState<ModalConfigRow[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
   const [visitType, setVisitType] = useState<'First' | 'Subsequent'>('First');
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,9 +123,10 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
 
       try {
         // Load source files directly from public folder
-        const [spacesResponse, diceRollResponse] = await Promise.all([
+        const [spacesResponse, diceRollResponse, modalConfigResponse] = await Promise.all([
           fetch('/data/SOURCE_FILES/Spaces.csv?_=' + Date.now()),
-          fetch('/data/SOURCE_FILES/DiceRoll Info.csv?_=' + Date.now())
+          fetch('/data/SOURCE_FILES/DiceRoll Info.csv?_=' + Date.now()),
+          fetch('/data/SOURCE_FILES/ModalConfig.csv?_=' + Date.now())
         ]);
 
         if (!spacesResponse.ok || !diceRollResponse.ok) {
@@ -141,6 +143,13 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
         // Parse DiceRoll Info.csv
         const diceRollRows = parseDiceRollCSV(diceRollText);
         setDiceRollData(diceRollRows);
+
+        // Parse ModalConfig.csv (optional — may not exist yet)
+        if (modalConfigResponse.ok) {
+          const modalConfigText = await modalConfigResponse.text();
+          const modalRows = parseModalConfigCSV(modalConfigText);
+          setModalConfigData(modalRows);
+        }
 
         setIsLoading(false);
       } catch (err) {
@@ -224,11 +233,12 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       const backendURL = getBackendURL();
       const spacesCSV = exportSpacesCSV(spacesData);
       const diceRollCSV = exportDiceRollCSV(diceRollData);
+      const modalConfigCSV = exportModalConfigCSV(modalConfigData);
 
       const response = await fetch(`${backendURL}/api/admin/save-source-files`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, spacesCSV, diceRollCSV })
+        body: JSON.stringify({ password, spacesCSV, diceRollCSV, modalConfigCSV })
       });
 
       const data = await response.json();
@@ -406,11 +416,13 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                   visitType={visitType}
                   allSpaceNames={allSpaceNames}
                   diceRollData={diceRollData}
+                  modalConfigData={modalConfigData}
                   onVisitTypeChange={setVisitType}
                   onFieldChange={handleFieldChange}
                   onUpdateDiceRoll={handleDiceRollUpdate}
                   onAddDiceRoll={handleAddDiceRoll}
                   onDeleteDiceRoll={handleDeleteDiceRoll}
+                  onModalConfigChange={(updatedConfigs) => { setModalConfigData(updatedConfigs); setHasUnsavedChanges(true); }}
                 />
               </div>
               <div style={styles.previewPanel}>

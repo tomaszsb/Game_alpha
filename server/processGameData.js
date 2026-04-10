@@ -277,7 +277,27 @@ function processSpaceContent(spacesCsv) {
   return toCsv(contents, fieldnames);
 }
 
-function processSpaceEffects(spacesCsv, diceRollCsv) {
+function loadModalConfig(modalConfigCsv) {
+  if (!modalConfigCsv) return new Map();
+  const rows = parseCsvWithHeaders(modalConfigCsv);
+  const lookup = new Map();
+  for (const row of rows) {
+    const space = (row.space_name || '').trim();
+    const visit = (row.visit_type || '').trim();
+    const action = (row.effect_action || '').trim();
+    if (!space || !action) continue;
+    const key = `${space}|${visit}|${action}`;
+    lookup.set(key, {
+      modal_title: (row.modal_title || '').trim(),
+      modal_description: (row.modal_description || '').trim(),
+      modal_button_label: (row.modal_button_label || '').trim(),
+      modal_summary: (row.modal_summary || '').trim(),
+    });
+  }
+  return lookup;
+}
+
+function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map()) {
   const rows = parseCsvWithHeaders(spacesCsv);
   const effects = [];
 
@@ -423,9 +443,20 @@ function processSpaceEffects(spacesCsv, diceRollCsv) {
     }
   }
 
+  // Merge modal config into effects
+  for (const effect of effects) {
+    const key = `${effect.space_name}|${effect.visit_type}|${effect.effect_action}`;
+    const cfg = modalConfigLookup.get(key);
+    effect.modal_title = cfg?.modal_title || '';
+    effect.modal_description = cfg?.modal_description || '';
+    effect.modal_button_label = cfg?.modal_button_label || '';
+    effect.modal_summary = cfg?.modal_summary || '';
+  }
+
   const fieldnames = [
     'space_name', 'visit_type', 'effect_type', 'effect_action', 'effect_value',
-    'condition', 'description', 'trigger_type', 'fee_type', 'narrative'
+    'condition', 'description', 'trigger_type', 'fee_type', 'narrative',
+    'modal_title', 'modal_description', 'modal_button_label', 'modal_summary'
   ];
 
   return toCsv(effects, fieldnames);
@@ -514,17 +545,20 @@ function processDiceEffects(diceRollCsv) {
  * @param {string} spacesCsv - Raw contents of Spaces.csv
  * @param {string} diceRollCsv - Raw contents of DiceRoll Info.csv
  * @param {string} outputDir - Path to CLEAN_FILES directory (e.g. dist/data/CLEAN_FILES)
+ * @param {string} [modalConfigCsv] - Raw contents of ModalConfig.csv (optional)
  */
-export function processGameData(spacesCsv, diceRollCsv, outputDir) {
+export function processGameData(spacesCsv, diceRollCsv, outputDir, modalConfigCsv = null) {
   // Ensure output directory exists
   fs.mkdirSync(outputDir, { recursive: true });
+
+  const modalConfigLookup = loadModalConfig(modalConfigCsv);
 
   // Generate all clean files (except DICE_OUTCOMES which has manual fixes)
   const files = {
     'MOVEMENT.csv': processMovement(spacesCsv, diceRollCsv),
     'GAME_CONFIG.csv': processGameConfig(spacesCsv),
     'SPACE_CONTENT.csv': processSpaceContent(spacesCsv),
-    'SPACE_EFFECTS.csv': processSpaceEffects(spacesCsv, diceRollCsv),
+    'SPACE_EFFECTS.csv': processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup),
     'DICE_EFFECTS.csv': processDiceEffects(diceRollCsv),
   };
 

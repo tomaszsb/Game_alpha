@@ -1,14 +1,19 @@
 # Project Status
 
-**Last Updated**: April 8, 2026
-**Current Phase**: Beta — Regression gates in place (v2.41.1)
-**Current Version**: 2.41.1
+**Last Updated**: April 9, 2026
+**Current Phase**: Beta — Regression gates in place (v2.42.0)
+**Current Version**: 2.42.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Per-Action Modal Editor — Phase 1 (April 9, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.42.0
+- **Changes**: Per-action modal customization via Data Editor. ModalConfig.csv data model, template interpolation, pipeline integration (processGameData → DataService → TurnService → DiceResultModal), editor UI with `+ modal config` expanders on all card/cost actions.
 
 ### G148 Playtest Bug Fixes + Ghost Player Hardening (April 8, 2026) ✅
 - **Status**: ✅ Complete

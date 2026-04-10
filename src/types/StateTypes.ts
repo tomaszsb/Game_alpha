@@ -429,6 +429,12 @@ export interface DiceResultEffect {
   cardIds?: string[];  // IDs of the actual cards that were drawn/removed
   moveOptions?: string[];
   destination?: string;  // For single movement destination
+  modalConfig?: {
+    title?: string;
+    description?: string;
+    buttonLabel?: string;
+    summary?: string;
+  };
 }
 
 export interface RollGroupResult {

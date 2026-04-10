@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.0] - 2026-04-09
+
+### Per-Action Modal Editor — Phase 1 (Card Action Modals)
+
+**Feature:** Every modal section (title, description, button label, summary) is now customizable per-action through the Data Editor. Each card action (draw W/B/I/L/E) and cost action (time/fee) can have custom modal overrides.
+
+**Data model:**
+- New `public/data/SOURCE_FILES/ModalConfig.csv` — separate file keyed by `space_name|visit_type|effect_action`
+- `processGameData.js` merges ModalConfig into SPACE_EFFECTS.csv (4 new columns)
+- `server.js` save endpoint accepts and persists `modalConfigCSV`
+
+**Pipeline:** DataService reads modal config → TurnService attaches to effects with template interpolation (`{count}`, `{cardType}`, `{amount}`) → DiceResultModal renders with fallback chain (custom → space title → default)
+
+**Editor UI:** `+ modal config` expander on each card type (W/B/I/L/E) and on Time/Fee fields. New `templateInterpolation.ts` utility.
+
+**Files changed:** 13 modified, 2 new (`ModalConfig.csv`, `templateInterpolation.ts`)
+
 ## [2.41.1] - 2026-04-08
 
 ### BUG-001/002 Root Cause Fix — WebSocket Self-Echo Race Condition

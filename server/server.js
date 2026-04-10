@@ -501,7 +501,7 @@ app.post('/api/admin/verify', (req, res) => {
 // ===== ADMIN: SAVE SOURCE FILES & REGENERATE =====
 
 app.post('/api/admin/save-source-files', (req, res) => {
-  const { password, spacesCSV, diceRollCSV } = req.body;
+  const { password, spacesCSV, diceRollCSV, modalConfigCSV } = req.body;
 
   // Verify admin password
   if (!password) {
@@ -527,11 +527,14 @@ app.post('/api/admin/save-source-files', (req, res) => {
     fs.mkdirSync(writableCleanDir, { recursive: true });
     fs.writeFileSync(path.join(writableSourceDir, 'Spaces.csv'), spacesCSV, 'utf-8');
     fs.writeFileSync(path.join(writableSourceDir, 'DiceRoll Info.csv'), diceRollCSV, 'utf-8');
+    if (modalConfigCSV) {
+      fs.writeFileSync(path.join(writableSourceDir, 'ModalConfig.csv'), modalConfigCSV, 'utf-8');
+    }
 
     console.log('📝 SOURCE_FILES written to writable data dir');
 
     // Regenerate CLEAN_FILES
-    const results = processGameData(spacesCSV, diceRollCSV, writableCleanDir);
+    const results = processGameData(spacesCSV, diceRollCSV, writableCleanDir, modalConfigCSV || null);
     console.log(`✅ CLEAN_FILES regenerated (${results.length} files)`);
 
     logVisitor(req, 'SAVE_SOURCE_FILES', {

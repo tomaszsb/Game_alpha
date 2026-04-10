@@ -200,10 +200,12 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
   // Determine title and emoji based on dice value
   const isDiceRoll = result.diceValue > 0;
   const narrativeTitle = spaceContent?.title || '';
-  const title = isDiceRoll
-    ? (narrativeTitle ? narrativeTitle : `Result: ${result.diceValue}`)
-    : 'Action Result';
+  // Modal config from first effect (set by TurnService from SPACE_EFFECTS data)
+  const firstEffectModalConfig = result.effects[0]?.modalConfig;
+  const title = firstEffectModalConfig?.title
+    || (isDiceRoll ? (narrativeTitle || `Result: ${result.diceValue}`) : (narrativeTitle || 'Action Result'));
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
+  const customButtonLabel = firstEffectModalConfig?.buttonLabel;
 
   // Data-driven shake: uses shake_on config from space content
   const hasNegativeEffect = shouldShake(spaceContent?.shake_on, { effects: result.effects });
@@ -235,7 +237,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
             }}
             autoFocus
           >
-            Make Choice
+            {customButtonLabel || 'Make Choice'}
           </button>
         </>
       ) : (
@@ -250,7 +252,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
           }}
           autoFocus
         >
-          Continue
+          {customButtonLabel || 'Continue'}
         </button>
       )}
     </>

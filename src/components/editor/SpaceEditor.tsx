@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SpaceRow, DiceRollRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
+import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
 
 interface SpaceEditorProps {
@@ -8,11 +8,13 @@ interface SpaceEditorProps {
   visitType: 'First' | 'Subsequent';
   allSpaceNames: string[];
   diceRollData: DiceRollRow[];
+  modalConfigData: ModalConfigRow[];
   onVisitTypeChange: (visitType: 'First' | 'Subsequent') => void;
   onFieldChange: (visitType: 'First' | 'Subsequent', field: keyof SpaceRow, value: string) => void;
   onUpdateDiceRoll: (index: number, field: keyof DiceRollRow, value: string) => void;
   onAddDiceRoll: (diceRoll: DiceRollRow) => void;
   onDeleteDiceRoll: (index: number) => void;
+  onModalConfigChange: (updatedConfigs: ModalConfigRow[]) => void;
 }
 
 // Card type colors matching theme.ts cardTypes
@@ -41,13 +43,53 @@ export function SpaceEditor({
   visitType,
   allSpaceNames,
   diceRollData,
+  modalConfigData,
   onVisitTypeChange,
   onFieldChange,
   onUpdateDiceRoll,
   onAddDiceRoll,
   onDeleteDiceRoll,
+  onModalConfigChange,
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
+
+  // Modal config helpers for current space + visit type
+  const getModalConfig = (effectAction: string): ModalConfigRow | undefined => {
+    if (!currentSpace) return undefined;
+    return modalConfigData.find(
+      r => r.space_name === currentSpace.space_name && r.visit_type === visitType && r.effect_action === effectAction
+    );
+  };
+
+  const setModalConfigField = (effectAction: string, field: keyof ModalConfigRow, value: string) => {
+    if (!currentSpace) return;
+    const idx = modalConfigData.findIndex(
+      r => r.space_name === currentSpace.space_name && r.visit_type === visitType && r.effect_action === effectAction
+    );
+    if (idx >= 0) {
+      const updated = [...modalConfigData];
+      updated[idx] = { ...updated[idx], [field]: value };
+      // Remove row if all custom fields are empty
+      const row = updated[idx];
+      if (!row.modal_title && !row.modal_description && !row.modal_button_label && !row.modal_summary) {
+        updated.splice(idx, 1);
+      }
+      onModalConfigChange(updated);
+    } else {
+      // Create new row
+      const newRow: ModalConfigRow = {
+        space_name: currentSpace.space_name,
+        visit_type: visitType,
+        effect_action: effectAction,
+        modal_title: '',
+        modal_description: '',
+        modal_button_label: '',
+        modal_summary: '',
+        [field]: value,
+      };
+      onModalConfigChange([...modalConfigData, newRow]);
+    }
+  };
 
   if (!currentSpace) {
     return (
@@ -205,24 +247,36 @@ export function SpaceEditor({
             <legend style={styles.legend}>🃏 (C) Actions</legend>
             <div style={styles.cardGrid}>
               <CardFieldWithLabel type="W" value={currentSpace.w_card} label={currentSpace.w_card_label} narrative={currentSpace.w_card_narrative}
-                onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} onNarrativeChange={(v) => handleChange('w_card_narrative', v)} />
+                modalConfig={getModalConfig('draw_W')}
+                onChange={(v) => handleChange('w_card', v)} onLabelChange={(v) => handleChange('w_card_label', v)} onNarrativeChange={(v) => handleChange('w_card_narrative', v)}
+                onModalConfigChange={(f, v) => setModalConfigField('draw_W', f, v)} />
               <CardFieldWithLabel type="B" value={currentSpace.b_card} label={currentSpace.b_card_label} narrative={currentSpace.b_card_narrative}
-                onChange={(v) => handleChange('b_card', v)} onLabelChange={(v) => handleChange('b_card_label', v)} onNarrativeChange={(v) => handleChange('b_card_narrative', v)} />
+                modalConfig={getModalConfig('draw_B')}
+                onChange={(v) => handleChange('b_card', v)} onLabelChange={(v) => handleChange('b_card_label', v)} onNarrativeChange={(v) => handleChange('b_card_narrative', v)}
+                onModalConfigChange={(f, v) => setModalConfigField('draw_B', f, v)} />
               <CardFieldWithLabel type="I" value={currentSpace.i_card} label={currentSpace.i_card_label} narrative={currentSpace.i_card_narrative}
-                onChange={(v) => handleChange('i_card', v)} onLabelChange={(v) => handleChange('i_card_label', v)} onNarrativeChange={(v) => handleChange('i_card_narrative', v)} />
+                modalConfig={getModalConfig('draw_I')}
+                onChange={(v) => handleChange('i_card', v)} onLabelChange={(v) => handleChange('i_card_label', v)} onNarrativeChange={(v) => handleChange('i_card_narrative', v)}
+                onModalConfigChange={(f, v) => setModalConfigField('draw_I', f, v)} />
               <CardFieldWithLabel type="L" value={currentSpace.l_card} label={currentSpace.l_card_label} narrative={currentSpace.l_card_narrative}
-                onChange={(v) => handleChange('l_card', v)} onLabelChange={(v) => handleChange('l_card_label', v)} onNarrativeChange={(v) => handleChange('l_card_narrative', v)} />
+                modalConfig={getModalConfig('draw_L')}
+                onChange={(v) => handleChange('l_card', v)} onLabelChange={(v) => handleChange('l_card_label', v)} onNarrativeChange={(v) => handleChange('l_card_narrative', v)}
+                onModalConfigChange={(f, v) => setModalConfigField('draw_L', f, v)} />
               <CardFieldWithLabel type="E" value={currentSpace.e_card} label={currentSpace.e_card_label} narrative={currentSpace.e_card_narrative}
-                onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} onNarrativeChange={(v) => handleChange('e_card_narrative', v)} />
+                modalConfig={getModalConfig('draw_E')}
+                onChange={(v) => handleChange('e_card', v)} onLabelChange={(v) => handleChange('e_card_label', v)} onNarrativeChange={(v) => handleChange('e_card_narrative', v)}
+                onModalConfigChange={(f, v) => setModalConfigField('draw_E', f, v)} />
             </div>
             <div style={styles.fieldRow}>
               <div style={styles.field}>
                 <label style={styles.label}>⏱️ Time</label>
                 <TimeInput value={currentSpace.Time} onChange={(v) => handleChange('Time', v)} />
+                {currentSpace.Time && <ModalConfigExpander effectAction="add" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>💰 Fee</label>
                 <FeeInput value={currentSpace.Fee} onChange={(v) => handleChange('Fee', v)} />
+                {currentSpace.Fee && <ModalConfigExpander effectAction="deduct" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />}
               </div>
               <div style={{ flex: 3 }} />
             </div>
@@ -364,10 +418,15 @@ function CardField({ type, value, onChange }: { type: string; value: string; onC
   );
 }
 
-function CardFieldWithLabel({ type, value, label, narrative, onChange, onLabelChange, onNarrativeChange }: {
-  type: string; value: string; label: string; narrative?: string; onChange: (v: string) => void; onLabelChange: (v: string) => void; onNarrativeChange?: (v: string) => void;
+function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChange, onLabelChange, onNarrativeChange, onModalConfigChange }: {
+  type: string; value: string; label: string; narrative?: string;
+  modalConfig?: ModalConfigRow;
+  onChange: (v: string) => void; onLabelChange: (v: string) => void; onNarrativeChange?: (v: string) => void;
+  onModalConfigChange?: (field: keyof ModalConfigRow, value: string) => void;
 }): JSX.Element {
   const [showNarrative, setShowNarrative] = useState(!!narrative);
+  const hasModalConfig = modalConfig && (modalConfig.modal_title || modalConfig.modal_description || modalConfig.modal_button_label || modalConfig.modal_summary);
+  const [showModalConfig, setShowModalConfig] = useState(!!hasModalConfig);
   const cc = CARD_COLORS[type];
   const isPreset = !value || CARD_PRESETS.includes(value);
   const [useCustom, setUseCustom] = useState(!isPreset && !!value);
@@ -454,6 +513,31 @@ function CardFieldWithLabel({ type, value, label, narrative, onChange, onLabelCh
               onClick={() => setShowNarrative(true)}
               style={{ fontSize: '10px', color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
             >+ narrative</button>
+          )}
+        </div>
+      )}
+      {value && onModalConfigChange && (
+        <div style={{ marginTop: '2px' }}>
+          {showModalConfig ? (
+            <div style={styles.modalConfigBox}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#495057' }}>Modal Overrides</span>
+                <button onClick={() => setShowModalConfig(false)} style={{ fontSize: '9px', color: '#868e96', background: 'none', border: 'none', cursor: 'pointer' }}>collapse</button>
+              </div>
+              <input type="text" value={modalConfig?.modal_title || ''} onChange={(e) => onModalConfigChange('modal_title', e.target.value)}
+                placeholder="Modal title..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+              <input type="text" value={modalConfig?.modal_description || ''} onChange={(e) => onModalConfigChange('modal_description', e.target.value)}
+                placeholder="Description ({count}, {cardType}, {amount})..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+              <input type="text" value={modalConfig?.modal_button_label || ''} onChange={(e) => onModalConfigChange('modal_button_label', e.target.value)}
+                placeholder="Button label..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+              <input type="text" value={modalConfig?.modal_summary || ''} onChange={(e) => onModalConfigChange('modal_summary', e.target.value)}
+                placeholder="Summary text..." style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowModalConfig(true)}
+              style={{ fontSize: '10px', color: hasModalConfig ? cc.primary : '#666', fontWeight: hasModalConfig ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+            >{hasModalConfig ? '✎ modal config' : '+ modal config'}</button>
           )}
         </div>
       )}
@@ -660,6 +744,44 @@ function LogicFieldBuilder({ value, allSpaceNames, onChange }: {
   );
 }
 
+// ─── Modal Config Expander (for Time/Fee) ──────────────────
+
+function ModalConfigExpander({ effectAction, getModalConfig, setModalConfigField }: {
+  effectAction: string;
+  getModalConfig: (action: string) => ModalConfigRow | undefined;
+  setModalConfigField: (action: string, field: keyof ModalConfigRow, value: string) => void;
+}): JSX.Element {
+  const config = getModalConfig(effectAction);
+  const hasConfig = config && (config.modal_title || config.modal_description || config.modal_button_label || config.modal_summary);
+  const [expanded, setExpanded] = useState(!!hasConfig);
+
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        style={{ fontSize: '10px', color: hasConfig ? '#007bff' : '#666', fontWeight: hasConfig ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+      >{hasConfig ? '✎ modal config' : '+ modal config'}</button>
+    );
+  }
+
+  return (
+    <div style={styles.modalConfigBox}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+        <span style={{ fontSize: '10px', fontWeight: 600, color: '#495057' }}>Modal Overrides</span>
+        <button onClick={() => setExpanded(false)} style={{ fontSize: '9px', color: '#868e96', background: 'none', border: 'none', cursor: 'pointer' }}>collapse</button>
+      </div>
+      <input type="text" value={config?.modal_title || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_title', e.target.value)}
+        placeholder="Modal title..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+      <input type="text" value={config?.modal_description || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_description', e.target.value)}
+        placeholder="Description ({count}, {amount})..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+      <input type="text" value={config?.modal_button_label || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_button_label', e.target.value)}
+        placeholder="Button label..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+      <input type="text" value={config?.modal_summary || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_summary', e.target.value)}
+        placeholder="Summary text..." style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
+    </div>
+  );
+}
+
 // ─── Styles (compact) ──────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
@@ -725,6 +847,11 @@ const styles: Record<string, React.CSSProperties> = {
   logicYes: { fontSize: '11px', fontWeight: 700, color: '#28a745', minWidth: '20px', flexShrink: 0 },
   logicNo: { fontSize: '11px', fontWeight: 700, color: '#dc3545', minWidth: '20px', flexShrink: 0 },
   logicFallback: { fontSize: '10px', color: '#868e96', fontStyle: 'italic', marginTop: '2px' },
+  // Modal config expander
+  modalConfigBox: {
+    backgroundColor: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '3px',
+    padding: '4px 6px', marginTop: '2px',
+  },
   // Button label preview
   btnPreviewGreen: {
     display: 'inline-block', padding: '3px 10px', backgroundColor: '#28a745',

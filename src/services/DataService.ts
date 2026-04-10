@@ -306,6 +306,12 @@ export class DataService implements IDataService {
         spaceEffect.narrative = values[9].trim();
       }
 
+      // Add modal config fields (columns 10-13)
+      if (values[10] && values[10].trim()) spaceEffect.modal_title = values[10].trim();
+      if (values[11] && values[11].trim()) spaceEffect.modal_description = values[11].trim();
+      if (values[12] && values[12].trim()) spaceEffect.modal_button_label = values[12].trim();
+      if (values[13] && values[13].trim()) spaceEffect.modal_summary = values[13].trim();
+
       return spaceEffect;
     });
   }

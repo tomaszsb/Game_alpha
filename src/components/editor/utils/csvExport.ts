@@ -5,7 +5,7 @@
  * (Spaces.csv and DiceRoll Info.csv)
  */
 
-import { SpaceRow, DiceRollRow } from '../types/EditorTypes';
+import { SpaceRow, DiceRollRow, ModalConfigRow } from '../types/EditorTypes';
 
 /**
  * Escape a CSV value - handle commas and quotes
@@ -121,6 +121,84 @@ export function downloadFile(content: string, filename: string): void {
  * Download both Spaces.csv and DiceRoll Info.csv as a zip
  * (For simplicity, we'll download them separately)
  */
+/**
+ * Export ModalConfigRow array to ModalConfig.csv format
+ */
+export function exportModalConfigCSV(modalConfigs: ModalConfigRow[]): string {
+  const headers = ['space_name', 'visit_type', 'effect_action', 'modal_title', 'modal_description', 'modal_button_label', 'modal_summary'];
+
+  const rows = modalConfigs.map(row => [
+    escapeCSV(row.space_name),
+    escapeCSV(row.visit_type),
+    escapeCSV(row.effect_action),
+    escapeCSV(row.modal_title),
+    escapeCSV(row.modal_description),
+    escapeCSV(row.modal_button_label),
+    escapeCSV(row.modal_summary)
+  ].join(','));
+
+  return [headers.join(','), ...rows].join('\n') + '\n';
+}
+
+/**
+ * Parse ModalConfig.csv text into ModalConfigRow array
+ */
+export function parseModalConfigCSV(csvText: string): ModalConfigRow[] {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  // Skip header row
+  const rows: ModalConfigRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if (!cols[0]) continue; // skip empty rows
+    rows.push({
+      space_name: cols[0] || '',
+      visit_type: (cols[1] as 'First' | 'Subsequent') || 'First',
+      effect_action: cols[2] || '',
+      modal_title: cols[3] || '',
+      modal_description: cols[4] || '',
+      modal_button_label: cols[5] || '',
+      modal_summary: cols[6] || ''
+    });
+  }
+  return rows;
+}
+
+/**
+ * Parse a single CSV line, handling quoted fields with commas
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
 export function downloadSourceFiles(spaces: SpaceRow[], diceRolls: DiceRollRow[]): void {
   // Download Spaces.csv
   const spacesCSV = exportSpacesCSV(spaces);

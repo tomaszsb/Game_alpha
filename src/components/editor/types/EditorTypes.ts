@@ -64,11 +64,26 @@ export interface DiceRollRow {
 }
 
 /**
+ * Represents a single row from SOURCE_FILES/ModalConfig.csv
+ * Per-action modal customization — overrides hardcoded modal text
+ */
+export interface ModalConfigRow {
+  space_name: string;
+  visit_type: 'First' | 'Subsequent';
+  effect_action: string;       // e.g., 'draw_W', 'return_e', 'add' (time), 'deduct' (fee)
+  modal_title: string;         // Override modal title
+  modal_description: string;   // Override effect description (supports {count}, {cardType}, {amount})
+  modal_button_label: string;  // Override "Continue" / "Make Choice" button
+  modal_summary: string;       // Override summary text
+}
+
+/**
  * Editor state management
  */
 export interface EditorState {
   spacesData: SpaceRow[];
   diceRollData: DiceRollRow[];
+  modalConfigData: ModalConfigRow[];
   selectedSpaceId: string | null;
   visitType: 'First' | 'Subsequent';
   searchTerm: string;

@@ -13,6 +13,7 @@ import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
+import { interpolateTemplate } from '../utils/templateInterpolation';
 import { AutoActionEvent } from './StateService';
 
 export class TurnService implements ITurnService {
@@ -1360,6 +1361,16 @@ export class TurnService implements ITurnService {
       throw new Error(`No manual ${effectType} effect found for ${currentPlayer.currentSpace}`);
     }
 
+    // Build modal config from SPACE_EFFECTS data (if customized)
+    const effectModalConfig = (manualEffect.modal_title || manualEffect.modal_description || manualEffect.modal_button_label || manualEffect.modal_summary)
+      ? {
+          title: manualEffect.modal_title || undefined,
+          description: manualEffect.modal_description || undefined,
+          buttonLabel: manualEffect.modal_button_label || undefined,
+          summary: manualEffect.modal_summary || undefined,
+        }
+      : undefined;
+
     // Create effect description for modal
     const effects: DiceResultEffect[] = [];
 
@@ -1413,7 +1424,8 @@ export class TurnService implements ITurnService {
         cardType: cardType,
         cardCount: count,
         cardAction: cardAction,
-        cardIds: drawnCardIds
+        cardIds: drawnCardIds,
+        modalConfig: effectModalConfig
       });
     } else if (baseType === 'money') {
       const action = manualEffect.effect_action;
@@ -1461,7 +1473,8 @@ export class TurnService implements ITurnService {
         effects.push({
           type: 'money',
           description: `Money ${action === 'add' ? 'gained' : 'spent'}: $${Math.abs(moneyChange)}`,
-          value: moneyChange
+          value: moneyChange,
+          modalConfig: effectModalConfig
         });
       }
     } else if (baseType === 'time') {
@@ -1471,11 +1484,30 @@ export class TurnService implements ITurnService {
       effects.push({
         type: 'time',
         description: `Time ${action === 'add' ? 'spent' : 'saved'}: ${Math.abs(timeChange)} days`,
-        value: timeChange
+        value: timeChange,
+        modalConfig: effectModalConfig
       });
     }
 
-    const summary = effects.map(e => e.description).join(', ');
+    // Apply template interpolation to modal config descriptions
+    const templateContext: Record<string, string | number> = {
+      spaceName: currentPlayer.currentSpace,
+      playerName: currentPlayer.name,
+    };
+    for (const effect of effects) {
+      if (effect.cardType) templateContext.cardType = effect.cardType;
+      if (effect.cardCount !== undefined) templateContext.count = effect.cardCount;
+      if (effect.value !== undefined) templateContext.amount = Math.abs(effect.value);
+      if (effect.modalConfig?.description) {
+        effect.description = interpolateTemplate(effect.modalConfig.description, templateContext);
+      }
+    }
+
+    // Use custom summary template if provided, otherwise join effect descriptions
+    const customSummary = effectModalConfig?.summary
+      ? interpolateTemplate(effectModalConfig.summary, templateContext)
+      : null;
+    const summary = customSummary || effects.map(e => e.description).join(', ');
 
     // Log manual action to action history
     this.loggingService.info(summary, {

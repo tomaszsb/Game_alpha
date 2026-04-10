@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 7, 2026
+**Last Updated:** April 9, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.41.1
+**Current Version:** 2.42.0
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Per-action modal editor Phase 1 — ModalConfig.csv data model, template interpolation, pipeline integration, editor UI with `+ modal config` expanders on card/cost actions. 13 files changed, 2 new. (Apr 9, 2026)
 - ✅ BUG-001/002 root cause fix — WebSocket self-echo race condition. Server echo during HTTP POST round-trip could overwrite completedActions. Fix: pre-increment WS version before POST to suppress echo. Also fixed DiceResultEffect type union. (Apr 8, 2026)
 - ✅ G148 playtest bug fixes — MovementExecutor error handling (BUG-006), deploy cache clear (BUG-003/005), manual action debug breadcrumbs (BUG-001/002), ghost player hardened (force=true removed, invariant fix, action-completion assertion, game-length heuristic), static CSV data integrity test (5 tests). (Apr 8, 2026)
 - ✅ Ghost Player regression gate — headless bot plays 50 random games, catches silent breakages in any space/card/effect. Strict gate (zero exceptions, ≥90% wins) + space coverage gate (every GAME_CONFIG.csv space visited). (Apr 4, 2026)
@@ -163,4 +164,4 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 📝 **Remaining Backlog**
 
 ### High Priority
-- [ ] Editor UX for per-action narrative — make "+ narrative" expander more discoverable
+- [ ] Per-action modal editor — modals currently show generic space-level content. Need: (1) per-action narrative so each action modal shows only its own story text, (2) editable modal content — button labels, descriptions, instructions should be customizable through the Data Editor, (3) Editor UI to support editing all modal-level content per action. Currently the editor has no way to manage any of this.
