@@ -273,6 +273,48 @@ describe('NegotiationModal', () => {
     expect(screen.queryByTestId('negotiation-modal')).not.toBeInTheDocument();
   });
 
+  it('should apply ModalConfig overrides for title, partner-selection prompt, and make-offer button', () => {
+    mockServices.dataService.getModalConfig.mockReturnValue({
+      modal_title: 'Haggle with {partnerName}',
+      modal_description: 'Pick someone to barter with, {playerName}.',
+      modal_button_label: 'Send Bribe',
+    });
+
+    const mockProps = { isOpen: true, onClose: vi.fn() };
+    render(
+      <GameContext.Provider value={mockServices}>
+        <NegotiationModal {...mockProps} />
+      </GameContext.Provider>
+    );
+
+    // Lookup invoked with current player's space + visit type + 'negotiate'
+    expect(mockServices.dataService.getModalConfig).toHaveBeenCalledWith(
+      'TEST-SPACE',
+      'First',
+      'negotiate'
+    );
+
+    // Partner-selection prompt should use the override, interpolated with {playerName}
+    expect(screen.getByText('Pick someone to barter with, Current Player.')).toBeInTheDocument();
+
+    // Title is rendered by ModalBase — partnerName is empty in selecting_partner state
+    // so we match just the leading substring of the override.
+    expect(screen.getByText(/Haggle with/)).toBeInTheDocument();
+  });
+
+  it('should fall back to hardcoded defaults when no ModalConfig is configured', () => {
+    mockServices.dataService.getModalConfig.mockReturnValue(undefined);
+
+    const mockProps = { isOpen: true, onClose: vi.fn() };
+    render(
+      <GameContext.Provider value={mockServices}>
+        <NegotiationModal {...mockProps} />
+      </GameContext.Provider>
+    );
+
+    expect(screen.getByText('Select a player to negotiate with:')).toBeInTheDocument();
+  });
+
   it('should have proper notification service integration', () => {
     const mockProps = {
       isOpen: true,

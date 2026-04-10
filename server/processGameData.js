@@ -286,6 +286,11 @@ function loadModalConfig(modalConfigCsv) {
     const visit = (row.visit_type || '').trim();
     const action = (row.effect_action || '').trim();
     if (!space || !action) continue;
+    // Phase 4: skip dice-specific rows — those are consumed directly by
+    // DiceResultModal via DataService and must NOT be merged into SPACE_EFFECTS
+    // (otherwise a "Roll 6" override would bleed onto unrelated manual actions).
+    const diceValue = (row.dice_value || '').trim();
+    if (diceValue) continue;
     const key = `${space}|${visit}|${action}`;
     lookup.set(key, {
       modal_title: (row.modal_title || '').trim(),

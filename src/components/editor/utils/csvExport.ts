@@ -125,7 +125,7 @@ export function downloadFile(content: string, filename: string): void {
  * Export ModalConfigRow array to ModalConfig.csv format
  */
 export function exportModalConfigCSV(modalConfigs: ModalConfigRow[]): string {
-  const headers = ['space_name', 'visit_type', 'effect_action', 'modal_title', 'modal_description', 'modal_button_label', 'modal_summary'];
+  const headers = ['space_name', 'visit_type', 'effect_action', 'modal_title', 'modal_description', 'modal_button_label', 'modal_summary', 'dice_value'];
 
   const rows = modalConfigs.map(row => [
     escapeCSV(row.space_name),
@@ -134,7 +134,8 @@ export function exportModalConfigCSV(modalConfigs: ModalConfigRow[]): string {
     escapeCSV(row.modal_title),
     escapeCSV(row.modal_description),
     escapeCSV(row.modal_button_label),
-    escapeCSV(row.modal_summary)
+    escapeCSV(row.modal_summary),
+    escapeCSV(row.dice_value || '')
   ].join(','));
 
   return [headers.join(','), ...rows].join('\n') + '\n';
@@ -159,7 +160,8 @@ export function parseModalConfigCSV(csvText: string): ModalConfigRow[] {
       modal_title: cols[3] || '',
       modal_description: cols[4] || '',
       modal_button_label: cols[5] || '',
-      modal_summary: cols[6] || ''
+      modal_summary: cols[6] || '',
+      dice_value: cols[7] || ''
     });
   }
   return rows;

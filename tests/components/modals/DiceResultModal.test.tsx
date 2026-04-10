@@ -218,6 +218,79 @@ describe('DiceResultModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
+  describe('ModalConfig Overrides (Phase 4)', () => {
+    it('should apply dice-specific modal config overrides with template interpolation', () => {
+      mockServices.dataService.getModalConfig.mockImplementation(
+        (spaceName: string, visit: string, action: string, diceValue?: number) => {
+          if (action === 'dice' && diceValue === 4) {
+            return {
+              modal_title: 'Lucky {diceValue} on {spaceName}!',
+              modal_description: 'The dice rolled a {diceValue}.',
+              modal_button_label: 'Claim Prize',
+              modal_summary: 'Celebrate the {diceValue}',
+            };
+          }
+          return undefined;
+        }
+      );
+
+      render(
+        <GameContext.Provider value={mockServices}>
+          <DiceResultModal
+            isOpen={true}
+            result={mockResult}
+            onClose={mockOnClose}
+          />
+        </GameContext.Provider>
+      );
+
+      expect(screen.getByText('Lucky 4 on TEST-SPACE!')).toBeInTheDocument();
+      expect(screen.getByText('The dice rolled a 4.')).toBeInTheDocument();
+      expect(screen.getByText('Claim Prize')).toBeInTheDocument();
+      expect(screen.getByText('Celebrate the 4')).toBeInTheDocument();
+    });
+
+    it('should fall back to default labels when no override is configured', () => {
+      mockServices.dataService.getModalConfig.mockReturnValue(undefined);
+
+      render(
+        <GameContext.Provider value={mockServices}>
+          <DiceResultModal
+            isOpen={true}
+            result={mockResult}
+            onClose={mockOnClose}
+          />
+        </GameContext.Provider>
+      );
+
+      expect(screen.getByText('Continue')).toBeInTheDocument();
+      expect(
+        screen.getByText('Good roll! You received funding and business opportunities.')
+      ).toBeInTheDocument();
+    });
+
+    it('should call getModalConfig with the correct dice value', () => {
+      mockServices.dataService.getModalConfig.mockReturnValue(undefined);
+
+      render(
+        <GameContext.Provider value={mockServices}>
+          <DiceResultModal
+            isOpen={true}
+            result={mockResult}
+            onClose={mockOnClose}
+          />
+        </GameContext.Provider>
+      );
+
+      expect(mockServices.dataService.getModalConfig).toHaveBeenCalledWith(
+        'TEST-SPACE',
+        'First',
+        'dice',
+        4
+      );
+    });
+  });
+
   it('should display time effects with proper formatting', () => {
     const timeResult: DiceRollResult = {
       diceValue: 2,

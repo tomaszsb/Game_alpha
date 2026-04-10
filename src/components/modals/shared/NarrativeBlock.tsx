@@ -1,6 +1,5 @@
 // src/components/modals/shared/NarrativeBlock.tsx
 // Reusable styled block for per-action narrative text in modals.
-// Uses the same styling as SpaceInfoModal's story section for consistency.
 
 import React from 'react';
 import { colors, theme } from '../../../styles/theme';

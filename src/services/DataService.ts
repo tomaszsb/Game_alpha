@@ -9,7 +9,8 @@ import {
   Space,
   VisitType,
   Card,
-  CardType
+  CardType,
+  ModalConfigOverrides
 } from '../types/DataTypes';
 
 export class DataService implements IDataService {
@@ -21,6 +22,10 @@ export class DataService implements IDataService {
   private spaceContents: SpaceContent[] = [];
   private cards: Card[] = [];
   private spaces: Space[] = [];
+  // key: `${spaceName}|${visitType}|${effectAction}|${diceValue}` → overrides.
+  // `diceValue` is empty string for generic rows (Phase 1-3b) and '1'..'6' for
+  // dice-specific rows (Phase 4).
+  private modalConfigs: Map<string, ModalConfigOverrides> = new Map();
   private loaded = false;
   private loadingPromise: Promise<void> | null = null;
 
@@ -42,7 +47,8 @@ export class DataService implements IDataService {
           this.loadSpaceEffects(),
           this.loadDiceEffects(),
           this.loadSpaceContents(),
-          this.loadCards()
+          this.loadCards(),
+          this.loadModalConfigs()
         ]);
 
         this.buildSpaces();
@@ -151,6 +157,40 @@ export class DataService implements IDataService {
     return effect?.narrative || undefined;
   }
 
+  /**
+   * Look up modal overrides for a given space/visit/action, optionally filtered
+   * by a specific dice value. Returns undefined if no row is configured or if
+   * all override fields are empty.
+   *
+   * Precedence when `diceValue` is provided: dice-specific row (matching value)
+   * wins, falling back to the generic row (no dice_value) if present. When
+   * `diceValue` is omitted, only the generic row is considered.
+   */
+  getModalConfig(
+    spaceName: string,
+    visitType: VisitType,
+    effectAction: string,
+    diceValue?: number
+  ): ModalConfigOverrides | undefined {
+    const pickNonEmpty = (cfg: ModalConfigOverrides | undefined): ModalConfigOverrides | undefined => {
+      if (!cfg) return undefined;
+      if (!cfg.modal_title && !cfg.modal_description && !cfg.modal_button_label && !cfg.modal_summary) {
+        return undefined;
+      }
+      return cfg;
+    };
+
+    if (diceValue !== undefined) {
+      const specific = pickNonEmpty(
+        this.modalConfigs.get(`${spaceName}|${visitType}|${effectAction}|${diceValue}`)
+      );
+      if (specific) return specific;
+    }
+    return pickNonEmpty(
+      this.modalConfigs.get(`${spaceName}|${visitType}|${effectAction}|`)
+    );
+  }
+
   // Private CSV loading methods
   private async loadGameConfig(): Promise<void> {
     const response = await fetch('/data/CLEAN_FILES/GAME_CONFIG.csv?_=' + Date.now()); // Cache busting
@@ -213,6 +253,26 @@ export class DataService implements IDataService {
     }
     const csvText = await response.text();
     this.cards = this.parseCardsCsv(csvText);
+  }
+
+  /**
+   * Load SOURCE_FILES/ModalConfig.csv directly. Treated as optional — a missing
+   * or empty file simply leaves the modal override map empty so all modals fall
+   * back to their defaults.
+   */
+  private async loadModalConfigs(): Promise<void> {
+    try {
+      const response = await fetch('/data/SOURCE_FILES/ModalConfig.csv?_=' + Date.now());
+      if (!response.ok) {
+        // Not fatal — file is optional
+        this.modalConfigs = new Map();
+        return;
+      }
+      const csvText = await response.text();
+      this.modalConfigs = this.parseModalConfigCsv(csvText);
+    } catch {
+      this.modalConfigs = new Map();
+    }
   }
 
   // CSV parsing methods
@@ -359,6 +419,37 @@ export class DataService implements IDataService {
         tts_field: values[10] || ''
       };
     });
+  }
+
+  /**
+   * Parse SOURCE_FILES/ModalConfig.csv into a lookup map keyed by
+   * `${space_name}|${visit_type}|${effect_action}|${dice_value}`. Header row is
+   * `space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value`.
+   *
+   * `dice_value` (Phase 4) is optional: empty column means the row applies to
+   * any dice outcome (generic), while '1'..'6' scopes it to that specific roll.
+   */
+  private parseModalConfigCsv(csvText: string): Map<string, ModalConfigOverrides> {
+    const map = new Map<string, ModalConfigOverrides>();
+    if (!csvText) return map;
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return map;
+    for (let i = 1; i < lines.length; i++) {
+      const cols = this.parseCsvLine(lines[i]);
+      const spaceName = (cols[0] || '').trim();
+      const visitType = (cols[1] || '').trim();
+      const effectAction = (cols[2] || '').trim();
+      if (!spaceName || !effectAction) continue;
+      const diceValue = (cols[7] || '').trim(); // Phase 4: optional filter
+      const overrides: ModalConfigOverrides = {
+        modal_title: (cols[3] || '').trim() || undefined,
+        modal_description: (cols[4] || '').trim() || undefined,
+        modal_button_label: (cols[5] || '').trim() || undefined,
+        modal_summary: (cols[6] || '').trim() || undefined,
+      };
+      map.set(`${spaceName}|${visitType}|${effectAction}|${diceValue}`, overrides);
+    }
+    return map;
   }
 
   private parseCsvLine(line: string): string[] {

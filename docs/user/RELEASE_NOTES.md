@@ -2,6 +2,108 @@
 
 ---
 
+## v2.47.0 - Per-Action Modal Editor Phase 5 (April 10, 2026)
+
+**Release Date:** April 10, 2026
+**Version:** 2.47.0
+**Status:** Beta
+**Type:** Polish
+
+### What's New
+- **Smarter editor hints**: When editing modal overrides in the Data Editor, the helper text and description placeholder now show the *exact* tokens you can use for that specific action. No more confusing `{count}`/`{amount}` hints on negotiation or end-game modals that don't support them.
+- **Per-action token help**: Each modal-config expander now has a small "Tokens: …" line at the top listing what's available — e.g., card actions show `{count}`/`{cardType}`, dice modals show `{diceValue}`, end-game shows `{winnerName}`.
+
+### For Game Designers
+This is purely a UX polish for the Data Editor — no gameplay changes. Open any modal-config expander and you'll see the available tokens listed right above the input fields, with a context-aware description placeholder matching that action's supported tokens.
+
+### Under the Hood
+- New `getModalConfigTokens(effectAction)` helper in `SpaceEditor.tsx` centralizes the token-to-action mapping. Wired into both `ModalConfigExpander` and the card-specific `CardFieldWithLabel` modal-config UI.
+- This release closes the per-action modal editor initiative (Phases 1–5 shipped v2.42.0 → v2.47.0).
+
+---
+
+## v2.46.0 - Per-Action Modal Editor Phase 4 (April 10, 2026)
+
+**Release Date:** April 10, 2026
+**Version:** 2.46.0
+**Status:** Beta
+**Type:** Feature
+
+### What's New
+- **Per-dice-value modals**: Dice-roll spaces can now show a *different* outcome modal for each roll (1 through 6). Celebrate a lucky 6, commiserate on a 1, or keep the generic fallback for everything in between — all controlled from the Data Editor.
+- **"Any Roll" fallback**: A generic slot applies to any dice result that doesn't have its own specific row. Fill out only the rolls you care about.
+- **Dice-aware template tokens**: Dice modal overrides support `{diceValue}` and `{spaceName}` tokens, so you can write "You rolled a {diceValue} at {spaceName}" and it fills itself in.
+
+### For Game Designers
+Open the Data Editor, select any space where **Requires Dice Roll = Yes**, and scroll to the new "🎲 Dice Outcome Modals" section. You'll see seven collapsible slots: one "Any Roll" plus `Roll 1`..`Roll 6`. Click `+ Roll N` on the roll you want to customize, fill in any of the four override fields (title, description, button label, footer summary), and save. Leave slots blank to use the defaults.
+
+### Under the Hood
+- `ModalConfig.csv` gained an 8th `dice_value` column. Dice-specific rows are routed through a new direct `DataService.getModalConfig(spaceName, visit, 'dice', diceValue)` lookup, bypassing the SPACE_EFFECTS merge so they don't bleed into unrelated card/time/fee actions on the same space.
+
+---
+
+## v2.45.0 - Per-Action Modal Editor Phase 3b (April 10, 2026)
+
+**Release Date:** April 10, 2026
+**Version:** 2.45.0
+**Status:** Beta
+**Type:** Feature
+
+### What's New
+- **Customizable victory screen**: The end-of-game celebration modal can now be themed per FINISH space. You can override the "Game Complete!" title, the victory subtitle, the "Well played!" celebration banner, and the "Play Again" button — all from the Data Editor.
+- **Per-ending flavor**: Because the lookup keys off the winner's final space, different FINISH spaces (CON-END, REG-END, etc.) can have completely different victory flavor text.
+- **Winner name in modals**: End-game overrides support a new `{winnerName}` token alongside `{spaceName}`, so you can write celebrations like "{winnerName} conquered {spaceName}!"
+
+### For Game Designers
+Open the Data Editor, select a FINISH/ending space, and scroll to the new "🏁 End Game Modal" section at the bottom of the form. Click `+ modal config` to override any of the four victory-modal sections. Leave fields blank to keep the defaults.
+
+### Under the Hood
+- Phase 3b reuses the Phase 2 ModalConfig lookup API — a new `effect_action: 'end_game'` key is recognized without schema changes.
+
+---
+
+## v2.44.0 - Per-Action Modal Editor Phase 3 (April 10, 2026)
+
+**Release Date:** April 10, 2026
+**Version:** 2.44.0
+**Status:** Beta
+**Type:** Feature
+
+### What's New
+- **Customizable negotiation modal**: The player-to-player negotiation modal (the one that opens when a player starts a trade) can now be themed per space. You can override the step header, the "Select a player to negotiate with:" prompt, and the "Make Offer" button label from the Data Editor.
+- **Partner name in modals**: Negotiation overrides support a new `{partnerName}` token alongside `{playerName}` and `{spaceName}`, so you can write prompts like "Haggle with {partnerName}!" and have them filled in at runtime.
+
+### For Game Designers
+Open the Data Editor, select a space, and scroll to the new "🤝 Negotiation Modal" section at the bottom of the form. Click `+ modal config` to set a custom title, prompt, and CTA button label. Leave fields blank to keep the defaults.
+
+### Bug Fixes
+- Fixed an edge case where the negotiation modal could briefly get stuck on "Initializing negotiation…" when first opened — the modal now waits for the active player's id before booting its internal state.
+
+### Under the Hood
+- Phase 3 reuses the Phase 2 ModalConfig lookup API — a new `effect_action: 'negotiate'` key is recognized without schema changes.
+
+---
+
+## v2.43.0 - Per-Action Modal Editor Phase 2 (April 10, 2026)
+
+**Release Date:** April 10, 2026
+**Version:** 2.43.0
+**Status:** Beta
+**Type:** Feature
+
+### What's New
+- **Customizable choice modals**: The "Make Your Choice" modal (shown when a card or space asks the player to pick between options) can now have a custom title, help text, and primary button label — set per space through the Data Editor.
+- **Player name in modals**: Custom modal text supports `{playerName}` and `{spaceName}` tokens, so you can write prompts like "Decide, {playerName}!" and have them filled in at runtime.
+
+### For Game Designers
+Open the Data Editor, select a space, and scroll to the new "❓ Choice Modal" section at the bottom of the form. Click `+ modal config` to set a custom title, help text, and button label for any choice raised at that space. Leave fields blank to keep the game's defaults.
+
+### Under the Hood
+- Phase 2 reuses the Phase 1 ModalConfig.csv infrastructure — a new `effect_action: 'choice'` key is recognized without schema changes.
+- `DataService` now loads `ModalConfig.csv` directly and exposes a lookup API for standalone modals that aren't attached to a specific game effect.
+
+---
+
 ## v2.42.0 - Per-Action Modal Editor (April 9, 2026)
 
 **Release Date:** April 9, 2026

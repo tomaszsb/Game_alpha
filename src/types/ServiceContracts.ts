@@ -5,16 +5,17 @@
  * Adhering to these contracts is crucial for ensuring a decoupled and testable architecture.
  */
 
-import { 
-  GameConfig, 
-  Movement, 
-  DiceOutcome, 
-  SpaceEffect, 
-  DiceEffect, 
-  SpaceContent, 
+import {
+  GameConfig,
+  Movement,
+  DiceOutcome,
+  SpaceEffect,
+  DiceEffect,
+  SpaceContent,
   Space,
   VisitType,
-  Card
+  Card,
+  ModalConfigOverrides
 } from './DataTypes';
 
 // Logging Service Types and Interface
@@ -152,6 +153,12 @@ export interface IDataService {
   getSpaceContent(spaceName: string, visitType: VisitType): SpaceContent | undefined;
   getAllSpaceContent(): SpaceContent[];
   getEffectNarrative(spaceName: string, visitType: VisitType, effectAction: string): string | undefined;
+  getModalConfig(
+    spaceName: string,
+    visitType: VisitType,
+    effectAction: string,
+    diceValue?: number
+  ): ModalConfigOverrides | undefined;
   
   // Card methods
   getCards(): Card[];

@@ -53,18 +53,33 @@ export function SpaceEditor({
 }: SpaceEditorProps): JSX.Element {
   const currentSpace = visitType === 'First' ? spaceFirst : spaceSubsequent;
 
-  // Modal config helpers for current space + visit type
-  const getModalConfig = (effectAction: string): ModalConfigRow | undefined => {
+  // Modal config helpers for current space + visit type.
+  // `diceValue` is optional and defaults to empty-string (generic row).
+  // Phase 4: rows are keyed by (space, visit, action, dice_value).
+  const getModalConfig = (effectAction: string, diceValue: string = ''): ModalConfigRow | undefined => {
     if (!currentSpace) return undefined;
     return modalConfigData.find(
-      r => r.space_name === currentSpace.space_name && r.visit_type === visitType && r.effect_action === effectAction
+      r =>
+        r.space_name === currentSpace.space_name &&
+        r.visit_type === visitType &&
+        r.effect_action === effectAction &&
+        (r.dice_value || '') === diceValue
     );
   };
 
-  const setModalConfigField = (effectAction: string, field: keyof ModalConfigRow, value: string) => {
+  const setModalConfigField = (
+    effectAction: string,
+    field: keyof ModalConfigRow,
+    value: string,
+    diceValue: string = ''
+  ) => {
     if (!currentSpace) return;
     const idx = modalConfigData.findIndex(
-      r => r.space_name === currentSpace.space_name && r.visit_type === visitType && r.effect_action === effectAction
+      r =>
+        r.space_name === currentSpace.space_name &&
+        r.visit_type === visitType &&
+        r.effect_action === effectAction &&
+        (r.dice_value || '') === diceValue
     );
     if (idx >= 0) {
       const updated = [...modalConfigData];
@@ -85,6 +100,7 @@ export function SpaceEditor({
         modal_description: '',
         modal_button_label: '',
         modal_summary: '',
+        dice_value: diceValue,
         [field]: value,
       };
       onModalConfigChange([...modalConfigData, newRow]);
@@ -299,6 +315,40 @@ export function SpaceEditor({
           </fieldset>
         )}
 
+        {/* Dice Outcome Modals — Phase 4: per-dice-value overrides for DiceResultModal.
+            Each roll (1..6) can have its own modal text. The "Any Roll" slot applies
+            when no dice-specific row matches. Supports {diceValue}, {spaceName}. */}
+        {currentSpace.requires_dice_roll?.toLowerCase() === 'yes' && (
+          <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.dice}` }}>
+            <legend style={styles.legend}>🎲 Dice Outcome Modals</legend>
+            <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
+              Customize the result modal shown after each dice roll. Dice-specific rows
+              win over "Any Roll". Supports <code>{'{diceValue}'}</code> and{' '}
+              <code>{'{spaceName}'}</code>.
+            </div>
+            <div style={{ marginBottom: '4px' }}>
+              <ModalConfigExpander
+                effectAction="dice"
+                diceValue=""
+                label="Any Roll"
+                getModalConfig={getModalConfig}
+                setModalConfigField={setModalConfigField}
+              />
+            </div>
+            {['1', '2', '3', '4', '5', '6'].map(value => (
+              <div key={value} style={{ marginBottom: '4px' }}>
+                <ModalConfigExpander
+                  effectAction="dice"
+                  diceValue={value}
+                  label={`Roll ${value}`}
+                  getModalConfig={getModalConfig}
+                  setModalConfigField={setModalConfigField}
+                />
+              </div>
+            ))}
+          </fieldset>
+        )}
+
         {/* Movement */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.movement}` }}>
           <legend style={styles.legend}>🚶 Movement Destinations</legend>
@@ -326,6 +376,44 @@ export function SpaceEditor({
               <SpaceSelectField label="5" value={currentSpace.space_5} options={allSpaceNames} onChange={(v) => handleChange('space_5', v)} />
             </div>
           )}
+        </fieldset>
+
+        {/* Choice Modal — space-level overrides for any non-movement, non-card
+            choice modal (e.g., card-triggered CHOICE_OF_EFFECTS prompts) */}
+        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #6f42c1` }}>
+          <legend style={styles.legend}>❓ Choice Modal</legend>
+          <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
+            Overrides the generic "Make Your Choice" modal when a choice is raised at this space.
+            Supports <code>{'{playerName}'}</code> and <code>{'{spaceName}'}</code>.
+          </div>
+          <ModalConfigExpander effectAction="choice" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
+        </fieldset>
+
+        {/* Negotiation Modal — space-level overrides for the player-to-player
+            negotiation flow. Applied when the current player's space matches. */}
+        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #e83e8c` }}>
+          <legend style={styles.legend}>🤝 Negotiation Modal</legend>
+          <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
+            Overrides the player-to-player negotiation modal when opened from this space.
+            Title replaces the step header, description replaces the "Select a player…" prompt,
+            and button label replaces "Make Offer". Supports <code>{'{playerName}'}</code>,{' '}
+            <code>{'{partnerName}'}</code>, and <code>{'{spaceName}'}</code>.
+          </div>
+          <ModalConfigExpander effectAction="negotiate" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
+        </fieldset>
+
+        {/* End Game Modal — overrides the victory modal when the game ends with
+            the winner on this space. Only meaningful on FINISH/ending spaces. */}
+        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid #ffc107` }}>
+          <legend style={styles.legend}>🏁 End Game Modal</legend>
+          <div style={{ fontSize: '10px', color: '#868e96', marginBottom: '4px' }}>
+            Overrides the victory modal when the winning player ends the game on this space.
+            Title replaces "Game Complete!", description replaces the victory subtitle,
+            summary replaces the "Well played!" banner, button label replaces "Play Again".
+            Only applies to FINISH/ending spaces. Supports <code>{'{winnerName}'}</code>{' '}
+            and <code>{'{spaceName}'}</code>.
+          </div>
+          <ModalConfigExpander effectAction="end_game" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
         </fieldset>
       </div>
     </div>
@@ -428,6 +516,7 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
   const hasModalConfig = modalConfig && (modalConfig.modal_title || modalConfig.modal_description || modalConfig.modal_button_label || modalConfig.modal_summary);
   const [showModalConfig, setShowModalConfig] = useState(!!hasModalConfig);
   const cc = CARD_COLORS[type];
+  const cardTokens = getModalConfigTokens(`draw_${type}`);
   const isPreset = !value || CARD_PRESETS.includes(value);
   const [useCustom, setUseCustom] = useState(!isPreset && !!value);
 
@@ -524,10 +613,13 @@ function CardFieldWithLabel({ type, value, label, narrative, modalConfig, onChan
                 <span style={{ fontSize: '10px', fontWeight: 600, color: '#495057' }}>Modal Overrides</span>
                 <button onClick={() => setShowModalConfig(false)} style={{ fontSize: '9px', color: '#868e96', background: 'none', border: 'none', cursor: 'pointer' }}>collapse</button>
               </div>
+              <div style={{ fontSize: '9px', color: '#868e96', marginBottom: '3px', fontStyle: 'italic' }}>
+                Tokens: {cardTokens}
+              </div>
               <input type="text" value={modalConfig?.modal_title || ''} onChange={(e) => onModalConfigChange('modal_title', e.target.value)}
                 placeholder="Modal title..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
               <input type="text" value={modalConfig?.modal_description || ''} onChange={(e) => onModalConfigChange('modal_description', e.target.value)}
-                placeholder="Description ({count}, {cardType}, {amount})..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+                placeholder={`Description (${cardTokens})...`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
               <input type="text" value={modalConfig?.modal_button_label || ''} onChange={(e) => onModalConfigChange('modal_button_label', e.target.value)}
                 placeholder="Button label..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
               <input type="text" value={modalConfig?.modal_summary || ''} onChange={(e) => onModalConfigChange('modal_summary', e.target.value)}
@@ -746,37 +838,60 @@ function LogicFieldBuilder({ value, allSpaceNames, onChange }: {
 
 // ─── Modal Config Expander (for Time/Fee) ──────────────────
 
-function ModalConfigExpander({ effectAction, getModalConfig, setModalConfigField }: {
+/**
+ * Returns the interpolation tokens available for a given modal effect action.
+ * Used to populate context-aware placeholder hints in the editor.
+ */
+function getModalConfigTokens(effectAction: string): string {
+  if (effectAction.startsWith('draw_')) return '{count}, {cardType}, {spaceName}, {playerName}';
+  if (effectAction === 'add' || effectAction === 'deduct') return '{amount}, {spaceName}, {playerName}';
+  if (effectAction === 'choice') return '{playerName}, {spaceName}';
+  if (effectAction === 'negotiate') return '{playerName}, {partnerName}, {spaceName}';
+  if (effectAction === 'end_game') return '{winnerName}, {spaceName}';
+  if (effectAction === 'dice') return '{diceValue}, {spaceName}, {count}';
+  return '{spaceName}';
+}
+
+function ModalConfigExpander({ effectAction, diceValue = '', label, getModalConfig, setModalConfigField }: {
   effectAction: string;
-  getModalConfig: (action: string) => ModalConfigRow | undefined;
-  setModalConfigField: (action: string, field: keyof ModalConfigRow, value: string) => void;
+  diceValue?: string;
+  label?: string;
+  getModalConfig: (action: string, diceValue?: string) => ModalConfigRow | undefined;
+  setModalConfigField: (action: string, field: keyof ModalConfigRow, value: string, diceValue?: string) => void;
 }): JSX.Element {
-  const config = getModalConfig(effectAction);
+  const config = getModalConfig(effectAction, diceValue);
   const hasConfig = config && (config.modal_title || config.modal_description || config.modal_button_label || config.modal_summary);
   const [expanded, setExpanded] = useState(!!hasConfig);
+  const buttonLabel = label || 'modal config';
+  const tokens = getModalConfigTokens(effectAction);
 
   if (!expanded) {
     return (
       <button
         onClick={() => setExpanded(true)}
         style={{ fontSize: '10px', color: hasConfig ? '#007bff' : '#666', fontWeight: hasConfig ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
-      >{hasConfig ? '✎ modal config' : '+ modal config'}</button>
+      >{hasConfig ? `✎ ${buttonLabel}` : `+ ${buttonLabel}`}</button>
     );
   }
 
   return (
     <div style={styles.modalConfigBox}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-        <span style={{ fontSize: '10px', fontWeight: 600, color: '#495057' }}>Modal Overrides</span>
+        <span style={{ fontSize: '10px', fontWeight: 600, color: '#495057' }}>
+          {label ? `${label} Overrides` : 'Modal Overrides'}
+        </span>
         <button onClick={() => setExpanded(false)} style={{ fontSize: '9px', color: '#868e96', background: 'none', border: 'none', cursor: 'pointer' }}>collapse</button>
       </div>
-      <input type="text" value={config?.modal_title || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_title', e.target.value)}
+      <div style={{ fontSize: '9px', color: '#868e96', marginBottom: '3px', fontStyle: 'italic' }}>
+        Tokens: {tokens}
+      </div>
+      <input type="text" value={config?.modal_title || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_title', e.target.value, diceValue)}
         placeholder="Modal title..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
-      <input type="text" value={config?.modal_description || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_description', e.target.value)}
-        placeholder="Description ({count}, {amount})..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
-      <input type="text" value={config?.modal_button_label || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_button_label', e.target.value)}
+      <input type="text" value={config?.modal_description || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_description', e.target.value, diceValue)}
+        placeholder={`Description (${tokens})...`} style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
+      <input type="text" value={config?.modal_button_label || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_button_label', e.target.value, diceValue)}
         placeholder="Button label..." style={{ ...styles.input, fontSize: '11px', marginBottom: '2px', width: '100%' }} />
-      <input type="text" value={config?.modal_summary || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_summary', e.target.value)}
+      <input type="text" value={config?.modal_summary || ''} onChange={(e) => setModalConfigField(effectAction, 'modal_summary', e.target.value, diceValue)}
         placeholder="Summary text..." style={{ ...styles.input, fontSize: '11px', width: '100%' }} />
     </div>
   );

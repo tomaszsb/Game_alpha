@@ -4,33 +4,33 @@ import React, { useState, useEffect } from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
+import { VisitType } from '../../types/DataTypes';
+import { interpolateTemplate } from '../../utils/templateInterpolation';
 
 export function EndGameModal(): JSX.Element {
-  const { stateService } = useGameContext();
+  const { stateService, dataService } = useGameContext();
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [winnerName, setWinnerName] = useState<string>('');
+  const [winnerSpace, setWinnerSpace] = useState<string>('');
+  const [winnerVisitType, setWinnerVisitType] = useState<VisitType>('First');
   const [gameEndTime, setGameEndTime] = useState<Date | undefined>();
 
   // Subscribe to state changes to show/hide modal
   useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
+    const syncFromState = (gameState: ReturnType<typeof stateService.getGameState>) => {
       setIsGameOver(gameState.isGameOver);
 
       if (gameState.isGameOver && gameState.winner) {
         const winnerPlayer = gameState.players.find(p => p.id === gameState.winner);
         setWinnerName(winnerPlayer?.name || 'Unknown Player');
+        setWinnerSpace(winnerPlayer?.currentSpace || '');
+        setWinnerVisitType(winnerPlayer?.visitType || 'First');
         setGameEndTime(gameState.gameEndTime);
       }
-    });
+    };
 
-    // Initialize with current state
-    const gameState = stateService.getGameState();
-    setIsGameOver(gameState.isGameOver);
-    if (gameState.isGameOver && gameState.winner) {
-      const winnerPlayer = gameState.players.find(p => p.id === gameState.winner);
-      setWinnerName(winnerPlayer?.name || 'Unknown Player');
-      setGameEndTime(gameState.gameEndTime);
-    }
+    const unsubscribe = stateService.subscribe(syncFromState);
+    syncFromState(stateService.getGameState());
 
     return unsubscribe;
   }, [stateService]);
@@ -39,6 +39,31 @@ export function EndGameModal(): JSX.Element {
     // Navigate to root landing page instead of resetting in-place
     window.location.href = window.location.origin + window.location.pathname;
   };
+
+  // Per-space ModalConfig overrides keyed by `${winnerSpace}|${winnerVisitType}|end_game`.
+  // Lets creators theme the end-of-game celebration per FINISH space (e.g., different
+  // victory flavor at CON-END vs REG-END vs PM-END).
+  const endGameModalConfig = winnerSpace
+    ? dataService.getModalConfig(winnerSpace, winnerVisitType, 'end_game')
+    : undefined;
+
+  const templateContext: Record<string, string | number | undefined> = {
+    spaceName: winnerSpace,
+    winnerName,
+    playerName: winnerName,
+  };
+  const customTitle = endGameModalConfig?.modal_title
+    ? interpolateTemplate(endGameModalConfig.modal_title, templateContext)
+    : undefined;
+  const customDescription = endGameModalConfig?.modal_description
+    ? interpolateTemplate(endGameModalConfig.modal_description, templateContext)
+    : undefined;
+  const customButtonLabel = endGameModalConfig?.modal_button_label
+    ? interpolateTemplate(endGameModalConfig.modal_button_label, templateContext)
+    : undefined;
+  const customSummary = endGameModalConfig?.modal_summary
+    ? interpolateTemplate(endGameModalConfig.modal_summary, templateContext)
+    : undefined;
 
   const footer = (
     <button
@@ -56,7 +81,7 @@ export function EndGameModal(): JSX.Element {
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {theme.emoji.dice} Play Again
+      {customButtonLabel || `${theme.emoji.dice} Play Again`}
     </button>
   );
 
@@ -64,7 +89,7 @@ export function EndGameModal(): JSX.Element {
     <ModalBase
       isOpen={isGameOver && !!winnerName}
       onClose={handlePlayAgain}
-      title="Game Complete!"
+      title={customTitle || 'Game Complete!'}
       emoji={theme.emoji.celebration}
       maxWidth="600px"
       headerColor={colors.success.light}
@@ -92,7 +117,7 @@ export function EndGameModal(): JSX.Element {
           color: colors.text.secondary,
           fontSize: '18px'
         }}>
-          You have successfully reached an ending space and won the game!
+          {customDescription || 'You have successfully reached an ending space and won the game!'}
         </p>
 
         {/* Game Statistics */}
@@ -134,7 +159,7 @@ export function EndGameModal(): JSX.Element {
             color: colors.success.darker,
             fontWeight: '500'
           }}>
-            {theme.emoji.celebration} Well played! You've mastered the game and reached your destination successfully!
+            {theme.emoji.celebration} {customSummary || "Well played! You've mastered the game and reached your destination successfully!"}
           </p>
         </div>
       </div>

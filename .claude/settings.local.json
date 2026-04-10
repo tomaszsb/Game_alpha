@@ -155,7 +155,9 @@
       "Read(//tmp/claude-1000/**)",
       "Bash(ssh unraid \"python3 -c \"\":*)",
       "Bash(perl -pe 's/\\\\$\\\\{\\(.*?\\)\\\\.toLocaleString\\\\\\(\\\\\\)\\\\}/{fmt\\($1\\)}/g' src/components/player/sections/FinancesSection.tsx)",
-      "Bash(perl:*)"
+      "Bash(perl:*)",
+      "Bash(mv /tmp/cards_no_test.csv public/data/CLEAN_FILES/CARDS_EXPANDED.csv)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

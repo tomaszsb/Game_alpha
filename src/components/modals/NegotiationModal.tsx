@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
-import { Player, Card, CardType } from '../../types/DataTypes';
+import { Player, Card, CardType, VisitType } from '../../types/DataTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import { interpolateTemplate } from '../../utils/templateInterpolation';
 
 // Types for negotiation state management
 interface NegotiationOffer {
@@ -35,6 +36,8 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [availableCards, setAvailableCards] = useState<Card[]>([]);
+  const [currentSpace, setCurrentSpace] = useState<string>('');
+  const [currentVisitType, setCurrentVisitType] = useState<VisitType>('First');
 
   // Negotiation state
   const [negotiation, setNegotiation] = useState<ActiveNegotiation | null>(null);
@@ -46,14 +49,16 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
 
   // Subscribe to state changes
   useEffect(() => {
-    const unsubscribe = stateService.subscribe((gameState) => {
+    const syncFromState = (gameState: ReturnType<typeof stateService.getGameState>) => {
       setCurrentPlayerId(gameState.currentPlayerId);
       setPlayers(gameState.players);
-    });
+      const player = gameState.players.find(p => p.id === gameState.currentPlayerId);
+      setCurrentSpace(player?.currentSpace || '');
+      setCurrentVisitType(player?.visitType || 'First');
+    };
 
-    const gameState = stateService.getGameState();
-    setCurrentPlayerId(gameState.currentPlayerId);
-    setPlayers(gameState.players);
+    const unsubscribe = stateService.subscribe(syncFromState);
+    syncFromState(stateService.getGameState());
 
     const cards = dataService.getCards();
     setAvailableCards(cards);
@@ -221,12 +226,15 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     return total;
   };
 
-  // Initialize negotiation when modal opens
+  // Initialize negotiation when modal opens. Depends on currentPlayerId so the
+  // effect re-runs once the subscribe callback has populated it — otherwise the
+  // first run closes over a null id and bails out via the early return in
+  // handleStartNegotiation, leaving the modal stuck in its loading state.
   useEffect(() => {
-    if (isOpen && !negotiation) {
+    if (isOpen && !negotiation && currentPlayerId) {
       handleStartNegotiation();
     }
-  }, [isOpen, negotiation]);
+  }, [isOpen, negotiation, currentPlayerId]);
 
   // When player is unavailable, render closed ModalBase for exit animation
   if (!currentPlayer) {
@@ -259,8 +267,33 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     );
   }
 
+  // Per-space ModalConfig overrides keyed by `${space}|${visit}|negotiate`.
+  // When set, modal_title replaces the status-specific title, modal_description
+  // replaces the partner-selection prompt, and modal_button_label replaces the
+  // "Make Offer" CTA on the making_offer step.
+  const negotiationModalConfig = currentSpace
+    ? dataService.getModalConfig(currentSpace, currentVisitType, 'negotiate')
+    : undefined;
+
+  const partnerName = players.find(p => p.id === negotiation.partnerId)?.name || '';
+  const templateContext: Record<string, string | number | undefined> = {
+    spaceName: currentSpace,
+    playerName: currentPlayer.name,
+    partnerName,
+  };
+  const customTitle = negotiationModalConfig?.modal_title
+    ? interpolateTemplate(negotiationModalConfig.modal_title, templateContext)
+    : undefined;
+  const customDescription = negotiationModalConfig?.modal_description
+    ? interpolateTemplate(negotiationModalConfig.modal_description, templateContext)
+    : undefined;
+  const customButtonLabel = negotiationModalConfig?.modal_button_label
+    ? interpolateTemplate(negotiationModalConfig.modal_button_label, templateContext)
+    : undefined;
+
   // Determine title based on negotiation status
   const getTitle = () => {
+    if (customTitle) return customTitle;
     switch (negotiation.status) {
       case 'selecting_partner':
         return 'Select Partner';
@@ -288,7 +321,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
       {negotiation.status === 'selecting_partner' && (
         <div>
           <h3 style={{ marginTop: 0, color: colors.text.primary, marginBottom: '16px' }}>
-            Select a player to negotiate with:
+            {customDescription || 'Select a player to negotiate with:'}
           </h3>
           <div style={{ display: 'grid', gap: '12px' }}>
             {availablePartners.map(partner => (
@@ -492,7 +525,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
                 }
               }}
             >
-              Make Offer {theme.emoji.celebration}
+              {customButtonLabel || `Make Offer ${theme.emoji.celebration}`}
             </button>
           </div>
         </div>

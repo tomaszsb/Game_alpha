@@ -69,6 +69,19 @@ export interface SpaceEffect {
   modal_summary?: string;
 }
 
+/**
+ * Per-action modal text overrides. Loaded from SOURCE_FILES/ModalConfig.csv and
+ * keyed by `space_name|visit_type|effect_action`. Phase 1 ships this on
+ * SpaceEffect rows; Phase 2 exposes the raw map so standalone modals (like
+ * ChoiceModal) can look up overrides that aren't attached to an effect row.
+ */
+export interface ModalConfigOverrides {
+  modal_title?: string;
+  modal_description?: string;
+  modal_button_label?: string;
+  modal_summary?: string;
+}
+
 export interface DiceEffect {
   space_name: string;
   visit_type: 'First' | 'Subsequent';

@@ -12,6 +12,7 @@ import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 import { shouldShake, getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
+import { interpolateTemplate } from '../../utils/templateInterpolation';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -202,10 +203,40 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
   const narrativeTitle = spaceContent?.title || '';
   // Modal config from first effect (set by TurnService from SPACE_EFFECTS data)
   const firstEffectModalConfig = result.effects[0]?.modalConfig;
-  const title = firstEffectModalConfig?.title
+
+  // Phase 4: Per-dice-value modal config override (dice-specific wins over generic)
+  const diceModalConfig = result.spaceName
+    ? dataService.getModalConfig(
+        result.spaceName,
+        'First',
+        'dice',
+        isDiceRoll ? result.diceValue : undefined
+      )
+    : undefined;
+  const templateContext = {
+    diceValue: result.diceValue,
+    spaceName: result.spaceName || '',
+    count: result.diceValue,
+  };
+  const overrideTitle = diceModalConfig?.modal_title
+    ? interpolateTemplate(diceModalConfig.modal_title, templateContext)
+    : undefined;
+  const overrideSummary = diceModalConfig?.modal_description
+    ? interpolateTemplate(diceModalConfig.modal_description, templateContext)
+    : undefined;
+  const overrideButtonLabel = diceModalConfig?.modal_button_label
+    ? interpolateTemplate(diceModalConfig.modal_button_label, templateContext)
+    : undefined;
+  const overrideFooterSummary = diceModalConfig?.modal_summary
+    ? interpolateTemplate(diceModalConfig.modal_summary, templateContext)
+    : undefined;
+
+  const title = overrideTitle
+    || firstEffectModalConfig?.title
     || (isDiceRoll ? (narrativeTitle || `Result: ${result.diceValue}`) : (narrativeTitle || 'Action Result'));
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
-  const customButtonLabel = firstEffectModalConfig?.buttonLabel;
+  const customButtonLabel = overrideButtonLabel || firstEffectModalConfig?.buttonLabel;
+  const summaryText = overrideSummary || result.summary;
 
   // Data-driven shake: uses shake_on config from space content
   const hasNegativeEffect = shouldShake(spaceContent?.shake_on, { effects: result.effects });
@@ -299,7 +330,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       })()}
 
       {/* Summary */}
-      {result.summary && (
+      {summaryText && (
         <div style={{
           backgroundColor: colors.primary.light,
           border: `2px solid ${colors.primary.main}`,
@@ -321,7 +352,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
             color: colors.primary.text,
             fontSize: '14px'
           }}>
-            {result.summary}
+            {summaryText}
           </p>
         </div>
       )}
@@ -353,6 +384,21 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
         }}>
           <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>😐</span>
           No special effects this turn
+        </div>
+      )}
+
+      {/* Phase 4: Optional footer summary from ModalConfig.modal_summary */}
+      {overrideFooterSummary && (
+        <div style={{
+          marginTop: '16px',
+          padding: '10px 12px',
+          backgroundColor: colors.secondary.light,
+          borderRadius: theme.borderRadius.sm,
+          color: colors.text.primary,
+          fontSize: '14px',
+          fontStyle: 'italic'
+        }}>
+          {overrideFooterSummary}
         </div>
       )}
     </ModalBase>

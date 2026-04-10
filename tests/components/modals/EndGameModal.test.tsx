@@ -15,11 +15,13 @@ beforeAll(() => {
 
 // Create mock outside of describe block
 const mockStateService: any = createMockStateService();
+const mockDataService: any = { getModalConfig: vi.fn() };
 
 // Mock the useGameContext hook
 vi.mock('../../../src/context/GameContext', () => ({
   useGameContext: () => ({
     stateService: mockStateService,
+    dataService: mockDataService,
   }),
 }));
 
@@ -353,8 +355,52 @@ describe('EndGameModal', () => {
       mockStateService.getGameState.mockReturnValue(gameOverState);
 
       render(<EndGameModal />);
-      
+
       expect(screen.getByText('🏆 Congratulations Second Player!')).toBeInTheDocument();
+    });
+  });
+
+  describe('ModalConfig Overrides (Phase 3b)', () => {
+    const buildGameOverState = () => ({
+      ...mockGameState,
+      isGameOver: true,
+      winner: 'player1',
+      gamePhase: 'END' as const,
+      gameEndTime: new Date('2024-12-20T10:30:00Z')
+    });
+
+    it('should apply ModalConfig overrides for title, description, summary, and button label', () => {
+      mockDataService.getModalConfig.mockReturnValue({
+        modal_title: 'Victory at {spaceName}!',
+        modal_description: '{winnerName} finished the project.',
+        modal_button_label: '🎉 Start Over',
+        modal_summary: 'The build is done, {winnerName}.',
+      });
+
+      mockStateService.getGameState.mockReturnValue(buildGameOverState());
+
+      render(<EndGameModal />);
+
+      // Lookup keyed on winner's space + visit type + 'end_game'
+      expect(mockDataService.getModalConfig).toHaveBeenCalledWith('END-SPACE', 'First', 'end_game');
+
+      // Overrides visible, tokens interpolated
+      expect(screen.getAllByText('Victory at END-SPACE!')[0]).toBeInTheDocument();
+      expect(screen.getByText('Test Winner finished the project.')).toBeInTheDocument();
+      expect(screen.getByText(/The build is done, Test Winner\./)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Start Over/ })).toBeInTheDocument();
+    });
+
+    it('should fall back to hardcoded defaults when no ModalConfig is configured', () => {
+      mockDataService.getModalConfig.mockReturnValue(undefined);
+      mockStateService.getGameState.mockReturnValue(buildGameOverState());
+
+      render(<EndGameModal />);
+
+      expect(screen.getAllByText('Game Complete!')[0]).toBeInTheDocument();
+      expect(screen.getByText('You have successfully reached an ending space and won the game!')).toBeInTheDocument();
+      expect(screen.getByText(/Well played! You've mastered the game/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
     });
   });
 });

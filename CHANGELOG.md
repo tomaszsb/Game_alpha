@@ -2,6 +2,154 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.47.0] - 2026-04-10
+
+### Dead Code Cleanup — SpaceInfoModal
+
+**Cleanup:** Deleted `src/components/modals/SpaceInfoModal.tsx` — an orphaned modal component flagged during Phase 3b investigation. Confirmed zero imports in `src/` or `tests/` via grep; only historical CHANGELOG entries referenced it. Also removed a stale comment in `src/components/modals/shared/NarrativeBlock.tsx` that mentioned "SpaceInfoModal's story section" as a styling reference.
+
+**Verification:** Full test suite run before deletion — 1520 passed, 4 skipped (95/97 files). Vite production build clean after deletion.
+
+### Per-Action Modal Editor — Phase 5 (Context-Aware Editor Hints)
+
+**Feature:** Modal override inputs in the Data Editor now show context-aware token hints. Previously every expander's description placeholder mentioned `{count}` and `{amount}` regardless of which action it was editing, which was misleading for non-card/non-cost contexts. Each expander now surfaces the exact tokens that will interpolate at render time.
+
+**Helper:**
+- New `getModalConfigTokens(effectAction)` in `SpaceEditor.tsx` maps each effect action to its supported interpolation tokens:
+  - `draw_W`/`draw_B`/`draw_I`/`draw_L`/`draw_E` → `{count}, {cardType}, {spaceName}, {playerName}`
+  - `add` / `deduct` (time / fee) → `{amount}, {spaceName}, {playerName}`
+  - `choice` → `{playerName}, {spaceName}`
+  - `negotiate` → `{playerName}, {partnerName}, {spaceName}`
+  - `end_game` → `{winnerName}, {spaceName}`
+  - `dice` → `{diceValue}, {spaceName}, {count}`
+  - fallback → `{spaceName}`
+
+**Editor UI:**
+- Both `ModalConfigExpander` and the card-specific `CardFieldWithLabel` modal-config block now render a small italic "Tokens: …" hint line above the input fields, listing the supported tokens for the current action.
+- The `modal_description` input's placeholder is now dynamic: `Description ({tokens})...` using the same token list.
+
+**Scope note:** No data-model changes, no runtime behavior changes — this is purely an editor UX polish so creators aren't misled by stale Phase 1 copy. Completes Phase 5 and closes the per-action modal editor initiative.
+
+**Build:** Vite production build clean (22.36s).
+
+**Files changed:** `src/components/editor/SpaceEditor.tsx`, plus `CHANGELOG.md`, `TODO.md`, `docs/core/PROJECT_STATUS.md`, `docs/user/RELEASE_NOTES.md`.
+
+## [2.46.0] - 2026-04-10
+
+### Per-Action Modal Editor — Phase 4 (Per-Dice-Value Modals)
+
+**Feature:** The `DiceResultModal` (outcome modal shown after a dice roll) now supports per-dice-value ModalConfig overrides. Creators can customize the result modal differently for each roll (1..6), with a generic "Any Roll" fallback. First game-editable modal where the override key is dice-value-specific, not just space/visit/action-specific.
+
+**Data model:**
+- `ModalConfig.csv` gains a new `dice_value` column (8th). Empty = generic row (existing behavior); `'1'..'6'` = dice-value-specific row. Composite lookup key is now `space_name|visit_type|effect_action|dice_value`.
+- `DataService.getModalConfig` gains an optional `diceValue?: number` parameter. Precedence: dice-specific row wins over generic row when `diceValue` is supplied. Both return `undefined` if all four override fields are empty.
+- `IDataService` interface updated to match.
+- `processGameData.js` `loadModalConfig()` now **skips** rows with a non-empty `dice_value` — Phase 4 overrides go through the direct `DataService` lookup at render time instead of being merged into `SPACE_EFFECTS` (which would pollute unrelated card/time/fee effects on the same space).
+
+**DiceResultModal:**
+- Injects `dataService.getModalConfig(spaceName, 'First', 'dice', diceValue)` with precedence over the existing Phase 1 `firstEffectModalConfig` path.
+- `modal_title` replaces the header title.
+- `modal_description` replaces the primary summary banner text.
+- `modal_button_label` replaces "Continue" / "Make Choice" on the CTA.
+- `modal_summary` adds an italic footer note beneath the effects list.
+- Template interpolation supports `{diceValue}`, `{spaceName}`, and `{count}` (alias for `{diceValue}`).
+
+**Editor UI:**
+- New "🎲 Dice Outcome Modals" fieldset in `SpaceEditor`, shown only when `requires_dice_roll = yes`. Contains 7 `ModalConfigExpander` slots: one "Any Roll" (generic) plus `Roll 1`..`Roll 6`. Each expander writes/reads a ModalConfig row with the appropriate `dice_value`.
+- `SpaceEditor`'s internal `getModalConfig` / `setModalConfigField` helpers now accept an optional `diceValue` (defaulting to `''` for backward compatibility). `ModalConfigExpander` gained a `diceValue` prop and optional `label` prop so multiple expanders with different dice values can coexist visually on the same space.
+- `csvExport.exportModalConfigCSV` / `parseModalConfigCSV` serialize the new `dice_value` column on both the write and read paths.
+
+**Tests:**
+- `DataService.test.ts`: new test `should apply dice-specific modal config lookup precedence (Phase 4)` — exercises (a) dice-specific row wins over generic, (b) dice value with no specific row falls back to generic, (c) omitted `diceValue` only considers generic. 7/7 pass.
+- `DiceResultModal.test.tsx`: new `ModalConfig Overrides (Phase 4)` describe block with 3 tests covering override path with `{diceValue}`/`{spaceName}` interpolation across title/description/button/summary, fallback path (no override → "Continue" + original summary), and `getModalConfig` invocation with `(spaceName, 'First', 'dice', diceValue)`. 15/15 pass.
+- Vite production build clean.
+
+**Files changed:** `src/components/modals/DiceResultModal.tsx`, `src/services/DataService.ts`, `src/types/ServiceContracts.ts`, `src/components/editor/SpaceEditor.tsx`, `src/components/editor/types/EditorTypes.ts`, `src/components/editor/utils/csvExport.ts`, `server/processGameData.js`, `public/data/SOURCE_FILES/ModalConfig.csv`, `tests/services/DataService.test.ts`, `tests/components/modals/DiceResultModal.test.tsx`, plus `CHANGELOG.md`, `TODO.md`, `docs/user/RELEASE_NOTES.md`, `docs/core/PROJECT_STATUS.md`.
+
+## [2.45.0] - 2026-04-10
+
+### Per-Action Modal Editor — Phase 3b (EndGameModal)
+
+**Feature:** The `EndGameModal` (victory screen) now honors per-space ModalConfig overrides keyed off the winner's final space. Creators can theme the celebration per FINISH/ending space — e.g., different victory flavor for CON-END vs REG-END — from the Data Editor.
+
+**Data model:**
+- Adds `effect_action: 'end_game'` as a recognized key in `ModalConfig.csv` (keyed by `space_name|visit_type|end_game`). No schema change — reuses the existing `DataService.getModalConfig` API.
+
+**EndGameModal:**
+- Now injects `dataService` from `GameContext` and tracks `winnerSpace` + `winnerVisitType` alongside `winnerName` in the state subscription.
+- `modal_title` replaces "Game Complete!" in the header.
+- `modal_description` replaces the "You have successfully reached an ending space and won the game!" subtitle.
+- `modal_summary` replaces the "Well played! You've mastered the game…" celebration banner.
+- `modal_button_label` replaces "🎲 Play Again" on the CTA button.
+- Template interpolation supports `{winnerName}`, `{playerName}` (alias for winnerName), and `{spaceName}`.
+
+**Editor UI:**
+- New "🏁 End Game Modal" fieldset at the bottom of `SpaceEditor` — always-available `ModalConfigExpander` tied to `effect_action: 'end_game'`. Help copy notes that overrides only apply on FINISH/ending spaces and lists the `{winnerName}`/`{spaceName}` tokens.
+
+**Tests:**
+- `EndGameModal.test.tsx`: extended the `useGameContext` mock with `dataService: { getModalConfig: vi.fn() }`. Added 2 new tests covering the override path (custom title/description/summary/button with token interpolation) and the fallback path (no config → hardcoded defaults). 17/17 pass.
+- Vite production build clean.
+
+**Dead code discovery:** `src/components/modals/SpaceInfoModal.tsx` has no imports anywhere in `src/` or `tests/` — orphaned. Only archive docs reference it historically. Deliberately skipped for Phase 3b; flagged for future cleanup/deletion.
+
+**Files changed:** 3 modified (`EndGameModal.tsx`, `SpaceEditor.tsx`, `EndGameModal.test.tsx`), plus `TODO.md`, `docs/core/PROJECT_STATUS.md`, `docs/user/RELEASE_NOTES.md`, `CHANGELOG.md`.
+
+## [2.44.0] - 2026-04-10
+
+### Per-Action Modal Editor — Phase 3 (NegotiationModal)
+
+**Feature:** The player-to-player `NegotiationModal` now honors per-space ModalConfig overrides. Creators can customize the step header, the "Select a player to negotiate with:" prompt, and the "Make Offer" CTA from the Data Editor, using the same per-space/per-visit override pipeline introduced in Phase 2.
+
+**Data model:**
+- Adds `effect_action: 'negotiate'` as a recognized key in `ModalConfig.csv` (keyed by `space_name|visit_type|negotiate`). No schema change — reuses the existing `DataService.getModalConfig` API.
+
+**NegotiationModal:**
+- Tracks `currentSpace` and `currentVisitType` alongside current player so the lookup keys off the player's actual board state.
+- `modal_title` replaces the status-specific header (Select Partner / Create Offer / Awaiting Response / Review Offer).
+- `modal_description` replaces "Select a player to negotiate with:" on the partner-selection step.
+- `modal_button_label` replaces "Make Offer 🎉" on the offer-creation step.
+- Template interpolation supports `{playerName}`, `{partnerName}`, and `{spaceName}`.
+
+**Bug fix (uncovered while wiring Phase 3):**
+- Initialization effect closed over a stale `currentPlayerId=null` on the first render because the subscribe callback populates it after the effect's deps are captured. Result: the modal could get stuck in "Initializing negotiation…" in edge cases. Effect now depends on `currentPlayerId` and re-runs once the id is known.
+
+**Editor UI:**
+- New "🤝 Negotiation Modal" fieldset at the bottom of `SpaceEditor` — one always-available `ModalConfigExpander` tied to `effect_action: 'negotiate'`. Help copy lists the supported `{playerName}`/`{partnerName}`/`{spaceName}` tokens.
+
+**Tests:**
+- `NegotiationModal.test.tsx`: two new tests covering the override path (custom title/prompt/button with `{playerName}`/`{partnerName}` interpolation) and the fallback path (no config → hardcoded defaults). 8/8 pass.
+- Related suites still green: `ChoiceModal.test.tsx` 7/7, `DataService.test.ts` 6/6.
+- Vite production build passes (`✓ built in 26.36s`, no new warnings).
+
+**Files changed:** 4 modified (`NegotiationModal.tsx`, `SpaceEditor.tsx`, `NegotiationModal.test.tsx`, `CHANGELOG.md`), plus `TODO.md`, `docs/core/PROJECT_STATUS.md`, and `docs/user/RELEASE_NOTES.md` doc updates.
+
+## [2.43.0] - 2026-04-10
+
+### Per-Action Modal Editor — Phase 2 (ChoiceModal)
+
+**Feature:** `ChoiceModal` (the modal raised for non-movement, non-card-replacement choices like `CHOICE_OF_EFFECTS`, `GENERAL`, `TARGET_SELECTION`) now honors per-space ModalConfig overrides. Creators can customize the hardcoded "Make Your Choice" title, the generic "Make your selection to continue" help text, and the first choice button label via the Data Editor — no code changes required.
+
+**Data model:**
+- Adds `effect_action: 'choice'` as a recognized key in `ModalConfig.csv` (keyed by `space_name|visit_type|choice`). No schema change.
+- `DataService` now loads `SOURCE_FILES/ModalConfig.csv` directly and exposes `getModalConfig(spaceName, visitType, effectAction)` for standalone modals that aren't attached to a SpaceEffect row. Missing file is tolerated (overrides fall back to defaults).
+- New `ModalConfigOverrides` type in `DataTypes.ts`; `IDataService` gets a `getModalConfig` method.
+
+**ChoiceModal:**
+- Tracks `currentVisitType` alongside space + player name so config lookups match the player's actual visit state.
+- Interpolates `{playerName}` and `{spaceName}` in title/description/button label overrides.
+- First option button adopts the custom button label when set; later options keep their server-provided labels so each choice stays distinct.
+- Per-action narrative lookup now uses the real visit type instead of hardcoded `'First'`.
+
+**Editor UI:**
+- New "❓ Choice Modal" fieldset at the bottom of `SpaceEditor` — one always-available `ModalConfigExpander` tied to `effect_action: 'choice'`. Reuses the Phase 1 expander component and save flow.
+
+**Tests:**
+- `ChoiceModal.test.tsx`: two new tests covering the override path (custom title/help/button with template interpolation) and the fallback path (no config → hardcoded defaults). 7/7 pass.
+- `DataService.test.ts`: adds `ModalConfig.csv` to the mock URL map, bumps the fetch-count assertion to 8, adds coverage for `getModalConfig` happy path and missing-file tolerance. 6/6 pass.
+- `mockServices.ts`: `createMockDataService` now includes `getModalConfig` so downstream component tests don't blow up.
+
+**Files changed:** 7 modified (`DataService.ts`, `DataTypes.ts`, `ServiceContracts.ts`, `ChoiceModal.tsx`, `SpaceEditor.tsx`, `mockServices.ts`, `ChoiceModal.test.tsx`, `DataService.test.ts`, `CHANGELOG.md`, `TODO.md`).
+
 ## [2.42.0] - 2026-04-09
 
 ### Per-Action Modal Editor — Phase 1 (Card Action Modals)

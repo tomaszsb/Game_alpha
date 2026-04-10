@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 9, 2026
+**Last Updated:** April 10, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.42.0
+**Current Version:** 2.47.0
 
 ---
 
@@ -19,6 +19,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Per-action modal editor Phase 5 — Editor expander placeholders and a new "Tokens: …" help line now reflect the interpolation tokens available for each effect action (cards show `{count}/{cardType}`, time/fee show `{amount}`, dice shows `{diceValue}`, etc.) instead of a stale hardcoded `{count}/{amount}` hint. Helper `getModalConfigTokens()` wired into both `ModalConfigExpander` and `CardFieldWithLabel`. Closes the per-action modal editor initiative. (Apr 10, 2026)
+- ✅ Per-action modal editor Phase 4 — DiceResultModal honors per-dice-value ModalConfig overrides. New `dice_value` column in `ModalConfig.csv` (8th); composite lookup key `space|visit|action|dice_value`. `DataService.getModalConfig()` takes an optional `diceValue` argument with dice-specific-wins-over-generic precedence. Phase 4 rows are skipped by `processGameData`'s SPACE_EFFECTS merge so they don't pollute unrelated actions. SpaceEditor adds "🎲 Dice Outcome Modals" fieldset with 7 slots (Any Roll + Roll 1..6), shown only on dice-roll spaces. Supports `{diceValue}`/`{spaceName}`/`{count}` tokens. 3 new DiceResultModal tests + 1 new DataService precedence test; 22/22 pass. (Apr 10, 2026)
+- ✅ Per-action modal editor Phase 3b — EndGameModal honors ModalConfig overrides keyed by `space|visit|end_game` (winner's final space). Custom title replaces "Game Complete!", description replaces victory subtitle, summary replaces "Well played!" banner, button label replaces "Play Again". Supports `{winnerName}`/`{spaceName}`. SpaceEditor adds "🏁 End Game Modal" fieldset. Also discovered SpaceInfoModal is orphaned dead code (no imports); deliberately skipped. 17/17 EndGameModal tests pass. (Apr 10, 2026)
+- ✅ Per-action modal editor Phase 3 — NegotiationModal honors ModalConfig overrides keyed by `space|visit|negotiate`. Custom title replaces step header, description replaces "Select a player…" prompt, button label replaces "Make Offer". Supports `{playerName}`/`{partnerName}`/`{spaceName}`. SpaceEditor adds "🤝 Negotiation Modal" fieldset. Also fixed stale `currentPlayerId` closure that could leave the modal stuck in initialization. 8/8 NegotiationModal tests pass. (Apr 10, 2026)
+- ✅ Per-action modal editor Phase 2 — ChoiceModal now honors ModalConfig overrides keyed by `space|visit|choice`. DataService exposes `getModalConfig()`, ChoiceModal interpolates `{playerName}`/`{spaceName}`, SpaceEditor adds "❓ Choice Modal" fieldset. 40+ tests pass. (Apr 10, 2026)
 - ✅ Per-action modal editor Phase 1 — ModalConfig.csv data model, template interpolation, pipeline integration, editor UI with `+ modal config` expanders on card/cost actions. 13 files changed, 2 new. (Apr 9, 2026)
 - ✅ BUG-001/002 root cause fix — WebSocket self-echo race condition. Server echo during HTTP POST round-trip could overwrite completedActions. Fix: pre-increment WS version before POST to suppress echo. Also fixed DiceResultEffect type union. (Apr 8, 2026)
 - ✅ G148 playtest bug fixes — MovementExecutor error handling (BUG-006), deploy cache clear (BUG-003/005), manual action debug breadcrumbs (BUG-001/002), ghost player hardened (force=true removed, invariant fix, action-completion assertion, game-length heuristic), static CSV data integrity test (5 tests). (Apr 8, 2026)
@@ -164,4 +169,5 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 📝 **Remaining Backlog**
 
 ### High Priority
-- [ ] Per-action modal editor — modals currently show generic space-level content. Need: (1) per-action narrative so each action modal shows only its own story text, (2) editable modal content — button labels, descriptions, instructions should be customizable through the Data Editor, (3) Editor UI to support editing all modal-level content per action. Currently the editor has no way to manage any of this.
+- [x] Per-action modal editor — **COMPLETE.** Phase 1 (v2.42.0, card/cost actions), Phase 2 (v2.43.0, ChoiceModal), Phase 3 (v2.44.0, NegotiationModal), Phase 3b (v2.45.0, EndGameModal), Phase 4 (v2.46.0, per-dice-value DiceResultModal), Phase 5 (v2.47.0, context-aware editor hints). See CHANGELOG.md for per-phase details.
+- [x] Delete dead-code `src/components/modals/SpaceInfoModal.tsx` — removed in v2.47.0 after full test suite (1520 passed, 4 skipped) confirmed nothing depended on it. Stale comment in `NarrativeBlock.tsx` also cleaned up. (Apr 10, 2026)

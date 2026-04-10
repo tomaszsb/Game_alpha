@@ -70,11 +70,12 @@ export interface DiceRollRow {
 export interface ModalConfigRow {
   space_name: string;
   visit_type: 'First' | 'Subsequent';
-  effect_action: string;       // e.g., 'draw_W', 'return_e', 'add' (time), 'deduct' (fee)
+  effect_action: string;       // e.g., 'draw_W', 'return_e', 'add' (time), 'deduct' (fee), 'dice'
   modal_title: string;         // Override modal title
   modal_description: string;   // Override effect description (supports {count}, {cardType}, {amount})
   modal_button_label: string;  // Override "Continue" / "Make Choice" button
   modal_summary: string;       // Override summary text
+  dice_value: string;          // Phase 4: optional dice value filter ('1'..'6' or empty for generic)
 }
 
 /**

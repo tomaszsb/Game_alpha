@@ -28,6 +28,11 @@ START,First,time,,1 day,2 days,3 days,4 days,5 days,6 days,groupA`;
 const mockSpaceContentCsv = `space_name,visit_type,title,story,action_description,outcome_description,can_negotiate
 START,First,Welcome,You have arrived.,Begin your journey.,You moved on.,No`;
 
+const mockModalConfigCsv = `space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value
+START,First,choice,Decide {playerName},Weigh your options at {spaceName},Commit,,
+START,First,dice,Generic Roll Title,Generic desc,OK,,
+START,First,dice,Rolled a Six!,Lucky!,Celebrate,,6`;
+
 const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/GAME_CONFIG.csv': mockGameConfigCsv,
   '/data/CLEAN_FILES/MOVEMENT.csv': mockMovementCsv,
@@ -36,6 +41,7 @@ const urlMap: { [key: string]: string } = {
   '/data/CLEAN_FILES/DICE_EFFECTS.csv': mockDiceEffectsCsv,
   '/data/CLEAN_FILES/SPACE_CONTENT.csv': mockSpaceContentCsv,
   '/data/CLEAN_FILES/CARDS_EXPANDED.csv': mockCardsExpandedCsv,
+  '/data/SOURCE_FILES/ModalConfig.csv': mockModalConfigCsv,
 };
 
 global.fetch = vi.fn().mockImplementation((url: string) => {
@@ -82,9 +88,65 @@ describe('DataService', () => {
 
   it('should fetch and parse all CSV files correctly', async () => {
     await dataService.loadData();
-    expect(global.fetch).toHaveBeenCalledTimes(7);
+    // 7 CLEAN_FILES CSVs + 1 SOURCE_FILES/ModalConfig.csv (Phase 2)
+    expect(global.fetch).toHaveBeenCalledTimes(8);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));
     expect(dataService.isLoaded()).toBe(true);
+  });
+
+  it('should expose modal config overrides via getModalConfig', async () => {
+    await dataService.loadData();
+    const override = dataService.getModalConfig('START', 'First', 'choice');
+    expect(override).toBeDefined();
+    expect(override?.modal_title).toBe('Decide {playerName}');
+    expect(override?.modal_description).toBe('Weigh your options at {spaceName}');
+    expect(override?.modal_button_label).toBe('Commit');
+    // Empty summary is dropped
+    expect(override?.modal_summary).toBeUndefined();
+
+    // Missing action returns undefined
+    expect(dataService.getModalConfig('START', 'First', 'draw_W')).toBeUndefined();
+  });
+
+  it('should apply dice-specific modal config lookup precedence (Phase 4)', async () => {
+    await dataService.loadData();
+
+    // Specific dice value (6) wins over generic
+    const specific = dataService.getModalConfig('START', 'First', 'dice', 6);
+    expect(specific).toBeDefined();
+    expect(specific?.modal_title).toBe('Rolled a Six!');
+    expect(specific?.modal_button_label).toBe('Celebrate');
+
+    // Dice value with no specific row falls back to generic
+    const fallback = dataService.getModalConfig('START', 'First', 'dice', 3);
+    expect(fallback).toBeDefined();
+    expect(fallback?.modal_title).toBe('Generic Roll Title');
+    expect(fallback?.modal_button_label).toBe('OK');
+
+    // No diceValue passed => only generic row is considered
+    const generic = dataService.getModalConfig('START', 'First', 'dice');
+    expect(generic).toBeDefined();
+    expect(generic?.modal_title).toBe('Generic Roll Title');
+  });
+
+  it('should tolerate a missing ModalConfig.csv', async () => {
+    // Override fetch so ModalConfig.csv returns 404 but others succeed
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      const cleanUrl = url.split('?')[0];
+      if (cleanUrl === '/data/SOURCE_FILES/ModalConfig.csv') {
+        return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      }
+      const csvData = urlMap[cleanUrl];
+      if (!csvData) {
+        return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
+      }
+      return Promise.resolve({ ok: true, text: () => Promise.resolve(csvData) });
+    });
+    const svc = new DataService();
+    await svc.loadData();
+    expect(svc.isLoaded()).toBe(true);
+    expect(svc.getModalConfig('START', 'First', 'choice')).toBeUndefined();
   });
 
   it('should return cards correctly', async () => {

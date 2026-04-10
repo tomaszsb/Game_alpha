@@ -16,20 +16,28 @@ import { CharacterBadge } from './shared/CharacterBadge';
 import { getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
 import { debugLog } from '../../utils/debugLog';
+import { interpolateTemplate } from '../../utils/templateInterpolation';
+import { VisitType } from '../../types/DataTypes';
 
 export function ChoiceModal(): JSX.Element {
   const { stateService, choiceService, notificationService, dataService } = useGameContext();
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
   const [currentSpace, setCurrentSpace] = useState<string>('');
+  const [currentVisitType, setCurrentVisitType] = useState<VisitType>('First');
   useEffect(() => {
+    const syncFromState = (player: { name?: string; currentSpace?: string; visitType?: VisitType } | undefined) => {
+      setCurrentPlayerName(player?.name || 'Unknown Player');
+      setCurrentSpace(player?.currentSpace || '');
+      setCurrentVisitType(player?.visitType || 'First');
+    };
+
     const unsubscribe = stateService.subscribe((gameState) => {
       setAwaitingChoice(gameState.awaitingChoice);
 
       if (gameState.awaitingChoice) {
         const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
-        setCurrentPlayerName(player?.name || 'Unknown Player');
-        setCurrentSpace(player?.currentSpace || '');
+        syncFromState(player);
       }
     });
 
@@ -37,8 +45,7 @@ export function ChoiceModal(): JSX.Element {
     setAwaitingChoice(gameState.awaitingChoice);
     if (gameState.awaitingChoice) {
       const player = gameState.players.find(p => p.id === gameState.awaitingChoice?.playerId);
-      setCurrentPlayerName(player?.name || 'Unknown Player');
-      setCurrentSpace(player?.currentSpace || '');
+      syncFromState(player);
     }
 
     return unsubscribe;
@@ -132,6 +139,27 @@ export function ChoiceModal(): JSX.Element {
   // Compute isOpen — always render ModalBase so AnimatePresence can play exit animations
   const isRegularChoice = !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && !isCardChoiceType;
 
+  // Per-space ModalConfig overrides for the choice action. Keyed by
+  // `${spaceName}|${visitType}|choice` in ModalConfig.csv. When a row exists,
+  // its fields override the hardcoded title / help text / button labels.
+  const choiceModalConfig = currentSpace
+    ? dataService.getModalConfig(currentSpace, currentVisitType, 'choice')
+    : undefined;
+
+  const templateContext: Record<string, string | number | undefined> = {
+    spaceName: currentSpace,
+    playerName: currentPlayerName,
+  };
+  const customTitle = choiceModalConfig?.modal_title
+    ? interpolateTemplate(choiceModalConfig.modal_title, templateContext)
+    : undefined;
+  const customDescription = choiceModalConfig?.modal_description
+    ? interpolateTemplate(choiceModalConfig.modal_description, templateContext)
+    : undefined;
+  const customButtonLabel = choiceModalConfig?.modal_button_label
+    ? interpolateTemplate(choiceModalConfig.modal_button_label, templateContext)
+    : undefined;
+
   const choiceButtonStyle: React.CSSProperties = {
     ...modalButtonStyles.primary,
     backgroundColor: colors.primary.main,
@@ -146,7 +174,7 @@ export function ChoiceModal(): JSX.Element {
     <ModalBase
       isOpen={isRegularChoice}
       onClose={() => {}}
-      title="Make Your Choice"
+      title={customTitle || 'Make Your Choice'}
       emoji={theme.emoji.target}
       maxWidth="500px"
       testId="choice-modal"
@@ -158,7 +186,7 @@ export function ChoiceModal(): JSX.Element {
       {/* Per-action narrative (if available for the choice's source effect) */}
       {currentSpace && awaitingChoice?.metadata?.effectAction && (() => {
         const narrative = dataService.getEffectNarrative(
-          currentSpace, 'First', awaitingChoice.metadata.effectAction as string
+          currentSpace, currentVisitType, awaitingChoice.metadata.effectAction as string
         );
         if (!narrative) return null;
         return <NarrativeBlock text={narrative} spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />;
@@ -178,10 +206,13 @@ export function ChoiceModal(): JSX.Element {
 
       {/* Choice Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {awaitingChoice?.options.map((option) => {
+        {awaitingChoice?.options.map((option, index) => {
           const choiceTooltip = awaitingChoice.type === 'MOVEMENT'
             ? getMovementChoiceTooltip(option.id)
             : { tooltip: option.label, context: '' };
+          // Only the first button honors a custom button label — later options
+          // keep their server-provided labels so each choice stays distinct.
+          const buttonLabel = index === 0 && customButtonLabel ? customButtonLabel : option.label;
 
           return (
             <Tooltip key={option.id} content={choiceTooltip.tooltip} context={choiceTooltip.context} position="right">
@@ -197,7 +228,7 @@ export function ChoiceModal(): JSX.Element {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                {option.label}
+                {buttonLabel}
               </button>
             </Tooltip>
           );
@@ -218,7 +249,7 @@ export function ChoiceModal(): JSX.Element {
           color: colors.secondary.main,
           textAlign: 'center'
         }}>
-          {theme.emoji.info} Make your selection to continue.
+          {theme.emoji.info} {customDescription || 'Make your selection to continue.'}
         </p>
       </div>
     </ModalBase>

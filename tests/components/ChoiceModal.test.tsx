@@ -192,6 +192,55 @@ describe('ChoiceModal', () => {
     expect(screen.getByText(/Choose your card effect/)).toBeInTheDocument();
   });
 
+  it('should apply ModalConfig overrides for title, help text, and first button label', () => {
+    // Arrange: dataService returns a modal config for this space/action
+    mockServices.dataService.getModalConfig.mockImplementation(
+      (spaceName: string, visitType: string, effectAction: string) => {
+        if (spaceName === 'TEST-SPACE' && visitType === 'First' && effectAction === 'choice') {
+          return {
+            modal_title: 'Decide, {playerName}!',
+            modal_description: 'Weigh your options carefully at {spaceName}.',
+            modal_button_label: 'Commit',
+            modal_summary: undefined
+          };
+        }
+        return undefined;
+      }
+    );
+
+    render(
+      <GameContext.Provider value={mockServices}>
+        <ChoiceModal />
+      </GameContext.Provider>
+    );
+
+    // Custom title is interpolated with playerName
+    expect(screen.getByText('Decide, Test Player!')).toBeInTheDocument();
+    // Custom help text is interpolated with spaceName
+    expect(screen.getByText(/Weigh your options carefully at TEST-SPACE/)).toBeInTheDocument();
+    // First button uses the custom label; later buttons retain their original labels
+    expect(screen.getByText('Commit')).toBeInTheDocument();
+    expect(screen.getByText('Gain $1000')).toBeInTheDocument();
+    // Default help text is replaced
+    expect(screen.queryByText(/Make your selection to continue/)).not.toBeInTheDocument();
+  });
+
+  it('should fall back to hardcoded defaults when no ModalConfig is configured', () => {
+    mockServices.dataService.getModalConfig.mockReturnValue(undefined);
+
+    render(
+      <GameContext.Provider value={mockServices}>
+        <ChoiceModal />
+      </GameContext.Provider>
+    );
+
+    // Default title and help text are present
+    expect(screen.getByText(/Make Your Choice/)).toBeInTheDocument();
+    expect(screen.getByText(/Make your selection to continue/)).toBeInTheDocument();
+    // Original option label unchanged
+    expect(screen.getByText('Draw 2 Work Cards')).toBeInTheDocument();
+  });
+
   it('should call notification for different choice options with correct labels', () => {
     render(
       <GameContext.Provider value={mockServices}>

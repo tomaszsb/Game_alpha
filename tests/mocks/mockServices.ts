@@ -60,6 +60,7 @@ export const createMockDataService = (): any => ({
   getSpaceContent: vi.fn(),
   getAllSpaceContent: vi.fn(),
   getEffectNarrative: vi.fn(),
+  getModalConfig: vi.fn(),
   
   // Card methods
   getCards: vi.fn(),
