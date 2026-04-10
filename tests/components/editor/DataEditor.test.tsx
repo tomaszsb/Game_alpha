@@ -67,6 +67,12 @@ describe('DataEditor', () => {
           text: () => Promise.resolve(mockDiceRollCSV),
         } as Response);
       }
+      if (url.includes('ModalConfig')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve('space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary\n'),
+        } as Response);
+      }
       return Promise.reject(new Error('Unknown URL'));
     });
   });

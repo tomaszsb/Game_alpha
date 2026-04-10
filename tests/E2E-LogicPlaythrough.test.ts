@@ -13,6 +13,8 @@ import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
 import { CardEffectService } from '../src/services/CardEffectService';
+import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
+import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -65,6 +67,12 @@ describe('Logic E2E: Full Game Playthrough', () => {
     // Create and wire CardEffectService for manual card actions
     const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
     turnService.setCardEffectService(cardEffectService);
+
+    // Create and wire effect handlers for EffectEngineService
+    const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
+    effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+    effectEngineService.setCardEffectHandler(cardEffectHandler);
   });
 
   it('should complete a full game from START to FINISH via services', async () => {
@@ -98,7 +106,8 @@ describe('Logic E2E: Full Game Playthrough', () => {
             if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
                 const key = `${effect.effect_type}:${effect.effect_action}`;
                 if (effect.effect_type === 'dice') {
-                    await turnService.rollDice(playerId);
+                    await turnService.rollDiceWithFeedback(playerId);
+                    stateService.updateGameState({ hasPlayerMovedThisTurn: false });
                 } else {
                     const promise = turnService.triggerManualEffect(playerId, key);
                     await new Promise(r => setTimeout(r, 10));

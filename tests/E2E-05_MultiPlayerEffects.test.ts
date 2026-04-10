@@ -128,7 +128,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     // Create and wire effect handlers for EffectEngineService
     const loggingServiceRef = new LoggingService(stateService);
     const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingServiceRef);
-    const cardEffectHandler = new CardEffectHandler(cardService, stateService, dataService, choiceService);
+    const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingServiceRef);
     effectEngineService.setFinancialEffectHandler(financialEffectHandler);
     effectEngineService.setCardEffectHandler(cardEffectHandler);
 

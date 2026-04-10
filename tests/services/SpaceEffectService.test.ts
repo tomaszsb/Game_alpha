@@ -5,6 +5,14 @@ import { IStateService, ICardService, IResourceService, IGameRulesService } from
 import { DiceEffect, SpaceEffect } from '../../src/types/DataTypes';
 import { GameState, Player } from '../../src/types/StateTypes';
 
+// Make debug functions always call through to console (bypass debug gate)
+vi.mock('../../src/utils/debugLog', () => ({
+  debugLog: (...args: unknown[]) => console.log(...args),
+  debugWarn: (...args: unknown[]) => console.warn(...args),
+  debugDebug: (...args: unknown[]) => console.debug(...args),
+  resetDebugCache: () => {},
+}));
+
 describe('SpaceEffectService', () => {
   let spaceEffectService: SpaceEffectService;
   let mockStateService: IStateService;

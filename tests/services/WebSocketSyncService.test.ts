@@ -5,6 +5,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WebSocketSyncService, getWebSocketService, ConnectionState } from '../../src/services/WebSocketSyncService';
 import { GameState } from '../../src/types/StateTypes';
 
+// Make debug functions always call through to console (bypass debug gate)
+vi.mock('../../src/utils/debugLog', () => ({
+  debugLog: (...args: unknown[]) => console.log(...args),
+  debugWarn: (...args: unknown[]) => console.warn(...args),
+  debugDebug: (...args: unknown[]) => console.debug(...args),
+  resetDebugCache: () => {},
+}));
+
 // Mock WebSocket
 class MockWebSocket {
   static CONNECTING = 0;

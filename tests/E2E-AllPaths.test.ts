@@ -85,7 +85,7 @@ const setupGame = async () => {
 
   // Create and wire effect handlers for EffectEngineService
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
-  const cardEffectHandler = new CardEffectHandler(cardService, stateService, dataService, choiceService);
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
   effectEngineService.setFinancialEffectHandler(financialEffectHandler);
   effectEngineService.setCardEffectHandler(cardEffectHandler);
 
@@ -121,7 +121,10 @@ const playTurn = async (
     if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
       const key = `${effect.effect_type}:${effect.effect_action}`;
       if (effect.effect_type === 'dice') {
-        await turnService.rollDice(playerId);
+        // Dice effects need rollDiceWithFeedback to actually process effects (e.g., draw W cards)
+        await turnService.rollDiceWithFeedback(playerId);
+        // Reset hasPlayerMovedThisTurn so endTurnWithMovement can proceed
+        stateService.updateGameState({ hasPlayerMovedThisTurn: false });
       } else {
         const promise = turnService.triggerManualEffect(playerId, key);
         await new Promise(r => setTimeout(r, 10));

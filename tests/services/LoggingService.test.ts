@@ -3,6 +3,14 @@ import { LoggingService } from '../../src/services/LoggingService';
 import { IStateService, LogLevel } from '../../src/types/ServiceContracts';
 import { createMockStateService } from '../mocks/mockServices';
 
+// Make debug functions always call through to console (bypass debug gate)
+vi.mock('../../src/utils/debugLog', () => ({
+  debugLog: (...args: unknown[]) => console.log(...args),
+  debugWarn: (...args: unknown[]) => console.warn(...args),
+  debugDebug: (...args: unknown[]) => console.debug(...args),
+  resetDebugCache: () => {},
+}));
+
 // Helper function to create expected log entry with transactional fields
 const expectLogEntry = (baseEntry: any) => {
   return expect.objectContaining({

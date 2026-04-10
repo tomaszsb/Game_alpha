@@ -132,8 +132,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Compact format: "50% | CONSTRUCTION"
-    expect(screen.getByText(/50%/)).toBeInTheDocument();
+    // Compact format: "50% | CONSTRUCTION" — may appear in both summary and player detail
+    expect(screen.getAllByText(/50%/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText((content) => content.includes('1 Player'))).toBeInTheDocument();
   });
 
@@ -156,7 +156,7 @@ describe('ProjectProgress', () => {
       element.textContent?.includes('👤') &&
       (element as HTMLElement).style.fontWeight === 'bold'
     )).toBeInTheDocument();
-    expect(screen.getByText((content, element) => content.includes('Phase: CONSTRUCTION'))).toBeInTheDocument();
+    expect(screen.getAllByText((content) => content === 'CONSTRUCTION').length).toBeGreaterThanOrEqual(1);
   });
 
   it('should handle no players gracefully', () => {

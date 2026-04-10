@@ -4,6 +4,14 @@ import { IGameRulesService } from '../../src/types/ServiceContracts';
 import { Player } from '../../src/types/StateTypes';
 import { SpaceEffect } from '../../src/types/DataTypes';
 
+// Make debug functions always call through to console (bypass debug gate)
+vi.mock('../../src/utils/debugLog', () => ({
+  debugLog: (...args: unknown[]) => console.log(...args),
+  debugWarn: (...args: unknown[]) => console.warn(...args),
+  debugDebug: (...args: unknown[]) => console.debug(...args),
+  resetDebugCache: () => {},
+}));
+
 describe('ConditionEvaluator', () => {
   let conditionEvaluator: ConditionEvaluator;
   let mockGameRulesService: IGameRulesService;

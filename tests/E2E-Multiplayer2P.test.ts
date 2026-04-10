@@ -24,6 +24,8 @@ import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
 import { CardEffectService } from '../src/services/CardEffectService';
+import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
+import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -78,6 +80,12 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     // Create and wire CardEffectService for manual card actions
     const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
     turnService.setCardEffectService(cardEffectService);
+
+    // Create and wire effect handlers for EffectEngineService
+    const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
+    effectEngineService.setFinancialEffectHandler(financialEffectHandler);
+    effectEngineService.setCardEffectHandler(cardEffectHandler);
   });
 
   it('should initialize a 2-player game correctly', () => {
@@ -163,7 +171,8 @@ describe('E2E: 2-Player Multiplayer Game', () => {
       if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
         const key = `${effect.effect_type}:${effect.effect_action}`;
         if (effect.effect_type === 'dice') {
-          await turnService.rollDice(aliceId);
+          await turnService.rollDiceWithFeedback(aliceId);
+          stateService.updateGameState({ hasPlayerMovedThisTurn: false });
         } else {
           const promise = turnService.triggerManualEffect(aliceId, key);
           await new Promise(r => setTimeout(r, 10));
@@ -205,7 +214,8 @@ describe('E2E: 2-Player Multiplayer Game', () => {
       if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
         const key = `${effect.effect_type}:${effect.effect_action}`;
         if (effect.effect_type === 'dice') {
-          await turnService.rollDice(bobId);
+          await turnService.rollDiceWithFeedback(bobId);
+          stateService.updateGameState({ hasPlayerMovedThisTurn: false });
         } else {
           const promise = turnService.triggerManualEffect(bobId, key);
           await new Promise(r => setTimeout(r, 10));
@@ -251,7 +261,8 @@ describe('E2E: 2-Player Multiplayer Game', () => {
         if (effect.trigger_type === 'manual' && effect.effect_type !== 'turn') {
           const key = `${effect.effect_type}:${effect.effect_action}`;
           if (effect.effect_type === 'dice') {
-            await turnService.rollDice(playerId);
+            await turnService.rollDiceWithFeedback(playerId);
+            stateService.updateGameState({ hasPlayerMovedThisTurn: false });
           } else {
             const promise = turnService.triggerManualEffect(playerId, key);
             await new Promise(r => setTimeout(r, 10));

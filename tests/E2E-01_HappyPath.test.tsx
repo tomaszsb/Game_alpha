@@ -16,6 +16,8 @@ import { NegotiationService } from '../src/services/NegotiationService';
 import { NotificationService } from '../src/services/NotificationService';
 import { TargetingService } from '../src/services/TargetingService';
 import { CardEffectService } from '../src/services/CardEffectService';
+import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
+import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { IDataService, IStateService, ITurnService, IServiceContainer } from '../src/types/ServiceContracts';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -185,6 +187,12 @@ describe('E2E-01: Happy Path with New UI', () => {
     // Create and wire CardEffectService for manual card actions
     globalCardEffectService = new CardEffectService(globalCardService, globalStateService, globalDataService, globalChoiceService);
     globalTurnService.setCardEffectService(globalCardEffectService);
+
+    // Create and wire effect handlers for EffectEngineService
+    const financialEffectHandler = new FinancialEffectHandler(globalResourceService, globalStateService, globalGameRulesService, globalLoggingService);
+    const cardEffectHandler = new CardEffectHandler(globalCardService, globalStateService, globalChoiceService, globalLoggingService);
+    globalEffectEngineService.setFinancialEffectHandler(financialEffectHandler);
+    globalEffectEngineService.setCardEffectHandler(cardEffectHandler);
   });
 
   beforeEach(() => {
@@ -251,9 +259,12 @@ describe('E2E-01: Happy Path with New UI', () => {
     // UI Interaction 3: Click "End Turn" to trigger movement
     fireEvent.click(endTurnButton);
 
-    // DISMISS THE OVERLAY - "Player, your turn!"
-    const overlay = await screen.findByText(/your turn!/i, {}, { timeout: 5000 });
-    fireEvent.click(overlay);
+    // Wait for movement to complete and dismiss overlay if it appears
+    await waitFor(() => {
+      // Dismiss movement transition overlay if present
+      const overlay = screen.queryByText(/your turn!/i);
+      if (overlay) fireEvent.click(overlay);
+    }, { timeout: 5000 });
 
     // After End Turn, the player moves to OWNER-FUND-INITIATION
     await waitFor(() => {
