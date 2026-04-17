@@ -42,15 +42,12 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     private readonly resourceService: IResourceService,
     private readonly stateService: IStateService,
     private readonly gameRulesService: IGameRulesService,
-    private readonly loggingService: ILoggingService
-  ) {}
-
-  setNotificationService(notificationService: INotificationService): void {
-    this.notificationService = notificationService;
-  }
-
-  setDataService(dataService: IDataService): void {
+    private readonly loggingService: ILoggingService,
+    dataService?: IDataService,
+    notificationService?: INotificationService
+  ) {
     this.dataService = dataService;
+    this.notificationService = notificationService;
   }
 
   /**

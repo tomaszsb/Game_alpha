@@ -44,6 +44,18 @@ describe('E012 Card - Choice of Effects Integration', () => {
     mockServices.resourceService.addTime.mockReturnValue(undefined);
     mockServices.resourceService.spendTime.mockReturnValue(undefined);
     
+    const financialEffectHandler = {
+      handleResourceChange: vi.fn().mockReturnValue({ success: true, effectType: 'RESOURCE_CHANGE' }),
+      handleFeeDeduction: vi.fn().mockReturnValue({ success: true, effectType: 'FEE_DEDUCTION' })
+    } as any;
+
+    const cardEffectHandler = {
+      handleCardDraw: vi.fn().mockResolvedValue({ success: true, effectType: 'CARD_DRAW' }),
+      handleCardDiscard: vi.fn().mockResolvedValue({ success: true, effectType: 'CARD_DISCARD' }),
+      handleCardActivation: vi.fn().mockReturnValue({ success: true, effectType: 'CARD_ACTIVATION' }),
+      handlePlayCard: vi.fn().mockResolvedValue({ success: true, effectType: 'PLAY_CARD' })
+    } as any;
+
     effectEngineService = new EffectEngineService(
       mockServices.resourceService,
       mockServices.cardService,
@@ -53,25 +65,12 @@ describe('E012 Card - Choice of Effects Integration', () => {
       mockServices.turnService,
       mockServices.gameRulesService,
       {} as any, // targetingService
-      mockServices.loggingService
+      mockServices.loggingService,
+      undefined,
+      undefined,
+      financialEffectHandler,
+      cardEffectHandler
     );
-
-    // Wire up financial effect handler for RESOURCE_CHANGE effects
-    effectEngineService.setFinancialEffectHandler({
-      handleResourceChange: vi.fn().mockReturnValue({ success: true, effectType: 'RESOURCE_CHANGE' }),
-      handleFeeDeduction: vi.fn().mockReturnValue({ success: true, effectType: 'FEE_DEDUCTION' }),
-      setNotificationService: vi.fn()
-    });
-
-    // Wire up card effect handler for CARD_DISCARD effects
-    effectEngineService.setCardEffectHandler({
-      handleCardDraw: vi.fn().mockResolvedValue({ success: true, effectType: 'CARD_DRAW' }),
-      handleCardDiscard: vi.fn().mockResolvedValue({ success: true, effectType: 'CARD_DISCARD' }),
-      handleCardActivation: vi.fn().mockReturnValue({ success: true, effectType: 'CARD_ACTIVATION' }),
-      handlePlayCard: vi.fn().mockResolvedValue({ success: true, effectType: 'PLAY_CARD' }),
-      setNotificationService: vi.fn(),
-      setDataService: vi.fn()
-    });
   });
 
   it('should parse E012 card description into CHOICE_OF_EFFECTS', () => {

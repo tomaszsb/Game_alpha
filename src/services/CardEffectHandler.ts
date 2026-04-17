@@ -43,15 +43,12 @@ export class CardEffectHandler implements ICardEffectHandler {
     private readonly cardService: ICardService,
     private readonly stateService: IStateService,
     private readonly choiceService: IChoiceService,
-    private readonly loggingService: ILoggingService
-  ) {}
-
-  setNotificationService(notificationService: INotificationService): void {
-    this.notificationService = notificationService;
-  }
-
-  setDataService(dataService: IDataService): void {
+    private readonly loggingService: ILoggingService,
+    dataService?: IDataService,
+    notificationService?: INotificationService
+  ) {
     this.dataService = dataService;
+    this.notificationService = notificationService;
   }
 
   /**

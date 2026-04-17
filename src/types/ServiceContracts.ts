@@ -443,8 +443,6 @@ export interface ICardEffectService {
 export interface IFinancialEffectHandler {
   handleResourceChange(effect: Effect, context: EffectContext): EffectResult;
   handleFeeDeduction(effect: Effect, context: EffectContext): EffectResult;
-  setNotificationService(notificationService: INotificationService): void;
-  setDataService(dataService: IDataService): void;
 }
 
 /**
@@ -456,8 +454,6 @@ export interface ICardEffectHandler {
   handleCardDiscard(effect: Effect, context: EffectContext): Promise<EffectResult>;
   handleCardActivation(effect: Effect, context: EffectContext): EffectResult;
   handlePlayCard(effect: Effect, context: EffectContext): Promise<EffectResult>;
-  setNotificationService(notificationService: INotificationService): void;
-  setDataService(dataService: IDataService): void;
 }
 
 export interface IPlayerActionService {

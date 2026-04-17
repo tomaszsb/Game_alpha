@@ -1,14 +1,28 @@
 # Project Status
 
 **Last Updated**: April 17, 2026
-**Current Phase**: Beta — Regression gates in place (v2.47.2)
-**Current Version**: 2.47.2
+**Current Phase**: Beta — Regression gates in place (v2.48.0)
+**Current Version**: 2.48.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 3 — False-cycle setter injection killed (April 17, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.48.0
+- **Context**: Follow-up to the April 17 Tier 3 rescope (see below). The audit identified 7 false-cycle setters that existed from historical construction-order choices, not real dependency cycles. This pass migrates them to constructor injection.
+- **What changed**:
+  - `CardService` — `choiceService` moved to constructor (optional 6th arg).
+  - `FinancialEffectHandler`, `CardEffectHandler` — `dataService` and `notificationService` moved to constructor (optional).
+  - `EffectEngineService` — `dataService`, `notificationService`, `financialEffectHandler`, `cardEffectHandler` moved to constructor (optional params 10-13). `setTurnService` and `setNegotiationService` retained (real cycle).
+  - `IFinancialEffectHandler`, `ICardEffectHandler` interfaces — removed setter declarations.
+  - DI wiring rewired in `src/context/ServiceProvider.tsx` and `tests/ghost/bootstrapServices.ts`; 7 E2E/integration test files updated to the constructor pattern.
+- **Kept (2 real cycles)**: `StateService ↔ GameRulesService`, and the 3-way `TurnService ↔ EffectEngineService ↔ CardService`. Explicitly documented as intentional architectural decisions in `ARCHITECTURE.md`.
+- **Deferred**: `EffectEngineService.setNegotiationService` — still suspected dead code. Tracked in TODO Tier 3.
+- **Verification**: `npm run typecheck` → 0 errors. `./tests/scripts/run-tests-batch-fixed.sh` → 23/23 batches green.
 
 ### Tier 3 Rescope — Setter-injection audit + Workstream 4 pivot (April 17, 2026) 📋
 - **Status**: 📋 Planning pivot, no code change yet

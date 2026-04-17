@@ -151,6 +151,9 @@ describe('E2E-01: Happy Path with New UI', () => {
     globalNotificationService = new NotificationService(globalStateService, globalLoggingService);
     globalTargetingService = new TargetingService(globalStateService, globalChoiceService);
 
+    const financialEffectHandler = new FinancialEffectHandler(globalResourceService, globalStateService, globalGameRulesService, globalLoggingService);
+    const cardEffectHandler = new CardEffectHandler(globalCardService, globalStateService, globalChoiceService, globalLoggingService);
+
     globalEffectEngineService = new EffectEngineService(
       globalResourceService,
       globalCardService,
@@ -160,13 +163,15 @@ describe('E2E-01: Happy Path with New UI', () => {
       {} as ITurnService,
       globalGameRulesService,
       globalTargetingService,
-      globalLoggingService
+      globalLoggingService,
+      globalDataService,
+      globalNotificationService,
+      financialEffectHandler,
+      cardEffectHandler
     );
-    globalEffectEngineService.setDataService(globalDataService);
-    globalEffectEngineService.setNotificationService(globalNotificationService);
 
     globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService);
-    
+
     globalTurnService = new TurnService(
       globalDataService,
       globalStateService,
@@ -187,12 +192,6 @@ describe('E2E-01: Happy Path with New UI', () => {
     // Create and wire CardEffectService for manual card actions
     globalCardEffectService = new CardEffectService(globalCardService, globalStateService, globalDataService, globalChoiceService);
     globalTurnService.setCardEffectService(globalCardEffectService);
-
-    // Create and wire effect handlers for EffectEngineService
-    const financialEffectHandler = new FinancialEffectHandler(globalResourceService, globalStateService, globalGameRulesService, globalLoggingService);
-    const cardEffectHandler = new CardEffectHandler(globalCardService, globalStateService, globalChoiceService, globalLoggingService);
-    globalEffectEngineService.setFinancialEffectHandler(financialEffectHandler);
-    globalEffectEngineService.setCardEffectHandler(cardEffectHandler);
   });
 
   beforeEach(() => {

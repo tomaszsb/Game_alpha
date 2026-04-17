@@ -69,8 +69,9 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
     const notificationService = new NotificationService(stateService, loggingService);
     const targetingService = new TargetingService(stateService, choiceService);
-    const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as any, gameRulesService, targetingService, loggingService);
-    effectEngineService.setDataService(dataService);
+    const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
+    const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as any, gameRulesService, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
     const negotiationService = new NegotiationService(stateService, effectEngineService);
     turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService);
     turnService.setEffectEngineService(effectEngineService);
@@ -80,12 +81,6 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     // Create and wire CardEffectService for manual card actions
     const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
     turnService.setCardEffectService(cardEffectService);
-
-    // Create and wire effect handlers for EffectEngineService
-    const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
-    const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
-    effectEngineService.setFinancialEffectHandler(financialEffectHandler);
-    effectEngineService.setCardEffectHandler(cardEffectHandler);
   });
 
   it('should initialize a 2-player game correctly', () => {

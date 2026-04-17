@@ -173,10 +173,10 @@ describe('E2E Full Playthrough', () => {
       {} as ITurnService,
       globalGameRulesService,
       globalTargetingService,
-      globalLoggingService
+      globalLoggingService,
+      globalDataService,
+      globalNotificationService
     );
-    globalEffectEngineService.setDataService(globalDataService);
-    globalEffectEngineService.setNotificationService(globalNotificationService);
 
     globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService);
     

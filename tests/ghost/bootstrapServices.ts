@@ -69,10 +69,12 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
   const gameRulesService = new GameRulesService(dataService, stateService);
   stateService.setGameRulesService(gameRulesService);
   const choiceService = new ChoiceService(stateService);
-  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
+  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService);
   const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
   const notificationService = new NotificationService(stateService, loggingService);
   const targetingService = new TargetingService(stateService, choiceService);
+  const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);
+  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService, dataService, notificationService);
   const effectEngineService = new EffectEngineService(
     resourceService,
     cardService,
@@ -82,9 +84,12 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
     {} as any,
     gameRulesService,
     targetingService,
-    loggingService
+    loggingService,
+    dataService,
+    notificationService,
+    financialEffectHandler,
+    cardEffectHandler
   );
-  effectEngineService.setDataService(dataService);
   const negotiationService = new NegotiationService(stateService, effectEngineService);
   const turnService = new TurnService(
     dataService,
@@ -100,20 +105,7 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
   );
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);
-  effectEngineService.setNotificationService(notificationService);
   cardService.setEffectEngineService(effectEngineService);
-  cardService.setChoiceService(choiceService);
-
-  // Wire FinancialEffectHandler — required for RESOURCE_CHANGE effects from cards/spaces.
-  const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
-  effectEngineService.setFinancialEffectHandler(financialEffectHandler);
-
-  // Wire CardEffectHandler — required for CARD_DRAW / CARD_DISCARD / card activation effects.
-  // Without this, dice-triggered card draws silently return empty arrays.
-  const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
-  cardEffectHandler.setDataService(dataService);
-  cardEffectHandler.setNotificationService(notificationService);
-  effectEngineService.setCardEffectHandler(cardEffectHandler);
 
   const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
   turnService.setCardEffectService(cardEffectService);

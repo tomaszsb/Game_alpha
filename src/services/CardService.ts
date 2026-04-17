@@ -13,23 +13,28 @@ export class CardService implements ICardService {
   private readonly loggingService: ILoggingService;
   private readonly gameRulesService: IGameRulesService;
   public effectEngineService!: IEffectEngineService;
-  private choiceService!: IChoiceService;
+  private choiceService?: IChoiceService;
 
-  constructor(dataService: IDataService, stateService: IStateService, resourceService: IResourceService, loggingService: ILoggingService, gameRulesService: IGameRulesService) {
+  constructor(
+    dataService: IDataService,
+    stateService: IStateService,
+    resourceService: IResourceService,
+    loggingService: ILoggingService,
+    gameRulesService: IGameRulesService,
+    choiceService?: IChoiceService
+  ) {
     this.dataService = dataService;
     this.stateService = stateService;
     this.resourceService = resourceService;
     this.loggingService = loggingService;
     this.gameRulesService = gameRulesService;
+    this.choiceService = choiceService;
   }
 
-  // Circular dependency resolution methods
+  // Circular dependency resolution — EffectEngineService is a genuine 3-way cycle
+  // (Turn↔EffectEngine↔Card). See docs/technical/ARCHITECTURE.md for details.
   setEffectEngineService(effectEngineService: IEffectEngineService): void {
     this.effectEngineService = effectEngineService;
-  }
-
-  setChoiceService(choiceService: IChoiceService): void {
-    this.choiceService = choiceService;
   }
 
   /**

@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.0] - 2026-04-17
+
+### Tier 3 — False-cycle setter injection killed
+
+Followed through on the [Unreleased] doc pivot below by migrating the 7 false-cycle setters to constructor injection.
+
+**Services migrated:**
+- `CardService` — `choiceService` now a 6th constructor arg (optional, to avoid cascading test changes). `setChoiceService()` removed.
+- `FinancialEffectHandler` — `dataService` and `notificationService` added as optional constructor args 5-6. `setDataService()`/`setNotificationService()` removed.
+- `CardEffectHandler` — same pattern: optional `dataService` and `notificationService` constructor args. Setters removed.
+- `EffectEngineService` — `dataService`, `notificationService`, `financialEffectHandler`, `cardEffectHandler` added as optional constructor args 10-13. Four corresponding setters removed. `setTurnService()` and `setNegotiationService()` kept (real cycles).
+
+**Interfaces updated** — `IFinancialEffectHandler`, `ICardEffectHandler` no longer declare the removed setters.
+
+**DI wiring rewired** at two sites:
+- `src/context/ServiceProvider.tsx` — handlers are built before the temp and real `EffectEngineService` so they can be passed positionally; 5 setter calls removed. `tempEffectEngine` pattern preserved for the real 3-way cycle.
+- `tests/ghost/bootstrapServices.ts` — mirrored the production wiring.
+
+**Tests updated** (7 E2E/integration files rewired to constructor pattern):
+- `tests/services/EffectEngineService.test.ts` — 4 `beforeEach` sites
+- `tests/E2E-01_HappyPath.test.tsx`, `E2E-05_MultiPlayerEffects.test.ts`, `E2E-AllPaths.test.ts`, `E2E-FullGame.test.tsx`, `E2E-LogicPlaythrough.test.ts`, `E2E-Multiplayer2P.test.ts`, `E2E-Multiplayer4P.test.ts`, `E012-integration.test.ts`
+
+**Kept (intentional architectural decisions):**
+- `StateService ↔ GameRulesService` — `stateService.setGameRulesService(gameRulesService)`
+- `TurnService ↔ EffectEngineService ↔ CardService` (3-way cycle) — `turnService.setEffectEngineService(effectEngineService)`, `cardService.setEffectEngineService(effectEngineService)`, `effectEngineService.setTurnService(turnService)`
+
+**Deferred:**
+- `EffectEngineService.setNegotiationService` — still suspected dead code or latent init bug; investigation tracked in TODO Tier 3.
+
+**Verification:** `npm run typecheck` 0 errors; 23/23 test batches green.
+
+---
+
 ## [Unreleased] - 2026-04-17 — Tier 3 doc pivot (no code change)
 
 ### Setter-injection audit + Workstream 4 rescope

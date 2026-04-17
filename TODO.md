@@ -2,7 +2,7 @@
 
 **Last Updated:** April 17, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.47.2
+**Current Version:** 2.48.0
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Tier 3 false-cycle setter injection killed — Migrated 7 false-cycle setters to constructor injection: `cardService.setChoiceService`, `effectEngineService.setDataService/setNotificationService/setFinancialEffectHandler/setCardEffectHandler`, `FinancialEffectHandler.setDataService/setNotificationService`, `CardEffectHandler.setDataService/setNotificationService`. Optional constructor params so downstream test files only needed surgical rewires. Kept the 2 real cycles (StateService↔GameRulesService, TurnService↔EffectEngineService↔CardService) as documented setter injection. Rewired `ServiceProvider.tsx`, `tests/ghost/bootstrapServices.ts`, and 7 E2E/integration test files. `npm run typecheck` 0 errors; 23/23 test batches green. (Apr 17, 2026)
 - ✅ Tier 2 deficiency cleanup — Cleared all 30 pre-existing TypeScript errors across 8 files. Root causes were mostly stale open-bag types (`LogPayload`/`EffectContext.metadata` both `Record<string, unknown>`), framer-motion type drift in `ModalBase`, a stale `NegotiationState.playerSnapshots` shape still expecting the pre-v2 `availableCards` structure, dead props passed to `PlayerPanelWrapper`, `toSpace: null` where the event type wanted `string | undefined`, and a `string | null` narrowing gap in `TurnService.endTurn`. `npm run typecheck` now returns 0 errors; 23/23 test batches green. (Apr 17, 2026)
 - ✅ Tier 1 deficiency cleanup — App.tsx empty blocks removed, 4 stale CSV backups purged from `public/data/CLEAN_FILES/`, `.gitignore` extended with `*.csv.backup*` / `*.csv.pre-*` patterns, `package.json` rebranded (`code2027/1.0.0` → `unravel-codes/2.47.0`), README/PRODUCT_CHARTER/CLAUDE.md version and phase lines reconciled to Beta / v2.47.0 / ~1,480 tests. All 23 test batches green. (Apr 16, 2026)
 - ✅ Per-action modal editor Phase 5 — Editor expander placeholders and a new "Tokens: …" help line now reflect the interpolation tokens available for each effect action (cards show `{count}/{cardType}`, time/fee show `{amount}`, dice shows `{diceValue}`, etc.) instead of a stale hardcoded `{count}/{amount}` hint. Helper `getModalConfigTokens()` wired into both `ModalConfigExpander` and `CardFieldWithLabel`. Closes the per-action modal editor initiative. (Apr 10, 2026)
@@ -142,7 +143,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ### Tier 3 — DI graph cleanup (revised Apr 17, 2026)
 *Original framing was "split every service > 600 lines + eliminate all setter injection." Revised after an April 17 audit determined both targets were largely cosmetic. See `docs/core/BETA_PLAN_V3.md` Workstream 4 for the full rationale. **Do not resurrect the 600-line target.***
-- [ ] **Kill false-cycle setter-injection sites** — 7–8 setters exist where constructor injection would work. Specifically: `cardService.setChoiceService`, `effectEngineService.setNotificationService`, `effectEngineService.setDataService`, `effectEngineService.setFinancialEffectHandler`, `effectEngineService.setCardEffectHandler`, `FinancialEffectHandler.setDataService/setNotificationService`, `CardEffectHandler.setDataService/setNotificationService`. Move each to its constructor, delete the setter and its interface declaration, remove any now-unused `assert*` guards, rerun typecheck + test batch.
+- [x] **Kill false-cycle setter-injection sites** — shipped in v2.48.0 (Apr 17, 2026). See CHANGELOG.
 - [ ] **Investigate `EffectEngineService.setNegotiationService`** — defined but never called from ServiceProvider. Either it's dead code (remove) or there's a latent init bug (fix).
 - [ ] **Service decomposition — deferred pending concrete pain signal.** TurnService (2,076 lines), StateService (1,867), CardService (1,824), EffectEngineService (1,477), MovementService (1,078), PlayerSetup.tsx (1,126), GameLayout.tsx (1,022) are all large but stable. Do not split on size alone. Split only when (a) a specific method becomes painful to edit, (b) a bug hot-spot clusters in a specific region per `git blame`, or (c) AI context cost on a specific workflow becomes a documented problem.
 

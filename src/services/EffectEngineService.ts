@@ -109,7 +109,11 @@ export class EffectEngineService implements IEffectEngineService {
     turnService: ITurnService,
     gameRulesService: IGameRulesService,
     targetingService: ITargetingService,
-    loggingService: ILoggingService
+    loggingService: ILoggingService,
+    dataService?: IDataService,
+    notificationService?: INotificationService,
+    financialEffectHandler?: IFinancialEffectHandler,
+    cardEffectHandler?: ICardEffectHandler
   ) {
     this.resourceService = resourceService;
     this.cardService = cardService;
@@ -120,6 +124,10 @@ export class EffectEngineService implements IEffectEngineService {
     this.gameRulesService = gameRulesService;
     this.targetingService = targetingService;
     this.loggingService = loggingService;
+    this.dataService = dataService;
+    this.notificationService = notificationService;
+    this.financialEffectHandler = financialEffectHandler;
+    this.cardEffectHandler = cardEffectHandler;
     // NegotiationService is initialized separately to avoid circular dependencies
     this.negotiationService = undefined;
   }
@@ -128,38 +136,10 @@ export class EffectEngineService implements IEffectEngineService {
     this.negotiationService = negotiationService;
   }
 
+  // Circular dependency resolution — TurnService is part of the 3-way
+  // Turn↔EffectEngine↔Card cycle. See docs/technical/ARCHITECTURE.md.
   public setTurnService(turnService: ITurnService): void {
     this.turnService = turnService;
-  }
-
-  public setNotificationService(notificationService: INotificationService): void {
-    this.notificationService = notificationService;
-  }
-
-  public setDataService(dataService: IDataService): void {
-    this.dataService = dataService;
-  }
-
-  public setFinancialEffectHandler(handler: IFinancialEffectHandler): void {
-    this.financialEffectHandler = handler;
-    // Wire dependencies to the handler
-    if (this.notificationService) {
-      handler.setNotificationService(this.notificationService);
-    }
-    if (this.dataService) {
-      handler.setDataService(this.dataService);
-    }
-  }
-
-  public setCardEffectHandler(handler: ICardEffectHandler): void {
-    this.cardEffectHandler = handler;
-    // Wire dependencies to the handler
-    if (this.notificationService) {
-      handler.setNotificationService(this.notificationService);
-    }
-    if (this.dataService) {
-      handler.setDataService(this.dataService);
-    }
   }
 
   /**
