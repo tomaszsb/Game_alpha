@@ -1,14 +1,31 @@
 # Project Status
 
-**Last Updated**: April 16, 2026
-**Current Phase**: Beta — Regression gates in place (v2.47.1)
-**Current Version**: 2.47.1
+**Last Updated**: April 17, 2026
+**Current Phase**: Beta — Regression gates in place (v2.47.2)
+**Current Version**: 2.47.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 2 Deficiency Cleanup — TypeScript rigor (April 17, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.47.2
+- **Context**: The April 2026 review surfaced that `npm run typecheck` was reporting 30 pre-existing errors despite docs claiming "100% TypeScript strict mode compliance." This pass closes the gap.
+- **Root causes (most errors were clusters from a single bad type)**:
+  - **LogPayload as open bag of unknowns** — `{ [key: string]: unknown }` meant every read of a known field (playerName, playerId, action, isCommitted, visibility, playerTurnNumber, turn) returned `unknown`, unassignable to string/number/boolean. Fixed at the source by declaring the 7 commonly-read fields with proper types while keeping the index signature for extras. **Closed 8 LoggingService errors with one type change.**
+  - **EffectContext.metadata same pattern** — `Record<string, unknown>` meant `metadata?.spaceName` was `unknown`. Fixed at the read site in CardEffectHandler.
+  - **Cyclical inference in boardLayout** — the dice-branch mini-fork expansion had a chain where filter callbacks depended on the declared type of the result. Added explicit `string[]` annotations to break the cycle (6 errors cleared).
+  - **framer-motion type drift** — `ease: [0.4, 0, 0.2, 1]` was inferred as `number[]` not the expected bezier tuple, and a spread was duplicating `animate`/`transition` keys. Cast to tuple; lifted the shake-conditional into variables instead of spreading (4 ModalBase errors cleared).
+  - **Stale NegotiationState type** — `playerSnapshots[*]` still used the pre-v2 `availableCards: { W?, B?, ... }` shape; the Player model moved to flat `hand: string[]` long ago, and `NegotiationService` had been silently creating the new shape. Aligned the type. Nothing ever read `availableCards` from snapshots so purely a type-only fix.
+  - **Dead props in GameLayout** — 4 props (onToggleSpaceExplorer/MovementPath, isSpaceExplorerVisible/MovementPathVisible) were being passed to `PlayerPanelWrapper` which dropped them via `...rest`. Removed from both call sites.
+  - **null where undefined was meant** — MovementExecutor passed `toSpace: null` to `emitAutoAction` whose event type expects `string | undefined`. Changed to `undefined`.
+  - **NegotiationModal/Service shape mismatch** — modal was calling `initiateNegotiation(pid, partnerId)` (string) where Record<string,unknown> was expected, and `makeOffer(pid, offer)` with a richer shape than the service accepts. Wrapped context and flattened offer.
+  - **TurnService null narrowing** — `gameState.currentPlayerId` (string|null) passed to a handler expecting `string`; explicit null check + local narrowed variable.
+- **Verification**: `npm run typecheck` → 0 errors. `./tests/scripts/run-tests-batch-fixed.sh` → 23/23 batches green.
+- **Deferred to next pass**: `tsconfig.json` tests include/exclude duplication. Removing it will expose untyped test errors and deserves its own session.
 
 ### Tier 1 Deficiency Cleanup — Doc/Code Hygiene (April 16, 2026) ✅
 - **Status**: ✅ Complete

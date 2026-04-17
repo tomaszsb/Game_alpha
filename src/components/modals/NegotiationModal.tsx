@@ -89,7 +89,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     } : null);
 
     if (currentPlayerId) {
-      negotiationService.initiateNegotiation(currentPlayerId, partnerId);
+      negotiationService.initiateNegotiation(currentPlayerId, { partnerId });
     }
   };
 
@@ -124,7 +124,9 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
       status: 'awaiting_response'
     } : null);
 
-    negotiationService.makeOffer(negotiation.initiatorId, offer);
+    // Service currently only consumes a flat list of card IDs; flatten our per-type map.
+    const flatCardIds = Object.values(offer.cards).flat();
+    negotiationService.makeOffer(negotiation.initiatorId, { cards: flatCardIds });
 
     const currentPlayer = players.find(p => p.id === currentPlayerId);
     const currentPlayerName = currentPlayer?.name || 'Unknown Player';

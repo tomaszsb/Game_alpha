@@ -379,17 +379,17 @@ export function buildGamePathFromData(
                     if (sm.type === 'fixed') {
                       sc = (sm.destinations[0] && !placed.has(sm.destinations[0])) ? sm.destinations[0] : null;
                     } else if (sm.type === 'dice') {
-                      const dr = getDiceReachable(sc).filter(x => !placed.has(x));
-                      const sameFamily = dr.filter(x => branchFamily(x) === forkFamily);
-                      const otherFamily = dr.filter(x => branchFamily(x) !== forkFamily);
-                      const followable = sameFamily.filter(x => {
+                      const dr: string[] = getDiceReachable(sc).filter((x: string) => !placed.has(x));
+                      const sameFamily: string[] = dr.filter((x: string) => branchFamily(x) === forkFamily);
+                      const otherFamily: string[] = dr.filter((x: string) => branchFamily(x) !== forkFamily);
+                      const followable: string[] = sameFamily.filter((x: string) => {
                         const xReach = getDiceReachable(x);
                         const xDests = getMovement(x).destinations;
                         const allFwd = [...new Set([...xReach, ...xDests])];
                         return allFwd.some(dd => branchFamily(dd) === forkFamily);
                       });
                       for (const x of otherFamily) queue.push(x);
-                      for (const x of sameFamily.filter(ss => !followable.includes(ss))) queue.push(x);
+                      for (const x of sameFamily.filter((ss: string) => !followable.includes(ss))) queue.push(x);
                       sc = followable.length === 1 ? followable[0] : null;
                       if (followable.length > 1) for (const x of followable) queue.push(x);
                     } else {

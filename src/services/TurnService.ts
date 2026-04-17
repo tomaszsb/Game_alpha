@@ -567,13 +567,14 @@ export class TurnService implements ITurnService {
 
     // Find the current player index
     const currentPlayerIndex = allPlayers.findIndex(p => p.id === gameState.currentPlayerId);
-    if (currentPlayerIndex === -1) {
+    if (currentPlayerIndex === -1 || gameState.currentPlayerId === null) {
       throw new Error('Current player not found in player list');
     }
+    const currentPlayerId = gameState.currentPlayerId;
 
     // STEPS 1-4.5: Process end-of-turn effects (card expirations, active effects,
     // re-roll resets, turn-end logging, quick start finalization)
-    await this.turnTransitionHandler.processEndOfTurn(gameState.currentPlayerId);
+    await this.turnTransitionHandler.processEndOfTurn(currentPlayerId);
 
     // STEPS 5-6: Advance to next player (skip-turn logic, advance turn counter,
     // set current player, reset turn flags, send end-turn notification)

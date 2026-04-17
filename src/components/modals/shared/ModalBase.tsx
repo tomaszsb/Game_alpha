@@ -223,7 +223,12 @@ export function ModalBase({
   // Transition config (fast for reduced motion)
   const transitionConfig = prefersReducedMotion
     ? { duration: 0 }
-    : { duration: 0.2, ease: [0.4, 0, 0.2, 1] };
+    : { duration: 0.2, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] };
+
+  // Resolve animate/transition once so we don't spread duplicate keys
+  const applyShake = shake && !prefersReducedMotion;
+  const modalAnimate = applyShake ? { ...modalVariants.visible, x: 0 } : 'visible';
+  const modalTransition = applyShake ? { ...transitionConfig, ...shakeTransition } : transitionConfig;
 
   return (
     <AnimatePresence>
@@ -252,10 +257,9 @@ export function ModalBase({
               data-testid={testId}
               variants={modalVariants}
               initial="hidden"
-              animate="visible"
+              animate={modalAnimate}
               exit="exit"
-              transition={transitionConfig}
-              {...(shake && !prefersReducedMotion ? { animate: { ...modalVariants.visible, x: 0 }, transition: { ...transitionConfig, ...shakeTransition } } : {})}
+              transition={modalTransition}
             >
               {/* Header */}
               <div style={headerStyle}>

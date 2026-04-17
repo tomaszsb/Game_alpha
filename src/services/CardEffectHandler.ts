@@ -315,7 +315,7 @@ export class CardEffectHandler implements ICardEffectHandler {
 
   private checkFundingAutoPlay(payload: any, drawnCards: string[], context: EffectContext): EffectResult | null {
     const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
-    const currentSpaceName = context.metadata?.spaceName || '';
+    const currentSpaceName = (context.metadata?.spaceName as string | undefined) ?? '';
     const isFundingSpace = fundingSpaces.includes(currentSpaceName);
     const isFundingCard = payload.cardType === 'B' || payload.cardType === 'I';
 

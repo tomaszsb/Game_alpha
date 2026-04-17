@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.47.2] - 2026-04-17
+
+### Tier 2 Deficiency Cleanup — TypeScript rigor restoration
+
+**Context:** The April 2026 deficiency review surfaced that `npm run typecheck` was reporting 30 pre-existing errors across 8 files, despite docs claiming "100% TypeScript strict mode compliance." Tier 2 closes the gap.
+
+**Typecheck: 30 errors → 0.** All 23 test batches still green after the fixes. No behavior changes — these were all latent type-system breakage that had accumulated because typecheck wasn't in the pre-commit gate.
+
+**Fixes by file:**
+- `src/types/ServiceContracts.ts` — `LogPayload` was `{ [key: string]: unknown }`, which turned every `payload.playerName` / `payload.action` / `payload.isCommitted` / etc. into `unknown`. Added typed optional fields for the 7 commonly-read properties (`playerId`, `playerName`, `action`, `playerTurnNumber`, `turn`, `isCommitted`, `visibility`) while keeping the index signature for extensibility. **Fixed 8 LoggingService errors at once.**
+- `src/utils/boardLayout.ts` — 6 TS7022/TS7006 errors from a cyclical inference chain in the dice-branch mini-fork expansion. Added explicit `string[]` annotations to `dr`, `sameFamily`, `otherFamily`, `followable` and typed the filter callbacks.
+- `src/components/modals/shared/ModalBase.tsx` — framer-motion `Transition` type drift (`ease: [0.4, 0, 0.2, 1]` was inferred as `number[]` instead of `[number, number, number, number]`) plus a spread that duplicated `animate`/`transition` keys. Cast the ease to a tuple and lifted the shake-conditional animate/transition into local variables instead of spreading.
+- `src/components/layout/GameLayout.tsx` — `PlayerPanelWrapper` was being passed 4 props (`onToggleSpaceExplorer`, `onToggleMovementPath`, `isSpaceExplorerVisible`, `isMovementPathVisible`) that weren't in its props interface and were dropped on the floor by the component's `...rest` destructure. Removed from both call sites.
+- `src/components/modals/NegotiationModal.tsx` — `initiateNegotiation` was being called with `partnerId` (string) where `Record<string, unknown>` context was expected; now wraps as `{ partnerId }`. `makeOffer` was being called with the rich `NegotiationOffer` shape (money + cards-by-CardType) where the service only accepts `{ cards?: string[] }`; now flattens the per-type card map before calling.
+- `src/services/CardEffectHandler.ts` — `context.metadata?.spaceName` was `unknown` (metadata is `Record<string, unknown>`); cast to `string | undefined` at access.
+- `src/services/MovementExecutor.ts` — two `emitAutoAction` calls passed `toSpace: null` where the event type expects `string | undefined`. Changed to `undefined` (semantically equivalent for optional fields).
+- `src/types/StateTypes.ts` + `src/services/NegotiationService.ts` — `NegotiationState.playerSnapshots[*]` type still had the legacy `availableCards: { W?, B?, E?, L?, I? }` shape, but the Player model moved to a flat `hand: string[]` long ago and `NegotiationService` was creating `{ id, hand, negotiationOffer }` snapshots. Updated the type to match reality. `availableCards` was never actually read from snapshots — only `negotiationOffer` is used on the rollback path — so this is purely a type definition fix.
+- `src/services/TurnService.ts` — `gameState.currentPlayerId` is `string | null`, passed to a handler expecting `string`. Added explicit null check and narrowed local variable.
+
+**Verification:** `npm run typecheck` — 0 errors. `./tests/scripts/run-tests-batch-fixed.sh` — 23/23 batches passed.
+
+**Next up:** `tsconfig.json` has `tests/**/*` in both include and exclude arrays. Removing the duplication will likely expose untyped test errors, so it gets its own pass rather than being bundled here.
+
+---
+
 ## [2.47.1] - 2026-04-16
 
 ### Tier 1 Deficiency Cleanup — Doc/Code Hygiene

@@ -27,6 +27,13 @@ export enum LogLevel {
 }
 
 export interface LogPayload {
+  playerId?: string;
+  playerName?: string;
+  action?: string;
+  playerTurnNumber?: number;
+  turn?: number;
+  isCommitted?: boolean;
+  visibility?: 'player' | 'debug' | 'system';
   [key: string]: unknown;
 }
 

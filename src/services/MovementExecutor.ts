@@ -96,7 +96,7 @@ export class MovementExecutor {
             playerColor: player.color,
             spaceName: player.currentSpace,
             fromSpace: player.currentSpace,
-            toSpace: null,
+            toSpace: undefined,
             success: false,
             message: `⚠️ Movement failed: no destination found for dice roll ${diceRoll} at ${player.currentSpace}. Please contact support or reload.`
           });
@@ -153,7 +153,7 @@ export class MovementExecutor {
             playerColor: player.color,
             spaceName: player.currentSpace,
             fromSpace: player.currentSpace,
-            toSpace: null,
+            toSpace: undefined,
             success: false,
             message: `⚠️ Movement failed: no valid destinations from ${player.currentSpace}. Please contact support or reload.`
           });

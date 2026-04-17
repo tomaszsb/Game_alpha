@@ -746,10 +746,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               <PlayerPanelWrapper
                 gameServices={gameServices}
                 playerId={effectiveViewPlayerId}
-                onToggleSpaceExplorer={handleToggleSpaceExplorer}
-                onToggleMovementPath={handleToggleMovementPath}
-                isSpaceExplorerVisible={isSpaceExplorerVisible}
-                isMovementPathVisible={isMovementPathVisible}
                 onTryAgain={handleTryAgain}
                 playerNotification={playerNotifications[effectiveViewPlayerId]}
                 onRollDice={handleRollDice}
@@ -850,10 +846,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                         <PlayerPanelWrapper
                           gameServices={gameServices}
                           playerId={player.id}
-                          onToggleSpaceExplorer={handleToggleSpaceExplorer}
-                          onToggleMovementPath={handleToggleMovementPath}
-                          isSpaceExplorerVisible={isSpaceExplorerVisible}
-                          isMovementPathVisible={isMovementPathVisible}
                           onTryAgain={handleTryAgain}
                           playerNotification={playerNotifications[player.id]}
                           onRollDice={handleRollDice}

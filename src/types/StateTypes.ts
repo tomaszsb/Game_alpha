@@ -235,13 +235,7 @@ export interface NegotiationState {
   expiresAt?: Date;
   playerSnapshots?: Array<{
     id: string;
-    availableCards: {
-      W?: string[];
-      B?: string[];
-      E?: string[];
-      L?: string[];
-      I?: string[];
-    };
+    hand: string[];
     negotiationOffer: string[];
   }>;
 }

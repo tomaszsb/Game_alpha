@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 16, 2026
+**Last Updated:** April 17, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.47.1
+**Current Version:** 2.47.2
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Tier 2 deficiency cleanup — Cleared all 30 pre-existing TypeScript errors across 8 files. Root causes were mostly stale open-bag types (`LogPayload`/`EffectContext.metadata` both `Record<string, unknown>`), framer-motion type drift in `ModalBase`, a stale `NegotiationState.playerSnapshots` shape still expecting the pre-v2 `availableCards` structure, dead props passed to `PlayerPanelWrapper`, `toSpace: null` where the event type wanted `string | undefined`, and a `string | null` narrowing gap in `TurnService.endTurn`. `npm run typecheck` now returns 0 errors; 23/23 test batches green. (Apr 17, 2026)
 - ✅ Tier 1 deficiency cleanup — App.tsx empty blocks removed, 4 stale CSV backups purged from `public/data/CLEAN_FILES/`, `.gitignore` extended with `*.csv.backup*` / `*.csv.pre-*` patterns, `package.json` rebranded (`code2027/1.0.0` → `unravel-codes/2.47.0`), README/PRODUCT_CHARTER/CLAUDE.md version and phase lines reconciled to Beta / v2.47.0 / ~1,480 tests. All 23 test batches green. (Apr 16, 2026)
 - ✅ Per-action modal editor Phase 5 — Editor expander placeholders and a new "Tokens: …" help line now reflect the interpolation tokens available for each effect action (cards show `{count}/{cardType}`, time/fee show `{amount}`, dice shows `{diceValue}`, etc.) instead of a stale hardcoded `{count}/{amount}` hint. Helper `getModalConfigTokens()` wired into both `ModalConfigExpander` and `CardFieldWithLabel`. Closes the per-action modal editor initiative. (Apr 10, 2026)
 - ✅ Per-action modal editor Phase 4 — DiceResultModal honors per-dice-value ModalConfig overrides. New `dice_value` column in `ModalConfig.csv` (8th); composite lookup key `space|visit|action|dice_value`. `DataService.getModalConfig()` takes an optional `diceValue` argument with dice-specific-wins-over-generic precedence. Phase 4 rows are skipped by `processGameData`'s SPACE_EFFECTS merge so they don't pollute unrelated actions. SpaceEditor adds "🎲 Dice Outcome Modals" fieldset with 7 slots (Any Roll + Roll 1..6), shown only on dice-roll spaces. Supports `{diceValue}`/`{spaceName}`/`{count}` tokens. 3 new DiceResultModal tests + 1 new DataService precedence test; 22/22 pass. (Apr 10, 2026)
