@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 10, 2026
+**Last Updated:** April 16, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.47.0
+**Current Version:** 2.47.1
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Tier 1 deficiency cleanup — App.tsx empty blocks removed, 4 stale CSV backups purged from `public/data/CLEAN_FILES/`, `.gitignore` extended with `*.csv.backup*` / `*.csv.pre-*` patterns, `package.json` rebranded (`code2027/1.0.0` → `unravel-codes/2.47.0`), README/PRODUCT_CHARTER/CLAUDE.md version and phase lines reconciled to Beta / v2.47.0 / ~1,480 tests. All 23 test batches green. (Apr 16, 2026)
 - ✅ Per-action modal editor Phase 5 — Editor expander placeholders and a new "Tokens: …" help line now reflect the interpolation tokens available for each effect action (cards show `{count}/{cardType}`, time/fee show `{amount}`, dice shows `{diceValue}`, etc.) instead of a stale hardcoded `{count}/{amount}` hint. Helper `getModalConfigTokens()` wired into both `ModalConfigExpander` and `CardFieldWithLabel`. Closes the per-action modal editor initiative. (Apr 10, 2026)
 - ✅ Per-action modal editor Phase 4 — DiceResultModal honors per-dice-value ModalConfig overrides. New `dice_value` column in `ModalConfig.csv` (8th); composite lookup key `space|visit|action|dice_value`. `DataService.getModalConfig()` takes an optional `diceValue` argument with dice-specific-wins-over-generic precedence. Phase 4 rows are skipped by `processGameData`'s SPACE_EFFECTS merge so they don't pollute unrelated actions. SpaceEditor adds "🎲 Dice Outcome Modals" fieldset with 7 slots (Any Roll + Roll 1..6), shown only on dice-roll spaces. Supports `{diceValue}`/`{spaceName}`/`{count}` tokens. 3 new DiceResultModal tests + 1 new DataService precedence test; 22/22 pass. (Apr 10, 2026)
 - ✅ Per-action modal editor Phase 3b — EndGameModal honors ModalConfig overrides keyed by `space|visit|end_game` (winner's final space). Custom title replaces "Game Complete!", description replaces victory subtitle, summary replaces "Well played!" banner, button label replaces "Play Again". Supports `{winnerName}`/`{spaceName}`. SpaceEditor adds "🏁 End Game Modal" fieldset. Also discovered SpaceInfoModal is orphaned dead code (no imports); deliberately skipped. 17/17 EndGameModal tests pass. (Apr 10, 2026)
@@ -128,6 +129,46 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [x] Remove `PlayerPanel.tsx`, `NextStepButton.tsx`, `PlayerStatusPanel.tsx`, `PlayerStatusItem.tsx`, `TurnControlsWithActions.tsx` and their tests (Mar 22, 2026)
 - [x] Deleted MobilePlayerPanel (21 files), CardPortfolioDashboard, MovementPathVisualization, FinancialStatusDisplay, DiceRoller, PlayerViewStateService + 5 test files (Mar 23, 2026)
 - [x] Removed dead placeholder UI in GameLayout.tsx (Mar 23, 2026)
+
+---
+
+## 🔬 **April 2026 Deficiency Review — Forward Plan**
+*Source: Consolidated review (Apr 16, 2026). Tier 1 shipped in v2.47.1. Tiers 2–5 remain.*
+
+### Tier 2 — TypeScript rigor (small but cascading)
+- [ ] **Resolve 30 pre-existing typecheck errors** — `npm run typecheck` currently fails with 30 errors across `CardEffectHandler.ts`, `LoggingService.ts`, `MovementExecutor.ts`, `NegotiationService.ts`, `TurnService.ts`, `ModalBase.tsx`, `boardLayout.ts`. Docs claim "100% strict mode" but it's not true. Fix before the `tests/**/*` tsconfig duplication is removed — otherwise both landmines detonate at once.
+- [ ] **Fix `tsconfig.json` tests include/exclude duplication** — `tests/**/*` appears in both arrays; pick one. Removing from `exclude` means tests get typechecked (expect a wave of errors since `allowJs` is loose and tests were effectively untyped). Do this after Tier 2 step 1.
+
+### Tier 3 — Structural (Beta Workstream 4 territory)
+*BETA_PLAN_V3 target: "No service file exceeds 600 lines"; currently 5 services violate, some 3–7× over.*
+- [ ] **TurnService decomposition** — currently 2,075 lines. Highest leverage target because it also holds most of the 47 setter-injection edges. Extract remaining turn-lifecycle handlers similar to the Mar 23 TurnTransitionHandler/MovementExecutor splits.
+- [ ] **StateService decomposition** — 1,867 lines. Candidates to split: snapshot/REAL-TEMP plumbing, subscription machinery, player mutation helpers.
+- [ ] **CardService decomposition** — 1,824 lines, 13 `any` types. Consider splitting card lifecycle (draw/discard) from effect resolution.
+- [ ] **EffectEngineService decomposition** — 1,477 lines, 13 `any` types, 20 setter-injection references. Heavy handler pattern user — split may fall out naturally.
+- [ ] **MovementService decomposition** — 1,078 lines. Lower priority but still 3.5× over target.
+- [ ] **PlayerSetup.tsx decomposition** — 1,126 lines vs <400 component target.
+- [ ] **GameLayout.tsx decomposition** — 1,022 lines vs <400 component target.
+- [ ] **Eliminate setter injection** — BETA_PLAN_V3 v3.0.0 criterion "No setter injection anywhere in src/services/". 47 occurrences across 10 services today. Falls out partially from service decomposition.
+
+### Tier 4 — Type safety pass
+- [ ] **Eliminate 109 `any` usages** — CODE_STYLE.md forbids `any`. Batched by service: CardService (13) + EffectEngineService (13) + FinancialEffectHandler first, then the rest.
+
+### Tier 5 — Remaining Beta workstreams
+- [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`).
+- [ ] **Workstream 5: Live Dictionary integration** (per BETA_PLAN_V3).
+
+---
+
+## 🛠️ **Workflow & Deployment DX** (Backlog)
+
+### Deployment Automation
+- [ ] **Backend Version Logging** — Update `server/server.js` to log `process.env.VITE_GIT_COMMIT` on startup for instant verification via `docker logs`.
+- [ ] **Sync Status Utility** — Create `scripts/check-sync.sh` to compare local commit vs remote commit vs live site version.
+- [ ] **Webhook Deployment** — Set up a webhook receiver on Unraid to trigger `deploy.sh` via HTTP, enabling "push-to-deploy" from GitHub or local CLI.
+- [ ] **Persistence Protection** — Verify `deploy.sh` backup/restore logic for `game-data/` works correctly with Docker volumes.
+
+### Context Management
+- [ ] **GEMINI.md setup** — Create project-level `GEMINI.md` with explicit server paths (`/mnt/user/appdata/Game_alpha/`) and SSH commands to minimize research turns.
 
 ---
 

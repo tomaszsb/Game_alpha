@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.47.1] - 2026-04-16
+
+### Tier 1 Deficiency Cleanup — Doc/Code Hygiene
+
+**Cleanup batch** targeting live deficiencies surfaced in the April 2026 review. No behavior change; documentation and metadata alignment only.
+
+**Code:**
+- Deleted two empty blocks in `src/App.tsx` left behind by the console.log purge (empty `else {}` around the state-loaded branch and a dead `if (player) {}` in the device-detection effect).
+- Removed 4 stale CSV backups from `public/data/CLEAN_FILES/` (`CARDS.csv.backup`, `SPACE_EFFECTS.csv.backup`, `SPACE_EFFECTS.csv.backup.20251018_011626`, `SPACE_EFFECTS.csv.pre-dice-migration`) — these were riding along to the Unraid container unnecessarily.
+- Extended `.gitignore` with `*.csv.backup`, `*.csv.backup.*`, `*.csv.pre-*` so migration artifacts can't re-enter the tree.
+
+**Metadata:**
+- `package.json`: `name` was still the legacy `"code2027"`, `version` was still `"1.0.0"`. Rebranded to `"unravel-codes"` / `"2.47.0"` and trimmed the drifting test-count from the description.
+- `README.md`: version `2.39.3` → `2.47.0`, test count `~1,014` → `~1,480`, status `Alpha Testing` → `Beta`.
+- `docs/core/PRODUCT_CHARTER.md`: `PRE-BETA / v2.37.0 / 1462 tests` → `BETA / v2.47.0 / ~1,480 tests`.
+- `docs/core/CLAUDE.md`: status line and mission paragraph updated from Pre-Beta to Beta.
+
+**Verification:** `./tests/scripts/run-tests-batch-fixed.sh` — all 23 batches passed, 0 failed.
+
+**Deferred (flagged separately):** `npm run typecheck` reports 30 pre-existing errors across CardEffectHandler, LoggingService, MovementExecutor, NegotiationService, TurnService, ModalBase, boardLayout. These existed before this commit and contradict the docs' "100% TypeScript strict mode compliance" claim; they need their own triage pass.
+
+---
+
 ## [2.47.0] - 2026-04-10
 
 ### Dead Code Cleanup — SpaceInfoModal

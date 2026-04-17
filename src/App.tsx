@@ -123,7 +123,6 @@ function AppContent(): JSX.Element {
 
           // If that didn't work, use the aggressive fix
           stateService.forceResetAllPlayersToCorrectStartingSpace();
-        } else {
         }
 
         setIsLoading(false);
@@ -171,9 +170,6 @@ function AppContent(): JSX.Element {
       : gameState.players.find(p => p.id === fullPlayerId);
 
     const urlPlayerId = player?.id;
-
-    if (player) {
-    }
 
     // Only update if player exists and doesn't already have deviceType set
     if (player && !player.deviceType) {

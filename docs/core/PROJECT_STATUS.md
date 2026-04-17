@@ -1,14 +1,23 @@
 # Project Status
 
-**Last Updated**: April 10, 2026
-**Current Phase**: Beta — Regression gates in place (v2.47.0)
-**Current Version**: 2.47.0
+**Last Updated**: April 16, 2026
+**Current Phase**: Beta — Regression gates in place (v2.47.1)
+**Current Version**: 2.47.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 1 Deficiency Cleanup — Doc/Code Hygiene (April 16, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.47.1
+- **Context**: First pass of a consolidated deficiency review. Targeted the highest-noise, lowest-risk items surfaced in the April 2026 review — things where docs and reality had drifted apart or dead artifacts were riding along to production.
+- **Code changes**: Deleted two empty blocks in `src/App.tsx` (leftover from the console.log purge — an empty `else {}` in the init effect and a dead `if (player) {}` in the device-detection effect). Removed 4 stale CSV backups from `public/data/CLEAN_FILES/` that were being copied into the Docker container on every deploy. Added `*.csv.backup`, `*.csv.backup.*`, `*.csv.pre-*` patterns to `.gitignore` so migration artifacts can't re-enter.
+- **Metadata changes**: `package.json` rebranded (`code2027`/`1.0.0` → `unravel-codes`/`2.47.0`). README, PRODUCT_CHARTER, and CLAUDE.md status/version/test-count lines all reconciled to Beta / v2.47.0 / ~1,480 tests.
+- **Verification**: `./tests/scripts/run-tests-batch-fixed.sh` — all 23 batches green.
+- **Known gap flagged for next pass**: `npm run typecheck` surfaces 30 pre-existing TypeScript errors (CardEffectHandler, LoggingService, MovementExecutor, NegotiationService, TurnService, ModalBase, boardLayout). This directly contradicts the docs' "100% strict mode" claim and needs its own triage session.
 
 ### Dead Code Cleanup — SpaceInfoModal (April 10, 2026) ✅
 - **Status**: ✅ Complete

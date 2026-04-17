@@ -1,11 +1,11 @@
 # Unravel Codes: The Game - Project Charter
 
-**Status**: PRE-BETA — March 2026
+**Status**: BETA — April 2026
 **Core Game Complete**: Fully playable multi-player board game with external access deployed
 **Public URL**: `https://game.unravelcodes.com`
-**Test Status**: 1462 tests passing across 91 test files (100% success rate)
-**Version**: 2.37.0
-**Last Updated**: March 31, 2026
+**Test Status**: ~1,480 tests passing across 93+ test files (100% success rate)
+**Version**: 2.47.0
+**Last Updated**: April 16, 2026
 
 ## 1. Mission Progress - Production Ready
 
@@ -101,7 +101,7 @@ The Game Alpha application is **fully production-ready** with:
 - ✅ Complete gameplay functionality from start to win condition
 - ✅ Robust error handling and graceful degradation
 - ✅ Modern web standards compliance and cross-browser compatibility
-- ✅ ~1,027 tests passing across 87 test files (100% success rate in batches)
+- ✅ ~1,480 tests passing across 93+ test files (100% success rate in batches)
 - ✅ Multi-device state synchronization with real-time updates
 - ✅ Service-oriented architecture with dependency injection
 - ✅ Clean separation of concerns across 14+ core services
@@ -139,4 +139,4 @@ The clean architecture provides solid foundation for:
 
 For upcoming feature planning, see [TODO.md](../../TODO.md).
 
-**Status**: Project charter objectives **FULLY COMPLETED** ✅ - Application is in alpha testing with 967+ tests passing and external access deployed.
+**Status**: Project charter objectives **FULLY COMPLETED** ✅ - Application is in Beta with ~1,480 tests passing and external access deployed.

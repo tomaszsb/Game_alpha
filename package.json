@@ -1,8 +1,8 @@
 {
-  "name": "code2027",
-  "version": "1.0.0",
+  "name": "unravel-codes",
+  "version": "2.47.0",
   "type": "module",
-  "description": "Unravel Codes: The Game - Multi-player board game with comprehensive test suite (~1,027 tests passing)",
+  "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
   "scripts": {
     "server": "node server/server.js",

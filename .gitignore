@@ -44,6 +44,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# CSV backup/migration artifacts — never commit into public/data/
+*.csv.backup
+*.csv.backup.*
+*.csv.pre-*
 # Audit/log text files (not blanket *.txt which blocks documentation)
 console_log_audit.txt
 npm-debug.txt

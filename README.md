@@ -1,8 +1,8 @@
 # Unravel Codes: The Game
 
-**Status:** Alpha Testing (April 2026)
-**Version:** 2.39.3
-**Test Coverage:** ~1,014 tests passing (100% success rate)
+**Status:** Beta (April 2026)
+**Version:** 2.47.0
+**Test Coverage:** ~1,480 tests passing (100% success rate)
 **Public URL:** `https://game.unravelcodes.com`
 
 ## Overview
@@ -116,7 +116,7 @@ game_alpha/
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers
 │   └── styles/                  # CSS and styling (animations.css, theme constants)
-├── tests/                        # Test suite (~1,027 tests across 87 test files)
+├── tests/                        # Test suite (~1,480 tests across 93+ test files)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -152,7 +152,7 @@ game_alpha/
 - **Immutable State Management:** Predictable state updates with snapshot support and version tracking.
 - **Transactional Logging:** 100% accurate game log with exploration session tracking.
 - **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play.
-- **Comprehensive Testing:** ~1,014 tests covering services, components, and E2E scenarios.
+- **Comprehensive Testing:** ~1,480 tests covering services, components, and E2E scenarios.
 
 ## Technology Stack
 
