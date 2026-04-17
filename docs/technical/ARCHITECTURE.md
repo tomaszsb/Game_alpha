@@ -107,7 +107,15 @@ class CardService {
 
 ### Circular Dependency Resolution (Setter Injection)
 
-Some services have circular dependencies (e.g., TurnService ↔ EffectEngineService). These are resolved using setter injection:
+**Scope (April 2026 audit):** Setter injection is used in this codebase **only** to resolve two genuine circular dependencies. It is not a general pattern, and new setter-injection methods should not be added casually. If a dependency *can* be passed through the constructor, it *must* be — that is the default.
+
+**The two intentional cycles:**
+
+1. **`StateService` ↔ `GameRulesService`** — StateService needs GameRulesService to evaluate conditional-effect predicates. GameRulesService needs StateService to query current game state. Resolved via `stateService.setGameRulesService()` at `ServiceProvider.tsx`.
+
+2. **`TurnService` ↔ `EffectEngineService` ↔ `CardService`** (3-way cycle) — TurnService needs EffectEngine to process turn effects; CardService needs EffectEngine to process card effects; EffectEngine needs both TurnService (for TURN_CONTROL effects) and CardService (for card-producing effects). Resolved via `turnService.setEffectEngineService()` and `cardService.setEffectEngineService()` at `ServiceProvider.tsx`, plus two downstream forwards inside TurnService to its handlers (`spaceArrivalProcessor`, `turnTransitionHandler`) which also participate in the cycle.
+
+These are architectural — collapsing them would require an event bus or command bus, which has its own cost (indirection, harder to trace). They are accepted as-is. Every service with a setter-injected dependency has an `assertDependenciesReady()` guard that throws at the first method call if initialization was skipped, so a silent half-initialized state is impossible.
 
 ```typescript
 // TurnService needs EffectEngineService, but EffectEngineService needs TurnService
@@ -141,11 +149,13 @@ async takeTurn(playerId: string): Promise<TurnResult> {
 }
 ```
 
-**Services with setter injection:**
-- `TurnService.setEffectEngineService()`, `setCardEffectService()`
-- `CardService.setEffectEngineService()`
-- `EffectEngineService.setTurnService()`, `setNegotiationService()`, `setNotificationService()`, `setDataService()`, `setFinancialEffectHandler()`, `setCardEffectHandler()`
-- `StateService.setGameRulesService()`
+**Services with setter injection (intentional — part of a real cycle):**
+- `StateService.setGameRulesService()` — cycle 1
+- `TurnService.setEffectEngineService()` — cycle 2 (3-way)
+- `CardService.setEffectEngineService()` — cycle 2 (3-way)
+- `SpaceArrivalProcessor.setEffectEngineService()`, `TurnTransitionHandler.setEffectEngineService()` — forwarded by TurnService as part of cycle 2
+
+**Not a pattern to copy:** Other setter methods (e.g. `EffectEngineService.setNotificationService/setDataService`, handler setters, `CardService.setChoiceService`) exist historically but are being eliminated in favor of constructor injection because the dependency they receive is not part of a real cycle. The `setCardEffectService` method on TurnService is similar — to be migrated when touched.
 
 ### Handler Pattern (January 2026)
 

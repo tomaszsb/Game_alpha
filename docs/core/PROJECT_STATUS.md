@@ -10,6 +10,14 @@ This document provides a high-level overview of the current work status for the 
 
 ## Recently Completed
 
+### Tier 3 Rescope — Setter-injection audit + Workstream 4 pivot (April 17, 2026) 📋
+- **Status**: 📋 Planning pivot, no code change yet
+- **Context**: Before executing Tier 3 as originally framed ("decompose every service > 600 lines + eliminate all setter injection"), we asked whether the work would produce real benefit or churn for its own sake.
+- **Findings**: Setter-injection audit across 8 files identified 13 sites. Only 2 are genuine architectural cycles (State↔GameRules, Turn↔EffectEngine↔Card). 2 more are downstream forwards from the Turn cycle. 7–8 are false cycles where constructor injection works — these will be killed in a follow-up. 1 is possibly dead code (`EffectEngineService.setNegotiationService` appears to never be called from ServiceProvider).
+- **"No service > 600 lines" target dropped**: The large services are stable, well-tested, cohesive. Without a concrete pain signal, splitting produces churn without fewer bugs. Future splits require a specific trigger (painful method, bug hot-spot in git blame, documented AI-context-cost problem) — not a line budget.
+- **Docs updated**: `BETA_PLAN_V3.md` Workstream 4 rewritten; `ARCHITECTURE.md` now marks the 2 real cycles as intentional architectural decisions and distinguishes them from false-cycle setters being retired; `TODO.md` Tier 3 replaced with revised plan carrying an explicit note not to resurrect the 600-line target.
+- **Next code step**: Kill the 7–8 false-cycle setters via constructor injection in one focused commit.
+
 ### Tier 2 Deficiency Cleanup — TypeScript rigor (April 17, 2026) ✅
 - **Status**: ✅ Complete
 - **Version**: 2.47.2

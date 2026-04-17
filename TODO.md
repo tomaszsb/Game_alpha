@@ -140,16 +140,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Resolve 30 pre-existing typecheck errors** — `npm run typecheck` currently fails with 30 errors across `CardEffectHandler.ts`, `LoggingService.ts`, `MovementExecutor.ts`, `NegotiationService.ts`, `TurnService.ts`, `ModalBase.tsx`, `boardLayout.ts`. Docs claim "100% strict mode" but it's not true. Fix before the `tests/**/*` tsconfig duplication is removed — otherwise both landmines detonate at once.
 - [ ] **Fix `tsconfig.json` tests include/exclude duplication** — `tests/**/*` appears in both arrays; pick one. Removing from `exclude` means tests get typechecked (expect a wave of errors since `allowJs` is loose and tests were effectively untyped). Do this after Tier 2 step 1.
 
-### Tier 3 — Structural (Beta Workstream 4 territory)
-*BETA_PLAN_V3 target: "No service file exceeds 600 lines"; currently 5 services violate, some 3–7× over.*
-- [ ] **TurnService decomposition** — currently 2,075 lines. Highest leverage target because it also holds most of the 47 setter-injection edges. Extract remaining turn-lifecycle handlers similar to the Mar 23 TurnTransitionHandler/MovementExecutor splits.
-- [ ] **StateService decomposition** — 1,867 lines. Candidates to split: snapshot/REAL-TEMP plumbing, subscription machinery, player mutation helpers.
-- [ ] **CardService decomposition** — 1,824 lines, 13 `any` types. Consider splitting card lifecycle (draw/discard) from effect resolution.
-- [ ] **EffectEngineService decomposition** — 1,477 lines, 13 `any` types, 20 setter-injection references. Heavy handler pattern user — split may fall out naturally.
-- [ ] **MovementService decomposition** — 1,078 lines. Lower priority but still 3.5× over target.
-- [ ] **PlayerSetup.tsx decomposition** — 1,126 lines vs <400 component target.
-- [ ] **GameLayout.tsx decomposition** — 1,022 lines vs <400 component target.
-- [ ] **Eliminate setter injection** — BETA_PLAN_V3 v3.0.0 criterion "No setter injection anywhere in src/services/". 47 occurrences across 10 services today. Falls out partially from service decomposition.
+### Tier 3 — DI graph cleanup (revised Apr 17, 2026)
+*Original framing was "split every service > 600 lines + eliminate all setter injection." Revised after an April 17 audit determined both targets were largely cosmetic. See `docs/core/BETA_PLAN_V3.md` Workstream 4 for the full rationale. **Do not resurrect the 600-line target.***
+- [ ] **Kill false-cycle setter-injection sites** — 7–8 setters exist where constructor injection would work. Specifically: `cardService.setChoiceService`, `effectEngineService.setNotificationService`, `effectEngineService.setDataService`, `effectEngineService.setFinancialEffectHandler`, `effectEngineService.setCardEffectHandler`, `FinancialEffectHandler.setDataService/setNotificationService`, `CardEffectHandler.setDataService/setNotificationService`. Move each to its constructor, delete the setter and its interface declaration, remove any now-unused `assert*` guards, rerun typecheck + test batch.
+- [ ] **Investigate `EffectEngineService.setNegotiationService`** — defined but never called from ServiceProvider. Either it's dead code (remove) or there's a latent init bug (fix).
+- [ ] **Service decomposition — deferred pending concrete pain signal.** TurnService (2,076 lines), StateService (1,867), CardService (1,824), EffectEngineService (1,477), MovementService (1,078), PlayerSetup.tsx (1,126), GameLayout.tsx (1,022) are all large but stable. Do not split on size alone. Split only when (a) a specific method becomes painful to edit, (b) a bug hot-spot clusters in a specific region per `git blame`, or (c) AI context cost on a specific workflow becomes a documented problem.
 
 ### Tier 4 — Type safety pass
 - [ ] **Eliminate 109 `any` usages** — CODE_STYLE.md forbids `any`. Batched by service: CardService (13) + EffectEngineService (13) + FinancialEffectHandler first, then the rest.

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2026-04-17 — Tier 3 doc pivot (no code change)
+
+### Setter-injection audit + Workstream 4 rescope
+
+**Context:** The April 2026 deficiency review originally framed Tier 3 as "decompose every service > 600 lines and eliminate all setter injection" (per `docs/core/BETA_PLAN_V3.md` Workstream 4). Before executing, we stopped to ask whether this was a real benefit or reduction for its own sake.
+
+**Audit findings — 13 setter-injection sites across 8 files:**
+- **2 are genuine architectural cycles** and stay: `State ↔ GameRules`, `Turn ↔ EffectEngine ↔ Card` (3-way).
+- **2 are downstream forwards** from the Turn↔EffectEngine cycle (into `spaceArrivalProcessor` and `turnTransitionHandler`) and will remain until/unless that cycle is restructured.
+- **7–8 are false cycles** where constructor injection would work fine — the setters exist from historical construction-order choices, not from real dependency cycles. These will be killed in a follow-up code pass.
+- **1 is possibly dead code** (`EffectEngineService.setNegotiationService` is defined but never called from `ServiceProvider`). To be investigated and either removed or fixed.
+
+**On the "no service > 600 lines" target:** Dropped. The large services in this codebase are stable, well-tested, and cohesive. Splitting them without a concrete pain signal (specific painful method, bug hot-spot in `git blame`, documented AI-context-cost problem) produces churn without fewer bugs. The Mar 23 TurnTransitionHandler/MovementExecutor extractions were driven by specific painful functions — that's the bar going forward.
+
+**Docs updated:**
+- `docs/core/BETA_PLAN_V3.md` — Workstream 4 rewritten: scope is DI graph cleanup, not line-count reduction. The two 3.0.0 ship criteria ("no service > 600 lines", "no setter injection anywhere") are replaced with criteria that target actual problems (false-cycle setters killed, real cycles documented).
+- `docs/technical/ARCHITECTURE.md` — setter-injection section now names the 2 real cycles as intentional architectural decisions, distinguishes them from false-cycle setters that are being retired, and drops the stale "services with setter injection" list that included false-cycle sites.
+- `TODO.md` — Tier 3 section replaced with the revised plan; old line-count targets removed with a note not to resurrect them.
+
+**Next code step:** Kill the 7–8 false-cycle setters via constructor injection, one commit. No version bump yet — that happens when code ships.
+
+---
+
 ## [2.47.2] - 2026-04-17
 
 ### Tier 2 Deficiency Cleanup — TypeScript rigor restoration
