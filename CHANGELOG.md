@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.3] - 2026-04-18
+
+### Tier 4 Bucket C — CardService `card: any` narrowed + dead `movement_effect` branch removed
+
+Second Tier 4 slice. Nine `card: any` parameters across `CardService` and one in `GameRulesService` all narrowed to the `Card` domain type.
+
+**`src/services/CardService.ts`:** Added `Card` to the `DataTypes` import. Param types on `parseCardIntoEffects`, `applyWorkCardEffect`, `applyBankLoanCardEffect`, `applyExpeditorCardEffect`, `applyLifeEventsCardEffect`, `applyInvestorLoanCardEffect`, `handleReturnToSender`, `handleFavorCalledIn` all changed from `any` to `Card`. Two unnecessary `cardType as any` casts in the `CARD_DRAW` / `CARD_DISCARD` payload builders dropped — `parseCardDrawFormat` already returns `CardType`.
+
+**`src/services/GameRulesService.ts`:** `isTimeReductionBlockedByZeroTime(card: any, ...)` → `Card`. Added `Card` to the import.
+
+**Dead code removed:** The `movement_effect` branch in `parseCardIntoEffects` (~20 lines emitting a `CHOICE`/MOVEMENT effect) was unreachable — the field isn't on the `Card` type, isn't in `CARDS_EXPANDED.csv` or any live CSV, and no production code populates it. Only callers were a single CardService test (deleted) and some archived legacy CSVs in `docs/archive/`. The narrowing surfaced it immediately when the `card.movement_effect` access became a typecheck error.
+
+**Verification:** `npm run typecheck` 0 errors; 23/23 test batches green (89 tests in `CardService.test.ts` + 60 in `GameRulesService.test.ts`, one obsolete test removed from the former).
+
+**Tier 4 progress:** Bucket B (v2.48.2, 28 sites) + Bucket C (this, 10 sites + 1 dead branch) = 38 of the original 109 `any` usages eliminated. Remaining: Bucket D (~10 service-surface sites in NegotiationService, StateService, DiceRollProcessor, GameLayout, etc.) and Bucket E (~15 intentional sites — catch-block `error: any`, Promise reject signatures, dynamic config indexing, open-bag metadata — staying as-is).
+
+---
+
 ## [2.48.2] - 2026-04-18
 
 ### Tier 4 Bucket B — Effect/payload `any` narrowing

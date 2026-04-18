@@ -2,7 +2,7 @@
 
 import { IGameRulesService, IDataService, IStateService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
-import { CardType } from '../types/DataTypes';
+import { Card, CardType } from '../types/DataTypes';
 
 /**
  * GameRulesService acts as the centralized authority for all game rule validations.
@@ -307,7 +307,7 @@ export class GameRulesService implements IGameRulesService {
    * Checks if a card type requires the player's turn to play
    * @private
    */
-  private isTimeReductionBlockedByZeroTime(card: any, playerId: string): boolean {
+  private isTimeReductionBlockedByZeroTime(card: Card, playerId: string): boolean {
     if (!card.tick_modifier) return false;
     const tickVal = parseInt(card.tick_modifier, 10);
     if (isNaN(tickVal) || tickVal >= 0) return false;

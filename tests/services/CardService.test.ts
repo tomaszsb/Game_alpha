@@ -813,40 +813,6 @@ describe('CardService - Enhanced Coverage', () => {
       );
     });
 
-    it('should parse card with movement_effect into PLAYER_CHOICE_MOVE effect', () => {
-      const testCard = {
-        card_id: 'MOVE001',
-        card_name: 'Movement Card',
-        card_type: 'E',
-        movement_effect: '5',
-        description: 'Test movement card'
-      };
-
-      mockDataService.getCardById.mockReturnValue(testCard);
-
-      const result = cardService.applyCardEffects('player1', 'MOVE001');
-
-      // Verify UnifiedEffectEngine was called with CHOICE effect for movement
-      expect(mockEffectEngineService.processCardEffects).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            effectType: 'CHOICE',
-            payload: expect.objectContaining({
-              playerId: 'player1',
-              type: 'MOVEMENT',
-              prompt: 'Choose where to move (5 spaces)',
-              options: [
-                { id: 'forward', label: 'Move forward 5 spaces' },
-                { id: 'backward', label: 'Move backward 5 spaces' }
-              ]
-            })
-          })
-        ]),
-        expect.anything(),
-        testCard
-      );
-    });
-
     it('should parse card with discard_cards into CARD_DISCARD effect', () => {
       const testCard = {
         card_id: 'DISCARD001',

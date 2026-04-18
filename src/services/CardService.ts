@@ -1,7 +1,7 @@
 import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService, IChoiceService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
-import { CardType } from '../types/DataTypes';
+import { Card, CardType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { ErrorNotifications } from '../utils/ErrorNotifications';
 import { parseCardDrawFormat } from '../utils/parseUtils';
@@ -1065,7 +1065,7 @@ export class CardService implements ICardService {
    * Parse card CSV data into standardized Effect objects for the UnifiedEffectEngine
    * This bridges the gap between CSV field structure and the Effect system
    */
-  private parseCardIntoEffects(card: any, playerId: string): Effect[] {
+  private parseCardIntoEffects(card: Card, playerId: string): Effect[] {
     const effects: Effect[] = [];
     const cardSource = `card:${card.card_id}`;
 
@@ -1136,33 +1136,13 @@ export class CardService implements ICardService {
             effectType: 'CARD_DRAW',
             payload: {
               playerId: playerId,
-              cardType: cardType as any,
+              cardType: cardType,
               count: count,
               source: cardSource,
               reason: `${card.card_name}: Draw ${count} ${cardType} card${count > 1 ? 's' : ''}`
             }
           });
         }
-      }
-    }
-
-    // PLAYER_CHOICE_MOVE effects for movement-related cards
-    if (card.movement_effect && card.movement_effect.trim() !== '') {
-      const movementSpaces = parseInt(card.movement_effect, 10);
-      if (!isNaN(movementSpaces) && movementSpaces > 0) {
-        effects.push({
-          effectType: 'CHOICE',
-          payload: {
-            id: `${card.card_id}_movement_choice`,
-            playerId: playerId,
-            type: 'MOVEMENT',
-            prompt: `Choose where to move (${movementSpaces} spaces)`,
-            options: [
-              { id: 'forward', label: `Move forward ${movementSpaces} spaces` },
-              { id: 'backward', label: `Move backward ${movementSpaces} spaces` }
-            ]
-          }
-        });
       }
     }
 
@@ -1178,7 +1158,7 @@ export class CardService implements ICardService {
             payload: {
               playerId: playerId,
               cardIds: [], // Will be resolved at runtime
-              cardType: cardType as any,
+              cardType: cardType,
               count: count,
               source: cardSource,
               reason: `${card.card_name}: Discard ${count} ${cardType || 'any'} card${count > 1 ? 's' : ''}`
@@ -1279,7 +1259,7 @@ export class CardService implements ICardService {
     return false;
   }
 
-  private applyWorkCardEffect(playerId: string, card: any): GameState {
+  private applyWorkCardEffect(playerId: string, card: Card): GameState {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
@@ -1300,7 +1280,7 @@ export class CardService implements ICardService {
     return this.stateService.getGameState();
   }
 
-  private applyBankLoanCardEffect(playerId: string, card: any): GameState {
+  private applyBankLoanCardEffect(playerId: string, card: Card): GameState {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
@@ -1319,7 +1299,7 @@ export class CardService implements ICardService {
     return this.stateService.getGameState();
   }
 
-  private applyExpeditorCardEffect(playerId: string, card: any): GameState {
+  private applyExpeditorCardEffect(playerId: string, card: Card): GameState {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
@@ -1429,7 +1409,7 @@ export class CardService implements ICardService {
     return this.stateService.getGameState();
   }
 
-  private applyLifeEventsCardEffect(playerId: string, card: any): GameState {
+  private applyLifeEventsCardEffect(playerId: string, card: Card): GameState {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
@@ -1456,7 +1436,7 @@ export class CardService implements ICardService {
     return this.stateService.getGameState();
   }
 
-  private applyInvestorLoanCardEffect(playerId: string, card: any): GameState {
+  private applyInvestorLoanCardEffect(playerId: string, card: Card): GameState {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       throw new Error(`Player ${playerId} not found`);
@@ -1641,7 +1621,7 @@ export class CardService implements ICardService {
    * This card allows the player to select any active E card (from any player) and
    * return it to that player's hand, canceling its ongoing effect.
    */
-  private async handleReturnToSender(playerId: string, card: any): Promise<void> {
+  private async handleReturnToSender(playerId: string, card: Card): Promise<void> {
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;
@@ -1747,7 +1727,7 @@ export class CardService implements ICardService {
    *
    * This card requires selecting an opponent and applying opposite time effects.
    */
-  private async handleFavorCalledIn(playerId: string, card: any): Promise<void> {
+  private async handleFavorCalledIn(playerId: string, card: Card): Promise<void> {
 
     const gameState = this.stateService.getGameState();
     const allPlayers = gameState.players;

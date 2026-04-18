@@ -1,14 +1,23 @@
 # Project Status
 
 **Last Updated**: April 18, 2026
-**Current Phase**: Beta — Regression gates in place (v2.48.2)
-**Current Version**: 2.48.2
+**Current Phase**: Beta — Regression gates in place (v2.48.3)
+**Current Version**: 2.48.3
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 4 — Bucket C CardService `card: any` narrowing (April 18, 2026) ✅
+- **Status**: ✅ Complete (second Tier 4 slice)
+- **Version**: 2.48.3
+- **Context**: Tier 4 Bucket B (v2.48.2) handled the effect/payload shapes. Bucket C targets the 9 `card: any` parameters inside `CardService` (plus 1 in `GameRulesService`) where domain-typed `Card` was available but never used. Pure parameter narrowing, no logic changes.
+- **Narrowed**: `parseCardIntoEffects`, `applyWorkCardEffect`, `applyBankLoanCardEffect`, `applyExpeditorCardEffect`, `applyLifeEventsCardEffect`, `applyInvestorLoanCardEffect`, `handleReturnToSender`, `handleFavorCalledIn` in CardService; `isTimeReductionBlockedByZeroTime` in GameRulesService. Two `cardType as any` casts on CARD_DRAW/DISCARD payloads dropped — the parser already returns `CardType`.
+- **Dead code surfaced and removed**: `movement_effect` branch in `parseCardIntoEffects` emitted a `CHOICE`/MOVEMENT effect for a field that isn't on the `Card` type, isn't in any live CSV, and had only one exerciser — a single test in `CardService.test.ts`. Branch + test deleted.
+- **Verification**: `npm run typecheck` → 0 errors. `./tests/scripts/run-tests-batch-fixed.sh` → 23/23 batches green (89 CardService tests + 60 GameRulesService tests, one obsolete test removed).
+- **Tier 4 cumulative progress**: 38 of the original 109 `any` usages eliminated across B + C. Remaining: Bucket D (~10 service-surface sites) and Bucket E (~15 intentional sites documented as staying).
 
 ### Tier 4 — Bucket B effect/payload `any` narrowing (April 18, 2026) ✅
 - **Status**: ✅ Complete (first slice of Tier 4)
