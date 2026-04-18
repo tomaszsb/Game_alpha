@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.1] - 2026-04-18
+
+### Tier 3 — Dead negotiation-effect pathway removed
+
+Follow-up to v2.48.0. The audit flagged `EffectEngineService.setNegotiationService` as "possibly dead code — never called from ServiceProvider." Investigated and confirmed: production negotiation goes UI → `NegotiationService.initiateNegotiation()` directly (see `NegotiationModal.tsx:92`, `TurnService.ts:1576`). The effect-engine route was an unused parallel path.
+
+**Removed from `EffectEngineService.ts`:**
+- `private negotiationService?: NegotiationService` field
+- `setNegotiationService()` method
+- `NegotiationService` import
+- `INITIATE_NEGOTIATION` case in `processEffect` (guarded by `if (!this.negotiationService)` that would always fire in production)
+- `NEGOTIATION_RESPONSE` case in `processEffect` (same guard)
+- `createNegotiationEffect()` helper
+- `createNegotiationResponseEffect()` helper
+
+**Removed from `EffectTypes.ts`:**
+- `INITIATE_NEGOTIATION` discriminant in the `Effect` union
+- `NEGOTIATION_RESPONSE` discriminant in the `Effect` union
+- `isInitiateNegotiationEffect()` type guard
+- `isNegotiationResponseEffect()` type guard
+
+**Removed from `EffectEngineService.test.ts`:**
+- `Multi-Player Interactive Effects` describe block (350 lines, the sole exerciser of this dead path)
+
+No production behavior change — the path was never reachable from UI or service code. This closes the last open item from the Apr 17 setter-injection audit.
+
+**Verification:** `npm run typecheck` 0 errors; 23/23 test batches green.
+
+---
+
 ## [2.48.0] - 2026-04-17
 
 ### Tier 3 — False-cycle setter injection killed

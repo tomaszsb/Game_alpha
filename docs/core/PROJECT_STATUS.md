@@ -1,14 +1,21 @@
 # Project Status
 
-**Last Updated**: April 17, 2026
-**Current Phase**: Beta — Regression gates in place (v2.48.0)
-**Current Version**: 2.48.0
+**Last Updated**: April 18, 2026
+**Current Phase**: Beta — Regression gates in place (v2.48.1)
+**Current Version**: 2.48.1
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 3 — Dead negotiation-effect pathway removed (April 18, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.48.1
+- **Context**: The v2.48.0 audit flagged `EffectEngineService.setNegotiationService` as suspected dead code. Investigated and confirmed — production negotiation goes UI → `NegotiationService` directly (`NegotiationModal.tsx:92`, `TurnService.ts:1576`). The effect-engine route was an unused parallel path.
+- **Removed**: `setNegotiationService` + private field + `NegotiationService` import; `INITIATE_NEGOTIATION` and `NEGOTIATION_RESPONSE` cases in `processEffect`; `createNegotiationEffect` and `createNegotiationResponseEffect` helpers; the two discriminants in the `Effect` union; their two type guards; the 350-line `Multi-Player Interactive Effects` describe block in the test (sole exerciser).
+- **Verification**: `npm run typecheck` → 0 errors. 23/23 test batches green. No production behavior change — path was never reachable.
 
 ### Tier 3 — False-cycle setter injection killed (April 17, 2026) ✅
 - **Status**: ✅ Complete

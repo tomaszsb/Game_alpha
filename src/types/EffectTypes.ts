@@ -167,31 +167,6 @@ export type Effect =
       };
     }
   | {
-      effectType: 'INITIATE_NEGOTIATION';
-      payload: {
-        initiatorId: string;
-        targetPlayerIds: string[];
-        negotiationType: 'CARD_EXCHANGE' | 'RESOURCE_TRADE' | 'FAVOR_REQUEST' | 'ALLIANCE_PROPOSAL';
-        context: {
-          description: string;
-          requiresAgreement: boolean;
-          offerData?: Record<string, unknown>;
-          requestData?: Record<string, unknown>;
-        };
-        source?: string;
-      };
-    }
-  | {
-      effectType: 'NEGOTIATION_RESPONSE';
-      payload: {
-        respondingPlayerId: string;
-        negotiationId: string;
-        response: 'ACCEPT' | 'DECLINE' | 'COUNTER_OFFER';
-        responseData?: Record<string, unknown>;
-        source?: string;
-      };
-    }
-  | {
       effectType: 'PLAYER_AGREEMENT_REQUIRED';
       payload: {
         requesterPlayerId: string;
@@ -325,14 +300,6 @@ export function isPlayCardEffect(effect: Effect): effect is Extract<Effect, { ef
 
 export function isDurationStoredEffect(effect: Effect): effect is Extract<Effect, { effectType: 'DURATION_STORED' }> {
   return effect.effectType === 'DURATION_STORED';
-}
-
-export function isInitiateNegotiationEffect(effect: Effect): effect is Extract<Effect, { effectType: 'INITIATE_NEGOTIATION' }> {
-  return effect.effectType === 'INITIATE_NEGOTIATION';
-}
-
-export function isNegotiationResponseEffect(effect: Effect): effect is Extract<Effect, { effectType: 'NEGOTIATION_RESPONSE' }> {
-  return effect.effectType === 'NEGOTIATION_RESPONSE';
 }
 
 export function isPlayerAgreementRequiredEffect(effect: Effect): effect is Extract<Effect, { effectType: 'PLAYER_AGREEMENT_REQUIRED' }> {

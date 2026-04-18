@@ -17,7 +17,6 @@ import {
   ICardEffectHandler
 } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
-import { NegotiationService } from './NegotiationService';
 import { 
   Effect, 
   EffectContext, 
@@ -36,8 +35,6 @@ import {
   isChoiceOfEffectsEffect,
   isPlayCardEffect,
   isDurationStoredEffect,
-  isInitiateNegotiationEffect,
-  isNegotiationResponseEffect,
   isPlayerAgreementRequiredEffect,
   isFeeDeductionEffect
 } from '../types/EffectTypes';
@@ -95,7 +92,6 @@ export class EffectEngineService implements IEffectEngineService {
   private targetingService: ITargetingService;
   private loggingService: ILoggingService;
   private dataService?: IDataService;
-  private negotiationService?: NegotiationService;
   private notificationService?: INotificationService;
   private financialEffectHandler?: IFinancialEffectHandler;
   private cardEffectHandler?: ICardEffectHandler;
@@ -128,12 +124,6 @@ export class EffectEngineService implements IEffectEngineService {
     this.notificationService = notificationService;
     this.financialEffectHandler = financialEffectHandler;
     this.cardEffectHandler = cardEffectHandler;
-    // NegotiationService is initialized separately to avoid circular dependencies
-    this.negotiationService = undefined;
-  }
-
-  public setNegotiationService(negotiationService: NegotiationService): void {
-    this.negotiationService = negotiationService;
   }
 
   // Circular dependency resolution — TurnService is part of the 3-way
@@ -145,7 +135,7 @@ export class EffectEngineService implements IEffectEngineService {
   /**
    * Assert that critical setter-injected dependencies are initialized.
    * Some services (notificationService, dataService) are optional and handled with null checks.
-   * TurnService and NegotiationService are required for specific effect types.
+   * TurnService is required for specific effect types.
    * @throws Error if TurnService is not set (required for TURN_MODIFIER effects)
    */
   private assertCoreDependenciesReady(): void {
@@ -645,102 +635,6 @@ export class EffectEngineService implements IEffectEngineService {
         case 'DURATION_STORED':
           if (isDurationStoredEffect(effect)) {
             success = true;
-          }
-          break;
-
-        case 'INITIATE_NEGOTIATION':
-          if (isInitiateNegotiationEffect(effect)) {
-            const { payload } = effect;
-
-            try {
-              if (!this.negotiationService) {
-                console.error('❌ NegotiationService not available for INITIATE_NEGOTIATION effect');
-                return {
-                  success: false,
-                  effectType: effect.effectType,
-                  error: 'NegotiationService not available'
-                };
-              }
-
-              const result = await this.negotiationService.initiateNegotiation(payload.initiatorId, {
-                type: payload.negotiationType,
-                targetPlayerIds: payload.targetPlayerIds,
-                context: payload.context,
-                source: payload.source || context.source
-              });
-
-              if (result.success) {
-                success = true;
-              } else {
-                console.error(`❌ Failed to initiate negotiation: ${result.message}`);
-                return {
-                  success: false,
-                  effectType: effect.effectType,
-                  error: result.message
-                };
-              }
-            } catch (error) {
-              console.error(`❌ Error initiating negotiation:`, error);
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: `Failed to initiate negotiation: ${error instanceof Error ? error.message : 'Unknown error'}`
-              };
-            }
-          }
-          break;
-
-        case 'NEGOTIATION_RESPONSE':
-          if (isNegotiationResponseEffect(effect)) {
-            const { payload } = effect;
-
-            try {
-              if (!this.negotiationService) {
-                console.error('❌ NegotiationService not available for NEGOTIATION_RESPONSE effect');
-                return {
-                  success: false,
-                  effectType: effect.effectType,
-                  error: 'NegotiationService not available'
-                };
-              }
-
-              let result;
-              switch (payload.response) {
-                case 'ACCEPT':
-                  result = await this.negotiationService.acceptOffer(payload.respondingPlayerId);
-                  break;
-                case 'DECLINE':
-                  result = await this.negotiationService.declineOffer(payload.respondingPlayerId);
-                  break;
-                case 'COUNTER_OFFER':
-                  result = await this.negotiationService.makeOffer(payload.respondingPlayerId, payload.responseData || {});
-                  break;
-                default:
-                  return {
-                    success: false,
-                    effectType: effect.effectType,
-                    error: `Unknown negotiation response: ${payload.response}`
-                  };
-              }
-
-              if (result.success) {
-                success = true;
-              } else {
-                console.error(`❌ Failed to process negotiation response: ${result.message}`);
-                return {
-                  success: false,
-                  effectType: effect.effectType,
-                  error: result.message
-                };
-              }
-            } catch (error) {
-              console.error(`❌ Error processing negotiation response:`, error);
-              return {
-                success: false,
-                effectType: effect.effectType,
-                error: `Failed to process negotiation response: ${error instanceof Error ? error.message : 'Unknown error'}`
-              };
-            }
           }
           break;
 
@@ -1383,33 +1277,6 @@ export class EffectEngineService implements IEffectEngineService {
   }
 
   /**
-   * Create a negotiation initiation effect
-   */
-  createNegotiationEffect(
-    initiatorId: string,
-    targetPlayerIds: string[],
-    negotiationType: 'CARD_EXCHANGE' | 'RESOURCE_TRADE' | 'FAVOR_REQUEST' | 'ALLIANCE_PROPOSAL',
-    context: {
-      description: string;
-      requiresAgreement: boolean;
-      offerData?: any;
-      requestData?: any;
-    },
-    source?: string
-  ): Effect {
-    return {
-      effectType: 'INITIATE_NEGOTIATION',
-      payload: {
-        initiatorId,
-        targetPlayerIds,
-        negotiationType,
-        context,
-        source
-      }
-    };
-  }
-
-  /**
    * Create a player agreement requirement effect
    */
   createPlayerAgreementEffect(
@@ -1428,28 +1295,6 @@ export class EffectEngineService implements IEffectEngineService {
         agreementType,
         agreementData,
         prompt,
-        source
-      }
-    };
-  }
-
-  /**
-   * Create a negotiation response effect
-   */
-  createNegotiationResponseEffect(
-    respondingPlayerId: string,
-    negotiationId: string,
-    response: 'ACCEPT' | 'DECLINE' | 'COUNTER_OFFER',
-    responseData?: any,
-    source?: string
-  ): Effect {
-    return {
-      effectType: 'NEGOTIATION_RESPONSE',
-      payload: {
-        respondingPlayerId,
-        negotiationId,
-        response,
-        responseData,
         source
       }
     };
