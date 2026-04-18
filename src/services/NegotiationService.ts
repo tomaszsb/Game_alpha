@@ -2,7 +2,7 @@
 
 import { IStateService, IEffectEngineService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
-import { NegotiationResult, NegotiationState } from '../types/StateTypes';
+import { NegotiationResult, NegotiationState, Player } from '../types/StateTypes';
 
 /**
  * Negotiation Service
@@ -33,7 +33,7 @@ export class NegotiationService {
    * @param context - Context data about the negotiation (what's at stake, rules, etc.)
    * @returns Promise resolving to the negotiation result
    */
-  public async initiateNegotiation(playerId: string, context: any): Promise<NegotiationResult> {
+  public async initiateNegotiation(playerId: string, context: Record<string, unknown>): Promise<NegotiationResult> {
     
     try {
       // Get current game state
@@ -280,7 +280,7 @@ export class NegotiationService {
    * @param agreement - The agreed terms of the negotiation
    * @returns Promise resolving to the negotiation result
    */
-  public async completeNegotiation(negotiationId: string, agreement: any): Promise<NegotiationResult> {
+  public async completeNegotiation(negotiationId: string, agreement: Record<string, unknown>): Promise<NegotiationResult> {
     
     try {
       const gameState = this.stateService.getGameState();
@@ -353,7 +353,7 @@ export class NegotiationService {
    * @param cardId - The card ID to look for
    * @returns True if player has the card
    */
-  private playerHasCard(player: any, cardId: string): boolean {
+  private playerHasCard(player: Player, cardId: string): boolean {
     return player.hand?.includes(cardId) || false;
   }
 
@@ -365,9 +365,9 @@ export class NegotiationService {
    * @param cardIds - The card IDs to remove
    * @returns Updated player data
    */
-  private removeCardsFromPlayer(player: any, cardIds: string[]): any {
+  private removeCardsFromPlayer(player: Player, cardIds: string[]): Partial<Player> {
     const updatedHand = player.hand.filter((id: string) => !cardIds.includes(id));
-    
+
     return {
       id: player.id,
       hand: updatedHand
@@ -382,7 +382,7 @@ export class NegotiationService {
    * @param cardIds - The card IDs to add back
    * @returns Updated player data
    */
-  private addCardsToPlayer(player: any, cardIds: string[]): any {
+  private addCardsToPlayer(player: Player, cardIds: string[]): Partial<Player> {
     const updatedHand = [...player.hand];
     
     // Add cards back to hand if they're not already there

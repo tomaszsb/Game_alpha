@@ -19,7 +19,7 @@ import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
 import { NotificationUtils } from '../../utils/NotificationUtils';
-import { GamePhase, Player, DiceResultEffect } from '../../types/StateTypes';
+import { GamePhase, Player, DiceResultEffect, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { haptics } from '../../utils/haptics';
@@ -88,7 +88,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
   const [isDiceResultModalOpen, setIsDiceResultModalOpen] = useState<boolean>(false);
-  const [diceResult, setDiceResult] = useState<any>(null);
+  const [diceResult, setDiceResult] = useState<TurnEffectResult | null>(null);
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState<boolean>(false);
   const [isProgressCollapsed, setIsProgressCollapsed] = useState<boolean>(false);
   const [visiblePanels, setVisiblePanels] = useState<Record<string, boolean>>(() => {
@@ -225,9 +225,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           });
         }
         setDiceResult({
+          diceValue: 0,
+          spaceName: event.spaceName ?? '',
           effects,
-          summary: event.message,
-          spaceName: event.spaceName
+          summary: event.message ?? '',
+          hasChoices: false
         });
         setIsDiceResultModalOpen(true);
       }

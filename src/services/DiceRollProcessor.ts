@@ -4,7 +4,7 @@
 import { IDataService, IStateService, IGameRulesService, IDiceService, IChoiceService, IMovementService } from '../types/ServiceContracts';
 import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
-import { DiceResultEffect, TurnEffectResult, Player } from '../types/StateTypes';
+import { DiceResultEffect, TurnEffectResult, Player, GameState } from '../types/StateTypes';
 import { formatDiceRollFeedback } from '../utils/buttonFormatting';
 import { Effect } from '../types/EffectTypes';
 
@@ -12,7 +12,7 @@ import { Effect } from '../types/EffectTypes';
  * Interface for dice roll effects processing result
  */
 export interface DiceRollEffectsResult {
-  gameState: any;
+  gameState: GameState;
   generatedEffects: Effect[];
   effectResults?: { results: Array<{ data?: { cardIds?: string[]; skipped?: boolean } }> };
   rollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }>;

@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.4] - 2026-04-18
+
+### Tier 4 Bucket D — Service-surface `any` narrowed
+
+Third Tier 4 slice. Narrows the ~12-site "service-surface" cluster: public service methods, service-to-service returns, and a React `useState` hook whose shape was fully typed everywhere except the hook itself.
+
+**`src/services/NegotiationService.ts`** (5 sites) — Imported `Player`. Public method signatures:
+- `initiateNegotiation(playerId, context: Record<string, unknown>)` — was `any`
+- `completeNegotiation(negotiationId, agreement: Record<string, unknown>)` — was `any`
+- Private helpers `playerHasCard(player: Player, ...)`, `removeCardsFromPlayer(player: Player, ...): Partial<Player>`, `addCardsToPlayer(...): Partial<Player>` — was `any` on both in/out.
+
+**`src/services/StateService.ts`** (4 sites) — Imported `NegotiationState`. Three `(result as any).committedState` / `(result as any).updatedState` casts dropped — the concrete `TurnStateManager` return types already carry `committedState?` / `updatedState?`. `updateNegotiationState(negotiationState: any)` → `NegotiationState | null` (matches the `IStateService` interface contract, which was already correct).
+
+**`src/services/DiceRollProcessor.ts`** (1 site) — `DiceRollEffectsResult.gameState: any` → `GameState`.
+
+**`src/components/layout/GameLayout.tsx`** (1 site) — `useState<any>(null)` → `useState<TurnEffectResult | null>(null)`. The ad-hoc object passed to `setDiceResult` on the game-log event path now supplies the full `TurnEffectResult` shape (`diceValue: 0`, `hasChoices: false`, nullish-coalesced `spaceName`/`summary`).
+
+**`src/services/GameRulesService.ts`** (1 site) — `extractValidDestinations(movement: any)` → `Movement` (DataTypes). Added `Movement` to the import.
+
+**Verification:** `npm run typecheck` 0 errors; 23/23 test batches green.
+
+**Tier 4 progress:** Bucket B (28) + Bucket C (10 + dead branch) + Bucket D (12) = 50 of 109 original `any` usages eliminated. Remaining: Bucket E (~15 intentional sites — catch-block `error: any`, dynamic config indexing, open-bag metadata — staying as-is) and scattered test-mock `any` (intentional, tests only).
+
+---
+
 ## [2.48.3] - 2026-04-18
 
 ### Tier 4 Bucket C — CardService `card: any` narrowed + dead `movement_effect` branch removed

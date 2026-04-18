@@ -2,7 +2,7 @@
 
 import { IGameRulesService, IDataService, IStateService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
-import { Card, CardType } from '../types/DataTypes';
+import { Card, CardType, Movement } from '../types/DataTypes';
 
 /**
  * GameRulesService acts as the centralized authority for all game rule validations.
@@ -230,7 +230,7 @@ export class GameRulesService implements IGameRulesService {
    * Extracts valid destinations from movement data
    * @private
    */
-  private extractValidDestinations(movement: any): string[] {
+  private extractValidDestinations(movement: Movement): string[] {
     const destinations: string[] = [];
     
     // Handle different movement types

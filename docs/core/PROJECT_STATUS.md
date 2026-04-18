@@ -1,14 +1,22 @@
 # Project Status
 
 **Last Updated**: April 18, 2026
-**Current Phase**: Beta — Regression gates in place (v2.48.3)
-**Current Version**: 2.48.3
+**Current Phase**: Beta — Regression gates in place (v2.48.4)
+**Current Version**: 2.48.4
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 4 — Bucket D service-surface `any` narrowing (April 18, 2026) ✅
+- **Status**: ✅ Complete (third Tier 4 slice)
+- **Version**: 2.48.4
+- **Context**: Third batch of the `any`-elimination pass. Targets the "service-surface" cluster — public methods on NegotiationService, StateService return-shape casts, a DiceRollProcessor interface field, a GameLayout `useState<any>`, and GameRulesService's `extractValidDestinations`. 12 sites total across 5 files.
+- **Narrowed**: `NegotiationService` (5 — `initiateNegotiation(context)` / `completeNegotiation(agreement)` → `Record<string, unknown>`; helper trio `playerHasCard/removeCardsFromPlayer/addCardsToPlayer` → `Player` in, `Partial<Player>` out). `StateService` (4 — `updateNegotiationState(negotiationState)` → `NegotiationState | null` matching the interface; 3 `(result as any).committedState/updatedState` casts dropped, `TurnStateManager` return types already carry those fields). `DiceRollProcessor` (1 — `DiceRollEffectsResult.gameState` → `GameState`). `GameLayout.tsx` (1 — `useState<any>(null)` → `useState<TurnEffectResult | null>(null)`, ad-hoc setter object extended to full shape). `GameRulesService` (1 — `extractValidDestinations(movement)` → `Movement`).
+- **Verification**: `npm run typecheck` → 0 errors. `./tests/scripts/run-tests-batch-fixed.sh` → 23/23 batches green.
+- **Tier 4 cumulative progress**: 50 of the original 109 `any` usages eliminated across B + C + D. Remaining: Bucket E (~15 intentional — catch-block `error: any`, Promise reject signatures, dynamic config indexing, open-bag metadata, legacy browser checks). Staying as-is.
 
 ### Tier 4 — Bucket C CardService `card: any` narrowing (April 18, 2026) ✅
 - **Status**: ✅ Complete (second Tier 4 slice)

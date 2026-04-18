@@ -18,7 +18,8 @@ import {
   TurnStateModel,
   TurnCostLedger,
   StateTransitionResult,
-  CreateTempOptions
+  CreateTempOptions,
+  NegotiationState
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances, NpcImageRole } from '../constants/characters';
@@ -1332,11 +1333,11 @@ export class StateService implements IStateService {
     this.syncTurnStateFromManager();
 
     // Also update the player in main state to reflect committed changes
-    if (result.success && (result as any).committedState) {
+    if (result.success && result.committedState) {
       const playerIndex = this.currentState.players.findIndex(p => p.id === playerId);
       if (playerIndex !== -1) {
         const currentPlayer = this.currentState.players[playerIndex];
-        const committedState = (result as any).committedState;
+        const committedState = result.committedState;
 
         // IMPORTANT: Preserve movement-related properties that are updated outside TEMP state
         // These are set by MovementService and should NOT be overwritten by committedState
@@ -1463,7 +1464,7 @@ export class StateService implements IStateService {
     this.syncTurnStateFromManager();
 
     // Also update the main player state for immediate UI feedback
-    if ((result as any).updatedState) {
+    if (result.updatedState) {
       this.updatePlayer({ id: playerId, ...changes });
     } else if (!this.turnStateManager.hasActiveTempState(playerId)) {
       // No TEMP state - fall back to updating main player state
@@ -1688,7 +1689,7 @@ export class StateService implements IStateService {
   }
 
   // Negotiation state management
-  updateNegotiationState(negotiationState: any): GameState {
+  updateNegotiationState(negotiationState: NegotiationState | null): GameState {
     const newState: GameState = {
       ...this.currentState,
       activeNegotiation: negotiationState
