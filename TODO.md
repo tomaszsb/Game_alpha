@@ -2,7 +2,7 @@
 
 **Last Updated:** April 18, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.48.1
+**Current Version:** 2.48.2
 
 ---
 
@@ -19,6 +19,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Tier 4 Bucket B — effect/payload `any` narrowing (28 sites across 8 files). `EffectEngineService` (9): `cardData: any` → `Card`, default-case `as any` → type-guarded cast, `CARD_ACTIVATION` replay uses `isResourceChangeEffect`, agreement-data → `Record<string, unknown>`. `FinancialEffectHandler` (7): `payload: any` → `Extract<Effect, {effectType:'RESOURCE_CHANGE'|'FEE_DEDUCTION'}>['payload']`; `player: any` → `Player`; `updateData: any` → `Partial<Player>`. `CardEffectHandler` (3): CARD_DRAW/DISCARD payload extracts; `cardData` → `Card | undefined`; added `count ?? 1` fallback. `buttonFormatting.ts` (4+1): new exported `DiceFeedbackEffect` interface, `colors: any` → `typeof colors`, `diceOutcome` → `DiceOutcome | null | undefined`; `?? 0`/`?? ''` fallbacks now render `"Got 0 s"` instead of old buggy `"got undefined undefineds"`. `NotificationUtils.ts` (2): `effects: any[]` → `DiceFeedbackEffect[]`. 3 player-panel section components: `effect: any` → `SpaceEffect`. One test assertion updated for the behavior improvement. `npm run typecheck` 0 errors; 23/23 test batches green. **Buckets C/D/E (~81 sites) remain.** (Apr 18, 2026)
 - ✅ Tier 3 dead negotiation-effect pathway removed — `EffectEngineService.setNegotiationService` + its private field, the `INITIATE_NEGOTIATION` and `NEGOTIATION_RESPONSE` effect cases, the `createNegotiationEffect` and `createNegotiationResponseEffect` helpers, the two effect discriminants in `EffectTypes.ts`, and their type guards — all deleted. Production negotiation goes UI → `NegotiationService.initiateNegotiation()` directly (`NegotiationModal.tsx:92`, `TurnService.ts:1576`); the effect-engine pathway had no callers outside tests. Also removed the 350-line `Multi-Player Interactive Effects` describe block in `EffectEngineService.test.ts` that was the sole exerciser. `npm run typecheck` 0 errors; 23/23 test batches green. (Apr 18, 2026)
 - ✅ Tier 3 false-cycle setter injection killed — Migrated 7 false-cycle setters to constructor injection: `cardService.setChoiceService`, `effectEngineService.setDataService/setNotificationService/setFinancialEffectHandler/setCardEffectHandler`, `FinancialEffectHandler.setDataService/setNotificationService`, `CardEffectHandler.setDataService/setNotificationService`. Optional constructor params so downstream test files only needed surgical rewires. Kept the 2 real cycles (StateService↔GameRulesService, TurnService↔EffectEngineService↔CardService) as documented setter injection. Rewired `ServiceProvider.tsx`, `tests/ghost/bootstrapServices.ts`, and 7 E2E/integration test files. `npm run typecheck` 0 errors; 23/23 test batches green. (Apr 17, 2026)
 - ✅ Tier 2 deficiency cleanup — Cleared all 30 pre-existing TypeScript errors across 8 files. Root causes were mostly stale open-bag types (`LogPayload`/`EffectContext.metadata` both `Record<string, unknown>`), framer-motion type drift in `ModalBase`, a stale `NegotiationState.playerSnapshots` shape still expecting the pre-v2 `availableCards` structure, dead props passed to `PlayerPanelWrapper`, `toSpace: null` where the event type wanted `string | undefined`, and a `string | null` narrowing gap in `TurnService.endTurn`. `npm run typecheck` now returns 0 errors; 23/23 test batches green. (Apr 17, 2026)
@@ -149,7 +150,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Service decomposition — deferred pending concrete pain signal.** TurnService (2,076 lines), StateService (1,867), CardService (1,824), EffectEngineService (1,477), MovementService (1,078), PlayerSetup.tsx (1,126), GameLayout.tsx (1,022) are all large but stable. Do not split on size alone. Split only when (a) a specific method becomes painful to edit, (b) a bug hot-spot clusters in a specific region per `git blame`, or (c) AI context cost on a specific workflow becomes a documented problem.
 
 ### Tier 4 — Type safety pass
-- [ ] **Eliminate 109 `any` usages** — CODE_STYLE.md forbids `any`. Batched by service: CardService (13) + EffectEngineService (13) + FinancialEffectHandler first, then the rest.
+- [x] **Bucket B — effect/payload shape narrowing (28 sites)** — shipped in v2.48.2 (Apr 18, 2026). EffectEngineService (9), FinancialEffectHandler (7), CardEffectHandler (3), buttonFormatting (4), NotificationUtils (2), 3 player-panel sections. Discriminated-union `Extract<Effect, {effectType:...}>['payload']` pattern established. See CHANGELOG.
+- [ ] **Buckets C/D/E — remaining ~81 `any` usages.** CardService internals (~13), CardFactory/EffectFactory, test mocks that use `as any` to satisfy partial interfaces, misc utility casts. Audit before batching — some may be intentional (e.g., third-party data shapes) and should stay. Apply same narrowing pattern (discriminated-union extracts, domain types) where the type is recoverable.
 
 ### Tier 5 — Remaining Beta workstreams
 - [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`).

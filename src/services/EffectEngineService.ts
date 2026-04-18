@@ -16,11 +16,12 @@ import {
   IFinancialEffectHandler,
   ICardEffectHandler
 } from '../types/ServiceContracts';
+import { Card } from '../types/DataTypes';
 import { debugWarn } from '../utils/debugLog';
-import { 
-  Effect, 
-  EffectContext, 
-  EffectResult, 
+import {
+  Effect,
+  EffectContext,
+  EffectResult,
   BatchEffectResult,
   isResourceChangeEffect,
   isCardDrawEffect,
@@ -59,13 +60,13 @@ export interface IEffectEngineService {
   processEffect(effect: Effect, context: EffectContext): Promise<EffectResult>;
   
   // Comprehensive card effect processing (targeting + duration)
-  processCardEffects(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult>;
-  
+  processCardEffects(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult>;
+
   // Multi-player targeting methods
   processEffectsWithTargeting(effects: Effect[], context: EffectContext, targetRule?: string): Promise<BatchEffectResult>;
-  
+
   // Duration-based effect methods
-  processEffectsWithDuration(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult>;
+  processEffectsWithDuration(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult>;
   applyActiveEffects(playerId: string): Promise<void>;
   addActiveEffect(playerId: string, effect: Effect, sourceCardId: string, duration: number): void;
   processActiveEffectsForAllPlayers(): Promise<void>;
@@ -290,7 +291,7 @@ export class EffectEngineService implements IEffectEngineService {
         case 'OWNER_SEED_MONEY':
           // Calculate owner seed money as 80-120% of project scope
           {
-            const { payload } = effect as any;
+            const { payload } = effect;
             const source = payload.source || context.source;
             const reason = payload.reason || "Owner's personal seed money investment";
 
@@ -704,14 +705,16 @@ export class EffectEngineService implements IEffectEngineService {
           }
           return this.financialEffectHandler.handleFeeDeduction(effect, context);
 
-        default:
+        default: {
           // TypeScript exhaustiveness check - this should never be reached
           const _exhaustiveCheck: never = effect;
+          const unknownEffect = effect as { effectType: string };
           return {
             success: false,
-            effectType: (effect as any).effectType,
-            error: `Unknown effect type: ${(effect as any).effectType}`
+            effectType: unknownEffect.effectType as Effect['effectType'],
+            error: `Unknown effect type: ${unknownEffect.effectType}`
           };
+        }
       }
 
       return {
@@ -873,9 +876,10 @@ export class EffectEngineService implements IEffectEngineService {
     
     // Get all players from StateService
     const allPlayers = this.stateService.getAllPlayers();
-    const currentPlayerId = context.playerId || 
-      (payload.templateEffect.effectType === 'RESOURCE_CHANGE' ? 
-        (payload.templateEffect as any).payload?.playerId : null);
+    const currentPlayerId = context.playerId ||
+      (isResourceChangeEffect(payload.templateEffect)
+        ? payload.templateEffect.payload.playerId
+        : null);
     
     if (!currentPlayerId) {
       console.error('Cannot determine current player for targeted effect');
@@ -985,7 +989,7 @@ export class EffectEngineService implements IEffectEngineService {
     
     // Update playerId in the payload if it exists
     if ('payload' in clonedEffect && typeof clonedEffect.payload === 'object' && clonedEffect.payload !== null) {
-      const payload = clonedEffect.payload as any;
+      const payload = clonedEffect.payload as Record<string, unknown>;
       if ('playerId' in payload) {
         payload.playerId = newPlayerId;
       }
@@ -1069,15 +1073,15 @@ export class EffectEngineService implements IEffectEngineService {
   /**
    * Process effects considering both duration and targeting - comprehensive effect processing
    */
-  async processCardEffects(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult> {
+  async processCardEffects(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult> {
     // Ensure core setter-injected dependencies are ready
     this.assertCoreDependenciesReady();
 
-    
+
     const cardId = cardData?.card_id || 'unknown';
     const targetRule = cardData?.target || 'Self';
-    const hasDuration = cardData && cardData.duration === 'Turns' && cardData.duration_count && parseInt(cardData.duration_count) > 0;
-    const duration = hasDuration ? parseInt(cardData.duration_count) : 0;
+    const hasDuration = !!(cardData && cardData.duration === 'Turns' && cardData.duration_count && parseInt(cardData.duration_count) > 0);
+    const duration = hasDuration && cardData?.duration_count ? parseInt(cardData.duration_count) : 0;
 
 
     // First resolve targeting
@@ -1136,17 +1140,17 @@ export class EffectEngineService implements IEffectEngineService {
   /**
    * Process effects considering duration - if card has duration, store effects as active rather than applying immediately
    */
-  async processEffectsWithDuration(effects: Effect[], context: EffectContext, cardData?: any): Promise<BatchEffectResult> {
+  async processEffectsWithDuration(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult> {
 
     // Check if this card should have duration-based effects
-    const shouldUseDuration = cardData && 
-      cardData.duration === 'Turns' && 
-      cardData.duration_count && 
-      parseInt(cardData.duration_count) > 0;
+    const shouldUseDuration = !!(cardData &&
+      cardData.duration === 'Turns' &&
+      cardData.duration_count &&
+      parseInt(cardData.duration_count) > 0);
 
-    if (shouldUseDuration) {
+    if (shouldUseDuration && cardData?.duration_count) {
       const duration = parseInt(cardData.duration_count);
-      
+
       // Store effects as active rather than applying immediately
       for (const effect of effects) {
         if (context.playerId) {
@@ -1283,7 +1287,7 @@ export class EffectEngineService implements IEffectEngineService {
     requesterPlayerId: string,
     targetPlayerIds: string[],
     agreementType: 'CARD_TRANSFER' | 'RESOURCE_SHARE' | 'JOINT_ACTION' | 'PROTECTION_DEAL',
-    agreementData: any,
+    agreementData: Record<string, unknown>,
     prompt: string,
     source?: string
   ): Effect {

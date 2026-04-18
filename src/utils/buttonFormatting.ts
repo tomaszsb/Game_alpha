@@ -1,10 +1,27 @@
 // src/utils/buttonFormatting.ts
 
 import React from 'react';
-import { SpaceEffect, DiceEffect } from '../types/DataTypes';
+import { SpaceEffect, DiceEffect, DiceOutcome } from '../types/DataTypes';
 import { getTooltipService, ActionTooltip } from '../services/TooltipService';
 import { FormatUtils } from './FormatUtils';
 import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';
+import { colors } from '../styles/theme';
+
+/**
+ * Shape of effect entries produced by TurnService/DiceRollProcessor for
+ * user-facing feedback summaries. This is a UI-display shape, distinct from
+ * the EffectEngine `Effect` discriminated union.
+ */
+export interface DiceFeedbackEffect {
+  type: 'cards' | 'money' | 'time' | 'movement' | string;
+  cardCount?: number;
+  cardType?: string;
+  value?: number;
+  destination?: string;
+  description?: string;
+}
+
+type ThemeColors = typeof colors;
 
 export interface ButtonInfo {
   text: string;
@@ -27,7 +44,7 @@ export interface ButtonStyleInfo {
  */
 export function getManualEffectButtonStyle(
   isDisabled: boolean,
-  colors: any
+  colors: ThemeColors
 ): React.CSSProperties {
   return {
     padding: '4px 8px',
@@ -142,7 +159,7 @@ export function formatDiceRollButton(
   visitType: 'First' | 'Subsequent',
   diceEffects: DiceEffect[],
   spaceEffects: SpaceEffect[],
-  diceOutcome: any
+  diceOutcome: DiceOutcome | null | undefined
 ): string {
   // If there are dice effects, show what the dice roll will affect
   if (diceEffects.length > 0) {
@@ -229,15 +246,18 @@ function getCardTypeName(cardType: string): string {
 /**
  * Create standardized dice roll feedback message with outcomes
  */
-export function formatDiceRollFeedback(diceValue: number, effects: any[]): string {
+export function formatDiceRollFeedback(diceValue: number, effects: DiceFeedbackEffect[]): string {
   let unifiedDescription = DICE_FEEDBACK.prefix(diceValue);
   const outcomes: string[] = [];
 
   effects?.forEach(effect => {
     switch (effect.type) {
-      case 'cards':
-        outcomes.push(DICE_FEEDBACK.got(effect.cardCount, getCardTypeName(effect.cardType), effect.cardCount !== 1 ? 's' : ''));
+      case 'cards': {
+        const cardCount = effect.cardCount ?? 0;
+        const cardType = effect.cardType ?? '';
+        outcomes.push(DICE_FEEDBACK.got(cardCount, getCardTypeName(cardType), cardCount !== 1 ? 's' : ''));
         break;
+      }
       case 'money':
         if (effect.value !== undefined) {
           const moneyOutcome = effect.value > 0
@@ -280,14 +300,17 @@ export function formatDiceRollFeedback(diceValue: number, effects: any[]): strin
 /**
  * Create standardized action feedback message for non-dice actions (like automatic funding)
  */
-export function formatActionFeedback(effects: any[]): string {
+export function formatActionFeedback(effects: DiceFeedbackEffect[]): string {
   const outcomes: string[] = [];
 
   effects?.forEach(effect => {
     switch (effect.type) {
-      case 'cards':
-        outcomes.push(DICE_FEEDBACK.got(effect.cardCount, getCardTypeName(effect.cardType), effect.cardCount !== 1 ? 's' : ''));
+      case 'cards': {
+        const cardCount = effect.cardCount ?? 0;
+        const cardType = effect.cardType ?? '';
+        outcomes.push(DICE_FEEDBACK.got(cardCount, getCardTypeName(cardType), cardCount !== 1 ? 's' : ''));
         break;
+      }
       case 'money':
         if (effect.value !== undefined) {
           const moneyOutcome = effect.value > 0

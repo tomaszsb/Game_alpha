@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.2] - 2026-04-18
+
+### Tier 4 Bucket B — Effect/payload `any` narrowing
+
+First slice of the Tier 4 type-safety pass. The April 2026 audit flagged 109 `any` usages in `src/`; this pass narrowed the 28-site "effect/payload shape" cluster (Bucket B) where handlers and formatters received typed effect data but threw it into `any` at the boundary.
+
+**`src/services/EffectEngineService.ts`** (9 sites) — `cardData?: any` → `cardData?: Card` in `IEffectContext` and the two internal context builders. The default-branch fallthrough `(effect as any).effectType` became `(effect as { effectType: string }).effectType as Effect['effectType']`. The `CARD_ACTIVATION` replay path now uses the `isResourceChangeEffect` type guard before reading `payload.templateEffect.payload.playerId` instead of an `as any` peek. `clonedEffect.payload as any` → `Record<string, unknown>`. Agreement-data method signature tightened from `any` to `Record<string, unknown>`.
+
+**`src/services/FinancialEffectHandler.ts`** (7 sites) — All `payload: any` parameters replaced with discriminated-union extracts: `type ResourceChangePayload = Extract<Effect, { effectType: 'RESOURCE_CHANGE' }>['payload']` and the same for `FEE_DEDUCTION`. Applied to `processMoneyChange`, `trackDesignExpenditure`, `checkDesignFeeCap`, `notifyFeeDeducted`, `calculateFeeAmount`, `applyFeeDeduction`. Local `updateData: any = {}` → `Partial<Player>`. `player: any` → `Player`.
+
+**`src/services/CardEffectHandler.ts`** (3 sites) — Same pattern: `CardDrawPayload` and `CardDiscardPayload` extracted from the `Effect` union. `checkFundingAutoPlay`, `presentCardChoice` now take the proper payload type. `extractFundingAmount(cardData: any)` → `Card | undefined`. Added `const count = payload.count ?? 1;` fallback since `CARD_DISCARD.payload.count` is optional in the union.
+
+**`src/utils/buttonFormatting.ts`** (4 sites + new type) — Introduced a local `DiceFeedbackEffect` interface (exported) with `type`, `cardCount?`, `cardType?`, `value?`, `destination?`, `description?` — the shape that dice-outcome/effect formatters actually consume. `colors: any` → `type ThemeColors = typeof colors;`. `diceOutcome: any` → `DiceOutcome | null | undefined`. Two `effects: any[]` formatters now take `DiceFeedbackEffect[]`. Switch branches use `cardCount ?? 0` / `cardType ?? ''` fallbacks so undefined fields render as `"Got 0 s"` instead of the old `"Got undefined undefineds"`.
+
+**`src/utils/NotificationUtils.ts`** (2 sites) — `effects: any[]` in `createDiceRollNotification` and `createCardPlayNotification` → `DiceFeedbackEffect[]` (imported from `buttonFormatting`). Switch branches adopt the same `?? 0` / `?? ''` fallback pattern.
+
+**`src/components/player/sections/FinancesSection.tsx`, `ProjectScopeSection.tsx`, `TimeSection.tsx`** — Small button-label helpers took `effect: any`. Narrowed to `SpaceEffect` (`ProjectScopeSection` retains a defensive `& { card_type?: string }` intersection since that branch reads a field that's not on the canonical type).
+
+**One test updated** — `tests/utils/buttonFormatting.test.ts` had an assertion locking in the old buggy literal `"got undefined undefineds"` output. Updated to the new `"Got 0 s"` output (behavior improvement from the `??` fallbacks, not a regression).
+
+**Verification:** `npm run typecheck` 0 errors; 23/23 test batches green.
+
+**Remaining Tier 4 work:** Buckets C/D/E (~81 sites) — CardService internals, test mocks, type-assertion `as any` casts in migration/utility code. Scheduled as separate passes.
+
+---
+
 ## [2.48.1] - 2026-04-18
 
 ### Tier 3 — Dead negotiation-effect pathway removed

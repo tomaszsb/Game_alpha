@@ -18,6 +18,10 @@ import {
   isCardActivationEffect,
   isPlayCardEffect
 } from '../types/EffectTypes';
+import { Card } from '../types/DataTypes';
+
+type CardDrawPayload = Extract<Effect, { effectType: 'CARD_DRAW' }>['payload'];
+type CardDiscardPayload = Extract<Effect, { effectType: 'CARD_DISCARD' }>['payload'];
 
 /**
  * CardEffectHandler - Handles card-related effects
@@ -310,7 +314,7 @@ export class CardEffectHandler implements ICardEffectHandler {
     });
   }
 
-  private checkFundingAutoPlay(payload: any, drawnCards: string[], context: EffectContext): EffectResult | null {
+  private checkFundingAutoPlay(payload: CardDrawPayload, drawnCards: string[], context: EffectContext): EffectResult | null {
     const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
     const currentSpaceName = (context.metadata?.spaceName as string | undefined) ?? '';
     const isFundingSpace = fundingSpaces.includes(currentSpaceName);
@@ -372,7 +376,7 @@ export class CardEffectHandler implements ICardEffectHandler {
     };
   }
 
-  private extractFundingAmount(cardData: any, cardType: string): number {
+  private extractFundingAmount(cardData: Card | undefined, cardType: string): number {
     if (!cardData) return 0;
 
     if (cardType === 'B' && cardData.loan_amount) {
@@ -389,7 +393,7 @@ export class CardEffectHandler implements ICardEffectHandler {
   }
 
   private async presentCardChoice(
-    payload: any,
+    payload: CardDiscardPayload,
     allCardsOfType: string[],
     isDiceRollReplace: boolean
   ): Promise<{ cardIds: string[]; skipped?: boolean; error?: string }> {
@@ -404,7 +408,8 @@ export class CardEffectHandler implements ICardEffectHandler {
       });
 
       const actionVerb = isDiceRollReplace ? 'replace' : 'remove';
-      const prompt = `Choose ${payload.count} ${payload.cardType} card${payload.count > 1 ? 's' : ''} to ${actionVerb}:`;
+      const count = payload.count ?? 1;
+      const prompt = `Choose ${count} ${payload.cardType} card${count > 1 ? 's' : ''} to ${actionVerb}:`;
 
       const selectedCardId = await this.choiceService.createChoice(
         payload.playerId,

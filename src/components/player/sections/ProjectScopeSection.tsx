@@ -3,6 +3,7 @@ import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { FormatUtils } from '../../../utils/FormatUtils';
+import { SpaceEffect } from '../../../types/DataTypes';
 import './ProjectScopeSection.css';
 
 /**
@@ -205,7 +206,7 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
   };
 
   // Helper to format button label from manual effect
-  const getManualEffectButtonLabel = (effect: any): string => {
+  const getManualEffectButtonLabel = (effect: SpaceEffect & { card_type?: string }): string => {
     if (effect.description) return effect.description;
     if (effect.card_type === 'W') return 'Add Work Package';
     if (effect.effect_type === 'cards') return 'Add Work Package';

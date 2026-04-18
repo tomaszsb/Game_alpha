@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: April 18, 2026
-**Current Phase**: Beta — Regression gates in place (v2.48.1)
-**Current Version**: 2.48.1
+**Current Phase**: Beta — Regression gates in place (v2.48.2)
+**Current Version**: 2.48.2
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Tier 4 — Bucket B effect/payload `any` narrowing (April 18, 2026) ✅
+- **Status**: ✅ Complete (first slice of Tier 4)
+- **Version**: 2.48.2
+- **Context**: The April 2026 audit flagged 109 `any` usages in `src/`, violating the CODE_STYLE.md prohibition. Rather than a mass sweep, we batched by topic. Bucket B is the 28-site "effect/payload shape" cluster — places where handlers and formatters received typed effect data but threw it into `any` at the boundary.
+- **Pattern established**: Discriminated-union payload extracts via `type X = Extract<Effect, { effectType: 'Y' }>['payload']`. Domain types (`Card`, `Player`, `SpaceEffect`) at function boundaries. Local interfaces (new `DiceFeedbackEffect`) for formatter inputs. `typeof` for theme color shape. `Partial<Player>` for update data. `?? 0` / `?? ''` fallbacks for optional fields (fixing the dice formatter's long-standing `"got undefined undefineds"` output as a side benefit).
+- **Files touched**: `EffectEngineService.ts` (9 sites), `FinancialEffectHandler.ts` (7), `CardEffectHandler.ts` (3), `buttonFormatting.ts` (4 + new `DiceFeedbackEffect` interface), `NotificationUtils.ts` (2), `FinancesSection.tsx`, `ProjectScopeSection.tsx`, `TimeSection.tsx` (1 each).
+- **Tests**: One assertion in `tests/utils/buttonFormatting.test.ts` updated for the behavior improvement (`"Got 0 s"` instead of `"got undefined undefineds"`).
+- **Verification**: `npm run typecheck` → 0 errors. `./tests/scripts/run-tests-batch-fixed.sh` → 23/23 batches green.
+- **Remaining**: Buckets C/D/E (~81 sites) — CardService internals, CardFactory/EffectFactory, test mocks, utility casts. Audit before batching; some may be intentional.
 
 ### Tier 3 — Dead negotiation-effect pathway removed (April 18, 2026) ✅
 - **Status**: ✅ Complete

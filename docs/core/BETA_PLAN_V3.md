@@ -95,16 +95,16 @@ The Alpha is 95% working. Thousands of fixes, edge cases, and school-floor lesso
 **Revised problem:** The DI container mixes three different patterns — constructor injection (good), setter injection to resolve genuine circular dependencies (acceptable, needs to be documented as intentional), and setter injection where constructor injection would have worked fine (bad, just ceremony). The April 2026 setter-injection audit found 13 sites: 2 are genuine architectural cycles, 2 are downstream symptoms of one of those, 1 is possibly dead code, and 7–8 are false cycles that can be collapsed to constructor injection.
 
 **Deliverable:**
-1. Kill the false-cycle setter-injection sites — move dependencies into constructors. Target: setter count drops from 13 → ~5.
-2. Document the two real cycles (`State ↔ GameRules`, `Turn ↔ EffectEngine ↔ Card`) as intentional architectural decisions in `ARCHITECTURE.md`, with the reason each exists and the assertion guard that catches mis-initialization.
-3. Investigate `EffectEngineService.setNegotiationService` — appears to never be called; if dead, remove it.
-4. Only split a large service if a specific, concrete pain point is identified (a method that's genuinely too big, a team/AI context limit that keeps being hit, a recurring bug hot-spot per `git blame`). Do not split to hit a line target.
+1. ✅ Kill the false-cycle setter-injection sites — move dependencies into constructors. Target: setter count drops from 13 → ~5. *(Shipped v2.48.0, Apr 17, 2026.)*
+2. ✅ Document the two real cycles (`State ↔ GameRules`, `Turn ↔ EffectEngine ↔ Card`) as intentional architectural decisions in `ARCHITECTURE.md`, with the reason each exists and the assertion guard that catches mis-initialization. *(Shipped with the doc pivot, Apr 17, 2026.)*
+3. ✅ Investigate `EffectEngineService.setNegotiationService` — confirmed dead code. Entire effect-engine negotiation pathway removed (setter + field + 2 effect cases + 2 create helpers + 2 union discriminants + 2 type guards + 350-line test block). Production negotiation goes UI → `NegotiationService` directly. *(Shipped v2.48.1, Apr 18, 2026.)*
+4. Only split a large service if a specific, concrete pain point is identified (a method that's genuinely too big, a team/AI context limit that keeps being hit, a recurring bug hot-spot per `git blame`). Do not split to hit a line target. *(Ongoing principle — no action unless a specific signal triggers it.)*
 
 **Non-goals (explicit):**
 - "No service file exceeds 600 lines." Dropped. Files are sized by what belongs together, not by a character budget.
 - "No setter injection anywhere." Dropped. Setter injection is the accepted resolution for genuine cycles; the goal is eliminating *unnecessary* setter injection.
 
-**Version bump on ship:** v2.48.x (internal, no user-visible change).
+**Status: ✅ Complete** (shipped v2.48.0 + v2.48.1, Apr 17–18, 2026). Any future DI work falls under item 4 and waits for a concrete pain signal.
 
 ---
 

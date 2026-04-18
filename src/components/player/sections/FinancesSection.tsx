@@ -5,6 +5,7 @@ import { IServiceContainer } from '../../../types/ServiceContracts';
 import { CardDisplay } from '../../common/CardDisplay';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import { FormatUtils } from '../../../utils/FormatUtils';
+import { SpaceEffect } from '../../../types/DataTypes';
 import './FinancesSection.css';
 import { debugLog } from '../../../utils/debugLog';
 
@@ -354,7 +355,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   ].filter(source => source.processed); // Only show sources with money
 
   // Helper to format button label from effect
-  const getButtonLabel = (effect: any): string => {
+  const getButtonLabel = (effect: SpaceEffect): string => {
     // For funding card effects at OWNER-FUND-INITIATION - override description
     if (effect.effect_type === 'cards' && (effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i')) {
       return 'Accept Owner Funding';

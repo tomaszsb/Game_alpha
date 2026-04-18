@@ -3,19 +3,24 @@
 import { NotificationContent } from '../services/NotificationService';
 import { FormatUtils } from './FormatUtils';
 import { NOTIF } from '../constants/uiStrings';
+import { DiceFeedbackEffect } from './buttonFormatting';
 
 export class NotificationUtils {
 
   // Dice Roll Notifications
-  static createDiceRollNotification(diceValue: number, effects: any[], playerName: string): NotificationContent {
+  static createDiceRollNotification(diceValue: number, effects: DiceFeedbackEffect[], playerName: string): NotificationContent {
     const effectSummary = effects.map(effect => {
       switch (effect.type) {
         case 'cards':
           return `${effect.cardCount} ${effect.cardType}`;
-        case 'money':
-          return effect.value > 0 ? `+$${Math.abs(effect.value)}` : `-$${Math.abs(effect.value)}`;
-        case 'time':
-          return effect.value > 0 ? `+${effect.value}d` : `-${effect.value}d`;
+        case 'money': {
+          const v = effect.value ?? 0;
+          return v > 0 ? `+$${Math.abs(v)}` : `-$${Math.abs(v)}`;
+        }
+        case 'time': {
+          const v = effect.value ?? 0;
+          return v > 0 ? `+${v}d` : `-${v}d`;
+        }
         default:
           return effect.type;
       }
@@ -69,15 +74,21 @@ export class NotificationUtils {
   }
 
   // Card Play Notifications
-  static createCardPlayNotification(cardName: string, effects: any[], playerName: string): NotificationContent {
+  static createCardPlayNotification(cardName: string, effects: DiceFeedbackEffect[], playerName: string): NotificationContent {
     const effectSummary = effects.map(effect => {
       switch (effect.type) {
-        case 'money':
-          return effect.value > 0 ? `+${FormatUtils.formatMoney(Math.abs(effect.value))}` : `-${FormatUtils.formatMoney(Math.abs(effect.value))}`;
+        case 'money': {
+          const v = effect.value ?? 0;
+          return v > 0
+            ? `+${FormatUtils.formatMoney(Math.abs(v))}`
+            : `-${FormatUtils.formatMoney(Math.abs(v))}`;
+        }
         case 'cards':
           return `+${effect.cardCount} ${effect.cardType}`;
-        case 'time':
-          return effect.value > 0 ? `+${effect.value} days` : `-${effect.value} days`;
+        case 'time': {
+          const v = effect.value ?? 0;
+          return v > 0 ? `+${v} days` : `-${v} days`;
+        }
         default:
           return effect.description || effect.type;
       }

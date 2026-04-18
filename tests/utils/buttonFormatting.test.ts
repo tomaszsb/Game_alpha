@@ -513,8 +513,8 @@ describe('buttonFormatting', () => {
       ];
 
       const result = formatDiceRollFeedback(4, effects);
-      // The function processes the cards effect with undefined values
-      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.got(undefined as any, undefined as any, 's')}`);
+      // Missing cardCount/cardType fall back to 0/'' (safer than literal "undefined")
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.got(0, '', 's')}`);
     });
 
     it('should handle all card types correctly', () => {

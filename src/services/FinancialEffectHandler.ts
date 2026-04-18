@@ -15,8 +15,12 @@ import {
   isResourceChangeEffect,
   isFeeDeductionEffect
 } from '../types/EffectTypes';
+import { Player } from '../types/DataTypes';
 import { extractPercentage, parseFeeFromDescription } from '../utils/parseUtils';
 import { debugLog, debugWarn } from '../utils/debugLog';
+
+type ResourceChangePayload = Extract<Effect, { effectType: 'RESOURCE_CHANGE' }>['payload'];
+type FeeDeductionPayload = Extract<Effect, { effectType: 'FEE_DEDUCTION' }>['payload'];
 
 /**
  * FinancialEffectHandler - Handles RESOURCE_CHANGE and FEE_DEDUCTION effects
@@ -188,7 +192,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     source: string,
     reason: string,
     sourceType: string,
-    payload: any
+    payload: ResourceChangePayload
   ): boolean {
     let success = false;
 
@@ -223,12 +227,12 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     return true;
   }
 
-  private trackDesignExpenditure(playerId: string, player: any, actualAmount: number, payload: any): void {
+  private trackDesignExpenditure(playerId: string, player: Player, actualAmount: number, payload: ResourceChangePayload): void {
     const feeAmount = Math.abs(actualAmount);
     const gameState = this.stateService.getGameState();
     const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
 
-    const updateData: any = {};
+    const updateData: Partial<Player> = {};
 
     if (player.expenditures) {
       updateData.expenditures = {
@@ -261,7 +265,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     this.checkDesignFeeCap(playerId, payload);
   }
 
-  private checkDesignFeeCap(playerId: string, payload: any): void {
+  private checkDesignFeeCap(playerId: string, payload: ResourceChangePayload): void {
     const updatedPlayer = this.stateService.getPlayer(playerId);
     if (!updatedPlayer) return;
 
@@ -343,7 +347,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     );
   }
 
-  private notifyFeeDeducted(playerId: string, amount: number, payload: any): void {
+  private notifyFeeDeducted(playerId: string, amount: number, payload: ResourceChangePayload): void {
     if (!this.notificationService || payload.percentageOfScope === undefined) return;
 
     const player = this.stateService.getPlayer(playerId);
@@ -431,7 +435,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
   }
 
-  private calculateFeeAmount(payload: any, totalLoanAmount: number, context: EffectContext): number | null {
+  private calculateFeeAmount(payload: FeeDeductionPayload, totalLoanAmount: number, context: EffectContext): number | null {
     let feeAmount = 0;
 
     if (payload.feeType === 'LOAN_PERCENTAGE' && totalLoanAmount > 0) {
@@ -468,7 +472,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     return feeAmount;
   }
 
-  private applyFeeDeduction(payload: any, player: any, feeAmount: number, totalLoanAmount: number, context: EffectContext): EffectResult {
+  private applyFeeDeduction(payload: FeeDeductionPayload, player: Player, feeAmount: number, totalLoanAmount: number, context: EffectContext): EffectResult {
     // Check if player can afford the fee
     const canAfford = this.resourceService.canAfford(payload.playerId, feeAmount);
 
