@@ -40,6 +40,28 @@ export interface DiceOutcome {
   roll_6?: string;
 }
 
+/**
+ * One question in a logic-tree space's yes/no decision chain.
+ * Loaded from CLEAN_FILES/LOGIC_QUESTIONS.csv and keyed by
+ * (space_name, visit_type, question_id).
+ *
+ * A target (yes_target or no_target) can be:
+ *   - another question_id on the same space (e.g. "Q2") — chain continues
+ *   - a valid space_name (e.g. "PM-DECISION-CHECK") — chain resolves to a move
+ *   - a comma-separated list of space_names (e.g. "PM-DECISION-CHECK,CON-INITIATION")
+ *     — chain ends in a sub-choice modal letting the player pick the destination
+ *
+ * Entry point per (space, visitType) is always the row with question_id === 'Q1'.
+ */
+export interface LogicQuestion {
+  space_name: string;
+  visit_type: 'First' | 'Subsequent';
+  question_id: string;
+  question_text: string;
+  yes_target: string;
+  no_target: string;
+}
+
 export interface DiceRollInfo {
   space_name: string;
   die_roll: string; // e.g., "Next Step", "Time outcomes", "W Cards", etc.

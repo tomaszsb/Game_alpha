@@ -167,9 +167,13 @@ function processMovement(spacesCsv, diceRollCsv) {
     }
 
     // PRIORITY 1: path=LOGIC
+    // Emit movement_type='logic' so the runtime walks LOGIC_QUESTIONS.csv
+    // as a yes/no decision chain. Previously emitted 'choice' which silently
+    // downgraded the feature to a flat destination picker — that regression
+    // (v2.45 era) clobbered REG-FDNY-FEE-REVIEW's 5-question tree on every sync.
     if (pathVal === 'LOGIC') {
       const destinations = extractDestinationsFromLogicConditions(row);
-      movements.push(createMovementRow(spaceName, visitType, 'choice', destinations));
+      movements.push(createMovementRow(spaceName, visitType, 'logic', destinations));
       continue;
     }
 

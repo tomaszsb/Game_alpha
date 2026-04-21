@@ -1,14 +1,23 @@
 # Project Status
 
-**Last Updated**: April 18, 2026
-**Current Phase**: Beta — Regression gates in place (v2.48.4)
-**Current Version**: 2.48.4
+**Last Updated**: April 21, 2026
+**Current Phase**: Beta — Regression gates in place (v2.49.0)
+**Current Version**: 2.49.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Logic-tree movement restored at REG-FDNY-FEE-REVIEW (April 21, 2026) ✅
+- **Status**: ✅ Complete
+- **Version**: 2.49.0
+- **Context**: The v2.45-era pipeline rewrite silently emitted `movement_type='choice'` for `path=LOGIC` rows in `Spaces.csv`, downgrading REG-FDNY-FEE-REVIEW's 5-question yes/no decision chain to a flat destination picker. The feature had no test coverage, so every data-sync quietly reintroduced the regression. The fix already existed in the archived `code2027/` branch but never made it back.
+- **Fix**: `processGameData.js processMovement()` now routes `path=LOGIC` as PRIORITY 1 with `movement_type='logic'`. New hand-authored `public/data/CLEAN_FILES/LOGIC_QUESTIONS.csv` drives the walker — 10 rows covering First + Subsequent visits at REG-FDNY-FEE-REVIEW. `DataService` loads it with graceful empty-fallback; `MovementService.handleLogicMovement` fires an async `walkLogicChain` that asks yes/no questions through `ChoiceService` (new `LOGIC_QUESTION` choice type) and resolves answers into `setPlayerMoveIntent` or a MOVEMENT sub-choice. `ChoiceModal` renders "Question N of M" progress from choice metadata — no new modal needed.
+- **Regression catcher**: Two test layers. `tests/server/processGameData.test.ts` has 7 new tests including a real-data check that `REG-FDNY-FEE-REVIEW/First + Subsequent` emit `'logic'` and an integrity check that every `logic` row in `MOVEMENT.csv` has matching rows in `LOGIC_QUESTIONS.csv`. `tests/services/MovementService.test.ts` has 7 new walker unit tests covering all three target grammars (Q-id recurse, single space, comma-split sub-choice) plus the missing-chain and missing-Q-id fallback paths.
+- **Verification**: `npm run typecheck` → 0 errors. `tests/server/processGameData.test.ts` 14/14 green. `tests/services/MovementService.test.ts` 47/47 green.
+- **Backlog**: v2.50.0 will refactor Story → per-action narratives (accordion landing modal + italic lead-in in per-action modals) — design locked, implementation deferred to keep this release focused.
 
 ### Tier 4 — Bucket D service-surface `any` narrowing (April 18, 2026) ✅
 - **Status**: ✅ Complete (third Tier 4 slice)

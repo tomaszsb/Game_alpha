@@ -1188,4 +1188,162 @@ describe('MovementService', () => {
       });
     });
   });
+
+  // Walker unit tests for LOGIC movement — covers the three target grammars
+  // (Q-id recurse, comma-split sub-choice, single-space terminal) plus the
+  // two fallbacks (missing chain auto-selects, missing Q-id short-circuits).
+  // These lock in the contract so a future data-layer refactor can't silently
+  // re-break the REG-FDNY-FEE-REVIEW chain without a test turning red.
+  describe('handleLogicMovement — walker', () => {
+    // Helpers to build a chain like REG-FDNY-FEE-REVIEW in miniature.
+    const q = (id: string, yes: string, no: string, text = `${id}?`) => ({
+      space_name: 'LOGIC-SPACE',
+      visit_type: 'First' as const,
+      question_id: id,
+      question_text: text,
+      yes_target: yes,
+      no_target: no,
+    });
+
+    beforeEach(() => {
+      mockPlayer.currentSpace = 'LOGIC-SPACE';
+      mockStateService.getPlayer.mockReturnValue(mockPlayer);
+      mockStateService.getGameState.mockReturnValue(mockGameState);
+    });
+
+    it('returns choiceCreated and asks Q1 via createChoice', () => {
+      const q1 = q('Q1', 'DEST-A', 'DEST-B');
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      // Hang the first createChoice — we only care that it was invoked with
+      // the correct question and metadata; we don't need to drive answers.
+      mockChoiceService.createChoice.mockReturnValue(new Promise(() => {}));
+
+      const result = movementService.handleLogicMovement('player1');
+
+      expect(result.choiceCreated).toBe(true);
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
+      const [pid, type, prompt, options, metadata] = mockChoiceService.createChoice.mock.calls[0];
+      expect(pid).toBe('player1');
+      expect(type).toBe('LOGIC_QUESTION');
+      expect(prompt).toBe('Q1?');
+      expect(options).toEqual([
+        { id: 'yes', label: 'Yes' },
+        { id: 'no', label: 'No' },
+      ]);
+      expect(metadata).toMatchObject({
+        logicSpaceName: 'LOGIC-SPACE',
+        logicVisitType: 'First',
+        logicQuestionId: 'Q1',
+        logicStepIndex: 1,
+        logicStepTotal: 1,
+      });
+    });
+
+    it('falls back to first valid move when no chain is authored', () => {
+      mockDataService.getLogicQuestionEntry.mockReturnValue(undefined);
+      mockDataService.getMovement.mockReturnValue({
+        space_name: 'LOGIC-SPACE',
+        visit_type: 'First',
+        movement_type: 'logic',
+        destination_1: 'DEST-FALLBACK',
+        destination_2: '',
+        destination_3: '',
+        destination_4: '',
+        destination_5: '',
+      } as Movement);
+
+      const result = movementService.handleLogicMovement('player1');
+
+      expect(result.choiceCreated).toBe(false);
+      expect(result.autoSelected).toBe('DEST-FALLBACK');
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-FALLBACK');
+      expect(mockChoiceService.createChoice).not.toHaveBeenCalled();
+    });
+
+    it('returns choiceCreated:false when no chain AND no valid moves', () => {
+      mockDataService.getLogicQuestionEntry.mockReturnValue(undefined);
+      mockDataService.getMovement.mockReturnValue(undefined);
+
+      const result = movementService.handleLogicMovement('player1');
+
+      expect(result.choiceCreated).toBe(false);
+      expect(result.autoSelected).toBeUndefined();
+      expect(mockStateService.setPlayerMoveIntent).not.toHaveBeenCalled();
+    });
+
+    it('recurses into the next Q-id when yes_target is "Q2"', async () => {
+      const q1 = q('Q1', 'Q2', 'DEST-NO', 'first?');
+      const q2 = q('Q2', 'DEST-YES', 'DEST-NO2', 'second?');
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1, q2]);
+      mockDataService.getLogicQuestion.mockImplementation((_s, _v, id) =>
+        id === 'Q2' ? q2 : undefined
+      );
+      // Answer yes to Q1 (→ Q2), then yes to Q2 (→ DEST-YES terminal).
+      mockChoiceService.createChoice
+        .mockResolvedValueOnce('yes')
+        .mockResolvedValueOnce('yes');
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(2);
+      // The second createChoice call should be for Q2 with stepIndex=2.
+      const secondMeta = mockChoiceService.createChoice.mock.calls[1][4];
+      expect(secondMeta).toMatchObject({ logicQuestionId: 'Q2', logicStepIndex: 2 });
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-YES');
+    });
+
+    it('terminates with setPlayerMoveIntent on a single-space target', async () => {
+      const q1 = q('Q1', 'DEST-A', 'DEST-B');
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockChoiceService.createChoice.mockResolvedValueOnce('no');
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-B');
+      // No sub-choice MOVEMENT modal for a plain single-space target.
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens a MOVEMENT sub-choice when target is comma-separated', async () => {
+      const q1 = q('Q1', 'DEST-X,DEST-Y,DEST-Z', 'DEST-NO');
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockDataService.getSpaceContent.mockReturnValue(undefined);
+      mockChoiceService.createChoice
+        .mockResolvedValueOnce('yes') // answer to Q1
+        .mockResolvedValueOnce('DEST-Y'); // sub-choice selection
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(2);
+      const [, subType, subPrompt, subOptions] = mockChoiceService.createChoice.mock.calls[1];
+      expect(subType).toBe('MOVEMENT');
+      expect(subPrompt).toContain('destination');
+      expect(subOptions.map((o: { id: string }) => o.id)).toEqual(['DEST-X', 'DEST-Y', 'DEST-Z']);
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-Y');
+    });
+
+    it('short-circuits silently when a Q-id target references a missing question', async () => {
+      const q1 = q('Q1', 'Q99', 'DEST-NO');
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockDataService.getLogicQuestion.mockReturnValue(undefined); // Q99 doesn't exist
+      mockChoiceService.createChoice.mockResolvedValueOnce('yes');
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+
+      // No further question asked, no destination committed.
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
+      expect(mockStateService.setPlayerMoveIntent).not.toHaveBeenCalled();
+    });
+  });
 });

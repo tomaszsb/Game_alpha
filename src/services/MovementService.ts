@@ -3,7 +3,7 @@
 import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
-import { Movement, VisitType } from '../types/DataTypes';
+import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
 
 /**
  * Result of creating a movement choice
@@ -929,7 +929,17 @@ export class MovementService implements IMovementService {
   }
 
   /**
-   * Handle logic movement type - auto-selects destination based on game rules
+   * Handle logic movement type — walks a yes/no question chain from
+   * LOGIC_QUESTIONS.csv to determine the destination.
+   *
+   * The chain is fired-and-forgotten here (returns immediately with
+   * choiceCreated:true). walkLogicChain() runs asynchronously, creating one
+   * LOGIC_QUESTION choice at a time via ChoiceService, then resolves the
+   * final destination into moveIntent.
+   *
+   * If no chain is authored for (currentSpace, visitType) — e.g. an older
+   * data file is loaded — we fall back to auto-selecting the first valid
+   * destination so gameplay still progresses.
    */
   public handleLogicMovement(playerId: string): MovementChoiceResult {
     const player = this.stateService.getPlayer(playerId);
@@ -937,48 +947,134 @@ export class MovementService implements IMovementService {
       return { choiceCreated: false, reason: 'Player not found' };
     }
 
-    const validMoves = this.getValidMoves(playerId);
-    if (!validMoves || validMoves.length === 0) {
-      return { choiceCreated: false, reason: 'No valid moves for logic movement' };
+    const entry = this.dataService.getLogicQuestionEntry(player.currentSpace, player.visitType);
+    if (!entry) {
+      // No chain authored — auto-select first valid move so the turn still progresses
+      const validMoves = this.getValidMoves(playerId);
+      const fallback = validMoves[0];
+      if (!fallback) {
+        return { choiceCreated: false, reason: 'No logic chain and no valid moves' };
+      }
+      this.stateService.setPlayerMoveIntent(playerId, fallback);
+      return {
+        choiceCreated: false,
+        autoSelected: fallback,
+        reason: 'No logic chain authored — auto-selected first valid move',
+      };
     }
 
-    const firstDestination = validMoves[0];
-    const logicResult = this.getLogicMovementWithExplanation(
+    const stepTotal = this.dataService
+      .getLogicQuestionsForSpace(player.currentSpace, player.visitType)
+      .length;
+
+    // Fire-and-forget: the chain resolves asynchronously as the player answers.
+    // moveIntent is set when the chain terminates at a space-name target.
+    this.walkLogicChain(playerId, entry, 1, stepTotal).catch((err) => {
+      debugWarn('Logic chain walk failed:', err);
+    });
+
+    return { choiceCreated: true, reason: 'Logic question chain started' };
+  }
+
+  /**
+   * Ask one question in the chain, then recursively resolve the answer's target.
+   * @private
+   */
+  private async walkLogicChain(
+    playerId: string,
+    question: LogicQuestion,
+    stepIndex: number,
+    stepTotal: number
+  ): Promise<void> {
+    const answerId = await this.choiceService.createChoice(
       playerId,
-      player.currentSpace,
-      player.visitType
+      'LOGIC_QUESTION',
+      question.question_text,
+      [
+        { id: 'yes', label: 'Yes' },
+        { id: 'no', label: 'No' },
+      ],
+      {
+        logicSpaceName: question.space_name,
+        logicVisitType: question.visit_type,
+        logicQuestionId: question.question_id,
+        logicStepIndex: stepIndex,
+        logicStepTotal: stepTotal,
+      }
     );
 
-    // Auto-set move intent to first valid destination
-    this.stateService.setPlayerMoveIntent(playerId, firstDestination);
+    const target = answerId === 'yes' ? question.yes_target : question.no_target;
+    await this.resolveLogicTarget(playerId, question, target, stepIndex + 1, stepTotal);
+  }
 
-    // Show explanation of why this destination was chosen
-    if (this.notificationService) {
-      const destContent = this.dataService.getSpaceContent(firstDestination, 'First');
-      const destTitle = destContent?.title || firstDestination;
-      const spaceContent = this.dataService.getSpaceContent(player.currentSpace, player.visitType);
-      const explanation = logicResult.explanation || 'Based on your project status';
-
-      this.notificationService.notify(
-        {
-          short: `Clerk: → ${destTitle}`,
-          medium: `📋 ${explanation}. You'll proceed to ${destTitle}`,
-          detailed: `${player.name} at ${spaceContent?.title || player.currentSpace}: ${explanation}. The clerk directs you to ${destTitle}.`
-        },
-        {
-          playerId: playerId,
-          playerName: player.name,
-          actionType: 'logic_decision_path'
-        }
+  /**
+   * Resolve a yes_target / no_target into either the next question (recurse)
+   * or a destination move-intent (terminate).
+   *
+   * Target shapes (in precedence order):
+   *   1. "Q<digit>" — another question in the same chain → recurse
+   *   2. "<SPACE>,<SPACE>..."  — multi-destination → sub-choice modal (MOVEMENT)
+   *   3. "<SPACE>" — single destination → setPlayerMoveIntent, terminate
+   * @private
+   */
+  private async resolveLogicTarget(
+    playerId: string,
+    currentQuestion: LogicQuestion,
+    target: string,
+    nextStepIndex: number,
+    stepTotal: number
+  ): Promise<void> {
+    const trimmed = (target || '').trim();
+    if (!trimmed) {
+      debugWarn(
+        `Logic chain ${currentQuestion.space_name}/${currentQuestion.question_id} has empty target`
       );
+      return;
     }
 
+    // Case 1: Q-id → recurse
+    if (/^Q\d+$/i.test(trimmed)) {
+      const nextQuestion = this.dataService.getLogicQuestion(
+        currentQuestion.space_name,
+        currentQuestion.visit_type,
+        trimmed.toUpperCase()
+      );
+      if (!nextQuestion) {
+        debugWarn(
+          `Logic chain ${currentQuestion.space_name} references missing ${trimmed}`
+        );
+        return;
+      }
+      await this.walkLogicChain(playerId, nextQuestion, nextStepIndex, stepTotal);
+      return;
+    }
 
-    return {
-      choiceCreated: false,
-      autoSelected: firstDestination,
-      reason: 'Logic movement auto-selected destination'
-    };
+    // Case 2: comma-separated destinations → sub-choice
+    if (trimmed.includes(',')) {
+      const destinations = trimmed
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+      if (destinations.length === 0) return;
+      if (destinations.length === 1) {
+        this.stateService.setPlayerMoveIntent(playerId, destinations[0]);
+        return;
+      }
+
+      const choiceOptions = this.createChoiceOptionsWithTitles(destinations);
+      const selected = await this.choiceService.createChoice(
+        playerId,
+        'MOVEMENT',
+        'Choose your destination:',
+        choiceOptions
+      );
+      this.stateService.setPlayerMoveIntent(playerId, selected);
+      return;
+    }
+
+    // Case 3: single space name
+    this.stateService.setPlayerMoveIntent(playerId, trimmed);
   }
 
   /**

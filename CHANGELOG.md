@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.49.0] - 2026-04-21
+
+### Logic-tree movement restored at REG-FDNY-FEE-REVIEW
+
+Fixes a silent-killer regression from the v2.45-era data-pipeline rewrite: `Spaces.csv` rows with `path=LOGIC` were emitted as `movement_type='choice'` in `MOVEMENT.csv`, which downgraded REG-FDNY-FEE-REVIEW's 5-question yes/no decision chain to a flat destination picker. The feature had no test coverage, so every data-sync quietly reintroduced the regression. The same fix was already present in the archived `code2027/` branch but never made it back to mainline.
+
+**`server/processGameData.js`** — `processMovement()` now routes `path=LOGIC` as PRIORITY 1 with `movement_type='logic'` and the existing `extractDestinationsFromLogicConditions()` helper. Comment explains the regression history so a future sync can't quietly re-break it.
+
+**`public/data/CLEAN_FILES/LOGIC_QUESTIONS.csv`** — New hand-authored (not pipeline-generated) CSV: `space_name, visit_type, question_id, question_text, yes_target, no_target`. Currently 10 rows covering REG-FDNY-FEE-REVIEW First + Subsequent (5 questions each). Yes/no targets are one of: another `Q<n>` (recurse), a single space name (terminal), or a comma-separated list of spaces (sub-choice picker).
+
+**`src/types/DataTypes.ts`** — New `LogicQuestion` interface matching the CSV shape.
+
+**`src/types/CommonTypes.ts`** — Extended `Choice.type` union with `'LOGIC_QUESTION'`. Extended `Choice.metadata` with `logicSpaceName`, `logicVisitType`, `logicQuestionId`, `logicStepIndex`, `logicStepTotal` so the modal can render "Question N of M" progress.
+
+**`src/services/DataService.ts`** — Loads `LOGIC_QUESTIONS.csv` alongside the other CLEAN files (graceful empty-fallback if the file is missing). New accessors: `getLogicQuestion(space, visit, qId)`, `getLogicQuestionEntry(space, visit)` (returns Q1), `getLogicQuestionsForSpace(space, visit)` (sorted by numeric Q-id), `getAllLogicQuestions()`. `IDataService` extended to match.
+
+**`src/services/MovementService.ts`** — `handleLogicMovement` rewritten. It looks up Q1 via `getLogicQuestionEntry`, then fires `walkLogicChain()` async. The walker calls `ChoiceService.createChoice('LOGIC_QUESTION', …)` with yes/no options and metadata, then `resolveLogicTarget()` dispatches the answer: Q-id → recurse, comma-list → MOVEMENT sub-choice, single space → `setPlayerMoveIntent`. Empty/missing targets short-circuit with a warn log. Fallback: if no chain is authored, auto-select the first valid move so gameplay still progresses (supports older data snapshots).
+
+**`src/components/modals/ChoiceModal.tsx`** — LOGIC_QUESTION choices render a "Question N of M" title (from metadata) and a clerk-voice help string ("The clerk needs an answer before routing your application.") while still reusing the generic yes/no button flow — no new modal component needed.
+
+**Tests** — Two layers:
+- `tests/server/processGameData.test.ts` (+7 tests): synthetic `path=LOGIC` row emits `'logic'`; real `Spaces.csv` emits `'logic'` for REG-FDNY-FEE-REVIEW/First + Subsequent; `LOGIC_QUESTIONS.csv` has the expected 6-column header, every (space,visit) group has a Q1, every Q-id target resolves to an existing row, and every `logic` space in `MOVEMENT.csv` has matching questions. This is the regression catcher — any future pipeline or CSV edit that re-breaks the decision tree fails CI here.
+- `tests/services/MovementService.test.ts` (+7 tests): walker asks Q1 with correct metadata; falls back to first valid move when no chain; short-circuits when no chain AND no moves; recurses on `yes_target='Q2'`; terminates with `setPlayerMoveIntent` on a single-space target; opens MOVEMENT sub-choice on comma-separated target; silently short-circuits on missing Q-id reference.
+
+**Verification:** `npm run typecheck` 0 errors; `tests/server/processGameData.test.ts` 14/14 green; `tests/services/MovementService.test.ts` 47/47 green.
+
+---
+
 ## [2.48.4] - 2026-04-18
 
 ### Tier 4 Bucket D — Service-surface `any` narrowed

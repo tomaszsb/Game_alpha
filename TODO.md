@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 18, 2026
+**Last Updated:** April 21, 2026
 **Status:** Beta — regression gates in place
-**Current Version:** 2.48.4
+**Current Version:** 2.49.0
 
 ---
 
@@ -19,6 +19,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
+- ✅ Logic-tree movement restored at REG-FDNY-FEE-REVIEW (v2.49.0) — Fixes a v2.45-era pipeline regression that silently emitted `movement_type='choice'` for `path=LOGIC` rows, downgrading the 5-question yes/no decision chain to a flat picker. `processGameData.js` now routes `path=LOGIC` with priority and emits `'logic'`. New hand-authored `public/data/CLEAN_FILES/LOGIC_QUESTIONS.csv` drives the walker (space_name, visit_type, question_id, question_text, yes_target, no_target). `DataService` loads it; `MovementService.handleLogicMovement` asks yes/no questions via a new `LOGIC_QUESTION` choice type and resolves targets (Q-id recurse / single-space terminal / comma-split sub-choice). `ChoiceModal` renders "Question N of M" progress from metadata. Regression gates: `processGameData.test.ts` 14/14 (7 new) including real-data + integrity checks; `MovementService.test.ts` 47/47 (7 new walker branch tests). `npm run typecheck` 0 errors. (Apr 21, 2026)
+
+### **Backlog**
+- Story-as-composed-stories (v2.50.0) — Design locked (accordion landing modal Option C + italic lead-in per-action modal Option B). SPACE_EFFECTS.narrative already keyed per action; SPACE_CONTENT.story becomes the non-action flavor header ("Event" kept for teachers and action-less spaces). No CSV schema changes needed. Implementation + mockup → component wiring.
+
 - ✅ Tier 4 Bucket D — service-surface `any` narrowed (12 sites across 5 files). `NegotiationService` (5): `initiateNegotiation(context: any)` / `completeNegotiation(agreement: any)` → `Record<string, unknown>`; `playerHasCard/removeCardsFromPlayer/addCardsToPlayer` player params → `Player`, helpers now return `Partial<Player>`. `StateService` (4): `updateNegotiationState(negotiationState: any)` → `NegotiationState | null` (matches interface contract); dropped 3 `(result as any).committedState/updatedState` casts — `TurnStateManager` return types already carry those fields. `DiceRollProcessor` (1): `DiceRollEffectsResult.gameState: any` → `GameState`. `GameLayout.tsx` (1): `useState<any>` → `useState<TurnEffectResult | null>`, ad-hoc setter object now supplies full shape. `GameRulesService` (1): `extractValidDestinations(movement: any)` → `Movement`. `npm run typecheck` 0 errors; 23/23 test batches green. Cumulative Tier 4: 50/109 original `any` usages eliminated. (Apr 18, 2026)
 - ✅ Tier 4 Bucket C — CardService `card: any` narrowed to `Card` (10 sites across `CardService.ts` and `GameRulesService.ts`). `parseCardIntoEffects`, the 5 `apply*CardEffect` helpers, `handleReturnToSender`, `handleFavorCalledIn`, and `isTimeReductionBlockedByZeroTime` all now take `Card`. Also dropped 2 unnecessary `cardType as any` casts (parser already returns `CardType`). The narrowing surfaced a dead `movement_effect` branch in `parseCardIntoEffects` — not on the `Card` type, not in any live CSV, only exerciser was one test; branch + test deleted. `npm run typecheck` 0 errors; 23/23 test batches green. (Apr 18, 2026)
 - ✅ Tier 4 Bucket B — effect/payload `any` narrowing (28 sites across 8 files). `EffectEngineService` (9): `cardData: any` → `Card`, default-case `as any` → type-guarded cast, `CARD_ACTIVATION` replay uses `isResourceChangeEffect`, agreement-data → `Record<string, unknown>`. `FinancialEffectHandler` (7): `payload: any` → `Extract<Effect, {effectType:'RESOURCE_CHANGE'|'FEE_DEDUCTION'}>['payload']`; `player: any` → `Player`; `updateData: any` → `Partial<Player>`. `CardEffectHandler` (3): CARD_DRAW/DISCARD payload extracts; `cardData` → `Card | undefined`; added `count ?? 1` fallback. `buttonFormatting.ts` (4+1): new exported `DiceFeedbackEffect` interface, `colors: any` → `typeof colors`, `diceOutcome` → `DiceOutcome | null | undefined`; `?? 0`/`?? ''` fallbacks now render `"Got 0 s"` instead of old buggy `"got undefined undefineds"`. `NotificationUtils.ts` (2): `effects: any[]` → `DiceFeedbackEffect[]`. 3 player-panel section components: `effect: any` → `SpaceEffect`. One test assertion updated for the behavior improvement. `npm run typecheck` 0 errors; 23/23 test batches green. **Buckets C/D/E (~81 sites) remain.** (Apr 18, 2026)

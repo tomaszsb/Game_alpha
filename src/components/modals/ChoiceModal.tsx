@@ -160,6 +160,19 @@ export function ChoiceModal(): JSX.Element {
     ? interpolateTemplate(choiceModalConfig.modal_button_label, templateContext)
     : undefined;
 
+  // LOGIC_QUESTION type: show step progress in the title and domain-appropriate
+  // help text. Falls through to the generic choice flow for the two yes/no
+  // option buttons, which are already rendered below.
+  const isLogicQuestion = awaitingChoice?.type === 'LOGIC_QUESTION';
+  const logicStepIndex = awaitingChoice?.metadata?.logicStepIndex as number | undefined;
+  const logicStepTotal = awaitingChoice?.metadata?.logicStepTotal as number | undefined;
+  const logicTitle = isLogicQuestion && logicStepIndex && logicStepTotal
+    ? `Question ${logicStepIndex} of ${logicStepTotal}`
+    : undefined;
+  const logicDescription = isLogicQuestion
+    ? 'The clerk needs an answer before routing your application.'
+    : undefined;
+
   const choiceButtonStyle: React.CSSProperties = {
     ...modalButtonStyles.primary,
     backgroundColor: colors.primary.main,
@@ -174,7 +187,7 @@ export function ChoiceModal(): JSX.Element {
     <ModalBase
       isOpen={isRegularChoice}
       onClose={() => {}}
-      title={customTitle || 'Make Your Choice'}
+      title={customTitle || logicTitle || 'Make Your Choice'}
       emoji={theme.emoji.target}
       maxWidth="500px"
       testId="choice-modal"
@@ -249,7 +262,7 @@ export function ChoiceModal(): JSX.Element {
           color: colors.secondary.main,
           textAlign: 'center'
         }}>
-          {theme.emoji.info} {customDescription || 'Make your selection to continue.'}
+          {theme.emoji.info} {customDescription || logicDescription || 'Make your selection to continue.'}
         </p>
       </div>
     </ModalBase>

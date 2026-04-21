@@ -61,6 +61,12 @@ export const createMockDataService = (): any => ({
   getAllSpaceContent: vi.fn(),
   getEffectNarrative: vi.fn(),
   getModalConfig: vi.fn(),
+
+  // Logic-question-chain methods
+  getLogicQuestion: vi.fn(),
+  getLogicQuestionEntry: vi.fn(),
+  getLogicQuestionsForSpace: vi.fn().mockReturnValue([]),
+  getAllLogicQuestions: vi.fn().mockReturnValue([]),
   
   // Card methods
   getCards: vi.fn(),

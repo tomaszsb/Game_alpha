@@ -10,7 +10,8 @@ import {
   VisitType,
   Card,
   CardType,
-  ModalConfigOverrides
+  ModalConfigOverrides,
+  LogicQuestion
 } from '../types/DataTypes';
 
 export class DataService implements IDataService {
@@ -22,6 +23,9 @@ export class DataService implements IDataService {
   private spaceContents: SpaceContent[] = [];
   private cards: Card[] = [];
   private spaces: Space[] = [];
+  // Yes/no decision chains for path=LOGIC spaces. Keyed lookups go through
+  // getLogicQuestion()/getLogicQuestionEntry(); do not read this array directly.
+  private logicQuestions: LogicQuestion[] = [];
   // key: `${spaceName}|${visitType}|${effectAction}|${diceValue}` → overrides.
   // `diceValue` is empty string for generic rows (Phase 1-3b) and '1'..'6' for
   // dice-specific rows (Phase 4).
@@ -48,7 +52,8 @@ export class DataService implements IDataService {
           this.loadDiceEffects(),
           this.loadSpaceContents(),
           this.loadCards(),
-          this.loadModalConfigs()
+          this.loadModalConfigs(),
+          this.loadLogicQuestions()
         ]);
 
         this.buildSpaces();
@@ -158,6 +163,49 @@ export class DataService implements IDataService {
   }
 
   /**
+   * Look up a specific question in a logic-tree space's chain.
+   * Returns undefined if the space has no chain or the question_id is missing.
+   */
+  getLogicQuestion(
+    spaceName: string,
+    visitType: VisitType,
+    questionId: string
+  ): LogicQuestion | undefined {
+    return this.logicQuestions.find(
+      q => q.space_name === spaceName && q.visit_type === visitType && q.question_id === questionId
+    );
+  }
+
+  /**
+   * Return the first question in a logic-tree space's chain (question_id === 'Q1').
+   * Callers can use this to bootstrap the yes/no walk without hardcoding 'Q1'.
+   */
+  getLogicQuestionEntry(
+    spaceName: string,
+    visitType: VisitType
+  ): LogicQuestion | undefined {
+    return this.getLogicQuestion(spaceName, visitType, 'Q1');
+  }
+
+  /**
+   * Return all questions in a logic-tree space's chain (ordered by question_id).
+   * Used by the question-chain walker to compute total-step count for the
+   * "Question 2 of 5" progress display.
+   */
+  getLogicQuestionsForSpace(
+    spaceName: string,
+    visitType: VisitType
+  ): LogicQuestion[] {
+    return this.logicQuestions
+      .filter(q => q.space_name === spaceName && q.visit_type === visitType)
+      .sort((a, b) => a.question_id.localeCompare(b.question_id, undefined, { numeric: true }));
+  }
+
+  getAllLogicQuestions(): LogicQuestion[] {
+    return [...this.logicQuestions];
+  }
+
+  /**
    * Look up modal overrides for a given space/visit/action, optionally filtered
    * by a specific dice value. Returns undefined if no row is configured or if
    * all override fields are empty.
@@ -253,6 +301,25 @@ export class DataService implements IDataService {
     }
     const csvText = await response.text();
     this.cards = this.parseCardsCsv(csvText);
+  }
+
+  /**
+   * Load the yes/no question chains for path=LOGIC spaces. Optional file —
+   * a missing file simply leaves the array empty, which degrades logic spaces
+   * to "no destination" at runtime rather than crashing boot.
+   */
+  private async loadLogicQuestions(): Promise<void> {
+    try {
+      const response = await fetch('/data/CLEAN_FILES/LOGIC_QUESTIONS.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.logicQuestions = [];
+        return;
+      }
+      const csvText = await response.text();
+      this.logicQuestions = this.parseLogicQuestionsCsv(csvText);
+    } catch {
+      this.logicQuestions = [];
+    }
   }
 
   /**
@@ -429,6 +496,38 @@ export class DataService implements IDataService {
    * `dice_value` (Phase 4) is optional: empty column means the row applies to
    * any dice outcome (generic), while '1'..'6' scopes it to that specific roll.
    */
+  /**
+   * Parse LOGIC_QUESTIONS.csv. Schema:
+   *   space_name,visit_type,question_id,question_text,yes_target,no_target
+   *
+   * `yes_target` / `no_target` may contain:
+   *   - another question_id (e.g. "Q2") → chain continues
+   *   - a valid space_name → chain resolves to that move
+   *   - a comma-separated list of space_names → downstream sub-choice
+   * Parser treats them as opaque strings; MovementService resolves at walk time.
+   */
+  private parseLogicQuestionsCsv(csvText: string): LogicQuestion[] {
+    if (!csvText) return [];
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+
+    const result: LogicQuestion[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = this.parseCsvLine(lines[i]);
+      const spaceName = (values[0] || '').trim();
+      if (!spaceName) continue; // skip blanks/trailing rows
+      result.push({
+        space_name: spaceName,
+        visit_type: (values[1] as VisitType) || 'First',
+        question_id: (values[2] || '').trim(),
+        question_text: (values[3] || '').trim(),
+        yes_target: (values[4] || '').trim(),
+        no_target: (values[5] || '').trim(),
+      });
+    }
+    return result;
+  }
+
   private parseModalConfigCsv(csvText: string): Map<string, ModalConfigOverrides> {
     const map = new Map<string, ModalConfigOverrides>();
     if (!csvText) return map;

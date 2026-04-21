@@ -15,7 +15,8 @@ import {
   Space,
   VisitType,
   Card,
-  ModalConfigOverrides
+  ModalConfigOverrides,
+  LogicQuestion
 } from './DataTypes';
 
 // Logging Service Types and Interface
@@ -166,7 +167,14 @@ export interface IDataService {
     effectAction: string,
     diceValue?: number
   ): ModalConfigOverrides | undefined;
-  
+
+  // Logic-question-chain methods (path=LOGIC spaces)
+  getLogicQuestion(spaceName: string, visitType: VisitType, questionId: string): LogicQuestion | undefined;
+  getLogicQuestionEntry(spaceName: string, visitType: VisitType): LogicQuestion | undefined;
+  getLogicQuestionsForSpace(spaceName: string, visitType: VisitType): LogicQuestion[];
+  getAllLogicQuestions(): LogicQuestion[];
+
+
   // Card methods
   getCards(): Card[];
   getCardById(cardId: string): Card | undefined;
