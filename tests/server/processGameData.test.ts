@@ -309,3 +309,66 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
     }
   });
 });
+
+// ============================================================================
+// v2.50.0 — per-action narrative emission (Spaces.csv *_card_narrative cols →
+// SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
+// against real CLEAN_FILES; bump them intentionally if authoring changes.
+// ============================================================================
+describe('processGameData — per-action narratives', () => {
+  const cleanEffectsCsv = () =>
+    fs.readFileSync(
+      path.join(process.cwd(), 'public/data/CLEAN_FILES/SPACE_EFFECTS.csv'),
+      'utf-8',
+    );
+
+  function findRow(
+    csv: string,
+    space: string,
+    visit: string,
+    action: string,
+  ): string | undefined {
+    return csv
+      .trim()
+      .split('\n')
+      .slice(1)
+      .find((l) => {
+        const cols = l.split(',');
+        return cols[0] === space && cols[1] === visit && cols[3] === action;
+      });
+  }
+
+  it('emits authored e_card narrative for OWNER-SCOPE-INITIATION/First draw_E', () => {
+    const row = findRow(cleanEffectsCsv(), 'OWNER-SCOPE-INITIATION', 'First', 'draw_E');
+    expect(row).toBeDefined();
+    expect(row!).toContain("The owner hands you a stack of contacts");
+  });
+
+  it('emits authored l_card narrative for ARCH-FEE-REVIEW/First draw_L', () => {
+    const row = findRow(cleanEffectsCsv(), 'ARCH-FEE-REVIEW', 'First', 'draw_L');
+    expect(row).toBeDefined();
+    expect(row!).toContain("You've been on this job a while");
+  });
+
+  it('emits authored e_card narrative for ARCH-FEE-REVIEW/First return_e', () => {
+    const row = findRow(cleanEffectsCsv(), 'ARCH-FEE-REVIEW', 'First', 'return_e');
+    expect(row).toBeDefined();
+    expect(row!).toContain("One of your expeditors has to go");
+  });
+
+  it('emits authored e_card narrative for ARCH-FEE-REVIEW/Subsequent draw_E', () => {
+    const row = findRow(cleanEffectsCsv(), 'ARCH-FEE-REVIEW', 'Subsequent', 'draw_E');
+    expect(row).toBeDefined();
+    expect(row!).toContain('Your architect friend recommends someone new');
+  });
+
+  it('leaves narrative empty for actions that have no authored text', () => {
+    // Pick any action we know has no narrative authored — e.g. time on
+    // OWNER-SCOPE-INITIATION (the Spend 1 day row).
+    const row = findRow(cleanEffectsCsv(), 'OWNER-SCOPE-INITIATION', 'First', 'add');
+    expect(row).toBeDefined();
+    const cols = row!.split(',');
+    // Column layout: space,visit,type,action,value,condition,desc,trigger,fee_type,narrative,...
+    expect(cols[9]).toBe('');
+  });
+});

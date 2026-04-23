@@ -10,6 +10,7 @@ import { ProjectScopeSection } from './sections/ProjectScopeSection';
 import { EventsSection } from './sections/EventsSection';
 import { PlayerLogSection } from './sections/PlayerLogSection';
 import { ProjectLedger } from './sections/ProjectLedger';
+import { StoryAccordion } from './sections/StoryAccordion';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL } from '../../utils/networkDetection';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
@@ -213,6 +214,20 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const spaceTitle = spaceContent?.title || '';
   const spaceConfig = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const currentPhase = spaceConfig?.phase;
+
+  // v2.50.0: When any effect on this space has an authored narrative, the
+  // StoryAccordion takes over and the legacy flat PM Action / Outcome blocks
+  // are hidden (the per-action narratives replace them). Spaces without any
+  // authored narrative fall back to the legacy blocks so content can be
+  // rolled out space-by-space.
+  const hasAnyActionNarrative = useMemo(() => {
+    const effects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType) || [];
+    return effects.some((e) => {
+      const action = e.effect_action || '';
+      if (!action) return false;
+      return !!gameServices.dataService.getEffectNarrative(player.currentSpace, player.visitType, action);
+    });
+  }, [gameServices.dataService, player.currentSpace, player.visitType]);
 
   // Playable E cards
   const playableECards = useMemo(() => {
@@ -449,6 +464,17 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
+        {/* v2.50.0 — Per-action story accordion. Renders nothing when no
+            effect on this space has an authored narrative; in that case the
+            legacy flat PM Action / Outcome blocks below are shown instead. */}
+        <StoryAccordion
+          dataService={gameServices.dataService}
+          spaceName={player.currentSpace}
+          visitType={player.visitType}
+          completedActions={completedActions}
+          portraitSrc={getPortraitForSpace(player.currentSpace)}
+        />
+
         {/* Notification — between story and PM action */}
         {playerNotification && (
           <div className="action-center__notification">
@@ -457,8 +483,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* PM Action Instructions */}
-        {spaceAction && (
+        {/* PM Action Instructions — legacy block, hidden when accordion is active */}
+        {!hasAnyActionNarrative && spaceAction && (
           <div style={{
             padding: '8px 12px',
             backgroundColor: '#e8f4fd',
@@ -475,8 +501,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Outcome */}
-        {spaceOutcome && (
+        {/* Outcome — legacy block, hidden when accordion is active */}
+        {!hasAnyActionNarrative && spaceOutcome && (
           <div style={{
             padding: '8px 12px',
             backgroundColor: '#f3e5f5',

@@ -88,8 +88,8 @@ describe('DataService', () => {
 
   it('should fetch and parse all CSV files correctly', async () => {
     await dataService.loadData();
-    // 7 CLEAN_FILES CSVs + 1 SOURCE_FILES/ModalConfig.csv (Phase 2)
-    expect(global.fetch).toHaveBeenCalledTimes(8);
+    // 8 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv) + 1 SOURCE_FILES/ModalConfig.csv
+    expect(global.fetch).toHaveBeenCalledTimes(9);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));
     expect(dataService.isLoaded()).toBe(true);

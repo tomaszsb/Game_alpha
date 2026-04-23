@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.50.0] - 2026-04-21
+
+### Story as composed per-action narratives (in-page accordion)
+
+Replaces the flat `Action` / `Outcome` text blocks in the landing-on-space header with an N-row accordion — one row per authored effect on the space. Each row renders the existing NPC-voiced narrative (italic, character-portrait bordered) only when the player opens it; the first uncompleted row auto-expands, completed rows collapse with a green ✓, and auto-triggered Life events render pre-collapsed with a "Life event happened — click to read" label so they don't demand the player's attention mid-turn.
+
+Scope bundle: code + sample content (proof-of-concept narratives on two spaces) ship together.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Authored per-action narratives into the existing trailing `*_card_narrative` columns for OWNER-SCOPE-INITIATION/First (e_card: Draw 3 Expeditors) and ARCH-FEE-REVIEW/First + Subsequent (l_card, e_card/return_e, e_card/draw_E). Demonstrates the pattern; the rest of the board gets authored incrementally.
+
+**`public/data/CLEAN_FILES/SPACE_EFFECTS.csv`** — Regenerated through `processGameData` so authored narratives flow into the `narrative` column.
+
+**`src/components/player/sections/StoryAccordion.tsx`** — New component. `effectPriority()` orders rows E→W→B→I→dice→money→time→L; `effectLabel()` maps `effect_action` ("draw_e" → "Hire Expeditor", etc.) and `effectIcon()` picks the emoji glyph. `isCompletedEffect()` treats (a) any `effect_type='dice'` as done when `completedActions.diceRoll` is set, (b) any `trigger_type='auto'` effect as pre-completed, and (c) manual actions as done when their key (multiple case/format variants) appears in `completedActions.manualActions`. Rows with no authored narrative are filtered out — returns `null` entirely when zero rows remain, so the panel falls back to legacy text.
+
+**`src/components/player/ActionCenterPanel.tsx`** — Inserts `<StoryAccordion />` after the Event flavor header. Computes `hasAnyActionNarrative` to gate the legacy `spaceAction` / `spaceOutcome` blocks — they only render when no per-action narrative has been authored anywhere on the space, giving graceful fallback during the content-authoring rollout.
+
+**Tests:**
+- `tests/components/player/sections/StoryAccordion.test.tsx` (+6 tests): null when no narratives authored; row ordering (E→W→B→I→dice→time→L); first-uncompleted auto-expanded + ✓ on completed; auto-trigger L uses "Life event happened" collapsed label; toggle open/closed; dice completion via `completedActions.diceRoll`.
+- `tests/server/processGameData.test.ts` (+5 tests): real-data fingerprints for the authored narratives on OWNER-SCOPE-INITIATION and ARCH-FEE-REVIEW, plus a negative fingerprint that actions without authored narrative emit an empty `narrative` column. These are the regression catcher — any Spaces.csv edit that drops or corrupts authored narrative fails CI.
+
+**`tests/services/DataService.test.ts`** — Bumped the "fetch count" assertion from 8 to 9 to match the v2.49.0 addition of `LOGIC_QUESTIONS.csv` to `DataService.loadData()`. Stale assertion carried over from pre-v2.49 batching; caught by the v2.50.0 full-suite run.
+
+**Verification:** `npm run typecheck` 0 errors; StoryAccordion tests 6/6 green; processGameData tests 19/19 green; full batch suite 23/23 green.
+
+---
+
 ## [2.49.0] - 2026-04-21
 
 ### Logic-tree movement restored at REG-FDNY-FEE-REVIEW

@@ -1,14 +1,24 @@
 # Project Status
 
 **Last Updated**: April 21, 2026
-**Current Phase**: Beta — Regression gates in place (v2.49.0)
-**Current Version**: 2.49.0
+**Current Phase**: Beta — Regression gates in place (v2.50.0)
+**Current Version**: 2.50.0
 
 This document provides a high-level overview of the current work status for the Game Alpha project.
 
 ---
 
 ## Recently Completed
+
+### Story as composed per-action narratives (April 21, 2026) ✅
+- **Status**: ✅ Complete (infrastructure + proof-of-concept content)
+- **Version**: 2.50.0
+- **Context**: Landing-on-space used to render two flat blocks — an `Action` paragraph and an `Outcome` paragraph — written in a generic voice that had to cover every card type on the space simultaneously. With up to five effects per space (E + W/B/I + dice + time + L) this consistently produced vague, read-ahead-of-the-game text. Design locked on composing per-action narratives: one italic, NPC-voiced story per effect, revealed as the player works through the space.
+- **Design**: N-row accordion in the `ActionCenterPanel` header. Order E → W → B → I → dice → money → time → L (pushes expeditor use, defers auto Life events). First uncompleted row auto-expands, completed rows collapse with a green ✓, auto-triggered Life events render pre-collapsed with "Life event happened — click to read" so they don't demand mid-turn attention. The `Event` flavor header is retained above the accordion (teacher voice).
+- **Implementation**: New `src/components/player/sections/StoryAccordion.tsx` component — `effectPriority()` sorts, `effectLabel()` and `effectIcon()` map `effect_action` ("draw_e" → "Hire Expeditor", ⚡/🔨/🏦/💼/🎲), and `isCompletedEffect()` covers dice (via `completedActions.diceRoll`), auto triggers (pre-completed), and manual actions (key match, case/format variants). Rows with no authored narrative filter out; the component returns `null` entirely when zero rows remain. `ActionCenterPanel.tsx` inserts the accordion after the Event header and gates the legacy `Action`/`Outcome` blocks behind `hasAnyActionNarrative` — spaces without authored narratives fall back to the pre-v2.50 text with zero gameplay risk.
+- **Content**: Proof-of-concept narratives authored on `Spaces.csv` for OWNER-SCOPE-INITIATION/First (e_card Draw 3) and ARCH-FEE-REVIEW/First + Subsequent (l_card, e_card). `processGameData` re-run so authored text flows into `SPACE_EFFECTS.csv.narrative`. Content rollout for remaining spaces is incremental.
+- **Regression catcher**: `tests/components/player/sections/StoryAccordion.test.tsx` 6/6 (null-when-empty, ordering, first-uncompleted + ✓, L special-case, toggle, dice completion). `tests/server/processGameData.test.ts` +5 fingerprint tests pinning the authored narratives and verifying un-authored rows emit empty.
+- **Verification**: `npm run typecheck` → 0 errors. StoryAccordion tests 6/6 green; processGameData tests 19/19 green.
 
 ### Logic-tree movement restored at REG-FDNY-FEE-REVIEW (April 21, 2026) ✅
 - **Status**: ✅ Complete
