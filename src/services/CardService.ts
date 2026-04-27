@@ -94,8 +94,9 @@ export class CardService implements ICardService {
     const gameState = this.stateService.getGameState();
 
     // Educational mode: On starting space, give pre-selected cards instead of drawing from deck
+    // Workstream 6 #1: starting-space check lifted from literal to data flag (is_starting_space).
     const isEducationalMode = gameState.startingMode === 'EDUCATIONAL';
-    const isStartingSpace = player.currentSpace === 'OWNER-SCOPE-INITIATION';
+    const isStartingSpace = this.dataService.isStartingSpace(player.currentSpace);
     const hasPreSelectedCards = gameState.startingHand && gameState.startingHand.length > 0;
 
     if (isEducationalMode && isStartingSpace && hasPreSelectedCards && gameState.startingHand) {

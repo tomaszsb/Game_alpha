@@ -81,6 +81,16 @@ export class DataService implements IDataService {
     return this.gameConfigs.find(config => config.space_name === spaceName);
   }
 
+  /**
+   * Workstream 6 #1: data-driven starting-space lookup.
+   * Returns true if the named space is flagged `is_starting_space=Yes` in Spaces.csv.
+   * Replaces hardcoded `=== 'OWNER-SCOPE-INITIATION'` checks so educator-added
+   * starting spaces (any name) work without engine changes.
+   */
+  isStartingSpace(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.is_starting_space === true;
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {

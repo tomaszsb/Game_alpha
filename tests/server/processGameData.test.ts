@@ -315,6 +315,81 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #1 — Engine-data separation: starting space lifted to data flag
+// Previously processGameData hardcoded `STARTING_SPACE = 'OWNER-SCOPE-INITIATION'`
+// and computed `is_starting_space` from that constant. Now reads `is_starting_space`
+// column from Spaces.csv source, so educators can mark a different starting space
+// without touching code.
+describe('processGameData — engine-data separation: is_starting_space sourced from Spaces.csv', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it('real Spaces.csv produces exactly one is_starting_space=Yes row', () => {
+    // Data integrity: the real source data must continue to mark exactly one
+    // starting space. Zero would break game start; >1 would cause non-determinism.
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1); // skip header
+
+    // Column order: space_name,phase,path_type,is_starting_space,is_ending_space,...
+    const startingRows = dataRows.filter(row => row.split(',')[3] === 'Yes');
+    expect(startingRows).toHaveLength(1);
+    // Sanity: the one starting space is OWNER-SCOPE-INITIATION on current data.
+    // (If/when an educator changes this in source, update this assertion.)
+    expect(startingRows[0]).toMatch(/^OWNER-SCOPE-INITIATION,/);
+  });
+
+  it('parametric: a custom space marked is_starting_space=Yes resolves to Yes in output', () => {
+    // Construct a CSV with the new column, mark a non-OWNER space as starting.
+    // Proves the lift is actually data-driven, not still hardcoded.
+    const headerWithFlag = `${spacesHeader},is_starting_space`;
+    const csv = [
+      headerWithFlag,
+      `${makeSpaceRow('CUSTOM-EDU-START', { phase: 'SETUP' })},Yes`,
+      `${makeSpaceRow('OTHER-SPACE', { phase: 'DESIGN' })},No`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const customRow = dataRows.find(r => r.startsWith('CUSTOM-EDU-START,'));
+    const otherRow = dataRows.find(r => r.startsWith('OTHER-SPACE,'));
+
+    expect(customRow).toBeDefined();
+    expect(otherRow).toBeDefined();
+    expect(customRow!.split(',')[3]).toBe('Yes');
+    expect(otherRow!.split(',')[3]).toBe('No');
+  });
+
+  it('rows without is_starting_space column default to No', () => {
+    // Backward-compatibility: source CSVs without the new column (or rows with empty
+    // value) must produce is_starting_space=No, never Yes by accident.
+    const csv = [
+      spacesHeader, // header WITHOUT is_starting_space column
+      makeSpaceRow('LEGACY-SPACE-A', {}),
+      makeSpaceRow('LEGACY-SPACE-B', {}),
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    expect(dataRows).toHaveLength(2);
+    for (const row of dataRows) {
+      expect(row.split(',')[3]).toBe('No');
+    }
+  });
+});
+
 // Workstream 6 #8 — Engine-data separation: regulatory-phase coupling
 // TurnService.startTurn() previously checked `currentSpace.startsWith('REG-')` to
 // decide whether to auto-roll dice on arrival. That check was lifted to

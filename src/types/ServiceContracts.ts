@@ -135,6 +135,7 @@ export interface IDataService {
   // Configuration methods
   getGameConfig(): GameConfig[];
   getGameConfigBySpace(spaceName: string): GameConfig | undefined;
+  isStartingSpace(spaceName: string): boolean;
   getPhaseOrder(): string[];
   
   // Space methods

@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.52.0] - 2026-04-26
+
+### Workstream 6 #1 — Starting space lifted from `OWNER-SCOPE-INITIATION` literal to data flag
+
+Second scenario of [Workstream 6 — Engine-Data Separation](docs/core/BETA_PLAN_V3.md). The `STARTING_SPACE = 'OWNER-SCOPE-INITIATION'` constant in the data pipeline plus the `=== 'OWNER-SCOPE-INITIATION'` check in CardService were the data + engine sides of the same hardcode: educators couldn't change the starting space without touching code. Both sides now read `is_starting_space` from `Spaces.csv`. Behavior-preserving on current data; verified by regenerating CLEAN_FILES and confirming OWNER-SCOPE-INITIATION still resolves to `is_starting_space=Yes` and no other space does.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added `is_starting_space` column (37th, end of header). Set to `Yes` on `OWNER-SCOPE-INITIATION/First` row only; missing on all other rows (parser defaults missing values to empty string → 'No' downstream). Asymmetric column population is intentional and minimally invasive — the SpaceEditor UI can fill the column for all rows on next data save without breaking anything.
+
+**`server/processGameData.js`** — `processGameConfig` no longer hardcodes `STARTING_SPACE`. Reads `row.is_starting_space === 'Yes'` from each source row and emits `is_starting_space: 'Yes'/'No'` accordingly. Empty/missing values default to 'No' (regression-safe for old source CSVs without the column).
+
+**`src/services/DataService.ts`** — Added `isStartingSpace(spaceName: string): boolean` helper. Thin wrapper over `getGameConfigBySpace(spaceName)?.is_starting_space === true`, exposed so engine code reads "is this space the start?" via a single semantic API rather than calling `getGameConfigBySpace` everywhere.
+
+**`src/types/ServiceContracts.ts`** — Added `isStartingSpace` to `IDataService` interface so all consumers get type safety.
+
+**`src/services/CardService.ts`** — `drawCardsForPlayer` (educational-mode pre-selected-cards branch) replaced the literal `player.currentSpace === 'OWNER-SCOPE-INITIATION'` check with `this.dataService.isStartingSpace(player.currentSpace)`. The other two starting-space references (`StateService.getStartingSpace` private helper at line 1617, `StateService.fixLegacyStartingSpace` at line 683) already used the `is_starting_space` flag — they were the data-driven path that was working in spite of the broken pipeline. The legacy migration check (`=== 'START-QUICK-PLAY-GUIDE'`) intentionally remains hardcoded — it's a one-time data fix for a specific old saved-game state, not engine behavior.
+
+**`tests/mocks/mockServices.ts`** — Added `isStartingSpace: vi.fn(() => false)` to `createMockDataService` so existing service tests compile + default to "no" without per-test mocking.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+3 tests, new `engine-data separation: is_starting_space sourced from Spaces.csv` describe block):
+  1. *Real Spaces.csv produces exactly one is_starting_space=Yes row* — data integrity; zero or >1 starting spaces would break game start or cause non-determinism.
+  2. *Parametric: a custom space marked is_starting_space=Yes resolves to Yes in output* — proves the lift is actually data-driven.
+  3. *Rows without is_starting_space column default to No* — backward-compatibility for source CSVs missing the column.
+
+**Regenerated CLEAN_FILES** — `public/data/CLEAN_FILES/GAME_CONFIG.csv` regenerated through the updated pipeline. Output is functionally identical to before (OWNER-SCOPE-INITIATION still flagged Yes, all others No). Other CLEAN_FILES rewritten for line-ending consistency only.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. CardService 29/29, DataService 7/7, processGameData 24/24 (21 + 3 new). Ghost Player strict + try-again-happy both pass — game start path exercised on every game (100 random games total), behavior preserved.
+
+---
+
 ## [2.51.0] - 2026-04-26
 
 ### Workstream 6 #8 — REGULATORY-phase auto-roll lifted from `REG-` prefix check

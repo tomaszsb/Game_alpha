@@ -34,6 +34,7 @@ export const createMockDataService = (): any => ({
   // Configuration methods
   getGameConfig: vi.fn(),
   getGameConfigBySpace: vi.fn(),
+  isStartingSpace: vi.fn(() => false),
   getPhaseOrder: vi.fn(),
   
   // Space methods
