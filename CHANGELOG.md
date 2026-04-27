@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.56.0] - 2026-04-27
+
+### Workstream 6 #3 — Setup-phase auto-handling lifted to data flags
+
+The largest single scenario in Workstream 6 — OWNER-FUND-INITIATION had three coupled hardcodes (auto-apply funding on arrival, auto-trigger B/I card draws, skip direct money effects from those drawn cards) across **6 sites in 3 files** plus the data pipeline. All three behaviors are now driven by two new Spaces.csv columns: `auto_apply_funding` and `auto_trigger_card_types`. Educators can configure other "funding hub" spaces with the same mechanic — including different card-type combinations (e.g. only B cards, or B+I+W) — entirely via data.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added `auto_apply_funding` (44th) and `auto_trigger_card_types` (45th, comma-separated card letters) columns. OWNER-FUND-INITIATION/First+Subsequent rows: `Yes` + `B,I`. All other rows empty (parser → No + empty list).
+
+**`server/processGameData.js`** —
+- `processGameConfig` reads + propagates both columns. `auto_apply_funding` is strict Yes/No; `auto_trigger_card_types` passes through as a CSV string (with embedded commas → output gets quoted).
+- `processSpaceEffects` (line 369): the auto-trigger logic for B/I cards at OWNER-FUND-INITIATION (`spaceName === 'OWNER-FUND-INITIATION' && ['B', 'I'].includes(cardLetter)`) replaced with `autoTypes.includes(cardLetter)` where `autoTypes` is parsed from each row's `auto_trigger_card_types` column. Educator-added auto-trigger spaces work without further pipeline changes.
+
+**`src/types/DataTypes.ts`** — Added optional `auto_apply_funding?: boolean` and `auto_trigger_card_types?: string[]` to `GameConfig`. The CSV string is parsed to an in-memory array.
+
+**`src/services/DataService.ts`** — Added `shouldAutoApplyFunding(spaceName)` and `getAutoTriggerCardTypes(spaceName): string[]` helpers. `parseGameConfigCsv` reads `values[13]` (Yes/No) and `values[14]` (parsed to string[]).
+
+**`src/types/ServiceContracts.ts`** — Added both helpers to `IDataService`.
+
+**`src/services/TurnService.ts`** — Three sites lifted:
+- Line 755 (auto-apply on arrival): `currentSpace === 'OWNER-FUND-INITIATION'` → `dataService.shouldAutoApplyFunding(currentSpace)`.
+- Line 896 (extra "Reviewing project scope..." messaging — paired with auto-funding): same lift.
+- Line 1984 (defensive guard inside `handleAutomaticFunding`): `=== 'OWNER-FUND-INITIATION'` → `!shouldAutoApplyFunding(currentSpace)`. Caller is now gated on the flag, but the guard fails loudly if anything calls this directly with the wrong space.
+
+**`src/services/CardService.ts`** — Two sites lifted (lines 1178, 1221): `isOwnerFundingSpace = player.currentSpace === 'OWNER-FUND-INITIATION'` → `skipDirectMoney = dataService.getAutoTriggerCardTypes(currentSpace).includes('B')` (and `'I'` respectively). Skip-direct-money-effect now correlates with the same data flag that drives auto-trigger, so educators get consistent behavior automatically.
+
+**`tests/services/TurnService.test.ts`** — Inline `mockDataService` updated with all the Workstream-6 helpers (default falsy/empty returns) so the existing 31 tests continue to pass when the service code calls the new helpers.
+
+**`tests/mocks/mockServices.ts`** — Added `shouldAutoApplyFunding` (default false) and `getAutoTriggerCardTypes` (default []).
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+4 tests in new `engine-data separation: auto-handling flags` describe block):
+  1. *Real Spaces.csv flags OWNER-FUND-INITIATION with auto_apply_funding=Yes and auto_trigger_card_types=B,I* — protective; uses CSV-aware parsing because the card-types field contains a comma and gets quoted.
+  2. *Parametric: a custom space with auto_apply_funding + auto_trigger_card_types propagates* — proves data-driven (uses a 3-card-type list "B,I,W" to confirm multi-letter parsing).
+  3. *Rows without the columns default to No + empty card-types list* — backward-compat.
+  4. *auto_trigger_card_types makes B/I card draws auto-trigger in SPACE_EFFECTS* — exercises the pipeline end-to-end: a flagged row produces `,auto,` in SPACE_EFFECTS.csv; an unflagged row produces `,manual,`.
+
+**Regenerated CLEAN_FILES** — `GAME_CONFIG.csv` now has 15 columns. `OWNER-FUND-INITIATION` shows `Yes,"B,I"` for the new flags. `SPACE_EFFECTS.csv` continues to mark B/I draws at OWNER-FUND-INITIATION as `auto` (now via the data flag rather than a hardcoded check). Behavior identical to v2.55.0.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. TurnService 31/31, CardService 29/29, processGameData 40/40 (36 + 4 new), automatic-funding integration 1/1. Ghost Player strict + try-again-happy both pass — auto-funding fires on every game (~100 random games), behavior preserved.
+
+---
+
 ## [2.55.0] - 2026-04-27
 
 ### Workstream 6 #7 — Design fee math lifted to fee_calculation_method + fee_label flags

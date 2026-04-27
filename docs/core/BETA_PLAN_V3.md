@@ -203,7 +203,8 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - ✅ **#5 + #6 — Resume mechanic lifted (is_resume_hub + is_point_of_no_return)** shipped v2.53.0 (2026-04-27). See CHANGELOG.
 - ✅ **#2 — Scope-zero guard lifted (min_w_cards_to_leave)** shipped v2.54.0 (2026-04-27). See CHANGELOG.
 - ✅ **#7 — Design fee math lifted (fee_calculation_method + fee_label)** shipped v2.55.0 (2026-04-27). See CHANGELOG.
-- ⏳ #3 next (setup-phase auto-handling — 7+ touchpoints, M effort), then #4 (DOB path-choice memory + Phase 6.2 type loosening — most complex, L effort).
+- ✅ **#3 — Setup-phase auto-handling lifted (auto_apply_funding + auto_trigger_card_types)** shipped v2.56.0 (2026-04-27). See CHANGELOG.
+- ⏳ #4 next (DOB path-choice memory + Phase 6.2 type loosening — most complex, L effort, requires new PATH_CHOICE_RULES.csv design).
 
 ---
 

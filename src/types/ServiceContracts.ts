@@ -141,6 +141,8 @@ export interface IDataService {
   getMinWCardsToLeave(spaceName: string): number;
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';
   getFeeLabel(spaceName: string): string;
+  shouldAutoApplyFunding(spaceName: string): boolean;
+  getAutoTriggerCardTypes(spaceName: string): string[];
   getPhaseOrder(): string[];
   
   // Space methods

@@ -11,6 +11,16 @@ const mockDataService: anyIDataService = {
   getAllCardTypes: vi.fn(),
   getGameConfig: vi.fn(),
   getGameConfigBySpace: vi.fn(),
+  // Workstream 6: data-driven space-property helpers (default falsy/empty
+  // returns so legacy tests behave as if no flags were set on any space).
+  isStartingSpace: vi.fn(() => false),
+  isResumeHub: vi.fn(() => false),
+  isPointOfNoReturn: vi.fn(() => false),
+  getMinWCardsToLeave: vi.fn(() => 0),
+  getFeeCalculationMethod: vi.fn(() => 'flat'),
+  getFeeLabel: vi.fn(() => ''),
+  shouldAutoApplyFunding: vi.fn(() => false),
+  getAutoTriggerCardTypes: vi.fn(() => []),
   getPhaseOrder: vi.fn(),
   getAllSpaces: vi.fn(),
   getSpaceByName: vi.fn(),

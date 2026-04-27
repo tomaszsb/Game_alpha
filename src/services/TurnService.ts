@@ -751,8 +751,9 @@ export class TurnService implements ITurnService {
       // 5. Unlock UI after processing is complete
       this.stateService.updateGameState({ isProcessingArrival: false });
 
-      // Auto-apply owner funding at OWNER-FUND-INITIATION (no button needed)
-      if (player.currentSpace === 'OWNER-FUND-INITIATION') {
+      // Auto-apply funding when arriving at a space flagged auto_apply_funding=Yes
+      // (no button needed). Workstream 6 #3: lifted from `=== 'OWNER-FUND-INITIATION'`.
+      if (this.dataService.shouldAutoApplyFunding(player.currentSpace)) {
         await this.handleAutomaticFunding(player.id);
       }
 
@@ -892,8 +893,9 @@ export class TurnService implements ITurnService {
         currentPlayer.name
       );
       
-      // Add user messaging for OWNER-FUND-INITIATION space
-      if (currentPlayer.currentSpace === 'OWNER-FUND-INITIATION') {
+      // Add user messaging when funding is auto-applied (paired with shouldAutoApplyFunding).
+      // Workstream 6 #3: lifted from `=== 'OWNER-FUND-INITIATION'`.
+      if (this.dataService.shouldAutoApplyFunding(currentPlayer.currentSpace)) {
         spaceEffects.push({
           effectType: 'LOG',
           payload: {
@@ -1981,8 +1983,11 @@ export class TurnService implements ITurnService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    if (currentPlayer.currentSpace !== 'OWNER-FUND-INITIATION') {
-      throw new Error(`Player is not on OWNER-FUND-INITIATION space`);
+    // Workstream 6 #3: defensive guard inside handleAutomaticFunding —
+    // caller (line ~755) already gates on shouldAutoApplyFunding, but if
+    // anything calls this directly, fail loudly rather than silently distribute funding.
+    if (!this.dataService.shouldAutoApplyFunding(currentPlayer.currentSpace)) {
+      throw new Error(`Player is not on an auto-funding space (current: ${currentPlayer.currentSpace})`);
     }
 
     // Calculate project scope from W cards (single source of truth)

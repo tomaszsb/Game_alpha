@@ -315,6 +315,126 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #3 — Engine-data separation: setup-phase auto-handling
+// OWNER-FUND-INITIATION had three coupled hardcodes: auto-apply funding on
+// arrival, auto-trigger B/I card draws, and skip direct money effects from
+// those drawn cards (since handleAutomaticFunding handles the money). Lifted
+// to two new Spaces.csv columns: auto_apply_funding (Yes/No) and
+// auto_trigger_card_types (comma-separated card letters). Educators can now
+// configure other spaces with the same auto-funding mechanic.
+describe('processGameData — engine-data separation: auto-handling flags', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+  function readEffectsForSpace(spaceName: string): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'SPACE_EFFECTS.csv'), 'utf-8').trim().split('\n')
+      .filter(l => l.startsWith(spaceName + ','));
+  }
+
+  it('real Spaces.csv flags OWNER-FUND-INITIATION with auto_apply_funding=Yes and auto_trigger_card_types=B,I', () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    // Column order: …,13:auto_apply_funding,14:auto_trigger_card_types
+    // The card-types column is quoted in CSV output because of the embedded comma
+    // ("B,I"), so use a regex match rather than naive split-by-comma.
+    const ownerFundRow = dataRows.find(r => r.startsWith('OWNER-FUND-INITIATION,'));
+    expect(ownerFundRow).toBeDefined();
+    expect(ownerFundRow).toMatch(/,Yes,"B,I"$/);
+
+    // Sanity: only OWNER-FUND-INITIATION is flagged on current data.
+    // Match `,Yes,` for the auto_apply_funding column. (Naive split would fail
+    // on rows whose card-types field has commas; regex on the column-prefix
+    // pattern is robust.)
+    const autoRows = dataRows.filter(r => /,Yes,(?:"|[A-Z,]*$)/.test(r.replace(/.*requires_dice_roll.*/, '')) === false ? false : true);
+    // Simpler: just count how many rows have auto_apply_funding=Yes by parsing
+    // the row through a CSV-aware split.
+    const yesCount = dataRows.filter(r => {
+      // CSV-aware split: find the substring between the 13th and 14th unquoted comma.
+      let inQ = false, idx = 0, start = 0;
+      for (let i = 0; i < r.length; i++) {
+        if (r[i] === '"') inQ = !inQ;
+        else if (r[i] === ',' && !inQ) {
+          if (idx === 13) return r.slice(start, i) === 'Yes';
+          idx++;
+          start = i + 1;
+        }
+      }
+      return false;
+    }).length;
+    expect(yesCount).toBe(1);
+  });
+
+  it('parametric: a custom space with auto_apply_funding + auto_trigger_card_types propagates', () => {
+    const headerWithFlags = `${spacesHeader},auto_apply_funding,auto_trigger_card_types`;
+    const csv = [
+      headerWithFlags,
+      `${makeSpaceRow('CUSTOM-FUND-HUB', { phase: 'SETUP' })},Yes,"B,I,W"`,
+      `${makeSpaceRow('OTHER-SPACE', { phase: 'DESIGN' })},No,`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const customFields = dataRows.find(r => r.startsWith('CUSTOM-FUND-HUB,'))!.split(',');
+    expect(customFields[13]).toBe('Yes');
+    // CSV may re-quote the multi-comma field
+    expect(dataRows.find(r => r.startsWith('CUSTOM-FUND-HUB,'))).toMatch(/"B,I,W"/);
+
+    const otherFields = dataRows.find(r => r.startsWith('OTHER-SPACE,'))!.split(',');
+    expect(otherFields[13]).toBe('No');
+    expect(otherFields[14]).toBe('');
+  });
+
+  it('rows without the columns default to No + empty card-types list', () => {
+    const csv = [
+      spacesHeader,
+      makeSpaceRow('LEGACY-SPACE', {}),
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const fields = lines.slice(1)[0].split(',');
+    expect(fields[13]).toBe('No');
+    expect(fields[14]).toBe('');
+  });
+
+  it('auto_trigger_card_types makes B/I card draws auto-trigger in SPACE_EFFECTS', () => {
+    // Build a row with a B card draw + auto_trigger_card_types=B. The pipeline
+    // should mark that effect's trigger_type as 'auto'. Without the flag, default
+    // is 'manual' for non-L cards.
+    const headerWithFlags = `${spacesHeader},auto_apply_funding,auto_trigger_card_types`;
+    const csv = [
+      headerWithFlags,
+      `${makeSpaceRow('AUTO-TRIGGER-TEST', { phase: 'SETUP', b_card: 'Draw 1' })},Yes,B`,
+      `${makeSpaceRow('MANUAL-TRIGGER-TEST', { phase: 'SETUP', b_card: 'Draw 1' })},No,`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const autoEffects = readEffectsForSpace('AUTO-TRIGGER-TEST');
+    const manualEffects = readEffectsForSpace('MANUAL-TRIGGER-TEST');
+
+    // The B-card effect on the auto-flagged space should be 'auto'.
+    const autoB = autoEffects.find(l => l.includes('draw_B'));
+    expect(autoB).toBeDefined();
+    expect(autoB).toContain(',auto,');
+
+    // The B-card effect on the unflagged space should be 'manual'.
+    const manualB = manualEffects.find(l => l.includes('draw_B'));
+    expect(manualB).toBeDefined();
+    expect(manualB).toContain(',manual,');
+  });
+});
+
 // Workstream 6 #7 — Engine-data separation: design fee mechanic
 // SpaceEffectService and FinancesSection both substring-matched 'ARCH' / 'ENG'
 // to detect "this is a design-fee space, charge % of scope and label it

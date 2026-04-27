@@ -15,6 +15,9 @@ export interface GameConfig {
   // Workstream 6 #7: design fee mechanic flags
   fee_calculation_method?: 'flat' | 'percentage_of_scope';
   fee_label?: string;
+  // Workstream 6 #3: setup-phase auto-handling flags
+  auto_apply_funding?: boolean;
+  auto_trigger_card_types?: string[];  // parsed from comma-separated CSV column
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;

@@ -254,6 +254,15 @@ function processGameConfig(spacesCsv) {
     const feeCalculationMethod = feeMethodRaw === 'percentage_of_scope' ? 'percentage_of_scope' : 'flat';
     // fee_label is a free-form string used in the dice-roll button + effect description.
     const feeLabel = (row.fee_label || '').trim();
+    // Workstream 6 #3: setup-phase auto-handling flags.
+    // auto_apply_funding: when player arrives at this space, run handleAutomaticFunding
+    //   (was hardcoded for OWNER-FUND-INITIATION).
+    // auto_trigger_card_types: comma-separated card letters whose draws are
+    //   auto-triggered AND whose direct money effects are skipped (because
+    //   handleAutomaticFunding handles the money instead). Example: "B,I" means
+    //   B-card and I-card draws auto-fire and don't double-count their money.
+    const autoApplyFunding = (row.auto_apply_funding || '').trim() === 'Yes';
+    const autoTriggerCardTypes = (row.auto_trigger_card_types || '').trim();
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -268,7 +277,9 @@ function processGameConfig(spacesCsv) {
       is_point_of_no_return: isPointOfNoReturn ? 'Yes' : 'No',
       min_w_cards_to_leave: String(minWCardsToLeave),
       fee_calculation_method: feeCalculationMethod,
-      fee_label: feeLabel
+      fee_label: feeLabel,
+      auto_apply_funding: autoApplyFunding ? 'Yes' : 'No',
+      auto_trigger_card_types: autoTriggerCardTypes
     };
   }
 
@@ -276,7 +287,8 @@ function processGameConfig(spacesCsv) {
     'space_name', 'phase', 'path_type', 'is_starting_space', 'is_ending_space',
     'min_players', 'max_players', 'requires_dice_roll',
     'is_resume_hub', 'is_point_of_no_return', 'min_w_cards_to_leave',
-    'fee_calculation_method', 'fee_label'
+    'fee_calculation_method', 'fee_label',
+    'auto_apply_funding', 'auto_trigger_card_types'
   ];
 
   return toCsv(Object.values(configs), fieldnames);
@@ -366,8 +378,14 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
       // L cards are always auto — life events are surprises, not player choices
       if (cardLetter === 'L') {
         triggerType = 'auto';
-      } else if (spaceName === 'OWNER-FUND-INITIATION' && ['B', 'I'].includes(cardLetter)) {
-        triggerType = 'auto';
+      } else {
+        // Workstream 6 #3: lifted from `spaceName === 'OWNER-FUND-INITIATION'`.
+        // Read the row's auto_trigger_card_types (comma-separated card letters).
+        // If this card type is in the list, auto-trigger its draw on arrival.
+        const autoTypes = (row.auto_trigger_card_types || '').trim().split(',').map(s => s.trim()).filter(Boolean);
+        if (autoTypes.includes(cardLetter)) {
+          triggerType = 'auto';
+        }
       }
 
       // Use custom button label from CSV if provided, otherwise auto-generate

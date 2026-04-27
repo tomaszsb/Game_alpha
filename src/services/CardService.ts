@@ -1170,14 +1170,17 @@ export class CardService implements ICardService {
     }
 
     // RESOURCE_CHANGE effects from loan_amount field (B cards)
-    // Skip money effects at OWNER-FUND-INITIATION — funding is handled by handleAutomaticFunding
+    // Skip money effects when this space auto-applies funding for B cards
+    // (handleAutomaticFunding handles the money instead, avoiding double-count).
+    // Workstream 6 #3: lifted from `=== 'OWNER-FUND-INITIATION'` to data flag.
     if (card.card_type === 'B' && card.loan_amount) {
       const loanAmount = parseInt(card.loan_amount, 10);
       if (!isNaN(loanAmount) && loanAmount > 0) {
         const player = this.stateService.getPlayer(playerId);
-        const isOwnerFundingSpace = player?.currentSpace === 'OWNER-FUND-INITIATION';
+        const autoTypes = player ? this.dataService.getAutoTriggerCardTypes(player.currentSpace) : [];
+        const skipDirectMoney = autoTypes.includes('B');
 
-        if (!isOwnerFundingSpace) {
+        if (!skipDirectMoney) {
           // Calculate interest (loan_rate is stored as percentage, e.g., 5 for 5%)
           const interestRate = card.loan_rate ? parseFloat(card.loan_rate) / 100 : 0;
           const interestFee = Math.round(loanAmount * interestRate);
@@ -1213,14 +1216,16 @@ export class CardService implements ICardService {
     }
 
     // RESOURCE_CHANGE effects from investment_amount field (I cards)
-    // Skip money effects at OWNER-FUND-INITIATION — funding is handled by handleAutomaticFunding
+    // Skip money effects when this space auto-applies funding for I cards.
+    // Workstream 6 #3: lifted from `=== 'OWNER-FUND-INITIATION'` to data flag.
     if (card.card_type === 'I' && card.investment_amount) {
       const investmentAmount = parseInt(card.investment_amount, 10);
       if (!isNaN(investmentAmount) && investmentAmount > 0) {
         const player = this.stateService.getPlayer(playerId);
-        const isOwnerFundingSpace = player?.currentSpace === 'OWNER-FUND-INITIATION';
+        const autoTypes = player ? this.dataService.getAutoTriggerCardTypes(player.currentSpace) : [];
+        const skipDirectMoney = autoTypes.includes('I');
 
-        if (!isOwnerFundingSpace) {
+        if (!skipDirectMoney) {
           effects.push({
             effectType: 'RESOURCE_CHANGE',
             payload: {

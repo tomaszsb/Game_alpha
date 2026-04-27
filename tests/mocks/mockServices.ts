@@ -40,6 +40,8 @@ export const createMockDataService = (): any => ({
   getMinWCardsToLeave: vi.fn(() => 0),
   getFeeCalculationMethod: vi.fn(() => 'flat'),
   getFeeLabel: vi.fn(() => ''),
+  shouldAutoApplyFunding: vi.fn(() => false),
+  getAutoTriggerCardTypes: vi.fn(() => []),
   getPhaseOrder: vi.fn(),
   
   // Space methods

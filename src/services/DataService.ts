@@ -143,6 +143,27 @@ export class DataService implements IDataService {
     return this.getGameConfigBySpace(spaceName)?.fee_label ?? '';
   }
 
+  /**
+   * Workstream 6 #3: should this space auto-apply funding on arrival?
+   * Replaces hardcoded `=== 'OWNER-FUND-INITIATION'` checks in TurnService.
+   * When true, TurnService.handleAutomaticFunding fires automatically and
+   * any cards listed in auto_trigger_card_types are auto-drawn (their direct
+   * money effects also get skipped to avoid double-counting).
+   */
+  shouldAutoApplyFunding(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.auto_apply_funding === true;
+  }
+
+  /**
+   * Workstream 6 #3: which card letters this space auto-triggers.
+   * Returns the parsed array (from comma-separated CSV column).
+   * Used for both auto-draw on arrival AND skip-direct-money-effect (because
+   * funding is calculated by handleAutomaticFunding instead).
+   */
+  getAutoTriggerCardTypes(spaceName: string): string[] {
+    return this.getGameConfigBySpace(spaceName)?.auto_trigger_card_types ?? [];
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {
@@ -419,6 +440,10 @@ export class DataService implements IDataService {
       const feeCalculationMethod: 'flat' | 'percentage_of_scope' =
         values[11] === 'percentage_of_scope' ? 'percentage_of_scope' : 'flat';
       const feeLabel = values[12] || '';
+      // Workstream 6 #3: parse auto-handling flags. auto_trigger_card_types is
+      // a comma-separated string in CSV → string[] in memory.
+      const autoApplyFunding = values[13] === 'Yes';
+      const autoTriggerCardTypes = (values[14] || '').split(',').map(s => s.trim()).filter(Boolean);
 
       return {
         space_name: values[0],
@@ -437,7 +462,10 @@ export class DataService implements IDataService {
         min_w_cards_to_leave: minWCardsToLeave,
         // Workstream 6 #7: design fee mechanic.
         fee_calculation_method: feeCalculationMethod,
-        fee_label: feeLabel
+        fee_label: feeLabel,
+        // Workstream 6 #3: setup-phase auto-handling.
+        auto_apply_funding: autoApplyFunding,
+        auto_trigger_card_types: autoTriggerCardTypes
       };
     });
   }
