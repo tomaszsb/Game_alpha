@@ -200,7 +200,8 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 **Status:** Audit complete (2026-04-26). Phase 6.1 started ahead of the voice rewrite merge (which is blocked on user sign-off in `docs/authored-copy-review.md`):
 - ✅ **#8 — REGULATORY-phase auto-roll** shipped v2.51.0 (2026-04-26). See CHANGELOG.
 - ✅ **#1 — Starting space lifted to is_starting_space flag** shipped v2.52.0 (2026-04-26). See CHANGELOG.
-- ⏳ #2, #3, #4, #5, #6, #7 in progress (technical-needs ordering; #5 + #6 next as a coupled pair on the resume mechanic).
+- ✅ **#5 + #6 — Resume mechanic lifted (is_resume_hub + is_point_of_no_return)** shipped v2.53.0 (2026-04-27). See CHANGELOG.
+- ⏳ #2, #3, #4, #7 in progress (technical-needs ordering; #2 or #7 next, both small data-flag lifts).
 
 ---
 

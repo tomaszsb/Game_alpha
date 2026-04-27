@@ -128,10 +128,13 @@ export class MovementService implements IMovementService {
 
       }
 
-      // SPECIAL HANDLING: Resume from side quest at PM-DECISION-CHECK
-      // If player detoured to a side quest (funding, etc.) and returned to PM-DECISION-CHECK,
-      // offer the destinations from the main-path space where they left off
-      if (player.currentSpace === 'PM-DECISION-CHECK' &&
+      // SPECIAL HANDLING: Resume from side quest at a resume-hub space.
+      // If player detoured to a side quest (funding, etc.) and returned to a
+      // resume hub, offer the destinations from the main-path space where they
+      // left off.
+      // Workstream 6 #5: lifted from `currentSpace === 'PM-DECISION-CHECK'` to
+      // the is_resume_hub data flag so educator-added resume hubs work.
+      if (this.dataService.isResumeHub(player.currentSpace) &&
           player.mainPathResumePoint &&
           !player.hasUsedCheatBypass) {
         const resumeMovement = this.dataService.getMovement(
@@ -140,7 +143,8 @@ export class MovementService implements IMovementService {
         );
         if (resumeMovement) {
           const resumeDestinations = this.extractDestinationsFromMovement(resumeMovement)
-            .filter(dest => dest !== 'PM-DECISION-CHECK' && !validMoves.includes(dest));
+            // Don't loop back to the hub the player is currently at.
+            .filter(dest => dest !== player.currentSpace && !validMoves.includes(dest));
           validMoves = [...validMoves, ...resumeDestinations];
         }
       }
@@ -326,10 +330,11 @@ export class MovementService implements IMovementService {
     }
 
     // SPECIAL: Track main-path resume point for side quest return
-    // When arriving at PM-DECISION-CHECK, check if we came from a main-path space.
-    // If so, store the source as the resume point so we can offer its destinations
-    // when the player returns from a side quest (funding, etc.)
-    if (destinationSpace === 'PM-DECISION-CHECK') {
+    // When arriving at a resume-hub space, check if we came from a main-path
+    // space. If so, store the source as the resume point so we can offer its
+    // destinations when the player returns from a side quest (funding, etc.).
+    // Workstream 6 #5: lifted from `=== 'PM-DECISION-CHECK'` to is_resume_hub flag.
+    if (this.dataService.isResumeHub(destinationSpace)) {
       const sourceConfig = this.dataService.getGameConfigBySpace(sourceSpace);
       const sourcePath = sourceConfig?.path_type?.toLowerCase() || '';
       if (sourcePath === 'main') {
@@ -337,8 +342,10 @@ export class MovementService implements IMovementService {
       }
     }
 
-    // SPECIAL: Mark CHEAT-BYPASS usage — disables resume-from-side-quest logic
-    if (destinationSpace === 'CHEAT-BYPASS') {
+    // SPECIAL: Point-of-no-return spaces (e.g. CHEAT-BYPASS) — clear the resume
+    // point and permanently disable future resume-from-side-quest behavior.
+    // Workstream 6 #6: lifted from `=== 'CHEAT-BYPASS'` to is_point_of_no_return flag.
+    if (this.dataService.isPointOfNoReturn(destinationSpace)) {
       playerUpdate.hasUsedCheatBypass = true;
       playerUpdate.mainPathResumePoint = null; // Clear resume point
     }

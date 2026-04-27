@@ -136,6 +136,8 @@ export interface IDataService {
   getGameConfig(): GameConfig[];
   getGameConfigBySpace(spaceName: string): GameConfig | undefined;
   isStartingSpace(spaceName: string): boolean;
+  isResumeHub(spaceName: string): boolean;
+  isPointOfNoReturn(spaceName: string): boolean;
   getPhaseOrder(): string[];
   
   // Space methods

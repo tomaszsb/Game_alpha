@@ -961,6 +961,15 @@ describe('MovementService', () => {
   });
 
   describe('Resume from side quest (mainPathResumePoint)', () => {
+    // Workstream 6 #5+#6: mock the new data-flag helpers so the engine reads the
+    // resume-mechanic flags off the (mock) data layer. Equivalent to the real
+    // Spaces.csv flagging PM-DECISION-CHECK as is_resume_hub and CHEAT-BYPASS as
+    // is_point_of_no_return.
+    beforeEach(() => {
+      mockDataService.isResumeHub.mockImplementation((spaceName: string) => spaceName === 'PM-DECISION-CHECK');
+      mockDataService.isPointOfNoReturn.mockImplementation((spaceName: string) => spaceName === 'CHEAT-BYPASS');
+    });
+
     const pmDecisionMovement: Movement = {
       space_name: 'PM-DECISION-CHECK',
       visit_type: 'Subsequent',

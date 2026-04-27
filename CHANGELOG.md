@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.53.0] - 2026-04-27
+
+### Workstream 6 #5+#6 — Resume mechanic lifted from PM-DECISION-CHECK / CHEAT-BYPASS literals
+
+Coupled scenarios shipped together because both touch the same MovementService logic. PM-DECISION-CHECK was hardcoded as the "resume hub" (where players check in from side quests); CHEAT-BYPASS was hardcoded as the "point of no return" (clears stored resume + permanently disables future resumes). Both lifted to Spaces.csv flags so educator-added spaces with the same mechanics work without engine changes.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added two columns: `is_resume_hub` and `is_point_of_no_return`. Set via a one-off Node script that normalized all rows to the new 40-column count (filling missing trailing fields with empty strings) and applied flag values: PM-DECISION-CHECK/First+Subsequent get `is_resume_hub=Yes`; CHEAT-BYPASS/First+Subsequent get `is_point_of_no_return=Yes`. All other rows keep both flags empty (parser → 'No' downstream). Header order: `…,is_starting_space,is_resume_hub,is_point_of_no_return`.
+
+**`server/processGameData.js`** — `processGameConfig` now reads both new columns and emits them on each `GAME_CONFIG.csv` row. `fieldnames` array extended so the new columns appear in output. Empty/missing values default to 'No'.
+
+**`src/types/DataTypes.ts`** — Added optional `is_resume_hub?: boolean` and `is_point_of_no_return?: boolean` to `GameConfig`. Optional rather than required so older CLEAN_FILES (without the columns) still parse cleanly.
+
+**`src/services/DataService.ts`** — Added `isResumeHub(spaceName)` and `isPointOfNoReturn(spaceName)` helpers. `parseGameConfigCsv` now reads `values[8]` (is_resume_hub) and `values[9]` (is_point_of_no_return) — undefined for older CLEAN_FILES → falsy.
+
+**`src/types/ServiceContracts.ts`** — Added both helpers to `IDataService` interface.
+
+**`src/services/MovementService.ts`** —
+- Resume-destination offer: `currentSpace === 'PM-DECISION-CHECK'` → `dataService.isResumeHub(currentSpace)`. Also tightened the dedup filter from `dest !== 'PM-DECISION-CHECK'` to `dest !== player.currentSpace` (filtering out *any* current space loop-back, not just the one literal).
+- Resume-point storage: `destinationSpace === 'PM-DECISION-CHECK'` → `dataService.isResumeHub(destinationSpace)`.
+- Point-of-no-return: `destinationSpace === 'CHEAT-BYPASS'` → `dataService.isPointOfNoReturn(destinationSpace)`. Both effects (set `hasUsedCheatBypass=true`, clear `mainPathResumePoint`) fire together when the flag is true.
+
+**`tests/mocks/mockServices.ts`** — Added `isResumeHub` and `isPointOfNoReturn` mocks (default returns false).
+
+**`tests/services/MovementService.test.ts`** — Added a `beforeEach` to the "Resume from side quest" describe block setting `isResumeHub` to return true for `'PM-DECISION-CHECK'` and `isPointOfNoReturn` to return true for `'CHEAT-BYPASS'`. Equivalent to the real Spaces.csv flagging on the mock data layer.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+4 tests in new `engine-data separation: resume-mechanic flags` describe block):
+  1. *Real Spaces.csv flags PM-DECISION-CHECK as is_resume_hub and CHEAT-BYPASS as is_point_of_no_return* — protective; locks in current data behavior.
+  2. *Parametric: a custom space marked is_resume_hub=Yes resolves to Yes* — proves resume-hub logic is data-driven.
+  3. *Parametric: a custom space marked is_point_of_no_return=Yes resolves to Yes* — proves point-of-no-return logic is data-driven.
+  4. *Rows without the new columns default both flags to No* — backward-compatibility for source CSVs predating these columns.
+
+**Regenerated CLEAN_FILES** — `GAME_CONFIG.csv` now includes `is_resume_hub` and `is_point_of_no_return` columns (positions 8, 9). PM-DECISION-CHECK gets `Yes,No`; CHEAT-BYPASS gets `No,Yes`; all others `No,No`. Output is functionally identical to v2.52.0 except for these two new informational columns; behavior preserved.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. MovementService 47/47, processGameData 28/28 (24 + 4 new), DataService 7/7. Ghost Player strict + try-again-happy both pass — resume mechanic exercised across 100 random games (try-again-happy variant in particular triggers the resume flow many times), behavior preserved.
+
+---
+
 ## [2.52.0] - 2026-04-26
 
 ### Workstream 6 #1 — Starting space lifted from `OWNER-SCOPE-INITIATION` literal to data flag

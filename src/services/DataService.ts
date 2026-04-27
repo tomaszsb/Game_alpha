@@ -91,6 +91,28 @@ export class DataService implements IDataService {
     return this.getGameConfigBySpace(spaceName)?.is_starting_space === true;
   }
 
+  /**
+   * Workstream 6 #5: data-driven resume-hub lookup.
+   * Returns true if the named space is flagged `is_resume_hub=Yes` in Spaces.csv.
+   * A resume hub stores the `mainPathResumePoint` when arrived-at from a main-path
+   * space, and offers those resume destinations when arrived-at later (after side
+   * quest). Replaces hardcoded `=== 'PM-DECISION-CHECK'` checks in MovementService.
+   */
+  isResumeHub(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.is_resume_hub === true;
+  }
+
+  /**
+   * Workstream 6 #6: data-driven point-of-no-return lookup.
+   * Returns true if the named space is flagged `is_point_of_no_return=Yes` in
+   * Spaces.csv. Arriving here clears any stored `mainPathResumePoint` and
+   * permanently disables future resume-from-side-quest behavior (sets
+   * `hasUsedCheatBypass`). Replaces hardcoded `=== 'CHEAT-BYPASS'` checks.
+   */
+  isPointOfNoReturn(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.is_point_of_no_return === true;
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {
@@ -356,7 +378,7 @@ export class DataService implements IDataService {
   private parseGameConfigCsv(csvText: string): GameConfig[] {
     const lines = csvText.trim().split('\n');
     const header = lines[0].split(',');
-    
+
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
       return {
@@ -367,7 +389,11 @@ export class DataService implements IDataService {
         is_ending_space: values[4] === 'Yes',
         min_players: parseInt(values[5]),
         max_players: parseInt(values[6]),
-        requires_dice_roll: values[7] === 'Yes'
+        requires_dice_roll: values[7] === 'Yes',
+        // Workstream 6 #5+#6: resume-mechanic flags. Older CLEAN_FILES without
+        // these columns produce undefined → falsy at the use site.
+        is_resume_hub: values[8] === 'Yes',
+        is_point_of_no_return: values[9] === 'Yes'
       };
     });
   }

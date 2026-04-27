@@ -7,6 +7,9 @@ export interface GameConfig {
   min_players: number;
   max_players: number;
   requires_dice_roll: boolean;
+  // Workstream 6 #5+#6: resume-mechanic flags (Spaces.csv columns)
+  is_resume_hub?: boolean;
+  is_point_of_no_return?: boolean;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;

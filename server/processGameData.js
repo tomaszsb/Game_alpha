@@ -231,10 +231,17 @@ function processGameConfig(spacesCsv) {
 
     const phase = row.phase || '';
     const pathType = row.path || '';
-    // Workstream 6 #1: read is_starting_space from source (Spaces.csv column).
-    // Was previously hardcoded to a STARTING_SPACE constant in this file.
-    // Empty / missing / non-Yes values default to 'No'.
+    // Workstream 6 #1: read is_starting_space from source.
     const isStarting = (row.is_starting_space || '').trim() === 'Yes';
+    // Workstream 6 #5+#6: read resume-mechanic flags from source.
+    // is_resume_hub: this space is where players check in from side quests
+    //   (was hardcoded to PM-DECISION-CHECK in MovementService).
+    // is_point_of_no_return: arriving here clears any stored resume point and
+    //   permanently disables future resume-from-side-quest behavior (was
+    //   hardcoded to CHEAT-BYPASS in MovementService).
+    // Empty / missing / non-Yes values default to 'No'.
+    const isResumeHub = (row.is_resume_hub || '').trim() === 'Yes';
+    const isPointOfNoReturn = (row.is_point_of_no_return || '').trim() === 'Yes';
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -244,13 +251,16 @@ function processGameConfig(spacesCsv) {
       is_ending_space: spaceName === 'FINISH' ? 'Yes' : 'No',
       min_players: '1',
       max_players: '4',
-      requires_dice_roll: row.requires_dice_roll || 'Yes'
+      requires_dice_roll: row.requires_dice_roll || 'Yes',
+      is_resume_hub: isResumeHub ? 'Yes' : 'No',
+      is_point_of_no_return: isPointOfNoReturn ? 'Yes' : 'No'
     };
   }
 
   const fieldnames = [
     'space_name', 'phase', 'path_type', 'is_starting_space', 'is_ending_space',
-    'min_players', 'max_players', 'requires_dice_roll'
+    'min_players', 'max_players', 'requires_dice_roll',
+    'is_resume_hub', 'is_point_of_no_return'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

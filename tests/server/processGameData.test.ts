@@ -315,6 +315,103 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #5+#6 — Engine-data separation: resume-mechanic flags
+// PM-DECISION-CHECK as "the resume hub" and CHEAT-BYPASS as "the point of no
+// return" were both hardcoded by space ID in MovementService. Lifted to
+// `is_resume_hub` and `is_point_of_no_return` Spaces.csv columns so educators
+// can mark different spaces with the same mechanics.
+describe('processGameData — engine-data separation: resume-mechanic flags', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it('real Spaces.csv flags PM-DECISION-CHECK as is_resume_hub and CHEAT-BYPASS as is_point_of_no_return', () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    // GAME_CONFIG column order:
+    // 0:space_name 1:phase 2:path_type 3:is_starting_space 4:is_ending_space
+    // 5:min_players 6:max_players 7:requires_dice_roll 8:is_resume_hub 9:is_point_of_no_return
+    const pmRow = dataRows.find(r => r.startsWith('PM-DECISION-CHECK,'));
+    const cheatRow = dataRows.find(r => r.startsWith('CHEAT-BYPASS,'));
+
+    expect(pmRow).toBeDefined();
+    expect(cheatRow).toBeDefined();
+
+    const pmFields = pmRow!.split(',');
+    const cheatFields = cheatRow!.split(',');
+
+    expect(pmFields[8]).toBe('Yes');  // PM-DECISION-CHECK is the resume hub
+    expect(pmFields[9]).toBe('No');   // PM-DECISION-CHECK is NOT a point of no return
+
+    expect(cheatFields[8]).toBe('No');   // CHEAT-BYPASS is NOT a resume hub
+    expect(cheatFields[9]).toBe('Yes');  // CHEAT-BYPASS IS the point of no return
+  });
+
+  it('parametric: a custom space marked is_resume_hub=Yes resolves to Yes in output', () => {
+    const headerWithFlag = `${spacesHeader},is_resume_hub`;
+    const csv = [
+      headerWithFlag,
+      `${makeSpaceRow('CUSTOM-CHECKPOINT', { phase: 'OWNER' })},Yes`,
+      `${makeSpaceRow('OTHER-SPACE', { phase: 'DESIGN' })},No`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const customRow = dataRows.find(r => r.startsWith('CUSTOM-CHECKPOINT,'));
+    const otherRow = dataRows.find(r => r.startsWith('OTHER-SPACE,'));
+    expect(customRow!.split(',')[8]).toBe('Yes');
+    expect(otherRow!.split(',')[8]).toBe('No');
+  });
+
+  it('parametric: a custom space marked is_point_of_no_return=Yes resolves to Yes in output', () => {
+    const headerWithFlag = `${spacesHeader},is_point_of_no_return`;
+    const csv = [
+      headerWithFlag,
+      `${makeSpaceRow('CUSTOM-FORK', { phase: 'OWNER' })},Yes`,
+      `${makeSpaceRow('OTHER-SPACE', { phase: 'DESIGN' })},No`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const customRow = dataRows.find(r => r.startsWith('CUSTOM-FORK,'));
+    const otherRow = dataRows.find(r => r.startsWith('OTHER-SPACE,'));
+    expect(customRow!.split(',')[9]).toBe('Yes');
+    expect(otherRow!.split(',')[9]).toBe('No');
+  });
+
+  it('rows without the new columns default both flags to No', () => {
+    const csv = [
+      spacesHeader, // header WITHOUT is_resume_hub or is_point_of_no_return
+      makeSpaceRow('LEGACY-A', {}),
+      makeSpaceRow('LEGACY-B', {}),
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    expect(dataRows).toHaveLength(2);
+    for (const row of dataRows) {
+      const f = row.split(',');
+      expect(f[8]).toBe('No');
+      expect(f[9]).toBe('No');
+    }
+  });
+});
+
 // Workstream 6 #1 — Engine-data separation: starting space lifted to data flag
 // Previously processGameData hardcoded `STARTING_SPACE = 'OWNER-SCOPE-INITIATION'`
 // and computed `is_starting_space` from that constant. Now reads `is_starting_space`
