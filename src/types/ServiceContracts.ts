@@ -138,6 +138,7 @@ export interface IDataService {
   isStartingSpace(spaceName: string): boolean;
   isResumeHub(spaceName: string): boolean;
   isPointOfNoReturn(spaceName: string): boolean;
+  getMinWCardsToLeave(spaceName: string): number;
   getPhaseOrder(): string[];
   
   // Space methods

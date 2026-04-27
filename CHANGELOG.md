@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.54.0] - 2026-04-27
+
+### Workstream 6 #2 — Scope-zero guard lifted to `min_w_cards_to_leave` data flag
+
+The "you must draw W cards before leaving" guard at OWNER-SCOPE-INITIATION was hardcoded by space ID in TurnService. Lifted to a numeric `min_w_cards_to_leave` Spaces.csv column so educators can gate any space with a W-card threshold.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added `min_w_cards_to_leave` column (41st). OWNER-SCOPE-INITIATION/First+Subsequent rows set to `1`; all other rows empty (parser → 0 downstream).
+
+**`server/processGameData.js`** — `processGameConfig` now reads and propagates the column. Empty / missing / non-numeric / negative values default to 0 (no guard).
+
+**`src/types/DataTypes.ts`** — Added optional `min_w_cards_to_leave?: number` to `GameConfig`.
+
+**`src/services/DataService.ts`** — Added `getMinWCardsToLeave(spaceName): number` helper. `parseGameConfigCsv` reads `values[10]` as the W-card threshold (NaN-safe, negative-clamped to 0).
+
+**`src/types/ServiceContracts.ts`** — Added the helper to `IDataService`.
+
+**`src/services/TurnService.ts`** — `endTurn` guard: `currentSpace === 'OWNER-SCOPE-INITIATION'` literal replaced with `dataService.getMinWCardsToLeave(currentSpace) > 0`. Guard now fires for any space with a non-zero threshold; comparison upgraded from `wCardCount === 0` to `wCardCount < minW` so educators can require multiple W cards (e.g. min=2). The hardcoded debug log at line 386 (legacy diagnostic for a specific OWNER-SCOPE bug) intentionally remains — it's logging, not behavior, and gets removed independently if/when the diagnostic is no longer needed.
+
+**`tests/mocks/mockServices.ts`** — Added `getMinWCardsToLeave: vi.fn(() => 0)` to the mock.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+4 tests in new `engine-data separation: min_w_cards_to_leave` describe block):
+  1. *Real Spaces.csv flags OWNER-SCOPE-INITIATION with min_w_cards_to_leave=1, no other space gated* — protective.
+  2. *Parametric: a custom space with min_w_cards_to_leave=2 propagates to output* — proves the lift.
+  3. *Rows without the column default to 0* — backward-compat.
+  4. *Non-numeric or negative values default to 0* — defensive.
+
+**Regenerated CLEAN_FILES** — `GAME_CONFIG.csv` now includes a `min_w_cards_to_leave` column at position 10. Currently `1` only on OWNER-SCOPE-INITIATION; `0` elsewhere. Behavior identical to v2.53.0.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. TurnService 31/31, DataService 7/7, processGameData 32/32 (28 + 4 new). Ghost Player strict + try-again-happy both pass — scope-zero guard exercised on every game start, behavior preserved.
+
+---
+
 ## [2.53.0] - 2026-04-27
 
 ### Workstream 6 #5+#6 — Resume mechanic lifted from PM-DECISION-CHECK / CHEAT-BYPASS literals

@@ -201,7 +201,8 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - ✅ **#8 — REGULATORY-phase auto-roll** shipped v2.51.0 (2026-04-26). See CHANGELOG.
 - ✅ **#1 — Starting space lifted to is_starting_space flag** shipped v2.52.0 (2026-04-26). See CHANGELOG.
 - ✅ **#5 + #6 — Resume mechanic lifted (is_resume_hub + is_point_of_no_return)** shipped v2.53.0 (2026-04-27). See CHANGELOG.
-- ⏳ #2, #3, #4, #7 in progress (technical-needs ordering; #2 or #7 next, both small data-flag lifts).
+- ✅ **#2 — Scope-zero guard lifted (min_w_cards_to_leave)** shipped v2.54.0 (2026-04-27). See CHANGELOG.
+- ⏳ #7 next (design fee math), then #3 (setup-phase auto-handling), then #4 (DOB path-choice memory + Phase 6.2 type loosening — most complex).
 
 ---
 

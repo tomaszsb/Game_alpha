@@ -242,6 +242,11 @@ function processGameConfig(spacesCsv) {
     // Empty / missing / non-Yes values default to 'No'.
     const isResumeHub = (row.is_resume_hub || '').trim() === 'Yes';
     const isPointOfNoReturn = (row.is_point_of_no_return || '').trim() === 'Yes';
+    // Workstream 6 #2: read min_w_cards_to_leave from source. Used by the
+    // engine's end-turn guard. Empty / missing / non-numeric values default to 0.
+    const minWCardsRaw = (row.min_w_cards_to_leave || '').trim();
+    const minWCardsParsed = parseInt(minWCardsRaw, 10);
+    const minWCardsToLeave = Number.isFinite(minWCardsParsed) && minWCardsParsed >= 0 ? minWCardsParsed : 0;
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -253,14 +258,15 @@ function processGameConfig(spacesCsv) {
       max_players: '4',
       requires_dice_roll: row.requires_dice_roll || 'Yes',
       is_resume_hub: isResumeHub ? 'Yes' : 'No',
-      is_point_of_no_return: isPointOfNoReturn ? 'Yes' : 'No'
+      is_point_of_no_return: isPointOfNoReturn ? 'Yes' : 'No',
+      min_w_cards_to_leave: String(minWCardsToLeave)
     };
   }
 
   const fieldnames = [
     'space_name', 'phase', 'path_type', 'is_starting_space', 'is_ending_space',
     'min_players', 'max_players', 'requires_dice_roll',
-    'is_resume_hub', 'is_point_of_no_return'
+    'is_resume_hub', 'is_point_of_no_return', 'min_w_cards_to_leave'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

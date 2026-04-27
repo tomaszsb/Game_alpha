@@ -393,11 +393,16 @@ export class TurnService implements ITurnService {
         throw new Error(`Cannot end turn: Player has not completed all required actions. Required: ${gameState.requiredActions}, Completed: ${gameState.completedActionCount}`);
       }
 
-      // Guard: Cannot leave OWNER-SCOPE-INITIATION with zero scope (no W cards)
-      if (currentPlayer.currentSpace === 'OWNER-SCOPE-INITIATION' && !skipAutoMove) {
-        const wCardCount = currentPlayer.hand.filter(c => c.startsWith('W')).length;
-        if (wCardCount === 0) {
-          throw new Error('You must draw Work cards before leaving this space. Your project needs a scope!');
+      // Guard: Cannot leave a scope-gated space without enough W cards.
+      // Workstream 6 #2: lifted from `=== 'OWNER-SCOPE-INITIATION'` literal to the
+      // min_w_cards_to_leave data flag so educators can gate other spaces too.
+      if (!skipAutoMove) {
+        const minW = this.dataService.getMinWCardsToLeave(currentPlayer.currentSpace);
+        if (minW > 0) {
+          const wCardCount = currentPlayer.hand.filter(c => c.startsWith('W')).length;
+          if (wCardCount < minW) {
+            throw new Error(`You must draw Work cards before leaving this space. Your project needs a scope!`);
+          }
         }
       }
 

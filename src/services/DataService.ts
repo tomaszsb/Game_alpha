@@ -113,6 +113,16 @@ export class DataService implements IDataService {
     return this.getGameConfigBySpace(spaceName)?.is_point_of_no_return === true;
   }
 
+  /**
+   * Workstream 6 #2: minimum W cards required to leave a space.
+   * Returns the configured threshold from Spaces.csv (0 = no guard).
+   * Replaces the hardcoded `=== 'OWNER-SCOPE-INITIATION'` scope-zero guard
+   * in TurnService so educators can add similar guards on other spaces.
+   */
+  getMinWCardsToLeave(spaceName: string): number {
+    return this.getGameConfigBySpace(spaceName)?.min_w_cards_to_leave ?? 0;
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {
@@ -381,6 +391,10 @@ export class DataService implements IDataService {
 
     return lines.slice(1).map(line => {
       const values = this.parseCsvLine(line);
+      // Workstream 6 #2: parse min_w_cards_to_leave (numeric, default 0).
+      const parsedMinW = parseInt(values[10], 10);
+      const minWCardsToLeave = Number.isFinite(parsedMinW) && parsedMinW >= 0 ? parsedMinW : 0;
+
       return {
         space_name: values[0],
         phase: values[1],
@@ -393,7 +407,9 @@ export class DataService implements IDataService {
         // Workstream 6 #5+#6: resume-mechanic flags. Older CLEAN_FILES without
         // these columns produce undefined → falsy at the use site.
         is_resume_hub: values[8] === 'Yes',
-        is_point_of_no_return: values[9] === 'Yes'
+        is_point_of_no_return: values[9] === 'Yes',
+        // Workstream 6 #2: minimum W cards required to leave (0 = no guard).
+        min_w_cards_to_leave: minWCardsToLeave
       };
     });
   }

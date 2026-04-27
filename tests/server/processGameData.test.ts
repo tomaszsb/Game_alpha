@@ -315,6 +315,85 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #2 — Engine-data separation: scope-zero guard via min_w_cards_to_leave
+// TurnService previously hardcoded the W-card check to OWNER-SCOPE-INITIATION.
+// Lifted to a numeric `min_w_cards_to_leave` Spaces.csv column so educators
+// can gate other spaces with the same mechanic (e.g. require 2 W cards on a
+// custom "scope review" space).
+describe('processGameData — engine-data separation: min_w_cards_to_leave', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it('real Spaces.csv flags OWNER-SCOPE-INITIATION with min_w_cards_to_leave=1', () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    // Column order: 0:space_name … 8:is_resume_hub 9:is_point_of_no_return 10:min_w_cards_to_leave
+    const ownerScopeRow = dataRows.find(r => r.startsWith('OWNER-SCOPE-INITIATION,'));
+    expect(ownerScopeRow).toBeDefined();
+    expect(ownerScopeRow!.split(',')[10]).toBe('1');
+
+    // Sanity: no other space has min_w_cards_to_leave > 0 on current data
+    const gatedRows = dataRows.filter(r => parseInt(r.split(',')[10], 10) > 0);
+    expect(gatedRows).toHaveLength(1);
+    expect(gatedRows[0]).toMatch(/^OWNER-SCOPE-INITIATION,/);
+  });
+
+  it('parametric: a custom space with min_w_cards_to_leave=2 propagates to output', () => {
+    const headerWithFlag = `${spacesHeader},min_w_cards_to_leave`;
+    const csv = [
+      headerWithFlag,
+      `${makeSpaceRow('CUSTOM-SCOPE-CHECK', { phase: 'OWNER' })},2`,
+      `${makeSpaceRow('OTHER-SPACE', { phase: 'DESIGN' })},0`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    expect(dataRows.find(r => r.startsWith('CUSTOM-SCOPE-CHECK,'))!.split(',')[10]).toBe('2');
+    expect(dataRows.find(r => r.startsWith('OTHER-SPACE,'))!.split(',')[10]).toBe('0');
+  });
+
+  it('rows without min_w_cards_to_leave default to 0', () => {
+    const csv = [
+      spacesHeader, // header WITHOUT min_w_cards_to_leave
+      makeSpaceRow('LEGACY-A', {}),
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    expect(dataRows[0].split(',')[10]).toBe('0');
+  });
+
+  it('non-numeric or negative values default to 0', () => {
+    const headerWithFlag = `${spacesHeader},min_w_cards_to_leave`;
+    const csv = [
+      headerWithFlag,
+      `${makeSpaceRow('BAD-VAL-A', { phase: 'OWNER' })},garbage`,
+      `${makeSpaceRow('BAD-VAL-B', { phase: 'OWNER' })},-3`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    expect(dataRows.find(r => r.startsWith('BAD-VAL-A,'))!.split(',')[10]).toBe('0');
+    expect(dataRows.find(r => r.startsWith('BAD-VAL-B,'))!.split(',')[10]).toBe('0');
+  });
+});
+
 // Workstream 6 #5+#6 — Engine-data separation: resume-mechanic flags
 // PM-DECISION-CHECK as "the resume hub" and CHEAT-BYPASS as "the point of no
 // return" were both hardcoded by space ID in MovementService. Lifted to

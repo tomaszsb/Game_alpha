@@ -10,6 +10,8 @@ export interface GameConfig {
   // Workstream 6 #5+#6: resume-mechanic flags (Spaces.csv columns)
   is_resume_hub?: boolean;
   is_point_of_no_return?: boolean;
+  // Workstream 6 #2: minimum W cards required to leave this space (0 = no guard)
+  min_w_cards_to_leave?: number;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;
