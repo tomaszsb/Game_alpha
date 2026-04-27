@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.51.0] - 2026-04-26
+
+### Workstream 6 #8 — REGULATORY-phase auto-roll lifted from `REG-` prefix check
+
+First scenario of [Workstream 6 — Engine-Data Separation](docs/core/BETA_PLAN_V3.md). The auto-roll-on-arrival behavior at REG- spaces (clerk/examiner makes the dice decision) was hardcoded to `currentSpace.startsWith('REG-')`. Lifted to a phase check so educator-added regulatory spaces (any prefix) get the same auto-roll behavior. Behavior-preserving on current data; the lift is a prerequisite for the multi-tenant educator-licensing roadmap, not a behavior change.
+
+**`src/services/TurnService.ts`** — `startTurn()` REG-detection switched from `currentSpace.startsWith('REG-')` to `dataService.getGameConfigBySpace(currentSpace)?.phase === 'REGULATORY'`. Variable renamed `isRegSpace` → `isRegulatoryPhaseSpace`. `phase` field already exists on `GameConfig` and is populated by `processGameData.js` from the `phase` column in `Spaces.csv` — no new columns or pipeline changes needed.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+2 tests, new `engine-data separation: REGULATORY phase equivalence` describe block):
+  1. *Every REG-prefixed space resolves to phase=REGULATORY* — protective; proves the lift is behavior-preserving on current real data.
+  2. *phase=REGULATORY spaces match the legacy REG- prefix on current data* — reverse direction; locks in the current set so a future non-REG-prefix REGULATORY space (the lift's intent for educators) requires an explicit allowlist update, signaling the intentional widening.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. TurnService 31/31. Ghost Player strict (50 games, ≥90% wins, no exceptions) + try-again-happy (50 games, ≥90% wins) both pass — the auto-roll path is exercised on every REG- space landing across 100 random games, behavior preserved.
+
+### Documentation
+
+**`docs/core/BETA_PLAN_V3.md`** — Added Workstream 6 (Engine-Data Separation) with full audit findings, 8-scenario plan, test strategy, risks, and version-bump scheme. Workstream 6 is post-v3.0 work added April 2026 in response to the educator-licensing roadmap; not part of the original 5-workstream Beta scope.
+
+**`TODO.md`** — Compressed engine-data-separation entry to a one-line pointer at BETA_PLAN_V3 Workstream 6 (full plan lives in the workstream doc).
+
+---
+
 ## [2.50.0] - 2026-04-21
 
 ### Story as composed per-action narratives (in-page accordion)

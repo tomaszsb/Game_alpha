@@ -126,6 +126,83 @@ The Alpha is 95% working. Thousands of fixes, edge cases, and school-floor lesso
 
 ---
 
+### Workstream 6 — Engine-Data Separation (post-v3.0, added April 2026)
+
+**Note:** This workstream is **not part of the original 5-workstream Beta scope**. It was added on 2026-04-26 in response to a new product requirement (multi-tenant educator licensing — schools edit data, contribute back to a shared catalog). The audit that motivates it found that the principle "engine is generic, all per-space variation lives in data" is aspirational, not actual.
+
+**Problem:** ~25 hardcoded space-ID references across 9 source files, plus 2 type-level hardcodes. Educators cannot today: change the starting space, replicate path-choice lock-in mechanics on new spaces, replicate the scope-zero guard, replicate the design fee math, or rename existing spaces without silently breaking engine logic. File format (CSV vs JSON, raised in the lost prior chat) is mostly orthogonal — engine-data coupling is the actual blocker.
+
+**Why now:** Prerequisite for the multi-tenant content vision. Each scenario also independently improves educator power without any user-facing change. None of this requires migrating the data format first.
+
+**Deliverable:** Three phases, each independently shippable, all on the existing CSV pipeline. Voice rewrite (v2.51.0) ships first; this workstream starts after.
+
+#### Phase 6.1 — Category A: Lift engine-behavior hardcodes into Spaces.csv flags
+
+| # | Scenario | New Spaces.csv columns | Files to refactor | Effort |
+|---|---|---|---|---|
+| 1 | Starting space | `is_starting_space` (already in CLEAN_FILES output via processGameData; expose in source) | StateService.ts:1628, CardService.ts:98, processGameData.js:228 | S (~2-3h) |
+| 2 | Scope-zero guard | `min_w_cards_to_leave: number` (default 0, OWNER-SCOPE-INITIATION = 1) | TurnService.ts:397 | S (~2-3h) |
+| 3 | Setup-phase auto-handling | `auto_apply_funding: Yes/No`, `auto_trigger_card_types: 'B,I'` (CSV letters) | TurnService.ts:749/887/1975, CardService.ts:1177/1220, NotificationUtils.ts:66, processGameData.js:343 | M (~6-8h) |
+| 4 | DOB path-choice memory + cross-space filter | `path_choice_memory_key`, `is_path_choice_lock_point` + new `PATH_CHOICE_RULES.csv` for cross-space exclusion rules | MovementService.ts:122/316/539; types in DataTypes:273, StateTypes:394 | L (~8-12h) |
+| 5 | Resume-from-side-quest | `enables_resume_from_side_quest: Yes/No` | MovementService.ts:134/332 | S (~2-3h) |
+| 6 | Clears resume point | `clears_resume_point_on_arrival: Yes/No`, `disables_resume_permanently: Yes/No` | MovementService.ts:341 | S (~1-2h) |
+| 7 | Design fee math | `fee_calculation_method: flat/percentage_of_scope`, `fee_label: string` | SpaceEffectService.ts:157/164, FinancesSection.tsx:370 | S (~2-3h) |
+| 8 | Regulatory-phase override | (no new column — switch `startsWith('REG-')` to `phase === 'REGULATORY'` since `phase` already exists) | TurnService.ts:760 | XS (~1h) |
+
+**Effort:** ~25-35 hours total. **Recommended order: #8 → #1 → #6 → #5 → #7 → #2 → #3 → #4** (easy wins first; #4 is hardest because of cross-space filter coupling — defer to last so the refactor pattern is well-established by then).
+
+#### Phase 6.2 — Category C: Loosen literal-typed unions
+
+- `DataTypes.ts:273` + `StateTypes.ts:394`: change `pathChoiceMemory?: { 'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT' }` → `pathChoiceMemory?: Record<string, string>`.
+- Sweep for any other literal-typed unions encoding known space IDs (search pattern: union of 2+ string literals matching `[A-Z]+-[A-Z\-]+`).
+
+**Effort:** ~1-2 hours. Trivial but blocking — without this, scenario #4 doesn't work for educator-added spaces. Do as part of #4 or right after.
+
+#### Phase 6.3 — Category B: Cosmetic mappings (lower priority)
+
+| Mapping | New column | Files |
+|---|---|---|
+| NPC voice profile | `npc_voice_profile: string` | characters.ts:57, SpeechService |
+| Display label override | `display_label_override: string` | boardLayout.ts:48 |
+| Review-loop message | `review_loop_message: string` | DiceRollProcessor.ts:94 |
+
+Phase color scheme stays code-side (educators won't add phases).
+
+**Effort:** ~4-6 hours.
+
+**Total Workstream 6 effort: ~30-45 hours** (1-2 weeks of focused work; parallelizable across sessions).
+
+#### Test strategy (mandatory per scenario)
+
+For each scenario lifted, three test categories:
+
+1. **Protective tests (existing)** — existing tests exercising the current hardcoded behavior must pass unchanged. These verify the lift is behavior-preserving. Catalog before refactoring; if any change is needed, that's a behavior change, not a refactor.
+2. **Parametric tests (new)** — apply the new flag to a *different* space and verify the behavior moves with the data. This is what locks in the "data-driven" claim. Without these, we've just renamed the hardcode. **One parametric test per scenario, minimum.**
+3. **Data integrity tests (new)** — extend `processGameData.test.ts` to validate the new column structure (e.g., exactly one `is_starting_space=Yes`, enum values restricted to valid set, required columns present).
+
+Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% wins, all `GAME_CONFIG.csv` spaces visited. Catches subtle regressions where a flag isn't propagated correctly.
+
+**Per-scenario CI gate:** `./tests/scripts/run-tests-batch-fixed.sh` (23 batches) green + `npm run typecheck` 0 errors + Ghost Player pass. No exceptions; revert if any fail.
+
+#### Risks
+
+- **Scenario #4 cross-coupling** (DOB path memory affects REG-FDNY-PLAN-EXAM choices) is the riskiest. Without careful `PATH_CHOICE_RULES.csv` design, we'd just replace one hardcode with a worse data structure. Defer to last; design the CSV schema before writing code.
+- **Scenario #3 has 7+ touchpoints** — easy to miss one and leave OWNER-FUND-INITIATION half-data-driven. After each refactor: `git grep "OWNER-FUND-INITIATION"` should return zero hits in `src/services/` and `src/utils/`.
+- **Type loosening in Phase 6.2 is permissive** — could mask bugs where a `pathChoiceMemory` key was previously type-enforced. Mitigation: Ghost Player still exercises the real flow; the type was overly strict, not load-bearing.
+- **Cross-references break on rename.** An educator who renames `REG-DOB-PLAN-EXAM` will break the `path_choice_options` referencing it. Long-term mitigation: editor UI prevents renames or auto-updates references. Out of scope for Workstream 6 — flagged for the multi-tenant editor work later.
+- **Behavior drift during refactor.** A "lift" should be 100% behavior-preserving. If a protective test starts failing, the refactor is wrong, not the test. Don't update the test to match new behavior — fix the refactor.
+
+**Version bumps on ship:**
+- Each scenario ships as its own version bump (next available patch/minor); each is independent and can be reverted in isolation.
+- Phase 6.2 type loosening: rolled into scenario #4's ship (they're coupled).
+- Phase 6.3: separate ship once Phase 6.1 is fully complete.
+
+**Status:** Audit complete (2026-04-26). Phase 6.1 started ahead of the voice rewrite merge (which is blocked on user sign-off in `docs/authored-copy-review.md`):
+- ✅ **#8 — REGULATORY-phase auto-roll** shipped v2.51.0 (2026-04-26). See CHANGELOG.
+- ⏳ #1, #2, #3, #4, #5, #6, #7 in progress (technical-needs ordering; #1 next).
+
+---
+
 ## Workstream 0 — Prep & Cleanup (this commit)
 
 Before any of the above starts:
@@ -147,6 +224,7 @@ Infra renames (Docker container, `deploy.sh` name, GitHub repo, Unraid folder) a
 4. **Workstream 3** — Living Map
 5. **Workstream 4** — TurnService decomposition
 6. **Workstream 5** — Dictionary polish → ship v3.0.0
+7. **Workstream 6** — Engine-Data Separation (post-v3.0; added April 2026 for the educator-licensing roadmap, not part of original Beta scope)
 
 Each ships on its own version bump. If any workstream reveals that an earlier assumption was wrong, we pause and update this plan before continuing.
 

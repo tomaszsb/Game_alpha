@@ -315,6 +315,72 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #8 — Engine-data separation: regulatory-phase coupling
+// TurnService.startTurn() previously checked `currentSpace.startsWith('REG-')` to
+// decide whether to auto-roll dice on arrival. That check was lifted to
+// `phase === 'REGULATORY'` so educator-added regulatory spaces (any prefix) get
+// the same behavior. This describe block locks in the equivalence on real data:
+// every space starting with `REG-` in source must resolve to phase=REGULATORY in
+// GAME_CONFIG output. If this ever drifts, the lift would silently change behavior.
+describe('processGameData — engine-data separation: REGULATORY phase equivalence', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it("every REG-prefixed space resolves to phase='REGULATORY' in GAME_CONFIG", () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+
+    // Skip header
+    const dataRows = lines.slice(1);
+    const regRows = dataRows.filter(l => l.startsWith('REG-'));
+
+    expect(regRows.length).toBeGreaterThan(0); // sanity: there ARE REG- spaces
+
+    // Column order: space_name,phase,path_type,is_starting_space,is_ending_space,...
+    const violators = regRows.filter(row => {
+      const phase = row.split(',')[1];
+      return phase !== 'REGULATORY';
+    });
+
+    expect(violators).toHaveLength(0);
+  });
+
+  it("phase='REGULATORY' spaces match the legacy REG- prefix on current data", () => {
+    // Reverse direction: confirms the lift didn't accidentally widen the set.
+    // (If a non-REG-prefixed space gets phase=REGULATORY in the future, the
+    // engine will start auto-rolling there too — which is the lift's intent for
+    // educator-added spaces. This test would then need an explicit allowlist
+    // update, signaling the intentional widening.)
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+
+    const dataRows = lines.slice(1);
+    const regulatoryRows = dataRows.filter(l => {
+      const phase = l.split(',')[1];
+      return phase === 'REGULATORY';
+    });
+
+    const nonRegPrefixed = regulatoryRows.filter(l => !l.startsWith('REG-'));
+
+    expect(nonRegPrefixed).toHaveLength(0);
+  });
+});
+
 describe('processGameData — per-action narratives', () => {
   const cleanEffectsCsv = () =>
     fs.readFileSync(
