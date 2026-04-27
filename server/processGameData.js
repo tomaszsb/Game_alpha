@@ -247,6 +247,13 @@ function processGameConfig(spacesCsv) {
     const minWCardsRaw = (row.min_w_cards_to_leave || '').trim();
     const minWCardsParsed = parseInt(minWCardsRaw, 10);
     const minWCardsToLeave = Number.isFinite(minWCardsParsed) && minWCardsParsed >= 0 ? minWCardsParsed : 0;
+    // Workstream 6 #7: design fee calculation. 'percentage_of_scope' = fee is
+    // computed from the player's project scope (was hardcoded for ARCH/ENG-FEE-REVIEW).
+    // Empty / missing / unrecognized values default to 'flat' (fee = literal amount).
+    const feeMethodRaw = (row.fee_calculation_method || '').trim();
+    const feeCalculationMethod = feeMethodRaw === 'percentage_of_scope' ? 'percentage_of_scope' : 'flat';
+    // fee_label is a free-form string used in the dice-roll button + effect description.
+    const feeLabel = (row.fee_label || '').trim();
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -259,14 +266,17 @@ function processGameConfig(spacesCsv) {
       requires_dice_roll: row.requires_dice_roll || 'Yes',
       is_resume_hub: isResumeHub ? 'Yes' : 'No',
       is_point_of_no_return: isPointOfNoReturn ? 'Yes' : 'No',
-      min_w_cards_to_leave: String(minWCardsToLeave)
+      min_w_cards_to_leave: String(minWCardsToLeave),
+      fee_calculation_method: feeCalculationMethod,
+      fee_label: feeLabel
     };
   }
 
   const fieldnames = [
     'space_name', 'phase', 'path_type', 'is_starting_space', 'is_ending_space',
     'min_players', 'max_players', 'requires_dice_roll',
-    'is_resume_hub', 'is_point_of_no_return', 'min_w_cards_to_leave'
+    'is_resume_hub', 'is_point_of_no_return', 'min_w_cards_to_leave',
+    'fee_calculation_method', 'fee_label'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

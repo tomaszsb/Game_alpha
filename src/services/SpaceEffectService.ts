@@ -1,4 +1,4 @@
-import { IStateService, ICardService, IResourceService, IGameRulesService, IDiceService } from '../types/ServiceContracts';
+import { IStateService, ICardService, IResourceService, IGameRulesService, IDiceService, IDataService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
 import { DiceEffect, SpaceEffect, CardType } from '../types/DataTypes';
@@ -29,7 +29,10 @@ export class SpaceEffectService implements ISpaceEffectService {
     private readonly cardService: ICardService,
     private readonly resourceService: IResourceService,
     private readonly gameRulesService: IGameRulesService,
-    private readonly diceService: IDiceService
+    private readonly diceService: IDiceService,
+    // Workstream 6 #7: dataService used to look up data-driven design fee flags
+    // (fee_calculation_method, fee_label) instead of substring-matching ARCH/ENG.
+    private readonly dataService: IDataService
   ) {}
 
   /**
@@ -152,17 +155,19 @@ export class SpaceEffectService implements ISpaceEffectService {
       // Percentage-based effect
       const percentage = this.diceService.parseNumericValue(effect);
 
-      // Check if this is a design fee space (ARCH-FEE-REVIEW or ENG-FEE-REVIEW)
-      // Design fees are calculated as percentage of project scope, not player's money
-      const isDesignFeeSpace = player.currentSpace.includes('ARCH-FEE-REVIEW') ||
-                               player.currentSpace.includes('ENG-FEE-REVIEW');
+      // Workstream 6 #7: design fee detection lifted from substring-match on
+      // 'ARCH-FEE-REVIEW' / 'ENG-FEE-REVIEW' to the fee_calculation_method
+      // data flag. percentage_of_scope = fee computed against project scope;
+      // flat = legacy "% of player money" behavior.
+      const feeMethod = this.dataService.getFeeCalculationMethod(player.currentSpace);
 
-      if (isDesignFeeSpace) {
+      if (feeMethod === 'percentage_of_scope') {
         // Calculate fee based on project scope (dynamically from W cards)
         const projectScope = this.gameRulesService.calculateProjectScope(playerId);
         moneyChange = -Math.floor((projectScope * percentage) / 100);
-        const feeType = player.currentSpace.includes('ARCH') ? 'Architect' : 'Engineer';
-        description = `${feeType} design fee: ${percentage}% of $${projectScope.toLocaleString()} = $${Math.abs(moneyChange).toLocaleString()}`;
+        // Use the data-driven fee_label, with a generic fallback.
+        const feeLabel = this.dataService.getFeeLabel(player.currentSpace) || 'Design';
+        description = `${feeLabel} design fee: ${percentage}% of $${projectScope.toLocaleString()} = $${Math.abs(moneyChange).toLocaleString()}`;
       } else {
         // Default: percentage of current money (for other effects)
         moneyChange = Math.floor((player.money * percentage) / 100);

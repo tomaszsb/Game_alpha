@@ -202,7 +202,8 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - ✅ **#1 — Starting space lifted to is_starting_space flag** shipped v2.52.0 (2026-04-26). See CHANGELOG.
 - ✅ **#5 + #6 — Resume mechanic lifted (is_resume_hub + is_point_of_no_return)** shipped v2.53.0 (2026-04-27). See CHANGELOG.
 - ✅ **#2 — Scope-zero guard lifted (min_w_cards_to_leave)** shipped v2.54.0 (2026-04-27). See CHANGELOG.
-- ⏳ #7 next (design fee math), then #3 (setup-phase auto-handling), then #4 (DOB path-choice memory + Phase 6.2 type loosening — most complex).
+- ✅ **#7 — Design fee math lifted (fee_calculation_method + fee_label)** shipped v2.55.0 (2026-04-27). See CHANGELOG.
+- ⏳ #3 next (setup-phase auto-handling — 7+ touchpoints, M effort), then #4 (DOB path-choice memory + Phase 6.2 type loosening — most complex, L effort).
 
 ---
 

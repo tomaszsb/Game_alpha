@@ -12,6 +12,9 @@ export interface GameConfig {
   is_point_of_no_return?: boolean;
   // Workstream 6 #2: minimum W cards required to leave this space (0 = no guard)
   min_w_cards_to_leave?: number;
+  // Workstream 6 #7: design fee mechanic flags
+  fee_calculation_method?: 'flat' | 'percentage_of_scope';
+  fee_label?: string;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;

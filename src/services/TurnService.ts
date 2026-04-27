@@ -57,7 +57,8 @@ export class TurnService implements ITurnService {
       cardService,
       resourceService,
       gameRulesService,
-      this.diceService
+      this.diceService,
+      dataService
     );
     // Create ConditionEvaluator with GameRulesService for scope conditions
     this.conditionEvaluator = new ConditionEvaluator(gameRulesService);

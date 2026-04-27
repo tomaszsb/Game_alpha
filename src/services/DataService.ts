@@ -123,6 +123,26 @@ export class DataService implements IDataService {
     return this.getGameConfigBySpace(spaceName)?.min_w_cards_to_leave ?? 0;
   }
 
+  /**
+   * Workstream 6 #7: design fee calculation method for a space.
+   * 'percentage_of_scope' = fee is a % of the player's W-card project scope
+   * (was hardcoded for ARCH-FEE-REVIEW + ENG-FEE-REVIEW). Default 'flat'
+   * means the fee is the literal amount (or % of player money for non-design effects).
+   */
+  getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope' {
+    return this.getGameConfigBySpace(spaceName)?.fee_calculation_method ?? 'flat';
+  }
+
+  /**
+   * Workstream 6 #7: human-readable fee label for a space ('Architect',
+   * 'Engineer', etc.). Used in dice-roll button text + effect descriptions.
+   * Empty string when no label is configured (callers fall back to a generic
+   * 'Fee' label).
+   */
+  getFeeLabel(spaceName: string): string {
+    return this.getGameConfigBySpace(spaceName)?.fee_label ?? '';
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {
@@ -394,6 +414,11 @@ export class DataService implements IDataService {
       // Workstream 6 #2: parse min_w_cards_to_leave (numeric, default 0).
       const parsedMinW = parseInt(values[10], 10);
       const minWCardsToLeave = Number.isFinite(parsedMinW) && parsedMinW >= 0 ? parsedMinW : 0;
+      // Workstream 6 #7: parse fee_calculation_method (only 'percentage_of_scope'
+      // takes effect; everything else falls back to 'flat').
+      const feeCalculationMethod: 'flat' | 'percentage_of_scope' =
+        values[11] === 'percentage_of_scope' ? 'percentage_of_scope' : 'flat';
+      const feeLabel = values[12] || '';
 
       return {
         space_name: values[0],
@@ -409,7 +434,10 @@ export class DataService implements IDataService {
         is_resume_hub: values[8] === 'Yes',
         is_point_of_no_return: values[9] === 'Yes',
         // Workstream 6 #2: minimum W cards required to leave (0 = no guard).
-        min_w_cards_to_leave: minWCardsToLeave
+        min_w_cards_to_leave: minWCardsToLeave,
+        // Workstream 6 #7: design fee mechanic.
+        fee_calculation_method: feeCalculationMethod,
+        fee_label: feeLabel
       };
     });
   }

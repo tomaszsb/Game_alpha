@@ -315,6 +315,98 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #7 — Engine-data separation: design fee mechanic
+// SpaceEffectService and FinancesSection both substring-matched 'ARCH' / 'ENG'
+// to detect "this is a design-fee space, charge % of scope and label it
+// Architect/Engineer." Lifted to fee_calculation_method + fee_label columns
+// so educators can configure other spaces with the same mechanic.
+describe('processGameData — engine-data separation: design fee flags', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it('real Spaces.csv flags ARCH-FEE-REVIEW / ENG-FEE-REVIEW with percentage_of_scope + correct labels', () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    // Column order: …,11:fee_calculation_method,12:fee_label
+    const archRow = dataRows.find(r => r.startsWith('ARCH-FEE-REVIEW,'));
+    const engRow = dataRows.find(r => r.startsWith('ENG-FEE-REVIEW,'));
+    expect(archRow).toBeDefined();
+    expect(engRow).toBeDefined();
+
+    const archFields = archRow!.split(',');
+    const engFields = engRow!.split(',');
+    expect(archFields[11]).toBe('percentage_of_scope');
+    expect(archFields[12]).toBe('Architect');
+    expect(engFields[11]).toBe('percentage_of_scope');
+    expect(engFields[12]).toBe('Engineer');
+
+    // Sanity: only those two spaces use percentage_of_scope on current data.
+    const pctRows = dataRows.filter(r => r.split(',')[11] === 'percentage_of_scope');
+    expect(pctRows).toHaveLength(2);
+  });
+
+  it('parametric: a custom space with percentage_of_scope + custom label propagates', () => {
+    const headerWithFlags = `${spacesHeader},fee_calculation_method,fee_label`;
+    const csv = [
+      headerWithFlags,
+      `${makeSpaceRow('CUSTOM-CONSULT-FEE', { phase: 'DESIGN' })},percentage_of_scope,Consultant`,
+      `${makeSpaceRow('FLAT-FEE-SPACE', { phase: 'DESIGN' })},flat,`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const customFields = dataRows.find(r => r.startsWith('CUSTOM-CONSULT-FEE,'))!.split(',');
+    const flatFields = dataRows.find(r => r.startsWith('FLAT-FEE-SPACE,'))!.split(',');
+    expect(customFields[11]).toBe('percentage_of_scope');
+    expect(customFields[12]).toBe('Consultant');
+    expect(flatFields[11]).toBe('flat');
+    expect(flatFields[12]).toBe('');
+  });
+
+  it('rows without the columns default to flat + empty label', () => {
+    const csv = [
+      spacesHeader, // header WITHOUT fee_calculation_method or fee_label
+      makeSpaceRow('LEGACY-FEE-SPACE', {}),
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const fields = dataRows[0].split(',');
+    expect(fields[11]).toBe('flat');
+    expect(fields[12]).toBe('');
+  });
+
+  it('unrecognized fee_calculation_method values fall back to flat', () => {
+    const headerWithFlags = `${spacesHeader},fee_calculation_method,fee_label`;
+    const csv = [
+      headerWithFlags,
+      `${makeSpaceRow('TYPO-SPACE', { phase: 'DESIGN' })},precentage_of_scope,Architect`, // misspelled
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const fields = dataRows[0].split(',');
+    expect(fields[11]).toBe('flat'); // unrecognized → safe default
+    expect(fields[12]).toBe('Architect'); // label still passes through
+  });
+});
+
 // Workstream 6 #2 — Engine-data separation: scope-zero guard via min_w_cards_to_leave
 // TurnService previously hardcoded the W-card check to OWNER-SCOPE-INITIATION.
 // Lifted to a numeric `min_w_cards_to_leave` Spaces.csv column so educators

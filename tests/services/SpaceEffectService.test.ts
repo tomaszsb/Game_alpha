@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SpaceEffectService } from '../../src/services/SpaceEffectService';
 import { DiceService } from '../../src/services/DiceService';
-import { IStateService, ICardService, IResourceService, IGameRulesService } from '../../src/types/ServiceContracts';
+import { IStateService, ICardService, IResourceService, IGameRulesService, IDataService } from '../../src/types/ServiceContracts';
 import { DiceEffect, SpaceEffect } from '../../src/types/DataTypes';
 import { GameState, Player } from '../../src/types/StateTypes';
 
@@ -19,6 +19,7 @@ describe('SpaceEffectService', () => {
   let mockCardService: ICardService;
   let mockResourceService: IResourceService;
   let mockGameRulesService: IGameRulesService;
+  let mockDataService: IDataService;
   let diceService: DiceService;
 
   const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
@@ -71,12 +72,29 @@ describe('SpaceEffectService', () => {
       calculateTotalWorkCost: vi.fn().mockReturnValue(100000)
     } as unknown as IGameRulesService;
 
+    // Workstream 6 #7: data-driven design fee detection. The "design fee
+    // space" tests use ARCH-FEE-REVIEW; mock the helpers to return that
+    // space's flagged values, default flat for everything else.
+    mockDataService = {
+      getFeeCalculationMethod: vi.fn((spaceName: string) =>
+        spaceName === 'ARCH-FEE-REVIEW' || spaceName === 'ENG-FEE-REVIEW'
+          ? 'percentage_of_scope'
+          : 'flat'
+      ),
+      getFeeLabel: vi.fn((spaceName: string) =>
+        spaceName === 'ARCH-FEE-REVIEW' ? 'Architect'
+          : spaceName === 'ENG-FEE-REVIEW' ? 'Engineer'
+          : ''
+      ),
+    } as unknown as IDataService;
+
     spaceEffectService = new SpaceEffectService(
       mockStateService,
       mockCardService,
       mockResourceService,
       mockGameRulesService,
-      diceService
+      diceService,
+      mockDataService
     );
   });
 

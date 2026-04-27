@@ -139,6 +139,8 @@ export interface IDataService {
   isResumeHub(spaceName: string): boolean;
   isPointOfNoReturn(spaceName: string): boolean;
   getMinWCardsToLeave(spaceName: string): number;
+  getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';
+  getFeeLabel(spaceName: string): string;
   getPhaseOrder(): string[];
   
   // Space methods

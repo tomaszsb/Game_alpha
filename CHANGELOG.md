@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.55.0] - 2026-04-27
+
+### Workstream 6 #7 — Design fee math lifted to fee_calculation_method + fee_label flags
+
+The "this is a design-fee space, charge % of project scope and label it Architect/Engineer" detection lived as substring matches against `'ARCH-FEE-REVIEW'`/`'ENG-FEE-REVIEW'` in two places (SpaceEffectService for fee math + FinancesSection for the dice-roll button label). Lifted to `fee_calculation_method` + `fee_label` Spaces.csv columns so educators can configure other spaces (e.g. CONSULT-FEE-REVIEW = percentage_of_scope, "Consultant") without touching code.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added `fee_calculation_method` (42nd) and `fee_label` (43rd) columns. ARCH-FEE-REVIEW rows: `percentage_of_scope` + `Architect`. ENG-FEE-REVIEW rows: `percentage_of_scope` + `Engineer`. All other rows empty (parser → `flat` + `''` downstream).
+
+**`server/processGameData.js`** — Reads + propagates both columns. `fee_calculation_method` is constrained to `'percentage_of_scope'`; anything else (typos, blanks, missing column) safely falls back to `'flat'`. `fee_label` passes through as a free-form string.
+
+**`src/types/DataTypes.ts`** — Added optional `fee_calculation_method?: 'flat' | 'percentage_of_scope'` and `fee_label?: string` to `GameConfig`.
+
+**`src/services/DataService.ts`** — Added `getFeeCalculationMethod(spaceName)` and `getFeeLabel(spaceName)` helpers. `parseGameConfigCsv` reads `values[11]` (method) and `values[12]` (label).
+
+**`src/types/ServiceContracts.ts`** — Added both helpers to `IDataService`.
+
+**`src/services/SpaceEffectService.ts`** — Constructor gains an `IDataService` param (DI). `applyMoneyEffect` design-fee detection: substring-match on `'ARCH-FEE-REVIEW'` / `'ENG-FEE-REVIEW'` → `dataService.getFeeCalculationMethod(currentSpace) === 'percentage_of_scope'`. Effect description label: substring-match on `'ARCH'` → `dataService.getFeeLabel(currentSpace) || 'Design'` fallback.
+
+**`src/services/TurnService.ts`** — Updated the `new SpaceEffectService(...)` call site to pass `dataService` as the new 6th arg.
+
+**`src/components/player/sections/FinancesSection.tsx`** — `getDiceButtonLabel` substring-match on ARCH/ENG → `gameServices.dataService.getFeeLabel(currentSpace)` with `'Determine ${label} Fee'` template (falls back to generic `'Determine Fee'` when label is empty).
+
+**`tests/mocks/mockServices.ts`** — Added `getFeeCalculationMethod` (default `'flat'`) and `getFeeLabel` (default `''`) to the mock.
+
+**`tests/services/SpaceEffectService.test.ts`** — Test setup now constructs `mockDataService` returning `'percentage_of_scope'` + `'Architect'`/`'Engineer'` for the two real fee spaces, default `'flat'` + `''` for everything else. The "design fee based on project scope for fee spaces" test continues to pass with the new wiring.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+4 tests in new `engine-data separation: design fee flags` describe block):
+  1. *Real Spaces.csv flags ARCH-FEE-REVIEW + ENG-FEE-REVIEW with percentage_of_scope + correct labels* — protective; locks in current behavior.
+  2. *Parametric: a custom space with percentage_of_scope + custom label propagates* — proves data-driven.
+  3. *Rows without the columns default to flat + empty label* — backward-compat.
+  4. *Unrecognized fee_calculation_method values fall back to flat* — defensive (typos don't accidentally trigger scope-based math on the wrong space).
+
+**Regenerated CLEAN_FILES** — `GAME_CONFIG.csv` now has 13 columns (positions 11 + 12 = the new fee flags). Behavior identical to v2.54.0 on current data.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. SpaceEffectService 29/29, TurnService 31/31, FinancesSection 31/31, DataService 7/7, processGameData 36/36 (32 + 4 new). Ghost Player strict + try-again-happy both pass — fee math + button label exercised on every ARCH-FEE / ENG-FEE landing across 100 random games, behavior preserved.
+
+---
+
 ## [2.54.0] - 2026-04-27
 
 ### Workstream 6 #2 — Scope-zero guard lifted to `min_w_cards_to_leave` data flag

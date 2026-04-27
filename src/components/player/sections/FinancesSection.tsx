@@ -365,14 +365,12 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     return effect.effect_type;
   };
 
-  // Helper to get dice roll button label based on space
+  // Helper to get dice roll button label based on space.
+  // Workstream 6 #7: lifted from substring-match on ARCH/ENG to the fee_label
+  // data flag. Falls back to generic 'Determine Fee' when no label is set.
   const getDiceButtonLabel = (): string => {
-    if (player.currentSpace.includes('ARCH')) {
-      return 'Determine Architect Fee';
-    } else if (player.currentSpace.includes('ENG')) {
-      return 'Determine Engineer Fee';
-    }
-    return 'Determine Fee';
+    const feeLabel = gameServices.dataService.getFeeLabel(player.currentSpace);
+    return feeLabel ? `Determine ${feeLabel} Fee` : 'Determine Fee';
   };
 
   // Create header actions (action buttons always visible)
