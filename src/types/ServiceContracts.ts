@@ -143,6 +143,9 @@ export interface IDataService {
   getFeeLabel(spaceName: string): string;
   shouldAutoApplyFunding(spaceName: string): boolean;
   getAutoTriggerCardTypes(spaceName: string): string[];
+  getPathChoiceMemoryKey(spaceName: string): string;
+  isPathChoiceLockPoint(spaceName: string): boolean;
+  getPathChoiceExclusions(spaceName: string, memory: Record<string, string> | undefined): string[];
   getPhaseOrder(): string[];
   
   // Space methods

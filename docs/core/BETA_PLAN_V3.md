@@ -204,7 +204,8 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - ✅ **#2 — Scope-zero guard lifted (min_w_cards_to_leave)** shipped v2.54.0 (2026-04-27). See CHANGELOG.
 - ✅ **#7 — Design fee math lifted (fee_calculation_method + fee_label)** shipped v2.55.0 (2026-04-27). See CHANGELOG.
 - ✅ **#3 — Setup-phase auto-handling lifted (auto_apply_funding + auto_trigger_card_types)** shipped v2.56.0 (2026-04-27). See CHANGELOG.
-- ⏳ #4 next (DOB path-choice memory + Phase 6.2 type loosening — most complex, L effort, requires new PATH_CHOICE_RULES.csv design).
+- ✅ **#4 — Path-choice memory lifted (path_choice_memory_key + is_path_choice_lock_point + new PATH_CHOICE_RULES.csv) + Phase 6.2 type loosening** shipped v2.57.0 (2026-04-28). See CHANGELOG. **Phase 6.1 + 6.2 complete.**
+- ⏳ Phase 6.3 (cosmetic mappings — NPC voice profile, display label overrides, review-loop messages) remains. Lower priority because these don't break gameplay if educators add new spaces — they just get default styling/voices.
 
 ---
 

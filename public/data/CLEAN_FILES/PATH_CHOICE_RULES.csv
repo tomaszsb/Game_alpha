@@ -1,0 +1,3 @@
+affected_space,memory_key,chosen_value,excluded_destination
+REG-FDNY-PLAN-EXAM,dob_path,REG-DOB-PLAN-EXAM,REG-DOB-AUDIT
+REG-FDNY-PLAN-EXAM,dob_path,REG-DOB-PROF-CERT,REG-DOB-PLAN-EXAM

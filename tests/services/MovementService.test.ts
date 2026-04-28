@@ -407,6 +407,15 @@ describe('MovementService', () => {
   });
 
   describe('path choice memory (REG-DOB-TYPE-SELECT)', () => {
+    // Workstream 6 #4: mock the data-driven helpers. REG-DOB-TYPE-SELECT is a
+    // lock point with memory_key 'dob_path' (matching real Spaces.csv). Stored
+    // memory uses that key, not the literal 'REG-DOB-TYPE-SELECT' from the
+    // pre-Workstream-6 hardcode.
+    beforeEach(() => {
+      mockDataService.isPathChoiceLockPoint.mockImplementation((spaceName: string) => spaceName === 'REG-DOB-TYPE-SELECT');
+      mockDataService.getPathChoiceMemoryKey.mockImplementation((spaceName: string) => spaceName === 'REG-DOB-TYPE-SELECT' ? 'dob_path' : '');
+    });
+
     it('should store path choice memory on first visit to REG-DOB-TYPE-SELECT when choosing Plan Exam', async () => {
       const player = {
         ...mockPlayer,
@@ -433,7 +442,7 @@ describe('MovementService', () => {
           currentSpace: 'REG-DOB-PLAN-EXAM',
           visitType: 'First' as const,
           pathChoiceMemory: {
-            'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM'
+            'dob_path': 'REG-DOB-PLAN-EXAM'
           }
         }]
       };
@@ -445,7 +454,7 @@ describe('MovementService', () => {
       expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
         expect.objectContaining({
           pathChoiceMemory: {
-            'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM'
+            'dob_path': 'REG-DOB-PLAN-EXAM'
           }
         })
       );
@@ -478,7 +487,7 @@ describe('MovementService', () => {
           currentSpace: 'REG-DOB-PROF-CERT',
           visitType: 'First' as const,
           pathChoiceMemory: {
-            'REG-DOB-TYPE-SELECT': 'REG-DOB-PROF-CERT'
+            'dob_path': 'REG-DOB-PROF-CERT'
           }
         }]
       };
@@ -490,7 +499,7 @@ describe('MovementService', () => {
       expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
         expect.objectContaining({
           pathChoiceMemory: {
-            'REG-DOB-TYPE-SELECT': 'REG-DOB-PROF-CERT'
+            'dob_path': 'REG-DOB-PROF-CERT'
           }
         })
       );
@@ -503,7 +512,7 @@ describe('MovementService', () => {
         currentSpace: 'REG-DOB-TYPE-SELECT',
         visitType: 'Subsequent' as const,
         pathChoiceMemory: {
-          'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM' as const
+          'dob_path': 'REG-DOB-PLAN-EXAM'
         }
       };
 
@@ -530,7 +539,7 @@ describe('MovementService', () => {
         currentSpace: 'REG-DOB-TYPE-SELECT',
         visitType: 'Subsequent' as const,
         pathChoiceMemory: {
-          'REG-DOB-TYPE-SELECT': 'REG-DOB-PROF-CERT' as const
+          'dob_path': 'REG-DOB-PROF-CERT'
         }
       };
 
@@ -575,40 +584,41 @@ describe('MovementService', () => {
       expect(result).toEqual(['REG-DOB-PLAN-EXAM', 'REG-DOB-PROF-CERT']);
     });
 
-    it('should not store path memory for other destination spaces from REG-DOB-TYPE-SELECT', async () => {
+    it('should not store path memory when leaving a non-lock-point space', async () => {
+      // Workstream 6 #4: pre-lift this test verified that the literal check
+      // `destinationSpace === 'REG-DOB-PLAN-EXAM' || === 'REG-DOB-PROF-CERT'`
+      // gated the memory write. Post-lift, a lock-point space writes whatever
+      // destination the player chose (educators get a permissive contract:
+      // valid moves come from MOVEMENT.csv, so any chosen destination is
+      // implicitly approved). The test now verifies the COMPLEMENTARY property
+      // — leaving a NON-lock-point space writes no memory regardless of
+      // destination, which is what protects against unintended writes.
       const player = {
         ...mockPlayer,
-        currentSpace: 'REG-DOB-TYPE-SELECT',
+        currentSpace: 'NON-LOCK-POINT-SPACE',
         visitType: 'First' as const
       };
 
       const mockMovement: Movement = {
-        space_name: 'REG-DOB-TYPE-SELECT',
+        space_name: 'NON-LOCK-POINT-SPACE',
         visit_type: 'First',
         movement_type: 'choice',
-        destination_1: 'REG-DOB-PLAN-EXAM',
-        destination_2: 'REG-DOB-PROF-CERT',
-        destination_3: 'SOME-OTHER-SPACE' // Edge case
+        destination_1: 'REG-DOB-PLAN-EXAM'
       };
 
       mockStateService.getPlayer.mockReturnValue(player);
       mockDataService.getMovement.mockReturnValue(mockMovement);
       mockDataService.getAllSpaces.mockReturnValue([]);
+      // isPathChoiceLockPoint already mocked false-by-default for non-DOB spaces.
 
       const updatedGameState: GameState = {
         ...mockGameState,
-        players: [{
-          ...player,
-          currentSpace: 'SOME-OTHER-SPACE',
-          visitType: 'First' as const
-        }]
+        players: [{ ...player, currentSpace: 'REG-DOB-PLAN-EXAM', visitType: 'First' as const }]
       };
-
       mockStateService.updatePlayer.mockReturnValue(updatedGameState);
 
-      await movementService.movePlayer('player1', 'SOME-OTHER-SPACE');
+      await movementService.movePlayer('player1', 'REG-DOB-PLAN-EXAM');
 
-      // Should NOT store path memory for non-DOB destinations
       expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
         expect.not.objectContaining({
           pathChoiceMemory: expect.anything()
@@ -622,7 +632,7 @@ describe('MovementService', () => {
         currentSpace: 'REG-DOB-TYPE-SELECT',
         visitType: 'First' as const,
         pathChoiceMemory: {
-          'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM' as const
+          'unrelated_key': 'PRIOR-DESTINATION'
         }
       };
 
@@ -645,7 +655,8 @@ describe('MovementService', () => {
           currentSpace: 'REG-DOB-PLAN-EXAM',
           visitType: 'First' as const,
           pathChoiceMemory: {
-            'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM'
+            'unrelated_key': 'PRIOR-DESTINATION',
+            'dob_path': 'REG-DOB-PLAN-EXAM'
           }
         }]
       };
@@ -654,11 +665,13 @@ describe('MovementService', () => {
 
       await movementService.movePlayer('player1', 'REG-DOB-PLAN-EXAM');
 
-      // Should preserve existing memory
+      // Workstream 6 #4: existing memory under unrelated keys should be
+      // preserved when a new lock-point write happens.
       expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
         expect.objectContaining({
           pathChoiceMemory: {
-            'REG-DOB-TYPE-SELECT': 'REG-DOB-PLAN-EXAM'
+            'unrelated_key': 'PRIOR-DESTINATION',
+            'dob_path': 'REG-DOB-PLAN-EXAM'
           }
         })
       );

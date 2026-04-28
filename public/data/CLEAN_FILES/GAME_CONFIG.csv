@@ -1,28 +1,28 @@
-space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_players,requires_dice_roll,is_resume_hub,is_point_of_no_return,min_w_cards_to_leave,fee_calculation_method,fee_label,auto_apply_funding,auto_trigger_card_types
-START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No,No,No,0,flat,,No,
-OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,
-OWNER-FUND-INITIATION,SETUP,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I"
-PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,
-LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,
-BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No,No,No,0,flat,,No,
-INVESTOR-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,
-ARCH-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-ARCH-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Architect,No,
-ARCH-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-ENG-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-ENG-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Engineer,No,
-ENG-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-OWNER-DECISION-REVIEW,OWNER,side Quest scope,No,No,1,4,Yes,No,No,0,flat,,No,
-CHEAT-BYPASS,OWNER,side quest cheat,No,No,1,4,Yes,No,Yes,0,flat,,No,
-REG-DOB-FEE-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-REG-DOB-TYPE-SELECT,REGULATORY,Single choice,No,No,1,4,No,No,No,0,flat,,No,
-REG-DOB-PLAN-EXAM,REGULATORY,Regular,No,No,1,4,Yes,No,No,0,flat,,No,
-REG-DOB-PROF-CERT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,
-REG-DOB-AUDIT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,
-REG-FDNY-FEE-REVIEW,REGULATORY,LOGIC,No,No,1,4,No,No,No,0,flat,,No,
-REG-FDNY-PLAN-EXAM,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-CON-INITIATION,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-CON-ISSUES,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-CON-INSPECT,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,
-FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,
+space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_players,requires_dice_roll,is_resume_hub,is_point_of_no_return,min_w_cards_to_leave,fee_calculation_method,fee_label,auto_apply_funding,auto_trigger_card_types,path_choice_memory_key,is_path_choice_lock_point
+START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No,No,No,0,flat,,No,,,No
+OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,,,No
+OWNER-FUND-INITIATION,SETUP,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I",,No
+PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,,,No
+LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No,No,No,0,flat,,No,,,No
+INVESTOR-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+ARCH-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+ARCH-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Architect,No,,,No
+ARCH-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+ENG-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+ENG-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Engineer,No,,,No
+ENG-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+OWNER-DECISION-REVIEW,OWNER,side Quest scope,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+CHEAT-BYPASS,OWNER,side quest cheat,No,No,1,4,Yes,No,Yes,0,flat,,No,,,No
+REG-DOB-FEE-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+REG-DOB-TYPE-SELECT,REGULATORY,Single choice,No,No,1,4,No,No,No,0,flat,,No,,dob_path,Yes
+REG-DOB-PLAN-EXAM,REGULATORY,Regular,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+REG-DOB-PROF-CERT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+REG-DOB-AUDIT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+REG-FDNY-FEE-REVIEW,REGULATORY,LOGIC,No,No,1,4,No,No,No,0,flat,,No,,,No
+REG-FDNY-PLAN-EXAM,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+CON-INITIATION,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+CON-ISSUES,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+CON-INSPECT,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No
+FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,,,No

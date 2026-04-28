@@ -11,7 +11,8 @@ import {
   Card,
   CardType,
   ModalConfigOverrides,
-  LogicQuestion
+  LogicQuestion,
+  PathChoiceRule
 } from '../types/DataTypes';
 
 export class DataService implements IDataService {
@@ -30,6 +31,9 @@ export class DataService implements IDataService {
   // `diceValue` is empty string for generic rows (Phase 1-3b) and '1'..'6' for
   // dice-specific rows (Phase 4).
   private modalConfigs: Map<string, ModalConfigOverrides> = new Map();
+  // Workstream 6 #4: cross-space path-choice exclusion rules. Keyed lookups go
+  // through getPathChoiceExclusions().
+  private pathChoiceRules: PathChoiceRule[] = [];
   private loaded = false;
   private loadingPromise: Promise<void> | null = null;
 
@@ -53,7 +57,8 @@ export class DataService implements IDataService {
           this.loadSpaceContents(),
           this.loadCards(),
           this.loadModalConfigs(),
-          this.loadLogicQuestions()
+          this.loadLogicQuestions(),
+          this.loadPathChoiceRules()
         ]);
 
         this.buildSpaces();
@@ -162,6 +167,45 @@ export class DataService implements IDataService {
    */
   getAutoTriggerCardTypes(spaceName: string): string[] {
     return this.getGameConfigBySpace(spaceName)?.auto_trigger_card_types ?? [];
+  }
+
+  /**
+   * Workstream 6 #4: opaque key into player.pathChoiceMemory for this space.
+   * Empty string when the space doesn't participate in path-choice memory.
+   * Both lock-point spaces (where the choice is stored) and downstream spaces
+   * that filter on the choice can share a key.
+   */
+  getPathChoiceMemoryKey(spaceName: string): string {
+    return this.getGameConfigBySpace(spaceName)?.path_choice_memory_key ?? '';
+  }
+
+  /**
+   * Workstream 6 #4: true if this space stores its First-visit destination
+   * under its path_choice_memory_key, and filters Subsequent-visit moves to
+   * that stored value. Replaces the hardcoded `=== 'REG-DOB-TYPE-SELECT'` checks.
+   */
+  isPathChoiceLockPoint(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.is_path_choice_lock_point === true;
+  }
+
+  /**
+   * Workstream 6 #4: cross-space exclusions. Looks up PATH_CHOICE_RULES rows
+   * affecting `spaceName` and returns the destinations that should be removed
+   * from the player's choices, given their stored memory.
+   *
+   * Replaces the hardcoded REG-FDNY-PLAN-EXAM filter that special-cased the
+   * Plan Exam vs Prof Cert paths.
+   */
+  getPathChoiceExclusions(spaceName: string, memory: Record<string, string> | undefined): string[] {
+    if (!memory) return [];
+    const exclusions: string[] = [];
+    for (const rule of this.pathChoiceRules) {
+      if (rule.affected_space !== spaceName) continue;
+      if (memory[rule.memory_key] === rule.chosen_value) {
+        exclusions.push(rule.excluded_destination);
+      }
+    }
+    return exclusions;
   }
 
   getPhaseOrder(): string[] {
@@ -406,6 +450,41 @@ export class DataService implements IDataService {
   }
 
   /**
+   * Workstream 6 #4: load PATH_CHOICE_RULES.csv. Optional — a missing file
+   * simply leaves the array empty (no cross-space exclusions, equivalent to
+   * the pre-Workstream-6 behavior for any non-DOB space).
+   */
+  private async loadPathChoiceRules(): Promise<void> {
+    try {
+      const response = await fetch('/data/CLEAN_FILES/PATH_CHOICE_RULES.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.pathChoiceRules = [];
+        return;
+      }
+      const csvText = await response.text();
+      this.pathChoiceRules = this.parsePathChoiceRulesCsv(csvText);
+    } catch {
+      this.pathChoiceRules = [];
+    }
+  }
+
+  private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        return {
+          affected_space: (values[0] || '').trim(),
+          memory_key: (values[1] || '').trim(),
+          chosen_value: (values[2] || '').trim(),
+          excluded_destination: (values[3] || '').trim()
+        };
+      })
+      .filter(r => r.affected_space && r.memory_key && r.chosen_value && r.excluded_destination);
+  }
+
+  /**
    * Load SOURCE_FILES/ModalConfig.csv directly. Treated as optional — a missing
    * or empty file simply leaves the modal override map empty so all modals fall
    * back to their defaults.
@@ -444,6 +523,9 @@ export class DataService implements IDataService {
       // a comma-separated string in CSV → string[] in memory.
       const autoApplyFunding = values[13] === 'Yes';
       const autoTriggerCardTypes = (values[14] || '').split(',').map(s => s.trim()).filter(Boolean);
+      // Workstream 6 #4: parse path-choice memory flags.
+      const pathChoiceMemoryKey = values[15] || '';
+      const isPathChoiceLockPoint = values[16] === 'Yes';
 
       return {
         space_name: values[0],
@@ -465,7 +547,10 @@ export class DataService implements IDataService {
         fee_label: feeLabel,
         // Workstream 6 #3: setup-phase auto-handling.
         auto_apply_funding: autoApplyFunding,
-        auto_trigger_card_types: autoTriggerCardTypes
+        auto_trigger_card_types: autoTriggerCardTypes,
+        // Workstream 6 #4: path-choice memory.
+        path_choice_memory_key: pathChoiceMemoryKey,
+        is_path_choice_lock_point: isPathChoiceLockPoint
       };
     });
   }

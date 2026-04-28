@@ -263,6 +263,15 @@ function processGameConfig(spacesCsv) {
     //   B-card and I-card draws auto-fire and don't double-count their money.
     const autoApplyFunding = (row.auto_apply_funding || '').trim() === 'Yes';
     const autoTriggerCardTypes = (row.auto_trigger_card_types || '').trim();
+    // Workstream 6 #4: path-choice memory flags.
+    // path_choice_memory_key: opaque slot name in player.pathChoiceMemory.
+    //   Spaces share a key when they store/read the same choice (was hardcoded
+    //   to 'REG-DOB-TYPE-SELECT' in MovementService).
+    // is_path_choice_lock_point: when First-visit player chooses a destination
+    //   from this space, store it under path_choice_memory_key. On Subsequent
+    //   visits, valid moves are filtered to the stored value.
+    const pathChoiceMemoryKey = (row.path_choice_memory_key || '').trim();
+    const isPathChoiceLockPoint = (row.is_path_choice_lock_point || '').trim() === 'Yes';
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -279,7 +288,9 @@ function processGameConfig(spacesCsv) {
       fee_calculation_method: feeCalculationMethod,
       fee_label: feeLabel,
       auto_apply_funding: autoApplyFunding ? 'Yes' : 'No',
-      auto_trigger_card_types: autoTriggerCardTypes
+      auto_trigger_card_types: autoTriggerCardTypes,
+      path_choice_memory_key: pathChoiceMemoryKey,
+      is_path_choice_lock_point: isPathChoiceLockPoint ? 'Yes' : 'No'
     };
   }
 
@@ -288,7 +299,8 @@ function processGameConfig(spacesCsv) {
     'min_players', 'max_players', 'requires_dice_roll',
     'is_resume_hub', 'is_point_of_no_return', 'min_w_cards_to_leave',
     'fee_calculation_method', 'fee_label',
-    'auto_apply_funding', 'auto_trigger_card_types'
+    'auto_apply_funding', 'auto_trigger_card_types',
+    'path_choice_memory_key', 'is_path_choice_lock_point'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

@@ -42,6 +42,9 @@ export const createMockDataService = (): any => ({
   getFeeLabel: vi.fn(() => ''),
   shouldAutoApplyFunding: vi.fn(() => false),
   getAutoTriggerCardTypes: vi.fn(() => []),
+  getPathChoiceMemoryKey: vi.fn(() => ''),
+  isPathChoiceLockPoint: vi.fn(() => false),
+  getPathChoiceExclusions: vi.fn(() => []),
   getPhaseOrder: vi.fn(),
   
   // Space methods

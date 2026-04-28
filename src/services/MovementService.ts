@@ -117,15 +117,18 @@ export class MovementService implements IMovementService {
         validMoves = this.extractDestinationsFromMovement(movement);
       }
 
-      // SPECIAL HANDLING: Path choice memory for spaces that lock decisions
-      // REG-DOB-TYPE-SELECT: Once player chooses Plan Exam vs Prof Cert, choice is locked
-      if (player.currentSpace === 'REG-DOB-TYPE-SELECT' &&
-          player.visitType === 'Subsequent' &&
-          player.pathChoiceMemory?.['REG-DOB-TYPE-SELECT']) {
-
-        const rememberedChoice = player.pathChoiceMemory['REG-DOB-TYPE-SELECT'];
-        validMoves = validMoves.filter(dest => dest === rememberedChoice);
-
+      // SPECIAL HANDLING: Path-choice lock point Subsequent-visit filter.
+      // Workstream 6 #4: lifted from `=== 'REG-DOB-TYPE-SELECT'` to data flags.
+      // When the player visits a lock-point space a second time, restrict valid
+      // moves to whatever destination they chose at the First visit. The
+      // memory key is configured per-space in Spaces.csv.
+      if (this.dataService.isPathChoiceLockPoint(player.currentSpace) &&
+          player.visitType === 'Subsequent') {
+        const memoryKey = this.dataService.getPathChoiceMemoryKey(player.currentSpace);
+        const rememberedChoice = memoryKey ? player.pathChoiceMemory?.[memoryKey] : undefined;
+        if (rememberedChoice) {
+          validMoves = validMoves.filter(dest => dest === rememberedChoice);
+        }
       }
 
       // SPECIAL HANDLING: Resume from side quest at a resume-hub space.
@@ -315,18 +318,20 @@ export class MovementService implements IMovementService {
     // Add spaceVisitLog to playerUpdate
     playerUpdate.spaceVisitLog = updatedLog;
 
-    // SPECIAL: Store path choice memory for REG-DOB-TYPE-SELECT
-    // Per DOB rules, once you choose Plan Exam vs Prof Cert, you're locked in for this application
-    if (sourceSpace === 'REG-DOB-TYPE-SELECT' &&
-        player.visitType === 'First' &&
-        (destinationSpace === 'REG-DOB-PLAN-EXAM' || destinationSpace === 'REG-DOB-PROF-CERT')) {
-
-
-      // Store the choice in player's memory
-      playerUpdate.pathChoiceMemory = {
-        ...player.pathChoiceMemory,
-        'REG-DOB-TYPE-SELECT': destinationSpace as 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT'
-      };
+    // SPECIAL: Store path choice when leaving a lock-point space for the first time.
+    // Workstream 6 #4: lifted from hardcoded REG-DOB-TYPE-SELECT + literal-typed
+    // destination check. The destination_check that was previously inline (Plan
+    // Exam vs Prof Cert) is now implicit — the destination must be in the
+    // space's valid moves to even reach this code path, so any chosen
+    // destination is by definition a valid lock-in.
+    if (this.dataService.isPathChoiceLockPoint(sourceSpace) && player.visitType === 'First') {
+      const memoryKey = this.dataService.getPathChoiceMemoryKey(sourceSpace);
+      if (memoryKey) {
+        playerUpdate.pathChoiceMemory = {
+          ...player.pathChoiceMemory,
+          [memoryKey]: destinationSpace
+        };
+      }
     }
 
     // SPECIAL: Track main-path resume point for side quest return
@@ -541,24 +546,17 @@ export class MovementService implements IMovementService {
     if (destinationStr.includes(' or ')) {
       let choices = destinationStr.split(' or ').map(d => d.trim()).filter(d => d);
 
-      // FILTER based on path choice memory (Plan Exam vs Prof Cert path)
-      // At REG-FDNY-PLAN-EXAM, only show the DOB option matching player's earlier path choice
-      if (playerId && spaceName === 'REG-FDNY-PLAN-EXAM') {
+      // FILTER based on path-choice memory exclusions (cross-space).
+      // Workstream 6 #4: lifted from hardcoded REG-FDNY-PLAN-EXAM + DOB-path
+      // switch. PATH_CHOICE_RULES.csv now drives this — any (space, memory_key,
+      // chosen_value, excluded_destination) row applies. Educators can add new
+      // cross-space exclusions purely via data.
+      if (playerId) {
         const player = this.stateService.getPlayer(playerId);
-        const pathChoice = player?.pathChoiceMemory?.['REG-DOB-TYPE-SELECT'];
-
-        if (pathChoice) {
-          const originalCount = choices.length;
-
-          if (pathChoice === 'REG-DOB-PLAN-EXAM') {
-            // Plan Exam path: remove REG-DOB-AUDIT (Prof Cert path)
-            choices = choices.filter(c => c !== 'REG-DOB-AUDIT');
-          } else if (pathChoice === 'REG-DOB-PROF-CERT') {
-            // Prof Cert path: remove REG-DOB-PLAN-EXAM (Plan Exam path)
-            choices = choices.filter(c => c !== 'REG-DOB-PLAN-EXAM');
-          }
-
-          if (choices.length < originalCount) {
+        if (player) {
+          const exclusions = this.dataService.getPathChoiceExclusions(spaceName, player.pathChoiceMemory);
+          if (exclusions.length > 0) {
+            choices = choices.filter(c => !exclusions.includes(c));
           }
         }
       }

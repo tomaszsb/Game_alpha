@@ -18,10 +18,28 @@ export interface GameConfig {
   // Workstream 6 #3: setup-phase auto-handling flags
   auto_apply_funding?: boolean;
   auto_trigger_card_types?: string[];  // parsed from comma-separated CSV column
+  // Workstream 6 #4: path-choice memory flags
+  path_choice_memory_key?: string;       // opaque slot name; spaces share when they share a choice
+  is_path_choice_lock_point?: boolean;   // First-visit destination is stored under path_choice_memory_key
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;
   tutorial_step?: number;
+}
+
+/**
+ * Workstream 6 #4: cross-space path-choice exclusion rule.
+ * Loaded from PATH_CHOICE_RULES.csv. When a player is at `affected_space`,
+ * if their `pathChoiceMemory[memory_key]` equals `chosen_value`, then
+ * `excluded_destination` is removed from their available choices.
+ *
+ * Replaces the hardcoded REG-FDNY-PLAN-EXAM cross-space filter in MovementService.
+ */
+export interface PathChoiceRule {
+  affected_space: string;
+  memory_key: string;
+  chosen_value: string;
+  excluded_destination: string;
 }
 
 export interface Movement {
@@ -280,10 +298,11 @@ export interface Player {
   moveIntent?: string | null; // Player's intended destination (set before move execution)
   currentCard?: string | null; // The card the player is currently interacting with
   role?: string; // Player's assigned role (e.g., "Explorer", "Strategist")
-  pathChoiceMemory?: {
-    'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT'; // DOB path choice (locked for application)
-    // Future: Other spaces that need choice memory can be added here
-  };
+  // Workstream 6 #4 + Phase 6.2: literal-typed shape widened to a generic
+  // string→string map so educator-added path-choice spaces work without TS errors.
+  // Key = path_choice_memory_key from Spaces.csv (e.g. 'dob_path').
+  // Value = the destination space the player committed to at the lock-point.
+  pathChoiceMemory?: Record<string, string>;
   // Contractor info from CON-INITIATION dice rolls
   contractor?: {
     quality: 'HIGH' | 'MED' | 'LOW'; // Affects change order frequency (HIGH = fewer, LOW = more)

@@ -2,6 +2,72 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.57.0] - 2026-04-28
+
+### Workstream 6 #4 + Phase 6.2 — Path-choice memory lifted to data flags + types loosened
+
+The most complex Workstream-6 lift. Three coupled hardcodes in MovementService — REG-DOB-TYPE-SELECT as the lock point (stores choice on First visit, filters Subsequent moves to that choice) plus REG-FDNY-PLAN-EXAM cross-space exclusion (different downstream space, gates its choices on the stored DOB choice) — are all driven by a new data structure: two Spaces.csv columns (`path_choice_memory_key`, `is_path_choice_lock_point`) plus a new `PATH_CHOICE_RULES.csv` source file that captures the cross-space (memory_key, chosen_value, excluded_destination) rules. Phase 6.2 type loosening shipped together because the literal-typed `pathChoiceMemory` shape was inseparable from the lock-point lift.
+
+**`public/data/SOURCE_FILES/PATH_CHOICE_RULES.csv`** — New source file. Schema: `affected_space, memory_key, chosen_value, excluded_destination`. Two rows seed the current REG-FDNY-PLAN-EXAM behavior:
+- `dob_path = REG-DOB-PLAN-EXAM` → exclude `REG-DOB-AUDIT`
+- `dob_path = REG-DOB-PROF-CERT` → exclude `REG-DOB-PLAN-EXAM`
+
+Educators can add new cross-space exclusion rules entirely via this CSV.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added `path_choice_memory_key` (46th) and `is_path_choice_lock_point` (47th) columns. REG-DOB-TYPE-SELECT/First+Subsequent rows: `dob_path` + `Yes`. All other rows empty.
+
+**`public/data/CLEAN_FILES/PATH_CHOICE_RULES.csv`** — Same as source (manual copy, matching the LOGIC_QUESTIONS.csv pattern).
+
+**`server/processGameData.js`** — `processGameConfig` reads + propagates both new Spaces.csv columns to GAME_CONFIG.csv (positions 15, 16). Empty / non-`Yes` values default to empty key + `is_path_choice_lock_point=No`.
+
+**`src/types/DataTypes.ts`** —
+- Added optional `path_choice_memory_key?: string` and `is_path_choice_lock_point?: boolean` to `GameConfig`.
+- Added new `PathChoiceRule` interface (`affected_space, memory_key, chosen_value, excluded_destination`).
+- **Phase 6.2 — Player.pathChoiceMemory widened** from literal-typed `{ 'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT' }` to `Record<string, string>`. TypeScript will no longer reject educator-added memory keys.
+
+**`src/types/StateTypes.ts`** — Phase 6.2 — same `pathChoiceMemory` widening.
+
+**`src/services/DataService.ts`** —
+- Added `pathChoiceRules: PathChoiceRule[]` private cache.
+- Added `loadPathChoiceRules()` (graceful 404 → empty array, matching the `loadLogicQuestions` pattern) wired into the parallel `loadData()` chain.
+- Added `parsePathChoiceRulesCsv()` — strict 4-column row validation; rows with any empty field are filtered out.
+- Added 3 helpers: `getPathChoiceMemoryKey(spaceName)`, `isPathChoiceLockPoint(spaceName)`, `getPathChoiceExclusions(spaceName, memory)`.
+
+**`src/types/ServiceContracts.ts`** — Added the 3 helpers to `IDataService`.
+
+**`src/services/MovementService.ts`** — Three sites lifted:
+- Subsequent-visit filter (line 122): `currentSpace === 'REG-DOB-TYPE-SELECT' && pathChoiceMemory?.['REG-DOB-TYPE-SELECT']` → `dataService.isPathChoiceLockPoint(currentSpace)` + `dataService.getPathChoiceMemoryKey(currentSpace)` + `pathChoiceMemory?.[memoryKey]`.
+- First-visit store (line 320): hardcoded `(destination === 'REG-DOB-PLAN-EXAM' || === 'REG-DOB-PROF-CERT')` validation **dropped** (the destination must already be a valid move from the lock-point space, so the literal allow-list was redundant). Now stores any chosen destination under the configured memory key.
+- Cross-space exclusion (line 546): hardcoded `spaceName === 'REG-FDNY-PLAN-EXAM'` + Plan Exam vs Prof Cert switch → `dataService.getPathChoiceExclusions(spaceName, player.pathChoiceMemory)`. Returns the union of all matching `PATH_CHOICE_RULES.csv` rows; choices filter out the excluded destinations.
+
+**`tests/mocks/mockServices.ts`** — Added `getPathChoiceMemoryKey` (default `''`), `isPathChoiceLockPoint` (default `false`), `getPathChoiceExclusions` (default `[]`).
+
+**`tests/services/TurnService.test.ts`** — Inline `mockDataService` updated with the 3 new helpers (default falsy/empty).
+
+**`tests/services/MovementService.test.ts`** — Resume + path-choice describe blocks updated:
+- Path-choice describe gets a `beforeEach` that mocks `isPathChoiceLockPoint` true for REG-DOB-TYPE-SELECT and `getPathChoiceMemoryKey` returning `'dob_path'` for that space — equivalent to the real Spaces.csv flagging on the mock data layer.
+- Test bodies updated to use the new memory key (`'dob_path'` instead of literal `'REG-DOB-TYPE-SELECT'`).
+- "should not store path memory for other destination spaces" rewritten as "should not store path memory when leaving a non-lock-point space" — the old test guarded against the literal allow-list that's now intentionally dropped (educators get a permissive "any destination from a lock-point space gets stored" contract); the new test verifies the complementary property (non-lock-point spaces never write).
+- "should preserve existing path memory" updated: existing memory uses an unrelated key, expected output preserves that key alongside the new write — verifies the spread (`{ ...player.pathChoiceMemory, [memoryKey]: dest }`) works.
+
+**`tests/services/DataService.test.ts`** — Fetch-count assertion bumped from 9 → 10 (PATH_CHOICE_RULES.csv is the new fetch). Added explicit assertion that `/data/CLEAN_FILES/PATH_CHOICE_RULES.csv` is among the fetched URLs.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+3 tests in new `engine-data separation: path-choice memory flags` describe block):
+  1. *Real Spaces.csv flags REG-DOB-TYPE-SELECT as a lock point with key=dob_path* — protective; locks in current data.
+  2. *Parametric: a custom lock-point space with a custom memory key propagates* — proves data-driven.
+  3. *Rows without the columns default to empty key + No lock point* — backward-compat.
+
+**Regenerated CLEAN_FILES** — `GAME_CONFIG.csv` now has 17 columns. REG-DOB-TYPE-SELECT shows `dob_path,Yes` for the new flags; all other spaces show `,No`. Behavior identical to v2.56.0 on current data — verified by 23/23 batch tests + Ghost Player (50 strict + 50 try-again-happy games, both pass with no exceptions and ≥90% wins). The path-choice flow is exercised on every game that takes the regulatory path.
+
+### Phase 6.1 complete
+
+This commit ships the last of the 8 Category A scenarios. Every engine-behavior hardcode flagged in the 2026-04-26 audit is now data-driven. Educators can configure starting spaces, scope-zero guards, resume hubs, points-of-no-return, regulatory phases, design fee math, setup-phase auto-handling, and path-choice lock points — all without touching engine code.
+
+Phase 6.2 type loosening also shipped (the `pathChoiceMemory` literal-typed shape was the only remaining type-level hardcode flagged in Category C). Phase 6.3 (cosmetic mappings — voice profile, display labels, review-loop messages) remains as future work but is genuinely lower-priority — those don't break gameplay if educators add new spaces.
+
+---
+
 ## [2.56.0] - 2026-04-27
 
 ### Workstream 6 #3 — Setup-phase auto-handling lifted to data flags

@@ -390,9 +390,8 @@ export interface PlayerUpdateData {
   costs?: import('./DataTypes').CostBreakdown;
   moveIntent?: string | null;
   fundingHistory?: import('./DataTypes').FundingEntry[];
-  pathChoiceMemory?: {
-    'REG-DOB-TYPE-SELECT'?: 'REG-DOB-PLAN-EXAM' | 'REG-DOB-PROF-CERT';
-  };
+  // Workstream 6 #4 + Phase 6.2: widened to Record<string, string> to match DataTypes.Player.
+  pathChoiceMemory?: Record<string, string>;
   contractor?: {
     quality: 'HIGH' | 'MED' | 'LOW';
     multiplier: number;

@@ -315,6 +315,76 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 #4 — Engine-data separation: path-choice memory + exclusions
+// REG-DOB-TYPE-SELECT (lock point) and REG-FDNY-PLAN-EXAM (cross-space exclusion)
+// were both hardcoded by space ID + literal destination values in MovementService.
+// Lifted to two new Spaces.csv columns (path_choice_memory_key,
+// is_path_choice_lock_point) plus a new PATH_CHOICE_RULES.csv source file.
+// Educators can configure new lock points and new cross-space exclusions
+// entirely via data.
+describe('processGameData — engine-data separation: path-choice memory flags', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it('real Spaces.csv flags REG-DOB-TYPE-SELECT as a lock point with key=dob_path', () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    // Column order: …,15:path_choice_memory_key,16:is_path_choice_lock_point
+    const dobRow = dataRows.find(r => r.startsWith('REG-DOB-TYPE-SELECT,'));
+    expect(dobRow).toBeDefined();
+    const fields = dobRow!.split(',');
+    expect(fields[15]).toBe('dob_path');
+    expect(fields[16]).toBe('Yes');
+
+    // Sanity: only REG-DOB-TYPE-SELECT is a lock point on current data.
+    const lockPoints = dataRows.filter(r => r.split(',')[16] === 'Yes');
+    expect(lockPoints).toHaveLength(1);
+  });
+
+  it('parametric: a custom lock-point space with a custom memory key propagates', () => {
+    const headerWithFlags = `${spacesHeader},path_choice_memory_key,is_path_choice_lock_point`;
+    const csv = [
+      headerWithFlags,
+      `${makeSpaceRow('CUSTOM-LOCK-POINT', { phase: 'OWNER' })},strategy_choice,Yes`,
+      `${makeSpaceRow('OTHER-SPACE', { phase: 'DESIGN' })},,No`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    const customFields = dataRows.find(r => r.startsWith('CUSTOM-LOCK-POINT,'))!.split(',');
+    const otherFields = dataRows.find(r => r.startsWith('OTHER-SPACE,'))!.split(',');
+    expect(customFields[15]).toBe('strategy_choice');
+    expect(customFields[16]).toBe('Yes');
+    expect(otherFields[15]).toBe('');
+    expect(otherFields[16]).toBe('No');
+  });
+
+  it('rows without the columns default to empty key + No lock point', () => {
+    const csv = [
+      spacesHeader,
+      makeSpaceRow('LEGACY-SPACE', {}),
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const fields = lines.slice(1)[0].split(',');
+    expect(fields[15]).toBe('');
+    expect(fields[16]).toBe('No');
+  });
+});
+
 // Workstream 6 #3 — Engine-data separation: setup-phase auto-handling
 // OWNER-FUND-INITIATION had three coupled hardcodes: auto-apply funding on
 // arrival, auto-trigger B/I card draws, and skip direct money effects from
@@ -348,7 +418,10 @@ describe('processGameData — engine-data separation: auto-handling flags', () =
     // ("B,I"), so use a regex match rather than naive split-by-comma.
     const ownerFundRow = dataRows.find(r => r.startsWith('OWNER-FUND-INITIATION,'));
     expect(ownerFundRow).toBeDefined();
-    expect(ownerFundRow).toMatch(/,Yes,"B,I"$/);
+    // Match the auto_apply_funding=Yes + auto_trigger_card_types="B,I" pair —
+    // not anchored at line end because subsequent Workstream-6 scenarios may
+    // append more columns after these.
+    expect(ownerFundRow).toMatch(/,Yes,"B,I"(?:,|$)/);
 
     // Sanity: only OWNER-FUND-INITIATION is flagged on current data.
     // Match `,Yes,` for the auto_apply_funding column. (Naive split would fail
