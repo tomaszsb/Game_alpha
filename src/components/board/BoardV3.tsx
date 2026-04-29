@@ -209,7 +209,7 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
       return (
         <div className={`pbm-card ${cardCls}${isValid ? ' pbm-card--valid-move' : ''}`}
           style={{ borderLeftColor: accentColor }}>
-          <div className={`pbm-card-name${nameCls}`}>{shortName(spaceName)}</div>
+          <div className={`pbm-card-name${nameCls}`}>{dataService.getDisplayLabelOverride(spaceName) || shortName(spaceName)}</div>
           {content?.story && (
             <div className="pbm-card-story">
               {npcName && <strong>{npcName}: </strong>}<TextWithTerms text={truncate(content.story, storyMax)} onTermClick={(term) => openWithTerm(term.id)} />
@@ -238,7 +238,7 @@ export function BoardV3({ currentPlayerId, players }: BoardV3Props) {
       <div className={nodeClass}
         style={{ borderLeft: `3px solid ${accentColor}` }}
         title={spaceName}>
-        <span>{shortName(spaceName)}</span>
+        <span>{dataService.getDisplayLabelOverride(spaceName) || shortName(spaceName)}</span>
         {renderAvatars(playersHere)}
       </div>
     );

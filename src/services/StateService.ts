@@ -1615,16 +1615,33 @@ export class StateService implements IStateService {
   }
 
   private getStartingSpace(): string {
-    
     if (this.dataService && this.dataService.isLoaded()) {
       const gameConfigs = this.dataService.getGameConfig();
-      const startingSpace = gameConfigs.find(config => config.is_starting_space);
-      if (startingSpace) {
-        return startingSpace.space_name;
+      const startingSpaces = gameConfigs.filter(config => config.is_starting_space);
+
+      // Workstream 6 follow-up: runtime defense against malformed data.
+      // Build-time test in processGameData.test.ts already asserts exactly one
+      // starting space on real source data. This warns if production CLEAN_FILES
+      // ever drift out of sync (e.g. hand-edited on the server).
+      if (startingSpaces.length === 0) {
+        console.warn(
+          '⚠️ No space flagged is_starting_space=Yes in GAME_CONFIG. ' +
+          'Falling back to legacy default \'OWNER-SCOPE-INITIATION\'.'
+        );
+      } else if (startingSpaces.length > 1) {
+        console.warn(
+          `⚠️ Multiple spaces flagged is_starting_space=Yes (${startingSpaces.length}: ` +
+          `${startingSpaces.map(s => s.space_name).join(', ')}). ` +
+          `Using first match: ${startingSpaces[0].space_name}.`
+        );
+      }
+
+      if (startingSpaces[0]) {
+        return startingSpaces[0].space_name;
       }
     }
-    
-    // Updated fallback to use the correct starting space
+
+    // Legacy fallback when DataService isn't loaded (race during init).
     return 'OWNER-SCOPE-INITIATION';
   }
 

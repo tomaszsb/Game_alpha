@@ -91,16 +91,14 @@ export class DiceRollProcessor {
    * Generate an explanatory message when dice outcome sends player back to a review/exam space
    */
   public getReviewLoopExplanation(fromSpace: string, toSpace: string): string | null {
-    const reviewLoopMessages: { [key: string]: string } = {
-      'REG-DOB-PLAN-EXAM': 'The examiner found minor issues that need to be addressed. Additional documentation or corrections are required before continuing.',
-      'REG-FDNY-PLAN-EXAM': 'Fire safety review identified items needing attention. The FDNY examiner requires additional information or modifications.',
-      'ARCH-INITIATION': 'Design changes are needed. You must consult with the architect to revise the plans before resubmitting.',
-      'ENG-INITIATION': 'Structural or engineering modifications required. The engineer needs to update calculations or drawings.',
-    };
-
-    const explanation = reviewLoopMessages[toSpace];
-    if (explanation) {
-      return explanation;
+    // Workstream 6 Phase 6.3: review-loop messages lifted from a hardcoded
+    // 4-entry record to the `review_loop_message` Spaces.csv column. Real data
+    // currently keeps the same 4 messages on the same 4 spaces (migrated
+    // verbatim from the previous hardcode). Educators can configure the
+    // message per-space.
+    const dataMessage = this.dataService.getReviewLoopMessage(toSpace);
+    if (dataMessage) {
+      return dataMessage;
     }
 
     if (fromSpace.includes('AUDIT') && toSpace.includes('PLAN-EXAM')) {

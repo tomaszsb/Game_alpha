@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.58.0] - 2026-04-29
+
+### Workstream 6 Phase 6.3 — Cosmetic mappings lifted to data flags + runtime starting-space defense
+
+Closes Workstream 6 (the Engine-Data Separation initiative started 2026-04-26) on the parts that gameplay actually depends on. Two cosmetic mappings lifted from hardcoded code records into Spaces.csv columns: SPECIAL_NAMES → `display_label_override`, reviewLoopMessages → `review_loop_message`. Plus a runtime starting-space defense added in StateService — addresses the question of what catches misconfigured data when the build-time test isn't enough (e.g. CLEAN_FILES drift on the production server).
+
+**`src/services/StateService.ts`** — `getStartingSpace()` now warns via `console.warn` when GAME_CONFIG has 0 or >1 spaces flagged `is_starting_space=Yes`, listing the offending spaces in the >1 case. Build-time test in processGameData.test.ts already asserts exactly one on real source data; this is the runtime safety net for production drift.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Added two columns (48th, 49th):
+- `display_label_override`: short display name for the board UI. Migrated all 5 hardcoded SPECIAL_NAMES entries (FINISH = "Finish", PM-DECISION-CHECK = "PM Check", START-QUICK-PLAY-GUIDE = "Quick Play", BANK-FUND-REVIEW = "Bank Review", INVESTOR-FUND-REVIEW = "Investor Review") into First+Subsequent rows.
+- `review_loop_message`: explanation when dice sends a player back to a re-review space. Migrated all 4 hardcoded entries (REG-DOB-PLAN-EXAM, REG-FDNY-PLAN-EXAM, ARCH-INITIATION, ENG-INITIATION) into First+Subsequent rows.
+
+17 source rows updated total via the same Node helper script pattern used for prior Workstream 6 column additions.
+
+**`server/processGameData.js`** — Reads + propagates both columns to GAME_CONFIG.csv (positions 17, 18). Empty / missing values default to empty strings.
+
+**`src/types/DataTypes.ts`** — Added optional `display_label_override?: string` and `review_loop_message?: string` to `GameConfig`.
+
+**`src/services/DataService.ts`** — Added `getDisplayLabelOverride(spaceName)` and `getReviewLoopMessage(spaceName)` helpers. `parseGameConfigCsv` reads `values[17]` and `values[18]`.
+
+**`src/types/ServiceContracts.ts`** — Added both helpers to `IDataService`.
+
+**`src/components/board/BoardV3.tsx`** — Two `shortName(spaceName)` call sites (lines 212, 241) updated to `dataService.getDisplayLabelOverride(spaceName) || shortName(spaceName)`. The legacy `shortName()` (which still uses SPECIAL_NAMES) becomes the fallback for spaces without a data override.
+
+**`src/services/DiceRollProcessor.ts`** — `getReviewLoopExplanation` now reads `dataService.getReviewLoopMessage(toSpace)` first; falls back to the prior `fromSpace.includes('AUDIT')` heuristic if the data lookup is empty. The hardcoded `reviewLoopMessages` record at lines 94–99 deleted (its 4 entries are now in Spaces.csv).
+
+**`tests/mocks/mockServices.ts`** — Added `getDisplayLabelOverride` (default `''`) and `getReviewLoopMessage` (default `''`).
+
+**`tests/services/TurnService.test.ts`** — Inline mock updated with both new helpers.
+
+**Tests:**
+- `tests/server/processGameData.test.ts` (+2 tests in new `engine-data separation: cosmetic overrides` describe block):
+  1. *Real Spaces.csv migrates the 5 SPECIAL_NAMES + 4 review-loop messages into data* — protective; uses CSV-aware field extraction (review-loop messages contain commas so naive `split(',')` fails).
+  2. *Parametric: a custom space with override + message propagates* — proves data-driven, including correct quoting of comma-containing fields.
+
+**Phase 6.3 sub-lift NOT done — voice profile (NPC voice mapping):**
+
+The third Phase 6.3 sub-lift (NPC voice profile, `extractPrefix` + `CHARACTER_MAP` + `CHARACTER_PROFILES`) was scoped out: the function is a pure utility called from 5 components (`BoardV3.tsx`, `CharacterBadge.tsx`, `NarrativeBlock.tsx`, `ActionCenterPanel.tsx`, `StoryAccordion.tsx`) plus `SpeechService`. Lifting it would require either injecting `dataService` into the utility (changing all 6 callers) or introducing parallel data-aware helpers. The benefit is marginal: educator-added spaces today fall through to the narrator voice, which is acceptable degradation. **Documented as deferred in BETA_PLAN_V3 → Phase 6.4 (probably never unless an educator hits this limit).**
+
+**Regenerated CLEAN_FILES** — `GAME_CONFIG.csv` now has 19 columns. FINISH shows `display_label_override='Finish'`, REG-DOB-PLAN-EXAM shows the full review-loop message in column 18 (quoted because of embedded commas). Behavior identical to v2.57.0 — the data is now the source of truth, but the hardcoded fallbacks in `shortName()` and the AUDIT heuristic in `DiceRollProcessor` still execute for educator-added spaces without flags.
+
+**Workstream 6 status — complete on what gameplay needs.** The original audit (2026-04-26) found ~25 hardcoded space-ID references across 9 files plus 2 type-level hardcodes. After 8 Workstream 6 ships (v2.51.0 through v2.58.0):
+- ✅ Phase 6.1 (Category A — engine behavior): all 8 scenarios shipped.
+- ✅ Phase 6.2 (Category C — type-level hardcodes): `pathChoiceMemory` widened to `Record<string, string>`.
+- ✅ Phase 6.3 (Category B — cosmetic mappings): 2 of 3 sub-lifts shipped (display label, review-loop message).
+- ⏳ Phase 6.4 (deferred — voice profile): scoped out; degraded default voice is acceptable.
+
+The "engine is generic, all per-space variation lives in data" principle is now genuinely true for everything an educator's space-edit would naturally want to do. Adding new spaces with custom mechanics (lock points, auto-funding, scope guards, percentage fees, resume hubs, regulatory auto-roll) requires zero code changes.
+
+**Gates:** `npm run typecheck` 0 errors. 23/23 test batches green. processGameData 45/45 (43 + 2 new), DataService 7/7, StateService 57/57. Ghost Player strict + try-again-happy both pass.
+
+---
+
 ## [2.57.0] - 2026-04-28
 
 ### Workstream 6 #4 + Phase 6.2 — Path-choice memory lifted to data flags + types loosened

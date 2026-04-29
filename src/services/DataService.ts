@@ -208,6 +208,24 @@ export class DataService implements IDataService {
     return exclusions;
   }
 
+  /**
+   * Workstream 6 Phase 6.3: short display label override for the board UI.
+   * Returns empty string when no override is configured — callers (e.g.
+   * `shortName()` in boardLayout) fall back to their legacy hardcoded map.
+   */
+  getDisplayLabelOverride(spaceName: string): string {
+    return this.getGameConfigBySpace(spaceName)?.display_label_override ?? '';
+  }
+
+  /**
+   * Workstream 6 Phase 6.3: review-loop explanation when dice sends a player
+   * back to a re-review space. Returns empty string when not configured —
+   * `DiceRollProcessor.getReviewLoopExplanation` falls back to legacy logic.
+   */
+  getReviewLoopMessage(spaceName: string): string {
+    return this.getGameConfigBySpace(spaceName)?.review_loop_message ?? '';
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {
@@ -526,6 +544,10 @@ export class DataService implements IDataService {
       // Workstream 6 #4: parse path-choice memory flags.
       const pathChoiceMemoryKey = values[15] || '';
       const isPathChoiceLockPoint = values[16] === 'Yes';
+      // Workstream 6 Phase 6.3: cosmetic per-space overrides. Empty string when
+      // missing — callers fall back to existing hardcoded behavior.
+      const displayLabelOverride = values[17] || '';
+      const reviewLoopMessage = values[18] || '';
 
       return {
         space_name: values[0],
@@ -550,7 +572,10 @@ export class DataService implements IDataService {
         auto_trigger_card_types: autoTriggerCardTypes,
         // Workstream 6 #4: path-choice memory.
         path_choice_memory_key: pathChoiceMemoryKey,
-        is_path_choice_lock_point: isPathChoiceLockPoint
+        is_path_choice_lock_point: isPathChoiceLockPoint,
+        // Workstream 6 Phase 6.3: cosmetic overrides.
+        display_label_override: displayLabelOverride,
+        review_loop_message: reviewLoopMessage
       };
     });
   }

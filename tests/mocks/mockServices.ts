@@ -45,6 +45,8 @@ export const createMockDataService = (): any => ({
   getPathChoiceMemoryKey: vi.fn(() => ''),
   isPathChoiceLockPoint: vi.fn(() => false),
   getPathChoiceExclusions: vi.fn(() => []),
+  getDisplayLabelOverride: vi.fn(() => ''),
+  getReviewLoopMessage: vi.fn(() => ''),
   getPhaseOrder: vi.fn(),
   
   // Space methods

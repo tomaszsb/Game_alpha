@@ -24,6 +24,8 @@ const mockDataService: anyIDataService = {
   getPathChoiceMemoryKey: vi.fn(() => ''),
   isPathChoiceLockPoint: vi.fn(() => false),
   getPathChoiceExclusions: vi.fn(() => []),
+  getDisplayLabelOverride: vi.fn(() => ''),
+  getReviewLoopMessage: vi.fn(() => ''),
   getPhaseOrder: vi.fn(),
   getAllSpaces: vi.fn(),
   getSpaceByName: vi.fn(),

@@ -146,6 +146,8 @@ export interface IDataService {
   getPathChoiceMemoryKey(spaceName: string): string;
   isPathChoiceLockPoint(spaceName: string): boolean;
   getPathChoiceExclusions(spaceName: string, memory: Record<string, string> | undefined): string[];
+  getDisplayLabelOverride(spaceName: string): string;
+  getReviewLoopMessage(spaceName: string): string;
   getPhaseOrder(): string[];
   
   // Space methods

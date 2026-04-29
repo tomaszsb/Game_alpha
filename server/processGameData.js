@@ -272,6 +272,10 @@ function processGameConfig(spacesCsv) {
     //   visits, valid moves are filtered to the stored value.
     const pathChoiceMemoryKey = (row.path_choice_memory_key || '').trim();
     const isPathChoiceLockPoint = (row.is_path_choice_lock_point || '').trim() === 'Yes';
+    // Workstream 6 Phase 6.3 (cosmetic mappings): display label override + review-loop message.
+    // Empty values mean "use legacy fallback in code." Educators can set these per-space.
+    const displayLabelOverride = (row.display_label_override || '').trim();
+    const reviewLoopMessage = (row.review_loop_message || '').trim();
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -290,7 +294,9 @@ function processGameConfig(spacesCsv) {
       auto_apply_funding: autoApplyFunding ? 'Yes' : 'No',
       auto_trigger_card_types: autoTriggerCardTypes,
       path_choice_memory_key: pathChoiceMemoryKey,
-      is_path_choice_lock_point: isPathChoiceLockPoint ? 'Yes' : 'No'
+      is_path_choice_lock_point: isPathChoiceLockPoint ? 'Yes' : 'No',
+      display_label_override: displayLabelOverride,
+      review_loop_message: reviewLoopMessage
     };
   }
 
@@ -300,7 +306,8 @@ function processGameConfig(spacesCsv) {
     'is_resume_hub', 'is_point_of_no_return', 'min_w_cards_to_leave',
     'fee_calculation_method', 'fee_label',
     'auto_apply_funding', 'auto_trigger_card_types',
-    'path_choice_memory_key', 'is_path_choice_lock_point'
+    'path_choice_memory_key', 'is_path_choice_lock_point',
+    'display_label_override', 'review_loop_message'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

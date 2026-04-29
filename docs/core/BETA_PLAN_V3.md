@@ -205,7 +205,8 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - ✅ **#7 — Design fee math lifted (fee_calculation_method + fee_label)** shipped v2.55.0 (2026-04-27). See CHANGELOG.
 - ✅ **#3 — Setup-phase auto-handling lifted (auto_apply_funding + auto_trigger_card_types)** shipped v2.56.0 (2026-04-27). See CHANGELOG.
 - ✅ **#4 — Path-choice memory lifted (path_choice_memory_key + is_path_choice_lock_point + new PATH_CHOICE_RULES.csv) + Phase 6.2 type loosening** shipped v2.57.0 (2026-04-28). See CHANGELOG. **Phase 6.1 + 6.2 complete.**
-- ⏳ Phase 6.3 (cosmetic mappings — NPC voice profile, display label overrides, review-loop messages) remains. Lower priority because these don't break gameplay if educators add new spaces — they just get default styling/voices.
+- ✅ **Phase 6.3 (cosmetic mappings) + runtime starting-space defense** shipped v2.58.0 (2026-04-29). 2 of 3 sub-lifts: display label override + review-loop message. NPC voice profile sub-lift scoped out — see Phase 6.4 below. Workstream 6 effectively closed.
+- ⏳ **Phase 6.4 (deferred — NPC voice profile)**: would lift `extractPrefix` + `CHARACTER_MAP` + `CHARACTER_PROFILES` to a per-space `npc_voice_profile` data flag. Touches 6 callers (5 components + SpeechService) including pure utility functions, requires either injecting dataService into utilities or adding parallel data-aware helpers. **Deferred** because educator-added spaces today fall through to the narrator voice — acceptable degradation. Probably never lifted unless an educator complains.
 
 ---
 

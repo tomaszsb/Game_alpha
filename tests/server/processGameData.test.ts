@@ -315,6 +315,75 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
 // SPACE_EFFECTS.csv `narrative` column). These are regression fingerprints
 // against real CLEAN_FILES; bump them intentionally if authoring changes.
 // ============================================================================
+// Workstream 6 Phase 6.3 — Cosmetic mappings lifted to data flags
+// SPECIAL_NAMES (display label overrides) and reviewLoopMessages (re-review
+// explanations) lived as hardcoded records in boardLayout.ts and
+// DiceRollProcessor.ts. Migrated to display_label_override + review_loop_message
+// columns so educators can set per-space cosmetic copy without code changes.
+describe('processGameData — engine-data separation: cosmetic overrides', () => {
+  function readGameConfig(): string[] {
+    return fs.readFileSync(path.join(tmpDir, 'GAME_CONFIG.csv'), 'utf-8').trim().split('\n');
+  }
+
+  it('real Spaces.csv migrates the 5 SPECIAL_NAMES + 4 review-loop messages into data', () => {
+    const realSpacesCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/Spaces.csv'), 'utf-8'
+    );
+    const realDiceCsv = fs.readFileSync(
+      path.join(process.cwd(), 'public/data/SOURCE_FILES/DiceRoll Info.csv'), 'utf-8'
+    );
+
+    processGameData(realSpacesCsv, realDiceCsv, tmpDir);
+    const lines = readGameConfig();
+    const dataRows = lines.slice(1);
+
+    // Helper: CSV-aware split (some fields contain commas like the review-loop messages).
+    function fieldAt(row: string, idx: number): string {
+      let inQ = false, i = 0, start = 0, col = 0;
+      for (; i < row.length; i++) {
+        if (row[i] === '"') inQ = !inQ;
+        else if (row[i] === ',' && !inQ) {
+          if (col === idx) return row.slice(start, i).replace(/^"|"$/g, '');
+          col++;
+          start = i + 1;
+        }
+      }
+      if (col === idx) return row.slice(start).replace(/^"|"$/g, '');
+      return '';
+    }
+
+    // Column order: …,17:display_label_override,18:review_loop_message
+    const finish = dataRows.find(r => r.startsWith('FINISH,'));
+    const pmCheck = dataRows.find(r => r.startsWith('PM-DECISION-CHECK,'));
+    expect(fieldAt(finish!, 17)).toBe('Finish');
+    expect(fieldAt(pmCheck!, 17)).toBe('PM Check');
+
+    const dobPlanExam = dataRows.find(r => r.startsWith('REG-DOB-PLAN-EXAM,'));
+    expect(fieldAt(dobPlanExam!, 18)).toContain('examiner found minor issues');
+
+    // Sanity: roughly the right counts of each.
+    const labelCount = dataRows.filter(r => fieldAt(r, 17).length > 0).length;
+    const msgCount = dataRows.filter(r => fieldAt(r, 18).length > 0).length;
+    expect(labelCount).toBeGreaterThan(0);
+    expect(msgCount).toBeGreaterThan(0);
+  });
+
+  it('parametric: a custom space with override + message propagates', () => {
+    const headerWithFlags = `${spacesHeader},display_label_override,review_loop_message`;
+    const csv = [
+      headerWithFlags,
+      `${makeSpaceRow('CUSTOM-CHECKPOINT', { phase: 'OWNER' })},Checkpoint,"Try again, you must improve."`,
+    ].join('\n');
+
+    processGameData(csv, diceRollCsv, tmpDir);
+    const lines = readGameConfig();
+    const customRow = lines.slice(1).find(r => r.startsWith('CUSTOM-CHECKPOINT,'))!;
+
+    expect(customRow).toMatch(/,Checkpoint,/);
+    expect(customRow).toMatch(/,"Try again, you must improve\."/);
+  });
+});
+
 // Workstream 6 #4 — Engine-data separation: path-choice memory + exclusions
 // REG-DOB-TYPE-SELECT (lock point) and REG-FDNY-PLAN-EXAM (cross-space exclusion)
 // were both hardcoded by space ID + literal destination values in MovementService.
