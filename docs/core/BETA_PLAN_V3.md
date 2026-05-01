@@ -217,7 +217,7 @@ Before any of the above starts:
 1. **Alpha → Beta in-code rename** — UI labels, comments, internal strings. Safe, mechanical.
 2. **Archive dead weight** — see "Archive candidates" section below.
 3. **Write this plan** (BETA_PLAN_V3.md).
-4. **Prune stale git worktree** (`nervous-keller` is marked prunable).
+4. ✅ **Prune stale git worktree** (`nervous-keller`) — done; worktree no longer in `git worktree list`.
 
 Infra renames (Docker container, `deploy.sh` name, GitHub repo, Unraid folder) are **deferred** until the user explicitly approves — each one has live-deployment implications.
 
@@ -268,11 +268,15 @@ The following renames are NOT done in Workstream 0 because they touch live deplo
 
 ## Success criteria for v3.0.0 ship
 
-- [ ] Ghost Player runs 1,000 games in CI, zero failures, in under 30s
-- [ ] Snapshot Try Again replaces REAL/TEMP entirely; Ghost Player exercises it
-- [ ] Board reads positions from CSV; moving a space in CSV updates the rendered board without code changes
-- [ ] False-cycle setter-injection sites eliminated (see Workstream 4 audit — target ~5 remaining, all documented as genuine cycles)
-- [ ] Two known genuine cycles (`State ↔ GameRules`, `Turn ↔ EffectEngine ↔ Card`) documented in `ARCHITECTURE.md` as intentional, with their assertion guards
-- [ ] Dictionary terms auto-populate from `dictionary-scraper` at startup
-- [ ] All existing vitest suites still green
-- [ ] Version tag `v3.0.0` pushed
+Status as of v2.58.0 (April 30, 2026):
+
+- [x] **False-cycle setter-injection sites eliminated.** Shipped v2.48.0 (Apr 17, 2026) — 7 false-cycle setters migrated to constructor injection.
+- [x] **Two known genuine cycles documented in ARCHITECTURE.md as intentional with assertion guards.** Shipped v2.48.0; see ARCHITECTURE.md → "Circular Dependency Resolution".
+- [x] **All existing vitest suites still green.** 23 batches green at v2.58.0; `npm run typecheck` 0 errors.
+- [~] **Ghost Player regression gate in place.** Original criterion ("1,000 games in CI, zero failures, in under 30s") was rephrased during Workstream 1 to **50 random games per CI run, zero exceptions/invariant violations, ≥90% wins, all `GAME_CONFIG.csv` spaces visited**. Actual baseline: 96% wins, ~110 avg turns. The 1,000-game number was aspirational; 50 is the proven gate.
+- [~] **Snapshot Try Again** — partially shipped. v2.40.0 added per-turn `TurnCostLedger` semantics on top of REAL/TEMP rather than replacing it. Decision needed (see TODO Tier 5): tighten criterion to current implementation, or do the full replacement.
+- [ ] **Board reads positions from CSV** (Workstream 3 — Living Map). NOT STARTED. Spaces.csv has no `pos_x`/`pos_y` columns.
+- [ ] **Dictionary terms auto-populate from dictionary-scraper at startup** (Workstream 5). NOT STARTED. `TextWithTerms` still uses static glossary.
+- [ ] **Version tag `v3.0.0` pushed** — gated on the two NOT STARTED items above.
+
+**v3.0.0 readiness:** 4 of 8 met, 2 partial, 2 not started. The not-started items (WS3 + WS5) are the real blockers. See [TODO.md Tier 5](../../TODO.md) for the active backlog of v3.0.0 blockers.
