@@ -53,23 +53,8 @@ export class MovementExecutor {
       // Check for dice_outcome or dice movement first
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       if ((movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') && player.lastDiceRoll) {
-        // Use dice roll to determine destination from DICE_ROLL_INFO.csv
         const diceRoll = player.lastDiceRoll.total;
-
-        // Use DICE_OUTCOMES.csv for dice-based movement
-        // TODO: Implement getDiceRollDestinations in DataService if DICE_ROLL_INFO.csv is needed
-        // const destinations = this.dataService.getDiceRollDestinations(currentPlayer.currentSpace, currentPlayer.visitType);
-        let destination: string | null = null;
-
-        // Use existing dice outcome logic
-        destination = this.movementService.getDiceDestination(player.currentSpace, player.visitType, diceRoll);
-
-        // Original code commented out for future implementation:
-        // if (destinations.length >= diceRoll) {
-        //   destination = destinations[diceRoll - 1];
-        // } else {
-        //   destination = this.movementService.getDiceDestination(currentPlayer.currentSpace, currentPlayer.visitType, diceRoll);
-        // }
+        const destination = this.movementService.getDiceDestination(player.currentSpace, player.visitType, diceRoll);
 
         if (destination) {
           // Movement logged via emitAutoAction below

@@ -1292,7 +1292,6 @@ export class CardService implements ICardService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    // Bank Loan card effects are now handled in applyExpandedMechanics via loan_amount field
     // Log loan details if available
     if (card.loan_amount) {
       const loanAmount = parseInt(card.loan_amount);
