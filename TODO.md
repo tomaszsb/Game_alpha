@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 21, 2026
-**Status:** Beta — regression gates in place
-**Current Version:** 2.50.0
+**Last Updated:** April 30, 2026
+**Status:** Beta — regression gates in place; Workstream 6 closed
+**Current Version:** 2.58.0
 
 ---
 
@@ -25,7 +25,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ### **Backlog**
 - Story authoring rollout (post-v2.50.0) — Infrastructure is shipped; author per-action narratives for the remaining spaces (priority: high-traffic REG/PM/ARCH/ENG, then Event spaces). Legacy flat `Action`/`Outcome` blocks continue to render wherever no per-action narrative is authored, so rollout can be incremental with zero gameplay risk.
 
-- Voice rewrite merge (v2.51.0 candidate) — `docs/authored-copy-review.md` is now fully rewritten end-to-end with the corrected voice rule (NPC-of-the-space narrates to PM in 2nd person; 5 PM-voiced exceptions; modals share the speaker). Pending: (a) user sign-off on 3 flagged speaker calls (ARCH-INITIATION/Sub, ENG-INITIATION/Sub, CON-INSPECT) and 4 CSV structural changes at top of doc; (b) merge text + Negotiate flag flips + 2 row deletions into `public/data/SOURCE_FILES/Spaces.csv`; (c) populate `ModalConfig.csv` with the new per-NPC modal copy; (d) regenerate `CLEAN_FILES`; ship as v2.51.0.
+- Voice rewrite merge (target version TBD — was originally framed as v2.51.0 candidate but v2.51.0–v2.58.0 went to Workstream 6 instead; pick a fresh version when picking this back up) — `docs/core/AUTHORED_COPY_REVIEW.md` is fully rewritten end-to-end with the corrected voice rule (NPC-of-the-space narrates to PM in 2nd person; 5 PM-voiced exceptions; modals share the speaker). Pending: (a) user sign-off on 3 flagged speaker calls (ARCH-INITIATION/Sub, ENG-INITIATION/Sub, CON-INSPECT) and 4 CSV structural changes at top of doc; (b) merge text + Negotiate flag flips + 2 row deletions into `public/data/SOURCE_FILES/Spaces.csv`; (c) populate `ModalConfig.csv` with the new per-NPC modal copy; (d) regenerate `CLEAN_FILES`.
 
 - Educational "Learn More" content per space — Hidden educational field per space, revealed via a Learn More icon. Explains why the step exists, why it matters, and historical/regulatory context (NYC-specific: real DOB code sections, ZR citations, Triangle Shirtwaist → FDNY history, 1916 zoning resolution backstory, etc.). Separate "field guide" instructional register from the in-character NPC voice — clicking Learn More gets a teacher, not a character. Constraints to lock before authoring: (a) one paragraph default (~200 words), max ~500 for spaces with rich history; (b) every fee/rate/code claim sourced to nyc.gov / ZR / NYC Admin Code; (c) footer disclaimer ("educational, not legal advice — verify current rules at nyc.gov"). Author a 2-space calibration sample (suggest REG-FDNY-PLAN-EXAM with the Triangle Shirtwaist hook + BANK-FUND-REVIEW for contrast) before scaling to all ~50 spaces. Separate workstream from the voice rewrite — do not block v2.51.0. Target version TBD — content authoring + reading UI; not blocked by engine-data separation work.
 
@@ -173,9 +173,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [x] **Bucket D — service-surface API narrowing (12 sites)** — shipped in v2.48.4 (Apr 18, 2026). See CHANGELOG.
 - [ ] **Bucket E — intentional / leave as-is (~15 sites).** `error: any` catch blocks (5× — idiomatic, TS lets you throw anything), `consoleCapture args: any[]` (matches native console signature), `EffectFactory.validateCard(card: any)` (type guard input is supposed to be loose), `(window as any).opera` (legacy browser check), `configCache as any[mode]` (dynamic index access), `ChoiceService reject: (reason: any)` (Promise reject standard), `StateTypes details?: Record<string, any>` open-bag metadata, `DataTypes.effectData: any` (deferred payload union), 2× `null as any` in TurnStateManager TEMP state clearing. **Documented as intentional. Not blocked on typecheck.**
 
-### Tier 5 — Remaining Beta workstreams
-- [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`).
-- [ ] **Workstream 5: Live Dictionary integration** (per BETA_PLAN_V3).
+### Tier 5 — Remaining Beta workstreams (blocking v3.0.0 ship)
+- [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`). NOT STARTED — Spaces.csv has no `pos_x`/`pos_y` columns; BoardV3 still uses computed grid layout.
+- [ ] **Workstream 5: Live Dictionary integration** (per BETA_PLAN_V3). NOT STARTED — `TextWithTerms` still uses static glossary; no `dictionary-scraper` fetch on startup.
+- [ ] **Workstream 2 ship gap: snapshot Try Again must replace REAL/TEMP entirely** per BETA_PLAN_V3 success criterion. Currently REAL/TEMP coexists with `TurnCostLedger`; v3.0.0 criterion is technically unmet. Decide: tighten the criterion (current implementation is good enough), or do the replacement.
 
 ---
 
@@ -221,8 +222,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🚀 **Deployment Status**
 - **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.41.1
-- **Last Deploy**: April 8, 2026
+- **Current Version**: v2.58.0
+- **Last Deploy**: see git log / `docker logs game_alpha` for live build
 - **Status**: Stable
 
 ---

@@ -1,8 +1,8 @@
 # Unravel Codes: The Game
 
 **Status:** Beta (April 2026)
-**Version:** 2.47.0
-**Test Coverage:** ~1,480 tests passing (100% success rate)
+**Version:** 2.58.0
+**Test Coverage:** 99 test files (run via batch script — see Testing below)
 **Public URL:** `https://game.unravelcodes.com`
 
 ## Overview
@@ -94,40 +94,37 @@ npm test tests/services/TurnService.test.tsx
 ## Project Structure
 
 ```
-game_alpha/
+Game_Alpha/
 ├── src/                          # Application source code
-│   ├── components/              # React UI components (expandable sections, modals, etc.)
-│   ├── services/                # Business logic services (26 service files)
-│   │   ├── DataService.ts       # CSV data loading and access
-│   │   ├── StateService.ts      # Immutable state management
-│   │   ├── TurnService.ts       # Turn sequence and player progression
-│   │   ├── CardService.ts       # Card operations and deck management
-│   │   ├── MovementService.ts   # Space transitions and pathfinding
-│   │   ├── EffectEngineService.ts  # Card effects and duration-based mechanics
-│   │   ├── ResourceService.ts   # Money and time tracking
-│   │   ├── GameRulesService.ts  # Validation and win conditions
-│   │   ├── ChoiceService.ts     # Player choice handling
-│   │   ├── NegotiationService.ts # Player interactions
-│   │   ├── NotificationService.ts # Unified notifications
-│   │   ├── TargetingService.ts  # Multi-player targeting
-│   │   ├── LoggingService.ts    # Centralized logging
-│   │   └── PlayerActionService.ts # Command orchestration
+│   ├── components/              # React UI components (board, modals, player, editor, ...)
+│   ├── services/                # 28 business-logic services (DataService, StateService,
+│   │                            #   TurnService, CardService, MovementService,
+│   │                            #   EffectEngineService, ResourceService, GameRulesService,
+│   │                            #   ChoiceService, NegotiationService, NotificationService,
+│   │                            #   TargetingService, LoggingService, PlayerActionService,
+│   │                            #   ServerSyncService, WebSocketSyncService, SpeechService,
+│   │                            #   plus internal helpers: DiceService, DiceRollProcessor,
+│   │                            #   SpaceEffectService, SpaceArrivalProcessor, TurnStateManager,
+│   │                            #   TurnTransitionHandler, MovementExecutor, TooltipService,
+│   │                            #   FinancialEffectHandler, CardEffectHandler, CardEffectService)
 │   ├── types/                   # TypeScript interfaces and contracts
 │   ├── utils/                   # Pure utility functions
-│   ├── context/                 # React context providers
-│   └── styles/                  # CSS and styling (animations.css, theme constants)
-├── tests/                        # Test suite (~1,480 tests across 93+ test files)
+│   ├── context/                 # React context providers (ServiceProvider, GameContext)
+│   └── styles/                  # CSS variables, animations, theme
+├── tests/                        # 99 test files (run via batch script — see below)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
 │   ├── E2E/                     # End-to-end scenarios
+│   ├── ghost/                   # Ghost Player regression bot
 │   └── scripts/                 # Test utility scripts
-├── data/                         # Game CSV data (spaces, cards, movements, effects)
-├── public/                       # Static assets and processed CSV files
-├── server/                       # Backend Express server (state sync)
-├── docs/                         # Technical documentation
-│   ├── core/                    # CLAUDE.md, PROJECT_STATUS.md
-│   ├── technical/               # Architecture, APIs, testing, code style
+├── public/data/                  # Game CSV data
+│   ├── SOURCE_FILES/            # Editable source CSVs (Data Editor target)
+│   └── CLEAN_FILES/             # Pipeline-processed CSVs the game reads
+├── server/                       # Backend Express server (state sync, processGameData.js)
+├── docs/                         # Documentation
+│   ├── core/                    # CLAUDE.md, BETA_PLAN_V3, PROJECT_STATUS, PRODUCT_CHARTER
+│   ├── technical/               # Architecture, APIs, testing, code style, board diagrams
 │   ├── user/                    # User manual, release notes
 │   └── archive/                 # Historical milestones
 ├── package.json                  # Dependencies and scripts
@@ -148,11 +145,12 @@ game_alpha/
 
 ### Technical Features
 - **Security-First Architecture:** WebSocket authentication, state schema validation, and admin rate limiting.
-- **Service-Oriented Architecture:** Clean separation of concerns with dependency injection and 26 specialized services.
-- **Immutable State Management:** Predictable state updates with snapshot support and version tracking.
-- **Transactional Logging:** 100% accurate game log with exploration session tracking.
-- **State Synchronization:** HTTP-based state sync with 500ms debouncing for multi-device play.
-- **Comprehensive Testing:** ~1,480 tests covering services, components, and E2E scenarios.
+- **Service-Oriented Architecture:** Clean separation of concerns with dependency injection across 28 services.
+- **Immutable State Management:** REAL/TEMP state model with per-turn cost ledger for Try Again semantics.
+- **Engine-Data Separation:** Per-space behavior driven by Spaces.csv flags (lock points, scope guards, fee math, auto-funding, regulatory phase, resume hubs) — educators can configure new spaces without code changes.
+- **Transactional Logging:** Exploration-session-aware game log with commit/rollback semantics.
+- **State Synchronization:** HTTP-based state sync with 500ms debouncing + WebSocket push for multi-device play.
+- **Headless Regression Gate:** Ghost Player bot plays 50 random games per CI run; strict mode requires zero exceptions and ≥90% wins.
 
 ## Technology Stack
 
@@ -164,35 +162,27 @@ game_alpha/
 
 ## Recent Updates
 
-### April 2, 2026 (v2.39.3)
-- **Security Hardening**: Implemented WebSocket authentication (X-Game-Token) and state schema validation.
-- **Accessibility**: Converted Pro Ledger headers to buttons with `aria-expanded` support.
-- **UX Polish**: Fixed modal exit animations (9 modals) and consolidated money formatting.
-- **Critical Fix**: Resolved `process.stderr` crash in browser-side movement code.
+See [CHANGELOG.md](CHANGELOG.md) for full per-version history. Highlights:
 
-### April 1, 2026 (v2.39.1)
-- **Animation Overhaul**: Migrated ModalBase to Framer Motion for smooth entry/exit/shake animations.
-- **Per-Action Narrative**: Added per-action story text in modals configured via Space Data Editor.
+### April 26–29, 2026 (v2.51.0 → v2.58.0) — Workstream 6: Engine-Data Separation
+Eight scenarios lifting hardcoded space-ID references into `Spaces.csv` flags so educators can configure new spaces without code changes: starting space, scope-zero guard, resume hubs, points-of-no-return, regulatory phase, design fee math (flat vs % of scope), setup-phase auto-funding, and path-choice memory + cross-space exclusion via `PATH_CHOICE_RULES.csv`. Phase 6.2 type loosening (`pathChoiceMemory: Record<string, string>`) shipped together. Phase 6.3 cosmetic mappings (display label override, review-loop message) closed in v2.58.0.
 
-### March 31, 2026 (v2.37.0)
-- **Data-Driven Pipeline**: Fee types and dice roll metadata now computed at processing time.
-- **Affordability Gating**: All financial paths now require `canAfford()` validation in ResourceService.
+### April 21, 2026 (v2.49.0–v2.50.0)
+- **Logic-tree movement restored** at REG-FDNY-FEE-REVIEW via new `LOGIC_QUESTIONS.csv` walker.
+- **Story as composed per-action narratives**: in-page accordion replacing flat Action/Outcome blocks.
 
-### March 23, 2026 (v2.34.0)
-- **Code Audit Cleanup**: Removed ~5,200 lines of dead code and deleted 37 unused files.
-- **Service Decomposition**: Refactored TurnService into MovementExecutor and TurnTransitionHandler.
+### April 16–18, 2026 (v2.47.1 → v2.48.4) — April Deficiency Cleanup
+Tier 1 doc/code hygiene · Tier 2 30 typecheck errors resolved · Tier 3 false-cycle setter injection killed + dead negotiation pathway removed · Tier 4 Buckets B/C/D narrowed 50 of 109 `any` usages.
 
+### April 8, 2026 (v2.41.0–v2.41.1)
+G148 playtest fixes + Ghost Player hardening. WebSocket self-echo race condition fixed.
+
+### April 4–6, 2026 (v2.40.0) — Beta Workstreams 1 & 2
+Ghost Player regression gate + snapshot-based "Try Again" semantics with per-turn cost ledger.
 
 ## Contributing
 
-This project follows a service-oriented architecture with clear separation of concerns. When adding features:
-
-1. Update or create services in `src/services/` for business logic
-2. Update interfaces in `src/types/` for contracts
-3. Create or update components in `src/components/` for UI
-4. Add comprehensive tests in `tests/`
-5. Update CSV data in `data/` if needed
-6. Document changes in `CHANGELOG.md`
+Solo project — see [docs/core/CLAUDE.md](docs/core/CLAUDE.md) for AI session rules and [docs/core/BETA_PLAN_V3.md](docs/core/BETA_PLAN_V3.md) for current Beta strategy.
 
 ## License
 
@@ -200,7 +190,6 @@ MIT
 
 ## Support
 
-For issues, questions, or contributions:
-- **Issues:** See `docs/technical/TECHNICAL_DEBT.md` for known issues
-- **Documentation:** Check `docs/` directory for comprehensive guides
-- **Testing:** Run `./tests/scripts/run-tests-batch-fixed.sh` to verify functionality
+- **Strategy & open work:** [TODO.md](TODO.md), [docs/core/BETA_PLAN_V3.md](docs/core/BETA_PLAN_V3.md)
+- **Architecture:** [docs/technical/ARCHITECTURE.md](docs/technical/ARCHITECTURE.md)
+- **Testing:** Run `./tests/scripts/run-tests-batch-fixed.sh` (full `npm test` may hang — see [docs/technical/TESTING_GUIDE.md](docs/technical/TESTING_GUIDE.md))

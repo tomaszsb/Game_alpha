@@ -2,6 +2,70 @@
 
 ---
 
+## v2.51.0 → v2.58.0 — Engine-Data Separation (Workstream 6) (April 26–29, 2026)
+
+**Release Date:** April 26–29, 2026
+**Status:** Beta
+**Type:** Architecture (no visible gameplay change for players)
+
+### What Changed
+For educators and game designers using the Data Editor, this is the big one. **Eight different per-space behaviors that used to be hardcoded by space ID are now driven by columns in `Spaces.csv`.** That means you can configure new spaces with the same mechanics — without anyone needing to touch code.
+
+The lifted behaviors:
+- **Starting space** (`is_starting_space`) — flag any space as the game start
+- **Scope-zero guard** (`min_w_cards_to_leave`) — block players from leaving without enough W cards
+- **Resume hubs and points-of-no-return** (`is_resume_hub`, `is_point_of_no_return`) — for the side-quest/return mechanic
+- **Regulatory phase auto-roll** (driven by existing `phase` column instead of `REG-` prefix matching)
+- **Design fee math** (`fee_calculation_method`, `fee_label`) — flat vs % of project scope, with custom labels
+- **Setup-phase auto-funding** (`auto_apply_funding`, `auto_trigger_card_types`) — owner seed money + auto B/I draws
+- **Path-choice memory + cross-space rules** (`path_choice_memory_key`, `is_path_choice_lock_point` + new `PATH_CHOICE_RULES.csv`) — DOB path locks, FDNY exclusions, etc.
+- **Display label overrides + review-loop messages** — cosmetic per-space text
+
+### For Players
+**No visible change.** Every existing space behaves identically to v2.50.0 — verified by 23 batches of regression tests + Ghost Player playing 100 random games per release.
+
+### Behind the Scenes
+- 8 sequential releases (v2.51.0 → v2.58.0), each independently revertable
+- New `PATH_CHOICE_RULES.csv` for cross-space exclusion rules
+- `pathChoiceMemory` widened from literal-typed to `Record<string, string>`
+- Runtime `is_starting_space` defense in `StateService` to catch CLEAN_FILES drift
+- One sub-lift deferred: NPC voice profile (`extractPrefix` + `CHARACTER_MAP`) — touches 6 callers, low value, scoped out
+
+---
+
+## v2.50.0 — Story as Composed Per-Action Narratives (April 21, 2026)
+
+**Type:** Feature
+
+### What's New
+- **Per-action story narratives**: Landing on a space used to show two flat blocks of text — one "Action" paragraph and one "Outcome" paragraph — written in a generic voice that had to cover every possible card type at once. Now each effect on a space gets its own italic, NPC-voiced story, revealed as you work through the space.
+- **Accordion display**: Effects stack as collapsible rows in the order E → W → B → I → dice → money → time → L. The first uncompleted row auto-expands; completed rows collapse with a green ✓; auto-triggered Life events render pre-collapsed with "Life event happened — click to read" so they don't demand mid-turn attention.
+- **Incremental rollout**: Two spaces have authored narratives so far (OWNER-SCOPE-INITIATION/First, ARCH-FEE-REVIEW/First+Subsequent). Spaces without authored narratives fall back gracefully to the pre-v2.50 text.
+
+---
+
+## v2.49.0 — Logic-Tree Movement Restored (April 21, 2026)
+
+**Type:** Bug Fix
+
+### What's New
+- **REG-FDNY-FEE-REVIEW now asks the 5-question yes/no decision chain** as originally designed. A v2.45-era pipeline regression had silently downgraded it to a flat destination picker. Hand-authored questions live in a new `LOGIC_QUESTIONS.csv`, and the regression is now caught by integrity tests so it can't recur.
+
+---
+
+## v2.48.0 → v2.48.4 — April Deficiency Cleanup (April 17–18, 2026)
+
+**Type:** Code Quality (no player-visible change)
+
+### What Changed
+A consolidated deficiency review across four tiers:
+- **Tier 1**: Doc/code hygiene — empty App.tsx blocks removed, stale CSV backups purged, package.json rebranded.
+- **Tier 2**: Resolved 30 pre-existing TypeScript errors (`npm run typecheck` is now genuinely 0 errors).
+- **Tier 3**: Killed 7 false-cycle setter-injection sites; removed dead negotiation effect-engine pathway; documented the 2 real cycles (`State ↔ GameRules` and `Turn ↔ EffectEngine ↔ Card`) as intentional. Dropped the previously-stated "no service > 600 lines" target after audit found it produces churn without fewer bugs.
+- **Tier 4 (B/C/D)**: Narrowed 50 of 109 `any` usages across effect/payload shapes, CardService card params, and service-surface APIs. Surfaced and removed one dead `movement_effect` branch in `parseCardIntoEffects`. Bucket E (~15 intentional sites) documented as staying.
+
+---
+
 ## v2.47.0 - Per-Action Modal Editor Phase 5 (April 10, 2026)
 
 **Release Date:** April 10, 2026
@@ -2433,9 +2497,9 @@ import { PlayerPanel } from './components/player/PlayerPanel';
 - [Project Status](../core/PROJECT_STATUS.md) - Current status
 
 **Project Links:**
-- GitHub Repository: [Link TBD]
-- Live Demo: [Link TBD]
-- Documentation Site: [Link TBD]
+- Live Game: https://game.unravelcodes.com
+- GitHub Repository: https://github.com/tomaszsb/Game_alpha
+- Documentation: see `docs/` in the repo
 
 ---
 

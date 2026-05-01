@@ -30,41 +30,45 @@ taskkill /F /IM chrome.exe
 
 ### **📁 WORKSPACE & DIRECTORY STRUCTURE**
 
-**Working Directory**: `/mnt/d/unravel/current_game/game_alpha/`
+**Working Directory**: `/mnt/d/unravel/current_game/Game_Alpha/`
 
-**Status**: Beta (v2.47.0) — in external testing
+**Status**: Beta (v2.58.0) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstreams 3 (Living Map) and 5 (Live Dictionary) remain for v3.0.0 ship.
 
 **Directory Structure:**
 ```
-game_alpha/
+Game_Alpha/
 ├── src/                          # Application source code
-│   ├── components/              # React UI components
-│   ├── services/                # Business logic services (26 service files)
-│   ├── types/                   # TypeScript interfaces
+│   ├── components/              # React UI (board, modals, player, editor, setup, layout)
+│   ├── services/                # 28 services (DI, see ARCHITECTURE.md)
+│   ├── types/                   # TypeScript interfaces and contracts
 │   ├── utils/                   # Pure utility functions
-│   ├── context/                 # React context providers
-│   └── styles/                  # CSS and styling
-├── tests/                        # Test suite (~1,480 tests, 93+ files, 100% passing)
+│   ├── context/                 # React context providers (ServiceProvider)
+│   └── styles/                  # CSS variables, animations, theme
+├── tests/                        # 99 test files (run via batch script)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
 │   ├── E2E/                     # End-to-end scenarios
+│   ├── ghost/                   # Ghost Player regression bot
 │   └── scripts/                 # Test utility scripts
-├── data/                         # Game CSV data
-├── public/                       # Static assets
-├── server/                       # Backend server (server.js)
-├── scripts/                      # Build & data utility scripts
-├── docs/                         # Technical documentation
-│   ├── core/                    # Project status, AI charters (this file!)
-│   ├── technical/               # Architecture, APIs, testing, code style
-│   ├── user/                    # User manual, release notes
-│   └── archive/                 # Historical milestones
+├── public/data/                  # Game CSV data
+│   ├── SOURCE_FILES/            # Editable source CSVs (Data Editor target)
+│   └── CLEAN_FILES/             # Pipeline-processed CSVs the game reads at runtime
+├── server/                       # Backend server.js + processGameData.js pipeline
+├── docs/                         # Documentation
+│   ├── core/                    # CLAUDE.md (this file), BETA_PLAN_V3, PROJECT_STATUS,
+│   │                            #   PRODUCT_CHARTER, AUTHORED_COPY_REVIEW, narratives-draft
+│   ├── technical/               # Architecture, APIs, testing, code style, board diagrams
+│   ├── user/                    # User manual, release notes, bug reports
+│   └── archive/                 # Historical milestones (read-only)
 ├── package.json                  # Dependencies
-├── tsconfig.json                 # TypeScript config
+├── tsconfig.json                 # TypeScript config (strict)
 ├── vite.config.ts               # Vite build config
-├── vitest.config*.ts            # Test configs
+├── vitest.config*.ts            # Test configs (dev / ci)
 └── index.html                    # Entry point
 ```
+
+> Note: `scripts/` directory exists at repo root but is currently empty — utility scripts have been collapsed into `server/processGameData.js` and the JS port that runs in Docker.
 
 ### **Running Tests:**
 ```bash
@@ -159,10 +163,10 @@ ssh unraid "docker restart game_alpha"
 
 **Quick Reference:**
 - **Root:** README.md, TODO.md, CHANGELOG.md
-- **docs/core/:** CLAUDE.md, PROJECT_STATUS.md
-- **docs/technical/:** ARCHITECTURE.md, API_REFERENCE.md, TESTING_GUIDE.md, CODE_STYLE.md
-- **docs/user/:** USER_MANUAL.md, RELEASE_NOTES.md
-- **docs/archive/:** Historical milestones only (no session summaries)
+- **docs/core/:** CLAUDE.md, BETA_PLAN_V3.md, PROJECT_STATUS.md, PRODUCT_CHARTER.md, AUTHORED_COPY_REVIEW.md, narratives-draft.md
+- **docs/technical/:** ARCHITECTURE.md, API_REFERENCE.md, TESTING_GUIDE.md, CODE_STYLE.md, TURN_FLOW_DIAGRAM.mmd, how-the-board-is-drawn.md, how-the-prototypes-draw-the-board.md
+- **docs/user/:** USER_MANUAL.md, RELEASE_NOTES.md, bug_report.docx
+- **docs/archive/:** Historical milestones only (read-only)
 
 ### **ENFORCEMENT RULES (Critical)**
 
@@ -230,11 +234,11 @@ The archive folder is for:
 
 ## 🎯 **MISSION & RESPONSIBILITIES**
 
-**Status:** Game Alpha (Unravel Codes: The Game) is in **BETA** phase (April 2026)
+**Status:** Game Alpha (Unravel Codes: The Game) is in **BETA** phase (April 2026), live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026 in v2.58.0.
 
-Your mission is to maintain and enhance Game Alpha, a fully functional multi-player board game built with modern architectural best practices, currently preparing for Beta/external testing.
+Your mission is to maintain and enhance Game Alpha, a fully functional multi-player board game with modern service-oriented architecture, dependency injection, and a Ghost Player regression gate.
 
-**Current Focus:** User Acceptance Testing (UAT) and production polish.
+**Current Focus:** Voice rewrite merge (`docs/core/AUTHORED_COPY_REVIEW.md`), story-narrative authoring rollout, and the two remaining Beta workstreams blocking v3.0.0 (Living Map + Live Dictionary). See `TODO.md` for active priorities and `BETA_PLAN_V3.md` for strategy.
 
 ### **Core Responsibilities:**
 - Maintain production system stability and test coverage
@@ -244,11 +248,11 @@ Your mission is to maintain and enhance Game Alpha, a fully functional multi-pla
 - **Follow documentation structure** - update existing docs, don't create new ones
 
 ### **Code Quality Standards:**
-- **All code:** TypeScript with strict type checking
-- **Testing:** Comprehensive test coverage for all changes
-- **Components:** Single responsibility, <200 lines preferred
-- **Services:** Focused, well-documented, testable
-- **Architecture:** Follow established patterns (see ARCHITECTURE.md)
+- **All code:** TypeScript with strict type checking. `npm run typecheck` must return 0 errors.
+- **Testing:** All 23 batches in `./tests/scripts/run-tests-batch-fixed.sh` must be green. Ghost Player strict + try-again-happy variants both pass.
+- **Components:** Single responsibility. No line-count budget — split when a specific method becomes painful, not on size alone (see [BETA_PLAN_V3.md Workstream 4](./BETA_PLAN_V3.md) for the dropped-line-budget rationale).
+- **Services:** Same — large stable services (TurnService 2,076, StateService 1,867) are accepted as cohesive. Setter injection only for the two documented real cycles.
+- **Architecture:** Follow established patterns (see ARCHITECTURE.md). New per-space behavior should live in Spaces.csv flags, not hardcoded space-ID checks (Workstream 6 invariant).
 
 ### **Before Committing:**
 1. ✅ Run relevant test batches (`./tests/scripts/run-tests-batch-fixed.sh`)
@@ -319,5 +323,5 @@ When conducting User Acceptance Testing via browser automation:
 
 ---
 
-**Last Updated:** February 3, 2026
-**Charter Version:** 3.4 (Added deployment instructions)
+**Last Updated:** April 30, 2026
+**Charter Version:** 3.5 (Beta-live + Workstream 6 close-out)

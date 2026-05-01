@@ -1,8 +1,8 @@
 # Architecture Guide - Unravel Codes: The Game
 
-**Last Updated:** March 31, 2026
-**Status:** Pre-Beta (v2.37.0)
-**Test Coverage:** 1462 tests passing (91 files, 0 failures)
+**Last Updated:** April 30, 2026
+**Status:** Beta (v2.58.0) — live in production
+**Test Coverage:** 99 test files, run via `./tests/scripts/run-tests-batch-fixed.sh` (23 batches, all green at v2.58.0)
 
 ---
 
@@ -46,43 +46,45 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ### Service Overview
 
-All services are fully typed and comply with TypeScript strict mode:
+All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors as of v2.47.2). 28 service files in `src/services/`.
 
 ```typescript
 // Core Services (in IServiceContainer)
-DataService           // CSV data loading and caching
-StateService          // Immutable game state management
-TurnService           // Turn progression and win conditions
-CardService           // Card operations and deck management
-PlayerActionService   // Command orchestration
-MovementService       // Space transitions and pathfinding
-GameRulesService      // Validation and win conditions
-EffectEngineService   // Unified effect processing (delegates to handlers)
-ResourceService       // Money, time, reputation tracking
-ChoiceService         // Player choice handling
-NegotiationService    // Player-to-player interactions
-NotificationService   // Unified notification system
-TargetingService      // Multi-player effect targeting
-LoggingService        // Centralized game logging
+DataService            // CSV data loading and caching; engine-data lookups (Workstream 6 flags)
+StateService           // Immutable game state management; REAL/TEMP turn lifecycle
+TurnService            // Turn progression and win conditions
+CardService            // Card operations and deck management
+PlayerActionService    // Command orchestration
+MovementService        // Space transitions, pathfinding, path-choice memory + cross-space rules
+GameRulesService       // Validation and win conditions; condition evaluator
+EffectEngineService    // Unified effect processing (delegates to handlers)
+ResourceService        // Money, time tracking with affordability gating
+ChoiceService          // Player choice handling
+NegotiationService     // Player-to-player interactions
+NotificationService    // Unified notification system
+TargetingService       // Multi-player effect targeting
+LoggingService         // Centralized game logging with exploration sessions
 
 // Extracted/Specialized Services
-ServerSyncService     // Server synchronization (extracted from StateService)
-CardEffectService     // Card draw/replace/return operations (extracted from TurnService)
-FinancialEffectHandler // Financial effect processing (for EffectEngineService)
-CardEffectHandler     // Card effect processing (for EffectEngineService)
-PlayerViewStateService // Mobile view state management
+ServerSyncService      // HTTP state sync (extracted from StateService, Jan 2026)
+CardEffectService      // Card draw/replace/return operations
+FinancialEffectHandler // Financial effect processing for EffectEngineService
+CardEffectHandler      // Card effect processing for EffectEngineService
+WebSocketSyncService   // WebSocket real-time state synchronization
+SpeechService          // Text-to-speech character voice narration
 
-// Internal Helper Services (used by TurnService)
-DiceService           // Dice rolling and outcome lookup
-SpaceEffectService    // Space effect retrieval
-DiceRollProcessor     // Dice roll processing with callbacks
-// MovementChoiceManager merged into MovementService (March 2026)
-SpaceArrivalProcessor // Space arrival effect processing
-TurnStateManager      // REAL/TEMP state lifecycle management
-TooltipService        // Tooltip content management
-SpeechService         // Text-to-speech character voice narration
-WebSocketSyncService  // WebSocket real-time state synchronization
+// Internal helper services
+DiceService            // Dice rolling and outcome lookup
+SpaceEffectService     // Space effect retrieval; data-driven design fee math
+DiceRollProcessor      // Dice roll processing with callbacks
+SpaceArrivalProcessor  // Space arrival effect processing
+TurnStateManager       // REAL/TEMP state lifecycle + per-turn cost ledger
+TurnTransitionHandler  // Extracted from TurnService.nextPlayer() (Mar 2026)
+MovementExecutor       // Extracted from TurnService.endTurnWithMovement() (Mar 2026)
+TooltipService         // Tooltip content management
 ```
+
+> **Removed services (historical):** PlayerViewStateService (deleted v2.34.0); MovementChoiceManager merged into MovementService (Mar 2026).
 
 ### Service Dependency Pattern
 
@@ -332,7 +334,6 @@ try {
 > **Visual Diagrams:** For detailed flowcharts of turn processing, see:
 > - [TURN_FLOW_DIAGRAM.mmd](./TURN_FLOW_DIAGRAM.mmd) - Current implementation with effect pipeline
 > - [TURN_PROCESSING_FLOW.md](./TURN_PROCESSING_FLOW.md) - Decision trees and state variables
-> - [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) - Proposed architectural improvements
 
 ### Action Processing Pipeline
 

@@ -1,7 +1,7 @@
 # Testing Guide - Unravel Codes: The Game
 
-**Last Updated:** January 27, 2026
-**Status:** Production Standards (v2.12)
+**Last Updated:** April 30, 2026
+**Status:** Beta (v2.58.0)
 
 ---
 
@@ -10,9 +10,12 @@
 **Rule: If tests don't pass, the work isn't done. No exceptions.**
 
 ```bash
-# REQUIRED before every commit:
-npm test tests/services/    # All service tests (483 tests, ~25s)
-npm test tests/E2E          # All E2E tests (80 tests, ~35s)
+# REQUIRED before every commit (single source of truth):
+./tests/scripts/run-tests-batch-fixed.sh   # 23 batches, must all be green
+npm run typecheck                          # 0 errors required
+
+# Plus the regression bot for any change that could affect gameplay:
+npm test tests/ghost/ghostPlayer.test.ts   # strict + try-again-happy variants
 ```
 
 ### If ANY test fails:
@@ -46,30 +49,27 @@ If modifying any CSV files in `public/data/CLEAN_FILES/`:
 
 ---
 
-## 🚀 Quick Start (Lightning Fast Tests)
+## 🚀 Test Execution
 
-Our test suite runs in **seconds, not minutes** thanks to the Vitest migration and performance optimizations.
-
-> **Note**: The project was migrated from Jest to Vitest for superior performance. All references to Jest in this document are historical—the codebase uses Vitest exclusively.
+The project uses Vitest. All Jest references in this doc are historical — the codebase uses Vitest exclusively.
 
 ### **Essential Commands**
 ```bash
-npm test                    # Run full test suite (<30 seconds)
-npm run test:watch          # Real-time testing for development
-npm run test:services       # Test service layer only
-npm run test:isolated       # Ultra-fast pure logic tests
+./tests/scripts/run-tests-batch-fixed.sh   # ✅ The recommended way to run everything
+npm test tests/services/                   # Test service layer only
+npm test tests/components/                 # Test components only
+npm test tests/E2E                         # E2E scenarios
+npm test tests/ghost/                      # Headless regression bot
+npm run test:watch                         # Real-time testing for development
 ```
 
-## 📊 Performance Achievement
+### ⚠️ `npm test` (running everything in one process) may hang
 
-**Before Optimization**: 15+ minute timeouts, unusable for TDD
-**After Vitest Migration**: Sub-30-second full suite, instant feedback
+This is a known limitation: module-level mock isolation issues can cause the full `npm test` invocation to hang indefinitely. **Always use the batch script** (`run-tests-batch-fixed.sh`) which runs the suite in 23 segmented batches. This is the workflow used by every commit since early 2026.
 
-| Test Category         | Tests                   | Status                |
-|-----------------------|-------------------------|-----------------------|
-| **Full Suite**        | **1398 tests (93 files)** | **✅ All Passing** |
+## 📊 Test Count
 
-*Note: Test counts updated March 10, 2026 after codebase audit. Full suite runs in ~68 seconds.*
+99 test files at v2.58.0 (run via batch script). Counts of individual test cases inside files have been intentionally removed from this doc — they go stale fast. Run `./tests/scripts/run-tests-batch-fixed.sh` for the current authoritative tally per batch.
 
 ## 🛠️ Writing Tests
 
@@ -228,17 +228,12 @@ const mockFn = jest.fn(); // This will fail
 - Use `any` type for complex mocks if needed
 - Ensure service interfaces match implementations
 
-## 🎉 Migration Complete
+## Test Architecture Notes
 
-The test suite has been completely migrated from Jest to Vitest with incredible performance improvements:
-
-- **✅ 87 test files** converted and working
-- **✅ ~1,027 tests** running when executed in batches
-- **⚠️ Known limitation**: Running all tests together may hang due to module-level mock isolation issues
-- **✅ Real-time feedback** for TDD workflow
-- **✅ Zero compilation hangs** with native TypeScript support
-
-**Recommended execution:** Run tests in batches by directory (`npm test tests/services/`, `npm test tests/components/`, etc.)
+- **Vitest** (not Jest) — use `vi.fn()` not `jest.fn()`.
+- **Batch execution required** — see warning above; full `npm test` may hang.
+- **Native TypeScript** — no compile step needed.
+- **Real-time feedback** — `npm run test:watch` for TDD.
 
 ---
 

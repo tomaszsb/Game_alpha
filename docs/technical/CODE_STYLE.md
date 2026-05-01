@@ -1,383 +1,59 @@
-# Code Style Guide - Unravel Codes: The Game
+# Code Style Guide — Unravel Codes: The Game
 
-**Last Updated:** January 15, 2026
-**Status:** Production Standards (v2.10)
+**Last Updated:** April 30, 2026
+**Status:** Beta (v2.58.0)
 
----
-
-## Table of Contents
-
-1. [TypeScript Standards](#typescript-standards)
-2. [Component Patterns](#component-patterns)
-3. [Service Patterns](#service-patterns)
-4. [CSS & Styling](#css--styling)
-5. [Testing Standards](#testing-standards)
+> **Scope:** project-specific conventions only. Generic React/TypeScript patterns (immutable updates, discriminated unions, hooks) are well-known and not repeated here. The rules below are the ones unique to this codebase or arrived-at through specific incidents.
 
 ---
 
-## TypeScript Standards
+## TypeScript
 
-### Strict Mode Compliance
+- **Strict mode is required.** `npm run typecheck` returns 0 errors. Every commit must keep that true.
+- **No `any` is the rule, with documented carve-outs.** Tier 4 of the April 2026 deficiency cleanup narrowed 50 of 109 `any` usages. The remaining ~15 sites in Bucket E are intentional and documented in CHANGELOG (catch-block `error: any`, `Promise reject: any`, dynamic config indexing, open-bag `Record<string, any>` metadata, legacy browser checks). New `any` usages need a justification or get refactored.
+- **Discriminated-union payload extracts** are the preferred pattern when a function takes one variant of an effect:
+  ```typescript
+  type RC = Extract<Effect, { effectType: 'RESOURCE_CHANGE' }>['payload'];
+  function handleResourceChange(payload: RC) { /* ... */ }
+  ```
+- **Domain types at function boundaries.** Use `Card`, `Player`, `SpaceEffect` rather than re-typing fields locally.
 
-**All code must comply with TypeScript strict mode:**
+## File size
 
-```typescript
-// tsconfig.json
-{
-  "compilerOptions": {
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true
-  }
-}
-```
+- **No line-count budget.** The April 2026 audit explicitly dropped the prior "<200 lines per service / <300 max" rule. Large stable services (TurnService 2,076 lines, StateService 1,867, CardService 1,824) are accepted as cohesive — splitting on size alone produces churn without fewer bugs.
+- **Split only on a concrete pain signal:** a method that's genuinely hard to edit, a bug hot-spot in `git blame`, or a documented AI-context-cost problem. The Mar 2026 extractions (`MovementExecutor`, `TurnTransitionHandler`) followed this principle — each was driven by a specific function being painful.
+- See [BETA_PLAN_V3.md Workstream 4](../core/BETA_PLAN_V3.md) for the full rationale and the explicit *"do not resurrect the 600-line target"* note.
 
-### Type Definitions
+## Dependency injection
 
-**✅ ALWAYS:** Define explicit types
-```typescript
-// Good
-interface PlayerProps {
-  playerId: string;
-  gameServices: IServiceContainer;
-}
+- **Constructor injection is the default.** Services receive their dependencies via constructor params.
+- **Setter injection is permitted only for the two real cycles:** `StateService ↔ GameRulesService` and `TurnService ↔ EffectEngineService ↔ CardService`. These are documented in [ARCHITECTURE.md](./ARCHITECTURE.md#circular-dependency-resolution-setter-injection) with `assertDependenciesReady()` guards. Don't add new setter-injection methods casually — if a dep can be passed through the constructor, it must be.
+- **No global state access.** Never read `window.gameServices` or similar. The Service Locator anti-pattern from the code2026 prototype was eliminated; don't reintroduce it.
 
-function updatePlayer(player: Player, updates: Partial<Player>): Player {
-  return { ...player, ...updates };
-}
-```
+## Engine-data separation (Workstream 6 invariant)
 
-**❌ NEVER:** Use `any` type
-```typescript
-// Bad
-function doSomething(data: any) { }  // ❌ NO!
-```
+- **Per-space behavior lives in `Spaces.csv` flags, not hardcoded space-ID checks.** The list of flags as of v2.58.0: `is_starting_space`, `is_resume_hub`, `is_point_of_no_return`, `min_w_cards_to_leave`, `fee_calculation_method` + `fee_label`, `auto_apply_funding` + `auto_trigger_card_types`, `path_choice_memory_key` + `is_path_choice_lock_point`, `display_label_override`, `review_loop_message`. Plus `phase` (already-existing) drives regulatory-phase auto-rolls.
+- When adding new per-space behavior, add a Spaces.csv flag rather than a hardcoded `if (spaceName === 'X-Y-Z')` check. After the refactor: `git grep "OWNER-FUND-INITIATION"` (or whatever space name) should return zero hits in `src/services/`.
+- Cross-space rules go in `PATH_CHOICE_RULES.csv` (or a new sibling CSV).
 
-### File Organization
+## State management
 
-```typescript
-// 1. Imports
-import React from 'react';
-import { Player, GameState } from '../types/StateTypes';
+- **Immutable updates only.** Never mutate `player.money += x` — return new objects via `{ ...player, money: player.money + x }`. The REAL/TEMP turn-state model depends on this.
+- **REAL = committed, TEMP = working.** Effects apply to TEMP during a turn. End Turn → `commitTempToReal()`. Try Again → `discardTempState()` + `applyToRealState()` for cost-ledger penalties + `createTempStateFromReal()` for fresh working state. See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full lifecycle.
 
-// 2. Type/Interface definitions
-interface ComponentProps {
-  // ...
-}
+## Testing
 
-// 3. Component/Class definition
-export function Component({ props }: ComponentProps) {
-  // ...
-}
+- **Vitest, not Jest.** Use `vi.fn()`. See [TESTING_GUIDE.md](./TESTING_GUIDE.md).
+- **Run via batch script** (`./tests/scripts/run-tests-batch-fixed.sh`) — full `npm test` may hang due to module-level mock isolation.
+- **Tests live in `tests/`**, mirror the `src/` layout. Mocks in `tests/mocks/`.
 
-// 4. Helper functions (if needed)
-function helperFunction() {
-  // ...
-}
-```
+## Commit messages
 
----
-
-## Component Patterns
-
-### Dependency Injection
-
-**✅ CORRECT:** Props-based injection
-```typescript
-interface CardPortfolioProps {
-  gameServices: IServiceContainer;  // Inject services
-  playerId: string;
-}
-
-function CardPortfolio({ gameServices, playerId }: CardPortfolioProps) {
-  const { cardService, stateService } = gameServices;
-  // Use services
-}
-```
-
-**❌ WRONG:** Global access
-```typescript
-// DON'T DO THIS
-const services = window.gameServices;  // ❌
-```
-
-### State Management
-
-**Use hooks for local state:**
-```typescript
-function MyComponent() {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-
-  // Render
-}
-```
-
-**Use services for game state:**
-```typescript
-function MyComponent({ gameServices, playerId }: Props) {
-  const { stateService } = gameServices;
-  const player = stateService.getPlayer(playerId);
-
-  // Don't store player in useState - read from service
-}
-```
-
-### Event Handlers
-
-**Async error handling:**
-```typescript
-const handlePlayCard = async (cardId: string) => {
-  try {
-    const result = await cardService.playCard(playerId, cardId);
-    // Handle success
-  } catch (error) {
-    console.error('Failed to play card:', error);
-    // Show user-friendly error message
-  }
-};
-```
-
-### Component Size
-
-- **Target:** <400 lines
-- **Maximum:** 1,000 lines
-- **If larger:** Break into smaller components
-
----
-
-## Service Patterns
-
-### Constructor Injection
-
-```typescript
-class CardService implements ICardService {
-  constructor(
-    private dataService: DataService,
-    private stateService: StateService,
-    private effectEngineService: EffectEngineService
-  ) {}
-
-  async playCard(playerId: string, cardId: string): Promise<CardPlayResult> {
-    // Use injected dependencies
-    const card = this.dataService.getCardById(cardId);
-    // ...
-  }
-}
-```
-
-### Immutable Updates
-
-**✅ ALWAYS return new objects:**
-```typescript
-updatePlayer(updates: Partial<Player> & { id: string }): void {
-  const current = this.getPlayer(updates.id);
-  const updated = { ...current, ...updates };  // New object
-  this.setState({ ...state, players: [...] });
-}
-```
-
-**❌ NEVER mutate:**
-```typescript
-// BAD
-player.money += 100;  // ❌ Direct mutation
-state.players[0] = updatedPlayer;  // ❌ Array mutation
-```
-
-### Error Handling
-
-```typescript
-async performAction(): Promise<Result> {
-  try {
-    // Business logic
-    const result = await this.doSomething();
-    this.loggingService.info('Action succeeded');
-    return { success: true, data: result };
-  } catch (error) {
-    this.loggingService.error('Action failed', { error });
-    throw error;  // Re-throw for component handling
-  }
-}
-```
-
----
-
-## CSS & Styling
-
-### CSS Variables
-
-**Use theme variables:**
-```css
-:root {
-  --primary-color: #2563eb;
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-}
-
-.button {
-  background: var(--primary-color);
-  padding: var(--spacing-md);
-}
-```
-
-### Component-Scoped Styles
-
-**CSS Modules pattern:**
-```css
-/* ActionCenterPanel.css */
-.action-center {
-  display: flex;
-  flex-direction: column;
-}
-
-.player-panel .section {
-  margin-bottom: var(--spacing-md);
-}
-```
-
-### Responsive Design
-
-**Mobile-first approach:**
-```css
-/* Mobile (default) */
-.container {
-  width: 100%;
-  padding: 1rem;
-}
-
-/* Tablet */
-@media (min-width: 768px) {
-  .container {
-    max-width: 720px;
-    padding: 1.5rem;
-  }
-}
-
-/* Desktop */
-@media (min-width: 1024px) {
-  .container {
-    max-width: 960px;
-    padding: 2rem;
-  }
-}
-```
-
-### Accessibility
-
-**WCAG 2.1 AA compliance:**
-```css
-/* Color contrast ratios */
-.text-primary {
-  color: #1f2937;  /* 4.5:1 minimum for normal text */
-}
-
-.text-secondary {
-  color: #6b7280;  /* 4.5:1 minimum */
-}
-
-/* Focus indicators */
-button:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-```
-
----
-
-## Testing Standards
-
-### Test Organization
-
-```typescript
-describe('ComponentName', () => {
-  // Setup
-  let mockServices: IServiceContainer;
-
-  beforeEach(() => {
-    mockServices = createMockServices();
-  });
-
-  // Tests
-  it('should render correctly', () => {
-    // Arrange
-    const { getByText } = render(<Component {...props} />);
-
-    // Act & Assert
-    expect(getByText('Expected Text')).toBeInTheDocument();
-  });
-
-  it('should handle user action', async () => {
-    // Test async actions
-  });
-});
-```
-
-### Coverage Requirements
-
-- **Services:** 90%+ coverage target
-- **Components:** Test key behaviors
-- **Integration:** Critical user flows
-- **E2E:** Happy path scenarios
-
-### Mocking Patterns
-
-**Service mocks:**
-```typescript
-const mockCardService = {
-  playCard: vi.fn().mockResolvedValue({ success: true }),
-  drawCards: vi.fn(),
-  transferCard: vi.fn()
-} as unknown as ICardService;
-```
-
-**Component mocks:**
-```typescript
-vi.mock('./ChildComponent', () => ({
-  ChildComponent: () => <div data-testid="child">Mocked</div>
-}));
-```
-
----
-
-## File Size Limits
-
-| File Type | Target | Maximum | Action if Exceeded |
-|-----------|--------|---------|-------------------|
-| **Components** | <400 lines | 1,000 lines | Split into smaller components |
-| **Services** | <200 lines | 300 lines | Extract to separate services |
-| **Utilities** | <100 lines | 150 lines | Split into multiple files |
-| **Tests** | No limit | - | Organize with describe blocks |
-
----
-
-## Code Review Checklist
-
-Before committing code, verify:
-
-- [ ] TypeScript strict mode compliance (no errors)
-- [ ] No `any` types used
-- [ ] All dependencies injected (no `window.*`)
-- [ ] Immutable state updates only
-- [ ] Error handling in place
-- [ ] Tests written and passing
-- [ ] File size limits respected
-- [ ] CSS follows conventions
-- [ ] Accessible (ARIA, semantic HTML)
-- [ ] Mobile-responsive
-
----
+- Subject line: `vX.Y.Z: short summary` for releases, or `fix:` / `docs:` / `chore:` for non-release work. Match the existing log.
+- Body: explain *why*, not *what*. The diff shows what.
 
 ## Additional Resources
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Architectural patterns
-- **[API_REFERENCE.md](./API_REFERENCE.md)** - API documentation
-- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Testing strategies
-
----
-
-**Last Updated:** January 15, 2026
-**Maintained By:** Claude (AI Lead Programmer)
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — Architectural patterns, DI, real cycles
+- [TESTING_GUIDE.md](./TESTING_GUIDE.md) — Test execution + batch runner
+- [BETA_PLAN_V3.md](../core/BETA_PLAN_V3.md) — Strategy + dropped-line-budget rationale
