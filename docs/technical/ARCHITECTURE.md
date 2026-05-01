@@ -331,9 +331,7 @@ try {
 
 ## Game Actions Flow
 
-> **Visual Diagrams:** For detailed flowcharts of turn processing, see:
-> - [TURN_FLOW_DIAGRAM.mmd](./TURN_FLOW_DIAGRAM.mmd) - Current implementation with effect pipeline
-> - [TURN_PROCESSING_FLOW.md](./TURN_PROCESSING_FLOW.md) - Decision trees and state variables
+> **Visual Diagram:** For a flowchart of turn processing, see [TURN_FLOW_DIAGRAM.mmd](./TURN_FLOW_DIAGRAM.mmd).
 
 ### Action Processing Pipeline
 
@@ -613,7 +611,7 @@ interface TurnStateModel {
 3. Multiple Try Agains naturally supported
 4. Time penalties accumulate correctly on REAL state
 
-> **Reference:** See [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) for implementation details of the REAL/TEMP model.
+> **Reference:** See [CHANGELOG entry for v2.x.x — REAL/TEMP State Model (Dec 26, 2025)](../../CHANGELOG.md) for the historical implementation rationale.
 
 ### Context API Integration
 

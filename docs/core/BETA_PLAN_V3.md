@@ -197,7 +197,7 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 - Phase 6.2 type loosening: rolled into scenario #4's ship (they're coupled).
 - Phase 6.3: separate ship once Phase 6.1 is fully complete.
 
-**Status:** Audit complete (2026-04-26). Phase 6.1 started ahead of the voice rewrite merge (which is blocked on user sign-off in `docs/authored-copy-review.md`):
+**Status:** Audit complete (2026-04-26). Phase 6.1 started ahead of the voice rewrite merge (which is blocked on user sign-off in `docs/core/AUTHORED_COPY_REVIEW.md`):
 - ✅ **#8 — REGULATORY-phase auto-roll** shipped v2.51.0 (2026-04-26). See CHANGELOG.
 - ✅ **#1 — Starting space lifted to is_starting_space flag** shipped v2.52.0 (2026-04-26). See CHANGELOG.
 - ✅ **#5 + #6 — Resume mechanic lifted (is_resume_hub + is_point_of_no_return)** shipped v2.53.0 (2026-04-27). See CHANGELOG.
