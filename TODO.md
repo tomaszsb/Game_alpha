@@ -16,6 +16,16 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🔎 **Audit-Recovered Items** (April 30, 2026)
+*Source: documentation audit — items that were quietly mentioned in deleted/trimmed docs but never landed anywhere actionable. Captured here so they aren't lost again.*
+
+- [ ] **TransactionalLogging integration tests** — TESTING_GUIDE used to flag five "Test Cases for Future Implementation" (standard turn commit, single Try Again rollback, multiple Try Again then commit, system logs always committed, error logs always committed) covering the LoggingService session lifecycle integration with TurnService. Architecture exists; integration coverage doesn't. Decide whether the unit tests in `tests/services/TransactionalLogging.test.ts` (11 tests) are sufficient, or write the integration variant.
+- [ ] **Ghost Player Workstream 1.1 — bot heuristic for the 2/50 loop case** — Roughly 2 in 50 random-move games exceed the 300-turn cap and stall in scope/fund-review loops. Documented in v2.40.0 release as "ACCEPTED — bot-strategy artifact, not a game bug." A small heuristic (prefer choices that move forward over backward) would let us tighten the strict gate from ≥90% wins back to 50/50.
+- [ ] **CardEffectService — finish migrating its setter to constructor injection** — The April 2026 setter-injection cleanup left `TurnService.setCardEffectService` flagged as *"to be migrated when touched"*. Hasn't been touched since v2.48.0. Either migrate or formally accept it as a real cycle and document with the other two.
+- [ ] **Phase 6.4 (Workstream 6 sub-lift): NPC voice profile** — Lifting `extractPrefix` + `CHARACTER_MAP` + `CHARACTER_PROFILES` to a per-space `npc_voice_profile` data flag. Touches 6 callers (5 components + SpeechService) including pure-utility functions. Scoped out in v2.58.0 because educator-added spaces fall back to narrator voice (acceptable degradation). Probably never lifted unless an educator complains — flagging here so the deferral is explicit, not silent.
+
+---
+
 ## 🎯 **Current Priority: User Acceptance Testing**
 
 ### **Recently Completed:**
@@ -97,37 +107,16 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 📱 **PHASE 3B: External Testing**
-*Status: NOT STARTED*
+## 📱 **External Testing & Public Release**
+*Reframed April 30, 2026 — the prior "Phase 3B / Phase 5 NOT STARTED" framing was misleading because the game has been live at https://game.unravelcodes.com since December 2025. The items below are what's still genuinely open.*
 
-### Tasks
-- [ ] Recruit 3-5 external players
-- [ ] Share game link: `https://game.unravelcodes.com`
-- [ ] Run controlled gameplay sessions
-- [ ] Gather feedback on:
-  - [ ] Rules clarity and difficulty
-  - [ ] UI/UX intuitiveness
-  - [ ] Game balance
-  - [ ] Performance and stability
-  - [ ] Multi-device experience
-- [ ] Compile feedback report
+### G148 playthrough (April 2026) — closed
+- [x] Bug report processed; all 6 bugs (4 critical, 2 medium) fixed in v2.41.0–v2.41.1.
 
-### Phase 3C: Bug Fix Sprint (after testing)
-- [ ] Address critical bugs found during testing
-- [ ] Fix balance issues if identified
-- [ ] Minor UI adjustments based on feedback
-- [ ] Re-test fixes
-
----
-
-## 🎉 **PHASE 5: Public Release** (Launch Day)
-*Status: NOT STARTED*
-
-- [ ] Deploy to production server
-- [ ] Verify all systems operational
-- [ ] Test from multiple devices
-- [ ] Monitor for critical issues (first 24 hours)
-- [ ] Announce release
+### Open
+- [ ] **Recruit 3–5 external players** for a structured UAT pass against v2.58.0 (now that Workstream 6 is closed). Prior internal/playtest UAT happened informally; this is the structured one.
+- [ ] **Compile post-Beta feedback report** — currently no rolling channel for player-reported issues other than the in-app feedback button. Decide if the existing `/api/feedback` flow is enough or if we need a triage cadence.
+- [ ] **Bug-fix sprint after structured UAT** — placeholder for whatever surfaces.
 
 ---
 
@@ -158,8 +147,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 *Source: Consolidated review (Apr 16, 2026). Tier 1 shipped in v2.47.1. Tiers 2–5 remain.*
 
 ### Tier 2 — TypeScript rigor (small but cascading)
-- [ ] **Resolve 30 pre-existing typecheck errors** — `npm run typecheck` currently fails with 30 errors across `CardEffectHandler.ts`, `LoggingService.ts`, `MovementExecutor.ts`, `NegotiationService.ts`, `TurnService.ts`, `ModalBase.tsx`, `boardLayout.ts`. Docs claim "100% strict mode" but it's not true. Fix before the `tests/**/*` tsconfig duplication is removed — otherwise both landmines detonate at once.
-- [ ] **Fix `tsconfig.json` tests include/exclude duplication** — `tests/**/*` appears in both arrays; pick one. Removing from `exclude` means tests get typechecked (expect a wave of errors since `allowJs` is loose and tests were effectively untyped). Do this after Tier 2 step 1.
+- [x] **Resolve 30 pre-existing typecheck errors** — shipped in v2.47.2 (Apr 17, 2026). `npm run typecheck` returns 0 errors. See CHANGELOG.
+- [ ] **Fix `tsconfig.json` tests include/exclude duplication** — `tests/**/*` appears in both arrays (verified at v2.58.0: lines 32 and 38 of tsconfig.json); pick one. Removing from `exclude` means tests get typechecked (expect a wave of errors since `allowJs` is loose and tests were effectively untyped). Now that Tier 2 step 1 has shipped, this is the only remaining Tier 2 item.
 
 ### Tier 3 — DI graph cleanup (revised Apr 17, 2026)
 *Original framing was "split every service > 600 lines + eliminate all setter injection." Revised after an April 17 audit determined both targets were largely cosmetic. See `docs/core/BETA_PLAN_V3.md` Workstream 4 for the full rationale. **Do not resurrect the 600-line target.***
@@ -180,7 +169,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🛠️ **Workflow & Deployment DX** (Backlog)
+## 🛠️ **Workflow & Deployment DX** (Backlog — STALLED)
+*Flagged April 30, 2026: these 5 items have sat un-picked since they were added. They're nice-to-have but nothing blocks them. Decision needed: pick up, drop, or accept as standing low-priority.*
 
 ### Deployment Automation
 - [ ] **Backend Version Logging** — Update `server/server.js` to log `process.env.VITE_GIT_COMMIT` on startup for instant verification via `docker logs`.
