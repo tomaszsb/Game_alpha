@@ -23,8 +23,8 @@ Visit the public URL: `https://game.unravelcodes.com`
 ### Local Development
 
 #### Prerequisites
-- Node.js (v16 or higher)
-- npm (v8 or higher)
+- Node.js (v20 or higher — production runs Node 20)
+- npm (v10 or higher)
 
 #### Installation
 ```bash

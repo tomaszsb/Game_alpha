@@ -611,7 +611,7 @@ interface TurnStateModel {
 3. Multiple Try Agains naturally supported
 4. Time penalties accumulate correctly on REAL state
 
-> **Reference:** See [CHANGELOG entry for v2.x.x — REAL/TEMP State Model (Dec 26, 2025)](../../CHANGELOG.md) for the historical implementation rationale.
+> **Reference:** See [CHANGELOG.md](../../CHANGELOG.md) — search for *"REAL/TEMP State Model"* (Dec 26, 2025 entry) for the historical implementation rationale.
 
 ### Context API Integration
 
@@ -798,12 +798,14 @@ tests/
 
 ### Testing Patterns
 
-**Service Unit Tests:**
+**Service Unit Tests** (Vitest — use `vi`, not `jest`):
 ```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 describe('CardService', () => {
   let cardService: CardService;
-  let mockDataService: jest.Mocked<DataService>;
-  let mockStateService: jest.Mocked<StateService>;
+  let mockDataService: ReturnType<typeof createMockDataService>;
+  let mockStateService: ReturnType<typeof createMockStateService>;
 
   beforeEach(() => {
     mockDataService = createMockDataService();
@@ -859,46 +861,43 @@ npm test tests/services/TurnService.test.tsx
 
 ## Code Quality Standards
 
-### File Size Limits
+> See [CODE_STYLE.md](./CODE_STYLE.md) for the authoritative project conventions. Summary:
 
-- **Components:** <1,000 lines (prefer <400)
-- **Services:** <800 lines (prefer <400)
-- **Utilities:** <150 lines
-- **Tests:** No limit (comprehensive coverage required)
+### File size
+
+- **No line-count budget.** The April 2026 audit explicitly dropped the prior "<200 lines per service / <300 max" rule. Large stable services (TurnService 2,076, StateService 1,867, CardService 1,824) are accepted as cohesive. Split only on a concrete pain signal — see [BETA_PLAN_V3.md Workstream 4](../core/BETA_PLAN_V3.md).
 
 ### TypeScript Requirements
 
-- **Strict Mode:** Enabled (tsconfig.json)
-- **No `any` Types:** Use proper interfaces
-- **Full Type Coverage:** All functions, props, state typed
-- **Interface Contracts:** All services implement interfaces
+- **Strict Mode:** Enabled. `npm run typecheck` must return 0 errors on every commit.
+- **`any` is the rule, with documented carve-outs:** Tier 4 (April 2026) narrowed 50 of 109 `any` usages. The remaining ~15 sites in Bucket E are intentional (catch-block `error: any`, Promise reject, dynamic config indexing, open-bag metadata, legacy browser checks). New `any` usages need a justification.
+- **Interface Contracts:** All services implement `I*Service` interfaces in `ServiceContracts.ts`.
 
 ### Code Review Checklist
 
 - [ ] No `window.*` access (use dependency injection)
 - [ ] All dependencies injected via props/constructor
-- [ ] TypeScript types for all interfaces
-- [ ] Unit tests for business logic
-- [ ] Component tests for UI
-- [ ] File size limits respected
+- [ ] TypeScript strict mode passes (0 errors)
+- [ ] Unit tests for business logic (Vitest, not Jest)
+- [ ] Component tests for UI behavior
+- [ ] No new `any` without justification
 - [ ] Single responsibility principle
 - [ ] CSV data accessed through DataService only
+- [ ] New per-space behavior driven by Spaces.csv flags (Workstream 6 invariant)
 
 ### Service Development Guidelines
 
-1. **Dependency Injection:** Constructor-based injection
-2. **Interface Contracts:** Implement ServiceContracts interfaces
-3. **Immutable Patterns:** Return new objects, never mutate
-4. **Error Handling:** Try-catch with meaningful messages
-5. **Testing:** 90%+ coverage target
+1. **Dependency Injection:** Constructor-based. Setter injection only for the two real cycles documented above.
+2. **Interface Contracts:** Implement `ServiceContracts` interfaces.
+3. **Immutable Patterns:** Return new objects, never mutate.
+4. **Error Handling:** Try-catch with meaningful messages; route through `notificationService` for user-facing errors.
 
 ### Component Development Guidelines
 
-1. **Single Responsibility:** UI rendering only
-2. **Props-Based Data:** No global state access
-3. **TypeScript Required:** All props fully typed
-4. **Service Integration:** Use `useGameContext()` hook
-5. **Error Handling:** Graceful degradation with user feedback
+1. **Single Responsibility:** UI rendering and event handling.
+2. **Props-Based Data:** No global state access.
+3. **Service Integration:** Use `useGameContext()` hook.
+4. **Error Handling:** Graceful degradation with user feedback.
 
 ---
 
@@ -913,5 +912,5 @@ For related architecture topics, see:
 
 ---
 
-**Last Updated:** March 10, 2026
+**Last Updated:** April 30, 2026
 **Maintained By:** Claude (AI Lead Programmer)

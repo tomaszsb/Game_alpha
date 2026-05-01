@@ -301,8 +301,8 @@ These happen automatically when conditions are met:
 ### Getting Help
 
 - **Technical issues:** Check `docs/technical/` folder
-- **Game rules:** See PROJECT_STATUS.md for game mechanics
-- **Bug reports:** Create issue with reproduction steps
+- **Game rules:** See [Game Overview](#game-overview) above and [Game Actions](#game-actions)
+- **Bug reports:** Use the in-app bug-report button (floating ladybug icon) — submits with screenshot
 
 ---
 
@@ -320,11 +320,11 @@ The Space Data Editor allows game designers to edit space data directly from the
 **Spaces Tab:**
 - Browse all game spaces in the left panel
 - Search by name or filter by phase
-- Edit all 21 columns for each space
+- Edit all 49 columns for each space (incl. Workstream 6 flags: starting space, scope-zero guard, fee math, auto-funding, path-choice memory, etc.)
 - Toggle between First/Subsequent visit data
-- Edit narrative text (Event, Action, Outcome)
-- Configure card effects (W, B, I, L, E cards)
-- Set movement destinations
+- Edit narrative text (Event, Action, Outcome) and per-action card narratives
+- Configure card effects (W, B, I, L, E cards) and per-action modal overrides
+- Set movement destinations and path types (FIXED / CHOICE / DICE / LOGIC)
 - Configure dice roll requirements
 
 **Dice Rolls Tab:**
@@ -333,27 +333,24 @@ The Space Data Editor allows game designers to edit space data directly from the
 - Add new dice roll categories
 - Delete unnecessary rows
 
-### Workflow
+### Workflow (Live Save — since v2.27.3)
 
 1. **Make changes** in the editor
-2. **Export Source Files** - downloads `Spaces.csv` and `DiceRoll Info.csv`
-3. **Replace files** in `data/SOURCE_FILES/`
-4. **Run conversion script:**
-   ```bash
-   python data/process_game_data.py
-   ```
-5. **Reload game** to see changes
+2. **Save** with Ctrl+S or the Save button — server writes `public/data/SOURCE_FILES/` and auto-regenerates `CLEAN_FILES/` via `server/processGameData.js`
+3. **Reload game** to see changes (or use Live Reload)
+
+> Export to file is still available as a secondary local backup option.
 
 ### Keyboard Shortcuts
 
 - **Escape** - Close editor
-- **Ctrl+S** - Export source files
+- **Ctrl+S** - Save (writes SOURCE_FILES + regenerates CLEAN_FILES)
 
 ### Important Notes
 
-- Changes are only saved when you export and run the conversion script
-- The editor warns you about unsaved changes when closing
-- CLEAN_FILES should never be edited directly (they are derived from SOURCE_FILES)
+- Editor saves persist across deploys (since v2.42.0).
+- CLEAN_FILES are auto-regenerated — never edit them directly.
+- Reset to Baseline is available in the editor toolbar to restore Dockerfile baseline.
 
 ---
 
@@ -367,6 +364,6 @@ The Space Data Editor allows game designers to edit space data directly from the
 
 **Enjoy the game!** 🎮
 
-**Feedback:** Please send feedback to game@unravelcodes.com
+**Feedback:** Use the in-app bug-report button (floating ladybug icon) — submits with screenshot directly to the host.
 
-**Last Updated:** February 3, 2026
+**Last Updated:** April 30, 2026

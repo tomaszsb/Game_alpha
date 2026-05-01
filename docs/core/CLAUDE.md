@@ -215,20 +215,14 @@ The archive folder is for:
 - Will this be the definitive reference, or just a snapshot in time?
 - Does this document a completed major initiative (not just a session)?
 
-### **Example: Recent Turn-Based UI Changes**
+### **Example: shipping a feature**
 
-**What was done correctly:**
-- ✅ Updated `CHANGELOG.md` with technical details
-- ✅ Updated `UI_RELEASE_NOTES.md` with user-facing changes
+For a typical feature ship (e.g. v2.49.0 logic-tree movement restored):
+- ✅ `CHANGELOG.md` — technical details, files changed, test results
+- ✅ `docs/user/RELEASE_NOTES.md` — user-facing summary
+- ❌ Don't create `LOGIC_MOVEMENT_RESTORED-2026XXXX.md` in archive
 
-**What was corrected:**
-- ❌ Initially created `TURN_BASED_UI_IMPROVEMENTS-20251208.md` (archive)
-- ✅ Deleted redundant archive doc - information already in CHANGELOG
-
-**Lesson learned:** Regular feature implementation doesn't need dedicated archive docs. CHANGELOG + Release Notes = sufficient documentation.
-
----
-
+CHANGELOG + Release Notes = sufficient documentation for incremental work. Archive is for major-initiative wrap-ups only.
 
 ---
 
