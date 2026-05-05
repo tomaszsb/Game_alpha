@@ -26,16 +26,16 @@ describe('networkDetection', () => {
     originalLocation = window.location;
     // @ts-ignore - Deleting location for mocking
     delete (window as { location?: Location }).location;
-    window.location = { ...mockLocation } as unknown as Location;
+    (window as any).location ={ ...mockLocation } as unknown as Location;
   });
 
   afterEach(() => {
-    window.location = originalLocation;
+    (window as any).location =originalLocation;
   });
 
   describe('getBackendURL', () => {
     it('should return empty string in production mode (port 80)', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'https:',
         hostname: 'game.unravelcodes.com',
@@ -50,7 +50,7 @@ describe('networkDetection', () => {
     });
 
     it('should return empty string for production on custom port (not 3000/5173)', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'https:',
         hostname: 'game.unravelcodes.com',
@@ -65,7 +65,7 @@ describe('networkDetection', () => {
     });
 
     it('should return backend URL for development on port 3000', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'http:',
         hostname: 'localhost',
@@ -80,7 +80,7 @@ describe('networkDetection', () => {
     });
 
     it('should return backend URL for development on port 5173 (Vite)', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'http:',
         hostname: '192.168.1.100',
@@ -102,7 +102,7 @@ describe('networkDetection', () => {
 
   describe('getServerURL', () => {
     it('should return base URL without parameters when no IDs provided', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'http:',
         hostname: '192.168.1.100',
@@ -118,7 +118,7 @@ describe('networkDetection', () => {
     });
 
     it('should include game ID and player short ID in URL', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'http:',
         hostname: '192.168.1.100',
@@ -134,7 +134,7 @@ describe('networkDetection', () => {
     });
 
     it('should include full player ID if no short ID provided', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'http:',
         hostname: '192.168.1.100',
@@ -150,7 +150,7 @@ describe('networkDetection', () => {
     });
 
     it('should work without port (production on 80/443)', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         protocol: 'https:',
         hostname: 'game.unravelcodes.com',
@@ -168,7 +168,7 @@ describe('networkDetection', () => {
 
   describe('getCurrentGameId', () => {
     it('should return game ID from URL parameter g', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         search: '?g=G1&p=P1'
       } as Location;
@@ -180,7 +180,7 @@ describe('networkDetection', () => {
     });
 
     it('should return undefined when no game ID in URL', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         search: ''
       } as Location;
@@ -201,7 +201,7 @@ describe('networkDetection', () => {
     });
 
     it('should return legacy path when no game ID', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         search: ''
       } as Location;
@@ -215,7 +215,7 @@ describe('networkDetection', () => {
 
   describe('isLocalhost', () => {
     it('should return true for localhost', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         hostname: 'localhost'
       } as Location;
@@ -225,7 +225,7 @@ describe('networkDetection', () => {
     });
 
     it('should return true for 127.0.0.1', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         hostname: '127.0.0.1'
       } as Location;
@@ -235,7 +235,7 @@ describe('networkDetection', () => {
     });
 
     it('should return false for network IP', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         hostname: '192.168.1.100'
       } as Location;
@@ -245,7 +245,7 @@ describe('networkDetection', () => {
     });
 
     it('should return false for domain name', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         hostname: 'game.unravelcodes.com'
       } as Location;
@@ -257,7 +257,7 @@ describe('networkDetection', () => {
 
   describe('getNetworkInfo', () => {
     it('should include warning for localhost', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         hostname: 'localhost',
         port: '3000'
@@ -272,7 +272,7 @@ describe('networkDetection', () => {
     });
 
     it('should not include warning for network IP', async () => {
-      window.location = {
+      (window as any).location ={
         ...mockLocation,
         hostname: '192.168.1.100',
         port: '3000'

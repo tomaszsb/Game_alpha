@@ -4,7 +4,7 @@ import { GameState, Player } from '../../src/types/StateTypes';
 import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock implementations
-const mockDataService: anyIDataService = {
+const mockDataService: any = {
   getCardById: vi.fn(),
   getCards: vi.fn(),
   getCardsByType: vi.fn(),
@@ -43,7 +43,7 @@ const mockDataService: anyIDataService = {
   loadData: vi.fn(),
 };
 
-const mockStateService: anyIStateService = {
+const mockStateService: any = {
   getGameState: vi.fn(),
   getGameStateDeepCopy: vi.fn(),
   isStateLoaded: vi.fn(),
@@ -105,7 +105,7 @@ const mockStateService: anyIStateService = {
   updateTempState: vi.fn().mockReturnValue({ success: true }),
 };
 
-const mockGameRulesService: anyIGameRulesService = {
+const mockGameRulesService: any = {
   isMoveValid: vi.fn(),
   canPlayCard: vi.fn(),
   canDrawCard: vi.fn(),
@@ -122,7 +122,7 @@ const mockGameRulesService: anyIGameRulesService = {
   checkGameEndConditions: vi.fn(),
 };
 
-const mockCardService: anyICardService = {
+const mockCardService: any = {
   canPlayCard: vi.fn(),
   isValidCardType: vi.fn(),
   playerOwnsCard: vi.fn(),
@@ -152,7 +152,7 @@ const mockCardService: anyICardService = {
   setEffectEngineService: vi.fn(),
 };
 
-const mockResourceService: anyIResourceService = {
+const mockResourceService: any = {
   addMoney: vi.fn(),
   spendMoney: vi.fn(),
   canAfford: vi.fn(),
@@ -164,7 +164,7 @@ const mockResourceService: anyIResourceService = {
   takeOutLoan: vi.fn()
 };
 
-const mockMovementService: anyIMovementService = {
+const mockMovementService: any = {
   getValidMoves: vi.fn(),
   movePlayer: vi.fn(),
   getDiceDestination: vi.fn(),
@@ -184,7 +184,7 @@ const mockNegotiationService = {
   hasActiveNegotiation: vi.fn(),
 };
 
-const mockEffectEngineService: anyIEffectEngineService = {
+const mockEffectEngineService: any = {
   processEffects: vi.fn(),
   processEffect: vi.fn(),
   processActiveEffectsForAllPlayers: vi.fn(),
@@ -192,7 +192,7 @@ const mockEffectEngineService: anyIEffectEngineService = {
   validateEffects: vi.fn(),
 };
 
-const mockLoggingService: anyILoggingService = {
+const mockLoggingService: any = {
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
@@ -206,10 +206,18 @@ const mockLoggingService: anyILoggingService = {
   cleanupAbandonedSessions: vi.fn(),
 };
 
+const mockChoiceService: any = {
+  createChoice: vi.fn(),
+  resolveChoice: vi.fn(),
+  getActiveChoice: vi.fn(),
+  skipChoice: vi.fn(),
+  hasActiveChoice: vi.fn(),
+};
+
 describe('TurnService', () => {
   let turnService: TurnService;
   
-  const mockPlayers: Player[] = [
+  const mockPlayers: any[] = [
     {
       id: 'player1',
       name: 'Player 1',
@@ -257,7 +265,7 @@ describe('TurnService', () => {
     }
   ];
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: mockPlayers,
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
@@ -294,13 +302,13 @@ describe('TurnService', () => {
     }
   };
 
-  const mockPlayer: Player = mockPlayers[0];
+  const mockPlayer: any = mockPlayers[0];
 
   beforeEach(() => {
     vi.clearAllMocks();
     
     // Create TurnService first without EffectEngineService to avoid circular dependency
-    turnService = new TurnService(mockDataService, mockStateService, mockGameRulesService, mockCardService, mockResourceService, mockMovementService, mockNegotiationService as any, mockLoggingService);
+    turnService = new TurnService(mockDataService, mockStateService, mockGameRulesService, mockCardService, mockResourceService, mockMovementService, mockNegotiationService as any, mockLoggingService, mockChoiceService);
     
     // Set EffectEngineService using setter injection to complete the circular dependency
     turnService.setEffectEngineService(mockEffectEngineService);
@@ -318,7 +326,7 @@ describe('TurnService', () => {
     mockStateService.getTryAgainCount.mockReturnValue(0);
 
     // Setup getPlayer to return the correct player from mockPlayers array
-    mockStateService.getPlayer.mockImplementation(playerId =>
+    mockStateService.getPlayer.mockImplementation((playerId: string) =>
       mockPlayers.find(p => p.id === playerId) || null
     );
 
@@ -613,13 +621,13 @@ describe('TurnService', () => {
       mockDataService.getSpaceEffects.mockReturnValue([spaceEffect]);
       mockDataService.getDiceEffects.mockReturnValue([]);
 
-      mockEffectEngineService.processEffects.mockImplementation(async (effects, context) => {
+      mockEffectEngineService.processEffects.mockImplementation(async (effects: any, context: any) => {
         // Get the player state that the service would be working with
         const player = mockStateService.getPlayer('player1');
         if (player) {
           // Simulate the card replacement by calling the StateService
           // Remove one old E card and add one new E card
-          const oldCards = player.hand.filter(card => card !== 'E_old_1'); // Remove one old card
+          const oldCards = player.hand.filter((card: string) => card !== 'E_old_1'); // Remove one old card
           mockStateService.updatePlayer({
             id: 'player1',
             hand: [...oldCards, 'E_001_TestCard'], // Add one new card in hand
@@ -660,7 +668,7 @@ describe('TurnService', () => {
         players: mockPlayersWithCards
       });
       // Ensure getPlayer returns the correct, updated player mock for this test
-      mockStateService.getPlayer.mockImplementation(playerId => mockPlayersWithCards.find(p => p.id === playerId));
+      mockStateService.getPlayer.mockImplementation((playerId: string) => mockPlayersWithCards.find(p => p.id === playerId));
       
       const spaceEffect = {
         space_name: 'TEST_SPACE',
@@ -676,7 +684,7 @@ describe('TurnService', () => {
       mockDataService.getDiceEffects.mockReturnValue([]);
 
       // Mock EffectEngineService to simulate card transfer between players
-      mockEffectEngineService.processEffects.mockImplementation(async (effects, context) => {
+      mockEffectEngineService.processEffects.mockImplementation(async (effects: any, context: any) => {
         const sourcePlayer = mockStateService.getPlayer('player1');
         const targetPlayer = mockStateService.getPlayer('player2');
         
@@ -686,7 +694,7 @@ describe('TurnService', () => {
           // Update player1 (remove card from hand)
           mockStateService.updatePlayer({
             id: 'player1',
-            hand: sourcePlayer.hand.filter(card => card !== cardToTransfer),
+            hand: sourcePlayer.hand.filter((card: string) => card !== cardToTransfer),
           });
           
           // Update player2 (add card to hand)
@@ -735,7 +743,7 @@ describe('TurnService', () => {
       mockDataService.getDiceEffects.mockReturnValue([]);
 
       // Mock EffectEngineService to simulate money reduction (5% fee)
-      mockEffectEngineService.processEffects.mockImplementation(async (effects, context) => {
+      mockEffectEngineService.processEffects.mockImplementation(async (effects: any, context: any) => {
         const player = mockStateService.getPlayer('player1');
         
         if (player && player.money > 0) {
@@ -781,7 +789,7 @@ describe('TurnService', () => {
 
         // For these tests, use W cards from hand to calculate scope
         // Each W card represents $500k of scope
-        const wCards = (player.hand || []).filter(cardId => cardId.startsWith('W'));
+        const wCards = (player.hand || []).filter((cardId: string) => cardId.startsWith('W'));
         return wCards.length * 500000;
       });
 
@@ -852,7 +860,7 @@ describe('TurnService', () => {
 
     it('should award B card for project scope ≤ $4M', async () => {
       // Arrange - Player with project scope of $2M (4 W cards * $500k = $2M)
-      const mockPlayer: Player = {
+      const mockPlayer: any = {
         id: 'player1',
         name: 'Test Player',
         currentSpace: 'OWNER-FUND-INITIATION',
@@ -904,7 +912,7 @@ describe('TurnService', () => {
 
     it('should award I card for project scope > $4M', async () => {
       // Arrange - Player with project scope of $6M (12 W cards * $500k = $6M)
-      const mockPlayer: Player = {
+      const mockPlayer: any = {
         id: 'player1',
         name: 'Test Player',
         currentSpace: 'OWNER-FUND-INITIATION',
@@ -956,7 +964,7 @@ describe('TurnService', () => {
 
     it('should award B card for project scope exactly $4M', async () => {
       // Arrange - Player with project scope exactly $4M (edge case: 8 W cards * $500k = $4M)
-      const mockPlayer: Player = {
+      const mockPlayer: any = {
         id: 'player1',
         name: 'Test Player',
         currentSpace: 'OWNER-FUND-INITIATION',

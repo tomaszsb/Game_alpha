@@ -35,7 +35,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "tests/**/*",
     "src/**/*Optimized.*",
     "PERFORMANCE_OPTIMIZATION_REPORT.md",
     "run-tests-batch.sh"

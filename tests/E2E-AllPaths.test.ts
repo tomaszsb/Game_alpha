@@ -141,13 +141,13 @@ const playTurn = async (
   const movement = dataService.getMovement(p.currentSpace, p.visitType);
   if (movement?.movement_type === 'dice' || movement?.movement_type === 'dice_outcome') {
     // Mock the dice roll
-    vi.spyOn(turnService, 'rollDice').mockImplementationOnce((pid) => {
+    (vi.spyOn(turnService, 'rollDice') as any).mockImplementationOnce((pid: any) => {
       const roll = options?.roll || 1;
       stateService.updatePlayer({ id: pid, lastDiceRoll: { roll1: roll, roll2: 0, total: roll } });
       stateService.setPlayerHasRolledDice();
       return roll;
     });
-    await turnService.rollDice(playerId);
+    await (turnService.rollDice as any)(playerId);
   }
 
   await turnService.endTurnWithMovement(true);

@@ -81,7 +81,7 @@ describe('Logic E2E: Full Game Playthrough', () => {
     console.log('🏁 Starting Logic Playthrough');
 
     let nextRoll = 1;
-    vi.spyOn(turnService, 'rollDice').mockImplementation((pid) => {
+    (vi.spyOn(turnService, 'rollDice') as any).mockImplementation((pid: any) => {
         stateService.updatePlayer({ id: pid, lastDiceRoll: { roll1: nextRoll, roll2: 0, total: nextRoll } });
         stateService.setPlayerHasRolledDice();
         return nextRoll;
@@ -123,7 +123,7 @@ describe('Logic E2E: Full Game Playthrough', () => {
         const movement = dataService.getMovement(p.currentSpace, p.visitType);
         if (movement?.movement_type === 'dice' || movement?.movement_type === 'dice_outcome') {
             nextRoll = roll || 1;
-            await turnService.rollDice(playerId);
+            await (turnService.rollDice as any)(playerId);
         }
 
         nextRoll = roll || 1;

@@ -30,8 +30,8 @@ describe('CardCountNaN Regression Tests', () => {
   let mockNegotiationService: any;
   let mockLoggingService: any;
   let mockChoiceService: any;
-  let testPlayer: Player;
-  let mockGameState: GameState;
+  let testPlayer: any;
+  let mockGameState: any;
 
   beforeEach(() => {
     vi.clearAllMocks();

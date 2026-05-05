@@ -90,7 +90,7 @@ describe('Multiplayer State Isolation', () => {
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
     cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
-    movementService = new MovementService(dataService, stateService, choiceService, loggingService);
+    movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
     targetingService = new TargetingService(stateService, choiceService);
 
     const tempEffectEngine = new EffectEngineService(
@@ -102,7 +102,7 @@ describe('Multiplayer State Isolation', () => {
 
     turnService = new TurnService(
       dataService, stateService, gameRulesService, cardService,
-      resourceService, movementService, negotiationService, loggingService
+      resourceService, movementService, negotiationService, loggingService, choiceService
     );
 
     effectEngineService = new EffectEngineService(

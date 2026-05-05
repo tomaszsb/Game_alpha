@@ -86,14 +86,14 @@ describe('E2E-02: Complex Card Test', () => {
     resourceService = new ResourceService(stateService);
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
-    cardService = new CardService(dataService, stateService, resourceService, loggingService);
-    movementService = new MovementService(dataService, stateService, choiceService, loggingService);
+    cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
+    movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
     targetingService = new TargetingService(stateService, choiceService);
 
     // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
-    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, targetingService);
+    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, targetingService, loggingService);
     negotiationService = new NegotiationService(stateService, effectEngineService);
-    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService);
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
 
     // Complete the circular dependency wiring
     turnService.setEffectEngineService(effectEngineService);

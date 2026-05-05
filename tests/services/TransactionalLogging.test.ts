@@ -9,7 +9,7 @@ describe('Transactional Logging Architecture', () => {
   let turnService: TurnService;
   let mockStateService: any;
   let mockDataService: any;
-  let mockGameState: GameState;
+  let mockGameState: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -84,10 +84,10 @@ describe('Transactional Logging Architecture', () => {
     loggingService = new LoggingService(mockStateService);
 
     // Mock console methods to avoid spam during tests
-    vi.spyOn(console, 'log').mockImplementation();
-    vi.spyOn(console, 'warn').mockImplementation();
-    vi.spyOn(console, 'error').mockImplementation();
-    vi.spyOn(console, 'debug').mockImplementation();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
   });
 
   describe('Session Lifecycle Management', () => {

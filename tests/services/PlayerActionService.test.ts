@@ -14,7 +14,7 @@ vi.mock('../../src/utils/EffectFactory', () => ({
 
 // Import the mocked module to get access to the mocked functions
 import { EffectFactory } from '../../src/utils/EffectFactory';
-const mockCreateEffectsFromCard = EffectFactory.createEffectsFromCard as vi.MockedFunction<typeof EffectFactory.createEffectsFromCard>;
+const mockCreateEffectsFromCard = EffectFactory.createEffectsFromCard as any;
 
 // Suppress console.log calls from service
 const originalConsoleLog = console.log;
@@ -39,7 +39,7 @@ describe('PlayerActionService', () => {
   let playerActionService: PlayerActionService;
   
   // Test data
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Test Player',
     currentSpace: 'START-SPACE',
@@ -57,7 +57,7 @@ describe('PlayerActionService', () => {
     loans: []
   };
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: [mockPlayer],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
@@ -409,7 +409,7 @@ describe('PlayerActionService', () => {
       };
       
       // Set up player without the card in their hand
-      const playerWithoutCard: Player = {
+      const playerWithoutCard: any = {
         ...mockPlayer,
         hand: ['W001', 'W002', 'B001', 'E001'] // W999 not in hand
       };

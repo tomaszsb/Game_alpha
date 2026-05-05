@@ -21,7 +21,7 @@ describe('ChoiceModal', () => {
   });
 
   let mockServices: any;
-  let mockPlayer: Player;
+  let mockPlayer: any;
   let mockGameState: any;
 
   beforeEach(() => {
@@ -62,7 +62,7 @@ describe('ChoiceModal', () => {
           { id: 'option2', label: 'Gain $1000' },
           { id: 'option3', label: 'Skip Time Penalty' }
         ]
-      } as Choice,
+      } as any,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: true,
       hasCompletedManualActions: false,
@@ -161,7 +161,7 @@ describe('ChoiceModal', () => {
           { id: 'MARKET-RESEARCH', label: 'Market Research' },
           { id: 'CUSTOMER-DISCOVERY', label: 'Customer Discovery' }
         ]
-      } as Choice
+      } as any
     };
 
     mockServices.stateService.subscribe.mockImplementation((callback: any) => {

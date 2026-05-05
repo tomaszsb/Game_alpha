@@ -528,8 +528,8 @@ describe('StateService', () => {
         turnModifiers: { skipTurns: 0 },
         activeEffects: [],
         loans: []
-      });
-      
+      } as any);
+
       const currentPlayers = stateService.getAllPlayers();
       expect(currentPlayers.length).toBe(originalLength);
     });
@@ -667,7 +667,7 @@ describe('StateService', () => {
         id: testPlayerId,
         currentSpace: 'NEW-SPACE',
         visitType: 'First',
-        spaceVisitLog: movementSpaceVisitLog
+        spaceVisitLog: movementSpaceVisitLog as any
       });
 
       // Act: Commit TEMP to REAL (end of turn)
@@ -740,7 +740,7 @@ describe('StateService', () => {
       testStateService.updatePlayer({
         id: testPlayerId,
         currentSpace: 'REVISITED-SPACE',
-        visitType: 'Revisit'
+        visitType: 'Revisit' as any
       });
 
       // Act: Commit TEMP to REAL
@@ -798,7 +798,7 @@ describe('StateService', () => {
         spaceVisitLog: [
           { spaceName: 'START-SPACE', entryTime: 0, exitTime: 5, daysSpent: 5 },
           { spaceName: 'NEW-SPACE', entryTime: 5, exitTime: undefined, daysSpent: 0 }
-        ]
+        ] as any
       });
 
       // Act: Commit TEMP to REAL

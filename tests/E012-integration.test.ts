@@ -152,7 +152,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
     mockServices.choiceService.createChoice.mockResolvedValue('0');
     
     // Mock card service for discard processing
-    const mockPlayer: Player = {
+    const mockPlayer: any = {
       id: 'player1',
       name: 'Test Player',
       currentSpace: 'START',
@@ -170,7 +170,7 @@ describe('E012 Card - Choice of Effects Integration', () => {
       loans: []
     };
 
-    const mockGameState: GameState = {
+    const mockGameState: any = {
       players: [mockPlayer],
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',

@@ -15,7 +15,7 @@ describe('csvExport', () => {
     });
 
     it('exports single space row correctly', () => {
-      const spaces: SpaceRow[] = [{
+      const spaces: any[] = [{
         space_name: 'TEST-SPACE',
         phase: 'SETUP',
         visit_type: 'First',
@@ -53,7 +53,7 @@ describe('csvExport', () => {
     });
 
     it('escapes commas in values', () => {
-      const spaces: SpaceRow[] = [{
+      const spaces: any[] = [{
         space_name: 'TEST-SPACE',
         phase: 'SETUP',
         visit_type: 'First',
@@ -84,7 +84,7 @@ describe('csvExport', () => {
     });
 
     it('escapes quotes in values', () => {
-      const spaces: SpaceRow[] = [{
+      const spaces: any[] = [{
         space_name: 'TEST-SPACE',
         phase: 'SETUP',
         visit_type: 'First',
@@ -115,7 +115,7 @@ describe('csvExport', () => {
     });
 
     it('exports multiple space rows', () => {
-      const spaces: SpaceRow[] = [
+      const spaces: any[] = [
         {
           space_name: 'SPACE-1',
           phase: 'SETUP',

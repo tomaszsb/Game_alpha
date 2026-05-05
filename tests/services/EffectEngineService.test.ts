@@ -229,7 +229,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the addMoney method to return success
@@ -260,7 +260,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the drawCards method to return success
@@ -290,7 +290,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the movePlayer method to return success
@@ -320,7 +320,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the setTurnModifier method to return success
@@ -350,7 +350,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the getPlayer method to return a player object
@@ -395,7 +395,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the createChoice method to return a selection
@@ -435,7 +435,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock the getPlayerCards method to return available cards
@@ -481,7 +481,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT'
+      triggerEvent: 'TEST_EVENT' as any
     };
 
     // Mock getAllPlayers to return multiple players
@@ -556,7 +556,7 @@ describe('EffectEngineService', () => {
     const context: EffectContext = {
       source: 'Unit Test',
       playerId: 'player1',
-      triggerEvent: 'TEST_EVENT',
+      triggerEvent: 'TEST_EVENT' as any,
       diceRoll: 2 // This should trigger the 1-3 range
     };
 
@@ -634,7 +634,7 @@ describe('EffectEngineService', () => {
         }
       ];
 
-      const cardData = {
+      const cardData: any = {
         card_id: 'L002',
         card_name: 'Economic Downturn',
         duration: 'Turns',
@@ -886,7 +886,7 @@ describe('EffectEngineService', () => {
         }
       ];
 
-      const cardData = {
+      const cardData: any = {
         card_id: 'I001',
         card_name: 'Investment Card',
         duration: null, // No duration

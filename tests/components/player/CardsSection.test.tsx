@@ -10,14 +10,14 @@ import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CardsSection } from '../../../src/components/player/sections/CardsSection';
 import { createAllMockServices } from '../../mocks/mockServices';
-import { Player, GameState } from '../../../types/StateTypes';
+import { Player, GameState } from '../../../src/types/StateTypes';
 import { GameContext } from '../../../src/context/GameContext';
 import { DictionaryProvider } from '../../../src/dictionary';
 
 describe('CardsSection', () => {
   const mockServices = createAllMockServices();
   
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Test Player',
     currentSpace: 'START-SPACE',
@@ -35,7 +35,7 @@ describe('CardsSection', () => {
     loans: []
   };
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: [mockPlayer],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',

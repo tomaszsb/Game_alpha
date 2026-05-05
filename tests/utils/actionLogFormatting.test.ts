@@ -2,10 +2,21 @@ import { describe, it, expect } from 'vitest';
 import { formatActionDescription } from '../../src/utils/actionLogFormatting';
 import { ActionLogEntry } from '../../src/types/StateTypes';
 
+const BASE_ENTRY = {
+  isCommitted: true,
+  explorationSessionId: 'session-1',
+  gameRound: 1,
+  turnWithinRound: 1,
+  globalTurnNumber: 1,
+  playerTurnNumber: 1,
+  visibility: 'player' as const,
+};
+
 describe('actionLogFormatting', () => {
   describe('formatActionDescription', () => {
     it('should format dice_roll type with dice emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test1',
         type: 'dice_roll',
         timestamp: new Date(),
@@ -20,6 +31,7 @@ describe('actionLogFormatting', () => {
 
     it('should format card_draw type with details', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test2',
         type: 'card_draw',
         timestamp: new Date(),
@@ -38,6 +50,7 @@ describe('actionLogFormatting', () => {
 
     it('should format card_draw type with single card', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test3',
         type: 'card_draw',
         timestamp: new Date(),
@@ -56,6 +69,7 @@ describe('actionLogFormatting', () => {
 
     it('should format card_draw type without details', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test4',
         type: 'card_draw',
         timestamp: new Date(),
@@ -70,6 +84,7 @@ describe('actionLogFormatting', () => {
 
     it('should format space_effect type and remove prefix', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test5',
         type: 'space_effect',
         timestamp: new Date(),
@@ -84,6 +99,7 @@ describe('actionLogFormatting', () => {
 
     it('should format space_effect type without prefix', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test6',
         type: 'space_effect',
         timestamp: new Date(),
@@ -98,6 +114,7 @@ describe('actionLogFormatting', () => {
 
     it('should format time_effect type and remove prefix', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test7',
         type: 'time_effect',
         timestamp: new Date(),
@@ -112,6 +129,7 @@ describe('actionLogFormatting', () => {
 
     it('should format time_effect type without prefix', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test8',
         type: 'time_effect',
         timestamp: new Date(),
@@ -126,6 +144,7 @@ describe('actionLogFormatting', () => {
 
     it('should format manual_action type with hand emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test9',
         type: 'manual_action',
         timestamp: new Date(),
@@ -140,6 +159,7 @@ describe('actionLogFormatting', () => {
 
     it('should format resource_change type with money emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test10',
         type: 'resource_change',
         timestamp: new Date(),
@@ -154,6 +174,7 @@ describe('actionLogFormatting', () => {
 
     it('should format space_entry type with location emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test11',
         type: 'space_entry',
         timestamp: new Date(),
@@ -168,6 +189,7 @@ describe('actionLogFormatting', () => {
 
     it('should format game_start type with flag emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test12',
         type: 'game_start',
         timestamp: new Date(),
@@ -182,6 +204,7 @@ describe('actionLogFormatting', () => {
 
     it('should format game_end type with trophy emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test13',
         type: 'game_end',
         timestamp: new Date(),
@@ -196,6 +219,7 @@ describe('actionLogFormatting', () => {
 
     it('should format error_event type with X emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test14',
         type: 'error_event',
         timestamp: new Date(),
@@ -210,6 +234,7 @@ describe('actionLogFormatting', () => {
 
     it('should format choice_made type with pointing finger emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test15',
         type: 'choice_made',
         timestamp: new Date(),
@@ -224,6 +249,7 @@ describe('actionLogFormatting', () => {
 
     it('should format negotiation_resolved type with handshake emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test16',
         type: 'negotiation_resolved',
         timestamp: new Date(),
@@ -238,6 +264,7 @@ describe('actionLogFormatting', () => {
 
     it('should format system_log type with gear emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test17',
         type: 'system_log',
         timestamp: new Date(),
@@ -252,6 +279,7 @@ describe('actionLogFormatting', () => {
 
     it('should format turn_start type with play emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test18',
         type: 'turn_start',
         timestamp: new Date(),
@@ -266,6 +294,7 @@ describe('actionLogFormatting', () => {
 
     it('should format turn_end type with stop emoji', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test19',
         type: 'turn_end',
         timestamp: new Date(),
@@ -280,6 +309,7 @@ describe('actionLogFormatting', () => {
 
     it('should handle unknown types by returning original description', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test20',
         type: 'unknown_type' as any,
         timestamp: new Date(),
@@ -294,6 +324,7 @@ describe('actionLogFormatting', () => {
 
     it('should handle missing details in card_draw gracefully', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test21',
         type: 'card_draw',
         timestamp: new Date(),
@@ -312,6 +343,7 @@ describe('actionLogFormatting', () => {
 
     it('should handle partial details in card_draw gracefully', () => {
       const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
         id: 'test22',
         type: 'card_draw',
         timestamp: new Date(),

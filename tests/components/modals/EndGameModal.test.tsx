@@ -26,8 +26,8 @@ vi.mock('../../../src/context/GameContext', () => ({
 }));
 
 describe('EndGameModal', () => {
-  let mockPlayer: Player;
-  let mockGameState: GameState;
+  let mockPlayer: any;
+  let mockGameState: any;
 
   beforeEach(() => {
     cleanup(); // Clean up any previous renders
@@ -86,7 +86,7 @@ describe('EndGameModal', () => {
     };
 
     mockStateService.getGameState.mockReturnValue(mockGameState);
-    mockStateService.subscribe.mockImplementation((callback) => {
+    mockStateService.subscribe.mockImplementation((callback: any) => {
       // Return unsubscribe function
       return vi.fn();
     });
@@ -155,7 +155,7 @@ describe('EndGameModal', () => {
     it('should update display when state changes to game over', async () => {
       let stateChangeCallback: (state: GameState) => void = vi.fn();
       
-      mockStateService.subscribe.mockImplementation((callback) => {
+      mockStateService.subscribe.mockImplementation((callback: any) => {
         stateChangeCallback = callback;
         return vi.fn();
       });
@@ -337,7 +337,7 @@ describe('EndGameModal', () => {
     });
 
     it('should handle multiple players with correct winner identification', () => {
-      const player2: Player = {
+      const player2: any = {
         ...mockPlayer,
         id: 'player2',
         name: 'Second Player'

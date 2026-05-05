@@ -110,8 +110,8 @@ describe('TurnService.tryAgainOnSpace', () => {
     expect(stateService.hasActiveTempState(player1.id)).toBe(true);
 
     // Mock DataService responses for this test
-    (dataService.getSpaceContent as vi.Mock).mockReturnValue({ can_negotiate: true });
-    (dataService.getSpaceEffects as vi.Mock).mockReturnValue([{
+    (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true });
+    (dataService.getSpaceEffects as any).mockReturnValue([{
       effect_type: 'time',
       effect_action: 'add',
       effect_value: 1
@@ -171,7 +171,7 @@ describe('TurnService.tryAgainOnSpace', () => {
     stateService.createTempStateFromReal(tempOptions);
 
     // Mock DataService to return a non-negotiable space
-    (dataService.getSpaceContent as vi.Mock).mockReturnValue({ can_negotiate: false });
+    (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: false });
 
     const result = await turnService.tryAgainOnSpace(player1.id);
 
@@ -200,8 +200,8 @@ describe('TurnService.tryAgainOnSpace', () => {
     });
 
     // Mock DataService
-    (dataService.getSpaceContent as vi.Mock).mockReturnValue({ can_negotiate: true });
-    (dataService.getSpaceEffects as vi.Mock).mockReturnValue([{
+    (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true });
+    (dataService.getSpaceEffects as any).mockReturnValue([{
       effect_type: 'time',
       effect_action: 'add',
       effect_value: 2 // 2 day penalty

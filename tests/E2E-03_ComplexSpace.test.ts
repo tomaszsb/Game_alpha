@@ -71,13 +71,13 @@ describe('E2E-03: Complex Space Features Test', () => {
     resourceService = new ResourceService(stateService);
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
-    cardService = new CardService(dataService, stateService, resourceService, loggingService);
-    movementService = new MovementService(dataService, stateService, choiceService, loggingService);
+    cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
+    movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
 
     // Handle circular dependency: EffectEngine -> Turn -> Negotiation -> EffectEngine
-    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any); // targetingService
+    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as ITurnService, gameRulesService, {} as any, loggingService); // targetingService
     negotiationService = new NegotiationService(stateService, effectEngineService);
-    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService);
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
 
     // Complete the circular dependency wiring
     turnService.setEffectEngineService(effectEngineService);
@@ -142,7 +142,7 @@ describe('E2E-03: Complex Space Features Test', () => {
     // Try Again returns shouldAdvanceTurn: true — the caller advances the turn,
     // which resets dice/move flags via nextPlayer()
     expect(result.shouldAdvanceTurn).toBe(true);
-    await turnService.nextPlayer();
+    await (turnService as any).nextPlayer();
 
     // 3. Verify dice state was reset (player can re-roll on next turn)
     const finalGameState = stateService.getGameState();

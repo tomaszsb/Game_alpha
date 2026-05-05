@@ -8,7 +8,7 @@ describe('ResourceService', () => {
   let resourceService: ResourceService;
   let mockStateService: any;
   
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Test Player',
     currentSpace: 'TEST-SPACE',
@@ -336,7 +336,7 @@ describe('ResourceService', () => {
   });
 
   describe('Loan Operations', () => {
-    const mockGameState: GameState = {
+    const mockGameState: any = {
       turn: 10,
       players: [mockPlayer],
       currentPlayerId: 'player1',
@@ -372,7 +372,7 @@ describe('ResourceService', () => {
       mockStateService.getGameState.mockReturnValue(mockGameState);
 
       // Make mock stateful: update mockPlayer when updatePlayer is called
-      mockStateService.updatePlayer.mockImplementation((updates) => {
+      mockStateService.updatePlayer.mockImplementation((updates: any) => {
         Object.assign(mockPlayer, updates);
         return mockGameState;
       });
@@ -461,7 +461,7 @@ describe('ResourceService', () => {
   });
 
   describe('Cost Tracking Operations', () => {
-    const playerWithFinances: Player = {
+    const playerWithFinances: any = {
       ...mockPlayer,
       money: 10000,
       costHistory: [],
@@ -482,7 +482,7 @@ describe('ResourceService', () => {
       }
     };
 
-    const mockGameStateWithTurn: GameState = {
+    const mockGameStateWithTurn: any = {
       turn: 15,
       globalTurnCount: 15,
       players: [playerWithFinances],

@@ -27,7 +27,7 @@ import {
   IPlayerActionService
 } from '../../src/types/ServiceContracts';
 
-import { ILoggingService } from '../../src/services/LoggingService';
+import { ILoggingService } from '../../src/types/ServiceContracts';
 import { INotificationService } from '../../src/services/NotificationService';
 
 export const createMockDataService = (): any => ({

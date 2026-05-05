@@ -52,7 +52,7 @@ describe('CardReplacementModal', () => {
     description: 'Complete electrical system upgrade for safety compliance'
   };
 
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Test Player',
     color: '#ff0000',
@@ -131,7 +131,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should display message when no cards available', () => {
-    const emptyPlayer: Player = {
+    const emptyPlayer: any = {
       ...mockPlayer,
       hand: []
     };
@@ -365,7 +365,7 @@ describe('CardReplacementModal', () => {
   });
 
   it('should handle different card types correctly', () => {
-    const businessPlayer: Player = {
+    const businessPlayer: any = {
       ...mockPlayer,
       hand: ['B1']
     };
@@ -404,7 +404,7 @@ describe('CardReplacementModal', () => {
 
     (mockDataService.getCardById as Mock).mockReturnValue(longDescCard);
 
-    const playerWithLongCard: Player = {
+    const playerWithLongCard: any = {
       ...mockPlayer,
       hand: ['W3']
     };

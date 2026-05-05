@@ -5,7 +5,8 @@
 // Cross-compatibility for Jest and Vitest
 const mockFn: any = (() => {
   if (typeof vi !== 'undefined' && vi.fn) return vi.fn;
-  if (typeof jest !== 'undefined' && jest.fn) return jest.fn;
+  const g: any = globalThis;
+  if (typeof g.jest !== 'undefined' && g.jest.fn) return g.jest.fn;
   return (impl?: any) => impl || (() => {});
 })();
 
@@ -60,20 +61,20 @@ export const createLightweightStateService = () => ({
   // Player management
   getPlayer: mockFn((id: string) => TEST_PLAYERS.find(p => p.id === id) || TEST_PLAYERS[0]),
   getAllPlayers: mockFn(() => TEST_PLAYERS),
-  updatePlayer: mockFn(async (player) => Promise.resolve()),
-  addPlayer: mockFn(async (player) => Promise.resolve()),
-  
+  updatePlayer: mockFn(async (_player: unknown) => Promise.resolve()),
+  addPlayer: mockFn(async (_player: unknown) => Promise.resolve()),
+
   // Game flow
   setCurrentPlayer: mockFn(async (playerId: string) => Promise.resolve()),
   setGamePhase: mockFn(async (phase: string) => Promise.resolve()),
   advanceTurn: mockFn(async () => Promise.resolve()),
   nextPlayer: mockFn(async () => Promise.resolve()),
-  
+
   // Essential utilities
-  initializeGame: mockFn(async (players) => Promise.resolve()),
+  initializeGame: mockFn(async (_players: unknown) => Promise.resolve()),
   startGame: mockFn(async () => Promise.resolve()),
-  updateGameState: mockFn(async (updates) => Promise.resolve()),
-  updateActionCounts: mockFn(async (playerId, requiredActions, completedActions) => Promise.resolve())
+  updateGameState: mockFn(async (_updates: unknown) => Promise.resolve()),
+  updateActionCounts: mockFn(async (_playerId: string, _requiredActions: number, _completedActions: number) => Promise.resolve())
 });
 
 // Lightweight CardService mock - only essential methods
@@ -149,28 +150,28 @@ export const createLightweightPlayerActionService = (cardService?: any) => ({
 
 // Lightweight EffectEngineService mock - only essential methods
 export const createLightweightEffectEngineService = () => ({
-  processEffects: mockFn(async (effects, targetPlayerId, triggerEvent, source) => 
-    Promise.resolve({ 
-      successful: effects.length, 
-      failed: 0, 
+  processEffects: mockFn(async (effects: unknown[], _targetPlayerId: string, _triggerEvent: string, _source: string) =>
+    Promise.resolve({
+      successful: effects.length,
+      failed: 0,
       errors: [],
       totalEffects: effects.length,
       successfulEffects: effects.length
     })),
-  
-  processCardEffects: mockFn(async (playerId, cardId) => 
-    Promise.resolve({ 
-      successful: 1, 
-      failed: 0, 
+
+  processCardEffects: mockFn(async (_playerId: string, _cardId: string) =>
+    Promise.resolve({
+      successful: 1,
+      failed: 0,
       errors: [],
       totalEffects: 1,
       successfulEffects: 1
     })),
-  
-  processEffect: mockFn(async (effect, targetPlayerId) => Promise.resolve()),
-  
-  validateEffect: mockFn((effect) => ({ valid: true, errors: [] })),
-  validateEffects: mockFn((effects) => ({ valid: true, errors: [] }))
+
+  processEffect: mockFn(async (_effect: unknown, _targetPlayerId: string) => Promise.resolve()),
+
+  validateEffect: mockFn((_effect: unknown) => ({ valid: true, errors: [] })),
+  validateEffects: mockFn((_effects: unknown[]) => ({ valid: true, errors: [] }))
 });
 
 // Factory function to create all lightweight mocks at once

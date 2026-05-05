@@ -168,7 +168,7 @@ describe('E2E: 4-Player Multiplayer Game', () => {
 
   it('should rotate through all 4 players in correct order', async () => {
     let nextRoll = 1;
-    vi.spyOn(turnService, 'rollDice').mockImplementation((pid) => {
+    (vi.spyOn(turnService, 'rollDice') as any).mockImplementation((pid: any) => {
       stateService.updatePlayer({ id: pid, lastDiceRoll: { roll1: nextRoll, roll2: 0, total: nextRoll } });
       stateService.setPlayerHasRolledDice();
       return nextRoll;
@@ -223,7 +223,7 @@ describe('E2E: 4-Player Multiplayer Game', () => {
 
   it('should allow all 4 players to take different paths', async () => {
     let nextRoll = 1;
-    vi.spyOn(turnService, 'rollDice').mockImplementation((pid) => {
+    (vi.spyOn(turnService, 'rollDice') as any).mockImplementation((pid: any) => {
       stateService.updatePlayer({ id: pid, lastDiceRoll: { roll1: nextRoll, roll2: 0, total: nextRoll } });
       stateService.setPlayerHasRolledDice();
       return nextRoll;
@@ -401,7 +401,7 @@ describe('E2E: 3-Player Multiplayer Game', () => {
     stateService.startGame();
 
     let nextRoll = 1;
-    vi.spyOn(turnService, 'rollDice').mockImplementation((pid) => {
+    (vi.spyOn(turnService, 'rollDice') as any).mockImplementation((pid: any) => {
       stateService.updatePlayer({ id: pid, lastDiceRoll: { roll1: nextRoll, roll2: 0, total: nextRoll } });
       stateService.setPlayerHasRolledDice();
       return nextRoll;

@@ -22,14 +22,14 @@ import { LogLevel } from '../../src/types/ServiceContracts';
 describe('Game Log Architecture Regression Tests', () => {
   let loggingService: LoggingService;
   let turnService: TurnService;
-  let mockStateService: vi.Mocked<StateService>;
+  let mockStateService: any;
   let mockDataService: any;
-  let mockGameState: GameState;
+  let mockGameState: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockStateService = createMockStateService() as vi.Mocked<StateService>;
+    mockStateService = createMockStateService();
     mockDataService = createMockDataService();
 
     // Create realistic game state with simplified turn tracking
@@ -112,7 +112,7 @@ describe('Game Log Architecture Regression Tests', () => {
     // Setup mock state service
     mockStateService.getGameState.mockReturnValue(mockGameState);
     mockStateService.getPlayer.mockImplementation((playerId: string) => {
-      return mockGameState.players.find(p => p.id === playerId) || null;
+      return mockGameState.players.find((p: any) => p.id === playerId) || null;
     });
 
     // Mock logToActionHistory to capture log entries
@@ -403,14 +403,14 @@ describe('Game Log Architecture Regression Tests', () => {
  * ensuring the action sequence and turn progression work correctly together.
  */
 describe('Game Log Integration Flow', () => {
-  let mockStateService: vi.Mocked<StateService>;
+  let mockStateService: any;
   let mockDataService: any;
-  let mockGameState: GameState;
+  let mockGameState: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockStateService = createMockStateService() as vi.Mocked<StateService>;
+    mockStateService = createMockStateService();
     mockDataService = createMockDataService();
 
     // Simplified game state for integration testing
@@ -478,7 +478,7 @@ describe('Game Log Integration Flow', () => {
     const capturedLogs: any[] = [];
 
     // Capture all log entries in order
-    mockStateService.logToActionHistory.mockImplementation((entry) => {
+    mockStateService.logToActionHistory.mockImplementation((entry: any) => {
       capturedLogs.push(entry);
     });
 
@@ -533,7 +533,7 @@ describe('Game Log Integration Flow', () => {
     const loggingService = new LoggingService(mockStateService);
     const capturedLogs: any[] = [];
 
-    mockStateService.logToActionHistory.mockImplementation((entry) => {
+    mockStateService.logToActionHistory.mockImplementation((entry: any) => {
       capturedLogs.push(entry);
     });
 

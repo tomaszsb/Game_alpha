@@ -15,7 +15,7 @@ describe('CardService - Enhanced Coverage', () => {
   let mockGameRulesService: any;
   let mockEffectEngineService: any;
 
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Alice',
     currentSpace: 'TEST-SPACE',
@@ -36,7 +36,7 @@ describe('CardService - Enhanced Coverage', () => {
     loans: []
   };
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: [mockPlayer],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
@@ -203,7 +203,7 @@ describe('CardService - Enhanced Coverage', () => {
       // Clear previous mock calls to ensure accurate count
       vi.clearAllMocks();
 
-      const player2: Player = {
+      const player2: any = {
         ...mockPlayer,
         id: 'player2',
         name: 'Player2',
@@ -231,7 +231,7 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     it('should handle player with no active cards', () => {
-      const playerWithNoActiveCards: Player = {
+      const playerWithNoActiveCards: any = {
         ...mockPlayer,
         activeCards: []
       };
@@ -244,7 +244,7 @@ describe('CardService - Enhanced Coverage', () => {
 
   describe('Card Transfer System', () => {
     it('should transfer cards between players successfully', () => {
-      const targetPlayer: Player = {
+      const targetPlayer: any = {
         id: 'player2',
         name: 'Bob',
         currentSpace: 'TEST-SPACE',
@@ -264,7 +264,7 @@ describe('CardService - Enhanced Coverage', () => {
 
       mockStateService.getAllPlayers.mockReturnValue([mockPlayer, targetPlayer]);
       // Use a transferable card type (E and L cards are transferable)
-      const transferablePlayer: Player = {
+      const transferablePlayer: any = {
         ...mockPlayer,
         hand: ['E_transferable_001'] // E cards are transferable
       };
@@ -346,7 +346,7 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     it('should draw cards from stateful decks and update player hand', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       // Arrange: Ensure getPlayer returns the mock player with initial hand
       mockStateService.getPlayer.mockReturnValue(mockPlayer);
@@ -387,7 +387,7 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     it('should fallback to ID parsing when DataService fails', () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       mockDataService.getCardById.mockReturnValue(undefined);
 
       const cardType = cardService.getCardType('B_fallback_456');
@@ -397,7 +397,7 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     it('should return null for invalid card ID format', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockDataService.getCardById.mockReturnValue(undefined);
 
       const cardType = cardService.getCardType('invalid');
@@ -915,7 +915,7 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     it('should handle EffectEngine processing failures gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const testCard = {
         card_id: 'FAIL001',
@@ -944,7 +944,7 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     it('should handle EffectEngine exceptions gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const testCard = {
         card_id: 'ERROR001',

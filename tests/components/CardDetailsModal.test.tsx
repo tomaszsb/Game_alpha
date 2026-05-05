@@ -22,8 +22,8 @@ describe('CardDetailsModal', () => {
   });
 
   let mockServices: any;
-  let mockCurrentPlayer: Player;
-  let mockOtherPlayers: Player[];
+  let mockCurrentPlayer: any;
+  let mockOtherPlayers: any[];
   let mockTransferableCard: Card;
   let mockProps: any;
 

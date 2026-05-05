@@ -239,10 +239,10 @@ describe('EffectFactory', () => {
       // Check for targeted card log
       const targetedLogEffect = effects.find(e =>
         e.effectType === 'LOG' &&
-        e.payload.message.includes('Targeted card played')
+        (e.payload as any).message.includes('Targeted card played')
       );
       expect(targetedLogEffect).toBeDefined();
-      expect(targetedLogEffect?.payload.message).toContain('target: all_players');
+      expect((targetedLogEffect?.payload as any).message).toContain('target: all_players');
     });
 
     it('should handle cards with no effects gracefully', () => {
@@ -260,7 +260,7 @@ describe('EffectFactory', () => {
       // Assert
       expect(effects).toHaveLength(1); // Only LOG effect
       expect(effects[0].effectType).toBe('LOG');
-      expect(effects[0].payload.message).toContain('Card played: Empty Card by player player1');
+      expect((effects[0].payload as any).message).toContain('Card played: Empty Card by player player1');
     });
   });
 
@@ -386,7 +386,7 @@ describe('EffectFactory', () => {
         { effectType: 'RESOURCE_CHANGE', payload: { resource: 'MONEY' } },
         { effectType: 'RESOURCE_CHANGE', payload: { resource: 'TIME' } },
         { effectType: 'CARD_DRAW', payload: { cardType: 'W' } }
-      ];
+      ] as any;
 
       // Act
       const summary = EffectFactory.getEffectTypeSummary(effects);
@@ -556,7 +556,7 @@ describe('EffectFactory', () => {
       // Both effects should use the same dice roll value (3)
       const timeEffect = effects.find(e => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
       expect(timeEffect).toBeDefined();
-      expect(timeEffect?.payload.amount).toBe(3);
+      expect((timeEffect?.payload as any).amount).toBe(3);
     });
 
     it('should process dice effects with roll_group undefined (backward compat)', () => {

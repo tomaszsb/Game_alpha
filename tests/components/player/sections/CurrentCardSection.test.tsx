@@ -8,7 +8,7 @@ import { DictionaryProvider } from '../../../../src/dictionary';
 const renderWithDictionary = (ui: React.ReactElement) =>
   render(<DictionaryProvider>{ui}</DictionaryProvider>);
 
-const mockCard: Card = {
+const mockCard: any = {
   card_id: 'test-card',
   name: 'Test Card',
   story: 'This is a test card.',
@@ -17,8 +17,8 @@ const mockCard: Card = {
   effect: {
     type: 'choice',
     choices: [
-      { id: 'accept', label: 'Accept' },
-      { id: 'reject', label: 'Reject' },
+      { id: 'accept', label: 'Accept', description: '' },
+      { id: 'reject', label: 'Reject', description: '' },
     ],
   },
 };
@@ -62,7 +62,7 @@ describe('CurrentCardSection', () => {
   });
 
   it('should show a loading skeleton when a choice is being processed', async () => {
-    const onChoice = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const onChoice: any = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
     const { getByText, container } = renderWithDictionary(
       <CurrentCardSection card={mockCard} onChoice={onChoice} />
     );
@@ -95,14 +95,14 @@ describe('CurrentCardSection', () => {
   });
 
   it('should render cards with multiple choices and long descriptions', () => {
-    const longDescriptionCard: Card = {
+    const longDescriptionCard: any = {
       ...mockCard,
       effect: {
         type: 'choice',
         choices: [
-          { id: 'choice1', label: 'Option A' },
-          { id: 'choice2', label: 'Option B with a very long description that should be handled gracefully' },
-          { id: 'choice3', label: 'Option C' },
+          { id: 'choice1', label: 'Option A', description: '' },
+          { id: 'choice2', label: 'Option B with a very long description that should be handled gracefully', description: '' },
+          { id: 'choice3', label: 'Option C', description: '' },
         ],
       },
     };

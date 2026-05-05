@@ -101,7 +101,7 @@ describe('MovementExecutor', () => {
     });
 
     it('skips dice path when player has no lastDiceRoll', async () => {
-      const player = makePlayer({ lastDiceRoll: null });
+      const player = makePlayer({ lastDiceRoll: null as any });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice_outcome' });
       mockMovementService.getValidMoves.mockReturnValue([]);
 

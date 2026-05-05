@@ -28,7 +28,7 @@ describe('P1-CRITICAL: Automatic Funding Card Bug Fix', () => {
     mockResourceService = createMockResourceService();
     mockLoggingService = createMockLoggingService();
     
-    cardService = new CardService(mockDataService, mockStateService, mockResourceService, mockLoggingService);
+    cardService = new CardService(mockDataService, mockStateService, mockResourceService, mockLoggingService, {} as any);
     
     // Mock the effectEngineService to avoid circular dependency issues in tests
     cardService.effectEngineService = {

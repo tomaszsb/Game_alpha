@@ -400,7 +400,7 @@ describe('SpaceEffectService', () => {
 
   describe('applySpaceMoneyEffect', () => {
     it('should add money for add action', () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         trigger_type: 'auto',
@@ -417,7 +417,7 @@ describe('SpaceEffectService', () => {
     });
 
     it('should subtract money for subtract action', () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         trigger_type: 'auto',
@@ -439,7 +439,7 @@ describe('SpaceEffectService', () => {
       (mockStateService.getPlayer as ReturnType<typeof vi.fn>).mockReturnValue(poorPlayer);
       (mockResourceService.canAfford as ReturnType<typeof vi.fn>).mockReturnValue(false);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         trigger_type: 'auto',
@@ -456,7 +456,7 @@ describe('SpaceEffectService', () => {
     });
 
     it('should apply percentage fee for fee_percent action', () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         trigger_type: 'auto',
@@ -476,7 +476,7 @@ describe('SpaceEffectService', () => {
 
   describe('applySpaceTimeEffect', () => {
     it('should add time for add action', () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         trigger_type: 'auto',

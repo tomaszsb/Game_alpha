@@ -30,7 +30,7 @@ describe('Action Sequence Regression Tests', () => {
   let mockChoiceService: any;
   let mockNegotiationService: any;
   let mockEffectEngineService: any;
-  let mockGameState: GameState;
+  let mockGameState: any;
   let capturedLogs: any[];
 
   beforeEach(() => {
@@ -141,7 +141,7 @@ describe('Action Sequence Regression Tests', () => {
     mockStateService.advanceTurn = vi.fn();
 
     loggingService = new LoggingService(mockStateService);
-    movementService = new MovementService(mockDataService, mockStateService, loggingService);
+    movementService = new MovementService(mockDataService, mockStateService, {} as any, loggingService, {} as any);
     turnService = new TurnService(
       mockDataService,
       mockStateService,

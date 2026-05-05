@@ -10,12 +10,12 @@ import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TimeSection } from '../../../src/components/player/sections/TimeSection';
 import { createAllMockServices } from '../../mocks/mockServices';
-import { Player, GameState } from '../../../types/StateTypes';
+import { Player, GameState } from '../../../src/types/StateTypes';
 
 describe('TimeSection', () => {
   const mockServices = createAllMockServices();
   
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Test Player',
     currentSpace: 'START-SPACE',
@@ -33,7 +33,7 @@ describe('TimeSection', () => {
     loans: []
   };
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: [mockPlayer],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',

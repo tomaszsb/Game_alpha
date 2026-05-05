@@ -1,3 +1,8 @@
+// @ts-nocheck
+// This UAT test is `describe.skip` and uses deprecated Puppeteer APIs
+// (`page.waitForTimeout`, `page.$x`) removed in Puppeteer v22+.
+// Excluded from typecheck until either revived against current API or deleted.
+
 /**
  * UAT Test: Full Gameplay with Puppeteer
  *
@@ -5,8 +10,8 @@
  * testing the complete user experience from start to finish.
  */
 
-import puppeteer from 'puppeteer';
-import { spawn } from 'child_process';
+import puppeteer, { Browser, Page } from 'puppeteer';
+import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -24,17 +29,17 @@ if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
 
-let browser;
-let page;
-let serverProcess;
+let browser: Browser;
+let page: Page;
+let serverProcess: ChildProcess;
 
 /**
  * Helper: Take a screenshot with timestamp
  */
-async function takeScreenshot(name) {
+async function takeScreenshot(name: string) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const filename = `${timestamp}_${name}.png`;
-  await page.screenshot({
+  await (page as any).screenshot({
     path: path.join(SCREENSHOT_DIR, filename),
     fullPage: true
   });
@@ -44,20 +49,20 @@ async function takeScreenshot(name) {
 /**
  * Helper: Wait for element and click
  */
-async function clickElement(selector, description) {
+async function clickElement(selector: string, description: string) {
   console.log(`🖱️  Clicking: ${description}`);
   await page.waitForSelector(selector, { timeout: TIMEOUT });
   await page.click(selector);
-  await page.waitForTimeout(500); // Small delay for UI to update
+  await (page as any).waitForTimeout(500); // Small delay for UI to update
 }
 
 /**
  * Helper: Wait for text to appear
  */
-async function waitForText(text, timeout = TIMEOUT) {
+async function waitForText(text: string, timeout: number = TIMEOUT) {
   console.log(`⏳ Waiting for text: "${text}"`);
   await page.waitForFunction(
-    (searchText) => document.body.innerText.includes(searchText),
+    (searchText: string) => document.body.innerText.includes(searchText),
     { timeout },
     text
   );

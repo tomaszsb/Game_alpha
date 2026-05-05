@@ -8,16 +8,16 @@ import { Movement, DiceOutcome, Space, GameConfig } from '../../src/types/DataTy
 import { createMockDataService, createMockStateService, createMockChoiceService, createMockLoggingService, createMockGameRulesService } from '../mocks/mockServices';
 
 // Mock implementations using centralized creators
-const mockDataService: vi.Mocked<IDataService> = createMockDataService();
-const mockStateService: vi.Mocked<IStateService> = createMockStateService();
-const mockChoiceService: vi.Mocked<IChoiceService> = createMockChoiceService();
-const mockLoggingService: vi.Mocked<ILoggingService> = createMockLoggingService();
-const mockGameRulesService: vi.Mocked<IGameRulesService> = createMockGameRulesService();
+const mockDataService: any = createMockDataService();
+const mockStateService: any = createMockStateService();
+const mockChoiceService: any = createMockChoiceService();
+const mockLoggingService: any = createMockLoggingService();
+const mockGameRulesService: any = createMockGameRulesService();
 
 describe('MovementService', () => {
   let movementService: MovementService;
-  let mockPlayer: Player;
-  let mockGameState: GameState;
+  let mockPlayer: any;
+  let mockGameState: any;
 
   beforeEach(() => {
     // Reset all mocks
@@ -238,7 +238,7 @@ describe('MovementService', () => {
       mockStateService.updatePlayer.mockReturnValue(updatedGameState);
 
       // Mock the starting spaces for visit type logic
-      const mockSpaces: Space[] = [{
+      const mockSpaces: any[] = [{
         name: 'START-QUICK-PLAY-GUIDE',
         config: { is_starting_space: true } as GameConfig,
         content: [],
@@ -1299,7 +1299,7 @@ describe('MovementService', () => {
       const q2 = q('Q2', 'DEST-YES', 'DEST-NO2', 'second?');
       mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
       mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1, q2]);
-      mockDataService.getLogicQuestion.mockImplementation((_s, _v, id) =>
+      mockDataService.getLogicQuestion.mockImplementation((_s: string, _v: string, id: string) =>
         id === 'Q2' ? q2 : undefined
       );
       // Answer yes to Q1 (→ Q2), then yes to Q2 (→ DEST-YES terminal).

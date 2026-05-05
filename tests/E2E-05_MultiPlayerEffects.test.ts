@@ -108,7 +108,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
     cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
-    movementService = new MovementService(dataService, stateService, choiceService, loggingService);
+    movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
     targetingService = new TargetingService(stateService, choiceService);
     
     // Create temporary EffectEngineService for circular dependencies
@@ -116,7 +116,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     negotiationService = new NegotiationService(stateService, tempEffectEngine);
     
     // Create TurnService
-    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService);
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
     
     // Build handlers first so they can be passed via the EE constructor
     const loggingServiceRef = new LoggingService(stateService);

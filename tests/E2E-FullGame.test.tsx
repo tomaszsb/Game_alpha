@@ -106,7 +106,7 @@ const setupGameE2E = async (initialPlayerName: string = 'Alice') => {
   return { gameServices, actualPlayerId, ...renderResult };
 };
 
-const mockWCard: Card = {
+const mockWCard: any = {
   card_id: 'W_TEST_DYNAMIC_ID',
   card_name: 'Test W Card',
   card_type: 'W',
@@ -117,7 +117,7 @@ const mockWCard: Card = {
   phase_restriction: 'Design'
 };
 
-const mockBCard: Card = {
+const mockBCard: any = {
   card_id: 'B_TEST_ID',
   card_name: 'Test B Card',
   card_type: 'B',
@@ -129,7 +129,7 @@ const mockBCard: Card = {
   phase_restriction: 'Any'
 };
 
-const mockECard: Card = {
+const mockECard: any = {
   card_id: 'E_TEST_ID',
   card_name: 'Test E Card',
   card_type: 'E',
@@ -138,7 +138,7 @@ const mockECard: Card = {
   phase_restriction: 'Any'
 };
 
-const mockLCard: Card = {
+const mockLCard: any = {
   card_id: 'L_TEST_ID',
   card_name: 'Test L Card',
   card_type: 'L',
@@ -272,7 +272,7 @@ describe('E2E Full Playthrough', () => {
   // We have comprehensive logic-level coverage in E2E-LogicPlaythrough.test.ts and E2E-AllPaths.test.ts
   it.skip('should play through the game from START to FINISH', async () => {
     let nextRollValue = 1;
-    vi.spyOn(globalTurnService, 'rollDice').mockImplementation((playerId) => {
+    (vi.spyOn(globalTurnService, 'rollDice') as any).mockImplementation((playerId: any) => {
         globalStateService.updatePlayer({ 
             id: playerId, 
             lastDiceRoll: { roll1: nextRollValue, roll2: 0, total: nextRollValue } 
@@ -289,7 +289,7 @@ describe('E2E Full Playthrough', () => {
       return undefined;
     });
 
-    vi.spyOn(globalCardService, 'drawCards').mockImplementation((playerId, cardType, count) => {
+    vi.spyOn(globalCardService, 'drawCards').mockImplementation((playerId: any, cardType: any, count: any) => {
       const player = globalStateService.getPlayer(playerId);
       if (player) {
         const drawnCards: string[] = [];
@@ -298,7 +298,7 @@ describe('E2E Full Playthrough', () => {
         }
         const updatedHand = [...player.hand, ...drawnCards];
         globalStateService.updatePlayer({ id: playerId, hand: updatedHand });
-        globalStateService.updatePlayer({ id: playerId, currentCard: drawnCards[0] });
+        globalStateService.updatePlayer({ id: playerId, currentCard: drawnCards[0] } as any);
         return drawnCards;
       }
       return [];

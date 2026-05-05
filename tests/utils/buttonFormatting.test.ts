@@ -11,7 +11,7 @@ import { DICE_BUTTON, DICE_FEEDBACK } from '../../src/constants/uiStrings';
 
 describe('buttonFormatting', () => {
   // Mock colors object for styling tests
-  const mockColors = {
+  const mockColors: any = {
     white: '#ffffff',
     secondary: {
       main: '#666666',
@@ -494,12 +494,12 @@ describe('buttonFormatting', () => {
     });
 
     it('should format feedback with null effects', () => {
-      const result = formatDiceRollFeedback(5, null);
+      const result = formatDiceRollFeedback(5, null as any);
       expect(result).toBe(`${DICE_FEEDBACK.prefix(5)} ${DICE_FEEDBACK.ON_CURRENT_SPACE}`);
     });
 
     it('should format feedback with undefined effects', () => {
-      const result = formatDiceRollFeedback(1, undefined);
+      const result = formatDiceRollFeedback(1, undefined as any);
       expect(result).toBe(`${DICE_FEEDBACK.prefix(1)} ${DICE_FEEDBACK.ON_CURRENT_SPACE}`);
     });
 
@@ -624,7 +624,7 @@ describe('buttonFormatting', () => {
     });
 
     it('should handle undefined effects', () => {
-      const result = formatActionFeedback(undefined);
+      const result = formatActionFeedback(undefined as any);
       expect(result).toBe(DICE_FEEDBACK.ACTION_COMPLETED);
     });
   });

@@ -22,7 +22,7 @@ const expectLogEntry = (baseEntry: any) => {
 
 describe('LoggingService', () => {
   let loggingService: LoggingService;
-  let mockStateService: vi.Mocked<IStateService>;
+  let mockStateService: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,10 +68,10 @@ describe('LoggingService', () => {
     loggingService = new LoggingService(mockStateService);
 
     // Mock console methods to avoid spam during tests
-    vi.spyOn(console, 'log').mockImplementation();
-    vi.spyOn(console, 'warn').mockImplementation();
-    vi.spyOn(console, 'error').mockImplementation();
-    vi.spyOn(console, 'debug').mockImplementation();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -219,7 +219,7 @@ describe('LoggingService', () => {
       expect(mockStateService.logToActionHistory).toHaveBeenCalledTimes(3);
       
       const calls = mockStateService.logToActionHistory.mock.calls;
-      calls.forEach(call => {
+      calls.forEach((call: any) => {
         expect(call[0]).toEqual(expect.objectContaining({
           type: 'system_log'
         }));

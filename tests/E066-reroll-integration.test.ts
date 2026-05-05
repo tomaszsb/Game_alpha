@@ -134,7 +134,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
       }
     };
 
-    const mockPlayer: Player = {
+    const mockPlayer: any = {
       id: 'player1',
       name: 'Test Player',
       currentSpace: 'TEST_SPACE',
@@ -171,7 +171,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   });
 
   it('should include canReRoll in rollDiceWithFeedback result when flag is set', async () => {
-    const mockPlayer: Player = {
+    const mockPlayer: any = {
       id: 'player1',
       name: 'Test Player',
       currentSpace: 'TEST_SPACE',
@@ -210,7 +210,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   });
 
   it('should not include canReRoll when flag is not set', async () => {
-    const mockPlayer: Player = {
+    const mockPlayer: any = {
       id: 'player1',
       name: 'Test Player',
       currentSpace: 'TEST_SPACE',
@@ -249,7 +249,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   });
 
   it('should successfully execute rerollDice when player has canReRoll flag', async () => {
-    const mockPlayer: Player = {
+    const mockPlayer: any = {
       id: 'player1',
       name: 'Test Player',
       currentSpace: 'TEST_SPACE',
@@ -297,7 +297,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   });
 
   it('should throw error when trying to reroll without canReRoll flag', async () => {
-    const mockPlayer: Player = {
+    const mockPlayer: any = {
       id: 'player1',
       name: 'Test Player',
       currentSpace: 'TEST_SPACE',
@@ -321,7 +321,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   });
 
   it('should reset canReRoll flag at end of turn', async () => {
-    const mockGameState: GameState = {
+    const mockGameState: any = {
       players: [{
         id: 'player1',
         name: 'Test Player',

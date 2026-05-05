@@ -22,7 +22,7 @@ describe('ProjectProgress', () => {
   let mockOnToggleGameLog: () => void;
   let mockOnOpenRulesModal: () => void;
 
-  const mockPlayers: Player[] = [
+  const mockPlayers: any[] = [
     {
       id: 'player1',
       name: 'Alice',
@@ -178,7 +178,7 @@ describe('ProjectProgress', () => {
   });
 
   it('should display design fee ratio for each player', () => {
-    const playerWithDesignFees: Player[] = [
+    const playerWithDesignFees: any[] = [
       {
         ...mockPlayers[0],
         expenditures: { design: 100000, fees: 0, construction: 0 },
@@ -201,7 +201,7 @@ describe('ProjectProgress', () => {
   });
 
   it('should display project timeline for each player', () => {
-    const playerWithTime: Player[] = [
+    const playerWithTime: any[] = [
       {
         ...mockPlayers[0],
         timeSpent: 50,
@@ -230,7 +230,7 @@ describe('ProjectProgress', () => {
   });
 
   it('should show timeline color based on progress percentage', () => {
-    const playerNearDeadline: Player[] = [
+    const playerNearDeadline: any[] = [
       {
         ...mockPlayers[0],
         timeSpent: 90,
@@ -259,7 +259,7 @@ describe('ProjectProgress', () => {
   });
 
   it('should display multiple players with individual timelines', () => {
-    const twoPlayers: Player[] = [
+    const twoPlayers: any[] = [
       {
         ...mockPlayers[0],
         id: 'player1',

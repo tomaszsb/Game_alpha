@@ -18,13 +18,13 @@ import { GameState, Player } from '../../src/types/StateTypes';
 
 describe('Space Progression Regression Tests', () => {
   let stateService: StateService;
-  let mockStateService: vi.Mocked<StateService>;
-  let mockGameState: GameState;
+  let mockStateService: any;
+  let mockGameState: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockStateService = createMockStateService() as vi.Mocked<StateService>;
+    mockStateService = createMockStateService();
 
     // Create realistic game state with space progression scenario
     mockGameState = {
@@ -84,7 +84,7 @@ describe('Space Progression Regression Tests', () => {
 
     mockStateService.getGameState.mockReturnValue(mockGameState);
     mockStateService.getPlayer.mockImplementation((playerId: string) => {
-      return mockGameState.players.find(p => p.id === playerId) || null;
+      return mockGameState.players.find((p: any) => p.id === playerId) || null;
     });
 
     // Set up snapshot after mockGameState is created
@@ -103,7 +103,7 @@ describe('Space Progression Regression Tests', () => {
       }
     };
 
-    stateService = new StateService();
+    stateService = new StateService(undefined as any);
     // Replace internal state with mock
     (stateService as any).currentState = mockGameState;
   });
@@ -119,7 +119,7 @@ describe('Space Progression Regression Tests', () => {
       player.timeSpent = 3;
 
       // Mock the revertPlayerToSnapshot method behavior
-      const revertedPlayers = mockGameState.players.map(p => {
+      const revertedPlayers = mockGameState.players.map((p: any) => {
         if (p.id === 'player1') {
           const snapshotPlayer = mockGameState.playerSnapshots.player1!.gameState.players[0];
           return {
@@ -230,7 +230,7 @@ describe('Space Progression Regression Tests', () => {
       const loggingService = new LoggingService(mockStateService);
       const capturedLogs: any[] = [];
 
-      mockStateService.logToActionHistory.mockImplementation((entry) => {
+      mockStateService.logToActionHistory.mockImplementation((entry: any) => {
         capturedLogs.push(entry);
       });
 
@@ -259,7 +259,7 @@ describe('Space Progression Regression Tests', () => {
       const loggingService = new LoggingService(mockStateService);
       const capturedLogs: any[] = [];
 
-      mockStateService.logToActionHistory.mockImplementation((entry) => {
+      mockStateService.logToActionHistory.mockImplementation((entry: any) => {
         capturedLogs.push(entry);
       });
 

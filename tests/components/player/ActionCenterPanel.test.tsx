@@ -16,9 +16,9 @@ import { renderWithProviders } from '../../utils/test-utils';
 
 describe('ActionCenterPanel - Negotiate Button', () => {
   let mockServices: any;
-  let mockPlayer: Player;
+  let mockPlayer: any;
   let mockGameState: any;
-  let onTryAgain: ReturnType<typeof vi.fn>;
+  let onTryAgain: any;
 
   beforeEach(() => {
     mockServices = createAllMockServices();

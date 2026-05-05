@@ -10,12 +10,12 @@ import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FinancesSection } from '../../../src/components/player/sections/FinancesSection';
 import { createAllMockServices } from '../../mocks/mockServices';
-import { Player, GameState } from '../../../types/StateTypes';
+import { Player, GameState } from '../../../src/types/StateTypes';
 
 describe('FinancesSection', () => {
   const mockServices = createAllMockServices();
   
-  const mockPlayer: Player = {
+  const mockPlayer: any = {
     id: 'player1',
     name: 'Test Player',
     currentSpace: 'START-SPACE',
@@ -62,7 +62,7 @@ describe('FinancesSection', () => {
     ]
   };
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: [mockPlayer],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
@@ -342,7 +342,7 @@ describe('FinancesSection', () => {
   });
 
   describe('Cost Tracking Display', () => {
-    const playerWithCosts: Player = {
+    const playerWithCosts: any = {
       ...mockPlayer,
       money: 5000,
       projectScope: 100000,
@@ -592,7 +592,7 @@ describe('FinancesSection', () => {
     });
 
     it('should display all cost entries for a category when expanded', () => {
-      const playerWithMultipleCosts: Player = {
+      const playerWithMultipleCosts: any = {
         ...playerWithCosts,
         costHistory: [
           {
@@ -641,7 +641,7 @@ describe('FinancesSection', () => {
 
   describe('Design Fee Summary Badge', () => {
     // Player with projectScope for design fee summary tests
-    const playerWithScope: Player = {
+    const playerWithScope: any = {
       ...mockPlayer,
       projectScope: 100000,
       expenditures: {

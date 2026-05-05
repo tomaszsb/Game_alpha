@@ -23,7 +23,7 @@ describe('CardActions Service Integration', () => {
   let mockStateService: any;
   let mockUseGameContext: any;
 
-  const mockGameState: GameState = {
+  const mockGameState: any = {
     players: [],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
@@ -70,7 +70,7 @@ describe('CardActions Service Integration', () => {
     mockStateService = createMockStateService();
     mockStateService.getGameState.mockReturnValue(mockGameState);
 
-    mockUseGameContext = useGameContext as anyFunction<typeof useGameContext>;
+    mockUseGameContext = useGameContext as any;
     mockUseGameContext.mockReturnValue({
       playerActionService: mockPlayerActionService,
       stateService: mockStateService,

@@ -134,7 +134,7 @@ describe('DiceService', () => {
     });
 
     it('should generate positive summary for money gain', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'money', value: 500 }
       ];
       const summary = diceService.generateEffectSummary(effects, 6);
@@ -143,7 +143,7 @@ describe('DiceService', () => {
     });
 
     it('should generate negative summary for money loss', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'money', value: -200 }
       ];
       const summary = diceService.generateEffectSummary(effects, 1);
@@ -152,7 +152,7 @@ describe('DiceService', () => {
     });
 
     it('should generate positive summary for cards drawn', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'cards', cardCount: 2, cardType: 'W' }
       ];
       const summary = diceService.generateEffectSummary(effects, 5);
@@ -161,7 +161,7 @@ describe('DiceService', () => {
     });
 
     it('should use singular "card" for cardCount of 1', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'cards', cardCount: 1, cardType: 'E' }
       ];
       const summary = diceService.generateEffectSummary(effects, 3);
@@ -170,7 +170,7 @@ describe('DiceService', () => {
     });
 
     it('should generate negative summary for time penalty', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'time', value: 3 }
       ];
       const summary = diceService.generateEffectSummary(effects, 2);
@@ -179,7 +179,7 @@ describe('DiceService', () => {
     });
 
     it('should generate positive summary for time efficiency', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'time', value: -2 }
       ];
       const summary = diceService.generateEffectSummary(effects, 6);
@@ -188,7 +188,7 @@ describe('DiceService', () => {
     });
 
     it('should include choice effect in summary', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'choice' }
       ];
       const summary = diceService.generateEffectSummary(effects, 4);
@@ -197,7 +197,7 @@ describe('DiceService', () => {
     });
 
     it('should generate mixed results for positive and negative effects', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'money', value: 500 },
         { type: 'time', value: 2 }
       ];
@@ -208,7 +208,7 @@ describe('DiceService', () => {
     });
 
     it('should combine multiple effect descriptions', () => {
-      const effects: DiceResultEffect[] = [
+      const effects: any[] = [
         { type: 'cards', cardCount: 1, cardType: 'W' },
         { type: 'money', value: 100 }
       ];

@@ -265,7 +265,7 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
   describe('Condition-Based Effect Selection', () => {
     it('should select B card effect when scope ≤ $4M', () => {
       // Setup space effects with both B and I options
-      const spaceEffects = [
+      const spaceEffects: any[] = [
         {
           space_name: 'OWNER-FUND-INITIATION',
           visit_type: 'First',
@@ -318,7 +318,7 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
     });
 
     it('should select I card effect when scope > $4M', () => {
-      const spaceEffects = [
+      const spaceEffects: any[] = [
         {
           space_name: 'OWNER-FUND-INITIATION',
           visit_type: 'First',
@@ -371,7 +371,7 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
     });
 
     it('should handle edge case: scope exactly at $4M threshold', () => {
-      const spaceEffects = [
+      const spaceEffects: any[] = [
         {
           space_name: 'OWNER-FUND-INITIATION',
           visit_type: 'First',

@@ -111,7 +111,7 @@ const setupGameE2E = async (initialPlayerName: string = 'Alice') => {
   return { gameServices, actualPlayerId, rerender };
 };
 
-const mockWCard: Card = {
+const mockWCard: any = {
   card_id: 'W_TEST_DYNAMIC_ID',
   card_name: 'Test W Card',
   card_type: 'W',
@@ -122,7 +122,7 @@ const mockWCard: Card = {
   phase_restriction: 'Design'
 };
 
-const mockBCard: Card = {
+const mockBCard: any = {
   card_id: 'B_TEST_ID',
   card_name: 'Test B Card',
   card_type: 'B',
@@ -203,7 +203,7 @@ describe('E2E-01: Happy Path with New UI', () => {
       return undefined;
     });
 
-    vi.spyOn(globalCardService, 'drawCards').mockImplementation((playerId, cardType, count) => {
+    vi.spyOn(globalCardService, 'drawCards').mockImplementation((playerId: any, cardType: any, count: any) => {
       const player = globalStateService.getPlayer(playerId);
       if (player) {
         const drawnCards: string[] = [];
@@ -215,7 +215,7 @@ describe('E2E-01: Happy Path with New UI', () => {
         globalStateService.updatePlayer({ id: playerId, hand: updatedHand });
 
         // Update currentCard to show in UI
-        globalStateService.updatePlayer({ id: playerId, currentCard: drawnCards[0] });
+        globalStateService.updatePlayer({ id: playerId, currentCard: drawnCards[0] } as any);
         
         return drawnCards;
       }

@@ -8,13 +8,13 @@ import { Movement, DiceOutcome, CardType, GameConfig } from '../../src/types/Dat
 import { createMockDataService, createMockStateService } from '../mocks/mockServices';
 
 // Mock implementations using centralized creators
-const mockDataService: vi.Mocked<IDataService> = createMockDataService();
-const mockStateService: vi.Mocked<IStateService> = createMockStateService();
+const mockDataService: any = createMockDataService();
+const mockStateService: any = createMockStateService();
 
 describe('GameRulesService', () => {
   let gameRulesService: GameRulesService;
-  let mockPlayer: Player;
-  let mockGameState: GameState;
+  let mockPlayer: any;
+  let mockGameState: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -590,7 +590,7 @@ describe('GameRulesService', () => {
 
     it('should return false and log error when an exception occurs', async () => {
       // Arrange
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockStateService.getPlayer.mockImplementation(() => {
         throw new Error('Database error');
       });
@@ -637,7 +637,7 @@ describe('GameRulesService', () => {
     describe('calculatePlayerScore', () => {
       it('should calculate score based on money, project scope, loans, and time', () => {
         // Arrange
-        const playerWithAssets: Player = {
+        const playerWithAssets: any = {
           ...mockPlayer,
           money: 10000,
           timeSpent: 5,
@@ -674,7 +674,7 @@ describe('GameRulesService', () => {
 
       it('should ensure score does not go negative', () => {
         // Arrange
-        const playerWithDebts: Player = {
+        const playerWithDebts: any = {
           ...mockPlayer,
           money: 1000,
           timeSpent: 10,
@@ -701,9 +701,9 @@ describe('GameRulesService', () => {
     describe('determineWinner', () => {
       it('should determine winner by highest score', () => {
         // Arrange
-        const player1: Player = { ...mockPlayer, id: 'player1', name: 'Alice', score: 0 };
-        const player2: Player = { ...mockPlayer, id: 'player2', name: 'Bob', score: 0 };
-        const player3: Player = { ...mockPlayer, id: 'player3', name: 'Charlie', score: 0 };
+        const player1: any = { ...mockPlayer, id: 'player1', name: 'Alice', score: 0 };
+        const player2: any = { ...mockPlayer, id: 'player2', name: 'Bob', score: 0 };
+        const player3: any = { ...mockPlayer, id: 'player3', name: 'Charlie', score: 0 };
 
         const mockGameStateWithPlayers = {
           ...mockGameState,
@@ -904,7 +904,7 @@ describe('GameRulesService', () => {
     describe('Bug #3: Infinite loop prevention (evaluateCondition)', () => {
       it('should not update projectScope when value has not changed', () => {
         // Arrange - player already has correct projectScope
-        const playerWithScope: Player = {
+        const playerWithScope: any = {
           ...mockPlayer,
           projectScope: 5000000, // Already $5M
           hand: [] // No E cards, so calculateProjectScope will return 0
@@ -936,7 +936,7 @@ describe('GameRulesService', () => {
 
       it('should evaluate condition without updating state (pure function)', () => {
         // Arrange - player has outdated projectScope, but evaluateCondition should not update it
-        const playerWithScope: Player = {
+        const playerWithScope: any = {
           ...mockPlayer,
           projectScope: 3000000, // Old value: $3M
           hand: [] // No E cards
@@ -962,7 +962,7 @@ describe('GameRulesService', () => {
 
       it('should not update projectScope when evaluating scope_le_4M and value unchanged', () => {
         // Arrange
-        const playerWithScope: Player = {
+        const playerWithScope: any = {
           ...mockPlayer,
           projectScope: 2000000, // Already $2M
           hand: []

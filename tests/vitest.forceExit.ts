@@ -2,7 +2,8 @@
 // Custom vitest reporter that force-exits after all tests complete.
 // Workaround for vitest hanging due to open handles in test workers.
 
-import type { Reporter, File } from 'vitest/reporters';
+import type { Reporter } from 'vitest/reporters';
+type File = any;
 
 export default class ForceExitReporter implements Reporter {
   private totalFiles = 0;

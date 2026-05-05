@@ -92,9 +92,9 @@ describe('Try Again / Negotiate Regression', () => {
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
     cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
-    movementService = new MovementService(dataService, stateService, choiceService, loggingService);
+    movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
     targetingService = new TargetingService(stateService, choiceService);
-    negotiationService = new NegotiationService(stateService);
+    negotiationService = new NegotiationService(stateService, null as any);
 
     effectEngineService = new EffectEngineService(
         resourceService,
@@ -108,7 +108,7 @@ describe('Try Again / Negotiate Regression', () => {
         loggingService
     );
 
-    cardEffectService = new CardEffectService(
+    cardEffectService = new (CardEffectService as any)(
         stateService,
         cardService,
         resourceService,

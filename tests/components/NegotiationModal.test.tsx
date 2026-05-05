@@ -21,8 +21,8 @@ describe('NegotiationModal', () => {
   });
 
   let mockServices: any;
-  let mockCurrentPlayer: Player;
-  let mockOtherPlayers: Player[];
+  let mockCurrentPlayer: any;
+  let mockOtherPlayers: any[];
   let mockCards: Card[];
   let mockGameState: any;
 

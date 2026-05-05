@@ -74,12 +74,12 @@ describe('DataEditor', () => {
         } as Response);
       }
       return Promise.reject(new Error('Unknown URL'));
-    });
+    }) as any;
   });
 
   const renderEditor = () => {
     return render(
-      <GameContext.Provider value={mockGameContext}>
+      <GameContext.Provider value={mockGameContext as any}>
         <DataEditor onClose={mockOnClose} />
       </GameContext.Provider>
     );

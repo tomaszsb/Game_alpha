@@ -16,7 +16,7 @@ describe('CardEffectService', () => {
   let mockStateService: any;
   let mockDataService: any;
   let mockChoiceService: any;
-  let mockPlayer: Player;
+  let mockPlayer: any;
 
   beforeEach(() => {
     mockPlayer = {
@@ -111,7 +111,7 @@ describe('CardEffectService', () => {
 
   describe('executeCardEffect - draw operations', () => {
     it('should draw W cards successfully', async () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -133,7 +133,7 @@ describe('CardEffectService', () => {
     });
 
     it('should draw single card with correct pluralization', async () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -157,7 +157,7 @@ describe('CardEffectService', () => {
       mockPlayer.currentSpace = 'OWNER-FUND-INITIATION';
       mockCardService.drawCards.mockReturnValue(['fund-card-1']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'OWNER-FUND-INITIATION',
         visit_type: 'First',
         effect_type: 'cards',
@@ -176,7 +176,7 @@ describe('CardEffectService', () => {
       mockPlayer.currentSpace = 'OWNER-FUND-INITIATION';
       mockCardService.drawCards.mockReturnValue(['invest-card-1']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'OWNER-FUND-INITIATION',
         visit_type: 'First',
         effect_type: 'cards',
@@ -196,7 +196,7 @@ describe('CardEffectService', () => {
     it('should replace all cards when player has exactly the required amount', async () => {
       mockCardService.getPlayerCards.mockReturnValue(['e-card-1', 'e-card-2']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -221,7 +221,7 @@ describe('CardEffectService', () => {
     it('should create choice when player has multiple cards to choose from', async () => {
       mockCardService.getPlayerCards.mockReturnValue(['e-card-1', 'e-card-2', 'e-card-3']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -244,7 +244,7 @@ describe('CardEffectService', () => {
     it('should return success with message when no cards to replace', async () => {
       mockCardService.getPlayerCards.mockReturnValue([]);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -264,7 +264,7 @@ describe('CardEffectService', () => {
     it('should return card directly when player has only one', async () => {
       mockCardService.getPlayerCards.mockReturnValue(['l-card-1']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -287,7 +287,7 @@ describe('CardEffectService', () => {
     it('should create choice when returning from multiple cards', async () => {
       mockCardService.getPlayerCards.mockReturnValue(['e-card-1', 'e-card-2', 'e-card-3']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -309,7 +309,7 @@ describe('CardEffectService', () => {
 
   describe('executeCardEffect - give operations', () => {
     it('should give card to next player', async () => {
-      const player2: Player = { ...mockPlayer, id: 'player2', name: 'Player 2' };
+      const player2: any = { ...mockPlayer, id: 'player2', name: 'Player 2' };
       mockStateService.getGameState.mockReturnValue({
         players: [mockPlayer, player2],
         currentPlayerId: 'player1',
@@ -317,7 +317,7 @@ describe('CardEffectService', () => {
       });
       mockCardService.getPlayerCards.mockReturnValue(['e-card-1']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -345,7 +345,7 @@ describe('CardEffectService', () => {
         gamePhase: 'PLAY'
       });
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -364,7 +364,7 @@ describe('CardEffectService', () => {
 
   describe('executeCardEffect - transfer operations', () => {
     it('should transfer E card to target player based on direction', async () => {
-      const player2: Player = { ...mockPlayer, id: 'player2', name: 'Player 2' };
+      const player2: any = { ...mockPlayer, id: 'player2', name: 'Player 2' };
       mockStateService.getGameState.mockReturnValue({
         players: [mockPlayer, player2],
         currentPlayerId: 'player1',
@@ -374,7 +374,7 @@ describe('CardEffectService', () => {
       // Player has E cards (transfer now specifically targets E cards)
       mockCardService.getPlayerCards.mockReturnValue(['e-card-1']);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -398,7 +398,7 @@ describe('CardEffectService', () => {
     });
 
     it('should return success with message when no E cards to transfer', async () => {
-      const player2: Player = { ...mockPlayer, id: 'player2', name: 'Player 2' };
+      const player2: any = { ...mockPlayer, id: 'player2', name: 'Player 2' };
       mockStateService.getGameState.mockReturnValue({
         players: [mockPlayer, player2],
         currentPlayerId: 'player1',
@@ -408,7 +408,7 @@ describe('CardEffectService', () => {
       // Player has no E cards
       mockCardService.getPlayerCards.mockReturnValue([]);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -430,7 +430,7 @@ describe('CardEffectService', () => {
     it('should return failure when player not found', async () => {
       mockStateService.getPlayer.mockReturnValue(null);
 
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -446,7 +446,7 @@ describe('CardEffectService', () => {
     });
 
     it('should return failure for unknown action', async () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -464,7 +464,7 @@ describe('CardEffectService', () => {
 
   describe('effect value parsing', () => {
     it('should parse numeric string value', async () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -485,7 +485,7 @@ describe('CardEffectService', () => {
     });
 
     it('should parse descriptive string value like "Draw 2"', async () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
@@ -506,7 +506,7 @@ describe('CardEffectService', () => {
     });
 
     it('should handle numeric type value directly', async () => {
-      const effect: SpaceEffect = {
+      const effect: any = {
         space_name: 'TEST',
         visit_type: 'First',
         effect_type: 'cards',
