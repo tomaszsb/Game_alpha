@@ -65,8 +65,12 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
   const negotiationService = new NegotiationService(stateService, tempEffectEngine);
 
+  // CardEffectService is a clean dependency (no cycle back to TurnService),
+  // so it goes through TurnService's constructor — not setter injection.
+  const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+
   // Create TurnService with NegotiationService and NotificationService dependencies
-  const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService);
+  const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService, undefined, undefined, undefined, cardEffectService);
 
   // Real EffectEngineService — gets the constructed turnService and all dependencies up-front.
   const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
@@ -74,10 +78,6 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Remaining setter calls are for the two genuine architectural cycles documented in ARCHITECTURE.md.
   turnService.setEffectEngineService(effectEngineService);
   cardService.setEffectEngineService(effectEngineService);
-
-  // Create and wire CardEffectService for consolidated card operations
-  const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
-  turnService.setCardEffectService(cardEffectService);
 
   const playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
 

@@ -75,14 +75,11 @@ describe('E2E: 4-Player Multiplayer Game', () => {
     const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
     const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as any, gameRulesService, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
     const negotiationService = new NegotiationService(stateService, effectEngineService);
-    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService);
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService, undefined, undefined, undefined, cardEffectService);
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
     cardService.setEffectEngineService(effectEngineService);
-
-    // Create and wire CardEffectService for manual card actions
-    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
-    turnService.setCardEffectService(cardEffectService);
   });
 
   it('should initialize a 4-player game correctly', () => {
@@ -371,14 +368,11 @@ describe('E2E: 3-Player Multiplayer Game', () => {
     const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService);
     const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, {} as any, gameRulesService, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
     const negotiationService = new NegotiationService(stateService, effectEngineService);
-    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService);
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService, undefined, undefined, undefined, cardEffectService);
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
     cardService.setEffectEngineService(effectEngineService);
-
-    // Create and wire CardEffectService for manual card actions
-    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
-    turnService.setCardEffectService(cardEffectService);
   });
 
   it('should initialize a 3-player game correctly', () => {

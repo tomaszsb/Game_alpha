@@ -183,6 +183,14 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
     // TurnService(dataService, stateService, gameRulesService, cardService, resourceService,
     //             movementService, negotiationService, loggingService, choiceService,
     //             notificationService?, effectEngineService?)
+    // Create CardEffectService for manual card actions — passed via TurnService constructor
+    const cardEffectService = new CardEffectService(
+      cardService,
+      stateService,
+      mockDataService,
+      createMockChoiceService()
+    );
+
     turnService = new TurnService(
       mockDataService,
       stateService,
@@ -194,17 +202,11 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
       mockLoggingService,
       createMockChoiceService(),
       undefined, // notificationService (optional)
-      createMockEffectEngineService()
+      createMockEffectEngineService(),
+      undefined, // diceService
+      undefined, // spaceEffectService
+      cardEffectService
     );
-
-    // Create and wire CardEffectService for manual card actions
-    const cardEffectService = new CardEffectService(
-      cardService,
-      stateService,
-      mockDataService,
-      createMockChoiceService()
-    );
-    turnService.setCardEffectService(cardEffectService);
 
     // Mock getCardById for both B and I cards
     mockDataService.getCardById.mockImplementation((cardId: string) => {

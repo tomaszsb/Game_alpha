@@ -96,6 +96,7 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
     cardEffectHandler
   );
   const negotiationService = new NegotiationService(stateService, effectEngineService);
+  const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
   const turnService = new TurnService(
     dataService,
     stateService,
@@ -106,14 +107,15 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
     negotiationService,
     loggingService,
     choiceService,
-    notificationService
+    notificationService,
+    undefined, // effectEngineService — wired via setter for genuine cycle below
+    undefined, // diceService — TurnService creates a default
+    undefined, // spaceEffectService — TurnService creates a default
+    cardEffectService
   );
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);
   cardService.setEffectEngineService(effectEngineService);
-
-  const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
-  turnService.setCardEffectService(cardEffectService);
 
   return {
     dataService,

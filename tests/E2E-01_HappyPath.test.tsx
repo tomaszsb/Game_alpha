@@ -172,6 +172,9 @@ describe('E2E-01: Happy Path with New UI', () => {
 
     globalNegotiationService = new NegotiationService(globalStateService, globalEffectEngineService);
 
+    // Create CardEffectService before TurnService so it can be passed via constructor
+    globalCardEffectService = new CardEffectService(globalCardService, globalStateService, globalDataService, globalChoiceService);
+
     globalTurnService = new TurnService(
       globalDataService,
       globalStateService,
@@ -182,16 +185,16 @@ describe('E2E-01: Happy Path with New UI', () => {
       globalNegotiationService,
       globalLoggingService,
       globalChoiceService,
-      globalNotificationService
+      globalNotificationService,
+      undefined, // effectEngineService (real cycle, wired via setter below)
+      undefined, // diceService
+      undefined, // spaceEffectService
+      globalCardEffectService
     );
 
     globalTurnService.setEffectEngineService(globalEffectEngineService);
     globalEffectEngineService.setTurnService(globalTurnService);
     globalCardService.setEffectEngineService(globalEffectEngineService);
-
-    // Create and wire CardEffectService for manual card actions
-    globalCardEffectService = new CardEffectService(globalCardService, globalStateService, globalDataService, globalChoiceService);
-    globalTurnService.setCardEffectService(globalCardEffectService);
   });
 
   beforeEach(() => {

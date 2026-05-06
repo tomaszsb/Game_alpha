@@ -118,11 +118,11 @@ describe('Try Again / Negotiate Regression', () => {
 
     turnService = new TurnService(
       dataService, stateService, gameRulesService, cardService,
-      resourceService, movementService, negotiationService, loggingService, choiceService
+      resourceService, movementService, negotiationService, loggingService, choiceService,
+      undefined, undefined, undefined, undefined, cardEffectService
     );
 
     turnService.setEffectEngineService(effectEngineService);
-    turnService.setCardEffectService(cardEffectService);
 
     // Link circular dependencies
     stateService.setGameRulesService(gameRulesService);

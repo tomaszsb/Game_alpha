@@ -35,9 +35,9 @@ export class TurnService implements ITurnService {
   private readonly turnTransitionHandler: TurnTransitionHandler;
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
-  private cardEffectService?: ICardEffectService;
+  private readonly cardEffectService?: ICardEffectService;
 
-  constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService, diceService?: IDiceService, spaceEffectService?: ISpaceEffectService) {
+  constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService, diceService?: IDiceService, spaceEffectService?: ISpaceEffectService, cardEffectService?: ICardEffectService) {
     this.dataService = dataService;
     this.stateService = stateService;
     this.gameRulesService = gameRulesService;
@@ -49,6 +49,7 @@ export class TurnService implements ITurnService {
     this.choiceService = choiceService;
     this.notificationService = notificationService;
     this.effectEngineService = effectEngineService;
+    this.cardEffectService = cardEffectService;
     // Use provided DiceService or create a default instance
     this.diceService = diceService || new DiceService();
     // Use provided SpaceEffectService or create a default instance
@@ -113,13 +114,6 @@ export class TurnService implements ITurnService {
     this.effectEngineService = effectEngineService;
     this.spaceArrivalProcessor.setEffectEngineService(effectEngineService);
     this.turnTransitionHandler.setEffectEngineService(effectEngineService);
-  }
-
-  /**
-   * Set the CardEffectService after construction to handle dependencies
-   */
-  public setCardEffectService(cardEffectService: ICardEffectService): void {
-    this.cardEffectService = cardEffectService;
   }
 
   /**

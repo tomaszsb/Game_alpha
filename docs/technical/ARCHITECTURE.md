@@ -157,7 +157,7 @@ async takeTurn(playerId: string): Promise<TurnResult> {
 - `CardService.setEffectEngineService()` — cycle 2 (3-way)
 - `SpaceArrivalProcessor.setEffectEngineService()`, `TurnTransitionHandler.setEffectEngineService()` — forwarded by TurnService as part of cycle 2
 
-**Not a pattern to copy:** Other setter methods (e.g. `EffectEngineService.setNotificationService/setDataService`, handler setters, `CardService.setChoiceService`) exist historically but are being eliminated in favor of constructor injection because the dependency they receive is not part of a real cycle. The `setCardEffectService` method on TurnService is similar — to be migrated when touched.
+**Not a pattern to copy:** Other setter methods (e.g. `EffectEngineService.setNotificationService/setDataService`, handler setters, `CardService.setChoiceService`) exist historically but are being eliminated in favor of constructor injection because the dependency they receive is not part of a real cycle. (The `setCardEffectService` method on TurnService was the last false-cycle setter; migrated to constructor injection in v2.59.0.)
 
 ### Handler Pattern (January 2026)
 

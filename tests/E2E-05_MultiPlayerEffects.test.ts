@@ -115,9 +115,12 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService);
     negotiationService = new NegotiationService(stateService, tempEffectEngine);
     
+    // Create CardEffectService — needed for TurnService constructor
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+
     // Create TurnService
-    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService);
-    
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, undefined, undefined, undefined, undefined, cardEffectService);
+
     // Build handlers first so they can be passed via the EE constructor
     const loggingServiceRef = new LoggingService(stateService);
     const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingServiceRef);
@@ -129,10 +132,6 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     // Complete circular dependencies (real cycle)
     turnService.setEffectEngineService(effectEngineService);
     cardService.setEffectEngineService(effectEngineService);
-
-    // Create and wire CardEffectService for manual card actions
-    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
-    turnService.setCardEffectService(cardEffectService);
 
     // Create PlayerActionService
     playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);

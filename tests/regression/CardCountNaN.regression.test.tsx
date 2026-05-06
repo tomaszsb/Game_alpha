@@ -196,6 +196,14 @@ describe('CardCountNaN Regression Tests', () => {
     mockStateService.getGameState.mockReturnValue(mockGameState);
     mockStateService.getPlayer.mockReturnValue(testPlayer);
 
+    // Create CardEffectService for manual card actions — passed via TurnService constructor
+    const cardEffectService = new CardEffectService(
+      mockCardService,
+      mockStateService,
+      mockDataService,
+      mockChoiceService
+    );
+
     // Initialize TurnService
     turnService = new TurnService(
       mockDataService,
@@ -206,17 +214,13 @@ describe('CardCountNaN Regression Tests', () => {
       mockMovementService,
       mockNegotiationService,
       mockLoggingService,
-      mockChoiceService
+      mockChoiceService,
+      undefined, // notificationService
+      undefined, // effectEngineService
+      undefined, // diceService
+      undefined, // spaceEffectService
+      cardEffectService
     );
-
-    // Create and wire CardEffectService for manual card actions
-    const cardEffectService = new CardEffectService(
-      mockCardService,
-      mockStateService,
-      mockDataService,
-      mockChoiceService
-    );
-    turnService.setCardEffectService(cardEffectService);
   });
 
   describe('triggerManualEffectWithFeedback - undefined effect_value', () => {
