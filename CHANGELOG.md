@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.60.0] - 2026-05-06
+
+### Voice rewrite Pass 1 — Spaces.csv text merge
+
+The `docs/core/AUTHORED_COPY_REVIEW.md` rewrite (NPC-of-the-space narrates to PM in 2nd person; 5 PM-voiced exceptions) is now live in the data the game reads. This is Pass 1: text fields only. Pass 2 (ModalConfig.csv population) is deferred — see TODO.md.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — Updated 49 of 52 keep-rows with new copy across 6 fields each (Title, Event, Action, Outcome, end_turn_label, try_again_label). Negotiate flag flips:
+- `REG-DOB-FEE-REVIEW / Subsequent`: YES → NO (sunk-cost rule)
+- `ARCH-INITIATION / Subsequent`: NO → YES (PM has boots on the ground; architect's in the office)
+
+Two Subsequent rows deleted (no space in the runtime board routes to them):
+- `OWNER-SCOPE-INITIATION / Subsequent`
+- `OWNER-FUND-INITIATION / Subsequent`
+
+54 logical rows → 52. Pipeline regenerated MOVEMENT.csv, GAME_CONFIG.csv, SPACE_CONTENT.csv, SPACE_EFFECTS.csv, DICE_EFFECTS.csv to match.
+
+**`scripts/merge-voice-rewrite.mjs`** (new) — Parses the markdown review doc into structured per-(space, visit) field changes, applies them to Spaces.csv, deletes the 2 flagged Subsequent rows. Strips italic/bold markdown wrappers from cell values, preserves smart-quote and em-dash content. Sentinels handled: `(empty)` → empty string, `(keep)` / `(not rendered)` → leave existing value.
+
+**`scripts/regen-clean-files.mjs`** (new) — CLI wrapper for `server/processGameData.js` so CLEAN_FILES can be regenerated from a terminal after batch CSV edits (the pipeline is normally invoked from `server.js` on editor saves).
+
+Verified: production typecheck 0 errors, 643 service tests pass, 11 E2E path tests pass (REG-DOB / REG-FDNY / PLAN-EXAM routing all intact), processGameData pipeline tests 45/45.
+
+---
+
 ## [2.59.0] - 2026-05-06
 
 ### Test typecheck + DI cleanup + 4 stale-test fixes

@@ -2,7 +2,7 @@
 
 **Last Updated:** May 6, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.59.0
+**Current Version:** 2.60.0
 
 ## Where We Are
 

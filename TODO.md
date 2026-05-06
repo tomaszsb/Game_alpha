@@ -2,7 +2,7 @@
 
 **Last Updated:** May 6, 2026
 **Status:** Beta — regression gates in place; Workstream 6 closed
-**Current Version:** 2.59.0
+**Current Version:** 2.60.0
 
 ---
 
@@ -36,7 +36,9 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ### **Backlog**
 - Story authoring rollout (post-v2.50.0) — Infrastructure is shipped; author per-action narratives for the remaining spaces (priority: high-traffic REG/PM/ARCH/ENG, then Event spaces). Legacy flat `Action`/`Outcome` blocks continue to render wherever no per-action narrative is authored, so rollout can be incremental with zero gameplay risk.
 
-- Voice rewrite merge (target version TBD — was originally framed as v2.51.0 candidate but v2.51.0–v2.58.0 went to Workstream 6 instead; pick a fresh version when picking this back up) — `docs/core/AUTHORED_COPY_REVIEW.md` is fully rewritten end-to-end with the corrected voice rule (NPC-of-the-space narrates to PM in 2nd person; 5 PM-voiced exceptions; modals share the speaker). Pending: (a) user sign-off on 3 flagged speaker calls (ARCH-INITIATION/Sub, ENG-INITIATION/Sub, CON-INSPECT) and 4 CSV structural changes at top of doc; (b) merge text + Negotiate flag flips + 2 row deletions into `public/data/SOURCE_FILES/Spaces.csv`; (c) populate `ModalConfig.csv` with the new per-NPC modal copy; (d) regenerate `CLEAN_FILES`.
+- Voice rewrite merge — Pass 1 shipped v2.60.0 (May 2026). Spaces.csv text fields (Title/Event/Action/Outcome/end_turn_label/try_again_label), the 2 Negotiate flag flips (REG-DOB-FEE-REVIEW Subsequent → NO; ARCH-INITIATION Subsequent → YES), and the 2 Subsequent-row deletions (OWNER-SCOPE-INITIATION, OWNER-FUND-INITIATION) all merged. CLEAN_FILES regenerated.
+
+  **Pass 2 — ModalConfig.csv population (open).** The doc has `### Modals fired here` tables for ~50 spaces with `effect_action`/`modal_title`/`modal_description`/`modal_button_label`/`modal_summary` per modal. Blocked on a mapping pass: the doc uses human-readable labels (`"Take Owner's Money"`, `"Time: 1 day"`, `"e_card: Draw 3"`) whereas `ModalConfig.csv` keys by the engine's internal `effect_action` value (`add`, `draw_E`, etc., possibly with `dice_value`). Need to walk each space's `SPACE_EFFECTS.csv` rows, match doc-side modal entries to engine-side action keys, then generate ModalConfig rows. ~50 spaces × 2-3 modals each ≈ 100-150 rows. Worth scripting (see `scripts/merge-voice-rewrite.mjs` for the doc parser as a starting point).
 
 - Educational "Learn More" content per space — Hidden educational field per space, revealed via a Learn More icon. Explains why the step exists, why it matters, and historical/regulatory context (NYC-specific: real DOB code sections, ZR citations, Triangle Shirtwaist → FDNY history, 1916 zoning resolution backstory, etc.). Separate "field guide" instructional register from the in-character NPC voice — clicking Learn More gets a teacher, not a character. Constraints to lock before authoring: (a) one paragraph default (~200 words), max ~500 for spaces with rich history; (b) every fee/rate/code claim sourced to nyc.gov / ZR / NYC Admin Code; (c) footer disclaimer ("educational, not legal advice — verify current rules at nyc.gov"). Author a 2-space calibration sample (suggest REG-FDNY-PLAN-EXAM with the Triangle Shirtwaist hook + BANK-FUND-REVIEW for contrast) before scaling to all ~50 spaces. Separate workstream from the voice rewrite — do not block v2.51.0. Target version TBD — content authoring + reading UI; not blocked by engine-data separation work.
 
@@ -213,7 +215,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🚀 **Deployment Status**
 - **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.59.0
+- **Current Version**: v2.60.0
 - **Last Deploy**: see git log / `docker logs game_alpha` for live build
 - **Status**: Stable
 
