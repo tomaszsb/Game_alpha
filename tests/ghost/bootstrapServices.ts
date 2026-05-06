@@ -42,6 +42,11 @@ class NodeDataService extends DataService {
     (this as any).diceEffects = (this as any).parseDiceEffectsCsv(read('DICE_EFFECTS.csv'));
     (this as any).spaceContents = (this as any).parseSpaceContentCsv(read('SPACE_CONTENT.csv'));
     (this as any).cards = (this as any).parseCardsCsv(read('CARDS_EXPANDED.csv'));
+    // LOGIC_QUESTIONS.csv drives the yes/no decision chain at logic-typed
+    // movement spaces (e.g. REG-FDNY-FEE-REVIEW). Without this, handleLogicMovement
+    // falls back to auto-selecting destination_1, leaving downstream logic-only
+    // destinations (REG-FDNY-PLAN-EXAM) unreachable in headless ghost runs.
+    (this as any).logicQuestions = (this as any).parseLogicQuestionsCsv(read('LOGIC_QUESTIONS.csv'));
     (this as any).buildSpaces();
     (this as any).loaded = true;
   }

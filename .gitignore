@@ -52,6 +52,8 @@ Thumbs.db
 # Audit/log text files (not blanket *.txt which blocks documentation)
 console_log_audit.txt
 npm-debug.txt
+ghost-coverage.txt
+ghost-debug.log
 
 # Server runtime data (game state, logs, feedback)
 /server/data/

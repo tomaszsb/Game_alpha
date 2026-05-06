@@ -117,7 +117,7 @@ describe('Ghost Player coverage', () => {
       '',
       `Batch: ${wins}/${gameOutcomes.length} wins`,
     ].join('\n');
-    writeFileSync('/tmp/ghost-coverage.txt', report);
+    writeFileSync(join(process.cwd(), 'ghost-coverage.txt'), report);
 
     // Sanity: the batch actually ran
     expect(gameOutcomes.length).toBe(50);
@@ -134,5 +134,11 @@ describe('Ghost Player coverage', () => {
     // Also: any space we see in play but isn't in GAME_CONFIG.csv indicates
     // data drift between the spaces table and game config — fail loudly.
     expect(unknownSpaces, `Visited but missing from GAME_CONFIG.csv: ${unknownSpaces.join(', ')}`).toEqual([]);
-  }, 600000);
+    // Bumped from 600s to 1200s after the LOGIC_QUESTIONS bootstrap fix.
+    // The chain now actually fires in headless runs, which means
+    // regulatory-loop spaces (REG-FDNY-FEE-REVIEW ↔ REG-DOB-AUDIT ↔ ...)
+    // can keep the ghost cycling longer before reaching FINISH. 50 games
+    // now average ~20s each (vs ~5s when the chain was a no-op), so the
+    // batch needs more headroom.
+  }, 1200000);
 });

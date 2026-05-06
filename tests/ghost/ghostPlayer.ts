@@ -212,14 +212,30 @@ function checkInvariants(player: any, dataService: any): string | null {
 
 async function resolveAnyPendingChoice(services: HeadlessServices): Promise<void> {
   const { stateService, choiceService } = services;
-  // Loop in case one resolution triggers another
-  for (let i = 0; i < 10; i++) {
+  // Loop in case one resolution triggers another (e.g. LOGIC_QUESTION chains
+  // where answering Q1 leads to Q2, etc.). 20 iterations covers the longest
+  // chain in production (REG-FDNY-FEE-REVIEW = 5 questions + a possible
+  // sub-choice MOVEMENT modal at Q5).
+  for (let i = 0; i < 20; i++) {
     const choice = stateService.getGameState().awaitingChoice;
     if (!choice) return;
-    if (choice.type === 'MOVEMENT') return; // movement choices handled in main loop
     if (choice.options.length === 0) return; // can't resolve, let the turn end
+    // Resolve everything — including MOVEMENT-type sub-choices from inside
+    // logic chains. We previously skipped MOVEMENT choices on the theory that
+    // the main loop's setPlayerMoveIntent handles them, but that only applies
+    // to top-level 'choice' movement_type spaces. A MOVEMENT choice created
+    // mid-chain (resolveLogicTarget Case 2) hangs the chain forever if the
+    // ghost doesn't resolve it, eventually triggering the 5-minute promise
+    // timeout in ChoiceService and stalling the whole test batch.
     const pick = choice.options[Math.floor(Math.random() * choice.options.length)];
     choiceService.resolveChoice(choice.id, pick.id);
+    // Yield to the event loop so the resolver (e.g. walkLogicChain awaiting
+    // on the resolved createChoice promise) can resume and set the next
+    // awaitingChoice before we re-check. walkLogicChain chains through
+    // multiple awaits (createChoice → resolveLogicTarget → recursive
+    // walkLogicChain → createChoice), so we need a setTimeout(0) yield
+    // not just a microtask flush.
+    await new Promise((r) => setTimeout(r, 0));
   }
 }
 

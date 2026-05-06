@@ -247,7 +247,12 @@ export function buildGamePathFromData(
     const mov = movementMap[spaceName]?.[visitType || 'First'];
     if (!mov) return { type: 'none', destinations: [] };
     const dests = [mov.destination_1, mov.destination_2, mov.destination_3, mov.destination_4, mov.destination_5].filter(Boolean);
-    return { type: mov.movement_type, destinations: dests };
+    // Treat 'logic' movement_type as 'choice' for board layout walking. The
+    // walker's existing 'choice' branches already handle path_type === 'LOGIC'
+    // spaces specially (lines 349, 562). Without this alias, logic-typed
+    // spaces fall through to break, leaving downstream nodes unplaced.
+    const type = mov.movement_type === 'logic' ? 'choice' : mov.movement_type;
+    return { type, destinations: dests };
   }
 
   function getDiceReachable(spaceName: string): string[] {
