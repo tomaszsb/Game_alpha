@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** April 30, 2026
+**Last Updated:** May 6, 2026
 **Status:** Beta — regression gates in place; Workstream 6 closed
-**Current Version:** 2.58.0
+**Current Version:** 2.59.0
 
 ---
 
@@ -149,7 +149,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ### Tier 2 — TypeScript rigor (small but cascading)
 - [x] **Resolve 30 pre-existing typecheck errors** — shipped in v2.47.2 (Apr 17, 2026). `npm run typecheck` returns 0 errors. See CHANGELOG.
-- [ ] **Fix `tsconfig.json` tests include/exclude duplication** — `tests/**/*` appears in both arrays (verified at v2.58.0: lines 32 and 38 of tsconfig.json); pick one. Removing from `exclude` means tests get typechecked (expect a wave of errors since `allowJs` is loose and tests were effectively untyped). Now that Tier 2 step 1 has shipped, this is the only remaining Tier 2 item.
+- [x] **Fix `tsconfig.json` tests include/exclude duplication** (v2.59.0, May 2026) — Removed `tests/**/*` from `exclude`. Surfaced 379 latent type errors and fixed them across ~30 test files. Tests are now genuinely typechecked. See CHANGELOG v2.59.0 for the full pattern list.
 
 ### Tier 3 — DI graph cleanup (revised Apr 17, 2026)
 *Original framing was "split every service > 600 lines + eliminate all setter injection." Revised after an April 17 audit determined both targets were largely cosmetic. See `docs/core/BETA_PLAN_V3.md` Workstream 4 for the full rationale. **Do not resurrect the 600-line target.***
@@ -213,7 +213,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🚀 **Deployment Status**
 - **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.58.0
+- **Current Version**: v2.59.0
 - **Last Deploy**: see git log / `docker logs game_alpha` for live build
 - **Status**: Stable
 

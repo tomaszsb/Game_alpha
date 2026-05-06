@@ -1,7 +1,7 @@
 # Product Charter — Unravel Codes: The Game
 
-**Status:** Beta (v2.58.0) — live at https://game.unravelcodes.com
-**Last Updated:** April 30, 2026
+**Status:** Beta (v2.59.0) — live at https://game.unravelcodes.com
+**Last Updated:** May 6, 2026
 
 ## Mission
 

@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated:** April 30, 2026
+**Last Updated:** May 6, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.58.0
+**Current Version:** 2.59.0
 
 ## Where We Are
 

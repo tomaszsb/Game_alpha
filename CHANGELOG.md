@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.59.0] - 2026-05-06
+
+### Test typecheck + DI cleanup + 4 stale-test fixes
+
+Three engineering commits, all internal — no gameplay changes.
+
+**`tsconfig.json` typecheck for tests/** — `tests/**/*` was in both `include` and `exclude` (exclude won), so 1500+ test files were silently untyped. Removed from exclude. Surfaced 379 latent type errors and fixed them across ~30 test files. Patterns fixed:
+- Stale `is_manual` fields on SpaceEffect literals (renamed to `trigger_type` long ago).
+- `completedActions: number` literals (now an object `{ diceRoll, manualActions }`).
+- Service constructor calls missing args (CardService, MovementService, EffectEngineService, TurnService — propagated across all E2E + regression tests).
+- Wrong import path `'../../../types/StateTypes'` in 3 component tests.
+- `anyIDataService` artifacts (failed mass-rename) in TurnService.test.ts.
+- `tests/uat/puppeteer-gameplay.test.ts` `@ts-nocheck`'d — describe.skip'd, uses removed `page.waitForTimeout` / `page.$x` (Puppeteer v22+).
+
+**`src/utils/boardLayout.ts`** — walker had no branch for `movement_type='logic'`. When the path-builder hit a logic-typed space (REG-FDNY-FEE-REVIEW), it fell through every if and broke out of the loop, leaving downstream nodes (REG-FDNY-PLAN-EXAM + 2 others) unplaced. Aliased `'logic'` → `'choice'` inside `getMovement`; the existing `'choice'` branch already handles `path_type='LOGIC'` specially. Fixes 3 boardLayout test failures.
+
+**`tests/ghost/bootstrapServices.ts`** — headless DataService loaded 7 CSVs but skipped `LOGIC_QUESTIONS.csv`. Without it, `handleLogicMovement` always fell back to "auto-select destination_1" (CON-INITIATION every time at REG-FDNY-FEE-REVIEW), making REG-FDNY-PLAN-EXAM unreachable across all 50 ghost games. Added LOGIC_QUESTIONS.csv to the bootstrap loader.
+
+**`tests/ghost/ghostPlayer.ts`** — once the chain fires, two ghost-side bugs surfaced:
+1. `resolveAnyPendingChoice` exited synchronously after one resolve — but `walkLogicChain`'s next `createChoice` runs in a microtask, so the loop never saw Q2/Q3/etc. Added `setTimeout(0)` yield after each `resolveChoice`.
+2. Loop skipped `MOVEMENT`-type choices on the theory the main loop's `setPlayerMoveIntent` handles them. That's only true for top-level `'choice'` movement_type spaces. A MOVEMENT sub-choice created mid-chain (Q5='yes' → comma-separated destinations) hung forever, eventually triggering the 5-minute promise timeout in ChoiceService. Removed the skip — resolve every type.
+Coverage test timeout bumped 600s → 1200s (chain firing means longer regulatory loops; final run: 50 games / 903s, 26/27 spaces visited).
+
+**`src/services/TurnService.ts` + `src/context/ServiceProvider.tsx`** — Migrated `setCardEffectService` to constructor injection. Last false-cycle setter from the April 2026 cleanup. CardEffectService takes `(cardService, stateService, dataService, choiceService)` — none depend on TurnService — so there's no cycle to break with setter injection. Setter removed; field is now `readonly`. ServiceProvider + 9 test files migrated.
+
+Verified: production typecheck 0 errors with tests included, full test suite green (1547 + the 12 SpaceProgressionRegression that were broken by my earlier StateService stub + the 4 pre-existing failures, all now passing).
+
+---
+
 ## [2.58.0] - 2026-04-29
 
 ### Workstream 6 Phase 6.3 — Cosmetic mappings lifted to data flags + runtime starting-space defense
