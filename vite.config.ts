@@ -154,24 +154,35 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    // Optimization for production builds
+    // Optimization for production builds.
+    // Goal: keep the app shell ("index" chunk) small so first-paint is fast,
+    // and split heavy third-party deps into vendor chunks that change rarely
+    // (so browser cache survives most app deploys).
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Separate vendor chunks for better caching
-          react: ['react', 'react-dom'],
-          // Separate service chunks for code splitting
-          services: [
-            './src/services/DataService.ts',
-            './src/services/StateService.ts',
-            './src/services/LoggingService.ts'
-          ],
-          utils: [
-            './src/utils/PerformanceMonitor.ts',
-            './src/utils/FormatUtils.ts',
-            './src/utils/NotificationUtils.ts'
-          ]
-        }
+        manualChunks(id: string) {
+          // Vendor splits — node_modules deps that are stable across deploys.
+          if (id.includes('node_modules')) {
+            if (id.includes('react-dom') || /[\\/]node_modules[\\/]react[\\/]/.test(id)) {
+              return 'vendor-react';
+            }
+            if (id.includes('framer-motion')) return 'vendor-framer-motion';
+            if (id.includes('qrcode.react')) return 'vendor-qrcode';
+            // html2canvas is dynamically imported by FeedbackButton —
+            // Rollup will create its own async chunk. Don't pull it into
+            // a sync vendor chunk here.
+            if (id.includes('html2canvas')) return undefined;
+            // Everything else from node_modules → catch-all vendor chunk.
+            return 'vendor';
+          }
+          // App code splits — group by directory so churn in one area
+          // doesn't invalidate the others' cache.
+          if (id.includes('/src/services/')) return 'services';
+          if (id.includes('/src/components/editor/')) return 'editor';
+          if (id.includes('/src/dictionary/')) return 'dictionary';
+          // Default: main app bundle
+          return undefined;
+        },
       }
     },
     // Optimize for performance

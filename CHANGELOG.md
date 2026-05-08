@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.61.0] - 2026-05-08
+
+### Build hygiene — npm audit clean + bundle-size warning resolved
+
+Two warnings flagged during the v2.59.0 / v2.60.0 deploys, both addressed.
+
+**`package-lock.json` — npm audit: 13 vulnerabilities → 0.** All 13 (1 critical / 7 high / 4 moderate / 1 low) were transitive — fixable via `npm audit fix`. The notable ones for runtime exposure were `path-to-regexp` (Express routing, ReDoS) and `qs` (query parsing, DoS). The build-tool-only ones — `vite`, `rollup`, `minimatch`, `picomatch`, `flatted` — also surfaced fixable advisories. `package.json` unchanged; only `package-lock.json` rewrote (~190 lines). Two passes of `npm audit fix` got us from 13 → 1 → 0.
+
+**`vite.config.ts` + `src/components/feedback/FeedbackButton.tsx` — bundle-size warning resolved.** The build was emitting a single 1,048 KB index chunk (gzip: 279 KB), triggering the "Some chunks are larger than 1000 kB" Vite warning. Two fixes:
+
+1. **`html2canvas` (~200 KB minified) made dynamic.** It's only used when a player clicks the feedback button to capture a screenshot. Switched to `await import('html2canvas')` inside `handleCapture`, so the payload no longer ships in the main bundle.
+
+2. **`manualChunks` config rewritten as a function** that splits node_modules deps into stable vendor chunks (`vendor-react`, `vendor-framer-motion`, `vendor-qrcode`, `vendor` catch-all) and app code by directory (`services`, `editor`, `dictionary`). Browser cache now survives most app deploys for the heavy stable parts.
+
+Build output before/after:
+| chunk | before | after (gzip) |
+| --- | --- | --- |
+| main app shell | 1,048 KB (gzip 279 KB) | 278 KB (gzip 70 KB) |
+| vendor-react | — | 187 KB (gzip 58 KB) |
+| services | (in main) | 250 KB (gzip 63 KB) |
+| vendor (misc) | — | 92 KB (gzip 30 KB) |
+| editor | (in main) | 56 KB (gzip 14 KB) — admin only |
+| html2canvas | (in main, sync) | 199 KB (gzip 46 KB) — async, on-demand |
+
+First-paint payload (everything except editor + html2canvas) drops from ~280 KB gzipped to ~145 KB gzipped.
+
+Verified: production typecheck 0 errors, 909 service+component tests pass, build succeeds with no chunk-size warning.
+
+---
+
 ## [2.60.0] - 2026-05-06
 
 ### Voice rewrite Pass 1 — Spaces.csv text merge

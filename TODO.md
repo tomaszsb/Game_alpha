@@ -2,7 +2,7 @@
 
 **Last Updated:** May 6, 2026
 **Status:** Beta — regression gates in place; Workstream 6 closed
-**Current Version:** 2.60.0
+**Current Version:** 2.61.0
 
 ---
 
@@ -219,7 +219,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🚀 **Deployment Status**
 - **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.60.0
+- **Current Version**: v2.61.0
 - **Last Deploy**: see git log / `docker logs game_alpha` for live build
 - **Status**: Stable
 

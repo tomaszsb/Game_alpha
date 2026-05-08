@@ -2,7 +2,9 @@
 // Floating draggable bug report button with screenshot capture
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+// html2canvas is dynamically imported inside handleCapture so the ~400KB
+// minified payload doesn't ship in the main bundle. It only loads when a
+// player actually clicks the feedback button to take a screenshot.
 import { ModalBase, modalButtonStyles } from '../modals/shared/ModalBase';
 import { colors } from '../../styles/theme';
 import { getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
@@ -46,6 +48,7 @@ export function FeedbackButton(): JSX.Element {
     await new Promise(r => setTimeout(r, 100));
 
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(document.body, {
         useCORS: true,
         logging: false,
