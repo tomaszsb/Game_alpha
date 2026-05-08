@@ -1,7 +1,7 @@
 # API Reference — Unravel Codes: The Game
 
-**Last Updated:** April 30, 2026
-**Status:** Beta (v2.58.0)
+**Last Updated:** May 8, 2026
+**Status:** Beta (v2.62.0)
 
 > **Scope of this doc:** server REST endpoints + a one-line summary of each service in `IServiceContainer`. For full TypeScript signatures, the source under `src/types/ServiceContracts.ts` is authoritative — this doc used to duplicate those interfaces and went stale fast. For architectural context (DI, real cycles, handler pattern, REAL/TEMP) see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -18,10 +18,11 @@ Express backend at `server/server.js`. Base URLs:
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/games` | List active games |
-| `POST` | `/api/games` | Create new game (returns `gameId`) |
-| `GET` | `/api/games/:gameId/state` | Read current state (full `GameState`) |
-| `POST` | `/api/games/:gameId/state` | Replace state (rejects stale `clientVersion` with HTTP 409) |
+| `GET` | `/api/games` | List active games (no token returned) |
+| `POST` | `/api/games` | Create new game (returns `gameId` + `token`) |
+| `GET` | `/api/games/:gameId/join-info` | Public lookup of `token` + basic game info by `gameId`. Used by the lobby's join-by-code flow (state endpoints below require the token in headers). Added v2.61.1. |
+| `GET` | `/api/games/:gameId/state` | Read current state (full `GameState`). Requires `X-Game-Token` header or `?token=` query. |
+| `POST` | `/api/games/:gameId/state` | Replace state (rejects stale `clientVersion` with HTTP 409). Requires `X-Game-Token`. |
 | `DELETE` | `/api/games/:gameId` | Delete a game (admin-only) |
 
 ### Auth

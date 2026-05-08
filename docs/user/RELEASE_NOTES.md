@@ -2,6 +2,67 @@
 
 ---
 
+## v2.62.0 — Living Map Foundation (May 8, 2026)
+
+**Release Date:** May 8, 2026
+**Status:** Beta
+**Type:** Internal — no visible change for players
+
+Foundation for an upcoming "Living Map" board. Each space now has explicit `(pos_x, pos_y)` coordinates in `Spaces.csv`. The current board still renders the same snake/zig-zag layout. Once the new board ships (next phase), educators will be able to drag spaces around and add new ones without code changes.
+
+---
+
+## v2.61.1 — Bug Fixes from Player Reports (May 8, 2026)
+
+**Release Date:** May 8, 2026
+**Status:** Beta
+**Type:** Bug fixes (player-visible)
+
+Five issues reported via the in-game bug button (game G159). All fixed.
+
+### What Changed for Players
+
+- **Join Game button works again.** Players entering a game code in the lobby were landing on a blank screen. The fix lets the lobby fetch the game's auth token automatically before joining. Now you type a code, click Join, you're in.
+- **Button labels read like real life, not game terms.** Buttons that used to say "Draw 3 E cards" or "Replace 1 E cards" now say "Hire 3 Expeditors" or "Change Expeditor". Same effect, plain language.
+- **Narration no longer says "you drew 2 cards".** TTS readout for dice rolls used to mix in game-language phrases like *"Good news! You drew 2 cards."* Now you hear *"Good news! You took on 2 work packages"* (or hired expeditors, secured a bank loan, etc.) — phrasing depends on the card type.
+- **Bug button now lets you ask for follow-up.** The bug-report form has new optional fields for name, email, and phone. Fill them in if you want a reply about resolution; leave them blank if you don't.
+- **Footer now points to the bug button.** All footers used to say *"Feedback? game@unravelcodes.com"* — they now also call out the 🐞 button at the bottom-right of the screen as the primary way to report issues. Email is kept for those who prefer a record.
+
+---
+
+## v2.60.0 — Voice Rewrite (May 6, 2026)
+
+**Release Date:** May 6, 2026
+**Status:** Beta
+**Type:** Content (player-visible)
+
+Comprehensive rewrite of the in-game text. Every space's title, story (Event), action prompt, and outcome message has been re-authored to feel like real conversations with real people on a real construction project — not like a board game speaking to a player.
+
+### Voice rule
+
+The NPC of each space narrates to you (the project manager) in second person. Five spaces are PM-voiced (you talk yourself through the decision): PM-DECISION-CHECK, CHEAT-BYPASS, ARCH-INITIATION, ENG-INITIATION, REG-DOB-TYPE-SELECT.
+
+### What Changed for Players
+
+- **49 of 52 space rows rewritten** — Title, Event, Action, Outcome, plus end-turn and try-again button labels. Examples:
+  - "Owner Funding Initiation" → "The owner opens the books"
+  - "PM Decision Check" → "I pick a direction"
+  - "Cheat Bypass" → "I cut a corner"
+  - "Agree with Owner" → "Take the check"
+  - "Negotiate" → "Push back"
+
+- **Two Negotiate flag flips:**
+  - REG-DOB-FEE-REVIEW (Subsequent visit): YES → NO. Sunk-cost rule — once you've paid the fee on the first try, no point negotiating it down on a re-visit.
+  - ARCH-INITIATION (Subsequent visit): NO → YES. PM has boots on the ground; the architect's in the office. Negotiation makes sense here.
+
+- **Two unreachable rows removed** (OWNER-SCOPE-INITIATION/Subsequent and OWNER-FUND-INITIATION/Subsequent — no space in the runtime board ever routed back to them).
+
+### What's Still Pending (Pass 2)
+
+The dice-result and effect modals (where it says things like "I'm wiring it now" or "Five days burned") have authored copy in the doc but haven't been merged into the data yet. That's a follow-up release.
+
+---
+
 ## v2.51.0 → v2.58.0 — Engine-Data Separation (Workstream 6) (April 26–29, 2026)
 
 **Release Date:** April 26–29, 2026

@@ -1,5 +1,7 @@
 # How the Game Board Is Drawn
 
+> **Note (May 8, 2026):** This doc describes the snake/zig-zag walker board (`src/utils/boardLayout.ts` + `BoardV3.tsx`). That implementation is being replaced in Workstream 3 — Living Map (see `docs/core/BETA_PLAN_V3.md`). Phase A (data-layer foundation) shipped v2.62.0; Phase B (the React Flow `BoardCanvas` rewrite) is next. This doc stays current for the version that's still rendering today, but will be rewritten when the new board ships.
+
 This explains, step by step, how the computer draws the game board you see on screen.
 
 ---

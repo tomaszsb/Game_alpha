@@ -1,12 +1,12 @@
 # Project Status
 
-**Last Updated:** May 6, 2026
+**Last Updated:** May 8, 2026
 **Current Phase:** Beta — live in production
 **Current Version:** 2.62.0
 
 ## Where We Are
 
-The game is live at `https://game.unravelcodes.com`. The Beta regression gates (Ghost Player + 23-batch test suite + typecheck) are in place and have caught real regressions. Workstream 6 (engine-data separation) closed Apr 29, 2026 with v2.58.0.
+The game is live at `https://game.unravelcodes.com`. The Beta regression gates (Ghost Player + test suite + typecheck) are in place and have caught real regressions. Workstream 6 (engine-data separation) closed Apr 29, 2026 with v2.58.0. Voice rewrite Pass 1 shipped May 6 (v2.60.0). Workstream 3 (Living Map) Phase A — data-layer foundation — shipped May 8 (v2.62.0).
 
 ## What's Open
 
@@ -18,9 +18,9 @@ For Beta strategy and the v3.0.0 ship criteria, see [BETA_PLAN_V3.md](./BETA_PLA
 
 ### Top-of-mind right now
 
-1. **Voice rewrite merge** — `docs/core/AUTHORED_COPY_REVIEW.md` is fully drafted, awaiting user sign-off on 3 flagged speaker calls + 4 CSV structural changes. Then merge text into `Spaces.csv`, populate `ModalConfig.csv`, regenerate `CLEAN_FILES`.
-2. **Story narrative authoring rollout** — v2.50.0 shipped infrastructure; only 2 spaces have authored narratives so far. Drafts for the rest live in `docs/core/narratives-draft.md`.
-3. **Workstream 3 — Living Map** (blocking v3.0.0 ship): coordinate-driven board reading `pos_x`/`pos_y` from CSV. Not started.
+1. **Workstream 3 — Living Map, Phase B** (blocking v3.0.0 ship). Phase A foundation shipped v2.62.0 — `pos_x`/`pos_y` columns + pipeline + `IDataService.getPosition()`. Next: install `@xyflow/react`, build `BoardCanvas.tsx` (custom node + smoothstep edges + phase grouping via `parentId`), feature-flag side-by-side with BoardV3. Then Phase C/D delete `BoardV3.tsx` + `boardLayout.ts` (~1,664 lines).
+2. **Voice rewrite Pass 2** — modal copy. The doc has `### Modals fired here` tables for ~50 spaces with per-effect modal text. Blocked on a mapping pass: doc uses human-readable labels ("Take Owner's Money") whereas `ModalConfig.csv` keys by engine effect_action values (`add`, `draw_E`). Worth scripting; the doc parser in `scripts/merge-voice-rewrite.mjs` is a starting point.
+3. **Story narrative authoring** — creator-driven content. Tool ready (`scripts/set-narrative.mjs`); rollout pace is whatever the user chooses to author. 5 of ~75 card-effect rows have narratives so far.
 4. **Workstream 5 — Live Dictionary** (blocking v3.0.0 ship): live-fetched terms from `dictionary-scraper`. Not started.
 
 ## Reading Map
