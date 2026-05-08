@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.62.0] - 2026-05-08
+
+### Workstream 3 Phase A — Living Map foundation (no visible change yet)
+
+Lifts the board layout from code (the snake/zig-zag walker in `src/utils/boardLayout.ts`) into authored data on Spaces.csv. **No visible change in this version** — `BoardV3.tsx` still renders. This phase just adds the data plumbing so Phase B (the React Flow `BoardCanvas` rewrite) can read positions from CSV instead of computing them.
+
+Library decision documented in `docs/core/BETA_PLAN_V3.md` Workstream 3: three independent agent passes (ChatGPT, Perplexity, Gemini) all converged on **`@xyflow/react` (React Flow)** — MIT-licensed, React-native (custom JSX nodes), drag/edit/snap-to-grid built in, mobile/touch native, ~40–60 KB gzipped. Adopting in Phase B.
+
+**`public/data/SOURCE_FILES/Spaces.csv`** — added two columns: `pos_x`, `pos_y`. Pixels in board coordinate space. Every existing row got seeded values via `scripts/seed-board-positions.mjs` — phase-by-phase columns left-to-right (SETUP=20, OWNER=220, FUNDING=420, DESIGN=620, REGULATORY=820, CONSTRUCTION=1020, END=1220), spaces stacked vertically within their phase column. 52 logical rows seeded, 27 unique spaces positioned across 7 phases.
+
+**`scripts/seed-board-positions.mjs`** (new) — one-shot script. Adds the columns if missing, seeds defaults phase-by-phase, only fills empty cells (so re-running can't clobber hand-edits).
+
+**`server/processGameData.js`** — propagates `pos_x` / `pos_y` from Spaces.csv into `GAME_CONFIG.csv` (positions 19, 20). Empty values default to 0.
+
+**`src/types/DataTypes.ts`** — added optional `pos_x?: number` / `pos_y?: number` to the `GameConfig` interface.
+
+**`src/services/DataService.ts`** — `parseGameConfigCsv` reads `values[19]` / `values[20]`. New `getPosition(spaceName)` helper returns `{x, y} | null`.
+
+**`src/types/ServiceContracts.ts`** — `IDataService.getPosition` added to the contract.
+
+Phase B (build `BoardCanvas.tsx` with React Flow, side-by-side feature flag with BoardV3) and Phase C/D (parity check + delete BoardV3 + boardLayout walker, ~1,664 lines) ship in subsequent versions.
+
+Verified: production typecheck 0 errors, 688 service+pipeline tests pass.
+
+---
+
 ## [2.61.1] - 2026-05-08
 
 ### Bug fixes from G159 dashboard reports + voice-rewrite leak repairs

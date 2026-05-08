@@ -226,6 +226,20 @@ export class DataService implements IDataService {
     return this.getGameConfigBySpace(spaceName)?.review_loop_message ?? '';
   }
 
+  /**
+   * Workstream 3: board coordinates for the Living Map. Returns null if
+   * the space isn't found or has no coords. Callers should fall back to
+   * a sensible default (e.g. 0,0) — but in practice every space should
+   * have coords seeded by scripts/seed-board-positions.mjs.
+   */
+  getPosition(spaceName: string): { x: number; y: number } | null {
+    const config = this.getGameConfigBySpace(spaceName);
+    if (!config) return null;
+    const x = config.pos_x ?? 0;
+    const y = config.pos_y ?? 0;
+    return { x, y };
+  }
+
   getPhaseOrder(): string[] {
     const phases: string[] = [];
     for (const config of this.gameConfigs) {
@@ -548,6 +562,10 @@ export class DataService implements IDataService {
       // missing — callers fall back to existing hardcoded behavior.
       const displayLabelOverride = values[17] || '';
       const reviewLoopMessage = values[18] || '';
+      // Workstream 3: Living Map coordinates. Default to 0 if missing/blank
+      // so the parsing never produces NaN (which would break BoardCanvas).
+      const posX = parseFloat(values[19]);
+      const posY = parseFloat(values[20]);
 
       return {
         space_name: values[0],
@@ -575,7 +593,10 @@ export class DataService implements IDataService {
         is_path_choice_lock_point: isPathChoiceLockPoint,
         // Workstream 6 Phase 6.3: cosmetic overrides.
         display_label_override: displayLabelOverride,
-        review_loop_message: reviewLoopMessage
+        review_loop_message: reviewLoopMessage,
+        // Workstream 3: Living Map coordinates.
+        pos_x: Number.isFinite(posX) ? posX : 0,
+        pos_y: Number.isFinite(posY) ? posY : 0
       };
     });
   }

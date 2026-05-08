@@ -63,28 +63,34 @@ The Alpha is 95% working. Thousands of fixes, edge cases, and school-floor lesso
 
 ### Workstream 3 — Living Map (Free-form Coordinate Board)
 
-**Problem:** The current board uses computed grid paths. Arrows don't always match real player movement. The user wants to freely reposition spaces and add new ones without code changes.
+**Problem:** The current board uses a computer-generated snake/zig-zag grid. `src/utils/boardLayout.ts` (~785 lines) walks the space graph from MOVEMENT.csv and computes a position for each space — left-to-right on odd rows, right-to-left on even, wrapping on row width. `BoardV3.tsx` (~879 lines) renders the result. Arrows are auto-drawn between adjacent positions in the walk.
 
-**Deliverable:** Coordinate-driven board with dynamic SVG arrows.
+This means: arrows don't always match how players actually move (forward jumps, regulatory loops, branches all share a generic snake template). Adding a new space means touching the walker. You can't reposition spaces visually — the layout is reverse-engineered from the data, not authored.
 
-**Implementation sketch:**
-- Add `pos_x` and `pos_y` columns to `public/data/SOURCE_FILES/Spaces.csv` (default values computed from current layout)
-- Update `processGameData.js` to propagate coordinates through to CLEAN_FILES
-- New `BoardCanvas.tsx` (or rewrite of BoardV3.tsx) that:
-  - Places spaces as absolutely-positioned tiles at `(pos_x, pos_y)`
-  - Reads each space's `Destination` connections
-  - Draws SVG `<path>` arrows between source and target coordinates
-  - Uses curved quadratic paths with basic collision avoidance
-  - Shows phase groupings via subtle background regions
-- Optional admin mode: drag a space → coordinates save back to CSV via the existing Data Editor flow
-- Keep `BoardV3.tsx` working until the new canvas is verified, then delete
+**Deliverable:** Coordinate-driven board. Each space has explicit `(pos_x, pos_y)` in Spaces.csv. Repositioning is a CSV edit; new spaces are a row + position.
 
-**Risks:**
-- Arrow routing across long distances / backward jumps will need thought
-- Phase boundaries and visual hierarchy need to survive the transition
-- Ghost Player must still be able to "see" the board graph through the data layer, not through the rendered DOM
+**Library decision (May 2026):** Three independent agent passes (ChatGPT, Perplexity, Gemini) all converged on **React Flow / `@xyflow/react`** as the right off-the-shelf choice. MIT-licensed, React-native (custom JSX nodes via `nodeTypes`), drag/edit/snap-to-grid built in, mobile-first touch handling, ~40–60 KB gzipped, actively maintained. Free tier covers everything we need. GoJS was the "pay once" alternative ($3,995/dev) — overkill for this project. dagre / elkjs are layout engines (paired with React Flow only as needed for seed positions on brand-new spaces). Detailed comparison in the session notes; not duplicating here.
 
-**Version bump on ship:** v2.42.0 (or v3.0.0 if this is the last visible change)
+**Implementation phases:**
+
+| Phase | What | Time | Visible change? |
+|---|---|---:|---|
+| A | Add `pos_x` / `pos_y` columns to Spaces.csv. Seed defaults by running the current `boardLayout.ts` walker once and writing positions back. Update `processGameData.js` + `GameConfig` type to propagate. Add `IDataService.getPosition(spaceName)`. | ~1–2h | None — board still renders identically because positions match what BoardV3 was already computing. |
+| B | `npm i @xyflow/react`. New `BoardCanvas.tsx` (~150 lines) using React Flow with custom `BoardNode` JSX component (preserves current tile look + player tokens overlay). `smoothstep` curved edges. Phase grouping via React Flow Group Nodes (`parentId` pattern — phase becomes a draggable container, children move with it). `nodesDraggable={isAdmin}` for read/edit toggle. Feature-flag side-by-side with BoardV3. | ~3–4h | New rendering path available behind a flag. |
+| C | Visual parity check. Flip default to BoardCanvas. Polish: collision-aware edges if needed via `@tisoap/react-flow-smart-edge` (A* routing, ~5KB), phase background regions. Drag-to-position in `/admin` editor saves through existing CSV save pipeline. | ~2–3h | Visible: smoother arrows, clearer phase groupings. |
+| D | Delete `BoardV3.tsx` + `boardLayout.ts` (~1,664 lines combined). Clean up. | ~1h | None. Code reduction. |
+
+**Total ≈ 6–10 hours** across 2–3 sessions.
+
+**Risks worth flagging:**
+- Long-distance / backward jumps look like spaghetti as straight lines — hence the `smoothstep` default + smart-edge plugin in Phase C if needed.
+- Bundle weight: React Flow adds ~40–60 KB gzipped; this is offset by deleting `BoardV3.tsx` + `boardLayout.ts`. Net change small. Editor-mode interactions live in a separate chunk so player-mode (the common case) only loads the rendering subset.
+- Ghost Player: doesn't read the DOM; reads `MovementService.getValidMoves()` which is graph-data only. Zero ghost-test risk.
+- Mobile/touch: pinch/zoom/pan/drag all native in React Flow.
+
+**Existing assets to leverage:** HTML prototypes in `docs/archive/prototypes/` — `dynamic_path_mockup.html` (coordinate-driven board with player tokens), `svg_arrows_prototype.html` (curve math + arrow heads), `elk_prototype.html` (auto-routing fallback), `board_v3_prototype.html` (current snake-board for parity testing). Reference, not "drop in" — they have their own assumptions.
+
+**Version bump on ship:** v2.62.0 → v2.63.0 across the phases. v3.0.0 is reserved for when both Living Map and Workstream 5 (Live Dictionary) are in.
 
 ---
 

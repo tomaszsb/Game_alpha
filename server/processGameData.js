@@ -276,6 +276,12 @@ function processGameConfig(spacesCsv) {
     // Empty values mean "use legacy fallback in code." Educators can set these per-space.
     const displayLabelOverride = (row.display_label_override || '').trim();
     const reviewLoopMessage = (row.review_loop_message || '').trim();
+    // Workstream 3 (Living Map): coordinate-driven board positions.
+    // Numbers in pixels in board coordinate space. Empty values default
+    // to 0 (placed at top-left) so a missing coord is visible — but
+    // every row should have these populated by scripts/seed-board-positions.mjs.
+    const posX = parseFloat(row.pos_x) || 0;
+    const posY = parseFloat(row.pos_y) || 0;
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -296,7 +302,9 @@ function processGameConfig(spacesCsv) {
       path_choice_memory_key: pathChoiceMemoryKey,
       is_path_choice_lock_point: isPathChoiceLockPoint ? 'Yes' : 'No',
       display_label_override: displayLabelOverride,
-      review_loop_message: reviewLoopMessage
+      review_loop_message: reviewLoopMessage,
+      pos_x: String(posX),
+      pos_y: String(posY)
     };
   }
 
@@ -307,7 +315,8 @@ function processGameConfig(spacesCsv) {
     'fee_calculation_method', 'fee_label',
     'auto_apply_funding', 'auto_trigger_card_types',
     'path_choice_memory_key', 'is_path_choice_lock_point',
-    'display_label_override', 'review_loop_message'
+    'display_label_override', 'review_loop_message',
+    'pos_x', 'pos_y'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

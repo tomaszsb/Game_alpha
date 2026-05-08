@@ -148,6 +148,9 @@ export interface IDataService {
   getPathChoiceExclusions(spaceName: string, memory: Record<string, string> | undefined): string[];
   getDisplayLabelOverride(spaceName: string): string;
   getReviewLoopMessage(spaceName: string): string;
+  // Workstream 3: Living Map (coordinate-driven board). Returns null if
+  // the space isn't found; callers default to (0,0).
+  getPosition(spaceName: string): { x: number; y: number } | null;
   getPhaseOrder(): string[];
   
   // Space methods

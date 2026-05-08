@@ -24,6 +24,11 @@ export interface GameConfig {
   // Workstream 6 Phase 6.3: cosmetic per-space overrides (empty = use legacy code fallback)
   display_label_override?: string;       // short display name for board UI (was hardcoded SPECIAL_NAMES)
   review_loop_message?: string;          // explanation when dice sends player back here (was hardcoded reviewLoopMessages)
+  // Workstream 3: coordinate-driven board (Living Map). Pixels in board
+  // coordinate space. Seeded by scripts/seed-board-positions.mjs;
+  // educators can drag tiles in the Data Editor to update.
+  pos_x?: number;
+  pos_y?: number;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;
