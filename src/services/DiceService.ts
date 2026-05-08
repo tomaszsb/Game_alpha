@@ -142,7 +142,11 @@ export class DiceService implements IDiceService {
           }
           break;
         case 'cards':
-          summaryParts.push(`drew ${effect.cardCount} card${effect.cardCount! > 1 ? 's' : ''}`);
+          // Voice rule: real-life language, no "drew N cards". Phrase by
+          // what the card actually represents in the game world.
+          // (Players reported TTS reading "Good news! You drew 2 cards" —
+          // G159, 2026-05-08.)
+          summaryParts.push(describeCardOutcome(effect.cardType || '', effect.cardCount || 1));
           hasPositive = true;
           break;
         case 'time':
@@ -166,5 +170,31 @@ export class DiceService implements IDiceService {
 
     const prefix = storyText ? `${storyText} ` : '';
     return `${prefix}${tone} You ${summaryParts.join(', ')}.`;
+  }
+}
+
+/**
+ * Render a card outcome in real-life language — the voice rule forbids
+ * "drew N cards" / "got N L cards" etc. Each card type maps to what it
+ * actually represents in the game world (W = work package, B = bank loan,
+ * etc.). Used by DiceService.generateEffectSummary for TTS-friendly output.
+ */
+function describeCardOutcome(cardType: string, count: number): string {
+  const ct = (cardType || '').toUpperCase();
+  const c = Math.max(1, count);
+  switch (ct) {
+    case 'W':
+      return c === 1 ? 'took on a work package' : `took on ${c} work packages`;
+    case 'B':
+      return c === 1 ? 'secured a bank loan' : `secured ${c} bank loans`;
+    case 'E':
+      return c === 1 ? 'hired an expeditor' : `hired ${c} expeditors`;
+    case 'I':
+      return c === 1 ? 'secured an investor' : `secured ${c} investors`;
+    case 'L':
+      return c === 1 ? 'had a life event hit' : `had ${c} life events hit`;
+    default:
+      // Unknown card type — keep it neutral, no "card" word.
+      return c === 1 ? 'got something new' : `got ${c} new things`;
   }
 }

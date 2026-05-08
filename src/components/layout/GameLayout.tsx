@@ -1006,7 +1006,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           borderTop: `1px solid ${colors.primary.main}`,
           flexShrink: 0,
         }}>
-          <strong>Beta</strong> - <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+          <strong>Beta</strong> · Bug? Use the 🐞 button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
         </div>
       )}
 

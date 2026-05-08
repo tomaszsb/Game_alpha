@@ -14,6 +14,12 @@ interface FeedbackForm {
   whatDoing: string;
   whatWrong: string;
   extra: string;
+  // Optional contact fields — populate only if you want a follow-up.
+  // Per G159 feedback (2026-05-08): players asked for a way to be
+  // contacted about resolution.
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
 }
 
 type SubmitState = 'idle' | 'capturing' | 'form' | 'submitting' | 'success' | 'error';
@@ -21,7 +27,10 @@ type SubmitState = 'idle' | 'capturing' | 'form' | 'submitting' | 'success' | 'e
 export function FeedbackButton(): JSX.Element {
   const [state, setState] = useState<SubmitState>('idle');
   const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [form, setForm] = useState<FeedbackForm>({ whatDoing: '', whatWrong: '', extra: '' });
+  const [form, setForm] = useState<FeedbackForm>({
+    whatDoing: '', whatWrong: '', extra: '',
+    contactName: '', contactEmail: '', contactPhone: ''
+  });
   const [showFullScreenshot, setShowFullScreenshot] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -124,6 +133,14 @@ export function FeedbackButton(): JSX.Element {
     const consoleLogs = getConsoleLogs();
 
     try {
+      // Build optional contact block — only included if any field is set.
+      const contactName = form.contactName.trim();
+      const contactEmail = form.contactEmail.trim();
+      const contactPhone = form.contactPhone.trim();
+      const contact = (contactName || contactEmail || contactPhone)
+        ? { name: contactName, email: contactEmail, phone: contactPhone }
+        : undefined;
+
       const response = await fetch(`${getApiBase()}/api/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,6 +149,7 @@ export function FeedbackButton(): JSX.Element {
           whatDoing: form.whatDoing.trim(),
           whatWrong: form.whatWrong.trim(),
           extra: form.extra.trim(),
+          contact,
           metadata,
           consoleLogs,
           gameState,
@@ -143,7 +161,7 @@ export function FeedbackButton(): JSX.Element {
       setState('success');
       setTimeout(() => {
         setState('idle');
-        setForm({ whatDoing: '', whatWrong: '', extra: '' });
+        setForm({ whatDoing: '', whatWrong: '', extra: '', contactName: '', contactEmail: '', contactPhone: '' });
         setScreenshot(null);
       }, 1500);
     } catch (err) {
@@ -155,7 +173,7 @@ export function FeedbackButton(): JSX.Element {
 
   const handleCancel = useCallback(() => {
     setState('idle');
-    setForm({ whatDoing: '', whatWrong: '', extra: '' });
+    setForm({ whatDoing: '', whatWrong: '', extra: '', contactName: '', contactEmail: '', contactPhone: '' });
     setScreenshot(null);
     setShowFullScreenshot(false);
   }, []);
@@ -349,6 +367,48 @@ export function FeedbackButton(): JSX.Element {
               disabled={state === 'submitting'}
             />
           </div>
+
+          {/* Optional contact fields — only fill in if you'd like a follow-up. */}
+          <details style={{ marginTop: '4px' }}>
+            <summary style={{ cursor: 'pointer', fontSize: '13px', color: '#495057', fontWeight: 600 }}>
+              Want a reply about this report? (optional)
+            </summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+              <div>
+                <label style={labelStyle}>Name (optional)</label>
+                <input
+                  type="text"
+                  style={{ ...textareaStyle, minHeight: 'auto', height: '36px' } as React.CSSProperties}
+                  value={form.contactName}
+                  onChange={(e) => setForm(f => ({ ...f, contactName: e.target.value }))}
+                  placeholder="Your name"
+                  disabled={state === 'submitting'}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Email (optional)</label>
+                <input
+                  type="email"
+                  style={{ ...textareaStyle, minHeight: 'auto', height: '36px' } as React.CSSProperties}
+                  value={form.contactEmail}
+                  onChange={(e) => setForm(f => ({ ...f, contactEmail: e.target.value }))}
+                  placeholder="you@example.com"
+                  disabled={state === 'submitting'}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone (optional)</label>
+                <input
+                  type="tel"
+                  style={{ ...textareaStyle, minHeight: 'auto', height: '36px' } as React.CSSProperties}
+                  value={form.contactPhone}
+                  onChange={(e) => setForm(f => ({ ...f, contactPhone: e.target.value }))}
+                  placeholder="(optional)"
+                  disabled={state === 'submitting'}
+                />
+              </div>
+            </div>
+          </details>
         </div>
 
         {state === 'submitting' && (

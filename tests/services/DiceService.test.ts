@@ -151,22 +151,24 @@ describe('DiceService', () => {
       expect(summary).toContain('paid costs');
     });
 
-    it('should generate positive summary for cards drawn', () => {
+    it('should generate positive summary for cards drawn (W → work packages)', () => {
       const effects: any[] = [
         { type: 'cards', cardCount: 2, cardType: 'W' }
       ];
       const summary = diceService.generateEffectSummary(effects, 5);
       expect(summary).toContain('Good news!');
-      expect(summary).toContain('drew 2 cards');
+      // Voice rule: real-life language, no "drew N cards" / "N W cards".
+      expect(summary).toContain('took on 2 work packages');
+      expect(summary).not.toMatch(/drew \d+ card/i);
     });
 
-    it('should use singular "card" for cardCount of 1', () => {
+    it('should use singular phrasing for cardCount of 1 (E → expeditor)', () => {
       const effects: any[] = [
         { type: 'cards', cardCount: 1, cardType: 'E' }
       ];
       const summary = diceService.generateEffectSummary(effects, 3);
-      expect(summary).toContain('drew 1 card');
-      expect(summary).not.toContain('drew 1 cards');
+      expect(summary).toContain('hired an expeditor');
+      expect(summary).not.toMatch(/drew \d+ card/i);
     });
 
     it('should generate negative summary for time penalty', () => {
@@ -213,7 +215,7 @@ describe('DiceService', () => {
         { type: 'money', value: 100 }
       ];
       const summary = diceService.generateEffectSummary(effects, 5);
-      expect(summary).toContain('drew 1 card');
+      expect(summary).toContain('took on a work package');
       expect(summary).toContain('gained funding');
     });
   });

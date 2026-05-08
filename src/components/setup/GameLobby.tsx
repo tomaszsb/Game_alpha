@@ -153,13 +153,33 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
     }
   };
 
-  const handleJoinGame = (gameId: string) => {
+  const handleJoinGame = async (gameId: string) => {
     if (!gameId.trim()) {
       setError('Please enter a game code');
       return;
     }
     const normalizedId = gameId.trim().toUpperCase();
-    onJoinGame(normalizedId, selectedMode === 'tv' ? 'tv' : undefined);
+    // Fetch game token before navigating. State-load endpoints require
+    // X-Game-Token; without it, the game UI loads blank and players see
+    // "join didn't work" (bug from G159, 2026-05-08). The /join-info
+    // endpoint returns the token for any valid game ID.
+    setError('');
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games/${normalizedId}/join-info`);
+      if (response.status === 404) {
+        setError(`Game ${normalizedId} not found. Check the code and try again.`);
+        return;
+      }
+      if (!response.ok) {
+        setError(`Cannot join game ${normalizedId} (server returned ${response.status})`);
+        return;
+      }
+      const data: { token: string } = await response.json();
+      onJoinGame(normalizedId, selectedMode === 'tv' ? 'tv' : undefined, data.token);
+    } catch (err) {
+      setError('Cannot connect to server. Is it running?');
+    }
   };
 
   const handleDeleteGame = async (gameId: string) => {
@@ -398,6 +418,8 @@ export function GameLobby({ onJoinGame }: GameLobbyProps): JSX.Element {
       {/* Footer */}
       <footer style={styles.footer}>
         <span>Beta Version</span>
+        <span style={styles.footerDot}>•</span>
+        <span>Bug? Use the <span aria-label="bug button" style={{ fontWeight: 600 }}>🐞 button</span> bottom-right</span>
         <span style={styles.footerDot}>•</span>
         <a href="mailto:game@unravelcodes.com" style={styles.footerLink}>
           game@unravelcodes.com

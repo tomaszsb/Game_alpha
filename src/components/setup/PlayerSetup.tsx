@@ -212,10 +212,25 @@ export function PlayerSetup({
     }
   };
 
-  const handleJoinGame = (gameId: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('g', gameId);
-    window.location.href = url.toString();
+  const handleJoinGame = async (gameId: string) => {
+    // Fetch the target game's token before navigating, otherwise the
+    // game UI loads blank (X-Game-Token required for state endpoints
+    // since the April 2026 audit). Same fix as GameLobby.handleJoinGame.
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games/${gameId}/join-info`);
+      if (!response.ok) {
+        alert(`Cannot join ${gameId}: server returned ${response.status}`);
+        return;
+      }
+      const data: { token: string } = await response.json();
+      const url = new URL(window.location.href);
+      url.searchParams.set('g', gameId);
+      url.searchParams.set('token', data.token);
+      window.location.href = url.toString();
+    } catch (err) {
+      alert('Cannot connect to server.');
+    }
   };
 
   /**
@@ -371,7 +386,7 @@ export function PlayerSetup({
         </main>
 
         <footer style={styles.footer}>
-          <strong>Beta Version</strong> - Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+          <strong>Beta Version</strong> · Bug? Use the 🐞 button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
         </footer>
       </div>
     );
@@ -917,7 +932,7 @@ export function PlayerSetup({
       {/* Footer */}
       <footer style={styles.footer}>
         <strong>Beta Version</strong> - We're improving daily.
-        {' '}Feedback? <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+        {' '}Bug? Use the 🐞 button (bottom-right), or email <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
       </footer>
 
       {/* Data Editor Modal */}

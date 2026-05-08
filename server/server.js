@@ -683,6 +683,42 @@ app.delete('/api/games/:gameId', (req, res) => {
   res.json({ success: true, message: `Game ${gameId} deleted` });
 });
 
+/**
+ * Join-by-code endpoint — public (no auth) lookup of game info + token by gameId.
+ *
+ * Background: the April 2026 security audit added X-Game-Token auth on all
+ * state endpoints. The flow assumed creator-shares-full-URL-with-token. But
+ * the lobby's "Join by Code" UI lets players type a game ID with no token,
+ * which then 401'd silently when the game UI tried to load state — players
+ * saw a blank screen and reported "join button doesn't work" (G159, 2026-05-08).
+ *
+ * Resolution: treat the gameId itself as the shared secret for joining.
+ * Anyone who knows a game's ID can fetch its token here, then proceed
+ * with the normal authed state-load flow. State writes still require the
+ * token in headers, so this endpoint doesn't loosen modify-state security
+ * — only restores read-state-on-join usability.
+ */
+app.get('/api/games/:gameId/join-info', (req, res) => {
+  const { gameId } = req.params;
+  const game = games.get(gameId);
+  if (!game) {
+    return res.status(404).json({ error: `Game ${gameId} not found`, gameId });
+  }
+  // Auto-generate token for legacy games (matches validateGameToken behavior)
+  if (!game.token) {
+    game.token = generateGameToken();
+    isDirty = true;
+    console.log(`🔑 Auto-generated token for legacy game ${gameId} on join-info`);
+  }
+  logVisitor(req, 'JOIN_INFO', { gameId });
+  res.json({
+    gameId,
+    token: game.token,
+    gamePhase: game.state?.gamePhase || 'SETUP',
+    playerCount: game.state?.players?.length || 0,
+  });
+});
+
 // ===== GAME STATE ENDPOINTS =====
 
 app.get('/api/games/:gameId/state', (req, res) => {
@@ -1004,7 +1040,7 @@ function ensureFeedbackDir() {
 
 app.post('/api/feedback', async (req, res) => {
   try {
-    const { screenshot, whatDoing, whatWrong, extra, metadata } = req.body;
+    const { screenshot, whatDoing, whatWrong, extra, contact, metadata } = req.body;
 
     if (!whatDoing || !whatWrong) {
       return res.status(400).json({ error: 'whatDoing and whatWrong are required' });
@@ -1022,6 +1058,12 @@ app.post('/api/feedback', async (req, res) => {
       whatDoing,
       whatWrong,
       extra: extra || '',
+      // Optional contact info — present only if reporter filled in any
+      // of name/email/phone for follow-up. Added per G159 feedback
+      // (2026-05-08).
+      ...(contact && (contact.name || contact.email || contact.phone)
+        ? { contact: { name: contact.name || '', email: contact.email || '', phone: contact.phone || '' } }
+        : {}),
       metadata: metadata || {},
       createdAt: new Date(timestamp).toISOString(),
     };

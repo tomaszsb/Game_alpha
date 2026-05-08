@@ -1,7 +1,7 @@
 # Unravel Codes: The Game
 
 **Status:** Beta (May 2026)
-**Version:** 2.61.0
+**Version:** 2.61.1
 **Test Coverage:** 99 test files (run via batch script — see Testing below)
 **Public URL:** `https://game.unravelcodes.com`
 
