@@ -15,6 +15,7 @@ import { ProjectProgress } from '../game/ProjectProgress';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { BoardV3 } from '../board/BoardV3';
+import { BoardCanvas } from '../board/BoardCanvas';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
@@ -868,15 +869,35 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* BoardV3 - data-driven snake map with SVG arrows during PLAY phase */}
-          {gamePhase === 'PLAY' && (
-            <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
-              <BoardV3
-                currentPlayerId={currentPlayerId}
-                players={players}
-              />
-            </div>
-          )}
+          {/* Board during PLAY phase. Two implementations:
+              - BoardV3 (default): snake/zig-zag walker board, ships today.
+              - BoardCanvas (?board=canvas): coordinate-driven React Flow
+                board. Workstream 3 Phase B. Read positions from
+                Spaces.csv pos_x/pos_y, draw smoothstep edges from
+                MOVEMENT.csv. ?board=canvas&edit=1 enables admin drag
+                mode (drag-stop logs new coords; Phase D will wire to
+                CSV save). */}
+          {gamePhase === 'PLAY' && (() => {
+            const params = new URLSearchParams(window.location.search);
+            const useCanvas = params.get('board') === 'canvas';
+            const isAdminEdit = useCanvas && params.get('edit') === '1';
+            return (
+              <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
+                {useCanvas ? (
+                  <BoardCanvas
+                    currentPlayerId={currentPlayerId}
+                    players={players}
+                    isAdmin={isAdminEdit}
+                  />
+                ) : (
+                  <BoardV3
+                    currentPlayerId={currentPlayerId}
+                    players={players}
+                  />
+                )}
+              </div>
+            );
+          })()}
         </>
       )}
 

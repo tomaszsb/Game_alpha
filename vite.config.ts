@@ -163,8 +163,27 @@ export default defineConfig({
         manualChunks(id: string) {
           // Vendor splits — node_modules deps that are stable across deploys.
           if (id.includes('node_modules')) {
-            if (id.includes('react-dom') || /[\\/]node_modules[\\/]react[\\/]/.test(id)) {
+            // React + its tightly-coupled deps go together. `scheduler` is
+            // imported by react itself; if it lands in a different chunk,
+            // Rollup emits a "circular chunk: vendor -> vendor-react -> vendor"
+            // warning. Group everything React-internal in the same chunk.
+            if (
+              id.includes('react-dom') ||
+              /[\\/]node_modules[\\/]react[\\/]/.test(id) ||
+              /[\\/]node_modules[\\/]scheduler[\\/]/.test(id)
+            ) {
               return 'vendor-react';
+            }
+            // React Flow and its dependencies (zustand, classcat, d3-*) get
+            // their own chunk so the board library churn doesn't invalidate
+            // unrelated vendor chunks.
+            if (
+              id.includes('@xyflow') ||
+              id.includes('zustand') ||
+              id.includes('classcat') ||
+              /[\\/]node_modules[\\/]d3-/.test(id)
+            ) {
+              return 'vendor-reactflow';
             }
             if (id.includes('framer-motion')) return 'vendor-framer-motion';
             if (id.includes('qrcode.react')) return 'vendor-qrcode';

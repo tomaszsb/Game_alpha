@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.0] - 2026-05-08
+
+### Workstream 3 Phase B — BoardCanvas (React Flow), feature-flagged
+
+Coordinate-driven board ships behind `?board=canvas`. BoardV3 stays the default until parity is verified across all spaces in normal gameplay; once verified (Phase C) the old code goes away (Phase D).
+
+**`src/components/board/BoardCanvas.tsx`** (new, ~250 lines) — React Flow renderer reading `pos_x` / `pos_y` from the data layer (the foundation laid in v2.62.0). Custom `BoardNode` JSX component with phase-colored borders matching BoardV3's palette, current-player ring, valid-move highlight, and overlaid player tokens. Edges drawn from First-visit MOVEMENT.csv destinations using React Flow's built-in `smoothstep` curves with arrowhead markers. `nodesDraggable={isAdmin}` toggles edit mode — drag a tile and the new coords get logged (Phase D will wire to the existing CSV save pipeline).
+
+**`src/components/layout/GameLayout.tsx`** — feature flag wiring. Reads `?board=canvas` from the URL during PLAY phase. Append `&edit=1` for admin drag mode. Defaults to BoardV3 when neither is set.
+
+**`@xyflow/react ^12.10.2`** added to dependencies. MIT-licensed. Pulls in `zustand`, `classcat`, and a few `d3-*` packages; total adds ~55 KB gzipped.
+
+**`vite.config.ts`** — manualChunks updated:
+1. New `vendor-reactflow` chunk (the React Flow SDK + its dependencies) so library churn doesn't invalidate unrelated vendor caches.
+2. `scheduler` package now grouped with `vendor-react` to break a circular-chunk warning Rollup emitted ("vendor → vendor-react → vendor"). Scheduler is React-internal; it belongs with React.
+
+Build output (compared to v2.62.0):
+| chunk | v2.62.0 (gzip) | v2.63.0 (gzip) | delta |
+| --- | --- | --- | --- |
+| main app shell | 70 KB | 72 KB | +2 KB |
+| vendor-react | 58 KB | 60 KB | +2 KB (scheduler now grouped here) |
+| vendor (catch-all) | 30 KB | 29 KB | −1 KB |
+| **vendor-reactflow** | — | **55 KB** | **new** |
+
+Total first-paint payload increase: ~58 KB gzipped — within the 40–60 KB the research pass predicted. Phase C will look at lazy-loading `vendor-reactflow` (only fetch when a game enters PLAY phase) to recover most of that for the lobby + setup screens.
+
+Verified: production typecheck 0 errors, 909 service+component tests pass, build produces no warnings.
+
+How to try it: visit `https://game.unravelcodes.com/?g=GXXX&board=canvas` once deployed. Add `&edit=1` to enable drag-to-position. Open browser console to see new coordinates as you drag.
+
+---
+
 ## [2.62.0] - 2026-05-08
 
 ### Workstream 3 Phase A — Living Map foundation (no visible change yet)
