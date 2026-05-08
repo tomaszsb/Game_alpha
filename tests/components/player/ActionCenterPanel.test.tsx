@@ -77,6 +77,15 @@ describe('ActionCenterPanel - Negotiate Button', () => {
     mockServices.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
   });
 
+  // Sentinel strings — clearly test-only, decouple tests from production copy.
+  // Voice rewrites in Spaces.csv can flow through to production without
+  // breaking these tests, because the tests never assert on production strings.
+  const FIXTURE_END_TURN = 'FIXTURE_END_TURN_LABEL';
+  const FIXTURE_TRY_AGAIN = 'FIXTURE_TRY_AGAIN_LABEL';
+  // Component's hard-coded fallback when can_negotiate=true but try_again_label is empty.
+  // This one IS production copy by design — it's the component default, not CSV-driven.
+  const DEFAULT_NEGOTIATE_LABEL = '🔄 Negotiate';
+
   it('should show negotiate button on negotiable space even with 0 completed actions', () => {
     // Space has can_negotiate = true
     mockServices.dataService.getSpaceContent.mockReturnValue({
@@ -85,8 +94,8 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       action_description: 'Review funding',
       outcome_description: '',
       can_negotiate: true,
-      end_turn_label: 'Agree with Owner',
-      try_again_label: 'Negotiate'
+      end_turn_label: FIXTURE_END_TURN,
+      try_again_label: FIXTURE_TRY_AGAIN
     });
 
     renderWithProviders(
@@ -98,10 +107,10 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       { gameServices: mockServices }
     );
 
-    // End turn button should show custom label
-    expect(screen.getByText('Agree with Owner')).toBeInTheDocument();
-    // Negotiate button should be visible even with 0 completed actions
-    expect(screen.getByText('Negotiate')).toBeInTheDocument();
+    // End turn button renders the CSV-provided custom label
+    expect(screen.getByText(FIXTURE_END_TURN)).toBeInTheDocument();
+    // Negotiate button visible even with 0 completed actions, using CSV label
+    expect(screen.getByText(FIXTURE_TRY_AGAIN)).toBeInTheDocument();
   });
 
   it('should NOT show try-again button on non-negotiable space with 0 completed actions', () => {
@@ -111,8 +120,8 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       action_description: 'Make decision',
       outcome_description: '',
       can_negotiate: false,
-      end_turn_label: 'End Turn',
-      try_again_label: 'Try Again'
+      end_turn_label: FIXTURE_END_TURN,
+      try_again_label: FIXTURE_TRY_AGAIN
     });
 
     renderWithProviders(
@@ -124,10 +133,10 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       { gameServices: mockServices }
     );
 
-    // End turn button should show
-    expect(screen.getByText('End Turn')).toBeInTheDocument();
-    // Try Again should NOT show — no completed actions and not negotiable
-    expect(screen.queryByText('Try Again')).not.toBeInTheDocument();
+    // End turn button renders
+    expect(screen.getByText(FIXTURE_END_TURN)).toBeInTheDocument();
+    // Try Again should NOT render — no completed actions and not negotiable
+    expect(screen.queryByText(FIXTURE_TRY_AGAIN)).not.toBeInTheDocument();
   });
 
   it('should NOT show try-again button on non-negotiable space even when actions are completed', () => {
@@ -139,8 +148,8 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       action_description: 'Make decision',
       outcome_description: '',
       can_negotiate: false,
-      end_turn_label: 'End Turn',
-      try_again_label: 'Try Again'
+      end_turn_label: FIXTURE_END_TURN,
+      try_again_label: FIXTURE_TRY_AGAIN
     });
 
     renderWithProviders(
@@ -153,18 +162,18 @@ describe('ActionCenterPanel - Negotiate Button', () => {
     );
 
     // Try Again should NOT show on non-negotiable spaces regardless of action count
-    expect(screen.queryByText('Try Again')).not.toBeInTheDocument();
+    expect(screen.queryByText(FIXTURE_TRY_AGAIN)).not.toBeInTheDocument();
   });
 
-  it('should use default "Negotiate" label when can_negotiate is true but no custom label', () => {
+  it('should use component default label when can_negotiate is true but no custom label', () => {
     mockServices.dataService.getSpaceContent.mockReturnValue({
       title: 'Some Negotiable Space',
       story: 'Story',
       action_description: 'Action',
       outcome_description: '',
       can_negotiate: true,
-      end_turn_label: 'End Turn',
-      try_again_label: '' // No custom label
+      end_turn_label: FIXTURE_END_TURN,
+      try_again_label: '' // No custom label — should fall back to component default
     });
 
     renderWithProviders(
@@ -176,8 +185,10 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       { gameServices: mockServices }
     );
 
-    // Should fall back to "🔄 Negotiate" default for negotiable spaces
-    expect(screen.getByText('🔄 Negotiate')).toBeInTheDocument();
+    // The fallback IS production copy (component default, not CSV-driven), so
+    // we assert on it directly. If this default ever changes, this assertion
+    // is the one place that needs updating — by design.
+    expect(screen.getByText(DEFAULT_NEGOTIATE_LABEL)).toBeInTheDocument();
   });
 
   it('should NOT show negotiate button when onTryAgain is not provided', () => {
@@ -187,8 +198,8 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       action_description: 'Action',
       outcome_description: '',
       can_negotiate: true,
-      end_turn_label: 'Agree with Owner',
-      try_again_label: 'Negotiate'
+      end_turn_label: FIXTURE_END_TURN,
+      try_again_label: FIXTURE_TRY_AGAIN
     });
 
     renderWithProviders(
@@ -200,7 +211,7 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       { gameServices: mockServices }
     );
 
-    expect(screen.queryByText('Negotiate')).not.toBeInTheDocument();
+    expect(screen.queryByText(FIXTURE_TRY_AGAIN)).not.toBeInTheDocument();
   });
 
   it('should NOT show negotiate button when it is not the players turn', () => {
@@ -212,8 +223,8 @@ describe('ActionCenterPanel - Negotiate Button', () => {
       action_description: 'Action',
       outcome_description: '',
       can_negotiate: true,
-      end_turn_label: 'Agree with Owner',
-      try_again_label: 'Negotiate'
+      end_turn_label: FIXTURE_END_TURN,
+      try_again_label: FIXTURE_TRY_AGAIN
     });
 
     renderWithProviders(
@@ -226,6 +237,6 @@ describe('ActionCenterPanel - Negotiate Button', () => {
     );
 
     // Turn controls section (including negotiate) should not render when not player's turn
-    expect(screen.queryByText('Negotiate')).not.toBeInTheDocument();
+    expect(screen.queryByText(FIXTURE_TRY_AGAIN)).not.toBeInTheDocument();
   });
 });
