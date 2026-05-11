@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.1] - 2026-05-09
+
+### BoardToggle — in-game switcher, no more URL-bar editing
+
+The `?board=canvas` URL flag from v2.63.0 was fine for testing in theory but bad in practice: editing the URL bar reloads the page and (per the user's report) loses the session if the auth token wasn't manually preserved in the new URL — same broken-state failure mode I fixed in v2.61.1 for the lobby Join flow. Replaced with a proper in-app toggle.
+
+**`src/components/board/BoardToggle.tsx`** (new) — Floating button cluster in the top-right corner. Admin-gated via `isAdminAuthenticated()`; normal players never see it. Three buttons:
+
+- **📊 Old** — pin BoardV3 (snake-grid).
+- **🎨 New** — pin BoardCanvas (React Flow).
+- **✏️ Edit on/off** — visible only when "New" is active. Toggles drag-to-reposition mode.
+
+Choices persist in `localStorage` (`unravel:boardImpl`, `unravel:boardEditMode`) so a reload remembers the last setting. Initial value falls back to the `?board=canvas` URL param for backward compatibility with the v2.63.0 flag.
+
+**`src/components/layout/GameLayout.tsx`** — replaced the inline URL-param IIFE with `useState`-backed `boardImpl` + `boardEditMode`, wired to the toggle. Switching boards now re-renders without navigating, so the auth token stays put and the active game is uninterrupted.
+
+Edit mode reminder (no behavior change since v2.63.0): when on, tiles are draggable and snap to a 10px grid. Drop a tile and the new coordinates print to the browser console — Phase D will replace the console-log with a write back to `Spaces.csv` via the existing `/api/sources` save endpoint.
+
+Verified: typecheck 0 errors, 266 component tests pass.
+
+---
+
 ## [2.63.0] - 2026-05-08
 
 ### Workstream 3 Phase B — BoardCanvas (React Flow), feature-flagged

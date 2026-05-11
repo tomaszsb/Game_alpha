@@ -1,6 +1,6 @@
 // src/components/layout/GameLayout.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { colors } from '../../styles/theme';
 import { CardModal } from '../modals/CardModal';
 import { CardDetailsModal } from '../modals/CardDetailsModal';
@@ -16,6 +16,7 @@ import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
 import { BoardV3 } from '../board/BoardV3';
 import { BoardCanvas } from '../board/BoardCanvas';
+import { BoardToggle, type BoardImpl } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
@@ -78,6 +79,34 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+
+  // Workstream 3 Phase B: in-game board-implementation toggle, admin-only
+  // (gated inside BoardToggle). Initial value picked from localStorage
+  // first, then URL (?board=canvas), then 'v3' default. Once set, the
+  // state lives in localStorage so reloads remember the choice.
+  const [boardImpl, setBoardImplState] = useState<BoardImpl>(() => {
+    if (typeof window === 'undefined') return 'v3';
+    try {
+      const stored = window.localStorage.getItem('unravel:boardImpl');
+      if (stored === 'canvas' || stored === 'v3') return stored;
+    } catch { /* localStorage may be blocked */ }
+    const fromUrl = new URLSearchParams(window.location.search).get('board');
+    return fromUrl === 'canvas' ? 'canvas' : 'v3';
+  });
+  const setBoardImpl = useCallback((v: BoardImpl) => {
+    setBoardImplState(v);
+    try { window.localStorage.setItem('unravel:boardImpl', v); } catch { /* ignored */ }
+  }, []);
+  const [boardEditMode, setBoardEditModeState] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage.getItem('unravel:boardEditMode') === '1';
+    } catch { return false; }
+  });
+  const setBoardEditMode = useCallback((v: boolean) => {
+    setBoardEditModeState(v);
+    try { window.localStorage.setItem('unravel:boardEditMode', v ? '1' : '0'); } catch { /* ignored */ }
+  }, []);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState<boolean>(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);
   const [isCardDetailsModalOpen, setIsCardDetailsModalOpen] = useState<boolean>(false);
@@ -870,34 +899,28 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           )}
 
           {/* Board during PLAY phase. Two implementations:
-              - BoardV3 (default): snake/zig-zag walker board, ships today.
-              - BoardCanvas (?board=canvas): coordinate-driven React Flow
-                board. Workstream 3 Phase B. Read positions from
-                Spaces.csv pos_x/pos_y, draw smoothstep edges from
-                MOVEMENT.csv. ?board=canvas&edit=1 enables admin drag
-                mode (drag-stop logs new coords; Phase D will wire to
-                CSV save). */}
-          {gamePhase === 'PLAY' && (() => {
-            const params = new URLSearchParams(window.location.search);
-            const useCanvas = params.get('board') === 'canvas';
-            const isAdminEdit = useCanvas && params.get('edit') === '1';
-            return (
-              <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
-                {useCanvas ? (
-                  <BoardCanvas
-                    currentPlayerId={currentPlayerId}
-                    players={players}
-                    isAdmin={isAdminEdit}
-                  />
-                ) : (
-                  <BoardV3
-                    currentPlayerId={currentPlayerId}
-                    players={players}
-                  />
-                )}
-              </div>
-            );
-          })()}
+              - BoardV3 (default): snake/zig-zag walker board.
+              - BoardCanvas: coordinate-driven React Flow board (Workstream 3).
+              The BoardToggle in the top-right (admin-only) flips between
+              them at runtime; choice persists in localStorage. Once Phase D
+              ships drag-to-save and parity is verified, BoardV3 + the
+              walker get deleted. */}
+          {gamePhase === 'PLAY' && (
+            <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
+              {boardImpl === 'canvas' ? (
+                <BoardCanvas
+                  currentPlayerId={currentPlayerId}
+                  players={players}
+                  isAdmin={boardEditMode}
+                />
+              ) : (
+                <BoardV3
+                  currentPlayerId={currentPlayerId}
+                  players={players}
+                />
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -1032,6 +1055,16 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       )}
 
       <PlayerDebug />
+
+      {/* Workstream 3 Phase B testing toggle — admin-only, top-right.
+          BoardToggle internally gates rendering on isAdminAuthenticated()
+          so normal players never see it. Will be removed in Phase D/E. */}
+      <BoardToggle
+        boardImpl={boardImpl}
+        onBoardImplChange={setBoardImpl}
+        editMode={boardEditMode}
+        onEditModeChange={setBoardEditMode}
+      />
     </div>
   );
 }

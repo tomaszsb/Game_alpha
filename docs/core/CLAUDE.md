@@ -32,7 +32,7 @@ taskkill /F /IM chrome.exe
 
 **Working Directory**: `/mnt/d/unravel/current_game/Game_Alpha/`
 
-**Status**: Beta (v2.63.0) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstreams 3 (Living Map) and 5 (Live Dictionary) remain for v3.0.0 ship.
+**Status**: Beta (v2.63.1) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstreams 3 (Living Map) and 5 (Live Dictionary) remain for v3.0.0 ship.
 
 **Directory Structure:**
 ```
