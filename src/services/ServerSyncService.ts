@@ -244,6 +244,23 @@ export class ServerSyncService {
       const response = await fetch(`${this.serverUrl}${apiPath}`, { headers: fetchHeaders });
 
       if (response.status === 404) {
+        // If the URL specifies a game id (?g=Gxxx) but the server doesn't
+        // have it, the user is trying to resume a game that no longer
+        // exists (typical after server restart or stale bookmark). Strip
+        // the query and reload — drops them on the lobby instead of the
+        // broken-state half-loaded SETUP screen they'd otherwise see, and
+        // prevents the loud `GET /api/games/Gxxx/state 404` from repeating
+        // on every reload.
+        if (gameId && typeof window !== 'undefined') {
+          debugLog(`Game ${gameId} not found on server — redirecting to lobby`);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('g');
+          url.searchParams.delete('token');
+          url.searchParams.delete('p');
+          url.searchParams.delete('playerId');
+          window.location.replace(url.pathname + (url.search || ''));
+          return false;
+        }
         debugLog('No server state found, using local state');
         return false;
       }

@@ -133,6 +133,25 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     }
   } else if (effect.effect_type === 'turn') {
     text = effect.description || 'End Turn';
+  } else if (effect.effect_type === 'dice') {
+    // Manual dice effects. The CSV `description` column is auto-generated as
+    // game-language ("Roll for W Cards", "Roll for Fees Paid", "Roll for Time
+    // outcomes") and was leaking into the player-facing button label. Map the
+    // dice category (stored in `effect_value`, e.g. "W Cards" / "I Cards" /
+    // "E cards" / "Fees Paid" / "Time outcomes" / "Quality" / "Multiplier" /
+    // "Next Step") to the friendly DICE_BUTTON strings.
+    const cat = String(effect.effect_value || '').trim().toLowerCase();
+    if (cat === 'w cards') text = DICE_BUTTON.WORK;
+    else if (cat === 'b cards' || cat === 'b card') text = DICE_BUTTON.BANK;
+    else if (cat === 'i cards' || cat === 'i card') text = DICE_BUTTON.INVESTMENT;
+    else if (cat === 'e cards' || cat === 'e card') text = DICE_BUTTON.EXPEDITOR;
+    else if (cat === 'l cards' || cat === 'l card') text = DICE_BUTTON.LIFE_EVENT;
+    else if (cat === 'fees paid' || cat === 'fee paid') text = DICE_BUTTON.FEE;
+    else if (cat === 'time outcomes' || cat === 'time') text = DICE_BUTTON.TIME;
+    else if (cat === 'quality') text = DICE_BUTTON.QUALITY;
+    else if (cat === 'multiplier') text = DICE_BUTTON.OUTCOME;
+    else if (cat === 'next step') text = DICE_BUTTON.NEXT_STEP;
+    else text = DICE_BUTTON.OUTCOME;
   } else {
     // Fallback for other effect types
     text = effect.description || `${effect.effect_type}: ${effect.effect_action} ${count || ''}`;
@@ -230,14 +249,17 @@ export function formatDiceRollButton(
 }
 
 /**
- * Get friendly card type name
+ * Get friendly real-life name for a card type code. Voice rule: never
+ * surface the literal letter or the word "card" to players. Used by
+ * formatDiceRollFeedback / formatActionFeedback to build human-readable
+ * outcome strings like "Got 3 Work Packages" or "Got 1 Bank Loan".
  */
 function getCardTypeName(cardType: string): string {
   switch (cardType) {
-    case 'W': return 'Work';
-    case 'B': return 'Bank';
+    case 'W': return 'Work Package';
+    case 'B': return 'Bank Loan';
     case 'E': return 'Expeditor';
-    case 'L': return 'Life Events';
+    case 'L': return 'Life Event';
     case 'I': return 'Investment';
     default: return cardType;
   }

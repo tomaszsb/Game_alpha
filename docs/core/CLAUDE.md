@@ -115,7 +115,10 @@ npm test
 **Repo on server:** `/mnt/user/appdata/Game_alpha`
 
 ```bash
-# Deploy (from WSL)
+# Deploy — run from a regular Windows terminal (PowerShell / cmd).
+# The `unraid` SSH host alias is in Windows ssh config; it is NOT in WSL
+# by default. Either run these from Windows, or replicate the alias to
+# WSL's ~/.ssh/config first.
 ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"
 
 # Check status
@@ -125,6 +128,8 @@ ssh unraid "docker logs --tail 20 game_alpha"
 # Restart without rebuild
 ssh unraid "docker restart game_alpha"
 ```
+
+> Tip: never re-run deploy on the user's behalf via Bash from WSL — produce the command for them to paste. They run it.
 
 **Docker details:**
 - Container: `game_alpha`, port 3080 → 3001
@@ -317,5 +322,109 @@ When conducting User Acceptance Testing via browser automation:
 
 ---
 
-**Last Updated:** April 30, 2026
-**Charter Version:** 3.5 (Beta-live + Workstream 6 close-out)
+## 🧭 **TACTICAL PATTERNS (Session Learnings)**
+
+Compact field notes accumulated from real sessions. Read these BEFORE doing the
+matching kind of work — each pattern saved a real chunk of guess-and-check.
+
+> **Also consult the `mcp__memory` knowledge graph** for cross-session patterns.
+> Seeded 2026-05-12 with entities: `Unravel Codes`, `Voice rule override chain`,
+> `SPACE_EFFECTS.csv schema`, `Deploy verification pattern`,
+> `React Flow custom node data injection`, `Stale game-id URL 404 pattern`,
+> plus a per-session `Session YYYY-MM-DD (vX.Y.Z)` log.
+> Search with `mcp__memory__search_nodes` — entity names are short and descriptive.
+> At session end, write new patterns and ship logs to keep the graph current.
+> This is the manual equivalent of Anthropic's "dreaming" feature
+> (Managed Agents only as of 2026-05-06); the goal is the same:
+> turn one session's hard-won discovery into a future session's first hit.
+
+### Voice rule — where to override game-language
+
+Players keep reporting leftover "Roll for W Cards" / "Draw 3 E cards" / "Cards"
+language. Fix at the **formatter** layer, NOT in CSVs. The CSV `description`
+columns are auto-generated as game-language by the pipeline; rewriting them
+will regenerate. The override chain:
+
+| Player-visible string | Source | Override at |
+|---|---|---|
+| Manual card-action button label ("Get Bank Loan") | `formatManualEffectButton` card branch | `src/utils/buttonFormatting.ts` |
+| Manual **dice** action button label ("Get Work Packages") | `formatManualEffectButton` dice branch — maps `effect_value` ("W Cards", "Fees Paid", "Time outcomes", "Quality", "Multiplier", "Next Step") → DICE_BUTTON constants | `src/utils/buttonFormatting.ts` |
+| Contextual dice button on movement spaces | `formatDiceRollButton` | `src/utils/buttonFormatting.ts` |
+| All dice button strings (single source) | `DICE_BUTTON` object | `src/constants/uiStrings.ts` |
+| Dice result modal card chips ("Work Package", "Bank Loan", "Expeditor", "Life Event", "Investment") | `friendlyCardTypeNames` local map | `src/components/modals/DiceResultModal.tsx` |
+| Outcome banner strings ("Got 3 Work Packages") | `getCardTypeName` helper feeding `formatDiceRollFeedback` / `formatActionFeedback` | `src/utils/buttonFormatting.ts` |
+| In-flight verb ("🎲 Deciding…" not "🎲 Rolling…") | Inline string | `src/components/player/ActionCenterPanel.tsx` |
+
+**Friendly card-type name canon** (use everywhere): W → "Work Package", B → "Bank Loan", E → "Expeditor", I → "Investment", L → "Life Event". Never surface the letter or the word "card" to players.
+
+### SPACE_EFFECTS.csv column schema (frequently misread)
+
+```
+space_name, visit_type, effect_type, effect_action, effect_value, condition, description, trigger_type, ...
+```
+
+Critically: for `effect_type === 'dice'` rows, `effect_value` is the **dice category** ("W Cards" / "I Cards" / "E cards" / "Fees Paid" / "Fee Paid" / "Time outcomes" / "Time" / "Quality" / "Multiplier" / "Next Step"). The `description` column is what leaks gamey text into the UI when a formatter falls through to it.
+
+### React Flow custom-node data injection
+
+Custom node components (`BoardNode` in `BoardCanvas.tsx`) only receive `data` as a prop. Parent state like hover/expand/edit-mode and callback closures **must be injected into each node's `.data` on every render** via a `useEffect` that maps over `nodes`. There is no parent-closure access from inside the custom node. The pattern:
+
+```ts
+useEffect(() => {
+  setNodes(prev => prev.map(n => ({
+    ...n,
+    data: {
+      ...n.data,
+      isExpanded: expandedSpace === n.id,
+      hoveredSpace,
+      isEditMode: isAdmin,
+      onHover: handleNodeHover,
+      onClick: handleNodeClick,
+    },
+  })));
+}, [hoveredSpace, expandedSpace, isAdmin, handleNodeHover, handleNodeClick, /* + dynamic data deps */]);
+```
+
+### Stale game-id from URL → 404 → redirect to lobby
+
+`?g=Gxxx&token=...` URLs persist across server restarts (bookmarks, leftover tabs). Server's in-memory game registry recycles. The pattern in `ServerSyncService.loadFromServer()`: on 404 **with** a `gameId` in the URL, strip the game-scoped query params (`g`, `token`, `p`, `playerId`) and `window.location.replace(…)` to the bare path. Single network error on the discovery load, never repeats. Apply the same pattern to any future state-restore-from-URL feature.
+
+### Deploy verification — bundle hash trick
+
+When the user reports "I don't see X" after I shipped, **always** check whether the build actually deployed:
+
+1. Build locally — note the new `services-<hash>.js` filename in the build output.
+2. Ask the user to share the bundle filename from their browser console / network tab (or have them load the site and check).
+3. If their hash differs from my latest build, the bundle on the live site is stale — the fix is correct but hasn't shipped yet. Don't debug further until deploy is confirmed.
+
+This caught two false-alarm regressions in past sessions.
+
+### Deploy command
+
+User runs deploy from a **regular Windows terminal**, not WSL — the `unraid` ssh alias is in their Windows ssh config, not the WSL one. CLAUDE.md's `ssh unraid "..."` snippet works only after the alias is replicated to `~/.ssh/config` in WSL. Don't rerun deploy on the user's behalf — produce the command for them to copy.
+
+### Voice-leak audit — fast triage query
+
+To find remaining game-language leaks before claiming "voice sweep done":
+
+```
+Grep: pattern="[Rr]oll for|[Dd]raw [WBIEL]|w cards?" path=src/components glob=*.tsx
+```
+
+Filter out internal CSS class names (`card-*`), code variables (`drawCards`), JSDoc comments. Focus on JSX text and string literals that hit the UI.
+
+### "Don't defer small investigations" applied
+
+10-minute scoped investigations (single file, single hypothesis, no architectural impact) go straight to in-progress, not into TODO. From user memory: `feedback_no_scope_caution_defer.md`. If you find yourself parking a 1-2 file fix in TODO "to keep the commit tidy," just do it.
+
+### TodoWrite discipline
+
+- Mark `in_progress` BEFORE starting the task (not after).
+- One task `in_progress` at a time, always.
+- Drop stale items entirely — don't let the list become a graveyard.
+- A long session with 4+ user-listed tasks always benefits; a single 5-minute fix doesn't.
+
+---
+
+**Last Updated:** May 12, 2026
+**Charter Version:** 3.6 (Beta-live + tactical-patterns section)

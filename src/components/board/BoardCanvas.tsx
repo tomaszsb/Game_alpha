@@ -50,7 +50,8 @@ import '@xyflow/react/dist/style.css';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName } from '../../utils/boardLayout';
+import { PHASE_COLORS, shortName, truncate } from '../../utils/boardLayout';
+import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 
 // ===================================================================
 // Custom node — preserves the look of BoardV3 tiles
@@ -64,30 +65,73 @@ interface BoardNodeData {
   isValidMove: boolean;     // current player can move here
   playerCount: number;      // how many players standing here
   playerColors: string[];   // for overlay tokens
+  isExpanded: boolean;      // expanded card view (click)
+  // Story content (only used when expanded/hovered)
+  story?: string;
+  actionDescription?: string;
+  npcName?: string;
+  // Callbacks back to the parent for hover/click state
+  onHover?: (spaceName: string | null) => void;
+  onClick?: (spaceName: string) => void;
+  hoveredSpace?: string | null;
+  isEditMode?: boolean;
   [key: string]: unknown;   // satisfy React Flow's Record<string, unknown> constraint
 }
 
-function BoardNode({ data, selected }: NodeProps<Node<BoardNodeData>>) {
+function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   const phaseColors = PHASE_COLORS[data.phase] || { border: '#adb5bd', text: '#495057' };
   const borderColor = data.isValidMove ? '#10b981' : phaseColors.border;
+
+  const isHovered = data.hoveredSpace === data.spaceName;
+  // Three sizes:
+  //   compact (default) — 150×60, just title + tokens
+  //   hover (mid)       — 220×120, +story snippet
+  //   expanded (large)  — 280×180, +action description
+  // In edit mode, all tiles stay compact so dragging doesn't pop sizes.
+  const size: 'compact' | 'hover' | 'expanded' =
+    data.isEditMode ? 'compact'
+    : data.isExpanded ? 'expanded'
+    : (isHovered && !data.isCurrent) ? 'hover'
+    : 'compact';
+
+  const isBig = size !== 'compact';
+  const width = size === 'compact' ? 150 : size === 'hover' ? 220 : 280;
+  const minHeight = size === 'compact' ? 60 : size === 'hover' ? 120 : 180;
   const borderWidth = data.isCurrent ? 3 : data.isValidMove ? 2 : 1.5;
+
   const ringStyle: React.CSSProperties = data.isCurrent
-    ? { boxShadow: `0 0 0 3px ${phaseColors.border}33, 0 2px 6px rgba(0,0,0,0.15)` }
-    : { boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
+    ? { boxShadow: `0 0 0 3px ${phaseColors.border}33, 0 4px 12px rgba(0,0,0,0.18)` }
+    : isBig
+      ? { boxShadow: '0 6px 18px rgba(0,0,0,0.20)' }
+      : { boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
+
+  // Bump z-index for expanded/hovered tiles so they layer over neighbors
+  const zIndex = data.isExpanded ? 30 : isHovered ? 20 : 1;
+
+  const storyMax = size === 'hover' ? 60 : 100;
 
   return (
     <div
       className="board-canvas-node"
       style={{
-        width: 150,
-        minHeight: 60,
+        width,
+        minHeight,
         borderRadius: 8,
         background: '#fff',
         border: `${borderWidth}px solid ${borderColor}`,
         padding: '8px 10px',
         fontFamily: 'system-ui, sans-serif',
+        transition: 'width 0.15s ease, min-height 0.15s ease, box-shadow 0.15s ease',
+        zIndex,
         ...ringStyle,
-        cursor: selected ? 'grabbing' : 'pointer',
+        cursor: data.isEditMode ? 'grab' : 'pointer',
+      }}
+      onMouseEnter={() => { if (!data.isEditMode) data.onHover?.(data.spaceName); }}
+      onMouseLeave={() => { if (!data.isEditMode) data.onHover?.(null); }}
+      onClick={(e) => {
+        if (data.isEditMode) return; // edit mode: clicks belong to React Flow drag
+        e.stopPropagation();
+        data.onClick?.(data.spaceName);
       }}
     >
       {/* Source/target handles invisible but required for edges */}
@@ -97,9 +141,31 @@ function BoardNode({ data, selected }: NodeProps<Node<BoardNodeData>>) {
       <div style={{ fontSize: 9, color: phaseColors.text, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
         {data.phase}
       </div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#212529', marginTop: 2, lineHeight: 1.2 }}>
+      <div style={{
+        fontSize: isBig ? 14 : 12,
+        fontWeight: 700,
+        color: '#212529',
+        marginTop: 2,
+        lineHeight: 1.2,
+      }}>
         {data.title}
       </div>
+
+      {/* Story snippet (hover + expanded) */}
+      {isBig && data.story && (
+        <div style={{ fontSize: 11, color: '#495057', marginTop: 6, lineHeight: 1.35 }}>
+          {data.npcName && <strong style={{ color: phaseColors.text }}>{data.npcName}: </strong>}
+          {truncate(data.story, storyMax)}
+        </div>
+      )}
+
+      {/* Action description (expanded only) */}
+      {size === 'expanded' && data.actionDescription && (
+        <div style={{ fontSize: 10, color: '#6c757d', marginTop: 6, fontStyle: 'italic' }}>
+          <strong style={{ fontStyle: 'normal', color: '#495057' }}>Next: </strong>
+          {truncate(data.actionDescription, 80)}
+        </div>
+      )}
 
       {/* Player tokens row — only render if at least one player is here */}
       {data.playerCount > 0 && (
@@ -154,6 +220,43 @@ function BoardCanvasInner({
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const [validMoves, setValidMoves] = useState<string[]>([]);
+  // Hover/expand state for the BoardV3-parity tile behavior. In admin
+  // edit mode, both are forced to inactive so React Flow drag works
+  // cleanly without competing click handlers.
+  const [hoveredSpace, setHoveredSpace] = useState<string | null>(null);
+  const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
+  const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 150ms hover delay to avoid flicker as the cursor moves across tiles.
+  const handleNodeHover = useCallback((spaceName: string | null) => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    if (spaceName === null) {
+      setHoveredSpace(null);
+      return;
+    }
+    hoverTimerRef.current = setTimeout(() => setHoveredSpace(spaceName), 150);
+  }, []);
+
+  const handleNodeClick = useCallback((spaceName: string) => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredSpace(null);
+    setExpandedSpace(prev => (prev === spaceName ? null : spaceName));
+  }, []);
+
+  useEffect(() => () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+  }, []);
+
+  // Clicking the canvas background collapses any expanded tile.
+  const handlePaneClick = useCallback(() => {
+    setExpandedSpace(null);
+  }, []);
 
   // Subscribe to valid-moves like BoardV3 does
   useEffect(() => {
@@ -176,6 +279,12 @@ function BoardCanvasInner({
     const nodes: Node<BoardNodeData>[] = configs.map(cfg => {
       const pos = dataService.getPosition(cfg.space_name) || { x: 0, y: 0 };
       const titleOverride = cfg.display_label_override || '';
+      // First-visit content for the hover/expand cards. Subsequent-visit
+      // content is preferred when the current viewer has visited; we
+      // refresh those in the dynamic useEffect below.
+      const content = dataService.getSpaceContent(cfg.space_name, 'First');
+      const npcPrefix = extractPrefix(cfg.space_name);
+      const npcName = CHARACTER_MAP[npcPrefix]?.name;
       return {
         id: cfg.space_name,
         type: 'boardNode',
@@ -188,6 +297,10 @@ function BoardCanvasInner({
           isValidMove: false,   // populated dynamically below
           playerCount: 0,
           playerColors: [],
+          isExpanded: false,
+          story: content?.story,
+          actionDescription: content?.action_description,
+          npcName,
         },
       };
     });
@@ -241,7 +354,10 @@ function BoardCanvasInner({
     onHideEdge(edge.id);
   }, [isAdmin, onHideEdge]);
 
-  // Recompute the dynamic data fields whenever players/validMoves/currentPlayerId change.
+  // Recompute the dynamic data fields whenever players/validMoves/currentPlayerId
+  // change, AND whenever hover/expand/edit state changes. The hover+click
+  // callbacks have to be injected here so each node's `.data` can reach them
+  // (custom node components only receive `data`, not closures from the parent).
   useEffect(() => {
     setNodes(prev => prev.map(n => {
       const playersHere = players.filter(p => p.currentSpace === n.id);
@@ -254,10 +370,15 @@ function BoardCanvasInner({
           isValidMove: validMoves.includes(n.id),
           playerCount: playersHere.length,
           playerColors: playersHere.map(p => p.color || '#666'),
+          isExpanded: expandedSpace === n.id,
+          hoveredSpace,
+          isEditMode: isAdmin,
+          onHover: handleNodeHover,
+          onClick: handleNodeClick,
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, handleNodeHover, handleNodeClick]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(prev => applyNodeChanges(changes, prev) as Node<BoardNodeData>[]);
@@ -284,6 +405,7 @@ function BoardCanvasInner({
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
         onEdgeClick={onEdgeClick}
+        onPaneClick={handlePaneClick}
         nodesDraggable={isAdmin}
         nodesConnectable={false}
         elementsSelectable={isAdmin}

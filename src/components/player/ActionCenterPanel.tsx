@@ -600,7 +600,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 }}
                 disabled={action.isCompleted || !isMyTurn || (action.isDiceEffect && isRollingDice)}
               >
-                {action.isCompleted ? '✅ ' : ''}{action.isDiceEffect && isRollingDice ? '🎲 Rolling...' : action.label}
+                {action.isCompleted ? '✅ ' : ''}{action.isDiceEffect && isRollingDice ? '🎲 Deciding...' : action.label}
               </button>
             ))}
           </>
@@ -723,6 +723,25 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Ledger side button — quick-access pill on the right edge.
+       * Playtest feedback (G163): ledger at bottom is hard to find.
+       * Hidden when ledger is already the active tab. */}
+      {activeTab !== 'ledger' && (
+        <button
+          type="button"
+          className={`action-center__ledger-side ${hasFundingGap ? 'action-center__ledger-side--gap' : hasFundingSurplus ? 'action-center__ledger-side--surplus' : ''}`}
+          onClick={() => setActiveTab('ledger')}
+          title={hasFundingGap ? 'Funding gap — open ledger' : hasFundingSurplus ? 'Funded — open ledger' : 'Open ledger'}
+        >
+          <span className="action-center__ledger-side-icon" aria-hidden>📊</span>
+          <span>LEDGER</span>
+          <span
+            className={`action-center__ledger-side-dot ${hasFundingGap ? 'action-center__ledger-side-dot--gap' : hasFundingSurplus ? 'action-center__ledger-side-dot--surplus' : ''}`}
+            aria-hidden
+          />
+        </button>
+      )}
     </div>
   );
 };

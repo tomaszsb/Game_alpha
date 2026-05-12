@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.3] - 2026-05-12
+
+### BoardCanvas — hover/click tile expansion restored
+
+Playtest feedback (G163, 2026-05-12): "the original boxes enlarged on hover and got even bigger with clicks — we need that functionality back." When BoardCanvas replaced BoardV3 in v2.63.0, the new React Flow nodes rendered flat at one size and lost the progressive-disclosure feel. Restored the three-size pattern.
+
+**`src/components/board/BoardCanvas.tsx`** — `BoardNode` now renders at three sizes driven by hover/click state on the parent:
+
+- **compact** (150×60) — default; phase tag, title, player tokens
+- **hover** (220×120) — after 150ms hover delay; adds the space's First-visit story snippet, prefixed by the NPC speaker name when the prefix maps to a character
+- **expanded** (280×180) — click to pin; adds the action description ("Next: …")
+
+Click the canvas background to collapse. In admin edit mode all three sizes collapse to compact so React Flow drag-to-reposition has uncontested clicks. The hover/click state lives in `BoardCanvasInner` and is injected into each node's `.data` on every render (custom node components only receive `data` props, so closures from the parent reach the node through that channel). Z-index lifts expanded nodes above their neighbors so the larger box doesn't get clipped by tiles further down the layout.
+
+The hover delay matches BoardV3's: 150ms before showing the larger card, instantaneous teardown when the cursor moves on. That kept BoardV3 from feeling jumpy as the cursor traversed the snake-grid and the same logic applies to the freeform layout.
+
+### Ledger side button — quick-access pill on the panel edge
+
+Same playtest feedback (G163, 2026-05-12): "the ledger button on the side." The ledger lives as a tab at the bottom of the player panel's reference tab bar (Ledger · Expeditors · Life Events · Time · Log), and the playtester missed it. A bottom tab is the right home for it — money, scope, and the funding line-by-line all want a full-width content area — but a sticky entry point on the panel's right edge gives players a glanceable status indicator and a one-click open.
+
+**`src/components/player/ActionCenterPanel.tsx` + `.css`** — vertical pill anchored at `position: absolute; right: 0; top: 50%` on `.action-center` (which is already `position: relative`). The pill shows "📊 LEDGER" with a colored status dot:
+
+- **gray dot** — neutral (no W-card scope yet, or funding == scope)
+- **red dot / pink tint** — funding gap (W cards in hand cost more than total funding)
+- **green dot / green tint** — funded (funding ≥ scope)
+
+Click flips the active reference tab to `ledger`. The pill hides when the ledger tab is already open — no point in a button that opens what's open.
+
+### Voice — friendlier card-type names in outcome strings
+
+**`src/utils/buttonFormatting.ts`** — `getCardTypeName()` returns `"Work Package"`, `"Bank Loan"`, `"Expeditor"`, `"Life Event"`, `"Investment"` instead of the short `"Work"`, `"Bank"`, `"Life Events"` (which then formed awkward plurals like "Got 3 Banks" through the generic `${typeName}${plural}` formatter). The function feeds `formatDiceRollFeedback` and `formatActionFeedback`, so outcome banners after a dice roll now read "Got 3 Work Packages" / "Got 1 Bank Loan" — matching the friendly names DiceResultModal already uses for its inline card chips.
+
+**`src/components/player/ActionCenterPanel.tsx`** — dice button transitional label switched from `🎲 Rolling…` to `🎲 Deciding…` to match the post-roll button label (`🎲 Determine Next Step` / `🎲 Determine Outcome`) and to keep the verb out of the gambling register.
+
+### Voice — "Roll for W Cards" leak fixed (the real one)
+
+User reported still seeing "roll for w cards" wording in the player panel after the previous voice sweeps. Root cause: dice manual actions in `SPACE_EFFECTS.csv` have a CSV `description` column that's auto-generated as "Roll for W Cards" / "Roll for I Cards" / "Roll for E cards" / "Roll for Fees Paid" / "Roll for Time outcomes". The `formatManualEffectButton` function had branches for card and turn effects but fell through to `effect.description` for `effect_type === 'dice'`, which is where the literal CSV text was leaking onto the screen.
+
+**`src/utils/buttonFormatting.ts`** — added a dedicated `effect.effect_type === 'dice'` branch. The dice category lives in `effect.effect_value` ("W Cards", "I Cards", "E cards", "Fees Paid", "Time outcomes", "Quality", "Multiplier", "Next Step") — mapped to the existing friendly `DICE_BUTTON` strings the rest of the system uses ("Get Work Packages", "Seek Investments", "Hire Expeditors", "Determine Fee Amount", "Determine Time Impact", "Assess Quality", "Determine Outcome", "Determine Next Step"). One source of truth — the same labels now appear whether the dice button is the contextual one or a manual pending-action.
+
+### Stale game-id 404 — clean redirect to lobby
+
+User reported `GET /api/games/G170/state 404 (Not Found)` in the browser console. Root cause: the URL had `?g=G170` (typically a stale bookmark or post-restart leftover), but the server's in-memory game registry had been recycled. The client correctly fell back to local state, but the loud browser-level network error stayed in the console on every reload, and the user was left on a half-loaded SETUP screen pointing at a game id that no longer existed.
+
+**`src/services/ServerSyncService.ts`** — when `loadFromServer()` gets a 404 AND a `?g=Gxxx` is present in the URL, strip the game-scoped query params (`g`, `token`, `p`, `playerId`) and `window.location.replace(…)` to the same path without them. The user lands on the lobby cleanly. The network error fires exactly once (on the first load that discovered the stale id) and never again, because subsequent loads don't carry the dead game id in the URL.
+
+Verified: typecheck 0 errors, build clean.
+
+---
+
 ## [2.63.2] - 2026-05-12
 
 ### BoardCanvas — show/hide connectors (global + per-edge)
