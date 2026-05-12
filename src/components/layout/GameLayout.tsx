@@ -107,6 +107,47 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setBoardEditModeState(v);
     try { window.localStorage.setItem('unravel:boardEditMode', v ? '1' : '0'); } catch { /* ignored */ }
   }, []);
+  // Global edges-visible toggle (default on). Persisted per-session.
+  const [boardEdgesVisible, setBoardEdgesVisibleState] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const v = window.localStorage.getItem('unravel:boardEdgesVisible');
+      return v === null ? true : v === '1';
+    } catch { return true; }
+  });
+  const setBoardEdgesVisible = useCallback((v: boolean) => {
+    setBoardEdgesVisibleState(v);
+    try { window.localStorage.setItem('unravel:boardEdgesVisible', v ? '1' : '0'); } catch { /* ignored */ }
+  }, []);
+  // Per-edge hide set. Edge IDs are `${source}__${target}`. Persisted
+  // as JSON. Cleared by the toggle's "restore" button.
+  const [hiddenEdgeIds, setHiddenEdgeIdsState] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = window.localStorage.getItem('unravel:boardHiddenEdges');
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch { /* ignore */ }
+    return new Set();
+  });
+  const setHiddenEdgeIds = useCallback((updater: (prev: Set<string>) => Set<string>) => {
+    setHiddenEdgeIdsState(prev => {
+      const next = updater(prev);
+      try {
+        window.localStorage.setItem('unravel:boardHiddenEdges', JSON.stringify([...next]));
+      } catch { /* ignored */ }
+      return next;
+    });
+  }, []);
+  const onHideEdge = useCallback((edgeId: string) => {
+    setHiddenEdgeIds(prev => {
+      const next = new Set(prev);
+      next.add(edgeId);
+      return next;
+    });
+  }, [setHiddenEdgeIds]);
+  const onClearHiddenEdges = useCallback(() => {
+    setHiddenEdgeIds(() => new Set());
+  }, [setHiddenEdgeIds]);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState<boolean>(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState<boolean>(false);
   const [isCardDetailsModalOpen, setIsCardDetailsModalOpen] = useState<boolean>(false);
@@ -912,6 +953,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                   currentPlayerId={currentPlayerId}
                   players={players}
                   isAdmin={boardEditMode}
+                  edgesVisible={boardEdgesVisible}
+                  hiddenEdgeIds={hiddenEdgeIds}
+                  onHideEdge={onHideEdge}
                 />
               ) : (
                 <BoardV3
@@ -1064,6 +1108,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         onBoardImplChange={setBoardImpl}
         editMode={boardEditMode}
         onEditModeChange={setBoardEditMode}
+        edgesVisible={boardEdgesVisible}
+        onEdgesVisibleChange={setBoardEdgesVisible}
+        hiddenEdgeCount={hiddenEdgeIds.size}
+        onClearHiddenEdges={onClearHiddenEdges}
       />
     </div>
   );

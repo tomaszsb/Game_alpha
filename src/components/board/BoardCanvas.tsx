@@ -133,11 +133,25 @@ const nodeTypes = { boardNode: BoardNode };
 interface BoardCanvasProps {
   currentPlayerId: string | null;
   players: Player[];
-  /** When true, nodes are draggable and drag-stop logs the new coords. */
+  /** When true, nodes are draggable and drag-stop logs the new coords.
+   *  Also enables click-to-hide on individual edges. */
   isAdmin?: boolean;
+  /** Global edge visibility. When false, no edges render. */
+  edgesVisible?: boolean;
+  /** Per-edge hide set, keyed by edge id (`${source}__${target}`). */
+  hiddenEdgeIds?: Set<string>;
+  /** Called when an edge is clicked in admin mode. Parent persists. */
+  onHideEdge?: (edgeId: string) => void;
 }
 
-function BoardCanvasInner({ currentPlayerId, players, isAdmin = false }: BoardCanvasProps) {
+function BoardCanvasInner({
+  currentPlayerId,
+  players,
+  isAdmin = false,
+  edgesVisible = true,
+  hiddenEdgeIds,
+  onHideEdge,
+}: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const [validMoves, setValidMoves] = useState<string[]>([]);
 
@@ -209,6 +223,24 @@ function BoardCanvasInner({ currentPlayerId, players, isAdmin = false }: BoardCa
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
 
+  // Apply visibility filters from parent. Edges hidden by:
+  //   - Global toggle (edgesVisible=false) → hide all
+  //   - Per-edge hide set (hiddenEdgeIds.has(id)) → hide that one
+  const visibleEdges = useMemo(() => {
+    if (!edgesVisible) return [];
+    if (!hiddenEdgeIds || hiddenEdgeIds.size === 0) return edges;
+    return edges.filter(e => !hiddenEdgeIds.has(e.id));
+  }, [edges, edgesVisible, hiddenEdgeIds]);
+
+  // Click an edge in admin mode → hide it. Single-click is the gesture
+  // (React Flow has no native double-click on edges, and right-click
+  // brings up the browser context menu which we'd have to suppress).
+  // The toggle's "restore" button brings them all back.
+  const onEdgeClick = useCallback((_e: React.MouseEvent, edge: Edge) => {
+    if (!isAdmin || !onHideEdge) return;
+    onHideEdge(edge.id);
+  }, [isAdmin, onHideEdge]);
+
   // Recompute the dynamic data fields whenever players/validMoves/currentPlayerId change.
   useEffect(() => {
     setNodes(prev => prev.map(n => {
@@ -246,14 +278,16 @@ function BoardCanvasInner({ currentPlayerId, players, isAdmin = false }: BoardCa
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={visibleEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
+        onEdgeClick={onEdgeClick}
         nodesDraggable={isAdmin}
         nodesConnectable={false}
         elementsSelectable={isAdmin}
+        edgesFocusable={isAdmin}
         snapToGrid={isAdmin}
         snapGrid={[10, 10]}
         fitView

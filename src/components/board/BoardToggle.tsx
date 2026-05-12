@@ -20,6 +20,16 @@ interface BoardToggleProps {
   onBoardImplChange: (v: BoardImpl) => void;
   editMode: boolean;
   onEditModeChange: (v: boolean) => void;
+  /** When false, BoardCanvas hides all edges. Lets admin focus on
+   *  arranging tiles without the visual noise of auto-routed arrows.
+   *  No effect on BoardV3. */
+  edgesVisible: boolean;
+  onEdgesVisibleChange: (v: boolean) => void;
+  /** Number of edges manually hidden (per-edge hide). 0 = none hidden.
+   *  Shown as a small badge so admin remembers there are hidden edges. */
+  hiddenEdgeCount?: number;
+  /** Restore all per-edge hides. */
+  onClearHiddenEdges?: () => void;
 }
 
 export function BoardToggle({
@@ -27,6 +37,10 @@ export function BoardToggle({
   onBoardImplChange,
   editMode,
   onEditModeChange,
+  edgesVisible,
+  onEdgesVisibleChange,
+  hiddenEdgeCount = 0,
+  onClearHiddenEdges,
 }: BoardToggleProps) {
   // Gate behind admin auth so normal players never see the dev toggle.
   // Re-check on each render so unlocking via /admin shows it immediately.
@@ -89,14 +103,34 @@ export function BoardToggle({
         🎨 New
       </button>
       {boardImpl === 'canvas' && (
-        <button
-          type="button"
-          style={editMode ? activeStyle : buttonStyle}
-          onClick={() => onEditModeChange(!editMode)}
-          title="Drag tiles to reposition. New coords logged to browser console (F12)."
-        >
-          ✏️ Edit {editMode ? 'on' : 'off'}
-        </button>
+        <>
+          <button
+            type="button"
+            style={editMode ? activeStyle : buttonStyle}
+            onClick={() => onEditModeChange(!editMode)}
+            title="Drag tiles to reposition. New coords logged to browser console (F12)."
+          >
+            ✏️ Edit {editMode ? 'on' : 'off'}
+          </button>
+          <button
+            type="button"
+            style={edgesVisible ? activeStyle : buttonStyle}
+            onClick={() => onEdgesVisibleChange(!edgesVisible)}
+            title={edgesVisible ? 'Hide all connector lines' : 'Show all connector lines'}
+          >
+            🔗 Edges {edgesVisible ? 'on' : 'off'}
+          </button>
+          {hiddenEdgeCount > 0 && onClearHiddenEdges && (
+            <button
+              type="button"
+              style={{ ...buttonStyle, background: '#fff3cd', borderColor: '#ffc107' }}
+              onClick={onClearHiddenEdges}
+              title={`${hiddenEdgeCount} edge${hiddenEdgeCount === 1 ? '' : 's'} hidden individually — click to restore`}
+            >
+              🚫 {hiddenEdgeCount} hidden · restore
+            </button>
+          )}
+        </>
       )}
     </div>
   );

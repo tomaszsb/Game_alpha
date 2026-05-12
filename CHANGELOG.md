@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.2] - 2026-05-12
+
+### BoardCanvas — show/hide connectors (global + per-edge)
+
+Per dashboard feedback (G160, 2026-05-09): admin wants control over "which lines i want shown and how they run." This release ships the visibility half. Edge-routing redirect (the "how they run" half) is scoped separately — pending approach decision (see TODO under Workstream 3 Phase B+).
+
+**`src/components/board/BoardToggle.tsx`** — two new buttons (admin-only, BoardCanvas mode only):
+
+- **🔗 Edges on/off** — global toggle. When off, every edge hides. Useful for arranging tiles without the visual clutter of auto-routed arrows.
+- **🚫 N hidden · restore** — appears with a count badge whenever one or more edges are individually hidden. Click to restore them all.
+
+**`src/components/board/BoardCanvas.tsx`** — new props: `edgesVisible: boolean`, `hiddenEdgeIds: Set<string>`, `onHideEdge: (id) => void`. Filters the edge list through both gates before passing to React Flow. Clicking any edge in admin mode adds its id to `hiddenEdgeIds` (single-click is the gesture — React Flow has no native edge double-click and right-click triggers the browser context menu).
+
+**`src/components/layout/GameLayout.tsx`** — state owners for `boardEdgesVisible` (boolean) and `hiddenEdgeIds` (Set\<string\>). Both persist to `localStorage` (`unravel:boardEdgesVisible`, `unravel:boardHiddenEdges`) so an admin's layout choices survive reloads.
+
+Verified: typecheck 0 errors, 266 component tests pass, build +0.5 KB gzipped.
+
+### Dashboard triage — 20 unresolved feedback items captured in TODO
+
+Pulled `/api/feedback` (May 12). 5 G159 reports are fixed in code (v2.61.1) but still flag as unresolved server-side (admin task to mark). 15 net-new items added to `TODO.md` under three buckets:
+
+- **Voice-leak follow-ups** (G160, G163): player-panel "roll for w cards" left over from v2.61.1; TTS summary needs first-person speaker phrasing; owner's money amount should sit inside the dialogue.
+- **UX/layout** (G163): ledger discoverability (player can't find it on the bottom).
+- **G166 playtester audit** (5/12, 5 reports): onboarding for non-DOB-savvy players, jargon (W cards, Prof Cert, etc.), plain-English outcome strings, progress/time labels, expeditor mechanic granularity.
+
+Plus older April-G150 items that hadn't been triaged: end-screen stats, design-fee >20% game-end rule, visit indicator, player-panel current-player filter, progress-bar tooltips.
+
+---
+
 ## [2.63.1] - 2026-05-09
 
 ### BoardToggle — in-game switcher, no more URL-bar editing

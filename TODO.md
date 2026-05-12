@@ -2,7 +2,7 @@
 
 **Last Updated:** May 6, 2026
 **Status:** Beta — regression gates in place; Workstream 6 closed
-**Current Version:** 2.63.1
+**Current Version:** 2.63.2
 
 ---
 
@@ -87,6 +87,41 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - ✅ Fix Try Again/Negotiate: pay-and-wait model (shouldAdvanceTurn), updateActionCounts in clearTurnActions/discardTempState, regression test (Mar 30, 2026)
 
 *For full history, see CHANGELOG.md*
+
+---
+
+## 🐛 **Open Feedback (Dashboard May 2026)**
+
+*Source: `/api/feedback` endpoint, 20 unresolved as of May 12. Below are the ones NOT already fixed in v2.61.1 (the 5 G159 reports are fixed in code; the server-side `resolved` flag just hasn't been flipped — admin task).*
+
+### Voice-leak follow-ups (post v2.61.1)
+- [ ] **G160 / 5-8: "roll for w cards" still in player panel** — v2.61.1 fixed `ActionCenterPanel` button labels but `src/components/player/sections/CardsSection.tsx` ("Roll for W Cards" button) was missed. Same fix pattern: use `formatManualEffectButton` or canonical real-life label, not the auto-generated description.
+- [ ] **G163 / 5-9: TTS summary still reads as narrator, not as the space's speaker** — "Good news! You took on 2 work packages" is real-life voice (✅ v2.61.1) but it's read in third person ("You took on…"). Speaker map says owner narrates at OWNER-FUND-INITIATION; the summary should be in owner's first-person voice ("I'm wiring you funds — that buys two work packages."). Touches `DiceService.generateEffectSummary` + the speaker resolution from `extractPrefix`/`CHARACTER_MAP`.
+- [ ] **G163 / 5-9: Owner's money amount sits outside the dialogue** — Money figure appears in the modal metadata, not in the owner's actual speech. Owner should say the number out loud. Touches modal layout in OWNER-FUND-INITIATION modal.
+
+### UX / layout (G163, 5-9)
+- [ ] **Ledger discoverability** — Player can't find the ledger; it's at the bottom of the screen. Suggestion: side panel or surface a "Ledger" tab/link.
+
+### Player audit (G166 playtester, 5-12)
+*Design-level feedback, not bugs. Treat as a sprint or a workstream once a target audience decision is made.*
+- [ ] **Onboarding for non-DOB-savvy players** — too many systems on first screen (expeditors, W cards, scope locking, Fit, money, time). Decide: insider game (keep jargon, lean into horror stories) vs newcomer game (gradual reveal, explanations) — then either redesign first-screen or add an onboarding overlay.
+- [ ] **Jargon / single-letter card types** — "W cards", "Roll for W Cards", "Prof Cert", "Audit", "Decision Review", "Bypass", "Bank Review", "Investor Review" all surface before any explanation. If staying with single-letter codes, add tooltips / first-use modals. The voice rewrite (v2.60.0) already softened a lot of this in space titles — but action buttons and progress bars are still cryptic.
+- [ ] **Plain-English outcome after each action** — "Fit +6%. Higher Fit reduces risk at Plan Exam and Audit." instead of just "Fit+6 %Scope Initiation" in the log. Touches the action-log formatting.
+- [ ] **Progress + time labels** — "14%" and "0/330d" don't explain the relationship between actions and days. Suggestion: "Project Completion: 14%", "Each action in this phase advances time by N days." Touches `ProjectProgress.tsx` + label copy.
+- [ ] **Expeditor mechanic — pick instead of "hire 3"** — Game-design suggestion: let player pick among expeditors with tradeoffs (cheap/slow, fast/expensive, specialist/generalist). Bigger change; deferred.
+
+### Workstream 3 Phase B+ (board editor)
+- [ ] **G160 / 5-9: show/hide individual connectors + redirect per section** — Admin asked for control over which edges render and how they route. (In progress: see Workstream 3 Phase B+ in BETA_PLAN_V3.md — global show/hide first; per-edge hide and waypoint redirect TBD per user approval.)
+
+### Older / unattended (G150, April 2026)
+- [ ] **End screen player stats + movement log** — End screen should show overall stats and the move log.
+- [ ] **Design fee >20% game-end rule** — The fee-cap rule is documented but not enforced; the game continues. Add the end-game check.
+- [ ] **Visit indicator on space name + duplicate dice result rendering** — Players want a "you've been here before" badge next to space name; dice result shows twice (once red, once green) — root cause unclear.
+- [ ] **Player panel current-player filter** — Top-left shows all players; should show only the current player.
+- [ ] **Progress bar tooltips** — Bar color changes (green→orange) but no tooltip explains what the bar represents.
+
+### Server-side housekeeping
+- [ ] **Mark v2.61.1-fixed reports as `resolved`** — The 5 G159 reports (Join Game broken, TTS, button labels, footer, contact fields) are fixed in deployed code but still flag as unresolved in `/api/feedback`. Need an admin `PATCH /api/feedback/:id` call or a sweep script. Not a code fix, just data cleanup.
 
 ---
 
@@ -219,7 +254,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🚀 **Deployment Status**
 - **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.63.1
+- **Current Version**: v2.63.2
 - **Last Deploy**: see git log / `docker logs game_alpha` for live build
 - **Status**: Stable
 
