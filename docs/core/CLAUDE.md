@@ -387,7 +387,13 @@ useEffect(() => {
 
 ### Stale game-id from URL → 404 → redirect to lobby
 
-`?g=Gxxx&token=...` URLs persist across server restarts (bookmarks, leftover tabs). Server's in-memory game registry recycles. The pattern in `ServerSyncService.loadFromServer()`: on 404 **with** a `gameId` in the URL, strip the game-scoped query params (`g`, `token`, `p`, `playerId`) and `window.location.replace(…)` to the bare path. Single network error on the discovery load, never repeats. Apply the same pattern to any future state-restore-from-URL feature.
+**Caution: the naive version of this pattern was shipped in v2.63.3 and broke Start Game.** Reverted in v2.63.4. Don't re-implement without the discriminator below.
+
+`?g=Gxxx&token=...` URLs persist across server restarts (bookmarks, leftover tabs). Server's in-memory game registry recycles. The intended pattern in `ServerSyncService.loadFromServer()` was: on 404 **with** a `gameId` in the URL, strip the game-scoped query params and `window.location.replace(…)` to the bare path.
+
+**Why the naive version is broken:** `PlayerSetup.tsx:230` does `window.location.href = ?g=G_new` on Start Game — that's a full page reload. The new game has NOT synced to the server before the reload. Post-reload boot at `App.tsx:116` calls `loadFromServer()` for G_new, gets 404, and the naive redirect strips `?g=` and sends the user back to lobby. Visible: SETUP screen flickers, snaps back. Start Game is unusable.
+
+**Correct discriminator before redirecting on 404:** check whether `localStorage` (or any client-side cache) has state matching the URL gameId. If YES → fresh game the server hasn't synced yet, keep going and let local state hydrate. If NO → genuinely stale URL, safe to redirect. See memory entity `Stale-URL redirect needs local-state discriminator` for the full pattern.
 
 ### Deploy verification — bundle hash trick
 

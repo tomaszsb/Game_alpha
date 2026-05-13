@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** May 6, 2026
+**Last Updated:** May 12, 2026
 **Status:** Beta — regression gates in place; Workstream 6 closed
-**Current Version:** 2.63.2
+**Current Version:** 2.63.4 (committed; v2.63.3 currently deployed)
 
 ---
 
@@ -122,6 +122,17 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ### Server-side housekeeping
 - [ ] **Mark v2.61.1-fixed reports as `resolved`** — The 5 G159 reports (Join Game broken, TTS, button labels, footer, contact fields) are fixed in deployed code but still flag as unresolved in `/api/feedback`. Need an admin `PATCH /api/feedback/:id` call or a sweep script. Not a code fix, just data cleanup.
+
+---
+
+## 🧪 **Testing follow-ups** (May 12, 2026)
+
+*From `/koniec` pre-flight on v2.63.4. The two pre-existing failures predate today's work and aren't blockers, just stale assertions to clean up.*
+
+- [ ] **New `tests/components/board/BoardCanvas.test.tsx`** — covers the v2.63.3 3-size state machine: compact at mount, hover-after-150ms → mid-size, click → expanded, click background → collapse, admin edit mode forces compact. ~5 tests. No existing BoardCanvas test file.
+- [ ] **Ledger pill assertions in `tests/components/player/ActionCenterPanel.test.tsx`** — add ~3 assertions for the v2.63.3 ledger pill: renders when ledger tab inactive; hidden when ledger tab active; status dot color reflects funding gap vs funded vs neutral.
+- [ ] **Pre-existing test failure: `tests/E2E-01_HappyPath.test.tsx > should allow a single player to start a game and take one turn via UI interaction`** — slow UI E2E (5.4s); last touched at v2.59.0 commit `3d4b081`. Not from v2.63.3 or v2.63.4. Triage on its own merits.
+- [ ] **Pre-existing test failure: `tests/E2E-03_ComplexSpace.test.ts > should detect negotiation capability from CSV data`** — asserts `getSpaceContent('OWNER-SCOPE-INITIATION').title === 'Owner Scope Initiation'` but the returned object's `title` is now the story snippet `'The owner walks you through it'`. The `getSpaceContent` shape changed at some point and this assertion didn't follow. Fix by updating the assertion or by querying the right field.
 
 ---
 

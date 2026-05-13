@@ -2,6 +2,34 @@
 
 ---
 
+## v2.63.4 — Hotfix: Start Game button works again (May 12, 2026)
+
+**Release Date:** May 12, 2026
+**Status:** Beta
+**Type:** Hotfix (player-visible)
+
+A regression introduced in v2.63.3 made the Start Game button unusable — the SETUP screen would briefly flicker, then snap back to the lobby. Hotfixed by reverting the v2.63.3 stale-URL redirect that was misfiring on freshly created games. The original stale-URL behavior (a noisy 404 in the browser console) returns, but Start Game works again. A proper fix for the stale-URL case will land in a later release with a real local-state discriminator.
+
+---
+
+## v2.63.3 — Board polish + voice fixes (May 12, 2026)
+
+**Release Date:** May 12, 2026
+**Status:** Beta
+**Type:** UX polish + voice fixes (player-visible)
+
+Five playtester-driven fixes from G163. **Note:** this release also introduced a Start Game regression that was hotfixed in v2.63.4 — if you're reading this before v2.63.4 has deployed, see that entry too.
+
+### What Changed for Players
+
+- **Tiles enlarge on hover and click again.** The old board grew tiles on hover and grew them further on click, revealing story snippets and next-action descriptions. That behavior was lost when the new board shipped earlier this week. It's back: hover for ~150ms for a mid-size view with the space's first-visit story; click for the full expanded view including the "Next: …" action; click the background to collapse.
+- **Ledger button on the panel edge.** A vertical "📊 LEDGER" pill now sits on the right edge of the player panel with a colored status dot — gray (neutral), red (funding gap), green (funded). Click it to jump straight to the Ledger tab. The pill hides when the ledger tab is already open.
+- **Friendlier card names everywhere.** Outcome banners after a dice roll used to read "Got 3 Works" or "Got 1 Bank." They now read "Got 3 Work Packages" / "Got 1 Bank Loan" — matching the names the dice result modal already uses.
+- **"🎲 Deciding…" instead of "🎲 Rolling…".** The transitional label on the dice button now reads "Deciding…" to keep the verb out of the gambling register.
+- **"Roll for W Cards" leak finally fixed.** A few manual dice buttons were still surfacing the auto-generated CSV game-language ("Roll for W Cards"). They now use the same friendly names as the contextual dice buttons ("Get Work Packages", "Hire Expeditors", etc.).
+
+---
+
 ## v2.62.0 — Living Map Foundation (May 8, 2026)
 
 **Release Date:** May 8, 2026
