@@ -393,7 +393,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(4, effects);
-      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.got(2, 'Work', 's')}`);
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(4)} → ${DICE_FEEDBACK.got(2, 'Work Package', 's')}`);
     });
 
     it('should format feedback with single card effect', () => {
@@ -404,7 +404,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatDiceRollFeedback(3, effects);
-      expect(result).toBe(`${DICE_FEEDBACK.prefix(3)} → ${DICE_FEEDBACK.got(1, 'Bank', '')}`);
+      expect(result).toBe(`${DICE_FEEDBACK.prefix(3)} → ${DICE_FEEDBACK.got(1, 'Bank Loan', '')}`);
     });
 
     it('should format feedback with positive money effect', () => {
@@ -518,11 +518,13 @@ describe('buttonFormatting', () => {
     });
 
     it('should handle all card types correctly', () => {
+      // v2.63.3 voice sweep: getCardTypeName returns friendly singulars
+      // that pluralize cleanly with a trailing 's' suffix from DICE_FEEDBACK.got.
       const cardTypes = [
-        { cardType: 'W', expected: 'Work' },
-        { cardType: 'B', expected: 'Bank' },
+        { cardType: 'W', expected: 'Work Package' },
+        { cardType: 'B', expected: 'Bank Loan' },
         { cardType: 'E', expected: 'Expeditor' },
-        { cardType: 'L', expected: 'Life Events' },
+        { cardType: 'L', expected: 'Life Event' },
         { cardType: 'I', expected: 'Investment' },
         { cardType: 'X', expected: 'X' } // Unknown type
       ];
@@ -544,7 +546,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatActionFeedback(effects);
-      expect(result).toBe('Got 1 Bank');
+      expect(result).toBe('Got 1 Bank Loan');
     });
 
     it('should format feedback with multiple card effects', () => {
@@ -555,7 +557,7 @@ describe('buttonFormatting', () => {
       }];
 
       const result = formatActionFeedback(effects);
-      expect(result).toBe('Got 2 Works');
+      expect(result).toBe('Got 2 Work Packages');
     });
 
     it('should format feedback with money effects', () => {

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.4] - 2026-05-12
+
+### Hotfix — revert v2.63.3 stale `?g=Gxxx` 404 redirect
+
+The redirect added in v2.63.3 misfired during the Start Game flow. Sequence: clicking Start Game calls `window.location.href = ?g=G_new` (full page reload), the app reboots, [App.tsx:116](src/App.tsx) calls `loadStateFromServer()`, the server doesn't yet have a record of `G_new` (the client never had a chance to sync before the navigation), the server returns 404, and the v2.63.3 code stripped `?g=` and reloaded — sending the user straight back to the lobby. Visible symptom: SETUP screen flickered then snapped back to lobby; Start Game was unusable.
+
+**[src/services/ServerSyncService.ts](src/services/ServerSyncService.ts)** — removed the conditional redirect block inside the `response.status === 404` branch. Behavior is back to v2.63.2: 404 → `debugLog('No server state found, using local state')` → return false → app falls through to local-state init. The stale-URL console error returns, but a noisy console is strictly less bad than a broken Start Game button.
+
+A proper fix needs to distinguish "stale gameId (server has never heard of it AND we have no local state for it either)" from "fresh gameId (server hasn't seen it yet but we have local state for it)" — i.e., check `localStorage` for state matching the URL gameId before deciding to redirect. Deferred to a later release with a real discriminator.
+
 ## [2.63.3] - 2026-05-12
 
 ### BoardCanvas — hover/click tile expansion restored
