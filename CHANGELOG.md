@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.5] - 2026-05-14
+
+### Public feedback endpoint for `/start` dashboard sweep
+
+Added `GET /api/public/feedback/open` to enable the `/start` slash command to pull unresolved player feedback at session start and reconcile it against `TODO.md`. Previously feedback was hand-copied from `dashboard.unravelcodes.com` into `TODO.md` whenever the user remembered to do it; now `/start` proposes a TODO.md diff (apply only after explicit "yes") and flags items that may bundle with the session's top-3 open items.
+
+**[server/server.js](server/server.js)** — new token-gated route returning unresolved feedback in compact form (`id, createdAt, whatDoing, whatWrong, contact`, no screenshot bytes). Token comes from `process.env.FEEDBACK_TOKEN`; checked via `crypto.timingSafeEqual`. Accepts the token via `?token=` query OR `Authorization: Bearer …` header. Returns 401 on bad/missing token, 503 when `FEEDBACK_TOKEN` is unset in the environment (intentional safety: deploying without the env var should disable the endpoint, not expose it). Existing protected `/api/feedback` admin endpoint is unchanged.
+
+**[.env.example](.env.example)** — added `FEEDBACK_TOKEN=` placeholder so fresh clones know the env var exists. The real value lives in gitignored `.env` (both locally and on Unraid via `docker run --env-file .env`).
+
+**[.claude/commands/start.md](.claude/commands/start.md)** — new step 4 inserted between state checks and hand-off:
+
+- 4a reads `FEEDBACK_TOKEN` from `.env`; skips silently with a one-line note if missing (no errors on fresh clones).
+- 4b `curl`s the endpoint with `--max-time 10`. `curl` is used over WebFetch because game.unravelcodes.com is fronted by Cloudflare which blocks the WebFetch User-Agent.
+- 4c reconciles each fetched item against `TODO.md` via `<!-- fb:<id> -->` HTML-comment markers. Items already carrying a marker are skipped; items without a marker are staged as candidates.
+- 4d does a keyword-overlap pass (2+ non-stopword tokens) against `NEXT_SESSION.md`'s "Top 3 open items" titles and adds 🔗 bundle hints to candidates that overlap. This is the "kill two birds with one stone" surface.
+- 4e prints the proposed diff and waits for **yes / no / edit** — never writes to TODO.md without explicit approval. Cap of 10 candidates inline; overflow goes to `.claude/feedback-staged.md`.
+
+The change is purely additive on the server side — no existing routes touched, no auth shape changed, no risk to the existing dashboard proxy at `dashboard.unravelcodes.com` (which keeps forwarding to the OAuth-gated `/api/feedback` as before).
+
 ## [2.63.4] - 2026-05-12
 
 ### Hotfix — revert v2.63.3 stale `?g=Gxxx` 404 redirect

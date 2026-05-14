@@ -1165,6 +1165,61 @@ app.patch('/api/feedback/:id', (req, res) => {
   }
 });
 
+// Token-protected public endpoint for /start to fetch unresolved feedback.
+// Returns compact form (no screenshots, no metadata) for low token cost.
+// Requires FEEDBACK_TOKEN env var; rejects with 503 if unset to avoid
+// accidental public exposure when deployed without a token.
+function timingSafeEqualStr(a, b) {
+  const ab = Buffer.from(a || '');
+  const bb = Buffer.from(b || '');
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+app.get('/api/public/feedback/open', (req, res) => {
+  try {
+    const expected = process.env.FEEDBACK_TOKEN;
+    if (!expected) {
+      return res.status(503).json({ error: 'Endpoint disabled: FEEDBACK_TOKEN not set' });
+    }
+
+    const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
+    const authHeader = req.headers.authorization || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const provided = queryToken || bearerToken;
+
+    if (!provided || !timingSafeEqualStr(provided, expected)) {
+      return res.status(401).json({ error: 'Invalid or missing token' });
+    }
+
+    ensureFeedbackDir();
+
+    const files = fs.readdirSync(FEEDBACK_DIR).filter(f => f.endsWith('.json'));
+    const reports = files.map(f => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(FEEDBACK_DIR, f), 'utf8'));
+        if (data.resolved === true) return null;
+        return {
+          id: f.replace(/\.json$/, ''),
+          createdAt: data.createdAt,
+          whatDoing: data.whatDoing,
+          whatWrong: data.whatWrong,
+          contact: data.contact || null,
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    res.json({ reports, count: reports.length });
+  } catch (err) {
+    console.error('Public feedback fetch error:', err.message);
+    res.status(500).json({ error: 'Failed to read feedback' });
+  }
+});
+
 // ===== SPA FALLBACK & ERROR HANDLERS =====
 // For non-API routes, serve index.html (SPA client-side routing)
 app.use((req, res, next) => {
@@ -1185,7 +1240,9 @@ app.use((req, res, next) => {
         'POST /api/admin/reset-to-baseline',
         'POST /api/feedback',
         'GET /api/feedback',
-        'GET /api/feedback/:id'
+        'GET /api/feedback/:id',
+        'PATCH /api/feedback/:id',
+        'GET /api/public/feedback/open'
       ]
     });
   }
