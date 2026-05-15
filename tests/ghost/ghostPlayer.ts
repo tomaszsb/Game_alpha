@@ -40,6 +40,13 @@ export interface GhostGameOptions {
    * every strict run exercises the Try Again code path and its state reverts.
    */
   tryAgainProbability?: number;
+  /**
+   * Optional abort signal. When triggered, the game loop and inner helpers
+   * (resolveAnyPendingChoice, triggerManualSpaceEffects) return early at the
+   * next yield point. Used by runGhostBatch to enforce a per-game wall-clock
+   * cap without leaking the timed-out game's CPU into subsequent games.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -54,6 +61,7 @@ export async function playOneGame(
   const { stateService, turnService, dataService, choiceService } = services;
   const maxTurns = options.maxTurns ?? 300;
   const playerName = options.playerName ?? 'Ghost';
+  const signal = options.signal;
   const trail: string[] = [];
 
   const fail = (reason: GhostGameResult['reason'], error: string, turns: number): GhostGameResult => ({
@@ -65,6 +73,11 @@ export async function playOneGame(
     trail,
   });
 
+  const abortedResult = (turn: number): GhostGameResult => {
+    trail.push(`  aborted by wall-clock signal at turn ${turn}`);
+    return fail('TURN_CAP', 'Aborted by wall-clock signal', turn);
+  };
+
   try {
     stateService.addPlayer(playerName);
     const player = stateService.getAllPlayers()[0];
@@ -72,8 +85,11 @@ export async function playOneGame(
     stateService.setCurrentPlayer(playerId);
     stateService.startGame();
     await turnService.startTurn(playerId);
+    if (signal?.aborted) return abortedResult(0);
 
     for (let turn = 0; turn < maxTurns; turn++) {
+      if (signal?.aborted) return abortedResult(turn);
+
       const p = stateService.getPlayer(playerId);
       if (!p) return fail('INVARIANT_VIOLATION', 'Player disappeared from state', turn);
 
@@ -97,18 +113,22 @@ export async function playOneGame(
       }
 
       // Handle any pending choice before doing space effects
-      await resolveAnyPendingChoice(services);
+      await resolveAnyPendingChoice(services, signal);
+      if (signal?.aborted) return abortedResult(turn);
 
       // Some spaces have an "automatic funding" hook the UI calls explicitly
       if (p.currentSpace === 'OWNER-FUND-INITIATION') {
         await turnService.handleAutomaticFunding(playerId);
+        if (signal?.aborted) return abortedResult(turn);
       }
 
       // Trigger manual space effects (dice rolls, card draws, etc.)
-      await triggerManualSpaceEffects(services, playerId, trail);
+      await triggerManualSpaceEffects(services, playerId, trail, signal);
+      if (signal?.aborted) return abortedResult(turn);
 
       // Resolve any choice that popped up from the effect
-      await resolveAnyPendingChoice(services);
+      await resolveAnyPendingChoice(services, signal);
+      if (signal?.aborted) return abortedResult(turn);
 
       // For movement: if it's a choice-type move, pick a random destination
       const refreshed = stateService.getPlayer(playerId);
@@ -136,7 +156,8 @@ export async function playOneGame(
       }
 
       // Final choice resolution (rolling dice may have introduced one)
-      await resolveAnyPendingChoice(services);
+      await resolveAnyPendingChoice(services, signal);
+      if (signal?.aborted) return abortedResult(turn);
 
       // A space effect or dice roll may have ended the game (e.g. reaching FINISH).
       // If so, loop back so the isGameOver check at the top can record the WIN.
@@ -181,6 +202,7 @@ export async function playOneGame(
       }
 
       await turnService.endTurnWithMovement();
+      if (signal?.aborted) return abortedResult(turn);
     }
 
     return fail('TURN_CAP', `Game did not finish within ${maxTurns} turns`, maxTurns);
@@ -210,13 +232,14 @@ function checkInvariants(player: any, dataService: any): string | null {
   return null;
 }
 
-async function resolveAnyPendingChoice(services: HeadlessServices): Promise<void> {
+async function resolveAnyPendingChoice(services: HeadlessServices, signal?: AbortSignal): Promise<void> {
   const { stateService, choiceService } = services;
   // Loop in case one resolution triggers another (e.g. LOGIC_QUESTION chains
   // where answering Q1 leads to Q2, etc.). 20 iterations covers the longest
   // chain in production (REG-FDNY-FEE-REVIEW = 5 questions + a possible
   // sub-choice MOVEMENT modal at Q5).
   for (let i = 0; i < 20; i++) {
+    if (signal?.aborted) return;
     const choice = stateService.getGameState().awaitingChoice;
     if (!choice) return;
     if (choice.options.length === 0) return; // can't resolve, let the turn end
@@ -242,7 +265,8 @@ async function resolveAnyPendingChoice(services: HeadlessServices): Promise<void
 async function triggerManualSpaceEffects(
   services: HeadlessServices,
   playerId: string,
-  trail: string[]
+  trail: string[],
+  signal?: AbortSignal
 ): Promise<void> {
   const { stateService, dataService, turnService, choiceService } = services;
   const p = stateService.getPlayer(playerId);
@@ -251,6 +275,7 @@ async function triggerManualSpaceEffects(
   if (!effects) return;
 
   for (const effect of effects) {
+    if (signal?.aborted) return;
     if (effect.trigger_type !== 'manual') continue;
     if (effect.effect_type === 'turn') continue; // skip end-turn effects
 
@@ -286,13 +311,31 @@ async function triggerManualSpaceEffects(
           }
           await new Promise((r) => setTimeout(r, 5));
         }
-        // Await with a 10s timeout to prevent hanging if choice was never resolved
-        await Promise.race([
-          promise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error(
-            `triggerManualEffect(${key}) timed out after 10s — choice may not have been resolved`
-          )), 10000))
-        ]);
+        // Await with a 10s timeout to prevent hanging if choice was never resolved.
+        // Also race the abort signal so a wall-clock cap kicks in immediately.
+        // Listener is explicitly removed in finally to avoid accumulating handlers
+        // on a long-lived signal (one per effect × per turn would otherwise leak
+        // hundreds of listeners and trigger MaxListenersExceededWarning).
+        let abortHandler: (() => void) | undefined;
+        const abortPromise = new Promise((_, reject) => {
+          if (signal?.aborted) {
+            reject(new Error('aborted by wall-clock signal'));
+            return;
+          }
+          abortHandler = () => reject(new Error('aborted by wall-clock signal'));
+          signal?.addEventListener('abort', abortHandler);
+        });
+        try {
+          await Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(
+              `triggerManualEffect(${key}) timed out after 10s — choice may not have been resolved`
+            )), 10000)),
+            abortPromise
+          ]);
+        } finally {
+          if (abortHandler) signal?.removeEventListener('abort', abortHandler);
+        }
         const pp = stateService.getPlayer(playerId);
         const w = pp?.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
         trail.push(`  triggered(${key}) → hand=${pp?.hand?.length ?? 0}(W=${w})`);
@@ -342,10 +385,24 @@ export async function runGhostBatch(
   let longGames = 0;
   const LONG_GAME_THRESHOLD = 60;
 
+  // Per-game wall-clock cap. playOneGame is cancellation-aware via the
+  // AbortSignal — when the timer fires, the next yield point returns a
+  // TURN_CAP fail and the game's CPU loop actually stops (unlike a naive
+  // Promise.race which only resolves the race but leaves playOneGame running
+  // in the background). 30s is generous: normal games finish in ~4s.
+  const PER_GAME_TIMEOUT_MS = 30000;
+
   for (let i = 0; i < gameCount; i++) {
     const services = await bootstrapHeadlessServices();
-    const result = await playOneGame(services, options);
-    totalTurns += result.turns;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PER_GAME_TIMEOUT_MS);
+    let result: GhostGameResult;
+    try {
+      result = await playOneGame(services, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    totalTurns += Math.max(0, result.turns);
     if (result.success) {
       wins++;
       if (result.turns > LONG_GAME_THRESHOLD) {
