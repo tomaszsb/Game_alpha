@@ -14,6 +14,7 @@ import { EffectContext, Effect } from '../types/EffectTypes';
 import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { describeCardAction } from './DiceService';
+import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate } from '../utils/templateInterpolation';
 import { AutoActionEvent } from './StateService';
@@ -1295,12 +1296,18 @@ export class TurnService implements ITurnService {
 
     const beforeState = this.stateService.getGameState();
     const beforePlayer = beforeState.players.find(p => p.id === playerId)!;
+    // Capture project scope BEFORE applying the effect — calculateProjectScope
+    // reads live state, so it must be called now to get the true "before".
+    const beforeScope = this.gameRulesService.calculateProjectScope(playerId);
+    const beforeSnapshot = buildResourceSnapshot(beforePlayer, beforeScope);
 
     // Trigger the manual effect
     await this.triggerManualEffect(playerId, effectType);
 
     const afterState = this.stateService.getGameState();
     const afterPlayer = afterState.players.find(p => p.id === playerId)!;
+    const afterScope = this.gameRulesService.calculateProjectScope(playerId);
+    const afterSnapshot = buildResourceSnapshot(afterPlayer, afterScope);
 
     // Parse effectType - might be compound like "cards:draw_b" or simple like "money"
     const [baseType, action] = effectType.includes(':') ? effectType.split(':') : [effectType, null];
@@ -1335,7 +1342,9 @@ export class TurnService implements ITurnService {
             estimatedDays: this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id).estimatedDays,
             progressPercent: 0,
             uniqueWorkTypes: 0
-          }
+          },
+          before: beforeSnapshot,
+          after: afterSnapshot
         };
       } else if (!handChanged) {
         // Action was marked complete but no cards changed - was impossible (e.g., no opponents)
@@ -1351,7 +1360,9 @@ export class TurnService implements ITurnService {
             estimatedDays: this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id).estimatedDays,
             progressPercent: 0,
             uniqueWorkTypes: 0
-          }
+          },
+          before: beforeSnapshot,
+          after: afterSnapshot
         };
       }
     }
@@ -1555,7 +1566,9 @@ export class TurnService implements ITurnService {
         estimatedDays: projectLengthInfo.estimatedDays,
         progressPercent,
         uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
-      }
+      },
+      before: beforeSnapshot,
+      after: afterSnapshot
     };
   }
 
@@ -1971,6 +1984,10 @@ export class TurnService implements ITurnService {
 
     // Calculate project scope from W cards (single source of truth)
     const projectScope = this.gameRulesService.calculateProjectScope(playerId);
+    // Snapshot the player's resource state BEFORE any funding changes so the
+    // result modal can render a before/after row. projectScope is already
+    // computed above; reuse it. afterSnapshot is captured at return time below.
+    const beforeSnapshot = buildResourceSnapshot(currentPlayer, projectScope);
 
     if (projectScope === 0) {
       console.error(`🚨 SCOPE BUG: Player ${currentPlayer.name} (${playerId}) at OWNER-FUND-INITIATION with 0 project scope. Hand: [${currentPlayer.hand.join(', ')}], W cards: ${currentPlayer.hand.filter(c => c.startsWith('W')).length}, activeCards: ${(currentPlayer.activeCards || []).length}`);
@@ -2045,6 +2062,9 @@ export class TurnService implements ITurnService {
         ? (totalDays / projectLengthInfo.estimatedDays) * 100
         : 0;
 
+      const afterPlayerForSnapshot = updatedPlayer || currentPlayer;
+      const afterScope = this.gameRulesService.calculateProjectScope(playerId);
+      const afterSnapshot = buildResourceSnapshot(afterPlayerForSnapshot, afterScope);
       return {
         diceValue: 0, // No actual dice roll
         spaceName: currentPlayer.currentSpace,
@@ -2058,7 +2078,9 @@ export class TurnService implements ITurnService {
           estimatedDays: projectLengthInfo.estimatedDays,
           progressPercent,
           uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
-        }
+        },
+        before: beforeSnapshot,
+        after: afterSnapshot
       };
 
     } catch (error) {

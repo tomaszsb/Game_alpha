@@ -436,6 +436,23 @@ export interface RollGroupResult {
   effectCount: number;
 }
 
+/**
+ * Snapshot of a player's resource state at a single moment. Used to render
+ * before/after comparisons inside the dice/manual-effect result modal so
+ * playtesters can see the exact deltas (money, scope, hand counts) without
+ * hunting through tabs. Playtest feedback 2026-05-15:
+ * feedback-1778864436652-7692dba5, feedback-1778864258379-5ce94e05.
+ */
+export interface ResourceSnapshot {
+  money: number;
+  projectScope: number;
+  timeSpent: number;
+  handCount: number;
+  cardCountsByType: {
+    W: number; B: number; E: number; I: number; L: number;
+  };
+}
+
 export interface TurnEffectResult {
   diceValue: number;
   spaceName: string;
@@ -452,4 +469,9 @@ export interface TurnEffectResult {
     progressPercent: number;   // Progress percentage (0-100)
     uniqueWorkTypes: number;   // Number of unique work types
   };
+  // Before/after snapshots for the modal's at-a-glance display. Optional
+  // because not every code path captures them (the early-return skip paths
+  // in triggerManualEffectWithFeedback omit them deliberately).
+  before?: ResourceSnapshot;
+  after?: ResourceSnapshot;
 }

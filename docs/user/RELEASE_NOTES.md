@@ -2,6 +2,30 @@
 
 ---
 
+## v2.64.3 — Before / after numbers inside the result modal (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** UX improvement (player-visible)
+
+The playtester asked to see what changed "at a glance" when getting a loan, drawing Work Packages, etc. The previous release switched the player panel to the matching tab, but the real ask was for the change to show **inside the result modal itself**. This release does that.
+
+### What Changed for Players
+
+- **The result modal now includes a "Before → After" block** showing the exact change to your money, project scope, time spent, and card counts — anything that moved. Looks like:
+
+  > Money            $1,000,000 → $1,400,000     +$400,000
+  > Project scope     $800,000 → $1,250,000      +$450,000
+  > Work Packages         2 → 5                  +3
+
+- Only fields that actually changed appear — info-only or movement-only modals stay clean. Gain numbers are green; scope/time changes are muted because going up isn't unambiguously good.
+
+### Under the Hood
+
+A small `ResourceSnapshot` is captured before and after every dice roll, manual action, and auto-funding event. The result modal diffs them and renders a tiny table of changed fields. No new server calls, no new state on the player record — just two read-once snapshots threaded through the existing result payload.
+
+---
+
 ## v2.64.2 — Two fixes from the afternoon playtest (May 15, 2026)
 
 **Release Date:** May 15, 2026

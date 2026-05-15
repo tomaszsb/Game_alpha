@@ -8,6 +8,7 @@ import { DiceResultEffect, TurnEffectResult, Player, GameState } from '../types/
 import { formatDiceRollFeedback } from '../utils/buttonFormatting';
 import { describeCardAction } from './DiceService';
 import { Effect } from '../types/EffectTypes';
+import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 
 /**
  * Interface for dice roll effects processing result
@@ -119,6 +120,10 @@ export class DiceRollProcessor {
       throw new Error(`Player ${playerId} not found`);
     }
 
+    // Snapshot BEFORE rolling so the modal can render before/after rows.
+    const beforeScope = this.gameRulesService.calculateProjectScope(playerId);
+    const beforeSnapshot = buildResourceSnapshot(currentPlayer, beforeScope);
+
     // Roll dice
     const diceRoll = this.rollDice();
     this.lastRollGroups = undefined;
@@ -149,7 +154,7 @@ export class DiceRollProcessor {
     const canReRoll = currentPlayer.turnModifiers?.canReRoll || false;
 
     // Calculate project time info for the modal
-    const result = this.buildTurnEffectResult(currentPlayer, diceRoll, effects, summary, hasChoices, canReRoll);
+    const result = this.buildTurnEffectResult(currentPlayer, diceRoll, effects, summary, hasChoices, canReRoll, beforeSnapshot);
     result.rollGroups = this.lastRollGroups;
 
     debugLog(`🎲 ROLL_DICE_FEEDBACK: ========== END ==========`);
@@ -169,6 +174,10 @@ export class DiceRollProcessor {
     if (!currentPlayer.turnModifiers?.canReRoll) {
       throw new Error(`Player ${playerId} does not have re-roll ability`);
     }
+
+    // Capture BEFORE snapshot prior to mutating state for the re-roll.
+    const beforeScope = this.gameRulesService.calculateProjectScope(playerId);
+    const beforeSnapshot = buildResourceSnapshot(currentPlayer, beforeScope);
 
     // Consume the re-roll ability
     this.stateService.updatePlayer({
@@ -194,7 +203,7 @@ export class DiceRollProcessor {
     const summary = this.generateEffectSummary(effects, newDiceRoll, storyText);
     const hasChoices = effects.some(effect => effect.type === 'choice');
 
-    return this.buildTurnEffectResult(currentPlayer, newDiceRoll, effects, summary, hasChoices, false);
+    return this.buildTurnEffectResult(currentPlayer, newDiceRoll, effects, summary, hasChoices, false, beforeSnapshot);
   }
 
   /**
@@ -206,7 +215,8 @@ export class DiceRollProcessor {
     effects: DiceResultEffect[],
     summary: string,
     hasChoices: boolean,
-    canReRoll: boolean
+    canReRoll: boolean,
+    beforeSnapshot?: import('../types/StateTypes').ResourceSnapshot
   ): TurnEffectResult {
     const timeEffect = effects.find(e => e.type === 'time');
     const actionDays = timeEffect?.value || 0;
@@ -216,6 +226,11 @@ export class DiceRollProcessor {
     const progressPercent = projectLengthInfo.estimatedDays > 0
       ? (totalDays / projectLengthInfo.estimatedDays) * 100
       : 0;
+
+    // After-snapshot reads live state (which reflects all applied effects).
+    const afterScope = this.gameRulesService.calculateProjectScope(currentPlayer.id);
+    const afterPlayerForSnapshot = updatedPlayer || currentPlayer;
+    const afterSnapshot = buildResourceSnapshot(afterPlayerForSnapshot, afterScope);
 
     return {
       diceValue,
@@ -230,7 +245,9 @@ export class DiceRollProcessor {
         estimatedDays: projectLengthInfo.estimatedDays,
         progressPercent,
         uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
-      }
+      },
+      before: beforeSnapshot,
+      after: afterSnapshot
     };
   }
 

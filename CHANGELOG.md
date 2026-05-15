@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.3] - 2026-05-15
+
+### At-a-glance Step 2 — explicit before/after inside the result modal
+
+In v2.64.2 I built Step 1 (auto-switch the panel tab when a result modal opens) but misread the playtester's original suggestion. They wanted the **tab content rendered inside the modal** with explicit before/after — not the panel auto-switching below. This release ships the real version.
+
+**[src/types/StateTypes.ts](src/types/StateTypes.ts)** — new `ResourceSnapshot` interface (money, projectScope, timeSpent, handCount, cardCountsByType for W/B/E/I/L). `TurnEffectResult` now carries optional `before` and `after` snapshots.
+
+**[src/utils/resourceSnapshot.ts](src/utils/resourceSnapshot.ts)** — new pure helper `buildResourceSnapshot(player, projectScope)`. Projectscope is passed in (not pulled live) so the caller can capture the "before" value before applying an effect and the "after" value after — `GameRulesService.calculateProjectScope` reads live state and would otherwise return the post-effect value both times.
+
+**[src/components/modals/shared/BeforeAfterBlock.tsx](src/components/modals/shared/BeforeAfterBlock.tsx)** — new small component. Diffs the two snapshots and renders one row per changed field as a "label → before → after → delta" table:
+
+```
+Money               $1,000,000  →  $1,400,000   +$400,000
+Project scope         $800,000  →  $1,250,000   +$450,000
+Work Packages           2 W       →  5 W           +3
+```
+
+Gain deltas in green; neutral deltas (scope, time) in muted text — scope going up isn't unambiguously "good news," it's "more work taken on."
+
+**[src/services/TurnService.ts](src/services/TurnService.ts) + [src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts)** — all four code paths that build a `TurnEffectResult` now capture before/after:
+- `TurnService.triggerManualEffectWithFeedback` (3 return sites: skip, impossible, success).
+- `TurnService.handleAutomaticFunding`.
+- `DiceRollProcessor.rollDiceWithFeedback`.
+- `DiceRollProcessor.rerollDice`.
+
+Each captures `beforeScope` before the effect is applied (because the calc reads live state), then `afterScope` after. The helper builds both snapshots from `(player, scope)` pairs.
+
+**[src/components/modals/DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx)** — `<BeforeAfterBlock>` rendered just below the "Effects Applied" list. Returns null if no fields changed, so info-only / choice-only modals are unaffected.
+
+**Tests:** [tests/utils/resourceSnapshot.test.ts](tests/utils/resourceSnapshot.test.ts) — 5 cases (empty hand, first-letter counting, full ID format, defensive unknown letters, case-insensitivity). All 85 tests across the affected paths green.
+
+The v2.64.2 panel-tab auto-switch is kept — it's still useful even with the in-modal display, since once the player dismisses the modal they're already on the relevant tab if they want more detail. No-op cost if redundant.
+
 ## [2.64.2] - 2026-05-15
 
 Two playtester reports from the 16:46–17:30 batch addressed together:
