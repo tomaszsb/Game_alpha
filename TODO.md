@@ -129,7 +129,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🧪 **Testing follow-ups** (May 12, 2026)
+## 🧪 **Testing follow-ups** (May 12-15, 2026)
+
+- [ ] **Ghost try-again-happy variant at the 90% boundary** — strict variant passes comfortably at ~94% wins, but try-again-happy (20% Try Again probability) lands at 88% on a bad-luck run (44/50). 0 hard failures both variants. Right fix is (a) lower the try-again-happy threshold to 85% — explicit asymmetry between strict and stress variants — or (b) seed `Math.random` in `playOneGame` so both variants are deterministic and re-tune. Touches `tests/ghost/ghostPlayer.test.ts`.
+
+
 
 *From `/koniec` pre-flight on v2.63.4. The two pre-existing failures predate today's work and aren't blockers, just stale assertions to clean up.*
 
