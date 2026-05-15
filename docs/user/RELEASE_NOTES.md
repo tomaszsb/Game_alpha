@@ -2,6 +2,24 @@
 
 ---
 
+## v2.64.4 — Swap actions now show in the before/after block (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** Hotfix (player-visible)
+
+After deploying v2.64.3 you reported that swapping an Expeditor doesn't show before/after. Correct — a swap trades one card for another, so the count was unchanged and the block stayed empty.
+
+### What Changed for Players
+
+- **Swap (replace) actions now appear in the before/after block** with an explicit "↔ 1 swapped" indicator:
+
+  > Expeditors   3 E → 3 E   ↔ 1 swapped
+
+The count stays the same on both sides (because that's the truth), and the delta column makes clear that a swap happened. Same treatment will fire for Work Package swaps, Bank Loan refinances, or any other replace-style action.
+
+---
+
 ## v2.64.3 — Before / after numbers inside the result modal (May 15, 2026)
 
 **Release Date:** May 15, 2026

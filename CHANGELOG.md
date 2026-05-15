@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.4] - 2026-05-15
+
+### Before/after block now renders for swap actions (zero net delta)
+
+User report after deploying v2.64.3: "swap expeditor modal does not show before and after."
+
+Root cause: a swap/replace action trades one card for another, so the net count is unchanged (3 Expeditors before, 3 Expeditors after). [BeforeAfterBlock](src/components/modals/shared/BeforeAfterBlock.tsx) was correctly returning no row for that card type because no field changed — but for the player, **something did happen** and the block looked broken.
+
+Fix: pass `result.effects` to `BeforeAfterBlock` so it can detect replace actions and render a row even with zero net delta, marked with a swap indicator:
+
+```
+Expeditors   3 E  →  3 E   ↔ 1 swapped
+```
+
+Pure swaps render in the same neutral-color text as scope/time changes (not green) — it's a sideways move, not a gain. Counts that DO change still render with the existing +N / −N green/red treatment.
+
+Implementation: `BeforeAfterBlockProps` gains optional `effects?: DiceResultEffect[]`. `buildRows` scans the effects for `cardAction === 'replace'`, builds a per-type swap-count map, and ensures any type with non-zero swaps appears in the output even when count is unchanged. Pre-existing behavior (draw / remove / give / return) is untouched — those already change net counts, which trigger the original code path.
+
+No new tests added — the existing `resourceSnapshot.test.ts` covers the snapshot side; the replace-action render path is the swap-display branch in the existing rows logic, which is shallow enough that a manual playtest on a swap-expeditor space (e.g. PM-DECISION-CHECK Subsequent, ARCH-FEE-REVIEW) verifies the fix end-to-end.
+
+Tests: 73 across affected paths green. Typecheck clean.
+
 ## [2.64.3] - 2026-05-15
 
 ### At-a-glance Step 2 — explicit before/after inside the result modal

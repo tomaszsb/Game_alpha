@@ -379,7 +379,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       {/* Before / after snapshot — shows the exact resource deltas (money,
        * scope, time, hand counts) so playtesters don't have to dismiss the
        * modal and hunt through tabs. Renders nothing if no field changed. */}
-      <BeforeAfterBlock before={result.before} after={result.after} />
+      <BeforeAfterBlock before={result.before} after={result.after} effects={result.effects} />
 
       {/* Phase 4: Optional footer summary from ModalConfig.modal_summary */}
       {overrideFooterSummary && (

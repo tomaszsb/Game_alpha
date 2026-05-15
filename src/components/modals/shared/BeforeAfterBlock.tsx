@@ -9,11 +9,18 @@ import React from 'react';
 import { colors, theme } from '../../../styles/theme';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { getCardTypeName } from '../../../utils/cardTypeNames';
-import type { ResourceSnapshot } from '../../../types/StateTypes';
+import type { ResourceSnapshot, DiceResultEffect } from '../../../types/StateTypes';
 
 interface BeforeAfterBlockProps {
   before: ResourceSnapshot | undefined;
   after: ResourceSnapshot | undefined;
+  /**
+   * Optional effects payload. Used to surface card-type rows that have
+   * zero net count delta but still represented a real change — most
+   * importantly `replace` / swap actions, which net to 0 (one Expeditor
+   * out, one in). Without this, a swap modal would show no row at all.
+   */
+  effects?: DiceResultEffect[];
 }
 
 interface DiffRow {
@@ -40,7 +47,11 @@ function formatCount(n: number, type: 'W' | 'B' | 'E' | 'I' | 'L'): string {
   return `${n} ${getCardTypeName(type, n)}`;
 }
 
-function buildRows(before: ResourceSnapshot, after: ResourceSnapshot): DiffRow[] {
+function buildRows(
+  before: ResourceSnapshot,
+  after: ResourceSnapshot,
+  effects: DiceResultEffect[] | undefined,
+): DiffRow[] {
   const rows: DiffRow[] = [];
 
   if (before.money !== after.money) {
@@ -80,27 +91,51 @@ function buildRows(before: ResourceSnapshot, after: ResourceSnapshot): DiffRow[]
     });
   }
 
+  // Build a swap-count map from effects so card-type rows can be rendered
+  // even when net count is unchanged (replace/swap actions: 1 out, 1 in).
+  const swapsByType: Record<string, number> = {};
+  if (effects) {
+    for (const eff of effects) {
+      if (eff.type !== 'cards') continue;
+      if (eff.cardAction !== 'replace') continue;
+      const t = (eff.cardType || '').toUpperCase();
+      if (t === 'W' || t === 'B' || t === 'E' || t === 'I' || t === 'L') {
+        swapsByType[t] = (swapsByType[t] || 0) + (eff.cardCount || 1);
+      }
+    }
+  }
+
   const types: Array<'W' | 'B' | 'E' | 'I' | 'L'> = ['W', 'B', 'E', 'I', 'L'];
   for (const t of types) {
     const b = before.cardCountsByType[t];
     const a = after.cardCountsByType[t];
-    if (b === a) continue;
+    const swapped = swapsByType[t] || 0;
+    if (b === a && swapped === 0) continue;
     const delta = a - b;
+    let deltaText: string;
+    let isGain = false;
+    if (b === a && swapped > 0) {
+      // Pure swap — no net change in count, but cards changed identity.
+      deltaText = `↔ ${swapped} swapped`;
+    } else {
+      deltaText = `${delta >= 0 ? '+' : '−'}${Math.abs(delta)}`;
+      isGain = delta > 0;
+    }
     rows.push({
       label: getCardTypeName(t, 2), // plural-friendly heading
       beforeText: formatCount(b, t),
       afterText: formatCount(a, t),
-      deltaText: `${delta >= 0 ? '+' : '−'}${Math.abs(delta)}`,
-      isGain: delta > 0,
+      deltaText,
+      isGain,
     });
   }
 
   return rows;
 }
 
-export function BeforeAfterBlock({ before, after }: BeforeAfterBlockProps): JSX.Element | null {
+export function BeforeAfterBlock({ before, after, effects }: BeforeAfterBlockProps): JSX.Element | null {
   if (!before || !after) return null;
-  const rows = buildRows(before, after);
+  const rows = buildRows(before, after, effects);
   if (rows.length === 0) return null;
 
   return (
