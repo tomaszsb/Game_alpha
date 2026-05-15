@@ -2,6 +2,31 @@
 
 ---
 
+## v2.63.6 — Voice sweep: more "cards" language cleaned up (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** UX polish + voice fixes (player-visible)
+
+Three reports landed on 2026-05-13 about residual game-language in modals and a player-panel action counter that was undercounting. This release closes them and several adjacent voice leaks found while investigating.
+
+### What Changed for Players
+
+- **Action counter matches what you actually need to do.** On a space where you have a destination to pick *and* an action to take (e.g. hire an expeditor), the "📋 YOUR ACTIONS" header used to say "(1 remaining)" because it forgot to count the movement choice. It now correctly counts both.
+- **Dice-result lines no longer say "Drew 3 Work cards".** When you roll dice that draw cards, the secondary line under the colored amount used to read "Drew 3 Work cards" / "Removed 2 Bank Loan cards" — using deck verbs (drew/removed) and the word "cards" that the rest of the UI worked hard to remove. They now read "Took on 3 Work Packages" / "Repaid 2 Bank Loans" — per-type real-life verbs: work packages are taken on or dropped, bank loans are secured or repaid, expeditors are hired or released, investments are secured or bought out, life events hit or are resolved.
+- **Tooltip text uses real-life voice.** Hovering over action buttons used to show explanations like "Your project scope is defined by Work cards. Drawing W cards adds tasks…" or "Each W card adds…". These now read "defined by Work Packages. Adding Work Packages brings new tasks…" / "Each Work Package adds…". Nine tooltip rows in total were rewritten.
+- **Educational selection modal cleaned up.** The "Select Starting Resources" modal (educational/pre-select-hand mode) had tabs "W Cards" / "E Cards" and a dropdown saying "All Work Types (N cards)" with the hint "Click a card to see details". These now read "Work Packages" / "Expeditors" / "(N)" / "Click a resource to see details".
+- **Finances panel — "Miscellaneous funding (cards, …)" → "(resources, …)".**
+- **Scope-zero error message in real-life voice.** If you ever hit the rare scope-zero guard error ("You must draw Work cards before leaving this space"), it now reads "Your project needs scope — add at least N Work Package(s) before leaving this space" with the actual required count.
+
+### Under the Hood
+
+The codebase had four separate places maintaining card-type-name mappings (some short like "Work", some long like "Work Package"). Consolidated into a single canonical helper that reads from the theme — easier to keep consistent going forward. No user-visible effect besides making the names match everywhere.
+
+v2.63.7 and v2.63.8 (same day) are test-infrastructure fixes — no player-visible changes — getting the Ghost Player regression bot back to ≥90% wins.
+
+---
+
 ## v2.63.4 — Hotfix: Start Game button works again (May 12, 2026)
 
 **Release Date:** May 12, 2026

@@ -1,12 +1,12 @@
 # Project Status
 
-**Last Updated:** May 12, 2026
+**Last Updated:** May 15, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.63.4 (master HEAD; v2.63.3 is the latest deployed; v2.63.4 is committed and pending deploy)
+**Current Version:** 2.63.8 (pending deploy; bundle `services-BYhTX-Y-.js`)
 
 ## Where We Are
 
-The game is live at `https://game.unravelcodes.com`. The Beta regression gates (Ghost Player + test suite + typecheck) are in place and have caught real regressions — including this week's v2.63.3 Start Game regression, hotfixed in v2.63.4. Workstream 6 (engine-data separation) closed Apr 29, 2026 with v2.58.0. Voice rewrite Pass 1 shipped May 6 (v2.60.0). Workstream 3 (Living Map) Phase A foundation shipped May 8 (v2.62.0); Phase B (BoardCanvas via React Flow, feature-flagged) shipped across v2.63.0–v2.63.3.
+The game is live at `https://game.unravelcodes.com`. The Beta regression gates (Ghost Player + test suite + typecheck) are in place and have caught real regressions — including the v2.63.3 Start Game regression, hotfixed in v2.63.4 and deployed alongside v2.63.5 on May 14. Workstream 6 (engine-data separation) closed Apr 29, 2026 with v2.58.0. Voice rewrite Pass 1 shipped May 6 (v2.60.0). Workstream 3 (Living Map) Phase A foundation shipped May 8 (v2.62.0); Phase B (BoardCanvas via React Flow, feature-flagged) shipped across v2.63.0–v2.63.3. v2.63.5 added `GET /api/public/feedback/open` so the `/start` slash command pulls fresh player feedback at session start and proposes TODO.md reconciliation. v2.63.6–v2.63.8 (May 15) shipped a voice sweep + card-name source-of-truth consolidation, then restored the Ghost Player strict gate to 50 games × ≥90% wins via cancellation-aware abort + forward-bias bot heuristic.
 
 ## What's Open
 

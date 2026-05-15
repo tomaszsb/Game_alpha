@@ -351,11 +351,15 @@ will regenerate. The override chain:
 | Manual **dice** action button label ("Get Work Packages") | `formatManualEffectButton` dice branch — maps `effect_value` ("W Cards", "Fees Paid", "Time outcomes", "Quality", "Multiplier", "Next Step") → DICE_BUTTON constants | `src/utils/buttonFormatting.ts` |
 | Contextual dice button on movement spaces | `formatDiceRollButton` | `src/utils/buttonFormatting.ts` |
 | All dice button strings (single source) | `DICE_BUTTON` object | `src/constants/uiStrings.ts` |
-| Dice result modal card chips ("Work Package", "Bank Loan", "Expeditor", "Life Event", "Investment") | `friendlyCardTypeNames` local map | `src/components/modals/DiceResultModal.tsx` |
-| Outcome banner strings ("Got 3 Work Packages") | `getCardTypeName` helper feeding `formatDiceRollFeedback` / `formatActionFeedback` | `src/utils/buttonFormatting.ts` |
+| **Canonical card-type name accessor** (single source of truth) | `getCardTypeName(type, count?)` | `src/utils/cardTypeNames.ts` |
+| Underlying labels the helper reads | `colors.game.cardTypes[X].label` | `src/styles/theme.ts` |
+| Dice result modal card chips / formattedValue | Uses canonical `getCardTypeName` (no local map) | `src/components/modals/DiceResultModal.tsx` |
+| Dice result modal secondary `effect.description` ("Took on 3 Work Packages", "Repaid 2 Bank Loans") | `describeCardAction(action, cardType, count)` — per-type verb table × W/B/E/I/L | `src/services/DiceService.ts` (called from `DiceRollProcessor.ts`) |
+| Outcome banner strings ("Got 3 Work Packages") | `formatDiceRollFeedback` / `formatActionFeedback` (both import canonical helper) | `src/utils/buttonFormatting.ts` |
+| Tooltip-why / tooltip-context strings on action buttons | `tooltip_why` / `tooltip_context` columns | `public/data/CLEAN_FILES/ACTION_TOOLTIPS.csv` (single source — no SOURCE_FILES counterpart) |
 | In-flight verb ("🎲 Deciding…" not "🎲 Rolling…") | Inline string | `src/components/player/ActionCenterPanel.tsx` |
 
-**Friendly card-type name canon** (use everywhere): W → "Work Package", B → "Bank Loan", E → "Expeditor", I → "Investment", L → "Life Event". Never surface the letter or the word "card" to players.
+**Friendly card-type name canon** (use everywhere): W → "Work Package", B → "Bank Loan", E → "Expeditor", I → "Investment", L → "Life Event". Never surface the letter or the word "card" to players. As of v2.63.6 these all flow from one place (`theme.ts` labels → `getCardTypeName`); when adding a new place that names a card type, import the helper instead of inlining the string.
 
 ### SPACE_EFFECTS.csv column schema (frequently misread)
 
@@ -405,9 +409,40 @@ When the user reports "I don't see X" after I shipped, **always** check whether 
 
 This caught two false-alarm regressions in past sessions.
 
+### jsdom `window.location` mocking — use the forks pool
+
+jsdom in the `vmThreads` pool makes `window.location` non-configurable. Test code that tries to mock it (`Object.defineProperty(window, 'location', …)`, even property-level `Object.defineProperty(window.location, 'origin', …)`, `vi.spyOn` on the prototype getter, or `delete window.location`) all fail with `Cannot redefine property: location` / `Cannot delete property location`. There is no test-side workaround.
+
+The fix is a vitest config change: add the test file path to the `forksFiles` array in `vitest.config.ts`. The `forks` pool runs each test in a fresh Node child process where `window.location` can be redefined. Existing entries: `networkDetection.test.ts`, `dictionaryBridge.test.ts`, `dictionaryBridge_embedded.test.ts`, `EndGameModal.test.tsx`, `dictionary/terms.test.ts`.
+
+### Ghost player batch — cancellation-aware abort + forward-bias heuristic
+
+Two patterns sit together because both shipped in v2.63.7+v2.63.8 to keep the strict 50-game gate green.
+
+**Cancellation:** A naive `Promise.race([playOneGame, setTimeout])` doesn't actually stop the stuck game — race resolves but `playOneGame` keeps running and starves the next iterations. Real fix is `AbortSignal` threaded through `playOneGame` and its inner helpers (`resolveAnyPendingChoice`, `triggerManualSpaceEffects`); every yield point checks `signal?.aborted` and returns early. The inner `Promise.race` that wraps `triggerManualEffect` also races the signal — with explicit `removeEventListener` in `finally` (otherwise listeners accumulate per-effect per-turn → `MaxListenersExceededWarning` at 11+). `runGhostBatch` creates one `AbortController` per game with a 30s `setTimeout(controller.abort, …)`.
+
+**Forward-bias:** Pure random destination picks loop indefinitely at resume hubs (`PM-DECISION-CHECK`, OWNER phase). `pickDestination` in `tests/ghost/ghostPlayer.ts` filters destinations to those whose `GAME_CONFIG.csv` phase ≥ current phase (using `PHASE_ORDER` map `SETUP=0 < OWNER=1 < FUNDING=2 < DESIGN=3 < REGULATORY=4 < CONSTRUCTION=5 < END=6`), then picks the least-visited candidate from that pool (ties random). Visit counts are tracked in a per-game `Map<string, number>`. Falls back to all destinations if no forward option exists. Restored win rate from ~70% to ~93% over 50 games.
+
+Neither pattern touches production game logic — both are local to the test bot.
+
 ### Deploy command
 
-User runs deploy from a **regular Windows terminal**, not WSL — the `unraid` ssh alias is in their Windows ssh config, not the WSL one. CLAUDE.md's `ssh unraid "..."` snippet works only after the alias is replicated to `~/.ssh/config` in WSL. Don't rerun deploy on the user's behalf — produce the command for them to copy.
+User runs deploy from a **regular Windows terminal**, not WSL — the `unraid` ssh alias is in their Windows ssh config, not the WSL one (and not Git Bash's `~/.ssh/config` either, which is what Claude Code's shell sees). CLAUDE.md's `ssh unraid "..."` snippet works only after the alias is replicated to `~/.ssh/config` in Git Bash. Don't rerun deploy on the user's behalf — produce the command for them to copy. `git push` over HTTPS does work from Claude Code; only the ssh leg is the blocker.
+
+### WebFetch is blocked by Cloudflare on game/dashboard.unravelcodes.com
+
+Both `game.unravelcodes.com` and `dashboard.unravelcodes.com` are fronted by Cloudflare which rejects the WebFetch User-Agent with HTTP 403, even on truly public endpoints. **Use `curl --max-time 10` from Bash instead** — works fine, same payload. Pattern for `/start`-style probes:
+
+```
+TOKEN=$(grep '^FEEDBACK_TOKEN=' .env | cut -d= -f2)
+curl -sS --max-time 10 -w "[HTTP %{http_code}]" "https://game.unravelcodes.com/api/public/feedback/open?token=$TOKEN"
+```
+
+For JSON parsing, pipe through `python -c "import sys,json; ..."` — `jq` is not always installed in Git Bash. Never put tokens directly in echoed URLs; assign to `$TOKEN` first so they don't show up in chat.
+
+### Dashboard is a proxy, not a store
+
+`dashboard.unravelcodes.com` (source at `D:\Unravel\dictionary-scraper`, Next.js + FastAPI Docker stack on Unraid) is a UI wrapper. Its `GET /api/feedback` forwards to `https://game.unravelcodes.com/api/feedback`. **The game server in this repo is the source of truth for feedback data.** To read feedback programmatically, hit the game server directly — use the v2.63.5 `GET /api/public/feedback/open?token=…` endpoint, not the OAuth-gated dashboard.
 
 ### Voice-leak audit — fast triage query
 
@@ -432,5 +467,5 @@ Filter out internal CSS class names (`card-*`), code variables (`drawCards`), JS
 
 ---
 
-**Last Updated:** May 12, 2026
-**Charter Version:** 3.6 (Beta-live + tactical-patterns section)
+**Last Updated:** May 15, 2026
+**Charter Version:** 3.7 (Beta-live + tactical-patterns + card-name canonical helper + jsdom/ghost patterns)
