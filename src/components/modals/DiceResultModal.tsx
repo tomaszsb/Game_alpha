@@ -97,6 +97,13 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
   };
 
   const renderEffect = (effect: DiceResultEffect, index: number) => {
+    // Suppress 'choice' effects ("🎯 Choose your next destination"). The
+    // destination picker is already prominent in the player panel below
+    // the modal, and the modal copy should stay focused on what just
+    // happened (the card draw / money / time), not on what's next.
+    // Playtest 2026-05-15: feedback-1778872922892-6ec5c01f — "why does it
+    // talk about next destination? it should be all about work not place?"
+    if (effect.type === 'choice') return null;
     const icon = getEffectIcon(effect.type);
     let effectColor = getEffectColor(effect.type);
 

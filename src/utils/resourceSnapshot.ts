@@ -13,22 +13,33 @@ import type { Player, ResourceSnapshot } from '../types/StateTypes';
 
 export function buildResourceSnapshot(player: Player, projectScope: number): ResourceSnapshot {
   const hand = player.hand || [];
+  const activeCards = player.activeCards || [];
   const cardCountsByType: ResourceSnapshot['cardCountsByType'] = {
     W: 0, B: 0, E: 0, I: 0, L: 0,
   };
   // Card IDs follow the convention <type-letter><digits>_<seed>_<batch>_<index>
   // (e.g. "W001_123_abc_0", "E024_456_xyz_2"). First letter is the type.
-  for (const cardId of hand) {
+  //
+  // Both hand AND activeCards count — funding cards (B = Bank Loans, I =
+  // Investments) auto-play at the funding spaces and move from hand to
+  // activeCards, which means a "before snapshot from hand only" would
+  // show 0 → 0 even though the card was drawn. Counting both surfaces
+  // the change in the before/after block. (Playtest 2026-05-15
+  // feedback-1778873006001-11c72bd4 — "shows time changed but does not
+  // show before and after" was actually about the missing Investment row.)
+  const addType = (cardId: string) => {
     const t = cardId.charAt(0).toUpperCase();
     if (t === 'W' || t === 'B' || t === 'E' || t === 'I' || t === 'L') {
       cardCountsByType[t]++;
     }
-  }
+  };
+  for (const cardId of hand) addType(cardId);
+  for (const active of activeCards) addType(active.cardId);
   return {
     money: player.money,
     projectScope,
     timeSpent: player.timeSpent,
-    handCount: hand.length,
+    handCount: hand.length + activeCards.length,
     cardCountsByType,
   };
 }

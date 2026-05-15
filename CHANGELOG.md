@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.6] - 2026-05-15
+
+Two fixes from the v2.64.5 playtest, both diagnosed from screenshots attached to the feedback reports (pulled via `/api/feedback/:id.json` which includes the base64 screenshot).
+
+### 1. "Next destination" line removed from card-result modals
+
+`feedback-1778872922892-6ec5c01f`: "work modal review — why does it talk about next destination? it should be all about work not place?"
+
+Screenshot showed the LEND-SCOPE-CHECK "I'm flipping through your plan" modal listing three effect rows: "+1 Work Package", the card narrative, and **"🎯 Choose your next destination"**. The destination picker is already prominent in the player panel below the modal (the "CHOOSE YOUR DESTINATION · BANK-FUND-REVIEW / INVESTOR-FUND-REVIEW" buttons), so the modal row is pure noise.
+
+Fix: [src/components/modals/DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx) — `renderEffect` returns `null` for `effect.type === 'choice'`. The destination picker keeps working through the panel; only the redundant modal row disappears.
+
+### 2. Investment / Bank Loan cards now show up in the before/after block
+
+`feedback-1778873006001-11c72bd4`: "modal review — this one shows time changed but does not show before and after?"
+
+Screenshot showed the INVESTOR-FUND-REVIEW "The committee will hear you out" modal: Effects Applied listed "+1 Investment" and "+30 days", but the Before/After block only had Money and Project time rows — no Investments row. The user expected the Investment count to appear the way Work Packages did in their earlier modal.
+
+Root cause: Funding cards (B = Bank Loans, I = Investments) auto-play at funding spaces — they move from `player.hand` to `player.activeCards` immediately. `buildResourceSnapshot` was counting only `hand`, so before/after both showed 0 for I, and no row rendered.
+
+Fix: [src/utils/resourceSnapshot.ts](src/utils/resourceSnapshot.ts) — `buildResourceSnapshot` now iterates `player.activeCards` in addition to `player.hand` when counting `cardCountsByType` and `handCount`. Card IDs in both stores follow the same first-letter convention, so the existing classification logic applies cleanly. Updated [tests/utils/resourceSnapshot.test.ts](tests/utils/resourceSnapshot.test.ts) with 2 new cases (active-cards counted alongside hand, empty-activeCards graceful path).
+
+Tests: 74 across affected paths green. Typecheck clean.
+
 ## [2.64.5] - 2026-05-15
 
 ### Time cost surfaced on the space header

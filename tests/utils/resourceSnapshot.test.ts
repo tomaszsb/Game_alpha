@@ -65,4 +65,29 @@ describe('buildResourceSnapshot', () => {
     const snap = buildResourceSnapshot(makePlayer({ hand: ['w001', 'e002'] }), 0);
     expect(snap.cardCountsByType).toEqual({ W: 1, B: 0, E: 1, I: 0, L: 0 });
   });
+
+  it('counts active cards alongside hand cards', () => {
+    // Funding cards (B / I) auto-play at funding spaces and move from hand
+    // to activeCards. Snapshot must count both so before/after surfaces
+    // the change.
+    const snap = buildResourceSnapshot(
+      makePlayer({
+        hand: ['W001', 'E002'],
+        activeCards: [
+          { cardId: 'I003', expirationTurn: 5 },
+          { cardId: 'I004', expirationTurn: 6 },
+          { cardId: 'B005', expirationTurn: 4 },
+        ],
+      }),
+      0,
+    );
+    expect(snap.handCount).toBe(5); // 2 in hand + 3 active
+    expect(snap.cardCountsByType).toEqual({ W: 1, B: 1, E: 1, I: 2, L: 0 });
+  });
+
+  it('handles empty activeCards gracefully', () => {
+    const snap = buildResourceSnapshot(makePlayer({ hand: ['W001'], activeCards: [] }), 0);
+    expect(snap.cardCountsByType.W).toBe(1);
+    expect(snap.cardCountsByType.I).toBe(0);
+  });
 });

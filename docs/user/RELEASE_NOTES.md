@@ -2,6 +2,19 @@
 
 ---
 
+## v2.64.6 — Two playtester-driven modal fixes (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** UX fixes (player-visible)
+
+### What Changed for Players
+
+- **Result modals no longer say "🎯 Choose your next destination."** That line was redundant noise on a modal whose focus was the card you just drew. The destination picker has always been (and remains) in the player panel directly below the modal — no information was lost, just decluttering.
+- **Investment and Bank Loan changes now appear in the Before → After block.** Earlier, drawing a Work Package showed up in the block, but securing an Investment didn't — because funding cards move out of your hand and into your active deck immediately, and the snapshot was only counting hand cards. Fixed. You'll now see rows like `Investments 0 → 1   +1` next to the Money and Time deltas.
+
+---
+
 ## v2.64.5 — Time cost shows on every space header (May 15, 2026)
 
 **Release Date:** May 15, 2026
