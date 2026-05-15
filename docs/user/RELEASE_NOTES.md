@@ -2,6 +2,24 @@
 
 ---
 
+## v2.64.1 — Hotfix: "Return 1 RETURN_E" button now reads "Expeditor Left" (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** Voice fix (player-visible, hotfix)
+
+A playtester flagged the same issue twice within 20 minutes after the morning deploy: one of the action buttons on CHEAT-BYPASS read "Return 1 RETURN_E" — leftover developer language that the v2.63.9 voice sweep didn't catch. This release fixes it.
+
+### What Changed for Players
+
+- **Cheat-space button now reads "Expeditor Left"** (or "Lose 2 Expeditors" etc. for higher counts) instead of "Return 1 RETURN_E". Same fix applies to ARCH-FEE-REVIEW, LEND-SCOPE-CHECK, BANK-FUND-REVIEW, and CON-INSPECT — all the spaces that use this action.
+
+### Under the Hood
+
+Tiny fix: the button-label generator had cases for `draw_`/`replace_`/`give_` but the `return_` case was missing, so `return_e` fell into the fallback path and printed the raw internal name. Added the missing case plus regression tests so this specific pattern can't recur.
+
+---
+
 ## v2.64.0 — Cleaner board: arrows route around spaces instead of through them (May 15, 2026)
 
 **Release Date:** May 15, 2026

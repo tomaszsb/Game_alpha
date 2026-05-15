@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.1] - 2026-05-15
+
+### Manual-effect button: "Return 1 RETURN_E" → "Expeditor Left"
+
+A playtester reported the same issue twice within 20 minutes (after the v2.63.9+v2.64.0 deploy):
+- `feedback-1778863570521-1c7c050c` — "button says return1 return_E - that makes no sense?"
+- `feedback-1778865475889-89d9f101` — "one button has return 1 return_E label" (on CHEAT-BYPASS)
+
+**[src/utils/buttonFormatting.ts:79-89](src/utils/buttonFormatting.ts:79)** — the prefix-extraction switch for card-action button labels handled `draw_`/`replace_`/`give_` but had no case for `return_`. For action `return_e`, `cardType` was set to the whole string `"RETURN_E"` instead of `"E"`, causing the `cardType === 'E'` branch (which has correct wording "Expeditor Left" / "Lose N Expeditors" at line 113-114) to miss, falling to the generic fallback `Return ${count} ${getCardTypeName('RETURN_E')}` → `"Return 1 RETURN_E"`.
+
+Fix: added the missing `return_` branch to the prefix switch (one paragraph of code). The downstream per-cardType branches already had the right wording — they just needed `cardType` to be correctly extracted.
+
+Same lesson as v2.63.9: voice fixes need to audit *every* code path that handles card actions, not just the one I happen to be looking at. Added regression tests at [tests/utils/buttonFormatting.test.ts](tests/utils/buttonFormatting.test.ts) covering single-form ("Expeditor Left"), plural-form ("Lose 2 Expeditors"), and a paranoid guard that the raw `return_` string can never leak into the button text.
+
+Data verified: only `return_e` is actually used (6 spaces — CHEAT-BYPASS, ARCH-FEE-REVIEW, LEND-SCOPE-CHECK, BANK-FUND-REVIEW, CON-INSPECT). Other card types never use `return_` actions.
+
 ## [2.64.0] - 2026-05-15
 
 ### A* edge routing on the board canvas (Workstream 3 Phase C)

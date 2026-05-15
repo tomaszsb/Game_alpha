@@ -82,6 +82,8 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
       cardType = effect.effect_action.replace(/^replace_/i, '').toUpperCase();
     } else if (actionLower.startsWith('give_')) {
       cardType = effect.effect_action.replace(/^give_/i, '').toUpperCase();
+    } else if (actionLower.startsWith('return_')) {
+      cardType = effect.effect_action.replace(/^return_/i, '').toUpperCase();
     } else {
       cardType = effect.effect_action.toUpperCase();
     }

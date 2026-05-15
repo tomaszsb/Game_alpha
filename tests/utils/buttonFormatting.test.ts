@@ -105,6 +105,63 @@ describe('buttonFormatting', () => {
       });
     });
 
+    // Regression: dashboard reports 2026-05-15
+    // feedback-1778863570521-1c7c050c + feedback-1778865475889-89d9f101 both
+    // flagged "button says return1 return_E - that makes no sense". The
+    // prefix-extraction switch was missing a return_ case, so cardType
+    // became "RETURN_E" and the cardType==='E' branch never matched.
+    it('should format return_e button as "Expeditor Left" for single', () => {
+      const effect: SpaceEffect = {
+        space_name: 'CHEAT-BYPASS',
+        visit_type: 'First',
+        effect_type: 'cards',
+        effect_action: 'return_e',
+        effect_value: 1,
+        condition: '',
+        description: 'Return 1 E cards'
+      };
+
+      const result = formatManualEffectButton(effect);
+      expect(result).toEqual({
+        text: 'Expeditor Left',
+        icon: '⚡'
+      });
+    });
+
+    it('should format return_e button as "Lose N Expeditors" for plural', () => {
+      const effect: SpaceEffect = {
+        space_name: 'CHEAT-BYPASS',
+        visit_type: 'First',
+        effect_type: 'cards',
+        effect_action: 'return_e',
+        effect_value: 2,
+        condition: '',
+        description: 'Return 2 E cards'
+      };
+
+      const result = formatManualEffectButton(effect);
+      expect(result).toEqual({
+        text: 'Lose 2 Expeditors',
+        icon: '⚡'
+      });
+    });
+
+    it('should never leak the raw action name into return-action button text', () => {
+      const effect: SpaceEffect = {
+        space_name: 'CHEAT-BYPASS',
+        visit_type: 'First',
+        effect_type: 'cards',
+        effect_action: 'return_e',
+        effect_value: 1,
+        condition: '',
+        description: ''
+      };
+
+      const result = formatManualEffectButton(effect);
+      expect(result.text).not.toMatch(/return_/i);
+      expect(result.text).not.toMatch(/RETURN_/);
+    });
+
     it('should format turn effect button with description', () => {
       const effect: SpaceEffect = {
         space_name: 'TEST_SPACE',
