@@ -54,6 +54,54 @@ export interface GhostGameOptions {
  * Returns a result object; never throws — all failures are captured in
  * `result.success === false` so batch runners can aggregate.
  */
+// Phase order for the bot's forward-bias heuristic. Higher = later in the
+// project lifecycle. PM-DECISION-CHECK (OWNER) is a resume hub reached from
+// multiple later phases; without a forward bias, the random-move bot loops
+// through it forever.
+const PHASE_ORDER: Record<string, number> = {
+  SETUP: 0,
+  OWNER: 1,
+  FUNDING: 2,
+  DESIGN: 3,
+  REGULATORY: 4,
+  CONSTRUCTION: 5,
+  END: 6,
+};
+
+function phaseOf(dataService: any, space: string): number {
+  const cfg = dataService.getGameConfigBySpace(space);
+  return PHASE_ORDER[cfg?.phase] ?? -1;
+}
+
+/**
+ * Pick a destination favoring forward progress + exploration:
+ *   1. Filter to destinations whose phase >= current phase (forward / same)
+ *   2. Among those (or all, if no forward options), pick the least-visited
+ *   3. Ties broken randomly
+ * Falls back to pure random only when phase data is missing.
+ */
+function pickDestination(
+  dataService: any,
+  destinations: string[],
+  currentSpace: string,
+  visitCounts: Map<string, number>
+): string {
+  if (destinations.length === 1) return destinations[0];
+  const currentPhase = phaseOf(dataService, currentSpace);
+  if (currentPhase < 0) {
+    return destinations[Math.floor(Math.random() * destinations.length)];
+  }
+  const forward = destinations.filter(d => phaseOf(dataService, d) >= currentPhase);
+  const pool = forward.length > 0 ? forward : destinations;
+  let minVisits = Infinity;
+  for (const d of pool) {
+    const v = visitCounts.get(d) ?? 0;
+    if (v < minVisits) minVisits = v;
+  }
+  const leastVisited = pool.filter(d => (visitCounts.get(d) ?? 0) === minVisits);
+  return leastVisited[Math.floor(Math.random() * leastVisited.length)];
+}
+
 export async function playOneGame(
   services: HeadlessServices,
   options: GhostGameOptions = {}
@@ -63,6 +111,7 @@ export async function playOneGame(
   const playerName = options.playerName ?? 'Ghost';
   const signal = options.signal;
   const trail: string[] = [];
+  const visitCounts = new Map<string, number>();
 
   const fail = (reason: GhostGameResult['reason'], error: string, turns: number): GhostGameResult => ({
     success: false,
@@ -100,6 +149,7 @@ export async function playOneGame(
       const wCards = p.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
       trail.push(`T${turn} ${p.currentSpace}:${p.visitType} hand=${p.hand?.length ?? 0}(W=${wCards}) $${p.money}`);
       if (options.verbose) console.log(`T${turn} @ ${p.currentSpace} (${p.visitType})`);
+      visitCounts.set(p.currentSpace, (visitCounts.get(p.currentSpace) ?? 0) + 1);
 
       // Check win condition
       if (stateService.getGameState().isGameOver) {
@@ -145,7 +195,7 @@ export async function playOneGame(
         if (dests.length === 0) {
           return fail('INVARIANT_VIOLATION', `Choice movement from ${refreshed.currentSpace} has no destinations`, turn);
         }
-        const pick = dests[Math.floor(Math.random() * dests.length)];
+        const pick = pickDestination(dataService, dests, refreshed.currentSpace, visitCounts);
         stateService.setPlayerMoveIntent(playerId, pick);
       } else if (movement?.movement_type === 'dice' || movement?.movement_type === 'dice_outcome') {
         // Dice-based movement: roll if not already rolled

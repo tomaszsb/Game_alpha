@@ -44,17 +44,12 @@ describe('Ghost Player', () => {
   // failures — those catch real bugs introduced by future changes and remain
   // the primary purpose of this gate.
   //
-  // Win-rate threshold tracks current bot behavior (was 0.9, observed ~0.6-0.7
-  // empirically when the cancellation-aware wall-clock cap was wired up — the
-  // random-move bot hits ~20% TURN_CAP, not the historical 4%). The right fix
-  // is bot-strategy improvement (TODO: Ghost Player Workstream 1.1). Until then,
-  // we keep this useful as a bug detector and accept the looser win-rate floor.
-  //
-  // Batch size dropped from 50 → 30 to fit comfortably in the test timeout
-  // given the observed ~17s/game average (30 × 17s ≈ 510s, with 30s per-game
-  // cancellation cap as upper bound).
-  it('strict: 30 games with no exceptions or invariants', async () => {
-    const batch = await runGhostBatch(30, { maxTurns: 300 });
+  // The bot uses a forward-bias + least-visited heuristic at choice-movement
+  // spaces (see pickDestination in ghostPlayer.ts). Without the heuristic the
+  // random-move bot looped at PM-DECISION-CHECK and won ~70%; with it, win
+  // rate is ~93% over 30 games and ~94% projected over 50.
+  it('strict: 50 games with no exceptions or invariants, ≥90% wins', async () => {
+    const batch = await runGhostBatch(50, { maxTurns: 300 });
 
     const hardFailures = batch.failures.filter(
       (f: GhostGameResult) => f.reason === 'EXCEPTION' || f.reason === 'INVARIANT_VIOLATION'
@@ -71,7 +66,7 @@ describe('Ghost Player', () => {
         .join('\n');
 
     expect(hardFailures, summary).toHaveLength(0);
-    expect(batch.wins, summary).toBeGreaterThanOrEqual(Math.floor(batch.total * 0.6));
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(Math.floor(batch.total * 0.9));
   }, 900000);
 
   // TRY-AGAIN-HAPPY VARIANT — same gate as strict, but every game aggressively
@@ -79,8 +74,8 @@ describe('Ghost Player', () => {
   // in Workstream 2 (snapshot Try Again). If snapshot restore leaks state (money
   // not reverted, cards not removed, etc.), accumulated drift over many retries
   // will crash or stall these games while the base strict test still passes.
-  it('try-again-happy: 30 games exercising Try Again, no exceptions', async () => {
-    const batch = await runGhostBatch(30, { maxTurns: 300, tryAgainProbability: 0.2 });
+  it('try-again-happy: 50 games exercising Try Again, no exceptions, ≥90% wins', async () => {
+    const batch = await runGhostBatch(50, { maxTurns: 300, tryAgainProbability: 0.2 });
 
     const hardFailures = batch.failures.filter(
       (f: GhostGameResult) => f.reason === 'EXCEPTION' || f.reason === 'INVARIANT_VIOLATION'
@@ -97,6 +92,6 @@ describe('Ghost Player', () => {
         .join('\n');
 
     expect(hardFailures, summary).toHaveLength(0);
-    expect(batch.wins, summary).toBeGreaterThanOrEqual(Math.floor(batch.total * 0.6));
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(Math.floor(batch.total * 0.9));
   }, 900000);
 });
