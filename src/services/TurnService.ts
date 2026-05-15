@@ -12,6 +12,7 @@ import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types
 import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
+import { getCardTypeName } from '../utils/cardTypeNames';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate } from '../utils/templateInterpolation';
 import { AutoActionEvent } from './StateService';
@@ -396,7 +397,7 @@ export class TurnService implements ITurnService {
         if (minW > 0) {
           const wCardCount = currentPlayer.hand.filter(c => c.startsWith('W')).length;
           if (wCardCount < minW) {
-            throw new Error(`You must draw Work cards before leaving this space. Your project needs a scope!`);
+            throw new Error(`Your project needs scope — add at least ${minW} ${getCardTypeName('W', minW)} before leaving this space.`);
           }
         }
       }
@@ -1792,14 +1793,6 @@ export class TurnService implements ITurnService {
    */
   private generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string {
     return this.diceRollProcessor.generateEffectSummary(effects, diceValue);
-  }
-
-  /**
-   * Get human-readable name for card type
-   * Delegates to DiceRollProcessor
-   */
-  private getCardTypeName(cardType: string): string {
-    return this.diceRollProcessor.getCardTypeName(cardType);
   }
 
   /**

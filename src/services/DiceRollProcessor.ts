@@ -6,6 +6,7 @@ import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
 import { DiceResultEffect, TurnEffectResult, Player, GameState } from '../types/StateTypes';
 import { formatDiceRollFeedback } from '../utils/buttonFormatting';
+import { describeCardAction } from './DiceService';
 import { Effect } from '../types/EffectTypes';
 
 /**
@@ -71,13 +72,6 @@ export class DiceRollProcessor {
    */
   public rollDice(): number {
     return this.diceService.rollDice();
-  }
-
-  /**
-   * Get human-readable name for card type
-   */
-  public getCardTypeName(cardType: string): string {
-    return this.diceService.getCardTypeName(cardType);
   }
 
   /**
@@ -289,12 +283,11 @@ export class DiceRollProcessor {
 
       if (effect.effectType === 'CARD_DRAW') {
         const isReplaceDraw = effect.payload.source?.includes(':dice_replace_draw');
-        const actionVerb = isReplaceDraw ? 'Replaced' : 'Drew';
         const cardAction = isReplaceDraw ? 'replace' : 'draw';
 
         effects.push({
           type: 'cards',
-          description: `${actionVerb} ${effect.payload.count} ${this.getCardTypeName(effect.payload.cardType)} card${effect.payload.count > 1 ? 's' : ''}`,
+          description: describeCardAction(cardAction, effect.payload.cardType, effect.payload.count),
           cardType: effect.payload.cardType,
           cardCount: effect.payload.count,
           cardAction: cardAction as 'draw' | 'replace',
@@ -307,11 +300,12 @@ export class DiceRollProcessor {
           return;
         }
 
+        const removeCount = effect.payload.count || effect.payload.cardIds.length;
         effects.push({
           type: 'cards',
-          description: `Removed ${effect.payload.count || effect.payload.cardIds.length} ${this.getCardTypeName(effect.payload.cardType || 'card')} card${(effect.payload.count || effect.payload.cardIds.length) > 1 ? 's' : ''}`,
+          description: describeCardAction('remove', effect.payload.cardType || '', removeCount),
           cardType: effect.payload.cardType,
-          cardCount: effect.payload.count || effect.payload.cardIds.length,
+          cardCount: removeCount,
           cardAction: 'remove',
           cardIds: effectResult?.data?.cardIds || effect.payload.cardIds || []
         });

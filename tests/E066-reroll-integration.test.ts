@@ -47,7 +47,7 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
   let effectEngineService: EffectEngineService;
   let turnService: TurnService;
   let mockServices: ReturnType<typeof createMockServices>;
-  let mockDiceService: { rollDice: ReturnType<typeof vi.fn>; getCardTypeName: ReturnType<typeof vi.fn>; generateEffectSummary: ReturnType<typeof vi.fn> };
+  let mockDiceService: { rollDice: ReturnType<typeof vi.fn>; generateEffectSummary: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockServices = createMockServices();
@@ -62,7 +62,6 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
     // Mock dice service to control dice values
     mockDiceService = {
       rollDice: vi.fn().mockReturnValue(4),
-      getCardTypeName: vi.fn().mockReturnValue(''),
       generateEffectSummary: vi.fn().mockReturnValue('')
     };
 

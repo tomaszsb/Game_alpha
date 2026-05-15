@@ -94,7 +94,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText(CARD_REPLACE.title('Replace', 'Work'))).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.title('Replace', 'Work Package'))).toBeInTheDocument();
     expect(screen.getByText(new RegExp(CARD_REPLACE.instruction(2)))).toBeInTheDocument();
     expect(screen.getByText('Foundation Work')).toBeInTheDocument();
     expect(screen.getByText('Electrical Upgrade')).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.queryByText(CARD_REPLACE.title('Replace', 'Work'))).not.toBeInTheDocument();
+    expect(screen.queryByText(CARD_REPLACE.title('Replace', 'Work Package'))).not.toBeInTheDocument();
   });
 
   it('should not render when player is null', () => {
@@ -127,7 +127,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.queryByText(CARD_REPLACE.title('Replace', 'Work'))).not.toBeInTheDocument();
+    expect(screen.queryByText(CARD_REPLACE.title('Replace', 'Work Package'))).not.toBeInTheDocument();
   });
 
   it('should display message when no cards available', () => {
@@ -147,7 +147,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText(CARD_REPLACE.empty('Work', 'replace'))).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.empty('Work Package', 'replace'))).toBeInTheDocument();
   });
 
   it('should handle card selection and deselection', () => {
@@ -320,7 +320,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const backdrop = screen.getByText('Replace Work').closest('div')?.parentElement?.parentElement;
+    const backdrop = screen.getByText('Replace Work Package').closest('div')?.parentElement?.parentElement;
     fireEvent.click(backdrop!);
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
@@ -389,7 +389,7 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    expect(screen.getByText(CARD_REPLACE.title('Replace', 'Bank'))).toBeInTheDocument();
+    expect(screen.getByText(CARD_REPLACE.title('Replace', 'Bank Loan'))).toBeInTheDocument();
     expect(screen.getByText('Marketing Campaign')).toBeInTheDocument();
   });
 

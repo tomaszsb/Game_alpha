@@ -191,23 +191,23 @@ export const colors = {
     // STANDARDIZED Card Type System - Single source of truth for all card colors
     // Use cardTypes[type].primary, cardTypes[type].bg, etc. everywhere
     cardTypes: {
-      W: { // Work Cards - Purple
+      W: { // Work Packages - Purple
         primary: '#6f42c1',
         bg: '#f3e5f5',
         border: '#6f42c1',
         text: '#4a148c',
         emoji: '🏗️',
-        label: 'Work',
+        label: 'Work Package',
       },
-      B: { // Bank/Loan Cards - Blue
+      B: { // Bank Loans - Blue
         primary: '#007bff',
         bg: '#e3f2fd',
         border: '#007bff',
         text: '#0d47a1',
         emoji: '🏦',
-        label: 'Bank',
+        label: 'Bank Loan',
       },
-      E: { // Expeditor Cards - Orange
+      E: { // Expeditors - Orange
         primary: '#ff9800',
         bg: '#fff3e0',
         border: '#ff9800',
@@ -215,7 +215,7 @@ export const colors = {
         emoji: '⚡',
         label: 'Expeditor',
       },
-      L: { // Life Event Cards - Red
+      L: { // Life Events - Red
         primary: '#dc3545',
         bg: '#fce4ec',
         border: '#dc3545',
@@ -223,13 +223,13 @@ export const colors = {
         emoji: '🎲',
         label: 'Life Event',
       },
-      I: { // Investor Cards - Green
+      I: { // Investments - Green
         primary: '#28a745',
         bg: '#e8f5e9',
         border: '#28a745',
         text: '#1b5e20',
         emoji: '💰',
-        label: 'Investor',
+        label: 'Investment',
       },
     } as Record<string, { primary: string; bg: string; border: string; text: string; emoji: string; label: string }>,
 

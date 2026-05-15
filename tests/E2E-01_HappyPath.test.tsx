@@ -243,22 +243,23 @@ describe('E2E-01: Happy Path with New UI', () => {
     const rollDiceSpy = vi.spyOn(gameServices.turnService, 'rollDice').mockReturnValue(4);
 
     // Wait for manual action buttons to appear (ActionCenterPanel renders these as text buttons)
-    const pickUpCardsButton = await screen.findByRole('button', { name: /Draw 3 E cards/i }, { timeout: 5000 });
-    const rollForWCardsButton = await screen.findByRole('button', { name: /Roll for W Cards/i });
+    const pickUpCardsButton = await screen.findByRole('button', { name: /Hire 3 Expeditors/i }, { timeout: 5000 });
+    const rollForWCardsButton = await screen.findByRole('button', { name: /Get Work Packages/i });
 
-    // UI Interaction 1: Execute Manual Action "Draw 3 E cards"
+    // UI Interaction 1: Execute Manual Action: hire expeditors
     fireEvent.click(pickUpCardsButton);
 
-    // UI Interaction 2: Execute Manual Action "Roll for W Cards"
+    // UI Interaction 2: Execute Manual Action: roll for work packages
     fireEvent.click(rollForWCardsButton);
 
-    // Wait for "End Turn" to become enabled
-    const endTurnButton = screen.getByRole('button', { name: /End Turn/i });
+    // Wait for end-turn to become enabled. The label is CSV-driven:
+    // OWNER-SCOPE-INITIATION/First → "Lock the scope"
+    const endTurnButton = screen.getByRole('button', { name: /Lock the scope/i });
     await waitFor(() => {
         expect(endTurnButton).toBeEnabled();
     }, { timeout: 3000 });
 
-    // UI Interaction 3: Click "End Turn" to trigger movement
+    // UI Interaction 3: Click end-turn to trigger movement
     fireEvent.click(endTurnButton);
 
     // Wait for movement to complete and dismiss overlay if it appears
@@ -273,15 +274,14 @@ describe('E2E-01: Happy Path with New UI', () => {
       expect(screen.getAllByText(/OWNER-FUND-INITIATION/i).length).toBeGreaterThan(0);
     }, { timeout: 5000 });
 
-    // OWNER-FUND-INITIATION has only auto effects (card draws + time)
-    // End Turn should be enabled immediately since there are no manual actions
+    // OWNER-FUND-INITIATION/First → "Take the check"
     await waitFor(() => {
-      const etButton = screen.getByRole('button', { name: /End Turn/i });
+      const etButton = screen.getByRole('button', { name: /Take the check/i });
       expect(etButton).toBeEnabled();
     }, { timeout: 5000 });
 
-    // Click End Turn to finish Alice's Turn 1
-    fireEvent.click(screen.getByRole('button', { name: /End Turn/i }));
+    // Click end-turn to finish Alice's Turn 1
+    fireEvent.click(screen.getByRole('button', { name: /Take the check/i }));
 
     await waitFor(() => {
       // Alice's turn 1 has ended, global turn count should be 1

@@ -349,7 +349,7 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     {
       name: 'Other Sources',
       amount: playerMoneySources.other || 0,
-      description: 'Miscellaneous funding (cards, space effects, etc.)',
+      description: 'Miscellaneous funding (resources, space effects, etc.)',
       processed: playerMoneySources.other > 0
     }
   ].filter(source => source.processed); // Only show sources with money

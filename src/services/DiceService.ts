@@ -1,5 +1,6 @@
 import { DiceEffect } from '../types/DataTypes';
 import { DiceResultEffect } from '../types/StateTypes';
+import { getCardTypeName } from '../utils/cardTypeNames';
 
 /**
  * DiceService - Handles all dice-related operations
@@ -12,7 +13,6 @@ export interface IDiceService {
   getDiceRollEffect(effect: DiceEffect, diceRoll: number): string | undefined;
   getDiceRollEffectValue(diceEffect: DiceEffect, diceRoll: number): string;
   parseNumericValue(effect: string): number;
-  getCardTypeName(cardType: string): string;
   generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string;
 }
 
@@ -87,22 +87,6 @@ export class DiceService implements IDiceService {
     }
 
     return 0;
-  }
-
-  /**
-   * Get human-readable name for card type
-   * @param cardType - The card type code (W, B, E, L, I)
-   * @returns The full card type name
-   */
-  getCardTypeName(cardType: string): string {
-    switch (cardType) {
-      case 'W': return 'Work';
-      case 'B': return 'Business';
-      case 'E': return 'Expeditor';
-      case 'L': return 'Life Events';
-      case 'I': return 'Investment';
-      default: return cardType;
-    }
   }
 
   /**
@@ -197,4 +181,38 @@ function describeCardOutcome(cardType: string, count: number): string {
       // Unknown card type — keep it neutral, no "card" word.
       return c === 1 ? 'got something new' : `got ${c} new things`;
   }
+}
+
+/**
+ * Render a draw/remove/replace action in real-life voice — sentence-cased
+ * for use as the secondary description line in DiceResultModal etc. Avoids
+ * deck verbs ("drew", "removed") that imply cards.
+ */
+export function describeCardAction(
+  action: 'draw' | 'remove' | 'replace',
+  cardType: string,
+  count: number
+): string {
+  const ct = (cardType || '').toUpperCase();
+  const c = Math.max(1, count);
+  const noun = getCardTypeName(ct, c);
+  // Per-type verb because real-life language doesn't share a verb across
+  // work packages (took on), loans (secured/repaid), expeditors (hired), etc.
+  const verbs: Record<string, { draw: string; remove: string; replace: string }> = {
+    W: { draw: 'Took on',    remove: 'Dropped',    replace: 'Swapped' },
+    B: { draw: 'Secured',    remove: 'Repaid',     replace: 'Refinanced' },
+    E: { draw: 'Hired',      remove: 'Released',   replace: 'Swapped' },
+    I: { draw: 'Secured',    remove: 'Bought out', replace: 'Renegotiated' },
+  };
+  if (ct === 'L') {
+    if (action === 'draw') return c === 1 ? `A ${noun} hit` : `${c} ${noun} hit`;
+    const lifeVerb = action === 'remove' ? 'Resolved' : 'Swapped';
+    return c === 1 ? `${lifeVerb} a ${noun}` : `${lifeVerb} ${c} ${noun}`;
+  }
+  const verb = verbs[ct]?.[action];
+  if (!verb) {
+    return c === 1 ? 'Something changed' : `${c} things changed`;
+  }
+  const article = /^[AEIOU]/i.test(noun) ? 'an' : 'a';
+  return c === 1 ? `${verb} ${article} ${noun}` : `${verb} ${c} ${noun}`;
 }

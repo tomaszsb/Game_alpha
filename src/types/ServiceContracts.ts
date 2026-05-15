@@ -339,7 +339,6 @@ export interface IDiceService {
   getDiceRollEffect(effect: DiceEffect, diceRoll: number): string | undefined;
   getDiceRollEffectValue(diceEffect: DiceEffect, diceRoll: number): string;
   parseNumericValue(effect: string): number;
-  getCardTypeName(cardType: string): string;
   generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string): string;
 }
 

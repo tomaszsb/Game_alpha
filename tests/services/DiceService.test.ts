@@ -112,20 +112,6 @@ describe('DiceService', () => {
     });
   });
 
-  describe('getCardTypeName', () => {
-    it('should return full names for known card types', () => {
-      expect(diceService.getCardTypeName('W')).toBe('Work');
-      expect(diceService.getCardTypeName('B')).toBe('Business');
-      expect(diceService.getCardTypeName('E')).toBe('Expeditor');
-      expect(diceService.getCardTypeName('L')).toBe('Life Events');
-      expect(diceService.getCardTypeName('I')).toBe('Investment');
-    });
-
-    it('should return the input for unknown card types', () => {
-      expect(diceService.getCardTypeName('X')).toBe('X');
-      expect(diceService.getCardTypeName('Unknown')).toBe('Unknown');
-    });
-  });
 
   describe('generateEffectSummary', () => {
     it('should return "no special effects" message for empty effects', () => {

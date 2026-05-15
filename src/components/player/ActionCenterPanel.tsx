@@ -292,8 +292,10 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     });
   }, [player.currentSpace, player.visitType, completedActions, gameServices]);
 
+  const needsMovementChoice = !!movementChoice && !selectedDestination;
   const pendingCount = pendingActions.filter(a => !a.isCompleted).length +
-    (isDiceMovementSpace && !hasPlayerRolledDice ? 1 : 0);
+    (isDiceMovementSpace && !hasPlayerRolledDice ? 1 : 0) +
+    (needsMovementChoice ? 1 : 0);
 
   // End turn logic
   const gameState = gameServices.stateService.getGameState();

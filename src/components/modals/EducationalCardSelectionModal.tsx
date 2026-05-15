@@ -7,6 +7,7 @@ import { CardDisplay } from '../common/CardDisplay';
 import { IDataService } from '../../types/ServiceContracts';
 import { Card, CardType } from '../../types/DataTypes';
 import { colors, theme } from '../../styles/theme';
+import { getCardTypeName } from '../../utils/cardTypeNames';
 
 type CardTypeFilter = 'ALL' | 'W' | 'E';
 
@@ -221,13 +222,13 @@ export function EducationalCardSelectionModal({
           onClick={() => setCardTypeFilter('W')}
           style={filterButtonStyle(cardTypeFilter === 'W')}
         >
-          W Cards ({allCards.filter(c => c.card_id.startsWith('W')).length})
+          {getCardTypeName('W', 2)} ({allCards.filter(c => c.card_id.startsWith('W')).length})
         </button>
         <button
           onClick={() => setCardTypeFilter('E')}
           style={filterButtonStyle(cardTypeFilter === 'E')}
         >
-          E Cards ({allCards.filter(c => c.card_id.startsWith('E')).length})
+          {getCardTypeName('E', 2)} ({allCards.filter(c => c.card_id.startsWith('E')).length})
         </button>
       </div>
 
@@ -241,7 +242,7 @@ export function EducationalCardSelectionModal({
           onChange={(e) => setWorkTypeFilter(e.target.value)}
           style={selectStyle}
         >
-          <option value="ALL">All Work Types ({filteredCards.length} cards)</option>
+          <option value="ALL">All Work Types ({filteredCards.length})</option>
           {workTypes.map(type => {
             const count = allCards.filter(c =>
               c.work_type_restriction === type &&
@@ -255,7 +256,7 @@ export function EducationalCardSelectionModal({
           })}
         </select>
         <span style={{ fontSize: '13px', color: colors.text.secondary, marginLeft: '8px' }}>
-          Click a card to see details
+          Click a resource to see details
         </span>
       </div>
 

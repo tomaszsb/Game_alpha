@@ -8,6 +8,7 @@ const forksFiles = [
   'tests/utils/dictionaryBridge.test.ts',
   'tests/utils/dictionaryBridge_embedded.test.ts',
   'tests/components/modals/EndGameModal.test.tsx',
+  'tests/dictionary/terms.test.ts',
 ];
 
 const commonExclude = [

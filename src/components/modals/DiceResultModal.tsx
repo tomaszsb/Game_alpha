@@ -13,6 +13,7 @@ import { CharacterBadge } from './shared/CharacterBadge';
 import { shouldShake, getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
+import { getCardTypeName } from '../../utils/cardTypeNames';
 
 // Re-export for convenience
 export type DiceRollResult = TurnEffectResult;
@@ -103,19 +104,6 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       effectColor = colors.warning.main;
     }
 
-    // Friendly card type names for display
-    const friendlyCardTypeNames: { [key: string]: string } = {
-      'W': 'Work Package',
-      'B': 'Bank Loan',
-      'E': 'Expeditor',
-      'I': 'Investment',
-      'L': 'Life Event'
-    };
-    const getFriendlyCardName = (cardType: string, count: number): string => {
-      const base = friendlyCardTypeNames[cardType] || cardType;
-      return count > 1 ? base + 's' : base;
-    };
-
     let formattedValue = '';
     if (effect.type === 'money' && effect.value !== undefined) {
       const formatted = FormatUtils.formatResourceChange(effect.value, 'money');
@@ -124,7 +112,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       const formatted = FormatUtils.formatResourceChange(effect.value, 'time');
       formattedValue = formatted.text;
     } else if (effect.type === 'cards' && effect.cardCount && effect.cardType) {
-      const friendlyName = getFriendlyCardName(effect.cardType, effect.cardCount);
+      const friendlyName = getCardTypeName(effect.cardType, effect.cardCount);
       const action = effect.cardAction || 'draw';
       if (action === 'draw') {
         formattedValue = `+${effect.cardCount} ${friendlyName}`;

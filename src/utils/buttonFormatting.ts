@@ -6,6 +6,7 @@ import { getTooltipService, ActionTooltip } from '../services/TooltipService';
 import { FormatUtils } from './FormatUtils';
 import { DICE_BUTTON, DICE_FEEDBACK } from '../constants/uiStrings';
 import { colors } from '../styles/theme';
+import { getCardTypeName } from './cardTypeNames';
 
 /**
  * Shape of effect entries produced by TurnService/DiceRollProcessor for
@@ -123,13 +124,13 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
     } else if (cardType === 'L') {
       text = count > 1 ? `${count} Life Events` : 'Life Event';
     } else if (actionLower.startsWith('replace_')) {
-      text = `Replace ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
+      text = `Replace ${count} ${getCardTypeName(cardType, count)}`;
     } else if (actionLower.startsWith('give_')) {
       text = `Give ${getCardTypeName(cardType)} to other player`;
     } else if (actionLower.startsWith('return_')) {
-      text = `Return ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
+      text = `Return ${count} ${getCardTypeName(cardType, count)}`;
     } else {
-      text = `Get ${count} ${getCardTypeName(cardType)}${count !== 1 ? 's' : ''}`;
+      text = `Get ${count} ${getCardTypeName(cardType, count)}`;
     }
   } else if (effect.effect_type === 'turn') {
     text = effect.description || 'End Turn';
@@ -249,23 +250,6 @@ export function formatDiceRollButton(
 }
 
 /**
- * Get friendly real-life name for a card type code. Voice rule: never
- * surface the literal letter or the word "card" to players. Used by
- * formatDiceRollFeedback / formatActionFeedback to build human-readable
- * outcome strings like "Got 3 Work Packages" or "Got 1 Bank Loan".
- */
-function getCardTypeName(cardType: string): string {
-  switch (cardType) {
-    case 'W': return 'Work Package';
-    case 'B': return 'Bank Loan';
-    case 'E': return 'Expeditor';
-    case 'L': return 'Life Event';
-    case 'I': return 'Investment';
-    default: return cardType;
-  }
-}
-
-/**
  * Create standardized dice roll feedback message with outcomes
  */
 export function formatDiceRollFeedback(diceValue: number, effects: DiceFeedbackEffect[]): string {
@@ -277,7 +261,7 @@ export function formatDiceRollFeedback(diceValue: number, effects: DiceFeedbackE
       case 'cards': {
         const cardCount = effect.cardCount ?? 0;
         const cardType = effect.cardType ?? '';
-        outcomes.push(DICE_FEEDBACK.got(cardCount, getCardTypeName(cardType), cardCount !== 1 ? 's' : ''));
+        outcomes.push(DICE_FEEDBACK.got(cardCount, getCardTypeName(cardType, cardCount), ''));
         break;
       }
       case 'money':
@@ -330,7 +314,7 @@ export function formatActionFeedback(effects: DiceFeedbackEffect[]): string {
       case 'cards': {
         const cardCount = effect.cardCount ?? 0;
         const cardType = effect.cardType ?? '';
-        outcomes.push(DICE_FEEDBACK.got(cardCount, getCardTypeName(cardType), cardCount !== 1 ? 's' : ''));
+        outcomes.push(DICE_FEEDBACK.got(cardCount, getCardTypeName(cardType, cardCount), ''));
         break;
       }
       case 'money':
