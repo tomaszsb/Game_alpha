@@ -176,9 +176,14 @@ export default defineConfig({
             }
             // React Flow and its dependencies (zustand, classcat, d3-*) get
             // their own chunk so the board library churn doesn't invalidate
-            // unrelated vendor chunks.
+            // unrelated vendor chunks. @jalez/react-flow-smart-edge is a
+            // React Flow extension; its pathfinding dep belongs here too,
+            // otherwise it lands in the catch-all `vendor` chunk and creates
+            // a vendor → vendor-reactflow → vendor cycle.
             if (
               id.includes('@xyflow') ||
+              id.includes('@jalez/react-flow-smart-edge') ||
+              /[\\/]node_modules[\\/]pathfinding[\\/]/.test(id) ||
               id.includes('zustand') ||
               id.includes('classcat') ||
               /[\\/]node_modules[\\/]d3-/.test(id)

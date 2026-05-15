@@ -52,7 +52,17 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      // @jalez/react-flow-smart-edge ships a CJS dist/index.js inside an
+      // ESM package, and its ESM build named-imports CJS-only `pathfinding`.
+      // Both crash Node's loader under jsdom. Real edge geometry isn't
+      // tested anywhere, so route the import to a no-op stub used only
+      // in tests. Production builds use the real package via Vite's ESM
+      // resolution (`module` field).
+      '@jalez/react-flow-smart-edge': path.resolve(
+        __dirname,
+        'tests/stubs/smartEdgeStub.ts'
+      ),
     }
   }
 });

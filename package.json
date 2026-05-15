@@ -1,6 +1,6 @@
 {
   "name": "unravel-codes",
-  "version": "2.63.9",
+  "version": "2.64.0",
   "type": "module",
   "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
@@ -70,6 +70,7 @@
   },
   "dependencies": {
     "@eslint/js": "^9.39.2",
+    "@jalez/react-flow-smart-edge": "^4.0.0",
     "@xyflow/react": "^12.10.2",
     "framer-motion": "^12.29.0",
     "globals": "^17.0.0",

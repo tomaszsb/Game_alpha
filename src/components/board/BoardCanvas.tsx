@@ -47,6 +47,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { SmartBezierEdge } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
@@ -192,6 +193,13 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
 
 const nodeTypes = { boardNode: BoardNode };
 
+// A* pathfinding edge that routes around node bounding boxes instead of
+// cutting through them. Registered here (not inline) so React Flow doesn't
+// re-create the map every render. See Workstream 3 / Phase C in
+// BETA_PLAN_V3.md — uses @jalez/react-flow-smart-edge (v12-compatible
+// fork of @tisoap/react-flow-smart-edge).
+const edgeTypes = { smart: SmartBezierEdge };
+
 // ===================================================================
 // Component
 // ===================================================================
@@ -321,7 +329,7 @@ function BoardCanvasInner({
           id: `${mov.space_name}__${dest}`,
           source: mov.space_name,
           target: dest,
-          type: 'smoothstep',
+          type: 'smart',
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
           style: { stroke: '#adb5bd', strokeWidth: 1.5 },
         });
@@ -401,6 +409,7 @@ function BoardCanvasInner({
         nodes={nodes}
         edges={visibleEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}

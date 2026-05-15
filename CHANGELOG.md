@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.0] - 2026-05-15
+
+### A* edge routing on the board canvas (Workstream 3 Phase C)
+
+Edges on the BoardCanvas were drawn with React Flow's built-in `smoothstep` type — pure curves between source and target with zero collision awareness. Long-distance and backward-jump edges cut straight through unrelated tiles, producing the "spaghetti" effect flagged in `BETA_PLAN_V3.md` (Workstream 3 risks) and on the dashboard (G160/5-9: "more control of which lines… and how they run").
+
+This was the long-blocked decision point in NEXT_SESSION.md. After a small comparison — elkjs (graph-layout engine, ~200KB, would also try to move nodes) vs `@tisoap/react-flow-smart-edge` (A* edge router, archived) vs `@jalez/react-flow-smart-edge` (maintained v12-compatible fork of the latter) — the smart-edge fork is the surgical pick: it routes edges around node bounding boxes using A* pathfinding, leaves authored node positions alone, and drops in via a single `type: 'smart'` change.
+
+**[src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx)** — added `import { SmartBezierEdge } from '@jalez/react-flow-smart-edge'`. New module-scoped `edgeTypes = { smart: SmartBezierEdge }` next to the existing `nodeTypes` (must be stable across renders or React Flow re-instantiates per render). `<ReactFlow edgeTypes={edgeTypes} />` prop added. Edge creation loop now emits `type: 'smart'` instead of `'smoothstep'`. ~30 nodes, 53 First-visit edges — well within smart-edge's performance envelope.
+
+**[vite.config.ts](vite.config.ts)** — `manualChunks` extended to route `@jalez/react-flow-smart-edge` and its `pathfinding` peer into the existing `vendor-reactflow` chunk. Without this, pathfinding lands in the catch-all `vendor` chunk and creates a circular dependency (`vendor → vendor-reactflow → vendor`) that Rollup warns about. Net bundle delta: vendor-reactflow +22KB minified, +7KB gzipped.
+
+**[tests/stubs/smartEdgeStub.ts](tests/stubs/smartEdgeStub.ts)** — new file. The smart-edge package ships a CJS `dist/index.js` inside an ESM package (`"type": "module"`), and its ESM build named-imports CJS-only `pathfinding`. Both crash Node's loader under jsdom (`ReferenceError: module is not defined in ES module scope`). Production builds resolve to the ESM entry via Vite's `module`-field resolution and work fine, but Vitest's resolver hits the CJS file first and the suite explodes on any test that mounts BoardCanvas (E2E-01, FullGame, etc.). Test stub exports the same component names (`SmartBezierEdge`, `SmartStraightEdge`, `SmartStepEdge`, `SmartEdge`) backed by React Flow's built-in edge components — geometry isn't asserted anywhere, the stub only needs to keep the imports succeeding.
+
+**[vitest.config.dev.ts](vitest.config.dev.ts), [vitest.config.ci.ts](vitest.config.ci.ts), [vitest.config.ts](vitest.config.ts)** — `resolve.alias` for `@jalez/react-flow-smart-edge` → stub in all three configs (dev, ci, and the inline `defineProject` workspace configs at lines 42/61).
+
+Full test suite: 1587 passed, 4 skipped, 0 failed. Build clean (no circular-chunk warning).
+
+This closes Workstream 3 Phase C in [BETA_PLAN_V3.md](docs/core/BETA_PLAN_V3.md). Phase D (delete BoardV3.tsx + boardLayout.ts, wire editor drag-save) remains.
+
 ## [2.63.9] - 2026-05-15
 
 ### Manual-effect modal voice leak — "E card" / "W card" wording finally killed

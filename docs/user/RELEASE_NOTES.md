@@ -2,6 +2,24 @@
 
 ---
 
+## v2.64.0 — Cleaner board: arrows route around spaces instead of through them (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** UI polish (player-visible)
+
+The connection lines on the board used to cut straight across other spaces, especially on long-distance jumps and backward loops. They worked, but they were visually noisy — "spaghetti" was the word the planning doc used. This release swaps in an A\* pathfinding edge router (`@jalez/react-flow-smart-edge`) that treats each space as an obstacle and routes the arrows around them.
+
+### What Changed for Players
+
+- **Cleaner board.** Arrows now bend around tiles instead of slicing through them. No data changed; every connection is the same — they're just drawn smarter. Especially noticeable on backward jumps (PM-DECISION-CHECK loops) and long-distance edges between phases.
+
+### Under the Hood
+
+This was the long-deferred Phase C of Workstream 3 (Living Map). Picked the small `@jalez/react-flow-smart-edge` fork over the larger elkjs option because we only wanted to route edges, not also re-position the spaces you carefully placed. Net bundle weight: +7KB gzipped on the board chunk.
+
+---
+
 ## v2.63.9 — Hire-expeditor modal voice leak fixed (May 15, 2026)
 
 **Release Date:** May 15, 2026
