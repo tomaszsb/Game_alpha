@@ -20,6 +20,7 @@ import { BoardToggle, type BoardImpl } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
+import { pickRelatedTab } from '../../utils/relatedTab';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { GamePhase, Player, DiceResultEffect, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
@@ -160,6 +161,25 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
   const [isDiceResultModalOpen, setIsDiceResultModalOpen] = useState<boolean>(false);
   const [diceResult, setDiceResult] = useState<TurnEffectResult | null>(null);
+  // Per-player one-shot request to switch the panel's active reference tab.
+  // Set when a result modal opens so the matching tab (Ledger / Expeditors /
+  // Events) auto-opens and stays open after the player dismisses the modal —
+  // they don't have to hunt for what changed.
+  // Playtest reports 2026-05-15: feedback-1778864436652-7692dba5 (money
+  // changes invisible), feedback-1778864258379-5ce94e05 (scope changes
+  // invisible) — both asking for "at a glance" feedback.
+  const [tabRequest, setTabRequest] = useState<import('../player/ActionCenterPanel').TabRequest | null>(null);
+  // When the result modal opens, derive the matching tab and broadcast a
+  // one-shot tabRequest. ActionCenterPanel consumes it (scoped by playerId
+  // so opponents' panels don't jump). Skips if currentPlayerId is null
+  // (defensive — shouldn't happen during a player's turn) or if the effects
+  // don't map to any tab (movement-only, info-only).
+  useEffect(() => {
+    if (!isDiceResultModalOpen || !diceResult || !currentPlayerId) return;
+    const tab = pickRelatedTab(diceResult.effects);
+    if (!tab) return;
+    setTabRequest({ tab, playerId: currentPlayerId, id: Date.now() });
+  }, [isDiceResultModalOpen, diceResult, currentPlayerId]);
   const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState<boolean>(false);
   const [isProgressCollapsed, setIsProgressCollapsed] = useState<boolean>(false);
   const [visiblePanels, setVisiblePanels] = useState<Record<string, boolean>>(() => {
@@ -830,6 +850,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                   }
                 }}
                 completedActions={completedActions}
+                tabRequest={tabRequest}
               />
             ) : (
               <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -930,6 +951,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                             }
                           }}
                           completedActions={completedActions}
+                          tabRequest={tabRequest}
                         />
                       </div>
                     );

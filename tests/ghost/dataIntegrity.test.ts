@@ -171,4 +171,23 @@ describe('CSV data integrity', () => {
     }
     expect(invalid, `Invalid movement destinations:\n${invalid.join('\n')}`).toEqual([]);
   });
+
+  // Regression guard: feedback-1778864672571-edc26bc7 (2026-05-15) flagged that
+  // PM-DECISION-CHECK on Subsequent listed itself as destination_4. The service
+  // layer has no general "exclude current space" filter (only the resume-hub
+  // branch in MovementService.getValidMoves does), so a self-reference in
+  // MOVEMENT.csv ships straight to the player as a "return to where I already
+  // am" option.
+  it('no MOVEMENT row lists its own space as a destination', () => {
+    const offenders: string[] = [];
+    for (const [key, dests] of movementDestinations) {
+      const space = key.split(':')[0];
+      for (const dest of dests) {
+        if (dest === space) {
+          offenders.push(`${key} → "${dest}" (self-reference)`);
+        }
+      }
+    }
+    expect(offenders, `Self-referencing destinations:\n${offenders.join('\n')}`).toEqual([]);
+  });
 });

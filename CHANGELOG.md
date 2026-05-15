@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.2] - 2026-05-15
+
+Two playtester reports from the 16:46–17:30 batch addressed together:
+
+### 1. PM-DECISION-CHECK self-loop removed
+
+`feedback-1778864672571-edc26bc7`: "I am on pm decision check space — I should not have an option to return to the same pm decision check space — I think this was filtered in the past. Why has it returned?"
+
+Pure data bug. The PM-DECISION-CHECK Subsequent row in `Spaces.csv` (and the regenerated `MOVEMENT.csv`) literally listed itself as `space_4` / `destination_4`. Has been there since v2.53.0 (2026-04-20); playtester just noticed it now. The Explore-agent audit confirmed `MovementService.getValidMoves()` has no general "exclude current space" filter — only the resume-hub branch has one — so a self-reference in the data flows straight to the UI as a "return to where I am" option.
+
+**[public/data/SOURCE_FILES/Spaces.csv](public/data/SOURCE_FILES/Spaces.csv)** — PM-DECISION-CHECK Subsequent: shifted `space_4: PM-DECISION-CHECK → OWNER-DECISION-REVIEW`, cleared `space_5`.
+
+**[public/data/CLEAN_FILES/MOVEMENT.csv](public/data/CLEAN_FILES/MOVEMENT.csv)** — same shift applied to the regenerated CSV.
+
+**[tests/ghost/dataIntegrity.test.ts](tests/ghost/dataIntegrity.test.ts)** — new guard: "no MOVEMENT row lists its own space as a destination." Scans every row, catches the whole class of bug regardless of which space causes it. Confirmed clean on the current data set.
+
+### 2. Result modal now opens the matching player-panel tab
+
+`feedback-1778864436652-7692dba5` ("money budget changes invisible") and `feedback-1778864258379-5ce94e05` ("scope changes invisible — I want to see scope at a glance"). Step 1 of the at-a-glance work — when the dice/manual-effect result modal opens, the player panel auto-switches to the tab that contains the relevant resource. Modal still announces the change; panel below is already on the matching view when the player dismisses the modal.
+
+Effect → tab mapping (see [src/utils/relatedTab.ts](src/utils/relatedTab.ts)):
+- Money effect → Ledger tab
+- W / B / I card effect → Ledger tab (scope + funding live there)
+- E card effect → Expeditors tab
+- L card effect → Events tab
+- Time-only effect → Ledger tab
+- Movement / info / choice effects → no auto-switch
+
+Wiring: `ActionCenterPanel` accepts a new optional `tabRequest: { tab, playerId, id }` prop with one-shot semantics (consumed once per `id`, scoped by `playerId` so opponents' panels don't jump). `PlayerPanelWrapper` passes it through. `GameLayout` watches `isDiceResultModalOpen` and `diceResult` together via a useEffect; when both become truthy it derives the related tab and dispatches a fresh `tabRequest`. Three files touched:
+- [src/components/player/ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) — new prop + consumer useEffect, `ReferenceTab` and `TabRequest` types now exported.
+- [src/components/player/PlayerPanelWrapper.tsx](src/components/player/PlayerPanelWrapper.tsx) — thread-through.
+- [src/components/layout/GameLayout.tsx](src/components/layout/GameLayout.tsx) — state + dispatching useEffect, `tabRequest` passed to both PlayerPanelWrapper sites (mobile + desktop).
+
+Step 2 (explicit before/after numbers inside the modal body) is the natural follow-up — captured for next session.
+
+**Tests:** [tests/utils/relatedTab.test.ts](tests/utils/relatedTab.test.ts) — 11 cases covering the mapping table, case-insensitivity, money-vs-card priority, and empty/null fallthrough. Plus 82 focused tests on the modified ActionCenterPanel/PlayerPanelWrapper/GameLayout call paths all pass. Typecheck and build clean.
+
 ## [2.64.1] - 2026-05-15
 
 ### Manual-effect button: "Return 1 RETURN_E" → "Expeditor Left"

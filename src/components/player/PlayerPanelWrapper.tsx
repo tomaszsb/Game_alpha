@@ -28,6 +28,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   onAutomaticFunding,
   onManualEffectResult,
   completedActions,
+  tabRequest,
   ...rest
 }) => {
   return (
@@ -41,6 +42,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
         onAutomaticFunding={onAutomaticFunding}
         onManualEffectResult={onManualEffectResult}
         completedActions={completedActions}
+        tabRequest={tabRequest}
       />
     </div>
   );

@@ -18,6 +18,22 @@ import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import './ActionCenterPanel.css';
 
+export type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
+
+/**
+ * One-shot request from a parent component to switch this panel's active
+ * reference tab. Used to auto-open the related tab (Ledger / Expeditors /
+ * Events) when a result modal appears, so when the player dismisses the
+ * modal the panel is already showing the updated state. `id` is the
+ * one-shot key — each new request must increment it. `playerId` scopes
+ * the request to a single panel in multi-player layouts.
+ */
+export interface TabRequest {
+  tab: NonNullable<ReferenceTab>;
+  playerId: string;
+  id: number;
+}
+
 export interface ActionCenterPanelProps {
   gameServices: IServiceContainer;
   playerId: string;
@@ -30,9 +46,9 @@ export interface ActionCenterPanelProps {
     diceRoll?: string;
     manualActions: { [effectType: string]: string };
   };
+  /** Parent-initiated one-shot tab switch (see TabRequest doc). */
+  tabRequest?: TabRequest | null;
 }
-
-type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
 
 // Helper to format effect action for display
 function formatEffectAction(effectType: string, effectAction?: string): string {
@@ -65,7 +81,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   onRollDice,
   onAutomaticFunding,
   onManualEffectResult,
-  completedActions = { manualActions: {} }
+  completedActions = { manualActions: {} },
+  tabRequest
 }) => {
   const { openWithTerm } = useDictionaryPanel();
   const { getPortraitForSpace } = useNpcPortrait();
@@ -84,6 +101,20 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [isEndingTurn, setIsEndingTurn] = useState(false);
   const [activeTab, setActiveTab] = useState<ReferenceTab>(null);
+  // Tracks the last consumed tabRequest.id so a single request fires once
+  // regardless of unrelated re-renders.
+  const lastConsumedTabRequestRef = useRef<number | null>(null);
+
+  // Honor parent-initiated tab switches (e.g. a result modal opening). The
+  // request is scoped by playerId so unrelated panels in multi-player
+  // layouts don't all jump tabs at once.
+  useEffect(() => {
+    if (!tabRequest) return;
+    if (tabRequest.playerId !== playerId) return;
+    if (tabRequest.id === lastConsumedTabRequestRef.current) return;
+    lastConsumedTabRequestRef.current = tabRequest.id;
+    setActiveTab(tabRequest.tab);
+  }, [tabRequest, playerId]);
   const [showMovementTransition, setShowMovementTransition] = useState(false);
   const [movementTransition, setMovementTransition] = useState<{ from: string; to: string } | null>(null);
   const previousCurrentPlayerIdRef = useRef<string | null>(null);

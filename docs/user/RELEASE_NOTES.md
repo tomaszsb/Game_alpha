@@ -2,6 +2,25 @@
 
 ---
 
+## v2.64.2 — Two fixes from the afternoon playtest (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** Bug fix + UX improvement (player-visible)
+
+### What Changed for Players
+
+- **PM-DECISION-CHECK no longer offers itself as a destination.** When you're standing on PM-DECISION-CHECK on a Subsequent visit, the destination list used to include PM-DECISION-CHECK itself — a leftover from old data. Removed. You now see the four real options (LEND-SCOPE-CHECK, ARCH-INITIATION, CHEAT-BYPASS, OWNER-DECISION-REVIEW).
+- **Result modal auto-opens the related panel tab.** When the dice / manual-effect result modal pops up, the player panel below now jumps to whichever tab matches what just changed — Ledger for money, Scope for Work Packages, Expeditors for hires, Events for Life Events. When you dismiss the modal, you're already looking at the updated state. No more hunting for the change.
+
+### Under the Hood
+
+The PM-DECISION-CHECK fix is a one-cell edit in `Spaces.csv` plus a data-integrity test that now catches any future self-reference in MOVEMENT.csv automatically.
+
+The tab-switch feature is Step 1 of the at-a-glance work. Step 2 — adding explicit before/after numbers inside the result modal body — is the natural next stop.
+
+---
+
 ## v2.64.1 — Hotfix: "Return 1 RETURN_E" button now reads "Expeditor Left" (May 15, 2026)
 
 **Release Date:** May 15, 2026
