@@ -2,6 +2,24 @@
 
 ---
 
+## v2.63.9 — Hire-expeditor modal voice leak fixed (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** Voice fix (player-visible)
+
+Two reports landed within minutes of the v2.63.6+.7+.8 deploy: the hire-expeditors modal was still saying "you picked up three E cards" and the replace-expeditor modal was still saying "you replaced one E card". The v2.63.6 sweep had fixed the dice-result and selection paths but missed the manual space-effect path that drives those two modals specifically.
+
+### What Changed for Players
+
+- **Hire-expeditors modal now reads "Hired 3 Expeditors"** instead of "You picked up 3 E cards!". Same fix flows through every manual card action: draw → "Took on / Secured / Hired / A Life Event hit"; replace → "Swapped"; remove → "Dropped / Released / Repaid / Bought out / Resolved"; return → "Returned / Repaid / Released / Bought back / Resolved"; give-to-opponent → "Handed off / Transferred / Loaned out / Passed on … to opponent". No more letter codes ("E", "W", "B") and no more "card" anywhere in the modal copy.
+
+### Under the Hood
+
+The fix is one place: `TurnService.triggerManualEffectWithFeedback` now routes through the same `describeCardAction` helper that the dice-roll path already used, after extending the helper to cover the two card actions (give/return) it didn't handle yet. Added 26 unit tests covering every action × type combination, plus a guard test that asserts no output ever contains the old "X card(s)" wording.
+
+---
+
 ## v2.63.6 — Voice sweep: more "cards" language cleaned up (May 15, 2026)
 
 **Release Date:** May 15, 2026

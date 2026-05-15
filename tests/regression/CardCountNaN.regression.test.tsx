@@ -2,7 +2,9 @@
  * CARD COUNT NaN REGRESSION TEST
  *
  * Bug: Manual card effect showed "You picked up NaN E cards" when effect_value
- * was undefined or an invalid string.
+ * was undefined or an invalid string. Post v2.63.9 the description is rendered
+ * via describeCardAction (real-life voice: "Hired 3 Expeditors"), so the test
+ * checks for the new wording while still guarding against any NaN leak.
  *
  * Root cause: effect_value was parsed with parseInt() without proper validation
  * or fallback to the actual drawn card count.
@@ -268,8 +270,8 @@ describe('CardCountNaN Regression Tests', () => {
       expect(result.effects).toHaveLength(1);
       expect(result.effects[0].description).not.toContain('NaN');
 
-      // Should show a valid number (actual drawn count)
-      expect(result.effects[0].description).toMatch(/\d+ E cards?/i);
+      // Should show a valid number (actual drawn count) in real-life voice
+      expect(result.effects[0].description).toMatch(/Hired \d+ Expeditors?|Hired an Expeditor/i);
     });
   });
 
@@ -315,7 +317,7 @@ describe('CardCountNaN Regression Tests', () => {
       // Verify no NaN in the result
       expect(result.summary).not.toContain('NaN');
       expect(result.effects[0].description).not.toContain('NaN');
-      expect(result.effects[0].description).toMatch(/\d+ E cards?/i);
+      expect(result.effects[0].description).toMatch(/Hired \d+ Expeditors?|Hired an Expeditor/i);
     });
   });
 
@@ -358,10 +360,10 @@ describe('CardCountNaN Regression Tests', () => {
 
       const result = await turnService.triggerManualEffectWithFeedback('player1', 'cards:draw_w');
 
-      // Verify correct parsing
-      expect(result.summary).toContain('3 W cards');
+      // Verify correct parsing — count surfaces via real-life voice
+      expect(result.summary).toContain('Took on 3 Work Packages');
       expect(result.summary).not.toContain('NaN');
-      expect(result.effects[0].description).toContain('3 W cards');
+      expect(result.effects[0].description).toContain('Took on 3 Work Packages');
     });
   });
 
@@ -403,8 +405,10 @@ describe('CardCountNaN Regression Tests', () => {
       // Verify no NaN
       expect(result.summary).not.toContain('NaN');
       expect(result.effects[0].description).not.toContain('NaN');
-      // Should handle zero appropriately
-      expect(result.effects[0].description).toMatch(/0 B cards?/i);
+      // describeCardAction floors count at 1 so the description stays grammatical;
+      // crucially it must NOT leak the letter-code "B cards" / "B card".
+      expect(result.effects[0].description).not.toMatch(/\bB cards?\b/i);
+      expect(result.effects[0].description).toMatch(/Bank Loan/);
     });
   });
 
@@ -444,8 +448,9 @@ describe('CardCountNaN Regression Tests', () => {
 
       const result = await turnService.triggerManualEffectWithFeedback('player1', 'cards:draw_l');
 
-      // Should use singular "card" not "cards"
-      expect(result.effects[0].description).toContain('1 L card');
+      // Singular grammatical form via describeCardAction's L-card branch.
+      expect(result.effects[0].description).toContain('A Life Event hit');
+      expect(result.effects[0].description).not.toMatch(/\bL cards?\b/i);
     });
 
     it('should produce grammatically correct plural message for multiple cards', async () => {
@@ -483,8 +488,9 @@ describe('CardCountNaN Regression Tests', () => {
 
       const result = await turnService.triggerManualEffectWithFeedback('player1', 'cards:draw_i');
 
-      // Should use plural "cards"
-      expect(result.effects[0].description).toContain('5 I cards');
+      // Plural grammatical form, real-life voice.
+      expect(result.effects[0].description).toContain('Secured 5 Investments');
+      expect(result.effects[0].description).not.toMatch(/\bI cards?\b/i);
     });
   });
 
@@ -528,12 +534,12 @@ describe('CardCountNaN Regression Tests', () => {
 
       // Should reflect actual drawn count (5), not undefined/NaN
       expect(result.effects[0].description).not.toContain('NaN');
-      expect(result.effects[0].description).toMatch(/\d+ E cards/i);
+      expect(result.effects[0].description).toMatch(/Hired \d+ Expeditors/i);
       // Verify it mentions a valid number
-      const match = result.effects[0].description.match(/(\d+) E cards/i);
+      const match = result.effects[0].description.match(/Hired (\d+) Expeditors/i);
       expect(match).toBeTruthy();
       const count = parseInt(match![1], 10);
-      expect(count).toBeGreaterThanOrEqual(0);
+      expect(count).toBeGreaterThanOrEqual(1);
       expect(isNaN(count)).toBe(false);
     });
   });

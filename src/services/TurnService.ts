@@ -13,6 +13,7 @@ import { EffectFactory } from '../utils/EffectFactory';
 import { EffectContext, Effect } from '../types/EffectTypes';
 import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
 import { getCardTypeName } from '../utils/cardTypeNames';
+import { describeCardAction } from './DiceService';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate } from '../utils/templateInterpolation';
 import { AutoActionEvent } from './StateService';
@@ -1405,25 +1406,16 @@ export class TurnService implements ITurnService {
         count = drawnCardIds.length;
       }
 
-      // Grammatically correct singular/plural
-      const cardWord = count === 1 ? 'card' : 'cards';
-
-      // Determine action verb based on effect type
-      let actionDescription: string;
-      let cardAction: 'draw' | 'remove' | 'replace' | 'give' | 'return';
-      if (isReplaceAction) {
-        actionDescription = `You replaced ${count} ${cardType} ${cardWord}!`;
-        cardAction = 'replace';
-      } else if (isGiveAction) {
-        actionDescription = `You gave ${count} ${cardType} ${cardWord} to opponent!`;
-        cardAction = 'give';
-      } else if (isReturnAction) {
-        actionDescription = `You returned ${count} ${cardType} ${cardWord}!`;
-        cardAction = 'return';
-      } else {
-        actionDescription = `You picked up ${count} ${cardType} ${cardWord}!`;
-        cardAction = 'draw';
-      }
+      // Determine action verb based on effect type; description is rendered
+      // via describeCardAction so real-life voice stays in one place.
+      const cardAction: 'draw' | 'remove' | 'replace' | 'give' | 'return' = isReplaceAction
+        ? 'replace'
+        : isGiveAction
+          ? 'give'
+          : isReturnAction
+            ? 'return'
+            : 'draw';
+      const actionDescription = describeCardAction(cardAction, cardType, count);
 
       effects.push({
         type: 'cards',

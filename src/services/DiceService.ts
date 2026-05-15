@@ -188,31 +188,35 @@ function describeCardOutcome(cardType: string, count: number): string {
  * for use as the secondary description line in DiceResultModal etc. Avoids
  * deck verbs ("drew", "removed") that imply cards.
  */
+export type CardAction = 'draw' | 'remove' | 'replace' | 'give' | 'return';
+
 export function describeCardAction(
-  action: 'draw' | 'remove' | 'replace',
+  action: CardAction,
   cardType: string,
   count: number
 ): string {
   const ct = (cardType || '').toUpperCase();
   const c = Math.max(1, count);
   const noun = getCardTypeName(ct, c);
-  // Per-type verb because real-life language doesn't share a verb across
-  // work packages (took on), loans (secured/repaid), expeditors (hired), etc.
-  const verbs: Record<string, { draw: string; remove: string; replace: string }> = {
-    W: { draw: 'Took on',    remove: 'Dropped',    replace: 'Swapped' },
-    B: { draw: 'Secured',    remove: 'Repaid',     replace: 'Refinanced' },
-    E: { draw: 'Hired',      remove: 'Released',   replace: 'Swapped' },
-    I: { draw: 'Secured',    remove: 'Bought out', replace: 'Renegotiated' },
+  const verbs: Record<string, Record<CardAction, string>> = {
+    W: { draw: 'Took on', remove: 'Dropped',    replace: 'Swapped',      give: 'Handed off',  return: 'Returned' },
+    B: { draw: 'Secured', remove: 'Repaid',     replace: 'Refinanced',   give: 'Transferred', return: 'Repaid' },
+    E: { draw: 'Hired',   remove: 'Released',   replace: 'Swapped',      give: 'Loaned out',  return: 'Released' },
+    I: { draw: 'Secured', remove: 'Bought out', replace: 'Renegotiated', give: 'Transferred', return: 'Bought back' },
   };
+  const suffix = action === 'give' ? ' to opponent' : '';
   if (ct === 'L') {
     if (action === 'draw') return c === 1 ? `A ${noun} hit` : `${c} ${noun} hit`;
-    const lifeVerb = action === 'remove' ? 'Resolved' : 'Swapped';
-    return c === 1 ? `${lifeVerb} a ${noun}` : `${lifeVerb} ${c} ${noun}`;
+    const lifeVerbs: Record<string, string> = {
+      remove: 'Resolved', replace: 'Swapped', give: 'Passed on', return: 'Resolved',
+    };
+    const lifeVerb = lifeVerbs[action] || 'Resolved';
+    return (c === 1 ? `${lifeVerb} a ${noun}` : `${lifeVerb} ${c} ${noun}`) + suffix;
   }
   const verb = verbs[ct]?.[action];
   if (!verb) {
     return c === 1 ? 'Something changed' : `${c} things changed`;
   }
   const article = /^[AEIOU]/i.test(noun) ? 'an' : 'a';
-  return c === 1 ? `${verb} ${article} ${noun}` : `${verb} ${c} ${noun}`;
+  return (c === 1 ? `${verb} ${article} ${noun}` : `${verb} ${c} ${noun}`) + suffix;
 }

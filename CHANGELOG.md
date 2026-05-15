@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.63.9] - 2026-05-15
+
+### Manual-effect modal voice leak — "E card" / "W card" wording finally killed
+
+Two playtester reports landed minutes after the v2.63.6+.7+.8 deploy:
+
+- `feedback-1778847367542-1c9f4a87` — hire-expeditors modal still says "you picked up three E cards"
+- `feedback-1778848339498-c15076cb` — replace-expeditor modal still says "you replaced one E card"
+
+The v2.63.6 voice sweep fixed `DiceResultModal` and `EducationalCardSelectionModal` but missed `TurnService.triggerManualEffectWithFeedback` — the path that drives manual space-effects. It imported `getCardTypeName` but never called it; instead it built `actionDescription` inline from raw single-letter `cardType` codes and a hardcoded `'card'/'cards'` pluralization, then pushed that string into `effects[].description` which `DiceResultModal.tsx:154` renders alongside the (correctly-voiced) `formattedValue`. Net effect for users: `+3 Expeditors  You picked up 3 E cards!`
+
+**[src/services/DiceService.ts](src/services/DiceService.ts)** — `describeCardAction` now covers the full action set `'draw' | 'remove' | 'replace' | 'give' | 'return'` via a new exported `CardAction` type. Per-type verb table extended with give/return rows (W: Handed off/Returned · B: Transferred/Repaid · E: Loaned out/Released · I: Transferred/Bought back · L: Passed on/Resolved). `give` outputs append "to opponent". The L-card branch handles all five actions via a small verb map.
+
+**[src/services/TurnService.ts](src/services/TurnService.ts)** — the inline string builder at the old 1409–1426 block is gone. `actionDescription = describeCardAction(cardAction, cardType, count)` now produces every variant. The `cardWord` ternary is deleted (singular/plural is the helper's job). Imports `describeCardAction` from `./DiceService`.
+
+**[tests/services/describeCardAction.test.ts](tests/services/describeCardAction.test.ts)** — new file, 26 tests covering all four actions × 5 card types plus a sweep that asserts no output ever contains `\b[EWBIL] cards?\b`.
+
+**[tests/regression/CardCountNaN.regression.test.tsx](tests/regression/CardCountNaN.regression.test.tsx)** — string assertions updated from `/N E cards/` to `/Hired N Expeditors/` etc. The NaN-guard logic is unchanged (the parseInt fallback at TurnService:1395-1406 still does its job).
+
+After deploy, both feedback reports should auto-resolve. The CSV stale-copy items in `SPACE_EFFECTS.csv` (~11 rows) are dead code per Explore agent verification — left for a separate housekeeping pass.
+
 ## [2.63.8] - 2026-05-15
 
 ### Ghost player bot heuristic — restores ≥90% win rate
