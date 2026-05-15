@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.5] - 2026-05-15
+
+### Time cost surfaced on the space header
+
+Playtester noted that time changes weren't visible anywhere outside the result modal's before/after block. Their request: "time change notification should go on the notification that shows who the current player is and what space they moved to."
+
+The closest existing surface to that description is the space header at the top of the player panel — the `📍 [SPACE_NAME] - [Title]` line. Investigation found that the `createMovementNotification` helper exists in `NotificationUtils` but is never wired up; there is no actual move-to-space banner. The space header is the de-facto answer.
+
+Added a small "time line" directly under the space name:
+
+```
+📍 PM-DECISION-CHECK - I rethink the plan      [OWNER]
+⏱️ +5 days here · 47 days total
+```
+
+- **"+N days here"** in orange — only renders when the current space/visit has a non-manual time cost > 0. Pulled from `dataService.getSpaceEffects(space, visit)` filtered by `effect_type === 'time'` and `trigger_type !== 'manual'`.
+- **"M days total"** in muted text — always shows (the running project-time total).
+- Hides cleanly when arrivalTimeCost is 0; only the total renders.
+
+Files:
+- [src/components/player/ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) — new `arrivalTimeCost` useMemo + the `<div className="action-center__time-line">` inside the space header.
+- [src/components/player/ActionCenterPanel.css](src/components/player/ActionCenterPanel.css) — three new classes (`__time-line`, `__time-cost`, `__time-total`).
+
+Tests: 12 across the affected paths green. Typecheck clean.
+
 ## [2.64.4] - 2026-05-15
 
 ### Before/after block now renders for swap actions (zero net delta)

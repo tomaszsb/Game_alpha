@@ -53,6 +53,24 @@
   color: #495057;
 }
 
+/* Time line under the space name — surfaces "X days here · Y days total" so
+ * the player can see time changes at a glance without opening a tab.
+ * Playtest 2026-05-15. */
+.action-center__time-line {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.action-center__time-cost {
+  color: #f97316; /* matches game.orange theme color used for time elsewhere */
+  font-weight: 600;
+}
+
+.action-center__time-total {
+  color: #6c757d;
+}
+
 .action-center__phase-badge {
   display: inline-block;
   padding: 2px 8px;

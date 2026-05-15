@@ -247,6 +247,18 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const spaceConfig = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const currentPhase = spaceConfig?.phase;
 
+  // Per-space arrival time cost — sum of non-manual `time` effects defined on
+  // this space/visit. Surfaces "5 days here" in the header so the player
+  // sees the time delta on arrival without waiting for a modal.
+  // Playtest 2026-05-15: "I see nothing about time being added so far anywhere"
+  // — they want time visible on the move-to-space banner.
+  const arrivalTimeCost = useMemo(() => {
+    const effects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType) || [];
+    return effects
+      .filter(e => e.effect_type === 'time' && e.trigger_type !== 'manual' && e.effect_action !== 'subtract')
+      .reduce((sum, e) => sum + (Number(e.effect_value) || 0), 0);
+  }, [gameServices.dataService, player.currentSpace, player.visitType]);
+
   // v2.50.0: When any effect on this space has an authored narrative, the
   // StoryAccordion takes over and the legacy flat PM Action / Outcome blocks
   // are hidden (the per-action narratives replace them). Spaces without any
@@ -442,6 +454,15 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             <div className="action-center__space-name">
               📍 {player.currentSpace}
               {spaceTitle && <span className="action-center__space-title"> - {spaceTitle}</span>}
+            </div>
+            <div className="action-center__time-line">
+              {arrivalTimeCost > 0 && (
+                <span className="action-center__time-cost">⏱️ +{arrivalTimeCost} {arrivalTimeCost === 1 ? 'day' : 'days'} here</span>
+              )}
+              <span className="action-center__time-total">
+                {arrivalTimeCost > 0 && ' · '}
+                {player.timeSpent} {player.timeSpent === 1 ? 'day' : 'days'} total
+              </span>
             </div>
           </div>
           {currentPhase && (

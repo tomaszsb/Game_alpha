@@ -2,6 +2,28 @@
 
 ---
 
+## v2.64.5 — Time cost shows on every space header (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** UX improvement (player-visible)
+
+You flagged that time changes weren't visible anywhere outside the result modal. Added a small "time line" right under the space name at the top of the player panel:
+
+> 📍 PM-DECISION-CHECK - I rethink the plan
+> ⏱️ +5 days here · 47 days total
+
+### What Changed for Players
+
+- **The space header now shows the time cost of the current space** in orange when there is one. Lands on PM-DECISION-CHECK Subsequent? You'll see "+5 days here." Lands on a space with no time cost? That part hides cleanly.
+- **A running "N days total" appears alongside it** in muted text. Now visible at a glance any time you look at your panel — no need to dig into the Ledger tab.
+
+### Under the Hood
+
+The time data comes from the same SPACE_EFFECTS pipeline the rest of the game uses. Only non-manual time effects on the current space + visit type count toward "here" — manual effects (Determine Time Impact, etc.) are excluded because the player can decide whether to trigger those.
+
+---
+
 ## v2.64.4 — Swap actions now show in the before/after block (May 15, 2026)
 
 **Release Date:** May 15, 2026
