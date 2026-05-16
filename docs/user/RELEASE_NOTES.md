@@ -2,6 +2,25 @@
 
 ---
 
+## v2.64.7 — Result modal stops repeating itself (May 15, 2026)
+
+**Release Date:** May 15, 2026
+**Status:** Beta
+**Type:** UX polish (player-visible)
+
+You flagged that the Summary block at the top of result modals was repeating the same info that was already shown in the Effects Applied list and the Before/After block — "you took on a work package" appearing in three places at once. Trimmed.
+
+### What Changed for Players
+
+- **The Summary block now shows only the NPC narrative.** The "Good news! / Mixed results. / Challenging turn." tone line and the auto-built "You did X, Y, Z" recap are gone. The effects list and before/after block already cover the recap, and they do it more legibly. The Summary stays focused on the NPC's voice — "The committee will hear you out…" — not on parroting what the rest of the modal already says.
+- **Read-aloud (TTS) is unchanged.** The speaker icon still reads the full sentence including tone and recap, so screen-reader and accessibility users don't lose any information.
+
+### Under the Hood
+
+Split the existing `summary` field on the modal payload into two: `summary` (full string, used for TTS) and `visualSummary` (narrative-only, used for the visible blue box). Audit confirmed every space has authored narrative content, so there are no spaces left with an empty Summary block.
+
+---
+
 ## v2.64.6 — Two playtester-driven modal fixes (May 15, 2026)
 
 **Release Date:** May 15, 2026

@@ -232,7 +232,13 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     || (isDiceRoll ? (narrativeTitle || `Result: ${result.diceValue}`) : (narrativeTitle || 'Action Result'));
   const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
   const customButtonLabel = overrideButtonLabel || firstEffectModalConfig?.buttonLabel;
-  const summaryText = overrideSummary || result.summary;
+  // Visual Summary block prefers the narrative-only `visualSummary` (NPC story
+  // prose) over the full assembled `summary` (which includes auto-generated
+  // tone + per-effect recap). The recap duplicates the Effects Applied list
+  // and the Before/After block, so the visual stays focused on story flavor.
+  // TTS / accessibility still reads `summary` via getTtsText below.
+  // Playtest 2026-05-15: "lots of repetition in the wording".
+  const summaryText = overrideSummary || result.visualSummary || result.summary;
 
   // Data-driven shake: uses shake_on config from space content
   const hasNegativeEffect = shouldShake(spaceContent?.shake_on, { effects: result.effects });

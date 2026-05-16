@@ -1554,11 +1554,19 @@ export class TurnService implements ITurnService {
       ? (totalDays / projectLengthInfo.estimatedDays) * 100
       : 0;
 
+    // Pull NPC narrative for the modal's visual Summary block. Keeps the
+    // visible text focused on story flavor; the auto-recap stays in
+    // `summary` for TTS only.
+    const visualSummary = this.dataService.getSpaceContent(
+      currentPlayer.currentSpace, currentPlayer.visitType
+    )?.story || undefined;
+
     return {
       diceValue: 0, // No dice roll for manual effects
       spaceName: currentPlayer.currentSpace,
       effects,
       summary,
+      visualSummary,
       hasChoices: false,
       projectTime: {
         actionDays,
@@ -2065,11 +2073,15 @@ export class TurnService implements ITurnService {
       const afterPlayerForSnapshot = updatedPlayer || currentPlayer;
       const afterScope = this.gameRulesService.calculateProjectScope(playerId);
       const afterSnapshot = buildResourceSnapshot(afterPlayerForSnapshot, afterScope);
+      const visualSummary = this.dataService.getSpaceContent(
+        currentPlayer.currentSpace, currentPlayer.visitType
+      )?.story || undefined;
       return {
         diceValue: 0, // No actual dice roll
         spaceName: currentPlayer.currentSpace,
         effects: effects,
         summary: fundingDescription,
+        visualSummary,
         hasChoices: false,
         canReRoll: false,
         projectTime: {

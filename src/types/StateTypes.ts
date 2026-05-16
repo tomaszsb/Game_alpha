@@ -457,7 +457,22 @@ export interface TurnEffectResult {
   diceValue: number;
   spaceName: string;
   effects: DiceResultEffect[];
+  /**
+   * Full assembled summary string. Used for TTS / accessibility — read
+   * aloud verbatim so a visually impaired user gets the complete recap.
+   * The visual modal does NOT show this directly; see visualSummary.
+   */
   summary: string;
+  /**
+   * NPC narrative for the modal's Summary block — just the story prose
+   * from SPACE_CONTENT, without the auto-generated tone word ("Good news!")
+   * or per-effect recap clause ("You took on a work package, faced delays").
+   * The effects list + before/after block carry the recap visually; the
+   * Summary block stays narrative-focused. If absent, the modal falls
+   * back to `summary`. Playtest 2026-05-15: the assembled summary visibly
+   * duplicates every effect, which is what triggered this split.
+   */
+  visualSummary?: string;
   hasChoices: boolean;
   canReRoll?: boolean; // True if player can re-roll dice this turn
   rollGroups?: RollGroupResult[]; // Per-group dice values when multiple roll groups exist

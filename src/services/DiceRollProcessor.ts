@@ -232,11 +232,18 @@ export class DiceRollProcessor {
     const afterPlayerForSnapshot = updatedPlayer || currentPlayer;
     const afterSnapshot = buildResourceSnapshot(afterPlayerForSnapshot, afterScope);
 
+    // Story prose for the modal's visual Summary block. The full assembled
+    // `summary` (storyText + tone + recap) remains for TTS via getTtsText.
+    const visualSummary = this.dataService.getSpaceContent(
+      currentPlayer.currentSpace, currentPlayer.visitType
+    )?.story || undefined;
+
     return {
       diceValue,
       spaceName: currentPlayer.currentSpace,
       effects,
       summary,
+      visualSummary,
       hasChoices,
       canReRoll,
       projectTime: {

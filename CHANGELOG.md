@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.64.7] - 2026-05-15
+
+### Result-modal Summary block: drop the auto-recap, keep NPC narrative
+
+Playtester feedback: "a lot of repetition in the wording — many times there will be something like 'you received new expeditors' in like 3 places."
+
+Diagnosed: [DiceService.generateEffectSummary](src/services/DiceService.ts:98) builds the modal's Summary string by concatenating three things — the NPC story from `SPACE_CONTENT.csv`, a canned tone word ("Good news!" / "Mixed results." / "Challenging turn."), and a per-effect recap clause ("You took on a work package, faced delays, must choose next move"). The Effects Applied list below already shows each effect as a styled row, and v2.64.3's Before/After block shows the numeric deltas. So a single roll's outcome was described **three times** in one modal.
+
+Audit confirmed every space in GAME_CONFIG has a populated `story` column in SPACE_CONTENT — 26 spaces, 52 rows (First + Subsequent), zero edge cases where the narrative is missing.
+
+### Approach
+Split visual from spoken:
+- **Visual Summary block**: NPC narrative only ("The committee will hear you out. We're slower than the bank…"). The tone word and recap are gone. Effects Applied + Before/After do the recap work.
+- **TTS / accessibility**: unchanged — `useModalSpeech` keeps reading the full assembled `summary` string via `getTtsText`, so screen-reader users still hear the complete sentence including tone and recap.
+
+### Implementation
+- **[src/types/StateTypes.ts](src/types/StateTypes.ts)** — new optional `visualSummary?: string` field on `TurnEffectResult`. Documented as "NPC narrative for the modal's Summary block — without the auto-generated tone word or per-effect recap clause."
+- **[src/services/TurnService.ts](src/services/TurnService.ts)** — `triggerManualEffectWithFeedback` and `handleAutomaticFunding` populate `visualSummary` from `dataService.getSpaceContent(space, visit)?.story`.
+- **[src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts)** — `buildTurnEffectResult` populates `visualSummary` the same way, covering both `rollDiceWithFeedback` and `rerollDice`.
+- **[src/components/modals/DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx)** — `summaryText = overrideSummary || result.visualSummary || result.summary`. The ModalConfig per-dice override still wins (rarely used). Otherwise prefer the narrative-only text. Falls back to the full summary when neither is present (the auto-modal life-event path still works unchanged).
+
+### What players will see
+
+Before (LEND-SCOPE-CHECK after rolling a 1):
+> "Sit down. I've got your plan in front of me — let's see if it holds up. I'll cut you a rate, but I want my pound of flesh on the scope first. Good news! You took on a work package, must choose next move."
+
+After:
+> "Sit down. I've got your plan in front of me — let's see if it holds up. I'll cut you a rate, but I want my pound of flesh on the scope first."
+
+The Effects Applied list below still shows "+1 Work Package · Took on a Work Package" + card name. The Before/After block still shows Project Scope $800K → $5.8M and Work Packages 1 → 2.
+
+Tests: 81 across affected paths green. Typecheck clean.
+
 ## [2.64.6] - 2026-05-15
 
 Two fixes from the v2.64.5 playtest, both diagnosed from screenshots attached to the feedback reports (pulled via `/api/feedback/:id.json` which includes the base64 screenshot).
