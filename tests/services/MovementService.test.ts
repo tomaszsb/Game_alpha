@@ -2,6 +2,7 @@
 
 import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MovementService } from '../../src/services/MovementService';
+import { ApprovalService } from '../../src/services/ApprovalService';
 import { IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService } from '../../src/types/ServiceContracts';
 import { GameState, Player } from '../../src/types/StateTypes';
 import { Movement, DiceOutcome, Space, GameConfig } from '../../src/types/DataTypes';
@@ -23,7 +24,10 @@ describe('MovementService', () => {
     // Reset all mocks
     vi.clearAllMocks();
 
-    movementService = new MovementService(mockDataService, mockStateService, mockChoiceService, mockLoggingService, mockGameRulesService);
+    // Workstream 7: real (pure-logic) ApprovalService — resume-hub block reads
+    // approved-destination state directly via this service, so tests that exercise
+    // the resume hub need it present. No mocking needed; it's stateless.
+    movementService = new MovementService(mockDataService, mockStateService, mockChoiceService, mockLoggingService, mockGameRulesService, new ApprovalService());
     
     mockPlayer = {
       id: 'player1',
@@ -973,11 +977,18 @@ describe('MovementService', () => {
     });
   });
 
-  describe('Resume from side quest (mainPathResumePoint)', () => {
+  describe('Resume from side quest (approval state, Workstream 7)', () => {
     // Workstream 6 #5+#6: mock the new data-flag helpers so the engine reads the
     // resume-mechanic flags off the (mock) data layer. Equivalent to the real
     // Spaces.csv flagging PM-DECISION-CHECK as is_resume_hub and CHEAT-BYPASS as
     // is_point_of_no_return.
+    //
+    // Workstream 7: the resume hub no longer derives destinations from the
+    // resume-point space's MOVEMENT row (broken for dice/logic-typed sources).
+    // Instead it reads `fdnyApprovedDestinations` / `dobApprovedDestinations`
+    // set by ApprovalService at examiner dice-resolution time. Tests below set
+    // those fields directly on the player to simulate a player who has been
+    // approved.
     beforeEach(() => {
       mockDataService.isResumeHub.mockImplementation((spaceName: string) => spaceName === 'PM-DECISION-CHECK');
       mockDataService.isPointOfNoReturn.mockImplementation((spaceName: string) => spaceName === 'CHEAT-BYPASS');
@@ -1002,21 +1013,19 @@ describe('MovementService', () => {
       destination_2: 'ENG-INITIATION'
     };
 
-    it('should add resume point destinations at PM-DECISION-CHECK when mainPathResumePoint is set', () => {
+    it('appends FDNY approved destinations at PM-DECISION-CHECK when fdnyApprovalStatus is approved', () => {
       const player: Player = {
         ...mockPlayer,
         currentSpace: 'PM-DECISION-CHECK',
         visitType: 'Subsequent',
-        visitedSpaces: ['OWNER-SCOPE-INITIATION', 'PM-DECISION-CHECK', 'ARCH-INITIATION', 'ARCH-FEE-REVIEW', 'ARCH-SCOPE-CHECK'],
-        mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+        visitedSpaces: ['OWNER-SCOPE-INITIATION', 'PM-DECISION-CHECK', 'REG-FDNY-PLAN-EXAM'],
+        fdnyApprovalStatus: 'approved',
+        // Mirrors what ApprovalService stores on a successful FDNY roll.
+        fdnyApprovedDestinations: ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK'],
       };
 
       mockStateService.getPlayer.mockReturnValue(player);
-      mockDataService.getMovement.mockImplementation((spaceName: string, _visitType: string) => {
-        if (spaceName === 'PM-DECISION-CHECK') return pmDecisionMovement;
-        if (spaceName === 'ARCH-SCOPE-CHECK') return archScopeMovement;
-        return undefined;
-      });
+      mockDataService.getMovement.mockReturnValue(pmDecisionMovement);
 
       const result = movementService.getValidMoves('player1');
 
@@ -1024,40 +1033,45 @@ describe('MovementService', () => {
       expect(result).toContain('LEND-SCOPE-CHECK');
       expect(result).toContain('ARCH-INITIATION');
       expect(result).toContain('CHEAT-BYPASS');
-      // Resume point destination (from ARCH-SCOPE-CHECK)
-      expect(result).toContain('ENG-INITIATION');
+      // FDNY-approved destinations (CON-INITIATION new, REG-DOB-PLAN-EXAM new,
+      // REG-DOB-AUDIT new; PM-DECISION-CHECK is filtered out because it's the
+      // current hub).
+      expect(result).toContain('CON-INITIATION');
+      expect(result).toContain('REG-DOB-PLAN-EXAM');
+      expect(result).toContain('REG-DOB-AUDIT');
     });
 
-    it('should not duplicate destinations already in the standard list', () => {
+    it('does not duplicate destinations already in the standard hub list', () => {
       const player: Player = {
         ...mockPlayer,
         currentSpace: 'PM-DECISION-CHECK',
         visitType: 'Subsequent',
-        visitedSpaces: ['PM-DECISION-CHECK', 'ARCH-SCOPE-CHECK'],
-        mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+        visitedSpaces: ['PM-DECISION-CHECK', 'REG-FDNY-PLAN-EXAM'],
+        fdnyApprovalStatus: 'approved',
+        // Includes ARCH-INITIATION which is ALREADY a standard PM-DECISION-CHECK destination.
+        fdnyApprovedDestinations: ['ARCH-INITIATION', 'CON-INITIATION'],
       };
 
       mockStateService.getPlayer.mockReturnValue(player);
-      mockDataService.getMovement.mockImplementation((spaceName: string, _visitType: string) => {
-        if (spaceName === 'PM-DECISION-CHECK') return pmDecisionMovement;
-        if (spaceName === 'ARCH-SCOPE-CHECK') return archScopeMovement;
-        return undefined;
-      });
+      mockDataService.getMovement.mockReturnValue(pmDecisionMovement);
 
       const result = movementService.getValidMoves('player1');
 
-      // PM-DECISION-CHECK appears in both standard and resume destinations — should not be duplicated
-      const pmCount = result.filter(d => d === 'PM-DECISION-CHECK').length;
-      expect(pmCount).toBe(1);
+      // ARCH-INITIATION should appear only once.
+      const archCount = result.filter(d => d === 'ARCH-INITIATION').length;
+      expect(archCount).toBe(1);
+      // CON-INITIATION (a true new destination) should be appended.
+      expect(result).toContain('CON-INITIATION');
     });
 
-    it('should not add resume destinations when hasUsedCheatBypass is true', () => {
+    it('does not append approved destinations when hasUsedCheatBypass is true', () => {
       const player: Player = {
         ...mockPlayer,
         currentSpace: 'PM-DECISION-CHECK',
         visitType: 'Subsequent',
-        visitedSpaces: ['PM-DECISION-CHECK', 'ARCH-SCOPE-CHECK', 'CHEAT-BYPASS'],
-        mainPathResumePoint: 'ARCH-SCOPE-CHECK',
+        visitedSpaces: ['PM-DECISION-CHECK', 'REG-FDNY-PLAN-EXAM', 'CHEAT-BYPASS'],
+        fdnyApprovalStatus: 'approved',
+        fdnyApprovedDestinations: ['CON-INITIATION'],
         hasUsedCheatBypass: true,
       };
 
@@ -1066,20 +1080,20 @@ describe('MovementService', () => {
 
       const result = movementService.getValidMoves('player1');
 
-      // Should NOT include ENG-INITIATION — cheat bypass disables resume
-      expect(result).not.toContain('ENG-INITIATION');
-      // Standard destinations should still be there
+      // Should NOT include CON-INITIATION — cheat bypass disables resume entirely.
+      expect(result).not.toContain('CON-INITIATION');
+      // Standard destinations should still be there.
       expect(result).toContain('LEND-SCOPE-CHECK');
       expect(result).toContain('ARCH-INITIATION');
     });
 
-    it('should not add resume destinations when mainPathResumePoint is null', () => {
+    it('does not append approved destinations when no approval is active', () => {
       const player: Player = {
         ...mockPlayer,
         currentSpace: 'PM-DECISION-CHECK',
         visitType: 'Subsequent',
         visitedSpaces: ['PM-DECISION-CHECK'],
-        mainPathResumePoint: null,
+        // No approval fields set — defaults to undefined ⇒ 'none'.
       };
 
       mockStateService.getPlayer.mockReturnValue(player);
@@ -1090,13 +1104,33 @@ describe('MovementService', () => {
       expect(result).toEqual(['LEND-SCOPE-CHECK', 'ARCH-INITIATION', 'CHEAT-BYPASS', 'PM-DECISION-CHECK', 'OWNER-DECISION-REVIEW']);
     });
 
-    it('should not add resume destinations on non-PM-DECISION-CHECK spaces', () => {
+    it('does not append approved destinations when status is minor-objection (stored destinations ignored)', () => {
+      const player: Player = {
+        ...mockPlayer,
+        currentSpace: 'PM-DECISION-CHECK',
+        visitType: 'Subsequent',
+        visitedSpaces: ['PM-DECISION-CHECK', 'REG-FDNY-PLAN-EXAM'],
+        // Player WAS approved before, but got a minor objection on re-visit.
+        fdnyApprovalStatus: 'minor-objection',
+        fdnyApprovedDestinations: ['CON-INITIATION'], // stale, should be ignored
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockReturnValue(pmDecisionMovement);
+
+      const result = movementService.getValidMoves('player1');
+
+      expect(result).not.toContain('CON-INITIATION');
+    });
+
+    it('does not append approved destinations on non-resume-hub spaces', () => {
       const player: Player = {
         ...mockPlayer,
         currentSpace: 'ARCH-SCOPE-CHECK',
         visitType: 'First',
         visitedSpaces: ['ARCH-SCOPE-CHECK'],
-        mainPathResumePoint: 'SOME-SPACE',
+        fdnyApprovalStatus: 'approved',
+        fdnyApprovedDestinations: ['CON-INITIATION', 'REG-DOB-PLAN-EXAM'],
       };
 
       mockStateService.getPlayer.mockReturnValue(player);
@@ -1104,7 +1138,8 @@ describe('MovementService', () => {
 
       const result = movementService.getValidMoves('player1');
 
-      // Just the standard ARCH-SCOPE-CHECK destinations
+      // Just the standard ARCH-SCOPE-CHECK destinations — approval state only
+      // affects resume hubs, not regular spaces.
       expect(result).toEqual(['PM-DECISION-CHECK', 'ENG-INITIATION']);
     });
 

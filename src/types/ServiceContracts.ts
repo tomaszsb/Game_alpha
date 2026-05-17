@@ -647,4 +647,11 @@ export interface IServiceContainer {
   choiceService: IChoiceService;
   effectEngineService: IEffectEngineService;
   negotiationService: INegotiationService;
+  // Optional in Phase 7.1: only MovementService + DiceRollProcessor currently
+  // read it. Component tests that don't exercise approval flow can omit it.
+  // ServiceProvider always populates it in production.
+  approvalService?: import('../services/ApprovalService').IApprovalService;
 }
+
+// Re-export approval service interface for convenience.
+export type { IApprovalService } from '../services/ApprovalService';

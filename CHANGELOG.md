@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.0] - 2026-05-16
+
+### Plan Approval Mechanic — Phase 7.1 (data model + bug fix)
+
+First phase of Workstream 7 ([BETA_PLAN_V3.md](docs/core/BETA_PLAN_V3.md)). Models the real-life NYC approval flow: DOB and FDNY plan exams now produce a persistent approval state on the player (`approved` / `minor-objection` / `denied` / `none`) rather than being purely movement events. The approval state is read at the PM-DECISION-CHECK resume hub to offer "continue from where you left off" destinations.
+
+This phase ships the data model + service layer + dice-resolution wiring. **No player-visible UI yet** (Phase 7.2 will add player-panel badges). The original PM-DECISION-CHECK resume-hub bug (`fb:bbc94ec8`) is fixed as a side effect — see below.
+
+### Root cause of the resume-hub bug
+
+Playtester reported coming to PM-DECISION-CHECK from REG-FDNY-PLAN-EXAM, wanting to return there but not seeing the option. Investigation found [MovementService.ts:148](src/services/MovementService.ts) called `extractDestinationsFromMovement(resumeMovement)`, which only reads `destination_1..5` columns from `MOVEMENT.csv`. For dice-typed resume points (REG-FDNY-PLAN-EXAM has `movement_type='dice'`), those columns are empty — the destinations live in `DICE_OUTCOMES.csv`. The resume hub silently appended zero destinations.
+
+Rather than patch the resume-hub block, the Plan Approval Mechanic stores the destinations the examiner already granted the player at dice-resolution time, and the resume hub reads from that store. The dice/logic-vs-choice distinction goes away.
+
+### Implementation
+
+- **[src/services/ApprovalService.ts](src/services/ApprovalService.ts)** — new pure-logic service. `resolveDiceOutcome(space, visit, roll)` translates a dice roll at a regulated examiner space (`REG-DOB-PLAN-EXAM`, `REG-FDNY-PLAN-EXAM`, `REG-DOB-AUDIT`) into an `ApprovalOutcome`. `applyOutcome(outcome)` produces a `PlayerUpdateData` partial. `getApprovedDestinations(player)` returns the deduplicated set of destinations granted by current `approved`-status approvals. Roll mappings per spec §3:
+  - **FDNY First visit (harder):** 1-2 approved (4 destinations), 3-4 minor objection, 5 denied (engineer), 6 denied (architect — harder than engineer)
+  - **FDNY Subsequent:** 1-3 approved, 4-5 minor objection, 6 denied (engineer)
+  - **DOB First:** 1, 5, 6 approved (forward to FDNY-FEE-REVIEW), 2 minor objection, 3-4 denied (architect rework)
+  - **DOB Subsequent:** 1, 2, 3, 6 approved, 4 minor objection, 5 denied
+  - **DOB AUDIT:** revocation source — adverse rolls (2-3 First / 3-4 Subsequent — those that route back to PLAN-EXAM) revoke DOB approval to minor-objection. Other rolls leave approval intact.
+- **[src/types/DataTypes.ts](src/types/DataTypes.ts)** + **[src/types/StateTypes.ts](src/types/StateTypes.ts)** — 4 new optional `Player` fields: `dobApprovalStatus`, `fdnyApprovalStatus`, `dobApprovedDestinations`, `fdnyApprovedDestinations`. New `ApprovalStatus` type union (`'none' | 'minor-objection' | 'approved' | 'denied'`). Added to `PlayerUpdateData` for setter parity.
+- **[src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts)** — `handleDiceBasedMovement` calls `approvalService.resolveDiceOutcome` before destination computation. If the outcome is non-null, the approval state update is written via `stateService.updatePlayer`. Movement routing is unchanged — the existing dice table still drives where the player physically moves; ApprovalService just sets the state badge.
+- **[src/services/MovementService.ts:148](src/services/MovementService.ts)** — the broken `extractDestinationsFromMovement(resumeMovement)` block is replaced with `approvalService.getApprovedDestinations(player)`. Same filters apply (no loop back to the current hub, no duplicates with the standard valid moves). `mainPathResumePoint` is still set on arrival at PM-DECISION-CHECK from main path (vestigial for now — read-side is gone, but the field is kept for diagnostic value and the existing setter tests).
+- **[src/services/TurnService.ts](src/services/TurnService.ts)** — optional `approvalService` parameter added as 15th constructor arg, passed through to `DiceRollProcessor`. Backward-compatible with existing test fixtures.
+- **[src/types/ServiceContracts.ts](src/types/ServiceContracts.ts)** — `IApprovalService` re-exported. `approvalService` added to `IServiceContainer` as optional (Phase 7.1 consumers null-check; ServiceProvider always populates it in production).
+- **[src/context/ServiceProvider.tsx](src/context/ServiceProvider.tsx)** — `ApprovalService` instantiated and wired to `MovementService` and `TurnService`.
+
+### Testing
+
+- **[tests/services/ApprovalService.test.ts](tests/services/ApprovalService.test.ts)** — 29 new unit tests covering: every roll for FDNY First/Subsequent, every roll for DOB First/Subsequent, AUDIT revocation matrix, non-regulated spaces, out-of-range rolls, `applyOutcome` for all status transitions, `getApprovedDestinations` dedup + status-filter behavior.
+- **[tests/services/MovementService.test.ts](tests/services/MovementService.test.ts)** — 5 existing `Resume from side quest` tests rewritten to assert against approval state (`fdnyApprovalStatus` + `fdnyApprovedDestinations`) instead of the old `mainPathResumePoint` + Movement-row derivation. Uses the real `ApprovalService` (pure-logic, no mock needed). 3 `finalizeMove tracking` tests unchanged — `mainPathResumePoint` setter still runs.
+
+### What's NOT in this phase
+
+- No player-visible UI. Players cannot see their approval state yet. **Phase 7.2** adds two status badges to the player panel header.
+- No revoke triggers beyond examiner re-visits. **Phase 7.3** adds W-card scope-change revocation, L-card `revokes_approval` column, audit revocation wiring.
+- No end-game penalty for missing DOB sign-off. **Phase 7.4** adds the +30 days + $50K penalty + REG-DOB-FINAL-REVIEW two-stage rework.
+- No modal copy changes. **Phase 7.5** sweeps DOB/FDNY/AUDIT modal narration into approval language.
+
+Each phase is independently shippable. Phase 7.1 alone closes the original bug and lays the foundation for the rest.
+
+### Test results
+
+- `npm run typecheck`: 0 errors.
+- 23-batch test suite (`./tests/scripts/run-tests-batch-fixed.sh`): all batches green.
+- New ApprovalService suite: 29/29 passing.
+- MovementService suite (including 5 rewritten resume-hub tests): 48/48 passing.
+
+---
+
 ## [2.64.7] - 2026-05-15
 
 ### Result-modal Summary block: drop the auto-recap, keep NPC narrative

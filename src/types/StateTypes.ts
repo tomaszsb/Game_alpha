@@ -399,6 +399,11 @@ export interface PlayerUpdateData {
   };
   mainPathResumePoint?: string | null;
   hasUsedCheatBypass?: boolean;
+  // Workstream 7 — Plan Approval Mechanic. See DataTypes.Player for full docs.
+  dobApprovalStatus?: import('./DataTypes').ApprovalStatus;
+  fdnyApprovalStatus?: import('./DataTypes').ApprovalStatus;
+  dobApprovedDestinations?: string[];
+  fdnyApprovedDestinations?: string[];
 }
 
 export type PlayerCards = {

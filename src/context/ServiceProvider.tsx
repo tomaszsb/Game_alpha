@@ -22,6 +22,7 @@ import { NotificationService } from '../services/NotificationService';
 import { CardEffectService } from '../services/CardEffectService';
 import { FinancialEffectHandler } from '../services/FinancialEffectHandler';
 import { CardEffectHandler } from '../services/CardEffectHandler';
+import { ApprovalService } from '../services/ApprovalService';
 
 interface ServiceProviderProps {
   children: ReactNode;
@@ -49,7 +50,8 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   stateService.setGameRulesService(gameRulesService);
 
   const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService);
-  const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
+  const approvalService = new ApprovalService();
+  const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService, approvalService);
   const targetingService = new TargetingService(stateService, choiceService);
 
   // Create NotificationService early for TurnService dependency
@@ -70,7 +72,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
 
   // Create TurnService with NegotiationService and NotificationService dependencies
-  const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService, undefined, undefined, undefined, cardEffectService);
+  const turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, notificationService, undefined, undefined, undefined, cardEffectService, approvalService);
 
   // Real EffectEngineService — gets the constructed turnService and all dependencies up-front.
   const effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, dataService, notificationService, financialEffectHandler, cardEffectHandler);
@@ -95,6 +97,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
     choiceService,
     effectEngineService,
     negotiationService,
+    approvalService,
   };
 
   return (

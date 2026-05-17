@@ -46,7 +46,7 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ### Service Overview
 
-All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors as of v2.47.2). 28 service files in `src/services/`.
+All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors as of v2.65.4). 29 service files in `src/services/` (ApprovalService added v2.65.0).
 
 ```typescript
 // Core Services (in IServiceContainer)
@@ -72,6 +72,7 @@ FinancialEffectHandler // Financial effect processing for EffectEngineService
 CardEffectHandler      // Card effect processing for EffectEngineService
 WebSocketSyncService   // WebSocket real-time state synchronization
 SpeechService          // Text-to-speech character voice narration
+ApprovalService        // Plan-approval state machine (Workstream 7, v2.65.0) — pure-logic, no state mutation; returns PlayerUpdateData partials that callers apply via StateService
 
 // Internal helper services
 DiceService            // Dice rolling and outcome lookup

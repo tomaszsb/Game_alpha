@@ -1,4 +1,4 @@
-import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult, INotificationService } from '../types/ServiceContracts';
+import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult, INotificationService, IApprovalService } from '../types/ServiceContracts';
 import { debugLog, debugWarn } from '../utils/debugLog';
 import { NegotiationService } from './NegotiationService';
 import { DiceService } from './DiceService';
@@ -39,8 +39,9 @@ export class TurnService implements ITurnService {
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
   private readonly cardEffectService?: ICardEffectService;
+  private readonly approvalService?: IApprovalService;
 
-  constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService, diceService?: IDiceService, spaceEffectService?: ISpaceEffectService, cardEffectService?: ICardEffectService) {
+  constructor(dataService: IDataService, stateService: IStateService, gameRulesService: IGameRulesService, cardService: ICardService, resourceService: IResourceService, movementService: IMovementService, negotiationService: NegotiationService, loggingService: ILoggingService, choiceService: IChoiceService, notificationService?: INotificationService, effectEngineService?: IEffectEngineService, diceService?: IDiceService, spaceEffectService?: ISpaceEffectService, cardEffectService?: ICardEffectService, approvalService?: IApprovalService) {
     this.dataService = dataService;
     this.stateService = stateService;
     this.gameRulesService = gameRulesService;
@@ -53,6 +54,7 @@ export class TurnService implements ITurnService {
     this.notificationService = notificationService;
     this.effectEngineService = effectEngineService;
     this.cardEffectService = cardEffectService;
+    this.approvalService = approvalService;
     // Use provided DiceService or create a default instance
     this.diceService = diceService || new DiceService();
     // Use provided SpaceEffectService or create a default instance
@@ -84,7 +86,8 @@ export class TurnService implements ITurnService {
       this.diceService,
       choiceService,
       movementService,
-      notificationService
+      notificationService,
+      approvalService
     );
     // Set the callback for processing dice roll effects (needed for circular dependency)
     this.diceRollProcessor.setProcessDiceRollEffectsCallback(

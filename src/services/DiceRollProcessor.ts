@@ -1,7 +1,7 @@
 // src/services/DiceRollProcessor.ts
 // Extracted from TurnService - handles dice roll processing with feedback
 
-import { IDataService, IStateService, IGameRulesService, IDiceService, IChoiceService, IMovementService } from '../types/ServiceContracts';
+import { IDataService, IStateService, IGameRulesService, IDiceService, IChoiceService, IMovementService, IApprovalService } from '../types/ServiceContracts';
 import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
 import { DiceResultEffect, TurnEffectResult, Player, GameState } from '../types/StateTypes';
@@ -42,6 +42,10 @@ export type ProcessDiceRollEffectsCallback = (
 export class DiceRollProcessor {
   private processDiceRollEffectsCallback?: ProcessDiceRollEffectsCallback;
   private lastRollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }>;
+  // Phase 7.5 — transient narration line set by handleDiceBasedMovement when an
+  // approval outcome fires. Read by buildTurnEffectResult and cleared at the
+  // top of every rollDiceWithFeedback / rerollDice call.
+  private lastApprovalNarration?: string;
 
   constructor(
     private dataService: IDataService,
@@ -50,7 +54,8 @@ export class DiceRollProcessor {
     private diceService: IDiceService,
     private choiceService: IChoiceService,
     private movementService: IMovementService,
-    private notificationService?: INotificationService
+    private notificationService?: INotificationService,
+    private approvalService?: IApprovalService
   ) {}
 
   /**
@@ -403,6 +408,31 @@ export class DiceRollProcessor {
     diceRoll: number,
     effects: DiceResultEffect[]
   ): void {
+    // Workstream 7 — Plan Approval Mechanic.
+    // If the player rolled at a regulated examiner space (DOB plan exam, FDNY
+    // plan exam, DOB audit), update approval state before computing destinations.
+    // The roll-to-status mapping lives in ApprovalService; the destination
+    // routing is unchanged (the existing dice table still drives where the
+    // player physically moves).
+    if (this.approvalService) {
+      const outcome = this.approvalService.resolveDiceOutcome(
+        currentPlayer.currentSpace,
+        currentPlayer.visitType,
+        diceRoll
+      );
+      if (outcome) {
+        const update = this.approvalService.applyOutcome(outcome);
+        this.stateService.updatePlayer({ id: playerId, ...update });
+        debugLog(`📋 Approval outcome at ${currentPlayer.currentSpace} (${currentPlayer.visitType}, roll ${diceRoll}): ${outcome.approval} → ${outcome.kind}`);
+        // Phase 7.5 — record NPC-voiced narration for the modal Summary block.
+        this.lastApprovalNarration = this.approvalService.narrateOutcome(
+          outcome,
+          currentPlayer.currentSpace,
+          currentPlayer.visitType
+        );
+      }
+    }
+
     const destinations = this.movementService.getDiceDestinationChoices(
       currentPlayer.currentSpace,
       currentPlayer.visitType,

@@ -1,6 +1,6 @@
 // src/services/MovementService.ts
 
-import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService } from '../types/ServiceContracts';
+import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
@@ -62,6 +62,7 @@ export class MovementService implements IMovementService {
     private choiceService: IChoiceService,
     private loggingService: ILoggingService,
     private gameRulesService: IGameRulesService,
+    private approvalService?: IApprovalService,
     notificationService?: INotificationService
   ) {
     this.notificationService = notificationService;
@@ -132,24 +133,23 @@ export class MovementService implements IMovementService {
       }
 
       // SPECIAL HANDLING: Resume from side quest at a resume-hub space.
-      // If player detoured to a side quest (funding, etc.) and returned to a
-      // resume hub, offer the destinations from the main-path space where they
-      // left off.
-      // Workstream 6 #5: lifted from `currentSpace === 'PM-DECISION-CHECK'` to
-      // the is_resume_hub data flag so educator-added resume hubs work.
+      // Workstream 7: previously read `mainPathResumePoint` and called
+      // `extractDestinationsFromMovement` on its Movement row. That silently
+      // returned [] for dice/logic-typed resume points (REG-FDNY-PLAN-EXAM,
+      // REG-FDNY-FEE-REVIEW) because those destinations live in DICE_OUTCOMES.csv
+      // / LOGIC_QUESTIONS.csv, not destination_1..5. The new approach reads the
+      // destinations the examiner already granted the player (stored in
+      // dobApprovedDestinations / fdnyApprovedDestinations by ApprovalService at
+      // dice-resolution time), so the player can continue from any current
+      // approval — regardless of movement type at the source space.
       if (this.dataService.isResumeHub(player.currentSpace) &&
-          player.mainPathResumePoint &&
-          !player.hasUsedCheatBypass) {
-        const resumeMovement = this.dataService.getMovement(
-          player.mainPathResumePoint,
-          this.hasPlayerVisitedSpace(player, player.mainPathResumePoint) ? 'Subsequent' : 'First'
-        );
-        if (resumeMovement) {
-          const resumeDestinations = this.extractDestinationsFromMovement(resumeMovement)
-            // Don't loop back to the hub the player is currently at.
-            .filter(dest => dest !== player.currentSpace && !validMoves.includes(dest));
-          validMoves = [...validMoves, ...resumeDestinations];
-        }
+          !player.hasUsedCheatBypass &&
+          this.approvalService) {
+        const approvedDestinations = this.approvalService.getApprovedDestinations(player)
+          // Don't loop back to the hub the player is currently at, and don't
+          // duplicate destinations already in the hub's own valid-move list.
+          .filter(dest => dest !== player.currentSpace && !validMoves.includes(dest));
+        validMoves = [...validMoves, ...approvedDestinations];
       }
 
       return validMoves;

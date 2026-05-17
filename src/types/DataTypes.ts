@@ -317,12 +317,27 @@ export interface Player {
     multiplier: number; // 1-6, affects base construction cost
     hiredAt?: string; // Space where contractor was hired (for tracking)
   };
-  // Resume point: last main-path space before player detoured to a side quest
-  // When returning from side quest to PM-DECISION-CHECK, this space's destinations are offered
+  // Resume point: last main-path space before player detoured to a side quest.
+  // Workstream 7: still set on arrival at PM-DECISION-CHECK for diagnostic value,
+  // but no longer drives resume-hub destination computation — that now reads
+  // dobApprovedDestinations / fdnyApprovedDestinations below.
   mainPathResumePoint?: string | null;
   // Set when player visits CHEAT-BYPASS — disables resume logic (point of no return)
   hasUsedCheatBypass?: boolean;
+
+  // Workstream 7 — Plan Approval Mechanic (see docs/core/BETA_PLAN_V3.md).
+  // DOB / FDNY approval status updated when player rolls dice at the corresponding
+  // examiner space. Persists across moves until explicitly revoked.
+  dobApprovalStatus?: ApprovalStatus;
+  fdnyApprovalStatus?: ApprovalStatus;
+  // Destinations granted by the last successful approval at each examiner.
+  // Read by the PM-DECISION-CHECK resume hub to offer "continue from where you left off"
+  // moves. Empty array means no approval is active.
+  dobApprovedDestinations?: string[];
+  fdnyApprovedDestinations?: string[];
 }
+
+export type ApprovalStatus = 'none' | 'minor-objection' | 'approved' | 'denied';
 
 export interface Card {
   card_id: string;
