@@ -12,6 +12,7 @@ import { PlayerLogSection } from './sections/PlayerLogSection';
 import { ProjectLedger } from './sections/ProjectLedger';
 import { StoryAccordion } from './sections/StoryAccordion';
 import { ConnectionStatus } from '../common/ConnectionStatus';
+import { ApprovalBadges } from './ApprovalBadges';
 import { getBackendURL } from '../../utils/networkDetection';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
@@ -468,6 +469,10 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           {currentPhase && (
             <span className="action-center__phase-badge">{currentPhase}</span>
           )}
+          <ApprovalBadges
+            dobStatus={player.dobApprovalStatus}
+            fdnyStatus={player.fdnyApprovalStatus}
+          />
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
 

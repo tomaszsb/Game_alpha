@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.1] - 2026-05-16
+
+### Plan Approval Mechanic — Phase 7.2 (player panel badges)
+
+First player-visible piece of Workstream 7. Players now see two status chips in the player-panel header — `🪪 DOB` and `🚒 FDNY` — each showing one of four states:
+
+| Chip | State | Meaning |
+|---|---|---|
+| grey · `…` | `none` | Not visited yet (default; chips hidden entirely until first interaction) |
+| yellow · `!` | `minor-objection` | Re-submit at the examiner |
+| green · `✓` | `approved` | Stamped — destinations carry over to PM-DECISION-CHECK |
+| red · `✗` | `denied` | Fix issues at engineer/architect and re-apply |
+
+Tooltip on hover spells out the meaning ("DOB: Approved", "FDNY: Minor objection — re-submit", etc.).
+
+### Why "self-only" is automatic
+
+Per-panel rendering: each `ActionCenterPanel` instance reads its own `player.dobApprovalStatus` and `player.fdnyApprovalStatus`. In the URL-scoped single-panel mode (`?p=playerId`), only the viewer's own panel renders, so badges are naturally self-only. In the multi-panel desktop view (`?p` absent), every player's panel renders side by side — each panel shows its own player's badges. There's no leak across panels.
+
+### Noise reduction
+
+Chips are hidden entirely when both statuses are `none`. They only appear once the player has interacted with at least one examiner. This keeps the header uncluttered during the OWNER/FUNDING phases where neither approval is in play yet.
+
+### Implementation
+
+- **[src/components/player/ApprovalBadges.tsx](src/components/player/ApprovalBadges.tsx)** — new component. Renders nothing when both statuses are `none`; otherwise renders both badges as a paired set so the player always sees the full regulatory picture once any badge becomes active. Inline styles match the existing `action-center__phase-badge` pattern (2px 8px padding, 10px border-radius, 0.65rem bold). Status-specific modifier classes (`action-center__approval-badge--approved`, `--denied`, `--minor-objection`, `--none`) are emitted so future CSS overrides or theming can hook in.
+- **[src/components/player/ActionCenterPanel.tsx:469](src/components/player/ActionCenterPanel.tsx)** — `<ApprovalBadges dobStatus={player.dobApprovalStatus} fdnyStatus={player.fdnyApprovalStatus} />` placed in the space header, between the phase badge and the connection-status indicator.
+
+### Testing
+
+- **[tests/components/player/ApprovalBadges.test.tsx](tests/components/player/ApprovalBadges.test.tsx)** — 9 new tests: hidden-when-none, paired rendering once either becomes non-none, correct icon per status, tooltip text, modifier class application, emoji content.
+- **[tests/components/player/ActionCenterPanel.test.tsx](tests/components/player/ActionCenterPanel.test.tsx)** — existing 6 tests pass unchanged (badges hidden by default when player has no approvals set).
+
+### Test results
+
+- `npm run typecheck`: 0 errors.
+- All 97 player-component tests green.
+- ApprovalBadges suite: 9/9 passing.
+
+### What's next (Phase 7.3+)
+
+- **Phase 7.3** — revoke triggers (W-card scope-change, L-card `revokes_approval` column, audit revocation wiring).
+- **Phase 7.4** — end-game penalty + REG-DOB-FINAL-REVIEW two-stage rework.
+- **Phase 7.5** — modal narration sweep (DOB/FDNY/AUDIT copy uses approval language).
+
+---
+
 ## [2.65.0] - 2026-05-16
 
 ### Plan Approval Mechanic — Phase 7.1 (data model + bug fix)
