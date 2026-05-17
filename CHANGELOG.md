@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.2] - 2026-05-17
+
+### Plan Approval Mechanic — Phase 7.3 (revoke triggers)
+
+Two new revoke triggers added to Workstream 7. Approvals now expire automatically when they no longer reflect the current project state.
+
+### Trigger 1: scope-change revoke
+
+Drawing a W card (Work Package) revokes DOB approval. Rationale: DOB approved the OLD project scope; adding work invalidates that approval until the player goes back to DOB and re-confirms.
+
+- Hook lives at the end of `CardService.drawCards` after the hand is updated. Fires for `cardType === 'W'` with `drawnCards.length > 0`.
+- FDNY approval is unaffected (FDNY approves life-safety, not scope).
+- Idempotent — if no prior DOB approval was active, the revoke is a no-op (`'none'` → `'none'`).
+- Real-state write (not TEMP). Try Again won't restore the revoked approval. Rationale: filing a scope change with DOB invalidates the approval even if you later withdraw the filing. A future phase can route through TEMP if rollback becomes desirable; flagged as a comment at the call site.
+
+### Trigger 2: data-driven L-card revoke
+
+New `revokes_approval` column on `CARDS_EXPANDED.csv` (column 30). Allowed values: `'dob'`, `'fdny'`, `'both'`, `''` (empty = no revoke). Set when an L card's narrative implies the regulator pulled back approval.
+
+Initial seed (3 cards flagged):
+- **L003 — New Safety Regulations** → `dob` (code change underneath prior approval)
+- **L020 — Building Code Update** → `dob` (same shape)
+- **L023 — Project Redesign** → `dob` (forced design change invalidates prior approval)
+
+Hook lives at the bottom of `CardService.applyCardEffects` after effect processing. Future L-card narratives can opt-in via the new column without code changes.
+
+### Implementation
+
+- **[src/services/ApprovalService.ts](src/services/ApprovalService.ts)** — new `revoke(target)` method + `RevokeTarget` type. Returns a `PlayerUpdateData` partial that clears the targeted approval(s) to `'none'` and empties the stored destinations. Idempotent.
+- **[src/services/CardService.ts](src/services/CardService.ts)** — accepts `approvalService?` as 7th optional constructor param. Calls `revoke('dob')` at the end of `drawCards` for W cards. Reads `card.revokes_approval` at the end of `applyCardEffects` for the L-card path.
+- **[src/types/DataTypes.ts](src/types/DataTypes.ts)** — added `revokes_approval?: 'dob' | 'fdny' | 'both' | ''` to the `Card` interface.
+- **[src/context/ServiceProvider.tsx](src/context/ServiceProvider.tsx)** — `approvalService` now constructed before `cardService` and passed in.
+- **[public/data/CLEAN_FILES/CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv)** + the server/data copy — header gets `revokes_approval` appended; L003, L020, L023 flagged as `dob`; all other 793 cards default to empty.
+
+### Testing
+
+- **[tests/services/ApprovalService.test.ts](tests/services/ApprovalService.test.ts)** — 3 new tests covering `revoke('dob')`, `revoke('fdny')`, `revoke('both')`. Total: 32/32 passing.
+- **[tests/ghost/dataIntegrity.test.ts](tests/ghost/dataIntegrity.test.ts)** — new test guards the column: every value in `revokes_approval` must be in the valid enum `{'', 'dob', 'fdny', 'both'}`. Catches typos and future data corruption. 7/7 passing.
+
+### Test results
+
+- `npm run typecheck`: 0 errors.
+- 23-batch test suite: all green.
+- ApprovalService: 32/32. Data integrity: 7/7. MovementService: 48/48. CardService: 29/29.
+
+### What's next (Phase 7.4+)
+
+- **Phase 7.4** — REG-DOB-FINAL-REVIEW two-stage check (approval gate then existing dice) + end-game penalty for finishing without DOB sign-off (+30 days + $50K).
+- **Phase 7.5** — modal narration sweep (DOB/FDNY/AUDIT copy uses approval language).
+
+---
+
 ## [2.65.1] - 2026-05-16
 
 ### Plan Approval Mechanic — Phase 7.2 (player panel badges)

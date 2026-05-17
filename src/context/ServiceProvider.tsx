@@ -49,8 +49,8 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   // Wire up circular dependency: StateService needs GameRulesService for condition evaluation
   stateService.setGameRulesService(gameRulesService);
 
-  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService);
   const approvalService = new ApprovalService();
+  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService, approvalService);
   const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService, approvalService);
   const targetingService = new TargetingService(stateService, choiceService);
 

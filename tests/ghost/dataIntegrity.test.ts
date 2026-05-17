@@ -190,4 +190,31 @@ describe('CSV data integrity', () => {
     }
     expect(offenders, `Self-referencing destinations:\n${offenders.join('\n')}`).toEqual([]);
   });
+
+  // Workstream 7 Phase 7.3 — guard the new revokes_approval column. Values must
+  // be one of the four valid choices (or empty). CardService relies on this to
+  // safely pass the value to ApprovalService.revoke().
+  it('CARDS_EXPANDED revokes_approval values are restricted to the valid enum', () => {
+    const cardsRaw = readFileSync(
+      join(process.cwd(), 'public/data/CLEAN_FILES/CARDS_EXPANDED.csv'),
+      'utf-8'
+    );
+    // Header has a historical stray \r — strip CR before splitting.
+    const lines = cardsRaw.replace(/\r/g, '').split('\n').filter(l => l.trim().length > 0);
+    const header = lines[0].split(',');
+    const colIdx = header.indexOf('revokes_approval');
+    expect(colIdx, 'revokes_approval column should exist in CARDS_EXPANDED.csv').toBeGreaterThan(-1);
+
+    const VALID = new Set(['', 'dob', 'fdny', 'both']);
+    const offenders: string[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const fields = lines[i].split(',');
+      const cardId = fields[0];
+      const value = (fields[colIdx] ?? '').trim();
+      if (!VALID.has(value)) {
+        offenders.push(`${cardId}: revokes_approval="${value}"`);
+      }
+    }
+    expect(offenders, `Invalid revokes_approval values:\n${offenders.join('\n')}`).toEqual([]);
+  });
 });

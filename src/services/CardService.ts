@@ -1,4 +1,4 @@
-import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService, IChoiceService } from '../types/ServiceContracts';
+import { ICardService, IDataService, IStateService, IResourceService, IEffectEngineService, ILoggingService, IGameRulesService, IChoiceService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { GameState, Player } from '../types/StateTypes';
 import { Card, CardType } from '../types/DataTypes';
@@ -14,6 +14,7 @@ export class CardService implements ICardService {
   private readonly gameRulesService: IGameRulesService;
   public effectEngineService!: IEffectEngineService;
   private choiceService?: IChoiceService;
+  private approvalService?: IApprovalService;
 
   constructor(
     dataService: IDataService,
@@ -21,7 +22,8 @@ export class CardService implements ICardService {
     resourceService: IResourceService,
     loggingService: ILoggingService,
     gameRulesService: IGameRulesService,
-    choiceService?: IChoiceService
+    choiceService?: IChoiceService,
+    approvalService?: IApprovalService
   ) {
     this.dataService = dataService;
     this.stateService = stateService;
@@ -29,6 +31,7 @@ export class CardService implements ICardService {
     this.loggingService = loggingService;
     this.gameRulesService = gameRulesService;
     this.choiceService = choiceService;
+    this.approvalService = approvalService;
   }
 
   // Circular dependency resolution — EffectEngineService is a genuine 3-way cycle
@@ -255,6 +258,20 @@ export class CardService implements ICardService {
     // Deck status logged internally
 
     // EffectEngine handles card draw logging with better context
+
+    // Workstream 7 Phase 7.3 — scope-change revokes DOB approval.
+    // Adding W cards (work packages) changes project scope. DOB approved the
+    // OLD scope, so any prior approval is now stale. FDNY is unaffected (it
+    // approves life-safety, not scope). Idempotent: if there's no prior approval
+    // the revoke is a no-op (sets 'none' → 'none', [] → []).
+    // Skipped when ApprovalService isn't injected (legacy tests, ghost bootstrap).
+    // Note: this is a REAL-state write — Try Again won't restore the approval.
+    // Rationale: in real life, filing a scope change with DOB invalidates the
+    // approval even if you later withdraw the filing. Future Phase 7.x can
+    // route through TEMP if Try Again rollback of approval becomes desired.
+    if (this.approvalService && cardType === 'W' && drawnCards.length > 0) {
+      this.stateService.updatePlayer({ id: playerId, ...this.approvalService.revoke('dob') });
+    }
 
     return drawnCards;
   }
@@ -1055,6 +1072,19 @@ export class CardService implements ICardService {
         console.error(`❌ Error processing card effects:`, error);
         throw error;
       }
+    }
+
+    // Workstream 7 Phase 7.3 — data-driven approval revocation.
+    // L cards (and any others) with `revokes_approval` set in CARDS_EXPANDED.csv
+    // invalidate the specified approval(s). Examples: L003 "New Safety Regulations"
+    // and L020 "Building Code Update" force DOB approval to be re-obtained because
+    // the code changed underneath the prior approval. Idempotent if no prior
+    // approval was active.
+    if (this.approvalService && card.revokes_approval) {
+      this.stateService.updatePlayer({
+        id: playerId,
+        ...this.approvalService.revoke(card.revokes_approval),
+      });
     }
 
     // Legacy card type logging for debugging

@@ -382,6 +382,12 @@ export interface Card {
   dice_range_2_time?: number;
   investor_payout?: number;
 
+  // Workstream 7 Phase 7.3 — narrative-driven approval revocation.
+  // When the card is played, revoke the specified approval(s). Empty / undefined
+  // means no revocation. Used for L cards whose story implies regulator pulled
+  // back approval (new building code, project redesign forced by lawsuit, etc.).
+  revokes_approval?: 'dob' | 'fdny' | 'both' | '';
+
   // Turn control mechanics
   turn_skip?: string;
 
