@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** May 12, 2026
-**Status:** Beta — regression gates in place; Workstream 6 closed
-**Current Version:** 2.63.4 (committed; v2.63.3 currently deployed)
+**Last Updated:** May 15, 2026 (PM)
+**Status:** Beta — regression gates in place; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0
+**Current Version:** 2.65.4 (b0b99b3 v2.64.7 deployed 2026-05-16; v2.65.0–v2.65.4 Workstream 7 (Phases 7.1–7.5) pending deploy — COMPLETE)
 
 ---
 
@@ -13,6 +13,16 @@
 **🎯 Goals/Priorities** → Keep here
 
 This file contains ONLY current and future work. For completed work, see CHANGELOG.md.
+
+---
+
+## 🧱 **Workstream 7 Follow-ups** (May 17, 2026)
+*Minor items deferred during Workstream 7 (Plan Approval Mechanic). Shipping v2.65.0–v2.65.4 was the scope; these are post-ship polish.*
+
+- [ ] **Try Again should restore revoked approvals** — Phase 7.3 wired W-card scope-change and L-card revokes as REAL-state writes (not via TEMP). If a player draws a W card, gets DOB revoked, then hits Try Again, the W card reverts but the approval stays revoked. Comment at `CardService.drawCards` flags this. Fix path: add approval fields to `MutablePlayerState` (touches `TurnStateManager`); route revokes through `updateTempState`. Probably 1-2 hrs. Wait for first playtest feedback before doing — may not matter in practice.
+- [ ] **Ghost player doesn't exercise Workstream 7** — `tests/ghost/bootstrapServices.ts:78,100` instantiates MovementService and TurnService without `approvalService`, so all approval code short-circuits in the random-bot regression gate. Intentional (don't perturb bot behavior) but means the ghost gate can't verify Workstream 7 end-to-end. If we want bot coverage, add `new ApprovalService()` to both constructor calls and verify ghost win rate stays ≥90%.
+- [ ] **End-game penalty numbers (+30 days / +$50K) are pilot values** — locked from spec but not playtest-tuned. After 3-5 games where players actually trigger the missing-DOB end-game, tune `MISSING_DOB_PENALTY_DAYS` and `MISSING_DOB_PENALTY_FEE` constants in `src/services/ApprovalService.ts` if the penalty feels too harsh or too soft.
+- [ ] **First-game tutorial moment for approval mechanic** — first time a player rolls at DOB or FDNY, consider showing a one-time intro modal explaining the badges and what approval state means. Currently they discover by reading the banner ("✅ DOB Plan Examiner: approved. Take it to FDNY next.") but a dedicated intro might help non-DOB-savvy players. Tie to the broader onboarding question already in TODO (`fb:0aa9660c`).
 
 ---
 
@@ -92,9 +102,34 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🐛 **Open Feedback (Dashboard May 2026)**
 
-*Source: `/api/feedback` endpoint, 23 unresolved as of May 14. Below are the ones NOT already fixed in v2.61.1 (the 5 G159 reports are fixed in code; the server-side `resolved` flag just hasn't been flipped — admin task).*
+*Source: `/api/feedback` endpoint, 40 unresolved as of May 15 PM. Below are the ones NOT already fixed in shipped code; the server-side `resolved` flag still needs to be flipped on resolved items (admin task — see Server-side housekeeping below).*
 
 > **First-run note (after v2.63.5 deploy):** the next `/start` will propose `<!-- fb:<id> -->` markers for every unresolved item, including ones already represented below without a marker. Use the `edit` reply to selectively accept new items + add markers to existing entries in-place (rather than letting duplicates land). After one clean run, subsequent `/start` invocations stay quiet until genuinely new feedback arrives.
+
+### Resolved in v2.63.9–v2.64.7 (pending server-side `resolved` flip)
+These ship in the deployed build but still appear in the feedback list because no one has marked them resolved on the dashboard. Code-side closed.
+- [x] **E-card leak in hire / replace expeditor modals** — v2.63.9 routed `TurnService.triggerManualEffectWithFeedback` through `describeCardAction` (extended for give/return). <!-- fb:feedback-1778847367542-1c9f4a87 --> <!-- fb:feedback-1778848339498-c15076cb -->
+- [x] **"Return 1 RETURN_E" button label** — v2.64.1 added the missing `return_` case to `formatManualEffectButton` prefix-extraction switch. <!-- fb:feedback-1778863570521-1c7c050c -->
+- [x] **PM-DECISION-CHECK self-loop in destination list** — v2.64.2 removed the self-reference from Spaces.csv/MOVEMENT.csv; new `dataIntegrity.test.ts` guard prevents recurrence. <!-- fb:feedback-1778864672571-edc26bc7 -->
+- [x] **Money/scope changes invisible at a glance** — v2.64.3+v2.64.4+v2.64.5+v2.64.6 shipped BeforeAfterBlock in DiceResultModal showing money/scope/time/card deltas; activeCards now counted so funding cards (B/I) show up; swap actions get `↔ N swapped` row; time cost surfaced on every space header. <!-- fb:feedback-1778864436652-7692dba5 --> <!-- fb:feedback-1778864258379-5ce94e05 -->
+- [x] **Modal redundant "Choose your next destination" row** — v2.64.6 suppressed `type:'choice'` effects in DiceResultModal. <!-- fb:feedback-1778872922892-6ec5c01f -->
+- [x] **Modal showed time changed but no before/after** — v2.64.6 (root cause: I cards auto-played to activeCards weren't counted in snapshot). <!-- fb:feedback-1778873006001-11c72bd4 -->
+- [x] **Result modal summary repeats every effect three times** — v2.64.7 split visualSummary (NPC narrative only) from summary (full, TTS only). No specific feedback ID — flagged directly by user this session.
+
+### Newly arrived (2026-05-16)
+- [ ] **Space data editor — "failed to save" on save** — Playtester hit a save failure in the live space data editor (`/admin`). Endpoint is `POST /api/admin/save-source-files` (`server/server.js:503`). Triage: check `docker logs game_alpha` for the failing request, confirm admin token still valid, verify the body shape the editor sends matches handler expectations. <!-- fb:feedback-1778903568195-2426489c -->
+- [ ] **Setup flow — combine start/join screens** — Design suggestion: collapse the PC/TV-vs-mobile selection screen into the next screen by moving PC/TV option + Join Game area into the right panel of the player-setup screen. Touches `PlayerSetup.tsx` layout + the device-mode pick step. Game-design decision, not a bug. <!-- fb:feedback-1778903822021-1c4c60a0 -->
+
+### Newly arrived (2026-05-15 PM)
+- [ ] **Hire-contractor modal — "I'm not sure which contractor I hired"** — Modal doesn't prominently display the chosen card's name/effect. Touches CardSelectionModal or the equivalent picker shown when hiring expeditors. Likely a render-order or copy issue — investigate which surface displays the card chosen after selection. <!-- fb:feedback-1778866008893-0520fd41 -->
+- [x] **PM-DECISION-CHECK: no option to return to last main-path space** — Shipped v2.65.0 (Workstream 7 Phase 7.1). New `ApprovalService` sets `fdnyApprovedDestinations` on the player when FDNY rolls 1-3 (Subsequent) or 1-2 (First). Resume-hub block at `MovementService.ts:148` now reads `approvalService.getApprovedDestinations(player)` instead of trying to derive destinations from the dice-typed FDNY MOVEMENT row (which was returning empty). <!-- fb:feedback-1778865672444-bbc94ec8 -->
+- [ ] **CHEAT-BYPASS landed on PM-DECISION-CHECK unexpectedly** — Player says PM-DECISION-CHECK wasn't in the listed options from cheat space. Either a movement bug or a UI mismatch with what was offered vs what landed. <!-- fb:feedback-1778865577465-46dd4a47 -->
+- [ ] **Cheat space player-panel cluster** — Multiple issues on CHEAT-BYPASS panel: (a) "Determine next steps" button is above "Your actions", should be below; (b) "Determine time impact" should be part of "Determine next step", not separate; (c) grayed-out "Get Work Packages" button appears where it shouldn't. (The "return 1 return_E" label part of this report is already fixed in v2.64.1.) <!-- fb:feedback-1778865475889-89d9f101 -->
+- [ ] **Arrow overlaps a box on the board** — Smart-edge A* router produced a sub-optimal route. Screenshot analysis (2026-05-16): player is on CHEAT-BYPASS. The bottom-most edge from PM-DECISION-CHECK to its lowest-row destination routes downward through the CHEAT-BYPASS box itself (Bypass sits directly below PM Check). Possible fixes: tune smart-edge gridRatio so the router avoids occupied boxes, or hide that specific edge via the per-edge admin toggle, or reposition CHEAT-BYPASS in Phase D drag-to-save. <!-- fb:feedback-1778864793831-30be69b2 -->
+- [ ] **Arrows too long, boxes too small** — Overall board density issue. Smart-edge can't shrink routes; this would need node repositioning (closer phase clusters) or a bigger canvas viewport. Touches the Phase D drag-to-save flow (once that ships, admin can recompose the layout). <!-- fb:feedback-1778864351916-7c972948 -->
+- [ ] **ENG-INITIATION "hardly visible" as a valid choice** — Valid-move highlight contrast too low for this space (and probably others). Bump the green-border thickness or background on `data.isValidMove === true` in BoardCanvas custom node. <!-- fb:feedback-1778863716766-5799ee7a -->
+- [ ] **Ledger button blocks text** — UI overlap. The `.action-center__ledger-side` floating side button covers underlying text on some viewports. Reposition or add bottom-margin to the panel content. <!-- fb:feedback-1778857474738-016784b0 -->
+- [ ] **End-screen has no stats** — Duplicate of older `feedback-1775793831276-3483b37b` (already in Older / unattended section below). <!-- fb:feedback-1778866252080-cc345da9 -->
 
 ### Voice-leak follow-ups (post v2.61.1)
 - [ ] **Action counter mismatch — "1 action remaining" but 2 (location + expeditor)** — Player panel undercount. Touches the action-count selector in `ActionCenterPanel.tsx` / wherever `requiredActions − completedActionCount` is computed. <!-- fb:feedback-1778642151553-ffff07e2 -->
@@ -131,7 +166,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🧪 **Testing follow-ups** (May 12-15, 2026)
 
-- [ ] **Ghost try-again-happy variant at the 90% boundary** — strict variant passes comfortably at ~94% wins, but try-again-happy (20% Try Again probability) lands at 88% on a bad-luck run (44/50). 0 hard failures both variants. Right fix is (a) lower the try-again-happy threshold to 85% — explicit asymmetry between strict and stress variants — or (b) seed `Math.random` in `playOneGame` so both variants are deterministic and re-tune. Touches `tests/ghost/ghostPlayer.test.ts`.
+- [ ] **PRIORITY — Ghost boundary flakiness now hits BOTH strict and try-again-happy** (2026-05-15 PM update): the 90% threshold was already a flaky boundary for try-again-happy at 88%; the /koniec pre-flight on 2026-05-15 PM had `strict` AND `try-again-happy` BOTH failing on a targeted re-run (full-suite run failed only one of them in the same session). Different tests fail run-to-run = bad-luck variance, but the regression gate is no longer reliable. **Don't ship looser thresholds alone** — would mask real ghost regressions. **Right fix:** seed `Math.random` in `playOneGame` so both variants are deterministic, then re-tune thresholds with deterministic data. Approach: thread `seed?: number` through `GhostGameOptions`, replace `Math.random` with a seeded PRNG (`mulberry32` is 4 lines), keep one diagnostic run unseeded for entropy. Re-tune thresholds against 10 sequential seeded runs. ~1 hour. Touches `tests/ghost/ghostPlayer.ts` + `tests/ghost/ghostPlayer.test.ts`.
 
 
 

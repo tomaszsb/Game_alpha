@@ -2,6 +2,64 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.4] - 2026-05-17
+
+### Plan Approval Mechanic — Phase 7.5 (modal narration sweep) — Workstream 7 COMPLETE
+
+Final phase of Workstream 7. The DiceResultModal's Summary block now ends with a one-line NPC-voiced outcome banner when the player rolls at DOB/FDNY/AUDIT or hits the Stage-1 gate at REG-DOB-FINAL-REVIEW. Players see, in plain language, exactly what just happened to their approval status.
+
+### Banner copy
+
+| Source space | Outcome | Banner |
+|---|---|---|
+| DOB Plan Exam | approved | ✅ DOB Plan Examiner: approved. Take it to FDNY next. |
+| DOB Plan Exam | minor objection | ⚠️ DOB Plan Examiner: minor objection. Revise and resubmit on the next turn. |
+| DOB Plan Exam | denied | ❌ DOB Plan Examiner: rejected. Your architect needs to revise the plans before you can come back. |
+| FDNY Plan Exam | approved | ✅ FDNY Plan Examiner: approved. Pick your next stop. |
+| FDNY Plan Exam | minor objection | ⚠️ FDNY Plan Examiner: minor objection. Revise and resubmit on the next turn. |
+| FDNY Plan Exam (First) | denied | ❌ FDNY Plan Examiner: rejected. Substantial issues — back to the design team to address them. |
+| FDNY Plan Exam (Subsequent) | denied | ❌ FDNY Plan Examiner: rejected. Your engineer needs to fix the issues before you can come back. |
+| DOB Audit (adverse roll) | revoke | ⚠️ Audit found issues. DOB approval is on hold — head back to plan exam to clear it up. |
+| REG-DOB-FINAL-REVIEW (Stage-1 gate fail) | bounced | 🛂 DOB clerk: \<gate.reason> |
+
+First-vs-Subsequent differentiation on FDNY denial mirrors the existing dice routing (First sends to architect — harsher; Subsequent sends to engineer — re-submission).
+
+### Implementation
+
+- **[src/services/ApprovalService.ts](src/services/ApprovalService.ts)** — new `narrateOutcome(outcome, sourceSpace, visitType)` method on `IApprovalService`. Pure-logic: returns the banner string for any approval outcome. Audit-space outcomes get audit-specific language; FDNY denials branch on visit type for the architect-vs-engineer distinction.
+- **[src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts)** — new transient `lastApprovalNarration` field (same pattern as the existing `lastRollGroups`). Set in `handleDiceBasedMovement` when the dice-resolved outcome fires, OR when the REG-DOB-FINAL-REVIEW Stage-1 gate bounces the player. Cleared at the top of every `rollDiceWithFeedback` / `rerollDice` call. `buildTurnEffectResult` appends the narration to `visualSummary` (separated by a blank line so the NPC story stays on top and the banner reads as a separate beat below).
+
+### What the player sees
+
+Before Phase 7.5, the modal Summary at a DOB-approved roll said only the NPC story:
+> "Sit down. I've got your plan in front of me — let's see if it holds up."
+
+After Phase 7.5:
+> "Sit down. I've got your plan in front of me — let's see if it holds up.
+>
+> ✅ DOB Plan Examiner: approved. Take it to FDNY next."
+
+The TTS path (`summary`) is unchanged — screen-reader users hear the full assembled summary as before.
+
+### Testing
+
+- **[tests/services/ApprovalService.test.ts](tests/services/ApprovalService.test.ts)** — 7 new tests for `narrateOutcome` covering: DOB approved/objection/denied, FDNY approved, FDNY denied First (design team), FDNY denied Subsequent (engineer), AUDIT outcome (audit-specific language). Total: 49/49 passing.
+- 23-batch full suite green.
+- `npm run typecheck`: 0 errors.
+
+### Workstream 7 status: COMPLETE
+
+All five phases shipped:
+- ✅ 7.1 — data model + ApprovalService + dice-resolution wiring + resume-hub bug fix (v2.65.0)
+- ✅ 7.2 — player panel badges (v2.65.1)
+- ✅ 7.3 — revoke triggers: W-card scope-change + L-card `revokes_approval` column (v2.65.2)
+- ✅ 7.4 — REG-DOB-FINAL-REVIEW Stage-1 gate + end-game penalty (v2.65.3)
+- ✅ 7.5 — modal narration sweep (v2.65.4)
+
+Original PM-DECISION-CHECK resume-hub bug (`fb:bbc94ec8`) closed as a side effect of 7.1. Total scope: ~8 hours over 2 sessions.
+
+---
+
 ## [2.65.3] - 2026-05-17
 
 ### Plan Approval Mechanic — Phase 7.4 (final-review two-stage + end-game penalty)

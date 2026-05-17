@@ -2,6 +2,55 @@
 
 ---
 
+## v2.65.0 → v2.65.4 — Plan Approval Mechanic (May 16–17, 2026)
+
+**Release Date:** May 17, 2026
+**Status:** Beta
+**Type:** New game mechanic (player-visible across multiple surfaces)
+
+Five sequential releases (v2.65.0 through v2.65.4) ship a single coherent feature: **persistent DOB and FDNY approvals**. Real life: when you visit a plan examiner, you walk away with a stamp or you don't. The game now models that.
+
+### What Changed for Players
+
+**Two new badges in your player panel header**: 🪪 **DOB** and 🚒 **FDNY**. Each shows one of four states once you've interacted with the examiner:
+
+- **grey · …** — Not visited yet (badges stay hidden until your first DOB or FDNY visit, to keep the early game uncluttered)
+- **yellow · !** — Minor objection. Revise and re-submit.
+- **green · ✓** — Approved. The destinations they cleared you for will appear at PM-DECISION-CHECK as resume options.
+- **red · ✗** — Denied. Fix issues at architect / engineer and re-apply.
+
+Hover any badge for a plain-language explanation.
+
+**Approvals are sticky.** Once granted, they carry across moves. The PM-DECISION-CHECK resume hub now offers the destinations you were approved for — meaning if FDNY gave you the green light at four spaces, you can return to PM-DECISION-CHECK and pick any of them, not just the spaces the dice happened to roll today.
+
+**Approvals can be revoked.** Three triggers:
+- **Re-visiting the same examiner** — a new roll replaces your old approval, good or bad. Risky.
+- **Drawing Work Package cards (W cards)** — scope changes invalidate DOB approval. You'll need to go back to plan exam to re-confirm the new scope.
+- **Specific Life Event cards** (L003 New Safety Regulations, L020 Building Code Update, L023 Project Redesign) — narrative says the code changed underneath your prior approval.
+
+**Audits can revoke too.** If REG-DOB-AUDIT rolls send you back to plan exam, your DOB approval drops to "minor objection".
+
+**REG-DOB-FINAL-REVIEW now does a two-stage check.** Before the dice roll for your "other paperwork" (insurance, structural calcs, energy compliance), the DOB clerk verifies your prior approvals are on file:
+- Missing DOB approval → routed back to DOB plan exam. No dice roll today.
+- Missing FDNY approval → routed back to FDNY plan exam. No dice roll today.
+- Both present → roll the dice for paperwork as before.
+
+**End-game penalty if you reach FINISH without DOB sign-off.** The CO came late and cost the owner: **+30 days** and a **$50,000 emergency-processing fee** added to your final stats. The end-game modal shows a yellow warning section explaining what happened. (In practice the Stage-1 gate should catch this, but the penalty is a backstop.)
+
+**Result modal narrates the outcome.** When you roll at DOB, FDNY, or AUDIT, the modal's Summary block ends with a one-line NPC banner — "✅ DOB Plan Examiner: approved. Take it to FDNY next." or "⚠️ FDNY Plan Examiner: minor objection. Revise and resubmit on the next turn." First-visit FDNY denials send you to the design team; subsequent-visit denials send you to the engineer (a softer outcome on re-submission).
+
+### Why This Matters
+
+The game previously treated every plan-exam visit as a fresh roll with no memory. The NYC permit process doesn't work that way — your filing accumulates approvals, and those approvals expire when scope changes. The mechanic adds real strategy: you can rush through DOB then draw W cards to expand the project, but you'll lose the approval you just earned and have to go back. You can be approved at FDNY but never reach DOB final review without DOB approval too. The trade-offs are now visible.
+
+It also closes the long-standing bug where players who came to PM-DECISION-CHECK from FDNY couldn't see FDNY as a return option (`fb:bbc94ec8`) — now your prior FDNY-approved destinations always appear as resume options.
+
+### Under the Hood
+
+New service `ApprovalService` (pure-logic, no state mutation) drives all approval transitions. Four new optional fields on the Player type (status + stored destinations per examiner). New `revokes_approval` column on `CARDS_EXPANDED.csv` — data-driven so future L cards can opt-in without code changes. 49 unit tests covering every roll × space × visit-type combination. Full 23-batch test suite green. Five sequential commits in working tree as of release (v2.65.0 → v2.65.4).
+
+---
+
 ## v2.64.7 — Result modal stops repeating itself (May 15, 2026)
 
 **Release Date:** May 15, 2026

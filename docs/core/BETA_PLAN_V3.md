@@ -216,6 +216,145 @@ Plus the existing **Ghost Player gate** — 50 random games per CI run, ≥90% w
 
 ---
 
+### Workstream 7 — Plan Approval Mechanic (post-v3.0, added May 2026)
+
+**Note:** Like Workstream 6, this is **not part of the original 5-workstream Beta scope**. Added 2026-05-16 in response to playtester feedback (`fb:bbc94ec8`: "I want to return to where I was when I last hit PM-DECISION-CHECK"). Investigation revealed that the resume-hub code at `MovementService.ts:148` silently fails for `dice` and `logic` movement types because `extractDestinationsFromMovement` only reads `destination_1..5` columns — those types' destinations live in `DICE_OUTCOMES.csv` / `LOGIC_QUESTIONS.csv`. Rather than patch the resume-hub block, this workstream models the real-life NYC mechanic (you walk out of DOB/FDNY with an *approval*, not just a destination), which subsumes the bug fix and adds gameplay depth.
+
+#### Problem
+
+Today, visiting DOB or FDNY is purely a movement event — you roll, you go. The game doesn't model the *outcome* of the inspection (you got approved / got a minor objection / got denied). Players have no persistent state from regulatory visits, which (a) breaks the resume-hub semantic for dice-typed sources, (b) wastes the rich approval/denial mechanic that mirrors real NYC permit flow, (c) gives the player no carry-over from past inspections — every visit feels like a fresh roll.
+
+#### Real-life model
+
+NYC reality: DOB Plan Examiner reviews your plans. Outcome is one of approval (move to next stage), minor objection (revise and resubmit), or denial (fix substantial issues at architect/engineer first, then come back). FDNY same shape. Approval is sticky — valid until you change scope, get audited, or revisit and get a different result. DOB's final clerk (REG-DOB-FINAL-REVIEW) verifies both prior approvals *plus* other paperwork (insurance, structural calcs, energy compliance) before signing off on the CO.
+
+#### Data model
+
+Two player-state fields per approval, plus a destinations memo:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `dobApprovalStatus` | `'none' \| 'minor-objection' \| 'approved' \| 'denied'` | DOB plan exam status |
+| `fdnyApprovalStatus` | `'none' \| 'minor-objection' \| 'approved' \| 'denied'` | FDNY plan exam status |
+| `dobApprovedDestinations` | `string[]` | Destinations DOB granted last approval (used by PM-DECISION-CHECK resume hub) |
+| `fdnyApprovedDestinations` | `string[]` | Same, FDNY |
+
+All four added to `Player` in `src/types/StateTypes.ts` + `src/types/DataTypes.ts`. Default values: status `'none'`, destinations `[]`.
+
+#### Roll mappings (no MOVEMENT.csv / DICE_OUTCOMES.csv data changes required)
+
+**REG-FDNY-PLAN-EXAM — First visit (harder):**
+
+| Roll | Outcome | Effect |
+|---|---|---|
+| 1, 2 | Approved | Status → `approved`. Store `[CON-INITIATION, REG-DOB-PLAN-EXAM, REG-DOB-AUDIT, PM-DECISION-CHECK]`. Player picks one. |
+| 3, 4 | Minor objection | Status → `minor-objection`. Stay, lose time, no fee, re-roll next turn. |
+| 5 | Engineer denial | Status → `denied`. Clear destinations. Forced to ENG-INITIATION. DOB unchanged. |
+| 6 | Architect denial | Status → `denied`. Clear destinations. Forced to ARCH-INITIATION (harder than engineer — first-time inspections find bigger issues). |
+
+**REG-FDNY-PLAN-EXAM — Subsequent (easier, re-submission):**
+
+| Roll | Outcome |
+|---|---|
+| 1, 2, 3 | Approved (same destinations as First) |
+| 4, 5 | Minor objection |
+| 6 | Engineer denial → ENG-INITIATION |
+
+**REG-DOB-PLAN-EXAM — both visits:** existing dice mapping already encodes the same three-outcome shape with different destinations. Approved rolls route to REG-FDNY-FEE-REVIEW (forward in regulatory chain); objection rolls loop; denial rolls route to ARCH-INITIATION (architect rework). On approval, `dobApprovedDestinations = [REG-FDNY-FEE-REVIEW]` (single destination — DOB's "approval" semantically means "next stage is FDNY").
+
+| Visit | Approved | Objection | Denial |
+|---|---|---|---|
+| First | 1, 5, 6 | 2 | 3, 4 |
+| Subsequent | 1, 2, 3, 6 | 4 | 5 |
+
+**REG-DOB-AUDIT:** revocation source. If audit dice routes to REG-DOB-PLAN-EXAM (rolls 2, 3 First / 3, 4 Subsequent), DOB approval is revoked → `dobApprovalStatus = minor-objection`. Other audit destinations leave approval intact.
+
+#### Revoke triggers
+
+| Trigger | Effect |
+|---|---|
+| Re-visit the same examiner | New roll replaces old approval (good or bad). |
+| Add W cards / change scope | `dobApprovalStatus → 'none'` (approval was for old scope). FDNY unaffected. |
+| Land on REG-DOB-AUDIT with adverse roll | See above. |
+| Specific L cards | Data-driven via new `revokes_approval: 'dob' \| 'fdny' \| 'both' \| ''` column in `CARDS_EXPANDED.csv`. |
+
+#### REG-DOB-FINAL-REVIEW — two-stage check
+
+**Stage 1 (logic):** verify `dobApprovalStatus === 'approved'` AND `fdnyApprovalStatus === 'approved'`. If either is missing/denied, route player back to the missing examiner (DOB first if both missing). Lose time, no fee.
+
+**Stage 2 (existing dice):** the existing REG-DOB-FINAL-REVIEW dice roll stays, modeling the clerk's review of other paperwork (insurance, structural calcs, energy compliance). Only fires after Stage 1 passes.
+
+#### End-game without DOB sign-off
+
+Reaching FINISH with `dobApprovalStatus !== 'approved'`:
+- Game still ends.
+- Penalty: +30 days + $50K emergency-processing fee on final stats.
+- End-game modal narrates: "DOB never signed off — your CO came late and cost the owner."
+- Stats screen flags this.
+
+#### PM-DECISION-CHECK after approval (the original bug fix)
+
+When player returns to PM-DECISION-CHECK with valid approvals:
+- If `fdnyApprovalStatus === 'approved'`, append `fdnyApprovedDestinations` to valid moves.
+- If `dobApprovalStatus === 'approved'`, append `dobApprovedDestinations`.
+- The current `extractDestinationsFromMovement(resumeMovement)` block at `MovementService.ts:148` is **removed** — replaced with reads of the stored approval destinations. No more re-deriving destinations from a dice space at runtime.
+
+#### Player panel UI
+
+Two new status badges in player panel header. Per user's pick.
+
+- Visual states: `none` grey ("Not visited"), `minor-objection` yellow ("Re-submit"), `approved` green ✓, `denied` red ✗.
+- Layout: `🪪 DOB · ✓` and `🚒 FDNY · ✓`. Tooltip explains state.
+- Multiplayer: per-player, self-only on the panel.
+
+#### Phased rollout
+
+| Phase | Scope | Visible to player? |
+|---|---|---|
+| **7.1** | Data model (4 player fields), `ApprovalService`, wire DOB/FDNY/AUDIT dice resolution to set state, replace MovementService.ts:148 with stored-destination reads. **Original PM-DECISION-CHECK bug fixed as a side effect.** | No (internal state only) |
+| **7.2** | Player panel badges. Players SEE their approval state. | Yes |
+| **7.3** | Revoke triggers — W-card scope-change revoke, L-card `revokes_approval` column, audit revocation logic. | Yes (badges change in response) |
+| **7.4** | End-game penalty path + REG-DOB-FINAL-REVIEW two-stage rework. | Yes (penalty visible in stats; final-review behaves differently) |
+| **7.5** | Modal narration sweep — DOB/FDNY/AUDIT modal copy uses approval language. NPC voice per `AUTHORED_COPY_REVIEW.md`. | Yes (copy change only) |
+
+Each phase shippable in isolation. Phase 7.1 alone closes the original bug and is the safest first step.
+
+#### Test strategy
+
+- **`ApprovalService` unit tests** — grant/revoke/query for all 4 states × 2 approvals.
+- **MovementService integration** — DOB/FDNY dice → approval set; PM-DECISION-CHECK return → approved destinations offered.
+- **End-game test** — FINISH without DOB approval → penalty applied (Phase 7.4).
+- **Data integrity test** (`tests/ghost/dataIntegrity.test.ts` extension) — L cards with `revokes_approval` set use only valid enum values.
+- **Existing tests** — the 5 `Resume from side quest` cases in `MovementService.test.ts` must be updated: their `archScopeMovement` mock changes meaning (now an approval-source check, not a destination-extract source). Update mock setup to use approval state instead of inferring destinations from a Movement row.
+- **Ghost Player gate** — random bot doesn't need changes; the new approval state is read-only from its perspective.
+
+#### Risks
+
+- **Save-game compatibility:** existing in-flight games won't have the new fields. `StateService` load path needs defaulting (`status = 'none'`, destinations = `[]`).
+- **Onboarding:** approvals are new mental load. Worth a one-time intro modal on first DOB/FDNY visit — schedule as part of Phase 7.5.
+- **Voice consistency:** approval language must fit NPC voice rules. DOB clerk and FDNY inspector are different speakers — modal narration switches speaker per space (already wired via `CHARACTER_MAP`).
+- **State-combination matrix:** 4 statuses × 2 approvals × multiple revoke triggers = many cases. `ApprovalService` unit tests must cover the full grid.
+- **Educator portability:** approval status fields are hardcoded by name. Educator-added regulatory spaces wouldn't get approval semantics. Acceptable for now (same posture as Phase 6.4 NPC voice deferral); revisit if educators ask.
+
+#### Open questions — all resolved 2026-05-16
+
+1. ✅ **First-visit FDNY:** keep harder, no data change. First denial uses architect (roll 6); Subsequent denial uses engineer (roll 6).
+2. ✅ **DOB approved destinations:** `[REG-FDNY-FEE-REVIEW]` (one destination).
+3. ✅ **End-game penalty:** +30 days + $50K.
+4. ✅ **REG-DOB-FINAL-REVIEW:** two-stage (logic + dice), not replace.
+5. ✅ **Multiplayer:** per-player, self-only.
+
+**Effort estimate:** ~6–10 hours across 2–3 sessions. Phase 7.1 is ~2–3 hours alone.
+
+**Status: COMPLETE 2026-05-17.**
+- ✅ **Phase 7.1** shipped v2.65.0 (2026-05-16). Data model + ApprovalService + dice-resolution wiring + resume-hub bug fix. See CHANGELOG.
+- ✅ **Phase 7.2** shipped v2.65.1 (2026-05-16). Player panel badges (🪪 DOB · 🚒 FDNY, 4 states each). See CHANGELOG.
+- ✅ **Phase 7.3** shipped v2.65.2 (2026-05-17). W-card scope-change revoke + data-driven `revokes_approval` column on `CARDS_EXPANDED.csv` (L003, L020, L023 seeded). See CHANGELOG.
+- ✅ **Phase 7.4** shipped v2.65.3 (2026-05-17). REG-DOB-FINAL-REVIEW Stage-1 gate (missing approvals → forced route to examiner) + end-game penalty for missing DOB sign-off (+30 days, +$50K) surfaced in EndGameModal. See CHANGELOG.
+- ✅ **Phase 7.5** shipped v2.65.4 (2026-05-17). NPC-voiced outcome banner appended to DiceResultModal Summary on DOB/FDNY/AUDIT rolls and on REG-DOB-FINAL-REVIEW gate bounces. Audit-specific revocation language; FDNY First→architect vs Subsequent→engineer differentiation. See CHANGELOG.
+
+---
+
 ## Workstream 0 — Prep & Cleanup (this commit)
 
 Before any of the above starts:

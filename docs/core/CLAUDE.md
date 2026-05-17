@@ -32,7 +32,7 @@ taskkill /F /IM chrome.exe
 
 **Working Directory**: `/mnt/d/unravel/current_game/Game_Alpha/`
 
-**Status**: Beta (v2.63.2) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstreams 3 (Living Map) and 5 (Live Dictionary) remain for v3.0.0 ship.
+**Status**: Beta (v2.64.7) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstreams 3 (Living Map) and 5 (Live Dictionary) remain for v3.0.0 ship.
 
 **Directory Structure:**
 ```
@@ -44,7 +44,7 @@ Game_Alpha/
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers (ServiceProvider)
 │   └── styles/                  # CSS variables, animations, theme
-├── tests/                        # 99 test files (run via batch script)
+├── tests/                        # 101 test files (run via batch script)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -68,7 +68,11 @@ Game_Alpha/
 └── index.html                    # Entry point
 ```
 
-> Note: `scripts/` directory exists at repo root but is currently empty — utility scripts have been collapsed into `server/processGameData.js` and the JS port that runs in Docker.
+> `scripts/` (utility scripts, run via `node scripts/<name>.mjs`):
+> - `set-narrative.mjs` — write per-action narratives into SPACE_EFFECTS.csv
+> - `regen-clean-files.mjs` — re-run the pipeline to refresh CLEAN_FILES from SOURCE_FILES
+> - `merge-voice-rewrite.mjs` — voice-rewrite doc parser (Pass 2 / ModalConfig.csv work)
+> - `seed-board-positions.mjs` — board coordinate seeding (Workstream 3 prep)
 
 ### **Running Tests:**
 ```bash
@@ -250,7 +254,7 @@ Your mission is to maintain and enhance Game Alpha, a fully functional multi-pla
 - **All code:** TypeScript with strict type checking. `npm run typecheck` must return 0 errors.
 - **Testing:** All 23 batches in `./tests/scripts/run-tests-batch-fixed.sh` must be green. Ghost Player strict + try-again-happy variants both pass.
 - **Components:** Single responsibility. No line-count budget — split when a specific method becomes painful, not on size alone (see [BETA_PLAN_V3.md Workstream 4](./BETA_PLAN_V3.md) for the dropped-line-budget rationale).
-- **Services:** Same — large stable services (TurnService 2,076, StateService 1,867) are accepted as cohesive. Setter injection only for the two documented real cycles.
+- **Services:** Same — large stable services (TurnService ~2,100, StateService ~1,890) are accepted as cohesive. Setter injection only for the two documented real cycles.
 - **Architecture:** Follow established patterns (see ARCHITECTURE.md). New per-space behavior should live in Spaces.csv flags, not hardcoded space-ID checks (Workstream 6 invariant).
 
 ### **Before Committing:**
@@ -444,6 +448,44 @@ For JSON parsing, pipe through `python -c "import sys,json; ..."` — `jq` is no
 
 `dashboard.unravelcodes.com` (source at `D:\Unravel\dictionary-scraper`, Next.js + FastAPI Docker stack on Unraid) is a UI wrapper. Its `GET /api/feedback` forwards to `https://game.unravelcodes.com/api/feedback`. **The game server in this repo is the source of truth for feedback data.** To read feedback programmatically, hit the game server directly — use the v2.63.5 `GET /api/public/feedback/open?token=…` endpoint, not the OAuth-gated dashboard.
 
+### Feedback screenshots — fetch via `/api/feedback/:id.json`
+
+The public `/api/public/feedback/open` endpoint strips screenshots deliberately (low token cost). The per-id endpoint `GET /api/feedback/<id>.json` returns the full record including a base64 `screenshot` field, and appears to NOT be token-gated. Pipeline that makes triage massively faster:
+
+```
+curl -sS --max-time 30 "https://game.unravelcodes.com/api/feedback/<id>.json" -o .claude/tmp/<id>.json
+python3 -c "import json,base64; d=json.load(open('.claude/tmp/<id>.json')); h,b=d['screenshot'].split(',',1); open('.claude/tmp/<id>.jpg','wb').write(base64.b64decode(b))"
+```
+
+Then `Read .claude/tmp/<id>.jpg` — the multimodal model renders it inline. Use this whenever a feedback report references a visual state ("modal review", "looking at panel", etc.) — root cause is often visible directly.
+
+### Result modal: visualSummary vs summary (v2.64.7)
+
+`TurnEffectResult` has two summary fields by design:
+- `summary: string` — full assembled storyText + canned tone + per-effect recap. Used for TTS via `useModalSpeech` / `getTtsText`.
+- `visualSummary?: string` — NPC narrative only (from `SPACE_CONTENT.csv` `story` column). Used for the visible Summary block in `DiceResultModal`.
+
+The full `summary` duplicates the Effects Applied list and Before/After block, so the visible Summary uses the narrower `visualSummary` to stay narrative-focused. If you add a new `TurnEffectResult`-producing path, populate `visualSummary` from `dataService.getSpaceContent(space, visit)?.story` — otherwise the modal falls back to `summary` and the user sees "the same outcome described three times."
+
+### Result modal: before/after snapshots + gotchas (v2.64.3–v2.64.6)
+
+`TurnEffectResult.before / after: ResourceSnapshot?` drives `BeforeAfterBlock` (money, scope, time, card counts per W/B/E/I/L). Three gotchas:
+1. `GameRulesService.calculateProjectScope` reads **live** state. Compute `beforeScope` BEFORE applying effects, `afterScope` AFTER. The `buildResourceSnapshot(player, scope)` helper takes scope as a param to decouple this.
+2. Funding cards (B = Bank Loans, I = Investments) auto-play at funding spaces → move from `player.hand` to `player.activeCards`. `buildResourceSnapshot` iterates BOTH stores. If you count only hand, those cards never show a delta.
+3. Swap actions (`cardAction:'replace'`) have zero net count change. `BeforeAfterBlock` accepts `effects?` and synthesizes a `↔ N swapped` row for replace actions even when before.count===after.count. Without that, the swap modal shows no card row at all.
+
+### Vite manualChunks: plugins live in the host chunk
+
+Plugins that extend a host library MUST be routed to the host's chunk in `vite.config.ts` `manualChunks`. Example from v2.64.0: `@jalez/react-flow-smart-edge` + its `pathfinding` peer must land in `vendor-reactflow` alongside `@xyflow/react`, otherwise pathfinding falls into the catch-all `vendor` chunk and creates a `vendor → vendor-reactflow → vendor` cycle that Rollup warns about. The fix: add the plugin AND its peer dependencies to the same condition that routes the host library.
+
+### smart-edge package is broken under jsdom — use the stub
+
+`@jalez/react-flow-smart-edge@4.0.0` ships a CJS `dist/index.js` inside an ESM package (`"type":"module"`), and its ESM build named-imports CJS-only `pathfinding`. Both crash Node's loader under jsdom (`ReferenceError: module is not defined in ES module scope` or `Named export 'AStarFinder' not found`). Production is fine (Vite resolves to ESM via the `module` field). For tests: `tests/stubs/smartEdgeStub.ts` re-exports React Flow's built-in `BezierEdge` etc. under the smart-edge names, aliased in `vitest.config.dev.ts`, `vitest.config.ci.ts`, AND both inline `defineProject` blocks in `vitest.config.ts`. No tests assert on edge geometry, so a no-op stub is sufficient.
+
+### MOVEMENT data integrity is now a regression test
+
+`tests/ghost/dataIntegrity.test.ts` asserts no MOVEMENT row lists its own space as a destination (the PM-DECISION-CHECK self-loop bug, v2.64.2). When editing `public/data/SOURCE_FILES/Spaces.csv` movement columns, also update the regenerated `public/data/CLEAN_FILES/MOVEMENT.csv` so both ship consistent data. The server runs `processGameData.js` on save/reset but the build does NOT regenerate CLEAN_FILES — keep both files in sync manually for deploy-time consistency.
+
 ### Voice-leak audit — fast triage query
 
 To find remaining game-language leaks before claiming "voice sweep done":
@@ -467,5 +509,5 @@ Filter out internal CSS class names (`card-*`), code variables (`drawCards`), JS
 
 ---
 
-**Last Updated:** May 15, 2026
-**Charter Version:** 3.7 (Beta-live + tactical-patterns + card-name canonical helper + jsdom/ghost patterns)
+**Last Updated:** May 15, 2026 (PM session)
+**Charter Version:** 3.8 (+ screenshot pipeline, visualSummary split, before/after snapshot gotchas, manualChunks rule, smart-edge stub, MOVEMENT integrity)

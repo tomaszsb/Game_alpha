@@ -132,6 +132,7 @@ export class DiceRollProcessor {
     // Roll dice
     const diceRoll = this.rollDice();
     this.lastRollGroups = undefined;
+    this.lastApprovalNarration = undefined;
     debugLog(`🎲 ROLL_DICE_FEEDBACK: Dice roll result: ${diceRoll}`);
 
     // Process effects and track changes
@@ -195,6 +196,7 @@ export class DiceRollProcessor {
 
     // Roll new dice
     const newDiceRoll = this.rollDice();
+    this.lastApprovalNarration = undefined;
 
     // Process effects for new dice roll
     const effects: DiceResultEffect[] = [];
@@ -239,9 +241,15 @@ export class DiceRollProcessor {
 
     // Story prose for the modal's visual Summary block. The full assembled
     // `summary` (storyText + tone + recap) remains for TTS via getTtsText.
-    const visualSummary = this.dataService.getSpaceContent(
+    const baseStory = this.dataService.getSpaceContent(
       currentPlayer.currentSpace, currentPlayer.visitType
     )?.story || undefined;
+    // Phase 7.5 — append the approval-outcome banner when one fired this roll.
+    // Joined with a blank line so the NPC story stays on top and the outcome
+    // status reads as a separate beat below it.
+    const visualSummary = this.lastApprovalNarration
+      ? (baseStory ? `${baseStory}\n\n${this.lastApprovalNarration}` : this.lastApprovalNarration)
+      : baseStory;
 
     return {
       diceValue,
