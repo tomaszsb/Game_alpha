@@ -7,6 +7,12 @@ import { useGameContext } from '../../context/GameContext';
 import { VisitType } from '../../types/DataTypes';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 
+interface EndGamePenaltyView {
+  dobMissing: boolean;
+  days: number;
+  fee: number;
+}
+
 export function EndGameModal(): JSX.Element {
   const { stateService, dataService } = useGameContext();
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
@@ -14,6 +20,7 @@ export function EndGameModal(): JSX.Element {
   const [winnerSpace, setWinnerSpace] = useState<string>('');
   const [winnerVisitType, setWinnerVisitType] = useState<VisitType>('First');
   const [gameEndTime, setGameEndTime] = useState<Date | undefined>();
+  const [penalty, setPenalty] = useState<EndGamePenaltyView | null>(null);
 
   // Subscribe to state changes to show/hide modal
   useEffect(() => {
@@ -26,6 +33,19 @@ export function EndGameModal(): JSX.Element {
         setWinnerSpace(winnerPlayer?.currentSpace || '');
         setWinnerVisitType(winnerPlayer?.visitType || 'First');
         setGameEndTime(gameState.gameEndTime);
+        // Workstream 7 Phase 7.4 — render the missing-DOB penalty section
+        // when present. Only set if the penalty belongs to this winner (it
+        // always should, but defensive in case future phases credit other
+        // players).
+        if (gameState.endGamePenalty && gameState.endGamePenalty.playerId === gameState.winner) {
+          setPenalty({
+            dobMissing: gameState.endGamePenalty.dobMissing,
+            days: gameState.endGamePenalty.days,
+            fee: gameState.endGamePenalty.fee,
+          });
+        } else {
+          setPenalty(null);
+        }
       }
     };
 
@@ -142,6 +162,39 @@ export function EndGameModal(): JSX.Element {
               color: colors.secondary.main
             }}>
               Game completed at: {gameEndTime.toLocaleString()}
+            </p>
+          </div>
+        )}
+
+        {/* Workstream 7 Phase 7.4 — Missing-DOB penalty section.
+            Rendered above the celebration banner so the player sees the cost
+            before being congratulated. Plain-language framing ("emergency
+            processing fee", "your CO came late") aligned with the NPC voice. */}
+        {penalty && penalty.dobMissing && (
+          <div
+            data-testid="end-game-penalty"
+            style={{
+              marginBottom: '20px',
+              padding: '16px 20px',
+              backgroundColor: '#fff3cd',
+              borderRadius: theme.borderRadius.lg,
+              border: '2px solid #ffc107',
+              textAlign: 'left',
+            }}
+          >
+            <h3 style={{
+              margin: '0 0 8px 0',
+              color: '#856404',
+              fontSize: '16px',
+              fontWeight: 'bold',
+            }}>
+              ⚠️ DOB never signed off
+            </h3>
+            <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#856404' }}>
+              Your CO came late and cost the owner. Emergency processing added <strong>+{penalty.days} days</strong> and a <strong>${penalty.fee.toLocaleString()}</strong> fee to your final stats.
+            </p>
+            <p style={{ margin: '0', fontSize: '12px', color: '#856404', fontStyle: 'italic' }}>
+              Next game: secure DOB plan-exam approval before pushing for CO.
             </p>
           </div>
         )}

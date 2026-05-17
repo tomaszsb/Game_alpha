@@ -276,6 +276,14 @@ export interface GameState {
   gameStartTime?: Date;
   gameEndTime?: Date;
   winner?: string;
+  // Workstream 7 Phase 7.4 — set when the winner reached FINISH without DOB
+  // sign-off. EndGameModal renders a penalty section when this is present.
+  endGamePenalty?: {
+    dobMissing: boolean;
+    days: number;       // additional days added to winner's timeSpent
+    fee: number;        // additional money deducted from winner's account
+    playerId: string;   // who got the penalty (always the winner in Phase 7.4)
+  };
   // Transactional logging session tracking
   currentExplorationSessionId: string | null;
   // Action tracking for turn management

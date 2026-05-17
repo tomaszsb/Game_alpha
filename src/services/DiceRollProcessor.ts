@@ -433,6 +433,44 @@ export class DiceRollProcessor {
       }
     }
 
+    // Workstream 7 Phase 7.4 — REG-DOB-FINAL-REVIEW Stage-1 gate.
+    // Before the existing dice-driven movement (Stage 2 — paperwork roll), the
+    // clerk verifies prior approvals are on file. Missing approvals override
+    // the dice destination with a forced route back to the missing examiner.
+    // The dice value the player rolled is discarded — they didn't get to "roll
+    // for paperwork" because they failed the prior-approval check.
+    if (this.approvalService && currentPlayer.currentSpace === 'REG-DOB-FINAL-REVIEW') {
+      const gate = this.approvalService.checkFinalReviewGate(currentPlayer);
+      if (!gate.passed && gate.routeTo) {
+        const destContent = this.dataService.getSpaceContent(gate.routeTo, 'First');
+        const destTitle = destContent?.title || gate.routeTo;
+        effects.push({
+          type: 'movement',
+          description: `Sent back to ${destTitle}: ${gate.reason}`,
+          destination: gate.routeTo,
+        });
+        this.stateService.setPlayerMoveIntent(playerId, gate.routeTo);
+        debugLog(`🛂 Final-review gate failed at REG-DOB-FINAL-REVIEW (missing=${gate.missing}) → routing to ${gate.routeTo}`);
+        // Phase 7.5 — gate-bounce narration for the modal Summary.
+        this.lastApprovalNarration = `🛂 DOB clerk: ${gate.reason}`;
+        if (this.notificationService) {
+          this.notificationService.notify(
+            {
+              short: `→ ${destTitle}`,
+              medium: `📋 ${gate.reason}`,
+              detailed: `${currentPlayer.name}: ${gate.reason}`,
+            },
+            {
+              playerId,
+              playerName: currentPlayer.name,
+              actionType: 'final_review_gate_bounce',
+            }
+          );
+        }
+        return; // Skip Stage-2 dice resolution entirely.
+      }
+    }
+
     const destinations = this.movementService.getDiceDestinationChoices(
       currentPlayer.currentSpace,
       currentPlayer.visitType,

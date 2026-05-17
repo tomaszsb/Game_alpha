@@ -495,9 +495,43 @@ export class TurnService implements ITurnService {
         });
       }
       
+      // Workstream 7 Phase 7.4 — end-game penalty when the winner reached
+      // FINISH without DOB sign-off. Backstop for the Stage-1 gate at
+      // REG-DOB-FINAL-REVIEW (should never normally fire, but safe-guards
+      // legacy save states and any future direct-routes-to-FINISH path).
+      const finalWinnerId = winnerId || gameState.currentPlayerId;
+      if (this.approvalService && endConditions.reason === 'win') {
+        const winnerPlayer = this.stateService.getPlayer(finalWinnerId);
+        if (winnerPlayer) {
+          const penalty = this.approvalService.computeEndGamePenalty(winnerPlayer);
+          if (penalty) {
+            this.stateService.updatePlayer({
+              id: finalWinnerId,
+              timeSpent: penalty.newTimeSpent,
+              money: penalty.newMoney,
+            });
+            this.stateService.updateGameState({
+              endGamePenalty: {
+                dobMissing: true,
+                days: penalty.days,
+                fee: penalty.fee,
+                playerId: finalWinnerId,
+              },
+            });
+            this.loggingService.info(`End-game penalty applied: missing DOB sign-off (+${penalty.days} days, +$${penalty.fee.toLocaleString()} fee).`, {
+              playerId: finalWinnerId,
+              playerName: winnerPlayer.name,
+              action: 'end_game_penalty',
+              penaltyDays: penalty.days,
+              penaltyFee: penalty.fee,
+            });
+          }
+        }
+      }
+
       // End the game with the determined winner
-      this.stateService.endGame(winnerId || gameState.currentPlayerId);
-      return { nextPlayerId: winnerId || gameState.currentPlayerId };
+      this.stateService.endGame(finalWinnerId);
+      return { nextPlayerId: finalWinnerId };
     }
 
     // Commit current exploration session before advancing to next player

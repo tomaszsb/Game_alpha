@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.3] - 2026-05-17
+
+### Plan Approval Mechanic — Phase 7.4 (final-review two-stage + end-game penalty)
+
+Workstream 7 now enforces the real-life CO bottleneck: DOB clerk verifies prior approvals are on file BEFORE accepting your CO application. Two visible changes:
+
+### Change 1: REG-DOB-FINAL-REVIEW — Stage-1 gate
+
+When the player rolls at REG-DOB-FINAL-REVIEW, the clerk's check runs FIRST (logic, no dice):
+- **Both DOB + FDNY approved →** proceed to Stage 2 (the existing dice for "other paperwork" — insurance, structural calcs, energy compliance).
+- **DOB missing →** forced movement to REG-DOB-PLAN-EXAM. Dice roll discarded. Notification: "The clerk reviewed your file and found no DOB approval. Sending you back to plan exam."
+- **FDNY missing →** forced movement to REG-FDNY-PLAN-EXAM. Same shape.
+- **Both missing →** route to DOB first (per spec).
+
+Models the real-life flow: you don't get to roll the paperwork dice if your prior approvals aren't on file. The clerk hands you a routing slip instead.
+
+### Change 2: End-game penalty
+
+Backstop for any path that reaches FINISH without DOB sign-off (in practice, the Stage-1 gate should prevent this — but legacy save states and future direct-to-FINISH paths are covered). Penalty applied automatically:
+- **+30 days** added to winner's `timeSpent`
+- **+$50,000** emergency-processing fee deducted from winner's `money` (can go negative)
+- Logged via `LoggingService` for the transactional history
+- Surfaced in `EndGameModal` as a yellow warning section: "DOB never signed off — your CO came late and cost the owner. Emergency processing added +30 days and a $50,000 fee."
+
+FDNY missing does NOT trigger the end-game penalty — only DOB sign-off matters at the CO step (per user spec).
+
+### Implementation
+
+- **[src/services/ApprovalService.ts](src/services/ApprovalService.ts)** — two new methods:
+  - `checkFinalReviewGate(player)` → `{ passed, missing?, routeTo?, reason? }`. Pure-logic check. Routing precedence: DOB first if both missing.
+  - `computeEndGamePenalty(player)` → `{ days, fee, newTimeSpent, newMoney }` or `null`. Returns null when DOB is approved.
+  - New exported constants `MISSING_DOB_PENALTY_DAYS = 30`, `MISSING_DOB_PENALTY_FEE = 50000`.
+- **[src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts)** — `handleDiceBasedMovement` checks the gate when `currentPlayer.currentSpace === 'REG-DOB-FINAL-REVIEW'`. Failed gate pushes a single forced `movement` effect and returns early, skipping Stage-2 dice destination computation. Includes a player-visible notification.
+- **[src/services/TurnService.ts](src/services/TurnService.ts)** — `endTurn` calls `computeEndGamePenalty` when `endConditions.reason === 'win'`. Applies the time/money update via `stateService.updatePlayer`, stores penalty metadata on game state via `stateService.updateGameState`, and logs via `loggingService.info`. Penalty stored on `gameState.endGamePenalty` so the modal can render it.
+- **[src/types/StateTypes.ts](src/types/StateTypes.ts)** — new optional `endGamePenalty?: { dobMissing, days, fee, playerId }` on `GameState`.
+- **[src/components/modals/EndGameModal.tsx](src/components/modals/EndGameModal.tsx)** — reads `gameState.endGamePenalty` on subscription. When present and `dobMissing`, renders a yellow warning section above the celebration banner with the day + fee penalty and a "next game" tip. `data-testid="end-game-penalty"` for selector targeting.
+
+### Testing
+
+- **[tests/services/ApprovalService.test.ts](tests/services/ApprovalService.test.ts)** — 10 new tests (5 for `checkFinalReviewGate`, 5 for `computeEndGamePenalty`). Total: 42/42 passing.
+- Full 23-batch suite green.
+- `npm run typecheck`: 0 errors.
+
+### What's next (Phase 7.5)
+
+- Modal narration sweep — DOB/FDNY/AUDIT modal copy uses approval language ("Approved!", "Minor objection.", "Denied — see engineer / architect."). NPC voice per the speaker map.
+- (Stretch) onboarding intro modal on first DOB/FDNY visit to explain the approval mechanic.
+
+---
+
 ## [2.65.2] - 2026-05-17
 
 ### Plan Approval Mechanic — Phase 7.3 (revoke triggers)
