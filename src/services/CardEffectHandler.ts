@@ -315,19 +315,15 @@ export class CardEffectHandler implements ICardEffectHandler {
   }
 
   private checkFundingAutoPlay(payload: CardDrawPayload, drawnCards: string[], context: EffectContext): EffectResult | null {
-    const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
     const currentSpaceName = (context.metadata?.spaceName as string | undefined) ?? '';
-    const isFundingSpace = fundingSpaces.includes(currentSpaceName);
+    // 2026-05-18 audit: lifted from hardcoded space-name array to data flag.
+    const fundingSource = this.dataService?.getFundingSource(currentSpaceName) ?? '';
+    const isFundingSpace = fundingSource !== '';
     const isFundingCard = payload.cardType === 'B' || payload.cardType === 'I';
 
-
     if (!isFundingSpace || !isFundingCard || drawnCards.length === 0) {
-      if (isFundingSpace && !isFundingCard) {
-      } else {
-      }
       return null;
     }
-
 
     // Get card details for auto-action event
     const drawnCardData = this.dataService?.getCardById(drawnCards[0]);
@@ -339,7 +335,7 @@ export class CardEffectHandler implements ICardEffectHandler {
     const fundingAmount = this.extractFundingAmount(drawnCardData, payload.cardType);
 
     // Determine event type and message
-    const isOwnerFunding = currentSpaceName === 'OWNER-FUND-INITIATION';
+    const isOwnerFunding = fundingSource === 'owner';
     const eventType = isOwnerFunding ? 'seed_money' : 'automatic_funding';
     const eventMessage = isOwnerFunding
       ? `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`

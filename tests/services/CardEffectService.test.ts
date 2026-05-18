@@ -57,8 +57,16 @@ describe('CardEffectService', () => {
       clearAwaitingChoice: vi.fn()
     };
 
+    const FUNDING_SPACES = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
     mockDataService = {
-      getCardById: vi.fn().mockReturnValue({ card_name: 'Test Card' })
+      getCardById: vi.fn().mockReturnValue({ card_name: 'Test Card' }),
+      isFundingSpace: vi.fn((space: string) => FUNDING_SPACES.includes(space)),
+      getFundingSource: vi.fn((space: string) => {
+        if (space === 'OWNER-FUND-INITIATION') return 'owner';
+        if (space === 'BANK-FUND-REVIEW') return 'bank';
+        if (space === 'INVESTOR-FUND-REVIEW') return 'investor';
+        return '';
+      })
     };
 
     mockChoiceService = {

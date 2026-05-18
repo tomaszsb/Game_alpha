@@ -1,28 +1,28 @@
-space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_players,requires_dice_roll,is_resume_hub,is_point_of_no_return,min_w_cards_to_leave,fee_calculation_method,fee_label,auto_apply_funding,auto_trigger_card_types,path_choice_memory_key,is_path_choice_lock_point,display_label_override,review_loop_message,pos_x,pos_y
-START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No,No,No,0,flat,,No,,,No,Quick Play,,20,240
-OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,,,No,,,20,130
-OWNER-FUND-INITIATION,SETUP,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I",,No,,,20,20
-PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,,,No,PM Check,,220,240
-LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,420,240
-BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No,No,No,0,flat,,No,,,No,Bank Review,,420,20
-INVESTOR-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Investor Review,,420,130
-ARCH-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,Design changes are needed. You must consult with the architect to revise the plans before resubmitting.,620,130
-ARCH-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Architect,No,,,No,,,620,20
-ARCH-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,620,240
-ENG-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,Structural or engineering modifications required. The engineer needs to update calculations or drawings.,620,460
-ENG-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Engineer,No,,,No,,,620,350
-ENG-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,620,570
-OWNER-DECISION-REVIEW,OWNER,side Quest scope,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,220,130
-CHEAT-BYPASS,OWNER,side quest cheat,No,No,1,4,Yes,No,Yes,0,flat,,No,,,No,,,220,20
-REG-DOB-FEE-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,130
-REG-DOB-TYPE-SELECT,REGULATORY,Single choice,No,No,1,4,No,No,No,0,flat,,No,,dob_path,Yes,,,820,570
-REG-DOB-PLAN-EXAM,REGULATORY,Regular,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,The examiner found minor issues that need to be addressed. Additional documentation or corrections are required before continuing.,820,350
-REG-DOB-PROF-CERT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,460
-REG-DOB-AUDIT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,20
-REG-FDNY-FEE-REVIEW,REGULATORY,LOGIC,No,No,1,4,No,No,No,0,flat,,No,,,No,,,820,680
-REG-FDNY-PLAN-EXAM,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,Fire safety review identified items needing attention. The FDNY examiner requires additional information or modifications.,820,790
-CON-INITIATION,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,1020,20
-CON-ISSUES,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,1020,240
-CON-INSPECT,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,1020,130
-REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,240
-FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,,,No,Finish,,1220,20
+space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_players,requires_dice_roll,is_resume_hub,is_point_of_no_return,min_w_cards_to_leave,fee_calculation_method,fee_label,auto_apply_funding,auto_trigger_card_types,path_choice_memory_key,is_path_choice_lock_point,display_label_override,review_loop_message,pos_x,pos_y,funding_source
+START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No,No,No,0,flat,,No,,,No,Quick Play,,20,240,
+OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,,,No,,,20,130,
+OWNER-FUND-INITIATION,SETUP,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I",,No,,,20,20,owner
+PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,,,No,PM Check,,220,240,
+LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,420,240,
+BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No,No,No,0,flat,,No,,,No,Bank Review,,420,20,bank
+INVESTOR-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,Investor Review,,420,130,investor
+ARCH-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,Design changes are needed. You must consult with the architect to revise the plans before resubmitting.,620,130,
+ARCH-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Architect,No,,,No,,,620,20,
+ARCH-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,620,240,
+ENG-INITIATION,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,Structural or engineering modifications required. The engineer needs to update calculations or drawings.,620,460,
+ENG-FEE-REVIEW,DESIGN,Main,No,No,1,4,Yes,No,No,0,percentage_of_scope,Engineer,No,,,No,,,620,350,
+ENG-SCOPE-CHECK,DESIGN,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,620,570,
+OWNER-DECISION-REVIEW,OWNER,side Quest scope,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,220,130,
+CHEAT-BYPASS,OWNER,side quest cheat,No,No,1,4,Yes,No,Yes,0,flat,,No,,,No,,,220,20,
+REG-DOB-FEE-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,130,
+REG-DOB-TYPE-SELECT,REGULATORY,Single choice,No,No,1,4,No,No,No,0,flat,,No,,dob_path,Yes,,,820,570,
+REG-DOB-PLAN-EXAM,REGULATORY,Regular,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,The examiner found minor issues that need to be addressed. Additional documentation or corrections are required before continuing.,820,350,
+REG-DOB-PROF-CERT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,460,
+REG-DOB-AUDIT,REGULATORY,Prof,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,20,
+REG-FDNY-FEE-REVIEW,REGULATORY,LOGIC,No,No,1,4,No,No,No,0,flat,,No,,,No,,,820,680,
+REG-FDNY-PLAN-EXAM,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,Fire safety review identified items needing attention. The FDNY examiner requires additional information or modifications.,820,790,
+CON-INITIATION,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,1020,20,
+CON-ISSUES,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,1020,240,
+CON-INSPECT,CONSTRUCTION,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,1020,130,
+REG-DOB-FINAL-REVIEW,REGULATORY,Main,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,820,240,
+FINISH,END,Main,No,Yes,1,4,No,No,No,0,flat,,No,,,No,Finish,,1220,20,

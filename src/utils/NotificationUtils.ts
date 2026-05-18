@@ -61,18 +61,6 @@ export class NotificationUtils {
     }
   }
 
-  // Funding Notifications
-  static createFundingNotification(amount: number, spaceName: string, playerName: string): NotificationContent {
-    const isOwnerSpace = spaceName === 'OWNER-FUND-INITIATION';
-    const sourceText = isOwnerSpace ? 'Owner seed money' : 'Automatic funding';
-
-    return {
-      short: `💰`,
-      medium: `💰 ${sourceText}`,
-      detailed: `${playerName} received ${FormatUtils.formatMoney(amount)} from ${sourceText.toLowerCase()} at ${spaceName}`
-    };
-  }
-
   // Card Play Notifications
   static createCardPlayNotification(cardName: string, effects: DiceFeedbackEffect[], playerName: string): NotificationContent {
     const effectSummary = effects.map(effect => {

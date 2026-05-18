@@ -1,5 +1,5 @@
 import { IStateService, IDataService, IGameRulesService } from '../types/ServiceContracts';
-import { debugLog, debugWarn } from '../utils/debugLog';
+import { debugWarn } from '../utils/debugLog';
 import {
   GameState,
   Player,
@@ -1122,10 +1122,6 @@ export class StateService implements IStateService {
           completed++;
         }
       });
-      // DEBUG: Log action requirements at OWNER-SCOPE-INITIATION to diagnose scope bug
-      if (player.currentSpace === 'OWNER-SCOPE-INITIATION') {
-        debugLog(`🔍 ACTION DEBUG [${player.name}@${player.currentSpace}]: required=${required}, completed=${completed}, types=[${availableTypes}], diceRolled=${this.currentState.hasPlayerRolledDice}, manualActions=${JSON.stringify(this.currentState.completedActions.manualActions)}, hand=${player.hand.length} cards`);
-      }
     } catch (error) {
       console.error('Error calculating required actions:', error);
       // Fallback to basic turn requirements

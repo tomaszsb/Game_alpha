@@ -117,30 +117,6 @@ describe('NotificationUtils', () => {
     });
   });
 
-  describe('createFundingNotification', () => {
-    it('should create notification for owner space funding', () => {
-      const result = NotificationUtils.createFundingNotification(100000, 'OWNER-FUND-INITIATION', 'Alice');
-
-      expect(result).toEqual({
-        short: '💰',
-        medium: '💰 Owner seed money',
-        detailed: 'Alice received $100,000 from owner seed money at OWNER-FUND-INITIATION'
-      });
-      expect(FormatUtils.formatMoney).toHaveBeenCalledWith(100000);
-    });
-
-    it('should create notification for automatic funding', () => {
-      const result = NotificationUtils.createFundingNotification(50000, 'BANK-SELECTION', 'Bob');
-
-      expect(result).toEqual({
-        short: '💰',
-        medium: '💰 Automatic funding',
-        detailed: 'Bob received $50,000 from automatic funding at BANK-SELECTION'
-      });
-      expect(FormatUtils.formatMoney).toHaveBeenCalledWith(50000);
-    });
-  });
-
   describe('createCardPlayNotification', () => {
     it('should create notification for card play with money effects', () => {
       const effects = [

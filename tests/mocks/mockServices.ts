@@ -42,6 +42,8 @@ export const createMockDataService = (): any => ({
   getFeeLabel: vi.fn(() => ''),
   shouldAutoApplyFunding: vi.fn(() => false),
   getAutoTriggerCardTypes: vi.fn(() => []),
+  getFundingSource: vi.fn(() => ''),
+  isFundingSpace: vi.fn(() => false),
   getPathChoiceMemoryKey: vi.fn(() => ''),
   isPathChoiceLockPoint: vi.fn(() => false),
   getPathChoiceExclusions: vi.fn(() => []),

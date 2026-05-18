@@ -1,5 +1,5 @@
 import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult, INotificationService, IApprovalService } from '../types/ServiceContracts';
-import { debugLog, debugWarn } from '../utils/debugLog';
+import { debugWarn } from '../utils/debugLog';
 import { NegotiationService } from './NegotiationService';
 import { DiceService } from './DiceService';
 import { SpaceEffectService } from './SpaceEffectService';
@@ -384,11 +384,6 @@ export class TurnService implements ITurnService {
         throw new Error('Current player not found');
       }
 
-      // DEBUG: Log end turn attempt at OWNER-SCOPE-INITIATION
-      if (currentPlayer.currentSpace === 'OWNER-SCOPE-INITIATION') {
-        debugLog(`🔍 END TURN DEBUG [${currentPlayer.name}@${currentPlayer.currentSpace}]: force=${force}, required=${gameState.requiredActions}, completed=${gameState.completedActionCount}, hand=${currentPlayer.hand.length} cards, W cards=${currentPlayer.hand.filter(c => c.startsWith('W')).length}, diceRolled=${gameState.hasPlayerRolledDice}`);
-      }
-
       // Validation: Check if all required actions are completed (skip if force = true for Try Again)
       if (!force && gameState.requiredActions > gameState.completedActionCount) {
         throw new Error(`Cannot end turn: Player has not completed all required actions. Required: ${gameState.requiredActions}, Completed: ${gameState.completedActionCount}`);
@@ -747,11 +742,6 @@ export class TurnService implements ITurnService {
         visibility: 'player',
         isCommitted: true  // Force turn_start to be immediately visible in log
       });
-
-      // DEBUG: Log turn start state for scope bug diagnosis
-      if (player.currentSpace === 'OWNER-SCOPE-INITIATION' || player.currentSpace === 'OWNER-FUND-INITIATION') {
-        debugLog(`🔍 START TURN DEBUG [${player.name}@${player.currentSpace}]: hand=[${player.hand.join(', ')}], W cards=${player.hand.filter(c => c.startsWith('W')).length}, money=${player.money}, projectScope=${player.projectScope}`);
-      }
 
       // 1. Start new exploration session for transactional logging
       const sessionId = this.loggingService.startNewExplorationSession();

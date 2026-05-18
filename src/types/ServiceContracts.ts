@@ -143,6 +143,9 @@ export interface IDataService {
   getFeeLabel(spaceName: string): string;
   shouldAutoApplyFunding(spaceName: string): boolean;
   getAutoTriggerCardTypes(spaceName: string): string[];
+  // 2026-05-18 audit: funding-source data flag (replaces hardcoded space arrays).
+  getFundingSource(spaceName: string): 'owner' | 'bank' | 'investor' | '';
+  isFundingSpace(spaceName: string): boolean;
   getPathChoiceMemoryKey(spaceName: string): string;
   isPathChoiceLockPoint(spaceName: string): boolean;
   getPathChoiceExclusions(spaceName: string, memory: Record<string, string> | undefined): string[];

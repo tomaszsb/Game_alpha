@@ -18,6 +18,10 @@ export interface GameConfig {
   // Workstream 6 #3: setup-phase auto-handling flags
   auto_apply_funding?: boolean;
   auto_trigger_card_types?: string[];  // parsed from comma-separated CSV column
+  // 2026-05-18 audit: funding-source data flag (replaces hardcoded checks in
+  // CardEffectHandler/CardEffectService/NotificationUtils). Empty/undefined
+  // for non-funding spaces.
+  funding_source?: 'owner' | 'bank' | 'investor' | '';
   // Workstream 6 #4: path-choice memory flags
   path_choice_memory_key?: string;       // opaque slot name; spaces share when they share a choice
   is_path_choice_lock_point?: boolean;   // First-visit destination is stored under path_choice_memory_key

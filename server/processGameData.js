@@ -282,6 +282,13 @@ function processGameConfig(spacesCsv) {
     // every row should have these populated by scripts/seed-board-positions.mjs.
     const posX = parseFloat(row.pos_x) || 0;
     const posY = parseFloat(row.pos_y) || 0;
+    // 2026-05-18 audit: funding_source enum, used by DataService.isFundingSpace
+    // / getFundingSource. 'owner' = seed money (OWNER-FUND-INITIATION),
+    // 'bank' = loan (BANK-FUND-REVIEW), 'investor' = INVESTOR-FUND-REVIEW.
+    // Empty for non-funding spaces. Replaces hardcoded space-name arrays in
+    // CardEffectHandler / CardEffectService / NotificationUtils.
+    const rawFundingSource = (row.funding_source || '').trim();
+    const fundingSource = (rawFundingSource === 'owner' || rawFundingSource === 'bank' || rawFundingSource === 'investor') ? rawFundingSource : '';
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -304,7 +311,8 @@ function processGameConfig(spacesCsv) {
       display_label_override: displayLabelOverride,
       review_loop_message: reviewLoopMessage,
       pos_x: String(posX),
-      pos_y: String(posY)
+      pos_y: String(posY),
+      funding_source: fundingSource
     };
   }
 
@@ -316,7 +324,8 @@ function processGameConfig(spacesCsv) {
     'auto_apply_funding', 'auto_trigger_card_types',
     'path_choice_memory_key', 'is_path_choice_lock_point',
     'display_label_override', 'review_loop_message',
-    'pos_x', 'pos_y'
+    'pos_x', 'pos_y',
+    'funding_source'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

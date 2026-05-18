@@ -170,6 +170,25 @@ export class DataService implements IDataService {
   }
 
   /**
+   * 2026-05-18 audit: returns 'owner' | 'bank' | 'investor' | '' for a space.
+   * Backed by the `funding_source` column in Spaces.csv → GAME_CONFIG.csv.
+   * Replaces hardcoded `=== 'OWNER-FUND-INITIATION'` / `['OWNER-FUND-INITIATION',
+   * 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW']` checks scattered across the
+   * funding-card and notification surfaces.
+   */
+  getFundingSource(spaceName: string): 'owner' | 'bank' | 'investor' | '' {
+    return this.getGameConfigBySpace(spaceName)?.funding_source ?? '';
+  }
+
+  /**
+   * 2026-05-18 audit: convenience boolean over `getFundingSource`. True if
+   * the space participates in the funding mechanic (any of owner/bank/investor).
+   */
+  isFundingSpace(spaceName: string): boolean {
+    return this.getFundingSource(spaceName) !== '';
+  }
+
+  /**
    * Workstream 6 #4: opaque key into player.pathChoiceMemory for this space.
    * Empty string when the space doesn't participate in path-choice memory.
    * Both lock-point spaces (where the choice is stored) and downstream spaces
@@ -566,6 +585,12 @@ export class DataService implements IDataService {
       // so the parsing never produces NaN (which would break BoardCanvas).
       const posX = parseFloat(values[19]);
       const posY = parseFloat(values[20]);
+      // 2026-05-18 audit: funding_source enum ('owner'/'bank'/'investor' or '').
+      const rawFundingSource = (values[21] ?? '').trim();
+      const fundingSource: 'owner' | 'bank' | 'investor' | '' =
+        rawFundingSource === 'owner' || rawFundingSource === 'bank' || rawFundingSource === 'investor'
+          ? rawFundingSource
+          : '';
 
       return {
         space_name: values[0],
@@ -596,7 +621,9 @@ export class DataService implements IDataService {
         review_loop_message: reviewLoopMessage,
         // Workstream 3: Living Map coordinates.
         pos_x: Number.isFinite(posX) ? posX : 0,
-        pos_y: Number.isFinite(posY) ? posY : 0
+        pos_y: Number.isFinite(posY) ? posY : 0,
+        // 2026-05-18 audit: funding-source data flag.
+        funding_source: fundingSource
       };
     });
   }

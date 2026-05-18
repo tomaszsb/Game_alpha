@@ -153,10 +153,9 @@ export class CardEffectService implements ICardEffectService {
       `Manual action: Draw ${count} ${cardType} card${count !== 1 ? 's' : ''}`
     );
 
-    // Special handling for funding spaces: auto-play funding cards (B and I)
-    // This applies to OWNER-FUND-INITIATION, BANK-FUND-REVIEW, and INVESTOR-FUND-REVIEW
-    const fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW'];
-    const isFundingSpace = fundingSpaces.includes(player.currentSpace);
+    // Special handling for funding spaces: auto-play funding cards (B and I).
+    // 2026-05-18 audit: lifted from hardcoded space-name array to data flag.
+    const isFundingSpace = this.dataService?.isFundingSpace(player.currentSpace) ?? false;
     const isFundingCard = cardType === 'B' || cardType === 'I';
 
     if (isFundingSpace && isFundingCard && drawnCards.length > 0) {

@@ -31,13 +31,12 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ### Critical — production gameplay logic
 - [ ] **`DiceRollProcessor.ts:450` — `currentSpace === 'REG-DOB-FINAL-REVIEW'`** (Workstream 7 Phase 7.4 regression). At minimum, swap the literal for the existing `ApprovalService.DOB_FINAL_REVIEW_SPACE` constant (already defined at `ApprovalService.ts:51`). Better: lift to an `is_final_review_gate` boolean column on `GAME_CONFIG.csv` so educators can repoint the gate. ~10 min for the constant swap; ~30 min for the data-flag lift + test.
-- [ ] **Funding-space concept spread across 5 sites** — one logical thing hardcoded with two slightly different lists:
-  - `CardEffectHandler.ts:318` — `fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW']`
-  - `CardEffectHandler.ts:342` — `currentSpaceName === 'OWNER-FUND-INITIATION'`
-  - `CardEffectService.ts:158` — same `fundingSpaces` array duplicated
-  - `FinancialEffectHandler.ts:326` — `source.includes('OWNER-FUND')` prefix check
-  - `NotificationUtils.ts:66` — `spaceName === 'OWNER-FUND-INITIATION'` for "Owner seed money" vs "Automatic funding" copy
-  Lift to `is_funding_space` (bool) + `funding_source` (string: 'owner'/'bank'/'investor') columns on `GAME_CONFIG.csv` and a `DataService.isFundingSpace(spaceName)` / `getFundingSource(spaceName)` helper. ~1-2 hrs done properly with tests. Classic Workstream 6-style mini-pass.
+- [x] **Funding-space concept lifted** (v2.65.6) — added `funding_source` column to `Spaces.csv` SOURCE + `GAME_CONFIG.csv` CLEAN, wired through `processGameData.js`, `DataService.getFundingSource()` / `isFundingSpace()` helpers on the `IDataService` interface. Four of five sites refactored:
+  - `CardEffectHandler.ts:318` ✓ uses `dataService.getFundingSource(currentSpaceName)`
+  - `CardEffectHandler.ts:342` ✓ uses `fundingSource === 'owner'` instead of literal
+  - `CardEffectService.ts:158` ✓ uses `dataService.isFundingSpace(player.currentSpace)`
+  - `NotificationUtils.createFundingNotification` ✓ deleted (was dead code — no production callers; only its own unit tests exercised it). Two tests removed.
+- [ ] **`FinancialEffectHandler.ts:325-328` — 4-signal heuristic still hardcoded.** Not a clean funding-space lift; the function combines `source.includes('card:B') || source.includes('OWNER-FUND') || sourceType === 'owner' || reason.toLowerCase().includes('funding')` to decide notification copy. The right fix is to trust `sourceType === 'owner'` exclusively and drop the substring + reason-text checks — but that requires auditing every `addMoney`/`notifyMoneyReceived` call site to confirm `sourceType` is set correctly. Separate refactor, ~30-60 min when picked up.
 - [ ] **`StateService.ts:1645` — `return 'OWNER-SCOPE-INITIATION'`** hardcoded starting-space default. Lift to a `is_starting_space` flag on `GAME_CONFIG.csv` (only one row would carry it). Low-risk because changing the start space is rare; do it next time the surrounding code is touched.
 
 ### Defensible domain constants (flag only, no immediate action)
@@ -46,11 +45,9 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **`ApprovalService.ts:71-74`** — `AUDIT_TRIGGERED_FROM = ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK']`. Could lift to a `triggers_dob_audit` bool column.
 
 ### Dead debug code (just delete)
-- [ ] **`TurnService.ts:388`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION') debugLog(...)` (end-turn diagnostic).
-- [ ] **`TurnService.ts:752`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION' || === 'OWNER-FUND-INITIATION') debugLog(...)` (start-turn diagnostic).
-- [ ] **`StateService.ts:1126`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION') debugLog(...)` (action-requirements diagnostic).
-
-All three are instrumentation from the March-2026 scope-bug investigation (fixed in v2.41.x). Each is ~5 lines. Bundle into a single "drop debug logs" commit, ~10 min total.
+- [x] **`TurnService.ts:388`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION') debugLog(...)` (end-turn diagnostic). Removed v2.65.6.
+- [x] **`TurnService.ts:752`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION' || === 'OWNER-FUND-INITIATION') debugLog(...)` (start-turn diagnostic). Removed v2.65.6.
+- [x] **`StateService.ts:1126`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION') debugLog(...)` (action-requirements diagnostic). Removed v2.65.6. (Also dropped the now-unused `debugLog` import from both files; `debugWarn` retained.)
 
 ### Stale migration heuristic
 - [ ] **`StateService.ts:687`** — `if (currentSpace === 'START-QUICK-PLAY-GUIDE')` migration block. Comment says it fixes players whose state has a stale starting-space name. Verify no live game state references this string (grep storage / sessionStorage of known players) then delete.
