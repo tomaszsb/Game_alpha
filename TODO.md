@@ -26,6 +26,42 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🧹 **Per-space hardcoding audit** (May 18, 2026)
+*Source: in-session grep for `player.currentSpace === '...'` and related shapes. Workstream 6 swept this pattern aggressively (10+ lifts, see receipts in `DataService.ts:92-185`, `TurnService.ts:398/789/931`, `MovementService.ts:122/341/352`, `CardService.ts:1205/1250`), but new instances escaped or crept back in. Ordered by urgency.*
+
+### Critical — production gameplay logic
+- [ ] **`DiceRollProcessor.ts:450` — `currentSpace === 'REG-DOB-FINAL-REVIEW'`** (Workstream 7 Phase 7.4 regression). At minimum, swap the literal for the existing `ApprovalService.DOB_FINAL_REVIEW_SPACE` constant (already defined at `ApprovalService.ts:51`). Better: lift to an `is_final_review_gate` boolean column on `GAME_CONFIG.csv` so educators can repoint the gate. ~10 min for the constant swap; ~30 min for the data-flag lift + test.
+- [ ] **Funding-space concept spread across 5 sites** — one logical thing hardcoded with two slightly different lists:
+  - `CardEffectHandler.ts:318` — `fundingSpaces = ['OWNER-FUND-INITIATION', 'BANK-FUND-REVIEW', 'INVESTOR-FUND-REVIEW']`
+  - `CardEffectHandler.ts:342` — `currentSpaceName === 'OWNER-FUND-INITIATION'`
+  - `CardEffectService.ts:158` — same `fundingSpaces` array duplicated
+  - `FinancialEffectHandler.ts:326` — `source.includes('OWNER-FUND')` prefix check
+  - `NotificationUtils.ts:66` — `spaceName === 'OWNER-FUND-INITIATION'` for "Owner seed money" vs "Automatic funding" copy
+  Lift to `is_funding_space` (bool) + `funding_source` (string: 'owner'/'bank'/'investor') columns on `GAME_CONFIG.csv` and a `DataService.isFundingSpace(spaceName)` / `getFundingSource(spaceName)` helper. ~1-2 hrs done properly with tests. Classic Workstream 6-style mini-pass.
+- [ ] **`StateService.ts:1645` — `return 'OWNER-SCOPE-INITIATION'`** hardcoded starting-space default. Lift to a `is_starting_space` flag on `GAME_CONFIG.csv` (only one row would carry it). Low-risk because changing the start space is rare; do it next time the surrounding code is touched.
+
+### Defensible domain constants (flag only, no immediate action)
+- [ ] **`ApprovalService.ts:37,41,45,51`** — `DOB_EXAM_SPACE`, `FDNY_EXAM_SPACE`, `DOB_AUDIT_SPACE`, `DOB_FINAL_REVIEW_SPACE`. These encode real-world regulator-role mappings. Named constants are reasonable; lifting would matter only if an educator wants a non-standard examiner layout.
+- [ ] **`ApprovalService.ts:64`** — `DOB_APPROVED_DESTINATIONS = ['REG-FDNY-FEE-REVIEW']`. Could be computed from MOVEMENT.csv when the DOB examiner space resolves.
+- [ ] **`ApprovalService.ts:71-74`** — `AUDIT_TRIGGERED_FROM = ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK']`. Could lift to a `triggers_dob_audit` bool column.
+
+### Dead debug code (just delete)
+- [ ] **`TurnService.ts:388`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION') debugLog(...)` (end-turn diagnostic).
+- [ ] **`TurnService.ts:752`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION' || === 'OWNER-FUND-INITIATION') debugLog(...)` (start-turn diagnostic).
+- [ ] **`StateService.ts:1126`** — `if (currentSpace === 'OWNER-SCOPE-INITIATION') debugLog(...)` (action-requirements diagnostic).
+
+All three are instrumentation from the March-2026 scope-bug investigation (fixed in v2.41.x). Each is ~5 lines. Bundle into a single "drop debug logs" commit, ~10 min total.
+
+### Stale migration heuristic
+- [ ] **`StateService.ts:687`** — `if (currentSpace === 'START-QUICK-PLAY-GUIDE')` migration block. Comment says it fixes players whose state has a stale starting-space name. Verify no live game state references this string (grep storage / sessionStorage of known players) then delete.
+
+### Not the failure mode (documentation, no action)
+- Dynamic comparisons (`player.currentSpace === n.id` in iterations) at `MovementService.ts:213`, `BoardV3.tsx:162,193`, `SpaceExplorerPanel.tsx:93,351,360`, `BoardCanvas.tsx:373` — legitimate.
+- `constants/characters.ts` + `SpeechService.ts:19,20` — speaker-identity / TTS voice profile map. Lift deferred as Phase 6.4 (see Audit-Recovered Items).
+- `utils/boardLayout.ts` — already slated for deletion in Workstream 3 Phase D.
+
+---
+
 ## 🔎 **Audit-Recovered Items** (April 30, 2026)
 *Source: documentation audit — items that were quietly mentioned in deleted/trimmed docs but never landed anywhere actionable. Captured here so they aren't lost again.*
 
@@ -116,15 +152,18 @@ These ship in the deployed build but still appear in the feedback list because n
 - [x] **Modal showed time changed but no before/after** — v2.64.6 (root cause: I cards auto-played to activeCards weren't counted in snapshot). <!-- fb:feedback-1778873006001-11c72bd4 -->
 - [x] **Result modal summary repeats every effect three times** — v2.64.7 split visualSummary (NPC narrative only) from summary (full, TTS only). No specific feedback ID — flagged directly by user this session.
 
+### Newly arrived (2026-05-18)
+- [ ] **Player panel squished after approval badges** — playtester says "all words seem squished in the panel after introduction of approval badges." Layout regression from Workstream 7 Phase 7.2 (badges + phase chip + connection indicator out-competed `.action-center__space-info` because it had `min-width: 0`). Fixed in v2.65.5: `flex-wrap: wrap` on header row, `min-width: 140px` on space-info, chip text labels hidden via media query at `max-width: 1400px`. <!-- fb:feedback-1779071277891-2f02ed4d -->
+
 ### Newly arrived (2026-05-16)
 - [ ] **Space data editor — "failed to save" on save** — Playtester hit a save failure in the live space data editor (`/admin`). Endpoint is `POST /api/admin/save-source-files` (`server/server.js:503`). Triage: check `docker logs game_alpha` for the failing request, confirm admin token still valid, verify the body shape the editor sends matches handler expectations. <!-- fb:feedback-1778903568195-2426489c -->
 - [ ] **Setup flow — combine start/join screens** — Design suggestion: collapse the PC/TV-vs-mobile selection screen into the next screen by moving PC/TV option + Join Game area into the right panel of the player-setup screen. Touches `PlayerSetup.tsx` layout + the device-mode pick step. Game-design decision, not a bug. <!-- fb:feedback-1778903822021-1c4c60a0 -->
 
 ### Newly arrived (2026-05-15 PM)
-- [ ] **Hire-contractor modal — "I'm not sure which contractor I hired"** — Modal doesn't prominently display the chosen card's name/effect. Touches CardSelectionModal or the equivalent picker shown when hiring expeditors. Likely a render-order or copy issue — investigate which surface displays the card chosen after selection. <!-- fb:feedback-1778866008893-0520fd41 -->
+- [ ] **CON-INITIATION dice modal — "I'm not sure which contractor I hired"** — Triaged 2026-05-18. Not the hire-expeditor flow as originally guessed; it's the CON-INITIATION ("Sit down, let's talk price") dice rolls. CON-INITIATION First has two `dice,dice_outcome` rows in `SPACE_EFFECTS.csv` (Quality, Multiplier) backed by `DICE_EFFECTS.csv` mapping roll 1-6 → Quality (HIGH/HIGH/MED/MED/LOW/LOW) and Multiplier (1×–6×). The qualitative outcome label never reaches `DiceResultModal` — the modal shows "Result: 1" + generic NPC dialogue + "No special effects this turn" so the player can't tell rolling a 1 means "you hired a HIGH-quality contractor at 1× cost." Fix path: thread the `DICE_EFFECTS` row's outcome value (Quality column for roll N) into `TurnEffectResult` as a new effect type (e.g., `qualitative_outcome`); render it as a labeled row in `DiceResultModal` between Result and Summary. Touches `DiceRollProcessor` + `StateTypes` + `DiceResultModal`. ~1-2 hrs. <!-- fb:feedback-1778866008893-0520fd41 -->
 - [x] **PM-DECISION-CHECK: no option to return to last main-path space** — Shipped v2.65.0 (Workstream 7 Phase 7.1). New `ApprovalService` sets `fdnyApprovedDestinations` on the player when FDNY rolls 1-3 (Subsequent) or 1-2 (First). Resume-hub block at `MovementService.ts:148` now reads `approvalService.getApprovedDestinations(player)` instead of trying to derive destinations from the dice-typed FDNY MOVEMENT row (which was returning empty). <!-- fb:feedback-1778865672444-bbc94ec8 -->
 - [ ] **CHEAT-BYPASS landed on PM-DECISION-CHECK unexpectedly** — Player says PM-DECISION-CHECK wasn't in the listed options from cheat space. Either a movement bug or a UI mismatch with what was offered vs what landed. <!-- fb:feedback-1778865577465-46dd4a47 -->
-- [ ] **Cheat space player-panel cluster** — Multiple issues on CHEAT-BYPASS panel: (a) "Determine next steps" button is above "Your actions", should be below; (b) "Determine time impact" should be part of "Determine next step", not separate; (c) grayed-out "Get Work Packages" button appears where it shouldn't. (The "return 1 return_E" label part of this report is already fixed in v2.64.1.) <!-- fb:feedback-1778865475889-89d9f101 -->
+- [ ] **Cheat space player-panel cluster — (b) still open** — (a) and (c) fixed in v2.65.5: completed actions no longer render as greyed-out buttons in the YOUR ACTIONS list (filtered out — log/ledger tabs still carry the audit trail), and the dice-movement "Determine Next Step" button now renders inside the YOUR ACTIONS section as the final entry rather than floating above the header. (b) "Determine time impact" should be grouped with "Determine next step" — both are dice rolls at CHEAT-BYPASS but they're separate `dice,dice_outcome` rows in `SPACE_EFFECTS.csv`. Real fix needs either data-side grouping metadata (e.g., `dice_group` column) or a UI heuristic that clusters consecutive dice-effect actions; defer until the design decision is made. The "return 1 return_E" label part of this report was fixed in v2.64.1. <!-- fb:feedback-1778865475889-89d9f101 -->
 - [ ] **Arrow overlaps a box on the board** — Smart-edge A* router produced a sub-optimal route. Screenshot analysis (2026-05-16): player is on CHEAT-BYPASS. The bottom-most edge from PM-DECISION-CHECK to its lowest-row destination routes downward through the CHEAT-BYPASS box itself (Bypass sits directly below PM Check). Possible fixes: tune smart-edge gridRatio so the router avoids occupied boxes, or hide that specific edge via the per-edge admin toggle, or reposition CHEAT-BYPASS in Phase D drag-to-save. <!-- fb:feedback-1778864793831-30be69b2 -->
 - [ ] **Arrows too long, boxes too small** — Overall board density issue. Smart-edge can't shrink routes; this would need node repositioning (closer phase clusters) or a bigger canvas viewport. Touches the Phase D drag-to-save flow (once that ships, admin can recompose the layout). <!-- fb:feedback-1778864351916-7c972948 -->
 - [ ] **ENG-INITIATION "hardly visible" as a valid choice** — Valid-move highlight contrast too low for this space (and probably others). Bump the green-border thickness or background on `data.isValidMove === true` in BoardCanvas custom node. <!-- fb:feedback-1778863716766-5799ee7a -->

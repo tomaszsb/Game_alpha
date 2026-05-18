@@ -337,7 +337,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   }, [player.currentSpace, player.visitType, completedActions, gameServices]);
 
   const needsMovementChoice = !!movementChoice && !selectedDestination;
-  const pendingCount = pendingActions.filter(a => !a.isCompleted).length +
+  const visiblePendingActions = pendingActions.filter(a => !a.isCompleted);
+  const pendingCount = visiblePendingActions.length +
     (isDiceMovementSpace && !hasPlayerRolledDice ? 1 : 0) +
     (needsMovementChoice ? 1 : 0);
 
@@ -621,17 +622,6 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Dice Roll for Movement */}
-        {isMyTurn && isDiceMovementSpace && !hasPlayerRolledDice && onRollDice && (
-          <button
-            className="action-center__action-btn action-center__action-btn--dice"
-            onClick={handleDiceRoll}
-            disabled={isRollingDice}
-          >
-            {isRollingDice ? '🎲 Deciding...' : '🎲 Determine Next Step'}
-          </button>
-        )}
-
         {/* Dice roll result */}
         {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll && (
           <div className="action-center__dice-result">
@@ -639,29 +629,39 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Required Actions */}
-        {isMyTurn && pendingActions.length > 0 && (
+        {/* Required Actions — hides completed entries so the list shows only what's left to do.
+         * The dice-movement button (when present) renders as the final action inside this section
+         * so it groups with the other actions rather than floating above the header. */}
+        {isMyTurn && (visiblePendingActions.length > 0 || (isDiceMovementSpace && !hasPlayerRolledDice && onRollDice)) && (
           <>
             <div className="action-center__required-actions-header">
               📋 YOUR ACTIONS {pendingCount > 0 ? `(${pendingCount} remaining)` : '(all complete ✅)'}
             </div>
-            {pendingActions.map((action) => (
+            {visiblePendingActions.map((action) => (
               <button
                 key={action.effectKey}
-                className={`action-center__action-btn ${action.isCompleted ? 'action-center__action-btn--completed' : ''} ${action.isDiceEffect ? 'action-center__action-btn--dice' : ''}`}
+                className={`action-center__action-btn ${action.isDiceEffect ? 'action-center__action-btn--dice' : ''}`}
                 onClick={() => {
-                  if (action.isCompleted) return;
                   if (action.isDiceEffect && onRollDice) {
                     handleDiceRoll();
                   } else {
                     handleManualEffect(action.effectKey);
                   }
                 }}
-                disabled={action.isCompleted || !isMyTurn || (action.isDiceEffect && isRollingDice)}
+                disabled={!isMyTurn || (action.isDiceEffect && isRollingDice)}
               >
-                {action.isCompleted ? '✅ ' : ''}{action.isDiceEffect && isRollingDice ? '🎲 Deciding...' : action.label}
+                {action.isDiceEffect && isRollingDice ? '🎲 Deciding...' : action.label}
               </button>
             ))}
+            {isDiceMovementSpace && !hasPlayerRolledDice && onRollDice && (
+              <button
+                className="action-center__action-btn action-center__action-btn--dice"
+                onClick={handleDiceRoll}
+                disabled={isRollingDice}
+              >
+                {isRollingDice ? '🎲 Deciding...' : '🎲 Determine Next Step'}
+              </button>
+            )}
           </>
         )}
 

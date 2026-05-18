@@ -64,7 +64,7 @@ function ApprovalBadge({ label, emoji, status }: SingleBadgeProps) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: '4px',
-        padding: '2px 8px',
+        padding: '2px 6px',
         borderRadius: '10px',
         fontSize: '0.65rem',
         fontWeight: 'bold',
@@ -74,8 +74,7 @@ function ApprovalBadge({ label, emoji, status }: SingleBadgeProps) {
       }}
     >
       <span aria-hidden="true">{emoji}</span>
-      <span>{label}</span>
-      <span aria-hidden="true">·</span>
+      <span className="action-center__approval-badge__label">{label}</span>
       <span aria-label={style.tooltipSuffix}>{style.icon}</span>
     </span>
   );

@@ -98,13 +98,15 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   const isBig = size !== 'compact';
   const width = size === 'compact' ? 150 : size === 'hover' ? 220 : 280;
   const minHeight = size === 'compact' ? 60 : size === 'hover' ? 120 : 180;
-  const borderWidth = data.isCurrent ? 3 : data.isValidMove ? 2 : 1.5;
+  const borderWidth = data.isCurrent ? 3 : data.isValidMove ? 3 : 1.5;
 
   const ringStyle: React.CSSProperties = data.isCurrent
     ? { boxShadow: `0 0 0 3px ${phaseColors.border}33, 0 4px 12px rgba(0,0,0,0.18)` }
-    : isBig
-      ? { boxShadow: '0 6px 18px rgba(0,0,0,0.20)' }
-      : { boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
+    : data.isValidMove
+      ? { boxShadow: '0 0 0 3px #10b98144, 0 4px 12px rgba(16,185,129,0.25)', background: '#ecfdf5' }
+      : isBig
+        ? { boxShadow: '0 6px 18px rgba(0,0,0,0.20)' }
+        : { boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
 
   // Bump z-index for expanded/hovered tiles so they layer over neighbors
   const zIndex = data.isExpanded ? 30 : isHovered ? 20 : 1;

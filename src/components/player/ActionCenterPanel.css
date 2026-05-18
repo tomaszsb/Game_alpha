@@ -6,6 +6,16 @@
   overflow-x: hidden;
   font-size: 13px;
   position: relative;
+  /* Reserve a right gutter for the absolutely-positioned ledger pill
+   * (.action-center__ledger-side) so its writing-mode-vertical text doesn't
+   * overlay content rows. Mirrors pill width + a small breathing margin. */
+  padding-right: 36px;
+}
+
+@media (max-width: 768px) {
+  .action-center {
+    padding-right: 30px;
+  }
 }
 
 /* ===== ZONE 1: Context (always visible) ===== */
@@ -21,6 +31,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .action-center__avatar {
@@ -29,8 +40,14 @@
 }
 
 .action-center__space-info {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 140px;
+  min-width: 140px;
+}
+
+@media (max-width: 1400px) {
+  .action-center__approval-badge__label {
+    display: none;
+  }
 }
 
 .action-center__player-name {
