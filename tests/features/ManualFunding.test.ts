@@ -215,6 +215,19 @@ describe('Manual Funding at OWNER-FUND-INITIATION', () => {
       return null;
     });
 
+    // 2026-05-18 audit: funding-spaces lift moved the auto-play gate to
+    // dataService.isFundingSpace/getFundingSource. Make this test's mock
+    // space-aware so the OWNER-FUND-INITIATION auto-play branch still fires.
+    mockDataService.isFundingSpace.mockImplementation((space: string) =>
+      space === 'OWNER-FUND-INITIATION' || space === 'BANK-FUND-REVIEW' || space === 'INVESTOR-FUND-REVIEW'
+    );
+    mockDataService.getFundingSource.mockImplementation((space: string) => {
+      if (space === 'OWNER-FUND-INITIATION') return 'owner';
+      if (space === 'BANK-FUND-REVIEW') return 'bank';
+      if (space === 'INVESTOR-FUND-REVIEW') return 'investor';
+      return '';
+    });
+
     // Setup default space effects for OWNER-FUND-INITIATION
     const defaultFundingEffects = [
       {
