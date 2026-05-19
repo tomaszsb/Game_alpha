@@ -88,10 +88,13 @@ function backupSourceFiles(reason) {
   fs.mkdirSync(snapshotDir, { recursive: true });
 
   for (const file of fs.readdirSync(writableSourceDir)) {
-    fs.copyFileSync(
-      path.join(writableSourceDir, file),
-      path.join(snapshotDir, file)
-    );
+    const srcPath = path.join(writableSourceDir, file);
+    // Skip anything that isn't a regular file. SOURCE_FILES should only
+    // contain CSVs, but stray subdirectories have been observed in the
+    // wild (e.g. from a restore that nested SOURCE_FILES inside itself)
+    // and copyFileSync throws EISDIR on them, blocking all editor saves.
+    if (!fs.statSync(srcPath).isFile()) continue;
+    fs.copyFileSync(srcPath, path.join(snapshotDir, file));
   }
   console.log(`💾 Backup created: ${path.basename(snapshotDir)}`);
 
@@ -131,7 +134,9 @@ function initWritableData() {
       if (fs.existsSync(src)) {
         fs.mkdirSync(dst, { recursive: true });
         for (const file of fs.readdirSync(src)) {
-          fs.copyFileSync(path.join(src, file), path.join(dst, file));
+          const srcFile = path.join(src, file);
+          if (!fs.statSync(srcFile).isFile()) continue;
+          fs.copyFileSync(srcFile, path.join(dst, file));
         }
         console.log(`   Copied ${sub}/`);
       }
@@ -142,7 +147,9 @@ function initWritableData() {
     if (fs.existsSync(baselineSrc)) {
       fs.mkdirSync(writableBaselineDir, { recursive: true });
       for (const file of fs.readdirSync(baselineSrc)) {
-        fs.copyFileSync(path.join(baselineSrc, file), path.join(writableBaselineDir, file));
+        const srcFile = path.join(baselineSrc, file);
+        if (!fs.statSync(srcFile).isFile()) continue;
+        fs.copyFileSync(srcFile, path.join(writableBaselineDir, file));
       }
       console.log('📋 Updated BASELINE from new deploy');
     }

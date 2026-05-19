@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.8] - 2026-05-19
+
+### Editor save: backup step skips non-files (immediate v2.65.7 follow-up)
+
+v2.65.7's per-step diagnostic logging paid off within minutes of deploy. The first editor save returned `Failed to save source files (backup: EISDIR: illegal operation on a directory, copyfile '/app/data/game-data/SOURCE_FILES/SOURCE_FILES' → '/app/data/game-data/backups/…/SOURCE_FILES')` — surfaced exactly where the failure was (`step=backup`) and what it tripped on (a stray `SOURCE_FILES` subdirectory inside the SOURCE_FILES dir, probably a restore artifact).
+
+Pre-v2.65.7 this would have been a generic "Failed to save" with no clue what to fix.
+
+**Fix** — [server/server.js](server/server.js) `backupSourceFiles`, plus the matching code in `initWritableData` for the dist-copy and BASELINE-update paths. All three loops now check `fs.statSync(srcPath).isFile()` before `copyFileSync`, skipping any subdirectory or symlink. SOURCE_FILES is supposed to contain only CSV files; subdirs are bugs upstream but the backup step should degrade gracefully rather than block every save.
+
+**Cleanup needed.** The stray `SOURCE_FILES/SOURCE_FILES/` subdirectory on Unraid should also be removed — the code change stops it from breaking saves, but it's still cruft. One-liner:
+
+```
+ssh unraid "rm -rf /mnt/user/appdata/Game_alpha/server/data/game-data/SOURCE_FILES/SOURCE_FILES"
+```
+
+(Run that before or after deploy — either works.)
+
 ## [2.65.7] - 2026-05-18
 
 ### Space Data Editor — round-trip Spaces.csv without losing data flags (fb:2426489c)

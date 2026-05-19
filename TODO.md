@@ -2,7 +2,7 @@
 
 **Last Updated:** May 18, 2026
 **Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0
-**Current Version:** 2.65.7 (v2.65.5 deployed; v2.65.6 + v2.65.7 pending deploy — editor save round-trip + deterministic ghost gate)
+**Current Version:** 2.65.8 (v2.65.5–v2.65.7 deployed; v2.65.8 backup-skips-non-files hotfix pending deploy)
 
 ---
 

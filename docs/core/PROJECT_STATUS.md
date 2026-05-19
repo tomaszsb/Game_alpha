@@ -2,7 +2,7 @@
 
 **Last Updated:** May 18, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.65.7 (v2.65.5 panel + board polish; v2.65.6 per-space hardcoding sweep; v2.65.7 editor save round-trip fix + deterministic ghost gate)
+**Current Version:** 2.65.8 (v2.65.7 editor save round-trip + deterministic ghost gate; v2.65.8 backup-step EISDIR hotfix)
 
 ## Where We Are
 
