@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.66.3] - 2026-05-19
+
+### Last per-space hardcoded site removed — FinancialEffectHandler funding-copy heuristic
+
+Closes the Workstream 6 per-space hardcoding audit. [FinancialEffectHandler.ts:325-328](src/services/FinancialEffectHandler.ts) previously combined four signals to decide whether to label a money-received notification as "Owner Funding" vs the generic "Received":
+
+```ts
+const isFunding = source.includes('card:B') ||
+                 source.includes('OWNER-FUND') ||
+                 sourceType === 'owner' ||
+                 reason.toLowerCase().includes('funding');
+```
+
+**Audit (2026-05-19)** confirmed the other three signals were redundant or dead:
+- `source.includes('card:B')` always coincides with `sourceType === 'owner'` because [EffectFactory.ts:39-44](src/utils/EffectFactory.ts) maps B cards to `sourceType: 'owner'`. Same set, redundant check.
+- `source.includes('OWNER-FUND')` never fires here — `OWNER_SEED_MONEY` in [EffectEngineService.ts:291-313](src/services/EffectEngineService.ts) bypasses `notifyMoneyReceived` entirely (calls `resourceService.addMoney` directly and notifies via `emitAutoAction`).
+- `reason.toLowerCase().includes('funding')` was a string-matching fallback that caught nothing `sourceType` wouldn't.
+
+**Fix** — Collapsed to `const isFunding = sourceType === 'owner';` plus a comment documenting why the other three are gone. Worst case if a future caller forgets to pass `sourceType`: notification reads "Received: +$X" instead of "Owner Funding: +$X" — no functional impact.
+
+**Why this matters** — closes the per-space hardcoding audit started in Workstream 6 (Apr 26 → Apr 29) that lifted 10+ literals to data flags. The remaining FinancialEffectHandler heuristic was the last documented hardcoded site (TODO.md "Critical — production gameplay logic" section). No `currentSpace === 'FOO'` or per-space substring match remains in production gameplay code outside the documented constants in ApprovalService.
+
+**Test suite:** 1691 passed / 0 failed / 4 skipped. No new tests — the change is a strict simplification of a notification-copy heuristic with no functional behavior change. Existing tests cover the B-card → "Owner Funding" copy path (`ManualFunding.test.ts`).
+
 ## [2.66.2] - 2026-05-19
 
 ### "Accept the verdict did nothing" — surface failure modes at the gate (fb:56d0282c)

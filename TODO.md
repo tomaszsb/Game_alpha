@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** May 19, 2026
-**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0; Workstream 3 Phase D drag-to-save shipped v2.66.0; multiline CSV parser hotfix v2.66.1; verdict-gate visibility fixes v2.66.2
-**Current Version:** 2.66.2 (drag-to-save + multiline CSV parser fix + verdict-gate UX; BoardV3 retirement deferred to v2.66.3)
+**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0; Workstream 3 Phase D drag-to-save shipped v2.66.0; multiline CSV parser hotfix v2.66.1; verdict-gate visibility fixes v2.66.2; per-space hardcoding audit closed v2.66.3
+**Current Version:** 2.66.3 (drag-to-save + multiline parser + verdict-gate UX + funding-heuristic cleanup; BoardV3 retirement deferred to v2.66.4)
 
 ---
 
@@ -36,7 +36,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
   - `CardEffectHandler.ts:342` ✓ uses `fundingSource === 'owner'` instead of literal
   - `CardEffectService.ts:158` ✓ uses `dataService.isFundingSpace(player.currentSpace)`
   - `NotificationUtils.createFundingNotification` ✓ deleted (was dead code — no production callers; only its own unit tests exercised it). Two tests removed.
-- [ ] **`FinancialEffectHandler.ts:325-328` — 4-signal heuristic still hardcoded.** Not a clean funding-space lift; the function combines `source.includes('card:B') || source.includes('OWNER-FUND') || sourceType === 'owner' || reason.toLowerCase().includes('funding')` to decide notification copy. The right fix is to trust `sourceType === 'owner'` exclusively and drop the substring + reason-text checks — but that requires auditing every `addMoney`/`notifyMoneyReceived` call site to confirm `sourceType` is set correctly. Separate refactor, ~30-60 min when picked up.
+- [x] **`FinancialEffectHandler.ts:325-328` — 4-signal heuristic collapsed (v2.66.3).** Audited every path that reaches `notifyMoneyReceived`: B-card draws (sourceType='owner' from EffectFactory map), L-card / I-card / E-card draws (other sourceTypes). OWNER_SEED_MONEY bypasses this notification path entirely. The three non-sourceType signals were all redundant or dead. Simplified to `const isFunding = sourceType === 'owner'`. Closes the per-space hardcoding audit.
 - [ ] **`StateService.ts:1645` — `return 'OWNER-SCOPE-INITIATION'`** hardcoded starting-space default. Lift to a `is_starting_space` flag on `GAME_CONFIG.csv` (only one row would carry it). Low-risk because changing the start space is rare; do it next time the surrounding code is touched.
 - [ ] **Dead code: SpaceEffectService quality/multiplier methods** — `applyQualityEffect`, `applyMultiplierEffect`, `calculateAndDeductConstructionCost`, and the `'quality'`/`'multiplier'` cases in `applyDiceEffect` are unreachable in production as of v2.65.9. Logic moved into EffectEngineService's `CONTRACTOR_UPDATE` handler. Their unit tests in `tests/services/SpaceEffectService.test.ts` still pass (call methods directly). Delete the methods + tests in a cleanup pass once we're confident the wiring is stable.
 
@@ -195,7 +195,7 @@ These ship in the deployed build but still appear in the feedback list because n
 
 ### Older / unattended (G150, April 2026)
 - [ ] **End screen player stats + movement log** — End screen should show overall stats and the move log. <!-- fb:feedback-1775793831276-3483b37b -->
-- [ ] **Design fee >20% game-end rule** — The fee-cap rule is documented but not enforced; the game continues. Add the end-game check. <!-- fb:feedback-1775793757102-3a57d5d0 -->
+- [ ] **Design fee >20% game-end rule — needs spec call from user** — Investigated 2026-05-19: `FinancialEffectHandler.checkDesignFeeCap` at [FinancialEffectHandler.ts:268-316](src/services/FinancialEffectHandler.ts) is already wired and phase-aware. DESIGN phase >20% → calls `endGame()`. CONSTRUCTION+ phase >20% → +2 weeks time penalty + notification, game continues. The playtester (Apr 10) likely hit the CONSTRUCTION-phase path and expected the literal-spec behavior (end game in any phase). Decision needed: keep phase-aware (current, more lenient late-game) or change to literal "end game in any phase." If literal, ~10 min code change (collapse the if/else to always call endGame). <!-- fb:feedback-1775793757102-3a57d5d0 -->
 - [ ] **Visit indicator on space name + duplicate dice result rendering** — Players want a "you've been here before" badge next to space name; dice result shows twice (once red, once green) — root cause unclear. <!-- fb:feedback-1775793633015-0cdd59ba -->
 - [ ] **Player panel current-player filter** — Top-left shows all players; should show only the current player. <!-- fb:feedback-1775793406957-554cf41c -->
 - [ ] **Progress bar tooltips** — Bar color changes (green→orange) but no tooltip explains what the bar represents. <!-- fb:feedback-1775792706283-f8491e74 -->

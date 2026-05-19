@@ -322,10 +322,18 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     const player = this.stateService.getPlayer(playerId);
     if (!player) return;
 
-    const isFunding = source.includes('card:B') ||
-                     source.includes('OWNER-FUND') ||
-                     sourceType === 'owner' ||
-                     reason.toLowerCase().includes('funding');
+    // Trust `sourceType === 'owner'` as the single signal for "Owner Funding"
+    // notification copy. Audit 2026-05-19 (v2.66.3) confirmed the other three
+    // checks were redundant or dead:
+    //  - `card:B` source always carries sourceType='owner' (EffectFactory:39-44).
+    //  - `OWNER-FUND` substring never appears here — OWNER_SEED_MONEY in
+    //    EffectEngineService bypasses notifyMoneyReceived entirely (calls
+    //    resourceService.addMoney directly).
+    //  - The `reason.includes('funding')` text check was a string-matching
+    //    fallback that didn't catch anything sourceType wouldn't.
+    // Worst case if a future caller forgets sourceType: notification reads
+    // "Received: +$X" instead of "Owner Funding: +$X". No functional impact.
+    const isFunding = sourceType === 'owner';
 
     const formattedAmount = amount.toLocaleString();
     const notificationMessage = isFunding
