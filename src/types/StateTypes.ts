@@ -426,7 +426,7 @@ export type { Player, ActiveCard, ActiveEffect } from './DataTypes';
 
 // Dice result feedback types
 export interface DiceResultEffect {
-  type: 'money' | 'time' | 'cards' | 'movement' | 'choice' | 'card_draw' | 'info';
+  type: 'money' | 'time' | 'cards' | 'movement' | 'choice' | 'card_draw' | 'info' | 'qualitative_outcome';
   description: string;
   value?: number;
   cardType?: string;
@@ -435,6 +435,12 @@ export interface DiceResultEffect {
   cardIds?: string[];  // IDs of the actual cards that were drawn/removed
   moveOptions?: string[];
   destination?: string;  // For single movement destination
+  // For 'qualitative_outcome' rows from CON-INITIATION dice rolls (Quality / Multiplier).
+  // outcomeKind tells the modal which icon + framing to use; outcomeLabel and
+  // outcomeValue are the player-facing strings ("Quality: HIGH", "Multiplier: 3×").
+  outcomeKind?: 'quality' | 'multiplier';
+  outcomeLabel?: string;
+  outcomeValue?: string;
   modalConfig?: {
     title?: string;
     description?: string;

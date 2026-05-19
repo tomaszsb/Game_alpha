@@ -346,6 +346,31 @@ export class DiceRollProcessor {
           cardAction: 'remove',
           cardIds: effectResult?.data?.cardIds || effect.payload.cardIds || []
         });
+      } else if (effect.effectType === 'CONTRACTOR_UPDATE') {
+        // CON-INITIATION dice rolls. Surface the qualitative outcome so the
+        // player can see what they rolled — pre-fix, the modal showed nothing
+        // useful (fb:0520fd41).
+        const { kind, value } = effect.payload;
+        if (kind === 'quality') {
+          const friendly = ({ HIGH: 'High', MED: 'Medium', LOW: 'Low' } as Record<string, string>)[value.toUpperCase().trim()] || value;
+          effects.push({
+            type: 'qualitative_outcome',
+            description: `Hired a contractor of ${friendly} quality`,
+            outcomeKind: 'quality',
+            outcomeLabel: 'Quality',
+            outcomeValue: friendly
+          });
+        } else {
+          // multiplier: "1" → "1×"
+          const clean = value.trim();
+          effects.push({
+            type: 'qualitative_outcome',
+            description: `Contractor cost multiplier: ${clean}×`,
+            outcomeKind: 'multiplier',
+            outcomeLabel: 'Multiplier',
+            outcomeValue: `${clean}×`
+          });
+        }
       } else if (effect.effectType === 'RESOURCE_CHANGE') {
         if (effect.payload.resource === 'MONEY') {
           let displayAmount = effect.payload.amount;

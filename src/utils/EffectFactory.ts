@@ -682,7 +682,10 @@ export class EffectFactory {
       return effects;
     }
 
-    switch (diceEffect.effect_type) {
+    // DICE_EFFECTS.csv mixes case ('cards', 'money', 'time' lowercase but
+    // 'Quality', 'Multiplier' capitalized). Normalize once so case data can
+    // evolve without breaking the switch.
+    switch (diceEffect.effect_type.toLowerCase().trim()) {
       case 'cards':
         if (diceEffect.card_type) {
           // For dice effects, rollEffect is like "Draw 3" and card_type is separate
@@ -770,6 +773,36 @@ export class EffectFactory {
             }
           });
         }
+        break;
+
+      // CON-INITIATION's Quality (HIGH/MED/LOW) and Multiplier (1-6) rows.
+      // The effect_type from DICE_EFFECTS.csv comes through with mixed case
+      // ("Quality", "Multiplier") — the switch above already runs through the
+      // raw value, so we lowercase-compare here just like SpaceEffectService does.
+      case 'quality':
+        effects.push({
+          effectType: 'CONTRACTOR_UPDATE',
+          payload: {
+            playerId,
+            kind: 'quality',
+            value: rollEffect,
+            source,
+            reason: `Hired contractor of ${rollEffect} quality (rolled ${diceRoll})`
+          }
+        });
+        break;
+
+      case 'multiplier':
+        effects.push({
+          effectType: 'CONTRACTOR_UPDATE',
+          payload: {
+            playerId,
+            kind: 'multiplier',
+            value: rollEffect,
+            source,
+            reason: `Contractor cost multiplier ${rollEffect}× (rolled ${diceRoll})`
+          }
+        });
         break;
 
       default:

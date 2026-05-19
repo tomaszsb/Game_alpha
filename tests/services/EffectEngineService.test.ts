@@ -1302,4 +1302,120 @@ describe('EffectEngineService', () => {
       );
     });
   });
+
+  describe('CONTRACTOR_UPDATE (CON-INITIATION dice)', () => {
+    // Regression for fb:0520fd41. Pre-fix, Quality/Multiplier dice rows fell
+    // into EffectFactory's default case and emitted no effects — the whole
+    // contractor mechanic was silently dead. These tests pin both ends:
+    // (a) the player.contractor field actually gets written
+    // (b) Multiplier triggers immediate construction-cost deduction
+    const ctx: EffectContext = {
+      source: 'dice_roll',
+      playerId: 'player1',
+      triggerEvent: 'DICE_ROLL' as any,
+    };
+
+    it('quality update sets player.contractor.quality from the rolled value', async () => {
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1',
+        currentSpace: 'CON-INITIATION',
+        contractor: undefined
+      });
+
+      const effect: Effect = {
+        effectType: 'CONTRACTOR_UPDATE',
+        payload: { playerId: 'player1', kind: 'quality', value: 'HIGH', source: 'dice_roll' }
+      };
+
+      const result = await effectEngineService.processEffect(effect, ctx);
+
+      expect(result.success).toBe(true);
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'player1',
+          contractor: expect.objectContaining({ quality: 'HIGH', hiredAt: 'CON-INITIATION' })
+        })
+      );
+    });
+
+    it('quality update normalizes case (medium → MED, mixed-case input safe)', async () => {
+      mockStateService.getPlayer.mockReturnValue({
+        id: 'player1', currentSpace: 'CON-INITIATION', contractor: undefined
+      });
+
+      const effect: Effect = {
+        effectType: 'CONTRACTOR_UPDATE',
+        payload: { playerId: 'player1', kind: 'quality', value: 'medium' }
+      };
+
+      await effectEngineService.processEffect(effect, ctx);
+
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({ contractor: expect.objectContaining({ quality: 'MED' }) })
+      );
+    });
+
+    it('multiplier update saves the multiplier AND deducts construction cost', async () => {
+      // Player exists with MED quality already; total work cost is $1M.
+      // Expected cost: 1_000_000 × (3 × 0.1) × 1.0 = 300_000
+      const playerInitial = {
+        id: 'player1',
+        currentSpace: 'CON-INITIATION',
+        contractor: { quality: 'MED' as const, multiplier: 1 },
+        expenditures: { construction: 0 }
+      };
+      const playerAfterContractorWrite = {
+        ...playerInitial,
+        contractor: { quality: 'MED' as const, multiplier: 3, hiredAt: 'CON-INITIATION' }
+      };
+
+      // First call (read before write) → initial; second call (after updatePlayer) → updated
+      mockStateService.getPlayer
+        .mockReturnValueOnce(playerInitial)
+        .mockReturnValueOnce(playerAfterContractorWrite)
+        .mockReturnValue(playerAfterContractorWrite);
+
+      mockGameRulesService.calculateTotalWorkCost = vi.fn().mockReturnValue(1_000_000);
+      mockResourceService.spendMoney.mockReturnValue(true);
+
+      const effect: Effect = {
+        effectType: 'CONTRACTOR_UPDATE',
+        payload: { playerId: 'player1', kind: 'multiplier', value: '3' }
+      };
+
+      const result = await effectEngineService.processEffect(effect, ctx);
+
+      expect(result.success).toBe(true);
+      expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
+        expect.objectContaining({ contractor: expect.objectContaining({ multiplier: 3 }) })
+      );
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
+        'player1',
+        300_000,
+        expect.anything(),
+        expect.stringContaining('Contractor hired')
+      );
+    });
+
+    it('multiplier with no work cost skips spendMoney (no-op until W cards exist)', async () => {
+      const player = {
+        id: 'player1',
+        currentSpace: 'CON-INITIATION',
+        contractor: { quality: 'MED' as const, multiplier: 1 },
+        expenditures: { construction: 0 }
+      };
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockGameRulesService.calculateTotalWorkCost = vi.fn().mockReturnValue(0);
+
+      const effect: Effect = {
+        effectType: 'CONTRACTOR_UPDATE',
+        payload: { playerId: 'player1', kind: 'multiplier', value: '6' }
+      };
+
+      const result = await effectEngineService.processEffect(effect, ctx);
+
+      expect(result.success).toBe(true);
+      expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
+    });
+  });
 });

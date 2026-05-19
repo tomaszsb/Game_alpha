@@ -194,6 +194,21 @@ export type Effect =
         source?: string;
         reason?: string;
       };
+    }
+  | {
+      // CON-INITIATION's dice rolls determine the contractor you hire. Quality
+      // (HIGH/MED/LOW) is stored on player.contractor and feeds the construction
+      // cost formula (Work × Multiplier × QualityCoefficient). Multiplier (1-6)
+      // also triggers immediate cost deduction. Both come from DICE_EFFECTS.csv
+      // rows with effect_type='Quality' or 'Multiplier'.
+      effectType: 'CONTRACTOR_UPDATE';
+      payload: {
+        playerId: string;
+        kind: 'quality' | 'multiplier';
+        value: string; // 'HIGH' | 'MED' | 'LOW' for quality, '1'..'6' for multiplier
+        source?: string;
+        reason?: string;
+      };
     };
 
 /**
@@ -308,4 +323,8 @@ export function isPlayerAgreementRequiredEffect(effect: Effect): effect is Extra
 
 export function isFeeDeductionEffect(effect: Effect): effect is Extract<Effect, { effectType: 'FEE_DEDUCTION' }> {
   return effect.effectType === 'FEE_DEDUCTION';
+}
+
+export function isContractorUpdateEffect(effect: Effect): effect is Extract<Effect, { effectType: 'CONTRACTOR_UPDATE' }> {
+  return effect.effectType === 'CONTRACTOR_UPDATE';
 }

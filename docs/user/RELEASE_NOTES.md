@@ -2,6 +2,35 @@
 
 ---
 
+## v2.65.9 — Hiring a contractor actually matters now (May 19, 2026)
+
+**Release Date:** May 19, 2026
+**Status:** Beta
+**Type:** Bug fix — silent gameplay mechanic restored
+
+**The contractor mechanic at CON-INITIATION ("Sit down, let's talk price") was completely broken — now it works.**
+
+A playtester noticed the dice popup didn't tell you what contractor you hired. Digging in, I found something much worse: **the whole contractor mechanic was dead.** When you rolled the dice:
+
+- The roll happened.
+- The popup showed "Result: 1" with no detail.
+- **The contractor was never actually saved to your player.**
+- **The construction cost (Work × Multiplier × Quality bonus) never deducted.**
+- Your project ledger showed no contractor info, because there was none.
+
+Every play through CON-INITIATION since the mechanic was added has been missing this entire piece of the game.
+
+**What changes now:**
+
+- Rolling the dice properly assigns your contractor's **Quality** (HIGH/MED/LOW) and **Multiplier** (1×-6×).
+- The popup now shows what you got: "🏗️ Quality: High" and "💲 Multiplier: 3×".
+- The construction cost calculation runs immediately — money gets deducted, and the project ledger now shows your contractor entry with the multiplier and cost.
+- The cost formula: Work Cost × (Multiplier × 10%) × Quality Coefficient. Quality coefficients: HIGH=1.5, MED=1.0, LOW=0.6. So a $1M project with a MED-quality contractor at multiplier 3 costs $300K to build. HIGH-quality contractor at multiplier 6 costs $900K. LOW-quality contractor at multiplier 1 costs $60K.
+
+If you've been wondering why some construction phases felt cheap — this is why.
+
+---
+
 ## v2.65.7 — Space Data Editor save fix (May 18, 2026)
 
 **Release Date:** May 18, 2026

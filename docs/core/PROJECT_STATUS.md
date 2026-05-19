@@ -2,7 +2,7 @@
 
 **Last Updated:** May 18, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.65.8 (v2.65.7 editor save round-trip + deterministic ghost gate; v2.65.8 backup-step EISDIR hotfix)
+**Current Version:** 2.65.9 (v2.65.8 backup-step EISDIR hotfix; v2.65.9 CON-INITIATION contractor mechanic wired through)
 
 ## Where We Are
 

@@ -74,13 +74,14 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     return diceIcons[value - 1] || '🎲';
   };
 
-  const getEffectIcon = (effectType: string): string => {
+  const getEffectIcon = (effectType: string, outcomeKind?: 'quality' | 'multiplier'): string => {
     switch (effectType) {
       case 'money': return theme.emoji.money;
       case 'time': return theme.emoji.time;
       case 'cards': return theme.emoji.cards;
       case 'movement': return theme.emoji.movement;
       case 'choice': return theme.emoji.target;
+      case 'qualitative_outcome': return outcomeKind === 'multiplier' ? '💲' : '🏗️';
       default: return theme.emoji.effects;
     }
   };
@@ -92,6 +93,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       case 'cards': return colors.purple.main;
       case 'movement': return colors.primary.main;
       case 'choice': return colors.warning.main;
+      case 'qualitative_outcome': return colors.primary.main;
       default: return colors.secondary.main;
     }
   };
@@ -104,7 +106,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     // Playtest 2026-05-15: feedback-1778872922892-6ec5c01f — "why does it
     // talk about next destination? it should be all about work not place?"
     if (effect.type === 'choice') return null;
-    const icon = getEffectIcon(effect.type);
+    const icon = getEffectIcon(effect.type, effect.outcomeKind);
     let effectColor = getEffectColor(effect.type);
 
     // Use warning color for card removals
@@ -113,7 +115,11 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     }
 
     let formattedValue = '';
-    if (effect.type === 'money' && effect.value !== undefined) {
+    if (effect.type === 'qualitative_outcome' && effect.outcomeLabel && effect.outcomeValue) {
+      // "Quality: HIGH" / "Multiplier: 3×" — the value reads as the headline,
+      // the description (set in DiceRollProcessor) carries the explanation.
+      formattedValue = `${effect.outcomeLabel}: ${effect.outcomeValue}`;
+    } else if (effect.type === 'money' && effect.value !== undefined) {
       const formatted = FormatUtils.formatResourceChange(effect.value, 'money');
       formattedValue = formatted.text;
     } else if (effect.type === 'time' && effect.value !== undefined) {

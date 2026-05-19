@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.65.9] - 2026-05-19
+
+### CON-INITIATION contractor mechanic wired through (fb:0520fd41)
+
+A playtester filed `fb:0520fd41` on 2026-05-15: "I'm not sure which contractor I hired." Triage of the popup found a much bigger problem — the entire contractor mechanic was silently dead.
+
+**Root cause.** CON-INITIATION's dice roll secretly determines two outcomes via DICE_EFFECTS.csv: **Quality** (HIGH/MED/LOW) and **Multiplier** (1×-6×). These feed the construction-cost formula at [src/services/SpaceEffectService.ts:315](src/services/SpaceEffectService.ts) (`cost = Work × Multiplier × QualityCoefficient`). The handlers (`applyQualityEffect`, `applyMultiplierEffect`) existed and were tested in isolation. **But nothing in the production dice flow called them.** [src/utils/EffectFactory.ts:685](src/utils/EffectFactory.ts) `parseDiceEffect`'s switch only handled `'cards'`, `'money'`, `'time'` — Quality and Multiplier rows fell into the `default` case and emitted no Effect, so:
+
+- `player.contractor.quality` was never set
+- `player.contractor.multiplier` was never set
+- Construction costs were never deducted
+- The DiceResultModal showed only "Result: N" with no qualitative outcome
+- [src/components/player/sections/ProjectLedger.tsx:200-210](src/components/player/sections/ProjectLedger.tsx) (which renders contractor info from `player.contractor`) was effectively dead UI
+
+The fix wires both halves at once: surface the outcome in the modal AND actually save the contractor + deduct the cost.
+
+**New effect type.** [src/types/EffectTypes.ts](src/types/EffectTypes.ts) — added `CONTRACTOR_UPDATE` to the discriminated union (`kind: 'quality' | 'multiplier'`, `value: string`) plus the `isContractorUpdateEffect` type guard. Mirrors the OWNER_SEED_MONEY pattern (inline handler in EffectEngineService, no new injection).
+
+**Factory emits the effect.** [src/utils/EffectFactory.ts](src/utils/EffectFactory.ts) `parseDiceEffect` switch now normalizes `effect_type.toLowerCase().trim()` (DICE_EFFECTS.csv has mixed case — `cards`/`money`/`time` lowercase but `Quality`/`Multiplier` capitalized) and adds `'quality'` + `'multiplier'` cases that emit `CONTRACTOR_UPDATE` effects.
+
+**Engine handles the effect.** [src/services/EffectEngineService.ts](src/services/EffectEngineService.ts) `processEffect` — new `case 'CONTRACTOR_UPDATE'` reads the player, computes the new contractor state (case-normalized for quality, 1-6 clamped for multiplier with default=3 on parse failure), writes via `stateService.updatePlayer`. For multiplier specifically, it then computes construction cost (`totalWorkCost × multiplier × 0.1 × qualityCoeff` where HIGH=1.5, MED=1.0, LOW=0.6) and deducts via `resourceService.spendMoney` + updates `expenditures.construction`. All using already-injected services — no constructor changes.
+
+**Modal renders the outcome.** [src/types/StateTypes.ts](src/types/StateTypes.ts) — extended `DiceResultEffect.type` union with `'qualitative_outcome'`, added `outcomeKind` / `outcomeLabel` / `outcomeValue` optional fields. [src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts) `convertEffectsToResults` — new `CONTRACTOR_UPDATE` case converts the engine-level effect into a display-level `DiceResultEffect` with friendly text (`"Hired a contractor of High quality"`, `"Contractor cost multiplier: 3×"`). [src/components/modals/DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx) `renderEffect` — added `'qualitative_outcome'` case rendering `"Quality: High"` / `"Multiplier: 3×"` with appropriate emoji (🏗️ for quality, 💲 for multiplier) and the existing description line.
+
+**Regression coverage.** 6 new tests:
+- [tests/utils/EffectFactory.test.ts](tests/utils/EffectFactory.test.ts) — 2 tests asserting Quality/Multiplier dice rows emit `CONTRACTOR_UPDATE` effects with the right payload.
+- [tests/services/EffectEngineService.test.ts](tests/services/EffectEngineService.test.ts) — 4 tests covering the full handler: quality writes `player.contractor.quality`, case-normalization (`medium` → `MED`), multiplier triggers `spendMoney` with the right formula, and multiplier with zero work cost skips deduction (covers the early-game case where you reach CON-INITIATION before any W cards).
+
+**Test suite:** 1678 passed / 0 failed / 4 skipped. Up from 1672 — +6 new tests, 0 regressions.
+
+**Dead-code note.** [src/services/SpaceEffectService.ts](src/services/SpaceEffectService.ts) `applyQualityEffect` / `applyMultiplierEffect` / `calculateAndDeductConstructionCost` / the `'quality'`/`'multiplier'` cases in `applyDiceEffect` are now unreachable in production. Their unit tests in [tests/services/SpaceEffectService.test.ts](tests/services/SpaceEffectService.test.ts) still pass because they call the methods directly. Left in place this commit to keep the diff focused on the wiring fix; flagged in TODO for a follow-up cleanup pass.
+
 ## [2.65.8] - 2026-05-19
 
 ### Editor save: backup step skips non-files (immediate v2.65.7 follow-up)

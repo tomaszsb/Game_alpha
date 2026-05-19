@@ -342,6 +342,89 @@ export class EffectEngineService implements IEffectEngineService {
           }
           break;
 
+        case 'CONTRACTOR_UPDATE':
+          // CON-INITIATION's dice rolls hire a contractor. Quality / Multiplier
+          // come from DICE_EFFECTS.csv via EffectFactory.parseDiceEffect.
+          // Both update player.contractor; multiplier also triggers immediate
+          // construction-cost deduction via the formula:
+          //   cost = totalWorkCost × (multiplier × 0.1) × qualityCoefficient
+          // Quality coefficients: HIGH=1.5, MED=1.0, LOW=0.6.
+          {
+            const { payload } = effect;
+            const player = this.stateService.getPlayer(payload.playerId);
+            if (!player) {
+              throw new Error(`Player ${payload.playerId} not found for CONTRACTOR_UPDATE`);
+            }
+
+            const existingContractor = player.contractor || { quality: 'MED' as const, multiplier: 1 };
+
+            if (payload.kind === 'quality') {
+              const raw = payload.value.toUpperCase().trim();
+              const quality: 'HIGH' | 'MED' | 'LOW' =
+                raw === 'HIGH' ? 'HIGH'
+                  : (raw === 'MED' || raw === 'MEDIUM') ? 'MED'
+                  : raw === 'LOW' ? 'LOW'
+                  : 'MED';
+              this.stateService.updatePlayer({
+                id: payload.playerId,
+                contractor: {
+                  ...existingContractor,
+                  quality,
+                  hiredAt: player.currentSpace
+                }
+              });
+            } else {
+              // multiplier: parse 1..6, default 3 if malformed
+              const parsed = parseInt(payload.value.trim(), 10);
+              const multiplier = (!isNaN(parsed) && parsed >= 1 && parsed <= 6) ? parsed : 3;
+              this.stateService.updatePlayer({
+                id: payload.playerId,
+                contractor: {
+                  ...existingContractor,
+                  multiplier,
+                  hiredAt: player.currentSpace
+                }
+              });
+
+              // Deduct construction cost using current quality + new multiplier.
+              const updatedPlayer = this.stateService.getPlayer(payload.playerId);
+              const contractor = updatedPlayer?.contractor;
+              if (contractor) {
+                const totalWorkCost = this.gameRulesService.calculateTotalWorkCost(payload.playerId);
+                if (totalWorkCost > 0) {
+                  const qualityCoeffs: Record<'HIGH' | 'MED' | 'LOW', number> = {
+                    HIGH: 1.5, MED: 1.0, LOW: 0.6
+                  };
+                  const qualityCoeff = qualityCoeffs[contractor.quality] || 1.0;
+                  const multiplierPercent = contractor.multiplier * 0.1;
+                  const constructionCost = Math.round(totalWorkCost * multiplierPercent * qualityCoeff);
+
+                  if (constructionCost > 0) {
+                    this.resourceService.spendMoney(
+                      payload.playerId,
+                      constructionCost,
+                      payload.source || context.source,
+                      `Contractor hired: ${contractor.quality} quality, multiplier ${contractor.multiplier} — $${constructionCost.toLocaleString()}`
+                    );
+                    const refreshed = this.stateService.getPlayer(payload.playerId);
+                    if (refreshed) {
+                      const currentConstruction = refreshed.expenditures?.construction || 0;
+                      this.stateService.updatePlayer({
+                        id: payload.playerId,
+                        expenditures: {
+                          ...refreshed.expenditures,
+                          construction: currentConstruction + constructionCost
+                        }
+                      });
+                    }
+                  }
+                }
+              }
+            }
+            success = true;
+          }
+          break;
+
         case 'CARD_DRAW':
           // Delegate to CardEffectHandler (required)
           if (!this.cardEffectHandler) {

@@ -580,4 +580,49 @@ describe('EffectFactory', () => {
       expect(moneyEffect?.payload.percentageOfScope).toBe(8);
     });
   });
+
+  describe('createEffectsFromDiceRoll - CON-INITIATION quality/multiplier (fb:0520fd41)', () => {
+    // Pre-fix these rows fell into parseDiceEffect's default branch and emitted
+    // no Effect, so the whole contractor mechanic was silently dead even though
+    // SpaceEffectService had handlers wired for it.
+    it('emits CONTRACTOR_UPDATE for Quality dice rows (capital Q in CSV)', () => {
+      const diceEffects = [{
+        space_name: 'CON-INITIATION',
+        visit_type: 'First' as const,
+        effect_type: 'Quality',
+        card_type: 'Quality',
+        roll_1: 'HIGH', roll_2: 'HIGH', roll_3: 'MED',
+        roll_4: 'MED', roll_5: 'LOW', roll_6: 'LOW',
+      }];
+
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects, mockPlayerId, 'CON-INITIATION', 1, 'Test Player'
+      );
+
+      const contractorEffect = effects.find(e => e.effectType === 'CONTRACTOR_UPDATE');
+      expect(contractorEffect).toBeDefined();
+      expect((contractorEffect?.payload as any).kind).toBe('quality');
+      expect((contractorEffect?.payload as any).value).toBe('HIGH');
+    });
+
+    it('emits CONTRACTOR_UPDATE for Multiplier dice rows', () => {
+      const diceEffects = [{
+        space_name: 'CON-INITIATION',
+        visit_type: 'First' as const,
+        effect_type: 'Multiplier',
+        card_type: 'Multiplier',
+        roll_1: '1', roll_2: '2', roll_3: '3',
+        roll_4: '4', roll_5: '5', roll_6: '6',
+      }];
+
+      const effects = EffectFactory.createEffectsFromDiceRoll(
+        diceEffects, mockPlayerId, 'CON-INITIATION', 4, 'Test Player'
+      );
+
+      const contractorEffect = effects.find(e => e.effectType === 'CONTRACTOR_UPDATE');
+      expect(contractorEffect).toBeDefined();
+      expect((contractorEffect?.payload as any).kind).toBe('multiplier');
+      expect((contractorEffect?.payload as any).value).toBe('4');
+    });
+  });
 });
