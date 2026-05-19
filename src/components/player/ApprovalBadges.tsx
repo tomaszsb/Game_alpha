@@ -12,6 +12,14 @@ import { ApprovalStatus } from '../../types/DataTypes';
 interface ApprovalBadgesProps {
   dobStatus?: ApprovalStatus;
   fdnyStatus?: ApprovalStatus;
+  /**
+   * When true, render both badges even if both statuses are 'none'. Use at
+   * regulatory spaces (e.g. REG-DOB-FINAL-REVIEW) where the player needs to
+   * see at a glance which approvals are still missing — without `forceShow`,
+   * a player who never visited an examiner sees no badges and has no UI
+   * indication of what's blocking the final-review gate (fb:56d0282c).
+   */
+  forceShow?: boolean;
 }
 
 interface BadgeStyle {
@@ -80,10 +88,12 @@ function ApprovalBadge({ label, emoji, status }: SingleBadgeProps) {
   );
 }
 
-export function ApprovalBadges({ dobStatus = 'none', fdnyStatus = 'none' }: ApprovalBadgesProps) {
+export function ApprovalBadges({ dobStatus = 'none', fdnyStatus = 'none', forceShow = false }: ApprovalBadgesProps) {
   // Hide entirely until the player has interacted with at least one examiner.
   // Reduces noise during early game when both badges would just show "…".
-  if (dobStatus === 'none' && fdnyStatus === 'none') {
+  // `forceShow` overrides this at regulatory spaces where the missing-approval
+  // state IS the message (see prop doc).
+  if (!forceShow && dobStatus === 'none' && fdnyStatus === 'none') {
     return null;
   }
 

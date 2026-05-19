@@ -2,7 +2,7 @@
 
 **Last Updated:** May 19, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.66.1 (v2.66.0 drag-to-save + v2.66.1 multiline CSV parser hotfix; BoardV3 retirement deferred to v2.66.2)
+**Current Version:** 2.66.2 (v2.66.0 drag-to-save + v2.66.1 multiline CSV parser hotfix + v2.66.2 verdict-gate visibility fixes; BoardV3 retirement deferred to v2.66.3)
 
 ## Where We Are
 

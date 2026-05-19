@@ -72,4 +72,24 @@ describe('ApprovalBadges', () => {
     expect(dobBadge).toHaveTextContent('🪪');
     expect(fdnyBadge).toHaveTextContent('🚒');
   });
+
+  // v2.66.2 — fb:56d0282c. At regulatory spaces the "none / none" state IS
+  // the signal: the player needs to see what's missing before they can
+  // accept the verdict. The parent passes forceShow=true when player is on
+  // a REG-* space; previously the badges hid themselves and the player had
+  // no UI indication of what was blocking End Turn.
+  describe('forceShow (fb:56d0282c)', () => {
+    it('renders both grey "…" badges with forceShow=true even when both none', () => {
+      render(<ApprovalBadges dobStatus="none" fdnyStatus="none" forceShow={true} />);
+      const dobBadge = screen.getByText('DOB').closest('.action-center__approval-badge');
+      const fdnyBadge = screen.getByText('FDNY').closest('.action-center__approval-badge');
+      expect(dobBadge).toHaveTextContent('…');
+      expect(fdnyBadge).toHaveTextContent('…');
+    });
+
+    it('defaults forceShow to false (preserves early-game hide behavior)', () => {
+      const { container } = render(<ApprovalBadges dobStatus="none" fdnyStatus="none" />);
+      expect(container.firstChild).toBeNull();
+    });
+  });
 });

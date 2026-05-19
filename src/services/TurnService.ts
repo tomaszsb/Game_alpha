@@ -365,9 +365,16 @@ export class TurnService implements ITurnService {
     // Ensure all setter-injected dependencies are ready
     this.assertDependenciesReady();
 
+    // Per-step diagnostic — when end-turn fails, we want the failure point
+    // surfaced to the user along with the error message (see ActionCenterPanel
+    // handleEndTurn). Same shape as the v2.65.7 server save-source-files
+    // diagnostic and the v2.66.0 drag-to-save banner (fb:56d0282c).
+    let step = 'init';
+    let currentSpaceForLog: string | undefined;
     try {
+      step = 'validate_phase';
       const gameState = this.stateService.getGameState();
-      
+
       // Validation: Game must be in PLAY phase
       if (gameState.gamePhase !== 'PLAY') {
         throw new Error('Cannot end turn outside of PLAY phase');
@@ -378,17 +385,21 @@ export class TurnService implements ITurnService {
         throw new Error('No current player to end turn for');
       }
 
+      step = 'find_player';
       // Get current player
       const currentPlayer = this.stateService.getPlayer(gameState.currentPlayerId);
       if (!currentPlayer) {
         throw new Error('Current player not found');
       }
+      currentSpaceForLog = currentPlayer.currentSpace;
 
+      step = 'check_actions';
       // Validation: Check if all required actions are completed (skip if force = true for Try Again)
       if (!force && gameState.requiredActions > gameState.completedActionCount) {
         throw new Error(`Cannot end turn: Player has not completed all required actions. Required: ${gameState.requiredActions}, Completed: ${gameState.completedActionCount}`);
       }
 
+      step = 'check_scope_gate';
       // Guard: Cannot leave a scope-gated space without enough W cards.
       // Workstream 6 #2: lifted from `=== 'OWNER-SCOPE-INITIATION'` literal to the
       // min_w_cards_to_leave data flag so educators can gate other spaces too.
@@ -402,6 +413,7 @@ export class TurnService implements ITurnService {
         }
       }
 
+      step = 'resolve_choice';
       // Resolve any pending movement choice if player has set their moveIntent
       // This handles the case where the UI set moveIntent without resolving the choice
       // (e.g., PlayerPanel click that just sets intent, or direct calls to endTurnWithMovement)
@@ -412,13 +424,15 @@ export class TurnService implements ITurnService {
       // Process leaving space effects BEFORE movement (time spent on current space)
       // SKIP if skipAutoMove is true (e.g., after Try Again) - player is staying at same space
       if (!skipAutoMove) {
+        step = 'leaving_effects';
         await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
-      } else {
       }
 
+      step = 'execute_movement';
       // Execute movement (delegates to MovementExecutor)
       await this.movementExecutor.executeMovement(currentPlayer, gameState, skipAutoMove);
 
+      step = 'check_win';
       // Check for win condition before ending turn
       const hasWon = await this.gameRulesService.checkWinCondition(gameState.currentPlayerId);
       if (hasWon) {
@@ -427,23 +441,34 @@ export class TurnService implements ITurnService {
         return { nextPlayerId: gameState.currentPlayerId }; // Winner remains current player
       }
 
+      step = 'commit_session';
       // Commit current exploration session before advancing to next player
       this.loggingService.commitCurrentSession();
 
+      step = 'commit_temp_to_real';
       // Commit TEMP state to REAL (new REAL/TEMP state model)
       // This finalizes all turn effects into the committed state
       const commitResult = this.stateService.commitTempToReal(gameState.currentPlayerId);
       if (!commitResult.success) {
         debugWarn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
-      } else {
       }
 
+      step = 'next_player';
       // Advance to next player
       const nextPlayerResult = await this.nextPlayer();
 
       return nextPlayerResult;
     } catch (error) {
-      console.error(`🏁 TurnService.endTurnWithMovement - Error:`, error);
+      // Surface step + context to docker logs AND to the throwing error so
+      // the UI banner can show e.g. "Cannot end turn: ... (step: check_actions)".
+      console.error('🏁 TurnService.endTurnWithMovement - Error:', {
+        step,
+        currentSpace: currentSpaceForLog,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      if (error instanceof Error) {
+        (error as Error & { step?: string }).step = step;
+      }
       throw error;
     }
   }

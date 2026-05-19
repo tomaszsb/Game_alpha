@@ -1244,4 +1244,48 @@ describe('TurnService', () => {
       expect(result.rollGroups).toBeUndefined();
     });
   });
+
+  // v2.66.2 — fb:56d0282c. endTurnWithMovement attaches a `step` property to
+  // any thrown error so the UI banner can show WHICH step failed (the
+  // ActionCenterPanel reads err.step and appends "(step: <name>)" to the
+  // error message). Mirrors the v2.65.7 server save-source-files diagnostic
+  // and the v2.66.0 drag-to-save banner.
+  describe('endTurnWithMovement diagnostic step', () => {
+    it('attaches step=validate_phase when game is not in PLAY phase', async () => {
+      const gameState = { ...mockGameState, gamePhase: 'SETUP' as const };
+      mockStateService.getGameState.mockReturnValue(gameState);
+
+      let captured: (Error & { step?: string }) | null = null;
+      try {
+        await turnService.endTurnWithMovement();
+      } catch (err) {
+        captured = err as Error & { step?: string };
+      }
+
+      expect(captured).not.toBeNull();
+      expect(captured?.message).toContain('Cannot end turn outside of PLAY phase');
+      expect(captured?.step).toBe('validate_phase');
+    });
+
+    it('attaches step=check_actions when required actions are incomplete', async () => {
+      const gameState = {
+        ...mockGameState,
+        requiredActions: 3,
+        completedActionCount: 1,
+      };
+      mockStateService.getGameState.mockReturnValue(gameState);
+      mockStateService.getPlayer.mockReturnValue(mockPlayer);
+
+      let captured: (Error & { step?: string }) | null = null;
+      try {
+        await turnService.endTurnWithMovement();
+      } catch (err) {
+        captured = err as Error & { step?: string };
+      }
+
+      expect(captured).not.toBeNull();
+      expect(captured?.message).toContain('Cannot end turn: Player has not completed all required actions');
+      expect(captured?.step).toBe('check_actions');
+    });
+  });
 });

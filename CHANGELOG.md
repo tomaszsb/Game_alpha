@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.66.2] - 2026-05-19
+
+### "Accept the verdict did nothing" — surface failure modes at the gate (fb:56d0282c)
+
+A playtester at REG-DOB-FINAL-REVIEW pressed "Accept the verdict" and nothing happened. Screenshot showed them at 86% CONSTRUCTION with no DOB/FDNY approval badges visible. Triage found two convergent UX failures (no game-logic bug — just silent failure modes):
+
+1. **`handleEndTurn` swallowed errors silently.** [src/components/player/ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) `handleEndTurn` caught any throw from `TurnService.endTurnWithMovement` and only `console.error`d it. The player saw a click that "did nothing." Behind the scenes, the throw was likely the `"Cannot end turn: Player has not completed all required actions. Required: N, Completed: M"` guard at [TurnService.ts:388-389](src/services/TurnService.ts) or the dice-gate awaiting-choice condition — either way, never surfaced.
+
+2. **ApprovalBadges hid itself.** [src/components/player/ApprovalBadges.tsx:86](src/components/player/ApprovalBadges.tsx) returns `null` when both `dobApprovalStatus` and `fdnyApprovalStatus` are `'none'` — designed to "avoid clutter at game start." But at REG-DOB-FINAL-REVIEW the missing-approval state IS the message; hiding the badges left the player with no UI cue about what was blocking them.
+
+This was a **visibility bug**, not a logic bug. The fixes don't change game behavior — they surface existing behavior to the user.
+
+**Three changes:**
+
+1. **Error banner above End Turn.** `handleEndTurn` now catches the throw and renders a red banner above the button: `"Cannot end turn: Player has not completed all required actions. Required: 3, Completed: 2 (step: check_actions)"`. Auto-dismisses after 6s. The TurnService error messages are already player-readable — they just need a place to land.
+
+2. **`forceShow` prop on ApprovalBadges.** ActionCenterPanel passes `forceShow={currentSpace.startsWith('REG-')}` so at any regulatory space the player sees both badges, even with `'none'` status (rendered as grey "…" pills). Other spaces preserve the existing auto-hide behavior. The `'REG-'` prefix check is a Workstream-6-style temporary lift — promote to a `is_regulatory_gate` CSV column when the surrounding code is next touched.
+
+3. **Per-step diagnostic in TurnService.endTurnWithMovement.** Matches the v2.65.7 server save-source-files pattern + v2.66.0 drag-to-save banner. A `step` var reassigns before each operation (`validate_phase` → `find_player` → `check_actions` → `check_scope_gate` → `resolve_choice` → `leaving_effects` → `execute_movement` → `check_win` → `commit_session` → `commit_temp_to_real` → `next_player`). On throw, `error.step` is attached and the catch block logs structured context (step + currentSpace + message). The UI banner reads `err.step` and appends `(step: <name>)` to the displayed message, so a future failure pinpoints itself.
+
+**Regression coverage** — 4 new tests:
+- [tests/components/player/ApprovalBadges.test.tsx](tests/components/player/ApprovalBadges.test.tsx) — `forceShow={true}` renders both grey "…" badges with `'none'` status; default `forceShow=false` preserves the auto-hide behavior.
+- [tests/services/TurnService.test.ts](tests/services/TurnService.test.ts) — `endTurnWithMovement` attaches `step='validate_phase'` when game isn't in PLAY phase, and `step='check_actions'` when required actions are incomplete.
+
+**Test suite:** 1691 passed / 0 failed / 4 skipped. Up from 1687 — +4 new, 0 regressions.
+
+**Still out of scope (for follow-up):**
+- The screenshot's "Moved to REG-FDNY-PLAN-EXAM" line is inconsistent with the gate's "DOB first if both missing" logic — but root-causing needs live state, not code reading. The new diagnostic banner will surface the failure point next time it happens.
+- Stale "Result: 5 → Time Penalty: 1 day" feedback persisting on the verdict screen. Separate component (likely DiceResultModal residue); flag if it persists post-deploy.
+
 ## [2.66.1] - 2026-05-19
 
 ### Editor CSV parser handles multi-paragraph copy without corruption (fb:0ee0d9c1)

@@ -101,6 +101,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const [isDiceMovementSpace, setIsDiceMovementSpace] = useState(false);
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [isEndingTurn, setIsEndingTurn] = useState(false);
+  // Error banner for end-turn failures (fb:56d0282c). Auto-clears 6s after
+  // a successful End Turn click or 6s after the last error display.
+  const [endTurnError, setEndTurnError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ReferenceTab>(null);
   // Tracks the last consumed tabRequest.id so a single request fires once
   // regardless of unrelated re-renders.
@@ -372,10 +375,21 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
 
   const handleEndTurn = async () => {
     setIsEndingTurn(true);
+    setEndTurnError(null);
     try {
       await gameServices.turnService.endTurnWithMovement();
     } catch (err) {
+      // Surface the failure to the user instead of silently swallowing it
+      // (fb:56d0282c). TurnService throws user-readable messages from its
+      // validation guards; v2.66.2 attaches a `step` property so we can show
+      // WHERE the failure happened, matching the v2.65.7 / v2.66.0 diagnostic
+      // contract used elsewhere.
+      const message = err instanceof Error ? err.message : String(err);
+      const step = (err as { step?: string } | null)?.step;
+      const display = step ? `${message} (step: ${step})` : message;
       console.error('End turn error:', err);
+      setEndTurnError(display);
+      window.setTimeout(() => setEndTurnError(prev => (prev === display ? null : prev)), 6000);
     } finally {
       setIsEndingTurn(false);
     }
@@ -473,6 +487,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           <ApprovalBadges
             dobStatus={player.dobApprovalStatus}
             fdnyStatus={player.fdnyApprovalStatus}
+            forceShow={player.currentSpace?.startsWith('REG-') ?? false}
           />
           <ConnectionStatus serverUrl={getBackendURL()} />
         </div>
@@ -692,6 +707,25 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       {/* ===== Turn Controls ===== */}
       {isMyTurn && (
         <div className="action-center__turn-controls">
+          {endTurnError && (
+            <div
+              role="alert"
+              className="action-center__end-turn-error"
+              style={{
+                background: '#fef2f2',
+                color: '#7f1d1d',
+                border: '1px solid #dc3545',
+                padding: '8px 12px',
+                borderRadius: 6,
+                fontFamily: 'system-ui, sans-serif',
+                fontSize: 13,
+                marginBottom: 8,
+                lineHeight: 1.35
+              }}
+            >
+              {endTurnError}
+            </div>
+          )}
           <button
             className="action-center__end-turn-btn"
             onClick={handleEndTurn}
