@@ -44,6 +44,11 @@ export interface SpaceRow {
   i_card_narrative: string; // Per-action narrative for I card modal
   l_card_narrative: string; // Per-action narrative for L card modal
   e_card_narrative: string; // Per-action narrative for E card modal
+  // Opaque pass-through for Spaces.csv columns the editor UI doesn't expose
+  // (data-flag columns added by Workstream 6, smart-edge pos_x/pos_y, funding_source, etc.).
+  // Loaded from CSV verbatim, written back unchanged on save. Without this, saves
+  // would silently drop any column the editor hasn't been taught about.
+  _extraColumns?: Record<string, string>;
 }
 
 /**

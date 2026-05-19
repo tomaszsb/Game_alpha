@@ -2,6 +2,41 @@
 
 ---
 
+## v2.65.7 — Space Data Editor save fix (May 18, 2026)
+
+**Release Date:** May 18, 2026
+**Status:** Beta
+**Type:** Admin-tool fix (no gameplay change)
+
+**Saves from the Space Data Editor at `/admin` no longer silently drop your work.** A playtester reported "failed to save" when trying to edit a space. While triaging that one report, we found a much bigger problem: every editor save since late April was secretly throwing away 16 columns of data on every space — including layout coordinates, starting-space flag, fee calculation method, and yesterday's new funding-source tag. Now the editor knows to round-trip every column it sees back to the server, even ones the UI doesn't show.
+
+If anyone has been editing spaces and finding that game behavior changed in surprising ways (e.g., the starting space moved, a layout coordinate reset, funding stopped auto-playing) — this is why. Edits going forward will preserve everything.
+
+The fix also adds better error messages when the save does fail for any other reason — instead of a generic "failed to save," you'll see exactly which step (write to disk, regenerate clean files, etc.) hit a problem and what the underlying error was.
+
+Bundled with v2.65.6 (per-space hardcoding sweep, no player-visible change).
+
+---
+
+## v2.65.5 — Panel and board polish (May 18, 2026)
+
+**Release Date:** May 18, 2026
+**Status:** Beta
+**Type:** UI fixes from playtest feedback
+
+Four visible improvements after the v2.65.x deploy surfaced a small wave of playtest reports:
+
+- **Player panel no longer squishes the space title when approval badges are showing.** Earlier this week the DOB / FDNY chips were added to the panel header but they hogged the row at narrower desktop widths, breaking "REG-DOB-PLAN-EXAM" and player names into character-stack columns. The row now wraps cleanly: if there isn't room for everything on one line, the badges drop to a second line below the title. On panels under ~1400px wide, the chip text labels (DOB / FDNY) hide and only the emoji + status icon show — hover for the full label.
+- **The space you can move to is more obvious on the board.** Valid-move destinations now show a soft green glow ring and a tinted background, not just a thin border. ENG-INITIATION and similar spaces that previously read as "hardly visible" should pop out now.
+- **The vertical LEDGER pill stops overlapping panel text.** The floating right-edge pill now has its own column reserved so words don't roll under it.
+- **CHEAT-BYPASS player panel layout fixes.** Two of the three reported issues addressed: completed actions no longer linger as greyed-out buttons in the YOUR ACTIONS list (they're done — the audit trail is in the Log tab); the "Determine Next Step" dice button now groups with the other actions instead of floating above the YOUR ACTIONS header. (The third — grouping multiple dice rolls into one block — is still on the list; it needs a data-side change.)
+
+### Known, deferred
+
+The CON-INITIATION ("Sit down, let's talk price") dice modal still doesn't tell you what your roll actually means. Rolling a 1 vs a 6 changes the contractor's Quality (HIGH/MED/LOW) and the Multiplier (1×–6×), but the modal only shows "Result: 1" and the generic NPC dialogue. Fix in a future release.
+
+---
+
 ## v2.65.0 → v2.65.4 — Plan Approval Mechanic (May 16–17, 2026)
 
 **Release Date:** May 17, 2026

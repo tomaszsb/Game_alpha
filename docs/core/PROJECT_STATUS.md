@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated:** May 16, 2026
+**Last Updated:** May 18, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.65.4 (Workstream 7 COMPLETE — Plan Approval Mechanic Phases 7.1–7.5)
+**Current Version:** 2.65.7 (v2.65.5 panel + board polish; v2.65.6 per-space hardcoding sweep; v2.65.7 editor save round-trip fix + deterministic ghost gate)
 
 ## Where We Are
 

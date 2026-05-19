@@ -32,7 +32,7 @@ taskkill /F /IM chrome.exe
 
 **Working Directory**: `/mnt/d/unravel/current_game/Game_Alpha/`
 
-**Status**: Beta (v2.64.7) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstreams 3 (Living Map) and 5 (Live Dictionary) remain for v3.0.0 ship.
+**Status**: Beta (v2.65.7) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstream 7 (Plan Approval Mechanic) closed May 17, 2026 in v2.65.4. Workstreams 3 (Living Map, Phase D pending) and 5 (Live Dictionary) remain for v3.0.0 ship.
 
 **Directory Structure:**
 ```
@@ -496,6 +496,19 @@ Grep: pattern="[Rr]oll for|[Dd]raw [WBIEL]|w cards?" path=src/components glob=*.
 
 Filter out internal CSS class names (`card-*`), code variables (`drawCards`), JSDoc comments. Focus on JSX text and string literals that hit the UI.
 
+### Per-space hardcoding lift — six-step playbook
+
+Lifting a literal `currentSpace === 'FOO'` (or `[...].includes(space)`) to a data column is a Workstream-6-style mini-pass. 10+ literals have been lifted via this exact recipe; the receipts live in `DataService.ts:92-185` (Workstream 6) and the v2.65.6 funding-source addition.
+
+1. **CSV side (both copies)**: add the column to `public/data/SOURCE_FILES/Spaces.csv` AND `server/data/game-data/SOURCE_FILES/Spaces.csv`. Update CLEAN_FILES `GAME_CONFIG.csv` in all three locations (`public/`, `server/`, `dist/`). A small Python script (`csv.reader` → mutate → `csv.writer`) is faster and less error-prone than 50+ Edit calls.
+2. **Pipeline**: update `server/processGameData.js` — parse the new column from the Spaces row (with default for missing), add it to the `configs` object, AND append the column name to the `fieldnames` array. This preserves the column across editor saves.
+3. **Type contracts**: add the optional field to `GameConfig` in `src/types/DataTypes.ts`, AND add the new helper method signatures to `IDataService` in `src/types/ServiceContracts.ts`. Skipping the interface update is the single most common mistake — `as IDataService` test mocks silently accept missing methods and only break at runtime.
+4. **Parser + helpers**: extend `DataService.parseGameConfigCsv` to read the new column by index (header column count matters). Add the `get*()` + boolean predicate helpers that proxy to `getGameConfigBySpace(spaceName)?.field ?? defaultValue`.
+5. **Refactor call sites**. Sometimes the right answer isn't a lift but a delete — if grep shows no production callers (only the function's own tests), it's dead code; remove it instead. Voice-leak callers and notification helpers are common offenders.
+6. **Test mocks**: update `tests/mocks/mockServices.ts` (global mock — safe defaults: `false` / `''`) AND every test file with an inline mock object (`grep -l "shouldAutoApplyFunding:" tests/` finds them). For tests that depend on the lifted check firing at specific spaces, override the mock in `beforeEach` to be space-aware (return `true` / correct value for the known spaces, default otherwise). The `CardEffectService.test.ts` inline mock from v2.65.6 and the `ManualFunding.test.ts` follow-up are the canonical examples.
+
+Verification order: `npm run typecheck` → targeted vitest on affected services (fast) → full vitest sweep (catches cross-file ripples from `as IDataService` casts). The full sweep is the only way to find tests using those casts — those silence type errors and only break at runtime. Schedule it as background work and continue with other tasks; the notification fires when it finishes.
+
 ### "Don't defer small investigations" applied
 
 10-minute scoped investigations (single file, single hypothesis, no architectural impact) go straight to in-progress, not into TODO. From user memory: `feedback_no_scope_caution_defer.md`. If you find yourself parking a 1-2 file fix in TODO "to keep the commit tidy," just do it.
@@ -509,5 +522,5 @@ Filter out internal CSS class names (`card-*`), code variables (`drawCards`), JS
 
 ---
 
-**Last Updated:** May 15, 2026 (PM session)
-**Charter Version:** 3.8 (+ screenshot pipeline, visualSummary split, before/after snapshot gotchas, manualChunks rule, smart-edge stub, MOVEMENT integrity)
+**Last Updated:** May 18, 2026
+**Charter Version:** 3.9 (+ per-space hardcoding lift playbook)

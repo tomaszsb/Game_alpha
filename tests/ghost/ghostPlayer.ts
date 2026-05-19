@@ -50,6 +50,23 @@ export interface GhostGameOptions {
 }
 
 /**
+ * mulberry32 — 4-line seeded PRNG with good statistical properties for our
+ * use case (picking between a handful of options per turn). Same input seed
+ * always produces the same sequence; uses no global state. Output range is
+ * [0, 1) so it's a drop-in replacement for Math.random.
+ */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
  * Play one game to completion (or failure) using a single Ghost Player.
  * Returns a result object; never throws — all failures are captured in
  * `result.success === false` so batch runners can aggregate.
@@ -418,10 +435,17 @@ function safeGetPlayerSpace(stateService: any): string | undefined {
  * Run N games back-to-back, each with a fresh service bootstrap, and return
  * aggregate results. Fresh bootstrap per game is the safe default — it
  * prevents state bleed between games at the cost of a small perf hit.
+ *
+ * Seeding: pass `baseSeed` to make the batch deterministic. Each game runs
+ * with `Math.random` overridden to `mulberry32(baseSeed + i)` for the
+ * duration of that game (restored in finally). Game-internal services and
+ * the ghost's own choices both observe the seeded stream, so seeded batches
+ * reproduce bit-for-bit across runs. Without `baseSeed`, Math.random is
+ * untouched and behavior is stochastic (suitable for the diagnostic test).
  */
 export async function runGhostBatch(
   gameCount: number,
-  options: GhostGameOptions = {}
+  options: GhostGameOptions & { baseSeed?: number } = {}
 ): Promise<{
   total: number;
   wins: number;
@@ -434,34 +458,38 @@ export async function runGhostBatch(
   let totalTurns = 0;
   let longGames = 0;
   const LONG_GAME_THRESHOLD = 60;
-
-  // Per-game wall-clock cap. playOneGame is cancellation-aware via the
-  // AbortSignal — when the timer fires, the next yield point returns a
-  // TURN_CAP fail and the game's CPU loop actually stops (unlike a naive
-  // Promise.race which only resolves the race but leaves playOneGame running
-  // in the background). 30s is generous: normal games finish in ~4s.
   const PER_GAME_TIMEOUT_MS = 30000;
 
-  for (let i = 0; i < gameCount; i++) {
-    const services = await bootstrapHeadlessServices();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), PER_GAME_TIMEOUT_MS);
-    let result: GhostGameResult;
-    try {
-      result = await playOneGame(services, { ...options, signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-    totalTurns += Math.max(0, result.turns);
-    if (result.success) {
-      wins++;
-      if (result.turns > LONG_GAME_THRESHOLD) {
-        longGames++;
-        console.warn(`⚠️ Long game #${i + 1}: ${result.turns} turns (possible loop). Final space: ${result.finalSpace}`);
+  const { baseSeed, ...gameOptions } = options;
+  const originalRandom = Math.random;
+
+  try {
+    for (let i = 0; i < gameCount; i++) {
+      if (baseSeed != null) {
+        Math.random = mulberry32(baseSeed + i);
       }
-    } else {
-      failures.push(result);
+      const services = await bootstrapHeadlessServices();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), PER_GAME_TIMEOUT_MS);
+      let result: GhostGameResult;
+      try {
+        result = await playOneGame(services, { ...gameOptions, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      totalTurns += Math.max(0, result.turns);
+      if (result.success) {
+        wins++;
+        if (result.turns > LONG_GAME_THRESHOLD) {
+          longGames++;
+          console.warn(`⚠️ Long game #${i + 1}: ${result.turns} turns (possible loop). Final space: ${result.finalSpace}`);
+        }
+      } else {
+        failures.push(result);
+      }
     }
+  } finally {
+    if (baseSeed != null) Math.random = originalRandom;
   }
 
   return {

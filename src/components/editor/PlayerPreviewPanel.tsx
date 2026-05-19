@@ -30,9 +30,9 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
     { key: 'e_card', labelKey: 'e_card_label', type: 'E' },
   ];
   for (const cf of cardFields) {
-    const val = currentSpace[cf.key];
+    const val = currentSpace[cf.key] as string;
     if (val) {
-      cardEffects.push({ type: cf.type, value: val, label: currentSpace[cf.labelKey] || '' });
+      cardEffects.push({ type: cf.type, value: val, label: (currentSpace[cf.labelKey] as string) || '' });
     }
   }
 
@@ -44,7 +44,7 @@ export function PlayerPreviewPanel({ currentSpace, visitType, diceRollData }: Pl
   // Movement destinations
   const destinations: string[] = [];
   for (let i = 1; i <= 5; i++) {
-    const v = currentSpace[`space_${i}` as keyof SpaceRow];
+    const v = currentSpace[`space_${i}` as keyof SpaceRow] as string;
     if (v) destinations.push(v);
   }
 

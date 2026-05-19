@@ -6,7 +6,7 @@ import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
-import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV, parseModalConfigCSV } from './utils/csvExport';
+import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV, parseModalConfigCSV, parseSpacesCSV, parseDiceRollCSV } from './utils/csvExport';
 import { colors } from '../../styles/theme';
 
 interface DataEditorProps {
@@ -249,14 +249,16 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
         // Auto-clear success message after 4 seconds
         setTimeout(() => setSaveStatus(prev => prev?.type === 'success' ? null : prev), 4000);
       } else {
-        setSaveStatus({ type: 'error', message: data.error || 'Save failed' });
+        const base = data.error || 'Save failed';
+        const detail = data.detail ? ` (${data.step || 'unknown'}: ${data.detail})` : '';
+        setSaveStatus({ type: 'error', message: base + detail });
       }
     } catch (err) {
       setSaveStatus({ type: 'error', message: 'Connection error: ' + (err instanceof Error ? err.message : String(err)) });
     } finally {
       setIsSaving(false);
     }
-  }, [spacesData, diceRollData]);
+  }, [spacesData, diceRollData, modalConfigData]);
 
   // Add new space
   const handleAddSpace = useCallback((spaceName: string) => {
@@ -462,101 +464,6 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       </div>
     </div>
   );
-}
-
-// CSV Parsing Functions
-function parseSpacesCSV(csvText: string): SpaceRow[] {
-  const lines = csvText.trim().split('\n');
-  if (lines.length < 2) return [];
-
-  // Skip header row
-  return lines.slice(1).map(line => {
-    const values = parseCsvLine(line);
-    return {
-      space_name: values[0] || '',
-      phase: values[1] || '',
-      visit_type: (values[2] || 'First') as 'First' | 'Subsequent',
-      Title: values[3] || '',
-      Event: values[4] || '',
-      Action: values[5] || '',
-      Outcome: values[6] || '',
-      w_card: values[7] || '',
-      b_card: values[8] || '',
-      i_card: values[9] || '',
-      l_card: values[10] || '',
-      e_card: values[11] || '',
-      Time: values[12] || '',
-      Fee: values[13] || '',
-      space_1: values[14] || '',
-      space_2: values[15] || '',
-      space_3: values[16] || '',
-      space_4: values[17] || '',
-      space_5: values[18] || '',
-      Negotiate: values[19] || '',
-      requires_dice_roll: values[20] || '',
-      path: values[21] || '',
-      rolls: values[22] || '',
-      end_turn_label: values[23] || '',
-      try_again_label: values[24] || '',
-      w_card_label: values[25] || '',
-      b_card_label: values[26] || '',
-      i_card_label: values[27] || '',
-      l_card_label: values[28] || '',
-      e_card_label: values[29] || '',
-      shake_on: values[30] || '',
-      tts_field: values[31] || '',
-      w_card_narrative: values[32] || '',
-      b_card_narrative: values[33] || '',
-      i_card_narrative: values[34] || '',
-      l_card_narrative: values[35] || '',
-      e_card_narrative: values[36] || ''
-    };
-  }).filter(row => row.space_name); // Filter out empty rows
-}
-
-function parseDiceRollCSV(csvText: string): DiceRollRow[] {
-  const lines = csvText.trim().split('\n');
-  if (lines.length < 2) return [];
-
-  // Skip header row (may have BOM character)
-  return lines.slice(1).map(line => {
-    const values = parseCsvLine(line);
-    return {
-      space_name: values[0]?.replace(/^\uFEFF/, '') || '', // Remove BOM if present
-      die_roll: values[1] || '',
-      visit_type: (values[2] || 'First') as 'First' | 'Subsequent',
-      roll_1: values[3] || '',
-      roll_2: values[4] || '',
-      roll_3: values[5] || '',
-      roll_4: values[6] || '',
-      roll_5: values[7] || '',
-      roll_6: values[8] || '',
-      button_label: values[9] || '',
-      roll_group: values[10] || ''
-    };
-  }).filter(row => row.space_name); // Filter out empty rows
-}
-
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current.trim());
-  return result;
 }
 
 const styles: Record<string, React.CSSProperties> = {

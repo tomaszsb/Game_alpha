@@ -520,20 +520,25 @@ app.post('/api/admin/save-source-files', (req, res) => {
     return res.status(400).json({ success: false, error: 'spacesCSV and diceRollCSV are required' });
   }
 
+  let step = 'init';
   try {
+    step = 'backup';
     backupSourceFiles('pre-save');
-    // Write SOURCE_FILES to writable data dir
+    step = 'mkdir';
     fs.mkdirSync(writableSourceDir, { recursive: true });
     fs.mkdirSync(writableCleanDir, { recursive: true });
+    step = 'write_spaces';
     fs.writeFileSync(path.join(writableSourceDir, 'Spaces.csv'), spacesCSV, 'utf-8');
+    step = 'write_dice';
     fs.writeFileSync(path.join(writableSourceDir, 'DiceRoll Info.csv'), diceRollCSV, 'utf-8');
     if (modalConfigCSV) {
+      step = 'write_modal';
       fs.writeFileSync(path.join(writableSourceDir, 'ModalConfig.csv'), modalConfigCSV, 'utf-8');
     }
 
     console.log('📝 SOURCE_FILES written to writable data dir');
 
-    // Regenerate CLEAN_FILES
+    step = 'process';
     const results = processGameData(spacesCSV, diceRollCSV, writableCleanDir, modalConfigCSV || null);
     console.log(`✅ CLEAN_FILES regenerated (${results.length} files)`);
 
@@ -547,8 +552,23 @@ app.post('/api/admin/save-source-files', (req, res) => {
       files: results
     });
   } catch (err) {
-    console.error('❌ Failed to save source files:', err);
-    res.status(500).json({ success: false, error: 'Failed to save source files' });
+    // Per-step diagnostic so docker logs and the admin client can see which
+    // stage failed without rebuilding the server. `detail` is surfaced to the
+    // admin-only client; safe to expose since the route is password-gated.
+    console.error('❌ Failed to save source files:', {
+      step,
+      message: err && err.message,
+      stack: err && err.stack,
+      spacesLen: spacesCSV ? spacesCSV.length : 0,
+      diceRollLen: diceRollCSV ? diceRollCSV.length : 0,
+      modalConfigLen: modalConfigCSV ? modalConfigCSV.length : 0
+    });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save source files',
+      step,
+      detail: (err && err.message) || String(err)
+    });
   }
 });
 
