@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.66.1] - 2026-05-19
+
+### Editor CSV parser handles multi-paragraph copy without corruption (fb:0ee0d9c1)
+
+A playtester reported edits "rolled back" after recent code changes. Triage of a screenshot of the Space Data Editor open on OWNER-FUND-INITIATION/1st Visit revealed the Outcome field rendered as `"Owner's funding is in.next is decisionmaking."` — a busted concatenation that strongly implied a lost newline.
+
+**Root cause** — [src/components/editor/utils/csvExport.ts:77](src/components/editor/utils/csvExport.ts) had `parseSpacesCSV` doing `csvText.trim().split('\n')` and treating every line as a row. But `escapeCSV` ([line 30](src/components/editor/utils/csvExport.ts)) wraps any field containing a `\n` in `"…"` and preserves the newline. So whenever an author wrote a multi-sentence Action/Event/Outcome with a hard line break, the export wrote a quoted multi-line field — and the next parse turned that single record into multiple "rows," the second of which had no `space_name` and was silently dropped (`if (!space_name) continue;` at parser line 91). The corrupted first half was then written back on save, making the corruption sticky.
+
+This is **independent of v2.65.7's column-truncation fix** — that fix preserved unknown columns via `_extraColumns`; multi-line text columns were a separate bug that's been latent since the editor first shipped. It was exposed more often as authored voice copy grew over time.
+
+It also threatened **v2.66.0 drag-to-save**: the drag handler reads, mutates, and writes via the same parser/exporter, so dragging a node whose row had multi-line text would have corrupted that row even after a successful position save. Catching this now keeps drag-to-save data-safe.
+
+**Fix** — New `splitCSVRecords` helper in [csvExport.ts](src/components/editor/utils/csvExport.ts) walks the text character by character, tracking `inQuotes` across newlines. A `\n` outside quotes ends a record; a `\n` inside quotes is preserved verbatim. `""` escape inside a quoted field is passed through so the existing `parseCSVLine` (already char-by-char) sees a complete record. `\r\n` line endings are also handled (bare `\r` immediately preceding `\n` is dropped). All three editor parsers — `parseSpacesCSV`, `parseDiceRollCSV`, `parseModalConfigCSV` — now use it.
+
+**Regression coverage** — 4 new tests in [tests/components/editor/csvExport.test.ts](tests/components/editor/csvExport.test.ts):
+- Quoted `\n` inside Outcome survives parse.
+- Full round-trip (export → re-parse) of a row with multi-line Action AND Outcome — exactly the v2.66.0 drag-save scenario.
+- `\r\n` line endings between records collapse to one record boundary each.
+- Combined `""` escape + `\n` inside a single quoted field doesn't mis-toggle the `inQuotes` flag.
+
+**What about already-corrupted data on the live server?** The fix prevents NEW corruption but doesn't repair rows that already lost text. The playtester's OWNER-FUND-INITIATION Outcome is one such row — needs a manual rewrite via the editor (or restored from BASELINE if the original is still in `dist/data/BASELINE/`). Worth a separate audit pass of `public/data/SOURCE_FILES/Spaces.csv` looking for similar `wordWord` joins (lowercase-after-period concatenations) in the long text fields.
+
+**Test suite:** 1687 passed / 0 failed / 4 skipped. Up from 1683 — +4 new tests, 0 regressions.
+
 ## [2.66.0] - 2026-05-19
 
 ### Workstream 3 Phase D — drag-to-save (admin edit mode)

@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** May 19, 2026
-**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0; Workstream 3 Phase D drag-to-save shipped v2.66.0
-**Current Version:** 2.66.0 (drag-to-save wired; BoardV3 retirement deferred to v2.66.1)
+**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0; Workstream 3 Phase D drag-to-save shipped v2.66.0; multiline CSV parser hotfix v2.66.1
+**Current Version:** 2.66.1 (drag-to-save + multiline CSV parser fix; BoardV3 retirement deferred to v2.66.2)
 
 ---
 
@@ -149,6 +149,10 @@ These ship in the deployed build but still appear in the feedback list because n
 - [x] **Modal redundant "Choose your next destination" row** — v2.64.6 suppressed `type:'choice'` effects in DiceResultModal. <!-- fb:feedback-1778872922892-6ec5c01f -->
 - [x] **Modal showed time changed but no before/after** — v2.64.6 (root cause: I cards auto-played to activeCards weren't counted in snapshot). <!-- fb:feedback-1778873006001-11c72bd4 -->
 - [x] **Result modal summary repeats every effect three times** — v2.64.7 split visualSummary (NPC narrative only) from summary (full, TTS only). No specific feedback ID — flagged directly by user this session.
+
+### Newly arrived (2026-05-19)
+- [ ] **Editor "Accept the verdict" button does nothing at REG-DOB-FINAL-REVIEW** — Playtester pressed Accept the verdict and nothing happened. Screenshot shows player at 86% CONSTRUCTION, "Result: 5 → Time Penalty: 1 day, Moved to REG-FDNY-PLAN-EXAM" displayed as stale feedback, but player is still on REG-DOB-FINAL-REVIEW. Most likely the Workstream 7 Phase 7.4 two-stage gate (`ApprovalService.canExitDobFinalReview`) is blocking the accept path silently — player visibly has 3 Expeditors but no DOB/FDNY approval badges visible. Investigation: trace choice-handler in REG-DOB-FINAL-REVIEW flow. Fix: either grey out the button when prereqs aren't met, or surface a "still need FDNY approval" banner. ~30 min investigate + 1-1.5 hr fix. <!-- fb:feedback-1779201318915-56d0282c -->
+- [x] **Multiline CSV values corrupt on parse (editor data loss)** — Fixed v2.66.1. New `splitCSVRecords` helper walks the CSV char-by-char tracking `inQuotes` across newlines; a `\n` inside a quoted field is preserved verbatim instead of splitting the record. All three editor parsers (parseSpacesCSV, parseDiceRollCSV, parseModalConfigCSV) use it. 4 new regression tests cover the round-trip + `\r\n` endings + `""` escape inside multiline. **Already-corrupted rows on the live server need a manual rewrite via the editor** — fix prevents new corruption but doesn't repair lost text. Worth an audit pass of `public/data/SOURCE_FILES/Spaces.csv` for `wordWord` joins (lowercase-after-period) in long text fields. <!-- fb:feedback-1779201552905-0ee0d9c1 -->
 
 ### Newly arrived (2026-05-18)
 - [x] **Player panel squished after approval badges** — playtester says "all words seem squished in the panel after introduction of approval badges." Layout regression from Workstream 7 Phase 7.2 (badges + phase chip + connection indicator out-competed `.action-center__space-info` because it had `min-width: 0`). Fixed in v2.65.5 (deployed): `flex-wrap: wrap` on header row, `min-width: 140px` on space-info, chip text labels hidden via media query at `max-width: 1400px`. <!-- fb:feedback-1779071277891-2f02ed4d -->

@@ -36,7 +36,63 @@ function escapeCSV(value: string): string {
 }
 
 /**
+ * Split CSV text into records (rows), respecting quoted newlines.
+ *
+ * The naive `csvText.split('\n')` corrupts any quoted field that contains
+ * a literal newline — common when an authored Action/Event/Outcome has a
+ * hard line break between sentences. Result: the first half becomes an
+ * unterminated quote, the second half becomes a phantom row with no
+ * space_name and gets silently dropped. v2.66.0 drag-to-save would have
+ * compounded this since the drag handler writes via the same exporter.
+ *
+ * This walker tracks `inQuotes` across newlines, so a `\n` inside a
+ * quoted field stays attached to the current record. Escaped `""` inside
+ * a quoted field is passed through to `parseCSVLine`, which handles it.
+ */
+function splitCSVRecords(csvText: string): string[] {
+  const records: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const ch = csvText[i];
+
+    if (ch === '"') {
+      // Inside a quoted field, `""` is an escaped quote — preserve both
+      // chars and skip the second so it doesn't flip inQuotes back off.
+      if (inQuotes && csvText[i + 1] === '"') {
+        current += '""';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+        current += ch;
+      }
+      continue;
+    }
+
+    if (ch === '\n' && !inQuotes) {
+      if (current.trim().length > 0) records.push(current);
+      current = '';
+      continue;
+    }
+
+    // Drop a bare `\r` that precedes a record-terminating `\n` (\r\n
+    // line endings). Inside a quoted field it's preserved with the rest.
+    if (ch === '\r' && !inQuotes && csvText[i + 1] === '\n') {
+      continue;
+    }
+
+    current += ch;
+  }
+
+  if (current.trim().length > 0) records.push(current);
+  return records;
+}
+
+/**
  * Parse a single CSV line, handling quoted fields with commas and escaped quotes.
+ * Receives one record-string from `splitCSVRecords` — quoted newlines inside
+ * the record are preserved verbatim in the returned field values.
  */
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -74,7 +130,7 @@ function parseCSVLine(line: string): string[] {
  * captured into row._extraColumns so they survive the editor's save.
  */
 export function parseSpacesCSV(csvText: string): SpaceRow[] {
-  const lines = csvText.trim().split('\n');
+  const lines = splitCSVRecords(csvText.trim());
   if (lines.length < 2) return [];
 
   const headers = parseCSVLine(lines[0]).map(h => h.replace(/^﻿/, '').trim());
@@ -215,7 +271,7 @@ export function exportSpacesCSV(spaces: SpaceRow[]): string {
  * Parse DiceRoll Info.csv text into DiceRollRow[]. Header-aware (BOM-safe).
  */
 export function parseDiceRollCSV(csvText: string): DiceRollRow[] {
-  const lines = csvText.trim().split('\n');
+  const lines = splitCSVRecords(csvText.trim());
   if (lines.length < 2) return [];
 
   const headers = parseCSVLine(lines[0]).map(h => h.replace(/^﻿/, '').trim());
@@ -290,7 +346,7 @@ export function exportModalConfigCSV(modalConfigs: ModalConfigRow[]): string {
  * Parse ModalConfig.csv text into ModalConfigRow array
  */
 export function parseModalConfigCSV(csvText: string): ModalConfigRow[] {
-  const lines = csvText.trim().split('\n');
+  const lines = splitCSVRecords(csvText.trim());
   if (lines.length < 2) return [];
 
   const rows: ModalConfigRow[] = [];

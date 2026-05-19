@@ -418,4 +418,74 @@ describe('csvExport', () => {
       expect(parsed[0].space_name).toBe('SPACE-A');
     });
   });
+
+  // Regression for fb:0ee0d9c1 (v2.66.1). A playtester reported edits "rolled
+  // back" — root cause was the naive `csvText.split('\n')` treating a quoted
+  // multi-sentence Outcome as two rows: line 1 became an unterminated quote,
+  // line 2 was dropped because space_name was empty. The next save then wrote
+  // the corrupted version back, so the corruption was sticky.
+  describe('multiline quoted values (fb:0ee0d9c1)', () => {
+    it('preserves a literal \\n inside a quoted Outcome through parse', () => {
+      const csv =
+        'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,end_turn_label,try_again_label,w_card_label,b_card_label,i_card_label,l_card,l_card_label,e_card_label,shake_on,tts_field,w_card_narrative,b_card_narrative,i_card_narrative,l_card_narrative,e_card_narrative\n'
+        // Note the literal \n inside the quoted Outcome — what escapeCSV
+        // writes today when the user pastes multi-paragraph copy.
+        + 'OWNER-FUND-INITIATION,FUNDING,First,Owner Fund,evt,act,"Owner\'s funding is in.\nNext is decisionmaking.",,,,,,,,n2,,,,,,,Main,,End,Try,,,,,,,,,,,,,\n';
+
+      const parsed = parseSpacesCSV(csv);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0].space_name).toBe('OWNER-FUND-INITIATION');
+      expect(parsed[0].Outcome).toBe("Owner's funding is in.\nNext is decisionmaking.");
+    });
+
+    it('round-trips multiline content via export → parse without corruption', () => {
+      const space: SpaceRow = {
+        space_name: 'OWNER-FUND-INITIATION', phase: 'FUNDING', visit_type: 'First',
+        Title: 'Owner Fund', Event: '',
+        Action: 'Take the check, or push for more.\nUp to you.',
+        Outcome: "Owner's funding is in.\nNext is decisionmaking.",
+        w_card: '', b_card: '', i_card: '', l_card: '', e_card: '',
+        Time: '', Fee: '',
+        space_1: 'PM-DECISION-CHECK', space_2: '', space_3: '', space_4: '', space_5: '',
+        Negotiate: '', requires_dice_roll: '', path: 'Main', rolls: '',
+        end_turn_label: 'End Turn', try_again_label: 'Try Again',
+        w_card_label: '', b_card_label: '', i_card_label: '', l_card_label: '', e_card_label: '',
+        shake_on: '', tts_field: '',
+        w_card_narrative: '', b_card_narrative: '', i_card_narrative: '', l_card_narrative: '', e_card_narrative: ''
+      };
+
+      const exported = exportSpacesCSV([space]);
+      const reparsed = parseSpacesCSV(exported);
+
+      // 1 row, not 5 (one per line of multiline content) — the bug split each
+      // quoted newline into a phantom row that got silently dropped.
+      expect(reparsed.length).toBe(1);
+      expect(reparsed[0].space_name).toBe('OWNER-FUND-INITIATION');
+      expect(reparsed[0].Action).toBe(space.Action);
+      expect(reparsed[0].Outcome).toBe(space.Outcome);
+    });
+
+    it('handles \\r\\n line endings outside quotes and preserves \\r inside quotes', () => {
+      // Windows-style line endings between records — the splitter should
+      // collapse \r\n to a single record boundary. Inside a quoted field,
+      // a bare \r belongs to the value.
+      const csv =
+        'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,end_turn_label,try_again_label,w_card_label,b_card_label,i_card_label,l_card,l_card_label,e_card_label,shake_on,tts_field,w_card_narrative,b_card_narrative,i_card_narrative,l_card_narrative,e_card_narrative\r\n'
+        + 'A,P,First,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\r\n'
+        + 'B,P,First,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\r\n';
+      const parsed = parseSpacesCSV(csv);
+      expect(parsed.map(r => r.space_name)).toEqual(['A', 'B']);
+    });
+
+    it('handles escaped double-quotes inside a quoted field with a newline', () => {
+      // Combination case: "" escape AND multiline inside the same quoted field.
+      // Walker must not mis-toggle inQuotes when it sees "" .
+      const csv =
+        'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,rolls,end_turn_label,try_again_label,w_card_label,b_card_label,i_card_label,l_card,l_card_label,e_card_label,shake_on,tts_field,w_card_narrative,b_card_narrative,i_card_narrative,l_card_narrative,e_card_narrative\n'
+        + 'X,P,First,,"He said ""go"".\nThen he left.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n';
+      const parsed = parseSpacesCSV(csv);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0].Event).toBe('He said "go".\nThen he left.');
+    });
+  });
 });
