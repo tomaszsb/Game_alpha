@@ -53,6 +53,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
 import { PHASE_COLORS, shortName, truncate } from '../../utils/boardLayout';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
+import { saveBoardPosition } from './saveBoardPosition';
 
 // ===================================================================
 // Custom node — preserves the look of BoardV3 tiles
@@ -230,6 +231,10 @@ function BoardCanvasInner({
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const [validMoves, setValidMoves] = useState<string[]>([]);
+  // Drag-save status banner. `pending` while POSTing, `success` auto-dismisses
+  // after 4s, `error` is sticky until the next drag so the admin can copy the
+  // step/detail string out (mirrors DataEditor's save-status UX).
+  const [saveStatus, setSaveStatus] = useState<{ type: 'pending' | 'success' | 'error'; message: string } | null>(null);
   // Hover/expand state for the BoardV3-parity tile behavior. In admin
   // edit mode, both are forced to inactive so React Flow drag works
   // cleanly without competing click handlers.
@@ -398,15 +403,65 @@ function BoardCanvasInner({
     setEdges(prev => applyEdgeChanges(changes, prev));
   }, []);
 
-  const onNodeDragStop = useCallback((_e: unknown, node: Node) => {
+  // Drag-to-save (Workstream 3 Phase D, v2.66.0). When an admin drops a
+  // tile, the new pos_x/pos_y goes through the same /api/admin/save-source-files
+  // pipeline the editor uses. saveBoardPosition fetches the current CSVs,
+  // mutates the dragged space's coords, and POSTs the round-trip — see
+  // saveBoardPosition.ts for the diagnostic-step contract.
+  const onNodeDragStop = useCallback(async (_e: unknown, node: Node) => {
     if (!isAdmin) return;
-    // Phase D will wire this to /api/sources POST. For now, log so admins
-    // can copy coords into Spaces.csv manually.
-    console.log(`[BoardCanvas] ${node.id} → x=${Math.round(node.position.x)}, y=${Math.round(node.position.y)}`);
+    const x = Math.round(node.position.x);
+    const y = Math.round(node.position.y);
+
+    setSaveStatus({ type: 'pending', message: `Saving ${node.id}…` });
+    const result = await saveBoardPosition(node.id, x, y);
+    if (result.success) {
+      setSaveStatus({ type: 'success', message: `Saved ${node.id} → (${x}, ${y})` });
+      window.setTimeout(() => {
+        setSaveStatus(prev => (prev && prev.type === 'success' ? null : prev));
+      }, 4000);
+    } else {
+      setSaveStatus({
+        type: 'error',
+        message: `Save failed (${result.step}: ${result.detail})`
+      });
+    }
   }, [isAdmin]);
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {saveStatus && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 50,
+            background:
+              saveStatus.type === 'success' ? '#ecfdf5'
+              : saveStatus.type === 'error' ? '#fef2f2'
+              : '#f8f9fa',
+            color:
+              saveStatus.type === 'success' ? '#065f46'
+              : saveStatus.type === 'error' ? '#7f1d1d'
+              : '#495057',
+            border: `1px solid ${
+              saveStatus.type === 'success' ? '#10b981'
+              : saveStatus.type === 'error' ? '#dc3545'
+              : '#adb5bd'
+            }`,
+            padding: '8px 12px',
+            borderRadius: 6,
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: 13,
+            maxWidth: 380,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+          }}
+        >
+          {saveStatus.message}
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={visibleEdges}

@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** May 18, 2026
-**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0
-**Current Version:** 2.65.9 (v2.65.8 deployed; v2.65.9 CON-INITIATION contractor mechanic restored pending deploy)
+**Last Updated:** May 19, 2026
+**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0; Workstream 3 Phase D drag-to-save shipped v2.66.0
+**Current Version:** 2.66.0 (drag-to-save wired; BoardV3 retirement deferred to v2.66.1)
 
 ---
 
@@ -213,6 +213,7 @@ These ship in the deployed build but still appear in the feedback list because n
 - [ ] **Ledger pill assertions in `tests/components/player/ActionCenterPanel.test.tsx`** — add ~3 assertions for the v2.63.3 ledger pill: renders when ledger tab inactive; hidden when ledger tab active; status dot color reflects funding gap vs funded vs neutral.
 - [ ] **Pre-existing test failure: `tests/E2E-01_HappyPath.test.tsx > should allow a single player to start a game and take one turn via UI interaction`** — slow UI E2E (5.4s); last touched at v2.59.0 commit `3d4b081`. Not from v2.63.3 or v2.63.4. Triage on its own merits.
 - [ ] **Pre-existing test failure: `tests/E2E-03_ComplexSpace.test.ts > should detect negotiation capability from CSV data`** — asserts `getSpaceContent('OWNER-SCOPE-INITIATION').title === 'Owner Scope Initiation'` but the returned object's `title` is now the story snippet `'The owner walks you through it'`. The `getSpaceContent` shape changed at some point and this assertion didn't follow. Fix by updating the assertion or by querying the right field.
+- [ ] **Delete `tests/uat/puppeteer-gameplay.test.ts`** — dead test file using deprecated Puppeteer APIs that no longer compile against the current Puppeteer version. The whole file is `describe.skip`'d (3 skipped tests counted in every full sweep). Project has moved on to Playwright + Claude-in-Chrome for browser UAT. Just delete the file (and the `tests/uat/` dir if empty after). ~2 min.
 
 ---
 
@@ -296,7 +297,7 @@ These ship in the deployed build but still appear in the feedback list because n
 - [ ] **Bucket E — intentional / leave as-is (~15 sites).** `error: any` catch blocks (5× — idiomatic, TS lets you throw anything), `consoleCapture args: any[]` (matches native console signature), `EffectFactory.validateCard(card: any)` (type guard input is supposed to be loose), `(window as any).opera` (legacy browser check), `configCache as any[mode]` (dynamic index access), `ChoiceService reject: (reason: any)` (Promise reject standard), `StateTypes details?: Record<string, any>` open-bag metadata, `DataTypes.effectData: any` (deferred payload union), 2× `null as any` in TurnStateManager TEMP state clearing. **Documented as intentional. Not blocked on typecheck.**
 
 ### Tier 5 — Remaining Beta workstreams (blocking v3.0.0 ship)
-- [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`). NOT STARTED — Spaces.csv has no `pos_x`/`pos_y` columns; BoardV3 still uses computed grid layout.
+- [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`). Phase A–C complete; Phase D drag-to-save shipped v2.66.0. **Remaining: v2.66.1** — delete `BoardV3.tsx` (879 lines) + `boardLayout.ts` (785 lines) + `tests/utils/boardLayout.test.ts` (721 lines); relocate the 3 utilities BoardCanvas borrows (`PHASE_COLORS`/`shortName`/`truncate`) to a small `boardCommon.ts`; swap the `BoardV3` import in `TVDisplay.tsx` for `BoardCanvas` (read-only); collapse `BoardToggle`'s impl-flip button. Ship after 3-5 playtests confirm v2.66.0 drag-save is stable.
 - [ ] **Workstream 5: Live Dictionary integration** (per BETA_PLAN_V3). NOT STARTED — `TextWithTerms` still uses static glossary; no `dictionary-scraper` fetch on startup.
 - [ ] **Workstream 2 ship gap: snapshot Try Again must replace REAL/TEMP entirely** per BETA_PLAN_V3 success criterion. Currently REAL/TEMP coexists with `TurnCostLedger`; v3.0.0 criterion is technically unmet. Decide: tighten the criterion (current implementation is good enough), or do the replacement.
 

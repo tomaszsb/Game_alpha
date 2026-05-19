@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.66.0] - 2026-05-19
+
+### Workstream 3 Phase D — drag-to-save (admin edit mode)
+
+The board's BoardCanvas renderer has had admin-mode drag for weeks — `nodesDraggable={isAdmin}` lets an admin grab any space tile and reposition it. But until now, `onNodeDragStop` only `console.log`ed the new coords ([src/components/board/BoardCanvas.tsx:401-406](src/components/board/BoardCanvas.tsx) pre-fix); the admin had to copy the numbers into `Spaces.csv` by hand. Wired through now.
+
+**Prerequisite** — v2.65.7's header-aware CSV round-trip is what unblocks this. Before that fix, editor saves silently truncated `Spaces.csv` to a 37-column shape, dropping `pos_x`/`pos_y` (and ~15 other data flags). Now those columns survive saves opaquely via [SpaceRow._extraColumns](src/components/editor/types/EditorTypes.ts), so dragging a tile and saving actually persists.
+
+**New helper** — [src/components/board/saveBoardPosition.ts](src/components/board/saveBoardPosition.ts). Pure async function: `saveBoardPosition(spaceName, x, y)`. Fetches both `Spaces.csv` and `DiceRoll Info.csv` (the save endpoint requires both per [server/server.js:526](server/server.js)), parses with the existing `parseSpacesCSV`, mutates `_extraColumns.pos_x`/`pos_y` on both visit_type rows for the space (positions are per-space, not per-visit), exports, POSTs to `/api/admin/save-source-files`. Returns `{success, step, detail}` so the caller can render a toast — the `step` values (`auth` / `fetch_spaces` / `fetch_dice` / `parse` / `export` / `post` / server-side step) compose with v2.65.7's per-step diagnostic contract so failures pinpoint the breakage in seconds.
+
+**Wired in** — [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) `onNodeDragStop` now awaits `saveBoardPosition`, surfaces a top-right status banner (success auto-dismisses after 4s; error sticks until the next drag so the admin can read the step+detail string). Banner uses `position: absolute` on the existing root div.
+
+**Why a separate file** — extracting the save logic from BoardCanvas makes it testable without mounting React Flow + the full GameContext. Five unit tests in [tests/components/board/saveBoardPosition.test.ts](tests/components/board/saveBoardPosition.test.ts) cover the happy path (both visit_type rows mutated, neighboring space untouched), missing admin session (`step=auth`), Spaces.csv HTTP failure (`step=fetch_spaces`), server-side failure (server step+detail forwarded), and missing space name (`step=parse`).
+
+**What this unblocks** — admin can now drop a tile, see "Saved TARGET → (250, 350)" within ~500ms, and the next reload will show the new position. Smart-edge router (`@jalez/react-flow-smart-edge`) reroutes automatically on the next render. Two open feedback items become tractable: `fb:30be69b2` (arrow overlaps box) and `fb:7c972948` (arrows too long / boxes too small) — both fixable by recomposing the layout.
+
+**What's still old code** — BoardV3.tsx (879 lines) + boardLayout.ts (785 lines) + tests/utils/boardLayout.test.ts (721 lines) stay in place this commit, behind the `boardImpl === 'canvas'` URL/localStorage flag in GameLayout. Retirement ships separately in v2.66.1 once drag-to-save is verified in a few playtests. Splitting the work means there's still a fallback renderer if drag-save reveals an edge case.
+
+**Test suite:** 1683 passed / 0 failed / 4 skipped. Up from 1678 — +5 new tests, 0 regressions.
+
 ## [2.65.9] - 2026-05-19
 
 ### CON-INITIATION contractor mechanic wired through (fb:0520fd41)

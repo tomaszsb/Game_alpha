@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated:** May 18, 2026
+**Last Updated:** May 19, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.65.9 (v2.65.8 backup-step EISDIR hotfix; v2.65.9 CON-INITIATION contractor mechanic wired through)
+**Current Version:** 2.66.0 (Workstream 3 Phase D — drag-to-save wired through; BoardV3 retirement deferred to v2.66.1)
 
 ## Where We Are
 
@@ -19,7 +19,7 @@ For Beta strategy and the v3.0.0 ship criteria, see [BETA_PLAN_V3.md](./BETA_PLA
 ### Top-of-mind right now
 
 0. **Workstream 7 — Plan Approval Mechanic** — ✅ COMPLETE (2026-05-16 → 2026-05-17). All 5 phases shipped v2.65.0 → v2.65.4 (foundation + badges + revoke triggers + REG-DOB-FINAL-REVIEW two-stage gate + end-game penalty + modal narration sweep). Original PM-DECISION-CHECK resume-hub bug (`fb:bbc94ec8`) closed as a side effect. See [BETA_PLAN_V3.md → Workstream 7](./BETA_PLAN_V3.md) and CHANGELOG for per-phase detail.
-1. **Workstream 3 — Living Map, Phase D** (blocking v3.0.0 ship). Phase B + C are done. Phase D will delete `BoardV3.tsx` + `boardLayout.ts` (~1,664 lines) and wire the editor's drag-to-position into the existing `/api/sources` save endpoint. Now unblocked by Phase C.
+1. **Workstream 3 — Living Map, Phase D** — ✅ **drag-to-save shipped v2.66.0** (2026-05-19). Admin can drop a tile in edit mode and `pos_x`/`pos_y` persist through the existing `/api/admin/save-source-files` endpoint with a step-pinpointed status banner. Old `BoardV3.tsx` + `boardLayout.ts` retirement (~1,664 lines + 721 test lines) deferred to v2.66.1, after a few playtests verify drag-save is stable. See CHANGELOG v2.66.0 for the wire shape.
 2. **Voice rewrite Pass 2** — modal copy. The doc has `### Modals fired here` tables for ~50 spaces with per-effect modal text. Blocked on a mapping pass: doc uses human-readable labels ("Take Owner's Money") whereas `ModalConfig.csv` keys by engine effect_action values (`add`, `draw_E`). Worth scripting; the doc parser in `scripts/merge-voice-rewrite.mjs` is a starting point.
 3. **Story narrative authoring** — creator-driven content. Tool ready (`scripts/set-narrative.mjs`); rollout pace is whatever the user chooses to author. 5 of ~75 card-effect rows have narratives so far.
 4. **Workstream 5 — Live Dictionary** (blocking v3.0.0 ship): live-fetched terms from `dictionary-scraper`. Not started.

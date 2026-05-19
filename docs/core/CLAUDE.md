@@ -509,9 +509,21 @@ Lifting a literal `currentSpace === 'FOO'` (or `[...].includes(space)`) to a dat
 
 Verification order: `npm run typecheck` → targeted vitest on affected services (fast) → full vitest sweep (catches cross-file ripples from `as IDataService` casts). The full sweep is the only way to find tests using those casts — those silence type errors and only break at runtime. Schedule it as background work and continue with other tasks; the notification fires when it finishes.
 
+### Per-step diagnostic logging for user-facing failures
+
+Any try/catch that surfaces to the user (server handler, save path, sync push) should track a `step` var and surface it in the error response. Pattern: `let step = 'init'` before the try, reassign before each major operation, log `{ step, message, stack, payload sizes }` in catch, return `{ error, step, detail: err.message }` in the 500 response. Client-side toast concatenates them: `${data.error} (${data.step}: ${data.detail})`. Cost ~10 lines per block. Proven twice in one day: v2.65.7 instrumented `/api/admin/save-source-files`, and within minutes the first save returned `(backup: EISDIR: ...)` which immediately pinpointed v2.65.8's fix. Without it, the next failure would have been an opaque "Failed to save" with hours of guesswork.
+
+### CSV round-trip with `_extraColumns` opaque pass-through
+
+When an editor reads/writes a CSV with a fast-evolving schema, the parser must be header-aware and the typed row must carry an opaque `_extraColumns?: Record<string, string>` bag for any column outside the editor's known list. The exporter writes canonical headers + the union of `_extraColumns` keys across rows + per-row known fields + extras. Without this, every save silently strips columns added since the editor was last touched. v2.65.7 fix to `src/components/editor/utils/csvExport.ts` is the canonical example — exportSpacesCSV was 16 columns behind reality (37 vs 53) and had been quietly truncating Spaces.csv on every editor save since Workstream 6 shipped.
+
 ### "Don't defer small investigations" applied
 
 10-minute scoped investigations (single file, single hypothesis, no architectural impact) go straight to in-progress, not into TODO. From user memory: `feedback_no_scope_caution_defer.md`. If you find yourself parking a 1-2 file fix in TODO "to keep the commit tidy," just do it.
+
+### Dead-code check before claiming a fix
+
+When a "feature doesn't work" bug seems straightforward, first verify the production code path actually reaches the suspected handlers. Grep for `serviceName.methodName(` (with paren) across `src/` AND `tests/`. If only the method's own definition + unit tests show up, the method is dead — refactor probably moved the production path elsewhere and left the orphan. v2.65.9 contractor mechanic was a perfect example: `applyQualityEffect`/`applyMultiplierEffect` existed and had 13 test references, but zero production callers — the whole mechanic had been silently dead for months. A modal-only fix would have shipped a label that didn't connect to anything.
 
 ### TodoWrite discipline
 
@@ -522,5 +534,5 @@ Verification order: `npm run typecheck` → targeted vitest on affected services
 
 ---
 
-**Last Updated:** May 18, 2026
-**Charter Version:** 3.9 (+ per-space hardcoding lift playbook)
+**Last Updated:** May 19, 2026
+**Charter Version:** 3.10 (+ diagnostic-logging / CSV pass-through / dead-code-check patterns)
