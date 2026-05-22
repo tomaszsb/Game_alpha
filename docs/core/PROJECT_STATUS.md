@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated:** May 19, 2026
+**Last Updated:** May 22, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** 2.66.3 (v2.66.0 drag-to-save + v2.66.1 multiline parser + v2.66.2 verdict-gate visibility + v2.66.3 per-space audit closes; BoardV3 retirement deferred to v2.66.4)
+**Current Version:** 2.69.6 (eight versions May 22: v2.68.0 standalone Board Layout Editor; v2.69.0 lobby+PlayerSetup consolidated; v2.69.1 hotfix for legacy-state trap; v2.69.2 surfaced PC/TV + Start Game, gear-icon drawer; v2.69.3 QR inline per-player; **v2.69.4 fixed drag-save reopen-revert via `DataService.reloadGameConfig()`** — W3 Phase D persistence now genuinely complete; **v2.69.5 fixed gameplay hover/click on BoardCanvas via `panOnDrag={isAdmin}`**; v2.69.6 PlayerList becomes 2-column grid)
 
 ## Where We Are
 
@@ -19,10 +19,10 @@ For Beta strategy and the v3.0.0 ship criteria, see [BETA_PLAN_V3.md](./BETA_PLA
 ### Top-of-mind right now
 
 0. **Workstream 7 — Plan Approval Mechanic** — ✅ COMPLETE (2026-05-16 → 2026-05-17). All 5 phases shipped v2.65.0 → v2.65.4 (foundation + badges + revoke triggers + REG-DOB-FINAL-REVIEW two-stage gate + end-game penalty + modal narration sweep). Original PM-DECISION-CHECK resume-hub bug (`fb:bbc94ec8`) closed as a side effect. See [BETA_PLAN_V3.md → Workstream 7](./BETA_PLAN_V3.md) and CHANGELOG for per-phase detail.
-1. **Workstream 3 — Living Map, Phase D** — ✅ **drag-to-save shipped v2.66.0** (2026-05-19). Admin can drop a tile in edit mode and `pos_x`/`pos_y` persist through the existing `/api/admin/save-source-files` endpoint with a step-pinpointed status banner. Old `BoardV3.tsx` + `boardLayout.ts` retirement (~1,664 lines + 721 test lines) deferred to v2.66.1, after a few playtests verify drag-save is stable. See CHANGELOG v2.66.0 for the wire shape.
+1. **Workstream 3 — Living Map, Phase D** — ✅ **drag-to-save persistence completed v2.69.4** (2026-05-22). v2.66.0 shipped the write path; v2.68.0 added a standalone `BoardLayoutEditor` so drag-arrange no longer requires a running game; v2.69.4 fixed a `DataService` cache that was making positions appear to revert on editor reopen. v2.69.5 separately fixed an `@xyflow/react` panOnDrag interaction that broke hover/click during gameplay. Old `BoardV3.tsx` + `boardLayout.ts` retirement (~1,664 lines + 721 test lines) deferred pending a few more playtests on the new persistence flow.
 2. **Voice rewrite Pass 2** — modal copy. The doc has `### Modals fired here` tables for ~50 spaces with per-effect modal text. Blocked on a mapping pass: doc uses human-readable labels ("Take Owner's Money") whereas `ModalConfig.csv` keys by engine effect_action values (`add`, `draw_E`). Worth scripting; the doc parser in `scripts/merge-voice-rewrite.mjs` is a starting point.
 3. **Story narrative authoring** — creator-driven content. Tool ready (`scripts/set-narrative.mjs`); rollout pace is whatever the user chooses to author. 5 of ~75 card-effect rows have narratives so far.
-4. **Workstream 5 — Live Dictionary** (blocking v3.0.0 ship): live-fetched terms from `dictionary-scraper`. Not started.
+4. **Workstream 5 — Live Dictionary** — ✅ **closed v2.67.0** (2026-05-20). CORS allow_origins added on the scraper side, same-origin guard removed on the game side. Live terms now hydrate on every game start; bundled CSV remains as offline-resilience fallback.
 
 ## Reading Map
 

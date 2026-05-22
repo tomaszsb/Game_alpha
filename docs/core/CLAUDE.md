@@ -565,7 +565,33 @@ The triage that turned ~6 hours into ~30 minutes:
 
 The pattern showed up in v2.65.9 too (contractor mechanic — the entire `applyQualityEffect`/`applyMultiplierEffect` infrastructure existed but was dead because no production caller wired through to it). When a feature "doesn't work," the first hypothesis should be "wired wrong" before "build from scratch." Both are far cheaper to fix.
 
+### React Flow `panOnDrag` swallows clicks on non-draggable nodes (v2.69.5)
+
+`@xyflow/react` v12 default `panOnDrag={true}` at the `ReactFlow` root. With `nodesDraggable={false}` + `elementsSelectable={false}` (typical gameplay setup), mousedown on a custom node triggers React Flow's drag-or-pan decision. It can't drag the node, so it falls back to pane pan — consuming the mousedown. By mouseup the original click never reaches the node's `onClick` handler, and `onMouseEnter` behaves similarly (the canvas pointer-events layer wins). Visible symptom: cursor stays as React Flow's grab/pan style over tiles (custom node's inline `cursor:pointer` loses), clicks do nothing, hover-driven UI never fires.
+
+Fix in `BoardCanvas.tsx`:
+- `panOnDrag={isAdmin}` — gameplay players don't get canvas pan-on-drag; tile mousedown flows straight to custom node handlers. Players still have the Controls (bottom-left) zoom + fit buttons to navigate. If you need pan in non-admin, use `panOnDrag={[1, 2]}` (middle/right mouse only) so left-click stays free for nodes — though middle-click pan is undiscoverable for casual users.
+- `elementsSelectable={true}` always — selection plumbing is what cleanly routes mousedown/click to custom node handlers. We don't render any selection UI so allowing selection is invisible.
+
+Both knobs together; the cursor issue and the missing click handlers are the same root cause.
+
+### `DataService` cache-on-first-load gotcha (v2.69.4)
+
+`DataService.loadData()` caches all CSVs on first call via a `loaded` flag + `loadingPromise`. Subsequent `loadData()` calls return immediately without re-fetching. Cache-busting on the fetch URLs (`?_=Date.now()`) is wasted because the fetch never runs the second time. Symptom: a UI feature persists data to disk (drag-to-save, editor save), the server regenerates dependent files, but the next call to `dataService.getX()` returns the STALE in-memory values forever — reopening a modal doesn't help.
+
+Fix shape: add a targeted reload method (e.g. `reloadGameConfig()`) that bypasses the once-only guard and re-runs one specific `loadX()` step. Add it to `IDataService` too. The consumer calls `reloadX()` on mount BEFORE rendering anything that depends on fresh data — hold dependent UI off-screen until the await resolves, otherwise an inner `useMemo` snapshots stale state.
+
+Proven by v2.69.4: `BoardLayoutEditor` reopened with cached coords until `DataService.reloadGameConfig()` was wired. Generalize: any data source whose disk version can change without a page reload (admin edits, server regen, multi-tab) needs a targeted reload. Currently only `GAME_CONFIG.csv` has one — `MOVEMENT.csv`, `SPACE_CONTENT.csv`, etc. will hit the same trap if a future editor writes to them. Add reload methods on demand rather than invalidating all of `loadData()`.
+
+### Legacy `/api/gamestate` fallthrough trap (v2.69.1)
+
+`src/utils/networkDetection.ts:getGameStateAPIPath(gameId?)` returns `/api/games/${gameId}/state` when a gameId is provided, but falls through to `/api/gamestate` (the single-game-era legacy endpoint) when none is. The server still holds a single-game record at `LEGACY_GAME_ID` that can be left in any phase from prior sessions. Any caller doing `loadStateFromServer()` without first ensuring a gameId in the URL can pick up legacy state — typically PLAY phase — and skip setup entirely. Presents as "the app jumps directly to the game" on a fresh URL hit.
+
+Fix shape: auto-create-game (or any pre-state-load setup) lives at `App.tsx` level via a `useState(() => !getCurrentGameId())` gate. While true, App returns `<LoadingScreen />` and runs `POST /api/games` + redirect itself. `ServiceProvider` only mounts after URL has a real `?g=`. Defense in depth: `ServerSyncService.loadFromServer` adds `if (!getCurrentGameId()) return false` so the legacy path can't be hit accidentally.
+
+When refactoring App-level routing, remember: `ServiceProvider` doesn't take a gameId — it instantiates services with empty/default state. State only becomes per-game after `loadStateFromServer` runs. The legacy fallthrough is a leak in that abstraction; the App-level gate is the seal.
+
 ---
 
-**Last Updated:** May 20, 2026 (Workstream 5 closed — v2.67.0)
-**Charter Version:** 3.12 (+ audit-before-sizing pattern)
+**Last Updated:** May 22, 2026 (Session v2.68.0–v2.69.6 — Board Layout Editor, lobby consolidation, drag-save persistence, gameplay hover/click, 2-column players)
+**Charter Version:** 3.13 (+ React Flow panOnDrag, DataService cache, legacy-state trap patterns)

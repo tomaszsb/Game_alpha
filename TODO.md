@@ -221,6 +221,12 @@ These ship in the deployed build but still appear in the feedback list because n
 
 ---
 
+## 🔒 **Security follow-ups**
+
+- [ ] **`npm audit fix` — `ws` 8.0.0–8.20.0 moderate** (surfaced 2026-05-22 during v2.67.0 deploy output: `1 moderate severity vulnerability`). The advisory is [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — "uninitialized memory disclosure" in the `ws` WebSocket library. **Production impact: zero.** `ws` only arrives via `jsdom` and `puppeteer`, both `devDependencies` — they run during tests/CI on the maintainer's machine, never in the shipped game. Fix is `npm audit fix` (bumps `ws` to 8.20.1+, backward-compatible). ~30 seconds of work + a commit. Fold into the next housekeeping pass.
+
+---
+
 ## 🐛 **G148 Playtest Bug Fixes** (April 2026)
 *Source: Full playthrough bug report — 6 bugs found, 2 critical. See `docs/user/bug_report.docx`*
 

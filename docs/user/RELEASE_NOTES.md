@@ -2,6 +2,24 @@
 
 ---
 
+## v2.68.0 – v2.69.6 — Setup screen overhaul + board layout editor (May 22, 2026)
+
+A connected wave of UX improvements across setup, the board, and admin tooling — eight versions shipped together.
+
+**What's new:**
+- 🗺️ **Edit Board Layout** — a new admin button in the lobby's Admin Tools section opens a full-screen board editor. Drag any tile to reposition it; the green "Saved" banner top-right confirms the new position is written to disk. Changes apply to every future game. You no longer need to start a game just to rearrange the board.
+- 🎮 **One setup screen instead of two** — the old "PC/TV mode + Join" landing screen is gone. You now land directly on the player setup screen with PC/TV toggle at the top and a join-existing-game input tucked behind the new ⚙️ gear icon in the header. The game gets created in the background as soon as you arrive (you'll briefly see "Setting up a new game…").
+- ⚙️ **Gear icon opens settings** — top-right of the header. Settings, join-by-code, and admin tools (Space Data Editor, Edit Board Layout, Browse Games) live in a drawer that opens only when you ask for it. Press Esc or click the ✕ to close.
+- 👥 **Two-column player list** — with the settings drawer collapsed by default, the players section has room to show 4 players in a 2×2 grid instead of running off the bottom of the screen. QR codes for each player now appear inline on their card (no more separate left column).
+- 🎯 **PC/TV toggle + 🚀 Start Game stay visible at all times** — they live in the main flow (top of the players panel and bottom-right of it, respectively). No more digging through the drawer to start.
+
+**Bug fixes:**
+- Drag-saved board positions now stick when you close and reopen the editor. (Previously the screen had the right data but was reading from a cached copy in memory.)
+- Hovering or clicking a tile on the new Living Map board during gameplay now works. Move the mouse over a tile → it enlarges with a story snippet. Click → it expands further with the action description. Click again or click the background to collapse. (Previously the cursor stayed stuck in "pan" mode and tiles ignored the mouse.)
+- Plain visits to `game.unravelcodes.com` (no game-code URL) no longer drop you into a leftover in-progress game from a previous session.
+
+---
+
 ## v2.67.0 — Dictionary terms now update live without a game release (May 20, 2026)
 
 **Release Date:** May 20, 2026

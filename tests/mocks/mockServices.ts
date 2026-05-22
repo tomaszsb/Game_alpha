@@ -91,7 +91,8 @@ export const createMockDataService = (): any => ({
   
   // Data loading
   isLoaded: vi.fn(),
-  loadData: vi.fn()
+  loadData: vi.fn(),
+  reloadGameConfig: vi.fn()
 });
 
 export const createMockStateService = (): any => ({
