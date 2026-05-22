@@ -294,7 +294,12 @@ function BoardCanvasInner({
 
   // Build static layout once from CSV. Player overlays come from rendering re-runs.
   const { initialNodes, initialEdges } = useMemo(() => {
-    const configs = dataService.getGameConfig();
+    // START-QUICK-PLAY-GUIDE is a legacy instructional space — no movement
+    // edges in or out, kept in data only for StateService's old-starting-space
+    // migration (StateService.ts:687). It should never render as a board tile.
+    const configs = dataService.getGameConfig().filter(
+      cfg => cfg.space_name !== 'START-QUICK-PLAY-GUIDE'
+    );
     const movements = dataService.getAllMovements();
 
     const nodes: Node<BoardNodeData>[] = configs.map(cfg => {

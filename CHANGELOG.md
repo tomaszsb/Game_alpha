@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.8] - 2026-05-22
+
+### Hide START-QUICK-PLAY-GUIDE legacy tile from board
+
+The `START-QUICK-PLAY-GUIDE` space was rendering as a board tile (labeled "Quick Play") despite being a purely instructional/legacy space with no incoming or outgoing movement edges. Players could see it floating on the board with no way to interact with it.
+
+The space's CSV data is retained — `StateService.ts:687` still references it for a legacy "old starting space" migration safety net — but it's now filtered out of the board's node list.
+
+- [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx): `initialNodes` useMemo filters `START-QUICK-PLAY-GUIDE` out of `getGameConfig()` before mapping to React Flow nodes. No edge filter needed (already orphaned). Affects both the gameplay board and the Board Layout Editor.
+
 ## [2.69.7] - 2026-05-22
 
 ### deploy.sh — restore editor data BEFORE container start
