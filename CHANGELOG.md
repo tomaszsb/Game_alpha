@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.9] - 2026-05-22
+
+### Pan buttons on BoardCanvas Controls
+
+Gameplay disabled left-click pan in v2.69.5 to fix click-eating. Players were left with zoom + fit only — no way to scroll the view around the board. Added four explicit pan buttons (↑ ← → ↓) to the existing Controls strip in the bottom-left corner.
+
+- [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx): imports `ControlButton` + `useReactFlow` from @xyflow/react. New `panBy(dx, dy)` helper reads viewport via `getViewport()` and animates with `setViewport(..., { duration: 150 })`. Step is 120 viewport pixels per click. Arrow on each button indicates direction the camera moves (↑ reveals content above). Visible in both gameplay and editor; works alongside the existing zoom-in / zoom-out / fit / lock buttons.
+
 ## [2.69.8] - 2026-05-22
 
 ### Hide START-QUICK-PLAY-GUIDE legacy tile from board

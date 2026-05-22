@@ -34,12 +34,14 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   Handle,
   Position,
   MarkerType,
   applyNodeChanges,
   applyEdgeChanges,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeProps,
@@ -236,7 +238,24 @@ function BoardCanvasInner({
   onPositionSaved,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
+  const { getViewport, setViewport } = useReactFlow();
   const [validMoves, setValidMoves] = useState<string[]>([]);
+
+  // Pan-button helper. panOnDrag is off in gameplay (left-click drag would
+  // eat tile clicks, see v2.69.5), so players need explicit pan controls.
+  // dx/dy are in viewport (screen) pixels; sign convention follows the
+  // arrow on the button: ↑ moves the camera up (reveals content above).
+  // We translate to viewport coords (which are the world translation, so
+  // moving the camera up means shifting the world DOWN, i.e. viewport.y
+  // increases).
+  const PAN_STEP = 120;
+  const panBy = useCallback(
+    (dx: number, dy: number) => {
+      const v = getViewport();
+      setViewport({ x: v.x + dx, y: v.y + dy, zoom: v.zoom }, { duration: 150 });
+    },
+    [getViewport, setViewport]
+  );
   // Drag-save status banner. `pending` while POSTing, `success` auto-dismisses
   // after 4s, `error` is sticky until the next drag so the admin can copy the
   // step/detail string out (mirrors DataEditor's save-status UX).
@@ -510,7 +529,22 @@ function BoardCanvasInner({
         maxZoom={2}
       >
         <Background color="#e9ecef" gap={20} />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false}>
+          {/* Pan buttons — arrow indicates direction the camera moves.
+              Required for gameplay where left-click drag is disabled (v2.69.5). */}
+          <ControlButton onClick={() => panBy(0, PAN_STEP)} title="Pan up">
+            <span aria-hidden="true">↑</span>
+          </ControlButton>
+          <ControlButton onClick={() => panBy(PAN_STEP, 0)} title="Pan left">
+            <span aria-hidden="true">←</span>
+          </ControlButton>
+          <ControlButton onClick={() => panBy(-PAN_STEP, 0)} title="Pan right">
+            <span aria-hidden="true">→</span>
+          </ControlButton>
+          <ControlButton onClick={() => panBy(0, -PAN_STEP)} title="Pan down">
+            <span aria-hidden="true">↓</span>
+          </ControlButton>
+        </Controls>
         {isAdmin && <MiniMap pannable zoomable />}
       </ReactFlow>
     </div>
