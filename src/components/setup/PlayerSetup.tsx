@@ -73,6 +73,21 @@ export function PlayerSetup({
   const [isBoardLayoutEditorOpen, setIsBoardLayoutEditorOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
 
+  // Lobby controls — merged from the retired GameLobby screen so setup
+  // happens on a single page. PC/TV mode is local state until the user
+  // clicks Start Game; on start, TV mode appends ?mode=tv to the URL.
+  // Default to whatever ?mode= currently says (so a TV-mode reload from
+  // an existing game preserves the choice).
+  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv'>(
+    () => (new URLSearchParams(window.location.search).get('mode') === 'tv' ? 'tv' : 'pc')
+  );
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState('');
+  // Auto-create banner shown briefly while the backend game is being
+  // provisioned on first visit. Suppressed once a gameId is in the URL.
+  const [autoCreatingGame, setAutoCreatingGame] = useState(false);
+  const [autoCreateError, setAutoCreateError] = useState('');
+
   // Game Manager state (for admin)
   interface GameInfo {
     gameId: string;
@@ -199,6 +214,95 @@ export function PlayerSetup({
     return () => clearInterval(interval);
   }, [isAdminUnlocked]);
 
+  // Auto-create backend game on mount when there's no game ID in the URL.
+  // This collapses the retired two-screen flow (GameLobby → PlayerSetup) into
+  // a single screen: the user lands on PlayerSetup directly, and the empty
+  // backend game gets provisioned in the background while they pick mode +
+  // start typing player names. The reload at the end is what brings the
+  // gameId into the URL so the rest of the app (state sync, WebSocket,
+  // routing) keeps relying on the URL the way it always has.
+  //
+  // If the user wants to JOIN an existing game instead, they should type the
+  // code in the right-panel input before this fires — but the auto-create
+  // race is tight (~50ms). Joining after auto-create still works; the empty
+  // game just gets orphaned until server-side TTL prunes it.
+  useEffect(() => {
+    if (getCurrentGameId()) return;       // already on a game, no work to do
+    if (autoCreatingGame) return;         // request in flight
+    let cancelled = false;
+
+    (async () => {
+      setAutoCreatingGame(true);
+      setAutoCreateError('');
+      try {
+        const backendURL = getBackendURL();
+        const response = await fetch(`${backendURL}/api/games`, { method: 'POST' });
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        const data: { gameId: string; token: string } = await response.json();
+        if (cancelled) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('g', data.gameId);
+        if (data.token) url.searchParams.set('token', data.token);
+        // Full reload so AppContent re-runs initialization with the new gameId.
+        window.location.href = url.toString();
+      } catch (err) {
+        if (cancelled) return;
+        setAutoCreatingGame(false);
+        setAutoCreateError(
+          err instanceof Error
+            ? `Could not start a new game: ${err.message}`
+            : 'Could not start a new game. Check your connection and refresh.'
+        );
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // Intentionally empty deps: this runs once per mount. getCurrentGameId
+    // reads from the URL each call, so a later URL change doesn't need to
+    // re-trigger this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Join an existing game by typed code. Mirrors the retired GameLobby's
+   * handleJoinGame — fetches the target game's token, then navigates with a
+   * full reload so AppContent picks up the new gameId on mount.
+   */
+  const handleJoinByCode = async () => {
+    setJoinError('');
+    const normalized = joinCode.trim().toUpperCase();
+    if (!normalized) {
+      setJoinError('Enter a game code first.');
+      return;
+    }
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games/${normalized}/join-info`);
+      if (response.status === 404) {
+        setJoinError(`Game ${normalized} not found. Check the code and try again.`);
+        return;
+      }
+      if (!response.ok) {
+        setJoinError(`Could not reach game ${normalized} (server returned ${response.status}).`);
+        return;
+      }
+      const data: { token: string } = await response.json();
+      const url = new URL(window.location.href);
+      url.searchParams.set('g', normalized);
+      if (data.token) url.searchParams.set('token', data.token);
+      if (selectedMode === 'tv') {
+        url.searchParams.set('mode', 'tv');
+      } else {
+        url.searchParams.delete('mode');
+      }
+      window.location.href = url.toString();
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : 'Network error. Try again.');
+    }
+  };
+
   const handleClearGame = async (gameId: string) => {
     if (!window.confirm(`Clear all data for game ${gameId}? This cannot be undone.`)) return;
     try {
@@ -243,6 +347,22 @@ export function PlayerSetup({
     if (!gameStartValidation.isValid && gameStartValidation.errorMessage) {
       alert(gameStartValidation.errorMessage);
       return;
+    }
+
+    // Commit the PC/TV mode choice to the URL before starting. Joining an
+    // existing game already wrote the URL; this branch handles the
+    // newly-auto-created-game path. Use history.replaceState to avoid a
+    // reload — the rest of the start flow runs in-process.
+    const urlMode = new URLSearchParams(window.location.search).get('mode');
+    const currentlyTV = urlMode === 'tv';
+    if (selectedMode === 'tv' && !currentlyTV) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('mode', 'tv');
+      window.history.replaceState({}, '', url.toString());
+    } else if (selectedMode === 'pc' && currentlyTV) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mode');
+      window.history.replaceState({}, '', url.toString());
     }
 
     setIsStarting(true);
@@ -582,6 +702,141 @@ export function PlayerSetup({
 
         {/* Right column: Settings + Admin + Start (hidden in TV mode) */}
         {!isTVMode && <div style={styles.settingsColumn}>
+          {/* Game Setup section (replaces the old GameLobby screen) —
+              PC/TV mode + Join by Code. Live on every visit so a teacher
+              can switch modes or pivot to a different game without
+              navigating away from the player-setup screen. */}
+          <div style={styles.settingsBlock}>
+            <h3 style={styles.sectionTitleSmall}>
+              🎮 Game Setup
+            </h3>
+
+            {/* Auto-create status — visible only during the brief window
+                between URL hit and backend game creation. Becomes an error
+                surface if the POST /api/games call fails. */}
+            {(autoCreatingGame || autoCreateError) && (
+              <div style={{
+                marginBottom: '0.75rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: 6,
+                fontSize: '0.85rem',
+                background: autoCreateError ? '#fee2e2' : '#eff6ff',
+                color: autoCreateError ? '#991b1b' : '#1e3a8a',
+                border: `1px solid ${autoCreateError ? '#fca5a5' : '#bfdbfe'}`,
+              }}>
+                {autoCreateError || '⏳ Setting up a new game…'}
+              </div>
+            )}
+
+            {/* Mode toggle: PC = single shared screen, TV = big-screen
+                board + mobile players. The choice commits to ?mode= on
+                Start Game (or immediately on Join by Code). */}
+            <div>
+              <label style={styles.label}>Mode</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMode('pc')}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 6,
+                    border: `1px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
+                    background: selectedMode === 'pc' ? colors.primary.main : 'transparent',
+                    color: selectedMode === 'pc' ? 'white' : colors.text.secondary,
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                  title="All players share one screen, taking turns. Phones can scan QR codes to follow along."
+                >
+                  🖥️ PC
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMode('tv')}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 6,
+                    border: `1px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
+                    background: selectedMode === 'tv' ? '#9c27b0' : 'transparent',
+                    color: selectedMode === 'tv' ? 'white' : colors.text.secondary,
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                  title="Display the board on a TV. Each player uses their own phone or tablet."
+                >
+                  📺 TV
+                </button>
+              </div>
+              <p style={{
+                fontSize: '0.75rem',
+                color: colors.text.secondary,
+                margin: '0.4rem 0 0',
+                lineHeight: 1.35,
+              }}>
+                {selectedMode === 'pc'
+                  ? 'One shared screen, players take turns. Phones optional.'
+                  : 'Board on the TV, each player on their own phone or tablet.'}
+              </p>
+            </div>
+
+            {/* Join an existing game by code. Navigates with a full reload
+                so AppContent picks up the new gameId in the URL the same
+                way the retired GameLobby did. */}
+            <div style={{ marginTop: '0.85rem' }}>
+              <label style={styles.label}>Join existing game</label>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <input
+                  type="text"
+                  placeholder="e.g., G7"
+                  value={joinCode}
+                  onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(''); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleJoinByCode(); }}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem 0.6rem',
+                    border: `1px solid ${joinError ? '#dc3545' : colors.secondary.border}`,
+                    borderRadius: 6,
+                    fontSize: '0.9rem',
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                  maxLength={10}
+                  autoComplete="off"
+                  name="gamecode"
+                  data-lpignore="true"
+                  data-1p-ignore
+                />
+                <button
+                  type="button"
+                  onClick={handleJoinByCode}
+                  style={{
+                    padding: '0.5rem 0.85rem',
+                    background: colors.primary.main,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                  title="Joining will navigate away from this empty game."
+                >
+                  Join
+                </button>
+              </div>
+              {joinError && (
+                <p style={{ fontSize: '0.75rem', color: '#dc3545', margin: '0.35rem 0 0' }}>
+                  {joinError}
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Game settings section */}
           <div style={styles.settingsBlock}>
             <h3 style={styles.sectionTitleSmall}>

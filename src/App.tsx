@@ -10,7 +10,6 @@ import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
 import { getGameStateAPIPath, getCurrentGameId } from './utils/networkDetection';
 import { detectDeviceType } from './utils/deviceDetection';
-import { GameLobby } from './components/setup/GameLobby';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
@@ -230,39 +229,13 @@ function AppContent(): JSX.Element {
  * It wraps the main layout with the ServiceProvider to provide dependency injection
  * throughout the component tree. ErrorBoundary catches and handles any unexpected errors.
  *
- * Multi-Game Support:
- * - If no game ID: Show merged GameLobby (mode toggle + new game + join + browse)
- * - If game ID in URL: Show the game
+ * Single-screen setup: ServiceProvider mounts unconditionally. When there's
+ * no game ID in the URL, AppContent renders PlayerSetup (gamePhase defaults
+ * to SETUP) with the lobby controls (PC/TV toggle, Join by Code, Browse
+ * Games) baked in — auto-creating the backend game on mount so the rest of
+ * the flow can rely on a gameId being present without a separate lobby step.
  */
 export function App(): JSX.Element {
-  const gameId = getCurrentGameId();
-
-  // If no game ID, show lobby (handles mode selection, create, join, browse)
-  if (!gameId) {
-    const handleJoinGame = (selectedGameId: string, mode?: 'tv', token?: string) => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('g', selectedGameId);
-
-      if (token) {
-        url.searchParams.set('token', token);
-      }
-
-      if (mode === 'tv') {
-        url.searchParams.set('mode', 'tv');
-      }
-
-      window.location.href = url.toString();
-    };
-
-    return (
-      <ErrorBoundary>
-        <GameLobby onJoinGame={handleJoinGame} />
-        <FeedbackButton />
-      </ErrorBoundary>
-    );
-  }
-
-  // Game ID present - show the game
   return (
     <ErrorBoundary>
       <ServiceProvider>

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.0] - 2026-05-22
+
+### Setup screens consolidated — one screen replaces the lobby + player-setup pair (fb:1c4c60a0)
+
+The retired `GameLobby` screen used to be the landing page: PC/TV mode toggle, Join by Code, Browse Games (admin). Clicking "Start Game" created a backend game and navigated to `PlayerSetup`. A playtester (2026-05-16) pointed out the redundancy — both screens could live as one, with mode + join on the player-setup screen's right panel.
+
+**Fix:**
+- [App.tsx](src/App.tsx): `ServiceProvider` + `AppContent` now mount unconditionally. The `if (!gameId) return GameLobby` branch is gone.
+- [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): on mount, if no `?g=` is in the URL, auto-creates a backend game (POST `/api/games`) and reloads with the new gameId. ~50ms round-trip + reload — barely perceptible.
+- New "🎮 Game Setup" section at the top of PlayerSetup's right column: PC/TV mode toggle + Join-by-Code input + auto-create status banner.
+- TV mode now commits to URL via `history.replaceState` on Start Game (in-process, no extra reload).
+- Joining an existing game by code reads `selectedMode` so a TV-mode pick preserves through the redirect.
+- [src/components/setup/GameLobby.tsx](src/components/setup/GameLobby.tsx) **deleted** (-683 lines). Closes `fb:1c4c60a0`.
+
+**Why this matters** — Removes a navigation step before the user can do anything productive. PC/TV mode and Join controls remain visible during player setup so a teacher can switch direction without leaving the page.
+
+**Trade-off accepted:** auto-create on every fresh URL hit means empty games may pile up if visitors land and leave without starting. Acceptable until server-side TTL pruning is added — empty games carry near-zero state.
+
 ## [2.68.0] - 2026-05-22
 
 ### Board layout editing decoupled from game sessions
