@@ -29,6 +29,23 @@ GIT_COMMIT=$(git rev-parse --short HEAD)
 echo "   Version: $GIT_COMMIT"
 docker build --build-arg GIT_COMMIT=$GIT_COMMIT -t game_alpha .
 
+# Restore editor data BEFORE starting the container. Doing this host-side
+# while no container is running avoids the race where the server's
+# initWritableData() would otherwise create SOURCE_FILES/ first, causing
+# `cp -a backup/SOURCE_FILES live/SOURCE_FILES` to nest one folder deep
+# (server then reads the dist defaults at the un-nested path).
+# Server's needsFullInit check skips init when Spaces.csv already exists.
+if [ -d "$EDITOR_BACKUP" ]; then
+  echo "Restoring editor data from backup (pre-start)..."
+  mkdir -p "$EDITOR_DATA"
+  cp -a "$EDITOR_BACKUP/SOURCE_FILES" "$EDITOR_DATA/SOURCE_FILES"
+  cp -a "$EDITOR_BACKUP/CLEAN_FILES" "$EDITOR_DATA/CLEAN_FILES"
+  rm -rf "$EDITOR_BACKUP"
+  echo "   Editor data restored successfully"
+else
+  echo "No editor backup to restore (using build defaults)"
+fi
+
 echo "Ensuring isolated network exists..."
 docker network create game-net 2>/dev/null || true
 
@@ -45,20 +62,6 @@ docker run -d \
   --security-opt no-new-privileges \
   --restart unless-stopped \
   game_alpha
-
-# Restore editor data if we backed it up
-if [ -d "$EDITOR_BACKUP" ]; then
-  echo "Restoring editor data from backup..."
-  # Wait briefly for container to create fresh game-data dir
-  sleep 2
-  # Overwrite the fresh defaults with the backed-up editor content
-  cp -a "$EDITOR_BACKUP/SOURCE_FILES" "$EDITOR_DATA/SOURCE_FILES"
-  cp -a "$EDITOR_BACKUP/CLEAN_FILES" "$EDITOR_DATA/CLEAN_FILES"
-  rm -rf "$EDITOR_BACKUP"
-  echo "   Editor data restored successfully"
-else
-  echo "No editor backup to restore (using build defaults)"
-fi
 
 echo ""
 echo "Cleaning up orphaned images..."

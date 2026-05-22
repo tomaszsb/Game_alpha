@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.7] - 2026-05-22
+
+### deploy.sh — restore editor data BEFORE container start
+
+Board layout edits saved via the editor were being lost after some deploys. Root cause: a race between the post-`docker run` restore step and the server's `initWritableData()` first-run check. The script restored with:
+
+```
+cp -a "$EDITOR_BACKUP/SOURCE_FILES" "$EDITOR_DATA/SOURCE_FILES"
+```
+
+If the server had already created `$EDITOR_DATA/SOURCE_FILES/` during its startup (which the 2-second sleep was supposed to wait for), `cp -a` interprets the existing destination as a parent dir and nests the backup at `$EDITOR_DATA/SOURCE_FILES/SOURCE_FILES/Spaces.csv`. The server then reads `$EDITOR_DATA/SOURCE_FILES/Spaces.csv` (the build defaults) and the user's edits disappear silently. The footgun was already documented in [server.js:94](server/server.js:94) — "stray subdirectories have been observed in the wild" — but only defended against during backup, not restore.
+
+- [deploy.sh](deploy.sh): restore moved from after `docker run` to before it, host-side, with no container running. Server's `needsFullInit` check (server.js:125) skips init when `Spaces.csv` already exists. The 2-second sleep is gone; the race is gone.
+
 ## [2.69.6] - 2026-05-22
 
 ### PlayerList grid — two-column layout when there's room
