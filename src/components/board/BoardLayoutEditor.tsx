@@ -16,9 +16,25 @@
 // Drag-save persists through the same /api/admin/save-source-files endpoint
 // the in-game edit mode uses, so a change here is immediately reflected the
 // next time anyone (player or admin) loads the game.
+//
+// IMPORTANT (v2.69.4): DataService caches GAME_CONFIG.csv at app startup
+// and never refetches it (the `loaded` flag guards loadData() from re-runs).
+// Without intervention, reopening this editor after a save shows tiles back
+// at their ORIGINAL positions — BoardCanvas's initialNodes useMemo reads
+// from the stale cache, even though the disk has the new coords. Fix: call
+// dataService.reloadGameConfig() on every open before rendering BoardCanvas,
+// so initialNodes sees fresh positions from disk.
+//
+// We deliberately do NOT reload after each drag-save in the same session:
+//   - React Flow's local node state already reflects the new position, so
+//     the user sees the move complete immediately.
+//   - Remounting BoardCanvas on every save would lose React Flow's
+//     pan/zoom/selection state, which a layout editor sits on heavily.
+// The on-disk source of truth gets refreshed when the editor is reopened.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BoardCanvas } from './BoardCanvas';
+import { useGameContext } from '../../context/GameContext';
 import { colors } from '../../styles/theme';
 
 interface BoardLayoutEditorProps {
@@ -26,8 +42,34 @@ interface BoardLayoutEditorProps {
 }
 
 export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Element {
+  const { dataService } = useGameContext();
+  const [ready, setReady] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
+
+  // Refresh GAME_CONFIG.csv on every open so we pick up any pos_x/pos_y
+  // changes persisted from a previous editor session (or via in-game drag).
+  // We hold the canvas off-screen until the fetch completes — otherwise
+  // BoardCanvas's initialNodes would memoize stale positions.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await dataService.reloadGameConfig();
+        if (cancelled) return;
+        setReady(true);
+      } catch (err) {
+        if (cancelled) return;
+        setReloadError(err instanceof Error ? err.message : 'Failed to refresh board data.');
+        // Render BoardCanvas anyway so the user still gets a usable editor;
+        // they'll see the stale coords but can still drag/save fresh ones.
+        setReady(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dataService]);
+
   // Handle Escape to close, like a standard modal.
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -83,6 +125,17 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             green banner top-right confirms the new coordinates were written
             to <code>Spaces.csv</code>. Changes apply to every future game.
           </p>
+          {reloadError && (
+            <p
+              style={{
+                margin: '0.25rem 0 0',
+                fontSize: '0.78rem',
+                color: '#991b1b',
+              }}
+            >
+              ⚠️ Couldn't refresh latest positions ({reloadError}). Showing cached layout.
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -105,14 +158,32 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
 
       {/* Board canvas, full remaining height. No game state — players empty,
           no current player. isAdmin=true forces edit mode on so tiles are
-          draggable from the moment the editor opens. */}
+          draggable from the moment the editor opens. The mount happens only
+          AFTER dataService.reloadGameConfig() resolves, so initialNodes
+          reads fresh pos_x/pos_y from disk on the very first render. */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-        <BoardCanvas
-          currentPlayerId={null}
-          players={[]}
-          isAdmin={true}
-          edgesVisible={true}
-        />
+        {ready ? (
+          <BoardCanvas
+            currentPlayerId={null}
+            players={[]}
+            isAdmin={true}
+            edgesVisible={true}
+          />
+        ) : (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: colors.text.secondary,
+              fontSize: '0.95rem',
+            }}
+          >
+            ⏳ Loading latest board layout…
+          </div>
+        )}
       </div>
     </div>
   );

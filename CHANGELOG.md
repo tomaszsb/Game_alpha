@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.4] - 2026-05-22
+
+### Fix: Board Layout Editor reopen reverted tiles to original positions
+
+A drag-save in the Board Layout Editor wrote the new `pos_x`/`pos_y` to `Spaces.csv` correctly (the green "Saved" banner was honest), and the server regenerated `GAME_CONFIG.csv` with the new coords. But on closing and reopening the editor, the dragged tile snapped back to its original position. Cause: `DataService` caches `GAME_CONFIG.csv` at app startup and its `loaded` flag prevents `loadData()` from refetching. So `BoardCanvas`'s `initialNodes` useMemo kept reading the stale in-memory coords every time the editor opened, even though the disk had been updated.
+
+**Fix:**
+- New `DataService.reloadGameConfig()` — re-fetches just `GAME_CONFIG.csv` (cache-busted) and re-parses, bypassing the once-only `loadData()` guard. Added to the `IDataService` contract too.
+- [BoardLayoutEditor.tsx](src/components/board/BoardLayoutEditor.tsx) calls `reloadGameConfig()` on mount and holds `BoardCanvas` off-screen until it resolves. The "⏳ Loading latest board layout…" message shows during the (typically ~50ms) fetch. If the refresh fails, BoardCanvas mounts anyway with a warning banner so the user can still drag/save fresh positions.
+- Optional `onPositionSaved(spaceName, x, y)` callback added to `BoardCanvas` for future consumers that need per-save notification (the in-game admin drag doesn't need it). `BoardLayoutEditor` deliberately does NOT use it — remounting on every save would lose React Flow's pan/zoom/selection state. The mount-time reload is sufficient since stale-cache only manifests across editor opens.
+
+**Verifying the fix:** drag a tile, see green Saved banner, close editor, reopen — tile stays at the new position. Full page refresh also preserves it (it always did; the cache was per-tab).
+
 ## [2.69.3] - 2026-05-22
 
 ### Setup screen — QR codes move inline, dedicated left column retired

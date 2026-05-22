@@ -77,6 +77,17 @@ export class DataService implements IDataService {
     return this.loaded;
   }
 
+  /**
+   * Re-fetch GAME_CONFIG.csv only and re-parse. Used by the Board Layout
+   * Editor: after a drag-save writes new pos_x/pos_y to disk, this lets
+   * the next render pick them up without a full page reload and without
+   * tripping `loadData()`'s once-only guard. The fetch URL already has
+   * Date.now() cache-busting so the browser/proxy doesn't serve stale.
+   */
+  async reloadGameConfig(): Promise<void> {
+    await this.loadGameConfig();
+  }
+
   // Configuration methods
   getGameConfig(): GameConfig[] {
     return [...this.gameConfigs];

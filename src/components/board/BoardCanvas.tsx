@@ -219,6 +219,11 @@ interface BoardCanvasProps {
   hiddenEdgeIds?: Set<string>;
   /** Called when an edge is clicked in admin mode. Parent persists. */
   onHideEdge?: (edgeId: string) => void;
+  /** Called after a drag-save round-trip succeeds. The BoardLayoutEditor
+   *  uses this to refresh dataService.gameConfigs so the cached positions
+   *  don't override the newly-persisted ones on a remount. Optional —
+   *  in-game admin drag doesn't need it (game session is ephemeral). */
+  onPositionSaved?: (spaceName: string, x: number, y: number) => void;
 }
 
 function BoardCanvasInner({
@@ -228,6 +233,7 @@ function BoardCanvasInner({
   edgesVisible = true,
   hiddenEdgeIds,
   onHideEdge,
+  onPositionSaved,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const [validMoves, setValidMoves] = useState<string[]>([]);
@@ -420,13 +426,16 @@ function BoardCanvasInner({
       window.setTimeout(() => {
         setSaveStatus(prev => (prev && prev.type === 'success' ? null : prev));
       }, 4000);
+      // Notify parent (BoardLayoutEditor) so it can refresh dataService and
+      // remount this canvas — otherwise stale cached coords win on remount.
+      onPositionSaved?.(node.id, x, y);
     } else {
       setSaveStatus({
         type: 'error',
         message: `Save failed (${result.step}: ${result.detail})`
       });
     }
-  }, [isAdmin]);
+  }, [isAdmin, onPositionSaved]);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>

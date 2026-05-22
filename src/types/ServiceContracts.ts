@@ -203,6 +203,14 @@ export interface IDataService {
   // Data loading
   isLoaded(): boolean;
   loadData(): Promise<void>;
+  /**
+   * Re-fetch GAME_CONFIG.csv only and re-parse — used by the standalone
+   * Board Layout Editor after a drag-save to pick up the new pos_x/pos_y
+   * without doing a full data reload. loadData() guards against re-runs
+   * via the `loaded` flag, so callers that need fresh coords go through
+   * this targeted refresh instead.
+   */
+  reloadGameConfig(): Promise<void>;
 }
 
 export interface IStateService {
