@@ -83,6 +83,18 @@ export function PlayerSetup({
   );
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
+  // Settings drawer: the right-column "game setup window" only appears when
+  // the gear icon (top-right of header) is clicked. PC/TV toggle and Start
+  // Game live in the main column so common actions stay one click away.
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSettingsOpen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isSettingsOpen]);
 
   // Game Manager state (for admin)
   interface GameInfo {
@@ -493,12 +505,41 @@ export function PlayerSetup({
             <p style={styles.subtitle}>Navigate from project initiation to completion!</p>
           </div>
         </div>
-        {getCurrentGameId() && (
-          <div style={styles.gameCodeBadge}>
-            <span style={styles.gameCodeLabel}>Game Code: </span>
-            <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {getCurrentGameId() && (
+            <div style={styles.gameCodeBadge}>
+              <span style={styles.gameCodeLabel}>Game Code: </span>
+              <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
+            </div>
+          )}
+          {/* Gear icon — opens the right-column drawer (Join by Code, Game
+              Settings, Admin Tools). Hidden in TV mode where the right
+              column never showed in the first place. */}
+          {!isTVMode && (
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(o => !o)}
+              aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
+              title={isSettingsOpen ? 'Close settings' : 'Open settings'}
+              style={{
+                background: isSettingsOpen ? colors.primary.main : 'rgba(255,255,255,0.85)',
+                color: isSettingsOpen ? 'white' : colors.text.secondary,
+                border: `1px solid ${isSettingsOpen ? colors.primary.main : colors.secondary.border}`,
+                borderRadius: 8,
+                width: 38,
+                height: 38,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              ⚙️
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Main content - 3-column layout on wide screens */}
@@ -587,6 +628,70 @@ export function PlayerSetup({
 
         {/* Center column: Player edit cards */}
         <div style={styles.panel}>
+          {/* PC/TV mode toggle — lifted from the right column so it sits at
+              the top of the main flow. Tapping either button commits the
+              choice locally; the ?mode= URL param is written on Start Game
+              or Join by Code. */}
+          {!isTVMode && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              marginBottom: '0.75rem',
+              padding: '0.5rem 0.6rem',
+              background: '#f8f9fa',
+              borderRadius: 8,
+              border: `1px solid ${colors.secondary.border}`,
+            }}>
+              <span style={{
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                color: colors.text.secondary,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+              }}>
+                Mode
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedMode('pc')}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: 6,
+                  border: `1px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
+                  background: selectedMode === 'pc' ? colors.primary.main : 'white',
+                  color: selectedMode === 'pc' ? 'white' : colors.text.secondary,
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+                title="All players share one screen, taking turns."
+              >
+                🖥️ PC
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedMode('tv')}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: 6,
+                  border: `1px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
+                  background: selectedMode === 'tv' ? '#9c27b0' : 'white',
+                  color: selectedMode === 'tv' ? 'white' : colors.text.secondary,
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+                title="Board on the TV; each player on their own phone or tablet."
+              >
+                📺 TV
+              </button>
+              <span style={{ fontSize: '0.72rem', color: colors.text.muted, marginLeft: 'auto' }}>
+                {selectedMode === 'pc' ? 'Shared screen' : 'Phones + TV'}
+              </span>
+            </div>
+          )}
+
           <h3 style={styles.sectionTitle}>
             👥 Players
           </h3>
@@ -606,12 +711,55 @@ export function PlayerSetup({
             />
           </div>
 
-          {validation.canAddPlayer && (
-            <PlayerForm
-              onAddPlayer={handleAddPlayer}
-              canAddPlayer={validation.canAddPlayer}
-              validationResult={addPlayerValidation}
-            />
+          {/* Add Player + Start Game side-by-side at the bottom. Both stay
+              visible whether or not the settings drawer is open. Start Game
+              moved here from the right column so it doesn't disappear when
+              the drawer is closed. */}
+          {!isTVMode && (
+            <div style={{
+              display: 'flex',
+              gap: '0.6rem',
+              marginTop: 'auto',
+              alignItems: 'stretch',
+              flexWrap: 'wrap',
+            }}>
+              {validation.canAddPlayer && (
+                <div style={{ flex: '1 1 auto', minWidth: '180px' }}>
+                  <PlayerForm
+                    onAddPlayer={handleAddPlayer}
+                    canAddPlayer={validation.canAddPlayer}
+                    validationResult={addPlayerValidation}
+                  />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleStartGame}
+                disabled={isStarting || !validation.validateGameStart().isValid}
+                style={{
+                  flex: '0 0 auto',
+                  background: (isStarting || !validation.validateGameStart().isValid)
+                    ? colors.secondary.main
+                    : `linear-gradient(45deg, ${colors.success.text}, ${colors.success.main})`,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: (isStarting || !validation.validateGameStart().isValid) ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 12px rgba(44, 85, 48, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                }}
+                title={!validation.validateGameStart().isValid
+                  ? validation.validateGameStart().errorMessage || 'Add at least one player to start.'
+                  : undefined}
+              >
+                {isStarting ? '🎲 Starting…' : '🚀 Start Game'}
+              </button>
+            </div>
           )}
 
           {/* TV mode: inline game settings + start button (no separate right column) */}
@@ -654,71 +802,47 @@ export function PlayerSetup({
           )}
         </div>
 
-        {/* Right column: Settings + Admin + Start (hidden in TV mode) */}
-        {!isTVMode && <div style={styles.settingsColumn}>
-          {/* Game Setup section (replaces the old GameLobby screen) —
-              PC/TV mode + Join by Code. Live on every visit so a teacher
-              can switch modes or pivot to a different game without
-              navigating away from the player-setup screen. */}
+        {/* Settings drawer: the "game setup window" — Join by Code, Game
+            Settings, Admin Tools (Space Data Editor, Board Layout Editor,
+            Browse Games). Visibility is gated on the gear icon in the
+            header (isSettingsOpen). Always hidden in TV mode. */}
+        {!isTVMode && isSettingsOpen && <div style={{
+          ...styles.settingsColumn,
+          position: 'relative',
+        }}>
+          {/* Close button — gear icon also toggles, but a close X inside
+              the panel is the conventional drawer affordance. */}
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(false)}
+            aria-label="Close settings"
+            title="Close settings (Esc)"
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              border: `1px solid ${colors.secondary.border}`,
+              background: 'white',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: colors.text.secondary,
+              zIndex: 1,
+            }}
+          >
+            ✕
+          </button>
+          {/* Game Setup section — Join by Code only. (PC/TV mode toggle
+              lives at the top of the center column now.) */}
           <div style={styles.settingsBlock}>
             <h3 style={styles.sectionTitleSmall}>
               🎮 Game Setup
             </h3>
-
-            {/* Mode toggle: PC = single shared screen, TV = big-screen
-                board + mobile players. The choice commits to ?mode= on
-                Start Game (or immediately on Join by Code). */}
-            <div>
-              <label style={styles.label}>Mode</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMode('pc')}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: 6,
-                    border: `1px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
-                    background: selectedMode === 'pc' ? colors.primary.main : 'transparent',
-                    color: selectedMode === 'pc' ? 'white' : colors.text.secondary,
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                  title="All players share one screen, taking turns. Phones can scan QR codes to follow along."
-                >
-                  🖥️ PC
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMode('tv')}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: 6,
-                    border: `1px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
-                    background: selectedMode === 'tv' ? '#9c27b0' : 'transparent',
-                    color: selectedMode === 'tv' ? 'white' : colors.text.secondary,
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                  title="Display the board on a TV. Each player uses their own phone or tablet."
-                >
-                  📺 TV
-                </button>
-              </div>
-              <p style={{
-                fontSize: '0.75rem',
-                color: colors.text.secondary,
-                margin: '0.4rem 0 0',
-                lineHeight: 1.35,
-              }}>
-                {selectedMode === 'pc'
-                  ? 'One shared screen, players take turns. Phones optional.'
-                  : 'Board on the TV, each player on their own phone or tablet.'}
-              </p>
-            </div>
 
             {/* Join an existing game by code. Navigates with a full reload
                 so AppContent picks up the new gameId in the URL the same
@@ -1114,32 +1238,8 @@ export function PlayerSetup({
             )}
           </div>
 
-          {/* Start game button */}
-          <button
-            type="button"
-            onClick={handleStartGame}
-            disabled={isStarting}
-            style={{
-              background: isStarting ? colors.secondary.main : `linear-gradient(45deg, ${colors.success.text}, ${colors.success.main})`,
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: 'clamp(0.8rem, 2vh, 1.5rem) 2rem',
-              fontSize: 'clamp(1rem, 2.5vh, 1.3rem)',
-              fontWeight: 'bold',
-              cursor: isStarting ? 'not-allowed' : 'pointer',
-              width: '100%',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 6px 20px rgba(44, 85, 48, 0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              marginTop: 'auto'
-            }}
-          >
-            {isStarting ? '🎲 Starting Game...' : '🚀 Start Game'}
-          </button>
+          {/* Start Game button moved to next to Add Player in the center
+              column — see the {!isTVMode && (...)} block above. */}
         </div>}
       </main>
 

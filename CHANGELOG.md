@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.2] - 2026-05-22
+
+### Setup screen layout polish — mode + start surfaced, rest tucked behind a gear
+
+Follow-up to v2.69.0/v2.69.1 based on iteration: the right-column "Game Setup" panel that v2.69.0 introduced felt heavy for what teachers actually do (pick mode → add players → start). Reshuffle:
+
+- **PC/TV mode toggle** — moved from the right column to a compact strip at the top of the center column, always visible. No more descriptive paragraph; a small "Shared screen" / "Phones + TV" hint sits next to the buttons.
+- **Start Game button** — moved from the bottom of the right column to right next to the Add Player form, at the bottom of the center column. Stays in view regardless of drawer state. Disabled (with a hover tooltip explaining why) when game-start validation fails.
+- **Gear icon (⚙️)** — new button top-right of the header. Toggles the right-column drawer holding Join-by-Code, Game Settings (win condition, etc.), and Admin Tools (Space Data Editor, Board Layout Editor, Browse Games). Escape key closes it. Hidden in TV mode where the drawer never showed anyway.
+- Right column no longer mounts when the drawer is closed — the center column gets the freed space.
+
+Net effect: the most-used setup controls (mode, players, start) live in the main flow at all times. The teacher only opens the drawer when they need to join an existing game, change settings, or use admin tools.
+
 ## [2.69.1] - 2026-05-22
 
 ### Hotfix — v2.69.0 setup screen was being skipped when stale legacy state existed
