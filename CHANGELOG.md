@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.5] - 2026-05-22
+
+### Fix: hover-to-expand and click-to-expand on BoardCanvas during gameplay
+
+Players reported that on the new (Living Map / BoardCanvas) board during normal gameplay, the cursor stayed in the React Flow "grab/pan" style over tiles, hover never enlarged the tile, and clicks never expanded it. Edit mode was fine — only non-admin gameplay was broken.
+
+**Cause:** the React Flow canvas defaults to `panOnDrag={true}`. On gameplay (`nodesDraggable={false}`, `elementsSelectable={false}`), the canvas's drag-or-pan machinery captured mousedown on tiles before the tile's own `onMouseEnter`/`onClick` could see them. The canvas thought the player was starting a pan; by the time mouseup fired, the click event had been consumed.
+
+**Fix in [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx):**
+- `panOnDrag={isAdmin}` — only admin/edit mode enables canvas drag-to-pan. In gameplay, mousedown on a tile is free for the tile's own handlers. The board's `fitView` keeps everything visible; players use the Controls (bottom-left) zoom + fit buttons if they need to navigate.
+- `elementsSelectable={true}` always — selection plumbing is what makes mousedown/click cleanly reach custom node handlers. We don't render any selection UI, so allowing selection is invisible. With it `false`, React Flow was bypassing the node's event handlers under some conditions.
+
+**Verifying:** start a game on the New board, hover a tile → it enlarges with story snippet, click → it expands with the action description, click again or click the background → collapses.
+
 ## [2.69.4] - 2026-05-22
 
 ### Fix: Board Layout Editor reopen reverted tiles to original positions

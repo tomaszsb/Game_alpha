@@ -483,7 +483,19 @@ function BoardCanvasInner({
         onPaneClick={handlePaneClick}
         nodesDraggable={isAdmin}
         nodesConnectable={false}
-        elementsSelectable={isAdmin}
+        // elementsSelectable={true} always — React Flow's selection plumbing
+        // is what lets mousedown/click events reach the custom node's handlers
+        // cleanly. With it false in gameplay, React Flow's pan-or-drag
+        // machinery captured the mousedown first and the tile's onMouseEnter/
+        // onClick never fired (the hover-to-expand + click-to-expand bug).
+        // We don't render any selection UI, so allowing selection is invisible.
+        elementsSelectable={true}
+        // panOnDrag only in admin mode. During gameplay, canvas pan-on-drag
+        // would consume mousedown on tiles before our hover/click handlers
+        // could see them. Players can use the Controls (bottom-left) zoom +
+        // fit buttons to navigate; the board's fitView keeps it usable
+        // without manual panning.
+        panOnDrag={isAdmin}
         edgesFocusable={isAdmin}
         snapToGrid={isAdmin}
         snapGrid={[10, 10]}
