@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.3] - 2026-05-22
+
+### Setup screen — QR codes move inline, dedicated left column retired
+
+With the right-column drawer (v2.69.2) now collapsed by default, the center "Players" panel has room to host the per-player QR codes that used to live in a dedicated left column. `PlayerList` already supported inline QR rendering — it had a `hideQR` prop that the old layout flipped to `true` when wide screens revealed the left column. This release flips that to `false` permanently and deletes the left column.
+
+- [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): the entire `.qr-column` block (~80 lines) and its responsive media query are gone. `hideQR={false}` on `PlayerList`. Now-unused `isWideScreen` state + resize listener removed. Unused imports (`QRCodeSVG`, `getServerURL`, `getNetworkInfo`) dropped.
+- Net effect: one wide center column when the drawer is closed, with each player row showing avatar + name + color picker + their own QR code on the right. Removes a context-switch (look left for the QR, then back to the center to type the name).
+
 ## [2.69.2] - 2026-05-22
 
 ### Setup screen layout polish — mode + start surfaced, rest tucked behind a gear

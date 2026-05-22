@@ -7,8 +7,7 @@ import { PlayerList } from './PlayerList';
 import { usePlayerValidation, GameSettings, AVAILABLE_COLORS, ColorOption } from './usePlayerValidation';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
-import { getCurrentGameId, getServerURL, getNetworkInfo, getBackendURL } from '../../utils/networkDetection';
-import { QRCodeSVG } from 'qrcode.react';
+import { getCurrentGameId, getBackendURL } from '../../utils/networkDetection';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
@@ -50,14 +49,6 @@ export function PlayerSetup({
 
   // TV mode detection
   const isTVMode = new URLSearchParams(window.location.search).get('mode') === 'tv';
-
-  // Track wide screen for QR column visibility
-  const [isWideScreen, setIsWideScreen] = useState(() => window.innerWidth > 900);
-  useEffect(() => {
-    const handleResize = () => setIsWideScreen(window.innerWidth > 900);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Game settings state
   const [gameSettings, setGameSettings] = useState<GameSettings>({
@@ -485,13 +476,6 @@ export function PlayerSetup({
       {/* Background gradient */}
       <div style={styles.background} />
 
-      {/* Responsive: hide QR column on narrow screens */}
-      <style>{`
-        @media (max-width: 900px) {
-          .qr-column { display: none !important; }
-        }
-      `}</style>
-
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
@@ -542,90 +526,12 @@ export function PlayerSetup({
         </div>
       </header>
 
-      {/* Main content - 3-column layout on wide screens */}
+      {/* Main content — center column (player setup) + optional right
+          drawer. QR codes used to live in a dedicated left column, but
+          now render inline per-player inside PlayerList (hideQR=false)
+          since the main panel has plenty of room with the right drawer
+          collapsed by default. */}
       <main style={styles.main}>
-        {/* Left column: QR codes for scanning (hidden on narrow screens via .qr-column) */}
-        <div className="qr-column" style={styles.qrColumn}>
-          <h3 style={{ ...styles.sectionTitleSmall, color: 'white', textAlign: 'center' as const }}>
-            📱 Scan to Join
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-            {players.map(player => {
-              const playerURL = getServerURL(player.id, player.shortId);
-              const networkInfo = getNetworkInfo();
-              return (
-                <div key={player.id} style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}>
-                  {player.deviceType === 'mobile' ? (
-                    <div style={{
-                      background: 'rgba(255,255,255,0.15)',
-                      borderRadius: '10px',
-                      padding: '0.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                    }}>
-                      <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
-                      <div style={{
-                        background: colors.success.light,
-                        color: colors.success.text,
-                        borderRadius: '6px',
-                        padding: '0.2rem 0.5rem',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold',
-                      }}>
-                        ✅ Connected
-                      </div>
-                      <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                        {player.name || 'Unnamed'}
-                      </span>
-                    </div>
-                  ) : (
-                    <div style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      borderRadius: '10px',
-                      padding: '0.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                    }}>
-                      <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
-                      {networkInfo.isLocalhost && (
-                        <div style={{ fontSize: '0.6rem', color: '#ffb3b3' }}>localhost only</div>
-                      )}
-                      <div style={{
-                        padding: '4px',
-                        background: 'white',
-                        borderRadius: '8px',
-                        border: `3px solid ${player.color}`,
-                        lineHeight: 0,
-                      }}>
-                        <QRCodeSVG
-                          value={playerURL}
-                          size={120}
-                          level="M"
-                          includeMargin={false}
-                          fgColor={player.color || colors.primary.main}
-                          style={{ width: '100%', height: 'auto', maxWidth: '120px' }}
-                        />
-                      </div>
-                      <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                        {player.name || 'Unnamed'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Center column: Player edit cards */}
         <div style={styles.panel}>
           {/* PC/TV mode toggle — lifted from the right column so it sits at
@@ -707,7 +613,7 @@ export function PlayerSetup({
               onRemovePlayer={handleRemovePlayer}
               onCycleAvatar={handleCycleAvatar}
               canRemovePlayer={validation.canRemovePlayer}
-              hideQR={isWideScreen}
+              hideQR={false}
             />
           </div>
 
