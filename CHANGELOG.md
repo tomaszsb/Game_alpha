@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.68.0] - 2026-05-22
+
+### Board layout editing decoupled from game sessions
+
+Until this release, rearranging the board (drag-to-save) was only reachable while a game was in progress — an accidental coupling, since `BoardCanvas` lived inside `GameLayout` which only mounts during `gamePhase === 'PLAY'`. Board layout is shared infrastructure (set once by the teacher, reused across every game), so editing it should be available from the lobby like any other admin tool.
+
+**Fix:**
+- New component [BoardLayoutEditor.tsx](src/components/board/BoardLayoutEditor.tsx) — a full-screen modal that mounts `BoardCanvas` with no game state (`currentPlayerId={null}`, `players={[]}`, `isAdmin={true}`). Drag-to-save is on the moment it opens; saves persist through the same `/api/admin/save-source-files` endpoint the in-game version uses. Escape key closes.
+- New button **🗺️ Edit Board Layout** in PlayerSetup's "🛠️ Admin Tools" section, gated by the same admin-unlock as the Space Data Editor.
+- Zero changes to `BoardCanvas` itself — the new entry point just gives it a different mounting context.
+
+**Why this matters** — Surfaces drag-save as a standalone admin workflow rather than something you can only fiddle with while a game is paused. Also clarifies a debugging path: if a playtester reports drag-save broken, we can now reproduce against an empty board, not a live session.
+
 ## [2.67.0] - 2026-05-20
 
 ### Workstream 5 closed — live dictionary terms wired through CORS

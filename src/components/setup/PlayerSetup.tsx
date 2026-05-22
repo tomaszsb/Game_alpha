@@ -11,6 +11,7 @@ import { getCurrentGameId, getServerURL, getNetworkInfo, getBackendURL } from '.
 import { QRCodeSVG } from 'qrcode.react';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
+import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
 
@@ -69,6 +70,7 @@ export function PlayerSetup({
 
   const [isStarting, setIsStarting] = useState(false);
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
+  const [isBoardLayoutEditorOpen, setIsBoardLayoutEditorOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
 
   // Game Manager state (for admin)
@@ -737,6 +739,26 @@ export function PlayerSetup({
                   </button>
                   <button
                     type="button"
+                    onClick={() => setIsBoardLayoutEditorOpen(true)}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      backgroundColor: colors.secondary.main,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                    title="Drag tiles to set their positions on the board. Applies to every future game."
+                  >
+                    🗺️ Edit Board Layout
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { clearAdminAuth(); setIsAdminUnlocked(false); }}
                     style={{
                       padding: '0.4rem 0.75rem',
@@ -937,6 +959,9 @@ export function PlayerSetup({
 
       {/* Data Editor Modal */}
       {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
+
+      {/* Board Layout Editor Modal */}
+      {isBoardLayoutEditorOpen && <BoardLayoutEditor onClose={() => setIsBoardLayoutEditorOpen(false)} />}
 
       {/* Educational Card Selection Modal */}
       <EducationalCardSelectionModal
