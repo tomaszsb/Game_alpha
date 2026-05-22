@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.6] - 2026-05-22
+
+### PlayerList grid — two-column layout when there's room
+
+With the settings drawer collapsed by default (v2.69.2+) the center column on PlayerSetup is wide enough to host two player cards side by side. Until this release `PlayerList` was a single-column grid, so a 4-player setup ran off the bottom of the screen.
+
+- [PlayerList.tsx](src/components/setup/PlayerList.tsx): grid changed from `display: 'grid'` (1 column) to `gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))'`. Cards reflow to 2 columns when the container is ≥720px, fall back to 1 column on narrower screens (phones, settings drawer open + small monitor).
+- Color picker already wraps; QR code stays right-aligned within each card. Cards keep their full layout — just paginate into two columns.
+
 ## [2.69.5] - 2026-05-22
 
 ### Fix: hover-to-expand and click-to-expand on BoardCanvas during gameplay

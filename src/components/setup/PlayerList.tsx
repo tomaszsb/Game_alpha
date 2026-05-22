@@ -286,6 +286,12 @@ export function PlayerList({
   return (
     <div style={{
       display: 'grid',
+      // Two-column layout when the container is wide enough (~720px+).
+      // With the settings drawer closed in v2.69.2+, the center column
+      // is genuinely wide — fitting two player cards side-by-side keeps
+      // a 4-player setup visible without scrolling. Falls back to one
+      // column on narrow screens so cards stay readable on mobile.
+      gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
       gap: '1rem'
     }}>
       {players.map(player => renderPlayerCard(player))}
