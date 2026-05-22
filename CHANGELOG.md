@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.0] - 2026-05-22
+
+### CHEAT-BYPASS gains a money penalty + roll_group validation (fb:89d9f101)
+
+Investigated the "dice grouping" concern from `fb:89d9f101`. Discovered that the existing `roll_group` column on dice effect rows already enforces the pairing — rows in the same `roll_group` bucket (or all blank, which is the same bucket) share a single dice roll, so CHEAT-BYPASS time + Next Step were already locked to the same rolled value. No new column needed; what was missing was (a) the money penalty rows and (b) a sanity check that paired rows have matching populated roll columns.
+
+- [DiceRoll Info.csv](public/data/SOURCE_FILES/DiceRoll Info.csv): added two `Fees Paid` rows for CHEAT-BYPASS (First + Subsequent) with negative dollar amounts -500 / -1000 / -2000 / -5000 / -25000 / -100000 across rolls 1–6. Same severity curve as the existing time penalty. Empty `roll_group` (blank) means they auto-pair with the existing time + Next Step rows on the same dice roll.
+- [DICE_EFFECTS.csv](public/data/CLEAN_FILES/DICE_EFFECTS.csv): regenerated via `node scripts/regen-clean-files.mjs`. The new rows land as `effect_type=money`, `roll_action=money`, `roll_is_percentage=false`, `roll_numeric_only=true` — which routes through EffectFactory's `case 'money'` → `parseMoneyEffect` (numeric path) rather than the design-fee percentage path.
+- [DataService.ts](src/services/DataService.ts): new `validateDiceEffectGroups()` runs after parsing. Groups rows by `(space_name, visit_type, roll_group)` and warns to console when rows in the same group have a different set of populated roll columns. Non-fatal — the app still loads, the editor still saves — but the next CSV edit becomes the cue to fix the mismatch. Motivated by the CHEAT-BYPASS time+money+destination triplet, applies to any future paired-effect space.
+
+#### One-time data migration needed after deploy
+
+The user's running install has its own copy of `DiceRoll Info.csv` in `server/data/game-data/SOURCE_FILES/` (preserved across deploys by the v2.69.7 backup/restore). The new BASELINE has the rows; the live SOURCE_FILES doesn't. After deploy, the user has to add the two `Fees Paid` rows via the in-game DiceRollEditor — that save will trigger the server's regen pipeline and the live CLEAN_FILES will pick up the new money effect.
+
 ## [2.69.9] - 2026-05-22
 
 ### Pan buttons on BoardCanvas Controls

@@ -472,6 +472,49 @@ export class DataService implements IDataService {
     }
     const csvText = await response.text();
     this.diceEffects = this.parseDiceEffectsCsv(csvText);
+    this.validateDiceEffectGroups(this.diceEffects);
+  }
+
+  /**
+   * Warn loudly when rows that share a (space, visit_type, roll_group) bucket
+   * have different sets of populated roll columns. Rows in the same bucket
+   * share a single dice roll (TurnService.processDiceRollEffects), so if e.g.
+   * the time row has roll_1..roll_6 populated but the money row only has
+   * roll_1..roll_5, rolling a 6 silently does nothing for money. The Cheat
+   * Bypass time+money+destination triplet is the motivating case.
+   *
+   * Non-fatal — surfaces in the console so an editor can fix the CSV on the
+   * next save, but doesn't block the app from loading.
+   */
+  private validateDiceEffectGroups(effects: DiceEffect[]): void {
+    const buckets = new Map<string, DiceEffect[]>();
+    for (const e of effects) {
+      const key = `${e.space_name}|${e.visit_type}|${e.roll_group ?? ''}`;
+      const list = buckets.get(key) ?? [];
+      list.push(e);
+      buckets.set(key, list);
+    }
+
+    const populatedRolls = (e: DiceEffect): string => {
+      const flags = [e.roll_1, e.roll_2, e.roll_3, e.roll_4, e.roll_5, e.roll_6]
+        .map(v => (v && String(v).trim() ? '1' : '0'))
+        .join('');
+      return flags;
+    };
+
+    for (const [key, list] of buckets) {
+      if (list.length < 2) continue; // singletons can't desync
+      const first = populatedRolls(list[0]);
+      const mismatched = list.filter(e => populatedRolls(e) !== first);
+      if (mismatched.length > 0) {
+        const types = list.map(e => `${e.effect_type}:${populatedRolls(e)}`).join(', ');
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[DICE_EFFECTS validation] Rows sharing ${key} have inconsistent roll columns — ` +
+          `they all use the SAME dice roll, so missing values silently do nothing. Rows: ${types}`
+        );
+      }
+    }
   }
 
   private async loadSpaceContents(): Promise<void> {

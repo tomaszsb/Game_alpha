@@ -8,6 +8,8 @@ ARCH-SCOPE-CHECK,First,cards,W,Remove 1,Draw 1,Replace 1,No change,No change,No 
 ARCH-SCOPE-CHECK,Subsequent,cards,W,Remove 1,Draw 1,Replace 1,No change,No change,No change,,remove,false,false
 CHEAT-BYPASS,First,time,,1 day,2 days,3 days,4 days,60 days,365 days,,time,false,false
 CHEAT-BYPASS,Subsequent,time,,1 day,2 days,3 days,4 days,60 days,365 days,,time,false,false
+CHEAT-BYPASS,First,money,,-500,-1000,-2000,-5000,-25000,-100000,,money,false,true
+CHEAT-BYPASS,Subsequent,money,,-500,-1000,-2000,-5000,-25000,-100000,,money,false,true
 CHEAT-BYPASS,First,Next Step,Next,ENG-INITIATION,REG-DOB-FEE-REVIEW,REG-FDNY-FEE-REVIEW,CON-INITIATION,PM-DECISION-CHECK,PM-DECISION-CHECK,,,false,false
 CHEAT-BYPASS,Subsequent,Next Step,Next,ENG-INITIATION,REG-DOB-FEE-REVIEW,REG-FDNY-FEE-REVIEW,CON-INITIATION,PM-DECISION-CHECK,PM-DECISION-CHECK,,,false,false
 CON-INITIATION,First,Quality,Quality,HIGH,HIGH,MED,MED,LOW,LOW,,,false,false
