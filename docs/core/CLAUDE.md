@@ -532,7 +532,40 @@ When a "feature doesn't work" bug seems straightforward, first verify the produc
 - Drop stale items entirely — don't let the list become a graveyard.
 - A long session with 4+ user-listed tasks always benefits; a single 5-minute fix doesn't.
 
+### Banner async-error surfacing — never `catch { console.error }` alone
+
+When a button click fires `await someService.someMethod()`, the only-`console.error`-on-throw pattern is a real bug — the user sees a click that "did nothing" while the actual error sits in the console out of reach. Always set a state-backed error message and render a small banner above/below the button. Reuse the v2.66.0 / v2.66.2 styling (red `#fef2f2` bg, `#7f1d1d` text, `1px solid #dc3545` border, `role="alert"`) for visual consistency. If the throwing service uses the per-step diagnostic pattern, read `err.step` and append `(step: <name>)` to the message — example: `"Cannot end turn: Required: 3, Completed: 2 (step: check_actions)"`. v2.66.2 was a perfect proof: fb:56d0282c looked like a logic bug ("Accept the verdict does nothing") but was visibility — the same click now surfaces the real validation message with zero game-logic change.
+
+### Visibility bug vs logic bug — check before diagnosing
+
+When a "feature doesn't work" complaint comes in, **check whether the failure modes are surfaced before assuming logic is wrong.** Two grep heuristics catch most of these in one minute:
+
+1. `Grep "catch.*console.error" path=<handler-file>` — if the only outcome on throw is a console log, the user is invisible to whatever's actually failing. Apply the banner pattern above.
+2. `Grep "return null" path=<component-file>` — any render-null branch that hides state when the state IS the message. Example: `ApprovalBadges` hid itself when both statuses were `'none'`, but at REG-DOB-FINAL-REVIEW `'none'` IS the bug. Either remove the hide, add a `forceShow` prop, or gate the hide on a context-aware condition.
+
+Visibility-bug fixes don't touch game logic — they surface existing behavior. This is the cheapest fix-to-impact ratio in the codebase. v2.66.2 shipped three of these and the playtester's "does nothing" complaint becomes self-resolving.
+
+### Multiline-aware CSV walker — `split('\n')` is broken for quoted CSV
+
+The naive `csvText.split('\n')` approach to splitting CSV into rows is **broken whenever a quoted field contains a literal newline** — and CSV writers like `escapeCSV` preserve newlines inside quoted values, so any multi-sentence Action/Event/Outcome written through `exportSpacesCSV` will trip the bug on the next parse: one record becomes N "rows," the trailing ones get silently dropped because they have no primary key. The corrupted survivor row then gets written back on save → sticky corruption.
+
+Fix: walk char by char tracking `inQuotes`. `\n` outside quotes ends a record; `\n` inside quotes is preserved. Handle `\r\n` line endings (drop bare `\r` immediately preceding `\n` outside quotes). Handle `""` escape inside a quoted field so `inQuotes` doesn't flip off. See `splitCSVRecords` in `src/components/editor/utils/csvExport.ts` (v2.66.1) for the canonical implementation. Companion pattern to `_extraColumns` opaque pass-through — both belong together in any "safely round-trip a CSV the editor doesn't fully understand" design.
+
+When auditing other CSV parsers in this codebase, grep for `csvText.split('\n')` and `.split('\n')` near any CSV-shaped data. DataService.parseGameConfigCsv and similar haven't been audited yet — flag in TODO if touched.
+
+### Audit before sizing — "NOT STARTED" labels can be 80% built
+
+When a roadmap doc (BETA_PLAN_V3, TODO, etc.) calls a workstream "NOT STARTED," verify by reading the actual code BEFORE committing to the doc's effort estimate. Workstream 5 was budgeted at 4–8 hours; the real fix was three lines because prior work had built the live-fetch path (`loadTerms()` API-first, `TextWithTerms` regex matcher, `DictionaryContext` async re-render, `GLOSSARY.csv` fallback) and only a CORS workaround was preventing it from running.
+
+The triage that turned ~6 hours into ~30 minutes:
+1. Grep for the keywords the workstream uses (`Dictionary`, `TextWithTerms`, etc.) — if `src/dictionary/` has 7+ files, "NOT STARTED" is suspicious.
+2. Probe the supposed-missing external dependency directly with curl — if `GET /api/glossary/live` already returns 200 from the scraper, "build the endpoint" is dead scope.
+3. Read the function the workstream would touch (`loadTerms`) — if it already implements the workstream's deliverable behind a feature flag / guard / workaround, the real work is removing that, not building new.
+4. Read the comment on any cross-cutting workaround — `// Skip cross-origin fetch — dashboard API doesn't support CORS` is a literal map to the real fix.
+
+The pattern showed up in v2.65.9 too (contractor mechanic — the entire `applyQualityEffect`/`applyMultiplierEffect` infrastructure existed but was dead because no production caller wired through to it). When a feature "doesn't work," the first hypothesis should be "wired wrong" before "build from scratch." Both are far cheaper to fix.
+
 ---
 
-**Last Updated:** May 19, 2026
-**Charter Version:** 3.10 (+ diagnostic-logging / CSV pass-through / dead-code-check patterns)
+**Last Updated:** May 20, 2026 (Workstream 5 closed — v2.67.0)
+**Charter Version:** 3.12 (+ audit-before-sizing pattern)

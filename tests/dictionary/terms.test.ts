@@ -78,28 +78,10 @@ const apiTerms = [
 const csvContent = `id,term,definition_technical,definition_simple,instructions,category,source,needs_review,aliases,related_terms,image_url,video_url,source_url,instagram_link
 csv-term,CSV Term,A term from CSV,Simple CSV def,,Construction,game,false,Alias1|Alias2,related1,,,, `;
 
-// Save original location so we can restore it
-const originalLocation = window.location;
-
 describe('Dictionary Terms Module', () => {
   beforeEach(() => {
     clearCache();
     mockFetch.mockReset();
-
-    // Match the dashboard origin so loadTerms doesn't skip the API path
-    Object.defineProperty(window, 'location', {
-      value: { ...originalLocation, origin: 'https://dashboard.unravelcodes.com' },
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true,
-    });
   });
 
   describe('loadTerms — API-first loading', () => {

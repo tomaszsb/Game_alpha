@@ -302,7 +302,7 @@ These ship in the deployed build but still appear in the feedback list because n
 
 ### Tier 5 — Remaining Beta workstreams (blocking v3.0.0 ship)
 - [ ] **Workstream 3: Living Map / coordinate board** (per `docs/core/BETA_PLAN_V3.md`). Phase A–C complete; Phase D drag-to-save shipped v2.66.0. **Remaining: v2.66.1** — delete `BoardV3.tsx` (879 lines) + `boardLayout.ts` (785 lines) + `tests/utils/boardLayout.test.ts` (721 lines); relocate the 3 utilities BoardCanvas borrows (`PHASE_COLORS`/`shortName`/`truncate`) to a small `boardCommon.ts`; swap the `BoardV3` import in `TVDisplay.tsx` for `BoardCanvas` (read-only); collapse `BoardToggle`'s impl-flip button. Ship after 3-5 playtests confirm v2.66.0 drag-save is stable.
-- [ ] **Workstream 5: Live Dictionary integration** (per BETA_PLAN_V3). NOT STARTED — `TextWithTerms` still uses static glossary; no `dictionary-scraper` fetch on startup.
+- [x] **Workstream 5: Live Dictionary integration** — shipped v2.67.0 (2026-05-20). The infrastructure was already built (`loadTerms` API-first, `TextWithTerms`, `DictionaryContext`); only a CORS workaround in the game + a missing entry in the scraper's `allow_origins` were blocking it. Both fixed; `GLOSSARY.csv` snapshot refreshed (249 terms). See CHANGELOG.
 - [ ] **Workstream 2 ship gap: snapshot Try Again must replace REAL/TEMP entirely** per BETA_PLAN_V3 success criterion. Currently REAL/TEMP coexists with `TurnCostLedger`; v3.0.0 criterion is technically unmet. Decide: tighten the criterion (current implementation is good enough), or do the replacement.
 
 ---

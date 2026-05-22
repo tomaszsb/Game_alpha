@@ -78,7 +78,7 @@ This means: arrows don't always match how players actually move (forward jumps, 
 | A | Add `pos_x` / `pos_y` columns to Spaces.csv. Seed defaults by running the current `boardLayout.ts` walker once and writing positions back. Update `processGameData.js` + `GameConfig` type to propagate. Add `IDataService.getPosition(spaceName)`. | ~1–2h | None — board still renders identically because positions match what BoardV3 was already computing. |
 | B | `npm i @xyflow/react`. New `BoardCanvas.tsx` (~150 lines) using React Flow with custom `BoardNode` JSX component (preserves current tile look + player tokens overlay). `smoothstep` curved edges. Phase grouping via React Flow Group Nodes (`parentId` pattern — phase becomes a draggable container, children move with it). `nodesDraggable={isAdmin}` for read/edit toggle. Feature-flag side-by-side with BoardV3. | ~3–4h | New rendering path available behind a flag. |
 | C | ✅ **Shipped v2.64.0 (2026-05-15).** Collision-aware edges via `@jalez/react-flow-smart-edge@4.0.0` (A* pathfinding, v12-compatible fork of the archived `@tisoap` package). Edge type flipped from `smoothstep` to `smart` in `BoardCanvas.tsx`. Vendor-reactflow chunk +22KB minified / +7KB gzipped. Test stub at `tests/stubs/smartEdgeStub.ts` works around the package's CJS-in-ESM dist that crashes jsdom. Phase background regions + drag-to-save persistence still open (Phase D). | shipped | Visible: edges route around tiles instead of cutting through them. |
-| D | Delete `BoardV3.tsx` + `boardLayout.ts` (~1,664 lines combined). Clean up. | ~1h | None. Code reduction. |
+| D | **Split across two ships.** v2.66.0 (2026-05-19) wired drag-to-save: admin drag on `BoardCanvas` now persists `pos_x`/`pos_y` to Spaces.csv via the existing `/api/admin/save-source-files` endpoint with a step-pinpointed status banner. v2.66.4 (deferred — needs 3-5 playtests on drag-save first) will delete `BoardV3.tsx` + `boardLayout.ts` + `tests/utils/boardLayout.test.ts` (~1,664 + 721 lines), relocate `PHASE_COLORS`/`shortName`/`truncate` to a small `boardCommon.ts`, swap `TVDisplay.tsx` to `BoardCanvas`, and collapse the `BoardToggle` impl-flip button. | shipped + ~1h | Drag-save: admins now reposition tiles visually. Deletion: code reduction only. |
 
 **Total ≈ 6–10 hours** across 2–3 sessions.
 
@@ -114,21 +114,19 @@ This means: arrows don't always match how players actually move (forward jumps, 
 
 ---
 
-### Workstream 5 — Dictionary Integration Polish
+### Workstream 5 — Dictionary Integration Polish ✅ SHIPPED v2.67.0 (2026-05-20)
 
-**Problem:** Dictionary terms exist but are statically defined. As the external `dictionary-scraper` grows, the game doesn't automatically benefit.
+**Problem (original):** Dictionary terms exist but were assumed to be statically defined. As the external `dictionary-scraper` grows, the game doesn't automatically benefit.
 
-**Deliverable:** Live-fetched dictionary with smart text highlighting.
+**What was actually true at audit time (2026-05-20):** The infrastructure had already been built incrementally — `loadTerms()` in [terms.ts](../../src/dictionary/data/terms.ts) tried the dashboard API first (`https://dashboard.unravelcodes.com/api/glossary/live`) with CSV fallback. `TextWithTerms` already did case-insensitive word-boundary matching, longest-first regex, with aliases-as-plurals via the `aliases` field. `DictionaryContext` already triggered re-render on async load. The only gap was a same-origin guard at `terms.ts:137-139` (and equivalent in `remoteConfig.ts:76-81`) that always skipped the API call because the scraper's CORS allowlist didn't include `https://game.unravelcodes.com`.
 
-**Implementation sketch:**
-- On game startup, fetch the full term list from the `dictionary-scraper` (already running separately)
-- Build a `TextWithTerms` React component that wraps any game text (space descriptions, card text, tooltips) and auto-underlines matching terms
-- Proper matching: case-insensitive, word-boundary aware, handles basic plurals (`permit` matches `permits`), skips terms inside other HTML/JSX
-- Click an underlined term → modal with the live definition pulled from the scraper
-- Cache the term list to avoid per-render rebuild of the regex
-- Fall back gracefully to the current static terms list if the scraper is unreachable
+**Actual ship (v2.67.0):**
+- Scraper side ([dictionary-scraper main.py:248-258](../../../dictionary-scraper/dashboard/backend/main.py)): added `https://game.unravelcodes.com` + `http://...` to `allow_origins`. Container redeploy.
+- Game side: removed the same-origin guard in `loadTerms()` and the parallel guard in `fetchRemoteConfig()`. Existing API-first-then-CSV-fallback logic now executes the API leg in production.
+- CSV fallback refresh: `public/data/CLEAN_FILES/GLOSSARY.csv` re-exported from a live snapshot (249 terms), preserving per-row extras the API doesn't return (`why_it_matters`, `game_card_id`, etc.). Server-side copy at `server/data/game-data/CLEAN_FILES/GLOSSARY.csv` synced.
+- Test simplification in `tests/dictionary/terms.test.ts` — removed the `window.location.origin` override that existed solely to bypass the now-removed guard.
 
-**Version bump on ship:** v3.0.0 — the final Beta milestone
+**Version bump on ship:** v2.67.0 (not v3.0.0 — v3.0.0 still gated on Workstream 3 Phase D BoardV3 retirement, which is awaiting playtest cooldown after v2.66.0).
 
 ---
 
@@ -421,7 +419,7 @@ Status as of v2.58.0 (April 30, 2026):
 - [~] **Ghost Player regression gate in place.** Original criterion ("1,000 games in CI, zero failures, in under 30s") was rephrased during Workstream 1 to **50 random games per CI run, zero exceptions/invariant violations, ≥90% wins, all `GAME_CONFIG.csv` spaces visited**. Actual baseline: 96% wins, ~110 avg turns. The 1,000-game number was aspirational; 50 is the proven gate.
 - [~] **Snapshot Try Again** — partially shipped. v2.40.0 added per-turn `TurnCostLedger` semantics on top of REAL/TEMP rather than replacing it. Decision needed (see TODO Tier 5): tighten criterion to current implementation, or do the full replacement.
 - [ ] **Board reads positions from CSV** (Workstream 3 — Living Map). NOT STARTED. Spaces.csv has no `pos_x`/`pos_y` columns.
-- [ ] **Dictionary terms auto-populate from dictionary-scraper at startup** (Workstream 5). NOT STARTED. `TextWithTerms` still uses static glossary.
-- [ ] **Version tag `v3.0.0` pushed** — gated on the two NOT STARTED items above.
+- [x] **Dictionary terms auto-populate from dictionary-scraper at startup** (Workstream 5). Shipped v2.67.0 (2026-05-20). The infrastructure (`loadTerms` API-first, `TextWithTerms` regex with aliases, `DictionaryContext` re-render on async load) had been in place since v2.30-ish but was gated by a same-origin guard added when the scraper's CORS allowlist didn't include `game.unravelcodes.com`. v2.67.0 removed the guard and added the game origin to the scraper allowlist; live terms now load on every game start. CSV fallback (`public/data/CLEAN_FILES/GLOSSARY.csv`) refreshed from API snapshot and remains the offline-resilience path.
+- [ ] **Version tag `v3.0.0` pushed** — now gated only on Workstream 3 Phase D (BoardV3 retirement, awaiting playtest cooldown).
 
 **v3.0.0 readiness:** 4 of 8 met, 2 partial, 2 not started. The not-started items (WS3 + WS5) are the real blockers. See [TODO.md Tier 5](../../TODO.md) for the active backlog of v3.0.0 blockers.

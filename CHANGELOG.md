@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.67.0] - 2026-05-20
+
+### Workstream 5 closed — live dictionary terms wired through CORS
+
+The infrastructure to fetch live dictionary terms from the scraper had been built incrementally over many versions: `loadTerms()` in [terms.ts:131](src/dictionary/data/terms.ts) already tried `https://dashboard.unravelcodes.com/api/glossary/live` first and fell back to `public/data/CLEAN_FILES/GLOSSARY.csv`; `TextWithTerms` already did case-insensitive longest-first word-boundary matching with alias support; `DictionaryContext` already re-rendered on async load. The deliverable BETA_PLAN_V3 sketched as "build the live fetch + matcher + fallback" was actually 80% shipped.
+
+**Real gap (3 lines):** A same-origin guard at [terms.ts:137-139](src/dictionary/data/terms.ts) (and a parallel one in [remoteConfig.ts:76-81](src/utils/remoteConfig.ts)) always tripped in production because `game.unravelcodes.com` ≠ `dashboard.unravelcodes.com`. The guard had been added as a workaround for the scraper's `CORSMiddleware.allow_origins` list, which omitted the game origin — so without the guard, the browser blocked the fetch with a noisy CORS preflight error.
+
+**Fix (this release):**
+- Scraper side ([D:\Unravel\dictionary-scraper\dashboard\backend\main.py:248-258](../dictionary-scraper/dashboard/backend/main.py)): added `https://game.unravelcodes.com` + `http://...` to `allow_origins`. Requires scraper container redeploy on Unraid.
+- Game side ([terms.ts:136-140](src/dictionary/data/terms.ts) + [remoteConfig.ts:75-84](src/utils/remoteConfig.ts)): removed the `isSameOrigin` skip. Existing try/catch around `fetch()` already handles all failure modes via CSV fallback — no new error handling needed.
+- CSV fallback refresh: regenerated `public/data/CLEAN_FILES/GLOSSARY.csv` from a live snapshot (249 terms). Per-row "extras" (`why_it_matters`, `game_card_id`, etc.) that the API doesn't return are preserved from the prior CSV by `id` match via [.claude/tmp/refresh-glossary-snapshot.py](.claude/tmp/refresh-glossary-snapshot.py). Server-side copy at `server/data/game-data/CLEAN_FILES/GLOSSARY.csv` synced.
+- Test cleanup: [tests/dictionary/terms.test.ts](tests/dictionary/terms.test.ts) — removed the `Object.defineProperty(window, 'location', ...)` override added solely to bypass the now-removed same-origin guard. The existing 30+ tests already cover the API-first path with `mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(apiTerms) })`.
+
+**Why this matters** — Workstream 5 is the second-to-last item gating v3.0.0. With this closed, only Workstream 3 Phase D (BoardV3 retirement, awaiting playtest cooldown) remains. Volunteer term updates on the dashboard now appear in the live game without a redeploy; previously the game shipped a frozen CSV snapshot per release.
+
+**Tactical pattern (new):** When a "NOT STARTED" workstream label disagrees with what `grep` finds in `src/`, audit before scoping. The original 4–8 hour estimate assumed greenfield work; the actual fix was three lines because the prior implementer had built the live path correctly but workaround-patched the CORS error rather than fixing the CORS list. A 15-minute spelunking trip (read `loadTerms`, probe the API with curl from the game origin, read `allow_origins`) turned a multi-day workstream into a one-commit release.
+
 ## [2.66.3] - 2026-05-19
 
 ### Last per-space hardcoded site removed — FinancialEffectHandler funding-copy heuristic

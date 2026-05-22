@@ -2,6 +2,73 @@
 
 ---
 
+## v2.67.0 — Dictionary terms now update live without a game release (May 20, 2026)
+
+**Release Date:** May 20, 2026
+**Status:** Beta
+**Type:** Workstream 5 closed — live dictionary integration
+
+**The game now pulls dictionary terms directly from the dashboard scraper at startup.** Before today, the in-game glossary (the underlined words you can click to read definitions) shipped as a frozen snapshot baked into each game release. If a volunteer added or corrected a term on the dashboard, players didn't see it until the next game deploy.
+
+**What changes now:**
+
+- **Live updates with zero deploy.** When the game starts, it asks the scraper for the latest term list. New approved terms, edits, and added aliases appear immediately on next page load.
+- **Offline-safe fallback unchanged.** If the scraper is down or unreachable, the game falls back to a bundled snapshot (`GLOSSARY.csv`, refreshed to 249 terms with this release). Players never see "dictionary unavailable" — they just see slightly stale definitions until the scraper comes back.
+- **No new UI.** The underlined-term clicks, the dictionary panel, the term-search — all unchanged. This was a pipes-and-wiring release, not a feature.
+
+**Behind the scenes** — the live-fetch code had actually been written months ago, but a CORS workaround was silently skipping it in production. The scraper's allow-list didn't include `game.unravelcodes.com`, so every browser blocked the fetch. Someone added a same-origin guard in the game to suppress the noisy error rather than fixing the allow-list. Today's release fixes both ends: the scraper now welcomes the game origin, and the game drops the workaround. A 15-minute audit turned what BETA_PLAN_V3 had budgeted as a 4–8 hour workstream into a one-commit release.
+
+**v3.0.0 status:** Workstream 5 closed. Only Workstream 3 Phase D (BoardV3 retirement, awaiting playtest cooldown after v2.66.0 drag-save) remains before the v3.0.0 tag.
+
+---
+
+## v2.66.2 — "Accept the verdict did nothing" is now obvious why (May 19, 2026)
+
+**Release Date:** May 19, 2026
+**Status:** Beta
+**Type:** UX fix — silent failures become visible
+
+**The "Accept the verdict" button at the DOB final review counter no longer silently swallows errors.** A playtester reported pressing it and nothing happened. Behind the scenes the game was correctly refusing to let them end the turn (they hadn't finished all required actions yet), but the validation error was logged to the developer console where no player could see it. The button click looked broken.
+
+**What changes now:**
+
+- **Red error banner above the End Turn button** when something blocks ending your turn. Example: *"Cannot end turn: Player has not completed all required actions. Required: 3, Completed: 2 (step: check_actions)"*. The banner auto-dismisses after 6 seconds.
+- **DOB and FDNY approval badges always show at any regulatory space** (every `REG-*` space), even when both statuses are still pending. Previously the badges hid themselves when both were `'none'` — which made sense at game start but failed badly at REG-DOB-FINAL-REVIEW, where the missing-approval state IS the message. Now you see two grey "…" pills the moment you enter a regulatory space, so it's obvious which examiner you still need to visit.
+
+This is a **visibility fix, not a game-logic change.** The rules haven't changed — but now you can see what's stopping you instead of guessing why a button "didn't work."
+
+The same per-step diagnostic banner pattern was added to the **TurnService end-turn pipeline** (11 named phases: validate_phase, find_player, check_actions, check_scope_gate, resolve_choice, leaving_effects, execute_movement, check_win, commit_session, commit_temp_to_real, next_player). If something else breaks during end-turn in the future, the banner will name exactly which step failed — so a future "button does nothing" complaint becomes solvable in seconds rather than an investigation.
+
+---
+
+## v2.66.1 — Editor now preserves multi-sentence text properly (May 19, 2026)
+
+**Release Date:** May 19, 2026
+**Status:** Beta
+**Type:** Bug fix — silent data loss prevention (admin only)
+
+**Hidden bug in the Space Data Editor**, latent since the editor first shipped. When an author wrote a multi-sentence Action/Event/Outcome with a hard line break between sentences, the next time the editor loaded that file, the second half of the sentence was silently dropped — and the corrupted version was written back on the next save.
+
+**Confirmed clean:** post-fix audit of both the local and live `Spaces.csv` found **zero corruption fingerprints**. The fix is purely preventive; no existing data needs manual rewriting. (The playtester who reported the symptom was looking at an unsaved edit in their browser, not a persisted corruption.)
+
+**For authors:** you can now safely use line breaks inside any text field in the Space Data Editor without worrying about the next save mangling it.
+
+---
+
+## v2.66.0 — Drag-to-save board positions (May 19, 2026, admin only)
+
+**Release Date:** May 19, 2026
+**Status:** Beta
+**Type:** New feature — board layout authoring
+
+**Admins can now grab any space tile in edit mode and drop it where they want — the new position saves automatically.** Previously the admin had to drag, read the coordinates from the browser console, and manually type them into `Spaces.csv`. Now: grab, drop, see a green confirmation banner ("Saved OWNER-FUND-INITIATION → (250, 350)"), and the position persists. Refresh the board and everything stays.
+
+This unblocks the long-standing complaints that arrow routing isn't ideal in some board regions — the admin can now recompose the layout in real time and watch the smart-edge router reroute automatically.
+
+If a save fails, the banner shows exactly which step failed (e.g. "Save failed (write_spaces: EACCES)") — no more guessing.
+
+---
+
 ## v2.65.9 — Hiring a contractor actually matters now (May 19, 2026)
 
 **Release Date:** May 19, 2026
