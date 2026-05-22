@@ -232,6 +232,17 @@ export class ServerSyncService {
       return false;
     }
 
+    // Defensive: with no gameId in the URL, getGameStateAPIPath falls
+    // through to the legacy /api/gamestate single-game endpoint, which can
+    // return a stale PLAY-phase game from the pre-multi-game era. In the
+    // v2.69.x flow, App auto-creates a game before this point is ever
+    // reached — but skip explicitly so a future caller can't trip the
+    // legacy path by accident.
+    if (!getCurrentGameId()) {
+      debugLog('No game id in URL — skipping server state load.');
+      return false;
+    }
+
     try {
       const gameId = getCurrentGameId();
       const apiPath = getGameStateAPIPath(gameId);

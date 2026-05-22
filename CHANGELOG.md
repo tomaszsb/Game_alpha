@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.69.1] - 2026-05-22
+
+### Hotfix — v2.69.0 setup screen was being skipped when stale legacy state existed
+
+The auto-create-game logic in v2.69.0 lived inside `PlayerSetup`'s `useEffect`. That was too late in the mount sequence: `AppContent` runs `loadStateFromServer()` *before* `PlayerSetup` ever mounts, and with no `gameId` in the URL, `getGameStateAPIPath()` falls back to the legacy `/api/gamestate` endpoint (single-game compatibility shim). If that legacy slot held state from a previous play session, the app loaded it as the active game — in PLAY phase — and `GameLayout` rendered the game UI instead of `PlayerSetup`. Auto-create never fired.
+
+**Fix:**
+- [App.tsx](src/App.tsx): auto-create now runs at the App level via `useState(() => !getCurrentGameId())` gate. When true, App returns `<LoadingScreen message="Setting up a new game…" />` while the POST + redirect completes. By the time `ServiceProvider` mounts, the URL always has a real `?g=`.
+- [ServerSyncService.ts](src/services/ServerSyncService.ts): defensive guard in `loadFromServer()` — explicitly returns `false` when `getCurrentGameId()` is empty, instead of falling through to `/api/gamestate`. Prevents a future caller from re-tripping the same trap.
+- [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): removed the now-redundant in-component auto-create effect + its state. The "🎮 Game Setup" panel still hosts the mode toggle, join-by-code, and remains exactly as v2.69.0 designed.
+
+**POST failure path:** if `/api/games` returns non-OK (server down, network), App surfaces a red banner and lets the app mount anyway — so the user isn't stuck on a spinner forever.
+
 ## [2.69.0] - 2026-05-22
 
 ### Setup screens consolidated — one screen replaces the lobby + player-setup pair (fb:1c4c60a0)

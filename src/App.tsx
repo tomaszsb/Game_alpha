@@ -8,7 +8,7 @@ import { useGameContext } from './context/GameContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { colors } from './styles/theme';
 import { getAppScreen, getURLParams } from './utils/getAppScreen';
-import { getGameStateAPIPath, getCurrentGameId } from './utils/networkDetection';
+import { getGameStateAPIPath, getCurrentGameId, getBackendURL } from './utils/networkDetection';
 import { detectDeviceType } from './utils/deviceDetection';
 import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dictionary';
 import { getTooltipService } from './services/TooltipService';
@@ -229,15 +229,73 @@ function AppContent(): JSX.Element {
  * It wraps the main layout with the ServiceProvider to provide dependency injection
  * throughout the component tree. ErrorBoundary catches and handles any unexpected errors.
  *
- * Single-screen setup: ServiceProvider mounts unconditionally. When there's
- * no game ID in the URL, AppContent renders PlayerSetup (gamePhase defaults
- * to SETUP) with the lobby controls (PC/TV toggle, Join by Code, Browse
- * Games) baked in — auto-creating the backend game on mount so the rest of
- * the flow can rely on a gameId being present without a separate lobby step.
+ * Single-screen setup (v2.69.x): when there's no game ID in the URL, App
+ * auto-creates a backend game BEFORE ServiceProvider mounts. This has to
+ * happen at the App level — not inside PlayerSetup — because if it ran any
+ * later, ServiceProvider's state load would fall through to the legacy
+ * /api/gamestate endpoint and could pick up a stale PLAY-phase game from
+ * the single-game era, which would skip PlayerSetup entirely.
  */
 export function App(): JSX.Element {
+  // True only on the initial render when there's no game id yet. The effect
+  // below either redirects (full reload with the new game id in the URL) or
+  // — on POST failure — clears this flag so the rest of the app can mount
+  // anyway. `useState(() => ...)` runs the check once; it doesn't react to
+  // URL changes after mount (a redirect would unmount everything anyway).
+  const [autoCreating, setAutoCreating] = useState(() => !getCurrentGameId());
+  const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!autoCreating) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const backendURL = getBackendURL();
+        const response = await fetch(`${backendURL}/api/games`, { method: 'POST' });
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        const data: { gameId: string; token: string } = await response.json();
+        if (cancelled) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('g', data.gameId);
+        if (data.token) url.searchParams.set('token', data.token);
+        // Full reload — the rest of the app re-initializes with the new
+        // gameId in the URL, so state loading targets the right game.
+        window.location.href = url.toString();
+      } catch (err) {
+        if (cancelled) return;
+        // POST failed (server down, network, etc). Surface a message and
+        // let the rest of the app mount anyway so the user at least sees
+        // the UI rather than a blank loading screen forever.
+        setAutoCreateError(
+          err instanceof Error ? err.message : 'Could not reach the game server.'
+        );
+        setAutoCreating(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [autoCreating]);
+
+  if (autoCreating) {
+    return <LoadingScreen message="Setting up a new game…" />;
+  }
+
   return (
     <ErrorBoundary>
+      {autoCreateError && (
+        <div
+          role="alert"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+            background: '#fee2e2', color: '#991b1b',
+            padding: '0.5rem 1rem', textAlign: 'center', fontSize: '0.85rem',
+            borderBottom: '1px solid #fca5a5'
+          }}
+        >
+          Couldn't start a new game ({autoCreateError}). Try refreshing.
+        </div>
+      )}
       <ServiceProvider>
         <DictionaryProvider>
           <ErrorBoundary>

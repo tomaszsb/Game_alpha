@@ -83,10 +83,6 @@ export function PlayerSetup({
   );
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
-  // Auto-create banner shown briefly while the backend game is being
-  // provisioned on first visit. Suppressed once a gameId is in the URL.
-  const [autoCreatingGame, setAutoCreatingGame] = useState(false);
-  const [autoCreateError, setAutoCreateError] = useState('');
 
   // Game Manager state (for admin)
   interface GameInfo {
@@ -214,56 +210,14 @@ export function PlayerSetup({
     return () => clearInterval(interval);
   }, [isAdminUnlocked]);
 
-  // Auto-create backend game on mount when there's no game ID in the URL.
-  // This collapses the retired two-screen flow (GameLobby → PlayerSetup) into
-  // a single screen: the user lands on PlayerSetup directly, and the empty
-  // backend game gets provisioned in the background while they pick mode +
-  // start typing player names. The reload at the end is what brings the
-  // gameId into the URL so the rest of the app (state sync, WebSocket,
-  // routing) keeps relying on the URL the way it always has.
-  //
-  // If the user wants to JOIN an existing game instead, they should type the
-  // code in the right-panel input before this fires — but the auto-create
-  // race is tight (~50ms). Joining after auto-create still works; the empty
-  // game just gets orphaned until server-side TTL prunes it.
-  useEffect(() => {
-    if (getCurrentGameId()) return;       // already on a game, no work to do
-    if (autoCreatingGame) return;         // request in flight
-    let cancelled = false;
-
-    (async () => {
-      setAutoCreatingGame(true);
-      setAutoCreateError('');
-      try {
-        const backendURL = getBackendURL();
-        const response = await fetch(`${backendURL}/api/games`, { method: 'POST' });
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-        const data: { gameId: string; token: string } = await response.json();
-        if (cancelled) return;
-        const url = new URL(window.location.href);
-        url.searchParams.set('g', data.gameId);
-        if (data.token) url.searchParams.set('token', data.token);
-        // Full reload so AppContent re-runs initialization with the new gameId.
-        window.location.href = url.toString();
-      } catch (err) {
-        if (cancelled) return;
-        setAutoCreatingGame(false);
-        setAutoCreateError(
-          err instanceof Error
-            ? `Could not start a new game: ${err.message}`
-            : 'Could not start a new game. Check your connection and refresh.'
-        );
-      }
-    })();
-
-    return () => { cancelled = true; };
-    // Intentionally empty deps: this runs once per mount. getCurrentGameId
-    // reads from the URL each call, so a later URL change doesn't need to
-    // re-trigger this effect.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Auto-create is handled at the App.tsx level (before ServiceProvider
+  // mounts) so that ServerSyncService.loadFromServer can never fall through
+  // to the legacy /api/gamestate endpoint with no gameId. By the time
+  // PlayerSetup mounts, the URL always has a ?g= and a fresh game.
+  // autoCreatingGame / autoCreateError state below is kept for the
+  // (rare) "POST /api/games failed" path — App leaves a banner in place
+  // and lets the UI mount so the user isn't stuck on a blank loading
+  // screen forever.
 
   /**
    * Join an existing game by typed code. Mirrors the retired GameLobby's
@@ -710,23 +664,6 @@ export function PlayerSetup({
             <h3 style={styles.sectionTitleSmall}>
               🎮 Game Setup
             </h3>
-
-            {/* Auto-create status — visible only during the brief window
-                between URL hit and backend game creation. Becomes an error
-                surface if the POST /api/games call fails. */}
-            {(autoCreatingGame || autoCreateError) && (
-              <div style={{
-                marginBottom: '0.75rem',
-                padding: '0.5rem 0.75rem',
-                borderRadius: 6,
-                fontSize: '0.85rem',
-                background: autoCreateError ? '#fee2e2' : '#eff6ff',
-                color: autoCreateError ? '#991b1b' : '#1e3a8a',
-                border: `1px solid ${autoCreateError ? '#fca5a5' : '#bfdbfe'}`,
-              }}>
-                {autoCreateError || '⏳ Setting up a new game…'}
-              </div>
-            )}
 
             {/* Mode toggle: PC = single shared screen, TV = big-screen
                 board + mobile players. The choice commits to ?mode= on
