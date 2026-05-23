@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.13] - 2026-05-23
+
+### Feature — Project Debrief: end-game insights turn stats into wisdom
+
+v3.0.11 shipped the *data layer* — players can now see what they built, spent, and where they went. v3.0.13 is the **wisdom layer**: a "Project Debrief" panel that distills the playthrough into 3–5 plain-English observations the player can actually act on next game. Capstones the session by making the end screen *instructive*, not just informational.
+
+#### How it works
+- New `src/utils/endGameInsights.ts` ships ~20 pure rules. Each takes `(EndGameStats, Player)` and returns a tone-tagged `Insight | null`. Caller runs all of them, sorts by priority, caps at 5 so the panel celebrates rather than lectures.
+- Three tones with distinct visual treatment:
+  - 🏆 **win** — green chip, positive framing ("Both DOB and FDNY signed off cleanly.")
+  - 📝 **observe** — blue chip, neutral fact ("Bank loans funded ~80% of the project.")
+  - 💡 **lesson** — red chip, gentle "next time" suggestion ("You never hired an expeditor — they shave days in regulatory review.")
+
+#### Rule coverage (all triggered by concrete numbers, never vague)
+**Pacing** — fast-finish (≤10 turns), long-finish (≥20 turns).
+**Budget** — squeaked-by (<5% leftover), loose-budget (>30% leftover).
+**Expeditors** — none hired (lesson), ≥4 hired (win).
+**Approvals** — both approved (priority-80 win), DOB missing (priority-90 lesson, the late-CO trap), denial (specific agency named), minor objection (observe).
+**Funding mix** — self-funded ≥70% (win), bank-heavy ≥60% (observe), investor-heavy ≥60% (observe).
+**Contractor** — HIGH quality (win), LOW quality (observe).
+**Regulatory time** — ≥40% of days in REG-* spaces (observe with %).
+**Revisits** — unique/total < 70% on journeys ≥5 stops (observe with repeat count).
+**Life events** — ≥3 L cards (observe).
+**Fees** — <10% of scope (win), ≥25% (observe with %).
+**Scope** — ≥$2M (win with $M figure).
+
+#### Fix
+- New [src/utils/endGameInsights.ts](src/utils/endGameInsights.ts) — pure helper, no service dependencies. Each rule is a `(stats, player) => Insight | null`. `buildEndGameInsights(stats, player, { maxInsights })` runs them, sorts by priority descending, slices to cap. Test-only `_testOnly.rules` export pins the rule array shape.
+- [src/components/modals/EndGameModal.tsx](src/components/modals/EndGameModal.tsx) — new `useMemo` over `buildEndGameInsights`, conditional `<ProjectDebrief insights={…} />` render between the stats panel and the celebration banner. New `ProjectDebrief` + `InsightRow` sub-components; `toneStyle()` helper maps tone → palette (icon, bg, border, accent, text colors). Defaults to 5 insights max.
+
+#### Test
+- New [tests/utils/endGameInsights.test.ts](tests/utils/endGameInsights.test.ts) — **29 cases** pin every rule's trigger condition (boundary on both sides where applicable), the cap-to-N and custom `maxInsights` option, the priority-sort guarantee (dob-missing priority 90 outranks all-approved priority 80), defensive zero-division behavior (budget rules silent at total=0), and the specific-agency-naming detail on `approval-denied`.
+- Targeted sweep: **579/579 pass** across 34 files. Build clean (8.54s).
+
+`fb:feedback-1778866252080-cc345da9` `fb:feedback-1775793831276-3483b37b` (extends both — the asks were "show stats" and "show movement log"; we ship those + a layer of wisdom on top.)
+
 ## [3.0.12] - 2026-05-23
 
 ### Polish — finish 97fa9c75 (center-anchor + popover + editor buffer ghost)

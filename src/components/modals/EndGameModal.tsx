@@ -7,6 +7,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Player, VisitType } from '../../types/DataTypes';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
+import { buildEndGameInsights, Insight, InsightTone } from '../../utils/endGameInsights';
 import { shortName } from '../../utils/boardCommon';
 
 interface EndGamePenaltyView {
@@ -102,6 +103,13 @@ export function EndGameModal(): JSX.Element {
     return buildEndGameStats(winnerPlayer, { projectScope });
   }, [winnerPlayer, gameRulesService]);
 
+  // v3.0.13 — Project Debrief: pure-helper insights derived from the same stats
+  // snapshot. Capped at 5 so we celebrate, not lecture.
+  const insights: Insight[] = useMemo(() => {
+    if (!winnerPlayer || !stats) return [];
+    return buildEndGameInsights(stats, winnerPlayer, { maxInsights: 5 });
+  }, [winnerPlayer, stats]);
+
   const footer = (
     <button
       onClick={handlePlayAgain}
@@ -168,6 +176,11 @@ export function EndGameModal(): JSX.Element {
             onToggleJourney={() => setJourneyOpen(o => !o)}
           />
         )}
+
+        {/* v3.0.13 — Project Debrief: plain-English insights distilled from
+            the stats. Wins, observations, lessons — color coded. Renders only
+            if at least one rule matched. */}
+        {insights.length > 0 && <ProjectDebrief insights={insights} />}
 
         {/* Workstream 7 Phase 7.4 — Missing-DOB penalty section.
             Rendered above the celebration banner so the player sees the cost
@@ -354,6 +367,105 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
       )}
     </div>
   );
+}
+
+// ============================================================================
+// Project Debrief — v3.0.13. Plain-English insights distilled from the stats.
+// ============================================================================
+
+interface ProjectDebriefProps {
+  insights: Insight[];
+}
+
+function ProjectDebrief({ insights }: ProjectDebriefProps): JSX.Element {
+  return (
+    <div
+      data-testid="project-debrief"
+      style={{
+        marginBottom: '20px',
+        padding: '16px 18px',
+        backgroundColor: '#fffbeb',
+        borderRadius: theme.borderRadius.lg,
+        border: '1px solid #fde68a',
+        textAlign: 'left',
+      }}
+    >
+      <h3
+        style={{
+          margin: '0 0 10px 0',
+          color: '#92400e',
+          fontSize: '15px',
+          fontWeight: 700,
+          letterSpacing: '0.2px',
+        }}
+      >
+        🎓 Project Debrief
+      </h3>
+      <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#a16207', fontStyle: 'italic' }}>
+        A few observations distilled from your playthrough.
+      </p>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {insights.map((insight) => (
+          <InsightRow key={insight.id} insight={insight} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+interface InsightRowProps {
+  insight: Insight;
+}
+
+function InsightRow({ insight }: InsightRowProps): JSX.Element {
+  const palette = toneStyle(insight.tone);
+  return (
+    <li
+      data-testid={`debrief-${insight.id}`}
+      data-tone={insight.tone}
+      style={{
+        padding: '8px 12px',
+        backgroundColor: palette.bg,
+        border: `1px solid ${palette.border}`,
+        borderLeft: `4px solid ${palette.accent}`,
+        borderRadius: 6,
+        fontSize: '13px',
+        color: palette.text,
+        lineHeight: 1.4,
+      }}
+    >
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+        <span aria-hidden style={{ fontSize: '14px' }}>{palette.icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600 }}>{insight.headline}</div>
+          {insight.detail && (
+            <div style={{ marginTop: 2, color: palette.detail, fontWeight: 400 }}>{insight.detail}</div>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function toneStyle(tone: InsightTone) {
+  switch (tone) {
+    case 'win':
+      return {
+        icon: '🏆', bg: '#ecfdf5', border: '#a7f3d0', accent: '#10b981',
+        text: '#065f46', detail: '#047857',
+      };
+    case 'lesson':
+      return {
+        icon: '💡', bg: '#fef2f2', border: '#fecaca', accent: '#dc2626',
+        text: '#7f1d1d', detail: '#991b1b',
+      };
+    case 'observe':
+    default:
+      return {
+        icon: '📝', bg: '#eff6ff', border: '#bfdbfe', accent: '#3b82f6',
+        text: '#1e3a8a', detail: '#1e40af',
+      };
+  }
 }
 
 interface StatProps {
