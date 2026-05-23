@@ -6,6 +6,7 @@ import { CardModal } from '../modals/CardModal';
 import { CardDetailsModal } from '../modals/CardDetailsModal';
 import { ChoiceModal } from '../modals/ChoiceModal';
 import { DiceResultModal } from '../modals/DiceResultModal';
+import { LifeEventModal, type LifeEventModalData } from '../modals/LifeEventModal';
 import { EndGameModal } from '../modals/EndGameModal';
 import { NegotiationModal } from '../modals/NegotiationModal';
 import { RulesModal } from '../modals/RulesModal';
@@ -21,7 +22,7 @@ import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
 import { pickRelatedTab } from '../../utils/relatedTab';
 import { NotificationUtils } from '../../utils/NotificationUtils';
-import { GamePhase, Player, DiceResultEffect, TurnEffectResult } from '../../types/StateTypes';
+import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { haptics } from '../../utils/haptics';
@@ -149,6 +150,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
   const [isDiceResultModalOpen, setIsDiceResultModalOpen] = useState<boolean>(false);
   const [diceResult, setDiceResult] = useState<TurnEffectResult | null>(null);
+  // Life event queue — set when a `life_event` AutoAction fires; opens its own
+  // dedicated modal once the regular dice modal closes (or immediately if none
+  // was open). Replaces the v3.0.8-and-earlier behavior of stomping diceResult.
+  // fb:dfdeaf1c.
+  const [pendingLifeEvent, setPendingLifeEvent] = useState<LifeEventModalData | null>(null);
+  const [isLifeEventModalOpen, setIsLifeEventModalOpen] = useState<boolean>(false);
   // Per-player one-shot request to switch the panel's active reference tab.
   // Set when a result modal opens so the matching tab (Ledger / Expeditors /
   // Events) auto-opens and stays open after the player dismisses the modal —
@@ -290,27 +297,19 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         return;
       }
       if (event.type === 'life_event' && event.cardId) {
+        // Queue the life event for its OWN dedicated modal instead of stomping
+        // the dice modal state. fb:dfdeaf1c — life events used to look like a
+        // continuation of the originating space's roll outcome; now they pop a
+        // distinct red-themed LifeEventModal once the dice modal closes (or
+        // immediately, if no dice modal is currently open).
         const card = dataService.getCardById(event.cardId);
-        const effects: DiceResultEffect[] = [{
-          type: 'card_draw',
-          description: `🎲 Life Event: ${event.cardName || 'Unknown'}`,
-          cardType: 'L',
-          cardIds: [event.cardId]
-        }];
-        if (card?.description) {
-          effects.push({
-            type: 'info',
-            description: card.description
+        if (card) {
+          setPendingLifeEvent({
+            card,
+            diceValue: event.diceValue,
+            spaceName: event.spaceName,
           });
         }
-        setDiceResult({
-          diceValue: 0,
-          spaceName: event.spaceName ?? '',
-          effects,
-          summary: event.message ?? '',
-          hasChoices: false
-        });
-        setIsDiceResultModalOpen(true);
       }
     });
 
@@ -318,6 +317,16 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       unsubscribe();
     };
   }, [stateService, dataService]);
+
+  // Life-event queue flush. Open the LifeEventModal when (a) we have a queued
+  // event, (b) the LifeEventModal isn't already showing, and (c) the regular
+  // dice modal isn't currently visible (so the player handles one outcome at
+  // a time — dice roll first, then life event). fb:dfdeaf1c.
+  useEffect(() => {
+    if (pendingLifeEvent && !isLifeEventModalOpen && !isDiceResultModalOpen) {
+      setIsLifeEventModalOpen(true);
+    }
+  }, [pendingLifeEvent, isLifeEventModalOpen, isDiceResultModalOpen]);
 
   // Persist visiblePanels to localStorage whenever it changes
   useEffect(() => {
@@ -331,7 +340,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Back-button modal interception
   const historyPushedRef = useRef(false);
   const anyModalOpen = isRulesModalOpen || isNegotiationModalOpen || isCardDetailsModalOpen ||
-    isDiceResultModalOpen || isSpaceExplorerVisible || isGameLogVisible || isDictionaryOpen;
+    isDiceResultModalOpen || isLifeEventModalOpen || isSpaceExplorerVisible || isGameLogVisible || isDictionaryOpen;
 
   useEffect(() => {
     if (anyModalOpen && !historyPushedRef.current) {
@@ -1034,6 +1043,18 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         isOpen={isDiceResultModalOpen}
         result={diceResult}
         onClose={() => setIsDiceResultModalOpen(false)}
+      />
+
+      {/* LifeEventModal - dedicated modal for 1-in-6 life event card draws.
+          Opens AFTER the regular dice modal closes; clears the queue on
+          dismiss. fb:dfdeaf1c. */}
+      <LifeEventModal
+        isOpen={isLifeEventModalOpen}
+        data={pendingLifeEvent}
+        onClose={() => {
+          setIsLifeEventModalOpen(false);
+          setPendingLifeEvent(null);
+        }}
       />
 
       {/* EndGameModal - always rendered, visibility controlled by state */}

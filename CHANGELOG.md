@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.9] - 2026-05-23
+
+### Fix — Life events get their own modal instead of looking "mixed with the Architect modal"
+
+`fb:dfdeaf1c` ("Life events were to be separate automatic dice rolls — why is it mixed with architect modal?"). Playtester was investigating life-event frequency at ARCH-INITIATION and perceived the 1-in-6 L-card draw as a row inside the Architect's roll outcome.
+
+**Root cause (not a data bug).** The mechanic is intentional: every dice space in `public/data/CLEAN_FILES/SPACE_EFFECTS.csv` has one `draw_L` row keyed to a specific die face (face rotates per space — ARCH-INITIATION First fires on roll **1**, Subsequent on roll **2**, etc.). Across all spaces this gives a global ~1-in-6 chance per roll, hidden when the face doesn't match. That part stays.
+
+The bug was on the *display* side: `SpaceArrivalProcessor` correctly emits an `AutoActionEvent` of type `'life_event'` when a card drops, but the handler in `GameLayout.tsx` was *stomping* the dice modal's state (`setDiceResult` + `setIsDiceResultModalOpen(true)`) and reusing the generic `DiceResultModal` component with the originating space's header. So the player saw a modal labeled "ARCH-INITIATION" with the life event card sitting next to (or instead of) the Architect's roll outcomes — visually merged.
+
+#### Fix
+- New [src/components/modals/LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx) — dedicated modal with the L-card red theme (`#dc3545` header / `#fce4ec` body), ⚡ icon, "LIFE EVENT" title, shake animation on open, "A major disturbance just hit the project. (rolled X at SPACE)" sub-banner, card name as headline, card description verbatim, single "Got it" dismiss.
+- [src/components/layout/GameLayout.tsx](src/components/layout/GameLayout.tsx) — new `pendingLifeEvent` + `isLifeEventModalOpen` state. The `life_event` AutoAction handler now *queues* the event (sets `pendingLifeEvent`) instead of stomping `diceResult`. A small effect flushes the queue: opens `LifeEventModal` once the regular dice modal closes (or immediately if none was open). Closing the LifeEventModal clears the queue. `LifeEventModal` is also added to the `anyModalOpen` back-button tracker. Removed the now-unused `DiceResultEffect` import.
+- The 1-in-6 piggyback mechanic stays intact — hidden when the face doesn't match, no extra dice rolls, no CSV changes.
+
+#### Test
+- New [tests/components/modals/LifeEventModal.test.tsx](tests/components/modals/LifeEventModal.test.tsx) — 10 cases pin: dedicated header (the fix's core contract), card name + description rendering, severity banner copy, roll/space transparency, graceful handling of missing card description / missing diceValue, dismiss callback wiring.
+
+#### Verified non-bug while triaging
+Suspected the L card might be drawn twice (once by `processDiceConditionalCardEffects` explicit path, once by the EffectEngine pass over `filteredSpaceEffects`). Confirmed it is not: `EffectFactory.parseSpaceEffect:506-513` explicitly skips dice-conditional card rows. Single draw, as designed.
+
+`fb:feedback-1779516160777-dfdeaf1c`
+
 ## [3.0.8] - 2026-05-23
 
 ### Polish — ledger pill nudges itself when funding state turns gap/surplus
