@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.4] - 2026-05-22
+
+### Design fee >20% rule is now strict-any-phase (fb:3a57d5d0)
+
+Per user decision (Pick B from the plain-language framing): when a player's total design fees exceed 20% of project scope, the game ends — regardless of which phase the player is in.
+
+Previously, `FinancialEffectHandler.checkDesignFeeCap` split the behavior by phase:
+- DESIGN phase → game ends (loss).
+- CONSTRUCTION+ → soft +2-week time penalty + notification, game continues.
+
+The user reported (fb:3a57d5d0): *"player 1 design fee is over 20%… the game was to end if design fee became more than 20%"*. The split rule was forgiving in late phases, but the design intent has always been "20% is 20%, the game ends." Made it strict.
+
+- [FinancialEffectHandler.ts](src/services/FinancialEffectHandler.ts): `checkDesignFeeCap` now calls `stateService.endGame()` for every breach, dropping the phase-aware branch (and the time-penalty + notification fallback that lived inside it). Phase is still captured in the debug log line for diagnostic visibility. Net diff: 24 lines removed, 1 line of new behavior + commentary.
+
+No CSV or data changes needed — this is a pure rule simplification.
+
 ## [2.70.3] - 2026-05-22
 
 ### Suppress duplicate "Determine Next Step" button on dice-driven movement spaces

@@ -274,45 +274,25 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     const designFeeRatio = playerScope > 0 ? (totalDesignFees / playerScope) * 100 : 0;
 
     if (designFeeRatio >= 20) {
-      debugLog(`⛔ DESIGN FEE CAP EXCEEDED: ${designFeeRatio.toFixed(1)}% (${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()})`);
-
+      // v2.70.4 (fb:3a57d5d0) — strict 20% rule per user decision: ANY phase,
+      // ANY time, design fees over 20% of scope ends the game. The previous
+      // behavior only ended the game during the DESIGN phase and applied a
+      // softer +2 week time penalty in CONSTRUCTION+; that fallback is gone.
+      // Phase is captured in the debug log for diagnostics only.
       const spaceConfig = this.dataService ? this.dataService.getGameConfigBySpace(updatedPlayer.currentSpace) : null;
       const currentPhase = (spaceConfig && spaceConfig.phase) ? spaceConfig.phase.toUpperCase() : 'UNKNOWN';
 
-      if (currentPhase === 'DESIGN') {
-        // DESIGN phase: Game Over (loss)
-        debugLog(`💀 GAME OVER: Design fees exceeded 20% cap during DESIGN phase`);
-        this.stateService.emitAutoAction({
-          type: 'life_event',
-          playerId: playerId,
-          playerName: updatedPlayer.name,
-          success: false,
-          spaceName: updatedPlayer.currentSpace,
-          message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`
-        });
-        this.stateService.endGame();
-      } else {
-        // CONSTRUCTION phase or later: Apply time penalty
-        debugLog(`⚠️ PENALTY: Design fees exceeded 20% cap during ${currentPhase} phase - applying time penalty`);
-        const timePenalty = 2;
-        this.resourceService.addTime(playerId, timePenalty, 'penalty', 'Design fee cap exceeded - time penalty');
+      debugLog(`💀 GAME OVER: Design fees exceeded 20% cap (${designFeeRatio.toFixed(1)}% = ${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()}) during ${currentPhase} phase`);
 
-        if (this.notificationService) {
-          this.notificationService.notify(
-            {
-              short: '⚠️ Penalty',
-              medium: `⚠️ Design fees at ${designFeeRatio.toFixed(1)}% - +${timePenalty} weeks penalty`,
-              detailed: `Design fees exceeded 20% of project scope. Time penalty: +${timePenalty} weeks.`
-            },
-            {
-              playerId: playerId,
-              playerName: updatedPlayer.name,
-              actionType: 'design_fee_penalty',
-              notificationDuration: 6000
-            }
-          );
-        }
-      }
+      this.stateService.emitAutoAction({
+        type: 'life_event',
+        playerId: playerId,
+        playerName: updatedPlayer.name,
+        success: false,
+        spaceName: updatedPlayer.currentSpace,
+        message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`
+      });
+      this.stateService.endGame();
     }
   }
 
