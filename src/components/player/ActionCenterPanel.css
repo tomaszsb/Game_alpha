@@ -590,11 +590,41 @@
   background: #fff5f5;
   border-color: #e74c3c;
   color: #c0392b;
+  /* Two gentle nudges + a softer red glow when the pill first enters the
+   * gap state. Plays once per mount of the gap-colored pill — when the
+   * player closes the ledger tab and the pill re-mounts with the gap
+   * class still applied, it replays. fb:fae27391 (G163 ledger
+   * discoverability) — the static pill was easy to overlook when fresh
+   * funding decisions had just landed. */
+  animation: ledgerPillAttract 2.8s ease-in-out 1;
 }
 .action-center__ledger-side--surplus {
   background: #f1f9f4;
   border-color: #27ae60;
   color: #1e8449;
+  animation: ledgerPillAttract 2.8s ease-in-out 1;
+}
+
+@keyframes ledgerPillAttract {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0);
+    box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.12);
+  }
+  25%, 75% {
+    transform: translateY(-50%) translateX(-4px);
+    box-shadow: -4px 2px 16px rgba(231, 76, 60, 0.35);
+  }
+  50% {
+    transform: translateY(-50%) translateX(0);
+    box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-center__ledger-side--gap,
+  .action-center__ledger-side--surplus {
+    animation: none;
+  }
 }
 .action-center__ledger-side-icon {
   writing-mode: horizontal-tb;

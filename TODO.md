@@ -184,7 +184,7 @@ These ship in the deployed build but still appear in the feedback list because n
 - [x] **G163 / 5-9: Owner's money amount sits outside the dialogue** — Fixed v3.0.7. The space-story rendering in ActionCenterPanel now runs through `interpolateTemplate`; new `{fundingAmount}` token resolves to the player's current ownerFunding/bankLoans/investmentDeals figure (formatted with commas + dollar sign). SPACE_CONTENT.csv updated for OWNER-FUND-INITIATION First-visit row so the Owner now says *"Here's what I'm putting in — $250,000. Look it over."* (or whatever the actual amount is). Other funding spaces can adopt the token whenever — rendering side is ready. 8 new tests on the interpolation helper. <!-- fb:feedback-1778328297549-61a85444 -->
 
 ### UX / layout (G163, 5-9)
-- [ ] **Ledger discoverability** — Player can't find the ledger; it's at the bottom of the screen. Suggestion: side panel or surface a "Ledger" tab/link. <!-- fb:feedback-1778328559302-fae27391 -->
+- [x] **Ledger discoverability** — Fixed in two passes. Original "ledger at bottom is hard to find" complaint (filed 2026-05-09) was closed by v2.63.3 (2026-05-12) which moved the ledger to a vertical pill anchored on the right edge — always visible, color-coded for funding gap/surplus. v3.0.8 polish: the pill now plays a one-shot 2.8s nudge-and-glow animation whenever it enters a `--gap` or `--surplus` state, so a fresh funding shift catches the eye instead of sitting static. CSS-only, `prefers-reduced-motion` guarded. <!-- fb:feedback-1778328559302-fae27391 -->
 
 ### Player audit (G166 playtester, 5-12)
 *Design-level feedback, not bugs. Treat as a sprint or a workstream once a target audience decision is made.*

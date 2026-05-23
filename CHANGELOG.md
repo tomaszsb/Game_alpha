@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.8] - 2026-05-23
+
+### Polish — ledger pill nudges itself when funding state turns gap/surplus
+
+`fb:fae27391` ("Ledger discoverability — Player can't find the ledger; it's at the bottom of the screen") was actually closed by v2.63.3, which moved the ledger from a bottom-row tab to a vertical pill anchored on the right edge of the action panel. But the pill stayed static even when funding had just shifted — a fresh gap or surplus didn't draw the eye.
+
+#### Fix
+- [src/components/player/ActionCenterPanel.css](src/components/player/ActionCenterPanel.css) — new `ledgerPillAttract` keyframe runs once (2.8s, two gentle horizontal nudges + a softer red/green glow) when the pill mounts in either `--gap` or `--surplus` state. Replays whenever the pill is hidden (e.g. when the player opens the ledger tab) and re-shows with the same state. Static neutral state still doesn't animate. Guarded by `prefers-reduced-motion: reduce`.
+
+No new test — this is a CSS-only polish; existing 6 ActionCenterPanel tests still pass.
+
+`fb:feedback-1778328559302-fae27391`
+
 ## [3.0.7] - 2026-05-23
 
 ### Fix — Owner says the dollar amount inside their dialogue
