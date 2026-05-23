@@ -1,127 +1,131 @@
 ---
-description: Wrap up the session — run the test suite, sweep documentation, write today's learnings into mcp__memory and CLAUDE.md so the next session starts smarter (the manual equivalent of Anthropic's "dreaming" feature).
+description: Wrap up the session — run the test suite, update CHANGELOG / CLAUDE.md / NEXT_SESSION.md so the next session starts smarter.
 ---
 
-End-of-session wrap-up for Unravel Codes. Run the dream-equivalent loop:
+End-of-session wrap-up for Unravel Codes. Tight loop — don't add ceremony.
 
 ## 1. Pre-flight — run the full check suite
-
-Run all three in sequence. Capture pass/fail counts and any new failures — they feed into the memory graph, the doc sweep, and the next-session starter prompt below.
 
 ```
 npm run typecheck
 npm run build
-npm test                # full vitest suite — slow (~2 min) but catches cross-file ripples
+npm test                # full vitest. Hangs on Windows per CLAUDE.md memory —
+                        # run in background, fall back to a targeted sweep if it
+                        # doesn't return within ~3 min.
 ```
 
-**Why the full suite, not a smart-targeted subset:** the point of `/koniec` is to catch the regression a session author wouldn't have predicted. A targeted run keyed off "files changed this session" misses tests in unrelated files whose assertions pinned a string or behavior that today's work changed. 2 minutes is the cheap price for that safety.
+The point of the full suite is catching cross-file ripples a session author wouldn't predict. If Windows-hang forces the targeted fallback, run the same set the koniec sweep historically uses: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant surfaces.
 
-**Capture for downstream steps:**
-
+**Capture for downstream:**
 - Total tests, total failures, new failures vs pre-existing.
-- For each new failure, the file:test_name and a one-line root cause (your guess, not a deep dive — defer the actual fix to the next session unless trivial).
-- For pre-existing failures, note them once but don't re-investigate. Track them in TODO.md if not already there.
-- Build/typecheck output: clean or specific errors.
+- For each new failure: `file:test_name` + one-line root-cause guess. **Do not fix unless trivial (30s string update).** Block-on-green at wrap-up pushes work past the user's stopping point.
+- If a failure indicates a regression already shipped to production, flag it loudly in the final summary.
 
-**Don't fix failures during /koniec unless they're a 30-second obvious string update or version bump.** This is a reflection step, not a work step. If the suite is red and the fix is non-trivial, the starter prompt should say "tests red, here's where" so next session can resume cleanly. Blocking on green at wrap-up time pushes work past the user's intended stopping point.
+## 2. Update the memory graph — minimally
 
-If a failure shows that today's session shipped a regression that's already in production, flag it in the summary report at the bottom — that's higher signal than the test count alone.
+**The memory graph is for cross-session patterns the next session needs to surface via search.** It is NOT a duplicate of CHANGELOG. The ship log already lives there with file links and reasoning.
 
-## 2. Update the memory graph (`mcp__memory`)
+### 2a. Session entity — keep tiny
 
-**Search first, then write — never duplicate.**
+Search `mcp__memory__search_nodes` for the specific session entity name you're about to write (`Session YYYY-MM-DD (vX.Y.Z)`). One search, exact name. If hit → `add_observations`. If miss → `create_entities`.
 
-- Search `mcp__memory__search_nodes` for "Session" to find today's session entity. The naming convention is `Session YYYY-MM-DD (vX.Y.Z)` where X.Y.Z is the version that shipped.
-- If today's session entity exists: `mcp__memory__add_observations` to append what shipped, what's open, what's deferred, **and the test-suite status** (pass count, new failures with one-line cause).
-- If today's session entity does NOT exist: `mcp__memory__create_entities` to create one, with `entityType: "session"`. Then `mcp__memory__create_relations` linking it to `Unravel Codes` with relation `ships in`, and to any pattern entities the session applied or introduced.
+The session entity should contain ONLY:
+- Name: `Session YYYY-MM-DD (vX.Y.Z)` where X.Y.Z is the last version shipped.
+- 1 observation: `"Shipped vX.Y.Z, see CHANGELOG.md for per-version detail."`
+- 0–3 additional observations ONLY if they're *meta* facts not captured by CHANGELOG:
+  - Strategic arc (`"Session arc: bug-fix → feature → wisdom layer"`)
+  - Verified non-bugs (`"Suspected X was double-counted; verified at file:line it's not"`) — these are valuable because future-you might suspect the same thing
+  - Failed approaches that should NOT be retried
+  - Anything that took >30 min to figure out and isn't a code change
 
-**Patterns:**
+Skip everything else. If you find yourself paraphrasing CHANGELOG content into an observation, stop — the next session will read CHANGELOG.
 
-- For each non-trivial pattern discovered today (CSV gotcha, file:formatter override location, deploy quirk, React-Flow trick, service-cycle gotcha, etc.), search the graph first.
-  - If a matching entity exists, `add_observations` with the new detail.
-  - If not, create a new entity. Use a short descriptive name (e.g. "Voice rule override chain", "React Flow custom node data injection"). `entityType` should be `pattern`, `data_schema`, `workflow`, or `service` as appropriate.
-- Create relations linking new patterns to `Unravel Codes` and to related patterns.
+Create one relation: `Session ... → Unravel Codes (ships in)`.
 
-**Skip the trivia.** Don't write entities for one-line fixes, typos, copy tweaks, or anything that won't help a future session move faster. The bar is: "would I want to find this in 3 months when I hit a similar problem?"
+### 2b. Patterns — CLAUDE.md is the home, not memory graph
 
-## 3. Documentation sweep
+Cross-session patterns (formatter override chains, framework gotchas, deploy quirks, etc.) go in `docs/core/CLAUDE.md` TACTICAL section. CLAUDE.md is auto-loaded in the system prompt — no search cost, always visible. Memory graph patterns require an explicit search to find.
 
-The reference-doc ownership map lives in the memory graph at `reference_docs`. Run `mcp__memory__search_nodes "reference_docs"` if you need a refresher on which doc owns what topic. For each doc below, ask: *did today's work change something this doc currently claims as fact?* If yes, update inline. If you're not confident the change is real or worth documenting, flag it in TODO.md rather than guessing.
+**Default: write the pattern to CLAUDE.md TACTICAL, not memory graph.** Use memory graph only when:
+- The pattern is too specific or numerous for CLAUDE.md (e.g. per-bug repro recipes, per-space data oddities)
+- It's a long-tail pattern that 99% of sessions won't need but the 1% will benefit from full detail
+- You're updating an existing memory entity that's already used by other patterns
 
-**Per-release docs (must be current with the shipped version):**
+For new patterns going to CLAUDE.md: write directly into the TACTICAL section (step 3 below covers this).
 
-- **`CHANGELOG.md`** — every shipped version needs an entry. If a hotfix landed (e.g. v2.63.4 after v2.63.3), it needs its own section, not an edit to the previous one. The body should explain *why* the change was made, not just what files changed — future-you reads this when investigating regressions.
-- **`docs/user/RELEASE_NOTES.md`** — only if today's changes are visible to playtesters in a way they should know about. Don't mirror every CHANGELOG entry here.
+**Skip the trivia in both places.** Bar: "would I want to find this in 3 months when I hit a similar problem?"
 
-**Living docs (only touch if today's work made them stale):**
+## 3. Documentation sweep — trigger-based, not checklist
 
-- **`docs/core/CLAUDE.md`** — TACTICAL PATTERNS (Session Learnings) section. Add a new pattern only if it's broad enough that a fresh-context Claude benefits from it before even searching the memory graph (CSV gotcha that affects multiple features, formatter/override chain controlling many UI strings, deploy/build verification trick, Windows-vs-WSL quirk). Don't dump session-specific ship logs here — those belong in CHANGELOG and the memory graph's session entity.
-- **`docs/core/PROJECT_STATUS.md`** — version number, tier completion, workstream status. If today shifted any of those, update.
-- **`docs/core/ARCHITECTURE.md`** — only if a service boundary, data flow, or major file's role changed. Voice changes and UI tweaks don't belong.
-- **`docs/core/BETA_PLAN_V3.md`** — only if a milestone moved (Tier completion, Workstream phase boundary, deferred items list changes).
+Don't read every doc. React to what changed this session.
 
-**Skip docs that are still accurate.** A no-op pass on a living doc is a successful sweep, not a failure. Pollution from over-documenting is real.
+| If this happened in the session | Update this |
+|---|---|
+| Shipped any version | `CHANGELOG.md` — one entry per version, explain *why* not just what |
+| Shipped a user-visible feature/fix | `docs/user/RELEASE_NOTES.md` — only if a playtester needs to know |
+| Discovered a cross-session pattern (gotcha, framework trick, deploy quirk, formatter chain) | `docs/core/CLAUDE.md` TACTICAL section — add a new subheading. Bump the footer charter version. |
+| Version number changed | `docs/core/PROJECT_STATUS.md` — top-line version + 1–3 sentence blurb on the sprint |
+| Service boundary / data flow / major file role changed | `docs/core/ARCHITECTURE.md` |
+| Tier / Workstream / phase milestone moved | `docs/core/BETA_PLAN_V3.md` |
+
+If none of those triggered, the sweep is done — skip the read entirely. A no-op pass that didn't read the docs is faster than a no-op pass that read and decided nothing changed.
+
+**CHANGELOG inline during the session is best.** If you wrote entries as each version shipped, just verify they're current — don't rewrite.
 
 ## 4. Append new follow-ups to `TODO.md`
 
-Anything discovered today that didn't ship and isn't already tracked. Use the existing TODO.md bucket structure (Voice-leak follow-ups, UX/layout, G-numbered playtester feedback, older items). **Also add:**
+Things discovered today that didn't ship and aren't already tracked. Use the existing bucket structure. Also add:
+- Pre-existing test failures noticed during pre-flight if not already tracked.
+- Living-doc updates that need human judgment rather than an inline guess.
 
-- Pre-existing test failures noticed during the pre-flight if they're not already in TODO.md.
-- Living-doc updates that need a human eye to write rather than an inline guess.
+If nothing new — skip. Don't write a "no changes" line.
 
 ## 5. Write the next-session starter prompt
 
-**Resolve the main checkout's `.claude/` path first** — the current session may be running in a Claude Code worktree (CWD will contain `.claude/worktrees/<name>`), in which case writing to `.claude/NEXT_SESSION.md` relative to CWD lands inside the worktree and `/start` from the main checkout won't find it.
+Resolve the main checkout's `.claude/` path: `git rev-parse --show-toplevel`. If the result contains `.claude/worktrees/`, take the segment before it. Otherwise use the root directly. Write to `<main-checkout>/.claude/NEXT_SESSION.md`, overwriting (this file is a rolling handoff, not a log).
 
-Steps:
-1. `Bash: git rev-parse --show-toplevel` to get the current root.
-2. If the path contains `.claude/worktrees/`, the main checkout is the part **before** that segment. Otherwise it's the current root.
-3. Write to `<main-checkout>/.claude/NEXT_SESSION.md`, overwriting any previous content (this file is a rolling handoff, not a log).
-
-The body should be tight and actionable so `/start` can surface it cleanly. Use this template:
+Template — keep under 35 lines:
 
 ```markdown
 # Next session starter — written YYYY-MM-DD by /koniec
 
 ## State at handoff
 - **Version:** vX.Y.Z (deployed / **pending deploy**)
-- **Branch:** master, N uncommitted files / clean
-- **Last shipped:** one-line summary of the most recent change set
-- **Test suite:** N/N passing / **N failures (see below)** / pre-existing failures: N
+- **Branch:** master, N uncommitted / clean
+- **Last shipped:** one-line summary
+- **Test suite:** N/N passing / **N failures (see below)** / pre-existing: N
 - **Build/typecheck:** clean / errors in <file>
 
 ## Top 3 open items
-1. **[Title]** — one-sentence context, what decision or work is needed.
+1. **[Title]** — one-sentence context.
 2. **[Title]** — same.
 3. **[Title]** — same.
 
 ## Test failures to address
-(Skip this section if suite is green.)
-- `tests/<path>.test.ts > test name` — one-line root-cause guess.
+(Skip section if green.)
+- `tests/<path> > test name` — one-line root-cause guess.
 
 ## Decisions waiting on the user
-- [Decision needed] — list the options the user has been presented with.
+- [Decision] — options the user has been presented with.
 
 ## Suggested first move
-Two or three sentences proposing what to tackle first, citing the open item or decision. Phrased as a question to the user when a choice is involved — never assume.
+2–3 sentences, phrased as a question when a choice is involved.
 
 ## Reminders
-- Check `mcp__memory__search_nodes` for any topic before re-deriving it.
 - Deploy command runs from Windows terminal, not WSL.
-- (Any other session-specific gotcha worth a 5-second heads-up.)
+- (Any session-specific gotcha worth 5 seconds.)
 ```
 
-Keep it under 35 lines total (the test-failures section can push past 30 when the suite is red). The point is "fresh-context me reads this in 15 seconds and knows exactly where to start" — not a full session recap. The full recap lives in the memory graph's session entity.
+The point: "fresh-context me reads this in 15 seconds and knows exactly where to start." Full recap is in CHANGELOG + memory graph; this is just the handoff.
 
-## 6. Summary report
+## 6. Three-line wrap, then stop
 
-End with a short summary (under 250 words):
+End with three lines. No structured summary report — the user is about to `/exit` and the next `/start` will surface everything actionable.
 
-- **Pre-flight:** typecheck clean / errors, build clean / errors, vitest N/N passing or N new failures (with file:test_name).
-- **Memory graph:** N entities created, N observations appended, N relations added.
-- **Documentation sweep:** which docs were updated (CHANGELOG, RELEASE_NOTES, CLAUDE.md TACTICAL, PROJECT_STATUS, ARCHITECTURE, BETA_PLAN_V3) and which were checked-and-found-current.
-- **TODO.md:** N items appended / no change.
-- **Next session prompt:** Written to `.claude/NEXT_SESSION.md` (or noted reason if skipped).
-- **Status:** Anything the user should know before exiting (uncommitted work, undeployed build, pending decisions, regressions discovered too late to fix this session). Be honest if there's stale state — under-reporting here costs the next session real time.
+```
+Pre-flight: <typecheck>, <build>, vitest <N/N> (or N failures).
+NEXT_SESSION.md written. <doc updates: brief>.
+<Blocker, if any — uncommitted work, undeployed build, regression discovered too late>. Otherwise: clean handoff.
+```
 
-After this command runs, the user typically follows with `/exit`. Don't run `/exit` yourself; just leave them with a clean handoff.
+Don't run `/exit` yourself.
