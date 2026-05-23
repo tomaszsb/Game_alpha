@@ -365,6 +365,55 @@ will regenerate. The override chain:
 
 **Friendly card-type name canon** (use everywhere): W → "Work Package", B → "Bank Loan", E → "Expeditor", I → "Investment", L → "Life Event". Never surface the letter or the word "card" to players. As of v2.63.6 these all flow from one place (`theme.ts` labels → `getCardTypeName`); when adding a new place that names a card type, import the helper instead of inlining the string.
 
+**Audit at all four leak surfaces** (v2.61.1 → v3.0.3 → v3.0.5 sweep history): when a "card(s)" report comes in, the leak is rarely in just one spot. Sweep ALL of:
+
+1. **Pending-action button labels** — `ActionCenterPanel` (fixed v2.61.1) AND its four sister sections (`TimeSection`, `ProjectScopeSection`, `FinancesSection`, `EventsSection`). Each section had its own `getButtonLabel` helper still returning `effect.description` first. Fixed v3.0.3.
+2. **Notifications + player log** — `CardEffectHandler.logCardDraw` / `notifyLifeEventDraw` / the CARD_DRAW LOG payload AND `NotificationUtils.createDiceRollNotification` / `createCardPlayNotification`. Toast notifications were showing raw letter codes ("2 W"). Fixed v3.0.5.
+3. **NPC-specific modals** — `NegotiationModal` offer summary + per-type rows, `EducationalCardSelectionModal` empty state. Fixed v3.0.5.
+4. **Dice-result summary VOICE** (separate from card-language content) — see "Speaker-aware dice-result summary" pattern below. Fixed v3.0.6.
+
+Internal identifier names (`cardType`, `card_name`, `cardId`, etc.) stay — those are code. Only player-facing strings are in scope.
+
+### Speaker-aware dice-result summary (v3.0.6)
+
+`DiceService.generateEffectSummary(effects, diceValue, storyText?, spaceName?)`. When `spaceName` is supplied:
+
+- **PM-voiced spaces** (5 specific names — `PM-DECISION-CHECK`, `CHEAT-BYPASS`, `ARCH-INITIATION`, `ENG-INITIATION`, `REG-DOB-TYPE-SELECT`) → first person: `"I gained efficiency."`
+- **NPC-voiced spaces** (everything else with a known prefix) → attributed: `"The Owner: You took on 2 work packages."` / `"DOB Examiner: You faced delays."`
+- **Unknown / missing `spaceName`** → falls back to legacy `"Good news! / Challenging turn. / Mixed results."` tone preamble (preserves pre-existing test API).
+
+Two separate speaker maps coexist by design:
+
+- `CHARACTER_MAP` in `src/constants/characters.ts` — 6 entries (OWNER, ARCH, ENG, REG-DOB, REG-FDNY, CON) — drives badge + portrait rendering, requires image roles.
+- `NPC_SPEAKER_NAMES` in `src/services/DiceService.ts` — 10 entries adding BANK, INVESTOR, LEND, REG-DCP, FINISH — voice-only attribution, no images.
+
+When adding a new NPC space prefix: update `NPC_SPEAKER_NAMES` (always) and `CHARACTER_MAP` + portrait images (only if you want a badge too). `extractPrefix()` in `characters.ts` handles the `REG-DOB` / `REG-FDNY` two-segment exception — any new multi-segment prefix needs the same handling.
+
+`DiceRollProcessor.ts` forwards `currentPlayer.currentSpace` through both initial roll and reroll paths. If a future caller introduces a third dice path (e.g. card-triggered dice), it must forward `spaceName` or fall back to the tone preamble.
+
+### Space-story `{fundingAmount}` token (v3.0.7)
+
+`ActionCenterPanel`'s space-story render now passes through `interpolateTemplate` before `TextWithTerms`. The `{fundingAmount}` token resolves to `"$N"` (locale-formatted) from `player.moneySources` based on the space's `funding_source`:
+
+- `funding_source === 'owner'` → `moneySources.ownerFunding`
+- `funding_source === 'bank'` → `moneySources.bankLoans`
+- `funding_source === 'investor'` → `moneySources.investmentDeals`
+
+At non-funding spaces the token resolves to empty string (disappears). To extend: add new keys to the context object in `renderedSpaceStory` useMemo; CSV authors drop `{key}` wherever the NPC dialogue naturally references the value. v3.0.7 applied only to `OWNER-FUND-INITIATION` First-visit; other funding spaces ready to adopt.
+
+### `window.error` handler scoping (v3.0.1)
+
+`index.html` registers a `window.addEventListener('error', ...)` handler intended for module load failures. **Two gotchas, both fixed v3.0.1**:
+
+1. The handler must distinguish resource load errors (`e.target` is an `HTMLElement` like a failed `<script>`/`<link>`/`<img>`) from runtime errors (`e.target === window`). Pre-fix, every runtime error — including benign Chromium warnings like `"ResizeObserver loop completed with undelivered notifications"` (fired by React Flow during drag/resize) — would hide `#root` and show the red fallback.
+2. Resource load errors **do not bubble** — they fire on the failed element. To catch them on `window`, the listener must be registered in **capture phase**: `addEventListener('error', handler, true)`. The pre-fix bubble-phase listener almost certainly missed real module load failures it was supposed to catch.
+
+### Action counter must include choice-movement (v3.0.4)
+
+`StateService.calculateRequiredActions` counts dice + each manual SPACE_EFFECTS row. Pre-v3.0.4 it ignored choice-type movement, so at spaces like `PM-DECISION-CHECK` the End Turn tooltip said "1 action remaining" while two surfaces (a manual effect button + the destination prompt) were visible. `canEndTurn` already gated correctly on `player.moveIntent` — only the counter was lying.
+
+Movement type checklist (from `MOVEMENT.csv`): `choice` (count +1), `dice` (already counted via the dice block), `fixed` / `logic` / `none` (no player input, don't count). If a future feature adds player input that's NOT a SPACE_EFFECTS manual row (e.g. card-selection prompt tracked via `awaitingChoice`), it'll need the same treatment.
+
 ### SPACE_EFFECTS.csv column schema (frequently misread)
 
 ```
@@ -640,5 +689,5 @@ When refactoring App-level routing, remember: `ServiceProvider` doesn't take a g
 
 ---
 
-**Last Updated:** May 23, 2026 (Session v2.69.7–**v3.0.0** — 12 versions: deploy.sh cp-a race fix, BoardCanvas pan buttons, CHEAT-BYPASS money penalty + roll_group validation, reloadAllData generalization, paired-dice button dedup, bug-report version stamping, strict-any-phase 20% rule, dictionary discoverability, npm audit clear, **BoardV3 retired**)
+**Last Updated:** May 23, 2026 PM (Session v3.0.1–**v3.0.8** — 8 versions: window.error scoping, setup-screen sync pill + dice-collapse refactor, voice-rule sweep across 4 sister sections + notifications + Negotiation modal, choice-movement counter, speaker-aware dice summary, owner funding-amount-in-dialogue via `{fundingAmount}` token, ledger pill nudge animation)
 **Charter Version:** 3.14 (+ deploy.sh nesting race, roll_group paired effects, DiceRoll Info.csv mixed line endings)

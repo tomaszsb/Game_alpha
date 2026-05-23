@@ -2,6 +2,22 @@
 
 ---
 
+## v3.0.1 → v3.0.8 — Playtest-driven polish sweep (May 23, 2026 PM)
+
+Eight follow-up versions shipped the afternoon of the v3.0.0 milestone, all triggered by fresh dashboard reports filed against the new build. Highlights you'll notice in-game:
+
+- **Setup screen now shows the version + commit hash + a green ✓** if you're on the latest deploy (amber ⚠ N behind if not). The pill lived on the old GameLobby screen and got lost in the v2.69.0 merge — restored.
+- **The Owner now says the funding amount out loud.** `"Here's what I'm putting in — $250,000. Look it over."` (or whatever the actual figure is). Previously the dollar number only appeared in the ledger.
+- **Dice-result modal speaks in the room's voice.** When the Owner is the narrator, the result reads `"The Owner: You took on 2 work packages."` instead of a generic `"Good news! You took on…"`. At the five spaces where you (the PM) are deciding things — PM Decision Check, Cheat-Bypass, Architect/Engineer/DOB intake — the result reads in first person: `"I gained efficiency."`
+- **End Turn tooltip stops lying about how many actions are left.** At branching spaces (like PM Decision Check) with both a destination choice and a manual action, the counter previously said "1 remaining" when there were two. Fixed.
+- **No more "Roll for W Cards" / "Draw 3 E cards" / raw letter codes anywhere on screen.** A voice-rule sweep covered the four sister sections (Time / Scope / Finances / Events), every toast and player-log entry, the Negotiation modal, and the Educational empty state.
+- **Ledger pill catches your eye when funding shifts.** The right-edge pill now plays a one-shot 2.8-second nudge-and-glow when it enters a gap (red) or surplus (green) state — so fresh funding decisions don't sit unnoticed.
+- **Stops the red "Application loading error" from appearing for a benign browser warning.** ResizeObserver loop warnings (fired by the board during drag/resize) used to hide the whole game; they're filtered now.
+
+Dashboard backend got a matching update — the feedback list now shows a version pill so triage can tell pre-fix from post-fix reports at a glance.
+
+---
+
 ## v3.0.0 — Living Map fully retired (May 23, 2026) 🎉
 
 The board you've been playing on for the last week is now the only board. The old snake/zig-zag layout (BoardV3) is gone — about 2,400 lines of code retired. No change you'll see — the new board has been the default for the v2.69.x playtest run — but it's a milestone worth marking. v3.0.0 ships.

@@ -206,6 +206,12 @@ These ship in the deployed build but still appear in the feedback list because n
 
 ### Server-side housekeeping
 - [ ] **Mark v2.61.1-fixed reports as `resolved`** — The 5 G159 reports (Join Game broken, TTS, button labels, footer, contact fields) are fixed in deployed code but still flag as unresolved in `/api/feedback`. Need an admin `PATCH /api/feedback/:id` call or a sweep script. Not a code fix, just data cleanup. <!-- fb:feedback-1778255779544-cfb519c3 --> <!-- fb:feedback-1778255524538-bf35686d -->
+- [ ] **Mark v3.0.1–v3.0.8 closed reports as `resolved`** — After deploy, flip the resolved flag on the 8 reports closed this sprint: `fb:241911b6` (ResizeObserver), `fb:218367b6` (cheat-space stale tab), `fb:b1a52932` + `fb:36ad2471` (sister-section voice rule), `fb:ffff07e2` (action counter), `fb:7a99da1a` + `fb:004dc390` (modal "cards" sweep), `fb:c3e5322b` + `fb:94c374d8` + `fb:44a4eb47` (speaker-aware summary), `fb:61a85444` (Owner funding amount in dialogue), `fb:fae27391` (ledger discoverability).
+
+### Phase 2 polish (deferred, low priority)
+- [ ] **🃏 emoji in `cardPlayMedium` toast** — Still "playing card joker" — board-game-themed. One-line swap in `src/constants/uiStrings.ts` `NOTIF.cardPlayMedium`; pick a neutral icon (⚡ for E activations, generic ✨, or remove emoji entirely).
+- [ ] **Per-NPC rich sentence templates for dice summary** — v3.0.6 ships `"The Owner: You took on 2 work packages."` (attribution + standard verb phrase). User's wished phrasing is `"I'm wiring you funds — that buys two work packages."` (NPC speaks in first person about THEIR action, with PM as object). Would need per-NPC × per-effect-type sentence templates with count interpolation (~30-40 authored sentences). Authoring-heavy; revisit if the attribution form feels too thin in playtest.
+- [ ] **Adopt `{fundingAmount}` token at other funding spaces** — v3.0.7 only updated `OWNER-FUND-INITIATION` First-visit row. `BANK-FUND-REVIEW`, `INVESTOR-FUND-REVIEW`, and any `LEND-*` spaces can drop `{fundingAmount}` into their `SPACE_CONTENT.csv` Event column; rendering side handles all three funding sources already.
 
 ---
 
