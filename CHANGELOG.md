@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.7] - 2026-05-23
+
+### Fix — Owner says the dollar amount inside their dialogue
+
+`fb:61a85444` ("Why is the amount of money into places? It should really be inside the owner's words"): at OWNER-FUND-INITIATION the Owner said *"Here's what I'm putting in. Look it over."* — but never quoted the number. The amount only surfaced separately in the ledger / metadata, breaking the immersion of the Owner actually telling you what they're funding.
+
+#### Fix
+- [src/components/player/ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) — the space story now passes through `interpolateTemplate`. New `{fundingAmount}` token resolves to `"$N"` derived from `player.moneySources` (`ownerFunding` at owner spaces; `bankLoans` at bank spaces; `investmentDeals` at investor spaces) and disappears (renders as empty) at non-funding spaces.
+- [public/data/CLEAN_FILES/SPACE_CONTENT.csv](public/data/CLEAN_FILES/SPACE_CONTENT.csv) — `OWNER-FUND-INITIATION` First-visit story updated: *"Here's what I'm putting in — {fundingAmount}. Look it over. …"*. Subsequent visits and other funding spaces can adopt the token whenever you want; the rendering side is now ready.
+
+#### Test
+- [tests/utils/templateInterpolation.test.ts](tests/utils/templateInterpolation.test.ts) (new) — 8 cases lock the interpolation helper's contract: single/multiple tokens, numeric values, empty-string substitution, undefined / missing keys leaving the token in place, and same-token-multiple-times.
+
+`fb:feedback-1778328297549-61a85444`
+
 ## [3.0.6] - 2026-05-23
 
 ### Fix — dice-result summary speaks in the NPC's voice (not faceless narrator)

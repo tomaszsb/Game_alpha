@@ -18,6 +18,7 @@ import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions } from './pendingActionsCollapse';
+import { interpolateTemplate } from '../../utils/templateInterpolation';
 import './ActionCenterPanel.css';
 
 export type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
@@ -278,6 +279,25 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     });
   }, [gameServices.dataService, player.currentSpace, player.visitType]);
 
+  // Resolve {fundingAmount} token in the story so the NPC dialogue can quote
+  // the actual dollar figure inline. Playtester fb:61a85444 — "Why is the
+  // amount of money into places? It should really be inside the owner's
+  // words." The token expands to the player's current owner-funding total at
+  // OWNER-* funding spaces, bank-loans / investments at the other funding
+  // sources. Unknown / non-funding spaces leave the token alone, which
+  // formats to empty in interpolateTemplate when the value is empty string.
+  const renderedSpaceStory = useMemo(() => {
+    if (!spaceStory) return '';
+    const fundingSource = gameServices.dataService.getFundingSource(player.currentSpace);
+    const ms = player.moneySources || { ownerFunding: 0, bankLoans: 0, investmentDeals: 0, other: 0 };
+    let amount = 0;
+    if (fundingSource === 'owner') amount = ms.ownerFunding;
+    else if (fundingSource === 'bank') amount = ms.bankLoans;
+    else if (fundingSource === 'investor') amount = ms.investmentDeals;
+    const fundingAmount = amount > 0 ? `$${amount.toLocaleString()}` : '';
+    return interpolateTemplate(spaceStory, { fundingAmount });
+  }, [spaceStory, player.currentSpace, player.moneySources, gameServices.dataService]);
+
   // Playable E cards
   const playableECards = useMemo(() => {
     return (player.hand || []).filter(cardId => {
@@ -506,10 +526,10 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         </div>
 
         {/* NPC Story */}
-        {spaceStory && (
+        {renderedSpaceStory && (
           <div
-            className={`action-center__story ${!storyExpanded && spaceStory.length > 200 ? 'action-center__story--truncated' : ''}`}
-            onClick={() => spaceStory.length > 200 && setStoryExpanded(!storyExpanded)}
+            className={`action-center__story ${!storyExpanded && renderedSpaceStory.length > 200 ? 'action-center__story--truncated' : ''}`}
+            onClick={() => renderedSpaceStory.length > 200 && setStoryExpanded(!storyExpanded)}
           >
             {(() => {
               const portraitSrc = player ? getPortraitForSpace(player.currentSpace) : null;
@@ -550,8 +570,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 </div>
               ) : null;
             })()}
-            <TextWithTerms text={spaceStory} onTermClick={(term) => openWithTerm(term.id)} />
-            {!storyExpanded && spaceStory.length > 200 && (
+            <TextWithTerms text={renderedSpaceStory} onTermClick={(term) => openWithTerm(term.id)} />
+            {!storyExpanded && renderedSpaceStory.length > 200 && (
               <button className="action-center__story-expand" onClick={(e) => { e.stopPropagation(); setStoryExpanded(true); }}>
                 read more...
               </button>
