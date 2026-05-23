@@ -97,3 +97,85 @@ export function shortName(s: string): string {
 export function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
+
+// fb:97fa9c75 — five-step size hierarchy so players see where they are and
+// where they can go without needing to mouse-hover. The classic three-step
+// machine (compact / hover / expanded) only used borders to distinguish
+// current and valid-move tiles, which playtesters missed.
+//
+// Priority order (highest first):
+//   editMode    — admin is dragging; force compact so React Flow drag stays
+//                 predictable and tile pops don't fight the cursor.
+//   expanded    — user clicked to lock; takes priority over everything else.
+//   currentBig  — current player's tile; "fully expanded by default" per user.
+//   hover       — mouse is over the tile (any tile, even the current one).
+//   validMove   — current player can land here; "hover-sized by default."
+//   compact     — everything else.
+export type TileSize = 'compact' | 'validMove' | 'hover' | 'currentBig' | 'expanded';
+
+export interface TileSizeInputs {
+  isEditMode?: boolean;
+  isExpanded?: boolean;
+  isCurrent?: boolean;
+  isHovered?: boolean;
+  isValidMove?: boolean;
+}
+
+export interface TileVisualState {
+  size: TileSize;
+  width: number;
+  minHeight: number;
+  zIndex: number;
+  storyMax: number;   // max story-snippet length for this size
+  showsStory: boolean;
+  showsAction: boolean;
+}
+
+export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState {
+  const size: TileSize =
+    inputs.isEditMode ? 'compact'
+    : inputs.isExpanded ? 'expanded'
+    : inputs.isCurrent ? 'currentBig'
+    : inputs.isHovered ? 'hover'
+    : inputs.isValidMove ? 'validMove'
+    : 'compact';
+
+  const width =
+    size === 'compact' ? 150
+    : size === 'validMove' ? 180
+    : size === 'hover' ? 200
+    : size === 'currentBig' ? 220
+    : 240;
+  const minHeight =
+    size === 'compact' ? 60
+    : size === 'validMove' ? 90
+    : size === 'hover' ? 100
+    : size === 'currentBig' ? 120
+    : 130;
+
+  // Click-locked > current > hovered > valid-move > base. Keeps the user's
+  // active click on top while ensuring the current-player tile peeks over
+  // path edges and neighboring compact tiles.
+  const zIndex =
+    inputs.isExpanded ? 30
+    : inputs.isCurrent ? 25
+    : inputs.isHovered ? 20
+    : inputs.isValidMove ? 5
+    : 1;
+
+  const storyMax =
+    size === 'validMove' ? 50
+    : size === 'hover' ? 60
+    : size === 'currentBig' ? 80
+    : 100;
+
+  return {
+    size,
+    width,
+    minHeight,
+    zIndex,
+    storyMax,
+    showsStory: size !== 'compact',
+    showsAction: size === 'expanded',
+  };
+}

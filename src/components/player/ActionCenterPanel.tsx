@@ -19,6 +19,7 @@ import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions } from './pendingActionsCollapse';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
+import { shortName } from '../../utils/boardCommon';
 import './ActionCenterPanel.css';
 
 export type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
@@ -252,6 +253,10 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const spaceTitle = spaceContent?.title || '';
   const spaceConfig = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const currentPhase = spaceConfig?.phase;
+  // fb:41e35769 — friendly display label matches what the BoardCanvas tile
+  // renders (display_label_override > shortName fallback). Was previously
+  // mismatched: tile said "Fee Review" while the panel said "ARCH-FEE-REVIEW".
+  const friendlySpaceName = spaceConfig?.display_label_override || shortName(player.currentSpace);
 
   // Per-space arrival time cost — sum of non-manual `time` effects defined on
   // this space/visit. Surfaces "5 days here" in the header so the player
@@ -501,8 +506,15 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           <div className="action-center__space-info">
             <div className="action-center__player-name">{player.name}</div>
             <div className="action-center__space-name">
-              📍 {player.currentSpace}
+              {/* fb:41e35769 — show the same friendly label the board tile uses
+                  (display_label_override > shortName fallback). The raw CSV id
+                  stays beneath in a smaller line so admins/debug can still see
+                  it, but the player-facing name now matches what's on the tile. */}
+              📍 {friendlySpaceName}
               {spaceTitle && <span className="action-center__space-title"> - {spaceTitle}</span>}
+              <div className="action-center__space-id" style={{ fontSize: '0.7rem', color: '#adb5bd', fontWeight: 400, marginTop: 1, letterSpacing: 0.2 }}>
+                {player.currentSpace}
+              </div>
             </div>
             <div className="action-center__time-line">
               {arrivalTimeCost > 0 && (

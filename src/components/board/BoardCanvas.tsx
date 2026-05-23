@@ -53,7 +53,7 @@ import { SmartBezierEdge } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState } from '../../utils/boardCommon';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -87,20 +87,17 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   const borderColor = data.isValidMove ? '#10b981' : phaseColors.border;
 
   const isHovered = data.hoveredSpace === data.spaceName;
-  // Three sizes:
-  //   compact (default) — 150×60, just title + tokens
-  //   hover (mid)       — 220×120, +story snippet
-  //   expanded (large)  — 280×180, +action description
-  // In edit mode, all tiles stay compact so dragging doesn't pop sizes.
-  const size: 'compact' | 'hover' | 'expanded' =
-    data.isEditMode ? 'compact'
-    : data.isExpanded ? 'expanded'
-    : (isHovered && !data.isCurrent) ? 'hover'
-    : 'compact';
-
+  // fb:97fa9c75 — five-step size hierarchy lives in computeTileVisualState
+  // (src/utils/boardCommon.ts) so the state machine is unit-testable.
+  const vs = computeTileVisualState({
+    isEditMode: data.isEditMode,
+    isExpanded: data.isExpanded,
+    isCurrent: data.isCurrent,
+    isHovered,
+    isValidMove: data.isValidMove,
+  });
+  const { size, width, minHeight, zIndex, storyMax } = vs;
   const isBig = size !== 'compact';
-  const width = size === 'compact' ? 150 : size === 'hover' ? 220 : 280;
-  const minHeight = size === 'compact' ? 60 : size === 'hover' ? 120 : 180;
   const borderWidth = data.isCurrent ? 3 : data.isValidMove ? 3 : 1.5;
 
   const ringStyle: React.CSSProperties = data.isCurrent
@@ -111,10 +108,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
         ? { boxShadow: '0 6px 18px rgba(0,0,0,0.20)' }
         : { boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
 
-  // Bump z-index for expanded/hovered tiles so they layer over neighbors
-  const zIndex = data.isExpanded ? 30 : isHovered ? 20 : 1;
-
-  const storyMax = size === 'hover' ? 60 : 100;
+  // (size, width, minHeight, zIndex, storyMax all come from computeTileVisualState above)
 
   return (
     <div
@@ -384,11 +378,72 @@ function BoardCanvasInner({
   // Apply visibility filters from parent. Edges hidden by:
   //   - Global toggle (edgesVisible=false) → hide all
   //   - Per-edge hide set (hiddenEdgeIds.has(id)) → hide that one
+  //
+  // Gameplay default (non-admin): only path-taken edges (dimmed) plus next-move
+  // edges from the current tile (green). Hides the ~50-edge full network that
+  // was the v3.0.x default, which playtesters found noisy. fb:96317d74.
+  // Admin mode keeps every edge visible — the editor needs the full network to
+  // hover/click-hide individual edges.
   const visibleEdges = useMemo(() => {
     if (!edgesVisible) return [];
-    if (!hiddenEdgeIds || hiddenEdgeIds.size === 0) return edges;
-    return edges.filter(e => !hiddenEdgeIds.has(e.id));
-  }, [edges, edgesVisible, hiddenEdgeIds]);
+
+    const currentPlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
+
+    // Build the set of "interesting" edge ids for non-admin mode.
+    let allowedIds: Set<string> | null = null;
+    if (!isAdmin && currentPlayer) {
+      allowedIds = new Set<string>();
+
+      // (a) Outgoing edges from the current tile — "where can I go next."
+      //     validMoves is authoritative for legal destinations; falling back
+      //     to all outgoing from currentSpace if validMoves hasn't loaded.
+      const fromCurrent = currentPlayer.currentSpace;
+      const targets = validMoves.length > 0
+        ? validMoves
+        : edges.filter(e => e.source === fromCurrent).map(e => e.target);
+      for (const tgt of targets) {
+        allowedIds.add(`${fromCurrent}__${tgt}`);
+      }
+
+      // (b) Path-taken edges — consecutive pairs in the ordered visit log.
+      //     spaceVisitLog is sorted by entryTurn/entryTime when populated,
+      //     so reading it in order gives the actual route. Edges are
+      //     directed (source → target) so we add the natural id.
+      const log = currentPlayer.spaceVisitLog || [];
+      for (let i = 1; i < log.length; i++) {
+        const src = log[i - 1].spaceName;
+        const tgt = log[i].spaceName;
+        if (src !== tgt) {
+          allowedIds.add(`${src}__${tgt}`);
+        }
+      }
+    }
+
+    return edges.filter(e => {
+      if (hiddenEdgeIds && hiddenEdgeIds.has(e.id)) return false;
+      if (allowedIds && !allowedIds.has(e.id)) return false;
+      return true;
+    }).map(e => {
+      // Restyle in non-admin mode so path-taken edges (dim gray, dotted) are
+      // visually distinct from next-move edges (solid green). Admin mode
+      // keeps the default flat gray so the editor matches its old look.
+      if (!allowedIds) return e;
+      const isNextMove = currentPlayer && e.source === currentPlayer.currentSpace;
+      if (isNextMove) {
+        return {
+          ...e,
+          style: { stroke: '#10b981', strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#10b981' },
+        };
+      }
+      // Path-taken edge — dim and dashed.
+      return {
+        ...e,
+        style: { stroke: '#adb5bd', strokeWidth: 1.5, strokeDasharray: '4 4', opacity: 0.7 },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#adb5bd' },
+      };
+    });
+  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves]);
 
   // Click an edge in admin mode → hide it. Single-click is the gesture
   // (React Flow has no native double-click on edges, and right-click

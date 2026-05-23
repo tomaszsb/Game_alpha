@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.10] - 2026-05-23
+
+### Sprint — Board readability v2 (three bundled playtester reports)
+
+All three were filed against v3.0.0/v3.0.4 yesterday and touched the same BoardCanvas/ActionCenterPanel surface, so they ship together.
+
+#### Fix 1 — Player-panel space name now matches the board tile (`fb:41e35769`)
+
+Playtester: "the tile space names are different than the space name in the player panel — that is confusing."
+
+The board tile was rendering the friendly label (`cfg.display_label_override || shortName(cfg.space_name)` → "Fee Review") while the player panel was rendering the raw CSV id (`📍 ARCH-FEE-REVIEW`). Now the panel uses the same fallback chain so the names match. The technical id is preserved as a small dimmed line underneath for admin/debug reference.
+
+- [src/components/player/ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) — new `friendlySpaceName` derived from `spaceConfig?.display_label_override || shortName(player.currentSpace)`. Imports `shortName` from `boardCommon`.
+
+#### Fix 2 — Five-step size hierarchy + smaller click-expanded footprint (`fb:97fa9c75`)
+
+Playtester (two parts): "(a) because the tiles grow when locking them in place enough room should be left so that the tile does not overlap the surrounding tiles. (b) current tile was to be fully expanded, and available space tiles were to be expanded to hover size."
+
+The old 3-step ladder (compact 150×60 → hover 220×120 → expanded 280×180) only distinguished current and valid-move tiles by **border** treatment, and the 280×180 click-to-expand jump was big enough to overflow neighbor positions. New machine:
+
+| State | Width × Height | Notes |
+|---|---|---|
+| Plain | 150 × 60 | Unchanged |
+| Valid-move (current player can land here) | **180 × 90** | "hover-sized by default" — the user's ask |
+| Hover (mouse over a tile) | 200 × 100 | Slight bump from old 220×120 |
+| Current-player tile | **220 × 120** | "fully expanded by default" — the user's ask |
+| Click-to-expand (locked) | **240 × 130** | Shrank from 280×180 to reduce neighbor overlap |
+
+Priority order (highest first): edit mode → expanded → currentBig → hover → validMove → compact. z-index also stratified (1/5/20/25/30) so the active tiles peek over their neighbors. Story-snippet length scales with size (50/60/80/100 chars).
+
+- [src/utils/boardCommon.ts](src/utils/boardCommon.ts) — new pure `computeTileVisualState({ isEditMode, isExpanded, isCurrent, isHovered, isValidMove })` helper returns `{ size, width, minHeight, zIndex, storyMax, showsStory, showsAction }`. Lifted out of BoardNode so the state machine is unit-testable.
+- [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) — BoardNode now calls `computeTileVisualState` instead of inlining the size logic.
+
+#### Fix 3 — Default to path-taken + next-move edges only (`fb:96317d74`)
+
+Playtester: "maybe just show the path taken. do not show all the arrows."
+
+The ~50-edge full network from MOVEMENT.csv was the v3.0.x default. Gameplay default is now to render only:
+- **Path-taken edges** — consecutive pairs from `currentPlayer.spaceVisitLog` (dimmed gray, dashed `4 4`, opacity 0.7 — "where I've been")
+- **Next-move edges** — outgoing from `currentPlayer.currentSpace` (solid green `#10b981`, thicker, bigger arrowhead — "where I can go")
+
+Every other edge is hidden by default. **Admin mode (`isAdmin=true`) preserves the full network** so the BoardLayoutEditor still works for click-to-hide and per-edge admin operations.
+
+- [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) — `visibleEdges` memo extended: builds an `allowedIds` set (path-taken + outgoing-from-current, derived from `currentPlayer.spaceVisitLog` and `validMoves`) and filters + re-styles edges accordingly. Falls back to all-outgoing-from-current when `validMoves` hasn't loaded. Admin mode skips the filter entirely.
+
+#### Tests
+- New [tests/utils/boardCommon.test.ts](tests/utils/boardCommon.test.ts) — 16 cases pin: the five-step size machine (each size's width/height/zIndex), priority order (editMode beats expanded beats current beats hover beats validMove), story-snippet length scaling, action-block visibility, plus `shortName` + `truncate` regressions for the friendly-name path.
+- Full vitest sweep: **1394/1394 pass** across 75 files.
+
+#### Drive-by — two stale NotificationUtils assertions
+While running the regression sweep, the two pre-existing v3.0.5 voice-rule failures in `tests/utils/NotificationUtils.test.ts` were trivial (assertions still referenced `'2 W'` / `'1 B'` instead of the friendly `'2 Work Packages'` / `'1 Bank Loan'` form). Fixed inline since they were 30-second drive-bys.
+
+`fb:feedback-1779515740138-41e35769` `fb:feedback-1779515660496-97fa9c75` `fb:feedback-1779512747985-96317d74`
+
 ## [3.0.9] - 2026-05-23
 
 ### Fix — Life events get their own modal instead of looking "mixed with the Architect modal"

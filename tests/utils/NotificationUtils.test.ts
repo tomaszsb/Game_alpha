@@ -26,8 +26,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: '4',
-        medium: NOTIF.diceRollMedium(4, '2 W, +$500'),
-        detailed: NOTIF.diceRollDetailed('Alice', 4, '2 W, +$500'),
+        medium: NOTIF.diceRollMedium(4, '2 Work Packages, +$500'),
+        detailed: NOTIF.diceRollDetailed('Alice', 4, '2 Work Packages, +$500'),
       });
     });
 
@@ -128,8 +128,8 @@ describe('NotificationUtils', () => {
 
       expect(result).toEqual({
         short: NOTIF.cardPlayShort,
-        medium: NOTIF.cardPlayMedium('Investment Card', '+$1,000, +1 B'),
-        detailed: NOTIF.cardPlayDetailed('Alice', 'Investment Card', '+$1,000, +1 B'),
+        medium: NOTIF.cardPlayMedium('Investment Card', '+$1,000, +1 Bank Loan'),
+        detailed: NOTIF.cardPlayDetailed('Alice', 'Investment Card', '+$1,000, +1 Bank Loan'),
       });
       expect(FormatUtils.formatMoney).toHaveBeenCalledWith(1000);
     });
