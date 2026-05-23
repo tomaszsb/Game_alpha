@@ -3,6 +3,7 @@ import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { SpaceEffect } from '../../../types/DataTypes';
+import { formatManualEffectButton } from '../../../utils/buttonFormatting';
 import './TimeSection.css';
 
 /**
@@ -108,9 +109,13 @@ export const TimeSection: React.FC<TimeSectionProps> = ({
     setError(null);
   };
 
-  // Helper to format button label from effect
+  // Voice rule (v2.61.1 sweep extended to sister sections 2026-05-23):
+  // effect.description is auto-generated game language ("Roll for W Cards",
+  // "Draw 3 E cards"). formatManualEffectButton emits the canonical real-life
+  // label. Same fix that ActionCenterPanel got — also closes fb:b1a52932.
   const getButtonLabel = (effect: SpaceEffect): string => {
-    if (effect.description) return effect.description;
+    const formatted = formatManualEffectButton(effect);
+    if (formatted.text) return formatted.text;
     if (effect.effect_type === 'time') return 'Determine Time Impact';
     return effect.effect_type;
   };

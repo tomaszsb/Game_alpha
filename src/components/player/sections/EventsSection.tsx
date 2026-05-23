@@ -4,6 +4,7 @@ import { ActionButton } from '../ActionButton';
 import { CardDisplay } from '../../common/CardDisplay';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
+import { formatManualEffectButton } from '../../../utils/buttonFormatting';
 
 export interface EventsSectionProps {
   gameServices: IServiceContainer;
@@ -91,10 +92,13 @@ export const EventsSection: React.FC<EventsSectionProps> = ({
         const isEffectCompleted = completedKeys.some(key =>
           key === effectKey || key.toLowerCase() === effectKey.toLowerCase()
         );
+        // Voice rule (v2.61.1 sweep extended 2026-05-23): real-life label
+        // from formatManualEffectButton instead of effect.description.
+        const lButtonText = formatManualEffectButton(effect).text || 'Life Event';
         return !isEffectCompleted && (
           <ActionButton
             key={`l-manual-${index}`}
-            label={isMyTurn ? (effect.description || 'Life Event') : "Wait for your turn"}
+            label={isMyTurn ? lButtonText : "Wait for your turn"}
             variant="primary"
             onClick={() => handleManualEffect(effectKey)}
             disabled={!isMyTurn || isLoading}

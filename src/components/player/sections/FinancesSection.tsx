@@ -6,6 +6,7 @@ import { CardDisplay } from '../../common/CardDisplay';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { SpaceEffect } from '../../../types/DataTypes';
+import { formatManualEffectButton } from '../../../utils/buttonFormatting';
 import './FinancesSection.css';
 import { debugLog } from '../../../utils/debugLog';
 
@@ -354,13 +355,17 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     }
   ].filter(source => source.processed); // Only show sources with money
 
-  // Helper to format button label from effect
+  // Voice rule (v2.61.1 sweep extended 2026-05-23): use canonical real-life
+  // labels from formatManualEffectButton instead of the auto-generated
+  // effect.description ("Roll for W Cards"). The funding-card override stays.
+  // Closes fb:b1a52932.
   const getButtonLabel = (effect: SpaceEffect): string => {
     // For funding card effects at OWNER-FUND-INITIATION - override description
     if (effect.effect_type === 'cards' && (effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i')) {
       return 'Accept Owner Funding';
     }
-    if (effect.description) return effect.description;
+    const formatted = formatManualEffectButton(effect);
+    if (formatted.text) return formatted.text;
     if (effect.effect_type === 'money') return 'Get Money';
     return effect.effect_type;
   };

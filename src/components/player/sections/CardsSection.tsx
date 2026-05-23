@@ -48,9 +48,11 @@ export interface CardsSectionProps {
  * - Card type breakdown (W, B, etc. with counts)
  *
  * **Actions:**
- * - "Roll for W Cards" button (appears when `ROLL_FOR_CARDS_W` is available)
- * - "Roll for B Cards" button (appears when `ROLL_FOR_CARDS_B` is available)
  * - "View Discarded" button (always visible - secondary action)
+ *
+ * Dice and manual effect buttons (draw_e, replace_e, roll_for_*) used to live
+ * here but were lifted into ActionCenterPanel's YOUR ACTIONS section to avoid
+ * duplication. CardsSection is now display-only for the player's E-card hand.
  *
  * **Features:**
  * - Automatically detects available card actions from game state

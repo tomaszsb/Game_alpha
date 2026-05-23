@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.3] - 2026-05-23
+
+### Fix — extend the v2.61.1 voice-rule sweep to four sister sections
+
+`fb:feedback-1778261627167-b1a52932` ("roll for w cards still in player panel") was filed 2026-05-13, *after* v2.61.1 supposedly closed the voice-rule leak on 2026-05-08. v2.61.1 only touched `ActionCenterPanel.tsx` — the four expandable sections that render their own per-effect action buttons were missed and still used `effect.description` (which the data pipeline auto-generates as game language: "Roll for W Cards", "Draw 3 E cards"). Closes the report properly this time.
+
+#### Fixes
+- [src/components/player/sections/TimeSection.tsx](src/components/player/sections/TimeSection.tsx): `getButtonLabel` now prefers `formatManualEffectButton(effect).text`.
+- [src/components/player/sections/ProjectScopeSection.tsx](src/components/player/sections/ProjectScopeSection.tsx): same pattern in `getManualEffectButtonLabel`.
+- [src/components/player/sections/FinancesSection.tsx](src/components/player/sections/FinancesSection.tsx): same pattern in `getButtonLabel`; the funding-card "Accept Owner Funding" override stays.
+- [src/components/player/sections/EventsSection.tsx](src/components/player/sections/EventsSection.tsx): inline `effect.description || 'Life Event'` swapped for `formatManualEffectButton(effect).text || 'Life Event'`.
+- [src/components/player/sections/CardsSection.tsx](src/components/player/sections/CardsSection.tsx): stale docstring claiming "Roll for W/B Cards" buttons live here removed — the buttons moved to ActionCenterPanel long ago.
+
+#### Why no new test
+The underlying `formatManualEffectButton` helper already has dense coverage in `tests/utils/buttonFormatting.test.ts` (56 cases, including the dice-category → real-life-label mapping). The risk is a future refactor reverting these four call sites to `effect.description`; each fix site carries an inline `// Voice rule (v2.61.1 sweep extended...)` comment that flags the contract for the next reader.
+
+`fb:feedback-1778261627167-b1a52932` `fb:feedback-1778255365043-36ad2471`
+
 ## [3.0.2] - 2026-05-23
 
 ### Fix — restore version/commit + sync-status pill on the setup screen

@@ -4,6 +4,7 @@ import { ActionButton } from '../ActionButton';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { FormatUtils } from '../../../utils/FormatUtils';
 import { SpaceEffect } from '../../../types/DataTypes';
+import { formatManualEffectButton } from '../../../utils/buttonFormatting';
 import './ProjectScopeSection.css';
 
 /**
@@ -205,9 +206,12 @@ export const ProjectScopeSection: React.FC<ProjectScopeSectionProps> = ({
     }
   };
 
-  // Helper to format button label from manual effect
+  // Voice rule (v2.61.1 sweep extended 2026-05-23): use canonical real-life
+  // labels from formatManualEffectButton instead of the auto-generated
+  // effect.description ("Roll for W Cards"). Closes fb:b1a52932.
   const getManualEffectButtonLabel = (effect: SpaceEffect & { card_type?: string }): string => {
-    if (effect.description) return effect.description;
+    const formatted = formatManualEffectButton(effect);
+    if (formatted.text) return formatted.text;
     if (effect.card_type === 'W') return 'Add Work Package';
     if (effect.effect_type === 'cards') return 'Add Work Package';
     return effect.effect_type;
