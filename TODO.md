@@ -227,6 +227,12 @@ These ship in the deployed build but still appear in the feedback list because n
 
 ---
 
+## 🖥️ **Dashboard UI follow-ups**
+
+- [ ] **Surface `version` + `gitCommit` on bug-report list/detail pages** — v2.70.2 stamped reports with deploy version (game side) and surfaces them at top-level on `/api/public/feedback/open` (already consumed by `/start` briefing). The dashboard at `dashboard.unravelcodes.com` (separate repo: `D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/`) doesn't yet render either field. ~15 min change: extend `FeedbackReport.metadata` interface in [feedback/page.tsx](D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/src/app/feedback/page.tsx) (and the `[id]/page.tsx` detail view), render a small `v2.70.2`-style badge per report. Optional: color-code against "current production version" so stale reports go gray. Optional+: filter dropdown for "show reports from version X or older". Data is already flowing; this is purely display.
+
+---
+
 ## 🐛 **G148 Playtest Bug Fixes** (April 2026)
 *Source: Full playthrough bug report — 6 bugs found, 2 critical. See `docs/user/bug_report.docx`*
 
