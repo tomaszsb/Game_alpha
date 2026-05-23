@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.6] - 2026-05-23
+
+### `npm audit fix` — both moderate vulnerabilities cleared
+
+Two moderate vulnerabilities were flagged in `npm audit`:
+
+- **`qs` 6.11.1–6.15.1** — [GHSA-q8mj-m7cp-5q26](https://github.com/advisories/GHSA-q8mj-m7cp-5q26). Remotely triggerable DoS: `qs.stringify` crashes with `TypeError` on null/undefined entries in comma-format arrays when `encodeValuesOnly` is set. Pulled in transitively by `express@5.2.1` → `body-parser` → `qs`. **Production-reachable** (Express parses query strings on every request) — not a great look even if hard to trigger.
+- **`ws` 8.0.0–8.20.0** — [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx). Uninitialized memory disclosure. Pulled in only via `jsdom` and `puppeteer`, both `devDependencies`. Zero production exposure.
+
+`npm audit fix` resolved both via transitive bumps — `package.json` untouched, `package-lock.json` updated (8 lines). Post-fix `npm audit` reports 0 vulnerabilities. Targeted services test sweep stayed green (728/728).
+
+TODO's 🔒 Security follow-ups entry retired (both items cleared).
+
 ## [2.70.5] - 2026-05-23
 
 ### Dictionary discoverability — Phase A of newcomer jargon mode (fb:0aa9660c, fb:8ad42b52)
