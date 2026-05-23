@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-05-23
+
+### 🎉 v3.0 ships — BoardV3 retired (Workstream 3 Phase D complete)
+
+The final v3.0.0 technical gate is closed. `BoardCanvas` (React Flow, coordinate-driven, drag-to-save) becomes the only board renderer; the original snake/zig-zag `BoardV3` walker and its supporting utilities are gone. Net code reduction: **~2,400 lines removed**, ~100 lines added (the new `boardCommon.ts` shim + minor wiring tweaks).
+
+#### Deletions
+- [src/components/board/BoardV3.tsx](src/components/board/BoardV3.tsx) — 879 lines, the snake-grid React component.
+- [src/components/board/BoardV3.css](src/components/board/BoardV3.css) — paired stylesheet.
+- [src/utils/boardLayout.ts](src/utils/boardLayout.ts) — 785 lines, the layout walker plus PathSegment / Edge / branchFamily / parseCSV helpers that only the walker used.
+- [tests/utils/boardLayout.test.ts](tests/utils/boardLayout.test.ts) — 721 lines, walker-specific tests.
+
+#### What survived in a new home
+- [src/utils/boardCommon.ts](src/utils/boardCommon.ts) (new): `PHASE_COLORS`, `shortName`, `truncate`, and their `NPC_PREFIXES` + `SPECIAL_NAMES` dependencies. `BoardCanvas` imports from here instead of the deleted `boardLayout`.
+
+#### Wiring changes
+- [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx): import retargeted from `boardLayout` → `boardCommon`. No render-path change.
+- [TVDisplay.tsx](src/components/layout/TVDisplay.tsx): `<BoardV3>` swapped for `<BoardCanvas>` with `isAdmin={false}`, `edgesVisible={true}`. Read-only TV mode unchanged visually since `BoardCanvas` reads the same coordinates.
+- [GameLayout.tsx](src/components/layout/GameLayout.tsx): `boardImpl` state + `setBoardImpl` callback + `unravel:boardImpl` localStorage key + URL `?board=canvas` selector all removed. Board renders unconditionally as `BoardCanvas`. `boardEditMode` / `boardEdgesVisible` / `hiddenEdgeIds` state retained — still drives BoardCanvas admin props.
+- [BoardToggle.tsx](src/components/board/BoardToggle.tsx): Old/New impl-flip buttons removed along with `boardImpl` / `onBoardImplChange` / `BoardImpl` export. Edit / Edges / Hidden-edges restore buttons unchanged.
+
+#### Behavior
+
+No player-facing changes — anyone who had the canvas board selected (the default since v2.69.x playtesting) sees the exact same thing today. Admin in-game edit toggle still works. Standalone `BoardLayoutEditor` (v2.68.0) unaffected. Drag-save (v2.66.0 + v2.69.4 + v2.69.7 deploy fix) unaffected.
+
+#### Why now
+
+The gate was always "3+ playtests confirming v2.69.x stability." Across this 11-version run (v2.69.0 → v2.70.6) the user has been playtesting continuously — drag-save reopening, gameplay hover/click, dice modals, cheat space, design-fee cap, dictionary discoverability. The BoardCanvas-only path is well-exercised.
+
+#### Test sweep
+
+56 test files / 1,019 tests pass after the deletion. The walker-specific test file going away dropped the total by ~30; everything else stayed green.
+
 ## [2.70.6] - 2026-05-23
 
 ### `npm audit fix` — both moderate vulnerabilities cleared

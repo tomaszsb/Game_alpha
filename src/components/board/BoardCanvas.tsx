@@ -53,7 +53,7 @@ import { SmartBezierEdge } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate } from '../../utils/boardLayout';
+import { PHASE_COLORS, shortName, truncate } from '../../utils/boardCommon';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 

@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
-import { BoardV3 } from '../board/BoardV3';
+import { BoardCanvas } from '../board/BoardCanvas';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
@@ -181,9 +181,14 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
         {/* Game board - takes most of the screen */}
         <div style={styles.boardSection}>
           {gamePhase === 'PLAY' ? (
-            <BoardV3
+            // v3.0.0 — BoardV3 retired; BoardCanvas is the only renderer.
+            // TV display is read-only: no admin edit, edges always visible,
+            // no per-edge hides.
+            <BoardCanvas
               currentPlayerId={currentPlayerId}
               players={players}
+              isAdmin={false}
+              edgesVisible={true}
             />
           ) : gamePhase === 'SETUP' ? (
             <div style={styles.setupMessage}>

@@ -14,9 +14,8 @@ import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
 import { GameLog } from '../game/GameLog';
-import { BoardV3 } from '../board/BoardV3';
 import { BoardCanvas } from '../board/BoardCanvas';
-import { BoardToggle, type BoardImpl } from '../board/BoardToggle';
+import { BoardToggle } from '../board/BoardToggle';
 import { GameDisplaySettings } from '../settings/GameDisplaySettings';
 import { useGameContext } from '../../context/GameContext';
 import { formatDiceRollFeedback } from '../../utils/buttonFormatting';
@@ -82,23 +81,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
-  // Workstream 3 Phase B: in-game board-implementation toggle, admin-only
-  // (gated inside BoardToggle). Initial value picked from localStorage
-  // first, then URL (?board=canvas), then 'v3' default. Once set, the
-  // state lives in localStorage so reloads remember the choice.
-  const [boardImpl, setBoardImplState] = useState<BoardImpl>(() => {
-    if (typeof window === 'undefined') return 'v3';
-    try {
-      const stored = window.localStorage.getItem('unravel:boardImpl');
-      if (stored === 'canvas' || stored === 'v3') return stored;
-    } catch { /* localStorage may be blocked */ }
-    const fromUrl = new URLSearchParams(window.location.search).get('board');
-    return fromUrl === 'canvas' ? 'canvas' : 'v3';
-  });
-  const setBoardImpl = useCallback((v: BoardImpl) => {
-    setBoardImplState(v);
-    try { window.localStorage.setItem('unravel:boardImpl', v); } catch { /* ignored */ }
-  }, []);
+  // v3.0.0 — BoardV3 retired. Previously this section managed a boardImpl
+  // toggle (v3 vs canvas) that lived in localStorage; now BoardCanvas is the
+  // only renderer so the toggle and its persistence keys are gone. The
+  // remaining board state (edit mode, edges visibility, per-edge hides) is
+  // still wired to BoardCanvas's admin features below.
   const [boardEditMode, setBoardEditModeState] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
@@ -962,30 +949,20 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             </div>
           )}
 
-          {/* Board during PLAY phase. Two implementations:
-              - BoardV3 (default): snake/zig-zag walker board.
-              - BoardCanvas: coordinate-driven React Flow board (Workstream 3).
-              The BoardToggle in the top-right (admin-only) flips between
-              them at runtime; choice persists in localStorage. Once Phase D
-              ships drag-to-save and parity is verified, BoardV3 + the
-              walker get deleted. */}
+          {/* Board during PLAY phase. v3.0.0 retired BoardV3; BoardCanvas
+              (coordinate-driven React Flow renderer with drag-to-save) is
+              the only board. Admin-only Edit/Edges/Hidden controls in the
+              top-right toggle still drive its props. */}
           {gamePhase === 'PLAY' && (
             <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
-              {boardImpl === 'canvas' ? (
-                <BoardCanvas
-                  currentPlayerId={currentPlayerId}
-                  players={players}
-                  isAdmin={boardEditMode}
-                  edgesVisible={boardEdgesVisible}
-                  hiddenEdgeIds={hiddenEdgeIds}
-                  onHideEdge={onHideEdge}
-                />
-              ) : (
-                <BoardV3
-                  currentPlayerId={currentPlayerId}
-                  players={players}
-                />
-              )}
+              <BoardCanvas
+                currentPlayerId={currentPlayerId}
+                players={players}
+                isAdmin={boardEditMode}
+                edgesVisible={boardEdgesVisible}
+                hiddenEdgeIds={hiddenEdgeIds}
+                onHideEdge={onHideEdge}
+              />
             </div>
           )}
         </>
@@ -1127,8 +1104,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           BoardToggle internally gates rendering on isAdminAuthenticated()
           so normal players never see it. Will be removed in Phase D/E. */}
       <BoardToggle
-        boardImpl={boardImpl}
-        onBoardImplChange={setBoardImpl}
         editMode={boardEditMode}
         onEditModeChange={setBoardEditMode}
         edgesVisible={boardEdgesVisible}

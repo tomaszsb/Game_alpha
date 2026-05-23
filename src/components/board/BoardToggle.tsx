@@ -1,28 +1,23 @@
 // src/components/board/BoardToggle.tsx
 //
-// Workstream 3 / Phase B testing aid. Floating button in the top-right
-// corner that flips between BoardV3 (snake-grid, the default) and
-// BoardCanvas (React Flow). Stored in localStorage so the choice
-// survives reloads.
+// Admin-only floating control strip in the top-right corner of the
+// gameplay board. Originally (Workstream 3 Phase B) this had Old/New
+// buttons that flipped between BoardV3 and BoardCanvas; v3.0.0 retired
+// BoardV3, so the impl flip is gone and only the BoardCanvas-specific
+// controls remain (in-game edit toggle, edge visibility, hidden-edge
+// restore).
 //
 // Visible to admin only (via isAdminAuthenticated). Regular players
-// don't see the dev toggle and stay on whichever board is the default.
-//
-// Will be removed in Phase D/E once BoardCanvas becomes the only board.
+// don't see the dev controls.
 
 import React from 'react';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
 
-export type BoardImpl = 'v3' | 'canvas';
-
 interface BoardToggleProps {
-  boardImpl: BoardImpl;
-  onBoardImplChange: (v: BoardImpl) => void;
   editMode: boolean;
   onEditModeChange: (v: boolean) => void;
   /** When false, BoardCanvas hides all edges. Lets admin focus on
-   *  arranging tiles without the visual noise of auto-routed arrows.
-   *  No effect on BoardV3. */
+   *  arranging tiles without the visual noise of auto-routed arrows. */
   edgesVisible: boolean;
   onEdgesVisibleChange: (v: boolean) => void;
   /** Number of edges manually hidden (per-edge hide). 0 = none hidden.
@@ -33,8 +28,6 @@ interface BoardToggleProps {
 }
 
 export function BoardToggle({
-  boardImpl,
-  onBoardImplChange,
   editMode,
   onEditModeChange,
   edgesVisible,
@@ -80,57 +73,36 @@ export function BoardToggle({
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         border: '1px solid #dee2e6',
       }}
-      // Stop drag events bubbling — important when BoardCanvas is the
-      // child renderer; React Flow's pan/drag could otherwise catch
-      // pointer events on the toggle.
+      // Stop drag events bubbling — important because React Flow's
+      // pan/drag could otherwise catch pointer events on the toggle.
       onMouseDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
       <button
         type="button"
-        style={boardImpl === 'v3' ? activeStyle : buttonStyle}
-        onClick={() => onBoardImplChange('v3')}
-        title="Snake-grid board (current default)"
+        style={editMode ? activeStyle : buttonStyle}
+        onClick={() => onEditModeChange(!editMode)}
+        title="Drag tiles to reposition. Saves to disk via /api/admin/save-source-files."
       >
-        📊 Old
+        ✏️ Edit {editMode ? 'on' : 'off'}
       </button>
       <button
         type="button"
-        style={boardImpl === 'canvas' ? activeStyle : buttonStyle}
-        onClick={() => onBoardImplChange('canvas')}
-        title="React Flow board (Workstream 3)"
+        style={edgesVisible ? activeStyle : buttonStyle}
+        onClick={() => onEdgesVisibleChange(!edgesVisible)}
+        title={edgesVisible ? 'Hide all connector lines' : 'Show all connector lines'}
       >
-        🎨 New
+        🔗 Edges {edgesVisible ? 'on' : 'off'}
       </button>
-      {boardImpl === 'canvas' && (
-        <>
-          <button
-            type="button"
-            style={editMode ? activeStyle : buttonStyle}
-            onClick={() => onEditModeChange(!editMode)}
-            title="Drag tiles to reposition. New coords logged to browser console (F12)."
-          >
-            ✏️ Edit {editMode ? 'on' : 'off'}
-          </button>
-          <button
-            type="button"
-            style={edgesVisible ? activeStyle : buttonStyle}
-            onClick={() => onEdgesVisibleChange(!edgesVisible)}
-            title={edgesVisible ? 'Hide all connector lines' : 'Show all connector lines'}
-          >
-            🔗 Edges {edgesVisible ? 'on' : 'off'}
-          </button>
-          {hiddenEdgeCount > 0 && onClearHiddenEdges && (
-            <button
-              type="button"
-              style={{ ...buttonStyle, background: '#fff3cd', borderColor: '#ffc107' }}
-              onClick={onClearHiddenEdges}
-              title={`${hiddenEdgeCount} edge${hiddenEdgeCount === 1 ? '' : 's'} hidden individually — click to restore`}
-            >
-              🚫 {hiddenEdgeCount} hidden · restore
-            </button>
-          )}
-        </>
+      {hiddenEdgeCount > 0 && onClearHiddenEdges && (
+        <button
+          type="button"
+          style={{ ...buttonStyle, background: '#fff3cd', borderColor: '#ffc107' }}
+          onClick={onClearHiddenEdges}
+          title={`${hiddenEdgeCount} edge${hiddenEdgeCount === 1 ? '' : 's'} hidden individually — click to restore`}
+        >
+          🚫 {hiddenEdgeCount} hidden · restore
+        </button>
       )}
     </div>
   );
