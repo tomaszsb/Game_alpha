@@ -19,6 +19,7 @@ import {
   isPlayCardEffect
 } from '../types/EffectTypes';
 import { Card } from '../types/DataTypes';
+import { getCardTypeName } from '../utils/cardTypeNames';
 
 type CardDrawPayload = Extract<Effect, { effectType: 'CARD_DRAW' }>['payload'];
 type CardDiscardPayload = Extract<Effect, { effectType: 'CARD_DISCARD' }>['payload'];
@@ -96,7 +97,8 @@ export class CardEffectHandler implements ICardEffectHandler {
         resultingEffects: [{
           effectType: 'LOG',
           payload: {
-            message: `Drew ${drawnCards.length} ${payload.cardType} card(s): ${drawnCards.join(', ')}`,
+            // Voice rule: real-life label, no "card(s)" word. fb:7a99da1a/004dc390.
+            message: `Drew ${drawnCards.length} ${getCardTypeName(payload.cardType, drawnCards.length)}: ${drawnCards.join(', ')}`,
             level: 'INFO',
             source,
             action: 'card_draw',
@@ -284,11 +286,13 @@ export class CardEffectHandler implements ICardEffectHandler {
       ? `🎲 Life Event: ${cardNames[0]}`
       : `🎲 Life Events: ${cardNames.join(', ')}`;
 
+    // Voice rule: real-life label, no "card(s)" word. fb:7a99da1a/004dc390.
+    const lifeEventLabel = drawnCards.length === 1 ? 'Life Event' : 'Life Events';
     this.notificationService.notify(
       {
         short: 'Life Event!',
         medium: notificationMessage,
-        detailed: `Drew ${drawnCards.length} Life Event card(s): ${cardNames.join(', ')}`
+        detailed: `Drew ${drawnCards.length} ${lifeEventLabel}: ${cardNames.join(', ')}`
       },
       {
         playerId,
@@ -428,18 +432,12 @@ export class CardEffectHandler implements ICardEffectHandler {
   }
 
   private logCardDraw(playerId: string, cardType: string, count: number, drawnCards: string[]): void {
-    const cardTypeNames: Record<string, string> = {
-      'W': 'Work',
-      'L': 'Life Event',
-      'E': 'Expeditor',
-      'B': 'Bank Funding',
-      'I': 'Investor Funding'
-    };
-    const cardTypeName = cardTypeNames[cardType] || cardType;
-    const cardLabel = count > 1 ? 'cards' : 'card';
+    // Voice rule: real-life label via getCardTypeName ("Work Packages",
+    // "Expeditors", etc.) — never "Work card" / "X cards". fb:7a99da1a/004dc390.
+    const friendlyName = getCardTypeName(cardType, count);
 
     this.loggingService.info(
-      `Drew ${count} ${cardTypeName} ${cardLabel}: ${drawnCards.join(', ')}`,
+      `Drew ${count} ${friendlyName}: ${drawnCards.join(', ')}`,
       {
         playerId,
         action: 'card_draw',

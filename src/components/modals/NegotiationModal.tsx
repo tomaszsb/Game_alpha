@@ -5,6 +5,7 @@ import { Player, Card, CardType, VisitType } from '../../types/DataTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import { getCardTypeName } from '../../utils/cardTypeNames';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 
 // Types for negotiation state management
@@ -548,7 +549,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
           }}>
             <div style={{ fontSize: '18px', marginBottom: '12px' }}>{theme.emoji.time} Waiting for response...</div>
             <div style={{ color: colors.warning.text }}>
-              Your offer: ${negotiation.currentOffer.money} + cards worth ~${getTotalOfferValue() - negotiation.currentOffer.money}
+              Your offer: ${negotiation.currentOffer.money} + items worth ~${getTotalOfferValue() - negotiation.currentOffer.money}
             </div>
           </div>
           <button
@@ -691,7 +692,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
                 if (cardCount === 0) return null;
                 return (
                   <div key={cardType} style={{ color: colors.text.secondary }}>
-                    {getCardTypeEmoji(cardType)} {cardType}: {cardCount} cards
+                    {getCardTypeEmoji(cardType)} {getCardTypeName(cardType, cardCount)}: {cardCount}
                   </div>
                 );
               })}

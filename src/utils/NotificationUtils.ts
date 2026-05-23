@@ -4,15 +4,18 @@ import { NotificationContent } from '../services/NotificationService';
 import { FormatUtils } from './FormatUtils';
 import { NOTIF } from '../constants/uiStrings';
 import { DiceFeedbackEffect } from './buttonFormatting';
+import { getCardTypeName } from './cardTypeNames';
 
 export class NotificationUtils {
 
   // Dice Roll Notifications
   static createDiceRollNotification(diceValue: number, effects: DiceFeedbackEffect[], playerName: string): NotificationContent {
+    // Voice rule: real-life card-type label ("2 Work Packages" not "2 W").
+    // fb:7a99da1a/004dc390.
     const effectSummary = effects.map(effect => {
       switch (effect.type) {
         case 'cards':
-          return `${effect.cardCount} ${effect.cardType}`;
+          return `${effect.cardCount ?? 1} ${getCardTypeName(effect.cardType || '', effect.cardCount ?? 1)}`;
         case 'money': {
           const v = effect.value ?? 0;
           return v > 0 ? `+$${Math.abs(v)}` : `-$${Math.abs(v)}`;
@@ -72,7 +75,8 @@ export class NotificationUtils {
             : `-${FormatUtils.formatMoney(Math.abs(v))}`;
         }
         case 'cards':
-          return `+${effect.cardCount} ${effect.cardType}`;
+          // Voice rule: real-life label, no raw letter codes. fb:7a99da1a/004dc390.
+          return `+${effect.cardCount ?? 1} ${getCardTypeName(effect.cardType || '', effect.cardCount ?? 1)}`;
         case 'time': {
           const v = effect.value ?? 0;
           return v > 0 ? `+${v} days` : `-${v} days`;

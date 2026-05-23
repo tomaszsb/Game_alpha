@@ -285,7 +285,7 @@ export function EducationalCardSelectionModal({
 
       {filteredCards.length === 0 && (
         <div style={{ textAlign: 'center', padding: '24px', color: colors.text.secondary }}>
-          No cards found matching filters
+          No items found matching filters
         </div>
       )}
     </ModalBase>

@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.5] - 2026-05-23
+
+### Fix — voice-rule sweep across notifications, player log, and Negotiation modal
+
+`fb:7a99da1a` / `fb:004dc390` ("checking out modal — still has references to games such as cards") — the v2.61.1 sweep had patched the dice-effect button labels but left the word "card(s)" lurking in player-log entries, toast notifications, and one less-trafficked modal.
+
+#### Fixes
+- [src/services/CardEffectHandler.ts](src/services/CardEffectHandler.ts) — three player-visible log/notification messages now use `getCardTypeName` from the shared helper:
+  - `logCardDraw` — "Drew 3 Work card cards: …" → "Drew 3 Work Packages: …"
+  - `notifyLifeEventDraw` — "Drew 2 Life Event card(s): …" → "Drew 2 Life Events: …"
+  - LOG payload after CARD_DRAW — "Drew 1 E card(s): …" → "Drew 1 Expeditor: …"
+- [src/utils/NotificationUtils.ts](src/utils/NotificationUtils.ts) — `createDiceRollNotification` and `createCardPlayNotification` showed raw letter codes ("2 W") in toasts. Both now use `getCardTypeName(cardType, count)` → "2 Work Packages".
+- [src/components/modals/NegotiationModal.tsx](src/components/modals/NegotiationModal.tsx) — "Your offer: $X + cards worth ~$Y" → "items worth ~$Y"; per-type row "{letter}: {count} cards" → "{Friendly Name}: {count}".
+- [src/components/modals/EducationalCardSelectionModal.tsx](src/components/modals/EducationalCardSelectionModal.tsx) — empty-state "No cards found matching filters" → "No items found matching filters".
+
+#### Not changed
+Internal identifier names (`cardType`, `cardId`, `card_name`, etc.) stay — those are code, never surfaced to the player. The 🃏 emoji on `cardPlayMedium` stays for now; if you want it gone too, that's a one-line follow-up.
+
+`fb:feedback-1778641746550-7a99da1a` `fb:feedback-1778641694970-004dc390`
+
 ## [3.0.4] - 2026-05-23
 
 ### Fix — count choice-movement as a required action
