@@ -1074,6 +1074,21 @@ export class StateService implements IStateService {
         }
       }
 
+      // Choice-based movement: the player must explicitly pick a destination
+      // before ending the turn. canEndTurn already gates on moveIntent, but the
+      // requiredActions counter undercounted by 1 — players saw the End Turn
+      // tooltip claim "1 action remaining" while two buttons (the manual effect
+      // + the destination prompt) were still visible. Dice movement is already
+      // counted via the dice block above; fixed/logic/none don't need player
+      // input. fb:feedback-1778642151553-ffff07e2.
+      if (movement?.movement_type === 'choice') {
+        availableTypes.push('movement_choice');
+        required++;
+        if (player.moveIntent) {
+          completed++;
+        }
+      }
+
       // Filter effects by condition (e.g., scope_le_4M, scope_gt_4M)
       const conditionFilteredEffects = spaceEffects.filter(effect =>
         this.evaluateSpaceEffectCondition(effect.condition, player)

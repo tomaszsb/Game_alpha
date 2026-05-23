@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.4] - 2026-05-23
+
+### Fix — count choice-movement as a required action
+
+`fb:feedback-1778642151553-ffff07e2` ("1 action remaining but 2 — location + expeditor"): at a `choice`-type movement space like PM-DECISION-CHECK, the End Turn tooltip undercounted by 1. The player saw both a manual-effect button AND a destination prompt, but the counter only knew about the manual effect. `canEndTurn` already correctly gated on `player.moveIntent`, so they couldn't actually end the turn until they picked — but the on-screen "1 remaining" lied.
+
+#### Fix
+- [src/services/StateService.ts](src/services/StateService.ts) — `calculateRequiredActions` now adds `+1 required` for `movement.movement_type === 'choice'` and `+1 completed` once `player.moveIntent` is set. Dice movement was already counted via the dice block; `fixed` / `logic` / `none` types don't need player input so they stay at 0.
+
+#### Test
+- [tests/services/StateService-actionCounter.test.ts](tests/services/StateService-actionCounter.test.ts) — 4 cases lock the behavior: choice + manual = 2 required; moveIntent set = 1 completed; dice movement still counts as 1 (not double-counted); fixed/logic/none all stay at 0.
+
+`fb:feedback-1778642151553-ffff07e2`
+
 ## [3.0.3] - 2026-05-23
 
 ### Fix — extend the v2.61.1 voice-rule sweep to four sister sections
