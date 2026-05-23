@@ -29,6 +29,7 @@ import { haptics } from '../../utils/haptics';
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
+import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
 
 interface GameLayoutProps {
@@ -1135,6 +1136,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         hiddenEdgeCount={hiddenEdgeIds.size}
         onClearHiddenEdges={onClearHiddenEdges}
       />
+
+      {/* One-time onboarding nudge for the dictionary feature.
+          Self-contained: reads localStorage for "seen" state, auto-dismisses
+          after 12s or on click. Only renders during gameplay so the hint
+          fires when there's actually game text with highlighted terms. */}
+      {gamePhase === 'PLAY' && <DictionaryHint />}
     </div>
   );
 }

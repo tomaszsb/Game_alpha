@@ -41,7 +41,7 @@ function makeServices(opts: {
   // adds to expenditures.design, then checkDesignFeeCap reads the updated player.
   let liveExpenditures = { ...player.expenditures };
 
-  const stateService: Partial<IStateService> = {
+  const stateService = {
     getPlayer: vi.fn((id: string) => {
       return id === 'p1'
         ? { ...player, expenditures: { ...liveExpenditures } } as any
@@ -49,44 +49,45 @@ function makeServices(opts: {
     }),
     updateTempState: vi.fn((_id: string, data: any) => {
       if (data?.expenditures) liveExpenditures = { ...liveExpenditures, ...data.expenditures };
+      return { success: true } as any;
     }),
     emitAutoAction: vi.fn(),
     endGame: vi.fn(),
     // trackDesignExpenditure reads gameState for turn-number cost-history entries.
     getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
-  };
+  } as unknown as IStateService;
 
-  const resourceService: Partial<IResourceService> = {
+  const resourceService = {
     addMoney: vi.fn(() => true),
     spendMoney: vi.fn(() => true),
     addTime: vi.fn(),
     spendTime: vi.fn(),
-  };
+  } as unknown as IResourceService;
 
-  const gameRulesService: Partial<IGameRulesService> = {
+  const gameRulesService = {
     calculateProjectScope: vi.fn(() => opts.projectScope),
-  };
+  } as unknown as IGameRulesService;
 
-  const loggingService: Partial<ILoggingService> = {
+  const loggingService = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  };
+  } as unknown as ILoggingService;
 
-  const dataService: Partial<IDataService> | undefined = opts.spaceConfigPhase
-    ? {
+  const dataService = opts.spaceConfigPhase
+    ? ({
         getGameConfigBySpace: vi.fn((space: string) =>
           space === opts.currentSpace ? ({ space_name: space, phase: opts.spaceConfigPhase } as any) : undefined
         ),
-      }
+      } as unknown as IDataService)
     : undefined;
 
   const handler = new FinancialEffectHandler(
-    resourceService as IResourceService,
-    stateService as IStateService,
-    gameRulesService as IGameRulesService,
-    loggingService as ILoggingService,
-    dataService as IDataService | undefined
+    resourceService,
+    stateService,
+    gameRulesService,
+    loggingService,
+    dataService
   );
 
   return { handler, stateService, resourceService, gameRulesService };

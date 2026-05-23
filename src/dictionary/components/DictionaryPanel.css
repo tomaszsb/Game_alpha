@@ -446,17 +446,40 @@
   margin-left: 8px;
 }
 
-/* TextWithTerms styles */
+/* TextWithTerms styles
+ * v2.70.5 (fb:8ad42b52) — make highlighted glossary terms more discoverable.
+ * The old dotted underline was too easy to miss. Now: solid underline at
+ * 2px, a subtle background tint so the term looks tappable at a glance,
+ * and a small ⓘ marker after the term that hints at "more info available."
+ * Hover deepens the tint. Click still opens the existing definition panel.
+ */
 .dictionary-term-link {
-  color: inherit;
+  color: var(--dictionary-primary-dark);
   text-decoration: underline;
-  text-decoration-style: dotted;
+  text-decoration-style: solid;
   text-decoration-color: var(--dictionary-primary);
+  text-decoration-thickness: 2px;
   text-underline-offset: 2px;
+  background-color: rgba(0, 123, 255, 0.07);
+  padding: 0 2px;
+  border-radius: 2px;
   cursor: help;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
+}
+
+.dictionary-term-link::after {
+  content: 'ⓘ';
+  font-size: 0.75em;
+  margin-left: 2px;
+  color: var(--dictionary-primary);
+  vertical-align: super;
+  opacity: 0.7;
 }
 
 .dictionary-term-link:hover {
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(0, 123, 255, 0.18);
+}
+
+.dictionary-term-link:hover::after {
+  opacity: 1;
 }

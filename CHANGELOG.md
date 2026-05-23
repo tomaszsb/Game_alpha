@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.5] - 2026-05-23
+
+### Dictionary discoverability — Phase A of newcomer jargon mode (fb:0aa9660c, fb:8ad42b52)
+
+Investigation revealed the codebase already ships a robust dictionary system: 264 glossary terms in [GLOSSARY.csv](public/data/CLEAN_FILES/GLOSSARY.csv), a `TextWithTerms` wrapper used in 20+ places (story blocks, modals, action center, narrative blocks) that highlights known terms and opens a definition panel on click. Playtester feedback flagged "Prof Cert, Audit, Bypass, Decision Review, Bank Review… overwhelming without context" — but the click-for-definition cue was too subtle to discover. Per user decision, Phase A surfaces the existing feature instead of building a new aliases pipeline.
+
+- [DictionaryPanel.css](src/dictionary/components/DictionaryPanel.css): `.dictionary-term-link` rebuilt — solid 2px underline (was dotted), permanent subtle background tint, darker text color, a small `ⓘ` superscript marker via `::after`. Hover deepens the tint and brightens the marker. Cursor: help unchanged.
+- [DictionaryHint.tsx](src/dictionary/components/DictionaryHint.tsx) (new): one-time onboarding nudge. Fixed-position card in bottom-right, "💡 Tip: tap to learn — words with a blue underline ⓘ open a quick definition." Persists "seen" state in `localStorage` under versioned key `unravel.dictionaryHint.v1` so a future redesign can bump and re-show. Auto-dismisses after 12s or on click. Self-contained — safe to mount anywhere; in this version mounts in [GameLayout.tsx](src/components/layout/GameLayout.tsx) gated to `gamePhase === 'PLAY'` so the hint fires when there's actually highlighted game text on screen.
+- [dictionary/index.ts](src/dictionary/index.ts): re-exports `DictionaryHint`.
+
+Phase C (plain-English aliases for short labels like space tile names and button labels) was scoped out — user is satisfied with click-for-definition once it's discoverable.
+
 ## [2.70.4] - 2026-05-22
 
 ### Design fee >20% rule is now strict-any-phase (fb:3a57d5d0)

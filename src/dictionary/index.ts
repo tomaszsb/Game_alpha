@@ -57,6 +57,7 @@
 export { DictionaryPanel } from './components/DictionaryPanel';
 export { TermCard } from './components/TermCard';
 export { TextWithTerms } from './components/TextWithTerms';
+export { DictionaryHint } from './components/DictionaryHint';
 
 // Context
 export {
