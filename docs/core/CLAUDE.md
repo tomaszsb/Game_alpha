@@ -679,6 +679,58 @@ Don't try to normalize the line endings — DataService.parseCsvLine, server pro
 
 After byte-editing the source, run `node scripts/regen-clean-files.mjs` to refresh `public/data/CLEAN_FILES/*` so downstream code sees the new rows. Then if the user already has the live data (server-side `server/data/game-data/SOURCE_FILES/DiceRoll Info.csv`), they need a separate migration step — the deploy preserves their copy and won't overwrite it with the new BASELINE. Either add via the in-game editor (triggers regen) or SSH-edit + container restart.
 
+### Modal queueing — never overwrite, always queue (v3.0.9)
+
+When two modal sources can fire on the same event (synchronous dice roll completion path + AutoActionEvent emitted during space arrival), **do not have both write to the same modal state.** The losing path either stomps or never shows, and the player sees content swap mid-render or perceives a single merged modal.
+
+Pattern that works: dedicated component per modal type, queueing state in the parent. v3.0.9 fix: `GameLayout` carries both `isDiceResultModalOpen + diceResult` AND `isLifeEventModalOpen + pendingLifeEvent`. The `life_event` AutoActionEvent subscriber sets `pendingLifeEvent`; a small `useEffect` flushes the queue when the regular dice modal is closed (or immediately if none open). The dedicated modal's `onClose` clears both queue flags.
+
+The fragile alternative: `setDiceResult({...new content}); setIsDiceResultModalOpen(true);` even though the modal was already open. Don't do this. Add the new modal to the `anyModalOpen` back-button tracker in `GameLayout` so Android back / Esc handling stays consistent.
+
+Don't conflate with the EffectEngine vs explicit-draw "double-draw" suspicion — `EffectFactory.parseSpaceEffect:506-513` explicitly skips dice-conditional card rows so they're processed exactly once by `SpaceArrivalProcessor.processDiceConditionalCardEffects`. The bug was on the *display* side, not the data side.
+
+### React Flow grows from TOP-LEFT — center-anchor with transform (v3.0.12)
+
+React Flow positions custom nodes by their top-left corner. When a tile's CSS width/height grows (e.g. 150×60 → 220×120 for current player), it expands rightward and downward only, encroaching on the two neighbors below and to the right. v3.0.10 shipped the size hierarchy and immediately got bitten by this; v3.0.12 fixed with the center-anchored growth pattern.
+
+Apply `transform: translate(-(w - COMPACT_W)/2, -(h - COMPACT_H)/2)` to the tile so growth is symmetric around the original anchor — encroachment splits across all four sides instead of two. Critically: must be a **transform**, not a `left`/`top` offset, so React Flow's positioning math isn't disrupted. Edit mode forces the compact size so the transform stays at (0,0) and drag math works cleanly.
+
+The size hierarchy itself lives in `src/utils/boardCommon.ts` `computeTileVisualState({isEditMode, isExpanded, isCurrent, isHovered, isValidMove})` returning `{size, width, minHeight, zIndex, storyMax, showsStory, showsAction}`. Priority order edit-mode > expanded > current > hover > valid-move > compact. Click-locked tiles get popover treatment (heavy drop shadow `0 16px 36px rgba(0,0,0,0.28)` + z-index 30) so they read as a card floating above the grid; in-grid sizes layer normally.
+
+Editor footprint buffer: exported constants `BOARD_TILE_COMPACT` and `BOARD_TILE_MAX_INGRID` let `BoardLayoutEditor` render a dashed 220×120 outline around every compact tile (`pointerEvents: none, zIndex: 0`) so admins see in-game footprint. Threaded through `BoardCanvasProps.showBuffer` → `BoardNodeData.showBuffer` → `BoardNode` render.
+
+### Path-only edges by default — full network preserved for admin (v3.0.10)
+
+The ~50-arrow forward-network from MOVEMENT.csv First-visit rows is too noisy in gameplay. Players want to see (a) where they've been and (b) where they can go next — nothing else. `BoardCanvas.visibleEdges` memo default-filters to:
+- **Path-taken edges** — consecutive pairs in `currentPlayer.spaceVisitLog` (dim gray dashed `4 4`, opacity 0.7).
+- **Next-move edges** — outgoing from `currentPlayer.currentSpace` (solid green `#10b981`, thicker, bigger arrowhead). Driven by `validMoves` (falls back to all-outgoing-from-current if validMoves hasn't loaded).
+
+Admin mode (`isAdmin=true`) skips the filter entirely so `BoardLayoutEditor` still works for click-to-hide and per-edge admin operations. The memo deps include `currentPlayerId`, `players`, `validMoves`, `isAdmin` — don't drop any when refactoring.
+
+### End-game data lives in three independent layers (v3.0.11–v3.0.13)
+
+When building a stats/insights panel from in-game data, separate the three layers so each can be tested + extended independently.
+
+1. **Data layer** — pure helper `buildEndGameStats(player, { projectScope })` in `src/utils/endGameStats.ts` returns structured `EndGameStats`. Caller injects `projectScope` from `gameRulesService.calculateProjectScope` so the helper stays service-free for unit testing.
+2. **Presentation layer** — `EndGameStatsPanel` sub-component in `EndGameModal.tsx` takes the structured stats as props and renders them. Pure props in, JSX out.
+3. **Wisdom layer** — pure helper `buildEndGameInsights(stats, player, { maxInsights })` in `src/utils/endGameInsights.ts` runs ~20 rules and returns the top N. Each rule is a `(stats, player) => Insight | null`. Three tones (win/observe/lesson). Renders as a `ProjectDebrief` sub-component in `EndGameModal.tsx`.
+
+Why three layers: each layer's tests are sharp and fast. The wisdom layer can grow new rules without touching data or presentation. Nothing imports React except the presentation layer.
+
+**Fee-vs-funding gotcha:** `feesBreakdown.totalFees` in EndGameStats **excludes** `bank` and `investor` categories from `player.costs`. Those are funding repayment, not fees. Including them inflates the displayed "Fees Paid" total artificially and confuses the reader.
+
+**TurnsTaken approximation:** GameState has `globalTurnCount` (shared across players). The best per-player turn count is the `entryTurn` of the final `spaceVisitLog` entry. Document this in the helper since callers might be surprised the number isn't exact.
+
+### Dashboard feedback PATCH sweep (v3.0.9 workflow)
+
+Standing housekeeping pattern at every `/koniec`. Code-side fixes don't auto-flip the dashboard `resolved` flag — that requires an explicit PATCH.
+
+- Endpoint: `PATCH https://game.unravelcodes.com/api/feedback/{id}.json` with body `{ "resolved": true }`. The `.json` suffix on the id is **required** (regex `/^feedback-\d+-[a-f0-9]+\.json$/` at `server/server.js:1166`). Dashboard list shows ids without it — add it for the PATCH.
+- **Not** token-protected (admin-write surface; open). Read-side `GET /api/public/feedback/open?token={FEEDBACK_TOKEN}` IS token-gated.
+- Sweep script: grep TODO.md for `fb:(feedback-\d+-[a-f0-9]+)` markers on `[x]`-checked lines, intersect with the live unresolved set, PATCH each. Don't blindly flip every TODO marker — only ones still showing unresolved on the dashboard.
+
+Common cause of "shipped but report still unresolved": we always remember to update TODO, rarely the dashboard PATCH. v3.0.9 sweep flipped 29 reports (this sprint + v2.63.9–v2.65.x backlog of `[x]` entries that had never been flipped). Dashboard 51 → 22 unresolved.
+
 ### Legacy `/api/gamestate` fallthrough trap (v2.69.1)
 
 `src/utils/networkDetection.ts:getGameStateAPIPath(gameId?)` returns `/api/games/${gameId}/state` when a gameId is provided, but falls through to `/api/gamestate` (the single-game-era legacy endpoint) when none is. The server still holds a single-game record at `LEGACY_GAME_ID` that can be left in any phase from prior sessions. Any caller doing `loadStateFromServer()` without first ensuring a gameId in the URL can pick up legacy state — typically PLAY phase — and skip setup entirely. Presents as "the app jumps directly to the game" on a fresh URL hit.
@@ -689,5 +741,5 @@ When refactoring App-level routing, remember: `ServiceProvider` doesn't take a g
 
 ---
 
-**Last Updated:** May 23, 2026 PM (Session v3.0.1–**v3.0.8** — 8 versions: window.error scoping, setup-screen sync pill + dice-collapse refactor, voice-rule sweep across 4 sister sections + notifications + Negotiation modal, choice-movement counter, speaker-aware dice summary, owner funding-amount-in-dialogue via `{fundingAmount}` token, ledger pill nudge animation)
-**Charter Version:** 3.14 (+ deploy.sh nesting race, roll_group paired effects, DiceRoll Info.csv mixed line endings)
+**Last Updated:** May 23, 2026 evening (Session v3.0.9–**v3.0.13** — 5 versions: dedicated LifeEventModal with queueing, board readability v2 sprint covering tile-name match + five-step size hierarchy + path-only edges, end-game stats panel, center-anchored growth + popover + editor buffer ghost, Project Debrief insights panel)
+**Charter Version:** 3.15 (+ modal queueing pattern, React Flow top-left growth + transform anchoring, path-only edges, three-layer end-game architecture, dashboard PATCH sweep workflow)
