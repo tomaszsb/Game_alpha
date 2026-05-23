@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.3] - 2026-05-22
+
+### Suppress duplicate "Determine Next Step" button on dice-driven movement spaces
+
+v2.70.1 collapsed multiple SPACE_EFFECTS dice rows into one "🎲 Roll dice" button, but missed that ActionCenterPanel has a *second*, parallel rendering path for dice-driven movement (CHEAT-BYPASS has `movement_type=dice` in MOVEMENT.csv). The result on CHEAT-BYPASS was two buttons that fire the exact same `handleDiceRoll` — "🎲 Roll dice" (from the SPACE_EFFECTS path) and "🎲 Determine Next Step" (from the movement path). One click was always going to resolve everything via the same roll, so the second button was purely confusing.
+
+- [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx): new `hasDiceEffectButton` / `showMovementDiceButton` guards. When any visible `pendingAction` is a dice effect, the separate movement-dice button is suppressed and `pendingCount` no longer double-counts. Pure rendering change — engine behavior unchanged (any dice click still resolves time + money + destination together).
+
 ## [2.70.2] - 2026-05-22
 
 ### Bug reports stamped with deploy version

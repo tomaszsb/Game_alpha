@@ -376,8 +376,16 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
 
   const needsMovementChoice = !!movementChoice && !selectedDestination;
   const visiblePendingActions = pendingActions.filter(a => !a.isCompleted);
+  // v2.70.3 — When a SPACE_EFFECTS dice button is already in the list (e.g.
+  // CHEAT-BYPASS's "🎲 Roll dice" from the Time/Fees Paid dedup), the same
+  // single roll also resolves dice-driven movement. Suppress the separate
+  // "Determine Next Step" button so the player doesn't see two buttons that
+  // both fire the same roll. The dice-roll handler (handleDiceRoll) already
+  // covers both effects + movement.
+  const hasDiceEffectButton = visiblePendingActions.some(a => a.isDiceEffect);
+  const showMovementDiceButton = isDiceMovementSpace && !hasPlayerRolledDice && !hasDiceEffectButton;
   const pendingCount = visiblePendingActions.length +
-    (isDiceMovementSpace && !hasPlayerRolledDice ? 1 : 0) +
+    (showMovementDiceButton ? 1 : 0) +
     (needsMovementChoice ? 1 : 0);
 
   // End turn logic
@@ -682,7 +690,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         {/* Required Actions — hides completed entries so the list shows only what's left to do.
          * The dice-movement button (when present) renders as the final action inside this section
          * so it groups with the other actions rather than floating above the header. */}
-        {isMyTurn && (visiblePendingActions.length > 0 || (isDiceMovementSpace && !hasPlayerRolledDice && onRollDice)) && (
+        {isMyTurn && (visiblePendingActions.length > 0 || (showMovementDiceButton && onRollDice)) && (
           <>
             <div className="action-center__required-actions-header">
               📋 YOUR ACTIONS {pendingCount > 0 ? `(${pendingCount} remaining)` : '(all complete ✅)'}
@@ -703,7 +711,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 {action.isDiceEffect && isRollingDice ? '🎲 Deciding...' : action.label}
               </button>
             ))}
-            {isDiceMovementSpace && !hasPlayerRolledDice && onRollDice && (
+            {showMovementDiceButton && onRollDice && (
               <button
                 className="action-center__action-btn action-center__action-btn--dice"
                 onClick={handleDiceRoll}
