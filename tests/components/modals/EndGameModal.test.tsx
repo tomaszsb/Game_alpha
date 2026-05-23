@@ -16,12 +16,16 @@ beforeAll(() => {
 // Create mock outside of describe block
 const mockStateService: any = createMockStateService();
 const mockDataService: any = { getModalConfig: vi.fn() };
+// fb:cc345da9 — stats panel calls gameRulesService.calculateProjectScope.
+// Mock returns 0 by default; per-test overrides can set a richer value.
+const mockGameRulesService: any = { calculateProjectScope: vi.fn().mockReturnValue(0) };
 
 // Mock the useGameContext hook
 vi.mock('../../../src/context/GameContext', () => ({
   useGameContext: () => ({
     stateService: mockStateService,
     dataService: mockDataService,
+    gameRulesService: mockGameRulesService,
   }),
 }));
 
@@ -209,9 +213,9 @@ describe('EndGameModal', () => {
 
       render(<EndGameModal />);
       
-      // Game statistics section is rendered - check for the completion time text
-      expect(screen.getByText(/Game completed at:/)).toBeInTheDocument();
-      expect(screen.getByText(`Game completed at: ${testDate.toLocaleString()}`)).toBeInTheDocument();
+      // Game statistics section is rendered — completion time moved to a small
+      // footer line under the v3.0.11 stats panel. Colon dropped in the rewrite.
+      expect(screen.getByText(new RegExp(`Game completed at ${testDate.toLocaleString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))).toBeInTheDocument();
     });
 
     it('should not display game statistics when game end time is not available', () => {

@@ -1,11 +1,13 @@
 // src/components/modals/EndGameModal.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
-import { VisitType } from '../../types/DataTypes';
+import { Player, VisitType } from '../../types/DataTypes';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
+import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
+import { shortName } from '../../utils/boardCommon';
 
 interface EndGamePenaltyView {
   dobMissing: boolean;
@@ -14,13 +16,17 @@ interface EndGamePenaltyView {
 }
 
 export function EndGameModal(): JSX.Element {
-  const { stateService, dataService } = useGameContext();
+  const { stateService, dataService, gameRulesService } = useGameContext();
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [winnerName, setWinnerName] = useState<string>('');
   const [winnerSpace, setWinnerSpace] = useState<string>('');
   const [winnerVisitType, setWinnerVisitType] = useState<VisitType>('First');
   const [gameEndTime, setGameEndTime] = useState<Date | undefined>();
   const [penalty, setPenalty] = useState<EndGamePenaltyView | null>(null);
+  const [winnerPlayer, setWinnerPlayer] = useState<Player | null>(null);
+  // fb:cc345da9 + fb:3483b37b — collapsible journey list. Defaults closed so
+  // the panel isn't dominated by a 20-row movement log; one click reveals it.
+  const [journeyOpen, setJourneyOpen] = useState<boolean>(false);
 
   // Subscribe to state changes to show/hide modal
   useEffect(() => {
@@ -28,10 +34,11 @@ export function EndGameModal(): JSX.Element {
       setIsGameOver(gameState.isGameOver);
 
       if (gameState.isGameOver && gameState.winner) {
-        const winnerPlayer = gameState.players.find(p => p.id === gameState.winner);
-        setWinnerName(winnerPlayer?.name || 'Unknown Player');
-        setWinnerSpace(winnerPlayer?.currentSpace || '');
-        setWinnerVisitType(winnerPlayer?.visitType || 'First');
+        const winner = gameState.players.find(p => p.id === gameState.winner);
+        setWinnerPlayer(winner || null);
+        setWinnerName(winner?.name || 'Unknown Player');
+        setWinnerSpace(winner?.currentSpace || '');
+        setWinnerVisitType(winner?.visitType || 'First');
         setGameEndTime(gameState.gameEndTime);
         // Workstream 7 Phase 7.4 — render the missing-DOB penalty section
         // when present. Only set if the penalty belongs to this winner (it
@@ -84,6 +91,16 @@ export function EndGameModal(): JSX.Element {
   const customSummary = endGameModalConfig?.modal_summary
     ? interpolateTemplate(endGameModalConfig.modal_summary, templateContext)
     : undefined;
+
+  // fb:cc345da9 + fb:3483b37b — compute the end-game stats block.
+  // Pure helper; only depends on the post-win Player snapshot plus the
+  // injected projectScope (which needs the service). Recomputed only when
+  // the winner changes, not on every render.
+  const stats: EndGameStats | null = useMemo(() => {
+    if (!winnerPlayer) return null;
+    const projectScope = gameRulesService.calculateProjectScope(winnerPlayer.id);
+    return buildEndGameStats(winnerPlayer, { projectScope });
+  }, [winnerPlayer, gameRulesService]);
 
   const footer = (
     <button
@@ -140,30 +157,16 @@ export function EndGameModal(): JSX.Element {
           {customDescription || 'You have successfully reached an ending space and won the game!'}
         </p>
 
-        {/* Game Statistics */}
-        {gameEndTime && (
-          <div style={{
-            marginBottom: '24px',
-            padding: '20px',
-            backgroundColor: colors.secondary.bg,
-            borderRadius: theme.borderRadius.lg,
-            border: `2px solid ${colors.secondary.light}`
-          }}>
-            <h3 style={{
-              margin: '0 0 10px 0',
-              color: colors.secondary.dark,
-              fontSize: '18px'
-            }}>
-              {theme.emoji.info} Game Statistics
-            </h3>
-            <p style={{
-              margin: '0',
-              fontSize: '16px',
-              color: colors.secondary.main
-            }}>
-              Game completed at: {gameEndTime.toLocaleString()}
-            </p>
-          </div>
+        {/* fb:cc345da9 + fb:3483b37b — comprehensive end-game stats panel.
+            Replaces the bare timestamp that was the only "stat" the playtester
+            could see at the end. */}
+        {stats && (
+          <EndGameStatsPanel
+            stats={stats}
+            gameEndTime={gameEndTime}
+            journeyOpen={journeyOpen}
+            onToggleJourney={() => setJourneyOpen(o => !o)}
+          />
         )}
 
         {/* Workstream 7 Phase 7.4 — Missing-DOB penalty section.
@@ -218,4 +221,186 @@ export function EndGameModal(): JSX.Element {
       </div>
     </ModalBase>
   );
+}
+
+// ============================================================================
+// Stats panel — fb:cc345da9 + fb:3483b37b
+// ============================================================================
+
+interface EndGameStatsPanelProps {
+  stats: EndGameStats;
+  gameEndTime?: Date;
+  journeyOpen: boolean;
+  onToggleJourney: () => void;
+}
+
+function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }: EndGameStatsPanelProps): JSX.Element {
+  const sectionStyle: React.CSSProperties = {
+    marginBottom: '12px',
+    padding: '14px 16px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: theme.borderRadius.lg,
+    border: `1px solid ${colors.secondary.light}`,
+    textAlign: 'left',
+  };
+
+  const sectionTitleStyle: React.CSSProperties = {
+    margin: '0 0 8px 0',
+    color: '#212529',
+    fontSize: '15px',
+    fontWeight: 700,
+    letterSpacing: '0.2px',
+  };
+
+  return (
+    <div data-testid="end-game-stats" style={{ textAlign: 'left', marginBottom: '20px' }}>
+
+      {/* Headline numbers — the four things the user said matter most */}
+      <div style={{ ...sectionStyle, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
+        <h3 style={{ ...sectionTitleStyle, color: '#1e40af' }}>📊 Project Summary</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '14px' }}>
+          <Stat label="🏗️ Project scope" value={formatMoney(stats.projectScope)} testid="stat-scope" />
+          <Stat label="💸 Total spent" value={formatMoney(stats.totalSpent)} testid="stat-spent" />
+          <Stat label="⏱️ Total days" value={formatDays(stats.daysTotal)} testid="stat-days" />
+          <Stat label="🔄 Turns taken" value={String(stats.turnsTaken)} testid="stat-turns" />
+          <Stat label="🎯 Final score" value={stats.finalScore.toLocaleString()} testid="stat-score" />
+          <Stat label="🃏 Work cards" value={String(stats.construction.workCardCount)} testid="stat-workcards" />
+        </div>
+      </div>
+
+      {/* Fees breakdown */}
+      <div style={sectionStyle}>
+        <h3 style={sectionTitleStyle}>💵 Fees Paid <span style={{ fontWeight: 400, color: '#6c757d', fontSize: '13px' }}>(total {formatMoney(stats.feesBreakdown.totalFees)})</span></h3>
+        <FeeRow label="Architect" value={stats.feesBreakdown.architectural} total={stats.feesBreakdown.totalFees} />
+        <FeeRow label="Engineer" value={stats.feesBreakdown.engineering} total={stats.feesBreakdown.totalFees} />
+        <FeeRow label="Regulatory" value={stats.feesBreakdown.regulatory} total={stats.feesBreakdown.totalFees} />
+        <FeeRow label="Expeditors" value={stats.feesBreakdown.expeditor} total={stats.feesBreakdown.totalFees} />
+        <FeeRow label="Investment fees" value={stats.feesBreakdown.investmentFee} total={stats.feesBreakdown.totalFees} />
+        <FeeRow label="Miscellaneous" value={stats.feesBreakdown.miscellaneous} total={stats.feesBreakdown.totalFees} />
+      </div>
+
+      {/* Funding mix */}
+      <div style={sectionStyle}>
+        <h3 style={sectionTitleStyle}>💰 Funding Sources <span style={{ fontWeight: 400, color: '#6c757d', fontSize: '13px' }}>(total {formatMoney(stats.fundingMix.total)})</span></h3>
+        <FeeRow label="Owner" value={stats.fundingMix.owner} total={stats.fundingMix.total} />
+        <FeeRow label="Bank loans" value={stats.fundingMix.bank} total={stats.fundingMix.total} />
+        <FeeRow label="Investors" value={stats.fundingMix.investor} total={stats.fundingMix.total} />
+        {stats.fundingMix.other > 0 && (
+          <FeeRow label="Other" value={stats.fundingMix.other} total={stats.fundingMix.total} />
+        )}
+      </div>
+
+      {/* Approvals + contractor */}
+      <div style={sectionStyle}>
+        <h3 style={sectionTitleStyle}>✅ Approvals & Construction</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: '14px' }}>
+          <Stat label="DOB" value={approvalLabel(stats.approvals.dob)} testid="stat-dob" />
+          <Stat label="FDNY" value={approvalLabel(stats.approvals.fdny)} testid="stat-fdny" />
+          {stats.construction.contractorQuality && (
+            <Stat
+              label="Contractor"
+              value={`${qualityLabel(stats.construction.contractorQuality)}${stats.construction.contractorMultiplier ? ` · ${stats.construction.contractorMultiplier}× cost` : ''}`}
+              testid="stat-contractor"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Movement log — collapsible. Default closed because long. */}
+      {stats.journey.length > 0 && (
+        <div style={sectionStyle}>
+          <button
+            type="button"
+            onClick={onToggleJourney}
+            data-testid="end-game-journey-toggle"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              margin: 0,
+              width: '100%',
+              textAlign: 'left',
+              color: '#212529',
+              fontSize: '15px',
+              fontWeight: 700,
+              letterSpacing: '0.2px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>{journeyOpen ? '▼' : '▶'}</span>
+            <span>🗺️ Journey ({stats.journey.length} {stats.journey.length === 1 ? 'stop' : 'stops'})</span>
+          </button>
+          {journeyOpen && (
+            <ol data-testid="end-game-journey-list" style={{ margin: '8px 0 0 0', padding: '0 0 0 20px', maxHeight: '240px', overflowY: 'auto', fontSize: '13px', color: '#495057', lineHeight: 1.6 }}>
+              {stats.journey.map((step, i) => (
+                <li key={`${i}-${step.spaceName}`}>
+                  <span style={{ fontWeight: 600 }}>{shortName(step.spaceName)}</span>
+                  <span style={{ color: '#adb5bd' }}> — {formatDays(step.daysSpent)} · turn {step.entryTurn}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+
+      {/* Timestamp footer (preserved from old panel) */}
+      {gameEndTime && (
+        <div style={{ marginTop: '4px', fontSize: '12px', color: '#adb5bd', textAlign: 'center' }}>
+          Game completed at {gameEndTime.toLocaleString()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface StatProps {
+  label: string;
+  value: string;
+  testid?: string;
+}
+function Stat({ label, value, testid }: StatProps): JSX.Element {
+  return (
+    <div data-testid={testid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+      <span style={{ color: '#495057' }}>{label}</span>
+      <strong style={{ color: '#212529' }}>{value}</strong>
+    </div>
+  );
+}
+
+interface FeeRowProps {
+  label: string;
+  value: number;
+  total: number;
+}
+function FeeRow({ label, value, total }: FeeRowProps): JSX.Element {
+  // Hide zero rows in the breakdown to reduce noise — players who never hired
+  // an expeditor don't need to see "$0" for that line.
+  if (value === 0 && total > 0) return <></>;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '13px', padding: '3px 0' }}>
+      <span style={{ color: '#495057' }}>{label}</span>
+      <span>
+        <strong style={{ color: '#212529' }}>{formatMoney(value)}</strong>
+        {total > 0 && value > 0 && (
+          <span style={{ color: '#adb5bd', marginLeft: '8px', fontWeight: 400 }}>{formatPercent(value, total)}</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function approvalLabel(s: EndGameStats['approvals']['dob']): string {
+  switch (s) {
+    case 'approved': return '✓ Approved';
+    case 'denied': return '✗ Denied';
+    case 'minor-objection': return '⚠ Minor objection';
+    case 'none': return '— None on file';
+  }
+}
+
+function qualityLabel(q: 'HIGH' | 'MED' | 'LOW'): string {
+  return q === 'HIGH' ? 'High quality' : q === 'MED' ? 'Medium quality' : 'Low quality';
 }

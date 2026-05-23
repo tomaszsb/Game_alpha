@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.11] - 2026-05-23
+
+### Feature — End-game stats panel (replaces the bare "Game Complete!" screen)
+
+`fb:cc345da9` ("there are no statistics displayed? there should be a lot of info here. what we built, how much how long how many changes to scope how many fees, etc") + `fb:3483b37b` ("end screen should show the overall player stats and the player log of the movements"). Two playtester reports filed three weeks apart, both pointing at the same gap: the most satisfying moment of the game — winning — was the least informative screen in the app. Only stat shown was `Game completed at: {timestamp}`.
+
+This ships a real stats panel pulling from data the game was already tracking but never surfaced:
+
+#### Project Summary (headline grid)
+- 🏗️ **Project scope** (from `gameRulesService.calculateProjectScope`)
+- 💸 **Total spent** (sum of every `costHistory` entry)
+- ⏱️ **Total days** (player.timeSpent)
+- 🔄 **Turns taken** (best per-player approximation: the entryTurn of the final visit log entry — globalTurnCount sits on GameState, not Player, and is shared across players)
+- 🎯 **Final score** (player.score)
+- 🃏 **Work cards** (hand + activeCards starting with `W`)
+
+#### Fees Paid (categorized breakdown)
+Architect, Engineer, Regulatory, Expeditors, Investment fees, Miscellaneous — each with $ amount and % of total fees. Zero-amount rows are hidden so players who didn't hire an expeditor don't see "$0" noise. Bank and investor cost categories are *excluded* from the fees total since they're funding repayment, not fees.
+
+#### Funding Sources
+Owner / Bank loans / Investors / Other, each as $ + % of total. Pulled straight from `player.moneySources`.
+
+#### Approvals & Construction
+DOB and FDNY final approval status (✓ Approved / ⚠ Minor objection / ✗ Denied / — None on file), plus contractor info when set (quality + cost multiplier).
+
+#### Journey (collapsible)
+Full ordered movement log from `player.spaceVisitLog`, default-collapsed under a "▶ 🗺️ Journey (N stops)" toggle so a 20-row list doesn't dominate the modal. Each step shows friendly space name (via `shortName`) + days spent + turn number. Max 240px scroll height.
+
+#### Fix
+- New [src/utils/endGameStats.ts](src/utils/endGameStats.ts) (~200 lines) — `buildEndGameStats(player, { projectScope })` pure helper returning a structured `EndGameStats`. Plus `formatMoney`, `formatPercent`, `formatDays` helpers (also pure). Kept service-free so unit tests don't need React or service mocks.
+- [src/components/modals/EndGameModal.tsx](src/components/modals/EndGameModal.tsx) — new `EndGameStatsPanel` sub-component renders the structured output. Old bare `Game completed at: {timestamp}` block replaced; timestamp preserved as a small dimmed footer line. Existing celebration banner, DOB penalty block (Workstream 7 Phase 7.4), per-space `ModalConfig` overrides, and Play Again button all preserved untouched. Adds `useMemo` over `buildEndGameStats` so the computation only runs when the winner snapshot changes. New `journeyOpen` state for the collapsible journey toggle.
+
+#### Test
+- New [tests/utils/endGameStats.test.ts](tests/utils/endGameStats.test.ts) — 16 cases pin: headline number passthrough, funding-mix summation, totalSpent from costHistory (not just summed subtotals), fees breakdown excludes bank/investor, W-card counting across hand + activeCards, contractor metadata exposure, four-state ApprovalStatus normalization, journey order preservation, turnsTaken approximation, defensive handling of an empty player, plus formatMoney/formatPercent/formatDays edge cases.
+- [tests/components/modals/EndGameModal.test.tsx](tests/components/modals/EndGameModal.test.tsx) — added `gameRulesService.calculateProjectScope` mock to the existing context mock (panel calls it). Updated the timestamp-format assertion to match the new dimmed footer format (no colon). All 17 existing cases still pass.
+- Targeted regression sweep: **771/771 pass** across 42 files.
+
+`fb:feedback-1778866252080-cc345da9` `fb:feedback-1775793831276-3483b37b`
+
 ## [3.0.10] - 2026-05-23
 
 ### Sprint — Board readability v2 (three bundled playtester reports)
