@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.12] - 2026-05-23
+
+### Polish — finish 97fa9c75 (center-anchor + popover + editor buffer ghost)
+
+v3.0.10 introduced the five-step tile size hierarchy that solved the "current tile should be fully expanded / valid-move should be hover-sized" half of `fb:97fa9c75`. This patch finishes the other half — overlap behavior — with three coordinated changes (per user-supplied patch spec).
+
+#### D — Center-anchored growth
+React Flow places tiles by their top-left, so v3.0.10's grow from 150×60 → 220×120 only pushed *right and down*, dumping the encroachment entirely onto two neighbors. Now every grown tile is offset back by half the delta (`transform: translate(-(w-150)/2, -(h-60)/2)`), so it grows symmetrically around its original anchor and the encroachment splits across all four sides. No-op in edit mode (size is forced compact for clean drag).
+
+#### B — Popover treatment for click-locked tiles
+The `expanded` size (240×130, click-to-lock) now gets a heavy drop shadow (`0 16px 36px rgba(0,0,0,0.28) + 0 0 0 1px rgba(0,0,0,0.06)`) overriding the standard ringStyle. Combined with the existing z-index 30, the tile reads as a card *floating above* the grid — neighbors visually recede instead of looking trampled. Other size states (compact / validMove / hover / currentBig) keep the standard shadow treatment.
+
+#### Editor buffer ghost
+Every tile in BoardLayoutEditor now renders a dashed `220×120` outline centered on its compact form (the `MAX_INGRID` constant — largest size a tile reaches *without* popover-floating). Admins can see at a glance how much room each tile will eat in game. Pure visual guideline (`pointerEvents: none`, `zIndex: 0`); doesn't affect drag or persistence. Off in normal gameplay.
+
+#### Fix
+- [src/utils/boardCommon.ts](src/utils/boardCommon.ts) — new exported constants `BOARD_TILE_COMPACT = {w:150,h:60}` and `BOARD_TILE_MAX_INGRID = {w:220,h:120}` so the editor ghost stays in lockstep with the runtime size hierarchy.
+- [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) — BoardNode adds `offsetX/offsetY` + `isPopover`, wires `position:relative` + `transform: translate(...)` + popover shadow override into the tile style. New `showBuffer` field on `BoardNodeData` + `BoardCanvasProps` threads through `BoardCanvasInner`'s dynamic data-injection effect to render the dashed ghost as the first child when `showBuffer && isEditMode`.
+- [src/components/board/BoardLayoutEditor.tsx](src/components/board/BoardLayoutEditor.tsx) — passes `showBuffer={true}` to the embedded BoardCanvas.
+
+Typecheck clean, build clean (8.79s), boardCommon + modals + player tests 207/207.
+
+`fb:feedback-1779515660496-97fa9c75`
+
 ## [3.0.11] - 2026-05-23
 
 ### Feature — End-game stats panel (replaces the bare "Game Complete!" screen)

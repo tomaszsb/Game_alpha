@@ -179,3 +179,11 @@ export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState 
     showsAction: size === 'expanded',
   };
 }
+
+// fb:97fa9c75 — sizes exposed so the BoardLayoutEditor's ghost buffer stays
+// in lockstep with the runtime size hierarchy. MAX_INGRID is the largest
+// size a tile reaches WITHOUT popover-floating; the click-locked "expanded"
+// size is intentionally excluded because it floats above the grid (B-style)
+// and doesn't physically need spacing.
+export const BOARD_TILE_COMPACT = { w: 150, h: 60 };
+export const BOARD_TILE_MAX_INGRID = { w: 220, h: 120 };

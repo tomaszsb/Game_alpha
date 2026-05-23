@@ -168,6 +168,7 @@ export function BoardLayoutEditor({ onClose }: BoardLayoutEditorProps): JSX.Elem
             players={[]}
             isAdmin={true}
             edgesVisible={true}
+            showBuffer={true}
           />
         ) : (
           <div

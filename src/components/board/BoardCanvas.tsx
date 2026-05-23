@@ -53,7 +53,7 @@ import { SmartBezierEdge } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID } from '../../utils/boardCommon';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -79,6 +79,10 @@ interface BoardNodeData {
   onClick?: (spaceName: string) => void;
   hoveredSpace?: string | null;
   isEditMode?: boolean;
+  /** Render a dotted ghost outline representing the tile's max in-grid size.
+   *  Wired by BoardLayoutEditor so admins can see how much room each tile
+   *  needs in game when placing it. Off in normal gameplay. fb:97fa9c75. */
+  showBuffer?: boolean;
   [key: string]: unknown;   // satisfy React Flow's Record<string, unknown> constraint
 }
 
@@ -100,6 +104,19 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   const isBig = size !== 'compact';
   const borderWidth = data.isCurrent ? 3 : data.isValidMove ? 3 : 1.5;
 
+  // D — center-anchored growth (fb:97fa9c75). React Flow places tiles by their
+  // top-left, so a grow from 150×60 → 220×120 pushes only right+down onto the
+  // neighbors. Translate back by half the delta so growth is symmetric around
+  // the original anchor — encroachment splits across both sides instead of
+  // piling on one. No-op in edit mode (size is forced compact).
+  const offsetX = -(width - BOARD_TILE_COMPACT.w) / 2;
+  const offsetY = -(minHeight - BOARD_TILE_COMPACT.h) / 2;
+  // B — popover treatment for the click-locked size. Heaviest shadow in the
+  // ladder so the tile reads as a card floating above the grid; combined with
+  // the zIndex bump from computeTileVisualState (30), neighbors visually
+  // recede instead of looking trampled.
+  const isPopover = size === 'expanded';
+
   const ringStyle: React.CSSProperties = data.isCurrent
     ? { boxShadow: `0 0 0 3px ${phaseColors.border}33, 0 4px 12px rgba(0,0,0,0.18)` }
     : data.isValidMove
@@ -114,6 +131,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
     <div
       className="board-canvas-node"
       style={{
+        position: 'relative',
         width,
         minHeight,
         borderRadius: 8,
@@ -121,9 +139,11 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
         border: `${borderWidth}px solid ${borderColor}`,
         padding: '8px 10px',
         fontFamily: 'system-ui, sans-serif',
-        transition: 'width 0.15s ease, min-height 0.15s ease, box-shadow 0.15s ease',
+        transition: 'width 0.15s ease, min-height 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
+        transform: `translate(${offsetX}px, ${offsetY}px)`,
         zIndex,
         ...ringStyle,
+        ...(isPopover ? { boxShadow: '0 16px 36px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06)' } : {}),
         cursor: data.isEditMode ? 'grab' : 'pointer',
       }}
       onMouseEnter={() => { if (!data.isEditMode) data.onHover?.(data.spaceName); }}
@@ -134,6 +154,27 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
         data.onClick?.(data.spaceName);
       }}
     >
+      {/* Buffer ghost — visualizes how much room this tile will eat in game.
+          Editor-only; admins should leave at least this footprint clear when
+          placing neighbors. Dashed to read as a guideline, not a real border.
+          fb:97fa9c75. */}
+      {data.showBuffer && data.isEditMode && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: -((BOARD_TILE_MAX_INGRID.w - BOARD_TILE_COMPACT.w) / 2),
+            top: -((BOARD_TILE_MAX_INGRID.h - BOARD_TILE_COMPACT.h) / 2),
+            width: BOARD_TILE_MAX_INGRID.w,
+            height: BOARD_TILE_MAX_INGRID.h,
+            border: '1.5px dashed #adb5bd',
+            borderRadius: 10,
+            background: 'rgba(173,181,189,0.06)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+      )}
       {/* Source/target handles invisible but required for edges */}
       <Handle type="target" position={Position.Left} style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: 'none' }} />
@@ -220,6 +261,9 @@ interface BoardCanvasProps {
    *  don't override the newly-persisted ones on a remount. Optional —
    *  in-game admin drag doesn't need it (game session is ephemeral). */
   onPositionSaved?: (spaceName: string, x: number, y: number) => void;
+  /** Show the dotted max-in-grid buffer outline around every tile in edit
+   *  mode. Used by BoardLayoutEditor; off in normal gameplay. fb:97fa9c75. */
+  showBuffer?: boolean;
 }
 
 function BoardCanvasInner({
@@ -230,6 +274,7 @@ function BoardCanvasInner({
   hiddenEdgeIds,
   onHideEdge,
   onPositionSaved,
+  showBuffer = false,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const { getViewport, setViewport } = useReactFlow();
@@ -473,12 +518,13 @@ function BoardCanvasInner({
           isExpanded: expandedSpace === n.id,
           hoveredSpace,
           isEditMode: isAdmin,
+          showBuffer,
           onHover: handleNodeHover,
           onClick: handleNodeClick,
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, handleNodeHover, handleNodeClick]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(prev => applyNodeChanges(changes, prev) as Node<BoardNodeData>[]);
