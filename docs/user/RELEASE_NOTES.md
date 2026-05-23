@@ -2,6 +2,24 @@
 
 ---
 
+## v3.0.0 — Living Map fully retired (May 23, 2026) 🎉
+
+The board you've been playing on for the last week is now the only board. The old snake/zig-zag layout (BoardV3) is gone — about 2,400 lines of code retired. No change you'll see — the new board has been the default for the v2.69.x playtest run — but it's a milestone worth marking. v3.0.0 ships.
+
+Twelve versions shipped May 22–23, all built around playtester feedback:
+
+- **v2.69.7** — Fixed deploy script silently losing your editor edits. The script was racing the container startup; nesting your backed-up files inside the wrong folder. Now restores before container start; bulletproof.
+- **v2.69.8** — Removed a stray "Quick Play" tile that was floating on the board (legacy instructional content that should never have rendered as a space).
+- **v2.69.9** — Pan buttons (↑ ← → ↓) on the board's bottom-left Controls strip. Click them to scroll the board without losing tile clicks.
+- **v2.70.0 – v2.70.3** — CHEAT-BYPASS gets a money penalty. Roll once, lose time + money, move to a destination — all paired by the same dice roll. Plus three follow-up fixes: stronger CSV pairing validation, generalized cache reload so editor saves reflect immediately without page refresh, and consolidating three confusing dice buttons into one labeled "🎲 Roll dice."
+- **v2.70.2** — Bug reports submitted via the in-game 🐛 button now carry the deployed version number. The triage view can tell at a glance whether a fresh report was filed against pre-fix or post-fix code.
+- **v2.70.4** — The 20% design fee rule is now strictly enforced. Any phase, any time — design fees over 20% of project scope = game over. (Previously only ended the game during the DESIGN phase; CONSTRUCTION+ just got a soft time penalty.)
+- **v2.70.5** — The existing dictionary system became more discoverable. Highlighted terms now have a solid blue underline + small ⓘ marker so you actually notice they're clickable. First-game players get a one-time tooltip explaining the feature.
+- **v2.70.6** — Cleared both moderate npm security vulnerabilities (`qs` DoS and `ws` memory disclosure). Zero left.
+- **v3.0.0** — BoardV3 retired. BoardCanvas is the only board.
+
+---
+
 ## v2.68.0 – v2.69.6 — Setup screen overhaul + board layout editor (May 22, 2026)
 
 A connected wave of UX improvements across setup, the board, and admin tooling — eight versions shipped together.

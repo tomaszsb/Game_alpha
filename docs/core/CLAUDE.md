@@ -583,6 +583,53 @@ Fix shape: add a targeted reload method (e.g. `reloadGameConfig()`) that bypasse
 
 Proven by v2.69.4: `BoardLayoutEditor` reopened with cached coords until `DataService.reloadGameConfig()` was wired. Generalize: any data source whose disk version can change without a page reload (admin edits, server regen, multi-tab) needs a targeted reload. Currently only `GAME_CONFIG.csv` has one — `MOVEMENT.csv`, `SPACE_CONTENT.csv`, etc. will hit the same trap if a future editor writes to them. Add reload methods on demand rather than invalidating all of `loadData()`.
 
+### `deploy.sh cp -a` host/container race (v2.69.7)
+
+Symptom: editor-saved CSV data (drag-to-save board positions, etc.) vanishes after some deploys. The script reports success, no error in output, but live `SOURCE_FILES` holds dist defaults. The user's edits are mysteriously back to baseline.
+
+Root cause is a `cp -a` quirk + race. Pre-v2.69.7 deploy.sh did `cp -a $BACKUP/SOURCE_FILES $LIVE/SOURCE_FILES` AFTER `docker run`, with a 2-second sleep. When the destination dir already exists, `cp -a` (no trailing slash) copies source INTO it — creating `$LIVE/SOURCE_FILES/SOURCE_FILES/Spaces.csv`. The server reads `$LIVE/SOURCE_FILES/Spaces.csv` (un-nested) which holds the build defaults `initWritableData` copied in at startup. Whether the bug triggers depends on whether the server's startup beats the 2-second sleep — same script, sometimes works.
+
+Fix: move restore to BEFORE `docker run`. Host-side ops on `$(pwd)/server/data/game-data` work fine without a running container. Server's `needsFullInit` check (`!fs.existsSync(...Spaces.csv)`) then skips init because Spaces.csv exists. No race, no sleep, no nesting.
+
+The footgun was already documented in server.js:94 — "stray subdirectories have been observed in the wild (e.g. from a restore that nested SOURCE_FILES inside itself)." The BACKUP direction was hardened against it but the RESTORE direction stayed vulnerable for months.
+
+General Bash lesson: `cp -a SRC DST` and `cp -a SRC DST/` behave the same — when DST exists as a dir, source becomes a child. To copy contents into an existing dir, use `cp -a SRC/. DST/`. Or `rm -rf DST` first. Or re-architect so DST doesn't exist when cp runs.
+
+### `roll_group` pairs dice effects to one roll (v2.70.0 discovery)
+
+`roll_group` column on DICE_EFFECTS.csv (and source `DiceRoll Info.csv`) groups multiple effect rows under ONE dice roll. Comment in `src/components/editor/types/EditorTypes.ts:68` documents it: *"Group name — effects with same roll_group share one dice roll; blank = all share one roll."*
+
+Engine: `TurnService.processDiceRollEffects:1023` groups effects by `roll_group` key (blank/undefined treated as `''`). Each bucket gets ONE dice value; all effects in the bucket resolve from that value. Different non-empty `roll_group`s = separate rolls. Practical use: CHEAT-BYPASS has Time outcomes + Fees Paid + Next Step rows all with blank `roll_group`. Rolling a 5 → 60 days lost + lose $25,000 + go to PM-DECISION-CHECK, all paired by the engine with zero extra wiring.
+
+**Trap 1 — column consistency:** the engine pairing is solid but row-shape isn't enforced. Two paired rows could have different populated roll columns (e.g. time has roll_1..6, money only has roll_1..5) and rolling a 6 would silently do nothing for money. `DataService.validateDiceEffectGroups` (v2.70.0) warns to console on load when this happens.
+
+**Trap 2 — button proliferation:** SPACE_EFFECTS.csv `dice_outcome` rows (one per outcome category for a paired space) generate ONE action button per row in `ActionCenterPanel` by default. They have identical `effectKey=dice:dice_outcome`, so they ALL trigger the same single roll — but the player sees N buttons that look independent. v2.70.1 added a dedupe in `pendingActions` keyed off `effectKey`. v2.70.3 also suppresses the parallel dice-movement-driven button when an effects-driven dice button is already in the list — both fire the same `handleDiceRoll` so two buttons is purely confusing.
+
+When designing or auditing a paired-effect space, the mental model is: "one row per effect type per visit, all sharing a roll_group, one button per roll_group on the player panel."
+
+### `DiceRoll Info.csv` has `\r,\n` mixed line endings
+
+`public/data/SOURCE_FILES/DiceRoll Info.csv` uses a non-standard line ending: `<row content>\r,\n` instead of `\r\n` or `\n`. The trailing comma (empty `roll_group` field) sits BETWEEN the CR and LF. `file` reports "with CR, LF line terminators" (mixed). Other SOURCE_FILES (Spaces.csv, ModalConfig.csv, PATH_CHOICE_RULES.csv) appear to use standard CRLF — this one is the historical outlier.
+
+Edit tool's normal string matching FAILS on this file because it treats `\n` as the only line separator. Symptom: "String to replace not found" errors when the visible content matches perfectly.
+
+Working approach: drop to Python byte-level edits. Read as bytes (`open(path, 'rb')`), construct old/new bytes including the literal `\r,\n`, replace, write back as bytes. Preserves the UTF-8 BOM and weird endings. Example:
+
+```python
+import sys
+with open('public/data/SOURCE_FILES/DiceRoll Info.csv', 'rb') as f:
+    data = f.read()
+old = b'<prev row>\r,\n<next row anchor>,'
+new = b'<prev row>\r,\n<new row content>\r,\n<next row anchor>,'
+if old not in data or data.count(old) != 1: raise SystemExit(1)
+data = data.replace(old, new)
+with open('public/data/SOURCE_FILES/DiceRoll Info.csv', 'wb') as f: f.write(data)
+```
+
+Don't try to normalize the line endings — DataService.parseCsvLine, server processDiceEffects, and the editor CSV parser all handle the format. Touching it risks breaking those consumers in subtle ways.
+
+After byte-editing the source, run `node scripts/regen-clean-files.mjs` to refresh `public/data/CLEAN_FILES/*` so downstream code sees the new rows. Then if the user already has the live data (server-side `server/data/game-data/SOURCE_FILES/DiceRoll Info.csv`), they need a separate migration step — the deploy preserves their copy and won't overwrite it with the new BASELINE. Either add via the in-game editor (triggers regen) or SSH-edit + container restart.
+
 ### Legacy `/api/gamestate` fallthrough trap (v2.69.1)
 
 `src/utils/networkDetection.ts:getGameStateAPIPath(gameId?)` returns `/api/games/${gameId}/state` when a gameId is provided, but falls through to `/api/gamestate` (the single-game-era legacy endpoint) when none is. The server still holds a single-game record at `LEGACY_GAME_ID` that can be left in any phase from prior sessions. Any caller doing `loadStateFromServer()` without first ensuring a gameId in the URL can pick up legacy state — typically PLAY phase — and skip setup entirely. Presents as "the app jumps directly to the game" on a fresh URL hit.
@@ -593,5 +640,5 @@ When refactoring App-level routing, remember: `ServiceProvider` doesn't take a g
 
 ---
 
-**Last Updated:** May 22, 2026 (Session v2.68.0–v2.69.6 — Board Layout Editor, lobby consolidation, drag-save persistence, gameplay hover/click, 2-column players)
-**Charter Version:** 3.13 (+ React Flow panOnDrag, DataService cache, legacy-state trap patterns)
+**Last Updated:** May 23, 2026 (Session v2.69.7–**v3.0.0** — 12 versions: deploy.sh cp-a race fix, BoardCanvas pan buttons, CHEAT-BYPASS money penalty + roll_group validation, reloadAllData generalization, paired-dice button dedup, bug-report version stamping, strict-any-phase 20% rule, dictionary discoverability, npm audit clear, **BoardV3 retired**)
+**Charter Version:** 3.14 (+ deploy.sh nesting race, roll_group paired effects, DiceRoll Info.csv mixed line endings)
