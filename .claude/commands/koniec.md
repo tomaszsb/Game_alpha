@@ -118,6 +118,25 @@ Template — keep under 35 lines:
 
 The point: "fresh-context me reads this in 15 seconds and knows exactly where to start." Full recap is in CHANGELOG + memory graph; this is just the handoff.
 
+## 5b. Auto-sweep `.claude/tmp/` if it's accumulated
+
+`.claude/tmp/` is gitignored — by convention it's scratch (feedback screenshots, debug artifacts, one-off scripts). Auto-clean when either threshold trips. Nothing tracked lives here, so a delete can't lose anything that mattered.
+
+```bash
+# Threshold check: >10 files OR anything older than 30 days
+if [ -d .claude/tmp ]; then
+  count=$(find .claude/tmp -maxdepth 2 -type f 2>/dev/null | wc -l)
+  stale=$(find .claude/tmp -maxdepth 2 -type f -mtime +30 2>/dev/null | wc -l)
+  if [ "$count" -gt 10 ] || [ "$stale" -gt 0 ]; then
+    oldest_days=$(find .claude/tmp -maxdepth 2 -type f -printf '%T@\n' 2>/dev/null | sort -n | head -1 | awk -v now=$(date +%s) '{printf "%d", (now-$1)/86400}')
+    rm -rf .claude/tmp/*
+    echo "🧹 Cleaned .claude/tmp/ ($count files, oldest ${oldest_days}d)"
+  fi
+fi
+```
+
+Mention the cleanup in step 6's wrap line if it fired. Otherwise silent — no need to report a no-op.
+
 ## 6. Three-line wrap, then stop
 
 End with three lines. No structured summary report — the user is about to `/exit` and the next `/start` will surface everything actionable.
