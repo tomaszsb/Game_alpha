@@ -83,8 +83,8 @@ export class DiceRollProcessor {
   /**
    * Generate a human-readable summary of the effects
    */
-  public generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string): string {
-    return this.diceService.generateEffectSummary(effects, diceValue, storyText);
+  public generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string, spaceName?: string): string {
+    return this.diceService.generateEffectSummary(effects, diceValue, storyText, spaceName);
   }
 
   /**
@@ -148,8 +148,10 @@ export class DiceRollProcessor {
     const spaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
     const storyText = spaceContent?.story || undefined;
 
-    // Generate summary
-    const summary = this.generateEffectSummary(effects, diceRoll, storyText);
+    // Generate summary — pass spaceName so the speaker-aware voice kicks in
+    // (NPC attribution at owner/banker/etc. spaces; first-person at the five
+    // PM-voiced spaces). fb:c3e5322b / fb:94c374d8 / fb:44a4eb47.
+    const summary = this.generateEffectSummary(effects, diceRoll, storyText, currentPlayer.currentSpace);
     const hasChoices = effects.some(effect => effect.type === 'choice');
 
     // Generate detailed feedback message and store it in state
@@ -206,8 +208,8 @@ export class DiceRollProcessor {
     const spaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
     const storyText = spaceContent?.story || undefined;
 
-    // Generate summary for new result
-    const summary = this.generateEffectSummary(effects, newDiceRoll, storyText);
+    // Generate summary for new result (speaker-aware via spaceName)
+    const summary = this.generateEffectSummary(effects, newDiceRoll, storyText, currentPlayer.currentSpace);
     const hasChoices = effects.some(effect => effect.type === 'choice');
 
     return this.buildTurnEffectResult(currentPlayer, newDiceRoll, effects, summary, hasChoices, false, beforeSnapshot);

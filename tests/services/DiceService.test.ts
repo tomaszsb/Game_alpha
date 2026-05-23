@@ -205,4 +205,87 @@ describe('DiceService', () => {
       expect(summary).toContain('gained funding');
     });
   });
+
+  // NPC speaker voice (v3.0.6) — fb:c3e5322b / fb:94c374d8 / fb:44a4eb47
+  describe('generateEffectSummary — speaker-aware voice', () => {
+    it('attributes the line to "The Owner" at OWNER-FUND-INITIATION', () => {
+      const effects: any[] = [{ type: 'cards', cardCount: 2, cardType: 'W' }];
+      const summary = diceService.generateEffectSummary(effects, 5, undefined, 'OWNER-FUND-INITIATION');
+      expect(summary).toBe('The Owner: You took on 2 work packages.');
+      expect(summary).not.toContain('Good news!');
+    });
+
+    it('attributes the line to "The Banker" at BANK-FUND-REVIEW', () => {
+      const effects: any[] = [{ type: 'cards', cardCount: 1, cardType: 'B' }];
+      const summary = diceService.generateEffectSummary(effects, 3, undefined, 'BANK-FUND-REVIEW');
+      expect(summary).toBe('The Banker: You secured a bank loan.');
+    });
+
+    it('attributes to "DOB Examiner" at REG-DOB-PLAN-EXAM', () => {
+      const effects: any[] = [{ type: 'time', value: 5 }];
+      const summary = diceService.generateEffectSummary(effects, 2, undefined, 'REG-DOB-PLAN-EXAM');
+      expect(summary).toBe('DOB Examiner: You faced delays.');
+    });
+
+    it('uses first-person voice ("I …") at PM-voiced spaces', () => {
+      const effects: any[] = [{ type: 'time', value: -2 }];
+      const summary = diceService.generateEffectSummary(effects, 5, undefined, 'PM-DECISION-CHECK');
+      expect(summary).toBe('I gained efficiency.');
+      expect(summary).not.toContain('Good news!');
+      expect(summary).not.toContain(':');
+    });
+
+    it('uses first-person voice at CHEAT-BYPASS', () => {
+      const effects: any[] = [{ type: 'time', value: 3 }];
+      const summary = diceService.generateEffectSummary(effects, 1, undefined, 'CHEAT-BYPASS');
+      expect(summary).toBe('I faced delays.');
+    });
+
+    it('uses first-person voice at the other three PM-voiced spaces', () => {
+      const effects: any[] = [{ type: 'money', value: 200 }];
+      for (const space of ['ARCH-INITIATION', 'ENG-INITIATION', 'REG-DOB-TYPE-SELECT']) {
+        const summary = diceService.generateEffectSummary(effects, 4, undefined, space);
+        expect(summary).toBe('I gained funding.');
+      }
+    });
+
+    it('preserves storyText prefix and adds speaker attribution after', () => {
+      const effects: any[] = [{ type: 'cards', cardCount: 1, cardType: 'E' }];
+      const summary = diceService.generateEffectSummary(
+        effects,
+        4,
+        'The Owner hands you contacts.',
+        'OWNER-SCOPE-INITIATION'
+      );
+      expect(summary).toBe('The Owner hands you contacts. The Owner: You hired an expeditor.');
+    });
+
+    it('falls back to "Good news!" / etc. when no spaceName is given (legacy callers)', () => {
+      const effects: any[] = [{ type: 'money', value: 500 }];
+      const summary = diceService.generateEffectSummary(effects, 6);
+      expect(summary).toContain('Good news!');
+      expect(summary).toContain('gained funding');
+    });
+
+    it('falls back to tone preamble for an unknown space prefix', () => {
+      const effects: any[] = [{ type: 'money', value: 100 }];
+      const summary = diceService.generateEffectSummary(effects, 3, undefined, 'UNKNOWN-SPACE');
+      expect(summary).toContain('Good news!');
+    });
+
+    it('does not add speaker attribution when the result is empty', () => {
+      const summary = diceService.generateEffectSummary([], 4, undefined, 'OWNER-FUND-INITIATION');
+      expect(summary).toBe('No special effects this turn.');
+    });
+
+    it('does not add speaker attribution when the result is only a choice', () => {
+      const summary = diceService.generateEffectSummary(
+        [{ type: 'choice' }] as any,
+        5,
+        undefined,
+        'PM-DECISION-CHECK'
+      );
+      expect(summary).toBe('Choose your destination.');
+    });
+  });
 });

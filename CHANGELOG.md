@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.6] - 2026-05-23
+
+### Fix — dice-result summary speaks in the NPC's voice (not faceless narrator)
+
+`fb:c3e5322b` / `fb:94c374d8` / `fb:44a4eb47` (all 2026-05-09 → 05-15): playtesters reported the dice-result modal's TTS line still felt like a generic narrator — `"Good news! You took on 2 work packages."` — even though the visual badge in the modal clearly shows the NPC is speaking. v2.61.1 fixed the *content* (no more "drew 2 cards") but didn't address the *voice*.
+
+#### Fix
+- [src/services/DiceService.ts](src/services/DiceService.ts) — `generateEffectSummary` now accepts an optional `spaceName` parameter. When supplied:
+  - **PM-voiced spaces** (5 specific names: PM-DECISION-CHECK, CHEAT-BYPASS, ARCH-INITIATION, ENG-INITIATION, REG-DOB-TYPE-SELECT) drop the tone preamble and use first-person: `"I gained efficiency."`
+  - **NPC-voiced spaces** drop the tone preamble and attribute the line: `"The Owner: You took on 2 work packages."` / `"DOB Examiner: You faced delays."` / etc.
+  - When `spaceName` is omitted or maps to an unknown prefix, the function falls back to the legacy `"Good news! / Challenging turn. / Mixed results."` format — preserves existing test API and any callers that haven't been threaded through yet.
+- [src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts) — `processTurnEffectsWithTracking` and `rerollDice` now forward `currentPlayer.currentSpace` to `generateEffectSummary`.
+- [src/types/ServiceContracts.ts](src/types/ServiceContracts.ts) — `IDiceService.generateEffectSummary` signature updated.
+
+#### Speaker map
+Lifted from the project NPC-speaker memory. Authoritative table:
+
+| Prefix | NPC name |
+|---|---|
+| `OWNER-*` | The Owner |
+| `BANK-*` | The Banker |
+| `INVESTOR-*` | The Investor |
+| `LEND-*` | The Lender |
+| `ARCH-*` (except `-INITIATION`) | The Architect |
+| `ENG-*` (except `-INITIATION`) | The Engineer |
+| `REG-DOB-*` (except `-TYPE-SELECT`) | DOB Examiner |
+| `REG-FDNY-*` | FDNY Inspector |
+| `REG-DCP-*` | DCP Planner |
+| `CON-*` | The Contractor |
+| `FINISH` | The Owner |
+
+#### Test
+- [tests/services/DiceService.test.ts](tests/services/DiceService.test.ts) — 11 new cases lock the speaker-aware behavior: owner/banker/DOB attribution; PM-voiced first-person at all 5 special spaces; story-prefix passthrough; legacy fallback when `spaceName` is omitted; empty/choice paths still work; unknown prefixes fall back to tone preamble.
+
+`fb:feedback-1778328051482-c3e5322b` `fb:feedback-1778256136931-94c374d8` `fb:feedback-1778255937336-44a4eb47`
+
 ## [3.0.5] - 2026-05-23
 
 ### Fix — voice-rule sweep across notifications, player log, and Negotiation modal

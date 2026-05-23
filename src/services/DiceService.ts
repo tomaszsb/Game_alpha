@@ -1,6 +1,55 @@
 import { DiceEffect } from '../types/DataTypes';
 import { DiceResultEffect } from '../types/StateTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
+import { extractPrefix } from '../constants/characters';
+
+// Speakers for the dice-result summary. Per the project NPC-speaker map
+// (memory `project_npc_speakers`): five spaces are PM-voiced (first person),
+// everything else uses an NPC narrator addressing the PM as "you".
+// fb:c3e5322b / fb:94c374d8 / fb:44a4eb47 — players reported the generic
+// "Good news! …" narrator voice broke immersion at OWNER-FUND-INITIATION
+// and similar NPC-led spaces.
+const PM_VOICED_SPACES = new Set<string>([
+  'PM-DECISION-CHECK',
+  'CHEAT-BYPASS',
+  'ARCH-INITIATION',
+  'ENG-INITIATION',
+  'REG-DOB-TYPE-SELECT',
+]);
+
+const NPC_SPEAKER_NAMES: Record<string, string> = {
+  OWNER:     'The Owner',
+  BANK:      'The Banker',
+  INVESTOR:  'The Investor',
+  LEND:      'The Lender',
+  ARCH:      'The Architect',
+  ENG:       'The Engineer',
+  'REG-DOB': 'DOB Examiner',
+  'REG-FDNY': 'FDNY Inspector',
+  'REG-DCP':  'DCP Planner',
+  CON:       'The Contractor',
+  FINISH:    'The Owner',
+};
+
+interface SpeakerVoice {
+  /** 'I' for PM-voiced spaces, 'You' for NPC-voiced. Null when no speaker resolved. */
+  pronoun: 'I' | 'You' | null;
+  /** NPC name to prefix as attribution ("The Owner: …"). Empty for PM voice. */
+  attribution: string;
+}
+
+function resolveSpeakerVoice(spaceName?: string): SpeakerVoice {
+  if (!spaceName) return { pronoun: null, attribution: '' };
+  if (PM_VOICED_SPACES.has(spaceName)) {
+    return { pronoun: 'I', attribution: '' };
+  }
+  const prefix = extractPrefix(spaceName);
+  const npcName = NPC_SPEAKER_NAMES[prefix];
+  if (npcName) {
+    return { pronoun: 'You', attribution: npcName };
+  }
+  return { pronoun: null, attribution: '' };
+}
 
 /**
  * DiceService - Handles all dice-related operations
@@ -13,7 +62,7 @@ export interface IDiceService {
   getDiceRollEffect(effect: DiceEffect, diceRoll: number): string | undefined;
   getDiceRollEffectValue(diceEffect: DiceEffect, diceRoll: number): string;
   parseNumericValue(effect: string): number;
-  generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string;
+  generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string, spaceName?: string): string;
 }
 
 export class DiceService implements IDiceService {
@@ -95,9 +144,11 @@ export class DiceService implements IDiceService {
    * @param diceValue - The dice roll value
    * @returns A formatted summary string
    */
-  generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string): string {
+  generateEffectSummary(effects: DiceResultEffect[], diceValue: number, storyText?: string, spaceName?: string): string {
+    const voice = resolveSpeakerVoice(spaceName);
+    const prefix = storyText ? `${storyText} ` : '';
+
     if (effects.length === 0) {
-      const prefix = storyText ? `${storyText} ` : '';
       return `${prefix}No special effects this turn.`;
     }
 
@@ -106,7 +157,6 @@ export class DiceService implements IDiceService {
     const hasOnlyChoiceEffect = actualEffects.length === 0 && effects.some(e => e.type === 'choice');
 
     if (hasOnlyChoiceEffect) {
-      const prefix = storyText ? `${storyText} ` : '';
       return `${prefix}Choose your destination.`;
     }
 
@@ -148,11 +198,20 @@ export class DiceService implements IDiceService {
       }
     });
 
+    // When a speaker is resolved, drop the faceless "Good news!" / "Mixed
+    // results." tone preamble and attribute the line to the NPC (or use
+    // first-person at PM-voiced spaces). When no speaker is resolved
+    // (legacy callers, unknown space), keep the tone-prefixed format.
+    if (voice.pronoun === 'I') {
+      return `${prefix}I ${summaryParts.join(', ')}.`;
+    }
+    if (voice.pronoun === 'You') {
+      return `${prefix}${voice.attribution}: You ${summaryParts.join(', ')}.`;
+    }
+
     const tone = hasPositive && !hasNegative ? 'Good news!' :
                 hasNegative && !hasPositive ? 'Challenging turn.' :
                 'Mixed results.';
-
-    const prefix = storyText ? `${storyText} ` : '';
     return `${prefix}${tone} You ${summaryParts.join(', ')}.`;
   }
 }
