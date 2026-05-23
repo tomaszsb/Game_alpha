@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.2] - 2026-05-22
+
+### Bug reports stamped with deploy version
+
+Reports submitted via the in-game FeedbackButton now carry the running app's semver and git commit. The public dashboard endpoint surfaces them at top level so the next /start briefing (and the live dashboard) can tell at a glance whether a fresh report was filed against pre-fix or post-fix code — without cross-referencing deploy timestamps by hand.
+
+- [vite.config.ts](vite.config.ts): new `getSemverVersion()` reads `package.json#version`. Exposed at build time as `__APP_SEMVER__` alongside the existing `__APP_VERSION__` (git commit hash).
+- [vite-env.d.ts](src/vite-env.d.ts): declaration for `__APP_SEMVER__`, with inline comments distinguishing it from the git commit constant.
+- [FeedbackButton.tsx](src/components/feedback/FeedbackButton.tsx): `metadata` payload grows `version` (semver) and `gitCommit` (short hash), both guarded with `typeof X !== 'undefined'` for the dev/test environment where the Vite define wouldn't have run.
+- [server.js](server/server.js): `/api/public/feedback/open` promotes `metadata.version` and `metadata.gitCommit` to top-level `version` / `gitCommit` fields on each report (null for legacy pre-v2.70.2 reports).
+
+Backward-compatible: existing reports lack both fields, surface as `null`, and the dashboard can color them differently as "unknown vintage."
+
 ## [2.70.1] - 2026-05-22
 
 ### Editor-save reload + paired dice-button consolidation

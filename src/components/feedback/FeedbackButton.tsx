@@ -123,6 +123,11 @@ export function FeedbackButton(): JSX.Element {
       timestamp: new Date().toISOString(),
       gameId: getCurrentGameId() || urlParams.get('g') || 'none',
       playerId: urlParams.get('p') || urlParams.get('playerId') || 'none',
+      // Stamp the deploy that produced this report so the dashboard can tell
+      // a fresh bug from a stale one filed against pre-fix code.
+      // Both fields come from Vite `define` at build time (vite.config.ts).
+      version: typeof __APP_SEMVER__ !== 'undefined' ? __APP_SEMVER__ : 'unknown',
+      gitCommit: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown',
     };
 
     // Collect diagnostic data in parallel

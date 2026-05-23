@@ -1232,6 +1232,11 @@ app.get('/api/public/feedback/open', (req, res) => {
           whatDoing: data.whatDoing,
           whatWrong: data.whatWrong,
           contact: data.contact || null,
+          // Promote version + gitCommit from metadata to top-level so the
+          // dashboard can tell at a glance whether a report is pre-fix or
+          // post-fix. Older reports lacking these will surface as null.
+          version: data.metadata && data.metadata.version ? data.metadata.version : null,
+          gitCommit: data.metadata && data.metadata.gitCommit ? data.metadata.gitCommit : null,
         };
       } catch {
         return null;

@@ -2,7 +2,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 import type { Plugin } from 'vite';
+
+// Read the semver version from package.json so the client can stamp bug
+// reports with the deploy that produced them.
+function getSemverVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
+    return typeof pkg.version === 'string' ? pkg.version : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 // Get git commit hash for version tracking
 function getGitCommitHash(): string {
@@ -130,6 +142,7 @@ export default defineConfig({
   root: '.',
   define: {
     __APP_VERSION__: JSON.stringify(getGitCommitHash()),
+    __APP_SEMVER__: JSON.stringify(getSemverVersion()),
     __BUILD_TIME__: JSON.stringify(getBuildTimestamp())
   },
   server: {
