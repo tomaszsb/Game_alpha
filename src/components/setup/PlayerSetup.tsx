@@ -13,6 +13,7 @@ import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
+import { useGitHubSyncStatus } from './useGitHubSyncStatus';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -49,6 +50,12 @@ export function PlayerSetup({
 
   // TV mode detection
   const isTVMode = new URLSearchParams(window.location.search).get('mode') === 'tv';
+
+  // GitHub sync status — restored from pre-v2.69.0 GameLobby. Tells the user
+  // at a glance whether the loaded client matches the latest master commit.
+  const syncStatus = useGitHubSyncStatus();
+  const appSemver = typeof __APP_SEMVER__ !== 'undefined' ? __APP_SEMVER__ : '';
+  const appCommit = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '';
 
   // Game settings state
   const [gameSettings, setGameSettings] = useState<GameSettings>({
@@ -365,12 +372,33 @@ export function PlayerSetup({
               <p style={styles.subtitle}>Setting up your player</p>
             </div>
           </div>
-          {getCurrentGameId() && (
-            <div style={styles.gameCodeBadge}>
-              <span style={styles.gameCodeLabel}>Game: </span>
-              <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {appSemver && (
+              <div
+                style={styles.versionInfo}
+                title={
+                  appCommit
+                    ? `Build ${appCommit}${syncStatus.latestCommit ? ` · latest on master: ${syncStatus.latestCommit}` : ''}`
+                    : 'Build commit hash unavailable'
+                }
+              >
+                <span>v{appSemver}</span>
+                {appCommit && <span style={styles.versionCommit}> · {appCommit}</span>}
+                {syncStatus.status === 'in-sync' && <span style={styles.versionInSync}> ✓</span>}
+                {syncStatus.status === 'out-of-sync' && (
+                  <span style={styles.versionBehind}>
+                    {' '}⚠ {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
+                  </span>
+                )}
+              </div>
+            )}
+            {getCurrentGameId() && (
+              <div style={styles.gameCodeBadge}>
+                <span style={styles.gameCodeLabel}>Game: </span>
+                <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Player card */}
@@ -490,6 +518,25 @@ export function PlayerSetup({
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {appSemver && (
+            <div
+              style={styles.versionInfo}
+              title={
+                appCommit
+                  ? `Build ${appCommit}${syncStatus.latestCommit ? ` · latest on master: ${syncStatus.latestCommit}` : ''}`
+                  : 'Build commit hash unavailable'
+              }
+            >
+              <span>v{appSemver}</span>
+              {appCommit && <span style={styles.versionCommit}> · {appCommit}</span>}
+              {syncStatus.status === 'in-sync' && <span style={styles.versionInSync}> ✓</span>}
+              {syncStatus.status === 'out-of-sync' && (
+                <span style={styles.versionBehind}>
+                  {' '}⚠ {syncStatus.commitsBehind ? `${syncStatus.commitsBehind} ` : ''}behind
+                </span>
+              )}
+            </div>
+          )}
           {getCurrentGameId() && (
             <div style={styles.gameCodeBadge}>
               <span style={styles.gameCodeLabel}>Game Code: </span>
@@ -1227,6 +1274,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 'clamp(0.7rem, 1.5vh, 1rem)',
     margin: 0,
+  },
+  versionInfo: {
+    fontSize: 'clamp(0.65rem, 1.2vh, 0.78rem)',
+    fontFamily: 'monospace',
+    color: 'rgba(255,255,255,0.85)',
+    padding: '0.3rem 0.6rem',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: '6px',
+    whiteSpace: 'nowrap' as const,
+  },
+  versionCommit: {
+    color: 'rgba(255,255,255,0.55)',
+  },
+  versionInSync: {
+    color: '#22c55e',
+    fontWeight: 'bold' as const,
+  },
+  versionBehind: {
+    color: '#f59e0b',
+    fontWeight: 'bold' as const,
   },
   gameCodeBadge: {
     padding: 'clamp(0.4rem, 1vh, 0.75rem) clamp(0.8rem, 2vw, 1.5rem)',

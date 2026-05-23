@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.2] - 2026-05-23
+
+### Fix — restore version/commit + sync-status pill on the setup screen
+
+The pre-v2.69.0 `GameLobby` screen showed the loaded build's commit hash with a green ✓ (in sync with `master`) or amber ⚠ N behind indicator. The v2.69.0 merger into `PlayerSetup` accidentally dropped it. Playtesters lost the at-a-glance way to confirm they were on the latest deploy.
+
+#### What's back
+- [src/components/setup/useGitHubSyncStatus.ts](src/components/setup/useGitHubSyncStatus.ts) (new): extracted the GitHub `/repos/.../commits/master` + `/compare` ping into a small hook so the setup component stays tidy. One fetch per mount; unauthenticated GitHub API gives ~60/hr per IP, which is plenty for the setup screen's traffic.
+- [src/components/setup/PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): both header paths (desktop and per-player mobile) now render a `v3.0.2 · <commit> ✓` pill on the right side, next to the Game Code badge. Hover title shows the full hash + the latest master hash. ⚠ N behind shows in amber when the build trails.
+
+`fb:` — not from a feedback report, surfaced by user noticing it was missing.
+
+## [3.0.1] - 2026-05-23
+
+### Fix — runtime errors no longer hide the app
+
+The first v3.0.0 dashboard report (`feedback-1779511071011-241911b6`) caught the app showing the red "Application loading error" fallback because a benign Chromium warning — "ResizeObserver loop completed with undelivered notifications" — fired on `window.error`. The pre-existing handler in [index.html](index.html) was treating *every* `window.error` as a module load failure and nuking `#root`.
+
+#### Fix
+- [index.html](index.html): the `window.error` listener now distinguishes resource load errors (where `e.target` is a failed `<script>` / `<link>` / `<img>` element) from runtime errors (where `e.target === window`). Only resource load errors trigger the fallback UI; runtime errors are logged and the app keeps running. Listener moved to capture phase to catch resource errors that don't bubble.
+
+#### Why this is the right scope
+
+The handler's comment always said "Error handler for module loading failures" — it was just over-broad in implementation. ResizeObserver loop warnings are emitted by Chromium for nearly every React Flow drag/resize and are not real errors. Filtering them specifically would close this one report but leave other future runtime errors (network blips inside React, third-party script noise) still capable of bricking the loaded app. The resource-vs-runtime split fixes the whole class.
+
+`fb:feedback-1779511071011-241911b6`
+
 ## [3.0.0] - 2026-05-23
 
 ### 🎉 v3.0 ships — BoardV3 retired (Workstream 3 Phase D complete)

@@ -17,6 +17,7 @@ import { getBackendURL } from '../../utils/networkDetection';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
+import { collapsePairedDiceActions } from './pendingActionsCollapse';
 import './ActionCenterPanel.css';
 
 export type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
@@ -338,40 +339,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
       };
     });
 
-    // v2.70.2 — Collapse paired dice rows into one button. CHEAT-BYPASS has
-    // three SPACE_EFFECTS dice_outcome rows (Time outcomes, Fees Paid, Next
-    // Step) that all share one dice roll (blank roll_group). They produce
-    // three buttons but ALL of them resolve to the same effectKey and trigger
-    // the same single roll. One button is the truthful UX. The modal already
-    // shows all paired effects together after the roll fires.
-    //
-    // Rule: dedupe consecutive dice rows by effectKey, keep the first, and
-    // when more than one collapsed into it, swap the label to a generic
-    // "Roll dice" so the player doesn't think the button only handles one of
-    // the outcome categories.
-    const collapsed: typeof mapped = [];
-    const seenDiceKeys = new Set<string>();
-    let diceCollapseCount = 0;
-    for (const action of mapped) {
-      if (action.isDiceEffect) {
-        if (seenDiceKeys.has(action.effectKey)) {
-          diceCollapseCount++;
-          continue;
-        }
-        seenDiceKeys.add(action.effectKey);
-      }
-      collapsed.push(action);
-    }
-    if (diceCollapseCount > 0) {
-      // Relabel the surviving (first) dice button to the generic phrasing.
-      for (let i = 0; i < collapsed.length; i++) {
-        if (collapsed[i].isDiceEffect) {
-          collapsed[i] = { ...collapsed[i], label: '🎲 Roll dice' };
-          break;
-        }
-      }
-    }
-    return collapsed;
+    // v2.70.2 — Collapse paired dice rows into one button. See
+    // pendingActionsCollapse.ts for the rule and rationale.
+    return collapsePairedDiceActions(mapped);
   }, [player.currentSpace, player.visitType, completedActions, gameServices]);
 
   const needsMovementChoice = !!movementChoice && !selectedDestination;

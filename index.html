@@ -94,12 +94,20 @@
     <script type="module" src="src/main.tsx"></script>
 
     <script>
-        // Error handler for module loading failures
+        // Error handler for module loading failures.
+        // Only triggers on actual resource load errors (e.target is an HTMLElement like a failed <script>).
+        // Runtime errors and benign browser warnings (e.g. "ResizeObserver loop completed with undelivered notifications")
+        // are logged but must NOT hide the app — they were previously knocking the user into the fallback UI.
         window.addEventListener('error', function(e) {
+            var isResourceLoadError = e.target && e.target !== window && e.target.tagName;
+            if (!isResourceLoadError) {
+                console.error('Runtime error (not blocking app):', e.message || e);
+                return;
+            }
             console.error('Application loading error:', e);
             document.getElementById('root').style.display = 'none';
             document.getElementById('error-fallback').style.display = 'flex';
-        });
+        }, true);
 
         // Check if React loaded properly after a timeout
         setTimeout(() => {
