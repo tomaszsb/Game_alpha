@@ -211,6 +211,16 @@ export interface IDataService {
    * this targeted refresh instead.
    */
   reloadGameConfig(): Promise<void>;
+
+  /**
+   * Re-fetch every CSV slice and re-build derived data. Used by editor save
+   * flows (DataEditor's bulk save touches Spaces/DiceRoll/ModalConfig which
+   * the server regenerates into all CLEAN_FILES). Without this, the cached
+   * in-memory copy of SPACE_EFFECTS / DICE_EFFECTS / MOVEMENT etc. survives
+   * the save and the next gameplay action sees stale data — same trap as the
+   * v2.69.4 reloadGameConfig fix, just generalized.
+   */
+  reloadAllData(): Promise<void>;
 }
 
 export interface IStateService {

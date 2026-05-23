@@ -304,7 +304,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     const conditionFiltered = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
     const manualEffects = conditionFiltered.filter(e => e.trigger_type === 'manual');
 
-    return manualEffects.map(effect => {
+    const mapped = manualEffects.map(effect => {
       const effectKey = effect.effect_action
         ? `${effect.effect_type}:${effect.effect_action}`
         : effect.effect_type;
@@ -337,6 +337,41 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
         isDiceEffect
       };
     });
+
+    // v2.70.2 — Collapse paired dice rows into one button. CHEAT-BYPASS has
+    // three SPACE_EFFECTS dice_outcome rows (Time outcomes, Fees Paid, Next
+    // Step) that all share one dice roll (blank roll_group). They produce
+    // three buttons but ALL of them resolve to the same effectKey and trigger
+    // the same single roll. One button is the truthful UX. The modal already
+    // shows all paired effects together after the roll fires.
+    //
+    // Rule: dedupe consecutive dice rows by effectKey, keep the first, and
+    // when more than one collapsed into it, swap the label to a generic
+    // "Roll dice" so the player doesn't think the button only handles one of
+    // the outcome categories.
+    const collapsed: typeof mapped = [];
+    const seenDiceKeys = new Set<string>();
+    let diceCollapseCount = 0;
+    for (const action of mapped) {
+      if (action.isDiceEffect) {
+        if (seenDiceKeys.has(action.effectKey)) {
+          diceCollapseCount++;
+          continue;
+        }
+        seenDiceKeys.add(action.effectKey);
+      }
+      collapsed.push(action);
+    }
+    if (diceCollapseCount > 0) {
+      // Relabel the surviving (first) dice button to the generic phrasing.
+      for (let i = 0; i < collapsed.length; i++) {
+        if (collapsed[i].isDiceEffect) {
+          collapsed[i] = { ...collapsed[i], label: '🎲 Roll dice' };
+          break;
+        }
+      }
+    }
+    return collapsed;
   }, [player.currentSpace, player.visitType, completedActions, gameServices]);
 
   const needsMovementChoice = !!movementChoice && !selectedDestination;

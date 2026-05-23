@@ -88,6 +88,31 @@ export class DataService implements IDataService {
     await this.loadGameConfig();
   }
 
+  /**
+   * Re-fetch every CSV slice and rebuild derived data. Bypasses the
+   * once-only loadData() guard so editor saves reflect immediately without
+   * a hard browser refresh. See ServiceContracts comment for context.
+   *
+   * Implementation mirrors loadData() but skips the loadingPromise/loaded
+   * machinery — callers are expected to invoke this only after a successful
+   * editor save, so they're explicit about wanting fresh data.
+   */
+  async reloadAllData(): Promise<void> {
+    await Promise.all([
+      this.loadGameConfig(),
+      this.loadMovements(),
+      this.loadDiceOutcomes(),
+      this.loadSpaceEffects(),
+      this.loadDiceEffects(),
+      this.loadSpaceContents(),
+      this.loadCards(),
+      this.loadModalConfigs(),
+      this.loadLogicQuestions(),
+      this.loadPathChoiceRules()
+    ]);
+    this.buildSpaces();
+  }
+
   // Configuration methods
   getGameConfig(): GameConfig[] {
     return [...this.gameConfigs];

@@ -245,6 +245,15 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
 
       if (response.ok && data.success) {
         setHasUnsavedChanges(false);
+        // Refresh DataService's in-memory caches so gameplay sees the new CSVs
+        // without a hard browser reload. Without this, SPACE_EFFECTS / DICE_EFFECTS
+        // / MOVEMENT stay stale until the user hits Ctrl+Shift+R — same trap as
+        // the v2.69.4 reloadGameConfig fix, generalized in v2.70.1.
+        try {
+          await dataService.reloadAllData();
+        } catch (reloadErr) {
+          console.warn('[DataEditor] Save succeeded but in-memory reload failed:', reloadErr);
+        }
         setSaveStatus({ type: 'success', message: `Saved! ${data.files.length} files regenerated.` });
         // Auto-clear success message after 4 seconds
         setTimeout(() => setSaveStatus(prev => prev?.type === 'success' ? null : prev), 4000);
@@ -258,7 +267,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     } finally {
       setIsSaving(false);
     }
-  }, [spacesData, diceRollData, modalConfigData]);
+  }, [spacesData, diceRollData, modalConfigData, dataService]);
 
   // Add new space
   const handleAddSpace = useCallback((spaceName: string) => {

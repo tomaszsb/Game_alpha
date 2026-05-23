@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.70.1] - 2026-05-22
+
+### Editor-save reload + paired dice-button consolidation
+
+Two follow-ups to v2.70.0 that surfaced during the CHEAT-BYPASS playtest. Both belong to the same family of bugs the v2.69.4 fix touched on but didn't generalize.
+
+#### Generalized cache reload — no more "works after refresh"
+
+v2.69.4 fixed the Board Layout Editor's drag-save cache trap by adding `reloadGameConfig()`. The same trap was still live for every other CSV slice: editor saves to Spaces/DiceRoll/ModalConfig regenerate ALL CLEAN_FILES on the server, but the browser's DataService kept its first-load copy of SPACE_EFFECTS / DICE_EFFECTS / MOVEMENT / SPACE_CONTENT in memory until a hard refresh. Result: the editor save reported success, the disk had the new data, the next gameplay action read the stale cached version.
+
+- [DataService.ts](src/services/DataService.ts): new `reloadAllData()` re-runs every `loadX()` and rebuilds spaces, bypassing the once-only `loaded`/`loadingPromise` guard.
+- [ServiceContracts.ts](src/types/ServiceContracts.ts): added to `IDataService`.
+- [DataEditor.tsx](src/components/editor/DataEditor.tsx): on save success, awaits `reloadAllData()` before showing the success banner. Wrapped in try/catch so a reload failure logs to console but doesn't blow up the save UX.
+- [mockServices.ts](tests/mocks/mockServices.ts): mock data service grows `reloadAllData: vi.fn()` to satisfy the contract.
+
+#### Paired dice buttons collapse to one
+
+CHEAT-BYPASS produces three SPACE_EFFECTS `dice_outcome` rows (Time outcomes, Fees Paid, Next Step) after v2.70.0 — and the ActionCenterPanel rendered three separate dice buttons. Functionally they were all the same button (identical `effectKey=dice:dice_outcome`, single click resolves all three paired effects via the engine's `roll_group` consolidation), but the player saw three and couldn't tell.
+
+- [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx): `pendingActions` useMemo dedupes consecutive dice-type entries by `effectKey`, keeping the first. When more than one collapsed in, the surviving button is relabeled to "🎲 Roll dice" so it doesn't claim to handle only one outcome category. The modal-side display of all paired effects after the roll is unchanged — that part already worked correctly.
+
 ## [2.70.0] - 2026-05-22
 
 ### CHEAT-BYPASS gains a money penalty + roll_group validation (fb:89d9f101)
