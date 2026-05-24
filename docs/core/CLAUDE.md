@@ -731,6 +731,29 @@ Standing housekeeping pattern at every `/koniec`. Code-side fixes don't auto-fli
 
 Common cause of "shipped but report still unresolved": we always remember to update TODO, rarely the dashboard PATCH. v3.0.9 sweep flipped 29 reports (this sprint + v2.63.9–v2.65.x backlog of `[x]` entries that had never been flipped). Dashboard 51 → 22 unresolved.
 
+### Bugs live in seams — test the handoffs, not just the units (v3.0.14)
+
+Both bugs shipped in v3.0.14 (L049 expeditor draw + REG-DOB-TYPE-SELECT deadlock) had every individual function unit-tested green. They lived in the seams.
+
+**L049 shape — parallel branches that drifted apart.** [CardService.ts:1126](src/services/CardService.ts:1126) tick_modifier block branches on `card.scope === 'global'` to fan time effects across all players. Eight lines below at line 1159, the DRAW_CARDS block didn't have that branch — single-player only. Every unit test for draws used `scope=Single`-shaped fixtures, so the branch never failed because it didn't exist to be reached. **Rule: when adding code paths to one branch (time / money / cards / discard), audit the parallel branches and mirror.** A "global scope only works for time" gap is a silent data lie waiting to surface.
+
+**REG-DOB-TYPE-SELECT shape — function returns "no action needed" but downstream still counts the action.** [MovementService.createMovementChoice:1156](src/services/MovementService.ts:1156) fell through with `'Only 1 valid move(s)'` and no `moveIntent` set when pathChoiceMemory narrowed validMoves to 1. [StateService.calculateRequiredActions:1084](src/services/StateService.ts:1084) kept counting the choice as required because `movement_type === 'choice'`. The screen had no picker (1 option ≠ a choice modal), End Turn greyed out forever, "1 action remaining" tooltip with no actionable affordance. **Rule: when a function decides "no action needed", verify every downstream counter agrees. If anything still calls it a pending action, you've created an uncompletable state — the worst possible UX.**
+
+**Diagnosis order when player reports "stuck":** check `requiredActions` vs `completedActions` BEFORE assuming UX/styling. The disabled button is almost always a symptom of an uncompletable required action, not a styling bug. Spent ~30 min on the wrong diagnosis (button styling, mobile scrolling, narrative copy) before realizing.
+
+**The gate that catches this class going forward:** [tests/integration/cardTextMatchesColumns.test.ts](tests/integration/cardTextMatchesColumns.test.ts). Scans every CARDS_EXPANDED.csv description for trigger phrases ("each/all players draws/discards/decrease/increase") and asserts structured columns implement them. Caught L027 + L042 on first run (both same shape as L049 — silent zero-deltas). New pattern: for any data-driven mechanism (card text → engine effects, space flags → movement behavior), add a "text-matches-engine" gate. Unit tests verify the engine; integrity gates verify the authoring side stays honest.
+
+### Path-choice-lock-point mechanism — already exists, don't rebuild (v3.0.14)
+
+`pathChoiceMemory` is a fully data-driven per-space pick-memory system (Workstream 6 #4). If asked to "make space X remember the player's first pick and auto-route on returns":
+
+- Read side: [MovementService.ts:126-133](src/services/MovementService.ts:126) narrows validMoves via `dataService.isPathChoiceLockPoint(space)` + `dataService.getPathChoiceMemoryKey(space)`.
+- Write side: [MovementService.ts:327-335](src/services/MovementService.ts:327) stores the picked destination in `player.pathChoiceMemory[memoryKey]` when leaving the lock-point on First visit.
+- Auto-route fallthrough: [MovementService.ts:1156-1170](src/services/MovementService.ts:1156) (added v3.0.14) — when narrowed to 1 valid move on a choice space, sets `moveIntent` automatically.
+- Config: [GAME_CONFIG.csv](public/data/CLEAN_FILES/GAME_CONFIG.csv) columns `path_choice_memory_key` (free string, by convention namespace per concept like `dob_path`) + `is_path_choice_lock_point=Yes`. Currently only REG-DOB-TYPE-SELECT uses it; just add another row to extend.
+
+**The 3 pieces work together — don't fix one in isolation.** If a lock-point space deadlocks, suspect the auto-route fallthrough first (the seam). If it asks twice, suspect the read filter. If memory never persists, suspect the write block.
+
 ### Legacy `/api/gamestate` fallthrough trap (v2.69.1)
 
 `src/utils/networkDetection.ts:getGameStateAPIPath(gameId?)` returns `/api/games/${gameId}/state` when a gameId is provided, but falls through to `/api/gamestate` (the single-game-era legacy endpoint) when none is. The server still holds a single-game record at `LEGACY_GAME_ID` that can be left in any phase from prior sessions. Any caller doing `loadStateFromServer()` without first ensuring a gameId in the URL can pick up legacy state — typically PLAY phase — and skip setup entirely. Presents as "the app jumps directly to the game" on a fresh URL hit.
@@ -741,5 +764,5 @@ When refactoring App-level routing, remember: `ServiceProvider` doesn't take a g
 
 ---
 
-**Last Updated:** May 23, 2026 evening (Session v3.0.9–**v3.0.13** — 5 versions: dedicated LifeEventModal with queueing, board readability v2 sprint covering tile-name match + five-step size hierarchy + path-only edges, end-game stats panel, center-anchored growth + popover + editor buffer ghost, Project Debrief insights panel)
-**Charter Version:** 3.15 (+ modal queueing pattern, React Flow top-left growth + transform anchoring, path-only edges, three-layer end-game architecture, dashboard PATCH sweep workflow)
+**Last Updated:** May 24, 2026 (Session **v3.0.14** — L049 global-scope draw + REG-DOB-TYPE-SELECT auto-route + card-text-vs-columns integrity gate)
+**Charter Version:** 3.16 (+ seam-testing pattern, path-choice-lock-point mechanism map)

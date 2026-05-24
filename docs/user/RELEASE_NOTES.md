@@ -2,6 +2,19 @@
 
 ---
 
+## v3.0.14 — Two playtest bugs closed + the gate that should have caught them (May 24, 2026)
+
+Two reports from the 2026-05-23 PM playtest of v3.0.13:
+
+- **The "All players get an expeditor" Life card was lying.** L049 "Permitting Process Overhaul" said *"Each player draws 1 Expeditor Card"* but actually handed out zero cards to anyone. The card now keeps its promise — every player gets a fresh expeditor, AND the global 2-day filing-time reduction it promised now actually fires.
+- **REG-DOB-TYPE-SELECT no longer deadlocks on return visits.** The design has always been "pick Plan Exam or Prof Cert once, that's your DOB filing path forever." The game was correctly remembering the pick — and correctly narrowing options to your committed lane on subsequent visits — but it forgot to actually route you to that single lane, leaving End Turn greyed out forever with a vague "1 action remaining" tooltip and no picker visible. Now: silent auto-route, you just press Wait it out and you're on your way.
+
+While writing the test that would have caught L049 before release, the gate found two more cards with the same bug shape and fixed them in the same commit: **L027 (Permit Office Upgrade)** and **L042 (Sister City Collaboration)** both promised "all players' filing times decrease by N days" but their structured data said zero days. Both now actually deliver the time savings.
+
+The new card-text integrity gate will fail at test time, not playtest time, the next time a card's description and its mechanics drift apart.
+
+---
+
 ## v3.0.1 → v3.0.8 — Playtest-driven polish sweep (May 23, 2026 PM)
 
 Eight follow-up versions shipped the afternoon of the v3.0.0 milestone, all triggered by fresh dashboard reports filed against the new build. Highlights you'll notice in-game:
