@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.14] - 2026-05-24
+
+### Fix — Two v3.0.13 playtest reports closed + the testing gap that let them ship
+
+Two unrelated bugs surfaced from the 2026-05-23 PM v3.0.13 playtest. Both turned out to live in *seam* gaps that existing unit tests didn't cover — each individual function did exactly what it claimed, the bugs lived in the handoffs between them. Both fixed, plus a new integrity gate that catches the class of bug going forward — and caught two more L049-shaped data bugs (L027 + L042) on its first run, both fixed in the same commit.
+
+#### `fb:2fe0db6c` — "Life card said each player gets an expeditor, but I did not get a card"
+L049 "Permitting Process Overhaul" promised *"Each player draws 1 Expeditor Card"* but `CARDS_EXPANDED.csv:149` columns were `target=Self, scope=Single, draw_cards=<empty>` — zero cards landed in any hand. Two-part fix:
+- **CSV**: L049 row updated to `tick_modifier=-2, draw_cards=1, target=All Players, scope=Global`. Description unchanged (now matches engine reality).
+- **Code**: new `isGlobalScope` branch in DRAW_CARDS block at [CardService.ts:1159](src/services/CardService.ts:1159), mirroring the time-modifier global-scope pattern at line 1126. Fans the CARD_DRAW effect across `gameState.players` so every player actually draws.
+
+Bonus cleanup: L049's CSV line had a stray `\r` byte embedded mid-row (legacy Windows multiline-parser artifact); removed during the edit. Same scrub later applied to L027 + L042.
+
+#### `fb:291d8076` — "I'm stuck on REG-DOB-TYPE-SELECT, there is no other action"
+Initial UX diagnosis (button styling / mobile scrolling) was wrong. Real root cause: the `pathChoiceMemory` mechanism (Workstream 6 #4) was correctly narrowing `getValidMoves` down to the single destination the player picked on First visit, but [MovementService.createMovementChoice:1156](src/services/MovementService.ts:1156) returned *"Only 1 valid move(s)"* without setting `moveIntent`. Meanwhile [StateService.calculateRequiredActions:1084](src/services/StateService.ts:1084) kept counting the choice as required (movement_type='choice' regardless of validMoves narrowing). End Turn greyed out forever, vague "1 action remaining" tooltip, no picker rendered (1 option = no choice modal), Subsequent story copy *"Nothing to do but wait"* technically correct but irreconcilable with the disabled button.
+
+Fix: at the 0/1-moves fallthrough, if `validMoves.length === 1 && movement_type === 'choice' && !moveIntent`, auto-set `moveIntent` to the single destination. The path-choice-lock-point design (pick once on First, auto-route on every Subsequent) now works end-to-end. No CSV/data change needed — the data flags were already correct, only the resolution logic was incomplete.
+
+#### Test-gap closure — card-text integrity gate
+New [tests/integration/cardTextMatchesColumns.test.ts](tests/integration/cardTextMatchesColumns.test.ts) scans every CARDS_EXPANDED.csv row's description for phrases implying specific behavior (each/all-players draws, each/all-players discards, each/all-players time deltas) and asserts the structured columns implement them. Caught **L027 + L042 on first run** — both had `tick_modifier=0` despite description saying *"All players' current filing times decrease by N days"* with `scope=Global`. Silent no-ops just like L049 had been. Both fixed: L027 0→-2, L042 0→-1.
+
+Also includes a data-driven companion: for every space in GAME_CONFIG.csv with `is_path_choice_lock_point=Yes`, verifies the Subsequent MOVEMENT row exists, `movement_type='choice'`, ≥2 destinations. Future lock-point spaces get coverage automatically — no per-space test needed. Lesson: previously every unit was unit-tested but the seams between `getValidMoves → createMovementChoice` (REG-DOB-TYPE-SELECT bug) and `description → structured columns` (L049/L027/L042) had no integrity gate. Both gaps are now closed.
+
+#### Fix
+- [src/services/CardService.ts](src/services/CardService.ts) — DRAW_CARDS block branches on `card.scope === 'global'` to fan effect across all players (mirrors existing time-modifier pattern).
+- [src/services/MovementService.ts](src/services/MovementService.ts) — single-valid-move on choice-typed spaces auto-resolves `moveIntent` so calculateRequiredActions sees the choice as completed.
+- [public/data/CLEAN_FILES/CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv) — L049, L027, L042 columns corrected.
+- [package.json](package.json) — version 3.0.13 → 3.0.14.
+
+#### Test
+- New [tests/integration/cardTextMatchesColumns.test.ts](tests/integration/cardTextMatchesColumns.test.ts) — 6 tests (4 description-vs-columns gates + 2 lock-point data-shape gates).
+- [tests/services/CardService.test.ts](tests/services/CardService.test.ts) — 2 new (global fan-out across 3 players + single-scope control).
+- [tests/services/MovementService.test.ts](tests/services/MovementService.test.ts) — 2 new (auto-route on lock-point narrow + defensive no-op when player already has moveIntent).
+- Targeted sweep: **184/184** across MovementService + StateService + StateService-actionCounter + TurnService + CardService + dataIntegrity + cardTextMatchesColumns. Typecheck clean.
+
+#### Known follow-ups (filed in TODO)
+- **L003/L048 — global-scope DISCARD path has the same gap as DRAW did.** Engine doesn't fan out forced discards. Held on UX call: per-player choose-which-card modal vs engine auto-picks (e.g. oldest E).
+- **5 ambiguous-wording cards** (L026, L030, L033, L036, L047) flagged by the integrity gate but NOT auto-failing because the *"All filing times…"* wording is genuinely ambiguous (self-only across player's filings vs all players globally). Needs authoring decision per card.
+
+`fb:feedback-1779570521283-2fe0db6c` `fb:feedback-1779571011889-291d8076`
+
 ## [3.0.13] - 2026-05-23
 
 ### Feature — Project Debrief: end-game insights turn stats into wisdom

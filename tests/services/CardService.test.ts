@@ -813,6 +813,65 @@ describe('CardService - Enhanced Coverage', () => {
       );
     });
 
+    it('should fan out draw_cards to every player when scope is Global (L049 regression)', () => {
+      // L049 "Permitting Process Overhaul" — text promises "Each player draws 1 Expeditor Card".
+      // Before the fix the CARD_DRAW effect only fired for the playing player; the global-scope
+      // branch was missing on the DRAW path (it existed only on tick_modifier). Mirrors fb:2fe0db6c.
+      const testCard = {
+        card_id: 'L049',
+        card_name: 'Permitting Process Overhaul',
+        card_type: 'L',
+        draw_cards: '1 E',
+        target: 'All Players',
+        scope: 'Global',
+        description: 'Each player draws 1 Expeditor Card.'
+      };
+
+      const player2: any = { ...mockPlayer, id: 'player2', name: 'Player2', hand: [] };
+      const player3: any = { ...mockPlayer, id: 'player3', name: 'Player3', hand: [] };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, player2, player3]
+      });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      cardService.applyCardEffects('player1', 'L049');
+
+      const drawEffectsByPlayer = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'CARD_DRAW')
+        .map((e: any) => e.payload.playerId)
+        .sort();
+
+      expect(drawEffectsByPlayer).toEqual(['player1', 'player2', 'player3']);
+    });
+
+    it('should keep draw_cards single-player when scope is Single (control)', () => {
+      const testCard = {
+        card_id: 'E007',
+        card_name: 'Expeditor Insight',
+        card_type: 'E',
+        draw_cards: '2 E',
+        target: 'Self',
+        scope: 'Single',
+        description: 'Draw 2 Expeditor Cards.'
+      };
+
+      const player2: any = { ...mockPlayer, id: 'player2', name: 'Player2', hand: [] };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, player2]
+      });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      cardService.applyCardEffects('player1', 'E007');
+
+      const drawEffectsByPlayer = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'CARD_DRAW')
+        .map((e: any) => e.payload.playerId);
+
+      expect(drawEffectsByPlayer).toEqual(['player1']);
+    });
+
     it('should parse card with discard_cards into CARD_DISCARD effect', () => {
       const testCard = {
         card_id: 'DISCARD001',

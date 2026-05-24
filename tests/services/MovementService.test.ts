@@ -564,6 +564,67 @@ describe('MovementService', () => {
       expect(result).toEqual(['REG-DOB-PROF-CERT']);
     });
 
+    it('should auto-set moveIntent when validMoves narrows to 1 on a choice space (fb:291d8076)', async () => {
+      // Regression for the "I'm stuck" report on REG-DOB-TYPE-SELECT Subsequent.
+      // Before the fix: pathChoiceMemory narrowed validMoves to ['REG-DOB-PLAN-EXAM']
+      // but createMovementChoice returned "no choice needed" without setting
+      // moveIntent. StateService.calculateRequiredActions kept counting the
+      // choice as required-uncompleted, so End Turn stayed greyed out forever.
+      const player = {
+        ...mockPlayer,
+        currentSpace: 'REG-DOB-TYPE-SELECT',
+        visitType: 'Subsequent' as const,
+        moveIntent: null,
+        pathChoiceMemory: {
+          'dob_path': 'REG-DOB-PLAN-EXAM'
+        }
+      };
+
+      const mockMovement: Movement = {
+        space_name: 'REG-DOB-TYPE-SELECT',
+        visit_type: 'Subsequent',
+        movement_type: 'choice',
+        destination_1: 'REG-DOB-PLAN-EXAM',
+        destination_2: 'REG-DOB-PROF-CERT'
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockReturnValue(mockMovement);
+
+      const result = await movementService.createMovementChoice('player1');
+
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'REG-DOB-PLAN-EXAM');
+      expect(result.choiceCreated).toBe(false);
+      expect(result.reason).toContain('Auto-routed');
+    });
+
+    it('should NOT auto-set moveIntent when player already has one (defensive)', async () => {
+      const player = {
+        ...mockPlayer,
+        currentSpace: 'REG-DOB-TYPE-SELECT',
+        visitType: 'Subsequent' as const,
+        moveIntent: 'REG-DOB-PROF-CERT', // player already picked manually
+        pathChoiceMemory: {
+          'dob_path': 'REG-DOB-PLAN-EXAM'
+        }
+      };
+
+      const mockMovement: Movement = {
+        space_name: 'REG-DOB-TYPE-SELECT',
+        visit_type: 'Subsequent',
+        movement_type: 'choice',
+        destination_1: 'REG-DOB-PLAN-EXAM',
+        destination_2: 'REG-DOB-PROF-CERT'
+      };
+
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockDataService.getMovement.mockReturnValue(mockMovement);
+
+      await movementService.createMovementChoice('player1');
+
+      expect(mockStateService.setPlayerMoveIntent).not.toHaveBeenCalled();
+    });
+
     it('should return all choices on first visit to REG-DOB-TYPE-SELECT', () => {
       const player = {
         ...mockPlayer,

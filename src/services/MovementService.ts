@@ -1153,7 +1153,24 @@ export class MovementService implements IMovementService {
         return { choiceCreated: true, reason: 'Multiple valid moves - choice presented' };
       }
 
-      // 0 or 1 moves - no choice needed
+      // Exactly 1 valid move on a choice-typed space.
+      // fb:feedback-1779571011889-291d8076 — Subsequent visit to REG-DOB-TYPE-SELECT
+      // (or any path-choice-lock-point space) narrows validMoves to the single
+      // destination the player picked on First visit. Previously we returned
+      // "no choice needed" but never set moveIntent, so StateService's
+      // calculateRequiredActions kept counting the (movement_type='choice') as
+      // required-but-uncompleted forever — End Turn greyed out, player saw
+      // "1 action remaining" with no picker rendered (only one option means no
+      // picker), and reported being stuck. Auto-set moveIntent to the single
+      // destination so the choice is resolved silently and the player can
+      // press End Turn.
+      const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
+      if (validMoves.length === 1 && movement?.movement_type === 'choice' && !player.moveIntent) {
+        this.stateService.setPlayerMoveIntent(playerId, validMoves[0]);
+        return { choiceCreated: false, reason: 'Auto-routed: single valid move on choice space (lock-point memory)' };
+      }
+
+      // 0 moves, or non-choice movement type with 1 move - nothing to set
       return { choiceCreated: false, reason: `Only ${validMoves.length} valid move(s)` };
 
     } catch (error) {

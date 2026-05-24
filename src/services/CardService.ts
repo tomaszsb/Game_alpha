@@ -1163,16 +1163,35 @@ export class CardService implements ICardService {
         const { count, cardType } = drawParsed;
 
         if (count > 0) {
-          effects.push({
-            effectType: 'CARD_DRAW',
-            payload: {
-              playerId: playerId,
-              cardType: cardType,
-              count: count,
-              source: cardSource,
-              reason: `${card.card_name}: Draw ${count} ${cardType} card${count > 1 ? 's' : ''}`
+          const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
+
+          if (isGlobalScope) {
+            // Apply to ALL players (e.g. L049 "Each player draws 1 Expeditor Card")
+            const gameState = this.stateService.getGameState();
+            for (const targetPlayer of gameState.players) {
+              effects.push({
+                effectType: 'CARD_DRAW',
+                payload: {
+                  playerId: targetPlayer.id,
+                  cardType: cardType,
+                  count: count,
+                  source: cardSource,
+                  reason: `${card.card_name}: Draw ${count} ${cardType} card${count > 1 ? 's' : ''} (affects all players)`
+                }
+              });
             }
-          });
+          } else {
+            effects.push({
+              effectType: 'CARD_DRAW',
+              payload: {
+                playerId: playerId,
+                cardType: cardType,
+                count: count,
+                source: cardSource,
+                reason: `${card.card_name}: Draw ${count} ${cardType} card${count > 1 ? 's' : ''}`
+              }
+            });
+          }
         }
       }
     }
