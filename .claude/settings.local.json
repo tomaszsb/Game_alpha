@@ -305,7 +305,12 @@
       "Bash(rm -f .claude/tmp/feedback-*.jpg .claude/tmp/feedback-*.json .claude/tmp/feedback.json .claude/tmp/glossary-live.json .claude/tmp/live-spaces.csv .claude/tmp/old_GameLobby.tsx .claude/tmp/refresh-glossary-snapshot.py .claude/tmp/vitest-results.json && ls .claude/tmp/ 2>&1)",
       "Bash(awk -F, 'NR==1{for\\(i=1;i<=NF;i++\\)print i\": \"$i; exit}' D:/Unravel/Current_Game/Game_Alpha/public/data/CLEAN_FILES/CARDS_EXPANDED.csv)",
       "Bash(awk 'NR==149' D:/Unravel/Current_Game/Game_Alpha/public/data/CLEAN_FILES/CARDS_EXPANDED.csv)",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "mcp__a5b70506-b4d1-4546-ab93-83fc70defd08__search_threads",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); print\\(f'count={d[\\\\\"count\\\\\"]}'\\); print\\('still open from sprint:'\\); [print\\(' ', r['id']\\) for r in d['reports'] if r['id'].split\\('-'\\)[-1] in ['4b07b80a','02bb1588','44221318','9c075c16','9bedb559','5ca98777','00d1db0a']]\")",
+      "Bash(awk 'NR>=126 && NR<=147 && /^L026|^L030|^L033|^L036|^L047/' public/data/CLEAN_FILES/CARDS_EXPANDED.csv)",
+      "Bash(awk -F',' 'NR>1 {print $2}' public/data/CLEAN_FILES/GAME_CONFIG.csv)",
+      "Bash(awk -F',' '{print NF}')"
     ],
     "deny": [],
     "ask": []

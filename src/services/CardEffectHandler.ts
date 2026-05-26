@@ -137,7 +137,12 @@ export class CardEffectHandler implements ICardEffectHandler {
     // Check if this is a dice roll effect requiring user choice
     const isDiceRollRemove = source.includes(':dice_remove');
     const isDiceRollReplace = source.includes(':dice_replace') && !source.includes(':dice_replace_draw');
-    const requiresUserChoice = isDiceRollRemove || isDiceRollReplace;
+    // v3.0.17 — explicit per-effect flag for card-source globals like L003/L048.
+    // Each fanned-out CARD_DISCARD effect sets `requiresUserChoice: true` so the
+    // player whose hand is being touched gets a modal to pick which card. Without
+    // this flag, card-source discards retain the auto-pick-first-N behavior.
+    const isFlaggedForChoice = payload.requiresUserChoice === true;
+    const requiresUserChoice = isDiceRollRemove || isDiceRollReplace || isFlaggedForChoice;
 
     // If cardIds is empty but cardType and count are provided, determine cards at runtime
     if ((!cardIdsToDiscard || cardIdsToDiscard.length === 0) && payload.cardType && payload.count) {
@@ -152,7 +157,9 @@ export class CardEffectHandler implements ICardEffectHandler {
         };
       }
 
-      // For dice roll effects, show a choice modal if player has multiple cards
+      // Show a choice modal when explicitly required (dice rolls, or
+      // flagged globals like L003/L048) AND the player has more cards
+      // than the discard count — otherwise auto-pick by slicing.
       if (requiresUserChoice && allCardsOfType.length > payload.count) {
         const choiceResult = await this.presentCardChoice(payload, allCardsOfType, isDiceRollReplace);
         if (choiceResult.skipped) {

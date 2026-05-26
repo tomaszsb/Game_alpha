@@ -55,15 +55,21 @@ export type Effect =
       }; 
     }
   | { 
-      effectType: 'CARD_DISCARD'; 
-      payload: { 
-        playerId: string; 
+      effectType: 'CARD_DISCARD';
+      payload: {
+        playerId: string;
         cardIds: string[]; // Explicit card IDs for immediate discard
         cardType?: CardType; // For runtime selection: type of cards to discard
         count?: number; // For runtime selection: number of cards to discard
         source?: string;
         reason?: string;
-      }; 
+        // v3.0.17 — forces the discard handler to present a choice modal so
+        // the targeted player picks WHICH of their cards to drop. Used by
+        // the L003/L048 global-scope fan-out where each player makes their
+        // own pick. When false/undefined the handler retains the old
+        // "auto-pick first N" behavior for card-source discards.
+        requiresUserChoice?: boolean;
+      };
     }
   | { 
       effectType: 'CHOICE'; 

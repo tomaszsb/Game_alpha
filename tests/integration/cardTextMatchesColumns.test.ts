@@ -74,6 +74,7 @@ interface Card {
   draw_cards: string;
   discard_cards: string;
   tick_modifier: string;
+  affected_phase: string;
 }
 
 const csvText = readFileSync(
@@ -98,7 +99,8 @@ const cards: Card[] = records.slice(1).map(line => {
     scope: cells[colIdx('scope')] ?? '',
     draw_cards: cells[colIdx('draw_cards')] ?? '',
     discard_cards: cells[colIdx('discard_cards')] ?? '',
-    tick_modifier: cells[colIdx('tick_modifier')] ?? ''
+    tick_modifier: cells[colIdx('tick_modifier')] ?? '',
+    affected_phase: cells[colIdx('affected_phase')] ?? ''
   };
 }).filter(c => c.id); // skip blank rows
 
@@ -233,7 +235,8 @@ describe('CARDS_EXPANDED.csv — description matches structured behavior', () =>
 
   it('global-target TIME INCREASE: "each/all players ... increase/more time/additional days" must have positive tick_modifier and scope=Global', () => {
     // Same unambiguous-wording rule as the decrease test. "All players ... take N
-    // days more" style; ambiguous "All filing times increase…" is not flagged.
+    // days more" style; ambiguous "All filing times increase…" is handled by the
+    // dedicated phase-filter test below since v3.0.17.
     const pattern = /(each player|all players)[^.]*\b(increase|more|additional|take \d+ days)/i;
     const violators = cards.filter(c => {
       if (!pattern.test(c.description)) return false;
@@ -243,5 +246,54 @@ describe('CARDS_EXPANDED.csv — description matches structured behavior', () =>
       return !(isPositive && hasGlobalScope);
     });
     expect(violators.map(c => formatViolator(c, 'tick_modifier', 'scope'))).toEqual([]);
+  });
+
+  // v3.0.17 — phase-filter integrity gates. Lock in the convention that "all
+  // filing times" → REGULATORY and "all construction times" → CONSTRUCTION,
+  // routed through the new affected_phase column. Without this gate, the
+  // earlier "ambiguous wording" cards (L026/L030/L033/L036/L047) could regress
+  // to silent no-op the next time someone tries to "fix" the wording or scope.
+
+  it('affected_phase must be a valid GAME_CONFIG phase value (or empty)', () => {
+    const validPhases = new Set(['SETUP', 'OWNER', 'FUNDING', 'DESIGN', 'REGULATORY', 'CONSTRUCTION', 'END']);
+    const violators = cards.filter(c => {
+      const v = c.affected_phase.trim();
+      return v !== '' && !validPhases.has(v);
+    });
+    expect(violators.map(c => formatViolator(c, 'affected_phase'))).toEqual([]);
+  });
+
+  it('"all filing times" cards: tick_modifier non-zero AND scope=Global AND affected_phase=REGULATORY', () => {
+    // Matches L026, L030, L036, L047 (and any future cards using the same
+    // English shorthand). "Filing" = the regulatory phase per the project's
+    // domain language: a player is "filing" while standing on a REGULATORY-phase
+    // space. Without affected_phase=REGULATORY the global tick would also tick
+    // down players on CONSTRUCTION/OWNER/DESIGN spaces, contradicting the card.
+    const pattern = /all (permit )?filing times?[^.]*\b(decrease|reduce|less|increase|more|additional)/i;
+    const violators = cards.filter(c => {
+      if (!pattern.test(c.description)) return false;
+      const tickNum = parseInt(c.tick_modifier, 10);
+      const hasTick = !isNaN(tickNum) && tickNum !== 0;
+      const hasGlobalScope = c.scope.toLowerCase() === 'global';
+      const hasRegulatoryPhase = c.affected_phase.trim() === 'REGULATORY';
+      return !(hasTick && hasGlobalScope && hasRegulatoryPhase);
+    });
+    expect(violators.map(c => formatViolator(c, 'tick_modifier', 'scope', 'affected_phase'))).toEqual([]);
+  });
+
+  it('"all construction times" cards: tick_modifier non-zero AND scope=Global AND affected_phase=CONSTRUCTION', () => {
+    // Matches L033 (Worksite Injury) and any future cards with the same
+    // shorthand. "Construction" = the construction phase: a player is in
+    // construction while standing on a CONSTRUCTION-phase space.
+    const pattern = /all construction times?[^.]*\b(decrease|reduce|less|increase|more|additional)/i;
+    const violators = cards.filter(c => {
+      if (!pattern.test(c.description)) return false;
+      const tickNum = parseInt(c.tick_modifier, 10);
+      const hasTick = !isNaN(tickNum) && tickNum !== 0;
+      const hasGlobalScope = c.scope.toLowerCase() === 'global';
+      const hasConstructionPhase = c.affected_phase.trim() === 'CONSTRUCTION';
+      return !(hasTick && hasGlobalScope && hasConstructionPhase);
+    });
+    expect(violators.map(c => formatViolator(c, 'tick_modifier', 'scope', 'affected_phase'))).toEqual([]);
   });
 });

@@ -392,6 +392,17 @@ export interface Card {
   // back approval (new building code, project redesign forced by lawsuit, etc.).
   revokes_approval?: 'dob' | 'fdny' | 'both' | '';
 
+  // v3.0.17 — phase filter for global-scope tick_modifier fan-out.
+  // When set on a card with scope=Global, the time delta only applies to
+  // players whose current space is in this phase. Empty / undefined means
+  // unrestricted (delta applies to every player). Phase values match
+  // GAME_CONFIG.phase: SETUP, OWNER, FUNDING, DESIGN, REGULATORY, CONSTRUCTION, END.
+  // Authoring rule: card text saying "all filing times…" → REGULATORY;
+  // "all construction times…" → CONSTRUCTION. Without this filter, "all
+  // filing times" would also tick down a player standing on a CONSTRUCTION
+  // space, contradicting the card's own wording.
+  affected_phase?: string;
+
   // Turn control mechanics
   turn_skip?: string;
 

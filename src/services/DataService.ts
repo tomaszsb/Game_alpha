@@ -932,7 +932,12 @@ export class DataService implements IDataService {
       'money_effect', 'tick_modifier',
       'draw_cards', 'discard_cards', 'target', 'scope', 'work_type_restriction',
       'card_mechanic', 'dice_range_1_min', 'dice_range_1_max', 'dice_range_1_time',
-      'dice_range_2_min', 'dice_range_2_max', 'dice_range_2_time', 'investor_payout'
+      'dice_range_2_min', 'dice_range_2_max', 'dice_range_2_time', 'investor_payout',
+      // v2.61.1 Workstream 7 column (was already in CSV but the parser
+      // wasn't wiring it through to Card — silent always-undefined).
+      'revokes_approval',
+      // v3.0.17 column — phase filter for global-scope tick_modifier.
+      'affected_phase'
     ];
 
     if (header.length < 22) {
@@ -997,6 +1002,15 @@ export class DataService implements IDataService {
         dice_range_2_max: values[27] ? parseInt(values[27]) : undefined,
         dice_range_2_time: values[28] ? parseInt(values[28]) : undefined,
         investor_payout: values[29] ? parseInt(values[29]) : undefined,
+
+        // v2.61.1 W7 — wire through the previously-dormant column. CSV
+        // values are 'dob' | 'fdny' | 'both' | '' (empty); narrow at read.
+        revokes_approval: (values[30] === 'dob' || values[30] === 'fdny' || values[30] === 'both')
+          ? values[30] as Card['revokes_approval']
+          : undefined,
+
+        // v3.0.17 — global-scope phase filter. Empty/missing → unrestricted.
+        affected_phase: values[31] || undefined,
       };
     });
   }

@@ -1126,9 +1126,21 @@ export class CardService implements ICardService {
         const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
 
         if (isGlobalScope) {
-          // Apply to ALL players
+          // Apply to ALL players, optionally filtered by phase. v3.0.17:
+          // cards like L026 ("All permit filing times decrease by 1 day")
+          // should only tick down players who are currently *filing* (i.e.
+          // standing on a REGULATORY-phase space). The affected_phase column
+          // narrows the fan-out; empty/undefined preserves the original
+          // unrestricted behavior (every player gets the delta).
+          const requiredPhase = card.affected_phase?.trim();
           const gameState = this.stateService.getGameState();
           for (const player of gameState.players) {
+            if (requiredPhase) {
+              const spaceConfig = this.dataService.getGameConfigBySpace(player.currentSpace);
+              if (spaceConfig?.phase !== requiredPhase) {
+                continue; // Player not in the required phase — skip them.
+              }
+            }
             effects.push({
               effectType: 'RESOURCE_CHANGE',
               payload: {
@@ -1136,7 +1148,7 @@ export class CardService implements ICardService {
                 resource: 'TIME',
                 amount: timeAmount,
                 source: cardSource,
-                reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days (affects all players)`
+                reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days${requiredPhase ? ` (all ${requiredPhase.toLowerCase()}-phase players)` : ' (affects all players)'}`
               }
             });
           }
@@ -1203,17 +1215,47 @@ export class CardService implements ICardService {
         const { count, cardType } = discardParsed;
 
         if (count > 0) {
-          effects.push({
-            effectType: 'CARD_DISCARD',
-            payload: {
-              playerId: playerId,
-              cardIds: [], // Will be resolved at runtime
-              cardType: cardType,
-              count: count,
-              source: cardSource,
-              reason: `${card.card_name}: Discard ${count} ${cardType || 'any'} card${count > 1 ? 's' : ''}`
+          const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
+
+          if (isGlobalScope) {
+            // v3.0.17 — Global DISCARD fan-out (L003 "All players must
+            // discard 1 Expeditor card", L048 "Graft Investigation"). Mirrors
+            // the L049 DRAW fan-out pattern at line 1166. Each player gets
+            // their OWN CARD_DISCARD effect with their own playerId, and the
+            // `requiresUserChoice` flag triggers the per-player modal in the
+            // handler so each player picks WHICH of their E cards to drop
+            // (instead of the engine auto-picking oldest). Effects process
+            // serially via EffectEngineService — the single-slot
+            // `awaitingChoice` naturally queues each player's pick in turn.
+            // <!-- fb:feedback-1779570521283-2fe0db6c follow-up — L003/L048 -->
+            const gameState = this.stateService.getGameState();
+            for (const targetPlayer of gameState.players) {
+              effects.push({
+                effectType: 'CARD_DISCARD',
+                payload: {
+                  playerId: targetPlayer.id,
+                  cardIds: [], // Will be resolved at runtime
+                  cardType: cardType,
+                  count: count,
+                  source: cardSource,
+                  requiresUserChoice: true,
+                  reason: `${card.card_name}: ${targetPlayer.name} discards ${count} ${cardType || 'any'} card${count > 1 ? 's' : ''} (affects all players)`
+                }
+              });
             }
-          });
+          } else {
+            effects.push({
+              effectType: 'CARD_DISCARD',
+              payload: {
+                playerId: playerId,
+                cardIds: [], // Will be resolved at runtime
+                cardType: cardType,
+                count: count,
+                source: cardSource,
+                reason: `${card.card_name}: Discard ${count} ${cardType || 'any'} card${count > 1 ? 's' : ''}`
+              }
+            });
+          }
         }
       }
     }

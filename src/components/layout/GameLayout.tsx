@@ -1056,8 +1056,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       {/* CardModal - always rendered, visibility controlled by state */}
       <CardModal />
       
-      {/* ChoiceModal - always rendered, visibility controlled by state */}
-      <ChoiceModal />
+      {/* ChoiceModal - always rendered, visibility controlled by state.
+          v3.0.17: passes effectiveViewPlayerId so non-target players' phones
+          suppress the modal during a L003/L048 global-discard fan-out. The
+          host view (effectiveViewPlayerId undefined) and PC mode keep
+          seeing the modal as before. */}
+      <ChoiceModal viewerId={effectiveViewPlayerId || undefined} />
 
       {/* DiceResultModal - shows detailed dice roll feedback */}
       <DiceResultModal

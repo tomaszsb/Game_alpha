@@ -19,7 +19,17 @@ import { debugLog } from '../../utils/debugLog';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { VisitType } from '../../types/DataTypes';
 
-export function ChoiceModal(): JSX.Element {
+export interface ChoiceModalProps {
+  // v3.0.17 — set in TV-mode-with-phones (each phone passes its player ID).
+  // When set AND the awaiting choice targets a different player, this view
+  // suppresses the interactive modal and shows a brief "Waiting for X to
+  // choose" status banner instead — so only the targeted player's device
+  // can resolve the choice. PC mode + TV host leave this undefined and see
+  // the modal as before.
+  viewerId?: string;
+}
+
+export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
   const { stateService, choiceService, notificationService, dataService } = useGameContext();
   const [awaitingChoice, setAwaitingChoice] = useState<Choice | null>(null);
   const [currentPlayerName, setCurrentPlayerName] = useState<string>('');
@@ -90,8 +100,17 @@ export function ChoiceModal(): JSX.Element {
     }
   };
 
+  // v3.0.17 — viewer gate for L003/L048 global-discard fan-out. When this
+  // device's view is anchored to a specific player (TV-mode-with-phones,
+  // viewerId set) and the awaiting choice targets a DIFFERENT player, hide
+  // the interactive modal so only the targeted player's device can resolve.
+  // PC mode and the TV host view leave viewerId undefined and continue to
+  // see the modal as before.
+  const isOtherPlayerChoice =
+    !!viewerId && !!awaitingChoice && awaitingChoice.playerId !== viewerId;
+
   // Card choice types get their own modal (separate AnimatePresence lifecycle)
-  if (awaitingChoice && isCardChoiceType) {
+  if (awaitingChoice && isCardChoiceType && !isOtherPlayerChoice) {
     const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
     const mode = awaitingChoice.type === 'CARD_REPLACEMENT' ? 'replace'
       : awaitingChoice.type === 'CARD_SELECTION' ? 'return'
@@ -136,8 +155,10 @@ export function ChoiceModal(): JSX.Element {
     );
   }
 
-  // Compute isOpen — always render ModalBase so AnimatePresence can play exit animations
-  const isRegularChoice = !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && !isCardChoiceType;
+  // Compute isOpen — always render ModalBase so AnimatePresence can play exit animations.
+  // isOtherPlayerChoice (v3.0.17) closes the modal on non-target views so a
+  // L003/L048 fan-out only prompts the player whose hand is being touched.
+  const isRegularChoice = !!awaitingChoice && awaitingChoice.type !== 'MOVEMENT' && !isCardChoiceType && !isOtherPlayerChoice;
 
   // Per-space ModalConfig overrides for the choice action. Keyed by
   // `${spaceName}|${visitType}|choice` in ModalConfig.csv. When a row exists,

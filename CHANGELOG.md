@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.17] - 2026-05-26
+
+### Fix — Card-engine correctness sweep: phase-filtered global tick_modifier + L003/L048 global-DISCARD fan-out with per-player picker + the dormant `revokes_approval` parser bug
+
+Three card-engine correctness items shipped together. All three share the same root pattern surfaced in the v3.0.14 L049 sweep: CARDS_EXPANDED.csv columns and the engine that reads them drifting out of sync with the English description on the card.
+
+#### Phase-filtered global `tick_modifier` (10 cards)
+The v3.0.14 integrity gate caught 5 ambiguous "All filing/construction times…" cards (L026, L030, L033, L036, L047) that had `tick_modifier=0` despite clear time-delta wording — they shipped as silent no-ops because the gate couldn't tell whether the design intent was self-only or global. The session locked in the project convention: **"filing" = a player standing on a REGULATORY-phase space; "construction" = CONSTRUCTION-phase**. With that rule documented, setting these cards to `scope=Global` with a non-zero `tick_modifier` would have been wrong in a different way: the engine fan-out at [CardService.ts:1128](src/services/CardService.ts:1128) currently broadcasts to *every* player regardless of where they're standing, so "All filing times decrease by 1 day" would also tick down a player on a CONSTRUCTION space. Three pieces of work landed to make the rule enforceable in the engine, not just in authoring intent:
+
+- **New `affected_phase` column on CARDS_EXPANDED.csv** (column 32). Empty = unrestricted (every player). When set, the engine's global tick_modifier branch filters players by their current space's phase. Phase values match GAME_CONFIG.csv (`REGULATORY`, `CONSTRUCTION`, `DESIGN`, etc.). [DataTypes.ts](src/types/DataTypes.ts) gained `Card.affected_phase?: string` with a comment spelling out the authoring rule.
+- **Parser fix in [DataService.ts:921](src/services/DataService.ts:921):** column 31 now reads through to `affected_phase`. While I was already in the parser, also fixed a **dormant bug from v2.61.1 Workstream 7**: column 30 `revokes_approval` was in the CSV and the Card type and was *read* by `CardService.ts:1083` for L cards (DOB/FDNY approval revocations), but `parseCardsCsv` never assigned it from the CSV row — so `card.revokes_approval` had been silently `undefined` since W7 shipped. Now wired through with a narrow-on-read for the `'dob' | 'fdny' | 'both'` literals.
+- **Engine fix in [CardService.ts:1128-1158](src/services/CardService.ts:1128):** the global-scope `tick_modifier` branch now calls `dataService.getGameConfigBySpace(player.currentSpace)` for each player and skips the `RESOURCE_CHANGE` push if the phase doesn't match. The default-unrestricted branch (empty `affected_phase`) preserves the old all-players broadcast for cards that genuinely target everyone.
+
+Cards updated: L026 → REGULATORY -1 day, L030 → REGULATORY +1 day for 2 turns, L033 → CONSTRUCTION +3 days, L036 → REGULATORY -2 days, L047 → REGULATORY +1 day for 5 turns. The new integrity gate also caught **five existing global-tick cards** that had been silently broadcasting to every player despite explicitly phase-scoped descriptions: **L004 Labor Strike** ("All construction times increase by 4 days"), **L011 Holiday Rush** ("All filing times increase by 2 days"), **L018 Bribery Scandal** ("All permit filing times increase…"), **L022 Economic Boom** ("All construction times decrease…"), and **L049 Permitting Process Overhaul** (the same card the v3.0.14 fix corrected — but only on the DRAW path; its tick_modifier was still broadcasting to construction-phase players). All five backfilled with the right phase. Also set `L003.affected_phase=REGULATORY` to constrain its `tick_modifier=3` ("All inspections take 3 additional days") to regulatory-phase players; its discard effect remains unconditionally global.
+
+#### L003/L048 global-DISCARD fan-out with per-player picker
+Same shape as L049 was on the DRAW path (v3.0.14 fix). L003 ("All players must discard 1 Expeditor card") and L048 ("Graft Investigation") had `discard_cards='1 E', target='All Players', scope='Global'` correctly authored, but the CARD_DISCARD branch in `parseCardIntoEffects` at [CardService.ts:1199](src/services/CardService.ts:1199) had no global-scope handling — only the playing player ever discarded. Three other players' hands stayed intact. Silent partial no-op, same class as L049 originally was.
+
+- **Engine fix:** new `isGlobalScope` branch mirroring the DRAW pattern at line 1166. Emits one `CARD_DISCARD` effect per player with that player's `playerId` in the payload. Each effect carries the new `requiresUserChoice: true` payload flag added to `EffectTypes.ts`.
+- **Handler fix in [CardEffectHandler.ts:140](src/services/CardEffectHandler.ts:140):** `handleCardDiscard` now triggers the existing choice flow not just on dice-roll sources but also when the payload flag is explicit. Each player whose hand is touched gets `presentCardChoice` with their own card list — they pick which E card to drop instead of the engine auto-picking oldest.
+- **Why a queue isn't needed:** [EffectEngineService.processEffects](src/services/EffectEngineService.ts:218) awaits each effect serially. The single-slot `gameState.awaitingChoice` naturally serves as a one-at-a-time pick queue: player1's modal opens, they resolve, the loop awaits player2's modal next, and so on. No state-level multi-choice queue required.
+- **TV-mode view gating in [ChoiceModal.tsx](src/components/modals/ChoiceModal.tsx):** new `viewerId` prop. When this device's view is anchored to a specific player (TV-with-phones, [GameLayout.tsx](src/components/layout/GameLayout.tsx) passes `effectiveViewPlayerId`) AND the awaiting choice targets a *different* player, the interactive modal is suppressed on that device so only the targeted player's phone can resolve. PC mode and the TV host view leave `viewerId` undefined and see the modal as before — preserves the existing single-screen flow.
+
+#### Test
+- **3 new CardService unit tests** for the phase-filtered tick_modifier branch: no-filter control (broadcasts to all), REGULATORY filter (only ticks regulatory-phase players, skips DESIGN/CONSTRUCTION), CONSTRUCTION filter (only ticks construction-phase players).
+- **2 new CardService unit tests** for global-DISCARD fan-out: L003 emits one effect per player with `requiresUserChoice: true`; single-scope control card emits one effect for the playing player with the flag undefined.
+- **3 new integrity-gate tests** in `cardTextMatchesColumns.test.ts`: `affected_phase` must be a valid GAME_CONFIG phase or empty; "all filing times" cards must have `affected_phase=REGULATORY` with non-zero global tick; "all construction times" cards must have `affected_phase=CONSTRUCTION` with non-zero global tick. The latter two caught the 5 additional cards above on first run.
+- **Targeted sweep:** 1464/1464 across 79 files (47.28s). Typecheck clean. Build clean (10.34s).
+
+#### Fix
+- [public/data/CLEAN_FILES/CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv) — new `affected_phase` column (32nd). 11 rows set (5 newly-fixed: L026, L030, L033, L036, L047; 5 caught by the new gate: L004, L011, L018, L022, L049; plus L003 for its tick_modifier=3). L003/L048 already had `scope=Global` + `discard_cards=1 E` from prior authoring.
+- [src/types/DataTypes.ts](src/types/DataTypes.ts) — `Card.affected_phase?: string` with authoring-rule comment.
+- [src/services/DataService.ts](src/services/DataService.ts) — `parseCardsCsv` reads columns 30 (`revokes_approval`, fixing a dormant W7 bug) and 31 (`affected_phase`). Expected-columns header extended; column-count check unchanged (≥22 still satisfies; 32-column rows just have more data).
+- [src/services/CardService.ts](src/services/CardService.ts) — global-scope `tick_modifier` branch filters by `dataService.getGameConfigBySpace(player.currentSpace).phase === card.affected_phase` when `affected_phase` is set. Global-scope `discard_cards` branch added: emits N effects with per-player `playerId` and `requiresUserChoice: true`.
+- [src/types/EffectTypes.ts](src/types/EffectTypes.ts) — `CARD_DISCARD.payload.requiresUserChoice?: boolean`.
+- [src/services/CardEffectHandler.ts](src/services/CardEffectHandler.ts) — `handleCardDiscard` triggers the existing `presentCardChoice` flow when `requiresUserChoice` is explicitly set, not just on dice-roll sources. Card-source discards without the flag preserve old auto-pick behavior.
+- [src/components/modals/ChoiceModal.tsx](src/components/modals/ChoiceModal.tsx) — new `viewerId?: string` prop; non-matching views suppress the modal so only the targeted player can resolve. Card-choice branch + regular ModalBase both gate on `isOtherPlayerChoice`.
+- [src/components/layout/GameLayout.tsx](src/components/layout/GameLayout.tsx) — passes `viewerId={effectiveViewPlayerId || undefined}` to `<ChoiceModal />`.
+- [tests/services/CardService.test.ts](tests/services/CardService.test.ts) — 5 new tests (3 phase-filter, 2 global-discard).
+- [tests/integration/cardTextMatchesColumns.test.ts](tests/integration/cardTextMatchesColumns.test.ts) — 3 new gates, `Card` interface gained `affected_phase: string`.
+- [package.json](package.json) — version 3.0.16 → 3.0.17.
+
+#### Known follow-ups
+- **TV-host controlIndicator may briefly mismatch during a fan-out.** The `currentPlayerId` driving the "Look at your phone, [Name]" banner doesn't yet account for which player owns the *awaiting choice*. During a discard fan-out the banner still reads the active player's name even when, say, player3's phone is the only one with an open modal. Not blocking — the targeted player sees their modal on their phone — but worth tightening when we next touch TVDisplay.
+- **Choice prompt copy is generic.** `presentCardChoice` prompts "Choose 1 E cards to remove:" — for L003/L048 this could read "{Name}, pick an Expeditor card to discard (Graft Investigation)" for stronger context. Pure copy work, no engine change.
+
 ## [3.0.16] - 2026-05-25
 
 ### Fix — Phone + Board Readability v2 + TV-mode setup unification: seven playtest reports closed + two related layout bugs (one fresh regression, one latent) cleared in the same session

@@ -872,6 +872,118 @@ describe('CardService - Enhanced Coverage', () => {
       expect(drawEffectsByPlayer).toEqual(['player1']);
     });
 
+    it('should fan global tick_modifier to all players when affected_phase is empty (L042-shape regression)', () => {
+      // Existing behavior preserved when no phase filter is set — the time
+      // delta applies to every player regardless of where they're standing.
+      // This control test guards against regressions in the v3.0.17 phase-filter
+      // refactor that could over-narrow the broadcast.
+      const testCard = {
+        card_id: 'TEST_GLOBAL_TICK',
+        card_name: 'Global Tick (no phase filter)',
+        card_type: 'L',
+        tick_modifier: '2',
+        target: 'All Players',
+        scope: 'Global',
+        // affected_phase intentionally undefined
+        description: 'Each player gains 2 days.'
+      };
+
+      const p2: any = { ...mockPlayer, id: 'player2', currentSpace: 'ARCH-INITIATION', hand: [] };
+      const p3: any = { ...mockPlayer, id: 'player3', currentSpace: 'REG-DOB-PLAN-EXAM', hand: [] };
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [mockPlayer, p2, p3] });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      cardService.applyCardEffects('player1', 'TEST_GLOBAL_TICK');
+
+      const tickEffectsByPlayer = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME')
+        .map((e: any) => e.payload.playerId)
+        .sort();
+
+      expect(tickEffectsByPlayer).toEqual(['player1', 'player2', 'player3']);
+    });
+
+    it('should filter global tick_modifier by affected_phase=REGULATORY (L026/L030/L036/L047 shape)', () => {
+      // L026 "All permit filing times decrease by 1 day this turn." with
+      // affected_phase=REGULATORY should only tick down players currently on a
+      // REGULATORY-phase space. Players in CONSTRUCTION, DESIGN, etc. are skipped.
+      const testCard = {
+        card_id: 'L026',
+        card_name: 'Community Outreach',
+        card_type: 'L',
+        tick_modifier: '-1',
+        target: 'All Players',
+        scope: 'Global',
+        affected_phase: 'REGULATORY',
+        description: 'All permit filing times decrease by 1 day this turn.'
+      };
+
+      const p1: any = { ...mockPlayer, id: 'player1', currentSpace: 'REG-DOB-PLAN-EXAM' };
+      const p2: any = { ...mockPlayer, id: 'player2', currentSpace: 'ARCH-INITIATION', hand: [] };
+      const p3: any = { ...mockPlayer, id: 'player3', currentSpace: 'REG-FDNY-FEE-REVIEW', hand: [] };
+      const p4: any = { ...mockPlayer, id: 'player4', currentSpace: 'CON-INITIATION', hand: [] };
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [p1, p2, p3, p4] });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      // Per-space phase dispatch
+      mockDataService.getGameConfigBySpace.mockImplementation((spaceName: string) => {
+        const map: Record<string, string> = {
+          'REG-DOB-PLAN-EXAM': 'REGULATORY',
+          'REG-FDNY-FEE-REVIEW': 'REGULATORY',
+          'ARCH-INITIATION': 'DESIGN',
+          'CON-INITIATION': 'CONSTRUCTION',
+        };
+        return map[spaceName] ? { space_name: spaceName, phase: map[spaceName] } as any : undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L026');
+
+      const tickEffectsByPlayer = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME')
+        .map((e: any) => e.payload.playerId)
+        .sort();
+
+      // Only player1 + player3 (REGULATORY) — player2 (DESIGN) and player4 (CONSTRUCTION) skipped.
+      expect(tickEffectsByPlayer).toEqual(['player1', 'player3']);
+    });
+
+    it('should filter global tick_modifier by affected_phase=CONSTRUCTION (L033 shape)', () => {
+      // L033 "All construction times increase by 3 days this turn." with
+      // affected_phase=CONSTRUCTION only ticks players on construction spaces.
+      const testCard = {
+        card_id: 'L033',
+        card_name: 'Worksite Injury',
+        card_type: 'L',
+        tick_modifier: '3',
+        target: 'All Players',
+        scope: 'Global',
+        affected_phase: 'CONSTRUCTION',
+        description: 'All construction times increase by 3 days this turn.'
+      };
+
+      const p1: any = { ...mockPlayer, id: 'player1', currentSpace: 'CON-INITIATION' };
+      const p2: any = { ...mockPlayer, id: 'player2', currentSpace: 'REG-DOB-PLAN-EXAM', hand: [] };
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [p1, p2] });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      mockDataService.getGameConfigBySpace.mockImplementation((spaceName: string) => {
+        const map: Record<string, string> = {
+          'CON-INITIATION': 'CONSTRUCTION',
+          'REG-DOB-PLAN-EXAM': 'REGULATORY',
+        };
+        return map[spaceName] ? { space_name: spaceName, phase: map[spaceName] } as any : undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L033');
+
+      const tickEffectsByPlayer = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME')
+        .map((e: any) => e.payload.playerId);
+
+      // Only player1 (CONSTRUCTION) — player2 (REGULATORY) skipped.
+      expect(tickEffectsByPlayer).toEqual(['player1']);
+    });
+
     it('should parse card with discard_cards into CARD_DISCARD effect', () => {
       const testCard = {
         card_id: 'DISCARD001',
@@ -903,6 +1015,75 @@ describe('CardService - Enhanced Coverage', () => {
         expect.anything(),
         testCard
       );
+    });
+
+    it('should fan out discard_cards to every player when scope is Global (L003/L048 regression)', () => {
+      // L003 "All players must discard 1 Expeditor card" — same shape as L049
+      // was for DRAW, but for DISCARD. Prior to v3.0.17 the discard branch
+      // emitted only one CARD_DISCARD effect targeting the playing player,
+      // so the other players' hands stayed intact — silent partial no-op.
+      const testCard = {
+        card_id: 'L003',
+        card_name: 'New Safety Regulations',
+        card_type: 'L',
+        discard_cards: '1 E',
+        target: 'All Players',
+        scope: 'Global',
+        description: 'All players must discard 1 Expeditor card.'
+      };
+
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Player2', hand: [] };
+      const p3: any = { ...mockPlayer, id: 'player3', name: 'Player3', hand: [] };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, p2, p3]
+      });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      cardService.applyCardEffects('player1', 'L003');
+
+      const discardEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'CARD_DISCARD');
+
+      // One CARD_DISCARD effect per player, each with their own playerId.
+      const playerIds = discardEffects.map((e: any) => e.payload.playerId).sort();
+      expect(playerIds).toEqual(['player1', 'player2', 'player3']);
+
+      // Each fanned effect must carry requiresUserChoice so the handler
+      // shows a per-player modal instead of auto-picking oldest.
+      const allRequireChoice = discardEffects.every((e: any) => e.payload.requiresUserChoice === true);
+      expect(allRequireChoice).toBe(true);
+    });
+
+    it('should keep discard_cards single-player when scope is Single (control)', () => {
+      // Existing single-scope behavior must not regress: card-source discards
+      // without scope=Global emit one effect for the playing player and do
+      // NOT set requiresUserChoice (so the existing auto-pick path stays).
+      const testCard = {
+        card_id: 'TEST_SINGLE_DISCARD',
+        card_name: 'Single Discard',
+        card_type: 'E',
+        discard_cards: '1 W',
+        target: 'Self',
+        scope: 'Single',
+        description: 'Discard 1 W card.'
+      };
+
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Player2', hand: [] };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, p2]
+      });
+      mockDataService.getCardById.mockReturnValue(testCard);
+
+      cardService.applyCardEffects('player1', 'TEST_SINGLE_DISCARD');
+
+      const discardEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'CARD_DISCARD');
+
+      expect(discardEffects.length).toBe(1);
+      expect(discardEffects[0].payload.playerId).toBe('player1');
+      expect(discardEffects[0].payload.requiresUserChoice).toBeUndefined();
     });
 
     it('should parse card with multiple effects into multiple Effect objects', () => {
