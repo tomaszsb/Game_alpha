@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.18] - 2026-05-26
+
+### Fix — TV setup overflow: 4 players added but lower cards clipped off-screen with no scroll (v3.0.16 regression)
+
+Game-blocking report from morning playtest (`fb:ffdddd29`): user added 4 players in TV-mode setup, only the first 2 player cards were visible — the lower 2 were below the viewport with no scrollbar. Couldn't reach the name input fields for Players 3 and 4. Filed on v3.0.16; root cause was a flexbox-column constraint that v3.0.16's setup unification + v3.0.16's `flex: '1 1 360px'` left-wrapper basis combined to expose.
+
+**Root cause:** [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx) `styles.panel` was missing `minHeight: 0`. The panel is a flex column containing a `flex: 1` `playerListWrapper` that's supposed to scroll its own content. CSS flex specifically requires `min-height: 0` on a flex-column parent for `flex: 1` children to shrink below their natural content height — without it, the wrapper grows to fit all 4 cards regardless of available space, pushing the Start Game button below the viewport. The wrapper's own `overflow: auto` never triggered because the wrapper itself was never constrained.
+
+This had been latent since v2.69.x but didn't surface until v3.0.16's inner-card `flex: '1 1 360px'` change pushed each card past the 2-column TV width threshold, causing the QR section to wrap below the avatar/name cluster (internal flex-wrap inside the card). Taller cards × 4 players exceeded available panel height — blocked by the missing `minHeight: 0`.
+
+**Fix:** added `minHeight: 0` to `styles.panel` and switched the panel's own `overflow: auto` → `hidden` since the inner wrapper now scrolls properly (panel scrolling would have meant the Start Game button scrolls out of view too).
+
+#### Test
+- `npm run typecheck` clean. Components test suite 308/308 (27 files, 21.48s). No new tests — flex-layout assertions would mirror the implementation rather than test behavior; the honest gate is visual verification at 4-player TV-mode setup.
+
+#### Fix
+- [src/components/setup/PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx) — `styles.panel` gains `minHeight: 0` and switches `overflow: 'auto'` → `'hidden'`.
+- [package.json](package.json) — version 3.0.17 → 3.0.18.
+
+#### Known follow-ups from this morning's playtest (8 reports, see TODO.md)
+- **LOGIC_QUESTION yes/no buttons do nothing on phone view** (`fb:068a66f2`) — game-blocking, investigation needed. Possibly v3.0.17 ChoiceModal viewer-gate or pre-existing cross-runtime `pendingChoices` Map bug.
+- **LOGIC_QUESTION asks for known approval state** (`fb:58a2112b`) — should auto-resolve from `ApprovalService`.
+- **L023 Soil Contamination applies +4 days regardless of groundwork** (`fb:776e3ba7`) — card text is conditional, engine isn't.
+- **"(rolled 1)" Life Event parenthetical exposes game machinery** (`fb:1aad6035`) — voice fix.
+- **Player indicator placement + bottom subtitle size on TV** (`fb:608bb670`) — layout polish.
+- **No mid-game phone-join + "cards" wording in player strip** (`fb:5dc01203`) — feature gap + voice fix.
+- **Defer movement-choice modal until other actions resolved** (`fb:55b6626f`) — design ask.
+
 ## [3.0.17] - 2026-05-26
 
 ### Fix — Card-engine correctness sweep: phase-filtered global tick_modifier + L003/L048 global-DISCARD fan-out with per-player picker + the dormant `revokes_approval` parser bug

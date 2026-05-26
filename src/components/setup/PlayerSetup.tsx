@@ -1297,7 +1297,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'auto',
+    // minHeight: 0 is the missing piece that lets the flex:1 `playerListWrapper`
+    // child shrink below its natural content height — without it, taller player
+    // cards (4 players on TV, internal flex-wrap of QR section) push the panel
+    // past its allotted flex height and the wrapper's `overflow: auto` never
+    // kicks in. The Start Game block scrolls out of view at the bottom and the
+    // user sees no scrollbar. v3.0.18 — fb:ffdddd29.
+    minHeight: 0,
+    // Panel itself no longer needs overflow:auto since the inner wrapper now
+    // properly scrolls. Keep `hidden` so the rounded-corners + boxShadow stay
+    // clean if anything inside misbehaves.
+    overflow: 'hidden',
     minWidth: 0,
   },
   settingsColumn: {
