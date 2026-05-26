@@ -94,9 +94,44 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
         }
       );
 
-      choiceService.resolveChoice(awaitingChoice.id, selectedOptionId);
+      // v3.0.19 — surface choice-resolution failures visibly. resolveChoice
+      // returns false when it can't reconcile the click (no pending promise,
+      // id mismatch, invalid selection). Previously these failures went to
+      // console.error only, so on a phone with no DevTools they manifested
+      // as "pressing yes/no did nothing" (fb:068a66f2). Now: if the click
+      // didn't resolve, raise an error notification with the choice id +
+      // type so the next reproducer can tell us exactly which check failed.
+      const resolved = choiceService.resolveChoice(awaitingChoice.id, selectedOptionId);
+      if (resolved === false) {
+        notificationService.notify(
+          NotificationUtils.createErrorNotification(
+            'Choice did not register',
+            `Selection: ${optionLabel} — choiceId=${awaitingChoice.id} type=${awaitingChoice.type}. Check console for details.`,
+            currentPlayerName
+          ),
+          {
+            playerId: awaitingChoice.playerId,
+            playerName: currentPlayerName,
+            actionType: `choice_resolve_fail_${awaitingChoice.id}`,
+            notificationDuration: 8000,
+          }
+        );
+      }
     } catch (error) {
       console.error('Error resolving choice:', error);
+      notificationService.notify(
+        NotificationUtils.createErrorNotification(
+          'Choice threw an error',
+          `Selection: ${selectedOptionId} — ${error instanceof Error ? error.message : String(error)}`,
+          currentPlayerName
+        ),
+        {
+          playerId: awaitingChoice.playerId,
+          playerName: currentPlayerName,
+          actionType: `choice_resolve_throw_${awaitingChoice.id}`,
+          notificationDuration: 8000,
+        }
+      );
     }
   };
 

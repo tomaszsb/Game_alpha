@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.19] - 2026-05-26
+
+### Fix — Diagnostic instrumentation for "LOGIC_QUESTION yes/no buttons do nothing" (fb:068a66f2)
+
+Triage step, not a behavioral fix. The morning playtest hit a game-blocking bug at REG-FDNY-FEE-REVIEW: a LOGIC_QUESTION modal showing "Question 2 of 5: Did Department of Buildings send you here?" with non-responsive Yes/No buttons. Several hours of code reading produced four plausible hypotheses (cross-runtime `pendingChoices` Map miss, stale React closure, state-sync race, ChoiceService cancellation logic firing on a recursive chain) but no single one fit all the evidence — and reproducing TV-with-phones mode locally to instrument the actual failure path needs setup that doesn't fit a single session.
+
+So this ship makes the failure VISIBLE. [ChoiceModal.handleChoiceClick](src/components/modals/ChoiceModal.tsx) previously called `choiceService.resolveChoice(...)` and ignored its boolean return value — when `resolveChoice` failed (no pending promise, ID mismatch, invalid selection, or no active choice), it logged to `console.error` and returned `false`. On a phone with no DevTools open, this manifested as "pressing yes/no did nothing." Now: if `resolveChoice` returns `false`, the click handler fires an 8-second error toast with `choiceId` + choice `type` so the next reproducer can read which check failed. Same shape for thrown exceptions.
+
+When the user reproduces and screenshots the toast, the four console.error messages in [ChoiceService.resolveChoice](src/services/ChoiceService.ts) (each scoped to one failure case with full context) can be matched against the toast to identify the exact path. From there the fix is targeted.
+
+#### Test
+- `npm run typecheck` clean.
+- No new tests — diagnostic-only change.
+
+#### Fix
+- [src/components/modals/ChoiceModal.tsx](src/components/modals/ChoiceModal.tsx) — `handleChoiceClick` checks `resolveChoice` return value; raises error notification on `false`. Try/catch block also surfaces thrown errors as notifications.
+- [package.json](package.json) — version 3.0.18 → 3.0.19.
+
+#### What's next if the toast fires on reproduction
+The four console.error cases in [ChoiceService.resolveChoice](src/services/ChoiceService.ts):
+1. **"No active choice in state"** — state out of sync; likely WebSocket race condition.
+2. **"ID mismatch"** — stale React closure in the button onClick handler.
+3. **"Invalid selection"** — option ID typo or stale options list — unlikely for hardcoded yes/no.
+4. **"No pending promise"** — cross-runtime: this runtime never called `createChoice` for that choice ID. The phone is rendering a modal for a choice the HOST runtime owns. Fix would be a state-mediated resolution relay so the host's `walkLogicChain` promise can unblock when the phone clicks.
+
 ## [3.0.18] - 2026-05-26
 
 ### Fix — TV setup overflow: 4 players added but lower cards clipped off-screen with no scroll (v3.0.16 regression)
