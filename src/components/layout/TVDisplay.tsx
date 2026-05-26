@@ -86,8 +86,21 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
 
   const currentSpace = getCurrentSpaceInfo();
 
+  // During PLAY the right sidebar disappears (QR codes only matter at SETUP);
+  // its per-player info migrates into the top player strip below the header
+  // so the board reclaims the 220px right column.
+  // <!-- fb:feedback-1779568265597-9bedb559 -->
+  const showSidebar = gamePhase !== 'PLAY';
+
   return (
-    <div style={styles.container}>
+    <div style={{
+      ...styles.container,
+      gridTemplateAreas: showSidebar
+        ? `"header header sidebar" "playerStrip playerStrip sidebar" "main main sidebar" "footer footer footer"`
+        : `"header header" "playerStrip playerStrip" "main main" "footer footer"`,
+      gridTemplateColumns: showSidebar ? '1fr auto 220px' : '1fr auto',
+      gridTemplateRows: 'auto auto 1fr auto',
+    }}>
       {/* Header with game info */}
       <header style={styles.header}>
         <div style={styles.logoSection}>
@@ -131,17 +144,29 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           </button>
         </div>
 
-        {/* Current player indicator */}
+        {/* Phone-controller indicator — at 10ft viewing distance the
+            playerStrip's color ring is too subtle to read. This banner
+            spells out "📱 Look at your phone, [Name]" so first-time players
+            don't sit waiting for the TV to do something. Adapts copy when
+            the active player has no connected phone (PC-fallback play on
+            the host device). <!-- fb:feedback-1779567746328-5ca98777 --> */}
         {gamePhase === 'PLAY' && currentPlayer && (
           <div
             style={{
-              ...styles.currentPlayerBanner,
-              backgroundColor: currentPlayer.color || colors.primary.main,
+              ...styles.controlIndicator,
+              backgroundColor: currentPlayer.deviceType === 'mobile'
+                ? 'rgba(34, 197, 94, 0.25)'
+                : 'rgba(251, 191, 36, 0.25)',
+              border: `2px solid ${currentPlayer.deviceType === 'mobile' ? '#22c55e' : '#fbbf24'}`,
             }}
           >
-            <span style={styles.playerAvatar}>{currentPlayer.avatar}</span>
-            <span style={styles.playerTurnText}>
-              {currentPlayer.name}'s Turn
+            <span style={styles.controlIndicatorIcon}>
+              {currentPlayer.deviceType === 'mobile' ? '📱' : '🖥️'}
+            </span>
+            <span style={styles.controlIndicatorText}>
+              {currentPlayer.deviceType === 'mobile'
+                ? <>Look at your phone, <strong>{currentPlayer.name}</strong></>
+                : <><strong>{currentPlayer.name}</strong> — take your turn on the host device</>}
             </span>
           </div>
         )}
@@ -158,6 +183,49 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           </div>
         )}
       </header>
+
+      {/* Player strip — horizontal row of all players with the richer info
+          that used to live in the right sidebar (avatar, name, $K, resources,
+          Connected badge). Current player gets a colored ring so the "whose
+          turn is it" signal is preserved without a separate banner.
+          Renders during PLAY only; SETUP/END keep the sidebar for QR codes.
+          <!-- fb:feedback-1779568265597-9bedb559 --> */}
+      {gamePhase === 'PLAY' && (
+        <div style={styles.playerStrip}>
+          {players.map(player => {
+            const isCurrentPlayer = player.id === currentPlayerId;
+            const isConnected = !!player.deviceType;
+            return (
+              <div
+                key={player.id}
+                style={{
+                  ...styles.playerStripChip,
+                  borderColor: isCurrentPlayer ? (player.color || colors.primary.main) : colors.secondary.border,
+                  borderWidth: isCurrentPlayer ? '3px' : '2px',
+                  backgroundColor: isCurrentPlayer ? `${player.color || colors.primary.main}15` : 'white',
+                  animation: isCurrentPlayer ? 'pulse 2s ease-in-out infinite' : undefined,
+                }}
+              >
+                <span style={styles.playerStripAvatar}>{player.avatar}</span>
+                <div style={styles.playerStripText}>
+                  <div style={{
+                    ...styles.playerStripName,
+                    color: player.color || colors.text.primary,
+                  }}>
+                    {player.name}
+                  </div>
+                  <div style={styles.playerStripStats}>
+                    <span>${(player.money / 1000).toFixed(0)}K</span>
+                    <span>·</span>
+                    <span>{player.hand?.length || 0} cards</span>
+                    {isConnected && <span style={styles.playerStripConnected}>📱</span>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Main content area */}
       <main style={styles.main}>
@@ -189,6 +257,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
               players={players}
               isAdmin={false}
               edgesVisible={true}
+              centerOnCurrent={true}
             />
           ) : gamePhase === 'SETUP' ? (
             <div style={styles.setupMessage}>
@@ -223,8 +292,10 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
         )}
       </main>
 
-      {/* QR Codes sidebar */}
-      <aside style={styles.sidebar}>
+      {/* QR Codes sidebar — only during SETUP/END. v3.0.15 dropped it during
+          PLAY so the board reclaims 220px of width; per-player info migrated
+          to the horizontal playerStrip above. <!-- fb:feedback-1779568265597-9bedb559 --> */}
+      {showSidebar && <aside style={styles.sidebar}>
         <h3 style={styles.sidebarTitle}>
           {gamePhase === 'SETUP' ? 'Join Game' : 'Players'}
         </h3>
@@ -279,23 +350,15 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                     </div>
                   )}
 
-                  {/* Stats during gameplay */}
-                  {gamePhase === 'PLAY' && (
-                    <div style={styles.playerStats}>
-                      <span style={styles.statItem}>
-                        ${(player.money / 1000).toFixed(0)}K
-                      </span>
-                      <span style={styles.statItem}>
-                        {player.hand?.length || 0} resources
-                      </span>
-                    </div>
-                  )}
+                  {/* Stats during gameplay used to live here; moved to the
+                      horizontal player strip in v3.0.15 since the sidebar no
+                      longer renders during PLAY. <!-- fb:feedback-1779568265597-9bedb559 --> */}
                 </div>
               );
             })
           )}
         </div>
-      </aside>
+      </aside>}
 
       {/* Action overlay for dramatic reveals */}
       {showActionOverlay && lastAction && (
@@ -327,14 +390,10 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
+    // gridTemplateAreas + columns + rows are set inline based on `showSidebar`
+    // so the layout collapses cleanly when the sidebar disappears during PLAY.
+    // <!-- fb:feedback-1779568265597-9bedb559 -->
     display: 'grid',
-    gridTemplateAreas: `
-      "header header sidebar"
-      "main main sidebar"
-      "footer footer footer"
-    `,
-    gridTemplateColumns: '1fr auto 220px',
-    gridTemplateRows: 'auto 1fr auto',
     height: '100vh',
     width: '100vw',
     backgroundColor: colors.background.secondary,
@@ -365,28 +424,81 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: '8px',
   },
-  currentPlayerBanner: {
+  // Horizontal player strip — replaces the legacy currentPlayerBanner +
+  // sidebar per-player cards in PLAY mode. <!-- fb:feedback-1779568265597-9bedb559 -->
+  playerStrip: {
+    gridArea: 'playerStrip',
+    display: 'flex',
+    gap: '0.75rem',
+    padding: '0.5rem 1rem',
+    backgroundColor: 'white',
+    borderBottom: `2px solid ${colors.secondary.border}`,
+    overflowX: 'auto',
+    alignItems: 'center',
+  },
+  playerStripChip: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1rem',
-    padding: '0.75rem 2rem',
-    borderRadius: '50px',
-    animation: 'pulse 2s ease-in-out infinite',
+    gap: '0.5rem',
+    padding: '0.4rem 0.75rem',
+    borderRadius: '10px',
+    border: '2px solid',
+    flex: '0 0 auto',
   },
-  playerAvatar: {
-    fontSize: '2.5rem',
+  playerStripAvatar: {
+    fontSize: '1.75rem',
+    flexShrink: 0,
   },
-  playerTurnText: {
-    fontSize: '1.5rem',
+  playerStripText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.1rem',
+    minWidth: 0,
+  },
+  playerStripName: {
+    fontSize: '0.95rem',
     fontWeight: 'bold',
-    color: 'white',
-    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  playerStripStats: {
+    display: 'flex',
+    gap: '0.35rem',
+    alignItems: 'center',
+    fontSize: '0.8rem',
+    color: colors.text.secondary,
+    fontWeight: 600,
+  },
+  playerStripConnected: {
+    fontSize: '0.7rem',
+    marginLeft: '0.2rem',
   },
   setupBanner: {
     fontSize: '1.25rem',
     padding: '0.75rem 2rem',
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: '8px',
+  },
+  // Phone-controller indicator — sized for 10ft viewing. Pulses to draw
+  // attention on turn-change. <!-- fb:feedback-1779567746328-5ca98777 -->
+  controlIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '50px',
+    animation: 'pulse 2s ease-in-out infinite',
+    color: 'white',
+  },
+  controlIndicatorIcon: {
+    fontSize: '2.25rem',
+    lineHeight: 1,
+  },
+  controlIndicatorText: {
+    fontSize: '1.25rem',
+    fontWeight: 600,
+    textShadow: '0 1px 3px rgba(0,0,0,0.4)',
   },
   gameOverBanner: {
     fontSize: '1.5rem',

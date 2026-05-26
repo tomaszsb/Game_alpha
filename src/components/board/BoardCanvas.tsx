@@ -70,6 +70,11 @@ interface BoardNodeData {
   playerCount: number;      // how many players standing here
   playerColors: string[];   // for overlay tokens
   isExpanded: boolean;      // expanded card view (click)
+  // Action counter — populated only on the current player's tile so
+  // playtesters can see "actions left" without opening the side panel.
+  // <!-- fb:feedback-1779568815545-44221318 -->
+  actionsCompleted?: number;
+  actionsRequired?: number;
   // Story content (only used when expanded/hovered)
   story?: string;
   actionDescription?: string;
@@ -227,6 +232,38 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
           ))}
         </div>
       )}
+
+      {/* Action counter chip — bottom-right of the current player's tile.
+          Glanceable "completed / required" so playtesters can see remaining
+          actions without opening the side panel. Hidden when required=0
+          (e.g. movement-only spaces) so the chip isn't noise.
+          <!-- fb:feedback-1779568815545-44221318 --> */}
+      {data.isCurrent && typeof data.actionsRequired === 'number' && data.actionsRequired > 0 && (
+        <div
+          aria-label={`${data.actionsCompleted ?? 0} of ${data.actionsRequired} actions completed`}
+          style={{
+            position: 'absolute',
+            right: 4,
+            bottom: 4,
+            padding: '2px 6px',
+            borderRadius: 6,
+            fontSize: 10,
+            fontWeight: 700,
+            fontFamily: 'system-ui, sans-serif',
+            lineHeight: 1.2,
+            color: (data.actionsCompleted ?? 0) >= data.actionsRequired ? '#065f46' : '#7c2d12',
+            background: (data.actionsCompleted ?? 0) >= data.actionsRequired ? '#d1fae5' : '#fed7aa',
+            border: `1px solid ${(data.actionsCompleted ?? 0) >= data.actionsRequired ? '#10b981' : '#fb923c'}`,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+            pointerEvents: 'none',
+            zIndex: 5,
+          }}
+        >
+          {(data.actionsCompleted ?? 0) >= data.actionsRequired
+            ? '✓ done'
+            : `${data.actionsCompleted ?? 0}/${data.actionsRequired}`}
+        </div>
+      )}
     </div>
   );
 }
@@ -264,6 +301,12 @@ interface BoardCanvasProps {
   /** Show the dotted max-in-grid buffer outline around every tile in edit
    *  mode. Used by BoardLayoutEditor; off in normal gameplay. fb:97fa9c75. */
   showBuffer?: boolean;
+  /** TV mode: after initial fitView, re-fit the viewport to the current
+   *  player's tile + their valid-move neighbors so 10-ft viewers can see
+   *  "where am I, where can I go" without panning. Off (false) in PC mode
+   *  where the player drives the camera themselves.
+   *  <!-- fb:feedback-1779569130947-9c075c16 --> */
+  centerOnCurrent?: boolean;
 }
 
 function BoardCanvasInner({
@@ -275,10 +318,19 @@ function BoardCanvasInner({
   onHideEdge,
   onPositionSaved,
   showBuffer = false,
+  centerOnCurrent = false,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
-  const { getViewport, setViewport } = useReactFlow();
+  const { getViewport, setViewport, fitView } = useReactFlow();
   const [validMoves, setValidMoves] = useState<string[]>([]);
+  // Required/completed action counters for the current player's turn. Driven
+  // by the same stateService subscribe loop as validMoves so the on-tile chip
+  // (BoardNode) updates the instant an action lands.
+  // <!-- fb:feedback-1779568815545-44221318 -->
+  const [actionCounts, setActionCounts] = useState<{ required: number; completed: number }>({
+    required: 0,
+    completed: 0,
+  });
 
   // Pan-button helper. panOnDrag is off in gameplay (left-click drag would
   // eat tile clicks, see v2.69.5), so players need explicit pan controls.
@@ -337,7 +389,10 @@ function BoardCanvasInner({
     setExpandedSpace(null);
   }, []);
 
-  // Subscribe to valid-moves like BoardV3 does
+  // Subscribe to valid-moves like BoardV3 does. Also captures the action
+  // counter snapshot so the on-tile chip stays in sync without a second
+  // subscription (cheaper than two listeners + avoids ordering surprises).
+  // <!-- fb:feedback-1779568815545-44221318 -->
   useEffect(() => {
     const update = () => {
       const s = stateService.getGameState();
@@ -345,6 +400,10 @@ function BoardCanvasInner({
         try { setValidMoves(movementService.getValidMoves(s.currentPlayerId)); }
         catch { setValidMoves([]); }
       } else { setValidMoves([]); }
+      setActionCounts({
+        required: s.requiredActions ?? 0,
+        completed: s.completedActionCount ?? 0,
+      });
     };
     update();
     return stateService.subscribe(update);
@@ -521,10 +580,47 @@ function BoardCanvasInner({
           showBuffer,
           onHover: handleNodeHover,
           onClick: handleNodeClick,
+          // Action counter only rendered on the current tile; we still inject
+          // the values on every node so the chip's render condition can stay
+          // a pure function of `data`. <!-- fb:feedback-1779568815545-44221318 -->
+          actionsRequired: actionCounts.required,
+          actionsCompleted: actionCounts.completed,
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts]);
+
+  // TV mode auto-focus: pan + zoom so the current player's tile and all
+  // their valid-move neighbors fill the viewport. Runs whenever the current
+  // player or valid-moves set changes, with a small delay so React Flow's
+  // initial fitView (the whole board) lands first and our focus replaces it.
+  // Skipped if isAdmin (editor needs the full overview) or in PC mode
+  // (player drives the camera themselves).
+  // <!-- fb:feedback-1779569130947-9c075c16 -->
+  const currentPlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
+  const focusSpace = currentPlayer?.currentSpace;
+  useEffect(() => {
+    if (!centerOnCurrent || isAdmin || !focusSpace) return;
+    const focusIds = [focusSpace, ...validMoves];
+    // Resolve to actual rendered nodes; skip if any are missing (positions
+    // not yet loaded). 350ms duration is the React Flow default-ish feel —
+    // long enough to read as a deliberate camera move, short enough to not
+    // miss the next turn change.
+    const timer = window.setTimeout(() => {
+      try {
+        fitView({
+          nodes: focusIds.map(id => ({ id })),
+          padding: 0.25,
+          duration: 350,
+          maxZoom: 1.5,
+        });
+      } catch {
+        // fitView throws if a node id doesn't exist; safe to swallow because
+        // the next render's setNodes will trigger this effect again.
+      }
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(prev => applyNodeChanges(changes, prev) as Node<BoardNodeData>[]);

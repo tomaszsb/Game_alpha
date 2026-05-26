@@ -111,6 +111,11 @@ export function PlayerList({
           borderRadius: '12px',
           padding: '1rem 1.25rem',
           display: 'flex',
+          // flexWrap lets the QR section drop below the avatar/name/colors
+          // section on narrow viewports (e.g. phone hosting PC-mode setup)
+          // instead of overflowing horizontally past the card edge.
+          // <!-- fb:feedback-1779566484383-02bb1588 -->
+          flexWrap: 'wrap',
           gap: '1rem',
           alignItems: 'center',
           transition: 'all 0.3s ease',
@@ -122,7 +127,12 @@ export function PlayerList({
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
-          flex: '0 1 auto',
+          // flex basis 360px gives the avatar+name+remove cluster a real
+          // minimum width so the QR section's `marginLeft: auto` can't
+          // crush the name input down to nothing on TV-width cards. When
+          // the card is narrower than ~500px, flex-wrap kicks in and the
+          // QR section drops to a new row below — cleanly. v3.0.16.
+          flex: '1 1 360px',
           minWidth: 0
         }}>
           {/* Avatar */}
@@ -159,8 +169,12 @@ export function PlayerList({
                 fontSize: '1rem',
                 fontWeight: 'bold',
                 transition: 'border-color 0.3s ease',
-                width: `${AVAILABLE_COLORS.length * 30 + (AVAILABLE_COLORS.length - 1) * 8}px`,
-                maxWidth: '100%',
+                // 100% so the input shrinks on phone-width viewports; maxWidth
+                // caps it at the color-picker row width below (8 swatches ×
+                // 30px + 7 × 8px gap = 296px) so wide-screen visual alignment
+                // is preserved. <!-- fb:feedback-1779566484383-02bb1588 -->
+                width: '100%',
+                maxWidth: `${AVAILABLE_COLORS.length * 30 + (AVAILABLE_COLORS.length - 1) * 8}px`,
                 boxSizing: 'border-box'
               }}
               onFocus={(e) => handleInputFocus(e, player.color || '')}
@@ -286,12 +300,16 @@ export function PlayerList({
   return (
     <div style={{
       display: 'grid',
-      // Two-column layout when the container is wide enough (~720px+).
-      // With the settings drawer closed in v2.69.2+, the center column
-      // is genuinely wide — fitting two player cards side-by-side keeps
-      // a 4-player setup visible without scrolling. Falls back to one
-      // column on narrow screens so cards stay readable on mobile.
-      gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+      // Grid floor uses `min(100%, 360px)` so phones (container narrower
+      // than 360) drop cleanly into a single full-width column without
+      // horizontal overflow, while TVs (container wider than 360) get a
+      // 360px floor — wide enough for the QR section to sit inline next
+      // to the name input. v3.0.15 used a flat 280px floor; the side
+      // effect on TV was that the auto-fit packed 4-5 narrow cards per
+      // row and the QR overlapped the name input. v3.0.16 restored a
+      // 360px floor at TV widths while keeping the phone collapse.
+      // <!-- fb:feedback-1779566484383-02bb1588 -->
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
       gap: '1rem'
     }}>
       {players.map(player => renderPlayerCard(player))}

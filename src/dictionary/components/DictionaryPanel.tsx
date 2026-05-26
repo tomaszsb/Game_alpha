@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GlossaryTerm, TermCategory, DictionaryPanelProps } from '../types';
 import { useDictionary } from '../hooks/useDictionary';
 import { TermCard } from './TermCard';
+import { TextWithTerms } from './TextWithTerms';
 import { fetchRemoteConfig, ServiceVisibility } from '../utils/remoteConfig';
 import './DictionaryPanel.css';
 
@@ -294,17 +295,28 @@ export function DictionaryPanel({
                 </div>
               )}
 
-              {/* Simple Definition */}
+              {/* Simple Definition. v3.0.15 (fb:00d1db0a) — wrap text blocks
+                  in TextWithTerms so cross-references to other glossary terms
+                  underline and become clickable. Previously rendered as plain
+                  text, which is why playtesters reported "underlined words
+                  missing" inside the dictionary. <!-- fb:feedback-1779569587994-00d1db0a --> */}
               {remoteConfig?.show_simple_def !== false && selectedTerm.definitionSimple && (
                 <div className="dictionary-term-detail__definition-simple" style={{ fontStyle: 'italic', marginBottom: '1rem', color: '#ffd700' }}>
-                  <strong>Quick Summary:</strong> {selectedTerm.definitionSimple}
+                  <strong>Quick Summary:</strong>{' '}
+                  <TextWithTerms
+                    text={selectedTerm.definitionSimple}
+                    onTermClick={(t) => handleRelatedTermClick(t.id)}
+                  />
                 </div>
               )}
 
               {/* Technical Definition */}
               {remoteConfig?.show_technical_def !== false && (
                 <div className="dictionary-term-detail__definition">
-                  {selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}
+                  <TextWithTerms
+                    text={selectedTerm.definition.replace(/^\[AI-DRAFT\]\s*/i, '')}
+                    onTermClick={(t) => handleRelatedTermClick(t.id)}
+                  />
                 </div>
               )}
 
@@ -312,7 +324,12 @@ export function DictionaryPanel({
               {remoteConfig?.show_why_it_matters !== false && selectedTerm.whyItMatters && (
                 <div className="dictionary-term-detail__why-it-matters" style={{ marginTop: '1.5rem', paddingLeft: '1rem', borderLeft: '4px solid #f44336' }}>
                   <strong style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#f44336', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>Strategic Impact</strong>
-                  <div style={{ fontStyle: 'italic', fontWeight: 'bold' }}>{selectedTerm.whyItMatters}</div>
+                  <div style={{ fontStyle: 'italic', fontWeight: 'bold' }}>
+                    <TextWithTerms
+                      text={selectedTerm.whyItMatters}
+                      onTermClick={(t) => handleRelatedTermClick(t.id)}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -320,7 +337,12 @@ export function DictionaryPanel({
               {remoteConfig?.show_instructions !== false && selectedTerm.instructions && (
                 <div className="dictionary-term-detail__instructions" style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
                   <strong style={{ display: 'block', marginBottom: '0.5rem' }}>How-To:</strong>
-                  <div style={{ whiteSpace: 'pre-wrap' }}>{selectedTerm.instructions}</div>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    <TextWithTerms
+                      text={selectedTerm.instructions}
+                      onTermClick={(t) => handleRelatedTermClick(t.id)}
+                    />
+                  </div>
                 </div>
               )}
 

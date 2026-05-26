@@ -762,7 +762,34 @@ Fix shape: auto-create-game (or any pre-state-load setup) lives at `App.tsx` lev
 
 When refactoring App-level routing, remember: `ServiceProvider` doesn't take a gameId — it instantiates services with empty/default state. State only becomes per-game after `loadStateFromServer` runs. The legacy fallthrough is a leak in that abstraction; the App-level gate is the seal.
 
+### iOS Safari `100vh` lies when the keyboard appears — use `100dvh` (v3.0.15)
+
+Any `position: fixed; height: 100vh; overflow: hidden` container that contains a text input WILL have a keyboard-hides-input bug on iOS Safari. `100vh` is the *layout* viewport — it never shrinks when the on-screen keyboard slides up, so the input that was at the bottom of the visible area ends up behind the keyboard with no way to scroll. `overflow: hidden` then prevents any rescue.
+
+Fix: use `100dvh` (dynamic viewport height) which DOES shrink. Inline-style React makes this awkward because CSS-style fallbacks (`height: 100vh; height: 100dvh;`) require two declarations of the same property — impossible in a JS object. Pattern that works: small `<style>` block inside the JSX defining a class, plus `className` on the container.
+
+```tsx
+<div className="us-setup-fullheight" style={styles.container}>
+  <style>{`.us-setup-fullheight { height: 100vh; height: 100dvh; }`}</style>
+  …
+</div>
+```
+
+`styles.container` keeps `width: '100vw'` and everything else but **drops the `height` key entirely** — the className wins. Modern browsers (iOS 15.4+, Chrome 108+) parse both declarations and the second wins; old browsers ignore the unknown `100dvh` and fall back to `100vh`. Same trick works for `100svh` if you want "always the smallest" behavior.
+
+Don't pair with `minHeight: '100vh'` as a fallback — that defeats the shrink. The whole point of `100dvh` is the container CAN go below 100vh when the keyboard takes space; minHeight prevents exactly that.
+
+When auditing for this bug class: grep for `'100vh'` and `'100svh'` in `src/**/*.tsx`. Most are fine (full-screen modals don't care because the user isn't typing). The trap is any container whose direct child includes an `<input type="text">` or `<textarea>`.
+
+### Audit ALL text surfaces for cross-references — including the dictionary itself (v3.0.15)
+
+`TextWithTerms` already wrapped game text in cards, modals, story accordion, and space panels — but `DictionaryPanel`'s own term-detail view was rendering `definition`, `definitionSimple`, `whyItMatters`, `instructions` as raw strings. Players opened a definition expecting "Expeditor" and "DOB" inside the prose to underline, found nothing, filed `fb:00d1db0a`.
+
+When auditing for "underline coverage" gaps, the surfaces that get missed are the ones that LOOK like they shouldn't need underlines — the dictionary because "it's already the dictionary," the editor's own preview text because "it's admin," etc. **Quick grep:** `grep -rn '{selectedTerm\.' src/ | grep -v TextWithTerms` finds raw-string renders of glossary fields. Same shape for `{card.description}`, `{content.story}`, `{action.description}` — any prose pulled from data and rendered as `{...}` directly. Wrap with `<TextWithTerms text={…} onTermClick={(t) => existingHandler(t.id)} />`.
+
+Self-references (term "DOB" referenced inside the DOB definition) underline and clicking is a visual no-op — acceptable. Don't add a `currentTermId` exclude prop for purity; the cost is real complexity for an outcome no one notices.
+
 ---
 
-**Last Updated:** May 24, 2026 (Session **v3.0.14** — L049 global-scope draw + REG-DOB-TYPE-SELECT auto-route + card-text-vs-columns integrity gate)
-**Charter Version:** 3.16 (+ seam-testing pattern, path-choice-lock-point mechanism map)
+**Last Updated:** May 25, 2026 (Session **v3.0.15** — Phone + Board Readability v2: 7 v3.0.13 playtest reports closed in one sprint)
+**Charter Version:** 3.17 (+ iOS `100vh`→`100dvh` pattern, audit-all-text-surfaces-for-TextWithTerms)

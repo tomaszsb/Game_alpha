@@ -273,6 +273,27 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Use actual game state completed actions for UI display
   const completedActions = gameStateCompletedActions;
 
+  // Vibrate the phone when this player's turn starts. Only fires on the
+  // per-player mobile view (effectiveViewPlayerId is set) and only on the
+  // transition into "your turn" — not on every re-render or other state
+  // changes during your turn. Gracefully no-ops on browsers without the
+  // Vibration API (haptics.turnNotification handles the feature check).
+  // <!-- fb:feedback-1779567746328-5ca98777 -->
+  const prevTurnPlayerRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!effectiveViewPlayerId) {
+      prevTurnPlayerRef.current = currentPlayerId;
+      return;
+    }
+    const becameMyTurn =
+      currentPlayerId === effectiveViewPlayerId &&
+      prevTurnPlayerRef.current !== effectiveViewPlayerId;
+    if (becameMyTurn) {
+      haptics.turnNotification();
+    }
+    prevTurnPlayerRef.current = currentPlayerId;
+  }, [currentPlayerId, effectiveViewPlayerId]);
+
   // Subscribe to NotificationService updates
   useEffect(() => {
     notificationService.setUpdateCallbacks(
