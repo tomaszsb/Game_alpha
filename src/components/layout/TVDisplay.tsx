@@ -217,7 +217,12 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                   <div style={styles.playerStripStats}>
                     <span>${(player.money / 1000).toFixed(0)}K</span>
                     <span>·</span>
-                    <span>{player.hand?.length || 0} cards</span>
+                    {/* v3.0.23 (fb:5dc01203 part b): "cards" → "resources".
+                        Voice rule (no card/game/dice words). "resources" is a
+                        real business word, single token, preserves the at-a-
+                        glance flush-vs-tapped-out signal. Per-type breakdown
+                        already lives in the player panel below the strip. */}
+                    <span>{player.hand?.length || 0} resources</span>
                     {isConnected && <span style={styles.playerStripConnected}>📱</span>}
                   </div>
                 </div>

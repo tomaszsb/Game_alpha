@@ -54,7 +54,10 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
     );
   }
 
-  const { card, diceValue, spaceName } = data;
+  // v3.0.23: diceValue / spaceName from `data` are no longer rendered
+  // (voice rule, fb:1aad6035). Props remain on the interface for backward
+  // compatibility with callers and possible future admin-side use.
+  const { card } = data;
   const lColors = colors.game.cardTypes.L;
 
   return (
@@ -97,11 +100,15 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
           }}
         >
           A major disturbance just hit the project.
-          {diceValue !== undefined && (
-            <span style={{ marginLeft: 8, fontWeight: 400, opacity: 0.85 }}>
-              (rolled {diceValue}{spaceName ? ` at ${spaceName}` : ''})
-            </span>
-          )}
+          {/*
+            v3.0.23 (fb:1aad6035): removed the "(rolled {diceValue} at {spaceName})"
+            parenthetical. Both "rolled" and the raw space-id leaked game machinery
+            at the player (voice rule violation). The card body explains severity in
+            character — players don't need the dice value to interpret the event.
+            diceValue / spaceName props are still accepted so callers don't need to
+            change; they're now visually unused but kept for potential future use
+            (e.g. an admin-side replay view).
+          */}
         </div>
 
         {/* Card name — the headline event */}

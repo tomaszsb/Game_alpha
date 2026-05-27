@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.23] - 2026-05-27
+
+### Fix — Two voice-rule sweeps from the v3.0.19 playtest cluster
+
+Continuation of v3.0.22 (`fb:adbc48b0` "Roll dice" button) — two more voice violations spotted in the same playtest, paired into one ship because they're independent and both small.
+
+#### LifeEventModal sub-banner drops "(rolled X at SPACE-NAME)" — fb:1aad6035
+The modal's sub-banner read *"A major disturbance just hit the project. (rolled 5 at REG-DOB-TYPE-SELECT)"* — both "rolled" and the raw space-id leaked game machinery at the player. Removed the parenthetical entirely. Rationale: the dice value isn't actionable info (severity is already implicit in the card text), and the raw space-id is meta. `diceValue` and `spaceName` props remain on the interface for backward compatibility with callers (and possible admin-side replay views) but are now visually unused.
+
+- [src/components/modals/LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx) — parenthetical removed from the sub-banner; destructure trimmed to `card` only; reason-comment block left in place so the props aren't deleted later by mistake.
+- [tests/components/modals/LifeEventModal.test.tsx](tests/components/modals/LifeEventModal.test.tsx) — deleted the now-obsolete positive test (`'surfaces the triggering roll + space …'`); split the negative test into two: one asserts game-machinery language never appears even when `diceValue` / `spaceName` are fully populated (the regression guard), the other asserts the no-props case still renders cleanly. Suite 9 → 10.
+
+#### Player strip "X cards" → "X resources" — fb:5dc01203 (part b)
+The TV player strip showed *"$6160K · 6 cards"* on each chip. "Cards" violates the voice rule. Three options were on the table from the TODO entry — drop entirely, per-type breakdown (`2W·1B·3E`), or single role word. Picked **"resources"**: real business word, single token, fits the chip layout, preserves the at-a-glance flush-vs-tapped-out signal that the count actually provides. Per-type breakdown was rejected as too dense for the chip; dropping the count was rejected because it loses information the per-player panel below already shows in detail. Easy to revisit if "resources" feels off in playtest.
+
+- [src/components/layout/TVDisplay.tsx](src/components/layout/TVDisplay.tsx) — single-word swap with a reason-comment explaining the alternatives that were considered and rejected. No tests touched this label (none exist for the strip chip).
+
+#### Verify
+- Typecheck clean.
+- LifeEventModal test 10/10 in 485ms.
+- Targeted test sweep **1469/1469 across 79 files (38.69s)**.
+
+#### Scope
+- Part (a) of `fb:5dc01203` — *"no way to add a phone mid-game on the TV"* — left for a separate ship; needs a "Connect phone" affordance somewhere in the strip or header, which is design + UX, not a pure voice swap.
+
 ## [3.0.22] - 2026-05-27
 
 ### Fix — Collapsed dice button drops "Roll dice" wording (fb:adbc48b0)

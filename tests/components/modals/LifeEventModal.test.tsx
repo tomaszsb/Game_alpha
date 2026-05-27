@@ -61,11 +61,6 @@ describe('LifeEventModal', () => {
       .toHaveTextContent('A neighbor filed a complaint. Project delayed 2 weeks.');
   });
 
-  it('surfaces the triggering roll + space in the sub-banner for transparency', () => {
-    render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
-    expect(screen.getByText(/rolled 1 at ARCH-INITIATION/i)).toBeInTheDocument();
-  });
-
   it('frames the event as a major disturbance (player-facing severity cue)', () => {
     render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
     expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
@@ -97,7 +92,18 @@ describe('LifeEventModal', () => {
     expect(screen.queryByTestId('life-event-modal-card-description')).not.toBeInTheDocument();
   });
 
-  it('omits the (rolled X at SPACE) parenthetical when diceValue is absent', () => {
+  it('never exposes game-machinery language (rolled / raw space-id) — v3.0.23 fb:1aad6035', () => {
+    // With diceValue + spaceName fully populated, the rendered modal must NOT
+    // contain "rolled" or the raw space-id. The card body explains severity
+    // in character; meta details stay out of the player view.
+    render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
+    expect(screen.queryByText(/rolled/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ARCH-INITIATION/)).not.toBeInTheDocument();
+    // Severity banner still shows.
+    expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
+  });
+
+  it('also renders cleanly when diceValue / spaceName are absent (no-op props)', () => {
     render(
       <LifeEventModal
         isOpen={true}
@@ -105,8 +111,7 @@ describe('LifeEventModal', () => {
         onClose={mockOnClose}
       />,
     );
-    expect(screen.queryByText(/rolled/i)).not.toBeInTheDocument();
-    // Severity banner still shows.
     expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-modal-card-name')).toBeInTheDocument();
   });
 });
