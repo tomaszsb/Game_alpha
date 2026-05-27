@@ -1067,7 +1067,7 @@ function ensureFeedbackDir() {
 
 app.post('/api/feedback', async (req, res) => {
   try {
-    const { screenshot, whatDoing, whatWrong, extra, contact, metadata } = req.body;
+    const { screenshot, whatDoing, whatWrong, extra, contact, metadata, consoleLogs, gameState } = req.body;
 
     if (!whatDoing || !whatWrong) {
       return res.status(400).json({ error: 'whatDoing and whatWrong are required' });
@@ -1092,6 +1092,13 @@ app.post('/api/feedback', async (req, res) => {
         ? { contact: { name: contact.name || '', email: contact.email || '', phone: contact.phone || '' } }
         : {}),
       metadata: metadata || {},
+      // Diagnostic capture (v3.0.21). Client always-sends; before this fix
+      // both fields were silently dropped. consoleLogs is a ring buffer of
+      // up to 50 console.error/warn/unhandled entries from consoleCapture.ts.
+      // gameState is a pruned snapshot (no hands, no large arrays) from
+      // FeedbackButton.fetchGameStateSummary.
+      ...(Array.isArray(consoleLogs) && consoleLogs.length > 0 ? { consoleLogs } : {}),
+      ...(gameState ? { gameState } : {}),
       createdAt: new Date(timestamp).toISOString(),
     };
 
@@ -1226,6 +1233,20 @@ app.get('/api/public/feedback/open', (req, res) => {
       try {
         const data = JSON.parse(fs.readFileSync(path.join(FEEDBACK_DIR, f), 'utf8'));
         if (data.resolved === true) return null;
+        // Summarise console capture for the /start view: counts + last
+        // error message (truncated). Full logs available via /api/feedback/:id.
+        // Older reports without consoleLogs surface as null.
+        let consoleSummary = null;
+        if (Array.isArray(data.consoleLogs) && data.consoleLogs.length > 0) {
+          const errors = data.consoleLogs.filter(e => e && e.level === 'error');
+          const warns = data.consoleLogs.filter(e => e && e.level === 'warn');
+          const lastError = errors.length > 0 ? errors[errors.length - 1].message : null;
+          consoleSummary = {
+            errorCount: errors.length,
+            warnCount: warns.length,
+            lastError: lastError ? lastError.slice(0, 200) : null,
+          };
+        }
         return {
           id: f.replace(/\.json$/, ''),
           createdAt: data.createdAt,
@@ -1237,6 +1258,7 @@ app.get('/api/public/feedback/open', (req, res) => {
           // post-fix. Older reports lacking these will surface as null.
           version: data.metadata && data.metadata.version ? data.metadata.version : null,
           gitCommit: data.metadata && data.metadata.gitCommit ? data.metadata.gitCommit : null,
+          consoleSummary,
         };
       } catch {
         return null;

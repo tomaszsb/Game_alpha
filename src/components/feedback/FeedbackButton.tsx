@@ -33,6 +33,10 @@ export function FeedbackButton(): JSX.Element {
   });
   const [showFullScreenshot, setShowFullScreenshot] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  // Snapshot the console-capture state at the moment the modal opens
+  // so the reporter sees exactly what will be sent. Refreshed each
+  // time handleCapture runs (i.e. each new bug submission).
+  const [captureSummary, setCaptureSummary] = useState<{ errors: number; warns: number } | null>(null);
 
   // Drag state
   const [position, setPosition] = useState({ bottom: 20, right: 20 });
@@ -65,11 +69,22 @@ export function FeedbackButton(): JSX.Element {
       });
       const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       setScreenshot(dataUrl);
+      // Snapshot console buffer state for the modal preview.
+      const logs = getConsoleLogs();
+      setCaptureSummary({
+        errors: logs.filter(l => l.level === 'error').length,
+        warns: logs.filter(l => l.level === 'warn').length,
+      });
       setState('form');
     } catch (err) {
       console.error('Screenshot capture failed:', err);
       // Open form anyway, just without screenshot
       setScreenshot(null);
+      const logs = getConsoleLogs();
+      setCaptureSummary({
+        errors: logs.filter(l => l.level === 'error').length,
+        warns: logs.filter(l => l.level === 'warn').length,
+      });
       setState('form');
     }
   }, []);
@@ -168,6 +183,7 @@ export function FeedbackButton(): JSX.Element {
         setState('idle');
         setForm({ whatDoing: '', whatWrong: '', extra: '', contactName: '', contactEmail: '', contactPhone: '' });
         setScreenshot(null);
+        setCaptureSummary(null);
       }, 1500);
     } catch (err) {
       console.error('Failed to submit feedback:', err);
@@ -180,6 +196,7 @@ export function FeedbackButton(): JSX.Element {
     setState('idle');
     setForm({ whatDoing: '', whatWrong: '', extra: '', contactName: '', contactEmail: '', contactPhone: '' });
     setScreenshot(null);
+    setCaptureSummary(null);
     setShowFullScreenshot(false);
   }, []);
 
@@ -329,6 +346,26 @@ export function FeedbackButton(): JSX.Element {
             <div style={{ fontSize: '12px', color: '#495057', marginTop: '4px' }}>
               Click to enlarge
             </div>
+          </div>
+        )}
+
+        {/* Diagnostic capture summary — shows the reporter what's being
+            attached besides the screenshot (console buffer + game state). */}
+        {captureSummary && (
+          <div style={{
+            marginBottom: '14px',
+            padding: '8px 10px',
+            backgroundColor: '#f8f9fa',
+            borderLeft: `3px solid ${colors.secondary.border}`,
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#495057',
+          }}>
+            <strong>Also included:</strong>{' '}
+            {captureSummary.errors > 0 || captureSummary.warns > 0
+              ? `${captureSummary.errors} error${captureSummary.errors === 1 ? '' : 's'}, ${captureSummary.warns} warning${captureSummary.warns === 1 ? '' : 's'} from the browser console`
+              : 'no errors or warnings logged this session'}
+            {' · '}game state snapshot
           </div>
         )}
 

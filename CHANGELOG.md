@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.21] - 2026-05-27
+
+### Fix — Bug reporter actually saves the diagnostic data it captures
+
+Setup for reproducing `fb:068a66f2` (LOGIC_QUESTION yes/no buttons do nothing) with real evidence in hand. The v3.0.19 diagnostic toast fires the moment `ChoiceService.resolveChoice` returns false — but for the toast text to be useful next session, the captured *context* (console buffer + game state) has to actually land in the report.
+
+Discovery this session: `consoleCapture.ts` already runs a 50-entry ring buffer of `console.error`/`warn`/unhandled errors/rejections, and `FeedbackButton.tsx` already collects both `consoleLogs` and a pruned `gameState` snapshot and POSTs them with every report. But [server.js:1070](server/server.js:1070) destructured the POST body as `{ screenshot, whatDoing, whatWrong, extra, contact, metadata }` only — `consoleLogs` and `gameState` were silently dropped. Every report filed for the last N versions had this data on the wire and the server threw it away.
+
+#### Server (saves what the client was already sending)
+- [server.js](server/server.js) `POST /api/feedback` — destructure now includes `consoleLogs` and `gameState`; both saved into the report file when present (conditional spread to keep older / phone-not-in-game payloads slim).
+- [server.js](server/server.js) `GET /api/public/feedback/open` — adds `consoleSummary` to each report's projection: `{ errorCount, warnCount, lastError }` (last error truncated to 200 chars). Surfaces in `/start` clusters so a future session sees "3 errors, 1 warning captured" next to a report ID without having to fetch the full payload.
+
+#### Client (shows reporter what's being attached)
+- [FeedbackButton.tsx](src/components/feedback/FeedbackButton.tsx) — new `captureSummary` state snapshots the console buffer at modal-open time. Rendered as a small grey strip under the screenshot: *"Also included: 3 errors, 1 warning from the browser console · game state snapshot"* (or "no errors or warnings logged this session" when buffer is empty). Reset on cancel + on success. Makes the data flow visible without making the reporter take an action.
+
+#### Notes / scope
+- **Always-on capture, no opt-in checkbox.** Buffer holds error/warn text only — no PII, no game-state diff. Single-tenant private game, low privacy risk. Decision made this session.
+- **Drive cost:** ring buffer caps at 50 × ~500 char = ~25KB; game-state snapshot ~1-2KB. Screenshot remains the dominant per-report cost (50-200KB JPEG). New fields add <20% to a typical report.
+- **No test infrastructure for server endpoints exists** — round-trip verification deferred to manual curl after deploy.
+- **Doesn't help when the phone crashes** — that's Ship B (cross-device pull from TV via WS heartbeat), separate session. See TODO.md "Bug reporter improvements" bucket.
+
+#### Fix
+- [server/server.js](server/server.js) — destructure + save `consoleLogs`/`gameState`; add `consoleSummary` projection in public endpoint.
+- [src/components/feedback/FeedbackButton.tsx](src/components/feedback/FeedbackButton.tsx) — `captureSummary` state + rendered strip in modal body.
+- [package.json](package.json) — version 3.0.20 → 3.0.21.
+
+#### Verify
+- Typecheck clean. Build 10.94s clean.
+- Targeted test sweep **1469/1469 across 79 files (45.52s)**.
+- Manual post-deploy: file a test report, then `curl /api/feedback/<id>` → confirm `consoleLogs` + `gameState` present in the saved JSON.
+
 ## [3.0.20] - 2026-05-26
 
 ### Fix — LOGIC_QUESTION auto-resolve from approval state (fb:58a2112b)

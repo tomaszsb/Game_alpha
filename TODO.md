@@ -150,6 +150,22 @@ These ship in the deployed build but still appear in the feedback list because n
 - [x] **Modal showed time changed but no before/after** — v2.64.6 (root cause: I cards auto-played to activeCards weren't counted in snapshot). <!-- fb:feedback-1778873006001-11c72bd4 -->
 - [x] **Result modal summary repeats every effect three times** — v2.64.7 split visualSummary (NPC narrative only) from summary (full, TTS only). No specific feedback ID — flagged directly by user this session.
 
+### Newly arrived (2026-05-27 — v3.0.19 playtest)
+*3 reports filed 2026-05-27 00:31–00:36 UTC, all against v3.0.19 (gitCommit `ccfb028`) — same first-playtest of the v3.0.19/v3.0.20 deploy. Items are independent in nature (voice / UI desync / browser-extension noise) so they ship as separate fixes.*
+
+- [ ] **Phone crashed mid-game; couldn't grab phone console; TV console showed 4× Chrome extension async errors (likely noise)** — v3.0.19 first playtest. Reporter could not capture the phone's error state because the crash killed the runtime before the bug button could be used. The TV-side errors (`"A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received"` ×4) are the classic Chrome extension async-response error — almost always benign browser-extension noise, not the app. Real bug is the phone crash itself + the lost-error problem (see Bug reporter improvements below for the structural fix). <!-- fb:feedback-1779842188438-f7312d82 -->
+
+- [ ] **Button label says "roll dice" — voice rule** — v3.0.19. The game shouldn't use literal game-machinery words ("roll", "dice", "card(s)", "game"). Find the button (likely a dice-roll affordance, possibly LifeEventModal or a manual-effect button) and rename to in-character copy. Likely bundles with the existing "6 cards" wording item in `fb:5dc01203`. <!-- fb:feedback-1779842031729-adbc48b0 -->
+
+- [ ] **Player panel destinations don't match board arrows at choice space** — v3.0.19. Player panel showed 2 destinations available; the board showed 4 (PM-DECISION-CHECK, REG-TYPE-SELECT, PLAN-EXAM-FDNY, CON-INITIATION). The panel is likely honoring `pathChoiceMemory` and/or `ApprovalService` narrowing while the board renders the raw MOVEMENT.csv edge set. Reconcile: board should hide arrows that the engine has narrowed out, OR show them dimmed with a tooltip explaining why they're unavailable. <!-- fb:feedback-1779841899762-84da66be -->
+
+### Bug reporter improvements (2026-05-27, user-direct)
+*Not from the dashboard — flagged by user this session after the phone-crash report (`fb:f7312d82`) where the only device that could file a bug report was the device that died.*
+
+- [ ] **Opt-in console capture in bug reporter** — checkbox in the report modal "Include console log" (default off, opt-in per report). Maintain a ring buffer of the last ~100 `debugLog`/`debugWarn` entries app-side; bundle into the report payload when the box is ticked. Keeps default reports clean while making "I saw a JS error" reports actionable. Default-off matters: prevents accidental PII / verbose internal-state leakage on every report.
+
+- [ ] **TV bug-report button can pull info from connected phones** — when a phone crashes, its bug button dies with it. Mitigation: each phone pushes its log-buffer to the host (TV) on every WS heartbeat. When the TV's bug button is pressed, the report bundles TV console + most recent buffer from each connected phone. Phone-side capture survives crash if it pushed before the crash. Architectural note: doesn't help against instant runtime death — heartbeat cadence is the floor on data loss. Suggested: heartbeat-piggyback every ~5s; capture the last ~50 entries per phone.
+
 ### Newly arrived (2026-05-26 — v3.0.16/17 playtest)
 *8 reports filed AM + PM after the v3.0.16 + v3.0.17 deploys. Two blockers caught on the same playtest.*
 
