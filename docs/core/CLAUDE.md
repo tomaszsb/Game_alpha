@@ -789,7 +789,38 @@ When auditing for "underline coverage" gaps, the surfaces that get missed are th
 
 Self-references (term "DOB" referenced inside the DOB definition) underline and clicking is a visual no-op — acceptable. Don't add a `currentTermId` exclude prop for purity; the cost is real complexity for an outcome no one notices.
 
+### Flex-column `min-height: 0` for inner `flex: 1` scroll (v3.0.18)
+
+If a flex column container has a `flex: 1` child with `overflow: auto` that's supposed to scroll its content, the parent MUST also have `min-height: 0`. Without it, the `flex: 1` child can't shrink below its natural content height — it grows to fit everything, the overflow:auto never triggers, and content past the viewport silently leaks out the bottom (often hidden behind a pinned-bottom sibling like a Start Game button).
+
+Hit this in v3.0.18 on `PlayerSetup.tsx` `styles.panel`. The panel had been missing `min-height: 0` since v2.69.x but the latent bug only surfaced when v3.0.16's inner-card `flex: '1 1 360px'` basis pushed each player card past the 2-column TV width threshold, internal flex-wrap dropped QR below avatar/name cluster, taller cards × 4 players exceeded panel height. Two-line fix: add `minHeight: 0` to the panel, switch its own `overflow: 'auto'` → `'hidden'` (since the inner wrapper scrolls properly now and the panel itself shouldn't scroll past its boxShadow boundaries). `fb:ffdddd29`.
+
+**Audit pattern:** anywhere you see `display: 'flex', flexDirection: 'column'` with a `flex: 1` overflowing child, the parent needs `minHeight: 0`. Same gotcha exists for rows + `minWidth: 0` — already used correctly in `styles.panel` and `styles.main`; the column-axis equivalent is what was missing. CSS flex spec requires this; it's not a browser bug.
+
+### Dormant CSV columns: type + engine declare it but parser doesn't read it (v3.0.17)
+
+`revokes_approval` was added to CARDS_EXPANDED.csv in v2.61.1 (W7 Phase 7.3). The `Card` type in DataTypes.ts has the field. `CardService.ts:1083` reads `card.revokes_approval` to apply DOB/FDNY revocations. But `DataService.parseCardsCsv` was only reading 30 columns — `revokes_approval` (column 31) never got assigned from the CSV row. Silently `undefined` for ~6 weeks. Discovered v3.0.17 while wiring `affected_phase` (column 32).
+
+**Pattern when a Card field looks broken or under-used:** before blaming the consumer, check `parseCardsCsv` in `src/services/DataService.ts:921-1002`. The parser is the bridge — type declarations and engine consumers can both reference a field that the parser never sets. The `expectedColumns` array at line 928 is the source of truth for what gets loaded; if your field isn't in the final `return { ... }` block (line 959+), it's dead even if it compiles.
+
+**Defensive practice when adding a new CSV column:** update the type, the parser, AND a test that asserts a known row's value round-trips. The card-text integrity gate at `tests/integration/cardTextMatchesColumns.test.ts` exercises this path now for `affected_phase` — extend it when adding more columns.
+
+### LOGIC_QUESTION cross-runtime ChoiceService.pendingChoices suspicion (v3.0.19 diagnostic, unresolved)
+
+`fb:068a66f2` reported "pressing yes or no did nothing" on a LOGIC_QUESTION modal in TV-with-phones mode. Spent ~2 hours reading code, narrowed to four plausible failure paths in `ChoiceService.resolveChoice`:
+
+1. **No active choice in state** — WebSocket race overwriting local awaitingChoice
+2. **ID mismatch** — stale React closure in the button onClick handler
+3. **Invalid selection** — option ID typo (unlikely for hardcoded yes/no)
+4. **No pending promise** — cross-runtime: the runtime resolving the click never called `createChoice` for that choice ID. The phone is rendering a modal for a choice the HOST runtime owns.
+
+(4) is the most likely if the bug is real — each device has its own `ChoiceService` instance with its own `pendingChoices: Map<choiceId, {resolve, reject}>`. `setAwaitingChoice` syncs over WebSocket so the modal renders everywhere, but the promise lives only on the runtime that called `createChoice`. The fix would be a state-mediated resolution relay: store the resolution selection in `gameState.awaitingChoice.resolvedWith`, both runtimes listen, the one with the pending promise resolves and clears.
+
+Code-reading alone can't confirm (4) without a live repro — under the read-only theory, the phone owns the engine because `endTurn` is clicked there, so the phone should also own the promise. v3.0.19 shipped diagnostic toasts so failures are visible to the player; v3.0.19 + reproduction will tell us which of the four cases is hitting. **If the bug is reproduced and the toast says "No pending promise":** that confirms (4), implement the state-mediated relay. If the toast says one of the other three: different fix path.
+
+`docs/technical/STATE_SYNC.md` (if it exists) or `src/services/ServerSyncService.ts` `syncToServer` line 162 (pre-increment WS version to suppress self-echo) is the closest prior art for the cross-runtime fields.
+
 ---
 
-**Last Updated:** May 25, 2026 (Session **v3.0.15** — Phone + Board Readability v2: 7 v3.0.13 playtest reports closed in one sprint)
-**Charter Version:** 3.17 (+ iOS `100vh`→`100dvh` pattern, audit-all-text-surfaces-for-TextWithTerms)
+**Last Updated:** May 26, 2026 (Session **v3.0.20** — Phone+TV setup unification, card-engine correctness sweep, LOGIC_QUESTION auto-resolve from approval state)
+**Charter Version:** 3.18 (+ flex-column `min-height: 0` for scroll, dormant-CSV-column audit, LOGIC_QUESTION cross-runtime suspicion)
