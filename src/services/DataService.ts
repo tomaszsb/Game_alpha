@@ -843,13 +843,18 @@ export class DataService implements IDataService {
    */
   /**
    * Parse LOGIC_QUESTIONS.csv. Schema:
-   *   space_name,visit_type,question_id,question_text,yes_target,no_target
+   *   space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from
    *
    * `yes_target` / `no_target` may contain:
    *   - another question_id (e.g. "Q2") → chain continues
    *   - a valid space_name → chain resolves to that move
    *   - a comma-separated list of space_names → downstream sub-choice
+   *     (must be quoted in the CSV so the parser doesn't mis-split)
    * Parser treats them as opaque strings; MovementService resolves at walk time.
+   *
+   * `auto_answer_from` is optional (v3.0.20 / fb:58a2112b). When set, the
+   * engine consults player state and skips the choice modal — see
+   * LogicQuestion.auto_answer_from in DataTypes.ts for supported keys.
    */
   private parseLogicQuestionsCsv(csvText: string): LogicQuestion[] {
     if (!csvText) return [];
@@ -868,6 +873,7 @@ export class DataService implements IDataService {
         question_text: (values[3] || '').trim(),
         yes_target: (values[4] || '').trim(),
         no_target: (values[5] || '').trim(),
+        auto_answer_from: (values[6] || '').trim() || undefined,
       });
     }
     return result;

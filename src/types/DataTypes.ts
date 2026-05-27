@@ -101,6 +101,14 @@ export interface LogicQuestion {
   question_text: string;
   yes_target: string;
   no_target: string;
+  // v3.0.20 (fb:58a2112b) — when set, the engine consults player state
+  // instead of asking the user. Supported keys:
+  //   'fdny_approved' → player.fdnyApprovalStatus === 'approved' → 'yes'
+  //   'dob_approved'  → player.dobApprovalStatus === 'approved'  → 'yes'
+  // Empty / undefined → ask the user via choice modal (legacy behavior).
+  // The auto-answered chain still walks its tree and produces a moveIntent
+  // identical to a player-answered chain — it just skips the modal.
+  auto_answer_from?: string;
 }
 
 export interface DiceRollInfo {

@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.20] - 2026-05-26
+
+### Fix — LOGIC_QUESTION auto-resolve from approval state (fb:58a2112b)
+
+Playtest complaint: at REG-FDNY-FEE-REVIEW, the LOGIC_QUESTION chain opens with *"Did you pass FDNY approval before?"* — but the engine already tracks each player's `fdnyApprovalStatus` via `ApprovalService` (W7 Phase 7.4). The chain shouldn't ask questions the engine already knows the answer to.
+
+Two cleanish paths existed: (a) hardcode question→state mappings inside `MovementService.walkLogicChain`, or (b) lift the mapping into a new CSV column so the engine reads it like any other data flag. Went with (b) — keeps the engine code closed-over a small switch statement and lets future questions get auto-answered just by editing the CSV.
+
+#### Schema
+- **LOGIC_QUESTIONS.csv** gains a 7th column `auto_answer_from`. Empty = ask the user (legacy behavior); a known key = engine auto-answers.
+- Supported keys (extend `MovementService.tryAutoAnswer` to add more):
+  - `fdny_approved` — `player.fdnyApprovalStatus === 'approved'` → `'yes'` (else `'no'`)
+  - `dob_approved` — `player.dobApprovalStatus === 'approved'` → `'yes'` (else `'no'`)
+- Unknown keys log a `debugWarn` and fall through to the modal (defensive — protects against CSV typos).
+
+#### Engine
+- New `MovementService.tryAutoAnswer(playerId, question)` returns `'yes' | 'no' | null`. Switch on `auto_answer_from`, look up the relevant `player.*ApprovalStatus`, return verdict.
+- `walkLogicChain` now consults `tryAutoAnswer` BEFORE calling `choiceService.createChoice`. On auto-resolve: skip the modal, log to the game log so the player sees what happened, jump straight to `resolveLogicTarget` with the resolved answer. Chain still walks its tree and produces a `moveIntent` identical to a player-answered chain.
+
+#### Authoring (LOGIC_QUESTIONS.csv)
+- `REG-FDNY-FEE-REVIEW / First / Q1` → `fdny_approved`
+- `REG-FDNY-FEE-REVIEW / First / Q5` → `dob_approved`
+- Same for `Subsequent` rows (mirrors First).
+- Q2/Q3/Q4 left empty (no state tracker yet for "did the scope change", "did DOB send you", or "have sprinklers" — those stay as player-asked questions until someone authors the underlying state).
+
+#### Test
+- 5 new tests in `tests/services/MovementService.test.ts` (suite 50 → 55):
+  - auto-answers `yes` when `fdnyApprovalStatus === 'approved'` (skips modal, sets yes-target moveIntent)
+  - auto-answers `no` when `fdnyApprovalStatus !== 'approved'` (`'none'` case — covers `'denied'` / undefined by extension)
+  - auto-answers `yes` for `dob_approved` when `dobApprovalStatus === 'approved'`
+  - control: empty `auto_answer_from` → modal opens as before
+  - defensive: unknown key falls through to modal
+- **Full targeted sweep: 1469/1469 across 79 files (41.01s). Typecheck clean. Build clean (9.81s).**
+
+#### Fix
+- [public/data/CLEAN_FILES/LOGIC_QUESTIONS.csv](public/data/CLEAN_FILES/LOGIC_QUESTIONS.csv) — new `auto_answer_from` column. 4 rows set (Q1 + Q5 for First/Subsequent).
+- [src/types/DataTypes.ts](src/types/DataTypes.ts) — `LogicQuestion.auto_answer_from?: string` with comment block documenting supported keys.
+- [src/services/DataService.ts](src/services/DataService.ts) — `parseLogicQuestionsCsv` reads column 6, comment block updated.
+- [src/services/MovementService.ts](src/services/MovementService.ts) — `walkLogicChain` calls new `tryAutoAnswer` private helper before `createChoice`. Auto-resolves to the appropriate target without a modal; logs the auto-resolution via `loggingService.info` so the game log shows what the engine answered.
+- [tests/services/MovementService.test.ts](tests/services/MovementService.test.ts) — 5 new tests.
+- [package.json](package.json) — version 3.0.19 → 3.0.20.
+
+#### Known follow-ups
+- Q2 ("Did the scope change since the last visit?") — needs a scope-change tracker on player state. Lift when the underlying state lands.
+- Q3 ("Did Department of Buildings send you here?") — could be inferred from `spaceVisitLog` (was the previous space `REG-DOB-*`?). Light authoring lift but needs care: "send you here" is a stronger semantic than "you were just there."
+- Q4 ("Do you have sprinklers...?") — needs a new building-feature flag on player state.
+
 ## [3.0.19] - 2026-05-26
 
 ### Fix — Diagnostic instrumentation for "LOGIC_QUESTION yes/no buttons do nothing" (fb:068a66f2)

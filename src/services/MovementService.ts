@@ -983,6 +983,12 @@ export class MovementService implements IMovementService {
 
   /**
    * Ask one question in the chain, then recursively resolve the answer's target.
+   *
+   * v3.0.20 (fb:58a2112b) — when the question has `auto_answer_from` set,
+   * consult player state instead of opening a modal. The chain still resolves
+   * end-to-end (recursing into the appropriate target) but the player isn't
+   * asked questions the engine already knows the answer to (DOB / FDNY
+   * approval status, primarily).
    * @private
    */
   private async walkLogicChain(
@@ -991,25 +997,77 @@ export class MovementService implements IMovementService {
     stepIndex: number,
     stepTotal: number
   ): Promise<void> {
-    const answerId = await this.choiceService.createChoice(
-      playerId,
-      'LOGIC_QUESTION',
-      question.question_text,
-      [
-        { id: 'yes', label: 'Yes' },
-        { id: 'no', label: 'No' },
-      ],
-      {
-        logicSpaceName: question.space_name,
-        logicVisitType: question.visit_type,
-        logicQuestionId: question.question_id,
-        logicStepIndex: stepIndex,
-        logicStepTotal: stepTotal,
-      }
-    );
+    const autoAnswer = this.tryAutoAnswer(playerId, question);
+    let answerId: string;
+    if (autoAnswer !== null) {
+      // Skipped the modal entirely — log the auto-resolution so the player
+      // can see in the game log that the engine answered for them.
+      const player = this.stateService.getPlayer(playerId);
+      this.loggingService.info(
+        `Auto-answered "${question.question_text}" → ${autoAnswer} (from ${question.auto_answer_from})`,
+        {
+          playerId,
+          playerName: player?.name,
+          action: 'logic_question_auto_answered',
+          spaceName: question.space_name,
+          visibility: 'player',
+        }
+      );
+      answerId = autoAnswer;
+    } else {
+      answerId = await this.choiceService.createChoice(
+        playerId,
+        'LOGIC_QUESTION',
+        question.question_text,
+        [
+          { id: 'yes', label: 'Yes' },
+          { id: 'no', label: 'No' },
+        ],
+        {
+          logicSpaceName: question.space_name,
+          logicVisitType: question.visit_type,
+          logicQuestionId: question.question_id,
+          logicStepIndex: stepIndex,
+          logicStepTotal: stepTotal,
+        }
+      );
+    }
 
     const target = answerId === 'yes' ? question.yes_target : question.no_target;
     await this.resolveLogicTarget(playerId, question, target, stepIndex + 1, stepTotal);
+  }
+
+  /**
+   * Resolve a logic question against player state, returning 'yes'/'no' or
+   * null when no auto-answer is available (modal should be shown).
+   *
+   * Supported auto_answer_from keys (extend here when new approval flags
+   * land — keep the switch exhaustive on purpose so unknown keys log a
+   * warning and fall through to the modal):
+   *   'fdny_approved' — player.fdnyApprovalStatus === 'approved'
+   *   'dob_approved'  — player.dobApprovalStatus === 'approved'
+   * @private
+   */
+  private tryAutoAnswer(playerId: string, question: LogicQuestion): 'yes' | 'no' | null {
+    const key = question.auto_answer_from?.trim();
+    if (!key) return null;
+
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return null;
+
+    switch (key) {
+      case 'fdny_approved':
+        return player.fdnyApprovalStatus === 'approved' ? 'yes' : 'no';
+      case 'dob_approved':
+        return player.dobApprovalStatus === 'approved' ? 'yes' : 'no';
+      default:
+        debugWarn(
+          `LOGIC_QUESTIONS row ${question.space_name}/${question.visit_type}/${question.question_id} ` +
+          `has unknown auto_answer_from='${key}' — falling through to modal. Update ` +
+          `MovementService.tryAutoAnswer to support this key.`
+        );
+        return null;
+    }
   }
 
   /**

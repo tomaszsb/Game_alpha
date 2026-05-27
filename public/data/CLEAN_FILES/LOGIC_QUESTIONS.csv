@@ -1,11 +1,11 @@
-space_name,visit_type,question_id,question_text,yes_target,no_target
-REG-FDNY-FEE-REVIEW,First,Q1,Did you pass FDNY approval before?,Q2,Q3
-REG-FDNY-FEE-REVIEW,First,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q3
-REG-FDNY-FEE-REVIEW,First,Q3,Did Department of Buildings send you here?,REG-FDNY-PLAN-EXAM,Q4
-REG-FDNY-FEE-REVIEW,First,Q4,Do you have sprinklers / standpipe / fire alarm / fire suppression?,REG-FDNY-PLAN-EXAM,Q5
-REG-FDNY-FEE-REVIEW,First,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT
-REG-FDNY-FEE-REVIEW,Subsequent,Q1,Did you pass FDNY approval before?,Q2,Q3
-REG-FDNY-FEE-REVIEW,Subsequent,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q3
-REG-FDNY-FEE-REVIEW,Subsequent,Q3,Did Department of Buildings send you here?,REG-FDNY-PLAN-EXAM,Q4
-REG-FDNY-FEE-REVIEW,Subsequent,Q4,Do you have sprinklers / standpipe / fire alarm / fire suppression?,REG-FDNY-PLAN-EXAM,Q5
-REG-FDNY-FEE-REVIEW,Subsequent,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT
+space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from
+REG-FDNY-FEE-REVIEW,First,Q1,Did you pass FDNY approval before?,Q2,Q3,fdny_approved
+REG-FDNY-FEE-REVIEW,First,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q3,
+REG-FDNY-FEE-REVIEW,First,Q3,Did Department of Buildings send you here?,REG-FDNY-PLAN-EXAM,Q4,
+REG-FDNY-FEE-REVIEW,First,Q4,Do you have sprinklers / standpipe / fire alarm / fire suppression?,REG-FDNY-PLAN-EXAM,Q5,
+REG-FDNY-FEE-REVIEW,First,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT,dob_approved
+REG-FDNY-FEE-REVIEW,Subsequent,Q1,Did you pass FDNY approval before?,Q2,Q3,fdny_approved
+REG-FDNY-FEE-REVIEW,Subsequent,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q3,
+REG-FDNY-FEE-REVIEW,Subsequent,Q3,Did Department of Buildings send you here?,REG-FDNY-PLAN-EXAM,Q4,
+REG-FDNY-FEE-REVIEW,Subsequent,Q4,Do you have sprinklers / standpipe / fire alarm / fire suppression?,REG-FDNY-PLAN-EXAM,Q5,
+REG-FDNY-FEE-REVIEW,Subsequent,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT,dob_approved

@@ -1463,5 +1463,94 @@ describe('MovementService', () => {
       expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
       expect(mockStateService.setPlayerMoveIntent).not.toHaveBeenCalled();
     });
+
+    // v3.0.20 (fb:58a2112b) — auto-answer LOGIC_QUESTION from player state
+    // so the engine doesn't ask questions it already knows the answer to
+    // (DOB / FDNY approval status, primarily).
+    it('auto-answers YES when auto_answer_from=fdny_approved and player has FDNY approval (skips modal)', async () => {
+      const q1 = {
+        space_name: 'REG-FDNY-FEE-REVIEW', visit_type: 'First' as const, question_id: 'Q1',
+        question_text: 'Did you pass FDNY approval before?',
+        yes_target: 'DEST-FDNY-YES', no_target: 'DEST-FDNY-NO',
+        auto_answer_from: 'fdny_approved',
+      };
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, fdnyApprovalStatus: 'approved' });
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+
+      // Modal was never opened — engine answered from state.
+      expect(mockChoiceService.createChoice).not.toHaveBeenCalled();
+      // Yes-target was taken (DEST-FDNY-YES).
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-FDNY-YES');
+    });
+
+    it('auto-answers NO when auto_answer_from=fdny_approved and player has no FDNY approval', async () => {
+      const q1 = {
+        space_name: 'REG-FDNY-FEE-REVIEW', visit_type: 'First' as const, question_id: 'Q1',
+        question_text: 'Did you pass FDNY approval before?',
+        yes_target: 'DEST-FDNY-YES', no_target: 'DEST-FDNY-NO',
+        auto_answer_from: 'fdny_approved',
+      };
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      // fdnyApprovalStatus is 'none' (or undefined, or 'denied') — anything not 'approved' → no
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, fdnyApprovalStatus: 'none' });
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockChoiceService.createChoice).not.toHaveBeenCalled();
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-FDNY-NO');
+    });
+
+    it('auto-answers YES when auto_answer_from=dob_approved and player has DOB approval', async () => {
+      const q1 = {
+        space_name: 'REG-FDNY-FEE-REVIEW', visit_type: 'First' as const, question_id: 'Q5',
+        question_text: 'Do you have DOB approval?',
+        yes_target: 'DEST-DOB-YES', no_target: 'DEST-DOB-NO',
+        auto_answer_from: 'dob_approved',
+      };
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, dobApprovalStatus: 'approved' });
+
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+
+      expect(mockChoiceService.createChoice).not.toHaveBeenCalled();
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-DOB-YES');
+    });
+
+    it('still asks the user when auto_answer_from is empty (legacy behavior preserved)', () => {
+      // Control: existing single-Q1 test path — no auto_answer_from → modal opens.
+      const q1 = q('Q1', 'DEST-A', 'DEST-B'); // q() helper doesn't set auto_answer_from
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockChoiceService.createChoice.mockReturnValue(new Promise(() => {}));
+
+      movementService.handleLogicMovement('player1');
+
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls through to modal when auto_answer_from has an unknown key (defensive)', () => {
+      const q1 = {
+        space_name: 'LOGIC-SPACE', visit_type: 'First' as const, question_id: 'Q1',
+        question_text: 'unknown-key test?',
+        yes_target: 'DEST-A', no_target: 'DEST-B',
+        auto_answer_from: 'this_key_does_not_exist_in_switch',
+      };
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1]);
+      mockChoiceService.createChoice.mockReturnValue(new Promise(() => {}));
+
+      movementService.handleLogicMovement('player1');
+
+      // Falls through to modal — protects against typos in the CSV
+      expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
+    });
   });
 });
