@@ -1,5 +1,7 @@
 // Locks the v2.70.1 fix that collapses CHEAT-BYPASS's paired dice rows
-// (Time outcomes / Fees Paid) into a single "🎲 Roll dice" button.
+// (Time outcomes / Fees Paid) into a single collapsed dice button
+// (label exported as COLLAPSED_DICE_LABEL; v3.0.22 changed the literal
+// from "🎲 Roll dice" to "🎲 Determine Outcome" per voice rule).
 //
 // Background: SPACE_EFFECTS.csv has multiple dice_outcome rows at CHEAT-BYPASS
 // that all resolve to the same effectKey ("dice:dice_outcome") and share one
@@ -25,7 +27,7 @@ const cheatBypassActions = (): TestAction[] => [
 ];
 
 describe('collapsePairedDiceActions', () => {
-  it('collapses two CHEAT-BYPASS dice rows into one "🎲 Roll dice" button', () => {
+  it('collapses two CHEAT-BYPASS dice rows into one button (COLLAPSED_DICE_LABEL)', () => {
     const result = collapsePairedDiceActions(cheatBypassActions());
 
     expect(result).toHaveLength(2);

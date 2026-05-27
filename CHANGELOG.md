@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.22] - 2026-05-27
+
+### Fix — Collapsed dice button drops "Roll dice" wording (fb:adbc48b0)
+
+Playtest report from v3.0.19: a button label literally said *"Roll dice"*, violating the voice rule (player-facing copy avoids game-machinery words like "roll", "dice", "card(s)", "game"). Found it at [pendingActionsCollapse.ts:18](src/components/player/pendingActionsCollapse.ts:18) — `COLLAPSED_DICE_LABEL = '🎲 Roll dice'`. This label appears whenever a space has multiple SPACE_EFFECTS dice_outcome rows that share one physical roll (most visibly CHEAT-BYPASS, which pairs Time outcomes + Fees Paid). Pre-v2.70.1 those rendered as two separate buttons; v2.70.1 collapsed them into one but used the literal "Roll dice" as the merged label.
+
+Switched to `'🎲 Determine Outcome'` — already the project's established in-character verb for dice actions (used at [ActionCenterPanel.tsx:71](src/components/player/ActionCenterPanel.tsx:71), [StoryAccordion.tsx:92](src/components/player/sections/StoryAccordion.tsx:92), [RulesModal.tsx:93](src/components/modals/RulesModal.tsx:93), and exported as `DICE_BUTTON.OUTCOME` from [uiStrings.ts:21](src/constants/uiStrings.ts:21)). Reusing existing vocabulary keeps the button consistent with the post-roll status text and other dice prompts the player has already seen.
+
+#### Fix
+- [src/components/player/pendingActionsCollapse.ts](src/components/player/pendingActionsCollapse.ts) — `COLLAPSED_DICE_LABEL` value swap; trimmed the now-misleading "relabels to a generic 'Roll dice'" line from the file header; added a comment-block at the constant explaining the v3.0.22 voice fix.
+- [tests/components/player/pendingActionsCollapse.test.ts](tests/components/player/pendingActionsCollapse.test.ts) — header doc + one test name updated to describe the label by symbol (`COLLAPSED_DICE_LABEL`) rather than literal "🎲 Roll dice". Tests already assert against the symbol, not the literal, so no behavior change needed.
+- [package.json](package.json) — version 3.0.21 → 3.0.22.
+
+#### Verify
+- Typecheck clean.
+- pendingActionsCollapse test 7/7 in 62ms.
+- Targeted test sweep **1469/1469 across 79 files (35.48s)**.
+
+#### Scope
+- Skipped: `ActionButton.tsx:55-60` JSDoc example still says "Roll for Money" / "Roll dice to gain money resource". Not player-facing (developer docs only); leaving for a separate hygiene pass.
+- Did NOT touch comments in TurnService.ts / DiceRollProcessor.ts / SpaceArrivalProcessor.ts that say "Roll dice" — these are code comments describing the mechanic to developers, not strings shown to players.
+
 ## [3.0.21] - 2026-05-27
 
 ### Fix — Bug reporter actually saves the diagnostic data it captures

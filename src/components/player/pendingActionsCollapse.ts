@@ -3,8 +3,7 @@
 // dice_outcome rows (Time outcomes / Fees Paid) that share one dice roll —
 // rendering them as separate buttons misleads the player into thinking each
 // fires its own roll. This helper collapses consecutive dice effects sharing
-// the same effectKey into a single button and relabels it to a generic "Roll
-// dice" so the UI matches the truth.
+// the same effectKey into a single button.
 //
 // Sibling fix v2.70.3 (in ActionCenterPanel) suppresses the separate movement
 // dice button when this collapsed dice button is already in the list.
@@ -15,7 +14,12 @@ export interface CollapsibleAction {
   label: string;
 }
 
-export const COLLAPSED_DICE_LABEL = '🎲 Roll dice';
+// v3.0.22 (fb:adbc48b0): switched from "🎲 Roll dice" to the project's
+// established in-character verb "Determine Outcome" (already used at
+// ActionCenterPanel.tsx:71, StoryAccordion.tsx:92, uiStrings.ts:21).
+// Voice rule: player-facing copy avoids game-machinery words like
+// "roll" / "dice" / "card(s)" / "game".
+export const COLLAPSED_DICE_LABEL = '🎲 Determine Outcome';
 
 export function collapsePairedDiceActions<T extends CollapsibleAction>(actions: T[]): T[] {
   const collapsed: T[] = [];
