@@ -105,7 +105,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
     isHovered,
     isValidMove: data.isValidMove,
   });
-  const { size, width, minHeight, zIndex, storyMax } = vs;
+  const { size, width, minHeight, zIndex, storyMax, showsFullText } = vs;
   const isBig = size !== 'compact';
   // fb:97fa9c75 — the CURRENT tile must be the visual focal point. Give it the
   // thickest border; valid-move tiles get a lighter outline so they read as a
@@ -209,19 +209,21 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
         {data.title}
       </div>
 
-      {/* Story snippet (hover + expanded) */}
+      {/* Story snippet. Truncated on hover/valid-move tiles; shown in full on
+          the current tile and any click-expanded tile (showsFullText). */}
       {isBig && data.story && (
         <div style={{ fontSize: 11, color: '#495057', marginTop: 6, lineHeight: 1.35 }}>
           {data.npcName && <strong style={{ color: phaseColors.text }}>{data.npcName}: </strong>}
-          {truncate(data.story, storyMax)}
+          {showsFullText ? data.story : truncate(data.story, storyMax)}
         </div>
       )}
 
-      {/* Action description (expanded only) */}
-      {size === 'expanded' && data.actionDescription && (
+      {/* Action description — shown in full on the current tile and click-
+          expanded tiles (showsFullText). Hidden on smaller sizes. */}
+      {showsFullText && data.actionDescription && (
         <div style={{ fontSize: 10, color: '#6c757d', marginTop: 6, fontStyle: 'italic' }}>
           <strong style={{ fontStyle: 'normal', color: '#495057' }}>Next: </strong>
-          {truncate(data.actionDescription, 80)}
+          {data.actionDescription}
         </div>
       )}
 

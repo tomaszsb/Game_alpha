@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.27] - 2026-05-28
+
+### Fix — Current board tile is fully open by default (fb:97fa9c75)
+
+Follow-on to v3.0.26. The current tile defaulted to the `currentBig` size, which still **truncated** the story (80 chars) and **hid the action description** — that content only appeared after clicking the tile to `expanded`. So the focal "you are here" tile wasn't actually showing its full text, and clicking revealed more. The ask: the current tile should already show everything.
+
+Changes in [computeTileVisualState](src/utils/boardCommon.ts):
+- **`currentBig` grew to the click-expanded footprint** (220×120 → 240×130), so the current tile no longer grows or re-wraps when clicked — there's nothing left to reveal.
+- **New `showsFullText` flag** (true for `currentBig` + `expanded`) — these tiles render the story and action description *untruncated*; smaller sizes still truncate to `storyMax`.
+- **`showsAction`** now true for `currentBig` too (was `expanded`-only), so the "Next: …" action line shows on the current tile by default.
+- `BOARD_TILE_MAX_INGRID` bumped 220×120 → 240×130 to match (keeps the editor's ghost-buffer footprint accurate, since `currentBig` is the largest in-grid size).
+
+[BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) reads `showsFullText`: story renders in full (no `truncate`) when set, and the action-description block is gated on `showsFullText` instead of `size === 'expanded'`, shown untruncated.
+
+#### Fix
+- [src/utils/boardCommon.ts](src/utils/boardCommon.ts), [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx), [package.json](package.json) (3.0.26 → 3.0.27).
+
+#### Test
+- [tests/utils/boardCommon.test.ts](tests/utils/boardCommon.test.ts) — currentBig size assertions updated to 240×130; `showsAction` for currentBig now expected true; new test pins `showsFullText` (true for current + expanded, false otherwise). Suite 16 → 17.
+- Typecheck clean. Build 9.33s clean. Sweep 1485/1485 across 80 files (39.61s).
+
 ## [3.0.26] - 2026-05-28
 
 ### Fix — Board: current tile is now the visual focal point, not the next-move tiles (fb:97fa9c75)

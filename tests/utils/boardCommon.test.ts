@@ -29,10 +29,14 @@ describe('computeTileVisualState', () => {
   it('current-player tile is fully expanded BY DEFAULT — the other half of fb:97fa9c75', () => {
     const vs = computeTileVisualState({ isCurrent: true });
     expect(vs.size).toBe('currentBig');
-    expect(vs.width).toBe(220);
-    expect(vs.minHeight).toBe(120);
+    // v3.0.27: grew to the click-expanded footprint so it's genuinely "fully
+    // open" — clicking no longer reveals more.
+    expect(vs.width).toBe(240);
+    expect(vs.minHeight).toBe(130);
     expect(vs.zIndex).toBe(25);
     expect(vs.showsStory).toBe(true);
+    expect(vs.showsFullText).toBe(true);
+    expect(vs.showsAction).toBe(true);
   });
 
   it('hover bumps a plain tile to hover size', () => {
@@ -84,12 +88,20 @@ describe('computeTileVisualState', () => {
     expect(computeTileVisualState({ isExpanded: true }).storyMax).toBe(100);
   });
 
-  it('only expanded tile shows the action description block', () => {
+  it('current + expanded tiles show the action description block (v3.0.27)', () => {
     expect(computeTileVisualState({}).showsAction).toBe(false);
     expect(computeTileVisualState({ isValidMove: true }).showsAction).toBe(false);
     expect(computeTileVisualState({ isHovered: true }).showsAction).toBe(false);
-    expect(computeTileVisualState({ isCurrent: true }).showsAction).toBe(false);
+    expect(computeTileVisualState({ isCurrent: true }).showsAction).toBe(true);
     expect(computeTileVisualState({ isExpanded: true }).showsAction).toBe(true);
+  });
+
+  it('showsFullText is true only for the current + click-expanded tiles (v3.0.27)', () => {
+    expect(computeTileVisualState({}).showsFullText).toBe(false);
+    expect(computeTileVisualState({ isValidMove: true }).showsFullText).toBe(false);
+    expect(computeTileVisualState({ isHovered: true }).showsFullText).toBe(false);
+    expect(computeTileVisualState({ isCurrent: true }).showsFullText).toBe(true);
+    expect(computeTileVisualState({ isExpanded: true }).showsFullText).toBe(true);
   });
 });
 

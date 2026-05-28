@@ -126,9 +126,13 @@ export interface TileVisualState {
   width: number;
   minHeight: number;
   zIndex: number;
-  storyMax: number;   // max story-snippet length for this size
+  storyMax: number;   // max story-snippet length for this size (ignored when showsFullText)
   showsStory: boolean;
   showsAction: boolean;
+  // v3.0.27 (fb:97fa9c75): the current tile (and click-expanded tiles) render
+  // their story + action description UNtruncated — they're "fully open" with
+  // nothing left to reveal. Smaller sizes still truncate to storyMax.
+  showsFullText: boolean;
 }
 
 export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState {
@@ -140,17 +144,20 @@ export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState 
     : inputs.isValidMove ? 'validMove'
     : 'compact';
 
+  // v3.0.27 (fb:97fa9c75): currentBig now matches the click-expanded footprint
+  // (240×130) so the current tile is genuinely "fully open" by default —
+  // clicking it no longer grows/rewraps it, because there's nothing more to show.
   const width =
     size === 'compact' ? 150
     : size === 'validMove' ? 180
     : size === 'hover' ? 200
-    : size === 'currentBig' ? 220
+    : size === 'currentBig' ? 240
     : 240;
   const minHeight =
     size === 'compact' ? 60
     : size === 'validMove' ? 90
     : size === 'hover' ? 100
-    : size === 'currentBig' ? 120
+    : size === 'currentBig' ? 130
     : 130;
 
   // Click-locked > current > hovered > valid-move > base. Keeps the user's
@@ -169,6 +176,10 @@ export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState 
     : size === 'currentBig' ? 80
     : 100;
 
+  // currentBig + expanded show the full story and the action description with
+  // no truncation. Other sizes truncate to storyMax and hide the action block.
+  const showsFullText = size === 'currentBig' || size === 'expanded';
+
   return {
     size,
     width,
@@ -176,7 +187,8 @@ export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState 
     zIndex,
     storyMax,
     showsStory: size !== 'compact',
-    showsAction: size === 'expanded',
+    showsAction: showsFullText,
+    showsFullText,
   };
 }
 
@@ -186,4 +198,6 @@ export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState 
 // size is intentionally excluded because it floats above the grid (B-style)
 // and doesn't physically need spacing.
 export const BOARD_TILE_COMPACT = { w: 150, h: 60 };
-export const BOARD_TILE_MAX_INGRID = { w: 220, h: 120 };
+// v3.0.27: currentBig grew to 240×130 (now == expanded footprint), so the
+// largest in-grid tile the editor must leave room for matches that.
+export const BOARD_TILE_MAX_INGRID = { w: 240, h: 130 };
