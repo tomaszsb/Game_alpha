@@ -6,6 +6,21 @@ import { Effect } from '../types/EffectTypes';
 import { ErrorNotifications } from '../utils/ErrorNotifications';
 import { parseCardDrawFormat } from '../utils/parseUtils';
 
+// NYC DOB work types that count as "groundwork" — i.e. the project disturbs
+// soil (digging, foundations, ground-disturbing teardowns). Used to gate
+// work_type_conditional cards like L012 "Soil Contamination" (+4 days only if
+// the player's project involves groundwork). A project "involves groundwork"
+// when the player holds a W (work-package) card of one of these work types.
+const GROUNDWORK_WORK_TYPES = new Set<string>([
+  'Foundation',
+  'Earth Work',
+  'Earthwork Only',
+  'Support of Excavation',
+  'New Building',
+  'Full Demolition',
+  'Demolition & Removal',
+]);
+
 export class CardService implements ICardService {
   private readonly dataService: IDataService;
   private readonly stateService: IStateService;
@@ -1093,6 +1108,22 @@ export class CardService implements ICardService {
   }
 
   /**
+   * True when the player's project "involves groundwork" — i.e. they hold at
+   * least one W (work-package) card whose work type is ground-disturbing.
+   * Gates work_type_conditional cards (e.g. L012 "Soil Contamination").
+   */
+  private playerInvolvesGroundwork(playerId: string): boolean {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return false;
+    return (player.hand ?? []).some(cardId => {
+      const c = this.dataService.getCardById(cardId);
+      return c?.card_type === 'W'
+        && !!c.work_type_restriction
+        && GROUNDWORK_WORK_TYPES.has(c.work_type_restriction);
+    });
+  }
+
+  /**
    * Parse card CSV data into standardized Effect objects for the UnifiedEffectEngine
    * This bridges the gap between CSV field structure and the Effect system
    */
@@ -1121,7 +1152,12 @@ export class CardService implements ICardService {
     // MODIFY_RESOURCE effects from tick_modifier field (time effects)
     if (card.tick_modifier && card.tick_modifier !== '0') {
       const timeAmount = parseInt(card.tick_modifier, 10);
-      if (!isNaN(timeAmount) && timeAmount !== 0) {
+      // work_type_conditional gate (e.g. L012 "Soil Contamination"): the time
+      // modifier only applies when the player's project involves the relevant
+      // work type. If the condition isn't met, the card still fires but adds 0.
+      const conditionMet = card.card_mechanic !== 'work_type_conditional'
+        || this.playerInvolvesGroundwork(playerId);
+      if (conditionMet && !isNaN(timeAmount) && timeAmount !== 0) {
         // Check if this is a Global scope card - affects all players
         const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
 

@@ -903,6 +903,56 @@ describe('CardService - Enhanced Coverage', () => {
       expect(tickEffectsByPlayer).toEqual(['player1', 'player2', 'player3']);
     });
 
+    // L012 "Soil Contamination" — card_mechanic='work_type_conditional'. The +4
+    // days only applies if the player's project involves groundwork, i.e. they
+    // hold a W card whose work type is ground-disturbing (Foundation, Earth Work,
+    // Earthwork Only, Support of Excavation, New Building, or a Demolition). <!-- fb:feedback-1779810408636-776e3ba7 -->
+    const L012_CARD = {
+      card_id: 'L012',
+      card_name: 'Soil Contamination',
+      card_type: 'L',
+      tick_modifier: '4',
+      target: 'Self',
+      scope: 'Single',
+      card_mechanic: 'work_type_conditional',
+      description: 'If the current project involves groundwork increase the filing time by 4 days.'
+    };
+
+    it('should apply L012 +4 days when the player holds a groundwork W card', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_ground'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L012') return L012_CARD;
+        if (cardId === 'W_ground') return { card_id: 'W_ground', card_name: 'Mat Foundation', card_type: 'W', work_type_restriction: 'Foundation', description: '' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L012');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.amount).toBe(4);
+    });
+
+    it('should NOT apply L012 +4 days when the player holds only non-groundwork W cards', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_plumb'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L012') return L012_CARD;
+        if (cardId === 'W_plumb') return { card_id: 'W_plumb', card_name: 'Sprinkler Upgrade', card_type: 'W', work_type_restriction: 'Plumbing', description: '' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L012');
+
+      // L012's only effect is the (now-suppressed) time modifier, so the engine
+      // may be invoked with an empty effect list or not at all — either way no
+      // TIME effect should appear in any call.
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls
+        .flatMap((c: any) => c[0] ?? [])
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(0);
+    });
+
     it('should filter global tick_modifier by affected_phase=REGULATORY (L026/L030/L036/L047 shape)', () => {
       // L026 "All permit filing times decrease by 1 day this turn." with
       // affected_phase=REGULATORY should only tick down players currently on a

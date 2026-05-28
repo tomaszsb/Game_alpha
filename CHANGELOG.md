@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.28] - 2026-05-28
+
+### Fix — L012 "Soil Contamination" +4 days now conditional on groundwork (fb:776e3ba7)
+
+Card text reads *"If the current project involves groundwork increase the filing time by 4 days"* — but the engine had no notion of "involves groundwork" and applied the +4 unconditionally whenever the Life event fired. Now the penalty only lands when the player's project actually involves ground-disturbing work.
+
+**Design call (user):** "involves groundwork" = the player holds a **W (work-package) card** whose NYC DOB work type is ground-disturbing. The qualifying types: **Foundation, Earth Work, Earthwork Only, Support of Excavation, New Building, Full Demolition, Demolition & Removal**. The W card's work type is already authored in the existing `work_type_restriction` column — no new player state or setup choice needed.
+
+Implementation is **data-driven, not hardcoded to `L012`** — it reuses the `card_mechanic` column pattern that already gates `dice_conditional` cards:
+- **New `work_type_conditional` mechanic** added to the `Card['card_mechanic']` union ([DataTypes.ts](src/types/DataTypes.ts)) and the CSV parse whitelist ([DataService.ts](src/services/DataService.ts)).
+- **Gate in `CardService.parseCardIntoEffects`** ([CardService.ts](src/services/CardService.ts)) — a `GROUNDWORK_WORK_TYPES` set + `playerInvolvesGroundwork(playerId)` helper (scans the player's hand for a qualifying W card). The `tick_modifier` time effect is suppressed when `card_mechanic === 'work_type_conditional'` and the condition isn't met; the card still fires (and shows its conditional "If…" text) but adds 0 days.
+- **CSV** — L012's `card_mechanic` set to `work_type_conditional` in [CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv). Also stripped a stray `\r` lurking mid-row (same Windows multiline-parser artifact seen on the L049 fix).
+
+No misleading UI preview: the hand panels' time gating is E-card-only, and the Life Event modal renders the card's already-conditional description verbatim.
+
+#### Fix
+- [src/types/DataTypes.ts](src/types/DataTypes.ts), [src/services/DataService.ts](src/services/DataService.ts), [src/services/CardService.ts](src/services/CardService.ts), [public/data/CLEAN_FILES/CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv), [package.json](package.json) (3.0.27 → 3.0.28).
+
+#### Test
+- [tests/services/CardService.test.ts](tests/services/CardService.test.ts) — 2 new cases: player holding a groundwork W card gets +4 days; player holding only non-groundwork W cards gets 0.
+- Typecheck clean. Build 11.01s clean. Sweep 1487/1487 across 80 files (46.58s).
+
 ## [3.0.27] - 2026-05-28
 
 ### Fix — Current board tile is fully open by default (fb:97fa9c75)
