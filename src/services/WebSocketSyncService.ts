@@ -83,11 +83,101 @@ export class WebSocketSyncService {
   // Track last known version for conflict detection
   private lastKnownVersion = 0;
 
+  // Bound lifecycle handlers (stored so they can be removed; needed for the
+  // visibilitychange resume fix — see handleVisibilityChange).
+  private boundUnloadHandler: (() => void) | null = null;
+  private boundVisibilityHandler: (() => void) | null = null;
+
   constructor() {
-    // Clean disconnect on page unload
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => this.disconnect());
+    this.addLifecycleListeners();
+  }
+
+  /**
+   * Register page-lifecycle listeners.
+   *  - beforeunload: clean disconnect when the page genuinely closes.
+   *  - visibilitychange: THE phone-reliability fix. Mobile browsers freeze
+   *    backgrounded tabs — they pause our heartbeat timer and the OS can kill
+   *    the socket WITHOUT firing onclose. So a phone that locks/app-switches
+   *    mid-game silently loses its connection and never recovers (root cause
+   *    of fb:f7312d82 "phone crashed, won't reload" and fb:c7312a0a "won but
+   *    phone showed nothing"). When the tab returns to the foreground we
+   *    verify the socket and force a reconnect if it's dead.
+   * Idempotent: safe to call repeatedly (guards against double-registration).
+   */
+  private addLifecycleListeners(): void {
+    if (typeof window !== 'undefined' && !this.boundUnloadHandler) {
+      this.boundUnloadHandler = () => this.disconnect();
+      window.addEventListener('beforeunload', this.boundUnloadHandler);
     }
+    if (typeof document !== 'undefined' && !this.boundVisibilityHandler) {
+      this.boundVisibilityHandler = () => this.handleVisibilityChange();
+      document.addEventListener('visibilitychange', this.boundVisibilityHandler);
+    }
+  }
+
+  private removeLifecycleListeners(): void {
+    if (typeof window !== 'undefined' && this.boundUnloadHandler) {
+      window.removeEventListener('beforeunload', this.boundUnloadHandler);
+      this.boundUnloadHandler = null;
+    }
+    if (typeof document !== 'undefined' && this.boundVisibilityHandler) {
+      document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
+      this.boundVisibilityHandler = null;
+    }
+  }
+
+  /**
+   * Called when the tab's visibility changes. On return-to-foreground, decide
+   * whether the connection is trustworthy; if not, force a reconnect. The
+   * server re-sends current state on (re)subscribe, so a successful reconnect
+   * automatically catches the phone up on anything missed while backgrounded.
+   */
+  private handleVisibilityChange(): void {
+    if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+    // No active game (or we were intentionally disconnected — gameId is nulled
+    // by disconnect()): nothing to revive.
+    if (!this.gameId) return;
+
+    const socketOpen = this.ws?.readyState === WebSocket.OPEN;
+    // If we haven't heard a pong within one heartbeat interval, timers were
+    // almost certainly frozen while backgrounded — treat the socket as stale
+    // even if readyState still reports OPEN (zombie connection).
+    const pongFresh = (Date.now() - this.lastPongTime) < this.heartbeatInterval;
+
+    if (socketOpen && pongFresh) {
+      return; // Connection looks healthy — leave it alone.
+    }
+
+    this.forceReconnect('tab returned to foreground with a suspect connection');
+  }
+
+  /**
+   * Immediately re-establish the connection, bypassing backoff. Tears down any
+   * existing (possibly zombie) socket WITHOUT routing through onclose →
+   * scheduleReconnect, then reconnects fresh with the backoff counter reset.
+   */
+  private forceReconnect(reason: string): void {
+    if (!this.gameId) return;
+    debugLog(`🔌 Force reconnect: ${reason}`);
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+
+    // Detach handlers before closing so the close doesn't schedule a second,
+    // competing reconnect.
+    if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      try { this.ws.close(); } catch { /* already closed */ }
+      this.ws = null;
+    }
+
+    this.connect(this.serverUrl, this.gameId, this.playerId || undefined);
   }
 
   /**
@@ -112,6 +202,10 @@ export class WebSocketSyncService {
     this.serverUrl = serverUrl;
     this.gameId = gameId;
     this.playerId = playerId || null;
+
+    // Re-arm lifecycle listeners in case this is a reconnect after a prior
+    // disconnect() (which removes them) — e.g. the singleton reused for a new game.
+    this.addLifecycleListeners();
 
     // Don't reconnect if already connected to same game
     if (this.isConnected() && this.ws) {
@@ -207,6 +301,7 @@ export class WebSocketSyncService {
   disconnect(): void {
     this.setConnectionState('disconnected');
     this.stopHeartbeat();
+    this.removeLifecycleListeners();
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -349,6 +444,21 @@ export class WebSocketSyncService {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      // Normally give up here. But if the tab is currently VISIBLE, the user
+      // is actively waiting — stranding them as 'disconnected' (with no
+      // auto-reload and no reconnect button) is exactly the "phone won't
+      // reload" failure. Keep retrying at the max interval instead. The
+      // visibilitychange handler covers the backgrounded case separately.
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        debugWarn('Max reconnect attempts reached, but tab is visible — continuing slow retries');
+        this.setConnectionState('reconnecting');
+        this.reconnectTimer = setTimeout(() => {
+          if (this.gameId) {
+            this.connect(this.serverUrl, this.gameId, this.playerId || undefined);
+          }
+        }, 16000);
+        return;
+      }
       debugLog('Max reconnection attempts reached, giving up');
       this.setConnectionState('disconnected');
       return;

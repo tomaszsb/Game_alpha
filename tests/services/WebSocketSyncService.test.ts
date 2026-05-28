@@ -20,6 +20,12 @@ class MockWebSocket {
   static CLOSING = 2;
   static CLOSED = 3;
 
+  // When false, new sockets stay in CONNECTING forever (never fire onopen).
+  // Used by the reconnect-give-up test to let reconnectAttempts accumulate
+  // (a socket that opens resets the counter). Defaults true so existing tests
+  // are unaffected.
+  static autoOpen = true;
+
   readyState = MockWebSocket.CONNECTING;
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
@@ -30,10 +36,12 @@ class MockWebSocket {
 
   constructor(public url: string) {
     // Simulate async connection
-    setTimeout(() => {
-      this.readyState = MockWebSocket.OPEN;
-      if (this.onopen) this.onopen();
-    }, 10);
+    if (MockWebSocket.autoOpen) {
+      setTimeout(() => {
+        this.readyState = MockWebSocket.OPEN;
+        if (this.onopen) this.onopen();
+      }, 10);
+    }
   }
 
   send(data: string): void {
@@ -97,6 +105,11 @@ describe('WebSocketSyncService', () => {
   afterEach(() => {
     globalThis.WebSocket = originalWebSocket;
     mockWs = null;
+    (MockWebSocket as { autoOpen: boolean }).autoOpen = true;
+    // Reset visibility override so it doesn't bleed into other tests.
+    try {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    } catch { /* environment without document */ }
     vi.useRealTimers();
   });
 
@@ -367,6 +380,91 @@ describe('WebSocketSyncService', () => {
       const instance2 = getWebSocketService();
 
       expect(instance1).toBe(instance2);
+    });
+  });
+
+  describe('Visibility resume (phone reliability — fb:f7312d82 / fb:c7312a0a)', () => {
+    // Helper: override document.visibilityState and fire the event.
+    const setVisibility = (state: 'visible' | 'hidden') => {
+      Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    it('force-reconnects when the tab returns to foreground with a dead (zombie) socket', async () => {
+      const service = new WebSocketSyncService();
+      service.connect('http://localhost:3001', 'G1');
+      await vi.advanceTimersByTimeAsync(20);
+      expect(service.isConnected()).toBe(true);
+
+      const zombieWs = mockWs;
+      // Simulate the OS killing the socket while backgrounded WITHOUT firing
+      // onclose (the exact failure mode the fix targets).
+      zombieWs!.readyState = MockWebSocket.CLOSED;
+
+      setVisibility('visible');
+
+      // A fresh socket should have been created (different instance).
+      expect(mockWs).not.toBe(zombieWs);
+      await vi.advanceTimersByTimeAsync(20);
+      expect(service.connectionState).toBe('connected');
+
+      service.disconnect();
+    });
+
+    it('does NOT reconnect when the connection is still healthy on resume', async () => {
+      const service = new WebSocketSyncService();
+      service.connect('http://localhost:3001', 'G1');
+      await vi.advanceTimersByTimeAsync(20);
+
+      const healthyWs = mockWs;
+      // Fresh pong → pongFresh true, socket OPEN → no action expected.
+      healthyWs!.simulateMessage({ type: 'pong', timestamp: Date.now() });
+
+      setVisibility('visible');
+
+      expect(mockWs).toBe(healthyWs); // same socket, no reconnect
+      service.disconnect();
+    });
+
+    it('ignores visibilitychange after an intentional disconnect (listener removed)', async () => {
+      const service = new WebSocketSyncService();
+      service.connect('http://localhost:3001', 'G1');
+      await vi.advanceTimersByTimeAsync(20);
+
+      service.disconnect();
+      const afterDisconnect = mockWs;
+
+      setVisibility('visible');
+
+      expect(service.connectionState).toBe('disconnected');
+      expect(mockWs).toBe(afterDisconnect); // no new socket
+    });
+
+    it('keeps retrying (does not strand as disconnected) when attempts are exhausted but the tab is visible', async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+
+      const service = new WebSocketSyncService();
+      service.connect('http://localhost:3001', 'G1');
+      await vi.advanceTimersByTimeAsync(20); // initial connection opens
+
+      // From here, reconnect sockets must NOT open, so reconnectAttempts climbs.
+      (MockWebSocket as { autoOpen: boolean }).autoOpen = false;
+
+      // Drop + let the scheduled reconnect fire, repeatedly, past the 10-attempt cap.
+      for (let i = 0; i < 12; i++) {
+        mockWs!.simulateClose(4000, 'drop');
+        await vi.advanceTimersByTimeAsync(16000);
+      }
+
+      // Past the cap, but visible → should keep trying, NOT strand as
+      // 'disconnected'. Depending on exactly where the last timer landed the
+      // state is either 'reconnecting' (backoff scheduled) or 'connecting'
+      // (a retry in flight) — both mean "still trying".
+      expect(service.connectionState).not.toBe('disconnected');
+      expect(['reconnecting', 'connecting']).toContain(service.connectionState);
+
+      (MockWebSocket as { autoOpen: boolean }).autoOpen = true;
+      service.disconnect();
     });
   });
 

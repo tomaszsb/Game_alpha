@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.24] - 2026-05-28
+
+### Fix — Phones recover their WebSocket after the screen locks / app-switches (fb:f7312d82, fb:c7312a0a)
+
+Root-cause fix for the phone-connection cluster surfaced by the v3.0.21 diagnostic capture. Investigation found `WebSocketSyncService` had hooks for page-close (`beforeunload`), a 30s heartbeat, and backoff reconnect on a *visible* drop — but **nothing for the tab returning to the foreground.** Mobile browsers freeze backgrounded tabs: they pause the heartbeat timer and the OS can kill the socket *without firing `onclose`*. So a phone that locks or app-switches mid-game (constant in tabletop play) silently loses its connection and never recovers. The TV, always foregrounded, stays fine — which is why this read as a phone-only problem.
+
+Symptom mapping confirmed by captured reports:
+- **`fb:c7312a0a` "I won but phone showed nothing"** — the end-game state was pushed over a dead pipe the phone never received. The report's absent `gameState` (the phone couldn't even HTTP-fetch its own state) proved it was disconnected-and-unaware.
+- **`fb:f7312d82` "phone crashed, won't reload"** — after a real drop the client retried 10× then gave up *permanently* (no auto-reload, no reconnect button), stranding the phone.
+
+Key enabler: the server already re-sends current state on `subscribe` (`websocket.js` `sendCurrentState`), so a successful reconnect catches the phone up automatically — no separate HTTP re-fetch needed. The whole fix is "make the reconnect actually fire."
+
+#### Engine
+- [src/services/WebSocketSyncService.ts](src/services/WebSocketSyncService.ts):
+  - **`visibilitychange` handler** — on return-to-foreground, treats the connection as suspect if the socket isn't `OPEN` *or* no pong arrived within one heartbeat interval (timers were frozen), and forces a reconnect. Healthy connections are left untouched.
+  - **`forceReconnect()`** — tears down the zombie socket *after detaching its handlers* (so the close doesn't schedule a second competing reconnect), resets the backoff counter, reconnects immediately.
+  - **Don't strand a visible tab** — when reconnect attempts hit the 10× cap, if `document.visibilityState === 'visible'` (user actively waiting) it keeps slow-retrying at the 16s max interval instead of going `disconnected`.
+  - Lifecycle listeners refactored into idempotent `addLifecycleListeners()` / `removeLifecycleListeners()`; added on `connect()` (re-armed for singleton reuse across games) and removed on `disconnect()`.
+
+#### Test
+- [tests/services/WebSocketSyncService.test.ts](tests/services/WebSocketSyncService.test.ts) — new "Visibility resume" block (4 tests, suite 19 → 23): force-reconnects a zombie socket on resume; does NOT reconnect a healthy one; ignores visibilitychange after intentional disconnect (listener removed); keeps retrying (not `disconnected`) past the cap while visible. Added a `MockWebSocket.autoOpen` toggle so reconnect attempts can be made to accumulate.
+- **Targeted sweep 1473/1473 across 79 files (45.97s). Typecheck clean. Build 10.13s clean.**
+
+#### Fix
+- [src/services/WebSocketSyncService.ts](src/services/WebSocketSyncService.ts), [tests/services/WebSocketSyncService.test.ts](tests/services/WebSocketSyncService.test.ts), [package.json](package.json) (3.0.23 → 3.0.24).
+
+#### Notes / follow-ups
+- Does NOT add an HTTP polling fallback (server-push-on-subscribe makes it unnecessary for the reconnect case). If push reliability proves worse than expected, a low-frequency poll-while-disconnected is the next lever.
+- A visible "Reconnecting… / tap to reconnect" indicator on the phone is still worth adding for user transparency — captured as a possible follow-up, not shipped here.
+- This may also resolve the `fb:068a66f2` LOGIC_QUESTION blocker if its root was a dead phone socket dropping the `resolveChoice` round-trip. To be confirmed on reproduction now that reconnect is robust.
+
 ## [3.0.23] - 2026-05-27
 
 ### Fix — Two voice-rule sweeps from the v3.0.19 playtest cluster
