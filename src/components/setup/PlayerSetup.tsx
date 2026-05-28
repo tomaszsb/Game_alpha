@@ -8,6 +8,7 @@ import { usePlayerValidation, GameSettings, AVAILABLE_COLORS, ColorOption } from
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId, getBackendURL } from '../../utils/networkDetection';
+import { isSmartTV } from '../../utils/deviceDetection';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
@@ -71,11 +72,18 @@ export function PlayerSetup({
   // Lobby controls — merged from the retired GameLobby screen so setup
   // happens on a single page. PC/TV mode is local state until the user
   // clicks Start Game; on start, TV mode appends ?mode=tv to the URL.
-  // Default to whatever ?mode= currently says (so a TV-mode reload from
-  // an existing game preserves the choice).
-  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv'>(
-    () => (new URLSearchParams(window.location.search).get('mode') === 'tv' ? 'tv' : 'pc')
-  );
+  // Precedence (v3.0.25):
+  //   1. Explicit ?mode= in the URL wins (preserves a TV-mode reload).
+  //   2. Otherwise auto-preselect TV when the browser is a real smart TV
+  //      (Tizen/webOS/Android TV/Fire TV/Chromecast/etc). A laptop-into-TV
+  //      reports a desktop UA and falls through to PC — the prominent toggle
+  //      is the manual fallback for that case.
+  const [selectedMode, setSelectedMode] = useState<'pc' | 'tv'>(() => {
+    const urlMode = new URLSearchParams(window.location.search).get('mode');
+    if (urlMode === 'tv') return 'tv';
+    if (urlMode === 'pc') return 'pc';
+    return isSmartTV() ? 'tv' : 'pc';
+  });
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
   // Settings drawer: the right-column "game setup window" only appears when
@@ -109,7 +117,7 @@ export function PlayerSetup({
   const [adminVerifying, setAdminVerifying] = useState(false);
 
   // Use validation hook with services
-  const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService);
+  const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService, selectedMode === 'tv');
 
   /**
    * Add a new player
@@ -583,62 +591,83 @@ export function PlayerSetup({
               choice only forks the in-game UI (TVDisplay vs GameLayout);
               the setup screen is identical either way. The ?mode= URL
               param is written on Start Game or Join by Code. */}
+          {/* PC/TV toggle — enlarged in v3.0.25 (fb: setup-screen visibility).
+              Big segmented control with a heading so it can't be missed; the
+              two options carry a one-line description of what each means. */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.6rem',
-            marginBottom: '0.75rem',
-            padding: '0.5rem 0.6rem',
+            marginBottom: '1rem',
+            padding: '0.75rem 0.85rem',
             background: '#f8f9fa',
-            borderRadius: 8,
-            border: `1px solid ${colors.secondary.border}`,
+            borderRadius: 10,
+            border: `2px solid ${colors.secondary.border}`,
           }}>
-            <span style={{
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              color: colors.text.secondary,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
+            <div style={{
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              color: colors.text.primary,
+              marginBottom: '0.6rem',
             }}>
-              Mode
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedMode('pc')}
-              style={{
-                padding: '0.35rem 0.85rem',
-                borderRadius: 6,
-                border: `1px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
-                background: selectedMode === 'pc' ? colors.primary.main : 'white',
-                color: selectedMode === 'pc' ? 'white' : colors.text.secondary,
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-              title="All players share one screen, taking turns."
-            >
-              🖥️ PC
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedMode('tv')}
-              style={{
-                padding: '0.35rem 0.85rem',
-                borderRadius: 6,
-                border: `1px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
-                background: selectedMode === 'tv' ? '#9c27b0' : 'white',
-                color: selectedMode === 'tv' ? 'white' : colors.text.secondary,
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-              title="Board on the TV; each player on their own phone or tablet."
-            >
-              📺 TV
-            </button>
-            <span style={{ fontSize: '0.72rem', color: colors.text.muted, marginLeft: 'auto' }}>
-              {selectedMode === 'pc' ? 'Shared screen' : 'Phones + TV'}
-            </span>
+              How are you playing?
+            </div>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedMode('pc')}
+                aria-pressed={selectedMode === 'pc'}
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 0.9rem',
+                  borderRadius: 8,
+                  border: `2px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
+                  background: selectedMode === 'pc' ? colors.primary.main : 'white',
+                  color: selectedMode === 'pc' ? 'white' : colors.text.secondary,
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                }}
+                title="All players share one screen, taking turns."
+              >
+                🖥️ PC
+                <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+                  Shared screen
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedMode('tv')}
+                aria-pressed={selectedMode === 'tv'}
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 0.9rem',
+                  borderRadius: 8,
+                  border: `2px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
+                  background: selectedMode === 'tv' ? '#9c27b0' : 'white',
+                  color: selectedMode === 'tv' ? 'white' : colors.text.secondary,
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                }}
+                title="Board on the TV; each player on their own phone or tablet."
+              >
+                📺 TV
+                <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+                  Phones + TV
+                </div>
+              </button>
+            </div>
+            {selectedMode === 'tv' && (
+              <div style={{
+                fontSize: '0.74rem',
+                color: colors.text.secondary,
+                marginTop: '0.55rem',
+              }}>
+                Every player joins from their phone by scanning their QR code below — the game won't start until all have connected.
+              </div>
+            )}
           </div>
 
           <h3 style={styles.sectionTitle}>
@@ -657,6 +686,7 @@ export function PlayerSetup({
               onCycleAvatar={handleCycleAvatar}
               canRemovePlayer={validation.canRemovePlayer}
               hideQR={false}
+              qrRequired={selectedMode === 'tv'}
             />
           </div>
 

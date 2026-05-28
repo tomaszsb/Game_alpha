@@ -62,10 +62,13 @@ export interface GameSettings {
  * Now uses services for validation instead of local logic
  */
 export function usePlayerValidation(
-  players: Player[], 
+  players: Player[],
   gameSettings: GameSettings,
   stateService: IStateService,
-  gameRulesService: IGameRulesService
+  gameRulesService: IGameRulesService,
+  // v3.0.25: when true (TV mode), every player must have connected a phone
+  // (deviceType === 'mobile') before the game can start. PC mode passes false.
+  requirePhones: boolean = false
 ) {
   
   /**
@@ -177,6 +180,20 @@ export function usePlayerValidation(
         isValid: false,
         errorMessage: 'Game cannot be started. Check player requirements.'
       };
+    }
+
+    // TV mode (v3.0.25): every player must have joined from a phone before
+    // the game can start. Players who haven't connected yet have no
+    // deviceType (or a non-'mobile' one). List the stragglers by name.
+    if (requirePhones) {
+      const notConnected = validPlayers.filter(p => p.deviceType !== 'mobile');
+      if (notConnected.length > 0) {
+        const names = notConnected.map(p => p.name.trim()).join(', ');
+        return {
+          isValid: false,
+          errorMessage: `All players must connect their phone before starting. Waiting on: ${names}. Each player scans their QR code to join.`
+        };
+      }
     }
 
     return { isValid: true };

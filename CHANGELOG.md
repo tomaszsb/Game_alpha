@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.25] - 2026-05-28
+
+### Setup screen — smart device-mode preselect + mandatory phone connect in TV mode
+
+Two user-direct asks about the setup screen, shipped together as they're one connection-UX improvement.
+
+#### A — Auto-preselect TV/PC + make the toggle prominent
+The PC/TV toggle was small and easy to miss. Now:
+- **Auto-preselect** via a new `isSmartTV()` UA heuristic ([deviceDetection.ts](src/utils/deviceDetection.ts)) — real smart-TV / console browsers (Samsung Tizen, LG webOS, Android TV, Fire TV, Chromecast, Sony BRAVIA, Apple tvOS, Roku, Hisense VIDAA, HbbTV) auto-select TV mode. Explicit `?mode=` in the URL still wins. A laptop/PC driving a TV over HDMI reports a desktop UA and can't be distinguished — it falls through to PC, where the now-prominent toggle is the manual fallback.
+- **Bigger toggle** — the cramped inline "Mode" chip became a labelled segmented control ("How are you playing?") with two large buttons each carrying a one-line description (Shared screen / Phones + TV). In TV mode it shows a hint that all players must connect before starting.
+
+#### B — Mandatory phone connect (TV mode only)
+The per-player QR said "Optional: scan for personal screen" even in TV mode, where phones are actually required. Now, in TV mode:
+- **Start is hard-blocked** until every player's phone has joined (`deviceType === 'mobile'`). The disabled-button tooltip / start-attempt alert lists who's missing: *"All players must connect their phone before starting. Waiting on: Player 2, Player 4."*
+- **QR wording flips** from "Optional: scan for personal screen" to a bold **"⚠ Required: scan to join"** in danger color.
+- **PC mode is unaffected** — phones stay optional there (shared single screen).
+
+#### Engine / UI
+- [src/utils/deviceDetection.ts](src/utils/deviceDetection.ts) — new `isSmartTV()`.
+- [src/components/setup/usePlayerValidation.ts](src/components/setup/usePlayerValidation.ts) — `usePlayerValidation` gains a 5th param `requirePhones`; `validateGameStart` adds the all-connected gate when true.
+- [src/components/setup/PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx) — `isSmartTV()` feeds the initial `selectedMode`; passes `requirePhones`/`qrRequired = (selectedMode === 'tv')`; enlarged toggle markup.
+- [src/components/setup/PlayerList.tsx](src/components/setup/PlayerList.tsx) — new `qrRequired` prop drives the QR caption wording + styling.
+
+#### Test
+- [tests/utils/deviceDetection.test.ts](tests/utils/deviceDetection.test.ts) — new, 11 tests: 7 TV/console UAs → true, 4 PC/phone UAs → false (incl. note that laptop-into-TV correctly falls to the manual-toggle path).
+- The TV-mode start gate is covered by typecheck + manual play (the validation hook has no existing renderHook harness; the conditional is straightforward and exercised immediately in TV setup).
+- **Sweep 1484/1484 across 80 files (47.62s). Typecheck clean. Build 10.60s clean.**
+
+#### Notes
+- `isSmartTV()` is a best-effort heuristic by design — it can't detect a PC/laptop driving a TV (identical UA to a desktop). That case is exactly why the toggle was also made prominent rather than relying on detection alone.
+
 ## [3.0.24] - 2026-05-28
 
 ### Fix — Phones recover their WebSocket after the screen locks / app-switches (fb:f7312d82, fb:c7312a0a)

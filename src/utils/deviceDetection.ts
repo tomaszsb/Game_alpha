@@ -24,6 +24,28 @@ export function detectDeviceType(): DeviceType {
 }
 
 /**
+ * Best-effort detection of a real smart-TV / set-top browser via user-agent.
+ *
+ * Used to auto-preselect "TV mode" on the setup screen (v3.0.25). Covers the
+ * major TV/console platforms whose browsers carry a distinctive UA token:
+ * Samsung Tizen, LG webOS (Web0S/NetCast), Android TV / Google TV, Amazon
+ * Fire TV (AFT*), Chromecast (CrKey), Sony BRAVIA, Apple tvOS, Roku, Hisense
+ * VIDAA, HbbTV set-tops.
+ *
+ * IMPORTANT — this is a heuristic, not a guarantee. A laptop or desktop PC
+ * driving a TV over HDMI reports a normal desktop UA and is indistinguishable
+ * from a regular PC, so it will NOT be detected here (defaults to PC). The
+ * prominent PC/TV toggle is the manual fallback for that case.
+ *
+ * @returns true if the current browser looks like a TV/console platform.
+ */
+export function isSmartTV(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || (navigator as { vendor?: string }).vendor || '';
+  return /SmartTV|Smart-TV|SMART-TV|Tizen|Web0S|NetCast|HbbTV|GoogleTV|Google TV|Android\s?TV|AFT[A-Z]|CrKey|BRAVIA|AppleTV|tvOS|Roku|VIDAA|PhilipsTV|DTV/i.test(ua);
+}
+
+/**
  * Get the backend URL using actual network address
  * This ensures heartbeat works from any device on the network
  * @returns The backend API URL

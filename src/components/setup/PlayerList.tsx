@@ -15,6 +15,9 @@ interface PlayerListProps {
   canRemovePlayer: boolean;
   /** When true, QR codes / connected badges are hidden from player cards */
   hideQR?: boolean;
+  /** When true (TV mode), scanning the QR is mandatory — wording + styling
+      reflect that the game can't start until the player joins. v3.0.25. */
+  qrRequired?: boolean;
 }
 
 /**
@@ -27,7 +30,8 @@ export function PlayerList({
   onRemovePlayer,
   onCycleAvatar,
   canRemovePlayer,
-  hideQR = false
+  hideQR = false,
+  qrRequired = false
 }: PlayerListProps): JSX.Element {
 
   /**
@@ -264,11 +268,12 @@ export function PlayerList({
                 </div>
                 <div style={{
                   fontSize: '0.65rem',
-                  color: colors.secondary.main,
+                  color: qrRequired ? colors.danger.text : colors.secondary.main,
+                  fontWeight: qrRequired ? 700 : 400,
                   marginTop: '0.25rem',
-                  fontStyle: 'italic'
+                  fontStyle: qrRequired ? 'normal' : 'italic'
                 }}>
-                  Optional: scan for personal screen
+                  {qrRequired ? '⚠ Required: scan to join' : 'Optional: scan for personal screen'}
                 </div>
               </div>
             )}
