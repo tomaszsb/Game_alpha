@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.29] - 2026-05-28
+
+### Fix — Board next-move arrows now match the player panel's destination choice (fb:84da66be)
+
+Playtest report: at a choice space the **player panel offered 2 destinations** while the **board drew 4 arrows** (PM-DECISION-CHECK, REG-TYPE-SELECT, PLAN-EXAM-FDNY, CON-INITIATION). The two surfaces read "where can I go next" from different places and only agreed when one board-state snapshot happened to be loaded.
+
+Root cause ([BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) `visibleEdges`): the panel builds its movement choice from `MovementService.getValidMoves` — the *narrowed* set (pathChoiceMemory + ApprovalService narrowing applied). The board drew green next-move arrows from its own `validMoves` snapshot **but fell back to drawing every outgoing MOVEMENT.csv edge whenever that snapshot was empty** (player already moved, mid-move, or not yet loaded). That fallback is a *superset* — it reintroduced the exact destinations the engine had narrowed away, producing the phantom 4-vs-2.
+
+Fix: `validMoves` is now the **single source of truth** for next-move edges, with no superset fallback. Extracted the edge-visibility computation into a pure, tested helper:
+- **New `computeVisibleEdgeIds(currentSpace, validMoves, spaceVisitLog)`** in [boardCommon.ts](src/utils/boardCommon.ts) — returns `allowedIds` (next-move edges ∪ path-taken edges) and `nextMoveIds` (the green subset). When `validMoves` is empty it returns no next-move edges rather than the raw outgoing superset.
+- **BoardCanvas** now calls the helper and colors edges green via `nextMoveIds.has(e.id)` (previously colored any edge whose source was the current space — which could mis-green a path-taken loopback).
+
+Net effect: the board can never show more destinations than the panel offers. When the snapshot is briefly empty it shows no next-move arrows instead of a misleading superset.
+
+#### Fix
+- [src/utils/boardCommon.ts](src/utils/boardCommon.ts), [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx), [package.json](package.json) (3.0.28 → 3.0.29).
+
+#### Test
+- [tests/utils/boardCommon.test.ts](tests/utils/boardCommon.test.ts) — 5 new cases pinning the fix: narrowed validMoves never yields a superset, empty validMoves yields no arrows (the regression), path-taken edges still render and stay gray, self-loops skipped. Suite 17 → 22.
+- Typecheck clean. Build 11.66s clean. Sweep 1492/1492 across 80 files (48.96s).
+
 ## [3.0.28] - 2026-05-28
 
 ### Fix — L012 "Soil Contamination" +4 days now conditional on groundwork (fb:776e3ba7)

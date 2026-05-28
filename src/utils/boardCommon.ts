@@ -192,6 +192,58 @@ export function computeTileVisualState(inputs: TileSizeInputs): TileVisualState 
   };
 }
 
+// fb:84da66be — board next-move arrows must match the player panel's
+// destination choice. The panel offers MovementService.getValidMoves (the
+// narrowed set: pathChoiceMemory + approval narrowing applied). The board used
+// to draw a green arrow for every outgoing MOVEMENT.csv edge whenever its own
+// validMoves snapshot hadn't loaded — a SUPERSET that reintroduced destinations
+// the engine had narrowed away, so the board showed 4 arrows while the panel
+// offered 2. This helper makes validMoves the single source of truth for
+// next-move edges, with no superset fallback.
+export interface BoardEdgeVisibility {
+  /** All edge ids (`${source}__${target}`) the non-admin board should show. */
+  allowedIds: Set<string>;
+  /** The subset that are legal next moves out of the current space (green). */
+  nextMoveIds: Set<string>;
+}
+
+/**
+ * Compute which board edges a non-admin player should see: the legal next-move
+ * edges out of their current space PLUS the route they've already walked.
+ *
+ * Next-move edges come ONLY from `validMoves`. When `validMoves` is empty
+ * (player already moved this turn, a move is in flight, or the snapshot hasn't
+ * loaded yet) NO next-move arrows are shown — we never fall back to the raw
+ * outgoing-edge superset, which is what caused the board/panel desync
+ * (fb:84da66be). Path-taken edges are the consecutive pairs in the visit log.
+ *
+ * @param currentSpace   the current player's space (edge source for next moves)
+ * @param validMoves     legal destinations from MovementService.getValidMoves
+ * @param spaceVisitLog  ordered visit records; consecutive pairs form the path
+ */
+export function computeVisibleEdgeIds(
+  currentSpace: string,
+  validMoves: string[],
+  spaceVisitLog: ReadonlyArray<{ spaceName: string }>,
+): BoardEdgeVisibility {
+  const allowedIds = new Set<string>();
+  const nextMoveIds = new Set<string>();
+
+  for (const tgt of validMoves) {
+    const id = `${currentSpace}__${tgt}`;
+    allowedIds.add(id);
+    nextMoveIds.add(id);
+  }
+
+  for (let i = 1; i < spaceVisitLog.length; i++) {
+    const src = spaceVisitLog[i - 1].spaceName;
+    const tgt = spaceVisitLog[i].spaceName;
+    if (src !== tgt) allowedIds.add(`${src}__${tgt}`);
+  }
+
+  return { allowedIds, nextMoveIds };
+}
+
 // fb:97fa9c75 — sizes exposed so the BoardLayoutEditor's ghost buffer stays
 // in lockstep with the runtime size hierarchy. MAX_INGRID is the largest
 // size a tile reaches WITHOUT popover-floating; the click-locked "expanded"

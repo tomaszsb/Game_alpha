@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -133,5 +133,73 @@ describe('truncate (board tile story snippet helper)', () => {
 
   it('appends a Unicode ellipsis when text exceeds max', () => {
     expect(truncate('abcdefghij', 5)).toBe('abcde…');
+  });
+});
+
+// fb:84da66be — board next-move arrows must match the player panel's choice.
+// The board used to fall back to ALL outgoing edges when its validMoves
+// snapshot was empty, drawing 4 arrows while the panel offered 2.
+describe('computeVisibleEdgeIds (board/panel destination parity)', () => {
+  it('draws a next-move edge for each validMove out of the current space', () => {
+    const { allowedIds, nextMoveIds } = computeVisibleEdgeIds(
+      'REG-DOB-TYPE-SELECT',
+      ['REG-TYPE-SELECT', 'CON-INITIATION'],
+      [],
+    );
+    expect(nextMoveIds).toEqual(new Set([
+      'REG-DOB-TYPE-SELECT__REG-TYPE-SELECT',
+      'REG-DOB-TYPE-SELECT__CON-INITIATION',
+    ]));
+    // allowedIds == nextMoveIds when there's no prior path.
+    expect(allowedIds).toEqual(nextMoveIds);
+  });
+
+  it('does NOT add a superset when validMoves is narrowed (the fb:84da66be fix)', () => {
+    // The raw MOVEMENT.csv edge set out of this space is 4 wide, but the engine
+    // narrowed the legal moves to 2 (pathChoiceMemory / approval). The board
+    // must reflect the 2 — never the raw 4.
+    const narrowed = ['PM-DECISION-CHECK', 'REG-TYPE-SELECT'];
+    const { nextMoveIds } = computeVisibleEdgeIds('REG-FDNY-FEE-REVIEW', narrowed, []);
+    expect(nextMoveIds.size).toBe(2);
+    expect(nextMoveIds.has('REG-FDNY-FEE-REVIEW__PLAN-EXAM-FDNY')).toBe(false);
+    expect(nextMoveIds.has('REG-FDNY-FEE-REVIEW__CON-INITIATION')).toBe(false);
+  });
+
+  it('shows NO next-move arrows when validMoves is empty (no all-edges fallback)', () => {
+    const { allowedIds, nextMoveIds } = computeVisibleEdgeIds('CON-INITIATION', [], []);
+    expect(nextMoveIds.size).toBe(0);
+    expect(allowedIds.size).toBe(0);
+  });
+
+  it('still includes path-taken edges from the visit log alongside next moves', () => {
+    const { allowedIds, nextMoveIds } = computeVisibleEdgeIds(
+      'REG-DOB-PLAN-EXAM',
+      ['REG-FDNY-FEE-REVIEW'],
+      [
+        { spaceName: 'OWNER-SCOPE-INITIATION' },
+        { spaceName: 'ARCH-INITIATION' },
+        { spaceName: 'REG-DOB-PLAN-EXAM' },
+      ],
+    );
+    // Next-move edge present and flagged green.
+    expect(nextMoveIds.has('REG-DOB-PLAN-EXAM__REG-FDNY-FEE-REVIEW')).toBe(true);
+    // Path-taken edges present in allowedIds but NOT flagged as next moves.
+    expect(allowedIds.has('OWNER-SCOPE-INITIATION__ARCH-INITIATION')).toBe(true);
+    expect(allowedIds.has('ARCH-INITIATION__REG-DOB-PLAN-EXAM')).toBe(true);
+    expect(nextMoveIds.has('OWNER-SCOPE-INITIATION__ARCH-INITIATION')).toBe(false);
+  });
+
+  it('skips self-loops in the visit log (no A__A edges)', () => {
+    const { allowedIds } = computeVisibleEdgeIds(
+      'PM-DECISION-CHECK',
+      [],
+      [
+        { spaceName: 'PM-DECISION-CHECK' },
+        { spaceName: 'PM-DECISION-CHECK' },
+        { spaceName: 'CON-INITIATION' },
+      ],
+    );
+    expect(allowedIds.has('PM-DECISION-CHECK__PM-DECISION-CHECK')).toBe(false);
+    expect(allowedIds.has('PM-DECISION-CHECK__CON-INITIATION')).toBe(true);
   });
 });

@@ -53,7 +53,7 @@ import { SmartBezierEdge } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID } from '../../utils/boardCommon';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -508,33 +508,19 @@ function BoardCanvasInner({
     const currentPlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
 
     // Build the set of "interesting" edge ids for non-admin mode.
+    // computeVisibleEdgeIds makes validMoves the single source of truth for
+    // next-move edges (same narrowed set the player panel uses) — no superset
+    // fallback to all outgoing edges. fb:84da66be.
     let allowedIds: Set<string> | null = null;
+    let nextMoveIds: Set<string> = new Set();
     if (!isAdmin && currentPlayer) {
-      allowedIds = new Set<string>();
-
-      // (a) Outgoing edges from the current tile — "where can I go next."
-      //     validMoves is authoritative for legal destinations; falling back
-      //     to all outgoing from currentSpace if validMoves hasn't loaded.
-      const fromCurrent = currentPlayer.currentSpace;
-      const targets = validMoves.length > 0
-        ? validMoves
-        : edges.filter(e => e.source === fromCurrent).map(e => e.target);
-      for (const tgt of targets) {
-        allowedIds.add(`${fromCurrent}__${tgt}`);
-      }
-
-      // (b) Path-taken edges — consecutive pairs in the ordered visit log.
-      //     spaceVisitLog is sorted by entryTurn/entryTime when populated,
-      //     so reading it in order gives the actual route. Edges are
-      //     directed (source → target) so we add the natural id.
-      const log = currentPlayer.spaceVisitLog || [];
-      for (let i = 1; i < log.length; i++) {
-        const src = log[i - 1].spaceName;
-        const tgt = log[i].spaceName;
-        if (src !== tgt) {
-          allowedIds.add(`${src}__${tgt}`);
-        }
-      }
+      const vis = computeVisibleEdgeIds(
+        currentPlayer.currentSpace,
+        validMoves,
+        currentPlayer.spaceVisitLog || [],
+      );
+      allowedIds = vis.allowedIds;
+      nextMoveIds = vis.nextMoveIds;
     }
 
     return edges.filter(e => {
@@ -546,7 +532,7 @@ function BoardCanvasInner({
       // visually distinct from next-move edges (solid green). Admin mode
       // keeps the default flat gray so the editor matches its old look.
       if (!allowedIds) return e;
-      const isNextMove = currentPlayer && e.source === currentPlayer.currentSpace;
+      const isNextMove = nextMoveIds.has(e.id);
       if (isNextMove) {
         return {
           ...e,
