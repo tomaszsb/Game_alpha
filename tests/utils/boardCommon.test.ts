@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, computeVisitNumber, formatVisitBadge } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -201,5 +201,50 @@ describe('computeVisibleEdgeIds (board/panel destination parity)', () => {
     );
     expect(allowedIds.has('PM-DECISION-CHECK__PM-DECISION-CHECK')).toBe(false);
     expect(allowedIds.has('PM-DECISION-CHECK__CON-INITIATION')).toBe(true);
+  });
+});
+
+// fb:0cdd59ba — "next to space name I should see some indicator if we have
+// been here before."
+describe('computeVisitNumber (revisit indicator)', () => {
+  const log = [
+    { spaceName: 'OWNER-SCOPE-INITIATION' },
+    { spaceName: 'PM-DECISION-CHECK' },
+    { spaceName: 'ARCH-INITIATION' },
+    { spaceName: 'PM-DECISION-CHECK' },
+  ];
+
+  it('returns 0 for a space never visited', () => {
+    expect(computeVisitNumber(log, 'CON-INITIATION')).toBe(0);
+  });
+
+  it('returns 1 for a space visited once', () => {
+    expect(computeVisitNumber(log, 'ARCH-INITIATION')).toBe(1);
+  });
+
+  it('counts every arrival at a repeated space', () => {
+    expect(computeVisitNumber(log, 'PM-DECISION-CHECK')).toBe(2);
+  });
+
+  it('handles an empty log', () => {
+    expect(computeVisitNumber([], 'PM-DECISION-CHECK')).toBe(0);
+  });
+});
+
+describe('formatVisitBadge (panel header revisit label)', () => {
+  it('shows no badge on a first visit', () => {
+    expect(formatVisitBadge('First', 1)).toBeNull();
+  });
+
+  it('shows a numbered badge on a return visit when the count is reliable', () => {
+    expect(formatVisitBadge('Subsequent', 2)).toBe('↩ Visit #2');
+    expect(formatVisitBadge('Subsequent', 3)).toBe('↩ Visit #3');
+  });
+
+  it('falls back to a generic label when Subsequent but the count is not ≥2', () => {
+    // Defensive: visitType is authoritative; if the log hasn't caught up we
+    // still show a badge rather than contradict the engine.
+    expect(formatVisitBadge('Subsequent', 1)).toBe('↩ Return visit');
+    expect(formatVisitBadge('Subsequent', 0)).toBe('↩ Return visit');
   });
 });

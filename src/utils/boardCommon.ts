@@ -98,6 +98,35 @@ export function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
 
+/**
+ * fb:0cdd59ba — "next to space name I should see some indicator if we have
+ * been here before." Counts how many times the player has ARRIVED at a space,
+ * derived from their ordered spaceVisitLog (one entry is pushed per arrival in
+ * MovementService). Returns 0 if never visited, 1 on the first visit, 2 on the
+ * second, etc. The ActionCenterPanel header uses this to show a "Visit #N"
+ * badge on return visits.
+ */
+export function computeVisitNumber(
+  spaceVisitLog: ReadonlyArray<{ spaceName: string }>,
+  spaceName: string,
+): number {
+  return spaceVisitLog.reduce((n, r) => (r.spaceName === spaceName ? n + 1 : n), 0);
+}
+
+/**
+ * Friendly "you've been here before" badge label for the panel header, or null
+ * when no badge should show (first visit). Gated on the engine's authoritative
+ * `visitType` so the badge can never contradict the space's First/Subsequent
+ * content; the visit number from the log just enriches the label when reliable.
+ */
+export function formatVisitBadge(
+  visitType: 'First' | 'Subsequent',
+  visitNumber: number,
+): string | null {
+  if (visitType !== 'Subsequent') return null;
+  return visitNumber >= 2 ? `↩ Visit #${visitNumber}` : '↩ Return visit';
+}
+
 // fb:97fa9c75 — five-step size hierarchy so players see where they are and
 // where they can go without needing to mouse-hover. The classic three-step
 // machine (compact / hover / expanded) only used borders to distinguish

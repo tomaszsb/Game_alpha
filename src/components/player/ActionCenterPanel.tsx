@@ -19,7 +19,7 @@ import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions } from './pendingActionsCollapse';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
-import { shortName } from '../../utils/boardCommon';
+import { shortName, computeVisitNumber, formatVisitBadge } from '../../utils/boardCommon';
 import './ActionCenterPanel.css';
 
 export type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
@@ -257,6 +257,14 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   // renders (display_label_override > shortName fallback). Was previously
   // mismatched: tile said "Fee Review" while the panel said "ARCH-FEE-REVIEW".
   const friendlySpaceName = spaceConfig?.display_label_override || shortName(player.currentSpace);
+
+  // fb:0cdd59ba — "next to space name I should see some indicator if we have
+  // been here before." Returns null on a first visit; a "↩ Visit #N" / "↩ Return
+  // visit" label on return visits.
+  const visitBadge = formatVisitBadge(
+    player.visitType,
+    computeVisitNumber(player.spaceVisitLog || [], player.currentSpace),
+  );
 
   // Per-space arrival time cost — sum of non-manual `time` effects defined on
   // this space/visit. Surfaces "5 days here" in the header so the player
@@ -512,6 +520,26 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                   it, but the player-facing name now matches what's on the tile. */}
               📍 {friendlySpaceName}
               {spaceTitle && <span className="action-center__space-title"> - {spaceTitle}</span>}
+              {visitBadge && (
+                <span
+                  className="action-center__visit-badge"
+                  title="You've been to this space before"
+                  style={{
+                    marginLeft: 8,
+                    padding: '1px 8px',
+                    borderRadius: 999,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: '#7b1fa2',
+                    background: '#f3e5f5',
+                    border: '1px solid #e1bee7',
+                    whiteSpace: 'nowrap',
+                    verticalAlign: 'middle',
+                  }}
+                >
+                  {visitBadge}
+                </span>
+              )}
               <div className="action-center__space-id" style={{ fontSize: '0.7rem', color: '#adb5bd', fontWeight: 400, marginTop: 1, letterSpacing: 0.2 }}>
                 {player.currentSpace}
               </div>

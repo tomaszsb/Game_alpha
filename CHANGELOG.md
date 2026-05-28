@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.30] - 2026-05-28
+
+### Add — "You've been here before" visit indicator on the panel header (fb:0cdd59ba)
+
+Playtester ask: *"next to the space name I should see some indicator if we have been here before."* The panel already swaps story/action content by `visitType` (First vs Subsequent) but never surfaced the revisit *visually*, so a player couldn't tell at a glance that they'd looped back.
+
+- **Two pure helpers in [boardCommon.ts](src/utils/boardCommon.ts)** (which already serves the panel header via `shortName`): `computeVisitNumber(spaceVisitLog, spaceName)` counts arrivals from the player's ordered visit log (one entry is pushed per arrival in MovementService), and `formatVisitBadge(visitType, visitNumber)` returns `↩ Visit #N` on return visits, `↩ Return visit` as a defensive fallback, or `null` on a first visit.
+- **[ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx)** renders a small purple pill next to the friendly space name when `formatVisitBadge` returns a label. Gated on the engine's authoritative `visitType` so the badge can never contradict the space's First/Subsequent content.
+
+Note: the report's second half ("dice result shows twice, once red once green") is left open — root cause still unclear, tracked separately in TODO.
+
+#### Add
+- [src/utils/boardCommon.ts](src/utils/boardCommon.ts), [src/components/player/ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx), [package.json](package.json) (3.0.29 → 3.0.30).
+
+#### Test
+- [tests/utils/boardCommon.test.ts](tests/utils/boardCommon.test.ts) — 7 new cases for `computeVisitNumber` (never/once/repeated/empty) and `formatVisitBadge` (first visit → null, numbered label, generic fallback). Suite 22 → 29.
+- Typecheck clean. Build 11.67s clean. Sweep 1499/1499 across 80 files (48.91s).
+
+#### Housekeeping
+- Flipped two stale TODO checkboxes whose fixes had already shipped but were never marked done: **`fb:ffdddd29`** (player-list scroll clip — fixed v3.0.18, `playerListWrapper` overflow + `panel` minHeight:0) and **`fb:58a2112b`** (LOGIC_QUESTION auto-answer from approval state — the `auto_answer_from` column + `MovementService.tryAutoAnswer` already implement path (b) end-to-end). Both confirmed against current code.
+
 ## [3.0.29] - 2026-05-28
 
 ### Fix — Board next-move arrows now match the player panel's destination choice (fb:84da66be)
