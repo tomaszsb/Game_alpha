@@ -107,7 +107,10 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   });
   const { size, width, minHeight, zIndex, storyMax } = vs;
   const isBig = size !== 'compact';
-  const borderWidth = data.isCurrent ? 3 : data.isValidMove ? 3 : 1.5;
+  // fb:97fa9c75 — the CURRENT tile must be the visual focal point. Give it the
+  // thickest border; valid-move tiles get a lighter outline so they read as a
+  // secondary "you can go here" cue rather than competing for attention.
+  const borderWidth = data.isCurrent ? 4 : data.isValidMove ? 2 : 1.5;
 
   // D — center-anchored growth (fb:97fa9c75). React Flow places tiles by their
   // top-left, so a grow from 150×60 → 220×120 pushes only right+down onto the
@@ -122,10 +125,19 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   // recede instead of looking trampled.
   const isPopover = size === 'expanded';
 
+  // fb:97fa9c75 — salience hierarchy inverted so the current tile is the hero.
+  //  - Current: bold phase-colored glow ring + faint phase-tinted fill + the
+  //    strongest drop shadow. This is the "you are here" focal point.
+  //  - Valid move: outline-only green cue (thin ring, NO background fill) so it
+  //    reads as "available" without out-shouting the current tile. The green
+  //    border (set above) still signals it's a destination.
   const ringStyle: React.CSSProperties = data.isCurrent
-    ? { boxShadow: `0 0 0 3px ${phaseColors.border}33, 0 4px 12px rgba(0,0,0,0.18)` }
+    ? {
+        boxShadow: `0 0 0 4px ${phaseColors.border}66, 0 8px 22px rgba(0,0,0,0.30)`,
+        background: `${phaseColors.border}14`,
+      }
     : data.isValidMove
-      ? { boxShadow: '0 0 0 3px #10b98144, 0 4px 12px rgba(16,185,129,0.25)', background: '#ecfdf5' }
+      ? { boxShadow: '0 0 0 2px #10b98133, 0 2px 6px rgba(0,0,0,0.12)' }
       : isBig
         ? { boxShadow: '0 6px 18px rgba(0,0,0,0.20)' }
         : { boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };

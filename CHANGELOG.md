@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.26] - 2026-05-28
+
+### Fix — Board: current tile is now the visual focal point, not the next-move tiles (fb:97fa9c75)
+
+Playtest complaint: when zoomed into the board, the current space and the next/available spaces were both outlined and highlighted — but the **valid-move tiles looked more important** because of their saturated treatment, pulling the eye away from where the player actually is.
+
+Diagnosis ([BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) `ringStyle`): the size hierarchy was already correct (current `currentBig` 220×120 > `validMove` 180×90 — see `computeTileVisualState`), but the **color salience was inverted**. Valid-move tiles got a vivid green border + green glow ring + a **green background fill** (`#ecfdf5`), while the current tile got only a faint phase-colored ring (~20% alpha) on a plain white background. Saturated green fill beats a bigger-but-pale tile every time.
+
+Rebalanced so the current tile wins:
+- **Current tile** — thickest border (3 → 4px), a bold phase-colored glow ring (33 → 66 alpha, 3 → 4px), a faint phase-tinted background fill, and the strongest drop shadow. It now reads unmistakably as "you are here."
+- **Valid-move tiles** — demoted to an outline-only cue: thinner border (3 → 2px), a light green ring (44 → 33 alpha, 3 → 2px), and **no background fill**. The green border still signals "you can go here" without competing with the current tile.
+- Compact / hover / expanded treatments unchanged.
+
+#### Fix
+- [src/components/board/BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) — `borderWidth` and `ringStyle` rebalanced; comments explain the salience hierarchy.
+- [package.json](package.json) — version 3.0.25 → 3.0.26.
+
+#### Test
+- Pure inline styling change; no test pins these colors (the `boardCommon.test.ts` suite only covers `computeTileVisualState` sizes/zIndex, which are unchanged).
+- Typecheck clean. Build 10.20s clean. Sweep 1484/1484 across 80 files (42.23s).
+
 ## [3.0.25] - 2026-05-28
 
 ### Setup screen — smart device-mode preselect + mandatory phone connect in TV mode
