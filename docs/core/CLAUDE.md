@@ -820,7 +820,27 @@ Code-reading alone can't confirm (4) without a live repro — under the read-onl
 
 `docs/technical/STATE_SYNC.md` (if it exists) or `src/services/ServerSyncService.ts` `syncToServer` line 162 (pre-increment WS version to suppress self-echo) is the closest prior art for the cross-runtime fields.
 
+> **v3.0.24 update:** this MIGHT already be fixed as a side-effect of the WebSocket reconnect-on-wake change (see next pattern). If the phone's socket was dead when it clicked yes/no, the `resolveChoice` round-trip would silently fail regardless of which of the 4 paths above. Re-test `fb:068a66f2` on a phone that's been kept awake before assuming the cross-runtime relay is still needed.
+
+### Mobile browsers freeze backgrounded tabs — WebSocket needs `visibilitychange` reconnect (v3.0.24)
+
+Root cause of a 3-report phone cluster (`fb:f7312d82` "phone crashed, won't reload", `fb:c7312a0a` "won but phone showed nothing"). `WebSocketSyncService` had hooks for page-close (`beforeunload`), a 30s heartbeat, and backoff reconnect on a *visible* drop — but **nothing for the tab returning to the foreground.** Mobile browsers (iOS Safari especially) freeze a backgrounded tab: they pause `setInterval`/`setTimeout` (so the heartbeat stops) and the OS can kill the socket **without firing `onclose`**. A phone that locks or app-switches mid-game (constant in tabletop play) silently loses its connection and the client never knows. The TV, always foregrounded, stays fine — which is why the symptom reads as phone-only.
+
+**The fix pattern (all in `src/services/WebSocketSyncService.ts`):**
+1. `document.addEventListener('visibilitychange', ...)` → on return-to-foreground, treat the connection as suspect if the socket isn't `OPEN` *or* no pong arrived within one heartbeat interval (timers were frozen), and force a reconnect.
+2. `forceReconnect()` — tear down the zombie socket *with its handlers detached first* (`ws.onclose = null` etc.) so the close doesn't schedule a second competing reconnect; reset backoff; reconnect now.
+3. Don't strand a *visible* tab: when reconnect hits the attempt cap, if `document.visibilityState === 'visible'` keep slow-retrying instead of going `disconnected` (no auto-reload + no reconnect button = "phone won't reload").
+4. Lifecycle listeners → idempotent `addLifecycleListeners()`/`removeLifecycleListeners()`; armed on `connect()`, cleared on `disconnect()`.
+
+**Why no HTTP catch-up was needed:** the server already re-sends current state on `subscribe` (`server/websocket.js` `sendCurrentState`), so a successful reconnect catches the phone up automatically. The whole fix is "make the reconnect fire." Diagnosis confirmation came from v3.0.21's saved `gameState` field being *absent* in `fb:c7312a0a` — the phone couldn't fetch its own state, proving it was disconnected-and-unaware.
+
+Tests are awkward (jsdom can't truly background a tab) but doable: override `document.visibilityState` + dispatch `new Event('visibilitychange')`, and add a `MockWebSocket.autoOpen` toggle so reconnect attempts can be made to accumulate past the cap. See `tests/services/WebSocketSyncService.test.ts` "Visibility resume" block.
+
+### Smart-TV detection is best-effort UA-only; laptop-into-TV is undetectable (v3.0.25)
+
+`isSmartTV()` in `src/utils/deviceDetection.ts` matches TV/console UA tokens (Tizen, Web0S, Android TV, Fire TV `AFT*`, Chromecast `CrKey`, BRAVIA, tvOS, Roku, VIDAA, HbbTV) to auto-preselect TV mode on the setup screen. **It cannot detect a laptop/PC driving a TV over HDMI** — that reports a normal desktop UA, indistinguishable from a regular PC, and falls through to PC mode. This is why the setup toggle was *also* enlarged (v3.0.25) rather than relying on detection alone. Don't try to "improve" the heuristic to catch the HDMI case — there's no signal for it; the prominent manual toggle is the intended fallback.
+
 ---
 
-**Last Updated:** May 26, 2026 (Session **v3.0.20** — Phone+TV setup unification, card-engine correctness sweep, LOGIC_QUESTION auto-resolve from approval state)
-**Charter Version:** 3.18 (+ flex-column `min-height: 0` for scroll, dormant-CSV-column audit, LOGIC_QUESTION cross-runtime suspicion)
+**Last Updated:** May 28, 2026 (Session **v3.0.27** — bug-reporter diagnostic capture, phone WebSocket reconnect-on-wake, setup smart-mode + mandatory phone connect, board current-tile focal/full-text)
+**Charter Version:** 3.19 (+ mobile-tab-freeze WebSocket reconnect, smart-TV detection limits; v3.0.24 cross-ref on LOGIC_QUESTION suspicion)

@@ -2,6 +2,19 @@
 
 ---
 
+## v3.0.21 → v3.0.27 — Phone reliability, setup guardrails, board clarity (May 28, 2026)
+
+A session that started by making bug reports more useful, then used those reports to fix a real phone problem.
+
+- **Phones recover their connection after the screen locks.** The big one. If you set your phone down mid-game and it locked or you switched apps, it could silently lose its connection to the game — you'd come back to a frozen or blank screen, sometimes "I won but my phone showed nothing." Phones now notice when you return to the game and reconnect automatically, catching up on whatever they missed. (This may also fix the "Yes/No buttons do nothing" bug — we'll confirm next playtest.)
+- **The setup screen picks the right mode for you.** On an actual smart TV it now auto-selects TV mode. The PC/TV switch is also much bigger and clearer so it's not easy to miss. (If you run the game on a laptop plugged into a TV, it can't tell that apart from a regular PC — just tap TV.)
+- **TV games won't start until everyone's phone is connected.** In TV mode, the QR code now says **"⚠ Required: scan to join"** instead of "Optional," and the Start button stays locked until every player shows the ✅ — with a message telling you who's still missing. No more starting a game and realizing someone never joined.
+- **The board makes "where you are" obvious.** Your current space is now the clear highlight — bold outline, soft glow, and it shows its **full text** (story + what's next) without needing to click. The places you can move to are a quieter green outline, so they no longer out-shout where you actually are.
+- **More leftover game-speak cleaned up.** A "Roll dice" button became "Determine Outcome"; the Life Event popup dropped the techy "(rolled 3 at REG-DOB-TYPE-SELECT)" note; the player strip says "6 resources" instead of "6 cards."
+- **Bug reports now carry what the game logged.** When you file a report, it quietly includes recent error messages and a game-state snapshot, and shows you "Also included: N errors…" so fixing what you report is faster.
+
+---
+
 ## v3.0.14 — Two playtest bugs closed + the gate that should have caught them (May 24, 2026)
 
 Two reports from the 2026-05-23 PM playtest of v3.0.13:
