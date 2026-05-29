@@ -840,7 +840,31 @@ Tests are awkward (jsdom can't truly background a tab) but doable: override `doc
 
 `isSmartTV()` in `src/utils/deviceDetection.ts` matches TV/console UA tokens (Tizen, Web0S, Android TV, Fire TV `AFT*`, Chromecast `CrKey`, BRAVIA, tvOS, Roku, VIDAA, HbbTV) to auto-preselect TV mode on the setup screen. **It cannot detect a laptop/PC driving a TV over HDMI** — that reports a normal desktop UA, indistinguishable from a regular PC, and falls through to PC mode. This is why the setup toggle was *also* enlarged (v3.0.25) rather than relying on detection alone. Don't try to "improve" the heuristic to catch the HDMI case — there's no signal for it; the prominent manual toggle is the intended fallback.
 
+### Grep the codebase for an `fb:` id BEFORE implementing a dashboard fix (v3.0.28–32)
+
+The `/start` feed and TODO surface dashboard reports as "open," but several were **already fixed in an earlier version** — the code shipped, but the TODO checkbox was never flipped and the dashboard `resolved` flag never PATCHed. In the v3.0.28–32 block, three "open" items turned out done: `fb:ffdddd29` (player-list scroll, fixed v3.0.18), `fb:58a2112b` (LOGIC_QUESTION `auto_answer_from` — fully implemented), `fb:41e35769` (already `[x]`).
+
+Before writing a fix for any dashboard item, spend 60 seconds confirming it's actually unbuilt:
+1. `Grep "fb:<id>"` across `src/` and `docs/` — a code comment citing the id means it's likely done.
+2. Grep the feature area (the column name, the helper, the CSV field) — e.g. `auto_answer_from` was already in LOGIC_QUESTIONS.csv *and* read by `tryAutoAnswer`.
+3. Read the relevant component/service — the affordance may already render (the `playerListWrapper` already had `overflow:auto` + `minHeight:0`).
+
+Also verify "bugs" against the data before assuming logic is broken: `fb:46dd4a47` ("landed on PM-DECISION-CHECK unexpectedly from CHEAT-BYPASS") is working-as-designed — `DICE_OUTCOMES.csv` maps CHEAT-BYPASS rolls 5–6 to PM-DECISION-CHECK. It's a gamble space, not a movement defect. When the deploy of these fixes is confirmed, run the standard dashboard PATCH sweep to flip the now-resolved ids.
+
+### Board next-move arrows: `validMoves` is the single source of truth, no superset fallback (v3.0.29)
+
+`fb:84da66be` — at a choice space the player panel offered 2 destinations while the board drew 4. Root cause: `BoardCanvas.visibleEdges` fell back to drawing **every outgoing MOVEMENT.csv edge** whenever its `validMoves` snapshot was empty (player already moved / mid-move / not yet loaded). That superset reintroduced destinations the engine had narrowed away via `pathChoiceMemory` / approval. The panel builds its movement choice from `MovementService.getValidMoves` (the narrowed set), so the two disagreed.
+
+Fix: extracted `computeVisibleEdgeIds(currentSpace, validMoves, spaceVisitLog)` in `src/utils/boardCommon.ts` (tested, 5 cases). Next-move edges come ONLY from `validMoves` — empty validMoves → no next-move arrows, never the raw superset. Returns `{ allowedIds, nextMoveIds }`; BoardCanvas greens an edge via `nextMoveIds.has(e.id)` (was: any edge whose source === current space, which could mis-green a path-taken loopback). **Rule for board edge work:** the board must never show more destinations than `getValidMoves` returns — they share that one source or they drift.
+
+### `work_type_conditional` card mechanic — condition a card effect on the player's W-card work type (v3.0.28)
+
+`fb:776e3ba7` — L012 "Soil Contamination" applied +4 days unconditionally despite reading "If the current project involves groundwork." Pattern for "card effect that should only fire under a player-state condition," done data-driven (not hardcoded to the card id), mirroring the existing `dice_conditional` mechanic:
+- New value on the `card_mechanic` column union (`Card['card_mechanic']` in DataTypes.ts) + the parse whitelist in `DataService` (line ~1003).
+- Gate in `CardService.parseCardIntoEffects` — when `card_mechanic === 'work_type_conditional'`, the `tick_modifier` effect is suppressed unless `playerInvolvesGroundwork(playerId)` (scans `player.hand` for a W card whose `work_type_restriction` is in `GROUNDWORK_WORK_TYPES`). The card still fires (shows its conditional "If…" text) but adds 0.
+- "Groundwork" = work types Foundation, Earth Work, Earthwork Only, Support of Excavation, New Building, Full Demolition, Demolition & Removal. The W card's `work_type_restriction` already carries the NYC DOB work type — no new player state needed. That column is populated **only on W cards** (the project scope); E/B/L/I leave it blank.
+
 ---
 
-**Last Updated:** May 28, 2026 (Session **v3.0.27** — bug-reporter diagnostic capture, phone WebSocket reconnect-on-wake, setup smart-mode + mandatory phone connect, board current-tile focal/full-text)
-**Charter Version:** 3.19 (+ mobile-tab-freeze WebSocket reconnect, smart-TV detection limits; v3.0.24 cross-ref on LOGIC_QUESTION suspicion)
+**Last Updated:** May 28, 2026 (Session **v3.0.32** — L012 groundwork-conditional card mechanic, board/panel arrow parity, revisit badge, TV player-strip-in-header, progress-bar tooltips; + the earlier v3.0.21–27 block)
+**Charter Version:** 3.20 (+ grep-fb-id-before-fixing, board validMoves single-source, work_type_conditional mechanic; prior: mobile-tab-freeze reconnect, smart-TV limits)

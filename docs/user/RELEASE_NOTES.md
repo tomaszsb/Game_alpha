@@ -2,6 +2,18 @@
 
 ---
 
+## v3.0.28 → v3.0.32 — Board clarity, a fairer Life event, and clearer numbers (May 28, 2026)
+
+A second batch the same day, working through the dashboard backlog.
+
+- **The board now shows only the moves you can actually make.** At a fork, the board sometimes drew more arrows than the moves your panel offered — confusing. The board and your panel now always agree.
+- **"Soil Contamination" only costs you time if your project actually digs.** That Life event used to add 4 days to everyone. Now it only hits you if your project involves groundwork (foundations, excavation, demolition, new buildings) — which is what the card always meant.
+- **You can tell when you've been to a space before.** A small "↩ Visit #2" tag now appears next to the space name on a return visit, so revisits don't feel like déjà vu.
+- **The progress bars explain themselves.** Hover any of the little colored bars (completion, funding, design fee, timeline) and you'll get a plain-language tooltip — including what it means when a bar turns from green to orange to red.
+- **More room for the board on TV.** The player strip moved up into the blue header bar and the message under the board got smaller, so the board itself gets more of the screen.
+
+---
+
 ## v3.0.21 → v3.0.27 — Phone reliability, setup guardrails, board clarity (May 28, 2026)
 
 A session that started by making bug reports more useful, then used those reports to fix a real phone problem.
