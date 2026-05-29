@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.33] - 2026-05-28
+
+### Fix — LOGIC_QUESTION Yes/No buttons did nothing in TV+phone mode (fb:068a66f2)
+
+Playtester: *"Pressing yes or no did nothing?"* at the FDNY fee-review question chain. Root cause, now code-confirmed (CLAUDE.md flagged this as "case 4 — unconfirmed by code-reading"): a choice's pending promise lives only on the device that called `createChoice`. A LOGIC_QUESTION chain is fired during `startTurn`, and `startTurn` for the *incoming* player runs **synchronously inside the outgoing player's `endTurn`** ([TurnService.ts:458](src/services/TurnService.ts#L458)→[645](src/services/TurnService.ts#L645)→[810](src/services/TurnService.ts#L810)). So the promise is created on the *outgoing* player's device, but the *incoming* player taps Yes/No on their own phone — a different runtime with no matching promise. `awaitingChoice` syncs over WebSocket so the modal renders everywhere, but resolution was promise-local. (The v3.0.24 socket-reconnect fix does not touch this — it's a wrong-runtime problem, not a dropped connection.)
+
+**Fix: a state-mediated resolution relay**, mirroring the existing `moveIntent` pattern for MOVEMENT choices.
+- **[Choice](src/types/CommonTypes.ts)** gains an optional `resolvedWith` field.
+- **[ChoiceService.resolveChoice](src/services/ChoiceService.ts)** — when the active choice matches and the selection is valid but there's *no local pending promise* (the cross-runtime case), it no longer fails: it relays the selection via `StateService.setChoiceResolution` and returns true.
+- **[StateService.setChoiceResolution](src/services/StateService.ts)** stamps `resolvedWith` onto the active choice and notifies (syncs to all devices). No-op on id mismatch / no active choice.
+- **[ChoiceService](src/services/ChoiceService.ts)** subscribes to state in its constructor; when a relayed `resolvedWith` arrives for a choice it *does* own, it resolves the local promise and clears the choice (which wipes the field and closes the modal on every device).
+
+Applies to all choice types, not just LOGIC_QUESTION. The single-device / promise-owning-device path is unchanged (resolves directly; relay never fires).
+
+#### Fix
+- [src/types/CommonTypes.ts](src/types/CommonTypes.ts), [src/types/ServiceContracts.ts](src/types/ServiceContracts.ts), [src/services/StateService.ts](src/services/StateService.ts), [src/services/ChoiceService.ts](src/services/ChoiceService.ts), [package.json](package.json) (3.0.32 → 3.0.33).
+
+#### Test
+- [tests/services/ChoiceService.test.ts](tests/services/ChoiceService.test.ts) — 4 relay cases (relays when no local promise; validates option before relaying; resolves a locally-owned promise from a synced relay; ignores a relay for a choice it doesn't own) + repurposed the obsolete "no pending promise → false" error-handling test to assert the relay path.
+- [tests/services/StateService.test.ts](tests/services/StateService.test.ts) — 3 cases pinning `setChoiceResolution` (stamps on match, no-op on id mismatch, no-op with no active choice).
+- [tests/mocks/mockServices.ts](tests/mocks/mockServices.ts) — `setChoiceResolution` added to the mock StateService.
+- Typecheck clean. Regression sweep green incl. E2E-LogicPlaythrough. **Needs a two-device TV+phone playtest** past FDNY-FEE-REVIEW to confirm end-to-end.
+
 ## [3.0.32] - 2026-05-28
 
 ### Add — Hover tooltips explaining the progress-bar colors (fb:f8491e74)

@@ -141,6 +141,7 @@ export const createMockStateService = (): any => ({
   // Choice management methods
   setAwaitingChoice: vi.fn(),
   clearAwaitingChoice: vi.fn(),
+  setChoiceResolution: vi.fn(),
   
   // Turn state management methods
   setPlayerHasMoved: vi.fn(),

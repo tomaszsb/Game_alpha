@@ -306,8 +306,43 @@ describe('StateService', () => {
 
     it('should throw error when calling nextPlayer with no players', () => {
       const emptyStateService = new StateService(mockDataService);
-      
+
       expect(() => emptyStateService.nextPlayer()).toThrow('No players available');
+    });
+  });
+
+  describe('setChoiceResolution relay (fb:068a66f2)', () => {
+    const choice = {
+      id: 'choice-abc',
+      playerId: 'p1',
+      type: 'LOGIC_QUESTION' as const,
+      prompt: 'Q',
+      options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }],
+    };
+
+    it('stamps resolvedWith onto the matching active choice', () => {
+      stateService.setAwaitingChoice(choice);
+
+      const newState = stateService.setChoiceResolution('choice-abc', 'yes');
+
+      expect(newState.awaitingChoice?.resolvedWith).toBe('yes');
+      // Other fields preserved.
+      expect(newState.awaitingChoice?.id).toBe('choice-abc');
+      expect(newState.awaitingChoice?.options).toHaveLength(2);
+    });
+
+    it('is a no-op when the choice id does not match the active choice', () => {
+      stateService.setAwaitingChoice(choice);
+
+      const newState = stateService.setChoiceResolution('some-other-id', 'yes');
+
+      expect(newState.awaitingChoice?.resolvedWith).toBeUndefined();
+    });
+
+    it('is a no-op when there is no active choice', () => {
+      const newState = stateService.setChoiceResolution('choice-abc', 'yes');
+
+      expect(newState.awaitingChoice).toBeNull();
     });
   });
 

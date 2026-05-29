@@ -1,6 +1,7 @@
 import { IChoiceService, IStateService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { Choice } from '../types/CommonTypes';
+import { GameState } from '../types/StateTypes';
 
 /**
  * Unified Choice Service
@@ -20,6 +21,42 @@ export class ChoiceService implements IChoiceService {
 
   constructor(stateService: IStateService) {
     this.stateService = stateService;
+
+    // Observe cross-runtime resolution relays (fb:068a66f2). When another
+    // device answers a choice whose pending promise we own, it stamps
+    // awaitingChoice.resolvedWith via StateService.setChoiceResolution; that
+    // syncs to us over WebSocket and fires this subscriber, where we resolve
+    // the local promise. Guarded for the mock StateService in unit tests.
+    if (typeof this.stateService.subscribe === 'function') {
+      this.stateService.subscribe((state) => this.handleRelayedResolution(state));
+    }
+  }
+
+  /**
+   * Resolve a locally-owned promise from a relayed selection in synced state.
+   * No-op unless there is an active choice carrying a `resolvedWith` selection
+   * AND we hold its pending promise. Idempotent: once resolved the choice is
+   * cleared, so a repeated state notification early-returns. (fb:068a66f2)
+   * @private
+   */
+  private handleRelayedResolution(state: GameState): void {
+    const choice = state.awaitingChoice;
+    const selection = choice?.resolvedWith;
+    if (!choice || !selection) return;
+
+    const pending = this.pendingChoices.get(choice.id);
+    if (!pending) return; // We don't own this promise (or it's already resolved).
+
+    // Validate the relayed selection against the choice's own options.
+    if (!choice.options.some(opt => opt.id === selection)) {
+      debugWarn(`⚠️ [CHOICE] Relayed selection "${selection}" not a valid option for choice ${choice.id} — ignoring.`);
+      return;
+    }
+
+    this.pendingChoices.delete(choice.id);
+    pending.resolve(selection);
+    // Clearing wipes resolvedWith for everyone and closes the modal on all devices.
+    this.stateService.clearAwaitingChoice();
   }
 
   /**
@@ -119,8 +156,16 @@ export class ChoiceService implements IChoiceService {
     // Get the pending promise for this choice
     const pendingChoice = this.pendingChoices.get(choiceId);
     if (!pendingChoice) {
-      console.error(`❌ [CHOICE] resolveChoice FAILED: No pending promise for choice ${choiceId}. type=${activeChoice.type}, selection=${selection}. Choice was likely created as display-only (not via createChoice).`);
-      return false;
+      // Cross-runtime case (fb:068a66f2): this device renders the modal from
+      // synced `awaitingChoice` but never called createChoice for it — the
+      // promise lives on the device that ran this player's startTurn (for a
+      // LOGIC_QUESTION chain, the OUTGOING player's device, since startTurn
+      // fires inside endTurn→nextPlayer). The selection is already validated
+      // above, so relay it through shared state; the promise-owning device's
+      // ChoiceService.handleRelayedResolution observes it and resolves.
+      debugWarn(`↪️ [CHOICE] No local promise for ${choiceId} (type=${activeChoice.type}) — relaying selection "${selection}" via shared state for the owning runtime to resolve.`);
+      this.stateService.setChoiceResolution(choiceId, selection);
+      return true;
     }
 
 

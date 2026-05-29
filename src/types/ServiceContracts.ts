@@ -275,6 +275,10 @@ export interface IStateService {
   // Choice management methods
   setAwaitingChoice(choice: Choice): GameState;
   clearAwaitingChoice(): GameState;
+  // Cross-runtime choice-resolution relay (fb:068a66f2). Writes the selection
+  // onto the active choice so the device that owns the pending promise can
+  // resolve it. No-op if the active choice id doesn't match.
+  setChoiceResolution(choiceId: string, selection: string): GameState;
   setMoving(isMoving: boolean): GameState;
   selectDestination(destination: string | null): GameState;
 

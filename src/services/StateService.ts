@@ -760,6 +760,34 @@ export class StateService implements IStateService {
     return this.currentState;
   }
 
+  /**
+   * Cross-runtime choice-resolution relay (fb:068a66f2).
+   *
+   * A LOGIC_QUESTION chain's pending promise is created on the device that ran
+   * the player's startTurn (the OUTGOING player's device, since startTurn fires
+   * inside endTurn→nextPlayer). The answering player's device renders the modal
+   * from synced `awaitingChoice` but has no local promise, so resolving locally
+   * is impossible. Instead it stamps the selection onto the active choice here;
+   * notifyListeners() syncs it to all devices, and the promise-owning device's
+   * ChoiceService observes it and resolves (then clears the choice).
+   *
+   * No-op if there is no active choice or the id doesn't match (stale click).
+   */
+  setChoiceResolution(choiceId: string, selection: string): GameState {
+    const choice = this.currentState.awaitingChoice;
+    if (!choice || choice.id !== choiceId) {
+      return this.currentState;
+    }
+
+    this.currentState = {
+      ...this.currentState,
+      awaitingChoice: { ...choice, resolvedWith: selection }
+    };
+
+    this.notifyListeners();
+    return this.currentState;
+  }
+
   setMoving(isMoving: boolean): GameState {
     this.currentState = {
       ...this.currentState,

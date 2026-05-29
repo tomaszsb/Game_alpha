@@ -181,6 +181,94 @@ describe('ChoiceService', () => {
     });
   });
 
+  describe('cross-runtime resolution relay (fb:068a66f2)', () => {
+    it('relays the selection via setChoiceResolution when no local promise exists', () => {
+      // A choice exists in synced state, but THIS ChoiceService never called
+      // createChoice for it — the pending promise lives on another device's
+      // runtime (e.g. a LOGIC_QUESTION chain created during the outgoing
+      // player's startTurn). Resolving must relay, not fail.
+      const remoteChoice: Choice = {
+        id: 'remote-choice-1',
+        playerId: 'player1',
+        type: 'LOGIC_QUESTION',
+        prompt: 'Did the property pass the groundwork check?',
+        options: [
+          { id: 'yes', label: 'Yes' },
+          { id: 'no', label: 'No' },
+        ],
+      };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        awaitingChoice: remoteChoice,
+      });
+
+      const result = choiceService.resolveChoice('remote-choice-1', 'yes');
+
+      expect(result).toBe(true);
+      expect(mockStateService.setChoiceResolution).toHaveBeenCalledWith('remote-choice-1', 'yes');
+    });
+
+    it('validates the selection before relaying (invalid option is not relayed)', () => {
+      const remoteChoice: Choice = {
+        id: 'remote-choice-2',
+        playerId: 'player1',
+        type: 'LOGIC_QUESTION',
+        prompt: 'Q',
+        options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }],
+      };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        awaitingChoice: remoteChoice,
+      });
+
+      const result = choiceService.resolveChoice('remote-choice-2', 'maybe');
+
+      expect(result).toBe(false);
+      expect(mockStateService.setChoiceResolution).not.toHaveBeenCalled();
+    });
+
+    it('resolves a locally-owned promise when a relayed selection arrives via synced state', async () => {
+      // The constructor registered a state subscriber; grab it to simulate a
+      // WebSocket state update carrying the answering device's selection.
+      const subscribeCallback = mockStateService.subscribe.mock.calls[0][0] as (s: any) => void;
+
+      const promise = choiceService.createChoice('player1', 'LOGIC_QUESTION', 'Q', [
+        { id: 'yes', label: 'Yes' },
+        { id: 'no', label: 'No' },
+      ]);
+      const choiceObject: Choice = mockStateService.setAwaitingChoice.mock.calls[0][0];
+
+      subscribeCallback({
+        ...mockGameState,
+        awaitingChoice: { ...choiceObject, resolvedWith: 'no' },
+      });
+
+      const resolved = await promise;
+      expect(resolved).toBe('no');
+      expect(mockStateService.clearAwaitingChoice).toHaveBeenCalled();
+    });
+
+    it('ignores a relayed selection for a choice it does not own', () => {
+      const subscribeCallback = mockStateService.subscribe.mock.calls[0][0] as (s: any) => void;
+
+      // No createChoice here → no pending promise. A relay for another device's
+      // choice must not trigger a clear from this runtime.
+      subscribeCallback({
+        ...mockGameState,
+        awaitingChoice: {
+          id: 'someone-elses-choice',
+          playerId: 'player1',
+          type: 'LOGIC_QUESTION',
+          prompt: 'Q',
+          options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }],
+          resolvedWith: 'yes',
+        },
+      });
+
+      expect(mockStateService.clearAwaitingChoice).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createChoice validation', () => {
     it('should throw error for missing player ID', async () => {
       await expect(
@@ -313,8 +401,10 @@ describe('ChoiceService', () => {
   });
 
   describe('error handling', () => {
-    it('should handle promise resolution errors gracefully', () => {
-      // Arrange - Create a choice
+    it('relays gracefully when an active choice has no local pending promise', () => {
+      // A valid active choice with no local promise is the cross-runtime case
+      // (fb:068a66f2), not an error: the promise lives on another device. The
+      // service relays the selection rather than failing.
       const activeChoice: Choice = {
         id: 'test-choice',
         playerId: 'player1',
@@ -328,13 +418,12 @@ describe('ChoiceService', () => {
         awaitingChoice: activeChoice
       });
 
-      // Manually add a choice to pending map but without proper setup
-      // This simulates an error condition
+      // Fresh service with no pending promise for this choice.
       const choiceService2 = new ChoiceService(mockStateService);
 
-      // Try to resolve a choice that doesn't have a pending promise
       const result = choiceService2.resolveChoice('test-choice', 'option1');
-      expect(result).toBe(false);
+      expect(result).toBe(true);
+      expect(mockStateService.setChoiceResolution).toHaveBeenCalledWith('test-choice', 'option1');
     });
   });
 
