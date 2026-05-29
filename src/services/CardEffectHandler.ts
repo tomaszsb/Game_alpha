@@ -77,6 +77,16 @@ export class CardEffectHandler implements ICardEffectHandler {
     try {
       const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
 
+      // Apply the auto-drawn Life Event (L) card's money/time effects. drawCards
+      // only adds the card to hand. onlyResourceEffects applies just the pure
+      // arithmetic money/time (safe — can't draw/prompt/loop); richer effects are
+      // deferred. Card stays in hand as a record.
+      if (payload.cardType === 'L' && !this.stateService.getGameState().isCapturingStartingHand) {
+        for (const drawnId of drawnCards) {
+          await this.cardService.applyCardEffects(payload.playerId, drawnId, { onlyResourceEffects: true });
+        }
+      }
+
       // Show notification for L (Life Event) card draws
       this.notifyLifeEventDraw(payload.playerId, payload.cardType, drawnCards);
 

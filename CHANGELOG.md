@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.37] - 2026-05-29
+
+### Fix — Life Event (L) cards now apply their money/time effects
+
+Auto-drawn Life Events were silent: the card was added to hand and the modal shown, but `applyCardEffects` was never called on the life-event path, so `tick_modifier` / `money_effect` never reached state (this is why the v3.0.13/14/28 "L-card tick" *data* fixes never visibly changed gameplay). Now the auto-draw sites apply the card's effects:
+- [SpaceArrivalProcessor.processDiceConditionalCardEffects](src/services/SpaceArrivalProcessor.ts) (the dice-roll life events — "Draw 1 if you roll a N") and [CardEffectHandler.handleCardDraw](src/services/CardEffectHandler.ts) (unconditional auto `draw_L`) now call `cardService.applyCardEffects(playerId, cardId, { onlyResourceEffects: true })`.
+- **`onlyResourceEffects`** ([CardService.applyCardEffects](src/services/CardService.ts)) is a new option that applies ONLY the money/time (RESOURCE_CHANGE) effects. Rationale: routing a full life-event card through the engine inline (draws, discards, choices, duration, global card fan-out) deadlocked/hung the headless ghost gate — a forced-discard life event (L003/L048) awaits a choice the turn loop can't resolve mid-arrival. RESOURCE_CHANGE effects are pure arithmetic (can't draw/prompt/recurse), so this subset is safe-by-construction. It still benefits from the parser's global time fan-out and work_type_conditional gating; dice-conditional cards (L009) are deferred (their tick is roll-gated). The card stays in hand as a record.
+- **Deferred (follow-up, see TODO):** free E-card draws, forced discards, multi-turn duration recurrence, and approval-revoke from auto life events. These need the choice-aware turn-phase redesign.
+
+### Changed — strict ghost gate win-rate floor recalibrated (45 → 36)
+
+With life events finally applying (and the v3.0.35 construction-cost / bank-loan fixes making the economy correct/harder), the deterministic strict-bot win count dropped 45 → 39 over 50 games (avgTurns ~unchanged at ~98; **0 hard failures** — no crashes or invariant violations; the try-again gate still passes). The old ≥45 (90%) bar reflected the pre-fix world where life events were no-ops. Lowered to **≥36** (3-game buffer below the new deterministic 39), keeping "0 hard failures" as the primary gate. Verified: clean main scores 45/50; with the life-event fix, 39/50.
+
+#### Changed
+- [src/services/CardService.ts](src/services/CardService.ts), [src/services/CardEffectHandler.ts](src/services/CardEffectHandler.ts), [src/services/SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts), [src/types/ServiceContracts.ts](src/types/ServiceContracts.ts), [tests/ghost/ghostPlayer.test.ts](tests/ghost/ghostPlayer.test.ts), [package.json](package.json) (3.0.36 → 3.0.37).
+
+#### Test
+- New [tests/services/CardEffectHandler.test.ts](tests/services/CardEffectHandler.test.ts) (3 cases: L card applies with `onlyResourceEffects`; non-L doesn't; skipped during Quick Start hand capture). Targeted sweep green. Ghost gate: strict 39/50 (≥36 ✓, 0 hard), try-again ✓, space-coverage ✓.
+
 ## [3.0.36] - 2026-05-29
 
 ### Fix — Dice-driven movement picker now shows friendly names too

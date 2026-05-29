@@ -221,6 +221,18 @@ export class SpaceArrivalProcessor {
           `Auto effect: Rolled ${diceRoll} - Drew ${cardType} card`
         );
 
+        // Apply the auto-drawn Life Event (L) card's money/time effects.
+        // drawCards only adds the card to hand — without this a life event's
+        // tick_modifier / money_effect never reached state. onlyResourceEffects
+        // applies just the pure-arithmetic money/time (safe, can't block/loop);
+        // richer effects (draws/discards/duration) are deferred. Card stays in
+        // hand as a record.
+        if (cardType === 'L' && !this.stateService.getGameState().isCapturingStartingHand) {
+          for (const drawnId of drawnCardIds) {
+            await this.cardService.applyCardEffects(currentPlayer.id, drawnId, { onlyResourceEffects: true });
+          }
+        }
+
         // Get card details for display
         const cardData = drawnCardIds.length > 0 ? this.dataService.getCardById(drawnCardIds[0]) : null;
         const cardName = cardData?.card_name || `${cardType} Card`;

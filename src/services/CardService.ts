@@ -1035,13 +1035,32 @@ export class CardService implements ICardService {
   }
 
   // Card effect methods - Enhanced with UnifiedEffectEngine integration
-  async applyCardEffects(playerId: string, cardId: string): Promise<GameState> {
+  //
+  // options.onlyResourceEffects: apply ONLY the money/time (RESOURCE_CHANGE)
+  // effects and nothing else. Used by the auto life-event path. Rationale:
+  // routing a full life-event card through the engine inline (draws, discards,
+  // choices, duration, global card fan-out) introduced blocking/looping hazards
+  // that hung the headless ghost gate. RESOURCE_CHANGE effects are pure
+  // arithmetic — they can't draw, prompt, or recurse — so this subset is
+  // safe-by-construction. It still benefits from parseCardIntoEffects' global
+  // time fan-out and work_type_conditional gating. The richer effects (free
+  // E-card draws, forced discards, multi-turn duration) are deferred. Manual
+  // card play passes no options → full behavior unchanged.
+  async applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean }): Promise<GameState> {
     // Ensure EffectEngineService is ready before processing card effects
     this.assertEffectEngineReady();
 
     const card = this.dataService.getCardById(cardId);
     if (!card) {
       debugWarn(`Card ${cardId} not found in database`);
+      return this.stateService.getGameState();
+    }
+
+    // Auto life-event path: dice-conditional cards (e.g. L009 "roll 1-3 → +5
+    // days, else 0") carry a tick_modifier that only applies on certain rolls,
+    // but parseCardIntoEffects doesn't gate it — so applying it here would be
+    // unconditional and wrong. Defer those entirely.
+    if (options?.onlyResourceEffects && card.card_mechanic === 'dice_conditional') {
       return this.stateService.getGameState();
     }
 
@@ -1065,7 +1084,12 @@ export class CardService implements ICardService {
     }
 
     // Step 1: Parse card data into standardized Effect objects
-    const effects = this.parseCardIntoEffects(card, playerId);
+    let effects = this.parseCardIntoEffects(card, playerId);
+
+    // Minimal safe subset for the auto life-event path: money/time only.
+    if (options?.onlyResourceEffects) {
+      effects = effects.filter(e => e.effectType === 'RESOURCE_CHANGE');
+    }
 
     if (effects.length > 0) {
 
@@ -1095,7 +1119,7 @@ export class CardService implements ICardService {
     // and L020 "Building Code Update" force DOB approval to be re-obtained because
     // the code changed underneath the prior approval. Idempotent if no prior
     // approval was active.
-    if (this.approvalService && card.revokes_approval) {
+    if (this.approvalService && card.revokes_approval && !options?.onlyResourceEffects) {
       this.stateService.updatePlayer({
         id: playerId,
         ...this.approvalService.revoke(card.revokes_approval),

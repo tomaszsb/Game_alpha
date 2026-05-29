@@ -54,7 +54,7 @@ describe('Ghost Player', () => {
   // CI runs. Changes to game logic that affect bot win rate will move the
   // count by a known amount, and we can update the threshold consciously
   // rather than chase phantom flakes.
-  it('strict: 50 games with no exceptions or invariants, ≥90% wins', async () => {
+  it('strict: 50 games with no exceptions or invariants, win-rate floor', async () => {
     const batch = await runGhostBatch(50, { maxTurns: 300, baseSeed: 1 });
     console.log(`[ghost strict baseSeed=1] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
@@ -73,10 +73,20 @@ describe('Ghost Player', () => {
         .join('\n');
 
     expect(hardFailures, summary).toHaveLength(0);
-    // Deterministic threshold: with baseSeed=1, the strict bot wins ≥45/50.
-    // Hard failures (EXCEPTION/INVARIANT_VIOLATION) are the primary gate; the
-    // win rate is a secondary "bot isn't stuck in a loop" check.
-    expect(batch.wins, summary).toBeGreaterThanOrEqual(45);
+    // Deterministic threshold (baseSeed=1). Hard failures
+    // (EXCEPTION/INVARIANT_VIOLATION) are the PRIMARY gate; win rate is a
+    // secondary "bot isn't stuck in a loop" floor.
+    //
+    // Recalibrated v3.0.37 (2026-05-29): 45 → 36. Life events (L cards) now
+    // actually apply their money/time effects on auto-draw — before, they were
+    // silent no-ops. Life events net-penalize a player who can't strategize, so
+    // the *random* bot's deterministic win count dropped 45 → 39 (avgTurns
+    // ~unchanged, still 0 hard failures). The old ≥45 (90%) bar reflected the
+    // pre-fix world where life events did nothing. 36 leaves a 3-game buffer
+    // below the new deterministic 39 — it still catches a real collapse
+    // (loops/state drift → many TURN_CAPs) while tolerating the now-correct,
+    // harder economy (this + the v3.0.35 construction-cost / bank-loan fixes).
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(36);
   }, 900000);
 
   // TRY-AGAIN-HAPPY VARIANT — same gate as strict, but every game aggressively
