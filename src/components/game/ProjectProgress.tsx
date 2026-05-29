@@ -7,6 +7,7 @@ import { IDataService, IGameRulesService } from '../../types/ServiceContracts';
 import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
 import { FormatUtils } from '../../utils/FormatUtils';
+import { designFeeIndicator, timelineIndicator } from '../../utils/progressIndicators';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -607,17 +608,17 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             const designFees = player.expenditures?.design || 0;
             const projectScope = playerProjectScopes[player.id] || 0;
             const designFeeRatio = projectScope > 0 ? (designFees / projectScope) * 100 : 0;
-            // 4-tier color scheme: green (0-10%), yellow (10-15%), orange (15-20%), red (20%+)
-            const designFeeColor = designFeeRatio >= 20 ? '#f44336' :
-                                   designFeeRatio >= 15 ? '#ff5722' :
-                                   designFeeRatio >= 10 ? '#ff9800' : '#4caf50';
+            // fb:f8491e74 — color + hover tooltip come from the shared, tested
+            // helper so the green→orange→red meaning is explained on hover.
+            const designFee = designFeeIndicator(designFeeRatio);
+            const designFeeColor = designFee.color;
 
             return (
               <div key={player.id} style={playerItemStyle}>
                 <div style={playerNameStyle}>
                   {player.avatar} {player.name}
                 </div>
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
+                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={`Overall project completion: ${Math.round(playerProgress.progress)}% (current phase: ${playerProgress.phase}).`}>
                   <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>{Math.round(playerProgress.progress)}%</span></span>
                   <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
                     <div style={getPlayerProgressBarFill(playerProgress.progress)}></div>
@@ -637,7 +638,9 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
                   return (
                     <div style={{ marginTop: '2px', fontSize: '0.55rem', color: '#666' }}>
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }} title={fundingGap > 0
+                        ? `Funding raised vs. project scope: ${fmt(totalFunded)} of ${fmt(projectScope)} — a ${fmt(fundingGap)} gap still to raise (red). Bar segments: green = Owner, blue = Bank, orange = Investor; striped overlay = already spent.`
+                        : `Funding raised vs. project scope: ${fmt(totalFunded)} of ${fmt(projectScope)} — fully funded (green). Bar segments: green = Owner, blue = Bank, orange = Investor; striped overlay = already spent.`}>
                         <span style={{ whiteSpace: 'nowrap' }}>💰 <span style={{ color: fundingGap > 0 ? '#f44336' : '#4caf50', fontWeight: 'bold' }}>{fmt(totalFunded)}/{fmt(projectScope)}</span></span>
                         {/* Stacked funding bar */}
                         <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
@@ -666,7 +669,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                   );
                 })()}
                 {/* Design Fee + Timeline — compact inline bars */}
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
+                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={designFee.tooltip}>
                   <span style={{ whiteSpace: 'nowrap' }}>📐 <span style={{ color: designFeeColor, fontWeight: 'bold' }}>{designFeeRatio.toFixed(1)}%/20%</span></span>
                   <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                     <div style={{ width: `${Math.min(designFeeRatio * 5, 100)}%`, height: '100%', backgroundColor: designFeeColor, borderRadius: '2px' }} />
@@ -675,15 +678,16 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 {(() => {
                   const timeline = getPlayerTimeline(player);
                   if (!timeline) return null;
-                  const timelineColor = timeline.progressPercent >= 100 ? '#f44336' :
-                                        timeline.progressPercent >= 75 ? '#ff9800' : '#4caf50';
+                  // fb:f8491e74 — color + hover tooltip from the shared helper.
+                  const timelineInd = timelineIndicator(timeline.progressPercent);
+                  const timelineColor = timelineInd.color;
                   // Show contingency boundary on the bar (contingency is last 10% of estimated)
                   const contingencyStart = timeline.estimatedDays > 0
                     ? ((timeline.estimatedDays - timeline.contingencyDays) / timeline.estimatedDays) * 100
                     : 90;
                   return (
-                    <div style={{ marginTop: '1px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }}>
-                      <span style={{ whiteSpace: 'nowrap' }} title={`Base + Work Types + 10% Contingency`}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}/{timeline.estimatedDays}d</span></span>
+                    <div style={{ marginTop: '1px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={timelineInd.tooltip}>
+                      <span style={{ whiteSpace: 'nowrap' }}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}/{timeline.estimatedDays}d</span></span>
                       <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                         <div style={{ width: `${Math.min(timeline.progressPercent, 100)}%`, height: '100%', backgroundColor: timelineColor, borderRadius: '2px' }} />
                         {/* Contingency boundary marker */}

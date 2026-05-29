@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.32] - 2026-05-28
+
+### Add — Hover tooltips explaining the progress-bar colors (fb:f8491e74)
+
+Playtester: *"I noticed one of the bars change from green to orange. I wasn't sure what that meant — there was no way to find out. I expected to hover and get a tooltip."* The per-player [ProjectProgress](src/components/game/ProjectProgress.tsx) bars were color-coded by threshold but only the funding sub-segments had tooltips; the color *meaning* was unexplained.
+
+- **New tested helper [progressIndicators.ts](src/utils/progressIndicators.ts)** owns the threshold→color mapping for the two green→orange bars AND the plain-language tooltip, so color and explanation can't drift:
+  - `designFeeIndicator(ratioPct)` — green <10%, yellow 10–15%, orange 15–20%, red ≥20% (the 20% cap that ends the project in the Design phase / adds a time penalty later). Colors unchanged from the previous inline values.
+  - `timelineIndicator(percentUsed)` — green on track, orange ≥75% (into the 10% contingency buffer), red ≥100% (over estimate).
+- **ProjectProgress** now hovers an explanation on every color-coded row: 🚀 completion %, 💰 funding (green fully-funded / red gap, with O/B/I segment + spent legend), 📐 design fee, ⏱️ timeline.
+
+Purely additive — colors and bar geometry are identical; only `title` tooltips and a refactor-to-helper changed.
+
+#### Add
+- [src/utils/progressIndicators.ts](src/utils/progressIndicators.ts) (new), [src/components/game/ProjectProgress.tsx](src/components/game/ProjectProgress.tsx), [package.json](package.json) (3.0.31 → 3.0.32).
+
+#### Test
+- [tests/utils/progressIndicators.test.ts](tests/utils/progressIndicators.test.ts) — 9 cases pinning every color threshold (boundary values) for both helpers + asserting each state carries a tooltip mentioning the value and its meaning.
+- Typecheck clean. Build 9.91s clean. Sweep 1508/1508 across 81 files (41.32s).
+
 ## [3.0.31] - 2026-05-28
 
 ### Change — TV layout: player strip moved into the blue header + smaller bottom message (fb:608bb670)
