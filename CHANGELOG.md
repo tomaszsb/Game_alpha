@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.38] - 2026-05-29
+
+### Fix — Optional expeditor actions no longer block the Move button (dead-end)
+
+At spaces offering an *optional* expeditor swap (e.g. PM-DECISION-CHECK "Replace Expeditor"), the action was counted as a required action by [StateService.calculateRequiredActions](src/services/StateService.ts) — so the move/end-turn button stayed disabled until you completed it, and backing out of the modal ("Return to Main Panel") left no way forward (no Skip). Confirmed live during the v3.0.35 playthrough.
+
+`calculateRequiredActions` now treats manual effects whose `effect_action` starts with `replace_` / `return_` / `give_` as **optional**: the button still appears (`availableTypes`), but it no longer increments `required`. This matches `TurnService`'s own `isSkippableAction` definition (same prefixes), so the gating and the handler agree. Required actions like hiring (`draw_e`) are unaffected.
+
+#### Changed
+- [src/services/StateService.ts](src/services/StateService.ts), [package.json](package.json) (3.0.37 → 3.0.38).
+
+#### Test
+- [tests/services/StateService-actionCounter.test.ts](tests/services/StateService-actionCounter.test.ts) — new case: a skippable `replace_e` surfaces `cards_manual` but contributes 0 to `requiredActions`. 5/5 green; targeted sweep green.
+
 ## [3.0.37] - 2026-05-29
 
 ### Fix — Life Event (L) cards now apply their money/time effects

@@ -1137,6 +1137,18 @@ export class StateService implements IStateService {
         if (!availableTypes.includes(actionType)) {
           availableTypes.push(actionType);
         }
+
+        // Skippable/optional manual actions (expeditor replace/return/give) must
+        // NOT gate the move. They're optional — TurnService treats the same
+        // action prefixes as skippable (see TurnService.ts isSkippableAction:
+        // replace_/return_/give_). Counting them as required made backing out of
+        // the modal a dead-end (Move stayed disabled with no Skip). Surface the
+        // button (availableTypes above) but don't add to `required`.
+        const isSkippable = /^(replace_|return_|give_)/.test(effect.effect_action || '');
+        if (isSkippable) {
+          return;
+        }
+
         required++;
 
         // Match by compound key (cards:draw_b) or effect action (draw_b)

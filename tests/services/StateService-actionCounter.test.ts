@@ -168,6 +168,38 @@ describe('StateService.updateActionCounts — choice-movement spaces', () => {
     expect(state.availableActionTypes).not.toContain('movement_choice');
   });
 
+  it('does not count skippable expeditor actions (replace/return/give) as required', () => {
+    // Regression (v3.0.x): an optional expeditor swap (replace_e) was counted as
+    // a required action, so backing out of its modal left Move disabled — a
+    // dead-end. It must surface the button (cards_manual) but not gate the move.
+    dataService.getGameConfigBySpace.mockReturnValue({
+      space_name: 'PM-DECISION-CHECK',
+      requires_dice_roll: false,
+    });
+    dataService.getMovement.mockReturnValue({
+      space_name: 'PM-DECISION-CHECK',
+      visit_type: 'First',
+      movement_type: 'fixed',
+      destinations: ['ARCH-INITIATION'],
+    });
+    dataService.getSpaceEffects.mockReturnValue([{
+      space_name: 'PM-DECISION-CHECK',
+      visit_type: 'First',
+      effect_type: 'cards',
+      effect_action: 'replace_e',
+      effect_value: '1',
+      description: 'Replace Expeditor',
+      trigger_type: 'manual',
+      condition: '',
+    }]);
+
+    stateService.updateActionCounts();
+    const state = stateService.getGameState();
+
+    expect(state.requiredActions).toBe(0);
+    expect(state.availableActionTypes).toContain('cards_manual');
+  });
+
   it('does not count "fixed" / "logic" / "none" movement types', () => {
     for (const movement_type of ['fixed', 'logic', 'none'] as const) {
       dataService.getMovement.mockReturnValue({
