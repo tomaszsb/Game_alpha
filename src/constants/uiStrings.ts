@@ -58,7 +58,7 @@ export const CARD_REPLACE = {
   instruction: (max: number) => `Select up to ${max} to replace`,
   instructionReturn: (max: number) =>
     max > 1 ? `Select up to ${max} to return` : 'Select one to return',
-  confirm: (mode: string, count: number) => `${mode} ${count}`,
+  confirm: (mode: string, count: number) => count > 0 ? `${mode} ${count}` : mode,
   empty: (typeName: string, action: string) => `No ${typeName} available to ${action}`,
   counter: (selected: number, max: number) => `${selected} of ${max} selected`,
   RETURN_BUTTON: 'Return to Main Panel',

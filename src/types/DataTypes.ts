@@ -240,8 +240,11 @@ export type ExpenseCategory = 'expeditor' | 'architectural' | 'engineering' | 'r
 // Income sources (funds received IN) - matches money source types
 export type IncomeCategory = 'bank' | 'investor' | 'owner' | 'other';
 
-// Legacy type for backward compatibility - use ExpenseCategory for new code
-export type CostCategory = ExpenseCategory | IncomeCategory;
+// Legacy type for backward compatibility - use ExpenseCategory for new code.
+// 'construction' is a cost-history-only category (contractor construction cost);
+// it is intentionally NOT part of CostBreakdown / ExpenseCategory, which index
+// the fee-summary buckets.
+export type CostCategory = ExpenseCategory | IncomeCategory | 'construction';
 
 export interface CostEntry {
   id: string;

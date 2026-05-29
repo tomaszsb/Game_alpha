@@ -408,13 +408,29 @@ export class EffectEngineService implements IEffectEngineService {
                     );
                     const refreshed = this.stateService.getPlayer(payload.playerId);
                     if (refreshed) {
+                      // Record through TEMP state (not updatePlayer): the turn-commit
+                      // snapshot tracks `expenditures` + `costHistory`, so a real-state
+                      // write here would be clobbered when the turn commits. Design
+                      // fees use this same path (trackDesignExpenditure).
+                      const gameState = this.stateService.getGameState();
+                      const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
                       const currentConstruction = refreshed.expenditures?.construction || 0;
-                      this.stateService.updatePlayer({
-                        id: payload.playerId,
+                      const costHistory = [...(refreshed.costHistory || [])];
+                      costHistory.push({
+                        id: `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        category: 'construction',
+                        amount: constructionCost,
+                        description: `Construction: ${contractor.quality} quality × multiplier ${contractor.multiplier}`,
+                        turn: currentTurn,
+                        timestamp: new Date(),
+                        spaceName: refreshed.currentSpace
+                      });
+                      this.stateService.updateTempState(payload.playerId, {
                         expenditures: {
                           ...refreshed.expenditures,
                           construction: currentConstruction + constructionCost
-                        }
+                        },
+                        costHistory
                       });
                     }
                   }

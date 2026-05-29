@@ -2,6 +2,7 @@
 
 import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
+import { shortName } from '../utils/boardCommon';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
 
@@ -918,10 +919,14 @@ export class MovementService implements IMovementService {
    */
   private createChoiceOptionsWithTitles(validMoves: string[]): Array<{ id: string; label: string }> {
     return validMoves.map(destination => {
+      // Use the board's friendly name (display_label_override > shortName), not
+      // the raw space code, so the picker matches the board tiles. Append the
+      // event title as flavor when it adds something.
+      const friendly = this.dataService.getDisplayLabelOverride(destination) || shortName(destination);
       const destContent = this.dataService.getSpaceContent(destination, 'First');
-      const destTitle = destContent?.title || destination;
-      const label = destTitle !== destination ? `${destination} - ${destTitle}` : destination;
-      return { id: destination, label: label };
+      const destTitle = destContent?.title || '';
+      const label = destTitle && destTitle !== friendly ? `${friendly} — ${destTitle}` : friendly;
+      return { id: destination, label };
     });
   }
 

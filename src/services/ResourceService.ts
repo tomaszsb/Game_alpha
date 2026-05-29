@@ -282,6 +282,11 @@ export class ResourceService implements IResourceService {
     // Track funding history for individual card/source details
     const fundingHistory = player.fundingHistory ? [...player.fundingHistory] : [];
 
+    // Bank money is debt: record it as a loan so LOAN_PERCENTAGE regulatory
+    // fees (which charge a % of total loan principal) actually apply.
+    const updatedLoans = player.loans ? [...player.loans] : [];
+    let loansChanged = false;
+
     if (changes.money && changes.money > 0) {
       const amount = changes.money;
 
@@ -291,6 +296,16 @@ export class ResourceService implements IResourceService {
       switch (sourceType) {
         case 'bank':
           updatedMoneySources.bankLoans = (updatedMoneySources.bankLoans || 0) + amount;
+          // takeOutLoan() records its own loan; don't double-record its disbursement.
+          if (changes.source !== 'loan') {
+            updatedLoans.push({
+              id: `loan_${playerId}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+              principal: amount,
+              interestRate: 0, // Interest handled separately (reg-fee % of principal)
+              startTurn: this.stateService.getGameState().globalTurnCount || 1
+            });
+            loansChanged = true;
+          }
           break;
         case 'investment':
           updatedMoneySources.investmentDeals = (updatedMoneySources.investmentDeals || 0) + amount;
@@ -329,7 +344,8 @@ export class ResourceService implements IResourceService {
         money: newMoney,
         timeSpent: Math.max(0, newTimeSpent), // Ensure time doesn't go negative
         moneySources: updatedMoneySources,
-        fundingHistory
+        fundingHistory,
+        ...(loansChanged ? { loans: updatedLoans } : {})
       });
 
       // Workstream 2: money outflows via the legacy updateResources path

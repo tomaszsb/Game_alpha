@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.35] - 2026-05-29
+
+### Fix — Construction cost is now recorded (Pro Ledger + end-game Total Spent)
+
+Playtest diagnosis (saved game G262) showed cash dropped by the exact construction amount but `expenditures.construction` stayed 0, so the contractor cost was invisible. Root cause confirmed at the code level: the turn-commit snapshot (`MutablePlayerState`) tracks `expenditures` + `costHistory` but **not** `contractor` — which is why the contractor *itself* persisted via a plain `updatePlayer` while the construction `expenditures` write was clobbered when the turn committed from the (stale) snapshot.
+
+- [EffectEngineService.ts:402](src/services/EffectEngineService.ts#L402) — the construction write now goes through `stateService.updateTempState` (updates both snapshot + main state, survives commit), mirroring `trackDesignExpenditure`. It also pushes a `costHistory` entry (category `construction`), which feeds the end-game "Total Spent" total.
+- Added `'construction'` to the `CostCategory` union ([DataTypes.ts](src/types/DataTypes.ts)) — cost-history-only; intentionally not part of `CostBreakdown`/`ExpenseCategory` (the fee-summary buckets).
+
+### Fix — Bank funding now creates a loan record (so loan-% fees apply)
+
+Bank-sourced money incremented `moneySources.bankLoans` but never created a `loans[]` entry, so `LOAN_PERCENTAGE` regulatory fees charged 1% of $0. [ResourceService.ts](src/services/ResourceService.ts) now appends a loan record (principal = amount, `interestRate: 0`, `startTurn`) in the same temp-state write — no double money-add, and guarded against `takeOutLoan`'s own disbursement path. Interest structure left as-is.
+
+### Fix — End-game stats: real turns, rounds, and score
+
+[endGameStats.ts](src/utils/endGameStats.ts) + [EndGameModal.tsx](src/components/modals/EndGameModal.tsx) — the summary now shows **both** Turns taken (`globalTurnCount`) and **Rounds** (`gameRound`), each with an explanatory hover tooltip, instead of a single mislabeled "Turns taken: 1" (which used the last visit's `entryTurn`). Final Score is now computed by wiring the already-existing `gameRulesService.calculatePlayerScore()` (cash + scope − loan/time penalties) instead of reading the never-populated `player.score` (always 0). Total Spent is fixed by the construction-cost change above.
+
+### Fix — Panel UX cluster
+
+- **Destination picker** now shows friendly board names ("Scope Check", "Bypass") via `display_label_override || shortName`, not raw codes (`LEND-SCOPE-CHECK`) ([MovementService.ts](src/services/MovementService.ts)).
+- **Expeditor buttons** match their modal titles: `replace_e` → "Replace Expeditor" (was "Change Expeditor"); `return_e` → "Return Expeditor" / "Return N Expeditors" (was "Expeditor Left" / "Lose N Expeditors", which read like status, not an action) ([buttonFormatting.ts](src/utils/buttonFormatting.ts)).
+- **"Replace 0" / "Return 0"** at zero selection now read just "Replace" / "Return" ([uiStrings.ts](src/constants/uiStrings.ts)).
+
+### Fix — Skippable-action declines no longer log at ERROR level
+
+Declining an optional manual action (e.g. backing out of the expeditor modal) emitted two `console.error` lines (`[ManualAction] NOT COMPLETED` / `SKIPPED/FAILED`) even though `isSkippable=true`, inflating the error count captured into bug reports. Both are now `debugWarn` (debug-gated, suppressed in production) at [TurnService.ts](src/services/TurnService.ts).
+
+#### Changed
+- [src/services/EffectEngineService.ts](src/services/EffectEngineService.ts), [src/services/ResourceService.ts](src/services/ResourceService.ts), [src/services/MovementService.ts](src/services/MovementService.ts), [src/services/TurnService.ts](src/services/TurnService.ts), [src/utils/endGameStats.ts](src/utils/endGameStats.ts), [src/utils/buttonFormatting.ts](src/utils/buttonFormatting.ts), [src/constants/uiStrings.ts](src/constants/uiStrings.ts), [src/components/modals/EndGameModal.tsx](src/components/modals/EndGameModal.tsx), [src/types/DataTypes.ts](src/types/DataTypes.ts), [package.json](package.json) (3.0.34 → 3.0.35).
+
+#### Test
+- Targeted sweep **1514/1514** green (80 files); typecheck clean. New/updated: construction temp-state + costHistory assertion (EffectEngineService), bank-loan-record cases (ResourceService), injected turns/rounds/score (endGameStats), new expeditor labels (buttonFormatting), "Replace" at 0 (CardReplacementModal), `calculatePlayerScore` + `gameRound`/`globalTurnCount` mocks (EndGameModal), `rounds` in stats fixtures (endGameInsights).
+
 ## [3.0.34] - 2026-05-29
 
 ### Fix — Life/Expeditor cards that say "Draw 1 Expeditor Card" now actually draw one

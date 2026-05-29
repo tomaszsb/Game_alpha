@@ -106,14 +106,17 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
       if (actionLower.startsWith('draw_')) {
         text = count > 1 ? `Hire ${count} Expeditors` : 'Hire Expeditor';
       } else if (actionLower.startsWith('replace_')) {
-        text = 'Change Expeditor';
+        // Match the modal title ("Replace Expeditor") so button and modal agree.
+        text = 'Replace Expeditor';
       } else if (actionLower.startsWith('give_')) {
         text = 'Fire Expeditor';
       } else if (actionLower === 'transfer') {
         const direction = effect.condition === 'left' ? 'left' : 'right';
         text = `Expeditor Reassigned (${direction})`;
       } else if (actionLower.startsWith('return_')) {
-        text = count > 1 ? `Lose ${count} Expeditors` : 'Expeditor Left';
+        // Action verb matching the modal ("Return Expeditor"), not a status
+        // ("Expeditor Left" read like state, not a button — fb report #4).
+        text = count > 1 ? `Return ${count} Expeditors` : 'Return Expeditor';
       } else {
         text = 'Expeditor Action';
       }

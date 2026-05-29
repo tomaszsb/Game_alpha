@@ -150,6 +150,28 @@ describe('buildEndGameStats', () => {
     expect(buildEndGameStats(makePlayer(), { projectScope: 0 }).turnsTaken).toBe(0);
   });
 
+  it('prefers injected totalTurns + rounds over the visit-log approximation', () => {
+    const player = makePlayer({
+      spaceVisitLog: [
+        { spaceName: 'A', daysSpent: 1, entryTurn: 1, entryTime: 0 },
+        { spaceName: 'FINISH', daysSpent: 0, entryTurn: 14, entryTime: 2 },
+      ] as any,
+    });
+    const stats = buildEndGameStats(player, { projectScope: 0, totalTurns: 21, rounds: 6 });
+    expect(stats.turnsTaken).toBe(21);
+    expect(stats.rounds).toBe(6);
+  });
+
+  it('rounds defaults to 0 when not injected', () => {
+    expect(buildEndGameStats(makePlayer(), { projectScope: 0 }).rounds).toBe(0);
+  });
+
+  it('prefers injected finalScore over the uncomputed player.score', () => {
+    const player = makePlayer({ score: 0 });
+    const stats = buildEndGameStats(player, { projectScope: 0, finalScore: 1_250_000 });
+    expect(stats.finalScore).toBe(1_250_000);
+  });
+
   it('handles a fully-empty player without crashing (the v0/legacy-game safety net)', () => {
     const minimal = {
       id: 'x', name: 'X', currentSpace: '', visitType: 'First',

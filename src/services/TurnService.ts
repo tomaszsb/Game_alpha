@@ -1174,7 +1174,11 @@ export class TurnService implements ITurnService {
         if (isImpossibleAction) {
         }
       } else {
-        console.error(`[ManualAction] NOT COMPLETED: effectType=${effectType}, action=${action}, cardsAffected=${result.cardsAffected.length}, message=${result.message}, isSkippable=${isSkippableAction}, isImpossible=${isImpossibleAction}. Action will NOT be marked complete — End Turn will stay disabled.`);
+        // Reached only when the action is skippable, affected no cards, and
+        // isn't impossible — i.e. the player declined an optional action. That's
+        // expected, not an error; log at debug level so it doesn't inflate the
+        // error count captured into bug reports.
+        debugWarn(`[ManualAction] skippable action declined (not marked complete): effectType=${effectType}, action=${action}, cardsAffected=${result.cardsAffected.length}, message=${result.message}, isSkippable=${isSkippableAction}, isImpossible=${isImpossibleAction}.`);
       }
 
       // Restore movement choice if needed
@@ -1380,7 +1384,9 @@ export class TurnService implements ITurnService {
                          afterHand.some(id => !beforeHand.includes(id));
 
       if (!wasCompleted) {
-        console.error(`[ManualAction] SKIPPED/FAILED: effectType=${effectType}, action=${action}, space=${currentPlayer.currentSpace}, handBefore=${beforeHand.length}, handAfter=${afterHand.length}, handChanged=${beforeHand.length !== afterHand.length || beforeHand.some(id => !afterHand.includes(id))}. manualActions=${JSON.stringify(afterState.completedActions?.manualActions)}`);
+        // Expected skippable-decline path (player backed out of an optional
+        // action). Debug-level, not error — keeps it out of bug-report error counts.
+        debugWarn(`[ManualAction] skippable action declined: effectType=${effectType}, action=${action}, space=${currentPlayer.currentSpace}, handBefore=${beforeHand.length}, handAfter=${afterHand.length}, handChanged=${beforeHand.length !== afterHand.length || beforeHand.some(id => !afterHand.includes(id))}.`);
         // Return empty effects so no modal is shown (user already knows they skipped)
         return {
           diceValue: 0,

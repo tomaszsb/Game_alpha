@@ -18,7 +18,10 @@ const mockStateService: any = createMockStateService();
 const mockDataService: any = { getModalConfig: vi.fn() };
 // fb:cc345da9 — stats panel calls gameRulesService.calculateProjectScope.
 // Mock returns 0 by default; per-test overrides can set a richer value.
-const mockGameRulesService: any = { calculateProjectScope: vi.fn().mockReturnValue(0) };
+const mockGameRulesService: any = {
+  calculateProjectScope: vi.fn().mockReturnValue(0),
+  calculatePlayerScore: vi.fn().mockReturnValue(0),
+};
 
 // Mock the useGameContext hook
 vi.mock('../../../src/context/GameContext', () => ({
@@ -61,6 +64,8 @@ describe('EndGameModal', () => {
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',
       turn: 5,
+      globalTurnCount: 5,
+      gameRound: 2,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,
       awaitingChoice: null,

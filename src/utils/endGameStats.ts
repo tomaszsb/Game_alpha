@@ -69,8 +69,9 @@ export interface EndGameStats {
   projectScope: number;     // Caller-supplied from gameRulesService.calculateProjectScope
   totalSpent: number;       // Sum of all costHistory entries
   daysTotal: number;        // player.timeSpent
-  turnsTaken: number;       // Last visit log entry's entryTurn (best per-player approximation)
-  finalScore: number;       // player.score
+  turnsTaken: number;       // Total individual turns taken (gameState.globalTurnCount)
+  rounds: number;           // Game rounds completed (gameState.gameRound)
+  finalScore: number;       // gameRulesService.calculatePlayerScore
 
   fundingMix: FundingMix;
   feesBreakdown: FeesBreakdown;
@@ -84,6 +85,14 @@ export interface BuildStatsOptions {
   /** Caller injects the result of gameRulesService.calculateProjectScope(playerId).
    *  Kept out of this pure helper so we don't drag service dependencies in. */
   projectScope: number;
+  /** Total individual turns taken across the game (gameState.globalTurnCount).
+   *  Falls back to the final visit-log entryTurn when omitted. */
+  totalTurns?: number;
+  /** Game rounds completed (gameState.gameRound). Defaults to 0. */
+  rounds?: number;
+  /** Final score from gameRulesService.calculatePlayerScore(playerId).
+   *  Falls back to the (usually uncomputed) player.score when omitted. */
+  finalScore?: number;
 }
 
 /**
@@ -164,11 +173,12 @@ export function buildEndGameStats(player: Player, opts: BuildStatsOptions): EndG
     entryTurn: rec.entryTurn,
   }));
 
-  // === Turns taken (best per-player approximation) ===
-  // The global turn counter sits on GameState, not Player. The closest
-  // per-player number is the entryTurn of the most recent visit — that's the
-  // turn on which this player landed at the winning space.
-  const turnsTaken = journey.length > 0 ? journey[journey.length - 1].entryTurn : 0;
+  // === Turns + rounds ===
+  // Prefer the authoritative GameState counters injected by the caller
+  // (globalTurnCount = total individual turns; gameRound = rounds completed).
+  // Fall back to the final visit-log entryTurn for turns when not supplied.
+  const turnsTaken = opts.totalTurns ?? (journey.length > 0 ? journey[journey.length - 1].entryTurn : 0);
+  const rounds = opts.rounds ?? 0;
 
   // === Cards by type ===
   // Count hand + activeCards together. Hand alone undercounts because some
@@ -190,7 +200,8 @@ export function buildEndGameStats(player: Player, opts: BuildStatsOptions): EndG
     totalSpent,
     daysTotal: player.timeSpent,
     turnsTaken,
-    finalScore: player.score,
+    rounds,
+    finalScore: opts.finalScore ?? player.score,
     fundingMix,
     feesBreakdown,
     construction,

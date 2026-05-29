@@ -1377,6 +1377,7 @@ describe('EffectEngineService', () => {
 
       mockGameRulesService.calculateTotalWorkCost = vi.fn().mockReturnValue(1_000_000);
       mockResourceService.spendMoney.mockReturnValue(true);
+      mockStateService.getGameState.mockReturnValue({ globalTurnCount: 4, turn: 4, players: [] });
 
       const effect: Effect = {
         effectType: 'CONTRACTOR_UPDATE',
@@ -1394,6 +1395,17 @@ describe('EffectEngineService', () => {
         300_000,
         expect.anything(),
         expect.stringContaining('Contractor hired')
+      );
+      // Construction cost is recorded via TEMP state (survives turn-commit) with
+      // both the expenditures bump and a costHistory entry (feeds end-game Total Spent).
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+        'player1',
+        expect.objectContaining({
+          expenditures: expect.objectContaining({ construction: 300_000 }),
+          costHistory: expect.arrayContaining([
+            expect.objectContaining({ category: 'construction', amount: 300_000 })
+          ])
+        })
       );
     });
 

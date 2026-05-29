@@ -74,6 +74,28 @@ describe('ResourceService', () => {
         expect(result).toBe(false);
         expect(mockStateService.updateTempState).not.toHaveBeenCalled();
       });
+
+      it('records a loan when bank money is added (so LOAN_PERCENTAGE fees apply)', () => {
+        const result = resourceService.addMoney('player1', 1_575_000, 'space:BANK-FUND-REVIEW', 'Bank funding', 'bank');
+
+        expect(result).toBe(true);
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+          'player1',
+          expect.objectContaining({
+            moneySources: expect.objectContaining({ bankLoans: 1_575_000 }),
+            loans: expect.arrayContaining([
+              expect.objectContaining({ principal: 1_575_000 })
+            ])
+          })
+        );
+      });
+
+      it('does not record a loan for non-bank money', () => {
+        resourceService.addMoney('player1', 500, 'test:add_money', 'Owner money', 'owner');
+
+        const call = mockStateService.updateTempState.mock.calls[0][1];
+        expect(call.loans).toBeUndefined();
+      });
     });
 
     describe('spendMoney', () => {

@@ -253,8 +253,9 @@ describe('CardReplacementModal', () => {
       />
     );
 
-    const replaceButton = screen.getByText(new RegExp(`Replace \\d+`));
-    
+    // At 0 selected the confirm button reads just the verb ("Replace"), no count.
+    const replaceButton = screen.getByText(CARD_REPLACE.confirm('Replace', 0));
+
     // Initially disabled
     expect(replaceButton).toBeDisabled();
 

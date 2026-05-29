@@ -110,7 +110,7 @@ describe('buttonFormatting', () => {
     // flagged "button says return1 return_E - that makes no sense". The
     // prefix-extraction switch was missing a return_ case, so cardType
     // became "RETURN_E" and the cardType==='E' branch never matched.
-    it('should format return_e button as "Expeditor Left" for single', () => {
+    it('should format return_e button as "Return Expeditor" for single', () => {
       const effect: SpaceEffect = {
         space_name: 'CHEAT-BYPASS',
         visit_type: 'First',
@@ -123,12 +123,12 @@ describe('buttonFormatting', () => {
 
       const result = formatManualEffectButton(effect);
       expect(result).toEqual({
-        text: 'Expeditor Left',
+        text: 'Return Expeditor',
         icon: '⚡'
       });
     });
 
-    it('should format return_e button as "Lose N Expeditors" for plural', () => {
+    it('should format return_e button as "Return N Expeditors" for plural', () => {
       const effect: SpaceEffect = {
         space_name: 'CHEAT-BYPASS',
         visit_type: 'First',
@@ -141,7 +141,7 @@ describe('buttonFormatting', () => {
 
       const result = formatManualEffectButton(effect);
       expect(result).toEqual({
-        text: 'Lose 2 Expeditors',
+        text: 'Return 2 Expeditors',
         icon: '⚡'
       });
     });

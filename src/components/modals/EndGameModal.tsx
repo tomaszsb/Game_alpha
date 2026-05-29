@@ -100,8 +100,14 @@ export function EndGameModal(): JSX.Element {
   const stats: EndGameStats | null = useMemo(() => {
     if (!winnerPlayer) return null;
     const projectScope = gameRulesService.calculateProjectScope(winnerPlayer.id);
-    return buildEndGameStats(winnerPlayer, { projectScope });
-  }, [winnerPlayer, gameRulesService]);
+    const gs = stateService.getGameState();
+    return buildEndGameStats(winnerPlayer, {
+      projectScope,
+      totalTurns: gs.globalTurnCount,
+      rounds: gs.gameRound,
+      finalScore: gameRulesService.calculatePlayerScore(winnerPlayer.id),
+    });
+  }, [winnerPlayer, gameRulesService, stateService]);
 
   // v3.0.13 — Project Debrief: pure-helper insights derived from the same stats
   // snapshot. Capped at 5 so we celebrate, not lecture.
@@ -275,8 +281,12 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
           <Stat label="🏗️ Project scope" value={formatMoney(stats.projectScope)} testid="stat-scope" />
           <Stat label="💸 Total spent" value={formatMoney(stats.totalSpent)} testid="stat-spent" />
           <Stat label="⏱️ Total days" value={formatDays(stats.daysTotal)} testid="stat-days" />
-          <Stat label="🔄 Turns taken" value={String(stats.turnsTaken)} testid="stat-turns" />
-          <Stat label="🎯 Final score" value={stats.finalScore.toLocaleString()} testid="stat-score" />
+          <Stat label="🔄 Turns taken" value={String(stats.turnsTaken)} testid="stat-turns"
+            tooltip="Total individual turns you took across the whole game (every time it became your move)." />
+          <Stat label="🔁 Rounds" value={String(stats.rounds)} testid="stat-rounds"
+            tooltip="Full rounds of play completed — one round is every player taking a turn once." />
+          <Stat label="🎯 Final score" value={stats.finalScore.toLocaleString()} testid="stat-score"
+            tooltip="Cash on hand + project scope, minus 5,000 per loan and 1,000 per day spent." />
           <Stat label="🃏 Work cards" value={String(stats.construction.workCardCount)} testid="stat-workcards" />
         </div>
       </div>
@@ -472,11 +482,15 @@ interface StatProps {
   label: string;
   value: string;
   testid?: string;
+  tooltip?: string;
 }
-function Stat({ label, value, testid }: StatProps): JSX.Element {
+function Stat({ label, value, testid, tooltip }: StatProps): JSX.Element {
   return (
-    <div data-testid={testid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-      <span style={{ color: '#495057' }}>{label}</span>
+    <div data-testid={testid} title={tooltip} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px', cursor: tooltip ? 'help' : undefined }}>
+      <span style={{ color: '#495057' }}>
+        {label}
+        {tooltip && <span style={{ color: '#adb5bd', marginLeft: '4px', fontSize: '11px' }}>ⓘ</span>}
+      </span>
       <strong style={{ color: '#212529' }}>{value}</strong>
     </div>
   );

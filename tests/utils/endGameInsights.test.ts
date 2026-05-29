@@ -13,6 +13,7 @@ function makeStats(overrides: Partial<EndGameStats> = {}): EndGameStats {
     totalSpent: 0,
     daysTotal: 0,
     turnsTaken: 0,
+    rounds: 0,
     finalScore: 0,
     fundingMix: { owner: 0, bank: 0, investor: 0, other: 0, total: 0 },
     feesBreakdown: {
