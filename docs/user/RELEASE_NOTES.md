@@ -2,6 +2,21 @@
 
 ---
 
+## v3.0.34 — Expeditor cards finally give you Expeditors (May 29, 2026)
+
+- **Fixed: cards that say "Draw 1 Expeditor Card" now actually do.** A whole batch of Life events and Expeditor cards promised an expeditor in their text but, behind the scenes, were drawing the wrong thing — some drew a Work Package (which quietly inflated your project size), and a few Life events even *discarded* a card instead of giving you one. Twelve cards corrected, and a new automatic check makes sure card text and card behavior can't drift apart again.
+- **Fixed: a few Life events that did nothing.** Cards like "filing time increases by 2 days" weren't applying their time change at all. Now they do.
+- **Fixed: the game log no longer says "Player Player 1."** Small cosmetic cleanup.
+- **Note for the curious:** we confirmed the construction/contractor cost *is* being charged correctly (the money leaves your budget), but it isn't yet shown in the end-of-game "Total spent" summary — that display fix is queued next.
+
+---
+
+## v3.0.33 — The FDNY Yes/No questions work on phones now (May 28, 2026)
+
+- **Fixed: tapping Yes or No on the fire-department question chain did nothing.** When you reached the FDNY fee-review step and the game asked its short Yes/No questions, the buttons could be completely dead on a phone — the game just sat there. The cause was subtle: the question was being "held" by whichever device had ended the previous turn, not by the phone of the player answering, so your taps had nowhere to land. Your answer is now passed to the right device automatically, so the chain advances. (Confirmed in code + tests; final confirmation comes from the next two-device game.)
+
+---
+
 ## v3.0.28 → v3.0.32 — Board clarity, a fairer Life event, and clearer numbers (May 28, 2026)
 
 A second batch the same day, working through the dashboard backlog.

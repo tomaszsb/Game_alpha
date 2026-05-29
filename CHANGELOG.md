@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.34] - 2026-05-29
+
+### Fix — Life/Expeditor cards that say "Draw 1 Expeditor Card" now actually draw one
+
+A full playthrough + data audit found a class of card-data bugs hiding behind a gap in the `cardTextMatchesColumns` integrity gate: that gate only checked **global** ("each/all players") cards, so **self-targeted** *"Draw N Expeditor Card"* cards were never validated.
+
+- **New self-target DRAW gate** in [tests/integration/cardTextMatchesColumns.test.ts](tests/integration/cardTextMatchesColumns.test.ts) — scans for self-scoped "draw N <type>" text and asserts `draw_cards` matches the count + type. It immediately flagged **12 cards**.
+- **Fixed 12 cards in [CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv):**
+  - 5 L-cards (L005/L007/L010/L024) had the count in `discard_cards` (→ discarded a **W** card, since a bare number defaults to type W); L039 had no draw set at all. Now `draw_cards="N E"`, mis-placed discards cleared.
+  - 7 E-cards (E007/E015/E027/E035/E042/E046/E048) had bare `draw_cards=1` → defaulted to type **W**, so *"Draw 1 Expeditor Card"* was drawing **Work Packages** and inflating project scope. Now `"N E"`. E007 also gets its missing `discard_cards="1 E"`.
+- **Fixed flat-time L-cards with `tick_modifier=0`:** L039 (+3), L038 (+2), L031 (−2); L035 discard → `2 E`.
+- Note: `CARDS_EXPANDED.csv` is hand-authored, not pipeline-generated — edited directly.
+
+### Fix — "Player Player 1" doubling in the Game Log (playtest)
+
+[EffectFactory.ts](src/utils/EffectFactory.ts) prepended a literal `Player ` to a name that already contained it ("Player Player 1 rolled 3…"). Dropped the prefix at the dice-roll ([:442](src/utils/EffectFactory.ts#L442)), entered-space ([:324](src/utils/EffectFactory.ts#L324)), and regulatory-violation ([:367](src/utils/EffectFactory.ts#L367)) log lines.
+
+### Fix — Design-fee tooltip now matches the strict 20% rule (fb:3a57d5d0)
+
+[progressIndicators.ts](src/utils/progressIndicators.ts) still described the old phase-aware behavior ("ends in the Design phase; later phases add a time penalty"). The rule has been strict-any-phase since v2.70.4; tooltip + comment now say "Reaching 20% ends the project, no matter which phase you're in."
+
+### Investigated (not yet fixed — see TODO Playtest Bug Sweep)
+
+- **Construction cost IS charged but not recorded.** Verified against saved game G262: contractor hired, cash dropped exactly $907,500 (matches the Quality×Multiplier formula), but `expenditures.construction`/`costs`/`costHistory` stay 0 — so it's invisible in the Pro Ledger and end-game "Total spent." Root-cause hypothesis: real-state `updatePlayer` write clobbered by turn-commit vs. design fees' `updateTempState`. Fix scoped in TODO.
+- **Bank loan creates no `loans[]` record**, so 1%-of-loan regulatory fees charge $0.
+- End-game stats (Turns taken=1, Final score=0, Total spent design-only), error-level skip logging, raw-space-code destination labels, expeditor button-label mismatches — all triaged into TODO.
+
+#### Changed
+- [public/data/CLEAN_FILES/CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv), [src/utils/EffectFactory.ts](src/utils/EffectFactory.ts), [src/utils/progressIndicators.ts](src/utils/progressIndicators.ts), [tests/integration/cardTextMatchesColumns.test.ts](tests/integration/cardTextMatchesColumns.test.ts), [package.json](package.json) (3.0.33 → 3.0.34).
+
 ## [3.0.33] - 2026-05-28
 
 ### Fix — LOGIC_QUESTION Yes/No buttons did nothing in TV+phone mode (fb:068a66f2)

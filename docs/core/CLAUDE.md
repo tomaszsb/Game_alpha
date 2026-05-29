@@ -135,6 +135,8 @@ ssh unraid "docker restart game_alpha"
 
 > Tip: never re-run deploy on the user's behalf via Bash from WSL — produce the command for them to paste. They run it.
 
+> **`deploy.sh` builds from committed+pushed code only** (it `git pull`s, then builds). A fix sitting uncommitted in the working tree will NOT ship — the build silently rebuilds the last commit's version. Before handing over the deploy command, `git status -sb`; if there are uncommitted fix files (or the branch is `ahead`), commit + push FIRST. After deploy, confirm the build log's `Version:` / `unravel-codes@X.Y.Z` line matches the intended version. (Bit us in v3.0.33 — first deploy rebuilt v3.0.32 because the fix wasn't committed.)
+
 **Docker details:**
 - Container: `game_alpha`, port 3080 → 3001
 - Data volume: `server/data:/app/data`
@@ -805,7 +807,9 @@ Hit this in v3.0.18 on `PlayerSetup.tsx` `styles.panel`. The panel had been miss
 
 **Defensive practice when adding a new CSV column:** update the type, the parser, AND a test that asserts a known row's value round-trips. The card-text integrity gate at `tests/integration/cardTextMatchesColumns.test.ts` exercises this path now for `affected_phase` — extend it when adding more columns.
 
-### LOGIC_QUESTION cross-runtime ChoiceService.pendingChoices suspicion (v3.0.19 diagnostic, unresolved)
+### LOGIC_QUESTION cross-runtime ChoiceService.pendingChoices — RESOLVED v3.0.33 (case 4 confirmed)
+
+> **RESOLVED v3.0.33.** Case (4) is correct, and code-reading *can* confirm it — the earlier "phone owns the engine because endTurn is clicked there" assumption looked at the wrong player's endTurn. The LOGIC_QUESTION chain fires in `startTurn`, and `startTurn` for the INCOMING player runs synchronously inside the OUTGOING player's `endTurnWithMovement → nextPlayer → startTurn` (`TurnService.ts:458 → 645 → 810`). So the pending promise is created on the *outgoing* player's device; the *incoming* player answers on their own phone — a different runtime with no matching promise. **Fix shipped: the state-mediated relay described below.** `Choice.resolvedWith` (CommonTypes.ts) + `StateService.setChoiceResolution` (stamps + syncs) + a `ChoiceService` constructor subscription (`handleRelayedResolution`) that resolves the local promise when a relayed selection arrives. `resolveChoice` now relays instead of returning false when it has a valid active choice but no local promise. Applies to all choice types; single-device path unchanged. The v3.0.24 reconnect did NOT fix this (wrong-runtime, not dead-socket). Still wants a two-device playtest to confirm end-to-end before flipping the dashboard flag. Original investigation notes kept below for context.
 
 `fb:068a66f2` reported "pressing yes or no did nothing" on a LOGIC_QUESTION modal in TV-with-phones mode. Spent ~2 hours reading code, narrowed to four plausible failure paths in `ChoiceService.resolveChoice`:
 
@@ -864,7 +868,25 @@ Fix: extracted `computeVisibleEdgeIds(currentSpace, validMoves, spaceVisitLog)` 
 - Gate in `CardService.parseCardIntoEffects` — when `card_mechanic === 'work_type_conditional'`, the `tick_modifier` effect is suppressed unless `playerInvolvesGroundwork(playerId)` (scans `player.hand` for a W card whose `work_type_restriction` is in `GROUNDWORK_WORK_TYPES`). The card still fires (shows its conditional "If…" text) but adds 0.
 - "Groundwork" = work types Foundation, Earth Work, Earthwork Only, Support of Excavation, New Building, Full Demolition, Demolition & Removal. The W card's `work_type_restriction` already carries the NYC DOB work type — no new player state needed. That column is populated **only on W cards** (the project scope); E/B/L/I leave it blank.
 
+### Integrity gates can have a scope gap — extend to self AND global (v3.0.34)
+
+`tests/integration/cardTextMatchesColumns.test.ts` validated card text-vs-columns, but every assertion was gated on the **global** pattern `(each player|all players)`. Self-targeted *"Draw 1 Expeditor Card"* cards (no "each/all players" prefix) were never checked, so 12 cards shipped drawing the wrong type for weeks. Lesson: when an integrity gate matches on a phrasing pattern, audit whether the *complement* (self-scope here) is also covered. v3.0.34 added a self-target DRAW gate; the symmetric self-DISCARD and self-flat-TIME gates are still gaps (flat-time is risky — conditional/"Roll a die" cards would false-positive; left for design judgment).
+
+**Card bare-number type default = W.** `parseCardDrawFormat` (`src/utils/parseUtils.ts`) defaults a typeless count to `W`. So `draw_cards=1` on an E card draws a **Work Package**, not an Expeditor — and `discard_cards=1` discards a W. Always author `"N E"` (count + type). When a "Draw/Discard N <type>" card misbehaves, check the column has the type letter, not just the number.
+
+### Expenditure recording: `updateTempState` survives turn-commit, mid-turn `updatePlayer` may not (v3.0.34, diagnosed — fix pending)
+
+Confirmed against saved game G262: construction cost IS deducted from cash (exactly $907,500 = `scope × mult×0.1 × qualityCoeff`, via `resourceService.spendMoney`) but `expenditures.construction`/`costs`/`costHistory` all stayed 0 — so it's invisible in the Pro Ledger ("Contractor $0") and the end-game "Total spent" (which sums `costHistory` only). The contractor *field* (quality/multiplier) persisted, the expenditure record didn't.
+
+Root-cause hypothesis: design fees record via `stateService.updateTempState` ([FinancialEffectHandler.trackDesignExpenditure](src/services/FinancialEffectHandler.ts) line ~264) which the turn-commit merges into REAL state; the `CONTRACTOR_UPDATE` handler records `expenditures.construction` via `stateService.updatePlayer` ([EffectEngineService.ts:412](src/services/EffectEngineService.ts#L412)) — a REAL-state write the commit appears to overwrite from the temp snapshot (which never got the construction entry). `spendMoney` goes through the temp/commit path so the cash drop survives. **Fix (next session):** record construction cost the way `trackDesignExpenditure` does — `updateTempState` + a `costHistory` entry + a `construction` cost category — so it shows everywhere. This also resolves the visible half of the end-game "Total spent" undercount.
+
+General rule: any in-turn mutation that must survive turn-commit goes through `updateTempState`, not `updatePlayer`. When a value is "applied but vanishes by end of turn," suspect a real-state write racing the commit.
+
+### Bonus: bank loan creates no `loans[]` record (v3.0.34)
+
+Saved G262 had `loans: []` despite a $1.575M bank loan that added cash. So `LOAN_PERCENTAGE` fees (REG-DOB-FEE-REVIEW / REG-FDNY-FEE-REVIEW, "1% of loan") compute 1% of $0 = nothing — regulatory fee reviews are effectively free. Open design question in TODO: should the bank loan create a `loans[]` entry (enabling fees + interest)?
+
 ---
 
-**Last Updated:** May 28, 2026 (Session **v3.0.32** — L012 groundwork-conditional card mechanic, board/panel arrow parity, revisit badge, TV player-strip-in-header, progress-bar tooltips; + the earlier v3.0.21–27 block)
-**Charter Version:** 3.20 (+ grep-fb-id-before-fixing, board validMoves single-source, work_type_conditional mechanic; prior: mobile-tab-freeze reconnect, smart-TV limits)
+**Last Updated:** May 29, 2026 (Session **v3.0.34** — playtest bug-fix block: self-target Expeditor-draw card data fix + new integrity gate, "Player Player" log doubling, design-fee tooltip; diagnosed construction-cost recording gap + bank-loan-no-record)
+**Charter Version:** 3.21 (+ integrity-gate scope-gap, card bare-number type default, temp-vs-real expenditure recording; prior: grep-fb-id-before-fixing, board validMoves single-source, work_type_conditional mechanic)

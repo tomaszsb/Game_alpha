@@ -204,6 +204,33 @@ describe('CARDS_EXPANDED.csv — description matches structured behavior', () =>
     expect(violators.map(c => formatViolator(c, 'scope', 'target', 'draw_cards'))).toEqual([]);
   });
 
+  it('self-target DRAW: "draw N <type> card" (no each/all players) must have draw_cards set with matching count + type', () => {
+    // Targets self-scoped cards like L005 "...Draw 1 Expeditor Card." — these
+    // slipped past the global-DRAW gate above because they have no "each/all
+    // players" prefix. L005/L007/L010/L024 had the count in discard_cards (wrong
+    // column → discard instead of draw); L039 had neither column set.
+    const typeWord: Record<string, string> = {
+      expeditor: 'E', 'work package': 'W', 'work': 'W',
+      bank: 'B', investor: 'I', life: 'L'
+    };
+    const drawPattern = /\bdraws?\s+(\d+)\s+(expeditor|work package|work|bank|investor|life)/i;
+    const globalPattern = /(each player|all players)/i;
+    const violators = cards.filter(c => {
+      const m = c.description.match(drawPattern);
+      if (!m) return false;
+      if (globalPattern.test(c.description)) return false; // covered by global gate
+      const expectedCount = parseInt(m[1], 10);
+      const expectedType = typeWord[m[2].toLowerCase()] || 'W';
+      // draw_cards must parse to the same count + type the text promises.
+      const dm = c.draw_cards.trim().match(/(\d+)\s*([WBEILS]?)/i);
+      if (!dm) return true; // empty / unparseable → violator
+      const gotCount = parseInt(dm[1], 10);
+      const gotType = (dm[2] || 'W').toUpperCase();
+      return !(gotCount === expectedCount && gotType === expectedType);
+    });
+    expect(violators.map(c => formatViolator(c, 'draw_cards', 'discard_cards'))).toEqual([]);
+  });
+
   it('global-target DISCARD: "each/all players (must) discard N <type>" must have scope=Global and discard_cards set', () => {
     // Targets cards like L003 / L048 "All players must discard 1 Expeditor card."
     const pattern = /(each player|all players)[^.]*\b(discards?|must discard)\s+\d+/i;

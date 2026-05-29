@@ -321,7 +321,7 @@ export class EffectFactory {
       effects.push({
         effectType: 'LOG',
         payload: {
-          message: `Player ${playerName || playerId} entered space: ${spaceName} (${visitType} visit) - ${spaceEffects.length} effects processed${spaceConfig?.action ? `, action: ${spaceConfig.action}` : ''}`,
+          message: `${playerName || playerId} entered space: ${spaceName} (${visitType} visit) - ${spaceEffects.length} effects processed${spaceConfig?.action ? `, action: ${spaceConfig.action}` : ''}`,
           level: 'INFO',
           source: spaceSource,
           action: 'space_effect'
@@ -364,7 +364,7 @@ export class EffectFactory {
         effects.push({
           effectType: 'LOG',
           payload: {
-            message: `Player ${playerName || playerId} triggered regulatory violation at ${spaceName} - penalties applied via existing space effects`,
+            message: `${playerName || playerId} triggered regulatory violation at ${spaceName} - penalties applied via existing space effects`,
             level: 'WARN',
             source: spaceSource,
             action: 'space_effect'
@@ -439,7 +439,7 @@ export class EffectFactory {
     effects.push({
       effectType: 'LOG',
       payload: {
-        message: `Player ${playerName || playerId} rolled ${diceResult} at space: ${spaceName} - ${diceEffects.length} effects processed`,
+        message: `${playerName || playerId} rolled ${diceResult} at space: ${spaceName} - ${diceEffects.length} effects processed`,
         level: 'INFO',
         source: diceSource,
         action: 'dice_roll'

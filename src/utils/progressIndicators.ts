@@ -25,14 +25,14 @@ const RED = '#f44336';
 
 /**
  * Design fees as a percentage of project scope. The game caps design fees at
- * 20%: hitting 20% in the DESIGN phase ends the project; later phases take a
- * time penalty instead. 4-tier scale: green <10, yellow 10–15, orange 15–20,
- * red ≥20.
+ * 20%: hitting 20% ends the project in any phase (strict rule, fb:3a57d5d0 /
+ * FinancialEffectHandler.checkDesignFeeCap). 4-tier scale: green <10, yellow
+ * 10–15, orange 15–20, red ≥20.
  */
 export function designFeeIndicator(ratioPct: number): ProgressIndicator {
   const pct = `${ratioPct.toFixed(1)}%`;
   if (ratioPct >= 20) {
-    return { color: RED, tooltip: `Design fees: ${pct} of project scope — at or over the 20% cap. Reaching 20% in the Design phase ends the project; in later phases it adds a time penalty.` };
+    return { color: RED, tooltip: `Design fees: ${pct} of project scope — at or over the 20% cap. Reaching 20% ends the project, no matter which phase you're in.` };
   }
   if (ratioPct >= 15) {
     return { color: ORANGE, tooltip: `Design fees: ${pct} of project scope — close to the 20% cap. Watch further design spending.` };
