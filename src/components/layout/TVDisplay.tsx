@@ -95,14 +95,20 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   return (
     <div style={{
       ...styles.container,
+      // fb:608bb670 — the player strip moved INTO the blue header (see below),
+      // so the dedicated white strip row is gone and the board reclaims it.
       gridTemplateAreas: showSidebar
-        ? `"header header sidebar" "playerStrip playerStrip sidebar" "main main sidebar" "footer footer footer"`
-        : `"header header" "playerStrip playerStrip" "main main" "footer footer"`,
+        ? `"header header sidebar" "main main sidebar" "footer footer footer"`
+        : `"header header" "main main" "footer footer"`,
       gridTemplateColumns: showSidebar ? '1fr auto 220px' : '1fr auto',
-      gridTemplateRows: 'auto auto 1fr auto',
+      gridTemplateRows: 'auto 1fr auto',
     }}>
-      {/* Header with game info */}
+      {/* Header with game info. fb:608bb670 — during PLAY the header is a two-
+          line blue band: top line = logo + phone-controller indicator, bottom
+          line = the player strip (moved off its own white row into the blue
+          area so the board reclaims the height). */}
       <header style={styles.header}>
+        <div style={styles.headerTopRow}>
         <div style={styles.logoSection}>
           <h1 style={styles.title}>Unravel Codes</h1>
           {gameId && (
@@ -182,55 +188,57 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             Game Over!
           </div>
         )}
-      </header>
+        </div>
 
-      {/* Player strip — horizontal row of all players with the richer info
-          that used to live in the right sidebar (avatar, name, $K, resources,
-          Connected badge). Current player gets a colored ring so the "whose
-          turn is it" signal is preserved without a separate banner.
-          Renders during PLAY only; SETUP/END keep the sidebar for QR codes.
-          <!-- fb:feedback-1779568265597-9bedb559 --> */}
-      {gamePhase === 'PLAY' && (
-        <div style={styles.playerStrip}>
-          {players.map(player => {
-            const isCurrentPlayer = player.id === currentPlayerId;
-            const isConnected = !!player.deviceType;
-            return (
-              <div
-                key={player.id}
-                style={{
-                  ...styles.playerStripChip,
-                  borderColor: isCurrentPlayer ? (player.color || colors.primary.main) : colors.secondary.border,
-                  borderWidth: isCurrentPlayer ? '3px' : '2px',
-                  backgroundColor: isCurrentPlayer ? `${player.color || colors.primary.main}15` : 'white',
-                  animation: isCurrentPlayer ? 'pulse 2s ease-in-out infinite' : undefined,
-                }}
-              >
-                <span style={styles.playerStripAvatar}>{player.avatar}</span>
-                <div style={styles.playerStripText}>
-                  <div style={{
-                    ...styles.playerStripName,
-                    color: player.color || colors.text.primary,
-                  }}>
-                    {player.name}
-                  </div>
-                  <div style={styles.playerStripStats}>
-                    <span>${(player.money / 1000).toFixed(0)}K</span>
-                    <span>·</span>
-                    {/* v3.0.23 (fb:5dc01203 part b): "cards" → "resources".
-                        Voice rule (no card/game/dice words). "resources" is a
-                        real business word, single token, preserves the at-a-
-                        glance flush-vs-tapped-out signal. Per-type breakdown
-                        already lives in the player panel below the strip. */}
-                    <span>{player.hand?.length || 0} resources</span>
-                    {isConnected && <span style={styles.playerStripConnected}>📱</span>}
+        {/* Player strip — horizontal row of all players with the richer info
+            that used to live in the right sidebar (avatar, name, $K, resources,
+            Connected badge). Current player gets a colored ring so the "whose
+            turn is it" signal is preserved without a separate banner.
+            fb:608bb670 — now lives inside the blue header (was its own white
+            row) so the board reclaims the height. Renders during PLAY only.
+            <!-- fb:feedback-1779568265597-9bedb559 --> */}
+        {gamePhase === 'PLAY' && (
+          <div style={styles.headerPlayerStrip}>
+            {players.map(player => {
+              const isCurrentPlayer = player.id === currentPlayerId;
+              const isConnected = !!player.deviceType;
+              return (
+                <div
+                  key={player.id}
+                  style={{
+                    ...styles.playerStripChip,
+                    borderColor: isCurrentPlayer ? (player.color || colors.primary.main) : colors.secondary.border,
+                    borderWidth: isCurrentPlayer ? '3px' : '2px',
+                    backgroundColor: isCurrentPlayer ? `${player.color || colors.primary.main}15` : 'white',
+                    animation: isCurrentPlayer ? 'pulse 2s ease-in-out infinite' : undefined,
+                  }}
+                >
+                  <span style={styles.playerStripAvatar}>{player.avatar}</span>
+                  <div style={styles.playerStripText}>
+                    <div style={{
+                      ...styles.playerStripName,
+                      color: player.color || colors.text.primary,
+                    }}>
+                      {player.name}
+                    </div>
+                    <div style={styles.playerStripStats}>
+                      <span>${(player.money / 1000).toFixed(0)}K</span>
+                      <span>·</span>
+                      {/* v3.0.23 (fb:5dc01203 part b): "cards" → "resources".
+                          Voice rule (no card/game/dice words). "resources" is a
+                          real business word, single token, preserves the at-a-
+                          glance flush-vs-tapped-out signal. Per-type breakdown
+                          already lives in the player panel below the strip. */}
+                      <span>{player.hand?.length || 0} resources</span>
+                      {isConnected && <span style={styles.playerStripConnected}>📱</span>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </header>
 
       {/* Main content area */}
       <main style={styles.main}>
@@ -404,14 +412,21 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: colors.background.secondary,
     overflow: 'hidden',
   },
+  // fb:608bb670 — header is a two-line blue band during PLAY: top row (logo +
+  // phone-controller indicator) and the player strip below, both on blue.
   header: {
     gridArea: 'header',
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1rem 2rem',
+    flexDirection: 'column',
+    gap: '0.5rem',
+    padding: '0.6rem 2rem',
     backgroundColor: colors.primary.main,
     color: 'white',
+  },
+  headerTopRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   logoSection: {
     display: 'flex',
@@ -430,14 +445,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '8px',
   },
   // Horizontal player strip — replaces the legacy currentPlayerBanner +
-  // sidebar per-player cards in PLAY mode. <!-- fb:feedback-1779568265597-9bedb559 -->
-  playerStrip: {
-    gridArea: 'playerStrip',
+  // sidebar per-player cards in PLAY mode. fb:608bb670 — now sits inside the
+  // blue header (no white row / border of its own) so the board reclaims the
+  // height. <!-- fb:feedback-1779568265597-9bedb559 -->
+  headerPlayerStrip: {
     display: 'flex',
     gap: '0.75rem',
-    padding: '0.5rem 1rem',
-    backgroundColor: 'white',
-    borderBottom: `2px solid ${colors.secondary.border}`,
     overflowX: 'auto',
     alignItems: 'center',
   },
@@ -559,12 +572,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: colors.success.main,
     margin: '1rem 0 0 0',
   },
+  // fb:608bb670 — "the message on the bottom of the board should be smaller."
+  // Trimmed padding + font so the board (above) gets more of the column.
   spaceInfo: {
-    padding: '1rem',
+    padding: '0.3rem',
     textAlign: 'center',
   },
   spaceTitle: {
-    fontSize: '1.5rem',
+    fontSize: '1.05rem',
     fontWeight: 'bold',
     color: colors.text.primary,
   },

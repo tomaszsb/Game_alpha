@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.31] - 2026-05-28
+
+### Change — TV layout: player strip moved into the blue header + smaller bottom message (fb:608bb670)
+
+Playtester ask: *"The player indicator should be on the blue area to make space for board and the message on the bottom of the board should be smaller."*
+
+- **Player strip hoisted into the blue header** ([TVDisplay.tsx](src/components/layout/TVDisplay.tsx)). It was a dedicated white band on its own grid row directly below the header; now it renders as the second line *inside* the blue `<header>`. The grid dropped from four rows (`header / playerStrip / main / footer`) to three (`header / main / footer`), so the board's `main` area reclaims the strip's full height (band padding + 2px border + inter-row gap). Header is now a two-line flex column: top row = logo + buttons + phone-controller indicator, bottom row = the player chips (still horizontally scrollable). Header vertical padding trimmed `1rem → 0.6rem`.
+- **Bottom space message shrunk** — `spaceInfo` padding `1rem → 0.3rem` and `spaceTitle` font `1.5rem → 1.05rem`, giving the board more of the column.
+
+Player chips, current-player pulse ring, and the "📱 Look at your phone, [Name]" indicator are all unchanged in behavior — only their container moved.
+
+#### Change
+- [src/components/layout/TVDisplay.tsx](src/components/layout/TVDisplay.tsx) — grid template (4→3 rows), header restructured to two lines, `playerStrip` style → `headerPlayerStrip` (no white bg/border), `spaceInfo`/`spaceTitle` shrunk, [package.json](package.json) (3.0.30 → 3.0.31).
+
+#### Test
+- Pure inline-styling/layout change; no unit test pins TV grid geometry (there's no TVDisplay test harness — rendering needs full service context). Typecheck clean. Build 11.58s clean. Sweep 1499/1499 across 80 files (no regressions). **Needs a visual check on the actual TV** to confirm the two-line header reads well at 10 ft and 4 player chips fit / scroll cleanly.
+
 ## [3.0.30] - 2026-05-28
 
 ### Add — "You've been here before" visit indicator on the panel header (fb:0cdd59ba)
