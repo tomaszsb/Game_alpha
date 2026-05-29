@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.36] - 2026-05-29
+
+### Fix — Dice-driven movement picker now shows friendly names too
+
+v3.0.35 fixed the choice-movement picker ([MovementService.createChoiceOptionsWithTitles](src/services/MovementService.ts)) to show friendly board names, but the **dice-resolved** movement path built its labels separately and still emitted raw codes (`ENG-INITIATION - Hunting for an engineer`). Found during a live playthrough. [DiceRollProcessor.ts:561](src/services/DiceRollProcessor.ts#L561) now uses the same `display_label_override || shortName` lookup with an em-dash event-title suffix, matching the board tiles and the choice picker.
+
+#### Changed
+- [src/services/DiceRollProcessor.ts](src/services/DiceRollProcessor.ts), [package.json](package.json) (3.0.35 → 3.0.36).
+
+### Investigated (not fixed — see TODO) — Life Event L-card effects appear not to apply on auto-draw
+
+Live playthrough + code trace: when a Life Event fires automatically (space arrival / dice-conditional), the L card is added to hand and the modal is shown, but `cardService.applyCardEffects` is **not** called for it — so the card's `tick_modifier` / `money_effect` (e.g. L031 "Permit Fee Hike: 2 days less time") never reach state. `applyCardEffects` is only invoked from manual `playCard`, Investment `drawAndApplyCard`, and `auto_play:` funding cards — not the life-event auto-draw path ([SpaceArrivalProcessor.processDiceConditionalCardEffects](src/services/SpaceArrivalProcessor.ts#L190) and [CardEffectHandler.handleCardDraw](src/services/CardEffectHandler.ts#L63) both call `drawCards` without applying effects). Needs confirmation + a careful fix (Try Again semantics, global-scope fan-out). Scoped in TODO.
+
 ## [3.0.35] - 2026-05-29
 
 ### Fix — Construction cost is now recorded (Pro Ledger + end-game Total Spent)

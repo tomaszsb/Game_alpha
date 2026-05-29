@@ -9,6 +9,7 @@ import { formatDiceRollFeedback } from '../utils/buttonFormatting';
 import { describeCardAction } from './DiceService';
 import { Effect } from '../types/EffectTypes';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
+import { shortName } from '../utils/boardCommon';
 
 /**
  * Interface for dice roll effects processing result
@@ -556,9 +557,12 @@ export class DiceRollProcessor {
       });
 
       const options = destinations.map(dest => {
+        // Friendly board name (display_label_override > shortName), not the raw
+        // space code — matches the choice-movement picker and the board tiles.
+        const friendly = this.dataService.getDisplayLabelOverride(dest) || shortName(dest);
         const destContent = this.dataService.getSpaceContent(dest, 'First');
-        const destTitle = destContent?.title || dest;
-        return { id: dest, label: destTitle !== dest ? `${dest} - ${destTitle}` : dest };
+        const destTitle = destContent?.title || '';
+        return { id: dest, label: destTitle && destTitle !== friendly ? `${friendly} — ${destTitle}` : friendly };
       });
 
       this.choiceService.createChoice(playerId, 'MOVEMENT', prompt, options)
