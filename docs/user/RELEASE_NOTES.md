@@ -2,6 +2,18 @@
 
 ---
 
+## v3.0.40 → v3.0.42 — Life Events with teeth, visible (May 30, 2026)
+
+- **You can finally see what a Life Event did.** When a 1-in-6 Life Event card lands, the red ⚡ modal now shows a "What just happened" block under the story — the money you lost or gained, days added, approvals revoked, extra resources gained, resources you'll have to drop, and a "this will keep affecting you over the next few turns" line when the event is multi-turn.
+- **Multi-turn Life Events announce themselves each turn.** Cards like "Sick Kid" that hit you for 3 turns no longer fire silently after the first hit. Each turn you'll see a small banner — *"🔁 Sick Kid still affecting you: -$2,000 — 2 more turns to go"* — and a matching entry in the game log. The final turn says *"— last one"*.
+- **Construction-phase Life Events now wait for the construction phase.** Cards that promise "X happens during construction" used to fire on players who were still in design or regulatory review. Now they only tick when you've actually reached construction — and if you don't get there before the card expires, you don't pay for what didn't happen.
+- **EXPEDITORS and LIFE EVENTS sections of the player panel now light up when they need attention.** A latent bug had the "needs action" badge silently off; this is now fixed.
+- **A few labels got polished.** The "Accept Owner Funding" button at Bank Review now shows up reliably (a case-sensitivity bug had been hiding it).
+
+Everything else this run is invisible plumbing: a cleaner Try Again rollback, a memory-leak prevention for unresolved choice prompts, and a big dead-code purge (-579 lines).
+
+---
+
 ## v3.0.34 — Expeditor cards finally give you Expeditors (May 29, 2026)
 
 - **Fixed: cards that say "Draw 1 Expeditor Card" now actually do.** A whole batch of Life events and Expeditor cards promised an expeditor in their text but, behind the scenes, were drawing the wrong thing — some drew a Work Package (which quietly inflated your project size), and a few Life events even *discarded* a card instead of giving you one. Twelve cards corrected, and a new automatic check makes sure card text and card behavior can't drift apart again.

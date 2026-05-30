@@ -943,7 +943,34 @@ Root cause: the `CONTRACTOR_UPDATE` handler recorded `expenditures.construction`
 
 Resolved. Saved G262 had `loans: []` despite a $1.575M bank loan that added cash, so `LOAN_PERCENTAGE` fees (REG-DOB-FEE-REVIEW / REG-FDNY-FEE-REVIEW, "1% of loan") computed against $0 — regulatory fees were effectively free. Fixed v3.0.35 in `ResourceService` by appending a `loans[]` record (principal, interestRate 0, startTurn) when bank-source money is added. Lesson: when a fee formula reads `player.loans[]`, the code that *adds* loan money must also append the loan record. Same trap would bite any future per-loan computation (interest accrual, restructure penalties, etc.) — wire the record at the money-add site, not at the fee site.
 
+### Case-sensitivity bug class: `effect_action === 'draw_x'` vs CSV `'draw_X'` (v3.0.41–42)
+
+Bit us **three times** in two versions before being audited. CSV stores `effect_action` values with **uppercase** card-type suffixes (`draw_E`, `draw_B`, `draw_I`, `draw_L`, `draw_W`). `DataService.parseSpaceEffectsCsv` loads them **as-is** — no case normalization. JSX/service code that compares with strict equality against a **lowercase** literal (`effect.effect_action === 'draw_e'`) **never matches in production**. The hardcoded fallback (if any) becomes dead code; the surrounding `hasXActions`/`getButtonLabel` logic silently fails closed.
+
+Confirmed dead-code sites (all fixed):
+- **FinancesSection.tsx** Owner Funding label (v3.0.41) — `'draw_b' || 'draw_i'` strict check never matched `draw_B`.
+- **CardsSection.tsx** EXPEDITORS section badge (v3.0.42) — `'draw_e' || 'replace_e' || 'give_e' || 'return_e'` mixed (`draw_E` uppercase, `replace_e`/`return_e` lowercase in CSV); the upper-suffix entries were dead.
+- **EventsSection.tsx** LIFE EVENTS section badge (v3.0.42) — `'draw_l'` strict check never matched `draw_L`.
+
+Note the CSV inconsistency itself: **DRAW** actions are uppercase-suffixed (`draw_E`), while **REPLACE/RETURN** actions are lowercase-suffixed (`replace_e`, `return_e`). The pattern isn't uniform, which is precisely why strict equality is a foot-gun — there's no single rule a developer can memorize.
+
+**Fix pattern (preferred):** lowercase BOTH sides at the comparison.
+```ts
+const action = effect.effect_action?.toLowerCase() || '';
+if (action === 'draw_e' || action === 'replace_e') { ... }
+```
+
+**Audit grep when touching SPACE_EFFECTS consumers:**
+```
+Grep: pattern="effect_action === ['\"]draw_[a-z]['\"]"
+```
+Any hit is potentially dead code unless the surrounding logic has already been normalized to lowercase.
+
+**Don't try to "fix" the CSV** — too many consumers expect the current casing, and there are similar lower/upper splits elsewhere (e.g. SpaceEffectService's `applyDiceEffect` already lowercases `effect_type` defensively at line 55 pre-purge). Normalize at the read site, not at the source.
+
+**Same trap class to grep periodically:** `=== 'manual'`/`'auto'` against `trigger_type` (currently consistent lowercase, but worth verifying any time you touch SPACE_EFFECTS), `=== 'Self'`/`'All Players'` against card `target` (mixed casing in CSV — these compare case-sensitively in CardService).
+
 ---
 
-**Last Updated:** May 29, 2026 (Session **v3.0.39** — "crush all bugs" block + post-ship CLAUDE.md hygiene pass)
-**Charter Version:** 3.23 (hygiene: status + service/test counts + current focus refreshed for v3.0.39; resolved-v3.0.35 expenditure & loan-record entries rewritten as historical lessons; fundingAmount adoption note updated for BANK/INVESTOR Subsequent. Prior 3.22: Kid C N×N + Try-Again rollback recipe + autoPickForcedDiscards.)
+**Last Updated:** May 30, 2026 (Session **v3.0.40 / v3.0.41 / v3.0.42** — life-event feedback receipts + 5+5 verified-real cleanups)
+**Charter Version:** 3.24 (added case-sensitivity bug pattern surfaced by the v3.0.41/42 dead-override discoveries. Prior 3.23: v3.0.39 ship + Kid C N×N + Try-Again rollback recipe + autoPickForcedDiscards.)
