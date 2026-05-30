@@ -12,11 +12,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Pin npm to v10 explicitly. Deliberately NOT @latest: npm v11 (Oct 2025)
-# added an install-script approval prompt that produces deploy-log warnings
-# for @swc/core / esbuild / puppeteer postinstall scripts on every build.
-# Stay on v10 until we want to adopt v11's approval mechanism in package.json.
-RUN npm install -g npm@10
+# Update npm to latest version. npm v11 (Oct 2025) added an install-script
+# allow-list as a supply-chain attack mitigation; trusted packages are listed
+# in the `allowScripts` field in package.json so postinstall scripts run
+# without warnings.
+RUN npm install -g npm@latest
 
 # Install ALL dependencies (including build tools)
 # Skip Puppeteer browser download — not needed in production

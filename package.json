@@ -4,6 +4,11 @@
   "type": "module",
   "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
+  "allowScripts": {
+    "@swc/core": true,
+    "esbuild": true,
+    "puppeteer": true
+  },
   "scripts": {
     "server": "node server/server.js",
     "test": "vitest run --config vitest.config.dev.ts",
