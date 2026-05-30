@@ -16,6 +16,7 @@ import React from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { Card } from '../../types/DataTypes';
+import type { LifeEventEffectSummary } from '../../services/StateService';
 
 export interface LifeEventModalData {
   card: Card;
@@ -23,6 +24,14 @@ export interface LifeEventModalData {
   diceValue?: number;
   /** Space the player was on when it fired (for context, not header). */
   spaceName?: string;
+  /**
+   * v3.0.40 — ordered receipts of what the auto-applied card actually did
+   * (money/time deltas, approval flips, card gains/losses, multi-turn
+   * duration callout). Rendered as the "What just happened" block under
+   * the card narrative. Empty/undefined → block is hidden so cards that
+   * are pure narrative (no Kids effects) keep the legacy look.
+   */
+  effectsSummary?: LifeEventEffectSummary[];
 }
 
 interface LifeEventModalProps {
@@ -57,8 +66,9 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
   // v3.0.23: diceValue / spaceName from `data` are no longer rendered
   // (voice rule, fb:1aad6035). Props remain on the interface for backward
   // compatibility with callers and possible future admin-side use.
-  const { card } = data;
+  const { card, effectsSummary } = data;
   const lColors = colors.game.cardTypes.L;
+  const hasEffects = !!(effectsSummary && effectsSummary.length > 0);
 
   return (
     <ModalBase
@@ -139,9 +149,88 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
             {card.description}
           </p>
         )}
+
+        {/*
+          v3.0.40 — receipts block. Playtest signal (2026-05-29): Kids A–E
+          richer life-event effects ship in v3.0.39, but the modal showed only
+          the card story so players couldn't tell the card had any teeth.
+          This block surfaces each delta the card produced, in plain language,
+          PM voice (PM is the in-character narrator for life-event spaces per
+          the project voice rule — one of the 5 PM-voiced exceptions).
+        */}
+        {hasEffects && (
+          <div
+            data-testid="life-event-modal-effects"
+            style={{
+              marginTop: '16px',
+              paddingTop: '12px',
+              borderTop: `1px dashed ${lColors.border}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: colors.text.muted ?? colors.text.primary,
+                marginBottom: '8px',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+              }}
+            >
+              What just happened
+            </div>
+            <ul
+              style={{
+                margin: 0,
+                padding: 0,
+                listStyle: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              {effectsSummary!.map((entry, i) => {
+                const icon = lifeEventEffectIcon(entry.kind);
+                return (
+                  <li
+                    key={`${entry.kind}-${i}`}
+                    data-testid={`life-event-effect-${entry.kind}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.95rem',
+                      color: colors.text.primary,
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ fontSize: '1.1rem', lineHeight: 1 }}>{icon}</span>
+                    <span>{entry.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </ModalBase>
   );
+}
+
+/**
+ * v3.0.40 — icon for each life-event receipt kind. Money/time use the
+ * existing project symbols (💰 / ⏱️) for consistency with the resource
+ * panel; approvals get a stamp, card moves get a card face, duration
+ * effects get the clock-back to signal "this isn't over yet."
+ */
+function lifeEventEffectIcon(kind: LifeEventEffectSummary['kind']): string {
+  switch (kind) {
+    case 'money': return '💰';
+    case 'time': return '⏱️';
+    case 'approval_revoke': return '🚫';
+    case 'card_gained': return '🃏';
+    case 'card_lost': return '🗑️';
+    case 'duration_start': return '🔁';
+  }
 }
 
 export default LifeEventModal;

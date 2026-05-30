@@ -1313,7 +1313,7 @@ export class EffectEngineService implements IEffectEngineService {
    * Apply all active effects for a specific player and decrement their duration
    */
   async applyActiveEffects(playerId: string): Promise<void> {
-    
+
     const player = this.stateService.getPlayer(playerId);
     if (!player || !player.activeEffects || player.activeEffects.length === 0) {
       return;
@@ -1322,16 +1322,25 @@ export class EffectEngineService implements IEffectEngineService {
     const remainingEffects = [];
 
     for (const activeEffect of player.activeEffects) {
-      
+
       try {
         // Create a copy of the effect with updated source for active processing
         const activeEffectData = { ...activeEffect.effectData };
         if (activeEffectData.payload && typeof activeEffectData.payload === 'object') {
-          activeEffectData.payload = { 
-            ...activeEffectData.payload, 
-            source: `active:${activeEffect.sourceCardId}` 
+          activeEffectData.payload = {
+            ...activeEffectData.payload,
+            source: `active:${activeEffect.sourceCardId}`
           };
         }
+
+        // v3.0.40 — capture money/timeSpent before the re-fire so we can
+        // surface a player-facing "[card] still affecting you — -$X this
+        // turn, N turns left" line. Without this, multi-turn duration cards
+        // (Kid C) look identical to single-turn cards: silent re-fire each
+        // turn with no narrative reminder.
+        const beforeFire = this.stateService.getPlayer(playerId);
+        const moneyBefore = beforeFire?.money ?? 0;
+        const timeBefore = beforeFire?.timeSpent ?? 0;
 
         // Apply the effect with updated source
         await this.processEffect(activeEffectData, {
@@ -1342,6 +1351,18 @@ export class EffectEngineService implements IEffectEngineService {
 
         // Decrement duration
         activeEffect.remainingDuration -= 1;
+
+        // v3.0.40 — recurring-effect surfacing. Look up the source card so
+        // the notification + log entry name the cause, not the cryptic
+        // effectId. PM voice (life events are PM-narrated per project voice
+        // rule). Posted AFTER processEffect so we observe the actual delta.
+        this.surfaceRecurringEffect({
+          playerId,
+          sourceCardId: activeEffect.sourceCardId,
+          moneyBefore,
+          timeBefore,
+          turnsLeftAfterThis: activeEffect.remainingDuration,
+        });
 
         // Keep effect if it still has duration remaining
         if (activeEffect.remainingDuration > 0) {
@@ -1363,6 +1384,77 @@ export class EffectEngineService implements IEffectEngineService {
       activeEffects: remainingEffects
     });
 
+  }
+
+  /**
+   * v3.0.40 — emit a player-facing reminder + action-log entry when a
+   * multi-turn duration card re-fires on a later turn. Without this, Kid C
+   * cards (L002 / L004 / L008) silently apply each turn — the player sees
+   * the resource line in the log but no narrative tie back to the card.
+   *
+   * Plain-English, PM voice. Skipped if the re-fire produced no money/time
+   * delta (avoids spam for 0-tick cards) or if the card lookup fails.
+   */
+  private surfaceRecurringEffect(args: {
+    playerId: string;
+    sourceCardId: string;
+    moneyBefore: number;
+    timeBefore: number;
+    turnsLeftAfterThis: number;
+  }): void {
+    const playerAfter = this.stateService.getPlayer(args.playerId);
+    if (!playerAfter) return;
+
+    const moneyDelta = playerAfter.money - args.moneyBefore;
+    const timeDelta = playerAfter.timeSpent - args.timeBefore;
+    if (moneyDelta === 0 && timeDelta === 0) return;
+
+    const card = this.dataService?.getCardById(args.sourceCardId);
+    const cardName = card?.card_name || 'A life event';
+
+    const parts: string[] = [];
+    if (moneyDelta !== 0) {
+      const sign = moneyDelta > 0 ? '+' : '-';
+      parts.push(`${sign}$${Math.abs(moneyDelta).toLocaleString()}`);
+    }
+    if (timeDelta !== 0) {
+      const sign = timeDelta > 0 ? '+' : '-';
+      parts.push(`${sign}${Math.abs(timeDelta)} day${Math.abs(timeDelta) === 1 ? '' : 's'}`);
+    }
+    const delta = parts.join(', ');
+
+    const turnsLeft = args.turnsLeftAfterThis;
+    const tail = turnsLeft > 0
+      ? ` — ${turnsLeft} more turn${turnsLeft === 1 ? '' : 's'} to go`
+      : ' — last one';
+
+    const headline = `🔁 ${cardName} still affecting you: ${delta}${tail}`;
+
+    if (this.notificationService) {
+      this.notificationService.notify(
+        {
+          short: 'Ongoing event',
+          medium: headline,
+          detailed: `Recurring life event from ${cardName}: ${delta}${tail}.`,
+        },
+        {
+          playerId: args.playerId,
+          playerName: playerAfter.name,
+          actionType: 'life_event_recurring',
+          notificationDuration: 5000,
+        }
+      );
+    }
+
+    this.loggingService.info(headline, {
+      playerId: args.playerId,
+      playerName: playerAfter.name,
+      action: 'life_event_recurring',
+      sourceCardId: args.sourceCardId,
+      moneyDelta,
+      timeDelta,
+      turnsLeftAfterThis: turnsLeft,
+    });
   }
 
   /**

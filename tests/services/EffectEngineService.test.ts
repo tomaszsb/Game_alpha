@@ -852,10 +852,13 @@ describe('EffectEngineService', () => {
         turn: 5
       });
 
-      // Mock individual getPlayer calls for each player
-      mockStateService.getPlayer
-        .mockReturnValueOnce(players[0])
-        .mockReturnValueOnce(players[1]);
+      // v3.0.40: applyActiveEffects now calls getPlayer multiple times per
+      // player (initial load + beforeFire snapshot + post-fire snapshot in
+      // surfaceRecurringEffect). Use an argument-aware mock so the test is
+      // robust to call-count changes.
+      mockStateService.getPlayer.mockImplementation((id: string) =>
+        players.find(p => p.id === id),
+      );
 
       mockResourceService.spendTime.mockReturnValue(true);
       mockResourceService.addTime.mockReturnValue(true);
@@ -1429,5 +1432,147 @@ describe('EffectEngineService', () => {
       expect(result.success).toBe(true);
       expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
     });
+  });
+});
+
+// v3.0.40 — multi-turn duration cards (Kid C: L002 / L004 / L008) re-fire each
+// turn via EffectEngineService.applyActiveEffects. Without these reminders the
+// player only sees the resource line in the log with no narrative tie back to
+// the card. surfaceRecurringEffect (private, exercised via applyActiveEffects)
+// emits a notification + log entry per re-fire.
+describe('EffectEngineService.applyActiveEffects — recurring-effect surfacing (v3.0.40)', () => {
+  let service: EffectEngineService;
+  let mockNotificationService: any;
+  let mockLoggingService: any;
+  let mockDataService: any;
+  let mockStateService: any;
+  let beforePlayer: any;
+  let afterPlayer: any;
+
+  beforeEach(() => {
+    // The active effect re-fires through processEffect → FinancialEffectHandler.
+    // For this test we don't care that the effect actually runs — we just need
+    // applyActiveEffects to call its surfaceRecurringEffect helper. Mock
+    // processEffect on the engine instance after construction.
+
+    mockNotificationService = { notify: vi.fn() };
+    mockLoggingService = {
+      log: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn(),
+      addLogEntry: vi.fn(), getLogEntries: vi.fn().mockReturnValue([]), clearLogs: vi.fn(),
+    };
+    mockDataService = {
+      getCardById: vi.fn().mockReturnValue({
+        card_id: 'L002',
+        card_name: 'Sick Kid',
+        card_type: 'L',
+        description: 'Your kid is sick. Pay for medical bills.',
+      }),
+    };
+
+    beforePlayer = {
+      id: 'p1', name: 'Alice', money: 100000, timeSpent: 0,
+      activeEffects: [
+        {
+          effectId: 'ae-1',
+          sourceCardId: 'L002',
+          remainingDuration: 3,
+          effectData: {
+            effectType: 'RESOURCE_CHANGE',
+            payload: { playerId: 'p1', resource: 'MONEY', amount: -2000, source: 'card:L002' },
+          },
+        },
+      ],
+    };
+
+    // After processEffect the money has dropped $2,000.
+    afterPlayer = { ...beforePlayer, money: 98000 };
+
+    mockStateService = {
+      getPlayer: vi.fn(),
+      updateTempState: vi.fn(),
+      getGameState: vi.fn().mockReturnValue({ players: [beforePlayer] }),
+    };
+
+    // First getPlayer call inside applyActiveEffects loads the player (returns
+    // beforePlayer). Second call inside surfaceRecurringEffect (after the
+    // processEffect mock has "run") returns afterPlayer. Subsequent calls
+    // return afterPlayer too.
+    mockStateService.getPlayer
+      .mockReturnValueOnce(beforePlayer)
+      .mockReturnValueOnce(beforePlayer) // captured for moneyBefore snapshot
+      .mockReturnValue(afterPlayer);
+
+    service = new EffectEngineService(
+      { adjustResource: vi.fn(), addMoney: vi.fn(), spendMoney: vi.fn(), canAfford: vi.fn(), addTime: vi.fn(), spendTime: vi.fn(), updateResources: vi.fn(), getResourceHistory: vi.fn(), validateResourceChange: vi.fn(), takeOutLoan: vi.fn() } as any,
+      { setEffectEngineService: vi.fn() } as any,
+      { createChoice: vi.fn(), resolveChoice: vi.fn(), getActiveChoice: vi.fn(), clearChoice: vi.fn() } as any,
+      mockStateService,
+      { getValidMoves: vi.fn(), movePlayer: vi.fn(), getDiceDestination: vi.fn(), handleMovementChoice: vi.fn() } as any,
+      { setEffectEngineService: vi.fn() } as any,
+      { calculateProjectScope: vi.fn() } as any,
+      { getTargetPlayers: vi.fn(), resolveTargets: vi.fn() } as any,
+      mockLoggingService,
+      mockDataService,
+      mockNotificationService,
+    );
+
+    // Skip the real downstream effect processing — we only care that the
+    // surface helper fires with the correct deltas.
+    (service as any).processEffect = vi.fn().mockResolvedValue({ success: true, effectType: 'RESOURCE_CHANGE' });
+  });
+
+  it('emits a notification naming the source card and the delta', async () => {
+    await service.applyActiveEffects('p1');
+
+    expect(mockNotificationService.notify).toHaveBeenCalled();
+    const [content, options] = mockNotificationService.notify.mock.calls[0];
+    expect(content.medium).toMatch(/Sick Kid/);
+    expect(content.medium).toMatch(/-\$2,000/);
+    expect(options.actionType).toBe('life_event_recurring');
+  });
+
+  it('writes a log entry that ties the resource change back to the card', async () => {
+    await service.applyActiveEffects('p1');
+
+    expect(mockLoggingService.info).toHaveBeenCalled();
+    const [message, payload] = mockLoggingService.info.mock.calls[0];
+    expect(message).toMatch(/Sick Kid/);
+    expect(message).toMatch(/-\$2,000/);
+    expect(payload.action).toBe('life_event_recurring');
+    expect(payload.sourceCardId).toBe('L002');
+    expect(payload.moneyDelta).toBe(-2000);
+  });
+
+  it('says "more turns to go" when remainingDuration > 0 after decrement', async () => {
+    // remainingDuration starts at 3, decrements to 2 → "2 more turns to go".
+    await service.applyActiveEffects('p1');
+
+    const [content] = mockNotificationService.notify.mock.calls[0];
+    expect(content.medium).toMatch(/2 more turns to go/);
+  });
+
+  it('says "last one" when this re-fire was the final turn', async () => {
+    // Set duration to 1 so it decrements to 0.
+    beforePlayer.activeEffects[0].remainingDuration = 1;
+
+    await service.applyActiveEffects('p1');
+
+    const [content] = mockNotificationService.notify.mock.calls[0];
+    expect(content.medium).toMatch(/last one/i);
+  });
+
+  it('skips the surface helper entirely when there is no money/time delta', async () => {
+    // afterPlayer money == beforePlayer money → moneyDelta=0, timeDelta=0.
+    afterPlayer.money = beforePlayer.money;
+    mockStateService.getPlayer
+      .mockReset()
+      .mockReturnValueOnce(beforePlayer)
+      .mockReturnValueOnce(beforePlayer)
+      .mockReturnValue(afterPlayer);
+
+    await service.applyActiveEffects('p1');
+
+    expect(mockNotificationService.notify).not.toHaveBeenCalled();
+    expect(mockLoggingService.info).not.toHaveBeenCalled();
   });
 });

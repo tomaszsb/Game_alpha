@@ -27,6 +27,20 @@ import { Choice } from '../types/CommonTypes';
 import { TurnStateManager } from './TurnStateManager';
 import { ServerSyncService, StateProvider } from './ServerSyncService';
 
+// Player-facing receipt of a single thing an L-card just did. Computed by
+// diffing player state before/after applyCardEffects, then surfaced to the
+// LifeEventModal as an "Effects applied" block. Voice rule: copy is rendered
+// by the modal in PM voice, so these labels stay value-only (e.g. "+$5,000",
+// "DOB approval revoked", "lost 2 cards"). v3.0.40 — playtest signal: Kids
+// A–E worked but were invisible to the player.
+export interface LifeEventEffectSummary {
+  kind: 'money' | 'time' | 'approval_revoke' | 'card_gained' | 'card_lost' | 'duration_start';
+  /** Signed numeric delta for money/time, or count for cards/turns. */
+  amount?: number;
+  /** Display label rendered next to the icon (PM voice — see LifeEventModal). */
+  label: string;
+}
+
 // Auto-action event type for modal notifications
 export interface AutoActionEvent {
   type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement';
@@ -46,6 +60,10 @@ export interface AutoActionEvent {
   // Movement-specific fields
   fromSpace?: string;
   toSpace?: string;
+  // v3.0.40: ordered list of receipts for an auto-applied life event card.
+  // Only populated for type === 'life_event'. The LifeEventModal renders these
+  // under the card narrative so players see what changed (Kids A–E feedback).
+  effectsSummary?: LifeEventEffectSummary[];
 }
 
 // Selective subscription for optimized re-renders

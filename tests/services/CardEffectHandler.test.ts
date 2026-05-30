@@ -63,6 +63,90 @@ describe('CardEffectHandler.handleCardDraw — Life Event effect application', (
 
     expect(mockCardService.applyCardEffects).not.toHaveBeenCalled();
   });
+
+  // v3.0.40 — effects-applied summary attached to the life_event auto-action
+  // event so the LifeEventModal can show a receipts block. Playtest signal:
+  // Kids A–E worked but were invisible behind the card narrative.
+  describe('effectsSummary on the life_event auto-action event', () => {
+    const playerBase = {
+      id: 'player1',
+      name: 'Player 1',
+      currentSpace: 'OWNER-FUND-INITIATION',
+      money: 100000,
+      timeSpent: 0,
+      hand: ['L031'], // the L card itself was just drawn into hand
+      activeEffects: [],
+      dobApprovalStatus: undefined,
+      fdnyApprovalStatus: undefined,
+    };
+
+    it('emits a money receipt when the card changed the player money', async () => {
+      mockCardService.drawCards.mockReturnValue(['L031']);
+      // Before snapshot (called inside handleCardDraw before applyCardEffects),
+      // then again after for the diff, plus other internal getPlayer calls in
+      // notifyLifeEventDraw. We want money to drop -$5,000 between snapshots.
+      mockStateService.getPlayer
+        .mockReturnValueOnce({ ...playerBase, money: 100000, hand: [] }) // before
+        .mockReturnValueOnce({ ...playerBase, money: 95000, hand: ['L031'] }) // after
+        .mockReturnValue({ ...playerBase, money: 95000, hand: ['L031'] }); // notify lookups
+
+      await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
+
+      expect(mockStateService.emitAutoAction).toHaveBeenCalled();
+      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      expect(event.type).toBe('life_event');
+      expect(event.effectsSummary).toBeDefined();
+      const moneyReceipt = event.effectsSummary.find((e: any) => e.kind === 'money');
+      expect(moneyReceipt).toBeDefined();
+      expect(moneyReceipt.amount).toBe(-5000);
+      expect(moneyReceipt.label).toBe('-$5,000');
+    });
+
+    it('emits an approval-revoke receipt when DOB approval flips out of APPROVED (Kid A)', async () => {
+      mockCardService.drawCards.mockReturnValue(['L003']);
+      mockStateService.getPlayer
+        .mockReturnValueOnce({ ...playerBase, dobApprovalStatus: 'APPROVED', hand: [] })
+        .mockReturnValueOnce({ ...playerBase, dobApprovalStatus: 'PENDING', hand: ['L003'] })
+        .mockReturnValue({ ...playerBase, dobApprovalStatus: 'PENDING', hand: ['L003'] });
+
+      await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
+
+      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      const revoke = event.effectsSummary.find((e: any) => e.kind === 'approval_revoke');
+      expect(revoke).toBeDefined();
+      expect(revoke.label).toMatch(/DOB approval revoked/);
+    });
+
+    it('emits a duration_start receipt when the card added an active effect (Kid C)', async () => {
+      mockCardService.drawCards.mockReturnValue(['L002']);
+      mockStateService.getPlayer
+        .mockReturnValueOnce({ ...playerBase, activeEffects: [], hand: [] })
+        .mockReturnValueOnce({ ...playerBase, activeEffects: [{ effectId: 'a' } as any], hand: ['L002'] })
+        .mockReturnValue({ ...playerBase, activeEffects: [{ effectId: 'a' } as any], hand: ['L002'] });
+
+      await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
+
+      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      const dur = event.effectsSummary.find((e: any) => e.kind === 'duration_start');
+      expect(dur).toBeDefined();
+      expect(dur.label).toMatch(/keep affecting you/i);
+    });
+
+    it('emits an empty effectsSummary when nothing measurable changed (pure narrative card)', async () => {
+      mockCardService.drawCards.mockReturnValue(['L999']);
+      mockStateService.getPlayer
+        .mockReturnValueOnce({ ...playerBase, hand: [] })
+        .mockReturnValueOnce({ ...playerBase, hand: ['L999'] })
+        .mockReturnValue({ ...playerBase, hand: ['L999'] });
+
+      await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
+
+      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      // Hand went up by 1 (the L card itself) — that's subtracted in the diff,
+      // so handDelta is 0 and the summary stays empty.
+      expect(event.effectsSummary).toEqual([]);
+    });
+  });
 });
 
 // Kid E (2026-05-29) — autoPickForcedDiscards bypasses the choice modal so

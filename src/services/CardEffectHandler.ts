@@ -90,14 +90,21 @@ export class CardEffectHandler implements ICardEffectHandler {
       // only adds the card to hand. onlyResourceEffects applies just the pure
       // arithmetic money/time (safe — can't draw/prompt/loop); richer effects are
       // deferred. Card stays in hand as a record.
+      // v3.0.40: snapshot before/after so we can show the player a receipts
+      // block in the LifeEventModal (Kids A–E playtest signal — effects worked
+      // but were invisible behind the card narrative).
+      let effectsSummary: import('./StateService').LifeEventEffectSummary[] = [];
       if (payload.cardType === 'L' && !this.stateService.getGameState().isCapturingStartingHand) {
+        const before = this.snapshotPlayerForLifeEvent(payload.playerId);
         for (const drawnId of drawnCards) {
           await this.cardService.applyCardEffects(payload.playerId, drawnId, { onlyResourceEffects: true });
         }
+        const after = this.snapshotPlayerForLifeEvent(payload.playerId);
+        effectsSummary = this.diffLifeEventSnapshot(before, after, drawnCards[0]);
       }
 
       // Show notification for L (Life Event) card draws
-      this.notifyLifeEventDraw(payload.playerId, payload.cardType, drawnCards);
+      this.notifyLifeEventDraw(payload.playerId, payload.cardType, drawnCards, effectsSummary);
 
       // Check for funding space auto-play
       const fundingResult = this.checkFundingAutoPlay(payload, drawnCards, context);
@@ -298,7 +305,12 @@ export class CardEffectHandler implements ICardEffectHandler {
 
   // --- Private helper methods ---
 
-  private notifyLifeEventDraw(playerId: string, cardType: string, drawnCards: string[]): void {
+  private notifyLifeEventDraw(
+    playerId: string,
+    cardType: string,
+    drawnCards: string[],
+    effectsSummary: import('./StateService').LifeEventEffectSummary[] = []
+  ): void {
     if (cardType !== 'L' || drawnCards.length === 0 || !this.notificationService) return;
 
     const player = this.stateService.getPlayer(playerId);
@@ -342,8 +354,109 @@ export class CardEffectHandler implements ICardEffectHandler {
       cardId: cardDetail.id,
       success: true,
       spaceName: player.currentSpace,
-      message: notificationMessage
+      message: notificationMessage,
+      effectsSummary
     });
+  }
+
+  /**
+   * v3.0.40 — snapshot of the player fields that an auto-applied L-card can
+   * change. Used by handleCardDraw to diff before/after and build a
+   * LifeEventEffectSummary for the modal. Kept narrow on purpose: just the
+   * fields Kids A–E touch (money, time, approval state, hand size,
+   * active-effects count). Wider state changes belong in their own modal.
+   */
+  private snapshotPlayerForLifeEvent(playerId: string): {
+    money: number;
+    timeSpent: number;
+    handSize: number;
+    activeEffectsCount: number;
+    dobApprovalStatus?: string;
+    fdnyApprovalStatus?: string;
+  } | null {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return null;
+    return {
+      money: player.money,
+      timeSpent: player.timeSpent,
+      handSize: (player.hand ?? []).length,
+      activeEffectsCount: (player.activeEffects ?? []).length,
+      dobApprovalStatus: player.dobApprovalStatus,
+      fdnyApprovalStatus: player.fdnyApprovalStatus,
+    };
+  }
+
+  /**
+   * v3.0.40 — diff two LifeEvent snapshots into player-facing receipt lines.
+   * Order matters: money/time deltas first (most common, most concrete),
+   * then approval flips, then card gains/losses, then duration. Returns []
+   * if either snapshot is missing or nothing changed.
+   */
+  private diffLifeEventSnapshot(
+    before: ReturnType<CardEffectHandler['snapshotPlayerForLifeEvent']>,
+    after: ReturnType<CardEffectHandler['snapshotPlayerForLifeEvent']>,
+    primaryCardId?: string
+  ): import('./StateService').LifeEventEffectSummary[] {
+    if (!before || !after) return [];
+    const out: import('./StateService').LifeEventEffectSummary[] = [];
+
+    const moneyDelta = after.money - before.money;
+    if (moneyDelta !== 0) {
+      const sign = moneyDelta > 0 ? '+' : '-';
+      out.push({
+        kind: 'money',
+        amount: moneyDelta,
+        label: `${sign}$${Math.abs(moneyDelta).toLocaleString()}`,
+      });
+    }
+
+    const timeDelta = after.timeSpent - before.timeSpent;
+    if (timeDelta !== 0) {
+      const sign = timeDelta > 0 ? '+' : '-';
+      out.push({
+        kind: 'time',
+        amount: timeDelta,
+        label: `${sign}${Math.abs(timeDelta)} day${Math.abs(timeDelta) === 1 ? '' : 's'}`,
+      });
+    }
+
+    if (before.dobApprovalStatus === 'APPROVED' && after.dobApprovalStatus !== 'APPROVED') {
+      out.push({ kind: 'approval_revoke', label: 'DOB approval revoked — you will need to re-apply' });
+    }
+    if (before.fdnyApprovalStatus === 'APPROVED' && after.fdnyApprovalStatus !== 'APPROVED') {
+      out.push({ kind: 'approval_revoke', label: 'FDNY approval revoked — you will need to re-apply' });
+    }
+
+    // The L-card itself lands in hand, so handSize bumps by at least 1.
+    // Subtract the primary card draw before counting gains/losses so the
+    // receipt only shows *additional* gains (Kid B free Expeditor draws)
+    // and losses (Kid E forced discards).
+    const handDelta = after.handSize - before.handSize - (primaryCardId ? 1 : 0);
+    if (handDelta > 0) {
+      out.push({
+        kind: 'card_gained',
+        amount: handDelta,
+        label: `gained ${handDelta} extra resource${handDelta === 1 ? '' : 's'}`,
+      });
+    } else if (handDelta < 0) {
+      const lost = Math.abs(handDelta);
+      out.push({
+        kind: 'card_lost',
+        amount: handDelta,
+        label: `lost ${lost} resource${lost === 1 ? '' : 's'}`,
+      });
+    }
+
+    const effectsDelta = after.activeEffectsCount - before.activeEffectsCount;
+    if (effectsDelta > 0) {
+      out.push({
+        kind: 'duration_start',
+        amount: effectsDelta,
+        label: `this will keep affecting you over the next few turns`,
+      });
+    }
+
+    return out;
   }
 
   private checkFundingAutoPlay(payload: CardDrawPayload, drawnCards: string[], context: EffectContext): EffectResult | null {

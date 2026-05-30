@@ -114,4 +114,81 @@ describe('LifeEventModal', () => {
     expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
     expect(screen.getByTestId('life-event-modal-card-name')).toBeInTheDocument();
   });
+
+  // v3.0.40 — effects-applied block. Playtest signal (2026-05-29): Kids A–E
+  // worked but were invisible. The modal now shows a receipts block under the
+  // card narrative when effectsSummary is non-empty.
+
+  it('omits the effects block when effectsSummary is absent (legacy narrative-only card)', () => {
+    render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
+    expect(screen.queryByTestId('life-event-modal-effects')).not.toBeInTheDocument();
+  });
+
+  it('omits the effects block when effectsSummary is empty', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{ ...mockData, effectsSummary: [] }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.queryByTestId('life-event-modal-effects')).not.toBeInTheDocument();
+  });
+
+  it('renders a money receipt with sign + comma formatting', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{
+          ...mockData,
+          effectsSummary: [
+            { kind: 'money', amount: -5000, label: '-$5,000' },
+          ],
+        }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-modal-effects')).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-effect-money')).toHaveTextContent('-$5,000');
+  });
+
+  it('renders multiple receipts in order: money, time, approval, card, duration', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{
+          ...mockData,
+          effectsSummary: [
+            { kind: 'money', amount: -2000, label: '-$2,000' },
+            { kind: 'time', amount: 5, label: '+5 days' },
+            { kind: 'approval_revoke', label: 'DOB approval revoked — you will need to re-apply' },
+            { kind: 'card_lost', amount: -1, label: 'lost 1 resource' },
+            { kind: 'duration_start', amount: 3, label: 'this will keep affecting you over the next few turns' },
+          ],
+        }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-effect-money')).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-effect-time')).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-effect-approval_revoke')).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-effect-card_lost')).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-effect-duration_start')).toBeInTheDocument();
+  });
+
+  it('voice rule: the effects block uses "What just happened" — no "machinery" wording', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{
+          ...mockData,
+          effectsSummary: [{ kind: 'money', amount: -1000, label: '-$1,000' }],
+        }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByText(/what just happened/i)).toBeInTheDocument();
+    // No engine/processor jargon should leak into player view.
+    expect(screen.queryByText(/effect type|process|applyCardEffects|RESOURCE_CHANGE/i)).not.toBeInTheDocument();
+  });
 });

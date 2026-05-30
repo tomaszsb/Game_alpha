@@ -329,6 +329,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             card,
             diceValue: event.diceValue,
             spaceName: event.spaceName,
+            effectsSummary: event.effectsSummary,
           });
         }
       }

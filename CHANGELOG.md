@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.40] - 2026-05-29
+
+### Life-event feedback — modal receipts + recurring-effect callout
+
+Playtest signal after v3.0.39 ship: the Kids A–E richer life-event effects all worked in the engine, but the player couldn't see them. The Life Event modal showed only the card narrative (story prose) — no money/time deltas, no approval flip, no "this will keep happening" cue. Multi-turn duration cards (Kid C: L002 / L004 / L008) silently re-fired on later turns with no narrative tie back to the originating card. Two changes close the gap:
+
+#### "What just happened" block in the Life Event modal
+
+[LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx) now renders a receipts block under the card description when the auto-applied card produced measurable effects. Each line shows an icon + plain-language label: 💰 money delta, ⏱️ time delta, 🚫 DOB/FDNY approval revoked, 🃏 extra resources gained (Kid B free Expeditor draws), 🗑️ resources lost (Kid E forced discards), 🔁 "this will keep affecting you" (Kid C multi-turn duration). PM voice (life events are one of the 5 PM-voiced exceptions per the project voice rule). Block omits when the summary is empty so pure-narrative L-cards keep the legacy look.
+
+The summary is computed by [CardEffectHandler.handleCardDraw](src/services/CardEffectHandler.ts) snapshotting the player before/after the `applyCardEffects` loop, then diffing into a `LifeEventEffectSummary[]` attached to the `life_event` auto-action event. Snapshot is narrow (money, timeSpent, hand size, activeEffects count, DOB/FDNY approval status) — exactly the fields Kids A–E touch.
+
+#### Recurring-effect surfacing on later turns
+
+[EffectEngineService.applyActiveEffects](src/services/EffectEngineService.ts) now snapshots money/timeSpent before each active-effect re-fire and, after `processEffect` runs, calls a new `surfaceRecurringEffect` helper that:
+- Emits a player notification: "🔁 Sick Kid still affecting you: -$2,000 — 2 more turns to go" (or "— last one" on the final turn).
+- Writes an action-log entry tying the resource line back to the source card (cardName + delta + turnsLeft + sourceCardId in payload).
+
+Helper short-circuits when the delta is zero (no spam for 0-tick recurring effects) or when the source card lookup fails. Voice: PM-narrated, no engine jargon.
+
+#### Changed
+- [package.json](package.json) (3.0.39 → 3.0.40).
+- [StateService.ts](src/services/StateService.ts) — new `LifeEventEffectSummary` interface; `AutoActionEvent.effectsSummary?` field.
+- [CardEffectHandler.ts](src/services/CardEffectHandler.ts) — before/after snapshot in `handleCardDraw`; new private `snapshotPlayerForLifeEvent` + `diffLifeEventSnapshot` helpers; summary passed through `notifyLifeEventDraw` to the auto-action event.
+- [EffectEngineService.ts](src/services/EffectEngineService.ts) — `applyActiveEffects` snapshots before each re-fire; new private `surfaceRecurringEffect` helper emits notification + log entry.
+- [LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx) — receipts block under the narrative; `effectsSummary?` added to `LifeEventModalData`.
+- [GameLayout.tsx](src/components/layout/GameLayout.tsx) — pipes `event.effectsSummary` into `pendingLifeEvent`.
+
+#### Test
+- **Extended** [LifeEventModal.test.tsx](tests/components/modals/LifeEventModal.test.tsx) — +5 cases (block omitted when summary absent/empty; money receipt with sign + comma formatting; multi-receipt ordering by kind; voice-rule "What just happened" header with no engine jargon).
+- **Extended** [CardEffectHandler.test.ts](tests/services/CardEffectHandler.test.ts) — +4 cases (money receipt, DOB approval revoke (Kid A), duration_start (Kid C), empty summary for pure-narrative cards).
+- **New** [EffectEngineService.test.ts](tests/services/EffectEngineService.test.ts) describe block (+5 cases) — recurring-effect notification text, log entry payload shape, "more turns to go" vs "last one" copy, zero-delta short-circuit. Existing `processActiveEffectsForAllPlayers` test updated to use argument-aware `getPlayer` mock (was brittle to call-count changes).
+- Targeted sweep: 82 files / **1550 passing** (+14 new cases). Build + typecheck clean.
+
 ## [3.0.39] - 2026-05-29
 
 ### Block — "crush all bugs" session: top-3 + 5 Kids + 8 quick wins (18 items shipped)
