@@ -44,11 +44,13 @@ export const EventsSection: React.FC<EventsSectionProps> = ({
   // Get L card manual effects from current space
   const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
   const conditionFilteredEffects = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
-  const lCardManualEffects = conditionFilteredEffects.filter(
-    effect => effect.trigger_type === 'manual' &&
-              effect.effect_type === 'cards' &&
-              effect.effect_action === 'draw_l'
-  );
+  // v3.0.42: lowercase comparison — CSV stores DRAW actions as 'draw_L'
+  // (uppercase suffix). Pre-fix the strict 'draw_l' check never matched,
+  // so the LIFE EVENTS section never got its "needs action" badge.
+  const lCardManualEffects = conditionFilteredEffects.filter(effect => {
+    if (effect.trigger_type !== 'manual' || effect.effect_type !== 'cards') return false;
+    return effect.effect_action?.toLowerCase() === 'draw_l';
+  });
 
   const hasLCardActions = lCardManualEffects.length > 0;
 

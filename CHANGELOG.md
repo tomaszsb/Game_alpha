@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.42] - 2026-05-30
+
+### Five-item cleanup — case-sensitivity fix, dead-code purge, dashboard cleanup, one investigation
+
+Mixed batch of one real bug + three cleanups + one investigation that turned out to be needs-repro.
+
+#### 1. Case-sensitivity bugs in player-panel section filters (real UX bug)
+
+[CardsSection.tsx:113-122](src/components/player/sections/CardsSection.tsx#L113) and [EventsSection.tsx:47-52](src/components/player/sections/EventsSection.tsx#L47) compared `effect.effect_action === 'draw_e'` / `'draw_l'` against unnormalized CSV values `'draw_E'` / `'draw_L'`. Same bug class as the v3.0.41 Owner Funding fix: the strict-equality check never matched, so `hasCardActions` / `hasLCardActions` were silently false. Result: the EXPEDITORS and LIFE EVENTS sections of the player panel never got their "needs action" badge even when the player had a pending manual draw at OWNER-SCOPE-INITIATION or similar. Filters now lowercase before comparison.
+
+#### 2. Dead `apply*Effect` infrastructure purge (TODO line 82)
+
+The dice/quality/multiplier pipeline was migrated to EffectEngineService's `CONTRACTOR_UPDATE` handler in v2.65.9, but the old wrapping infrastructure was never deleted. Removed:
+- [TurnService.ts](src/services/TurnService.ts) — 5 unused private wrappers (`applyDiceEffect`, `applyCardEffect`, `applyMoneyEffect`, `applyTimeEffect`, `applyQualityEffect`) + 1 unused helper (`getDiceRollEffect`).
+- [SpaceEffectService.ts](src/services/SpaceEffectService.ts) — 6 dead methods (`applyDiceEffect`, `applyCardEffect`, `applyMoneyEffect`, `applyTimeEffect`, `applyQualityEffect`, `applyMultiplierEffect`) + the private `calculateAndDeductConstructionCost` (only caller was `applyMultiplierEffect`). ~300 lines.
+- [ServiceContracts.ts](src/types/ServiceContracts.ts) + the in-file interface — pruned 6 dead method declarations from `ISpaceEffectService`.
+- [SpaceEffectService.test.ts](tests/services/SpaceEffectService.test.ts) — deleted 6 corresponding `describe` blocks (~300 lines, 22 tests). The 3 surviving methods (`applySpaceMoneyEffect`, `applySpaceTimeEffect`, `getTargetPlayer`) keep their 10 tests.
+
+Live behavior unchanged — the deleted code had zero production callers as of v2.65.9.
+
+#### 3. Dashboard PATCH-flip — 6 resolved reports
+
+Server-side `resolved=true` flipped on reports already closed in shipped code: `fb:068a66f2` (v3.0.33 LOGIC_QUESTION cross-device relay), `fb:c7312a0a` (v3.0.24 phone-reconnect), `fb:f7312d82` (v3.0.24 phone-reconnect), `fb:adbc48b0` (v3.0.22 "Roll dice" → "Determine Outcome"), `fb:1aad6035` (v3.0.23 Life Event parenthetical drop), `fb:5dc01203` (v3.0.23 player-strip "cards" → "resources"). Reduces noise on next `/start` sweep.
+
+#### 4. Investigated `fb:46dd4a47` CHEAT-BYPASS landing — needs fresh repro
+
+Player reported (2026-05-15) that landing on PM-DECISION-CHECK from CHEAT-BYPASS was unexpected. Data + code paths look correct: [DICE_OUTCOMES.csv](public/data/CLEAN_FILES/DICE_OUTCOMES.csv) shows PM-DECISION-CHECK on rolls 5 and 6 (the "punishment" outcome — 60d/365d penalty); `MovementService.getValidMoves` returns all 5 unique dice destinations including PM-DECISION-CHECK; v3.0.10's `visibleEdges` filter draws arrows from the current tile to all validMoves. The original report predates v3.0.10/26/31 UI changes — any of those may have already resolved the perceived gap. TODO downgraded to "needs fresh repro to act."
+
+#### Changed
+- [package.json](package.json) (3.0.41 → 3.0.42).
+- [CardsSection.tsx](src/components/player/sections/CardsSection.tsx), [EventsSection.tsx](src/components/player/sections/EventsSection.tsx) — case-insensitive `effect_action` comparison.
+- [TurnService.ts](src/services/TurnService.ts), [SpaceEffectService.ts](src/services/SpaceEffectService.ts), [ServiceContracts.ts](src/types/ServiceContracts.ts) — dead-code purge.
+- [SpaceEffectService.test.ts](tests/services/SpaceEffectService.test.ts) — pruned dead-method test blocks.
+- [TODO.md](TODO.md) — `fb:46dd4a47` updated with investigation notes; per-space hardcoding audit note for the now-purged dead code.
+
+#### Test
+- Targeted sweep: 83 files / **1542 passing**. Build + typecheck clean. (Test count down from v3.0.41's 1561 because of the 22-test purge; net new tests would push the count back up but this round didn't add new ones — the case-sensitivity fix relies on the existing component render path; manual verification next playtest.)
+
 ## [3.0.41] - 2026-05-30
 
 ### Five-bug sweep — Kid C phase gate, state-rollback defense, choice-leak cleanup, Owner Funding label, stale migration removal

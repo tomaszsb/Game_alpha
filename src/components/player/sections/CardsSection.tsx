@@ -110,13 +110,18 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
   const conditionFilteredEffects = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
 
-  const cardManualEffects = conditionFilteredEffects.filter(
-    effect => effect.trigger_type === 'manual' &&
-              effect.effect_type === 'cards' &&
-              (effect.effect_action === 'draw_e' || effect.effect_action === 'replace_e' ||
-               effect.effect_action === 'give_e' || effect.effect_action === 'return_e' ||
-               effect.effect_action === 'transfer')
-  );
+  // v3.0.42: lowercase comparison — CSV stores DRAW actions as 'draw_E'
+  // (uppercase suffix). Pre-fix the strict 'draw_e' check never matched,
+  // so this section's `hasCardActions` was silently false and the EXPEDITORS
+  // panel never got its "needs action" badge even when the player had a
+  // pending draw. Same bug class as the v3.0.41 Owner Funding fix.
+  const cardManualEffects = conditionFilteredEffects.filter(effect => {
+    if (effect.trigger_type !== 'manual' || effect.effect_type !== 'cards') return false;
+    const action = effect.effect_action?.toLowerCase() || '';
+    return action === 'draw_e' || action === 'replace_e'
+      || action === 'give_e' || action === 'return_e'
+      || action === 'transfer';
+  });
 
   // Get dice effects for E cards only
   const allDiceEffects = gameServices.dataService.getDiceEffects(player.currentSpace, player.visitType);

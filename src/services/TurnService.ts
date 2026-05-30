@@ -1090,34 +1090,11 @@ export class TurnService implements ITurnService {
     }
   }
 
-  private applyDiceEffect(
-    playerId: string,
-    effect: DiceEffect,
-    diceRoll: number,
-    currentState: GameState
-  ): GameState {
-    return this.spaceEffectService.applyDiceEffect(playerId, effect, diceRoll, currentState);
-  }
-
-  private getDiceRollEffect(effect: DiceEffect, diceRoll: number): string | undefined {
-    return this.diceService.getDiceRollEffect(effect, diceRoll);
-  }
-
-  private applyCardEffect(playerId: string, cardType: string, effect: string): GameState {
-    return this.spaceEffectService.applyCardEffect(playerId, cardType, effect);
-  }
-
-  private applyMoneyEffect(playerId: string, effect: string): GameState {
-    return this.spaceEffectService.applyMoneyEffect(playerId, effect);
-  }
-
-  private applyTimeEffect(playerId: string, effect: string): GameState {
-    return this.spaceEffectService.applyTimeEffect(playerId, effect);
-  }
-
-  private applyQualityEffect(playerId: string, effect: string): GameState {
-    return this.spaceEffectService.applyQualityEffect(playerId, effect);
-  }
+  // v3.0.42: deleted 5 private wrappers + 1 helper that were never called
+  // (applyDiceEffect / applyCardEffect / applyMoneyEffect / applyTimeEffect /
+  // applyQualityEffect / getDiceRollEffect). The dice/quality/multiplier
+  // pipeline was migrated to EffectEngineService's CONTRACTOR_UPDATE handler
+  // in v2.65.9; these passthroughs to SpaceEffectService outlived it.
 
   private async applySpaceCardEffect(playerId: string, effect: SpaceEffect, effectType: string): Promise<GameState> {
 
