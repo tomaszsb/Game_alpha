@@ -953,6 +953,280 @@ describe('CardService - Enhanced Coverage', () => {
       expect(timeEffects).toHaveLength(0);
     });
 
+    // L029 "Utility Delay" — card_mechanic='utility_conditional'. The +3 days
+    // only applies if the player's project requires utility hookups, i.e. they
+    // hold a W card whose work type is one of: Electrical, Plumbing, Mechanical
+    // Systems, Boiler Equipment, Fuel Burning, Fuel Storage. Author design call
+    // 2026-05-30: core utilities only — fire/water and elevator excluded.
+    const L029_CARD = {
+      card_id: 'L029',
+      card_name: 'Utility Delay',
+      card_type: 'L',
+      tick_modifier: '3',
+      target: 'Self',
+      scope: 'Single',
+      card_mechanic: 'utility_conditional',
+      description: 'If the project requires utility hookups increase the filing time by 3 days.'
+    };
+
+    it('should apply L029 +3 days when the player holds a utility W card (Electrical)', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_elec'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L029') return L029_CARD;
+        if (cardId === 'W_elec') return { card_id: 'W_elec', card_name: 'Service Upgrade', card_type: 'W', work_type_restriction: 'Electrical', description: '' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L029');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.amount).toBe(3);
+    });
+
+    it('should NOT apply L029 +3 days when the player holds only non-utility W cards (General Construction)', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_gc'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L029') return L029_CARD;
+        if (cardId === 'W_gc') return { card_id: 'W_gc', card_name: 'Lobby Renovation', card_type: 'W', work_type_restriction: 'General Construction', description: '' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L029');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls
+        .flatMap((c: any) => c[0] ?? [])
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(0);
+    });
+
+    // L041 "Competing Projects" — card_mechanic='competing_worktype_conditional'.
+    // +2 days only fires if at least one other player holds a W card whose
+    // work_type_restriction matches one of the drawing player's. Author design
+    // call 2026-05-30: "Reveal popup + apply" — the LifeEventModal shows each
+    // other player's worktypes (via competing_reveal receipt entries) so the
+    // player can see why the conditional fired (or didn't).
+    const L041_CARD = {
+      card_id: 'L041',
+      card_name: 'Competing Projects',
+      card_type: 'L',
+      tick_modifier: '2',
+      target: 'Self',
+      scope: 'Single',
+      card_mechanic: 'competing_worktype_conditional',
+      description: 'Ask each other player about their current worktypes. If any player has the same worktype as you increase your filing time by 2 days.'
+    };
+
+    it('should apply L041 +2 days when another player shares a worktype', () => {
+      const p1: any = { ...mockPlayer, id: 'player1', name: 'Alice', hand: ['W_a_elec'] };
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Bob', hand: ['W_b_elec'] };
+      mockStateService.getPlayer.mockImplementation((id: string) =>
+        id === 'player1' ? p1 : id === 'player2' ? p2 : undefined
+      );
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [p1, p2] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L041') return L041_CARD;
+        if (cardId === 'W_a_elec') return { card_id: 'W_a_elec', card_type: 'W', work_type_restriction: 'Electrical' };
+        if (cardId === 'W_b_elec') return { card_id: 'W_b_elec', card_type: 'W', work_type_restriction: 'Electrical' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L041');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.amount).toBe(2);
+    });
+
+    it('should NOT apply L041 +2 days when no other player shares a worktype', () => {
+      const p1: any = { ...mockPlayer, id: 'player1', name: 'Alice', hand: ['W_a_elec'] };
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Bob', hand: ['W_b_found'] };
+      mockStateService.getPlayer.mockImplementation((id: string) =>
+        id === 'player1' ? p1 : id === 'player2' ? p2 : undefined
+      );
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [p1, p2] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L041') return L041_CARD;
+        if (cardId === 'W_a_elec') return { card_id: 'W_a_elec', card_type: 'W', work_type_restriction: 'Electrical' };
+        if (cardId === 'W_b_found') return { card_id: 'W_b_found', card_type: 'W', work_type_restriction: 'Foundation' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L041');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls
+        .flatMap((c: any) => c[0] ?? [])
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(0);
+    });
+
+    // L044 "State Funding" — card_mechanic='high_profile_conditional'. The
+    // −4 days only applies if the player holds a W card whose work type is
+    // 'New Building', 'Full Demolition', 'Place of Assembly', or 'Marquees'.
+    // Author design call 2026-05-30: "Big-impact work types."
+    const L044_CARD = {
+      card_id: 'L044',
+      card_name: 'State Funding',
+      card_type: 'L',
+      tick_modifier: '-4',
+      target: 'Self',
+      scope: 'Single',
+      card_mechanic: 'high_profile_conditional',
+      description: 'The current high-profile project filing time is reduced by 4 days.'
+    };
+
+    it('should apply L044 −4 days when the player holds a high-profile W card (New Building)', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_nb'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L044') return L044_CARD;
+        if (cardId === 'W_nb') return { card_id: 'W_nb', card_type: 'W', work_type_restriction: 'New Building' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L044');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.amount).toBe(-4);
+    });
+
+    it('should NOT apply L044 −4 days when the player holds only non-high-profile W cards (General Construction)', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_gc'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        if (cardId === 'L044') return L044_CARD;
+        if (cardId === 'W_gc') return { card_id: 'W_gc', card_type: 'W', work_type_restriction: 'General Construction' };
+        return undefined;
+      });
+
+      cardService.applyCardEffects('player1', 'L044');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls
+        .flatMap((c: any) => c[0] ?? [])
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(0);
+    });
+
+    // L046 "Expeditor Awards" — card_mechanic='leader_phase_conditional'.
+    // The −4 days lands on the player furthest along the board (highest phase
+    // reached), not necessarily the drawer. Ties broken by gameState.players
+    // iteration order. Author design call 2026-05-30: "Furthest along the
+    // board (highest phase)."
+    const L046_CARD = {
+      card_id: 'L046',
+      card_name: 'Expeditor Awards',
+      card_type: 'L',
+      tick_modifier: '-4',
+      target: 'Self',
+      scope: 'Single',
+      card_mechanic: 'leader_phase_conditional',
+      description: 'The player with the most completed projects reduces their current filing time by 4 days.'
+    };
+
+    function setupL046Players(players: Array<{ id: string; name: string; currentSpace: string; visitedSpaces?: string[] }>) {
+      const fullPlayers = players.map(p => ({ ...mockPlayer, ...p }));
+      mockStateService.getPlayer.mockImplementation((id: string) =>
+        fullPlayers.find(p => p.id === id)
+      );
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: fullPlayers });
+      mockDataService.getCardById.mockImplementation((cardId: string) =>
+        cardId === 'L046' ? L046_CARD : undefined
+      );
+      mockDataService.getPhaseOrder = vi.fn().mockReturnValue(['SETUP', 'OWNER', 'FUNDING', 'DESIGN', 'REGULATORY', 'CONSTRUCTION', 'END']);
+      mockDataService.getGameConfigBySpace.mockImplementation((spaceName: string) => {
+        const map: Record<string, string> = {
+          'OWNER-SCOPE-INITIATION': 'OWNER',
+          'BANK-FUND-REVIEW': 'FUNDING',
+          'ARCH-INITIATION': 'DESIGN',
+          'REG-DOB-PLAN-EXAM': 'REGULATORY',
+          'CON-INITIATION': 'CONSTRUCTION',
+        };
+        return map[spaceName] ? { space_name: spaceName, phase: map[spaceName] } as any : undefined;
+      });
+    }
+
+    it('should redirect L046 −4 days to the player furthest along the board', () => {
+      setupL046Players([
+        { id: 'player1', name: 'Alice', currentSpace: 'OWNER-SCOPE-INITIATION' },
+        { id: 'player2', name: 'Bob',   currentSpace: 'CON-INITIATION' },
+        { id: 'player3', name: 'Carol', currentSpace: 'REG-DOB-PLAN-EXAM' },
+      ]);
+
+      cardService.applyCardEffects('player1', 'L046');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.playerId).toBe('player2'); // Bob is furthest along
+      expect(timeEffects[0].payload.amount).toBe(-4);
+    });
+
+    it('should keep L046 −4 days on the drawing player when they are the leader themselves', () => {
+      setupL046Players([
+        { id: 'player1', name: 'Alice', currentSpace: 'CON-INITIATION' },
+        { id: 'player2', name: 'Bob',   currentSpace: 'OWNER-SCOPE-INITIATION' },
+      ]);
+
+      cardService.applyCardEffects('player1', 'L046');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.playerId).toBe('player1');
+    });
+
+    it('buildLeaderReveal should label the drawing player as "You\'re the leader" when they are', () => {
+      setupL046Players([
+        { id: 'player1', name: 'Alice', currentSpace: 'CON-INITIATION' },
+        { id: 'player2', name: 'Bob',   currentSpace: 'OWNER-SCOPE-INITIATION' },
+      ]);
+
+      const reveal = cardService.buildLeaderReveal('player1', -4);
+
+      expect(reveal).toHaveLength(1);
+      expect(reveal[0]).toEqual({ kind: 'leader_reveal', label: "You're the leader (CONSTRUCTION) — saves 4 days" });
+    });
+
+    it('buildLeaderReveal should label another player as leader when they are furthest along', () => {
+      setupL046Players([
+        { id: 'player1', name: 'Alice', currentSpace: 'OWNER-SCOPE-INITIATION' },
+        { id: 'player2', name: 'Bob',   currentSpace: 'CON-INITIATION' },
+      ]);
+
+      const reveal = cardService.buildLeaderReveal('player1', -4);
+
+      expect(reveal[0]).toEqual({ kind: 'leader_reveal', label: 'Bob is the leader (CONSTRUCTION) — saves 4 days' });
+    });
+
+    it('buildCompetingWorktypeReveal should produce one entry per other player with overlap labels', () => {
+      const p1: any = { ...mockPlayer, id: 'player1', name: 'Alice', hand: ['W_a_elec', 'W_a_plumb'] };
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Bob', hand: ['W_b_elec'] };
+      const p3: any = { ...mockPlayer, id: 'player3', name: 'Carol', hand: ['W_c_found'] };
+      const p4: any = { ...mockPlayer, id: 'player4', name: 'Dave', hand: [] };
+      mockStateService.getPlayer.mockImplementation((id: string) =>
+        ({ player1: p1, player2: p2, player3: p3, player4: p4 } as any)[id]
+      );
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [p1, p2, p3, p4] });
+      mockDataService.getCardById.mockImplementation((cardId: string) => {
+        const map: any = {
+          W_a_elec: { card_type: 'W', work_type_restriction: 'Electrical' },
+          W_a_plumb: { card_type: 'W', work_type_restriction: 'Plumbing' },
+          W_b_elec: { card_type: 'W', work_type_restriction: 'Electrical' },
+          W_c_found: { card_type: 'W', work_type_restriction: 'Foundation' },
+        };
+        return map[cardId];
+      });
+
+      const reveal = cardService.buildCompetingWorktypeReveal('player1');
+
+      expect(reveal).toHaveLength(3);
+      expect(reveal[0]).toEqual({ kind: 'competing_reveal', label: 'Bob: Electrical — overlap: Electrical' });
+      expect(reveal[1]).toEqual({ kind: 'competing_reveal', label: 'Carol: Foundation — no overlap' });
+      expect(reveal[2]).toEqual({ kind: 'competing_reveal', label: 'Dave: no current worktypes — no overlap' });
+    });
+
     it('should filter global tick_modifier by affected_phase=REGULATORY (L026/L030/L036/L047 shape)', () => {
       // L026 "All permit filing times decrease by 1 day this turn." with
       // affected_phase=REGULATORY should only tick down players currently on a

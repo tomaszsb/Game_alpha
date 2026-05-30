@@ -2,6 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.43] - 2026-05-30
+
+### L-card design-call sweep — five cards land, two new modal receipt kinds
+
+The full set of "design-review leftover" L cards from NEXT_SESSION top-3 #2 wired in one session. Each one was a creator voice call before code: the user picked the mechanic, the engine grew to match.
+
+#### 1. L035 "Expeditor Quits" — pure data fix (no engine change)
+
+The TURN_CONTROL/SKIP_TURN wiring already existed at [CardService.ts:1481](src/services/CardService.ts#L1481); the card just had an empty `turn_effect` column. Populated it with "Skip your next turn." Discard half (`2 E`) was already shipped (Kid E v3.0.39).
+
+#### 2. L031 "Permit Fee Hike" — text rewrite + discard wiring
+
+Card text changed from *"costs 2 extra resources but takes 2 days less time"* → *"costs 2 Expeditors but takes 2 days less time."* `discard_cards=2 E` wired (same column as L035). The −2 days half was already firing via `tick_modifier=-2`. Resolves the ambiguity around what "resources" meant — author confirmed it should be Expeditor cards.
+
+#### 3. L029 "Utility Delay" — new `utility_conditional` mechanic
+
+New `utility_conditional` value on `card_mechanic` joins the existing `work_type_conditional` (groundwork) and `dice_conditional` family. Gate at [CardService.ts:1417-1423](src/services/CardService.ts#L1417) switches on the mechanic name and calls the matching helper:
+- `UTILITY_WORK_TYPES = { Electrical, Plumbing, Mechanical Systems, Boiler Equipment, Fuel Burning, Fuel Storage }` — core utilities only per author design call (fire/water systems and Solar/Elevator deliberately excluded).
+- `playerInvolvesUtilities(playerId)` mirrors `playerInvolvesGroundwork`.
+
+L029 CSV now: `tick_modifier=3, card_mechanic=utility_conditional`. The +3 days fires only when the player holds a W card with one of the 6 utility work types.
+
+#### 4. L041 "Competing Projects" — new `competing_worktype_conditional` mechanic + reveal receipts in LifeEventModal
+
+Bigger change: this is the first L-card whose effect needs to *show* the player a cross-player comparison. Author picked "Reveal popup + apply" over silent/toast variants.
+
+- New `competing_worktype_conditional` mechanic + `playerHasCompetingWorktype(playerId)` helper scans every other player's hand for W cards sharing a `work_type_restriction`.
+- New `competing_reveal` kind on `LifeEventEffectSummary` ([StateService.ts:37](src/services/StateService.ts#L37)), `🔍` icon mapped in [LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx).
+- `CardService.buildCompetingWorktypeReveal(playerId)` returns one entry per other player with the format `"<Name>: <worktypes> — overlap: <shared>"` or `"… — no overlap."` Public on `ICardService` so `CardEffectHandler` can call it without reaching into private state.
+- [CardEffectHandler.ts](src/services/CardEffectHandler.ts) injects the reveal entries into `effectsSummary` BEFORE the time receipt so the modal reads top-down: "what each player is doing" → "your +2 days."
+
+L041 CSV: `tick_modifier=2, card_mechanic=competing_worktype_conditional`.
+
+#### 5. L044 "State Funding" — new `high_profile_conditional` mechanic
+
+Parallel to L029. Author defined "high-profile" as big-impact, public-facing work types:
+- `HIGH_PROFILE_WORK_TYPES = { New Building, Full Demolition, Place of Assembly, Marquees }`.
+- `playerInvolvesHighProfile(playerId)` helper + new gate branch.
+
+L044 CSV: `tick_modifier=-4, card_mechanic=high_profile_conditional`. The −4 days fires only when the player holds at least one high-profile W card.
+
+#### 6. L046 "Expeditor Awards" — new `leader_phase_conditional` mechanic (first target-redirect card)
+
+This one introduces a new pattern: the time effect doesn't land on the drawing player. It lands on whoever is *furthest along the board*.
+
+- `maxPhaseReached(playerId)` scans `player.visitedSpaces` + `currentSpace`, maps each space → phase via `getGameConfigBySpace`, returns the highest phase index from `dataService.getPhaseOrder()`.
+- `getFurthestPlayer()` returns the playerId with the highest `maxPhaseReached`. Ties broken by `gameState.players` iteration order.
+- The single-target emission branch at [CardService.ts:1488-1502](src/services/CardService.ts#L1488) checks `card.card_mechanic === 'leader_phase_conditional'` and overrides `payload.playerId` to the leader's ID (falls back to drawing player if no leader exists, e.g. solo game).
+- New `leader_reveal` kind on `LifeEventEffectSummary`, `🏆` icon. `buildLeaderReveal(drawingId, days)` returns one entry: `"You're the leader (CONSTRUCTION) — saves 4 days"` when the drawing player IS the leader, or `"<Name> is the leader (CONSTRUCTION) — saves 4 days"` when someone else is.
+- `CardEffectHandler` injects the reveal entry the same way it does for L041.
+
+L046 CSV: `tick_modifier=-4, card_mechanic=leader_phase_conditional`.
+
+#### 7. Stale TODO cleanup — five "ambiguous wording" cards were already done
+
+Audit found L026/L030/L033/L036/L047 ("All filing times…") already had `scope=Global, target=All Players, non-zero tick_modifier` with phase filters in place. The TODO line 265 + NEXT_SESSION top-3 #2 both still claimed `scope=Single, tick=0`. Fixed silently in v3.0.14/v3.0.17 sweeps; entry resolved as stale.
+
+#### Changed
+- [package.json](package.json) (3.0.42 → 3.0.43).
+- [DataTypes.ts](src/types/DataTypes.ts) — `card_mechanic` union extended with 3 new values.
+- [DataService.ts](src/services/DataService.ts) — parse whitelist extended.
+- [StateService.ts](src/services/StateService.ts) — `LifeEventEffectSummary.kind` extended with `competing_reveal` + `leader_reveal`.
+- [LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx) — icon mappings for the two new receipt kinds.
+- [CardService.ts](src/services/CardService.ts) — 2 new work-type sets (UTILITY, HIGH_PROFILE), 3 new conditional gate branches, 4 new public/private helpers, single-target redirect for leader mechanic.
+- [CardEffectHandler.ts](src/services/CardEffectHandler.ts) — reveal-entries injection in `handleCardDraw`.
+- [ServiceContracts.ts](src/types/ServiceContracts.ts) — `ICardService` gains `buildCompetingWorktypeReveal` + `buildLeaderReveal`.
+- [CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv) — 5 rows updated (L029, L031, L035, L041, L044, L046).
+- [tests/mocks/mockServices.ts](tests/mocks/mockServices.ts) — mock CardService gains the 2 new methods.
+- [tests/services/CardService.test.ts](tests/services/CardService.test.ts) — +11 tests: 2 for L029, 3 for L041, 2 for L044, 4 for L046.
+- [TODO.md](TODO.md) — design-review leftovers entry flipped to [x] with full ship summary; stale "ambiguous wording" entry resolved.
+
+#### Test
+- Targeted sweep: 83 files / **1553 passing** (up from 1542 in v3.0.42). Build + typecheck clean.
+
 ## [3.0.42] - 2026-05-30
 
 ### Five-item cleanup — case-sensitivity fix, dead-code purge, dashboard cleanup, one investigation

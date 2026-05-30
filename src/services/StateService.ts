@@ -34,7 +34,7 @@ import { ServerSyncService, StateProvider } from './ServerSyncService';
 // "DOB approval revoked", "lost 2 cards"). v3.0.40 — playtest signal: Kids
 // A–E worked but were invisible to the player.
 export interface LifeEventEffectSummary {
-  kind: 'money' | 'time' | 'approval_revoke' | 'card_gained' | 'card_lost' | 'duration_start';
+  kind: 'money' | 'time' | 'approval_revoke' | 'card_gained' | 'card_lost' | 'duration_start' | 'competing_reveal' | 'leader_reveal';
   /** Signed numeric delta for money/time, or count for cards/turns. */
   amount?: number;
   /** Display label rendered next to the icon (PM voice — see LifeEventModal). */

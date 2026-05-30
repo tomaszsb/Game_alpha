@@ -21,6 +21,31 @@ const GROUNDWORK_WORK_TYPES = new Set<string>([
   'Demolition & Removal',
 ]);
 
+// Work types that require outside-utility hookups (Con Ed / National Grid /
+// DEP coordination). Used to gate utility_conditional cards like L029 "Utility
+// Delay" (+3 days only if the player's project requires utility hookups). Core
+// utilities only — fire/water systems and Solar/Elevator deliberately excluded
+// per author design call 2026-05-30.
+const UTILITY_WORK_TYPES = new Set<string>([
+  'Electrical',
+  'Plumbing',
+  'Mechanical Systems',
+  'Boiler Equipment',
+  'Fuel Burning',
+  'Fuel Storage',
+]);
+
+// Work types that mark a project as "high-profile" — large, visible, public-
+// facing builds that attract press coverage and political attention. Used to
+// gate high_profile_conditional cards like L044 "State Funding" (−4 days only
+// if the player's project is high-profile). Author design call 2026-05-30.
+const HIGH_PROFILE_WORK_TYPES = new Set<string>([
+  'New Building',
+  'Full Demolition',
+  'Place of Assembly',
+  'Marquees',
+]);
+
 export class CardService implements ICardService {
   private readonly dataService: IDataService;
   private readonly stateService: IStateService;
@@ -1200,6 +1225,164 @@ export class CardService implements ICardService {
   }
 
   /**
+   * True when the player's project requires utility hookups — i.e. they hold
+   * at least one W card whose work type touches outside-utility coordination.
+   * Gates utility_conditional cards (e.g. L029 "Utility Delay").
+   */
+  private playerInvolvesUtilities(playerId: string): boolean {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return false;
+    return (player.hand ?? []).some(cardId => {
+      const c = this.dataService.getCardById(cardId);
+      return c?.card_type === 'W'
+        && !!c.work_type_restriction
+        && UTILITY_WORK_TYPES.has(c.work_type_restriction);
+    });
+  }
+
+  /**
+   * Returns the set of work_type_restriction values across all W cards a
+   * player currently holds. Used by competing_worktype_conditional cards
+   * (e.g. L041) to detect overlap between players.
+   */
+  private getPlayerWorktypes(playerId: string): Set<string> {
+    const player = this.stateService.getPlayer(playerId);
+    const out = new Set<string>();
+    if (!player) return out;
+    for (const cardId of (player.hand ?? [])) {
+      const c = this.dataService.getCardById(cardId);
+      if (c?.card_type === 'W' && c.work_type_restriction) {
+        out.add(c.work_type_restriction);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * True when any other player shares at least one current worktype with the
+   * given player. Gates competing_worktype_conditional cards (L041).
+   */
+  private playerHasCompetingWorktype(playerId: string): boolean {
+    const mine = this.getPlayerWorktypes(playerId);
+    if (mine.size === 0) return false;
+    const gameState = this.stateService.getGameState();
+    return gameState.players.some(other => {
+      if (other.id === playerId) return false;
+      const theirs = this.getPlayerWorktypes(other.id);
+      for (const wt of theirs) if (mine.has(wt)) return true;
+      return false;
+    });
+  }
+
+  /**
+   * Build LifeEventModal receipt entries that reveal each other player's
+   * worktypes and the overlap with the drawing player. One 'competing_reveal'
+   * entry per other player so the modal can show why the conditional fired
+   * (or didn't). Called from CardEffectHandler when an L card with mechanic
+   * 'competing_worktype_conditional' lands. Public so the handler can invoke
+   * it without reaching into private state.
+   */
+  buildCompetingWorktypeReveal(playerId: string): Array<{ kind: 'competing_reveal'; label: string }> {
+    const mine = this.getPlayerWorktypes(playerId);
+    const gameState = this.stateService.getGameState();
+    const out: Array<{ kind: 'competing_reveal'; label: string }> = [];
+    for (const other of gameState.players) {
+      if (other.id === playerId) continue;
+      const theirs = [...this.getPlayerWorktypes(other.id)];
+      const overlap = theirs.filter(wt => mine.has(wt));
+      const theirsLabel = theirs.length > 0 ? theirs.join(', ') : 'no current worktypes';
+      const overlapLabel = overlap.length > 0 ? ` — overlap: ${overlap.join(', ')}` : ' — no overlap';
+      out.push({ kind: 'competing_reveal', label: `${other.name}: ${theirsLabel}${overlapLabel}` });
+    }
+    return out;
+  }
+
+  /**
+   * True when the player's project is "high-profile" — i.e. they hold at
+   * least one W card whose work type is large, public-facing build. Gates
+   * high_profile_conditional cards (L044 "State Funding").
+   */
+  private playerInvolvesHighProfile(playerId: string): boolean {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return false;
+    return (player.hand ?? []).some(cardId => {
+      const c = this.dataService.getCardById(cardId);
+      return c?.card_type === 'W'
+        && !!c.work_type_restriction
+        && HIGH_PROFILE_WORK_TYPES.has(c.work_type_restriction);
+    });
+  }
+
+  /**
+   * Returns the maximum phase index any space in the player's visit history
+   * (including currentSpace) has reached, using the data-driven phase order.
+   * −1 if no space matches. Used by L046 leader-resolution to find the player
+   * "furthest along the board."
+   */
+  private maxPhaseReached(playerId: string): number {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return -1;
+    const phases = this.dataService.getPhaseOrder();
+    const spaces = [...(player.visitedSpaces ?? []), player.currentSpace].filter(Boolean);
+    let max = -1;
+    for (const spaceName of spaces) {
+      const cfg = this.dataService.getGameConfigBySpace(spaceName);
+      if (!cfg) continue;
+      const idx = phases.findIndex(p => cfg.phase?.toUpperCase().includes(p));
+      if (idx > max) max = idx;
+    }
+    return max;
+  }
+
+  /**
+   * Returns the playerId of the player whose project is furthest along the
+   * board (highest phase index). Ties broken by gameState.players order.
+   * Used by leader_phase_conditional cards (L046 "Expeditor Awards") to
+   * redirect the time-reduction effect to the leader regardless of who drew
+   * the card. Returns the drawing player's id if no other player has reached
+   * a phase, since the drawing player counts as a candidate.
+   */
+  private getFurthestPlayer(): string | null {
+    const gameState = this.stateService.getGameState();
+    if (gameState.players.length === 0) return null;
+    let bestId: string | null = null;
+    let bestPhase = -1;
+    for (const p of gameState.players) {
+      const phase = this.maxPhaseReached(p.id);
+      if (phase > bestPhase) {
+        bestPhase = phase;
+        bestId = p.id;
+      }
+    }
+    return bestId;
+  }
+
+  /**
+   * Build a single 'leader_reveal' receipt for the LifeEventModal naming the
+   * player whose project is furthest along and what they got. drawingId is
+   * the player who drew the card so the label can frame "You're the leader"
+   * vs "[Name] is the leader." Called from CardEffectHandler when an L card
+   * with mechanic 'leader_phase_conditional' lands.
+   */
+  buildLeaderReveal(drawingPlayerId: string, days: number): Array<{ kind: 'leader_reveal'; label: string }> {
+    const leaderId = this.getFurthestPlayer();
+    if (!leaderId) return [];
+    const gameState = this.stateService.getGameState();
+    const leader = gameState.players.find(p => p.id === leaderId);
+    if (!leader) return [];
+    const leaderPhaseIdx = this.maxPhaseReached(leaderId);
+    const phases = this.dataService.getPhaseOrder();
+    const phaseName = leaderPhaseIdx >= 0 ? phases[leaderPhaseIdx] : 'no phase reached';
+    const subject = leaderId === drawingPlayerId ? "You're the leader" : `${leader.name} is the leader`;
+    const dayWord = Math.abs(days) === 1 ? 'day' : 'days';
+    const sign = days < 0 ? 'saves' : 'loses';
+    return [{
+      kind: 'leader_reveal',
+      label: `${subject} (${phaseName}) — ${sign} ${Math.abs(days)} ${dayWord}`,
+    }];
+  }
+
+  /**
    * Parse card CSV data into standardized Effect objects for the UnifiedEffectEngine
    * This bridges the gap between CSV field structure and the Effect system
    */
@@ -1231,8 +1414,13 @@ export class CardService implements ICardService {
       // work_type_conditional gate (e.g. L012 "Soil Contamination"): the time
       // modifier only applies when the player's project involves the relevant
       // work type. If the condition isn't met, the card still fires but adds 0.
-      const conditionMet = card.card_mechanic !== 'work_type_conditional'
-        || this.playerInvolvesGroundwork(playerId);
+      const conditionMet =
+        card.card_mechanic === 'work_type_conditional' ? this.playerInvolvesGroundwork(playerId)
+        : card.card_mechanic === 'utility_conditional' ? this.playerInvolvesUtilities(playerId)
+        : card.card_mechanic === 'competing_worktype_conditional' ? this.playerHasCompetingWorktype(playerId)
+        : card.card_mechanic === 'high_profile_conditional' ? this.playerInvolvesHighProfile(playerId)
+        : card.card_mechanic === 'leader_phase_conditional' ? true // leader always exists if any player exists
+        : true;
       if (conditionMet && !isNaN(timeAmount) && timeAmount !== 0) {
         // Check if this is a Global scope card - affects all players
         const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
@@ -1298,11 +1486,16 @@ export class CardService implements ICardService {
             }
           });
         } else {
-          // Apply to current player only
+          // Apply to a single player. L046 leader_phase_conditional redirects
+          // the effect to the player furthest along the board, not the drawer.
+          // All other single-target cards land on the drawing player.
+          const targetPlayerId = card.card_mechanic === 'leader_phase_conditional'
+            ? (this.getFurthestPlayer() ?? playerId)
+            : playerId;
           effects.push({
             effectType: 'RESOURCE_CHANGE',
             payload: {
-              playerId: playerId,
+              playerId: targetPlayerId,
               resource: 'TIME',
               amount: timeAmount, // Positive = add time, negative = spend time
               source: cardSource,

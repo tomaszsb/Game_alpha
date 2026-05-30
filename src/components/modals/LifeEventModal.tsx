@@ -230,6 +230,8 @@ function lifeEventEffectIcon(kind: LifeEventEffectSummary['kind']): string {
     case 'card_gained': return '🃏';
     case 'card_lost': return '🗑️';
     case 'duration_start': return '🔁';
+    case 'competing_reveal': return '🔍';
+    case 'leader_reveal': return '🏆';
   }
 }
 

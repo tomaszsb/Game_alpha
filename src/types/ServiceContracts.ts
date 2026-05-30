@@ -446,6 +446,8 @@ export interface ICardService {
   
   // Card effect methods
   applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean; diceRoll?: number }): Promise<GameState>;
+  buildCompetingWorktypeReveal(playerId: string): Array<{ kind: 'competing_reveal'; label: string }>;
+  buildLeaderReveal(drawingPlayerId: string, days: number): Array<{ kind: 'leader_reveal'; label: string }>;
   effectEngineService: IEffectEngineService;
   
   // Circular dependency resolution methods

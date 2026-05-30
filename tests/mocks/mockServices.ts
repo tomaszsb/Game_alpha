@@ -274,6 +274,8 @@ export const createMockCardService = (): any => ({
   
   // Card effect methods
   applyCardEffects: vi.fn(),
+  buildCompetingWorktypeReveal: vi.fn().mockReturnValue([]),
+  buildLeaderReveal: vi.fn().mockReturnValue([]),
   effectEngineService: {} as IEffectEngineService, // Will be mocked separately if needed
   
   // Circular dependency resolution methods

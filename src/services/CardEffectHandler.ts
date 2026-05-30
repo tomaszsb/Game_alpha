@@ -101,6 +101,23 @@ export class CardEffectHandler implements ICardEffectHandler {
         }
         const after = this.snapshotPlayerForLifeEvent(payload.playerId);
         effectsSummary = this.diffLifeEventSnapshot(before, after, drawnCards[0]);
+
+        // L041-style competing_worktype_conditional cards reveal each other
+        // player's current worktypes in the modal so the player can see why
+        // the conditional fired (or didn't). Prepended so they appear above
+        // the time receipt. L046 leader_phase_conditional cards reveal which
+        // player got the time effect (the leader, not necessarily the drawer).
+        for (const drawnId of drawnCards) {
+          const drawnCard = this.dataService?.getCardById(drawnId);
+          if (drawnCard?.card_mechanic === 'competing_worktype_conditional') {
+            const reveal = this.cardService.buildCompetingWorktypeReveal(payload.playerId);
+            effectsSummary = [...reveal, ...effectsSummary];
+          } else if (drawnCard?.card_mechanic === 'leader_phase_conditional') {
+            const days = parseInt(drawnCard.tick_modifier ?? '0', 10) || 0;
+            const reveal = this.cardService.buildLeaderReveal(payload.playerId, days);
+            effectsSummary = [...reveal, ...effectsSummary];
+          }
+        }
       }
 
       // Show notification for L (Life Event) card draws
