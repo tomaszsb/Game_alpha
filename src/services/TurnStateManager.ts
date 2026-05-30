@@ -89,7 +89,11 @@ export class TurnStateManager {
       fundingHistory: player.fundingHistory ? [...player.fundingHistory] : [],
       activeEffects: player.activeEffects ? [...player.activeEffects] : [],
       spaceVisitLog: player.spaceVisitLog ? [...player.spaceVisitLog] : [],
-      lastDiceRoll: player.lastDiceRoll ? { ...player.lastDiceRoll } : undefined
+      lastDiceRoll: player.lastDiceRoll ? { ...player.lastDiceRoll } : undefined,
+      dobApprovalStatus: player.dobApprovalStatus,
+      fdnyApprovalStatus: player.fdnyApprovalStatus,
+      dobApprovedDestinations: player.dobApprovedDestinations ? [...player.dobApprovedDestinations] : undefined,
+      fdnyApprovedDestinations: player.fdnyApprovedDestinations ? [...player.fdnyApprovedDestinations] : undefined
     };
   }
 
@@ -301,6 +305,12 @@ export class TurnStateManager {
     if (changes.activeEffects) updatedState.activeEffects = [...changes.activeEffects];
     if (changes.spaceVisitLog) updatedState.spaceVisitLog = [...changes.spaceVisitLog];
     if (changes.lastDiceRoll) updatedState.lastDiceRoll = { ...changes.lastDiceRoll };
+    // Approval fields (Workstream 7 Try-Again rollback). Plain assignment —
+    // these can legitimately be set to 'none' / [] to express revocation.
+    if (changes.dobApprovalStatus !== undefined) updatedState.dobApprovalStatus = changes.dobApprovalStatus;
+    if (changes.fdnyApprovalStatus !== undefined) updatedState.fdnyApprovalStatus = changes.fdnyApprovalStatus;
+    if (changes.dobApprovedDestinations !== undefined) updatedState.dobApprovedDestinations = [...changes.dobApprovedDestinations];
+    if (changes.fdnyApprovedDestinations !== undefined) updatedState.fdnyApprovedDestinations = [...changes.fdnyApprovedDestinations];
 
     // Create updated REAL state
     const newRealState: PlayerTurnState = {

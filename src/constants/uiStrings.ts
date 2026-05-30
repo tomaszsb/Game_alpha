@@ -46,8 +46,10 @@ export const NOTIF = {
 
   // createCardPlayNotification
   cardPlayShort: '✓',
+  // Voice rule: no board-game iconography (the 🃏 playing-card joker leaked
+  // game-deck framing). ⚡ reads as "activation" without implying a deck.
   cardPlayMedium: (name: string, summary: string) =>
-    summary ? `🃏 Activated ${name} → ${summary}` : `🃏 Activated ${name}`,
+    summary ? `⚡ Activated ${name} → ${summary}` : `⚡ Activated ${name}`,
   cardPlayDetailed: (player: string, name: string, summary: string) =>
     summary ? `${player} activated "${name}" with effects: ${summary}` : `${player} activated "${name}"`,
 };

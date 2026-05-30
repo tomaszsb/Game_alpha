@@ -100,6 +100,14 @@ export interface MutablePlayerState {
     roll2: number;
     total: number;
   };
+
+  // Workstream 7 — approval state (rolls back on Try Again).
+  // Dice rolls at REG-DOB-PLAN-EXAM / REG-FDNY-PLAN-EXAM / REG-DOB-AUDIT, plus
+  // W-card scope changes and L-card `revokes_approval` mechanics, mutate these.
+  dobApprovalStatus?: import('./DataTypes').ApprovalStatus;
+  fdnyApprovalStatus?: import('./DataTypes').ApprovalStatus;
+  dobApprovedDestinations?: string[];
+  fdnyApprovedDestinations?: string[];
 }
 
 /**

@@ -1297,4 +1297,327 @@ describe('CardService - Enhanced Coverage', () => {
       );
     });
   });
+
+  // Kid A (2026-05-29) — approval-revoke from auto-drawn life events.
+  // Before this fix, the L-card `revokes_approval` branch was gated behind
+  // !options?.onlyResourceEffects, so the auto-draw path (SpaceArrivalProcessor
+  // / CardEffectHandler) which passes onlyResourceEffects:true never wiped DOB
+  // on L003 / L020. Safe now because chunk 3 routes the revoke through TEMP.
+  describe('Kid A — approval-revoke on auto-drawn life events', () => {
+    it('L003 "New Safety Regulations" revokes DOB approval on the auto-draw path', async () => {
+      const approvalSpy = vi.fn().mockReturnValue({ dobApprovalStatus: 'none', dobApprovedDestinations: [] });
+      const approvalService: any = { revoke: approvalSpy };
+      const localCardService = new CardService(
+        mockDataService,
+        mockStateService,
+        mockResourceService,
+        mockLoggingService,
+        mockGameRulesService,
+        undefined,
+        approvalService
+      );
+      localCardService.setEffectEngineService(mockEffectEngineService);
+
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L003',
+        card_name: 'New Safety Regulations',
+        card_type: 'L',
+        description: 'All players must discard 1 Expeditor card.',
+        revokes_approval: 'dob',
+      });
+
+      await localCardService.applyCardEffects('player1', 'L003', { onlyResourceEffects: true });
+
+      expect(approvalSpy).toHaveBeenCalledWith('dob');
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', {
+        dobApprovalStatus: 'none',
+        dobApprovedDestinations: [],
+      });
+    });
+
+    it('Kid B — L005 "Positive Press" applies its free E-card draw on the auto path', async () => {
+      // L005: -3 days + draw 1 E. With Kid B both effects should fire.
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L005',
+        card_name: 'Positive Press',
+        card_type: 'L',
+        description: 'The current high-profile client filing takes 3 days less time. Draw 1 Expeditor Card.',
+        tick_modifier: -3,
+        draw_cards: '1 E',
+        target: 'Self',
+        scope: 'Single',
+      });
+
+      await cardService.applyCardEffects('player1', 'L005', { onlyResourceEffects: true });
+
+      // processCardEffects should receive BOTH the RESOURCE_CHANGE (time) AND
+      // the CARD_DRAW(E, self).
+      const sentEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0];
+      const hasTimeChange = sentEffects.some((e: any) =>
+        e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME'
+      );
+      const hasEDraw = sentEffects.some((e: any) =>
+        e.effectType === 'CARD_DRAW' && e.payload.cardType === 'E' && e.payload.playerId === 'player1'
+      );
+      expect(hasTimeChange).toBe(true);
+      expect(hasEDraw).toBe(true);
+    });
+
+    it('Kid C — L002 "Economic Downturn" (Global+duration) emits ONE effect for engine fan-out', async () => {
+      // L002: All Players +2 days for 3 turns. Before Kid C, parseCardIntoEffects
+      // fanned out N players × N duration turns × N targetRule expansions =
+      // N×N effects per player. Each player ended up with N copies of the
+      // tick, firing every turn for N turns → N× over-application.
+      //
+      // Kid C: when scope=Global AND duration=Turns, emit a single effect and
+      // let EffectEngineService.processCardEffects's targetRule loop expand
+      // it to one active effect per player.
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Player2' };
+      const p3: any = { ...mockPlayer, id: 'player3', name: 'Player3' };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, p2, p3]
+      });
+
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L002',
+        card_name: 'Economic Downturn',
+        card_type: 'L',
+        description: 'All permit and inspection times increase by 2 days for the next 3 turns.',
+        tick_modifier: 2,
+        target: 'All Players',
+        scope: 'Global',
+        duration: 'Turns',
+        duration_count: '3',
+      });
+
+      await cardService.applyCardEffects('player1', 'L002', { onlyResourceEffects: true });
+
+      const calls = mockEffectEngineService.processCardEffects.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+
+      const [sentEffects, _ctx, cardData] = calls[0];
+
+      // Exactly ONE time RESOURCE_CHANGE effect — engine will fan out by targetRule.
+      const timeEffects = sentEffects.filter((e: any) =>
+        e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME'
+      );
+      expect(timeEffects.length).toBe(1);
+      expect(timeEffects[0].payload.amount).toBe(2);
+
+      // Card metadata carries duration so EffectEngineService routes to active.
+      expect(cardData?.duration).toBe('Turns');
+      expect(cardData?.duration_count).toBe('3');
+      expect(cardData?.target).toBe('All Players');
+    });
+
+    it('Kid C — L008 "Materials Shortage" (Global, no duration) still fans per-player at parser level', async () => {
+      // L008: All Players +3 days (immediate, no duration). The parser-side
+      // fan-out is preserved for this case so the phase filter (affected_phase=
+      // CONSTRUCTION) can use each player's *current* space — there's no
+      // apply-time loop to delegate to.
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Player2' };
+      const p3: any = { ...mockPlayer, id: 'player3', name: 'Player3' };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, p2, p3]
+      });
+
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L008',
+        card_name: 'Materials Shortage',
+        card_type: 'L',
+        description: 'All players’ current construction phase takes 3 days more time.',
+        tick_modifier: 3,
+        target: 'All Players',
+        scope: 'Global',
+        // No duration_count → immediate-fire, parser fans out per player.
+      });
+
+      await cardService.applyCardEffects('player1', 'L008', { onlyResourceEffects: true });
+
+      const calls = mockEffectEngineService.processCardEffects.mock.calls;
+      const sentEffects = calls[0][0];
+      const timeEffects = sentEffects.filter((e: any) =>
+        e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME'
+      );
+      // 3 players × 1 effect each = 3 effects (existing immediate-global behavior).
+      expect(timeEffects.length).toBe(3);
+    });
+
+    it('Kid D — L009 on a matching roll (2 → range 1-3) applies +5 days', async () => {
+      // L009: dice_conditional. Range 1-3 → +5 days, range 4-6 → 0 days.
+      // applyCardEffects with diceRoll=2 should patch the card's tick_modifier
+      // to +5 before parseCardIntoEffects runs.
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L009',
+        card_name: 'NIMBY Lawsuit',
+        card_type: 'L',
+        description: 'Roll a die. On 1-3 +5 days. On 4-6 no effect.',
+        card_mechanic: 'dice_conditional',
+        tick_modifier: 5,
+        dice_range_1_min: 1,
+        dice_range_1_max: 3,
+        dice_range_1_time: 5,
+        dice_range_2_min: 4,
+        dice_range_2_max: 6,
+        dice_range_2_time: 0,
+        target: 'Self',
+        scope: 'Single',
+      });
+
+      await cardService.applyCardEffects('player1', 'L009', { onlyResourceEffects: true, diceRoll: 2 });
+
+      const calls = mockEffectEngineService.processCardEffects.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const sentEffects = calls[0][0];
+      const timeEffects = sentEffects.filter((e: any) =>
+        e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME'
+      );
+      expect(timeEffects.length).toBe(1);
+      expect(timeEffects[0].payload.amount).toBe(5);
+    });
+
+    it('Kid D — L009 on a non-matching roll (5 → range 4-6) applies 0 days (no effect)', async () => {
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L009',
+        card_name: 'NIMBY Lawsuit',
+        card_type: 'L',
+        description: 'Roll a die. On 1-3 +5 days. On 4-6 no effect.',
+        card_mechanic: 'dice_conditional',
+        tick_modifier: 5,
+        dice_range_1_min: 1,
+        dice_range_1_max: 3,
+        dice_range_1_time: 5,
+        dice_range_2_min: 4,
+        dice_range_2_max: 6,
+        dice_range_2_time: 0,
+        target: 'Self',
+        scope: 'Single',
+      });
+
+      await cardService.applyCardEffects('player1', 'L009', { onlyResourceEffects: true, diceRoll: 5 });
+
+      // With tick_modifier patched to 0, parseCardIntoEffects emits no TIME effect.
+      const calls = mockEffectEngineService.processCardEffects.mock.calls;
+      if (calls.length > 0) {
+        const sentEffects = calls[0][0];
+        const timeEffects = sentEffects.filter((e: any) =>
+          e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME'
+        );
+        expect(timeEffects.length).toBe(0);
+      }
+    });
+
+    it('Kid D — dice_conditional cards STILL skip when no diceRoll is provided (CardEffectHandler path)', async () => {
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L009',
+        card_name: 'NIMBY Lawsuit',
+        card_type: 'L',
+        card_mechanic: 'dice_conditional',
+        dice_range_1_min: 1,
+        dice_range_1_max: 3,
+        dice_range_1_time: 5,
+        target: 'Self',
+        scope: 'Single',
+      });
+
+      // No diceRoll option (CardEffectHandler unconditional-draw path).
+      await cardService.applyCardEffects('player1', 'L009', { onlyResourceEffects: true });
+
+      // Early-returned before reaching processCardEffects.
+      expect(mockEffectEngineService.processCardEffects).not.toHaveBeenCalled();
+    });
+
+    it('Kid E — L003 forced discard survives the auto-path filter and overrides target to Self', async () => {
+      // L003 with onlyResourceEffects: the parser fans CARD_DISCARD per
+      // player; the filter now lets CARD_DISCARD through; effectiveCard.target
+      // is overridden to 'Self' so the engine does NOT re-fan via targetRule
+      // (which would create N² discards per player).
+      const p2: any = { ...mockPlayer, id: 'player2', name: 'Player2' };
+      const p3: any = { ...mockPlayer, id: 'player3', name: 'Player3' };
+      mockStateService.getGameState.mockReturnValue({
+        ...mockGameState,
+        players: [mockPlayer, p2, p3]
+      });
+
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L003',
+        card_name: 'New Safety Regulations',
+        card_type: 'L',
+        description: 'All players must discard 1 Expeditor card.',
+        discard_cards: '1 E',
+        target: 'All Players',
+        scope: 'Global',
+        tick_modifier: 3,
+      });
+
+      await cardService.applyCardEffects('player1', 'L003', { onlyResourceEffects: true });
+
+      const calls = mockEffectEngineService.processCardEffects.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const [sentEffects, _ctx, cardData] = calls[0];
+
+      // Exactly 3 CARD_DISCARD effects — one per player (no engine re-fan).
+      const discardEffects = sentEffects.filter((e: any) => e.effectType === 'CARD_DISCARD');
+      expect(discardEffects.length).toBe(3);
+      const playerIds = discardEffects.map((e: any) => e.payload.playerId).sort();
+      expect(playerIds).toEqual(['player1', 'player2', 'player3']);
+
+      // Engine target rewritten to Self so processEffectsWithTargeting takes
+      // its fast-path (no re-clone per target).
+      expect(cardData?.target).toBe('Self');
+    });
+
+    it('Kid B — non-E draws (e.g. W) are still filtered out on the auto path', async () => {
+      // Defensive: if a future life-event author sets draw_cards="1 W", we
+      // don't want it to leak through (W draws trigger downstream scope-change
+      // approval machinery this Kid B fix isn't validated for).
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L_TEST_W_DRAW',
+        card_name: 'Test',
+        card_type: 'L',
+        description: 'Draw 1 Work Package.',
+        draw_cards: '1 W',
+        target: 'Self',
+        scope: 'Single',
+      });
+
+      await cardService.applyCardEffects('player1', 'L_TEST_W_DRAW', { onlyResourceEffects: true });
+
+      // Either nothing was sent (no surviving effects → early return) or what
+      // was sent contains no CARD_DRAW. Both are acceptable outcomes.
+      const calls = mockEffectEngineService.processCardEffects.mock.calls;
+      if (calls.length > 0) {
+        const sentEffects = calls[0][0];
+        const hasWDraw = sentEffects.some((e: any) =>
+          e.effectType === 'CARD_DRAW' && e.payload.cardType === 'W'
+        );
+        expect(hasWDraw).toBe(false);
+      }
+    });
+
+    it('skips the revoke when ApprovalService is not injected (ghost-bootstrap parity)', async () => {
+      // CardService without approvalService — should not blow up.
+      const localCardService = new CardService(
+        mockDataService,
+        mockStateService,
+        mockResourceService,
+        mockLoggingService,
+        mockGameRulesService,
+      );
+      localCardService.setEffectEngineService(mockEffectEngineService);
+
+      mockDataService.getCardById.mockReturnValue({
+        card_id: 'L003',
+        card_type: 'L',
+        revokes_approval: 'dob',
+      });
+
+      await expect(
+        localCardService.applyCardEffects('player1', 'L003', { onlyResourceEffects: true })
+      ).resolves.toBeDefined();
+      expect(mockStateService.updateTempState).not.toHaveBeenCalled();
+    });
+  });
 });

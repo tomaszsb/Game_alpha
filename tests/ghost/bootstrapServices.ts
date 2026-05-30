@@ -80,6 +80,10 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
   const targetingService = new TargetingService(stateService, choiceService);
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);
   const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService, dataService, notificationService);
+  // Kid E — bot can't click discard-choice modals (L003 / L048 forced-discard
+  // fan-out). Flipping this to true makes the handler auto-pick oldest cards
+  // instead of awaiting a choice that would hang the headless turn loop.
+  cardEffectHandler.autoPickForcedDiscards = true;
   const effectEngineService = new EffectEngineService(
     resourceService,
     cardService,

@@ -454,7 +454,7 @@ export interface ICardService {
   getCardToDiscard(playerId: string, cardType: CardType): string | null;
   
   // Card effect methods
-  applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean }): Promise<GameState>;
+  applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean; diceRoll?: number }): Promise<GameState>;
   effectEngineService: IEffectEngineService;
   
   // Circular dependency resolution methods

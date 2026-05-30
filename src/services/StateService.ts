@@ -1450,6 +1450,17 @@ export class StateService implements IStateService {
         costs: { ...realState.state.costs },
         fundingHistory: [...realState.state.fundingHistory],
         activeEffects: [...realState.state.activeEffects],
+        // Workstream 7 — approvals roll back on Try Again. Examiner roll grants
+        // / revokes, W-card scope-change DOB revoke, and L-card revokes_approval
+        // all write through updateTempState; this is the restore side.
+        dobApprovalStatus: realState.state.dobApprovalStatus,
+        fdnyApprovalStatus: realState.state.fdnyApprovalStatus,
+        dobApprovedDestinations: realState.state.dobApprovedDestinations
+          ? [...realState.state.dobApprovedDestinations]
+          : undefined,
+        fdnyApprovedDestinations: realState.state.fdnyApprovedDestinations
+          ? [...realState.state.fdnyApprovedDestinations]
+          : undefined,
       });
       this.updateActionCounts();
     }

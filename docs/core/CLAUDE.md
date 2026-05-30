@@ -344,6 +344,63 @@ matching kind of work — each pattern saved a real chunk of guess-and-check.
 > (Managed Agents only as of 2026-05-06); the goal is the same:
 > turn one session's hard-won discovery into a future session's first hit.
 
+### Life Event (L) card effects — `onlyResourceEffects` filter now covers all 5 deferred slices (v3.0.39)
+
+Auto-drawn life events (space-arrival dice-conditional `draw_L`, or `handleCardDraw`) historically NEVER applied their effects — fixed v3.0.37 with `applyCardEffects(playerId, cardId, { onlyResourceEffects: true })` at both draw sites. The filter was widened in v3.0.39 to cover all 5 originally-deferred slices ("Kids A–E"):
+
+- **Kid A (approval-revoke)**: dropped the `!options?.onlyResourceEffects` gate at [CardService.ts:1121](src/services/CardService.ts#L1121). Safe because v3.0.39 chunk-3 routes approval writes through TEMP (Try-Again rollback-aware).
+- **Kid B (free E-card draws)**: filter allows `CARD_DRAW(E)` (L005/L007/L010). Auto-draw handler doesn't apply effects on E cards → no recursion.
+- **Kid C (multi-turn duration L002/L004/L008)**: parser/engine **N×N over-stack** bug fixed — see separate TACTICAL entry below.
+- **Kid D (dice-conditional L009)**: new `diceRoll?: number` option on `applyCardEffects`. When `card_mechanic='dice_conditional'` AND diceRoll provided, the card's `tick_modifier` is patched to the range-matched value via the `dice_range_*` columns BEFORE `parseCardIntoEffects` runs (which is dice-range-unaware). SpaceArrivalProcessor passes diceRoll; CardEffectHandler doesn't (unconditional path still skips dice-conditional cards).
+- **Kid E (forced discard L003/L048)**: filter allows `CARD_DISCARD`; new public `CardEffectHandler.autoPickForcedDiscards` flag — production keeps the per-player choice modal (`requiresUserChoice`), but headless ghost bot ([tests/ghost/bootstrapServices.ts](tests/ghost/bootstrapServices.ts)) sets it to true and the handler auto-picks oldest cards via the existing slice fallback. **This is the original deadlock landmine** — two prior attempts hung the ghost gate. The Option-2 split (modal for humans, auto-pick for bot) is the right model for any "forced choice" effect a headless test needs to traverse.
+
+**The trap still stands** for any *future* effect that fans out a `requiresUserChoice` modal: don't run it inline in the arrival path without the bot-bypass equivalent. The v3.0.39 ghost gate ran 50 games clean (zero hard failures, 14m12s) which empirically validated the autoPickForcedDiscards approach.
+
+### Global+duration card fan-out — parser-vs-engine N×N over-stack (v3.0.39 Kid C fix)
+
+Latent bug since the original CARD_DRAW/CARD_DISCARD global-fan-out (L049 v3.0.14, L003/L048 v3.0.17): cards with both `scope=Global` AND `duration=Turns` produce N² applications per player because both layers fan-out and they don't coordinate.
+
+**The seam:** `CardService.parseCardIntoEffects` fans out per player (one RESOURCE_CHANGE/CARD_DRAW/CARD_DISCARD per `gameState.players`). Then `EffectEngineService.processCardEffects` reads `cardData.target` and `cardData.duration_count`:
+- Non-duration path → `processEffectsWithTargeting` → for each `targetPlayerId`, `effects.map(cloneEffectWithNewPlayerId)` re-targets each effect to that player. So N pre-fanned effects × N targets = N² effects per player.
+- Duration path → similar inner loop, same N² shape, plus stored as `activeEffects` so the over-stack fires every turn for N turns.
+
+L002 ("All filing times +2 for next 3 turns") in a 3-player game would queue 3 active effects per player × 3 turns × +2 = each player loses 18 days instead of 6.
+
+**Fix shape (Kid C):**
+- For `scope=Global` + `duration=Turns`: parser emits ONE effect (source player), and the engine's targetRule loop fans it out per player. Single source of fan-out.
+- For `scope=Global` + immediate (no duration, e.g. L008, L049, L003): parser keeps the per-player fan-out at parse time (so phase-filter at parser level can use each player's *current* phase), AND `CardService.applyCardEffects` overrides `effectiveCard.target = 'Self'` on the auto-life-event path so `processEffectsWithTargeting` takes its fast-path (line 1106-1108: target='Self' → `processEffects` directly, no re-clone). Single source of fan-out again.
+
+**Audit pattern when adding a new global-fan-out path:** check whether the engine will also fan via `targetRule`. If yes, either suppress one layer (single source) or route via the engine only (cleanest for duration; trickier for phase-filtered immediate). The N×N is silent — unit tests that only check `parseCardIntoEffects` mock output will pass while production over-stacks. The Kid C tests in [CardService.test.ts](tests/services/CardService.test.ts) now assert effect count + target rule for both shapes.
+
+**Deferred:** phase-filtered duration cards (L004 affected_phase=CONSTRUCTION) need apply-time re-evaluation of the phase filter (a player's phase changes between turns). Currently the filter is parser-only and gets bypassed by the Kid C single-emit. Follow-up — needs a phase-aware `applyActiveEffects` branch.
+
+### Try-Again rollback for any new player-state field (v3.0.39 chunk 3 pattern)
+
+When you add a player-state field that's mutated mid-turn and the player expects Try-Again to roll it back (the v3.0.39 case was approval state: `dobApprovalStatus` / `fdnyApprovalStatus` / `dobApprovedDestinations` / `fdnyApprovedDestinations`), the recipe is:
+
+1. **Add the field to `MutablePlayerState`** in [StateTypes.ts](src/types/StateTypes.ts) (the union types are open-bag, just append).
+2. **Update `TurnStateManager.extractMutableState`** ([TurnStateManager.ts](src/services/TurnStateManager.ts)) to capture the field into the snapshot — careful with array/object copies (`[...value]` / `{...value}`) so the snapshot doesn't share reference with the live player.
+3. **Update `TurnStateManager.applyToRealState`** with a per-field copy line. Comment notes when a `'none'`/`[]` value is legitimate (so a `!== undefined` guard reads correctly).
+4. **Update `StateService.discardTempState`** restore block at line ~1438 — add the field to the `updatePlayer` payload so Try-Again writes the snapshot value back to live state.
+5. **Route the write site through `updateTempState`** instead of `updatePlayer`. The `updatePlayer` path is direct REAL-state write; `updateTempState` writes to the TEMP snapshot AND mirrors to main state for UI feedback, so on Try-Again the mirror gets reverted from REAL.
+
+The `commitTempToReal` flow (`StateService.ts:1379` → spreads `committedState` over the player) automatically picks up new MutablePlayerState fields — no change needed there.
+
+**Why this pattern is reusable:** the same 5-step recipe will work for any new approval-like field (e.g. future per-player permits, escrow accounts, regulator-specific flags). The TEMP/REAL model is the rollback engine; MutablePlayerState is its config; the 5 steps wire a new field in.
+
+**Critically, the 3-write-sites-via-`updateTempState` step is the easy thing to forget** — if a future caller does `updatePlayer({ id, dobApprovalStatus: 'denied' })`, Try-Again won't restore it because that path bypasses TEMP entirely. Grep for `updatePlayer(.*<field>` periodically.
+
+### Ghost gate — slow, and a hang swallows its own timeout
+
+`tests/ghost/ghostPlayer.test.ts` is the bot regression gate (strict 50 + try-again 50 + space-coverage). Field notes:
+- **It's slow:** ~15–20 min for 50 games, ~27 min for the full 3-test gate. A *synchronous* hang blocks the event loop, so vitest's per-test timeout never fires — the run only stops when your wrapper `timeout` kills it (looks like a deadlock; verify the wrapper value first — 16 games need ~290s, 50 need 20+ min, so capping too short masquerades as a hang).
+- **Don't debug against it.** Reason about safety-by-construction + run a tiny `runGhostBatch(4–8)` spot-check; run the full gate ONCE at the end. vitest swallows `console.log` on pass — write diagnostics to a file via `appendFileSync` to capture numbers.
+- **Win-rate floor is the SECONDARY gate; "0 hard failures" (EXCEPTION/INVARIANT) is primary.** The strict floor was recalibrated 45→36 (v3.0.37) after correctness fixes (life events applying + v3.0.35 construction-cost/loan charges) made the economy correctly harder → the random bot wins less (clean 45/50 → with life events 39/50, 0 hard failures). Recalibrate the floor consciously when a correctness fix shifts the deterministic count; don't chase the old number.
+
+### Live verification by cheating state (skip the RNG grind)
+
+To verify a deep-game fix without playing ~30 turns through RNG approval loops: `GET /api/games/:id/state?token=` → mutate the returned `state` (e.g. `players[0].currentSpace`, `visitType`, `dobApprovalStatus`/`fdnyApprovalStatus`, clear `moveIntent`, or set `isGameOver`+`winner` for the end screen) → `POST /api/games/:id/state` with body `{ state, clientVersion }` and the `x-game-token` header → reload the browser to pull it. Schema validation is lenient (needs `players[]`, `gamePhase`, `currentPlayerId`, `gameRound`, `isGameOver`, and per-player `id/name/money`). Used in v3.0.35/37 to jump to CON-INITIATION and FINISH and confirm construction-cost recording + end-game stats live.
+
 ### Voice rule — where to override game-language
 
 Players keep reporting leftover "Roll for W Cards" / "Draw 3 E cards" / "Cards"
@@ -888,5 +945,5 @@ Saved G262 had `loans: []` despite a $1.575M bank loan that added cash. So `LOAN
 
 ---
 
-**Last Updated:** May 29, 2026 (Session **v3.0.34** — playtest bug-fix block: self-target Expeditor-draw card data fix + new integrity gate, "Player Player" log doubling, design-fee tooltip; diagnosed construction-cost recording gap + bank-loan-no-record)
-**Charter Version:** 3.21 (+ integrity-gate scope-gap, card bare-number type default, temp-vs-real expenditure recording; prior: grep-fb-id-before-fixing, board validMoves single-source, work_type_conditional mechanic)
+**Last Updated:** May 29, 2026 (Session **v3.0.39** — "crush all bugs" block: top-3 + Kids A–E + 8 quick wins + visit-indicator part 2)
+**Charter Version:** 3.22 (+ Kid C N×N parser/engine fan-out collision pattern + Try-Again rollback recipe for new MutablePlayerState fields + autoPickForcedDiscards bot-vs-modal split; updated Life Event entry for v3.0.39 Kids-done state)

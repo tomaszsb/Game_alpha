@@ -224,12 +224,15 @@ export class SpaceArrivalProcessor {
         // Apply the auto-drawn Life Event (L) card's money/time effects.
         // drawCards only adds the card to hand — without this a life event's
         // tick_modifier / money_effect never reached state. onlyResourceEffects
-        // applies just the pure-arithmetic money/time (safe, can't block/loop);
-        // richer effects (draws/discards/duration) are deferred. Card stays in
-        // hand as a record.
+        // applies just the pure-arithmetic money/time + Kid B (self-E draws) +
+        // Kid D (dice-conditional, using diceRoll). Kid E (global forced
+        // discard) still deferred. Card stays in hand as a record.
         if (cardType === 'L' && !this.stateService.getGameState().isCapturingStartingHand) {
           for (const drawnId of drawnCardIds) {
-            await this.cardService.applyCardEffects(currentPlayer.id, drawnId, { onlyResourceEffects: true });
+            await this.cardService.applyCardEffects(currentPlayer.id, drawnId, {
+              onlyResourceEffects: true,
+              diceRoll,
+            });
           }
         }
 

@@ -317,4 +317,80 @@ describe('DiceResultModal', () => {
     expect(screen.getByText('-3 days')).toBeInTheDocument();
     expect(screen.getByText('Project delayed')).toBeInTheDocument();
   });
+
+  // Visit-indicator part 2 (2026-05-29, fb:0cdd59ba) — "results 2x once in
+  // red and once in green". When the BeforeAfterBlock snapshot is present,
+  // the numeric value should NOT also render in the Effects-Applied row
+  // (the table below already shows the delta). Movement and qualitative
+  // effects always render their value because the table doesn't cover them.
+  describe('duplicate-render suppression when snapshot is present', () => {
+    const snapshotResult: DiceRollResult = {
+      diceValue: 4,
+      spaceName: 'TEST-SPACE',
+      effects: [
+        { type: 'money', description: 'Funding received', value: 50000 },
+        { type: 'time', description: 'Project delayed', value: -3 },
+      ],
+      summary: '',
+      hasChoices: false,
+      before: {
+        money: 0,
+        projectScope: 0,
+        timeSpent: 5,
+        handCount: 0,
+        cardCountsByType: { W: 0, B: 0, E: 0, I: 0, L: 0 },
+      },
+      after: {
+        money: 50000,
+        projectScope: 0,
+        timeSpent: 2,
+        handCount: 0,
+        cardCountsByType: { W: 0, B: 0, E: 0, I: 0, L: 0 },
+      },
+    };
+
+    it('suppresses Effects-row bold value when BeforeAfterBlock will render it', () => {
+      render(
+        <GameContext.Provider value={mockServices}>
+          <DiceResultModal isOpen={true} result={snapshotResult} onClose={mockOnClose} />
+        </GameContext.Provider>
+      );
+
+      // Effects-row narrative description still visible.
+      expect(screen.getByText('Funding received')).toBeInTheDocument();
+      expect(screen.getByText('Project delayed')).toBeInTheDocument();
+
+      // The +$50,000 / -3 days values appear only once each (in the
+      // BeforeAfterBlock table), not twice. The table delta column uses
+      // the unicode minus '−' (U+2212), the Effects formatter uses ASCII
+      // '-' — so a duplicate Effects render would surface a second '-3 days'.
+      const allMoneyMatches = screen.queryAllByText(/\+?\$50,000/);
+      // BeforeAfterBlock renders: $0 (before), $50,000 (after), +$50,000 (delta)
+      // No Effects-row value. Total appearances of "$50,000" = 2 (after + delta).
+      expect(allMoneyMatches.length).toBe(2);
+
+      // Time: BeforeAfterBlock renders "5 days" → "2 days" + "−3 days" delta.
+      // Effects-row should NOT render an ASCII "-3 days".
+      const dashMinusDays = screen.queryAllByText(/^-3 days$/);
+      expect(dashMinusDays.length).toBe(0);
+    });
+
+    it('still renders the value when snapshot is absent (legacy / partial)', () => {
+      const noSnapshot: DiceRollResult = {
+        diceValue: 3,
+        spaceName: 'TEST-SPACE',
+        effects: [{ type: 'time', description: 'Project delayed', value: -3 }],
+        summary: '',
+        hasChoices: false,
+      };
+      render(
+        <GameContext.Provider value={mockServices}>
+          <DiceResultModal isOpen={true} result={noSnapshot} onClose={mockOnClose} />
+        </GameContext.Provider>
+      );
+
+      // Without before/after, the Effects-row continues to show its value.
+      expect(screen.getByText('-3 days')).toBeInTheDocument();
+    });
+  });
 });

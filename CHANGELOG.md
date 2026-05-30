@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.39] - 2026-05-29
+
+### Block — "crush all bugs" session: top-3 + 5 Kids + 8 quick wins (18 items shipped)
+
+The whole session was a multi-front bug-fix block driven by the previous /koniec's top-3 list and then a comprehensive sweep through TODO. No single theme — each subsection below stands alone.
+
+#### Hardcoding audit cleanup — DiceRollProcessor literal
+
+[DiceRollProcessor.ts:478,489](src/services/DiceRollProcessor.ts#L478) now imports and uses the `DOB_FINAL_REVIEW_SPACE` constant from [ApprovalService.ts:51](src/services/ApprovalService.ts#L51) instead of the bare `'REG-DOB-FINAL-REVIEW'` string literal. Closes the per-space hardcoding audit "Critical" item.
+
+#### Try Again now restores revoked approvals (Workstream 7 follow-up)
+
+Phase 7.3 wrote DOB/FDNY approval state directly through `updatePlayer` — so a player who drew a W card (scope change → DOB revoke) and then hit Try Again got their W card back but the approval stayed wiped. Three changes wire approvals into the existing TEMP/REAL rollback model:
+- Extended `MutablePlayerState` ([StateTypes.ts](src/types/StateTypes.ts)) with `dobApprovalStatus`, `fdnyApprovalStatus`, `dobApprovedDestinations`, `fdnyApprovedDestinations`.
+- `TurnStateManager.extractMutableState` + `applyToRealState` propagate them; `StateService.discardTempState` restores them on Try Again.
+- Routed the 3 write sites through `updateTempState` instead of `updatePlayer`: [DiceRollProcessor.ts](src/services/DiceRollProcessor.ts) (examiner roll grant/revoke), [CardService.ts](src/services/CardService.ts) W-card scope-change revoke, [CardService.ts](src/services/CardService.ts) L-card `revokes_approval`.
+
+#### Life Event richer effects — Kids A–E (all five deferred slices)
+
+The `onlyResourceEffects` auto-life-event filter (v3.0.37) was widened in five careful slices, with safety analysis per slice to avoid the two-prior-attempts ghost-gate deadlock:
+- **Kid A — approval-revoke** (L003, L020): dropped the `!options?.onlyResourceEffects` gate at [CardService.ts:1121](src/services/CardService.ts#L1121). Safe because the chunk-3 TEMP routing makes the revoke rollback-aware.
+- **Kid B — free E-card draws** (L005, L007, L010): filter allows `CARD_DRAW(E)`. Pure additive, no recursion (auto-draw handler doesn't apply effects on E cards).
+- **Kid C — multi-turn duration** (L002, L004, L008): fixed a latent **N×N over-stack bug** in the parser/engine seam. When `scope=Global` AND `duration=Turns`, parser used to emit one effect per player AND the engine's targetRule loop would re-fan, producing N effects per player per turn. Parser now emits ONE effect when duration is set; the engine's per-target loop handles fan-out. Phase-filtered duration cards (L004 affected_phase=CONSTRUCTION) lose their per-player phase filter — needs apply-time filter, deferred follow-up.
+- **Kid D — dice-conditional tick** (L009): added `diceRoll?: number` option to `applyCardEffects`. When `card_mechanic='dice_conditional'` AND diceRoll is provided, the card's `tick_modifier` is patched to the range-matched value via the `dice_range_*` columns. SpaceArrivalProcessor passes diceRoll; CardEffectHandler doesn't (unconditional path still skips).
+- **Kid E — forced discard fan-out** (L003, L048): filter allows `CARD_DISCARD`. New public `CardEffectHandler.autoPickForcedDiscards` flag bypasses the choice modal for the headless ghost bot (production keeps the per-player pick modal); [bootstrapServices.ts](tests/ghost/bootstrapServices.ts) flips it on. Same parser-vs-engine `target='Self'` override as Kid C for immediate-global to prevent the N×N re-fan.
+
+#### Quick wins (8)
+
+- **Stale top-3 item cleaned up in TODO** — DiceRollProcessor entry marked done.
+- **🃏 emoji swap** in [uiStrings.ts:50](src/constants/uiStrings.ts#L50) (`cardPlayMedium` notification): board-game joker → ⚡ (activation framing). Voice rule.
+- **Dead test deletion** — `tests/uat/puppeteer-gameplay.test.ts` removed (3 skipped describe.skip cases using deprecated Puppeteer APIs).
+- **Two pre-existing E2E "failures" were stale** — both `tests/E2E-01_HappyPath.test.tsx` and `tests/E2E-03_ComplexSpace.test.ts > should detect negotiation capability from CSV data` pass on current main. TODO entries closed.
+- **Player panel current-player filter** (`fb:554cf41c`) — confirmed resolved by v3.0.15 PC mini-bar collapse + TV pulsing-ring. Dashboard flipped.
+- **`{fundingAmount}` token** added to BANK-FUND-REVIEW Subsequent and INVESTOR-FUND-REVIEW Subsequent Event copy (running cumulative source total; CSV-only).
+- **404 on `GET /api/games/<id>/state` investigated** — confirmed not a bug (intentional "no state yet" response; route exists; correct `application/json; charset=utf-8`).
+- **Mojibake emoji investigated** — game server is clean (verified UTF-8 bytes `F0 9F 94 8C`); any visible mojibake must be on the dashboard render side.
+
+#### Visit-indicator part 2 — duplicate dice-result rendering (fb:0cdd59ba)
+
+[DiceResultModal.tsx:101-127](src/components/modals/DiceResultModal.tsx#L101) Effects-Applied rows used to render a bold colored value (`+$50,000`) AND the BeforeAfterBlock table below rendered the same delta — two visual reps of one fact in different colors (the playtester's "once red, once green"). New `isDuplicatedByTable` guard: when `before+after` snapshot is present, the Effects row drops the bold colored value and shows only icon + description + card-identity chips. Movement and qualitative_outcome effects always render their value (table doesn't cover them). Without snapshots (legacy), keeps old behavior.
+
+#### Re-surfaced dashboard reports
+
+Two reports from 2026-05-08 (`cfb519c3`, `bf35686d`) re-appeared on the dashboard despite the v2.63.5 / v2.69.0 fixes that addressed them. Verified shipped code, PATCH-flipped on dashboard. Plus `fb:554cf41c` and `fb:0cdd59ba` flipped above.
+
+#### Changed
+- [package.json](package.json) (3.0.38 → 3.0.39).
+- Services: [DiceRollProcessor.ts](src/services/DiceRollProcessor.ts), [CardService.ts](src/services/CardService.ts), [CardEffectHandler.ts](src/services/CardEffectHandler.ts), [SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts), [StateService.ts](src/services/StateService.ts), [TurnStateManager.ts](src/services/TurnStateManager.ts).
+- Types: [StateTypes.ts](src/types/StateTypes.ts) (4 approval fields on `MutablePlayerState`), [ServiceContracts.ts](src/types/ServiceContracts.ts) (`diceRoll?` option on `applyCardEffects`).
+- UI: [DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx), [uiStrings.ts](src/constants/uiStrings.ts).
+- Data: [SPACE_CONTENT.csv](public/data/CLEAN_FILES/SPACE_CONTENT.csv) + matching [SOURCE Spaces.csv](public/data/SOURCE_FILES/Spaces.csv).
+- Ghost: [bootstrapServices.ts](tests/ghost/bootstrapServices.ts) (autoPickForcedDiscards=true).
+
+#### Test
+- **New** [tests/services/StateService-tryAgainApprovals.test.ts](tests/services/StateService-tryAgainApprovals.test.ts) — 4 cases (revoke→TryAgain restores; grant→commit sticks; grant→TryAgain rolls back; symmetric for FDNY).
+- **Extended** [CardService.test.ts](tests/services/CardService.test.ts) — +8 cases (Kid A x2, Kid B x2, Kid C x2, Kid D x2, Kid E x1).
+- **Extended** [CardEffectHandler.test.ts](tests/services/CardEffectHandler.test.ts) — +2 cases (Kid E modal-by-default + auto-pick-when-flag).
+- **Extended** [DiceResultModal.test.tsx](tests/components/modals/DiceResultModal.test.tsx) — +2 cases (with-snapshot suppression + legacy-no-snapshot preserved).
+- **Removed** dead `tests/uat/puppeteer-gameplay.test.ts`.
+- Targeted sweep: **1536/1536** green (was 1508). Typecheck + build clean. Ghost strict gate (50 games, 14m12s): zero hard failures, win-rate floor held.
+
+#### Dashboard
+- PATCH-flipped: `feedback-1778255779544-cfb519c3`, `feedback-1778255524538-bf35686d`, `feedback-1775793406957-554cf41c`, `feedback-1775793633015-0cdd59ba`.
+
 ## [3.0.38] - 2026-05-29
 
 ### Fix — Optional expeditor actions no longer block the Move button (dead-end)

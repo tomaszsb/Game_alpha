@@ -98,6 +98,17 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     }
   };
 
+  // Visit-indicator part 2 (2026-05-29, fb:0cdd59ba) — "results 2x once
+  // in red and once in green". Root cause: each money/time/card-count
+  // effect renders a bold colored value AND the same delta appears in the
+  // BeforeAfterBlock table below. Two visual representations of one fact.
+  // When the snapshot is present (so BeforeAfterBlock will render), the
+  // Effects row drops the bold colored value and shows only the icon +
+  // description + any card-identity chips. The numeric delta lives in one
+  // place (the table). Without snapshots (legacy / partial results), keep
+  // the old behavior so nothing is silently dropped.
+  const hasSnapshot = !!(result.before && result.after);
+
   const renderEffect = (effect: DiceResultEffect, index: number) => {
     // Suppress 'choice' effects ("🎯 Choose your next destination"). The
     // destination picker is already prominent in the player panel below
@@ -113,6 +124,16 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     if (effect.type === 'cards' && effect.cardAction === 'remove') {
       effectColor = colors.warning.main;
     }
+
+    // Whether this effect's numeric delta is already covered by the
+    // BeforeAfterBlock table — i.e. money / time / card count. Movement,
+    // qualitative_outcome, etc. are NOT in the table and always show their
+    // formatted value here.
+    const isDuplicatedByTable = hasSnapshot && (
+      effect.type === 'money'
+      || effect.type === 'time'
+      || (effect.type === 'cards' && (effect.cardAction === 'draw' || effect.cardAction === 'remove' || effect.cardAction === 'replace'))
+    );
 
     let formattedValue = '';
     if (effect.type === 'qualitative_outcome' && effect.outcomeLabel && effect.outcomeValue) {
@@ -161,10 +182,20 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       >
         <span style={{ fontSize: '18px', marginRight: '10px', flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1 }}>
-          <span style={{ fontWeight: 'bold', color: effectColor }}>
-            {formattedValue}
-          </span>
-          <span style={{ color: colors.text.secondary, fontSize: '14px', marginLeft: '6px' }}>
+          {/* Suppress the bold colored value when the BeforeAfterBlock table
+              below will show the same delta — see hasSnapshot/isDuplicatedByTable
+              comment above. Movement and qualitative_outcome still surface their
+              value here because the table doesn't cover them. */}
+          {!isDuplicatedByTable && formattedValue && (
+            <span style={{ fontWeight: 'bold', color: effectColor }}>
+              {formattedValue}
+            </span>
+          )}
+          <span style={{
+            color: colors.text.secondary,
+            fontSize: '14px',
+            marginLeft: !isDuplicatedByTable && formattedValue ? '6px' : '0',
+          }}>
             {effect.description}
           </span>
           {/* Display each card on its own line with type icon and colors */}

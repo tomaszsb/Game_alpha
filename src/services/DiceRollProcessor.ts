@@ -10,6 +10,7 @@ import { describeCardAction } from './DiceService';
 import { Effect } from '../types/EffectTypes';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { shortName } from '../utils/boardCommon';
+import { DOB_FINAL_REVIEW_SPACE } from './ApprovalService';
 
 /**
  * Interface for dice roll effects processing result
@@ -458,7 +459,9 @@ export class DiceRollProcessor {
       );
       if (outcome) {
         const update = this.approvalService.applyOutcome(outcome);
-        this.stateService.updatePlayer({ id: playerId, ...update });
+        // Workstream 7 Try-Again rollback: route through TEMP. Falls through to
+        // updatePlayer if no active TEMP (e.g. between turns).
+        this.stateService.updateTempState(playerId, update);
         debugLog(`📋 Approval outcome at ${currentPlayer.currentSpace} (${currentPlayer.visitType}, roll ${diceRoll}): ${outcome.approval} → ${outcome.kind}`);
         // Phase 7.5 — record NPC-voiced narration for the modal Summary block.
         this.lastApprovalNarration = this.approvalService.narrateOutcome(
@@ -475,7 +478,7 @@ export class DiceRollProcessor {
     // the dice destination with a forced route back to the missing examiner.
     // The dice value the player rolled is discarded — they didn't get to "roll
     // for paperwork" because they failed the prior-approval check.
-    if (this.approvalService && currentPlayer.currentSpace === 'REG-DOB-FINAL-REVIEW') {
+    if (this.approvalService && currentPlayer.currentSpace === DOB_FINAL_REVIEW_SPACE) {
       const gate = this.approvalService.checkFinalReviewGate(currentPlayer);
       if (!gate.passed && gate.routeTo) {
         const destContent = this.dataService.getSpaceContent(gate.routeTo, 'First');
@@ -486,7 +489,7 @@ export class DiceRollProcessor {
           destination: gate.routeTo,
         });
         this.stateService.setPlayerMoveIntent(playerId, gate.routeTo);
-        debugLog(`🛂 Final-review gate failed at REG-DOB-FINAL-REVIEW (missing=${gate.missing}) → routing to ${gate.routeTo}`);
+        debugLog(`🛂 Final-review gate failed at ${DOB_FINAL_REVIEW_SPACE} (missing=${gate.missing}) → routing to ${gate.routeTo}`);
         // Phase 7.5 — gate-bounce narration for the modal Summary.
         this.lastApprovalNarration = `🛂 DOB clerk: ${gate.reason}`;
         if (this.notificationService) {

@@ -280,12 +280,11 @@ export class CardService implements ICardService {
     // approves life-safety, not scope). Idempotent: if there's no prior approval
     // the revoke is a no-op (sets 'none' → 'none', [] → []).
     // Skipped when ApprovalService isn't injected (legacy tests, ghost bootstrap).
-    // Note: this is a REAL-state write — Try Again won't restore the approval.
-    // Rationale: in real life, filing a scope change with DOB invalidates the
-    // approval even if you later withdraw the filing. Future Phase 7.x can
-    // route through TEMP if Try Again rollback of approval becomes desired.
+    // Routes through TEMP so Try Again restores the prior approval (the W draw
+    // itself already rolls back via TEMP, so leaving the approval revoked while
+    // un-drawing the scope change would be inconsistent).
     if (this.approvalService && cardType === 'W' && drawnCards.length > 0) {
-      this.stateService.updatePlayer({ id: playerId, ...this.approvalService.revoke('dob') });
+      this.stateService.updateTempState(playerId, this.approvalService.revoke('dob'));
     }
 
     return drawnCards;
@@ -1046,7 +1045,7 @@ export class CardService implements ICardService {
   // time fan-out and work_type_conditional gating. The richer effects (free
   // E-card draws, forced discards, multi-turn duration) are deferred. Manual
   // card play passes no options → full behavior unchanged.
-  async applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean }): Promise<GameState> {
+  async applyCardEffects(playerId: string, cardId: string, options?: { onlyResourceEffects?: boolean; diceRoll?: number }): Promise<GameState> {
     // Ensure EffectEngineService is ready before processing card effects
     this.assertEffectEngineReady();
 
@@ -1056,12 +1055,48 @@ export class CardService implements ICardService {
       return this.stateService.getGameState();
     }
 
-    // Auto life-event path: dice-conditional cards (e.g. L009 "roll 1-3 → +5
-    // days, else 0") carry a tick_modifier that only applies on certain rolls,
-    // but parseCardIntoEffects doesn't gate it — so applying it here would be
-    // unconditional and wrong. Defer those entirely.
-    if (options?.onlyResourceEffects && card.card_mechanic === 'dice_conditional') {
+    // Dice-conditional cards (e.g. L009 "roll 1-3 → +5 days, else 0") need an
+    // originating dice roll to evaluate. Without a dice roll (CardEffectHandler
+    // unconditional draws), we still skip — there's nothing to condition on.
+    if (options?.onlyResourceEffects && card.card_mechanic === 'dice_conditional' && options.diceRoll === undefined) {
       return this.stateService.getGameState();
+    }
+
+    // Kid D (2026-05-29) — when a dice_conditional card has a dice roll, swap
+    // its raw tick_modifier for the range-matched value so the downstream
+    // parseCardIntoEffects emits the correct tick (parseCardIntoEffects is
+    // dice-range-unaware; this prepass lets us reuse it without changes).
+    let effectiveCard: Card = card;
+    if (options?.onlyResourceEffects && card.card_mechanic === 'dice_conditional' && options.diceRoll !== undefined) {
+      const roll = options.diceRoll;
+      let matchedTime: number | undefined;
+      if (card.dice_range_1_min != null && card.dice_range_1_max != null
+          && roll >= card.dice_range_1_min && roll <= card.dice_range_1_max) {
+        matchedTime = card.dice_range_1_time ?? 0;
+      } else if (card.dice_range_2_min != null && card.dice_range_2_max != null
+          && roll >= card.dice_range_2_min && roll <= card.dice_range_2_max) {
+        matchedTime = card.dice_range_2_time ?? 0;
+      } else {
+        matchedTime = 0; // No matching range — fall to "no effect".
+      }
+      effectiveCard = { ...card, tick_modifier: matchedTime as any };
+    }
+
+    // Kid E (2026-05-29) — fan-out collision guard. When the parser already
+    // produced one effect per player (scope=Global, no duration), the engine's
+    // processEffectsWithTargeting would re-fan via the cardData.target rule,
+    // turning N effects × N players into N² applications per player. Override
+    // the target to 'Self' on the auto path for this case so the engine takes
+    // its fast-path (apply effects as-is, no re-targeting). Duration cards
+    // still need 'All Players' so the duration loop fans the single emitted
+    // effect across players (Kid C).
+    if (options?.onlyResourceEffects && card.scope && card.scope.toLowerCase() === 'global') {
+      const hasDurationKidE = card.duration === 'Turns'
+        && !!card.duration_count
+        && parseInt(card.duration_count, 10) > 0;
+      if (!hasDurationKidE) {
+        effectiveCard = { ...effectiveCard, target: 'Self' };
+      }
     }
 
     const player = this.stateService.getPlayer(playerId);
@@ -1084,11 +1119,27 @@ export class CardService implements ICardService {
     }
 
     // Step 1: Parse card data into standardized Effect objects
-    let effects = this.parseCardIntoEffects(card, playerId);
+    let effects = this.parseCardIntoEffects(effectiveCard, playerId);
 
-    // Minimal safe subset for the auto life-event path: money/time only.
+    // Safe-by-construction subset for the auto life-event path.
+    //   - RESOURCE_CHANGE: pure arithmetic, can't draw/prompt/recurse.
+    //   - CARD_DRAW for E cards, self-targeted (Kid B, 2026-05-29): free
+    //     Expeditor draws on L005 / L007 / L010. Lands in hand only; the auto-
+    //     draw handler does NOT call applyCardEffects on E cards, so no
+    //     recursion. Excludes non-E card types so we never trigger downstream
+    //     auto-apply machinery this fix isn't validated for. The fanned-out
+    //     global draws (e.g. L049 — playerId !== self) also pass for the
+    //     not-self players (each gets a self-targeted E draw from their POV).
+    //   - CARD_DISCARD (Kid E, 2026-05-29): forced-discard fan-outs from
+    //     L003 / L048. Handler shows a choice modal in production (human
+    //     picks which card) and auto-picks oldest in headless (ghost bot
+    //     sets autoPickForcedDiscards=true).
     if (options?.onlyResourceEffects) {
-      effects = effects.filter(e => e.effectType === 'RESOURCE_CHANGE');
+      effects = effects.filter(e =>
+        e.effectType === 'RESOURCE_CHANGE' ||
+        (e.effectType === 'CARD_DRAW' && e.payload.cardType === 'E') ||
+        e.effectType === 'CARD_DISCARD'
+      );
     }
 
     if (effects.length > 0) {
@@ -1097,11 +1148,11 @@ export class CardService implements ICardService {
       const context = {
         source: `card:${cardId}`,
         playerId: playerId,
-        triggerEvent: 'CARD_PLAY' as const
+        triggerEvent: 'CARD_PLAY' as const,
       };
 
       try {
-        const batchResult = await this.effectEngineService.processCardEffects(effects, context, card);
+        const batchResult = await this.effectEngineService.processCardEffects(effects, context, effectiveCard);
         if (batchResult.success) {
         } else {
           console.error(`❌ Card effect processing failed: ${batchResult.errors.join(', ')}`);
@@ -1119,11 +1170,11 @@ export class CardService implements ICardService {
     // and L020 "Building Code Update" force DOB approval to be re-obtained because
     // the code changed underneath the prior approval. Idempotent if no prior
     // approval was active.
-    if (this.approvalService && card.revokes_approval && !options?.onlyResourceEffects) {
-      this.stateService.updatePlayer({
-        id: playerId,
-        ...this.approvalService.revoke(card.revokes_approval),
-      });
+    if (this.approvalService && card.revokes_approval) {
+      // Routes through TEMP so Try Again restores the prior approval — safe to
+      // apply on the auto life-event path too (Kid A, 2026-05-29). The revoke
+      // is pure state writes, no choices or recursion.
+      this.stateService.updateTempState(playerId, this.approvalService.revoke(card.revokes_approval));
     }
 
     // Legacy card type logging for debugging
@@ -1184,14 +1235,23 @@ export class CardService implements ICardService {
       if (conditionMet && !isNaN(timeAmount) && timeAmount !== 0) {
         // Check if this is a Global scope card - affects all players
         const isGlobalScope = card.scope && card.scope.toLowerCase() === 'global';
+        // Kid C (2026-05-29) — when a card has BOTH scope=Global and
+        // duration=Turns, parser-side fan-out + EffectEngineService's
+        // duration targeting loop would produce N×N active effects per player
+        // (each player ends up with N copies of the tick, firing every turn
+        // for N turns → N× over-application). Emit a single effect when
+        // duration is set; the engine's targetRule expansion handles per-
+        // player fan-out correctly. Phase-filtered duration cards (L004
+        // affected_phase=CONSTRUCTION) lose their per-player phase filter
+        // here — that needs an apply-time filter, deferred to a follow-up.
+        const hasDuration = card.duration === 'Turns'
+          && !!card.duration_count
+          && parseInt(card.duration_count, 10) > 0;
 
-        if (isGlobalScope) {
-          // Apply to ALL players, optionally filtered by phase. v3.0.17:
-          // cards like L026 ("All permit filing times decrease by 1 day")
-          // should only tick down players who are currently *filing* (i.e.
-          // standing on a REGULATORY-phase space). The affected_phase column
-          // narrows the fan-out; empty/undefined preserves the original
-          // unrestricted behavior (every player gets the delta).
+        if (isGlobalScope && !hasDuration) {
+          // Immediate-fire global cards (e.g. L008, L026) — fan out per player
+          // at parser time so phase filtering can use each player's current
+          // location.
           const requiredPhase = card.affected_phase?.trim();
           const gameState = this.stateService.getGameState();
           for (const player of gameState.players) {
@@ -1212,6 +1272,20 @@ export class CardService implements ICardService {
               }
             });
           }
+        } else if (isGlobalScope && hasDuration) {
+          // Duration cards: emit a single effect with the source player; the
+          // engine's targetRule loop expands it to all players (one active
+          // effect per player, ticked down each turn).
+          effects.push({
+            effectType: 'RESOURCE_CHANGE',
+            payload: {
+              playerId: playerId,
+              resource: 'TIME',
+              amount: timeAmount,
+              source: cardSource,
+              reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days (affects all players)`
+            }
+          });
         } else {
           // Apply to current player only
           effects.push({

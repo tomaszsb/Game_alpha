@@ -44,6 +44,15 @@ export class CardEffectHandler implements ICardEffectHandler {
   private notificationService?: INotificationService;
   private dataService?: IDataService;
 
+  /**
+   * Kid E (2026-05-29). When `true`, forced-discard cards with
+   * `requiresUserChoice: true` (L003 / L048 — global discard fan-out)
+   * skip the choice modal and auto-pick the oldest cards. Used by the
+   * headless ghost bot, which can't click modals. Production leaves this
+   * false so human players keep the tactical choice.
+   */
+  public autoPickForcedDiscards = false;
+
   constructor(
     private readonly cardService: ICardService,
     private readonly stateService: IStateService,
@@ -170,7 +179,9 @@ export class CardEffectHandler implements ICardEffectHandler {
       // Show a choice modal when explicitly required (dice rolls, or
       // flagged globals like L003/L048) AND the player has more cards
       // than the discard count — otherwise auto-pick by slicing.
-      if (requiresUserChoice && allCardsOfType.length > payload.count) {
+      // Kid E (2026-05-29): ghost bot sets `autoPickForcedDiscards=true`
+      // to skip the modal (it can't click) and fall through to the slice.
+      if (requiresUserChoice && allCardsOfType.length > payload.count && !this.autoPickForcedDiscards) {
         const choiceResult = await this.presentCardChoice(payload, allCardsOfType, isDiceRollReplace);
         if (choiceResult.skipped) {
           return {
