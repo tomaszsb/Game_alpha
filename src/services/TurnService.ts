@@ -201,32 +201,6 @@ export class TurnService implements ITurnService {
     return this.gameRulesService.canEndTurn(playerId);
   }
 
-  /**
-   * Generate dynamic card IDs that reference actual cards from the CSV data
-   * Format: STATIC_ID_timestamp_random_index
-   */
-  private generateCardIds(cardType: string, count: number): string[] {
-    const cardsOfType = this.dataService.getCardsByType(cardType as any);
-    if (cardsOfType.length === 0) {
-      debugWarn(`No cards of type ${cardType} found in CSV data`);
-      return [];
-    }
-
-    const cardIds: string[] = [];
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substr(2, 9);
-
-    for (let i = 0; i < count; i++) {
-      // Randomly select a card from available cards of this type
-      const randomCard = cardsOfType[Math.floor(Math.random() * cardsOfType.length)];
-      // Create dynamic ID that starts with the static card ID
-      const dynamicId = `${randomCard.card_id}_${timestamp}_${randomString}_${i}`;
-      cardIds.push(dynamicId);
-    }
-
-    return cardIds;
-  }
-
   async takeTurn(playerId: string): Promise<TurnResult> {
     // Ensure all setter-injected dependencies are ready
     this.assertDependenciesReady();

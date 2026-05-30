@@ -3,7 +3,7 @@ import { ExpandableSection } from '../ExpandableSection';
 import { ActionButton } from '../ActionButton';
 import { CardDisplay } from '../../common/CardDisplay';
 import { IServiceContainer } from '../../../types/ServiceContracts';
-import { CardType } from '../../../types/DataTypes';
+import { Card, CardType } from '../../../types/DataTypes';
 import { DiscardPileModal } from '../../modals/DiscardPileModal';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import './CardsSection.css';
@@ -192,7 +192,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
   };
 
   // Check if an E card can be played based on phase restriction and effect applicability
-  const canPlayCard = (card: any): boolean => {
+  const canPlayCard = (card: Card): boolean => {
     if (card.card_type !== 'E') return false;
 
     // Check phase restriction

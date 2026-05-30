@@ -32,19 +32,19 @@ taskkill /F /IM chrome.exe
 
 **Working Directory**: `/mnt/d/unravel/current_game/Game_Alpha/`
 
-**Status**: Beta (v2.65.7) — live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026. Workstream 7 (Plan Approval Mechanic) closed May 17, 2026 in v2.65.4. Workstreams 3 (Living Map, Phase D pending) and 5 (Live Dictionary) remain for v3.0.0 ship.
+**Status**: Beta (v3.0.39, late-May 2026) — live in production at `https://game.unravelcodes.com`. Workstreams 3 (Living Map), 5 (Live Dictionary), 6 (engine-data separation), 7 (Plan Approval Mechanic) all closed; v3.0.0 shipped 2026-05-23. Current focus is playtest-driven UX polish + bug-fix blocks (CHANGELOG is the per-version log). TODO.md has the prioritized backlog.
 
 **Directory Structure:**
 ```
 Game_Alpha/
 ├── src/                          # Application source code
 │   ├── components/              # React UI (board, modals, player, editor, setup, layout)
-│   ├── services/                # 28 services (DI, see ARCHITECTURE.md)
+│   ├── services/                # 29 services (DI, see ARCHITECTURE.md)
 │   ├── types/                   # TypeScript interfaces and contracts
 │   ├── utils/                   # Pure utility functions
 │   ├── context/                 # React context providers (ServiceProvider)
 │   └── styles/                  # CSS variables, animations, theme
-├── tests/                        # 101 test files (run via batch script)
+├── tests/                        # 115 test files (run via vitest sweep)
 │   ├── services/                # Service unit tests
 │   ├── components/              # Component tests
 │   ├── integration/             # Integration tests
@@ -239,11 +239,11 @@ CHANGELOG + Release Notes = sufficient documentation for incremental work. Archi
 
 ## 🎯 **MISSION & RESPONSIBILITIES**
 
-**Status:** Game Alpha (Unravel Codes: The Game) is in **BETA** phase (April 2026), live in production at `https://game.unravelcodes.com`. Workstream 6 (engine-data separation) closed Apr 29, 2026 in v2.58.0.
+**Status:** Game Alpha (Unravel Codes: The Game) is in **BETA**, live in production at `https://game.unravelcodes.com`. All four major workstreams (3 Living Map, 5 Live Dictionary, 6 engine-data separation, 7 Plan Approval Mechanic) closed by mid-May 2026. v3.0.0 shipped 2026-05-23; current line is v3.0.39+.
 
 Your mission is to maintain and enhance Game Alpha, a fully functional multi-player board game with modern service-oriented architecture, dependency injection, and a Ghost Player regression gate.
 
-**Current Focus:** Voice rewrite merge (`docs/core/AUTHORED_COPY_REVIEW.md`), story-narrative authoring rollout, and the two remaining Beta workstreams blocking v3.0.0 (Living Map + Live Dictionary). See `TODO.md` for active priorities and `BETA_PLAN_V3.md` for strategy.
+**Current Focus:** Playtest-driven UX polish + bug-fix blocks (e.g. v3.0.34–39 was the "Life Event richer effects" / Try-Again rollback / DiceResultModal duplication / quick-wins block). Story narrative authoring (5/~75 rows done) and voice rewrite Pass 2 (ModalConfig.csv copy) remain as creator-driven content workstreams. See `TODO.md` for active priorities and `BETA_PLAN_V3.md` for strategy.
 
 ### **Core Responsibilities:**
 - Maintain production system stability and test coverage
@@ -458,7 +458,7 @@ When adding a new NPC space prefix: update `NPC_SPEAKER_NAMES` (always) and `CHA
 - `funding_source === 'bank'` → `moneySources.bankLoans`
 - `funding_source === 'investor'` → `moneySources.investmentDeals`
 
-At non-funding spaces the token resolves to empty string (disappears). To extend: add new keys to the context object in `renderedSpaceStory` useMemo; CSV authors drop `{key}` wherever the NPC dialogue naturally references the value. v3.0.7 applied only to `OWNER-FUND-INITIATION` First-visit; other funding spaces ready to adopt.
+At non-funding spaces the token resolves to empty string (disappears). To extend: add new keys to the context object in `renderedSpaceStory` useMemo; CSV authors drop `{key}` wherever the NPC dialogue naturally references the value. v3.0.7 applied at `OWNER-FUND-INITIATION` First-visit; v3.0.39 added BANK-FUND-REVIEW Subsequent + INVESTOR-FUND-REVIEW Subsequent (running cumulative source total). First-visit BANK/INVESTOR copy intentionally skipped — amount is 0 before the player chooses to take the loan/investment. To adopt at Outcome-column copy, `spaceOutcome` would also need to be run through `interpolateTemplate` ([ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx)) — small follow-up.
 
 ### `window.error` handler scoping (v3.0.1)
 
@@ -931,19 +931,19 @@ Fix: extracted `computeVisibleEdgeIds(currentSpace, validMoves, spaceVisitLog)` 
 
 **Card bare-number type default = W.** `parseCardDrawFormat` (`src/utils/parseUtils.ts`) defaults a typeless count to `W`. So `draw_cards=1` on an E card draws a **Work Package**, not an Expeditor — and `discard_cards=1` discards a W. Always author `"N E"` (count + type). When a "Draw/Discard N <type>" card misbehaves, check the column has the type letter, not just the number.
 
-### Expenditure recording: `updateTempState` survives turn-commit, mid-turn `updatePlayer` may not (v3.0.34, diagnosed — fix pending)
+### Expenditure recording: `updateTempState` survives turn-commit, mid-turn `updatePlayer` does not (v3.0.34 diagnosis → v3.0.35 fix)
 
-Confirmed against saved game G262: construction cost IS deducted from cash (exactly $907,500 = `scope × mult×0.1 × qualityCoeff`, via `resourceService.spendMoney`) but `expenditures.construction`/`costs`/`costHistory` all stayed 0 — so it's invisible in the Pro Ledger ("Contractor $0") and the end-game "Total spent" (which sums `costHistory` only). The contractor *field* (quality/multiplier) persisted, the expenditure record didn't.
+The lesson stands even though the original symptom is fixed. Saved game G262 (v3.0.34): construction cost was deducted from cash via `resourceService.spendMoney` (exactly $907,500 = `scope × mult×0.1 × qualityCoeff`) but `expenditures.construction`/`costs`/`costHistory` all stayed 0 — invisible in the Pro Ledger and the end-game "Total spent" sum.
 
-Root-cause hypothesis: design fees record via `stateService.updateTempState` ([FinancialEffectHandler.trackDesignExpenditure](src/services/FinancialEffectHandler.ts) line ~264) which the turn-commit merges into REAL state; the `CONTRACTOR_UPDATE` handler records `expenditures.construction` via `stateService.updatePlayer` ([EffectEngineService.ts:412](src/services/EffectEngineService.ts#L412)) — a REAL-state write the commit appears to overwrite from the temp snapshot (which never got the construction entry). `spendMoney` goes through the temp/commit path so the cash drop survives. **Fix (next session):** record construction cost the way `trackDesignExpenditure` does — `updateTempState` + a `costHistory` entry + a `construction` cost category — so it shows everywhere. This also resolves the visible half of the end-game "Total spent" undercount.
+Root cause: the `CONTRACTOR_UPDATE` handler recorded `expenditures.construction` via `stateService.updatePlayer` ([EffectEngineService.ts:412](src/services/EffectEngineService.ts#L412)) — a REAL-state write that the turn-commit overwrote from the temp snapshot (which never got the construction entry). Design fees were fine because `trackDesignExpenditure` already used `updateTempState`. Fixed v3.0.35 by switching CONTRACTOR_UPDATE to the same temp/commit path + a `costHistory` entry — verified live via state-cheat to CON-INITIATION.
 
-General rule: any in-turn mutation that must survive turn-commit goes through `updateTempState`, not `updatePlayer`. When a value is "applied but vanishes by end of turn," suspect a real-state write racing the commit.
+**General rule (still applies for any new mid-turn mutation):** any in-turn change that must survive turn-commit goes through `updateTempState`, not `updatePlayer`. When a value is "applied but vanishes by end of turn," suspect a real-state write racing the commit. Same shape applied to v3.0.39's approval-rollback work — see "Try-Again rollback for any new player-state field" pattern above.
 
-### Bonus: bank loan creates no `loans[]` record (v3.0.34)
+### Bank loan creates no `loans[]` record (v3.0.34 diagnosis → v3.0.35 fix)
 
-Saved G262 had `loans: []` despite a $1.575M bank loan that added cash. So `LOAN_PERCENTAGE` fees (REG-DOB-FEE-REVIEW / REG-FDNY-FEE-REVIEW, "1% of loan") compute 1% of $0 = nothing — regulatory fee reviews are effectively free. Open design question in TODO: should the bank loan create a `loans[]` entry (enabling fees + interest)?
+Resolved. Saved G262 had `loans: []` despite a $1.575M bank loan that added cash, so `LOAN_PERCENTAGE` fees (REG-DOB-FEE-REVIEW / REG-FDNY-FEE-REVIEW, "1% of loan") computed against $0 — regulatory fees were effectively free. Fixed v3.0.35 in `ResourceService` by appending a `loans[]` record (principal, interestRate 0, startTurn) when bank-source money is added. Lesson: when a fee formula reads `player.loans[]`, the code that *adds* loan money must also append the loan record. Same trap would bite any future per-loan computation (interest accrual, restructure penalties, etc.) — wire the record at the money-add site, not at the fee site.
 
 ---
 
-**Last Updated:** May 29, 2026 (Session **v3.0.39** — "crush all bugs" block: top-3 + Kids A–E + 8 quick wins + visit-indicator part 2)
-**Charter Version:** 3.22 (+ Kid C N×N parser/engine fan-out collision pattern + Try-Again rollback recipe for new MutablePlayerState fields + autoPickForcedDiscards bot-vs-modal split; updated Life Event entry for v3.0.39 Kids-done state)
+**Last Updated:** May 29, 2026 (Session **v3.0.39** — "crush all bugs" block + post-ship CLAUDE.md hygiene pass)
+**Charter Version:** 3.23 (hygiene: status + service/test counts + current focus refreshed for v3.0.39; resolved-v3.0.35 expenditure & loan-record entries rewritten as historical lessons; fundingAmount adoption note updated for BANK/INVESTOR Subsequent. Prior 3.22: Kid C N×N + Try-Again rollback recipe + autoPickForcedDiscards.)

@@ -1079,7 +1079,8 @@ export class CardService implements ICardService {
       } else {
         matchedTime = 0; // No matching range — fall to "no effect".
       }
-      effectiveCard = { ...card, tick_modifier: matchedTime as any };
+      // Card.tick_modifier is string in DataTypes (parseCardIntoEffects parseInts it).
+      effectiveCard = { ...card, tick_modifier: String(matchedTime) };
     }
 
     // Kid E (2026-05-29) — fan-out collision guard. When the parser already

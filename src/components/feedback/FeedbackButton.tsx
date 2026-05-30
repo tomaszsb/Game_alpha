@@ -24,6 +24,46 @@ interface FeedbackForm {
 
 type SubmitState = 'idle' | 'capturing' | 'form' | 'submitting' | 'success' | 'error';
 
+// Subset of the server's /api/games/:id/state response — only the fields
+// fetchGameStateSummary reads. The full GameState shape is intentionally not
+// imported here to keep this component's payload small and decoupled.
+interface ServerStatePlayer {
+  id: string;
+  shortId?: string;
+  name: string;
+  currentSpace: string;
+  visitType: string;
+  money: number;
+  hand?: string[];
+  timeSpent: number;
+}
+interface ServerStateResponse {
+  currentPlayerId?: string;
+  turnNumber?: number;
+  requiredActions?: number;
+  completedActionCount?: number;
+  hasPlayerRolledDice?: boolean;
+  awaitingChoice?: { type: string } | null;
+  players?: ServerStatePlayer[];
+}
+interface GameStateSummary {
+  currentPlayerId?: string;
+  turnNumber?: number;
+  requiredActions?: number;
+  completedActionCount?: number;
+  hasPlayerRolledDice?: boolean;
+  awaitingChoice: { type: string } | null;
+  players: Array<{
+    id: string;
+    name: string;
+    space: string;
+    visitType: string;
+    money: number;
+    handSize: number;
+    timeSpent: number;
+  }>;
+}
+
 export function FeedbackButton(): JSX.Element {
   const [state, setState] = useState<SubmitState>('idle');
   const [screenshot, setScreenshot] = useState<string | null>(null);
@@ -90,7 +130,7 @@ export function FeedbackButton(): JSX.Element {
   }, []);
 
   // Fetch a lightweight game state snapshot for the feedback report
-  const fetchGameStateSummary = useCallback(async (): Promise<any> => {
+  const fetchGameStateSummary = useCallback(async (): Promise<GameStateSummary | null> => {
     const gameId = getCurrentGameId() || new URLSearchParams(window.location.search).get('g');
     if (!gameId) return null;
 
@@ -99,7 +139,7 @@ export function FeedbackButton(): JSX.Element {
         signal: AbortSignal.timeout(3000),
       });
       if (!response.ok) return null;
-      const state = await response.json();
+      const state = await response.json() as ServerStateResponse;
 
       // Extract only what's needed for debugging (no hand contents or large arrays)
       return {
@@ -109,7 +149,7 @@ export function FeedbackButton(): JSX.Element {
         completedActionCount: state.completedActionCount,
         hasPlayerRolledDice: state.hasPlayerRolledDice,
         awaitingChoice: state.awaitingChoice ? { type: state.awaitingChoice.type } : null,
-        players: (state.players || []).map((p: any) => ({
+        players: (state.players || []).map(p => ({
           id: p.shortId || p.id,
           name: p.name,
           space: p.currentSpace,
