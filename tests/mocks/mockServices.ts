@@ -133,11 +133,7 @@ export const createMockStateService = (): any => ({
   
   // Negotiation management methods
   updateNegotiationState: vi.fn(),
-  
-  // Utility methods
-  fixPlayerStartingSpaces: vi.fn(),
-  forceResetAllPlayersToCorrectStartingSpace: vi.fn(),
-  
+
   // Choice management methods
   setAwaitingChoice: vi.fn(),
   clearAwaitingChoice: vi.fn(),

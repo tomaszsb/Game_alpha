@@ -1243,8 +1243,9 @@ export class CardService implements ICardService {
         // for N turns → N× over-application). Emit a single effect when
         // duration is set; the engine's targetRule expansion handles per-
         // player fan-out correctly. Phase-filtered duration cards (L004
-        // affected_phase=CONSTRUCTION) lose their per-player phase filter
-        // here — that needs an apply-time filter, deferred to a follow-up.
+        // affected_phase=CONSTRUCTION) carry their requiredPhase through
+        // to the active-effect payload — applyActiveEffects re-checks it
+        // each turn (v3.0.41 follow-up to the v3.0.39 N×N fix).
         const hasDuration = card.duration === 'Turns'
           && !!card.duration_count
           && parseInt(card.duration_count, 10) > 0;
@@ -1277,6 +1278,14 @@ export class CardService implements ICardService {
           // Duration cards: emit a single effect with the source player; the
           // engine's targetRule loop expands it to all players (one active
           // effect per player, ticked down each turn).
+          // v3.0.41 (Kid C follow-up): carry the card's affected_phase
+          // through to the active-effect payload so applyActiveEffects can
+          // re-check each player's current phase per turn. L004
+          // (affected_phase=CONSTRUCTION, duration=Turns) used to lose its
+          // phase filter under the v3.0.39 N×N fix because the parser-side
+          // filter was bypassed when emitting a single effect for engine
+          // fan-out — now the gate moves to apply-time.
+          const requiredPhase = card.affected_phase?.trim() || undefined;
           effects.push({
             effectType: 'RESOURCE_CHANGE',
             payload: {
@@ -1284,7 +1293,8 @@ export class CardService implements ICardService {
               resource: 'TIME',
               amount: timeAmount,
               source: cardSource,
-              reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days (affects all players)`
+              reason: `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} days${requiredPhase ? ` (all ${requiredPhase.toLowerCase()}-phase players)` : ' (affects all players)'}`,
+              requiredPhase,
             }
           });
         } else {

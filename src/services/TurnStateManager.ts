@@ -98,6 +98,42 @@ export class TurnStateManager {
   }
 
   /**
+   * v3.0.41 — deep-clone a MutablePlayerState. Same field-by-field copy
+   * `extractMutableState` does, but the input is an existing state rather
+   * than a live Player. Used at every site that previously did
+   * `{ ...realState.state }` (a shallow spread that shared nested array
+   * references — fragile because any downstream `.push()` would leak back
+   * into the source snapshot and corrupt Try Again rollback).
+   *
+   * No live regression today (the 1550-passing test suite confirms
+   * services consistently replace arrays rather than mutate in place),
+   * but this closes the foot-gun.
+   */
+  private cloneMutableState(state: MutablePlayerState): MutablePlayerState {
+    return {
+      money: state.money,
+      timeSpent: state.timeSpent,
+      projectScope: state.projectScope,
+      score: state.score,
+      hand: [...state.hand],
+      activeCards: [...state.activeCards],
+      loans: state.loans ? [...state.loans] : [],
+      moneySources: { ...state.moneySources },
+      expenditures: { ...state.expenditures },
+      costHistory: state.costHistory ? [...state.costHistory] : [],
+      costs: { ...state.costs },
+      fundingHistory: state.fundingHistory ? [...state.fundingHistory] : [],
+      activeEffects: state.activeEffects ? [...state.activeEffects] : [],
+      spaceVisitLog: state.spaceVisitLog ? [...state.spaceVisitLog] : [],
+      lastDiceRoll: state.lastDiceRoll ? { ...state.lastDiceRoll } : undefined,
+      dobApprovalStatus: state.dobApprovalStatus,
+      fdnyApprovalStatus: state.fdnyApprovalStatus,
+      dobApprovedDestinations: state.dobApprovedDestinations ? [...state.dobApprovedDestinations] : undefined,
+      fdnyApprovedDestinations: state.fdnyApprovedDestinations ? [...state.fdnyApprovedDestinations] : undefined
+    };
+  }
+
+  /**
    * Create a TEMP state from REAL state for a player.
    * Called at the start of a player's turn.
    *
@@ -123,10 +159,12 @@ export class TurnStateManager {
       }
     }
 
-    // Get the source state - either existing REAL or current player state
+    // Get the source state - either existing REAL or current player state.
+    // v3.0.41: deep-clone via cloneMutableState so nested arrays don't share
+    // refs with realState (used to corrupt Try Again under heavy hand mutation).
     const realState = this.turnStateModel.realStates[playerId];
     const sourceState: MutablePlayerState = realState?.state
-      ? { ...realState.state }
+      ? this.cloneMutableState(realState.state)
       : this.extractMutableState(player);
 
     // Always create REAL state if it doesn't exist yet — this captures the pre-effect
@@ -140,7 +178,7 @@ export class TurnStateManager {
           [playerId]: {
             playerId,
             playerName: player.name,
-            state: { ...sourceState },
+            state: this.cloneMutableState(sourceState),
             capturedAt: {
               turnNumber: globalTurnCount,
               spaceName,
@@ -156,7 +194,7 @@ export class TurnStateManager {
     const newTempState: PlayerTurnState = {
       playerId,
       playerName: player.name,
-      state: { ...sourceState },
+      state: this.cloneMutableState(sourceState),
       capturedAt: {
         turnNumber: globalTurnCount,
         spaceName,
@@ -235,7 +273,9 @@ export class TurnStateManager {
     return {
       success: true,
       newRealState,
-      committedState: { ...tempState.state }
+      // v3.0.41: deep-clone — callers may mutate the returned snapshot for
+      // logging/UI without affecting the just-committed REAL state.
+      committedState: this.cloneMutableState(tempState.state)
     };
   }
 
@@ -277,13 +317,17 @@ export class TurnStateManager {
   ): StateTransitionResult {
     debugLog(`📝 Applying changes to REAL state for player ${playerId}:`, changes);
 
-    // Get existing REAL state or create from current player
+    // Get existing REAL state or create from current player.
+    // v3.0.41: deep-clone the source REAL state so the assigned-from spread
+    // below doesn't share nested array references with the stored REAL.
     const existingReal = this.turnStateModel.realStates[playerId];
     const currentRealState: MutablePlayerState = existingReal?.state
-      ? { ...existingReal.state }
+      ? this.cloneMutableState(existingReal.state)
       : this.extractMutableState(player);
 
-    // Apply changes (handle additive fields like timeSpent)
+    // Apply changes (handle additive fields like timeSpent).
+    // currentRealState is already a deep clone — a shallow spread here is
+    // safe because nothing further mutates the nested arrays in place.
     const updatedState: MutablePlayerState = { ...currentRealState };
 
     // For timeSpent, we ADD the penalty to existing value
@@ -335,7 +379,13 @@ export class TurnStateManager {
     };
 
     debugLog(`✅ Changes applied to REAL state for player ${playerId}`);
-    return { success: true, newRealState };
+    // v3.0.41: return a clone so a caller mutating result.newRealState.state
+    // cannot leak back into the stored REAL state (they were the same object
+    // pre-fix). Callers that just inspect the state are unaffected.
+    return {
+      success: true,
+      newRealState: { ...newRealState, state: this.cloneMutableState(newRealState.state) }
+    };
   }
 
   /**
@@ -345,16 +395,18 @@ export class TurnStateManager {
   public getEffectivePlayerState(playerId: string, player: Player): MutablePlayerState | null {
     if (!player) return null;
 
-    // If player has active TEMP, use TEMP
+    // If player has active TEMP, use TEMP.
+    // v3.0.41: deep-clone so consumers can safely mutate the returned object
+    // (e.g. for transient UI calculations) without leaking back into TEMP.
     const tempState = this.turnStateModel.tempStates[playerId];
     if (tempState) {
-      return { ...tempState.state };
+      return this.cloneMutableState(tempState.state);
     }
 
     // Fall back to REAL if no TEMP
     const realState = this.turnStateModel.realStates[playerId];
     if (realState) {
-      return { ...realState.state };
+      return this.cloneMutableState(realState.state);
     }
 
     // Fall back to extracting from player object
@@ -388,8 +440,11 @@ export class TurnStateManager {
       return { success: true, updatedState: undefined };
     }
 
+    // v3.0.41: deep-clone the base, then layer `changes` on top. Without
+    // the deep clone, mutating nested arrays on updatedState would leak into
+    // the existing tempState.state via shared references.
     const updatedState: MutablePlayerState = {
-      ...tempState.state,
+      ...this.cloneMutableState(tempState.state),
       ...changes
     };
 

@@ -42,6 +42,13 @@ export type Effect =
         sourceType?: 'bank' | 'investment' | 'owner' | 'other';  // Money source category
         percentageOfScope?: number;  // For design fees: percentage of project scope to deduct
         feeCategory?: 'architectural' | 'engineering';  // Category for cost tracking
+        // v3.0.41 — Kid C follow-up. When this effect is registered as an
+        // active (multi-turn) effect, applyActiveEffects re-checks the
+        // affected player's current phase each turn before applying.
+        // L004 (affected_phase=CONSTRUCTION, duration=Turns) only ticks
+        // players who are currently in the CONSTRUCTION phase. Undefined →
+        // no phase gate (applies regardless of phase).
+        requiredPhase?: string;
       };
     }
   | { 

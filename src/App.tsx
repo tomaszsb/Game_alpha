@@ -112,17 +112,16 @@ function AppContent(): JSX.Element {
         ]);
 
         // Try to load state from server first (multi-device sync)
-        const stateLoaded = await stateService.loadStateFromServer();
+        await stateService.loadStateFromServer();
 
-        if (!stateLoaded) {
-
-          // Fix any existing players who might have incorrect starting spaces
-          // This addresses the caching bug where players were created before data loaded
-          stateService.fixPlayerStartingSpaces();
-
-          // If that didn't work, use the aggressive fix
-          stateService.forceResetAllPlayersToCorrectStartingSpace();
-        }
+        // v3.0.41: removed `fixPlayerStartingSpaces` + `forceResetAllPlayersToCorrectStartingSpace`
+        // calls. They migrated players stuck on the old 'START-QUICK-PLAY-GUIDE'
+        // starting space (a legacy bug from when players were created before
+        // data loaded). At app init the players array is empty either way
+        // (createInitialState() default or freshly-loaded-from-server state),
+        // so both calls were no-ops in current flow. If a real player-state
+        // migration is ever needed again, do it server-side at the storage
+        // layer rather than on every client init.
 
         setIsLoading(false);
       } catch (error) {

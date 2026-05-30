@@ -464,4 +464,38 @@ describe('ChoiceService', () => {
       expect(results).toEqual(Array(choiceTypes.length).fill('test'));
     });
   });
+
+  // v3.0.41 — explicit-cancel hook so unresolved choices don't leak past
+  // turn end / game end / disconnect. External audit risk #3.
+  describe('cancelAllPendingChoices', () => {
+    it('resolves every pending promise with empty string when called', async () => {
+      const options = [{ id: 'a', label: 'A' }];
+      const p1 = choiceService.createChoice('player1', 'MOVEMENT', 'pick one', options);
+      const p2 = choiceService.createChoice('player1', 'TARGET_SELECTION', 'pick again', options);
+
+      choiceService.cancelAllPendingChoices('test reason');
+
+      const [r1, r2] = await Promise.all([p1, p2]);
+      expect(r1).toBe('');
+      expect(r2).toBe('');
+    });
+
+    it('clears any active choice from game state', () => {
+      const options = [{ id: 'a', label: 'A' }];
+      choiceService.createChoice('player1', 'MOVEMENT', 'pick', options);
+
+      // Reflect the awaiting choice in the mock game state.
+      const choiceObject = mockStateService.setAwaitingChoice.mock.calls[0][0];
+      mockStateService.getGameState.mockReturnValue({ ...mockGameState, awaitingChoice: choiceObject });
+
+      choiceService.cancelAllPendingChoices();
+
+      expect(mockStateService.clearAwaitingChoice).toHaveBeenCalled();
+    });
+
+    it('is a no-op when nothing is pending (idempotent)', () => {
+      expect(() => choiceService.cancelAllPendingChoices()).not.toThrow();
+      expect(mockStateService.clearAwaitingChoice).not.toHaveBeenCalled();
+    });
+  });
 });

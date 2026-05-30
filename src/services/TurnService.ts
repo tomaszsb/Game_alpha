@@ -427,6 +427,14 @@ export class TurnService implements ITurnService {
         debugWarn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
       }
 
+      // v3.0.41: clear any unresolved choice promises before advancing the
+      // turn. Normal happy-path choices await synchronously in the calling
+      // flow and won't be in the pending map by now; this catches edge
+      // cases (Try-Again-while-choice-open, force end-turn) where a stale
+      // `.then(...)` callback could otherwise fire post-turn against the
+      // wrong player's state.
+      this.choiceService.cancelAllPendingChoices('turn ended');
+
       step = 'next_player';
       // Advance to next player
       const nextPlayerResult = await this.nextPlayer();

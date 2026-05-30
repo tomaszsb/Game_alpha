@@ -1333,6 +1333,24 @@ export class EffectEngineService implements IEffectEngineService {
           };
         }
 
+        // v3.0.41 (Kid C follow-up) — phase gate for duration cards. The
+        // parser carries the card's affected_phase through on the active
+        // effect's payload; if the player isn't currently in the required
+        // phase, skip the apply but DON'T decrement the duration (the
+        // intent is "applies during X phase"; the effect lies dormant
+        // outside the phase and resumes if/when the player re-enters).
+        // Without this, L004 (CONSTRUCTION-phase tick over N turns) used
+        // to fire against players still in DESIGN/REGULATORY phase.
+        const requiredPhase = (activeEffectData.payload as any)?.requiredPhase;
+        if (requiredPhase) {
+          const spaceConfig = this.dataService?.getGameConfigBySpace(player.currentSpace);
+          if (spaceConfig?.phase !== requiredPhase) {
+            // Outside the gated phase — keep the effect, skip the apply.
+            remainingEffects.push(activeEffect);
+            continue;
+          }
+        }
+
         // v3.0.40 — capture money/timeSpent before the re-fire so we can
         // surface a player-facing "[card] still affecting you — -$X this
         // turn, N turns left" line. Without this, multi-turn duration cards

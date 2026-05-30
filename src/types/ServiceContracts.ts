@@ -268,10 +268,6 @@ export interface IStateService {
   // Negotiation management methods
   updateNegotiationState(negotiationState: NegotiationState | null): GameState;
 
-  // Utility methods
-  fixPlayerStartingSpaces(): GameState;
-  forceResetAllPlayersToCorrectStartingSpace(): GameState;
-  
   // Choice management methods
   setAwaitingChoice(choice: Choice): GameState;
   clearAwaitingChoice(): GameState;
@@ -604,6 +600,10 @@ export interface IChoiceService {
   createChoice(playerId: string, type: Choice['type'], prompt: string, options: Choice['options'], metadata?: Choice['metadata']): Promise<string>;
   resolveChoice(choiceId: string, selection: string): boolean;
   skipChoice(choiceId: string): boolean;
+  // v3.0.41 — cancel every pending-choice promise without waiting on the
+  // 5-minute timeout. Called from end-of-turn/game-end/reset paths so
+  // un-answered choices don't leak a stale callback that fires post-turn.
+  cancelAllPendingChoices(reason?: string): void;
 
   // Choice query methods
   getActiveChoice(): Choice | null;

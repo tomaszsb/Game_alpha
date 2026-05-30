@@ -64,8 +64,6 @@ const mockStateService: any = {
   endGame: vi.fn(),
   resetGame: vi.fn(),
   updateNegotiationState: vi.fn(),
-  fixPlayerStartingSpaces: vi.fn(),
-  forceResetAllPlayersToCorrectStartingSpace: vi.fn(),
   setAwaitingChoice: vi.fn(),
   clearAwaitingChoice: vi.fn(),
   setPlayerHasMoved: vi.fn(),

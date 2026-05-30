@@ -92,8 +92,6 @@ describe('EffectEngineService', () => {
       endGame: vi.fn(),
       resetGame: vi.fn(),
       updateNegotiationState: vi.fn(),
-      fixPlayerStartingSpaces: vi.fn(),
-      forceResetAllPlayersToCorrectStartingSpace: vi.fn(),
       setAwaitingChoice: vi.fn(),
       clearAwaitingChoice: vi.fn(),
       setPlayerHasMoved: vi.fn(),
@@ -1574,5 +1572,124 @@ describe('EffectEngineService.applyActiveEffects — recurring-effect surfacing 
 
     expect(mockNotificationService.notify).not.toHaveBeenCalled();
     expect(mockLoggingService.info).not.toHaveBeenCalled();
+  });
+});
+
+// v3.0.41 — Kid C follow-up: apply-time phase gate. The v3.0.39 N×N fix
+// emitted ONE effect at parser time for global+duration cards (L002/L004/
+// L008) and let the engine fan it across players — but in doing so, the
+// parser-side affected_phase filter was bypassed for L004 (CONSTRUCTION-
+// only). These tests pin the new gate at applyActiveEffects.
+describe('EffectEngineService.applyActiveEffects — Kid C apply-time phase gate (v3.0.41)', () => {
+  let service: EffectEngineService;
+  let mockStateService: any;
+  let mockDataService: any;
+  // Fresh per test — applyActiveEffects mutates remainingDuration on the
+  // activeEffect object, so a shared fixture leaks state between tests.
+  let playerInConstruction: any;
+  let playerInDesign: any;
+
+  beforeEach(() => {
+    playerInConstruction = {
+      id: 'p1', name: 'Alice', money: 100000, timeSpent: 0, currentSpace: 'CON-INITIATION',
+      activeEffects: [
+        {
+          effectId: 'l004',
+          sourceCardId: 'L004',
+          remainingDuration: 3,
+          effectData: {
+            effectType: 'RESOURCE_CHANGE',
+            payload: { playerId: 'p1', resource: 'TIME', amount: 2, source: 'card:L004', requiredPhase: 'CONSTRUCTION' },
+          },
+        },
+      ],
+    };
+    playerInDesign = { ...playerInConstruction, currentSpace: 'ARCH-INITIATION' };
+    mockDataService = {
+      getCardById: vi.fn().mockReturnValue({ card_id: 'L004', card_name: 'CON Delay', card_type: 'L' }),
+      getGameConfigBySpace: vi.fn((space: string) => {
+        if (space === 'CON-INITIATION') return { phase: 'CONSTRUCTION' };
+        if (space === 'ARCH-INITIATION') return { phase: 'DESIGN' };
+        return undefined;
+      }),
+    };
+    mockStateService = {
+      getPlayer: vi.fn(),
+      updateTempState: vi.fn(),
+      getGameState: vi.fn(),
+    };
+
+    service = new EffectEngineService(
+      { adjustResource: vi.fn(), addMoney: vi.fn(), spendMoney: vi.fn(), canAfford: vi.fn(), addTime: vi.fn(), spendTime: vi.fn(), updateResources: vi.fn(), getResourceHistory: vi.fn(), validateResourceChange: vi.fn(), takeOutLoan: vi.fn() } as any,
+      { setEffectEngineService: vi.fn() } as any,
+      { createChoice: vi.fn(), resolveChoice: vi.fn(), getActiveChoice: vi.fn(), clearChoice: vi.fn() } as any,
+      mockStateService,
+      { getValidMoves: vi.fn(), movePlayer: vi.fn(), getDiceDestination: vi.fn(), handleMovementChoice: vi.fn() } as any,
+      { setEffectEngineService: vi.fn() } as any,
+      { calculateProjectScope: vi.fn() } as any,
+      { getTargetPlayers: vi.fn(), resolveTargets: vi.fn() } as any,
+      { log: vi.fn(), error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn(), addLogEntry: vi.fn(), getLogEntries: vi.fn().mockReturnValue([]), clearLogs: vi.fn() } as any,
+      mockDataService,
+      { notify: vi.fn() } as any,
+    );
+
+    // Capture processEffect so we can assert whether it fired this turn.
+    (service as any).processEffect = vi.fn().mockResolvedValue({ success: true, effectType: 'RESOURCE_CHANGE' });
+  });
+
+  it('FIRES the active effect when the player IS in the required phase', async () => {
+    mockStateService.getPlayer.mockReturnValue(playerInConstruction);
+
+    await service.applyActiveEffects('p1');
+
+    expect((service as any).processEffect).toHaveBeenCalledTimes(1);
+    // The effect ticked, so remainingDuration drops from 3 to 2 and the
+    // updated active-effects list is written through updateTempState.
+    const update = mockStateService.updateTempState.mock.calls[0][1];
+    expect(update.activeEffects).toHaveLength(1);
+    expect(update.activeEffects[0].remainingDuration).toBe(2);
+  });
+
+  it('SKIPS the apply when the player is OUTSIDE the required phase (L004 DESIGN-phase player)', async () => {
+    mockStateService.getPlayer.mockReturnValue(playerInDesign);
+
+    await service.applyActiveEffects('p1');
+
+    // Effect did NOT fire — processEffect was not called.
+    expect((service as any).processEffect).not.toHaveBeenCalled();
+  });
+
+  it('PRESERVES the duration on skip (does not silently burn turns while out-of-phase)', async () => {
+    mockStateService.getPlayer.mockReturnValue(playerInDesign);
+
+    await service.applyActiveEffects('p1');
+
+    // The effect must remain in active effects, with its duration intact, so
+    // the player still owes the gated tick once they re-enter CONSTRUCTION.
+    const update = mockStateService.updateTempState.mock.calls[0][1];
+    expect(update.activeEffects).toHaveLength(1);
+    expect(update.activeEffects[0].remainingDuration).toBe(3);
+  });
+
+  it('applies normally when requiredPhase is undefined (no gate — back-compat with L002/L008)', async () => {
+    const ungatedPlayer = {
+      ...playerInDesign,
+      activeEffects: [
+        {
+          effectId: 'l002',
+          sourceCardId: 'L002',
+          remainingDuration: 2,
+          effectData: {
+            effectType: 'RESOURCE_CHANGE',
+            payload: { playerId: 'p1', resource: 'MONEY', amount: -1000, source: 'card:L002' /* no requiredPhase */ },
+          },
+        },
+      ],
+    };
+    mockStateService.getPlayer.mockReturnValue(ungatedPlayer);
+
+    await service.applyActiveEffects('p1');
+
+    expect((service as any).processEffect).toHaveBeenCalledTimes(1);
   });
 });

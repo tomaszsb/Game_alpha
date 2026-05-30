@@ -1,5 +1,5 @@
 import { IChoiceService, IStateService } from '../types/ServiceContracts';
-import { debugWarn } from '../utils/debugLog';
+import { debugLog, debugWarn } from '../utils/debugLog';
 import { Choice } from '../types/CommonTypes';
 import { GameState } from '../types/StateTypes';
 
@@ -227,6 +227,38 @@ export class ChoiceService implements IChoiceService {
    */
   hasActiveChoice(): boolean {
     return this.getActiveChoice() !== null;
+  }
+
+  /**
+   * v3.0.41 — cancel every pending-choice promise without waiting on the
+   * 5-minute timeout. Resolves each pending promise with `''` (the same
+   * sentinel the in-line cleanup at createChoice already uses for
+   * cancellation), clears any active choice from game state, and empties
+   * the pendingChoices map.
+   *
+   * Without this hook, edge cases — turn end with no new choice created,
+   * game end, player disconnect mid-choice — leak the promise until the
+   * 5-minute reject timer fires, and the promise's `.then(...)` callback
+   * (e.g. `setPlayerMoveIntent`) can fire on stale state. Audit risk #3.
+   *
+   * Idempotent: safe to call when nothing is pending.
+   */
+  cancelAllPendingChoices(reason?: string): void {
+    if (this.pendingChoices.size === 0) return;
+
+    for (const [choiceId, pending] of this.pendingChoices.entries()) {
+      pending.resolve('');
+      this.pendingChoices.delete(choiceId);
+    }
+
+    // Clear any banner/modal that was waiting on a choice.
+    if (this.getActiveChoice()) {
+      this.stateService.clearAwaitingChoice();
+    }
+
+    if (reason) {
+      debugLog(`🧹 Cancelled all pending choices: ${reason}`);
+    }
   }
 
   // === PRIVATE HELPERS ===

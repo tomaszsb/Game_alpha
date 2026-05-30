@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.41] - 2026-05-30
+
+### Five-bug sweep — Kid C phase gate, state-rollback defense, choice-leak cleanup, Owner Funding label, stale migration removal
+
+A targeted sweep of five verified-real cleanup items. Two engine-correctness fixes, two defensive architectural fixes from the external audit, and one dead-code purge.
+
+#### 1. Kid C apply-time phase filter (NEXT_SESSION top-3 #2)
+
+[CardService.ts:1276-1297](src/services/CardService.ts) — for global+duration cards (L002 / L004 / L008), the parser now stamps the card's `affected_phase` onto the emitted RESOURCE_CHANGE payload (new optional `requiredPhase` field on the effect type). [EffectEngineService.applyActiveEffects](src/services/EffectEngineService.ts) re-checks each player's current phase before firing the active effect; if the player is outside the required phase, the effect is preserved on `activeEffects` with its duration intact (no silent burn). L004 (`affected_phase=CONSTRUCTION`, `duration=Turns`) was the motivating case — under the v3.0.39 N×N fix it lost its phase filter because the parser-side check was bypassed when emitting a single fan-out effect. Closes the deferred follow-up tracked in Kid C.
+
+#### 2. Deep-clone REAL state arrays in TurnStateManager (audit risk #2)
+
+[TurnStateManager.ts](src/services/TurnStateManager.ts) — new `cloneMutableState` helper that does the same field-by-field deep copy `extractMutableState` already did, but takes an existing state instead of a live Player. Wired into every site that previously did `{ ...realState.state }` (a shallow spread that shared nested array references): `createTempStateFromReal`, `applyToRealState`, `commitTempToReal` return value, `updateTempState`, and the two `getEffectivePlayerState` paths. `applyToRealState` also now returns a cloned `newRealState` so callers mutating the returned object can't leak back into stored REAL. No live regression today (1550-passing test suite confirms services replace arrays rather than mutate in place), but closes the foot-gun the audit flagged: one careless `.push()` anywhere downstream would have corrupted Try Again rollback.
+
+#### 3. `cancelAllPendingChoices` in ChoiceService (audit risk #3)
+
+[ChoiceService.ts](src/services/ChoiceService.ts) — new public method resolves every entry in `pendingChoices` with `''` (the cancellation sentinel), clears any active choice from game state, and empties the map. Called from [TurnService.endTurnWithMovement](src/services/TurnService.ts) right before `nextPlayer`, so edge cases (Try-Again-while-choice-open, force end-turn, end-game with an unresolved choice) no longer leak the promise until the 5-minute reject timer fires. Without this, the leaked promise could fire a stale `.then(...)` callback (e.g., `setPlayerMoveIntent`) against the wrong player's state. Idempotent.
+
+#### 4. "Accept Owner Funding" label → CSV (audit cleanup)
+
+Two bugs in one cleanup: [FinancesSection.tsx:362-377](src/components/player/sections/FinancesSection.tsx) used a strict equality check `effect.effect_action === 'draw_b'` against an unnormalized CSV value `'draw_B'` — case mismatch meant the "Accept Owner Funding" override never matched in production. Lowercased the comparison AND lifted the label to the `modal_button_label` column on SPACE_EFFECTS.csv via [ModalConfig.csv](public/data/SOURCE_FILES/ModalConfig.csv). BANK-FUND-REVIEW First + Subsequent draw_B rows now populate the override; the hardcoded literal is kept as a fallback. Either path now lands the player on the curated label.
+
+#### 5. Stale START-QUICK-PLAY-GUIDE migration removed
+
+[StateService.ts](src/services/StateService.ts) — deleted `fixPlayerStartingSpaces` and `forceResetAllPlayersToCorrectStartingSpace`. Both were one-shot migrations for players stuck on the old `'START-QUICK-PLAY-GUIDE'` starting space (a caching bug from when players were created before data loaded). At app init the players array is empty either way (`createInitialState()` default or freshly-loaded-from-server state), so both calls were no-ops in current flow. [App.tsx:115-123](src/App.tsx) no longer invokes them; interface entries on `IStateService` removed; corresponding mock entries in test fixtures cleaned up.
+
+#### Changed
+- [package.json](package.json) (3.0.40 → 3.0.41).
+- [EffectTypes.ts](src/types/EffectTypes.ts) — new optional `requiredPhase` on RESOURCE_CHANGE payload.
+- [CardService.ts](src/services/CardService.ts) — Kid C duration emit carries `requiredPhase`.
+- [EffectEngineService.ts](src/services/EffectEngineService.ts) — apply-time phase gate in `applyActiveEffects`.
+- [TurnStateManager.ts](src/services/TurnStateManager.ts) — `cloneMutableState` helper + 5 site updates.
+- [ChoiceService.ts](src/services/ChoiceService.ts) — `cancelAllPendingChoices` method.
+- [ServiceContracts.ts](src/types/ServiceContracts.ts) — interface adds `cancelAllPendingChoices`; removes 2 stale migration methods.
+- [TurnService.ts](src/services/TurnService.ts) — invokes `cancelAllPendingChoices` at turn end.
+- [FinancesSection.tsx](src/components/player/sections/FinancesSection.tsx) — case-insensitive action match + `modal_button_label` preference.
+- [ModalConfig.csv](public/data/SOURCE_FILES/ModalConfig.csv) — 2 new rows for BANK-FUND-REVIEW draw_B.
+- [SPACE_EFFECTS.csv](public/data/CLEAN_FILES/SPACE_EFFECTS.csv) — synced label into the 2 BANK-FUND-REVIEW draw_B rows.
+- [StateService.ts](src/services/StateService.ts) — removed 2 stale migration methods.
+- [App.tsx](src/App.tsx) — removed the 2 migration calls.
+
+#### Test
+- **Extended** [EffectEngineService.test.ts](tests/services/EffectEngineService.test.ts) — +4 cases for Kid C phase gate (fires in-phase, skips out-of-phase, preserves duration on skip, ungated back-compat). Pre-existing `processActiveEffectsForAllPlayers` test was already migrated to argument-aware mock in v3.0.40 — still green.
+- **New** [TurnStateManager-deepClone.test.ts](tests/services/TurnStateManager-deepClone.test.ts) — 4 cases proving that mutating returned snapshots can no longer bleed into stored REAL/TEMP state (hand mutation, approved-destinations mutation, snapshot independence, applyToRealState return value isolation).
+- **Extended** [ChoiceService.test.ts](tests/services/ChoiceService.test.ts) — +3 cases for `cancelAllPendingChoices` (resolves pending with empty, clears active choice from state, idempotent no-op).
+- Targeted sweep: 83 files / **1561 passing** (+11 new cases). Build + typecheck clean.
+
 ## [3.0.40] - 2026-05-29
 
 ### Life-event feedback — modal receipts + recurring-effect callout

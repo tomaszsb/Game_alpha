@@ -1,1 +1,3 @@
 space_name,visit_type,effect_action,modal_title,modal_description,modal_button_label,modal_summary,dice_value
+BANK-FUND-REVIEW,First,draw_B,,,Accept Owner Funding,,
+BANK-FUND-REVIEW,Subsequent,draw_B,,,Accept Owner Funding,,

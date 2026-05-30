@@ -690,66 +690,12 @@ export class StateService implements IStateService {
     return { ...this.currentState };
   }
 
-  // Utility method to fix players with incorrect starting spaces
-  // This can be called after data is loaded to correct any players with wrong starting spaces
-  fixPlayerStartingSpaces(): GameState {
-    if (!this.dataService || !this.dataService.isLoaded()) {
-      debugWarn('Cannot fix starting spaces: DataService not loaded');
-      return { ...this.currentState };
-    }
+  // v3.0.41: removed `fixPlayerStartingSpaces` + `forceResetAllPlayersToCorrectStartingSpace`.
+  // Both were one-shot migrations for players stuck on the legacy
+  // 'START-QUICK-PLAY-GUIDE' starting space (caching bug fixed long ago).
+  // App.tsx no longer calls them; if a future migration is needed, do it
+  // server-side at the storage layer rather than on every client init.
 
-    const correctStartingSpace = this.getStartingSpace();
-    
-    const updatedPlayers = this.currentState.players.map(player => {
-      // Only fix players who are still on the old incorrect starting space
-      if (player.currentSpace === 'START-QUICK-PLAY-GUIDE') {
-        return {
-          ...player,
-          currentSpace: correctStartingSpace
-        };
-      }
-      return player;
-    });
-
-    const newState: GameState = {
-      ...this.currentState,
-      players: updatedPlayers
-    };
-
-    this.currentState = newState;
-    this.notifyListeners();
-    
-    return { ...newState };
-  }
-
-  // Aggressive method to force reset ALL players to correct starting space
-  // This ignores current space and resets everyone
-  forceResetAllPlayersToCorrectStartingSpace(): GameState {
-    if (!this.dataService || !this.dataService.isLoaded()) {
-      debugWarn('Cannot force reset starting spaces: DataService not loaded');
-      return { ...this.currentState };
-    }
-
-    const correctStartingSpace = this.getStartingSpace();
-    
-    const updatedPlayers = this.currentState.players.map(player => {
-      return {
-        ...player,
-        currentSpace: correctStartingSpace,
-        visitType: 'First' as const // Reset visit type too
-      };
-    });
-
-    const newState: GameState = {
-      ...this.currentState,
-      players: updatedPlayers
-    };
-
-    this.currentState = newState;
-    this.notifyListeners();
-    
-    return { ...newState };
-  }
 
   setAwaitingChoice(choice: Choice): GameState {
 

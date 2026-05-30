@@ -360,9 +360,17 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
   // effect.description ("Roll for W Cards"). The funding-card override stays.
   // Closes fb:b1a52932.
   const getButtonLabel = (effect: SpaceEffect): string => {
-    // For funding card effects at OWNER-FUND-INITIATION - override description
-    if (effect.effect_type === 'cards' && (effect.effect_action === 'draw_b' || effect.effect_action === 'draw_i')) {
-      return 'Accept Owner Funding';
+    // Funding card effects (B/I draws at BANK-FUND-REVIEW / INVESTOR-FUND-REVIEW)
+    // get a curated label. v3.0.41:
+    //   1. Prefer `modal_button_label` from SPACE_EFFECTS.csv when populated
+    //      (ModalConfig.csv source of truth). Lets educators rename without code.
+    //   2. Lowercase the action comparison — pre-fix, the literal `'draw_b'`
+    //      never matched the CSV value `'draw_B'`, so the curated label was
+    //      effectively dead. Either path now lands the player on the
+    //      intended label.
+    const action = effect.effect_action?.toLowerCase() || '';
+    if (effect.effect_type === 'cards' && (action === 'draw_b' || action === 'draw_i')) {
+      return effect.modal_button_label || 'Accept Owner Funding';
     }
     const formatted = formatManualEffectButton(effect);
     if (formatted.text) return formatted.text;
