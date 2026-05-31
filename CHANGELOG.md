@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.47] - 2026-05-31
+
+### Fix — duplicate Drew card-draw log entry
+
+v3.0.44/45/46 playtest surfaced this: every card draw was logged TWICE in the action log — once via `logCardDraw()` direct call, once via a `LOG` effect returned in `resultingEffects`. Both wrote to `globalActionLog` (EffectEngine's LOG handler at [EffectEngineService.ts:491](src/services/EffectEngineService.ts#L491) just forwards to `loggingService.info`). Pre-existing dupe — became visible once v3.0.44 made the strings readable.
+
+Kept `logCardDraw` (richer metadata: `cards` array, `cardType`, `count` — used by v3.0.45's expand-row UI). Dropped the LOG resultingEffect.
+
+#### Changed
+- [package.json](package.json) (3.0.46 → 3.0.47).
+- [src/services/CardEffectHandler.ts:133](src/services/CardEffectHandler.ts#L133) — removed `resultingEffects: [LOG]` block.
+
+#### Test
+- Typecheck clean. CardEffectHandler test suite 9/9 green (no tests depended on the dropped LOG effect).
+
 ## [3.0.46] - 2026-05-31
 
 ### Fix — second dice-roll log producer (fb:91738221 pass 1 follow-up)

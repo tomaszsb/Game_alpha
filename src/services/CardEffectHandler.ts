@@ -130,26 +130,19 @@ export class CardEffectHandler implements ICardEffectHandler {
         return fundingResult;
       }
 
-      // Log to action log
+      // Log to action log. fb:91738221 v3.0.47 — was logged TWICE: once via
+      // logCardDraw() below AND once via a LOG resultingEffect routed through
+      // EffectEngine. Both wrote to globalActionLog (the EffectEngine LOG
+      // handler at EffectEngineService.ts:491 just forwards to loggingService).
+      // logCardDraw is the keeper — it carries more details (cards array,
+      // cardType, count) used by v3.0.45's expand-row UI.
       this.logCardDraw(payload.playerId, payload.cardType, payload.count, drawnCards);
 
       // Store drawn cards in result
       return {
         success: true,
         effectType: effect.effectType,
-        data: { cardIds: drawnCards },
-        resultingEffects: [{
-          effectType: 'LOG',
-          payload: {
-            // Voice rule: real-life label, no "card(s)" word. fb:7a99da1a/004dc390.
-            // fb:91738221 — show friendly card titles, not raw IDs (W006, W009 etc.).
-            message: `Drew ${drawnCards.length} ${getCardTypeName(payload.cardType, drawnCards.length)}: ${friendlyCardList(this.dataService, drawnCards)}`,
-            level: 'INFO',
-            source,
-            action: 'card_draw',
-            playerId: payload.playerId
-          }
-        }]
+        data: { cardIds: drawnCards }
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown card draw error';
