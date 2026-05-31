@@ -274,16 +274,28 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // by Chrome/Comet/Edge (the player reports "phone didn't buzz").
   // Skipped when not in phone-view (no viewPlayerId), and only shown
   // once per session (sessionStorage flag survives reloads).
+  //
+  // v3.0.51 — sessionStorage access wrapped in try/catch: in restricted
+  // contexts (private/incognito, some embedded webviews, sandboxed iframes,
+  // and some Comet/TV browser modes) sessionStorage access can throw a
+  // SecurityError. Without the guard the throw inside useState's initializer
+  // crashes the whole component on mount → white screen on phone-join.
   const phoneViewKey = viewPlayerId ? `unravel.haptics.primed.${viewPlayerId}` : null;
+  const safeSessionGet = (key: string): string | null => {
+    try { return sessionStorage.getItem(key); } catch { return null; }
+  };
+  const safeSessionSet = (key: string, value: string): void => {
+    try { sessionStorage.setItem(key, value); } catch { /* swallow — gate just reappears next reload, no harm */ }
+  };
   const [needsHapticPrime, setNeedsHapticPrime] = useState<boolean>(() => {
     if (!phoneViewKey) return false;
-    return sessionStorage.getItem(phoneViewKey) !== 'yes';
+    return safeSessionGet(phoneViewKey) !== 'yes';
   });
   const handleEnterGame = () => {
     // Prime vibration in the same execution as the user tap — this is
     // what registers the gesture and unlocks subsequent vibrates.
-    haptics.lightTap();
-    if (phoneViewKey) sessionStorage.setItem(phoneViewKey, 'yes');
+    try { haptics.lightTap(); } catch { /* haptics is best-effort, never block the tap */ }
+    if (phoneViewKey) safeSessionSet(phoneViewKey, 'yes');
     setNeedsHapticPrime(false);
   };
 

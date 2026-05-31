@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.51] - 2026-05-31
+
+### Hotfix — haptic gate could crash GameLayout on phone-join (Comet, restricted contexts)
+
+Live playtest of v3.0.49 reported: phone browser "failed" on join. The most likely cause: in restricted contexts (Comet in some configurations, private/incognito browsing, sandboxed iframes, certain embedded webviews), `sessionStorage` access throws a `SecurityError`. The v3.0.49 haptic gate read `sessionStorage.getItem(phoneViewKey)` inside `useState`'s initializer function — a throw there crashes the whole component on mount, white-screening the phone.
+
+#### Hardening
+- `safeSessionGet(key)` + `safeSessionSet(key, value)` wrappers around all `sessionStorage` access. SecurityError → returns null / no-op.
+- `haptics.lightTap()` call in `handleEnterGame` wrapped in try/catch — haptics is best-effort, must never block the tap.
+- Worst case if both storage AND haptics fail: gate appears on every reload (storage didn't persist), vibration doesn't unlock (haptics threw) — but the game itself loads normally. No more white screen.
+
+#### Changed
+- [package.json](package.json) (3.0.50 → 3.0.51).
+- [src/components/layout/GameLayout.tsx:281](src/components/layout/GameLayout.tsx#L281) — safe wrappers + try/catch on haptics.
+
+#### Test
+- Typecheck clean.
+
 ## [3.0.50] - 2026-05-31
 
 ### Post-game log viewer + export (fb:91738221 pass 3, closes the 3-version plan)
