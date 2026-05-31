@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.45] - 2026-05-31
+
+### Expandable log rows — fb:91738221 pass 2
+
+Per the 3-version plan agreed in v3.0.44: each action row in both the admin `GameLog` and per-player `PlayerLogSection` now has a chevron toggle. Click to reveal the raw producer detail beneath the friendly summary.
+
+#### Mechanism
+
+- New shared component [src/components/game/LogRowDetail.tsx](src/components/game/LogRowDetail.tsx) — renders a labeled monospace block of metadata pulled from `entry.description` + `entry.details`. Resolves card IDs to full untruncated card titles via `dataService.getCardById`; the full-titles row is suppressed when dataService can't resolve any title (avoids the redundant duplicate-row case).
+- [GameLog.tsx](src/components/game/GameLog.tsx) — added a third level of expand/collapse beneath the existing Space → Player Turn → Action hierarchy. Per-row chevron, session-only React state, `event.stopPropagation()` so clicking the row doesn't bubble up and collapse the parent turn.
+- [PlayerLogSection.tsx](src/components/player/sections/PlayerLogSection.tsx) — same treatment on each entry (this view didn't have any expand affordance before).
+
+#### Detail block content (per row)
+
+| Field | When shown |
+|---|---|
+| **Raw** | Always — the unmodified producer description (helps if a future formatting pass rewrites the friendly surface text). |
+| **Space ID** | When `details.spaceName` set. |
+| **From → To** | Movement entries — both raw space IDs. |
+| **Card IDs** | When `details.cards` set. |
+| **Card titles (full)** | When at least one card resolves via `getCardById` — full untruncated titles. |
+| **Source** | When `details.source` set (e.g., `dice:OWNER-SCOPE-INITIATION`). |
+| **Action** | When `details.action` set. |
+| **Type** | Always — entry type discriminant. |
+| **When** | Always — full time with seconds precision (compact view shows only hours:minutes). |
+| **Turn** | Always — `round N · turn N · <PlayerName>'s turn N`. |
+
+Per user decisions in v3.0.45 design discussion:
+- **Both surfaces** (GameLog + PlayerLogSection), not just one.
+- **Per-row chevron**, not a global toggle.
+- **Session-only state**, no localStorage persistence.
+
+#### Changed
+- [package.json](package.json) (3.0.44 → 3.0.45).
+- new [src/components/game/LogRowDetail.tsx](src/components/game/LogRowDetail.tsx).
+- [src/components/game/GameLog.tsx](src/components/game/GameLog.tsx) — chevron + per-row expand state + click handler with `stopPropagation`.
+- [src/components/player/sections/PlayerLogSection.tsx](src/components/player/sections/PlayerLogSection.tsx) — same chevron treatment.
+
+#### Test
+- new [tests/components/game/LogRowDetail.test.tsx](tests/components/game/LogRowDetail.test.tsx) — 8 cases covering raw description rendering, card IDs, card-title resolution + fallback, space ID, From→To, type discriminant, turn context.
+- Logging-area sweep: logFormatting (9), GameLogRegression (19), LogRowDetail (8). **36/36 green.**
+- Typecheck clean. Build clean (9.74s).
+
 ## [3.0.44] - 2026-05-31
 
 ### Plain-English log strings — pass 1 (fb:91738221)

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { ActionLogEntry } from '../../../types/StateTypes';
 import { formatActionDescription } from '../../../utils/actionLogFormatting';
+import { LogRowDetail } from '../../game/LogRowDetail';
 
 interface PlayerLogSectionProps {
   gameServices: IServiceContainer;
@@ -11,6 +12,11 @@ interface PlayerLogSectionProps {
 export const PlayerLogSection: React.FC<PlayerLogSectionProps> = ({ gameServices, playerId }) => {
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // fb:91738221 v3.0.45 — per-row expand for raw detail.
+  const [expandedRows, setExpandedRows] = useState<{ [rowKey: string]: boolean }>({});
+  const toggleRow = (rowKey: string) => {
+    setExpandedRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }));
+  };
 
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
@@ -106,26 +112,37 @@ export const PlayerLogSection: React.FC<PlayerLogSectionProps> = ({ gameServices
           </div>
           {group.entries
             .filter(entry => entry.type !== 'turn_start')
-            .map((entry, entryIndex) => (
-              <div
-                key={`${groupIndex}-${entryIndex}`}
-                style={{
-                  padding: '3px 8px 3px 16px',
-                  fontSize: '11px',
-                  color: '#495057',
-                  borderLeft: '3px solid #e0e0e0',
-                  marginLeft: '4px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: '8px'
-                }}
-              >
-                <span>{formatActionDescription(entry)}</span>
-                <span style={{ color: '#999', fontSize: '9px', whiteSpace: 'nowrap' }}>
-                  {formatTimestamp(entry.timestamp)}
-                </span>
-              </div>
-            ))}
+            .map((entry, entryIndex) => {
+              const rowKey = `${groupIndex}-${entryIndex}`;
+              const isExpanded = expandedRows[rowKey] || false;
+              return (
+                <div
+                  key={rowKey}
+                  style={{
+                    padding: '3px 8px 3px 16px',
+                    fontSize: '11px',
+                    color: '#495057',
+                    borderLeft: '3px solid #e0e0e0',
+                    marginLeft: '4px',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => toggleRow(rowKey)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '9px', color: '#999', userSelect: 'none' }}>
+                        {isExpanded ? '▼' : '▶'}
+                      </span>
+                      <span>{formatActionDescription(entry)}</span>
+                    </span>
+                    <span style={{ color: '#999', fontSize: '9px', whiteSpace: 'nowrap' }}>
+                      {formatTimestamp(entry.timestamp)}
+                    </span>
+                  </div>
+                  {isExpanded && <LogRowDetail entry={entry} />}
+                </div>
+              );
+            })}
         </div>
       ))}
     </div>

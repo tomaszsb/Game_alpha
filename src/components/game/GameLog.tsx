@@ -4,6 +4,7 @@ import { useGameContext } from '../../context/GameContext';
 import { ActionLogEntry } from '../../types/StateTypes';
 import { formatActionDescription } from '../../utils/actionLogFormatting';
 import { debugWarn } from '../../utils/debugLog';
+import { LogRowDetail } from './LogRowDetail';
 
 interface PlayerTurnGroup {
   playerId: string;
@@ -25,6 +26,11 @@ export function GameLog(): JSX.Element {
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
   const [expandedPlayerTurns, setExpandedPlayerTurns] = useState<{ [turnKey: string]: boolean }>({});
   const [expandedSpaces, setExpandedSpaces] = useState<{ [spaceKey: string]: boolean }>({});
+  // fb:91738221 v3.0.45 — per-row expand for raw detail (card IDs, raw space IDs, etc.)
+  const [expandedRows, setExpandedRows] = useState<{ [rowKey: string]: boolean }>({});
+  const toggleRow = (rowKey: string) => {
+    setExpandedRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }));
+  };
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to state changes to get the global action log (filtered for player visibility)
@@ -369,9 +375,12 @@ export function GameLog(): JSX.Element {
                   {isTurnExpanded && playerTurn.actions
                     .slice(1)
                     .filter(action => !(action.type === 'space_effect' && action.description?.includes('entered space')))
-                    .map((action, actionIndex) => (
+                    .map((action, actionIndex) => {
+                      const rowKey = `${turnKey}-action-${actionIndex}`;
+                      const isRowExpanded = expandedRows[rowKey] || false;
+                      return (
                     <div
-                      key={`${turnKey}-action-${actionIndex}`}
+                      key={rowKey}
                       style={{
                         marginLeft: '20px',
                         padding: '6px 10px',
@@ -381,7 +390,12 @@ export function GameLog(): JSX.Element {
                         borderRadius: '4px',
                         fontSize: '10px',
                         lineHeight: '1.3',
-                        marginTop: '3px'
+                        marginTop: '3px',
+                        cursor: 'pointer',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleRow(rowKey);
                       }}
                     >
                       <div style={{
@@ -390,12 +404,17 @@ export function GameLog(): JSX.Element {
                         alignItems: 'center',
                         marginBottom: '3px'
                       }}>
-                        <span style={{
-                          fontWeight: 'bold',
-                          color: colors.secondary.dark,
-                          fontSize: '9px'
-                        }}>
-                          Action {actionIndex + 1}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '9px', color: colors.secondary.main, userSelect: 'none' }}>
+                            {isRowExpanded ? '▼' : '▶'}
+                          </span>
+                          <span style={{
+                            fontWeight: 'bold',
+                            color: colors.secondary.dark,
+                            fontSize: '9px'
+                          }}>
+                            Action {actionIndex + 1}
+                          </span>
                         </span>
                         <span style={{
                           color: colors.secondary.main,
@@ -417,11 +436,14 @@ export function GameLog(): JSX.Element {
                           fontSize: '8px',
                           marginTop: '2px'
                         }}>
-                          📍 {action.details.space}
+                          📍 {String(action.details.space)}
                         </div>
                       )}
+
+                      {isRowExpanded && <LogRowDetail entry={action} />}
                     </div>
-                  ))}
+                      );
+                    })}
                 </div>
               );
                       })}
