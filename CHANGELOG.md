@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.48] - 2026-05-31
+
+### Fix — E-card Play button silently failed when unaffordable (fb:58277eca)
+
+Dashboard report: "Trying to play an expediter card. Pressing the play button does nothing." Captured console stack trace: `Cannot play E030: Card effect processing failed: Effect 1 (RESOURCE_CHANGE): Failed to process MONEY change of -8000`.
+
+Root cause: E030 "Time Crunch" costs $8K via `money_effect=-8000`. `GameRulesService.canPlayCard` validated game-in-progress, ownership, turn, phase, and zero-time-reduction — but never checked affordability. The Play button rendered unconditionally; click went through `cardService.playCard` which failed deep in the engine; `handlePlayECard` swallowed the error to `console.error` with no UI feedback ("button does nothing").
+
+#### Two-layer fix
+
+1. **Service-level affordability check** — [GameRulesService.canPlayCard](src/services/GameRulesService.ts#L61) now returns false when `card.money_effect` is negative AND `player.money < Math.abs(moneyDelta)`. Positive money_effect (cards that PAY the player, like B bank-loans) are unaffected.
+
+2. **UI-level proactive + reactive feedback** — [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) Expeditor callout now:
+   - Renders a `⛔ Need $8,000 — you have $5,000` line beneath the card when the engine says it can't be played.
+   - Disables the Play button + grays it out + adds a `title` tooltip.
+   - On exception in the click handler, surfaces a notification (`⚠️ Cannot play <Card>: <message>`) instead of just `console.error`. Defense-in-depth: if anything else fails in `playCard`, the player sees why.
+
+#### Changed
+- [package.json](package.json) (3.0.47 → 3.0.48).
+- [src/services/GameRulesService.ts:108](src/services/GameRulesService.ts#L108) — affordability gate in `canPlayCard`.
+- [src/components/player/ActionCenterPanel.tsx:452](src/components/player/ActionCenterPanel.tsx#L452) — notification fallback in `handlePlayECard` + new `getECardBlockedReason` helper + disabled state on the Play button.
+
+#### Test
+- New 3-case `describe('affordability check (fb:58277eca)')` inside the existing `canPlayCard` block: blocks when underfunded, allows when exact, allows positive money_effect regardless of balance.
+- GameRulesService 63/63 (was 60); CardService 59/59. Typecheck + build clean.
+
 ## [3.0.47] - 2026-05-31
 
 ### Fix — duplicate Drew card-draw log entry

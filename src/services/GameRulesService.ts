@@ -103,6 +103,20 @@ export class GameRulesService implements IGameRulesService {
       return false;
     }
 
+    // fb:58277eca — block cards the player can't afford. E030 "Time Crunch"
+    // costs $8K via money_effect=-8000; before this check, the Play button
+    // rendered, click silently failed in handlePlayECard's catch with no
+    // user-facing message ("button does nothing"). Negative money_effect
+    // means the player pays; require player.money >= |amount|.
+    if (card && card.money_effect) {
+      const moneyDelta = parseInt(card.money_effect, 10);
+      if (!isNaN(moneyDelta) && moneyDelta < 0) {
+        if ((player.money || 0) < Math.abs(moneyDelta)) {
+          return false;
+        }
+      }
+    }
+
     return true;
   }
 

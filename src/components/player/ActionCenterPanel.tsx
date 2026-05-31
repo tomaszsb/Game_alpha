@@ -453,8 +453,41 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     try {
       await gameServices.cardService.playCard(playerId, cardId);
     } catch (err) {
+      // fb:58277eca — surface failure to the player instead of silently
+      // swallowing it. Previously this only console.error'd, which read as
+      // "Play button does nothing".
       console.error('E card play error:', err);
+      const card = gameServices.dataService.getCardById(cardId);
+      const cardName = card?.card_name || 'this card';
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      gameServices.notificationService?.notify(
+        {
+          short: '⚠️ Cannot play',
+          medium: `⚠️ Cannot play ${cardName}: ${message}`,
+          detailed: `Cannot play ${cardName}: ${message}`,
+        },
+        { playerId, playerName: player.name, actionType: 'error' },
+      );
     }
+  };
+
+  // fb:58277eca — affordability hint for the Play button. When the engine's
+  // canPlayCard says no, surface WHY (most common: not enough money).
+  const getECardBlockedReason = (cardId: string): string | null => {
+    const card = gameServices.dataService.getCardById(cardId);
+    if (!card) return null;
+    if (gameServices.cardService.canPlayCard(playerId, cardId)) return null;
+    if (card.money_effect) {
+      const moneyDelta = parseInt(card.money_effect, 10);
+      if (!isNaN(moneyDelta) && moneyDelta < 0) {
+        const needed = Math.abs(moneyDelta);
+        const have = player.money || 0;
+        if (have < needed) {
+          return `Need $${needed.toLocaleString()} — you have $${have.toLocaleString()}`;
+        }
+      }
+    }
+    return 'Cannot play this card right now';
   };
 
   // Build end turn tooltip
@@ -692,15 +725,24 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             {playableECards.map(cardId => {
               const card = gameServices.dataService.getCardById(cardId);
               if (!card) return null;
+              const blockedReason = getECardBlockedReason(cardId);
               return (
                 <div key={cardId} className="action-center__e-card-item">
                   <div className="action-center__e-card-info">
                     <div className="action-center__e-card-name"><TextWithTerms text={card.card_name} onTermClick={(term) => openWithTerm(term.id)} /></div>
                     {card.description && <div className="action-center__e-card-desc"><TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} /></div>}
+                    {blockedReason && (
+                      <div className="action-center__e-card-blocked" style={{ fontSize: '11px', color: '#c0392b', marginTop: '4px' }}>
+                        ⛔ {blockedReason}
+                      </div>
+                    )}
                   </div>
                   <button
                     className="action-center__e-card-play"
                     onClick={() => handlePlayECard(cardId)}
+                    disabled={blockedReason !== null}
+                    title={blockedReason || undefined}
+                    style={blockedReason ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
                   >
                     PLAY
                   </button>

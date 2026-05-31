@@ -251,6 +251,52 @@ describe('GameRulesService', () => {
       expect(gameRulesService.canPlayCard('player1', 'B_001')).toBe(true);
       expect(gameRulesService.canPlayCard('player1', 'L_001')).toBe(true);
     });
+
+    // fb:58277eca — E030 "Time Crunch" costs $8K via money_effect=-8000.
+    // Before this check the Play button rendered, click silently failed.
+    describe('affordability check (fb:58277eca)', () => {
+      it('returns false when the card requires more money than the player has', () => {
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+        const poorPlayer = { ...mockPlayer, money: 5000, hand: ['E_001'] };
+        mockStateService.getPlayer.mockReturnValue(poorPlayer);
+        mockDataService.getCardById.mockReturnValue({
+          card_id: 'E_001',
+          card_type: 'E',
+          card_name: 'Time Crunch',
+          money_effect: '-8000',
+        } as any);
+
+        expect(gameRulesService.canPlayCard('player1', 'E_001')).toBe(false);
+      });
+
+      it('returns true when the player has exactly enough money', () => {
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+        const exactPlayer = { ...mockPlayer, money: 8000, hand: ['E_001'] };
+        mockStateService.getPlayer.mockReturnValue(exactPlayer);
+        mockDataService.getCardById.mockReturnValue({
+          card_id: 'E_001',
+          card_type: 'E',
+          card_name: 'Time Crunch',
+          money_effect: '-8000',
+        } as any);
+
+        expect(gameRulesService.canPlayCard('player1', 'E_001')).toBe(true);
+      });
+
+      it('returns true for cards with positive money_effect regardless of player balance', () => {
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+        const brokePlayer = { ...mockPlayer, money: 0, hand: ['B_001'] };
+        mockStateService.getPlayer.mockReturnValue(brokePlayer);
+        mockDataService.getCardById.mockReturnValue({
+          card_id: 'B_001',
+          card_type: 'B',
+          card_name: 'Bank Loan',
+          money_effect: '50000',
+        } as any);
+
+        expect(gameRulesService.canPlayCard('player1', 'B_001')).toBe(true);
+      });
+    });
   });
 
   describe('canDrawCard', () => {
