@@ -8,8 +8,8 @@
 - **Build/typecheck:** both clean.
 
 ## Top 3 open items
-1. **Re-open accidentally resolved dashboard report.** Either `fb:9c961893` (Progress + time labels) or `fb:d27a73d0` (board connector control) was accidentally resolved. User knows which — re-open it via the Command Center or the new in-game Bug Reports panel before continuing.
-2. **PATCH-flip 4 confirmed-fixed dashboard items:** `fb:84da66be` (board/panel destinations, v3.0.29), `fb:776e3ba7` (groundwork check, v3.0.28), `fb:3a57d5d0` (design fee, v2.70.4), `fb:ed2eeebf` (test submission). Two minutes of clicking in the Bug Reports panel.
+1. **PATCH-flip 4 confirmed-fixed dashboard items:** `fb:84da66be` (board/panel destinations, v3.0.29), `fb:776e3ba7` (groundwork check, v3.0.28), `fb:3a57d5d0` (design fee, v2.70.4), `fb:ed2eeebf` (test submission). Two minutes in the Bug Reports panel.
+2. **PATCH-flip 4 confirmed-fixed dashboard items:** `fb:84da66be` (board/panel destinations, v3.0.29), `fb:776e3ba7` (groundwork check, v3.0.28), `fb:3a57d5d0` (design fee, v2.70.4), `fb:ed2eeebf` (test submission). Two minutes in the Bug Reports panel.
 3. **Choose the next UX feature** — plain-English action log (`fb:91738221`, "highest-impact-per-hour") OR defer-movement-choice (`fb:55b6626f`, "show destinations only after other actions done"). Both were top-3 last session. Plain-English log touches log formatting + dictionary tie-in; defer-movement is a bigger refactor.
 
 ## Test failures to address
