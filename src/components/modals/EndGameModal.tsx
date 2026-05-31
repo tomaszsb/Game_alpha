@@ -9,6 +9,7 @@ import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
 import { buildEndGameInsights, Insight, InsightTone } from '../../utils/endGameInsights';
 import { shortName } from '../../utils/boardCommon';
+import { PostGameLogViewer } from '../game/PostGameLogViewer';
 
 interface EndGamePenaltyView {
   dobMissing: boolean;
@@ -187,6 +188,12 @@ export function EndGameModal(): JSX.Element {
             the stats. Wins, observations, lessons — color coded. Renders only
             if at least one rule matched. */}
         {insights.length > 0 && <ProjectDebrief insights={insights} />}
+
+        {/* v3.0.50 (fb:91738221 pass 3) — post-game log viewer + export.
+            Collapsible by default. When the modal opens for a specific
+            winner, default the viewer's scope to "My log" so they see
+            their own actions first; they can toggle to "All players". */}
+        <PostGameLogViewer viewingPlayerId={winnerPlayer?.id} />
 
         {/* Workstream 7 Phase 7.4 — Missing-DOB penalty section.
             Rendered above the celebration banner so the player sees the cost

@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.50] - 2026-05-31
+
+### Post-game log viewer + export (fb:91738221 pass 3, closes the 3-version plan)
+
+The third and final pass on the cryptic-log feedback. v3.0.44 made strings readable, v3.0.45 added per-row expand for raw detail. v3.0.50 closes the loop with the end-game review-and-export experience the user spec'd: "after game viewer with search & filter" and "end screen should ask if players want to save the log for export, just theirs or all players".
+
+#### New: PostGameLogViewer component
+
+[src/components/game/PostGameLogViewer.tsx](src/components/game/PostGameLogViewer.tsx) renders inside [EndGameModal.tsx](src/components/modals/EndGameModal.tsx) between Project Debrief and the celebration message. Collapsed by default ("📜 Review & Export Game Log (N entries)"); one click opens the full viewer.
+
+Inside the viewer:
+- **Scope toggle** — "My log" / "All players". Defaults to "My log" when the modal opens for the winning player.
+- **Search** — full-text across description, playerName, and serialized details.
+- **Player filter** — dropdown of all distinct players in the log (shown when scope=All).
+- **Type filter** — dropdown of all distinct entry types in the log.
+- **Result count** — "Showing X of Y entries".
+- **Log list** — uses the same `formatActionDescription` + `LogRowDetail` (v3.0.45) the in-game log uses, so the expand-row chevron behavior is identical.
+- **Export buttons** — 📝 Markdown, `{ } JSON`, 📊 CSV, 🖨 PDF.
+
+#### New: src/utils/logExport.ts
+
+Pure functions, no React:
+- `exportLogToMarkdown(entries, meta)` — grouped by turn, each entry as a bullet with a `_details:_` sub-bullet.
+- `exportLogToJson(entries, meta)` — flat JSON document with `{ gameId, exportedAt, scopeLabel, appVersion, entries }`.
+- `exportLogToCsv(entries)` — RFC-4180-style escaping for commas/quotes/newlines.
+- `exportLogToPrintableHtml(entries, meta)` — standalone HTML page with a "Print / Save as PDF" button that triggers `window.print()`. Opens in a new tab. Falls back to download if popup is blocked. (No PDF library needed — leverages the browser's native print-to-PDF.)
+- `triggerTextDownload(content, filename, mimeType)` — blob URL + click trick + revoke; Safari-safe.
+- `buildExportFilename(meta, ext)` — `unravel-<gameId>-<scope-slug>-<YYYY-MM-DD>.<ext>`.
+
+#### Changed
+- [package.json](package.json) (3.0.49 → 3.0.50).
+- new [src/utils/logExport.ts](src/utils/logExport.ts).
+- new [src/components/game/PostGameLogViewer.tsx](src/components/game/PostGameLogViewer.tsx).
+- [src/components/modals/EndGameModal.tsx](src/components/modals/EndGameModal.tsx) — viewer injected after `<ProjectDebrief>`, scope defaults to the winner's perspective.
+
+#### Test
+- new [tests/utils/logExport.test.ts](tests/utils/logExport.test.ts) — 11 cases across all four exporters + filename builder: markdown metadata, turn grouping, details rendering; JSON parseability + scope; CSV header + escaping (commas, quotes, newlines) + empty-details; HTML doctype + content escaping; filename slugification.
+- Typecheck + build clean. 11/11 new tests pass.
+
+#### Closes the 3-version plan
+- v3.0.44 — plain-English strings ✓
+- v3.0.45 — expandable rows ✓
+- **v3.0.50 — post-game viewer + export ✓**
+
 ## [3.0.49] - 2026-05-31
 
 ### Fix — TV setup scrollbar always-visible + one-time haptic-prime gate on phone join
