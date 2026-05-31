@@ -12,6 +12,7 @@ import { isSmartTV } from '../../utils/deviceDetection';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
+import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
 import { useGitHubSyncStatus } from './useGitHubSyncStatus';
@@ -66,6 +67,7 @@ export function PlayerSetup({
 
   const [isStarting, setIsStarting] = useState(false);
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
+  const [isBugReportsOpen, setIsBugReportsOpen] = useState(false);
   const [isBoardLayoutEditorOpen, setIsBoardLayoutEditorOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
 
@@ -1016,6 +1018,25 @@ export function PlayerSetup({
                   </button>
                   <button
                     type="button"
+                    onClick={() => setIsBugReportsOpen(true)}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      backgroundColor: colors.secondary.main,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    🐛 Bug Reports
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { clearAdminAuth(); setIsAdminUnlocked(false); }}
                     style={{
                       padding: '0.4rem 0.75rem',
@@ -1192,6 +1213,9 @@ export function PlayerSetup({
 
       {/* Data Editor Modal */}
       {isDataEditorOpen && <DataEditor onClose={() => setIsDataEditorOpen(false)} />}
+
+      {/* Bug Reports Modal */}
+      {isBugReportsOpen && <BugReportsPanel onClose={() => setIsBugReportsOpen(false)} />}
 
       {/* Board Layout Editor Modal */}
       {isBoardLayoutEditorOpen && <BoardLayoutEditor onClose={() => setIsBoardLayoutEditorOpen(false)} />}

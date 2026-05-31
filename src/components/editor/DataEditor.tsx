@@ -5,7 +5,6 @@ import { isAdminAuthenticated, verifyAdminPassword, getAdminPassword } from '../
 import { SpaceBrowser } from './SpaceBrowser';
 import { SpaceEditor } from './SpaceEditor';
 import { PlayerPreviewPanel } from './PlayerPreviewPanel';
-import { BugReportsPanel } from './BugReportsPanel';
 import { SpaceRow, DiceRollRow, ModalConfigRow } from './types/EditorTypes';
 import { exportSpacesCSV, exportDiceRollCSV, exportModalConfigCSV, parseModalConfigCSV, parseSpacesCSV, parseDiceRollCSV } from './utils/csvExport';
 import { colors } from '../../styles/theme';
@@ -100,9 +99,6 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     return <AdminAuthGate onAuthenticated={() => setIsAuthed(true)} onClose={onClose} />;
   }
   const { dataService } = useGameContext();
-
-  // Top-level tab
-  const [activeTab, setActiveTab] = useState<'spaces' | 'bugs'>('spaces');
 
   // Editor state
   const [spacesData, setSpacesData] = useState<SpaceRow[]>([]);
@@ -387,37 +383,17 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
         {/* Header */}
         <div style={styles.header}>
           <div style={styles.headerLeft}>
-            <h2 style={styles.title}>Game Admin</h2>
-            {activeTab === 'spaces' && hasUnsavedChanges && (
+            <h2 style={styles.title}>Space Data Editor</h2>
+            {hasUnsavedChanges && (
               <span style={styles.unsavedBadge}>Unsaved Changes</span>
             )}
           </div>
-          {/* Tab switcher */}
-          <div style={{ display: 'flex', gap: '4px', marginLeft: '16px' }}>
-            {(['spaces', 'bugs'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '5px 14px', borderRadius: '6px', fontSize: '12px',
-                  fontWeight: 700, cursor: 'pointer', border: 'none',
-                  backgroundColor: activeTab === tab ? colors.primary.main : colors.secondary.light,
-                  color: activeTab === tab ? 'white' : colors.secondary.darker,
-                }}
-              >
-                {tab === 'spaces' ? '📐 Space Editor' : '🐛 Bug Reports'}
-              </button>
-            ))}
-          </div>
-          <div style={{ flex: 1 }} />
           <button onClick={handleClose} style={styles.closeButton}>&times;</button>
         </div>
 
         {/* Content */}
         <div style={styles.content}>
-          {activeTab === 'bugs' ? (
-            <BugReportsPanel />
-          ) : isLoading ? (
+          {isLoading ? (
             <div style={styles.loading}>Loading source files...</div>
           ) : error ? (
             <div style={styles.error}>
@@ -471,8 +447,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
           )}
         </div>
 
-        {/* Footer — hidden on Bug Reports tab */}
-        {activeTab === 'spaces' && <div style={styles.footer}>
+        {/* Footer */}
+        <div style={styles.footer}>
           <button onClick={handleResetToBaseline} style={styles.resetButton} disabled={isSaving}>
             Reset to Baseline
           </button>
@@ -493,7 +469,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
               {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
-        </div>}
+        </div>
       </div>
     </div>
   );
