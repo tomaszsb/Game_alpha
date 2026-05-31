@@ -3,6 +3,7 @@
 import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { shortName } from '../utils/boardCommon';
+import { friendlySpaceName } from '../utils/logFormatting';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
 
@@ -362,7 +363,9 @@ export class MovementService implements IMovementService {
     const updatedState = this.stateService.updatePlayer(playerUpdate);
 
     // LOG COMPLETION: Record the movement
-    this.loggingService.info(`Moved from ${sourceSpace} to ${destinationSpace}`, {
+    const fromFriendly = friendlySpaceName(this.dataService, sourceSpace);
+    const toFriendly = friendlySpaceName(this.dataService, destinationSpace);
+    this.loggingService.info(`Moved from ${fromFriendly} to ${toFriendly}`, {
       playerId: player.id,
       playerName: player.name,
       action: 'player_movement',

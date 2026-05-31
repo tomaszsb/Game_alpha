@@ -17,6 +17,7 @@ import { describeCardAction } from './DiceService';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate } from '../utils/templateInterpolation';
+import { friendlySpaceName } from '../utils/logFormatting';
 import { AutoActionEvent } from './StateService';
 
 export class TurnService implements ITurnService {
@@ -906,22 +907,26 @@ export class TurnService implements ITurnService {
       const spaceConfig = this.dataService.getGameConfigBySpace(currentPlayer.currentSpace);
       
       // Generate all effects from space entry using EffectFactory
+      const friendlySpace = friendlySpaceName(this.dataService, currentPlayer.currentSpace);
       const spaceEffects = EffectFactory.createEffectsFromSpaceEntry(
         filteredSpaceEffects,
         playerId,
         currentPlayer.currentSpace,
         currentPlayer.visitType,
         spaceConfig || undefined,
-        currentPlayer.name
+        currentPlayer.name,
+        false,
+        friendlySpace
       );
-      
+
       // Generate all effects from dice roll using EffectFactory
       const diceEffects = EffectFactory.createEffectsFromDiceRoll(
         diceEffectsData,
         playerId,
         currentPlayer.currentSpace,
         diceRoll,
-        currentPlayer.name
+        currentPlayer.name,
+        friendlySpace
       );
       
       // Add user messaging when funding is auto-applied (paired with shouldAutoApplyFunding).
@@ -1024,7 +1029,8 @@ export class TurnService implements ITurnService {
           playerId,
           currentPlayer.currentSpace,
           groupDiceRoll,
-          currentPlayer.name
+          currentPlayer.name,
+          friendlySpaceName(this.dataService, currentPlayer.currentSpace)
         );
         allDiceEffects.push(...effects);
         rollGroupResults.push({ rollGroup: groupKey, diceValue: groupDiceRoll, effectCount: effects.length });
@@ -1859,7 +1865,8 @@ export class TurnService implements ITurnService {
     for (const player of players) {
 
       // Log the initial placement for the Game Log
-      this.loggingService.info(`${player.name} placed on starting space: ${player.currentSpace}`, {
+      const friendly = friendlySpaceName(this.dataService, player.currentSpace);
+      this.loggingService.info(`${player.name} starts at ${friendly}`, {
         playerId: player.id,
         playerName: player.name,
         action: 'game_start',
@@ -1905,7 +1912,9 @@ export class TurnService implements ITurnService {
         spaceName,
         visitType,
         undefined,
-        currentPlayer?.name
+        currentPlayer?.name,
+        false,
+        friendlySpaceName(this.dataService, spaceName)
       );
 
       if (leavingEffects.length === 0) {

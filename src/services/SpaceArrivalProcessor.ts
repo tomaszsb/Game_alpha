@@ -8,6 +8,7 @@ import { Player } from '../types/StateTypes';
 import { SpaceEffect, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
+import { friendlySpaceName } from '../utils/logFormatting';
 import { AutoActionEvent } from './StateService';
 
 /**
@@ -144,7 +145,8 @@ export class SpaceArrivalProcessor {
         visitType,
         undefined,
         currentPlayer?.name,
-        skipLogging
+        skipLogging,
+        friendlySpaceName(this.dataService, spaceName)
       );
 
       if (spaceEffects.length === 0) {

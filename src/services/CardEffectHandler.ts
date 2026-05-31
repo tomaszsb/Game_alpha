@@ -20,6 +20,7 @@ import {
 } from '../types/EffectTypes';
 import { Card } from '../types/DataTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
+import { friendlyCardList } from '../utils/logFormatting';
 
 type CardDrawPayload = Extract<Effect, { effectType: 'CARD_DRAW' }>['payload'];
 type CardDiscardPayload = Extract<Effect, { effectType: 'CARD_DISCARD' }>['payload'];
@@ -141,7 +142,8 @@ export class CardEffectHandler implements ICardEffectHandler {
           effectType: 'LOG',
           payload: {
             // Voice rule: real-life label, no "card(s)" word. fb:7a99da1a/004dc390.
-            message: `Drew ${drawnCards.length} ${getCardTypeName(payload.cardType, drawnCards.length)}: ${drawnCards.join(', ')}`,
+            // fb:91738221 — show friendly card titles, not raw IDs (W006, W009 etc.).
+            message: `Drew ${drawnCards.length} ${getCardTypeName(payload.cardType, drawnCards.length)}: ${friendlyCardList(this.dataService, drawnCards)}`,
             level: 'INFO',
             source,
             action: 'card_draw',
@@ -595,7 +597,7 @@ export class CardEffectHandler implements ICardEffectHandler {
     const friendlyName = getCardTypeName(cardType, count);
 
     this.loggingService.info(
-      `Drew ${count} ${friendlyName}: ${drawnCards.join(', ')}`,
+      `Drew ${count} ${friendlyName}: ${friendlyCardList(this.dataService, drawnCards)}`,
       {
         playerId,
         action: 'card_draw',

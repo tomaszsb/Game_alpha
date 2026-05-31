@@ -309,7 +309,8 @@ export class EffectFactory {
     visitType: 'First' | 'Subsequent',
     spaceConfig?: GameConfig,
     playerName?: string,
-    skipLogging?: boolean
+    skipLogging?: boolean,
+    spaceFriendlyName?: string
   ): Effect[] {
     const effects: Effect[] = [];
     const spaceSource = `space:${spaceName}`;
@@ -318,10 +319,12 @@ export class EffectFactory {
     // FIRST: Log effect for space entry (must be processed before any other space effects)
     // Skip logging if this is during game initialization
     if (!skipLogging) {
+      const friendly = spaceFriendlyName || spaceName;
+      const visitLabel = visitType === 'First' ? 'first visit' : 'return visit';
       effects.push({
         effectType: 'LOG',
         payload: {
-          message: `${playerName || playerId} entered space: ${spaceName} (${visitType} visit) - ${spaceEffects.length} effects processed${spaceConfig?.action ? `, action: ${spaceConfig.action}` : ''}`,
+          message: `${playerName || playerId} entered ${friendly} (${visitLabel})`,
           level: 'INFO',
           source: spaceSource,
           action: 'space_effect'
@@ -422,7 +425,8 @@ export class EffectFactory {
     playerId: string,
     spaceName: string,
     diceResult: number,
-    playerName?: string
+    playerName?: string,
+    spaceFriendlyName?: string
   ): Effect[] {
     const effects: Effect[] = [];
     const diceSource = `dice:${spaceName}`;
@@ -430,16 +434,17 @@ export class EffectFactory {
 
     // Process each dice effect
     diceEffects.forEach((diceEffect, index) => {
-      
+
       const effectsFromDiceEffect = this.parseDiceEffect(diceEffect, diceResult, playerId, diceSource);
       effects.push(...effectsFromDiceEffect);
     });
 
     // Log effect for dice roll
+    const friendly = spaceFriendlyName || spaceName;
     effects.push({
       effectType: 'LOG',
       payload: {
-        message: `${playerName || playerId} rolled ${diceResult} at space: ${spaceName} - ${diceEffects.length} effects processed`,
+        message: `${playerName || playerId} rolled ${diceResult} at ${friendly}`,
         level: 'INFO',
         source: diceSource,
         action: 'dice_roll'

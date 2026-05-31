@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.44] - 2026-05-31
+
+### Plain-English log strings — pass 1 (fb:91738221)
+
+Playtest report: the log feed leaked engine IDs ("OWNER-SCOPE-INITIATION", "W006, W009") and programmer-speak ("1 effects processed", "(First visit)") instead of friendly text. Captured the actual live log via chrome-devtools MCP on the deployed v3.0.43, found 6 cryptic strings still in play after the v3.0.x button-label sweep was complete. This pass humanizes the strings at the producer; raw IDs stay in each entry's `details` field so the planned post-game viewer (v3.0.46+) can still search/filter by raw ID.
+
+#### Before → After
+
+| Was | Becomes |
+|---|---|
+| `Player 1 placed on starting space: OWNER-SCOPE-INITIATION` | `Player 1 starts at Scope Initiation` |
+| `Drew 2 Work Packages: W006, W009` | `Drew 2 Work Packages: Adaptive reuse warehouse, Strip mall senior living` |
+| `Player 1 rolled 4 at space: OWNER-SCOPE-INITIATION - 1 effects processed` | `Player 1 rolled 4 at Scope Initiation` |
+| `Player 1 entered space: OWNER-SCOPE-INITIATION (First visit) - 1 effects processed` | `Player 1 entered Scope Initiation (first visit)` |
+| `Moved from OWNER-SCOPE-INITIATION to OWNER-FUND-INITIATION` | `Moved from Scope Initiation to Fund Initiation` |
+| `Added 1 day of time` | `+1 day` |
+
+#### Mechanism
+
+- **New helper** [src/utils/logFormatting.ts](src/utils/logFormatting.ts) — `friendlySpaceName(ds, name)` wraps the existing `getDisplayLabelOverride() || shortName()` pattern (same as MovementService.ts:925 and ActionCenterPanel.tsx:259). `friendlyCardName(ds, id, max=30)` resolves card IDs → `card_name` via `getCardById`, truncates. `friendlyCardList(ds, ids)` joins. All three accept `undefined` dataService and fall back to the raw ID (backward-compatible with CardEffectHandler's optional dataService).
+- **EffectFactory** is a static class without dataService access, so `createEffectsFromSpaceEntry` and `createEffectsFromDiceRoll` gained an optional `spaceFriendlyName?: string` parameter. The 3 callers (TurnService.ts × 3, SpaceArrivalProcessor.ts × 1) pass it pre-resolved.
+
+#### Phasing — `fb:91738221` is closed by this pass; expandable rows + post-game viewer/export are separate
+
+The user's full ask included expand/collapse log rows AND a post-game export/viewer with search + filter. Per agreement, splitting into 3 versions:
+- **v3.0.44 (this one)** — plain-English rewrite. Closes the reported complaint.
+- **v3.0.45** — expandable log rows (chevron toggles detail).
+- **v3.0.46+** — end-screen export prompt + post-game log viewer with search/filter.
+
+#### Changed
+- [package.json](package.json) (3.0.43 → 3.0.44).
+- [src/utils/logFormatting.ts](src/utils/logFormatting.ts) — new helper file.
+- [src/services/TurnService.ts](src/services/TurnService.ts) — game_start log uses friendly name; 3 EffectFactory call sites pass `friendlySpaceName`.
+- [src/services/MovementService.ts](src/services/MovementService.ts) — player_movement log resolves both source + destination.
+- [src/services/SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts) — passes `spaceFriendlyName` into EffectFactory.
+- [src/services/CardEffectHandler.ts](src/services/CardEffectHandler.ts) — both card_draw log sites use `friendlyCardList` (raw IDs replaced with card titles).
+- [src/services/FinancialEffectHandler.ts](src/services/FinancialEffectHandler.ts) — time_effect text reduced from `Added N day of time` → `+N days`.
+- [src/utils/EffectFactory.ts](src/utils/EffectFactory.ts) — added optional `spaceFriendlyName` param to two static methods; reformatted entered-space + dice-roll messages.
+
+#### Test
+- New [tests/utils/logFormatting.test.ts](tests/utils/logFormatting.test.ts) — 9 cases covering override-wins, shortName-fallback, truncate, undefined-dataService safety.
+- Targeted sweep on affected files: TurnService (33), TurnService-tryAgainOnSpace (5), MovementService (55), CardEffectHandler (9), GameLogRegression (19), SpaceArrivalProcessor (—), FinancialEffectHandler (5), EffectFactory (21), CardService (59), logFormatting (9). **215/215 passing.**
+- Typecheck clean. Build clean (8.72s).
+
 ## [3.0.43] - 2026-05-30
 
 ### L-card design-call sweep — five cards land, two new modal receipt kinds

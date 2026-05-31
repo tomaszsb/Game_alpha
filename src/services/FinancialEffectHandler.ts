@@ -378,9 +378,11 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
   }
 
   private logTimeChange(playerId: string, amount: number, changeType: 'added' | 'reduced'): void {
+    // fb:91738221 — terser, less stilted ("of time" was redundant).
+    const dayLabel = `day${amount !== 1 ? 's' : ''}`;
     const description = changeType === 'reduced'
-      ? `Reduced filing time by ${amount} day${amount !== 1 ? 's' : ''}`
-      : `Added ${amount} day${amount !== 1 ? 's' : ''} of time`;
+      ? `−${amount} ${dayLabel} (filing time reduced)`
+      : `+${amount} ${dayLabel}`;
 
     this.loggingService.info(description, {
       playerId,
