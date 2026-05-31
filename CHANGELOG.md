@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.46] - 2026-05-31
+
+### Fix — second dice-roll log producer (fb:91738221 pass 1 follow-up)
+
+Live playtest of v3.0.44/45 surfaced a producer I missed in pass 1: `SpaceArrivalProcessor.ts:104` writes its OWN dice-roll log entry separately from `EffectFactory.createEffectsFromDiceRoll`. It was using the raw `spaceName` AND prepending a literal `🎲` — which the `actionLogFormatting.ts` formatter then *also* prepends for `dice_roll` entries, producing the doubled-emoji "🎲 🎲 Player 1 rolled 6 at PM-DECISION-CHECK" lines visible in the playtest.
+
+Two fixes in one line:
+- Use `friendlySpaceName(this.dataService, spaceName)` so the entry reads "Player 1 rolled 6 at PM Check" instead of the raw `PM-DECISION-CHECK`.
+- Drop the leading `🎲` from the producer's string. The formatter already adds it for `dice_roll` action entries.
+
+#### Changed
+- [package.json](package.json) (3.0.45 → 3.0.46).
+- [src/services/SpaceArrivalProcessor.ts:104](src/services/SpaceArrivalProcessor.ts#L104).
+
+#### Test
+- Typecheck clean. No existing test file for SpaceArrivalProcessor; existing producer tests for the other dice-roll producer (EffectFactory) still green.
+
 ## [3.0.45] - 2026-05-31
 
 ### Expandable log rows — fb:91738221 pass 2

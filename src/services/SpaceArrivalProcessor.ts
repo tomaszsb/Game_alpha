@@ -100,8 +100,11 @@ export class SpaceArrivalProcessor {
         diceRoll = Math.floor(Math.random() * 6) + 1;
         debugLog(`🎲 Rolled ${diceRoll} for condition evaluation at ${spaceName}`);
 
-        // Log the dice roll
-        this.loggingService.info(`🎲 ${currentPlayer.name} rolled ${diceRoll} at ${spaceName}`, {
+        // Log the dice roll. fb:91738221 — drop the leading 🎲 (the
+        // actionLogFormatting layer prepends it for dice_roll entries, was
+        // causing "🎲 🎲" double-emoji), and use the friendly space name.
+        const friendlyForLog = friendlySpaceName(this.dataService, spaceName);
+        this.loggingService.info(`${currentPlayer.name} rolled ${diceRoll} at ${friendlyForLog}`, {
           playerId: currentPlayer.id,
           playerName: currentPlayer.name,
           action: 'dice_roll',
