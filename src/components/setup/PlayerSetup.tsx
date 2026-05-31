@@ -1403,7 +1403,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: 'clamp(0.5rem, 1vh, 1rem)',
     flex: 1,
     minHeight: 0,
-    overflow: 'auto',
+    // fb:fc65c217 — TV browsers (and Comet, and many Chromium variants) hide
+    // scrollbars when `overflow: auto`; they only appear on hover, which a
+    // user with a TV remote can't trigger. `scroll` forces always-visible.
+    // `scrollbarGutter: stable` reserves the gutter so toggling content
+    // doesn't shift the layout. On TVs at 4 players the player cards form a
+    // 2×2 grid that exceeds wrapper height; without a visible scrollbar the
+    // user can't tell to scroll for the bottom row.
+    overflow: 'scroll',
+    scrollbarGutter: 'stable',
   },
   settingsBlock: {
     background: colors.secondary.bg,

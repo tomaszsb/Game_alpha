@@ -267,6 +267,26 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     return playerIdParam;
   });
 
+  // fb:6e1e8ac4 — one-time tap gate when a player joins via QR on their
+  // phone. The tap satisfies the browser's user-gesture requirement for
+  // navigator.vibrate(), unlocking haptics for the rest of the session.
+  // Without this, the very first turn-start vibrate is silently blocked
+  // by Chrome/Comet/Edge (the player reports "phone didn't buzz").
+  // Skipped when not in phone-view (no viewPlayerId), and only shown
+  // once per session (sessionStorage flag survives reloads).
+  const phoneViewKey = viewPlayerId ? `unravel.haptics.primed.${viewPlayerId}` : null;
+  const [needsHapticPrime, setNeedsHapticPrime] = useState<boolean>(() => {
+    if (!phoneViewKey) return false;
+    return sessionStorage.getItem(phoneViewKey) !== 'yes';
+  });
+  const handleEnterGame = () => {
+    // Prime vibration in the same execution as the user tap — this is
+    // what registers the gesture and unlocks subsequent vibrates.
+    haptics.lightTap();
+    if (phoneViewKey) sessionStorage.setItem(phoneViewKey, 'yes');
+    setNeedsHapticPrime(false);
+  };
+
   // Use prop if provided, otherwise use state
   const effectiveViewPlayerId = viewPlayerId || viewPlayerIdFromState;
 
@@ -826,6 +846,61 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
            isCardDetailsModalOpen || 
            activeModal !== null;
   };
+
+  // fb:6e1e8ac4 — one-time tap gate for phone players (TV mode). Renders
+  // as a full-screen overlay until tapped; tap primes vibration so the
+  // turn-start buzz fires later in the session. Skipped for shared-screen
+  // (PC) mode and for already-primed sessions.
+  if (needsHapticPrime && effectiveViewPlayerId) {
+    const player = stateService.getPlayer(effectiveViewPlayerId);
+    const greeting = player?.name ? `Welcome, ${player.name}!` : 'Welcome!';
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: `linear-gradient(135deg, ${player?.color || colors.primary.main} 0%, ${colors.primary.dark} 100%)`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+          textAlign: 'center',
+          color: 'white',
+          zIndex: 9999,
+        }}
+        onClick={handleEnterGame}
+      >
+        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👋</div>
+        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+          {greeting}
+        </div>
+        <div style={{ fontSize: '1rem', opacity: 0.9, marginBottom: '2rem', maxWidth: '320px' }}>
+          Your phone will buzz when it's your turn — tap below to enable it.
+        </div>
+        <button
+          type="button"
+          onClick={handleEnterGame}
+          style={{
+            padding: '1rem 2.5rem',
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            color: player?.color || colors.primary.main,
+            background: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+            cursor: 'pointer',
+          }}
+        >
+          🎮 Tap to Enter Game
+        </button>
+        <div style={{ fontSize: '0.85rem', opacity: 0.75, marginTop: '1.5rem' }}>
+          (You'll only see this once)
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

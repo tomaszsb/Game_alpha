@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.49] - 2026-05-31
+
+### Fix — TV setup scrollbar always-visible + one-time haptic-prime gate on phone join
+
+Two related TV-setup-mode reports addressed in one release.
+
+#### fb:fc65c217 — TV setup screen "could not see the side scroll bar"
+
+The setup screen's `playerListWrapper` used `overflow: 'auto'`, which on TV browsers and Comet (and even modern Chromium on desktop in some configurations) only renders the scrollbar on hover or active scroll. TV users can't hover with a remote, so they never see the affordance. At 4 players in TV mode the player cards form a 2×2 grid that exceeds the wrapper height — without a visible scrollbar the user can't tell to scroll down for the bottom row (where the other 2 QR codes live).
+
+Fix: change `overflow: 'auto'` → `overflow: 'scroll'` + `scrollbarGutter: 'stable'`. Scrollbar now always visible; layout doesn't shift when wrapper content changes.
+
+#### fb:6e1e8ac4 — phone didn't vibrate at turn start (Perplexity Comet, Chrome Android, etc.)
+
+The Vibration API (`navigator.vibrate`) requires a **user gesture** in the same browsing context. Phone players who scan a QR code land directly in the gameplay view with NO prior tap on their device. So the first `haptics.turnNotification()` triggered by a WebSocket state-change useEffect is silently blocked by the browser. Same limitation applies to Chrome Android, Edge mobile, Samsung Internet — not just Comet.
+
+Fix: one-time "Tap to Enter Game" gate on phone-view first load (per the user's suggestion: "trick the player by adding a submit button which will act as the tap"). When a player joins via QR in TV mode, [GameLayout.tsx](src/components/layout/GameLayout.tsx) now renders a full-screen welcome overlay until tapped. The tap:
+- Satisfies the browser's user-gesture requirement (registered via `haptics.lightTap()` in the same execution as the click handler).
+- Stores a `unravel.haptics.primed.<playerId>` flag in `sessionStorage` so the gate doesn't reappear on reload.
+- Then renders the normal game UI.
+
+After the prime, all subsequent `navigator.vibrate()` calls in that session work — including the turn-start buzz. Skipped entirely for PC (shared-screen) mode where there's no phone view.
+
+#### Changed
+- [package.json](package.json) (3.0.48 → 3.0.49).
+- [src/components/setup/PlayerSetup.tsx:1402](src/components/setup/PlayerSetup.tsx#L1402) — `playerListWrapper.overflow` `'auto'` → `'scroll'` + `scrollbarGutter: 'stable'`.
+- [src/components/layout/GameLayout.tsx](src/components/layout/GameLayout.tsx) — new `needsHapticPrime` state + `handleEnterGame` handler + full-screen gate render at top of the return.
+
+#### Test
+- Typecheck + build clean. No new unit tests (both fixes are visual/platform behavior — verifiable only via live playtest on TV + phone). Manual checklist for the user provided in the deploy summary.
+
 ## [3.0.48] - 2026-05-31
 
 ### Fix — E-card Play button silently failed when unaffordable (fb:58277eca)
