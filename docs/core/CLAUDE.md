@@ -333,6 +333,49 @@ When conducting User Acceptance Testing via browser automation:
 Compact field notes accumulated from real sessions. Read these BEFORE doing the
 matching kind of work — each pattern saved a real chunk of guess-and-check.
 
+### Push BEFORE handing the user a deploy command (v3.0.44/45 process incident, 2026-05-31)
+
+The Unraid deploy script runs `git pull` first. If commits are local-only, the deploy pulls nothing new, builds the stale bundle, and the user sees no change in the browser even after Ctrl+Shift+R. This wasted ~30 min on 2026-05-31 — user reported "no v3.0.44 strings showing" because both commits were sitting on local master, never pushed.
+
+**Rule:** when you commit a version intended for deploy, push in the same motion. `git commit ... && git push origin master`. Treat commit-without-push as half-done. Don't say "ready to deploy, here's the ssh command" until `git log origin/master..master` returns empty.
+
+Diagnostic: if user reports a deploy didn't produce expected behavior, FIRST run `git log origin/master..master --oneline` to check for unpushed commits. Header banner shows `v X.Y.Z · <commit>` — if commit hash there isn't your latest local commit, push is missing.
+
+### `sessionStorage` in `useState` initializer = white-screen risk (v3.0.49 crash → v3.0.51 hotfix)
+
+```ts
+// ❌ unsafe — Comet, private mode, sandboxed webviews can throw SecurityError
+const [x, setX] = useState(() => sessionStorage.getItem(key) !== 'yes');
+```
+
+A throw inside `useState`'s initializer crashes the WHOLE component tree on mount. White-screen on phone-join. Same risk for `localStorage`, `cookies` access, anything that can throw under privacy/sandbox constraints. v3.0.49 shipped this exact bug on the haptic-prime gate; v3.0.51 wrapped all access in `safeSessionGet/safeSessionSet` (try/catch returning sensible defaults).
+
+**Rule:** any browser-storage access inside a hook initializer or a render function MUST be wrapped in try/catch. The fallback should let the component render normally — at worst the feature degrades (state doesn't persist), but the page loads.
+
+Also applies to: `navigator.vibrate()` (best-effort, never block on it), `window.matchMedia()` in some contexts, `performance.*` in sandboxed iframes.
+
+### Live UX-bug capture via chrome-devtools MCP — for "cryptic string" feedback
+
+When a feedback report names a player-facing string that's "wrong" but you can't easily grep for it (the report's exact string may no longer exist in code, or there are 6 producers and you need to know which fired), don't guess. Navigate the live deployed game via chrome-devtools MCP and pull the actual log via the game's own API:
+
+```js
+// from chrome-devtools__evaluate_script after navigate
+const url = new URL(window.location.href);
+const r = await fetch(`/api/games/${url.searchParams.get('g')}/state?token=${url.searchParams.get('token')}`);
+const j = await r.json();
+return j.state?.globalActionLog || [];
+```
+
+This caught 6 cryptic log strings + 2 unrelated dupes in v3.0.44 that grep alone would have missed. The producers fired with `OWNER-SCOPE-INITIATION` instead of `Scope Initiation`; without the live snapshot I'd have either over-fixed (every producer that uses spaceName) or under-fixed (only the one I happened to grep).
+
+**Rule:** if the bug is "what the user sees in the app right now", the source of truth is the running app, not the source code. MCP makes this cheap — under 30s to a real inventory.
+
+### Multiple log producers per one event — grep the format, not just the literal
+
+v3.0.44 fixed `EffectFactory.createEffectsFromDiceRoll`'s "Player 1 rolled N at <space>" log. Playtest showed the dice-roll log was STILL appearing in old format on some spaces — `SpaceArrivalProcessor.ts:104` was a SECOND producer writing the same conceptual event with its own format string (`🎲 Player 1 rolled ${diceRoll} at ${spaceName}`). Same on card draws (v3.0.47 dedupe): `CardEffectHandler.handleCardDraw` wrote the log TWICE — once via `logCardDraw()` direct call AND once via a `resultingEffects: [LOG]` block routed through `EffectEngineService`.
+
+**Rule:** when fixing a log producer, grep for the message *format* (`rolled.*at|Drew.*Work Packages|entered space`) across `src/`, not just the literal string you found. There will often be 2-3 producers per "event" (one from the orchestrator, one from the effect engine, one from a notification helper). Verify after fix by walking the live game one turn and checking the log entry count vs. expected event count.
+
 > **Also consult the `mcp__memory` knowledge graph** for cross-session patterns.
 > Seeded 2026-05-12 with entities: `Unravel Codes`, `Voice rule override chain`,
 > `SPACE_EFFECTS.csv schema`, `Deploy verification pattern`,
@@ -918,12 +961,34 @@ Also verify "bugs" against the data before assuming logic is broken: `fb:46dd4a4
 
 Fix: extracted `computeVisibleEdgeIds(currentSpace, validMoves, spaceVisitLog)` in `src/utils/boardCommon.ts` (tested, 5 cases). Next-move edges come ONLY from `validMoves` — empty validMoves → no next-move arrows, never the raw superset. Returns `{ allowedIds, nextMoveIds }`; BoardCanvas greens an edge via `nextMoveIds.has(e.id)` (was: any edge whose source === current space, which could mis-green a path-taken loopback). **Rule for board edge work:** the board must never show more destinations than `getValidMoves` returns — they share that one source or they drift.
 
-### `work_type_conditional` card mechanic — condition a card effect on the player's W-card work type (v3.0.28)
+### `*_conditional` card-mechanic family — condition a card effect on player state (v3.0.28, extended v3.0.43)
 
-`fb:776e3ba7` — L012 "Soil Contamination" applied +4 days unconditionally despite reading "If the current project involves groundwork." Pattern for "card effect that should only fire under a player-state condition," done data-driven (not hardcoded to the card id), mirroring the existing `dice_conditional` mechanic:
-- New value on the `card_mechanic` column union (`Card['card_mechanic']` in DataTypes.ts) + the parse whitelist in `DataService` (line ~1003).
-- Gate in `CardService.parseCardIntoEffects` — when `card_mechanic === 'work_type_conditional'`, the `tick_modifier` effect is suppressed unless `playerInvolvesGroundwork(playerId)` (scans `player.hand` for a W card whose `work_type_restriction` is in `GROUNDWORK_WORK_TYPES`). The card still fires (shows its conditional "If…" text) but adds 0.
-- "Groundwork" = work types Foundation, Earth Work, Earthwork Only, Support of Excavation, New Building, Full Demolition, Demolition & Removal. The W card's `work_type_restriction` already carries the NYC DOB work type — no new player state needed. That column is populated **only on W cards** (the project scope); E/B/L/I leave it blank.
+`fb:776e3ba7` (L012) seeded the pattern; v3.0.43 grew it into a family of five conditional mechanics. The 5-file floor below is the minimum diff to add a new mechanic name — skip any one of them and the new value either compile-errors, parses to `undefined`, or breaks test mocks.
+
+**Five-file floor to add a new `*_conditional` mechanic value:**
+1. `src/types/DataTypes.ts` — append to the `Card.card_mechanic` union (~line 391).
+2. `src/services/DataService.ts` — append to the parse whitelist (~line 1003). Skip this and the CSV column reads as `undefined` silently.
+3. `src/services/CardService.ts` — add a `<NAME>_WORK_TYPES` (or whatever) constant + a `playerXxx` helper + a new branch in the `conditionMet` switch (~line 1417). All conditionals share the same emission path; only the predicate differs.
+4. `public/data/CLEAN_FILES/CARDS_EXPANDED.csv` — set the card's `card_mechanic` column (#22, 0-indexed) and a non-zero `tick_modifier`/payload.
+5. `tests/mocks/mockServices.ts` — only if the new helper is also exposed on `ICardService` for cross-service plumbing (e.g. reveal builders below).
+
+**Mechanic values shipped:**
+| Mechanic | Card | Helper | Trigger |
+|---|---|---|---|
+| `work_type_conditional` | L012 Soil Contamination | `playerInvolvesGroundwork` | `GROUNDWORK_WORK_TYPES` (7 types) in player's hand |
+| `utility_conditional` | L029 Utility Delay | `playerInvolvesUtilities` | `UTILITY_WORK_TYPES` (6: Electrical, Plumbing, Mechanical Systems, Boiler Equipment, Fuel Burning, Fuel Storage) |
+| `high_profile_conditional` | L044 State Funding | `playerInvolvesHighProfile` | `HIGH_PROFILE_WORK_TYPES` (4: New Building, Full Demolition, Place of Assembly, Marquees) |
+| `competing_worktype_conditional` | L041 Competing Projects | `playerHasCompetingWorktype` | Any OTHER player's hand W card shares a `work_type_restriction` with the drawer's |
+| `leader_phase_conditional` | L046 Expeditor Awards | `getFurthestPlayer` (target-redirect, not just gate) | First card to redirect the effect to a non-drawing player — see below |
+
+**Target-redirect pattern (L046, novel as of v3.0.43):** the conditional doesn't just gate WHETHER the effect fires — it changes WHICH player gets the effect. The single-target branch in `parseCardIntoEffects` (~line 1488) checks `card.card_mechanic === 'leader_phase_conditional'` and overrides `payload.playerId` to `getFurthestPlayer()` before emitting. Falls back to drawer if no leader exists (solo game). Conditional gate for this mechanic is just `true` — "leader always exists if any player exists."
+
+**Reveal receipts pattern (L041 + L046 in v3.0.43):** when a conditional's outcome depends on cross-player state the drawer can't see, surface it in `LifeEventModal` via a new `kind` on `LifeEventEffectSummary` (`competing_reveal` 🔍 for L041, `leader_reveal` 🏆 for L046). The receipt is built by a public method on `ICardService` (e.g. `buildCompetingWorktypeReveal`, `buildLeaderReveal`) and injected at the top of `effectsSummary` inside `CardEffectHandler.handleCardDraw` (right after `diffLifeEventSnapshot`). Modal icon mapping at `lifeEventEffectIcon` (bottom of LifeEventModal.tsx). When adding a reveal kind, the 5-file floor grows to 7:
+6. `src/services/StateService.ts` — append the new `kind` value to `LifeEventEffectSummary` (~line 37).
+7. `src/components/modals/LifeEventModal.tsx` — add the icon case to `lifeEventEffectIcon`.
+8. (and `ICardService` + `tests/mocks/mockServices.ts` to expose the builder.)
+
+**Resist over-DRYing the conditional helpers.** Each `playerInvolvesX` is 4 lines; extracting a `playerInvolvesWorkTypes(playerId, set)` would save ~12 lines across three helpers but lock in `Set<string>` as the only allowed predicate. Two of the new mechanics (competing, leader) don't fit that shape at all. Leave them as parallel 4-line helpers until there are 5+ Set-based ones.
 
 ### Integrity gates can have a scope gap — extend to self AND global (v3.0.34)
 
@@ -972,5 +1037,5 @@ Any hit is potentially dead code unless the surrounding logic has already been n
 
 ---
 
-**Last Updated:** May 30, 2026 (Session **v3.0.40 / v3.0.41 / v3.0.42** — life-event feedback receipts + 5+5 verified-real cleanups)
-**Charter Version:** 3.24 (added case-sensitivity bug pattern surfaced by the v3.0.41/42 dead-override discoveries. Prior 3.23: v3.0.39 ship + Kid C N×N + Try-Again rollback recipe + autoPickForcedDiscards.)
+**Last Updated:** May 31, 2026 (Session **v3.0.43** — L-card design-call sweep + Bug Reports admin panel)
+**Charter Version:** 3.25 (extended the `work_type_conditional` TACTICAL entry into a `*_conditional` family pattern with 5-file floor + target-redirect (L046) + reveal-receipts (L041 + L046). Prior 3.24: case-sensitivity bug pattern.)
