@@ -215,6 +215,16 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
       }
     }
 
+    // Block unaffordable cards — money_effect encodes the spend cost for
+    // cards like E030 "Time Crunch" ($8k). card.cost covers fixed-cost cards
+    // but E cards use money_effect for their activation spend.
+    if (card.money_effect) {
+      const moneyCost = parseInt(card.money_effect, 10);
+      if (!isNaN(moneyCost) && moneyCost < 0 && player.money < Math.abs(moneyCost)) {
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -288,6 +298,8 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                           if (!item.card) return null;
                           const isCardExpanded = expandedCards.has(item.id);
                           const isPlayable = item.card.card_type === 'E' && canPlayCard(item.card);
+                          const cardMoneyCost = item.card.money_effect ? parseInt(item.card.money_effect, 10) : 0;
+                          const isUnaffordable = !isNaN(cardMoneyCost) && cardMoneyCost < 0 && player.money < Math.abs(cardMoneyCost);
                           const cardActions = (
                             <>
                               <div className="card-action-row">
@@ -298,7 +310,12 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                                   <ActionButton label="Activate Expeditor" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Activate ${item.card.card_name}`} />
                                 </div>
                               )}
-                              {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
+                              {item.card.card_type === 'E' && !isPlayable && isUnaffordable && (
+                                <div className="card-restriction-message" style={{ color: '#dc3545' }}>
+                                  💸 Not enough funds — costs ${Math.abs(cardMoneyCost).toLocaleString()}, you have ${player.money.toLocaleString()}
+                                </div>
+                              )}
+                              {item.card.card_type === 'E' && !isPlayable && !isUnaffordable && item.card.phase_restriction !== 'Any' && (
                                 <div className="card-restriction-message">Can only be activated during {item.card.phase_restriction} phase{currentPhase && ` (Current: ${currentPhase})`}</div>
                               )}
                             </>
@@ -399,6 +416,8 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                         if (!item.card) return null;
                         const isCardExpanded = expandedCards.has(item.id);
                         const isPlayable = item.card.card_type === 'E' && canPlayCard(item.card);
+                        const cardMoneyCost2 = item.card.money_effect ? parseInt(item.card.money_effect, 10) : 0;
+                        const isUnaffordable2 = !isNaN(cardMoneyCost2) && cardMoneyCost2 < 0 && player.money < Math.abs(cardMoneyCost2);
 
                         // Build action buttons for this card
                         const cardActions = (
@@ -424,7 +443,12 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                                 />
                               </div>
                             )}
-                            {item.card.card_type === 'E' && !isPlayable && item.card.phase_restriction !== 'Any' && (
+                            {item.card.card_type === 'E' && !isPlayable && isUnaffordable2 && (
+                              <div className="card-restriction-message" style={{ color: '#dc3545' }}>
+                                💸 Not enough funds — costs ${Math.abs(cardMoneyCost2).toLocaleString()}, you have ${player.money.toLocaleString()}
+                              </div>
+                            )}
+                            {item.card.card_type === 'E' && !isPlayable && !isUnaffordable2 && item.card.phase_restriction !== 'Any' && (
                               <div className="card-restriction-message">
                                 Can only be activated during {item.card.phase_restriction} phase
                                 {currentPhase && ` (Current: ${currentPhase})`}

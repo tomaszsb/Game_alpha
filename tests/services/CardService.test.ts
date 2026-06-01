@@ -710,6 +710,52 @@ describe('CardService - Enhanced Coverage', () => {
       expect(validation.isValid).toBe(false);
       expect(validation.errorMessage).toContain('Player nonexistent not found');
     });
+
+    it('should reject unaffordable money_effect cards with a plain-English error (fb:58277eca)', () => {
+      // Regression: E030 "Time Crunch" costs $8,000 via money_effect. Previously this
+      // passed validateCardPlay (phase check OK) then failed mid-effect with 32 console
+      // errors and a cryptic "RESOURCE_CHANGE" message. Now validateCardPlay catches it.
+      const expensiveCard = {
+        card_id: 'E030',
+        card_name: 'Time Crunch',
+        card_type: 'E' as const,
+        description: 'Pay $8K to rush filing',
+        cost: 0,
+        phase_restriction: 'Any',
+        money_effect: '-8000',
+      };
+      mockDataService.getCardById.mockReturnValue(expensiveCard);
+      mockGameRulesService.canPlayCard.mockReturnValue(true); // phase is fine
+
+      // Player with insufficient funds
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, money: 500 });
+
+      const validation = (cardService as any).validateCardPlay('player1', 'E030');
+      expect(validation.isValid).toBe(false);
+      expect(validation.errorMessage).toContain('Not enough funds');
+      expect(validation.errorMessage).toContain('8,000');
+      expect(validation.errorMessage).toContain('500');
+    });
+
+    it('should allow money_effect cards when player can afford them', () => {
+      const expensiveCard = {
+        card_id: 'E030',
+        card_name: 'Time Crunch',
+        card_type: 'E' as const,
+        description: 'Pay $8K to rush filing',
+        cost: 0,
+        phase_restriction: 'Any',
+        money_effect: '-8000',
+      };
+      mockDataService.getCardById.mockReturnValue(expensiveCard);
+      mockGameRulesService.canPlayCard.mockReturnValue(true);
+
+      // Player with enough funds
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, money: 10000 });
+
+      const validation = (cardService as any).validateCardPlay('player1', 'E030');
+      expect(validation.isValid).toBe(true);
+    });
   });
 
   describe('Unified Effect Engine Integration', () => {

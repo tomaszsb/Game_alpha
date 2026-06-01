@@ -658,6 +658,23 @@ export class CardService implements ICardService {
   // Validation helper method
   private validateCardPlay(playerId: string, cardId: string): { isValid: boolean; errorMessage?: string } {
     if (this.gameRulesService.canPlayCard(playerId, cardId)) {
+      // Defense-in-depth: UI should gate unaffordable cards via canPlayCard,
+      // but the service layer checks independently so the engine never fires
+      // a 32-error RESOURCE_CHANGE cascade on insufficient funds.
+      const card = this.dataService.getCardById(cardId);
+      if (card?.money_effect) {
+        const moneyCost = parseInt(card.money_effect, 10);
+        if (!isNaN(moneyCost) && moneyCost < 0) {
+          const player = this.stateService.getPlayer(playerId);
+          const required = Math.abs(moneyCost);
+          if (player && player.money < required) {
+            return {
+              isValid: false,
+              errorMessage: `Not enough funds to activate ${card.card_name}. Costs $${required.toLocaleString()} — you have $${player.money.toLocaleString()}.`
+            };
+          }
+        }
+      }
       return { isValid: true };
     }
 
