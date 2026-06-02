@@ -36,6 +36,7 @@ yarn-error.log*
 .claude/scheduled_tasks.lock
 .claude/NEXT_SESSION.md
 .claude/feedback-staged.md
+.claude/fb-*.png
 
 # OS-generated files
 .DS_Store
@@ -70,6 +71,8 @@ initial_load.png
 # Playwright MCP server artifacts
 playwright-*.ts
 playwright-*.zip
+.playwright-mcp/
+editor-snapshot.yml
 
 # Runtime PID files
 *_pid

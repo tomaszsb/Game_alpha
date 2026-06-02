@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Story-as-Composed-Stories — Layout Options</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    margin: 0;
+    padding: 32px;
+    line-height: 1.5;
+  }
+  h1 { color: #58a6ff; margin: 0 0 8px; font-size: 28px; }
+  .lede { color: #8b949e; max-width: 980px; margin: 0 0 32px; font-size: 14px; }
+  .lede strong { color: #c9d1d9; }
+  h2 {
+    color: #58a6ff;
+    border-bottom: 2px solid #30363d;
+    padding-bottom: 8px;
+    margin: 48px 0 8px;
+    font-size: 22px;
+  }
+  .h2-sub { color: #8b949e; font-size: 13px; margin: 0 0 20px; }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .opt {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .opt-tag {
+    display: inline-block;
+    background: #1f6feb;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .opt-title { font-weight: 700; color: #d2a8ff; font-size: 15px; margin: 0 0 4px; }
+  .opt-desc { color: #8b949e; font-size: 12px; margin: 0 0 14px; line-height: 1.45; }
+  .opt-pros { font-size: 11px; color: #56d364; margin-top: 12px; }
+  .opt-cons { font-size: 11px; color: #f85149; margin-top: 4px; }
+
+  /* === Modal shell (mimics in-game modal) === */
+  .modal {
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .modal-head {
+    background: #21262d;
+    padding: 12px 14px;
+    border-bottom: 1px solid #30363d;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: #fff; margin: 0; }
+  .modal-sub { font-size: 11px; color: #8b949e; margin: 2px 0 0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .modal-body { padding: 14px; }
+  .modal-foot {
+    padding: 10px 14px;
+    background: #161b22;
+    border-top: 1px solid #30363d;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .btn {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .btn-primary { background: #238636; border-color: #2ea043; color: #fff; }
+  .btn-action {
+    background: var(--accent, #1f6feb);
+    color: #000;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* === Color tokens per card type === */
+  .e { --accent: #ffa657; --accent-bg: rgba(255,166,87,0.12); }   /* Expeditor — orange */
+  .w { --accent: #79c0ff; --accent-bg: rgba(121,192,255,0.12); }  /* Work — blue */
+  .b { --accent: #56d364; --accent-bg: rgba(86,211,100,0.12); }   /* Bank — green */
+  .i { --accent: #d2a8ff; --accent-bg: rgba(210,168,255,0.12); }  /* Investor — purple */
+  .l { --accent: #ff7b72; --accent-bg: rgba(255,123,114,0.12); }  /* Life — red */
+  .fee { --accent: #f0883e; --accent-bg: rgba(240,136,62,0.12); } /* Fee — burnt orange */
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .pill-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* === Option A: Stacked action cards === */
+  .action-card {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .action-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .action-card-title { font-weight: 700; color: #fff; font-size: 13px; flex: 1; }
+  .action-narrative {
+    color: #c9d1d9;
+    font-size: 12.5px;
+    font-style: italic;
+    line-height: 1.55;
+    margin: 6px 0 10px;
+    padding-left: 10px;
+    border-left: 2px solid #30363d;
+  }
+  .action-card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .action-meta { color: #8b949e; font-size: 11px; }
+
+  /* === Option B: Tabs === */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #30363d;
+    margin-bottom: 14px;
+  }
+  .tab {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    font-size: 12px;
+    color: #8b949e;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+  .tab.active {
+    color: #fff;
+    border-bottom-color: var(--accent);
+  }
+  .tab .pill-dot { width: 7px; height: 7px; }
+  .tab-body {
+    background: #21262d;
+    border-radius: 6px;
+    padding: 14px;
+    border: 1px solid #30363d;
+    border-left: 4px solid var(--accent);
+  }
+  .tab-narrative {
+    color: #c9d1d9;
+    font-size: 13px;
+    font-style: italic;
+    line-height: 1.6;
+    margin: 0 0 14px;
+  }
+  .tab-progress { color: #8b949e; font-size: 11px; margin-top: 10px; }
+
+  /* === Option C: Accordion === */
+  .accordion-row {
+    border-bottom: 1px solid #30363d;
+  }
+  .accordion-row:last-child { border-bottom: none; }
+  .accordion-head {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 4px;
+  }
+  .accordion-head-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .accordion-status { color: #8b949e; font-size: 11px; }
+  .accordion-status.done { color: #56d364; }
+  .accordion-body {
+    padding: 0 4px 14px 28px;
+  }
+  .accordion-body .action-narrative {
+    margin-top: 0;
+    border-left-color: var(--accent);
+  }
+  .accordion-body .action-card-foot { margin-top: 8px; }
+  .chev { color: #8b949e; font-size: 12px; }
+
+  /* === Per-action modal options === */
+  .modal-narrow { max-width: 100%; }
+  .opt .modal { font-size: 13px; }
+  .opt-pa-label {
+    color: #8b949e;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 14px 0 6px;
+  }
+
+  /* PA Option A: blockquote at top */
+  .pa-quote {
+    background: var(--accent-bg);
+    border-left: 4px solid var(--accent);
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    color: #e6edf3;
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.55;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* PA Option B: inline italic header */
+  .pa-italic-header {
+    color: #c9d1d9;
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #30363d;
+  }
+
+  /* PA Option C: two-panel */
+  .pa-twopanel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .pa-twopanel .pa-flavor {
+    background: var(--accent-bg);
+    padding: 14px;
+    border-right: 1px solid var(--accent);
+    color: #e6edf3;
+    font-style: italic;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .pa-twopanel .pa-mech {
+    padding: 14px;
+  }
+
+  .pa-mech-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #30363d;
+    font-size: 12px;
+  }
+  .pa-mech-row:last-child { border-bottom: none; }
+  .pa-mech-row .label { color: #8b949e; }
+  .pa-mech-row .value { color: #fff; font-weight: 600; }
+
+  /* === Footer summary === */
+  .summary-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 48px;
+  }
+  .summary-box h3 { color: #58a6ff; margin: 0 0 12px; font-size: 16px; }
+  .summary-box p { font-size: 13px; color: #c9d1d9; margin: 6px 0; }
+  .summary-box ul { color: #c9d1d9; font-size: 13px; padding-left: 20px; }
+  .summary-box li { margin: 6px 0; }
+  .key { color: #ffa657; font-weight: 600; }
+
+  /* Source block — shows the per-action narratives in CSV-like form */
+  .source-block {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 11.5px;
+    color: #8b949e;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+  }
+  .source-block .col { color: #d2a8ff; }
+  .source-block .val { color: #c9d1d9; }
+</style>
+</head>
+<body>
+
+  <h1>Story-as-Composed-Stories — Layout Options</h1>
+  <p class="lede">
+    <strong>Proposal:</strong> a space's "story" is composed of per-action narratives. Each action's narrative is also reused inside that action's modal as flavor text — single source of truth, no duplication. Action order recommended: <strong style="color:#ffa657;">E</strong> (Expeditor — push usage) → <strong style="color:#79c0ff;">W</strong> (Work — scope) → <strong style="color:#56d364;">B</strong> (Bank — money in) → <strong style="color:#d2a8ff;">I</strong> (Investor — money in) → <strong style="color:#ff7b72;">L</strong> (Life — usually auto, rarely shown).
+  </p>
+
+  <!-- Source of truth -->
+  <h2>Source of truth (Spaces.csv per-action narrative columns)</h2>
+  <p class="h2-sub">These columns already exist. Today only `Event` is shown to the player; per-action narratives are dormant.</p>
+  <div class="source-block">
+space_name = <span class="val">ARCH-FEE-REVIEW</span> &nbsp; visit_type = <span class="val">First</span><br>
+<span class="col">e_card_narrative</span> = <span class="val">"You hear horror stories about reviews dragging on. An expeditor could grease the wheels."</span><br>
+<span class="col">w_card_narrative</span> = <span class="val">"The architect hands you a stack of revised drawings — your scope just grew."</span><br>
+<span class="col">b_card_narrative</span> = <span class="val">"The architect's invoice lands on your desk. Time to write a check."</span><br>
+<span class="col">i_card_narrative</span> = <span class="val">"Your investor calls — they want to see the latest plans before the next disbursement."</span><br>
+<span class="col">l_card_narrative</span> = <span class="val">""  (empty — not every space has a Life event)</span>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- SECTION 1: LANDING-ON-SPACE MODAL                                  -->
+  <!-- ================================================================ -->
+  <h2>1. Landing-on-space modal — three layouts</h2>
+  <p class="h2-sub">Player just landed on ARCH-FEE-REVIEW. The space has 4 actions (E, W, B, I). How do we present the composite story?</p>
+
+  <div class="grid-3">
+
+    <!-- ============================ OPTION 1A: Stacked Cards ============================ -->
+    <div class="opt">
+      <span class="opt-tag">OPTION A</span>
+      <h3 class="opt-title">Stacked Action Cards</h3>
+      <p class="opt-desc">Each action is a colored card showing its narrative + button. Player scrolls top-to-bottom in recommended order.</p>
+
+      <div class="modal modal-narrow">
+        <div class="modal-head">
+          <p class="modal-title">Architect Fee Review</p>
+          <p class="modal-sub">DESIGN PHASE • FIRST VISIT</p>
+        </div>
+        <div class="modal-body">
+
+          <div class="action-card e">
+            <div class="action-card-head">
+              <span class="pill"><span class="pill-dot"></span>Expeditor</span>
+              <span class="action-card-title">Hire an expeditor (1 E card)</span>
+            </div>
+            <p class="action-narrative">You hear horror stories about reviews dragging on. An expeditor could grease the wheels.</p>
+            <div class="action-card-foot">
+              <span class="action-meta">Optional · Saves time later</span>
+              <button class="btn-action">Draw E</button>
+            </div>
+          </div>
+
+          <div class="action-card w">
+            <div class="action-card-head">
+              <span class="pill"><span class="pill-dot"></span>Work</span>
+              <span class="action-card-title">Architect adds scope (1 W card)</span>
+            </div>
+            <p class="action-narrative">The architect hands you a stack of revised drawings — your scope just grew.</p>
+            <div class="action-card-foot">
+              <span class="action-meta">Required</span>
+              <button class="btn-action">Draw W</button>
+            </div>
+          </div>
+
+          <div class="action-card b">
+            <div class="action-card-head">
+              <span class="pill"><span class="pill-dot"></span>Bank</span>
+              <span class="action-card-title">Pay architect fee (1 B card)</span>
+            </div>
+            <p class="action-narrative">The architect's invoice lands on your desk. Time to write a check.</p>
+            <div class="action-card-foot">
+              <span class="action-meta">Required</span>
+              <button class="btn-action">Draw B</button>
+            </div>
+          </div>
+
+          <div class="action-card i">
+            <div class="action-card-head">
+              <span class="pill"><span class="pill-dot"></span>Investor</span>
+              <span class="action-card-title">Investor check-in (1 I card)</span>
+            </div>
+            <p class="action-narrative">Your investor calls — they want to see the latest plans before the next disbursement.</p>
+            <div class="action-card-foot">
+              <span class="action-meta">Optional</span>
+              <button class="btn-action">Draw I</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-foot">
+          <button class="btn">Negotiate</button>
+          <button class="btn btn-primary">End Turn</button>
+        </div>
+      </div>
+
+      <p class="opt-pros">+ Story + mechanics in one view, scannable</p>
+      <p class="opt-pros">+ Color-coded edges teach card types over time</p>
+      <p class="opt-cons">– Tall modal on small screens; a lot to scroll</p>
+    </div>
+
+    <!-- ============================ OPTION 1B: Tabs ============================ -->
+    <div class="opt">
+      <span class="opt-tag">OPTION B</span>
+      <h3 class="opt-title">Action Tabs</h3>
+      <p class="opt-desc">Tabs across top, one per action. Active tab shows that action's narrative + button. Compact.</p>
+
+      <div class="modal modal-narrow">
+        <div class="modal-head">
+          <p class="modal-title">Architect Fee Review</p>
+          <p class="modal-sub">DESIGN PHASE • FIRST VISIT</p>
+        </div>
+        <div class="modal-body">
+
+          <div class="tabs">
+            <button class="tab e active"><span class="pill-dot"></span>E</button>
+            <button class="tab w"><span class="pill-dot"></span>W</button>
+            <button class="tab b"><span class="pill-dot"></span>B</button>
+            <button class="tab i"><span class="pill-dot"></span>I</button>
+          </div>
+
+          <div class="tab-body e">
+            <div class="action-card-head" style="margin-bottom:10px;">
+              <span class="pill"><span class="pill-dot"></span>Expeditor</span>
+              <span class="action-card-title">Hire an expeditor</span>
+            </div>
+            <p class="tab-narrative">You hear horror stories about reviews dragging on. An expeditor could grease the wheels.</p>
+            <div class="action-card-foot">
+              <span class="action-meta">Optional · Saves time later</span>
+              <button class="btn-action">Draw E (1)</button>
+            </div>
+            <p class="tab-progress">Step 1 of 4 actions on this space</p>
+          </div>
+
+        </div>
+        <div class="modal-foot">
+          <button class="btn">Negotiate</button>
+          <button class="btn btn-primary">End Turn</button>
+        </div>
+      </div>
+
+      <p class="opt-pros">+ Compact — works on phone</p>
+      <p class="opt-pros">+ Player consciously moves through each action</p>
+      <p class="opt-cons">– Hides parallel choices behind tabs (less scannable)</p>
+      <p class="opt-cons">– Easy to "End Turn" without seeing all narratives</p>
+    </div>
+
+    <!-- ============================ OPTION 1C: Accordion ============================ -->
+    <div class="opt">
+      <span class="opt-tag">OPTION C</span>
+      <h3 class="opt-title">Collapsible List</h3>
+      <p class="opt-desc">Action list collapsed by default. Click to expand the narrative + button. The first action auto-expands.</p>
+
+      <div class="modal modal-narrow">
+        <div class="modal-head">
+          <p class="modal-title">Architect Fee Review</p>
+          <p class="modal-sub">DESIGN PHASE • FIRST VISIT</p>
+        </div>
+        <div class="modal-body">
+
+          <div class="accordion-row e">
+            <div class="accordion-head">
+              <div class="accordion-head-left">
+                <span class="pill"><span class="pill-dot"></span>E</span>
+                <span class="action-card-title">Hire an expeditor</span>
+              </div>
+              <div>
+                <span class="accordion-status">Optional</span>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <p class="action-narrative">You hear horror stories about reviews dragging on. An expeditor could grease the wheels.</p>
+              <div class="action-card-foot">
+                <span class="action-meta">Saves time later</span>
+                <button class="btn-action">Draw E (1)</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-row w">
+            <div class="accordion-head">
+              <div class="accordion-head-left">
+                <span class="pill"><span class="pill-dot"></span>W</span>
+                <span class="action-card-title">Architect adds scope</span>
+              </div>
+              <div>
+                <span class="accordion-status">Required</span>
+                <span class="chev">▸</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-row b">
+            <div class="accordion-head">
+              <div class="accordion-head-left">
+                <span class="pill"><span class="pill-dot"></span>B</span>
+                <span class="action-card-title">Pay architect fee</span>
+              </div>
+              <div>
+                <span class="accordion-status">Required</span>
+                <span class="chev">▸</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-row i">
+            <div class="accordion-head">
+              <div class="accordion-head-left">
+                <span class="pill"><span class="pill-dot"></span>I</span>
+                <span class="action-card-title">Investor check-in</span>
+              </div>
+              <div>
+                <span class="accordion-status">Optional</span>
+                <span class="chev">▸</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-foot">
+          <button class="btn">Negotiate</button>
+          <button class="btn btn-primary">End Turn</button>
+        </div>
+      </div>
+
+      <p class="opt-pros">+ Compact by default, expands on demand</p>
+      <p class="opt-pros">+ Shows full action list at a glance</p>
+      <p class="opt-cons">– Narrative is hidden until clicked (player may skip)</p>
+    </div>
+
+  </div>
+
+
+  <!-- ================================================================ -->
+  <!-- SECTION 2: PER-ACTION MODAL                                        -->
+  <!-- ================================================================ -->
+  <h2>2. Per-action modal — three flavor placements</h2>
+  <p class="h2-sub">Player clicked "Draw W" on ARCH-FEE-REVIEW. Confirmation modal appears. Where does the per-action narrative live inside it?</p>
+
+  <div class="grid-3">
+
+    <!-- ============================ PA Option A: Blockquote top ============================ -->
+    <div class="opt">
+      <span class="opt-tag">OPTION A</span>
+      <h3 class="opt-title">Tinted Blockquote on Top</h3>
+      <p class="opt-desc">Narrative sits in a colored card at the top of the modal. Mechanics below.</p>
+
+      <div class="modal w">
+        <div class="modal-head">
+          <p class="modal-title">Draw 1 Work card</p>
+          <p class="modal-sub">ARCH-FEE-REVIEW • W CARD</p>
+        </div>
+        <div class="modal-body">
+          <div class="pa-quote">
+            The architect hands you a stack of revised drawings — your scope just grew.
+          </div>
+          <div class="pa-mech-row">
+            <span class="label">Effect</span>
+            <span class="value">+1 W card</span>
+          </div>
+          <div class="pa-mech-row">
+            <span class="label">Estimated work</span>
+            <span class="value">3–8 days</span>
+          </div>
+          <div class="pa-mech-row">
+            <span class="label">Hand size after</span>
+            <span class="value">4 cards</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn">Cancel</button>
+          <button class="btn btn-primary">Draw</button>
+        </div>
+      </div>
+
+      <p class="opt-pros">+ Strong visual — narrative reads like a quote</p>
+      <p class="opt-pros">+ Color signals card type immediately</p>
+      <p class="opt-cons">– Adds vertical height</p>
+    </div>
+
+    <!-- ============================ PA Option B: Italic header ============================ -->
+    <div class="opt">
+      <span class="opt-tag">OPTION B</span>
+      <h3 class="opt-title">Italic Lead-in Line</h3>
+      <p class="opt-desc">Narrative is a single italic line under the title, separated from mechanics by a dashed divider.</p>
+
+      <div class="modal w">
+        <div class="modal-head">
+          <p class="modal-title">Draw 1 Work card</p>
+          <p class="modal-sub">ARCH-FEE-REVIEW • W CARD</p>
+        </div>
+        <div class="modal-body">
+          <p class="pa-italic-header">"The architect hands you a stack of revised drawings — your scope just grew."</p>
+          <div class="pa-mech-row">
+            <span class="label">Effect</span>
+            <span class="value">+1 W card</span>
+          </div>
+          <div class="pa-mech-row">
+            <span class="label">Estimated work</span>
+            <span class="value">3–8 days</span>
+          </div>
+          <div class="pa-mech-row">
+            <span class="label">Hand size after</span>
+            <span class="value">4 cards</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn">Cancel</button>
+          <button class="btn btn-primary">Draw</button>
+        </div>
+      </div>
+
+      <p class="opt-pros">+ Minimal — narrative + mechanics fit small modals</p>
+      <p class="opt-pros">+ Works for very short narratives</p>
+      <p class="opt-cons">– Less visually distinct; reads like a subtitle</p>
+    </div>
+
+    <!-- ============================ PA Option C: Two panel ============================ -->
+    <div class="opt">
+      <span class="opt-tag">OPTION C</span>
+      <h3 class="opt-title">Two-Panel: Story | Mechanics</h3>
+      <p class="opt-desc">Flavor on the left, mechanics on the right. Strongest separation of "why" vs "what".</p>
+
+      <div class="modal w">
+        <div class="modal-head">
+          <p class="modal-title">Draw 1 Work card</p>
+          <p class="modal-sub">ARCH-FEE-REVIEW • W CARD</p>
+        </div>
+        <div class="pa-twopanel w">
+          <div class="pa-flavor">
+            The architect hands you a stack of revised drawings — your scope just grew.
+          </div>
+          <div class="pa-mech">
+            <div class="pa-mech-row">
+              <span class="label">Effect</span>
+              <span class="value">+1 W</span>
+            </div>
+            <div class="pa-mech-row">
+              <span class="label">Work</span>
+              <span class="value">3–8 days</span>
+            </div>
+            <div class="pa-mech-row">
+              <span class="label">Hand</span>
+              <span class="value">4</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn">Cancel</button>
+          <button class="btn btn-primary">Draw</button>
+        </div>
+      </div>
+
+      <p class="opt-pros">+ Clear conceptual split — story on left, rules on right</p>
+      <p class="opt-pros">+ Wider modal feels "premium"</p>
+      <p class="opt-cons">– Cramped on phone (would need to stack vertically)</p>
+      <p class="opt-cons">– Narrative competes with mechanics for attention</p>
+    </div>
+
+  </div>
+
+
+  <!-- ================================================================ -->
+  <!-- SUMMARY                                                            -->
+  <!-- ================================================================ -->
+  <div class="summary-box">
+    <h3>What I'd recommend (and why)</h3>
+    <p><span class="key">Landing-on-space:</span> <strong>Option A — Stacked Action Cards</strong>. The composite-story idea is the whole point: showing all narratives at once is the feature. Tabs/accordion hide the very thing we're trying to surface. Yes, it's tall — but spaces typically have 2–4 actions, not 10.</p>
+    <p><span class="key">Per-action modal:</span> <strong>Option A — Tinted Blockquote</strong>. Same color token as the action card on the landing modal → the player sees the same narrative in the same color, building a "this is the story for this card type" mental model. Option B is too quiet; Option C is too noisy.</p>
+    <p style="margin-top:14px;"><span class="key">Drop the standalone `story` field?</span> Yes. Spaces.csv keeps `Event` as a vestigial header (or we remove it). The composed view IS the story. One source per action, used in two places.</p>
+    <h3 style="margin-top:24px;">Open questions for you</h3>
+    <ul>
+      <li>Do you want a single-line "opening header" above the composed actions (a one-sentence framing)? Or just title + actions?</li>
+      <li>For Life cards that are auto-resolved, should we still show the L narrative on landing (read-only), or hide it entirely when no player action is required?</li>
+      <li>For Required vs Optional actions — is the meta label enough, or do we want a stronger visual treatment (e.g., a red ring on Required-but-not-yet-done)?</li>
+    </ul>
+  </div>
+
+</body>
+</html>
