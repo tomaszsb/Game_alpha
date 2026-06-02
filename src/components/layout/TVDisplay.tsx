@@ -537,8 +537,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   headerPlayerStrip: {
     display: 'flex',
     gap: '0.75rem',
-    overflowX: 'auto',
     alignItems: 'center',
+    // v3.0.60 (fb:608bb670 follow-up) — `overflowX: 'auto'` from v3.0.59
+    // caused phantom scrollbars on both axes even when the chip clearly
+    // fit. With 4 max players sharing the top row alongside the buttons,
+    // there's enough horizontal room — let flex size naturally.
     // v3.0.59 (fb:608bb670 follow-up) — now lives INSIDE headerTopRow next
     // to the action buttons and the auto-dismissing turn pill. flex-end
     // alignment isn't needed here; the parent space-between handles

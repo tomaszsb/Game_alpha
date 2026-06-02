@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.60] - 2026-06-02
+
+### TV header polish — phantom scrollbars
+
+v3.0.59 left `overflowX: 'auto'` on `headerPlayerStrip` (carried over from when it lived on its own full-width second row). With the strip now sharing the top row with the buttons + pill, that overflow rule made browsers reserve scrollbar space on both axes even when the chip clearly fit, leaving thin gray scrollbars around the chip with nothing to scroll. Removed; max 4 players easily fit alongside the buttons.
+
+---
+
 ## [3.0.59] - 2026-06-02
 
 ### TV header polish round 2 (fb:608bb670 follow-up)
