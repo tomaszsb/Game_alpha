@@ -100,11 +100,20 @@ export function GameLog(): JSX.Element {
     // Filter out setup turns (globalTurnNumber <= 0) before grouping
     const gameplayEntries = sortedEntries.filter(entry => entry.globalTurnNumber > 0);
 
-    // Group entries by player and global turn number
+    // Group entries by player + global turn + space visit.
+    // A single globalTurnNumber can span multiple space visits when the global
+    // turn counter doesn't increment between them (e.g. scope space → funding
+    // space in the same player turn). Including the current space name in the
+    // key ensures each visit gets its own PlayerTurnGroup. fb:3a8f2b60.
     const playerTurnMap = new Map<string, ActionLogEntry[]>();
+    const currentSpaceByPlayer = new Map<string, string>(); // playerId → current space
 
     gameplayEntries.forEach(entry => {
-      const turnKey = `${entry.playerId}-${entry.globalTurnNumber}`;
+      if (entry.type === 'turn_start') {
+        currentSpaceByPlayer.set(entry.playerId, entry.details?.spaceName || 'unknown');
+      }
+      const spaceSuffix = currentSpaceByPlayer.get(entry.playerId) || 'unknown';
+      const turnKey = `${entry.playerId}-${entry.globalTurnNumber}-${spaceSuffix}`;
       if (!playerTurnMap.has(turnKey)) {
         playerTurnMap.set(turnKey, []);
       }

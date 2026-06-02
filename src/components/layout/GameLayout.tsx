@@ -296,6 +296,14 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     // what registers the gesture and unlocks subsequent vibrates.
     try { haptics.lightTap(); } catch { /* haptics is best-effort, never block the tap */ }
     if (phoneViewKey) safeSessionSet(phoneViewKey, 'yes');
+    // Request fullscreen to push browser chrome (address bar / nav bar) off
+    // screen — best-effort: denied silently on iPadOS split-view, secure
+    // iframes, and browsers that don't support the API. fb:05a8b722.
+    try {
+      if (document.documentElement.requestFullscreen) {
+        void document.documentElement.requestFullscreen();
+      }
+    } catch { /* fullscreen is best-effort, never block the tap */ }
     setNeedsHapticPrime(false);
   };
 

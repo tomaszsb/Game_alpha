@@ -225,8 +225,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Compact inline format: "⏱️ 50/110d"
-    expect(screen.getByText(/50\/110d/)).toBeInTheDocument();
+    // Compact inline format: "⏱️ 50d / 110d est."
+    expect(screen.getByText(/50d \/ 110d est/)).toBeInTheDocument();
   });
 
   it('should show timeline color based on progress percentage', () => {
@@ -254,8 +254,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Compact format: "90/100d"
-    expect(screen.getByText(/90\/100d/)).toBeInTheDocument();
+    // Compact format: "90d / 100d est."
+    expect(screen.getByText(/90d \/ 100d est/)).toBeInTheDocument();
   });
 
   it('should display multiple players with individual timelines', () => {

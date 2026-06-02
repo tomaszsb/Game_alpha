@@ -618,8 +618,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 <div style={playerNameStyle}>
                   {player.avatar} {player.name}
                 </div>
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={`Overall project completion: ${Math.round(playerProgress.progress)}% (current phase: ${playerProgress.phase}).`}>
-                  <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>{Math.round(playerProgress.progress)}%</span></span>
+                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={`Project completion: ${Math.round(playerProgress.progress)}% — how far through all phases you've progressed (Funding → Design → Regulatory → Construction). Advances each time you reach a new phase.`}>
+                  <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>{Math.round(playerProgress.progress)}% done</span></span>
                   <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden' }}>
                     <div style={getPlayerProgressBarFill(playerProgress.progress)}></div>
                   </div>
@@ -687,7 +687,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                     : 90;
                   return (
                     <div style={{ marginTop: '1px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={timelineInd.tooltip}>
-                      <span style={{ whiteSpace: 'nowrap' }}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}/{timeline.estimatedDays}d</span></span>
+                      <span style={{ whiteSpace: 'nowrap' }}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}d / {timeline.estimatedDays}d est.</span></span>
                       <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                         <div style={{ width: `${Math.min(timeline.progressPercent, 100)}%`, height: '100%', backgroundColor: timelineColor, borderRadius: '2px' }} />
                         {/* Contingency boundary marker */}

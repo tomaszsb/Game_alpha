@@ -46,15 +46,16 @@ export function designFeeIndicator(ratioPct: number): ProgressIndicator {
 /**
  * Timeline: days used vs. estimated (base + work types + 10% contingency).
  * Green on track, orange ≥75% (eating into the contingency buffer), red ≥100%
- * (over the estimate).
+ * (over the estimate). fb:9c961893.
  */
 export function timelineIndicator(percentUsed: number): ProgressIndicator {
   const pct = `${Math.round(percentUsed)}%`;
+  const base = `Each space visit consumes a fixed number of days. Your estimate = base phase durations + your work types + 10% contingency buffer.`;
   if (percentUsed >= 100) {
-    return { color: RED, tooltip: `Timeline: ${pct} of the estimated days used — over the estimate (base + work types + 10% contingency).` };
+    return { color: RED, tooltip: `⏱️ Days used: ${pct} of estimate — you've exceeded the estimated project duration. ${base}` };
   }
   if (percentUsed >= 75) {
-    return { color: YELLOW, tooltip: `Timeline: ${pct} of the estimated days used — running long, into the 10% contingency buffer.` };
+    return { color: YELLOW, tooltip: `⏱️ Days used: ${pct} of estimate — running long, burning into the 10% contingency. ${base}` };
   }
-  return { color: GREEN, tooltip: `Timeline: ${pct} of the estimated days used — on track (estimate = base + work types + 10% contingency).` };
+  return { color: GREEN, tooltip: `⏱️ Days used: ${pct} of estimate — on track. ${base}` };
 }

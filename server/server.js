@@ -1346,6 +1346,7 @@ function startServer(port, maxAttempts = 10) {
 
     console.log('');
     console.log('🚀 Multi-Game Server started');
+    console.log(`   Version: ${currentVersion}`);
     console.log(`   Port: ${actualPort}`);
     console.log(`   WebSocket: ws://0.0.0.0:${actualPort}/ws`);
     console.log(`   ntfy topic: ${CONFIG.NTFY_TOPIC}`);
