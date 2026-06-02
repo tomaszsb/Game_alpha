@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.56] - 2026-06-02
+
+### Smart-edge router padding bump — arrow-overlaps-box fix
+
+**Arrow overlaps CHEAT-BYPASS box (fb:30be69b2)**
+The bottom-most edge from PM-DECISION-CHECK to its lowest-row destination skimmed close enough to CHEAT-BYPASS (which sits directly below) that the rendered Bezier crossed the box. Root cause: `SmartBezierEdge` from `@jalez/react-flow-smart-edge` ships with `nodePadding=10` and we never overrode it — ~7% of a 150px tile is too little buffer for the A* router to prefer detours.
+
+Fix: replaced the bare `SmartBezierEdge` registration with a project-local `SmartBezierEdgeTuned` wrapper that drives the underlying `SmartEdge` with `nodePadding=30` (plus the same `svgDrawSmoothLinePath` / `pathfindingAStarDiagonal` / `BezierEdge` fallback the upstream uses). `nodeTypes`/`edgeTypes` still defined once at module scope so React Flow doesn't re-create the map per render.
+
+`tests/components/board/BoardCanvas.test.ts` 14/14 green. Typecheck clean.
+
+**Cleanup pass (no behavior change)**
+4 stale TODOs ticked off after CHANGELOG cross-check: phone reconnect indicator (already shipped v3.0.54), opt-in console capture (v3.0.54), `scripts/check-sync.sh` (v3.0.54), backend version logging (already in `server/server.js`). Three dashboard reports PATCH-flipped: `fb:6e1e8ac4` (Comet chime — user-verified single-player on v3.0.55), `fb:9c961893` (progress + time labels — already shipped v3.0.53), `fb:58277eca` (E-card silent failure — already shipped v3.0.48 but never flipped).
+
+---
+
 ## [3.0.55] - 2026-06-01
 
 ### Audio cue fallback + test coverage sprint

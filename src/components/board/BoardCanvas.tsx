@@ -45,11 +45,18 @@ import {
   type Node,
   type Edge,
   type NodeProps,
+  type EdgeProps,
   type NodeChange,
   type EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { SmartBezierEdge } from '@jalez/react-flow-smart-edge';
+import { BezierEdge, useNodes } from '@xyflow/react';
+import { SmartEdge } from '@jalez/react-flow-smart-edge';
+import {
+  svgDrawSmoothLinePath,
+  pathfindingAStarDiagonal,
+} from '@jalez/react-flow-smart-edge';
+import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
@@ -289,7 +296,26 @@ const nodeTypes = { boardNode: BoardNode };
 // re-create the map every render. See Workstream 3 / Phase C in
 // BETA_PLAN_V3.md — uses @jalez/react-flow-smart-edge (v12-compatible
 // fork of @tisoap/react-flow-smart-edge).
-const edgeTypes = { smart: SmartBezierEdge };
+//
+// fb:30be69b2 — the upstream `SmartBezierEdge` ships with `nodePadding=10`,
+// which on our ~150px tiles is only ~7% of tile width. Routes from
+// PM-DECISION-CHECK skim CHEAT-BYPASS closely enough that the rendered
+// curve overlaps the box. Wrap the underlying `SmartEdge` with
+// `nodePadding=30` so the A* grid treats each tile as a wider obstacle
+// and prefers detours over skim paths.
+const TUNED_SMART_EDGE_OPTIONS: SmartEdgeOptions = {
+  drawEdge: svgDrawSmoothLinePath,
+  generatePath: pathfindingAStarDiagonal,
+  fallback: BezierEdge as unknown as SmartEdgeOptions['fallback'],
+  nodePadding: 30,
+};
+
+function SmartBezierEdgeTuned(props: EdgeProps): JSX.Element {
+  const nodes = useNodes();
+  return <SmartEdge {...props} nodes={nodes} options={TUNED_SMART_EDGE_OPTIONS} />;
+}
+
+const edgeTypes = { smart: SmartBezierEdgeTuned };
 
 // ===================================================================
 // Component
