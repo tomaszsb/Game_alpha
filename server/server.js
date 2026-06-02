@@ -452,7 +452,10 @@ app.get('/health', (req, res) => {
 
   res.json({
     status: 'ok',
-    version: currentVersion,
+    // Same scope fix as commit 95f46f9 (startup log): `currentVersion` is
+    // declared inside initWritableData() and is not in scope here. Read
+    // process.env directly so the /health handler doesn't throw.
+    version: process.env.VITE_GIT_COMMIT || 'dev',
     timestamp: formatTimestamp(),
     activeGames: games.size,
     games: gameList,

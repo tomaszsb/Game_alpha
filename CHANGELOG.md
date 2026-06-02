@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.58] - 2026-06-02
+
+### `/health` 500 hotfix — same scope bug as 95f46f9 startup-log fix
+
+While investigating "connection indicators red on load" in chrome-devtools, found `/health` returning 500 on every hit. Cause: [server/server.js:455](server/server.js#L455) referenced `currentVersion`, but that const lives inside `initWritableData()` (line 117–120) — completely out of scope for the `/health` route handler. Reading `process.env.VITE_GIT_COMMIT || 'dev'` directly fixes it (same pattern as commit 95f46f9 which fixed the identical bug in the startup log).
+
+Breaks `scripts/check-sync.sh` (it reads `/health` to compare against the live server's deployed version) and any external monitoring. WebSocket subscribe path is unaffected — WS connects to `/ws?gameId=...&token=...` (verified by manual `wss://` open returning `outcome: 'open'`). The transient "🔴 Offline" briefly visible on initial load is the indicator showing pre-connection state; current page state during this debug session has no Offline text, confirming the WS does establish.
+
+---
+
 ## [3.0.57] - 2026-06-02
 
 ### TV header player chip readability (fb:608bb670 follow-up)
