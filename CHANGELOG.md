@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.59] - 2026-06-02
+
+### TV header polish round 2 (fb:608bb670 follow-up)
+
+User feedback on v3.0.57: the chip moved to the right but still feels orphaned (second row), and the "Look at your phone" pill is too big a presence given the chip's pulsing border already signals whose turn it is.
+
+Changes in [TVDisplay.tsx](src/components/layout/TVDisplay.tsx):
+
+1. **Player chip moved INTO `headerTopRow`** — same row as the action buttons + turn pill, replacing the prior second-row band entirely. The header is now a single visual row during PLAY. `headerPlayerStrip`'s `justifyContent: flex-end` removed (parent `space-between` handles placement now).
+
+2. **"Look at your phone" pill auto-dismisses after 2 seconds** — new `showTurnPill` state + a `useEffect(..., [currentPlayerId])` that sets it true on every turn handoff and clears it 2s later. The pill attention-grabs once per turn handoff, then makes room. The chip's 3px pulsing colored border carries the steady-state "whose turn" signal.
+
+Typecheck clean. No targeted TV-display tests yet (visual check on next deploy).
+
+---
+
 ## [3.0.58] - 2026-06-02
 
 ### `/health` 500 hotfix — same scope bug as 95f46f9 startup-log fix

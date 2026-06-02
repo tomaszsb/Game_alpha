@@ -38,6 +38,10 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isProgressExpanded, setIsProgressExpanded] = useState(false);
   const [showQRPanel, setShowQRPanel] = useState(false);
+  // fb:608bb670 follow-up — the "Look at your phone" pill grabs attention when
+  // the turn changes, then auto-dismisses after 2s so the chip's pulsing
+  // colored border carries the steady-state "whose turn" signal.
+  const [showTurnPill, setShowTurnPill] = useState(true);
 
   const gameId = getCurrentGameId();
 
@@ -75,6 +79,15 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
 
     return unsubscribe;
   }, [stateService]);
+
+  // fb:608bb670 follow-up — re-show the "Look at your phone" pill for 2s
+  // every time the active player changes (turn handoff), then auto-dismiss.
+  useEffect(() => {
+    if (!currentPlayerId) return;
+    setShowTurnPill(true);
+    const t = window.setTimeout(() => setShowTurnPill(false), 2000);
+    return () => window.clearTimeout(t);
+  }, [currentPlayerId]);
 
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
@@ -174,10 +187,12 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
         {/* Phone-controller indicator — at 10ft viewing distance the
             playerStrip's color ring is too subtle to read. This banner
             spells out "📱 Look at your phone, [Name]" so first-time players
-            don't sit waiting for the TV to do something. Adapts copy when
-            the active player has no connected phone (PC-fallback play on
-            the host device). <!-- fb:feedback-1779567746328-5ca98777 --> */}
-        {gamePhase === 'PLAY' && currentPlayer && (
+            don't sit waiting for the TV to do something. fb:608bb670
+            follow-up: auto-dismiss 2s after each turn handoff so it
+            attention-grabs once, then makes room — the player chip's
+            pulsing colored border carries the steady-state signal.
+            <!-- fb:feedback-1779567746328-5ca98777 --> */}
+        {gamePhase === 'PLAY' && currentPlayer && showTurnPill && (
           <div
             style={{
               ...styles.controlIndicator,
@@ -198,26 +213,12 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           </div>
         )}
 
-        {gamePhase === 'SETUP' && (
-          <div style={styles.setupBanner}>
-            Waiting for players to join...
-          </div>
-        )}
-
-        {gamePhase === 'END' && (
-          <div style={styles.gameOverBanner}>
-            Game Over!
-          </div>
-        )}
-        </div>
-
-        {/* Player strip — horizontal row of all players with the richer info
-            that used to live in the right sidebar (avatar, name, $K, resources,
-            Connected badge). Current player gets a colored ring so the "whose
-            turn is it" signal is preserved without a separate banner.
-            fb:608bb670 — now lives inside the blue header (was its own white
-            row) so the board reclaims the height. Renders during PLAY only.
-            <!-- fb:feedback-1779568265597-9bedb559 --> */}
+        {/* Player strip — moved into the top row (fb:608bb670 follow-up)
+            so the chip lives next to the buttons + auto-dismissing turn
+            pill instead of stranding on a second row. Renders during PLAY
+            only. Chips show name + money + resources; current player gets
+            a 3px colored pulsing border carrying the "whose turn" signal
+            once the pill auto-dismisses. */}
         {gamePhase === 'PLAY' && (
           <div style={styles.headerPlayerStrip}>
             {players.map(player => {
@@ -230,12 +231,6 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                     ...styles.playerStripChip,
                     borderColor: isCurrentPlayer ? (player.color || 'white') : 'rgba(255,255,255,0.4)',
                     borderWidth: isCurrentPlayer ? '3px' : '2px',
-                    // fb:608bb670 follow-up — strip sits on the blue header, so
-                    // white-on-blue (player chip on white bg) read as invisible
-                    // and the current-player tint (player.color at 15% opacity)
-                    // disappeared into blue. Glassy white bg + white text reads
-                    // at 10ft on either tint, while the border keeps the
-                    // per-player ring signal.
                     backgroundColor: isCurrentPlayer ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
                     animation: isCurrentPlayer ? 'pulse 2s ease-in-out infinite' : undefined,
                   }}
@@ -251,11 +246,6 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                     <div style={styles.playerStripStats}>
                       <span>${(player.money / 1000).toFixed(0)}K</span>
                       <span>·</span>
-                      {/* v3.0.23 (fb:5dc01203 part b): "cards" → "resources".
-                          Voice rule (no card/game/dice words). "resources" is a
-                          real business word, single token, preserves the at-a-
-                          glance flush-vs-tapped-out signal. Per-type breakdown
-                          already lives in the player panel below the strip. */}
                       <span>{player.hand?.length || 0} resources</span>
                       {isConnected && <span style={styles.playerStripConnected}>📱</span>}
                     </div>
@@ -265,6 +255,23 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             })}
           </div>
         )}
+
+        {gamePhase === 'SETUP' && (
+          <div style={styles.setupBanner}>
+            Waiting for players to join...
+          </div>
+        )}
+
+        {gamePhase === 'END' && (
+          <div style={styles.gameOverBanner}>
+            Game Over!
+          </div>
+        )}
+        </div>
+        {/* v3.0.59 (fb:608bb670 follow-up) — the second-row playerStrip
+            previously here was moved INTO headerTopRow above so the chip
+            shares space with the buttons + auto-dismissing turn pill,
+            instead of stranding under the logo. */}
       </header>
 
       {/* Main content area */}
@@ -532,10 +539,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '0.75rem',
     overflowX: 'auto',
     alignItems: 'center',
-    // fb:608bb670 follow-up — right-align so the strip visually groups with
-    // the "Look at your phone" pill above (on the right), instead of
-    // stranding on the left of an otherwise-empty row.
-    justifyContent: 'flex-end',
+    // v3.0.59 (fb:608bb670 follow-up) — now lives INSIDE headerTopRow next
+    // to the action buttons and the auto-dismissing turn pill. flex-end
+    // alignment isn't needed here; the parent space-between handles
+    // overall placement.
   },
   playerStripChip: {
     display: 'flex',
