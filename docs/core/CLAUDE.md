@@ -1037,5 +1037,25 @@ Any hit is potentially dead code unless the surrounding logic has already been n
 
 ---
 
-**Last Updated:** May 31, 2026 (Session **v3.0.43** — L-card design-call sweep + Bug Reports admin panel)
-**Charter Version:** 3.25 (extended the `work_type_conditional` TACTICAL entry into a `*_conditional` family pattern with 5-file floor + target-redirect (L046) + reveal-receipts (L041 + L046). Prior 3.24: case-sensitivity bug pattern.)
+### E-card activation cost lives in `money_effect`, not `card.cost`
+
+Cards like E030 "Time Crunch" encode their activation spend in the `money_effect` CSV column (e.g. `-8000`), **not** in `card.cost` (which is `0`). The `playCard` affordability check only covered `card.cost`, so pressing Play on an unaffordable E030 silently cascaded 32 RESOURCE_CHANGE failures with no user feedback.
+
+**Pattern:** whenever an E-card seems to "do nothing" when played, check `money_effect` as a potential cost. Any affordability gate must cover BOTH `card.cost` (for cards with a direct cost field) AND `money_effect` (for cards that encode cost as a negative RESOURCE_CHANGE effect).
+
+**Fix location:** `CardService.validateCardPlay` (service layer, pre-effect) + `CardsSection.canPlayCard` (UI layer, pre-button). Both must be kept in sync.
+
+---
+
+### GameLog `turnKey` must include space name
+
+`groupLogEntries` in `GameLog.tsx` originally keyed on `${playerId}-${globalTurnNumber}`. When a player visits two spaces within the same `globalTurnNumber` (e.g. scope space + funding space both logging as global turn 1), all their entries merged into a single `PlayerTurnGroup` — the second space's actions appeared under the first space's header.
+
+**Fix:** key on `${playerId}-${globalTurnNumber}-${spaceName}` where `spaceName` is updated from each `turn_start` entry's `details.spaceName`. Walk entries in timestamp order; on each `turn_start` update the player's current space; all entries until the next `turn_start` inherit that space as part of their key.
+
+**PlayerLogSection is clean** — it uses a different algorithm (boundary on `turn_start` space-change event, not a map key) so this fix doesn't apply there.
+
+---
+
+**Last Updated:** June 1, 2026 (Session **v3.0.55** — E-card fix, 10-bug sprint, audio cue, test coverage)
+**Charter Version:** 3.26 (added `money_effect` E-card cost pattern + GameLog turnKey space-name fix. Prior 3.25: `*_conditional` card mechanic family.)

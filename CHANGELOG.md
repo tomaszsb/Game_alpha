@@ -2,6 +2,86 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.55] - 2026-06-01
+
+### Audio cue fallback + test coverage sprint
+
+**Web Audio turn chime (fb:6e1e8ac4)**
+Perplexity Comet blocks the Vibration API entirely even after a user gesture. Added a Web Audio fallback: `primeAudio()` in `haptics.ts` creates/resumes an `AudioContext` during the tap-to-enter gate in `GameLayout.handleEnterGame`; `playTurnChime()` fires a 520 Hz + 660 Hz double-beep when the context is running. `haptics.turnNotification()` now calls both vibrate (existing browsers) and `playTurnChime()` (fallback). Pending: real-device verify on Comet.
+
+**BoardCanvas tile size state machine — 9 new tests**
+New `tests/components/board/BoardCanvas.test.ts` tests `computeTileVisualState` (pure function) covering all five sizes (compact / validMove / hover / currentBig / expanded), their pixel dimensions, z-index values, `showsFullText` / `showsAction` flags, and the full priority order: editMode > expanded > currentBig > hover > validMove > compact.
+
+**Ledger pill — 3 new tests**
+New `ActionCenterPanel - Ledger pill` describe in `ActionCenterPanel.test.tsx`: pill renders with "Open ledger" title by default (neutral state); disappears when clicked (sets `activeTab` to `'ledger'`, removing the shortcut); `.action-center__ledger-side-dot` element is always present. Note: gap/surplus title states require W-card mocks (pill's `totalScope` is derived from W-card cost fields, not `projectScope`).
+
+**PATCH-flips** — `adbc48b0` (roll-dice→Determine Outcome, v3.0.22), `1aad6035` (Life Event parenthetical, v3.0.23), `5dc01203` (mid-game phone QR, v3.0.54).
+
+**PlayerLogSection grouping** — verified clean: uses a different boundary algorithm (new group on `turn_start` space-change) so the fix in v3.0.53 was not needed here.
+
+1588/1588 tests (+12 vs v3.0.54). Typecheck + build clean.
+
+---
+
+## [3.0.54] - 2026-06-01
+
+### Phone reliability + developer utilities sprint
+
+**Phone reconnect banner (TODO-216)**
+`GameLayout` now imports `getWebSocketService` and subscribes to `onConnectionChange` in phone-view mode. A sticky banner appears at the top of the player panel when the WebSocket is `'reconnecting'` (amber: "🔄 Reconnecting to game…") or `'disconnected'` (red: "⚠️ Connection lost — pull down to retry"). PC/TV mode skips the subscription entirely.
+
+**Opt-in console capture in bug reporter (TODO-234)**
+`FeedbackButton` now sends console logs only when a new "Include browser console log" checkbox is checked (default off). The "Also included" summary updated to reflect the opt-in state. Resets to unchecked on cancel/submit.
+
+**Mid-game QR toggle on TV (TODO-253a)**
+"📱 Connect Phone" button added to the TV header during PLAY phase. Tapping opens a full-screen overlay listing every player's scan QR (connected players show a green "✓ Connected" badge). Tap outside or ✕ to dismiss. Closes the long-standing "no way to add a phone mid-game" complaint. `fb:5dc01203`.
+
+**`check-sync.sh` + version in `/health` (TODO-494)**
+`scripts/check-sync.sh` compares local / remote / live server commits and prints a sync report. `/health` endpoint now includes `version: currentVersion` so the script can compare against the deployed build.
+
+**Stale TODO cleanup** — removed duplicate `fb:55b6626f` entry (appeared on lines 255 + 283); mid-game phone connect marked done.
+
+1576/1576 tests (unchanged). Typecheck + build clean.
+
+---
+
+## [3.0.53] - 2026-06-01
+
+### 5-bug sweep: fullscreen, log grouping, labels, PATCH-flips, server version
+
+**Phone fullscreen (fb:05a8b722)**
+`handleEnterGame` in `GameLayout` now calls `document.documentElement.requestFullscreen()` on the same tap that primes haptics. Best-effort: silent no-op on iPadOS split-view, secure iframes, unsupported browsers.
+
+**Game log merged turn 1 entries (fb:3a8f2b60)**
+`groupLogEntries` in `GameLog.tsx` now keys on `${playerId}-${globalTurnNumber}-${spaceName}` instead of just `${playerId}-${globalTurnNumber}`. Two space visits that share a `globalTurnNumber` (e.g. scope space + funding space in player 1's first turn) now get separate `PlayerTurnGroup` entries instead of merging into one.
+
+**Progress + time label clarity (fb:9c961893)**
+Completion row: `14%` → `14% done`; tooltip now explains Funding→Design→Regulatory→Construction progression. Timeline row: `45/330d` → `45d / 330d est.`; `timelineIndicator` tooltip updated: "Each space visit consumes a fixed number of days."
+
+**Server version logging (TODO-493)**
+`server.js` startup `console.log` block now includes `Version: ${currentVersion}` so `docker logs` immediately confirms which build is running.
+
+**PATCH-flips** — 5 confirmed-fixed reports closed via curl: `fb:84da66be`, `fb:776e3ba7`, `fb:3a57d5d0`, `fb:ed2eeebf`, `fb:fc65c217`.
+
+2 `ProjectProgress.test.tsx` assertions updated to match new `45d / 330d est.` format. 1576/1576 tests green. Typecheck + build clean.
+
+---
+
+## [3.0.52] - 2026-06-01
+
+### E-card silent failure fix — pre-validate money_effect affordability (fb:58277eca)
+
+E030 "Time Crunch" ($8,000 activation cost) encodes its cost in `money_effect`, not in `card.cost`. The affordability check in `playCard` only covered `card.cost`, so clicking Play on an unaffordable E030 silently triggered 32 cascading `RESOURCE_CHANGE` failures and showed no feedback.
+
+**Three-layer fix:**
+1. `CardService.validateCardPlay` now checks `money_effect` affordability before effects run, returning a plain-English error ("Not enough funds to activate Time Crunch. Costs $8,000 — you have $X.") instead of a cascading RESOURCE_CHANGE failure.
+2. `CardsSection.canPlayCard` (UI) also checks `money_effect` so unaffordable cards never render an active "Activate Expeditor" button — replaced by a red "💸 Not enough funds — costs $X, you have $Y" hint.
+3. Both render paths in `CardsSection` (renderMode=content + default) updated.
+
+2 regression tests: insufficient funds → `isValid: false` with readable message; sufficient funds → `isValid: true`. 1576/1576 green.
+
+---
+
 ## [3.0.51] - 2026-05-31
 
 ### Hotfix — haptic gate could crash GameLayout on phone-join (Comet, restricted contexts)

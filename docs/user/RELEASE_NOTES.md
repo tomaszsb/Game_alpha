@@ -2,6 +2,18 @@
 
 ---
 
+## v3.0.52 → v3.0.55 — Phone & play-quality polish (June 1, 2026)
+
+- **Fixed: tapping an Expeditor card you can't afford now tells you why.** Previously it silently did nothing and flooded the console with 32 errors. Now the card shows "💸 Not enough funds — costs $8,000, you have $X" and the Activate button doesn't appear at all if you're short.
+- **Phone screens now go fullscreen when you join.** Tapping the tap-to-enter screen pushes the browser's address bar and navigation bar off screen so the game uses the full display. (Works on most Android and iOS browsers; a few restricted contexts will silently skip it.)
+- **Phone shows a banner when the connection drops.** If your WebSocket disconnects mid-game you'll see an amber "🔄 Reconnecting…" bar at the top of your screen instead of nothing happening.
+- **TV: "📱 Connect Phone" button during play.** If a player's phone dies mid-game, tap this button on the TV to show QR codes for everyone. Already-connected players show a green checkmark; disconnected ones show their scan code to rejoin.
+- **Game log no longer merges the first two spaces into one turn entry.** On early turns, the scope space and the funding space both logged as "Turn 1" and appeared combined. Now each space visit appears as its own entry.
+- **Progress numbers explain themselves on hover.** "14%" now reads "14% done" inline; hovering it tells you it tracks Funding → Design → Regulatory → Construction. The time bar changed from "0/330d" to "0d / 330d est." and hovering explains that each space visit consumes a fixed number of days.
+- **Bug report form: browser console log is now opt-in.** There's a checkbox in the form (off by default). Check it when you want to include error details; leave it unchecked for routine reports.
+
+---
+
 ## v3.0.40 → v3.0.42 — Life Events with teeth, visible (May 30, 2026)
 
 - **You can finally see what a Life Event did.** When a 1-in-6 Life Event card lands, the red ⚡ modal now shows a "What just happened" block under the story — the money you lost or gained, days added, approvals revoked, extra resources gained, resources you'll have to drop, and a "this will keep affecting you over the next few turns" line when the event is multi-turn.
