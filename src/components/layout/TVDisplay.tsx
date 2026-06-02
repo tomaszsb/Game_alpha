@@ -37,6 +37,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   const [showActionOverlay, setShowActionOverlay] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isProgressExpanded, setIsProgressExpanded] = useState(false);
+  const [showQRPanel, setShowQRPanel] = useState(false);
 
   const gameId = getCurrentGameId();
 
@@ -148,6 +149,26 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           >
             🖥️ Back to PC
           </button>
+          {/* Mid-game phone QR — hidden during SETUP (sidebar already shows QR).
+              A player whose phone died mid-game can scan and rejoin without
+              stopping the host. fb:TODO-253a */}
+          {gamePhase === 'PLAY' && (
+            <button
+              onClick={() => setShowQRPanel(v => !v)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                backgroundColor: showQRPanel ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
+                color: 'white',
+                border: `2px solid ${showQRPanel ? 'white' : 'rgba(255,255,255,0.5)'}`,
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              📱 Connect Phone
+            </button>
+          )}
         </div>
 
         {/* Phone-controller indicator — at 10ft viewing distance the
@@ -372,6 +393,58 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           )}
         </div>
       </aside>}
+
+      {/* Mid-game QR panel — shown when "Connect Phone" is toggled during PLAY.
+          Lets a player whose phone died scan and rejoin without pausing the
+          game. Shows all players' QR codes; already-connected ones get a
+          green "Connected" badge instead. fb:TODO-253a */}
+      {showQRPanel && gamePhase === 'PLAY' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 500,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowQRPanel(false)}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '12px',
+            padding: '24px', maxWidth: '90vw',
+            display: 'flex', flexDirection: 'column', gap: '16px',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>📱 Connect Your Phone</h2>
+              <button onClick={() => setShowQRPanel(false)} style={{
+                background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#666'
+              }}>✕</button>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>
+              Scan your QR code to join or rejoin the game on your phone.
+            </p>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {players.map(player => {
+                const playerURL = getServerURL(player.id, player.shortId);
+                const isConnected = !!player.deviceType;
+                return (
+                  <div key={player.id} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                    padding: '12px', borderRadius: '8px',
+                    border: `2px solid ${isConnected ? '#22c55e' : player.color || '#dee2e6'}`,
+                    backgroundColor: isConnected ? '#f0fdf4' : 'white',
+                    minWidth: '120px',
+                  }}>
+                    <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
+                    <span style={{ fontWeight: 700, color: player.color }}>{player.name}</span>
+                    {isConnected ? (
+                      <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>✓ Connected</span>
+                    ) : (
+                      <QRCodeSVG value={playerURL} size={100} level="M" includeMargin={false}
+                        fgColor={player.color || '#007bff'} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action overlay for dramatic reveals */}
       {showActionOverlay && lastAction && (

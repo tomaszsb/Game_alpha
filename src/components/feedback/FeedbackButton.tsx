@@ -71,6 +71,9 @@ export function FeedbackButton(): JSX.Element {
     whatDoing: '', whatWrong: '', extra: '',
     contactName: '', contactEmail: '', contactPhone: ''
   });
+  // fb:TODO-234 — console logs are opt-in (default off) so routine bug reports
+  // stay lean and avoid accidental PII / verbose internal-state leakage.
+  const [includeConsole, setIncludeConsole] = useState(false);
   const [showFullScreenshot, setShowFullScreenshot] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   // Snapshot the console-capture state at the moment the modal opens
@@ -190,7 +193,7 @@ export function FeedbackButton(): JSX.Element {
       fetchGameStateSummary(),
     ]);
 
-    const consoleLogs = getConsoleLogs();
+    const consoleLogs = includeConsole ? getConsoleLogs() : [];
 
     try {
       // Build optional contact block — only included if any field is set.
@@ -222,6 +225,7 @@ export function FeedbackButton(): JSX.Element {
       setTimeout(() => {
         setState('idle');
         setForm({ whatDoing: '', whatWrong: '', extra: '', contactName: '', contactEmail: '', contactPhone: '' });
+        setIncludeConsole(false);
         setScreenshot(null);
         setCaptureSummary(null);
       }, 1500);
@@ -390,7 +394,7 @@ export function FeedbackButton(): JSX.Element {
         )}
 
         {/* Diagnostic capture summary — shows the reporter what's being
-            attached besides the screenshot (console buffer + game state). */}
+            attached (screenshot + game state always; console log opt-in). */}
         {captureSummary && (
           <div style={{
             marginBottom: '14px',
@@ -401,11 +405,12 @@ export function FeedbackButton(): JSX.Element {
             fontSize: '12px',
             color: '#495057',
           }}>
-            <strong>Also included:</strong>{' '}
-            {captureSummary.errors > 0 || captureSummary.warns > 0
-              ? `${captureSummary.errors} error${captureSummary.errors === 1 ? '' : 's'}, ${captureSummary.warns} warning${captureSummary.warns === 1 ? '' : 's'} from the browser console`
-              : 'no errors or warnings logged this session'}
-            {' · '}game state snapshot
+            <strong>Always included:</strong> screenshot · game state snapshot
+            {includeConsole && (
+              <span>
+                {' · '}console log ({captureSummary.errors} error{captureSummary.errors !== 1 ? 's' : ''}, {captureSummary.warns} warning{captureSummary.warns !== 1 ? 's' : ''})
+              </span>
+            )}
           </div>
         )}
 
@@ -449,6 +454,26 @@ export function FeedbackButton(): JSX.Element {
               disabled={state === 'submitting'}
             />
           </div>
+
+          {/* Optional: include browser console log */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#495057' }}>
+            <input
+              type="checkbox"
+              checked={includeConsole}
+              onChange={(e) => setIncludeConsole(e.target.checked)}
+              disabled={state === 'submitting'}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <span>
+              <strong>Include browser console log</strong>
+              {captureSummary && includeConsole && (
+                <span style={{ color: captureSummary.errors > 0 ? '#dc3545' : '#6c757d', marginLeft: '6px' }}>
+                  ({captureSummary.errors} error{captureSummary.errors !== 1 ? 's' : ''}, {captureSummary.warns} warning{captureSummary.warns !== 1 ? 's' : ''})
+                </span>
+              )}
+              <span style={{ color: '#aaa', marginLeft: '4px' }}>(helps debug JS errors)</span>
+            </span>
+          </label>
 
           {/* Optional contact fields — only fill in if you'd like a follow-up. */}
           <details style={{ marginTop: '4px' }}>

@@ -452,6 +452,7 @@ app.get('/health', (req, res) => {
 
   res.json({
     status: 'ok',
+    version: currentVersion,
     timestamp: formatTimestamp(),
     activeGames: games.size,
     games: gameList,

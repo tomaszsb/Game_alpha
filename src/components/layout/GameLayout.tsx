@@ -26,6 +26,7 @@ import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
 import { haptics } from '../../utils/haptics';
+import { getWebSocketService, ConnectionState } from '../../services/WebSocketSyncService';
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
@@ -309,6 +310,17 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
   // Use prop if provided, otherwise use state
   const effectiveViewPlayerId = viewPlayerId || viewPlayerIdFromState;
+
+  // Phone-view: track WebSocket connection state so we can show a
+  // "Reconnecting…" banner when the phone loses the server. Only
+  // relevant in phone view (effectiveViewPlayerId set). fb:TODO-216.
+  const [connectionState, setConnectionState] = useState<ConnectionState>(
+    () => getWebSocketService().connectionState
+  );
+  useEffect(() => {
+    if (!effectiveViewPlayerId) return; // PC/TV mode — no reconnect banner needed
+    return getWebSocketService().onConnectionChange(setConnectionState);
+  }, [effectiveViewPlayerId]);
 
   // Use actual game state completed actions for UI display
   const completedActions = gameStateCompletedActions;
@@ -948,6 +960,22 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             position: 'relative'
           }}
         >
+          {/* Reconnect banner — shown when WS drops so the player knows
+              why the screen froze. Tap anywhere triggers PullToRefresh.
+              fb:TODO-216 */}
+          {(connectionState === 'reconnecting' || connectionState === 'disconnected') && (
+            <div style={{
+              position: 'sticky', top: 0, zIndex: 100,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              padding: '8px 16px',
+              backgroundColor: connectionState === 'reconnecting' ? '#fff3cd' : '#f8d7da',
+              color: connectionState === 'reconnecting' ? '#856404' : '#721c24',
+              borderBottom: `1px solid ${connectionState === 'reconnecting' ? '#ffc107' : '#f5c6cb'}`,
+              fontSize: '14px', fontWeight: 600,
+            }}>
+              {connectionState === 'reconnecting' ? '🔄 Reconnecting to game…' : '⚠️ Connection lost — pull down to retry'}
+            </div>
+          )}
           <PullToRefresh onRefresh={handlePullToRefresh}>
             {players.find(p => p.id === effectiveViewPlayerId) ? (
               <PlayerPanelWrapper
