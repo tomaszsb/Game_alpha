@@ -11,6 +11,53 @@ export function isHapticsSupported(): boolean {
   return typeof navigator !== 'undefined' && 'vibrate' in navigator;
 }
 
+// ── Web Audio fallback ─────────────────────────────────────────────────────
+// Some browsers (e.g. Perplexity Comet) block the Vibration API entirely even
+// after a user gesture. Web Audio has wider support: once the AudioContext is
+// resumed during a tap it stays unlocked for the session.
+// fb:6e1e8ac4.
+
+let _audioCtx: AudioContext | null = null;
+
+/**
+ * Prime the AudioContext during a user-gesture handler (tap-to-enter gate).
+ * Must be called in a click/tap handler to unlock audio for later playback.
+ */
+export function primeAudio(): void {
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    if (!_audioCtx) _audioCtx = new Ctx();
+    if (_audioCtx.state === 'suspended') void _audioCtx.resume();
+  } catch { /* audio is best-effort */ }
+}
+
+/**
+ * Play a short double-beep chime via Web Audio.
+ * No-ops silently if AudioContext was never primed or is suspended.
+ */
+function playTurnChime(): void {
+  if (!_audioCtx || _audioCtx.state !== 'running') return;
+  try {
+    const ctx = _audioCtx;
+    const now = ctx.currentTime;
+    // First note — 520 Hz, 80 ms
+    const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+    o1.connect(g1); g1.connect(ctx.destination);
+    o1.frequency.value = 520;
+    g1.gain.setValueAtTime(0.15, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    o1.start(now); o1.stop(now + 0.08);
+    // Second note — 660 Hz, 80 ms, 130 ms later
+    const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.frequency.value = 660;
+    g2.gain.setValueAtTime(0.15, now + 0.13);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.21);
+    o2.start(now + 0.13); o2.stop(now + 0.21);
+  } catch { /* audio is best-effort */ }
+}
+
 /**
  * Haptic feedback patterns for different interactions.
  *
@@ -32,12 +79,16 @@ export const haptics = {
 
   /**
    * Double-pulse for turn notifications.
+   * Vibrates on browsers that support it; plays a chime on those that don't
+   * (e.g. Perplexity Comet). Requires primeAudio() to have been called during
+   * a prior user gesture. fb:6e1e8ac4.
    * Pattern: vibrate 100ms, pause 50ms, vibrate 100ms
    */
   turnNotification: (): void => {
     if (isHapticsSupported()) {
       navigator.vibrate([100, 50, 100]);
     }
+    playTurnChime();
   },
 
   /**

@@ -25,7 +25,7 @@ import { NotificationUtils } from '../../utils/NotificationUtils';
 import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
 import { AutoActionEvent } from '../../services/StateService';
-import { haptics } from '../../utils/haptics';
+import { haptics, primeAudio } from '../../utils/haptics';
 import { getWebSocketService, ConnectionState } from '../../services/WebSocketSyncService';
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
@@ -296,6 +296,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     // Prime vibration in the same execution as the user tap — this is
     // what registers the gesture and unlocks subsequent vibrates.
     try { haptics.lightTap(); } catch { /* haptics is best-effort, never block the tap */ }
+    // Prime Web Audio in the same gesture so playTurnChime() is unlocked for
+    // the rest of the session. No-ops on browsers without AudioContext.
+    primeAudio();
     if (phoneViewKey) safeSessionSet(phoneViewKey, 'yes');
     // Request fullscreen to push browser chrome (address bar / nav bar) off
     // screen — best-effort: denied silently on iPadOS split-view, secure

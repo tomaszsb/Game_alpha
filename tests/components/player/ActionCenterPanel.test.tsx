@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ActionCenterPanel } from '../../../src/components/player/ActionCenterPanel';
@@ -238,5 +238,87 @@ describe('ActionCenterPanel - Negotiate Button', () => {
 
     // Turn controls section (including negotiate) should not render when not player's turn
     expect(screen.queryByText(FIXTURE_TRY_AGAIN)).not.toBeInTheDocument();
+  });
+});
+
+// ── Ledger pill (v2.63.3 / fb:fae27391) ────────────────────────────────────
+//
+// The ledger pill is a vertical button anchored to the right edge of the
+// player panel. It is always visible EXCEPT when the Ledger tab is already
+// active (no point surfacing a shortcut to a panel already open).
+// A status dot changes CSS class based on funding state:
+//   action-center__ledger-side--gap      → player funding < project scope
+//   action-center__ledger-side--surplus  → player funding > project scope
+//   (no modifier)                        → neutral (scope=0 or fully funded)
+describe('ActionCenterPanel - Ledger pill', () => {
+  let mockServices: any;
+  let mockGameState: any;
+
+  // totalScope is derived from W-card costs in the hand, not projectScope.
+  // We use a single W card costing $500k to set scope, then vary moneySources.
+  const W_CARD_ID = 'W-TEST-001';
+  const W_CARD_COST = 500000;
+
+  const setupRender = (moneySources: { ownerFunding: number; bankLoans: number; investmentDeals: number; other?: number }, hasWCard = false) => {
+    mockServices = createAllMockServices();
+    const mockPlayer = {
+      id: 'player1', name: 'Test Player',
+      currentSpace: 'ARCH-INITIATION', visitType: 'First',
+      money: 50000, timeSpent: 0, projectScope: 0,
+      score: 0, color: '#ff0000', avatar: '🚀',
+      hand: hasWCard ? [W_CARD_ID] : [],
+      activeCards: [], turnModifiers: { skipTurns: 0 },
+      activeEffects: [], loans: [], moneySources,
+    };
+    mockGameState = {
+      players: [mockPlayer], currentPlayerId: 'player1',
+      gamePhase: 'PLAY' as GamePhase, awaitingChoice: null,
+      hasPlayerRolledDice: false, requiredActions: 0, completedActionCount: 0,
+    };
+    mockServices.stateService.subscribe.mockImplementation((cb: any) => { cb(mockGameState); return vi.fn(); });
+    mockServices.stateService.subscribeToAutoActions.mockReturnValue(vi.fn());
+    mockServices.stateService.getGameState.mockReturnValue(mockGameState);
+    mockServices.stateService.getPlayer.mockReturnValue(mockPlayer);
+    mockServices.dataService.getSpaceEffects.mockReturnValue([]);
+    mockServices.dataService.getDiceEffects.mockReturnValue([]);
+    mockServices.dataService.getMovement.mockReturnValue(null);
+    mockServices.dataService.getSpaceByName.mockReturnValue({ name: 'ARCH-INITIATION', content: [] });
+    mockServices.dataService.getSpaceContent.mockReturnValue({ title: 'Arch Init', story: '', action_description: '', outcome_description: '', can_negotiate: false, end_turn_label: 'End Turn', try_again_label: '' });
+    mockServices.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    mockServices.dataService.getCardById.mockImplementation((id: string) =>
+      id === W_CARD_ID ? { card_id: W_CARD_ID, card_type: 'W', card_name: 'Test W', cost: W_CARD_COST } : undefined
+    );
+    mockServices.gameRulesService.calculateProjectScope.mockReturnValue(0);
+    mockServices.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    return renderWithProviders(
+      <ActionCenterPanel gameServices={mockServices} playerId="player1" />,
+      { gameServices: mockServices }
+    );
+  };
+
+  it('renders the pill when ledger tab is not active (default state, neutral)', () => {
+    setupRender({ ownerFunding: 0, bankLoans: 0, investmentDeals: 0 });
+    // No W cards → totalScope = 0 → neutral
+    expect(screen.getByTitle('Open ledger')).toBeInTheDocument();
+  });
+
+  it('pill disappears when ledger tab is clicked (no shortcut needed to open open panel)', () => {
+    setupRender({ ownerFunding: 0, bankLoans: 0, investmentDeals: 0 });
+    // Pill is present before clicking ledger
+    expect(screen.getByTitle('Open ledger')).toBeInTheDocument();
+    // Click the pill itself — this sets activeTab to 'ledger', hiding the pill
+    fireEvent.click(screen.getByTitle('Open ledger'));
+    // Pill is now gone (hidden when ledger tab is already active)
+    expect(screen.queryByTitle('Open ledger')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Funding gap — open ledger')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Funded — open ledger')).not.toBeInTheDocument();
+  });
+
+  it('pill has a status dot element (dot class exists for CSS color control)', () => {
+    const { container } = setupRender({ ownerFunding: 0, bankLoans: 0, investmentDeals: 0 });
+    // The dot element is always rendered inside the pill — its CSS class
+    // changes to --gap or --surplus when funding state changes.
+    const dot = container.querySelector('.action-center__ledger-side-dot');
+    expect(dot).toBeInTheDocument();
   });
 });
