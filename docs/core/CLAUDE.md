@@ -333,6 +333,32 @@ When conducting User Acceptance Testing via browser automation:
 Compact field notes accumulated from real sessions. Read these BEFORE doing the
 matching kind of work — each pattern saved a real chunk of guess-and-check.
 
+### Bump `package.json` when releasing — UI version label reads it at build time (v3.0.51→v3.0.55 incident, 2026-06-02)
+
+User reported deployed game showed `v3.0.51 · 35f3573 ⚠ 10 behind` after multiple "v3.0.55" commits had supposedly shipped. Two stacked causes diagnosed via `git log` + `vite.config.ts:13`:
+
+1. **`package.json` version was never bumped** across the v3.0.52–55 sprint. The UI label `vX.Y.Z` reads from `pkg.version` at vite build time ([vite.config.ts:13](../../vite.config.ts#L13) → `__APP_VERSION__` define). Commit messages saying "v3.0.55 — ..." do not change `pkg.version`.
+2. **Docker image was still built from `35f3573`** because the deploy run that brought v3.0.52–55 commits down to Unraid never actually rebuilt against the newer HEAD (probably an earlier failed/partial deploy).
+
+Fix: bumped `package.json` (and the two `version` entries in `package-lock.json`: top-level + `packages."".version`), committed, pushed, re-ran `deploy.sh` on Unraid. Header now reads `v3.0.55 · 2b99a30`, no "N behind".
+
+**Rule:** every release commit MUST bump `package.json`. Treat `version: "X.Y.Z"` as part of the release atomically — bump it in the same commit that ships the version-tagged work, OR in a dedicated `chore: bump package version to X.Y.Z` commit immediately before deploy. Three places:
+- `package.json` → `"version": "X.Y.Z"`
+- `package-lock.json` → top-level `"version": "X.Y.Z"`
+- `package-lock.json` → `"packages": { "": { "version": "X.Y.Z" } }`
+
+**Diagnostic:** if the live UI version doesn't match what you intended to ship, check `grep version package.json` BEFORE blaming the deploy. The "⚠ N behind" indicator means the deployed commit is N commits behind HEAD — but a stuck version number means `package.json` is the deeper miss, even after a clean deploy.
+
+### Pin LF line endings via `.gitattributes` on Windows-edited repos (2026-06-02)
+
+This project's working tree lives on a Windows D: drive (`D:\Unravel\Current_Game\Game_Alpha`). Without `.gitattributes` or `core.autocrlf`, Windows tools repeatedly flipped LF→CRLF on edit/save, producing massive phantom diffs that masked real changes. On 2026-06-02, `git status` was showing 44 modified files with ~30,727 insertions / 30,683 deletions — and `git diff --ignore-cr-at-eol` revealed **zero real content changes**.
+
+Fix: added [`.gitattributes`](../../.gitattributes) with `* text=auto eol=lf` (plus explicit `binary` lines for images/fonts/PDFs), set `git config core.autocrlf input` locally, and `git restore`-d the 44 churned files. Worktree went clean. Future Windows-side edits will normalize on commit.
+
+**Rule:** if `git status` shows huge modification counts on files you haven't touched, FIRST run `git diff --ignore-cr-at-eol --stat` to confirm whether it's CRLF noise. If yes, don't `git add -A` it — that adds a giant noise commit. Restore the files (`git restore` on names from `git diff --name-only`), then add `.gitattributes` if missing.
+
+The `.gitattributes` is now committed (`2211b5f`), so this shouldn't recur. But: when cloning fresh on a new Windows machine, run `git config core.autocrlf input` in the local repo to belt-and-suspenders the policy.
+
 ### Push BEFORE handing the user a deploy command (v3.0.44/45 process incident, 2026-05-31)
 
 The Unraid deploy script runs `git pull` first. If commits are local-only, the deploy pulls nothing new, builds the stale bundle, and the user sees no change in the browser even after Ctrl+Shift+R. This wasted ~30 min on 2026-05-31 — user reported "no v3.0.44 strings showing" because both commits were sitting on local master, never pushed.
@@ -1008,6 +1034,53 @@ Root cause: the `CONTRACTOR_UPDATE` handler recorded `expenditures.construction`
 
 Resolved. Saved G262 had `loans: []` despite a $1.575M bank loan that added cash, so `LOAN_PERCENTAGE` fees (REG-DOB-FEE-REVIEW / REG-FDNY-FEE-REVIEW, "1% of loan") computed against $0 — regulatory fees were effectively free. Fixed v3.0.35 in `ResourceService` by appending a `loans[]` record (principal, interestRate 0, startTurn) when bank-source money is added. Lesson: when a fee formula reads `player.loans[]`, the code that *adds* loan money must also append the loan record. Same trap would bite any future per-loan computation (interest accrual, restructure penalties, etc.) — wire the record at the money-add site, not at the fee site.
 
+### Scope bug — route handlers referencing init-time consts (v3.0.58, recurrence of 95f46f9)
+
+`server/server.js` returned 500 on every `/health` because line 455 referenced `currentVersion`, declared inside `initWritableData()` (line 120) — completely out of scope for the `/health` route handler. Identical bug shape to commit 95f46f9 ("use process.env directly in startup version log, currentVersion is in different scope"), which fixed the same const reference inside the startup log closure. The pattern keeps coming back because `currentVersion` looks like module-scope at a glance, but it's a local const inside an init function — the file has no module-scope version variable at all.
+
+**Fix:** at any consumer site that wants the deployed git commit, read `process.env.VITE_GIT_COMMIT || 'dev'` directly. Don't reach for a perceived shared const.
+
+**Diagnostic:** if a server route 500s with no visible log line and a small per-route change just shipped, grep the file for the const name the route uses. If it's only declared inside another function, that's the bug — even though TypeScript / Node won't warn (server.js is plain JS, ReferenceError at call time only).
+
+**Why this matters for the WebSocket "Offline" indicator class of report:** when investigating "the UI shows offline," `/health` being 500 is a tempting smoking gun, but in this codebase **the WS connection path does not depend on `/health`** — `WebSocketSyncService` connects to `/ws?gameId=...&token=...` independently. Fix the 500 because it breaks `scripts/check-sync.sh` and external monitoring; don't conflate it with WS connectivity. Verify the WS itself by `new WebSocket('wss://.../ws?gameId=...&token=...')` from devtools — if `onopen` fires, the WS path is fine.
+
+### Phantom scrollbars from `overflow: 'auto'` on flex items near container edge (v3.0.60)
+
+Removing `overflowX: 'auto'` from a flex item that's now sized comfortably by its parent eliminates visually-stuck scrollbars that have nothing to scroll. The mechanism: `overflow: auto` reserves scrollbar space in the layout calculation even when content fits, and browsers (Chromium especially) sometimes paint both X and Y bars together once one is reserved. v3.0.59 moved the TV `headerPlayerStrip` from its own full-width second row into `headerTopRow` (sharing space with buttons + auto-dismissing pill); the carried-over `overflowX: 'auto'` made the strip render with thin gray scrollbars on both axes around a chip that was clearly inside its budget. Removing the overflow rule entirely (default `visible`) let flex size naturally and the scrollbars vanished.
+
+**Rule:** when moving a flex child between containers, the overflow rules need to move with it (or get re-evaluated). What made sense on a full-width row (`overflowX: 'auto'` as a safety net) becomes harmful when the same element joins a row that already has constrained space and proper flex shrink/grow rules.
+
+**Audit pattern:** `Grep "overflowX:|overflowY:" path=src/components/layout` after any header/sidebar refactor. Anything still set to `'auto'` after the parent shape changed is suspect.
+
+### DOM bbox check as cheap edge-routing verification (v3.0.56 smart-edge fix verification)
+
+To confirm a smart-edge `nodePadding` bump (or any A* routing change) actually produces non-overlapping edges without playing through to the relevant space, navigate the live deploy via chrome-devtools and measure:
+
+```js
+() => {
+  const tiles = {};
+  document.querySelectorAll('.react-flow__node').forEach(n => {
+    const id = n.getAttribute('data-id');
+    const r = n.getBoundingClientRect();
+    tiles[id] = { x: r.left, y: r.top, w: r.width, h: r.height, right: r.right, bottom: r.bottom };
+  });
+  const target = tiles['CHEAT-BYPASS']; // tile to check non-intersection with
+  const cutsThroughTarget = [];
+  document.querySelectorAll('.react-flow__edge').forEach(eg => {
+    const id = eg.getAttribute('data-id') || eg.id;
+    const path = eg.querySelector('.react-flow__edge-path');
+    if (!path || !target) return;
+    const r = path.getBoundingClientRect();
+    const spansV = r.top < target.y && r.bottom > target.bottom;
+    const xOverlap = r.right > target.x && r.left < target.right;
+    if (spansV && xOverlap) cutsThroughTarget.push(id);
+  });
+  return { cutsThroughTarget };
+}
+```
+
+`spansV && xOverlap` catches "path enters above and exits below WHILE touching the tile's horizontal range" — the geometric definition of "cuts through the box." Excludes edges that legitimately terminate at the tile (their bbox extends to the tile but doesn't span beyond it vertically). v3.0.56 verification: `cutsThroughTarget: []` after `nodePadding=30`, with PM-DECISION-CHECK → ARCH-INITIATION's path bbox sitting 11px right of CHEAT-BYPASS's right edge. Faster and more rigorous than a screenshot eye-check, and doesn't require a 10-min playthrough to reach the target space — the board renders all edges (filtered to player's outgoing + path-taken) immediately on game start.
+
 ### Case-sensitivity bug class: `effect_action === 'draw_x'` vs CSV `'draw_X'` (v3.0.41–42)
 
 Bit us **three times** in two versions before being audited. CSV stores `effect_action` values with **uppercase** card-type suffixes (`draw_E`, `draw_B`, `draw_I`, `draw_L`, `draw_W`). `DataService.parseSpaceEffectsCsv` loads them **as-is** — no case normalization. JSX/service code that compares with strict equality against a **lowercase** literal (`effect.effect_action === 'draw_e'`) **never matches in production**. The hardcoded fallback (if any) becomes dead code; the surrounding `hasXActions`/`getButtonLabel` logic silently fails closed.
@@ -1057,5 +1130,5 @@ Cards like E030 "Time Crunch" encode their activation spend in the `money_effect
 
 ---
 
-**Last Updated:** June 1, 2026 (Session **v3.0.55** — E-card fix, 10-bug sprint, audio cue, test coverage)
-**Charter Version:** 3.26 (added `money_effect` E-card cost pattern + GameLog turnKey space-name fix. Prior 3.25: `*_conditional` card mechanic family.)
+**Last Updated:** June 2, 2026 (Session **v3.0.60** — TV header polish round + 4 PATCH-flips + `/health` 500 hotfix)
+**Charter Version:** 3.27 (added scope-bug-in-route-handler pattern, phantom-flex-scrollbar rule, DOM-bbox edge-routing verification recipe. Prior 3.26: `money_effect` E-card cost + GameLog turnKey space-name fix.)
