@@ -228,9 +228,15 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                   key={player.id}
                   style={{
                     ...styles.playerStripChip,
-                    borderColor: isCurrentPlayer ? (player.color || colors.primary.main) : colors.secondary.border,
+                    borderColor: isCurrentPlayer ? (player.color || 'white') : 'rgba(255,255,255,0.4)',
                     borderWidth: isCurrentPlayer ? '3px' : '2px',
-                    backgroundColor: isCurrentPlayer ? `${player.color || colors.primary.main}15` : 'white',
+                    // fb:608bb670 follow-up — strip sits on the blue header, so
+                    // white-on-blue (player chip on white bg) read as invisible
+                    // and the current-player tint (player.color at 15% opacity)
+                    // disappeared into blue. Glassy white bg + white text reads
+                    // at 10ft on either tint, while the border keeps the
+                    // per-player ring signal.
+                    backgroundColor: isCurrentPlayer ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.12)',
                     animation: isCurrentPlayer ? 'pulse 2s ease-in-out infinite' : undefined,
                   }}
                 >
@@ -238,7 +244,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                   <div style={styles.playerStripText}>
                     <div style={{
                       ...styles.playerStripName,
-                      color: player.color || colors.text.primary,
+                      color: 'white',
                     }}>
                       {player.name}
                     </div>
@@ -526,6 +532,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '0.75rem',
     overflowX: 'auto',
     alignItems: 'center',
+    // fb:608bb670 follow-up — right-align so the strip visually groups with
+    // the "Look at your phone" pill above (on the right), instead of
+    // stranding on the left of an otherwise-empty row.
+    justifyContent: 'flex-end',
   },
   playerStripChip: {
     display: 'flex',
@@ -558,7 +568,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '0.35rem',
     alignItems: 'center',
     fontSize: '0.8rem',
-    color: colors.text.secondary,
+    // fb:608bb670 follow-up — slightly muted white so the stats read as
+    // secondary to the player name above without disappearing on blue.
+    color: 'rgba(255,255,255,0.85)',
     fontWeight: 600,
   },
   playerStripConnected: {

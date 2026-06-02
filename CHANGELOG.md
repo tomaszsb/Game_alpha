@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.57] - 2026-06-02
+
+### TV header player chip readability (fb:608bb670 follow-up)
+
+The TV-mode browser check that closed fb:608bb670 surfaced a real-but-untracked side bug: the player chip strip rendered on the blue header with the current-player tint at 15% opacity of the player color (so blue-on-blue = invisible), the player name in `player.color` (same problem), and the stats in `colors.text.secondary` (dark gray on near-transparent). For one player against a blue header, the chip was effectively gone — exactly what the report described as "the player indicator should be on the blue area."
+
+Fix in [TVDisplay.tsx](src/components/layout/TVDisplay.tsx):
+- Chip background switched to glassy white — `rgba(255,255,255,0.25)` current, `rgba(255,255,255,0.12)` non-current — so any text reads at 10ft regardless of player color.
+- Player name → `'white'`; stats → `'rgba(255,255,255,0.85)'` (slightly muted to preserve the name/stats hierarchy).
+- Border still uses `player.color` so the per-player ring + active 3px width keep the "whose turn" signal.
+- Strip is now right-aligned (`justifyContent: 'flex-end'`) so it visually groups with the "Look at your phone" pill above on the right, instead of stranding under the logo on the left.
+
+Typecheck clean; no test changes (TV-display rendering has no targeted tests yet).
+
+---
+
 ## [3.0.56] - 2026-06-02
 
 ### Smart-edge router padding bump — arrow-overlaps-box fix
