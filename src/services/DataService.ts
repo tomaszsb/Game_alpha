@@ -144,6 +144,18 @@ export class DataService implements IDataService {
   }
 
   /**
+   * 2026-06-02: data-driven Stage-1 approval gate lookup (Workstream 7 Phase 7.4).
+   * Returns true if the named space is flagged `has_final_review_gate=Yes` in
+   * Spaces.csv. Gate spaces get ApprovalService.checkFinalReviewGate() run inside
+   * MovementService.getValidMoves, which collapses valid moves to [routeTo] when
+   * the player lacks the required approvals. Replaces hardcoded
+   * `=== DOB_FINAL_REVIEW_SPACE` in MovementService.
+   */
+  hasFinalReviewGate(spaceName: string): boolean {
+    return this.getGameConfigBySpace(spaceName)?.has_final_review_gate === true;
+  }
+
+  /**
    * Workstream 6 #6: data-driven point-of-no-return lookup.
    * Returns true if the named space is flagged `is_point_of_no_return=Yes` in
    * Spaces.csv. Arriving here clears any stored `mainPathResumePoint` and
@@ -670,6 +682,9 @@ export class DataService implements IDataService {
         rawFundingSource === 'owner' || rawFundingSource === 'bank' || rawFundingSource === 'investor'
           ? rawFundingSource
           : '';
+      // 2026-06-02: Workstream 7 Phase 7.4 — Stage-1 gate flag. Older CLEAN_FILES
+      // without this column produce undefined → falsy at the use site.
+      const hasFinalReviewGate = values[22] === 'Yes';
 
       return {
         space_name: values[0],
@@ -702,7 +717,9 @@ export class DataService implements IDataService {
         pos_x: Number.isFinite(posX) ? posX : 0,
         pos_y: Number.isFinite(posY) ? posY : 0,
         // 2026-05-18 audit: funding-source data flag.
-        funding_source: fundingSource
+        funding_source: fundingSource,
+        // 2026-06-02: Workstream 7 Phase 7.4 Stage-1 gate flag.
+        has_final_review_gate: hasFinalReviewGate
       };
     });
   }

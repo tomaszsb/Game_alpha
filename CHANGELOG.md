@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.61] - 2026-06-02
+
+### Final Review gate crash + ghost gate Workstream 7 wire-up (TODO L64 / L117 progress)
+
+Started as TODO L64 — "wire ApprovalService into the ghost regression bot so Workstream 7 actually gets random-play coverage." Ended as a real production bug fix.
+
+**Production bug found by the ghost gate.** The Workstream 7 Phase 7.4 Stage-1 gate at `REG-DOB-FINAL-REVIEW` correctly bounced a player without DOB/FDNY approval back to the missing examiner via [ApprovalService.checkFinalReviewGate](src/services/ApprovalService.ts) — but the routed destination wasn't in `MOVEMENT.csv`'s dice outcomes for that space, so downstream `MovementService.validateMove` threw `Invalid move: REG-DOB-PLAN-EXAM is not a valid destination from REG-DOB-FINAL-REVIEW`. Real players who reached Final Review without DOB approval (legitimately reachable via W-card scope-change revoke or L-card `revokes_approval`) would crash. Dead code in normal flow but the ghost's random play exposed it on the first 50-game run with `ApprovalService` wired in (29 wins / 15 hard failures vs deterministic baseline 39/0).
+
+**Fix — data-driven per user "data-driven always" rule.** New `has_final_review_gate` boolean column on `GAME_CONFIG.csv`, lifted to SOURCE `Spaces.csv` and reading through the standard pipeline (`processGameData.js` → `DataService.hasFinalReviewGate` helper). `MovementService.getValidMoves` checks the flag at runtime and, when the gate would fail, collapses valid moves to `[gate.routeTo]` — the gate discards the dice so the player has no other choice. Real-world correct: missing approvals = forced back to legalize; no cheat escape from the final DOB check. Same data-flag pattern as `is_resume_hub` / `is_path_choice_lock_point`. Ghost strict gate after fix: 50 games / 0 hard failures / wins ≥ 36 ✅.
+
+**Ghost bootstrap wire-up.** `ApprovalService` now passed to `CardService` (7th arg), `MovementService` (6th arg), and `TurnService` (15th arg) in [tests/ghost/bootstrapServices.ts](tests/ghost/bootstrapServices.ts), mirroring [ServiceProvider.tsx:52-75](src/context/ServiceProvider.tsx#L52). Random-play regression coverage for the approval mechanic — future Workstream 7 refactors will be caught in CI.
+
+**Audit catches from prior fixes (2 slip-throughs found + fixed).**
+- [tests/server/processGameData.test.ts:259](tests/server/processGameData.test.ts#L259) asserted the old 6-column LOGIC_QUESTIONS header. The `auto_answer_from` column landed v3.0.33 but the sibling test was never updated. The test would have failed the moment anyone re-ran it; nobody did until now. Fixed.
+- v3.0.7 commit `b9d85cb` (the `{fundingAmount}` token at OWNER-FUND-INITIATION) edited `CLEAN_FILES/SPACE_CONTENT.csv` directly without carrying the change back to `SOURCE_FILES/Spaces.csv`. The token would have silently disappeared on the next `node scripts/regen-clean-files.mjs` (which is exactly what this session triggered). Token added to SOURCE; pipeline integrity restored.
+
+### Transactional Logging integration tests (TODO L117 — partial)
+
+New [tests/integration/TransactionalLoggingFlow.test.ts](tests/integration/TransactionalLoggingFlow.test.ts) with 3 tests against the real TurnService → LoggingService wiring using the same headless bootstrap as the ghost gate:
+
+- **#1 Standard turn → commit** ✅ — endTurn marks all session entries as committed.
+- **#2 Single Try Again → rollback** ✅ — exploratory entries stay uncommitted while session is open; the `try_again` log entry is committed via explicit flag.
+- **#3 Multiple Try Again then commit** ❌ `it.fails` (intentional) — reveals an architecture gap: `commitCurrentSession` commits all entries matching the session ID, regardless of whether they came from an abandoned attempt. Spec says only the final successful attempt's entries should commit. Fix would require `tryAgainOnSpace` to rotate the session.
+
+Temporary **"Dev note (remove before release)"** banner in [PostGameLogViewer.tsx](src/components/game/PostGameLogViewer.tsx) tells users the limitation exists. When the architecture is fixed, `it.fails` will flip to a passing assertion and alert us to remove both the `.fails` marker and the UI banner together.
+
+Spec cases #4 / #5 not written — redundant with existing `StateService-tryAgainApprovals.test.ts` + `TurnStateManager-deepClone.test.ts` coverage. Spec edge cases (browser refresh, multiplayer, commit failure) not written — high setup cost for marginal coverage.
+
+Typecheck clean. Targeted sweep 1310 passed + 1 expected fail (1311 total).
+
+---
+
 ## [3.0.60] - 2026-06-02
 
 ### TV header polish — phantom scrollbars

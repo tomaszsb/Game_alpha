@@ -37,6 +37,7 @@ export const createMockDataService = (): any => ({
   isStartingSpace: vi.fn(() => false),
   isResumeHub: vi.fn(() => false),
   isPointOfNoReturn: vi.fn(() => false),
+  hasFinalReviewGate: vi.fn(() => false),
   getMinWCardsToLeave: vi.fn(() => 0),
   getFeeCalculationMethod: vi.fn(() => 'flat'),
   getFeeLabel: vi.fn(() => ''),

@@ -154,6 +154,23 @@ export class MovementService implements IMovementService {
         validMoves = [...validMoves, ...approvedDestinations];
       }
 
+      // SPECIAL HANDLING: Stage-1 approval gate bounce.
+      // When a player reaches a `has_final_review_gate=Yes` space without the
+      // required DOB and/or FDNY approval, ApprovalService.checkFinalReviewGate
+      // routes them back to the missing examiner. DiceRollProcessor sets
+      // moveIntent to that destination after the dice roll, but the routed
+      // destination isn't in MOVEMENT.csv's dice outcomes for this space — so
+      // without this override, downstream validateMove rejects the gate-mandated
+      // route. Real-world correct (missing approvals = forced back to legalize);
+      // no cheat escape from this final check. Collapse to [routeTo] because the
+      // gate discards the dice — the player has no other choice in this state.
+      if (this.dataService.hasFinalReviewGate(player.currentSpace) && this.approvalService) {
+        const gate = this.approvalService.checkFinalReviewGate(player);
+        if (!gate.passed && gate.routeTo) {
+          validMoves = [gate.routeTo];
+        }
+      }
+
       return validMoves;
     } catch (error) {
       console.error(`Error getting valid moves for player ${playerId}:`, error);

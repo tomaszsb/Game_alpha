@@ -289,6 +289,12 @@ function processGameConfig(spacesCsv) {
     // CardEffectHandler / CardEffectService / NotificationUtils.
     const rawFundingSource = (row.funding_source || '').trim();
     const fundingSource = (rawFundingSource === 'owner' || rawFundingSource === 'bank' || rawFundingSource === 'investor') ? rawFundingSource : '';
+    // 2026-06-02: data-driven flag for the Workstream 7 Phase 7.4 Stage-1 gate.
+    // Spaces marked Yes get checkFinalReviewGate() run inside MovementService.getValidMoves,
+    // which collapses valid moves to [routeTo] when the player lacks the required
+    // approvals. Replaces hardcoded `=== DOB_FINAL_REVIEW_SPACE` in MovementService.
+    // Empty / missing / non-Yes values default to 'No'.
+    const hasFinalReviewGate = (row.has_final_review_gate || '').trim() === 'Yes';
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -312,7 +318,8 @@ function processGameConfig(spacesCsv) {
       review_loop_message: reviewLoopMessage,
       pos_x: String(posX),
       pos_y: String(posY),
-      funding_source: fundingSource
+      funding_source: fundingSource,
+      has_final_review_gate: hasFinalReviewGate ? 'Yes' : 'No'
     };
   }
 
@@ -325,7 +332,8 @@ function processGameConfig(spacesCsv) {
     'path_choice_memory_key', 'is_path_choice_lock_point',
     'display_label_override', 'review_loop_message',
     'pos_x', 'pos_y',
-    'funding_source'
+    'funding_source',
+    'has_final_review_gate'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

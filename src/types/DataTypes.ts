@@ -33,6 +33,11 @@ export interface GameConfig {
   // educators can drag tiles in the Data Editor to update.
   pos_x?: number;
   pos_y?: number;
+  // 2026-06-02: Workstream 7 Phase 7.4 — Stage-1 approval gate. When true,
+  // MovementService.getValidMoves runs ApprovalService.checkFinalReviewGate at
+  // this space and collapses valid moves to [routeTo] when approvals are missing.
+  // Replaces hardcoded `=== DOB_FINAL_REVIEW_SPACE` in MovementService.
+  has_final_review_gate?: boolean;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;

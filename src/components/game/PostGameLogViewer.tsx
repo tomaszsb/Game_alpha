@@ -165,6 +165,32 @@ export const PostGameLogViewer: React.FC<PostGameLogViewerProps> = ({ viewingPla
         </button>
       </div>
 
+      {/* TODO L117 — REMOVE BEFORE RELEASE.
+          Known architecture gap: when a player uses Try Again, the abandoned
+          attempt's exploratory entries currently end up marked as committed
+          (commitCurrentSession on the next endTurn sweeps them in). The spec
+          intent is that only the successful attempt's actions get committed.
+          Integration test `tests/integration/TransactionalLoggingFlow.test.ts`
+          Test #3 enforces this via it.fails — when the gap is closed, that test
+          will start passing and vitest will alert us to remove .fails AND this
+          banner. */}
+      <div
+        style={{
+          marginBottom: '12px',
+          padding: '8px 10px',
+          backgroundColor: '#fff7ed',
+          border: '1px dashed #f59e0b',
+          borderRadius: '6px',
+          fontSize: '11px',
+          color: '#92400e',
+          lineHeight: 1.4,
+        }}
+      >
+        <strong>Dev note (remove before release):</strong> entries from
+        abandoned Try Again attempts may appear as committed in this log.
+        Known limitation — see TODO L117.
+      </div>
+
       {/* Filter controls */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
         {viewingPlayerId && (

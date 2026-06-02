@@ -29,6 +29,7 @@ import { TurnService } from '../../src/services/TurnService';
 import { CardEffectService } from '../../src/services/CardEffectService';
 import { CardEffectHandler } from '../../src/services/CardEffectHandler';
 import { FinancialEffectHandler } from '../../src/services/FinancialEffectHandler';
+import { ApprovalService } from '../../src/services/ApprovalService';
 
 class NodeDataService extends DataService {
   async loadData(): Promise<void> {
@@ -74,8 +75,12 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
   const gameRulesService = new GameRulesService(dataService, stateService);
   stateService.setGameRulesService(gameRulesService);
   const choiceService = new ChoiceService(stateService);
-  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService);
-  const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
+  // Workstream 7 — wire ApprovalService so the gate at REG-DOB-FINAL-REVIEW
+  // actually fires and the bot exercises the approval mechanic end-to-end.
+  // Mirrors ServiceProvider.tsx wiring. (TODO L64.)
+  const approvalService = new ApprovalService();
+  const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService, approvalService);
+  const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService, approvalService);
   const notificationService = new NotificationService(stateService, loggingService);
   const targetingService = new TargetingService(stateService, choiceService);
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);
@@ -115,7 +120,8 @@ export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
     undefined, // effectEngineService — wired via setter for genuine cycle below
     undefined, // diceService — TurnService creates a default
     undefined, // spaceEffectService — TurnService creates a default
-    cardEffectService
+    cardEffectService,
+    approvalService
   );
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);

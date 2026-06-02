@@ -253,10 +253,10 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
     });
   }
 
-  it('should have the expected 6-column header', () => {
+  it('should have the expected 7-column header', () => {
     const text = fs.readFileSync(logicCsvPath, 'utf-8');
     const header = text.split('\n')[0].trim();
-    expect(header).toBe('space_name,visit_type,question_id,question_text,yes_target,no_target');
+    expect(header).toBe('space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from');
   });
 
   it('should have Q1 for every (space_name, visit_type) that has any question', () => {
