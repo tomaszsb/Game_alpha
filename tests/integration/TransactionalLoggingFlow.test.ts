@@ -85,7 +85,7 @@ describe('Transactional Logging — TurnService integration', () => {
     }
   });
 
-  it('Test #2: Try Again → exploratory entries stay uncommitted, try_again entry is committed', async () => {
+  it('Test #2: Try Again → exploratory entries are removed, try_again entry is committed', async () => {
     const sessionId = services.stateService.getGameState().currentExplorationSessionId;
     expect(sessionId).not.toBeNull();
 
@@ -103,46 +103,36 @@ describe('Transactional Logging — TurnService integration', () => {
     const result = await services.turnService.tryAgainOnSpace(playerId);
     expect(result.success, `Try Again must succeed at OWNER-SCOPE-INITIATION (can_negotiate=YES); got: ${result.message}`).toBe(true);
 
-    // The exploratory entries from this attempt should still be uncommitted —
-    // the session is still open, no commit has happened yet, and tryAgain
-    // itself doesn't commit the session.
+    // v3.0.63 — tryAgainOnSpace now calls loggingService.discardCurrentSession,
+    // which REMOVES every uncommitted pencil entry tagged with the current
+    // session ID. Symmetric with discardTempState on the state side.
     const exploratory = getLog().filter(
       e => e.details?.action === 'integration_test_attempt_card'
         || e.details?.action === 'integration_test_attempt_move'
     );
-    expect(exploratory).toHaveLength(2);
-    for (const entry of exploratory) {
-      expect(
-        entry.isCommitted,
-        `Exploratory entry "${entry.description}" should be uncommitted after tryAgainOnSpace`,
-      ).toBe(false);
-      expect(entry.explorationSessionId).toBe(sessionId);
-    }
+    expect(exploratory, 'pencil entries should be torn out by discardCurrentSession').toHaveLength(0);
 
     // The try_again log entry itself is written with an explicit
-    // isCommitted: true flag by TurnService.tryAgainOnSpace — it's the
-    // sentinel that marks the attempt as abandoned, so it must survive
-    // any future session rotation.
+    // isCommitted: true flag by TurnService.tryAgainOnSpace BEFORE the
+    // discard runs, so it survives — the audit trail of "Try Again happened"
+    // is preserved even though the abandoned actions are not.
     const tryAgainEntries = getLog().filter(e => e.details?.action === 'try_again');
     expect(tryAgainEntries).toHaveLength(1);
     expect(tryAgainEntries[0].isCommitted).toBe(true);
+
+    // The session itself is closed; the next start-of-turn opens a fresh one.
+    expect(services.stateService.getGameState().currentExplorationSessionId).toBeNull();
   });
 
-  // KNOWN GAP — the architecture currently commits ALL entries with the active
-  // session ID when commitCurrentSession runs, regardless of whether they came
-  // from an abandoned try-again attempt. The spec at TESTING_GUIDE.md says
-  // abandoned attempts' exploratory entries should stay uncommitted forever.
-  // To make this pass, TurnService.tryAgainOnSpace would need to rotate the
-  // session (e.g. start a new exploration session whose ID won't match the
-  // abandoned entries) before returning. Until that fix lands:
-  //   - `it.fails` enforces the documented limitation: this test SHOULD fail.
-  //   - If the architecture is fixed, the assertions will pass and vitest will
-  //     report `.fails` as an error, prompting removal of `.fails` and the
-  //     associated UI reminder banner in PostGameLogViewer.
-  // The PostGameLogViewer carries a "REMOVE BEFORE RELEASE" banner pointing
-  // here so users know abandoned-attempt entries currently look committed.
-  it.fails(
-    'Test #3 (known gap): Multiple Try Again then commit — only final attempt should be committed',
+  // v3.0.63 — architecture gap closed. TurnService.tryAgainOnSpace now calls
+  // loggingService.discardCurrentSession(), which REMOVES (not just leaves
+  // uncommitted) every pencil entry tagged with the current session ID.
+  // Committed entries (turn_start, try_again itself) survive. Implementation
+  // chose remove-over-leave-uncommitted because it keeps the post-game log
+  // free of ghost entries from abandoned attempts — symmetric with
+  // discardTempState on the state side.
+  it(
+    'Test #3: Multiple Try Again then commit — abandoned attempts removed, final attempt committed',
     async () => {
       // Cycle 1: attempt, then Try Again
       services.loggingService.info('Cycle 1 exploration', {
@@ -176,16 +166,21 @@ describe('Transactional Logging — TurnService integration', () => {
       const cycle2 = getLog().find(e => e.details?.action === 'integration_test_cycle_2');
       const cycle3 = getLog().find(e => e.details?.action === 'integration_test_cycle_3');
 
-      expect(cycle1, 'cycle 1 entry should exist').toBeDefined();
-      expect(cycle2, 'cycle 2 entry should exist').toBeDefined();
-      expect(cycle3, 'cycle 3 entry should exist').toBeDefined();
+      // Abandoned cycles 1 and 2: pencil entries discarded. They shouldn't
+      // appear in the log at all anymore.
+      expect(cycle1, 'abandoned cycle 1 entry should be removed').toBeUndefined();
+      expect(cycle2, 'abandoned cycle 2 entry should be removed').toBeUndefined();
 
-      // Spec assertions — these are what SHOULD be true after the architecture
-      // gap is closed. Currently fails: all three cycles get committed because
-      // each cycle's endTurnWithMovement commits its own session entirely.
-      expect(cycle1!.isCommitted, 'abandoned cycle 1 should stay uncommitted').toBe(false);
-      expect(cycle2!.isCommitted, 'abandoned cycle 2 should stay uncommitted').toBe(false);
+      // Final cycle 3: entry survives and is committed by endTurnWithMovement.
+      expect(cycle3, 'final cycle 3 entry should exist').toBeDefined();
       expect(cycle3!.isCommitted, 'final cycle 3 should be committed').toBe(true);
+
+      // The two `try_again` entries themselves are committed at creation
+      // (isCommitted: true) so they survive the discard and serve as the
+      // audit trail that two Try Agains happened.
+      const tryAgainEntries = getLog().filter(e => e.details?.action === 'try_again');
+      expect(tryAgainEntries).toHaveLength(2);
+      expect(tryAgainEntries.every(e => e.isCommitted)).toBe(true);
     },
   );
 });

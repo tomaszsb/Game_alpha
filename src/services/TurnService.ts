@@ -1692,7 +1692,10 @@ export class TurnService implements ITurnService {
         .reduce((total, effect) => total + Number(effect.effect_value || 0), 0);
 
 
-      // 5. Log the Try Again action
+      // 5. Log the Try Again action. Must precede discardCurrentSession so
+      // this entry inherits the current session ID (it survives the discard
+      // because isCommitted=true; the discard only removes uncommitted
+      // entries from the current session).
       this.loggingService.info(`Used Try Again: ${timePenalty} day penalty applied`, {
         playerId: playerId,
         playerName: currentPlayer.name,
@@ -1702,6 +1705,17 @@ export class TurnService implements ITurnService {
         tryAgainCount: this.stateService.getTryAgainCount(playerId) + 1,
         isCommitted: true
       });
+
+      // 5.5. v3.0.63 — Discard the abandoned attempt's pencil log entries.
+      // Symmetric with the discardTempState call at step 7: both erase the
+      // attempt's traces. Without this, commitCurrentSession at end-of-turn
+      // would mark every session entry committed, leaving ghost actions
+      // ("Drew W001", "Rolled a 3", "Money +$5K") in the post-game log even
+      // though the underlying state was rolled back. fb:feedback-1780432903404-fec517ec
+      // wasn't this bug, but the integration test #3 in
+      // tests/integration/TransactionalLoggingFlow.test.ts pinned it as an
+      // architecture gap during v3.0.61 work.
+      this.loggingService.discardCurrentSession();
 
       // 6. Cancel any pending choice (e.g., card replacement modal) so the
       // awaiting promise resolves and the action button stops spinning

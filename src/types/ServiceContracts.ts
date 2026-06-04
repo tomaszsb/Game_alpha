@@ -49,6 +49,7 @@ export interface ILoggingService {
   // Transactional logging session management
   startNewExplorationSession(): string;
   commitCurrentSession(): void;
+  discardCurrentSession(): void;
   getCurrentSessionId(): string | null;
   cleanupAbandonedSessions(): void;
 }

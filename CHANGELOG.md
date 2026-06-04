@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.63] - 2026-06-03
+
+### Try Again log honesty — abandoned attempts no longer haunt the log
+
+User question after the v3.0.62 deploy: *"so this is like that two phone analogy before — two things are doing a similar thing but one is not updated. we should merge both things here as well."* Correct read of the pattern. Closing the symptom now; the structural unify lives on the TODO.
+
+**The gap (closed v3.0.62 starter's Top-3 #3).** When a player hits Try Again, the gameplay state rolls back correctly via `StateService.discardTempState` — money, cards, dice results all reset. The LOG side didn't get the memo: log entries from the abandoned attempt sat in `globalActionLog` as `isCommitted: false` with the current `explorationSessionId`. End of turn, `commitCurrentSession` swept every entry with that session ID into `isCommitted: true`, so the post-game log displayed ghost actions ("Drew W001", "Rolled a 4", "Money +$5K") that the underlying state had already disclaimed. Gameplay correct, narrative dishonest.
+
+**Fix — symmetric discard on the log side.** New `LoggingService.discardCurrentSession()` REMOVES (not just leaves uncommitted) every entry tagged with the current session ID where `isCommitted === false`. Entries explicitly created with `isCommitted: true` (turn_start, the try_again audit line itself) survive. `TurnService.tryAgainOnSpace` calls it at step 5.5, after writing the committed try_again line and before `discardTempState`. The two discards now sit side-by-side at the same call site, addressing the user's "merge" intuition for this one event.
+
+Implementation chose **remove-over-leave-uncommitted**. The spec at TESTING_GUIDE.md described leaving entries in the log marked uncommitted forever (so they'd be filtered out by display layers). Removing them is cleaner — `PostGameLogViewer` doesn't filter on `isCommitted` today, so leaving phantoms would have required a second display-side patch; and conceptually it matches "tear out the page" better than "leave the page but pretend it doesn't count."
+
+**Test #3 flipped from `it.fails` to passing.** `tests/integration/TransactionalLoggingFlow.test.ts` — the multi-Try-Again scenario asserts abandoned cycles removed, final cycle committed, both try_again audit lines surviving. Test #2 updated to match the new semantic (entries removed instead of left uncommitted). All 3 integration tests green.
+
+**Removed: dev banner in [PostGameLogViewer.tsx](src/components/game/PostGameLogViewer.tsx).** The "Dev note (remove before release)" warning that pointed at this gap is gone.
+
+**Structural debt logged.** New TODO entry under "External architecture audit": unify `StateService` TEMP/REAL transactions with `LoggingService` exploration sessions into one `TurnTransaction` boundary. Same architectural pattern as the open `getValidMoves`/`getDiceDestination` merge — both are parallel systems that have to be hand-synchronized for every lifecycle event (turn start, Try Again, end turn). Both should probably be tackled in one dedicated architecture session.
+
+---
+
 ## [3.0.62] - 2026-06-03
 
 ### Movement choice "show last" gate (fb:55b6626f)

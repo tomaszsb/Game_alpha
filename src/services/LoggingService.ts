@@ -279,6 +279,48 @@ export class LoggingService implements ILoggingService {
   }
 
   /**
+   * v3.0.63 — Discards the current exploration session by REMOVING (not
+   * committing) every uncommitted entry tagged with the current session ID.
+   * Used by `TurnService.tryAgainOnSpace` to throw away the abandoned
+   * attempt's log entries so they don't survive into the final turn commit.
+   *
+   * Entries explicitly created with `isCommitted: true` (e.g. the
+   * "Used Try Again" line itself, turn_start, end_game_penalty) are
+   * preserved — only the provisional pencil entries are torn out.
+   *
+   * Symmetric with `discardTempState` on the state side: same event
+   * (Try Again), same intent (erase the attempt's traces). Until the
+   * deeper unify-transactions refactor lands (see TODO under "External
+   * architecture audit"), this is the minimal fix to keep the log honest.
+   */
+  discardCurrentSession(): void {
+    const currentSessionId = this.getCurrentSessionId();
+    if (!currentSessionId) {
+      this.warn('Attempted to discard session but no current session exists');
+      return;
+    }
+
+    const gameState = this.stateService.getGameState();
+    const cleanedActionLog = gameState.globalActionLog.filter(entry => {
+      // Drop any uncommitted entry tagged with the current session ID.
+      // Committed entries (turn_start, try_again, etc.) survive.
+      return !(entry.explorationSessionId === currentSessionId && !entry.isCommitted);
+    });
+    const removedCount = gameState.globalActionLog.length - cleanedActionLog.length;
+
+    this.stateService.updateGameState({
+      ...gameState,
+      globalActionLog: cleanedActionLog,
+      currentExplorationSessionId: null
+    });
+
+    this.debug(`Discarded exploration session: ${currentSessionId} (removed ${removedCount} uncommitted entr${removedCount === 1 ? 'y' : 'ies'})`, {
+      sessionId: currentSessionId,
+      action: 'system_log'
+    });
+  }
+
+  /**
    * Cleans up abandoned sessions by removing uncommitted log entries
    * older than a specified time threshold.
    */
