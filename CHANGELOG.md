@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.64] - 2026-06-04
+
+### Drop the duplicated `canEndTurn` derivation in ActionCenterPanel + parallel-systems audit
+
+Retrospective on v3.0.61→v3.0.63 spotted three parallel-systems crashes/bugs in a row (movement-resolver split, state/log split on Try Again). User: *"any other place where we could combine similar situations?"* Audited the codebase for the same shape — three solid candidates plus three maybes. Shipping the smallest fix now; the rest sit on TODO to bundle with the prior structural debts.
+
+**Fixed now.** [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) was re-deriving `canEndTurn` line-for-line from [GameRulesService.canEndTurn](src/services/GameRulesService.ts) — same player-is-current check, same awaitingChoice / MOVEMENT-with-intent carve-out, same `requiredActions <= completedActionCount` math. A hand-synchronized duplicate is silent drift waiting to happen: change the rule in one place, the other goes stale and the button enables/disables incorrectly. Replaced the component's derivation with `gameServices.gameRulesService.canEndTurn(playerId)`. The `endTurnTooltip` block below still consumes raw counters for the "N actions remaining" display string — that's a presentation detail, not a rule check, so it stays inline.
+
+**Logged for future architecture session** (TODO under "External architecture audit" → "Parallel-systems audit — additional candidates"):
+
+1. **Log display filter rules diverge.** `PlayerLogSection` filters `isCommitted && visibility === 'player'`; `PostGameLogViewer` filters only `visibility === 'player'`. Pre-v3.0.63 a no-op (everything committed by turn-end); post-v3.0.63 it matters.
+2. **visitType: stored vs computed.** `player.visitType` is stored; `MovementService.hasPlayerVisitedSpace` recomputes from `visitedSpaces.includes`. `validateMove` uses the computed version; everyone else trusts the stored field. Drift = silent disagreement on "First" vs "Subsequent."
+3. **NotificationService.notify + LoggingService.info** — two channels for "something happened." Adding a new event = hooking both. Forget one → toast without audit trail, or log entry without player feedback.
+4. **`player.money` + `player.moneySources`** — total alongside source breakdown. Slightly different shape (denormalized state, not parallel systems), same drift risk.
+5. **Three effect pipelines** (SpaceEffects / DiceEffects / CardEffects) — conceptually all "apply an effect," structurally three handlers. Worth examining whether one `EffectExecutor` interface would clean up the trigger-type sprawl.
+
+All five sit under the same architectural theme as the movement-resolver merge + state/log unify already logged. Recommendation in TODO: bundle the investigation into one architecture session so we can spot shared abstractions instead of doing five one-off fixes.
+
+Targeted sweep clean. Typecheck clean. No behavior change for the user — the rule check is identical, just sourced from one place now.
+
+---
+
 ## [3.0.63] - 2026-06-03
 
 ### Try Again log honesty — abandoned attempts no longer haunt the log

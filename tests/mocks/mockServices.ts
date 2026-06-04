@@ -218,6 +218,7 @@ export const createMockGameRulesService = (): any => ({
 
   // Turn validation methods
   isPlayerTurn: vi.fn(),
+  canEndTurn: vi.fn().mockReturnValue(false),
 
   // Game state validation methods
   isGameInProgress: vi.fn(),

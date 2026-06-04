@@ -398,10 +398,14 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
 
   // End turn logic
   const gameState = gameServices.stateService.getGameState();
-  const actionsComplete = gameState.requiredActions <= gameState.completedActionCount;
   const awaitingChoice = gameState.awaitingChoice;
-  const canEndTurn = isMyTurn && actionsComplete &&
-    (!awaitingChoice || (awaitingChoice.type === 'MOVEMENT' && !!player.moveIntent));
+  // v3.0.64 — delegate to GameRulesService.canEndTurn instead of re-deriving
+  // the rule here. The prior local derivation duplicated GameRulesService.canEndTurn
+  // line-for-line; a hand-synchronized duplicate is silent drift waiting to
+  // happen (the same parallel-systems pattern that caused the v3.0.61 and
+  // v3.0.62 crashes). Tooltip below still consumes raw counters for the
+  // "N actions remaining" message — that's a display detail, not a rule check.
+  const canEndTurn = gameServices.gameRulesService.canEndTurn(playerId);
 
   // Check which tabs have actions
   const hasMoneyActions = pendingActions.some(a => !a.isCompleted && a.effect.effect_type === 'money');
