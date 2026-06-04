@@ -56,7 +56,9 @@ describe('MovementExecutor', () => {
     it('moves player to dice destination when movement_type is dice_outcome', async () => {
       const player = makePlayer({ lastDiceRoll: { total: 3, dice: [3] } as any });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice_outcome' });
-      mockMovementService.getDiceDestination.mockReturnValue('SPACE-B');
+      // Phase 2.1: executor now consumes getValidMoves({ diceRoll }) — the
+      // unified resolver narrows to this roll's dest and applies overrides.
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-B']);
 
       const result = await executor.executeMovement(player, makeGameState(), false);
 
@@ -66,6 +68,7 @@ describe('MovementExecutor', () => {
         toSpace: 'SPACE-B',
         reason: 'dice'
       });
+      expect(mockMovementService.getValidMoves).toHaveBeenCalledWith('p1', { diceRoll: 3 });
       expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'SPACE-B');
       expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'movement', toSpace: 'SPACE-B' })
@@ -75,19 +78,20 @@ describe('MovementExecutor', () => {
     it('moves player when movement_type is dice', async () => {
       const player = makePlayer({ lastDiceRoll: { total: 5, dice: [5] } as any });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
-      mockMovementService.getDiceDestination.mockReturnValue('SPACE-C');
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-C']);
 
       const result = await executor.executeMovement(player, makeGameState(), false);
 
       expect(result?.moved).toBe(true);
       expect(result?.reason).toBe('dice');
       expect(result?.toSpace).toBe('SPACE-C');
+      expect(mockMovementService.getValidMoves).toHaveBeenCalledWith('p1', { diceRoll: 5 });
     });
 
-    it('returns moved:false when getDiceDestination returns null', async () => {
+    it('returns moved:false when getValidMoves returns [] for this dice roll', async () => {
       const player = makePlayer({ lastDiceRoll: { total: 4, dice: [4] } as any });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice_outcome' });
-      mockMovementService.getDiceDestination.mockReturnValue(null);
+      mockMovementService.getValidMoves.mockReturnValue([]);
 
       const result = await executor.executeMovement(player, makeGameState(), false);
 
@@ -109,7 +113,11 @@ describe('MovementExecutor', () => {
 
       // Falls through to auto-move path since dice condition not met
       expect(result?.reason).toBe('none');
-      expect(mockMovementService.getDiceDestination).not.toHaveBeenCalled();
+      // Confirm dice-path branch did NOT call getValidMoves with diceRoll
+      const diceRollCalls = mockMovementService.getValidMoves.mock.calls.filter(
+        ([, opts]: [string, any]) => opts && opts.diceRoll !== undefined
+      );
+      expect(diceRollCalls.length).toBe(0);
     });
 
     it('skips dice path when movement_type is not dice-related', async () => {
@@ -120,65 +128,46 @@ describe('MovementExecutor', () => {
       const result = await executor.executeMovement(player, makeGameState(), false);
 
       expect(result?.reason).toBe('none');
-      expect(mockMovementService.getDiceDestination).not.toHaveBeenCalled();
+      // Confirm dice-path branch did NOT call getValidMoves with diceRoll
+      const diceRollCalls = mockMovementService.getValidMoves.mock.calls.filter(
+        ([, opts]: [string, any]) => opts && opts.diceRoll !== undefined
+      );
+      expect(diceRollCalls.length).toBe(0);
     });
 
     // v3.0.62 regression — Stage-1 gate override on the dice path.
-    // Before the fix, MovementExecutor's dice path read DICE_OUTCOMES.csv
-    // directly and ignored the gate; downstream validateMove (which DOES
-    // consult the gate via getValidMoves) would then throw "Invalid move".
-    it('overrides dice destination with gate.routeTo when has_final_review_gate fires', async () => {
-      const mockApprovalService = {
-        hasFinalReviewGate: vi.fn(),
-        checkFinalReviewGate: vi.fn().mockReturnValue({
-          passed: false,
-          missing: 'dob',
-          routeTo: 'REG-DOB-PLAN-EXAM',
-          reason: 'DOB approval missing',
-        }),
-      } as any;
-      const guardedExecutor = new MovementExecutor(
-        mockDataService,
-        mockStateService,
-        mockMovementService,
-        mockApprovalService
-      );
+    // Phase 2.1 audit (2026-06-04) restructured this: MovementExecutor no longer
+    // applies the gate inline — it consumes the unified getValidMoves({ diceRoll })
+    // resolver which applies the gate in one place. These tests now assert the
+    // executor consumes the resolver's gate-overridden output correctly.
+    it('uses gate-overridden destination when has_final_review_gate fires (via getValidMoves)', async () => {
       const player = makePlayer({
         currentSpace: 'REG-DOB-FINAL-REVIEW',
         lastDiceRoll: { total: 3, dice: [3] } as any,
       });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
-      mockDataService.hasFinalReviewGate.mockReturnValue(true);
-      mockMovementService.getDiceDestination.mockReturnValue('FINISH');
+      // Resolver returns the gate's routeTo because gate failed (live behavior
+      // tested in MovementService unit tests below).
+      mockMovementService.getValidMoves.mockReturnValue(['REG-DOB-PLAN-EXAM']);
 
-      const result = await guardedExecutor.executeMovement(player, makeGameState(), false);
+      const result = await executor.executeMovement(player, makeGameState(), false);
 
-      expect(mockApprovalService.checkFinalReviewGate).toHaveBeenCalledWith(player);
+      expect(mockMovementService.getValidMoves).toHaveBeenCalledWith('p1', { diceRoll: 3 });
       expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'REG-DOB-PLAN-EXAM');
       expect(result?.toSpace).toBe('REG-DOB-PLAN-EXAM');
       expect(result?.reason).toBe('dice');
     });
 
-    it('keeps dice destination when has_final_review_gate passes', async () => {
-      const mockApprovalService = {
-        hasFinalReviewGate: vi.fn(),
-        checkFinalReviewGate: vi.fn().mockReturnValue({ passed: true }),
-      } as any;
-      const guardedExecutor = new MovementExecutor(
-        mockDataService,
-        mockStateService,
-        mockMovementService,
-        mockApprovalService
-      );
+    it('uses dice destination when has_final_review_gate passes (via getValidMoves)', async () => {
       const player = makePlayer({
         currentSpace: 'REG-DOB-FINAL-REVIEW',
         lastDiceRoll: { total: 1, dice: [1] } as any,
       });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
-      mockDataService.hasFinalReviewGate.mockReturnValue(true);
-      mockMovementService.getDiceDestination.mockReturnValue('FINISH');
+      // Resolver returns the raw dice destination because gate passed.
+      mockMovementService.getValidMoves.mockReturnValue(['FINISH']);
 
-      const result = await guardedExecutor.executeMovement(player, makeGameState(), false);
+      const result = await executor.executeMovement(player, makeGameState(), false);
 
       expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'FINISH');
       expect(result?.toSpace).toBe('FINISH');
@@ -235,7 +224,7 @@ describe('MovementExecutor', () => {
         lastDiceRoll: { total: 2, dice: [2] } as any
       });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice_outcome' });
-      mockMovementService.getDiceDestination.mockReturnValue('SPACE-DICE');
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-DICE']);
 
       const result = await executor.executeMovement(player, makeGameState(), false);
 
@@ -323,7 +312,7 @@ describe('MovementExecutor', () => {
     it('emits auto-action before dice move', async () => {
       const player = makePlayer({ lastDiceRoll: { total: 1, dice: [1] } as any });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
-      mockMovementService.getDiceDestination.mockReturnValue('SPACE-DEST');
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-DEST']);
 
       const callOrder: string[] = [];
       mockStateService.emitAutoAction.mockImplementation(() => { callOrder.push('emit'); });
@@ -351,11 +340,12 @@ describe('MovementExecutor', () => {
     it('uses dice roll total, not individual die values', async () => {
       const player = makePlayer({ lastDiceRoll: { total: 6, dice: [3, 3] } as any });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'dice_outcome' });
-      mockMovementService.getDiceDestination.mockReturnValue('SPACE-SIX');
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-SIX']);
 
       await executor.executeMovement(player, makeGameState(), false);
 
-      expect(mockMovementService.getDiceDestination).toHaveBeenCalledWith('SPACE-A', 'First', 6);
+      // Phase 2.1: executor now passes total via getValidMoves options.
+      expect(mockMovementService.getValidMoves).toHaveBeenCalledWith('p1', { diceRoll: 6 });
     });
 
     it('passes correct visitType to getMovement', async () => {

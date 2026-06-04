@@ -1,7 +1,7 @@
 // src/services/MovementExecutor.ts
 // Extracted from TurnService - handles movement execution during end-of-turn
 
-import { IDataService, IStateService, IMovementService, IApprovalService } from '../types/ServiceContracts';
+import { IDataService, IStateService, IMovementService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { Player } from '../types/StateTypes';
 import { GameState } from '../types/StateTypes';
@@ -28,11 +28,18 @@ export interface MovementResult {
  * Extracted from TurnService for better separation of concerns.
  */
 export class MovementExecutor {
+  // Phase 2.1 audit (2026-06-04): approvalService is no longer needed here.
+  // The Stage-1 gate override that lived on this service (v3.0.62 fix) now
+  // lives in MovementService.getValidMoves, which both this executor and
+  // validateMove consume through one resolver. Constructor signature accepts
+  // an unused optional `approvalService` arg purely for back-compat with
+  // existing call sites (ServiceProvider, ghost bootstrap, tests); it can be
+  // removed in a follow-up sweep along with the call-site updates.
   constructor(
     private dataService: IDataService,
     private stateService: IStateService,
     private movementService: IMovementService,
-    private approvalService?: IApprovalService
+    _unusedApprovalService?: unknown
   ) {}
 
   /**
@@ -55,21 +62,14 @@ export class MovementExecutor {
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       if ((movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') && player.lastDiceRoll) {
         const diceRoll = player.lastDiceRoll.total;
-        let destination = this.movementService.getDiceDestination(player.currentSpace, player.visitType, diceRoll);
-
-        // v3.0.62 — Stage-1 approval gate override on the dice path.
-        // Mirrors the v3.0.61 fix in MovementService.getValidMoves. The gate at
-        // has_final_review_gate spaces forces the player back to the missing
-        // examiner; the dice destination from DICE_OUTCOMES.csv would otherwise
-        // win here and fail downstream validateMove (which DOES consult the
-        // gate via getValidMoves). Without this override, players who lose
-        // DOB/FDNY approval mid-game crash on END TURN at REG-DOB-FINAL-REVIEW.
-        if (this.approvalService && this.dataService.hasFinalReviewGate(player.currentSpace)) {
-          const gate = this.approvalService.checkFinalReviewGate(player);
-          if (!gate.passed && gate.routeTo) {
-            destination = gate.routeTo;
-          }
-        }
+        // Phase 2.1 audit (2026-06-04): one resolver. The Stage-1 gate override
+        // that lived inline here (v3.0.62 fix) is now applied inside
+        // getValidMoves alongside lock-point + resume-hub overrides — so the
+        // dice path and validateMove agree by construction. Pass the rolled
+        // value via the options arg; the resolver narrows the base set to that
+        // roll's destination before the override stack runs.
+        const validForRoll = this.movementService.getValidMoves(player.id, { diceRoll });
+        const destination = validForRoll[0] ?? null;
 
         if (destination) {
           // Movement logged via emitAutoAction below

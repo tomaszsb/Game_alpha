@@ -95,13 +95,15 @@ export class TurnService implements ITurnService {
       (playerId, diceRoll) => this.processDiceRollEffects(playerId, diceRoll)
     );
     // Create MovementExecutor for movement execution during end-of-turn.
-    // approvalService passed for the Stage-1 gate override on dice paths
-    // (v3.0.62 — symmetric with MovementService.getValidMoves).
+    // Phase 2.1 audit (2026-06-04): MovementExecutor no longer needs
+    // approvalService — the Stage-1 gate override now lives in
+    // MovementService.getValidMoves (one resolver for both dice and intent
+    // paths). The 4th arg here is unused; kept positionally for back-compat
+    // until a future sweep removes it from the constructor signature.
     this.movementExecutor = new MovementExecutor(
       dataService,
       stateService,
-      movementService,
-      approvalService
+      movementService
     );
     // Create TurnTransitionHandler for turn-end processing and player advancement
     this.turnTransitionHandler = new TurnTransitionHandler(

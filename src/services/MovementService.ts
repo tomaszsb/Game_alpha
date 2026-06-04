@@ -1,6 +1,6 @@
 // src/services/MovementService.ts
 
-import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService, IApprovalService } from '../types/ServiceContracts';
+import { IMovementService, IDataService, IStateService, IChoiceService, ILoggingService, IGameRulesService, INotificationService, IApprovalService, GetValidMovesOptions } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { shortName } from '../utils/boardCommon';
 import { friendlySpaceName } from '../utils/logFormatting';
@@ -85,7 +85,7 @@ export class MovementService implements IMovementService {
    *
    * Enhanced with better validation and edge case handling.
    */
-  getValidMoves(playerId: string): string[] {
+  getValidMoves(playerId: string, options: GetValidMovesOptions = {}): string[] {
     // Validate input
     if (!playerId || playerId.trim() === '') {
       throw new Error('Invalid playerId: must be a non-empty string');
@@ -112,8 +112,19 @@ export class MovementService implements IMovementService {
     try {
       let validMoves: string[] = [];
 
-      if (movement.movement_type === 'dice') {
-        validMoves = this.getDiceDestinations(player.currentSpace, player.visitType);
+      if (movement.movement_type === 'dice' || movement.movement_type === 'dice_outcome') {
+        // Phase 2.1 audit (2026-06-04): when a specific dice roll is known
+        // (END-TURN dice movement), narrow the base to just that roll's
+        // destination before override stack runs. This collapses the two-
+        // resolver split that caused v3.0.61 → v3.0.62. Without options.diceRoll,
+        // behavior is unchanged: return all possible dice outcomes (used for
+        // pre-roll board arrow rendering and choice modals).
+        if (options.diceRoll !== undefined) {
+          const dest = this.getDiceDestination(player.currentSpace, player.visitType, options.diceRoll);
+          validMoves = dest ? [dest] : [];
+        } else {
+          validMoves = this.getDiceDestinations(player.currentSpace, player.visitType);
+        }
       } else if (movement.movement_type === 'logic') {
         validMoves = this.getLogicDestinations(playerId, movement);
       } else {

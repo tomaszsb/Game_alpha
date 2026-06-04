@@ -500,16 +500,33 @@ export interface ICardEffectHandler {
 }
 
 export interface IPlayerActionService {
-  // Methods for handling player commands and orchestrating actions
+  // Methods for handling player commands and orchestrating actions.
+  // Phase 2.1 audit (2026-06-04): `rollDice` and `endTurn` removed — they were
+  // a legacy monolithic dice-and-move pattern superseded by the split:
+  // DiceRollProcessor.rollDiceWithFeedback (roll + effects + UI feedback) and
+  // MovementExecutor.executeMovement (deferred end-turn move). The live UI in
+  // GameLayout/ActionCenterPanel calls turnService.rollDiceWithFeedback and
+  // turnService.endTurnWithMovement directly.
   playCard(playerId: string, cardId: string): Promise<void>;
-  rollDice(playerId: string): Promise<{ roll1: number; roll2: number; total: number }>;
-  endTurn(): Promise<void>;
 }
 
 
+/**
+ * Options for narrowing the canonical valid-moves resolver to a specific
+ * scenario. Phase 2.1 audit (2026-06-04) — when the caller already knows the
+ * dice value (END-TURN dice movement), passing it narrows the base set to that
+ * single roll's destination BEFORE the override stack (lock-point, resume-hub,
+ * Stage-1 gate) is applied. This collapses the two-resolver split that caused
+ * the v3.0.61 → v3.0.62 crash family.
+ */
+export interface GetValidMovesOptions {
+  /** When provided on a dice/dice_outcome space, narrows the base to this roll's destination only. Ignored on non-dice movement types. */
+  diceRoll?: number;
+}
+
 export interface IMovementService {
   // Movement validation methods
-  getValidMoves(playerId: string): string[];
+  getValidMoves(playerId: string, options?: GetValidMovesOptions): string[];
 
   // Movement execution methods
   movePlayer(playerId: string, destinationSpace: string): Promise<GameState>;

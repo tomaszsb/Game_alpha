@@ -167,187 +167,22 @@ export class PlayerActionService implements IPlayerActionService {
     }
   }
 
-  /**
-   * Handles a player rolling dice.
-   * 
-   * @param playerId - The ID of the player rolling the dice
-   * @returns Promise resolving to dice roll result with single die value
-   * @throws Error if the action is invalid (player not found, etc.)
-   */
-  public async rollDice(playerId: string): Promise<{ roll1: number; roll2: number; total: number }> {
-    try {
-      // 1. Get current game state and player
-      const gameState = this.stateService.getGameState();
-      const player = this.stateService.getPlayer(playerId);
-      
-      if (!player) {
-        throw new Error(`Player with ID '${playerId}' not found`);
-      }
-
-      // Log the dice roll attempt
-      this.loggingService.info(`Attempting to roll dice`, {
-        playerId: playerId,
-        action: 'rollDice',
-        status: 'attempt'
-      });
-
-      // 2. Generate single die roll (1-6) - matching CSV data expectations
-      const diceRoll = Math.floor(Math.random() * 6) + 1;
-      
-      // Safety check - dice should never be 0 or greater than 6
-      if (diceRoll < 1 || diceRoll > 6) {
-        console.error(`Invalid dice roll generated in PlayerActionService: ${diceRoll}`);
-        throw new Error(`Invalid dice roll: ${diceRoll}. Please try rolling again.`);
-      }
-      
-      // Maintain interface compatibility by setting both roll1 and roll2 to the same value
-      const diceResult = { roll1: diceRoll, roll2: diceRoll, total: diceRoll };
-
-      // 3. Update player state with dice roll result
-      this.stateService.updatePlayer({
-        id: playerId,
-        lastDiceRoll: diceResult
-      });
-
-      // 4. Process turn effects based on dice roll result (space effects, dice effects, etc.)
-      // This must happen before movement as effects might alter movement conditions
-      await this.turnService.processTurnEffects(playerId, diceResult.total);
-
-      // 5. Trigger movement based on dice roll
-      await this.handlePlayerMovement(playerId, diceResult.total);
-
-      // 6. Mark that the player has moved this turn (enables End Turn button)
-      this.stateService.setPlayerHasMoved();
-
-      // 7. Dice roll and movement complete - turn ending is now handled separately
-
-      // Log the successful dice roll
-      this.loggingService.info(`Rolled a ${diceResult.total}`, {
-        playerId: playerId,
-        action: 'rollDice',
-        ...diceResult,
-        success: true
-      });
-
-      // 8. Return the dice roll result
-      return diceResult;
-
-    } catch (error) {
-      // Log the dice roll failure
-      const player = this.stateService.getPlayer(playerId);
-      if (player) {
-        this.loggingService.error(
-          `Failed to roll dice`,
-          error instanceof Error ? error : new Error(error as string),
-          {
-            playerId: playerId,
-            action: 'rollDice',
-            success: false
-          }
-        );
-      }
-
-      // Re-throw with additional context
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Failed to roll dice: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Handles player movement after dice roll.
-   * 
-   * @private
-   * @param playerId - The ID of the player to move
-   * @param diceTotal - The total dice roll result
-   * @throws Error if movement fails
-   */
-  private async handlePlayerMovement(playerId: string, diceTotal: number): Promise<void> {
-    try {
-      const player = this.stateService.getPlayer(playerId);
-      if (!player) {
-        throw new Error(`Player with ID '${playerId}' not found`);
-      }
-
-      // Check if this space has movement options
-      const validMoves = this.movementService.getValidMoves(playerId);
-      
-      if (validMoves.length === 0) {
-        // Terminal space - no movement possible
-        return;
-      }
-
-      // For dice-based movement, find the destination based on dice roll
-      const destination = this.movementService.getDiceDestination(
-        player.currentSpace, 
-        player.visitType, 
-        diceTotal
-      );
-
-      if (destination) {
-        // Move player to the determined destination
-        this.movementService.movePlayer(playerId, destination);
-      }
-      // If no destination found for this dice roll, player stays in current space
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Failed to handle player movement: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Ends the current player's turn and advances to the next player.
-   * This method should be called explicitly after all player actions are complete.
-   * 
-   * @throws Error if ending the turn fails
-   */
-  public async endTurn(): Promise<void> {
-    try {
-      // Get current player for logging
-      const gameState = this.stateService.getGameState();
-      const currentPlayer = gameState.currentPlayerId ? this.stateService.getPlayer(gameState.currentPlayerId) : null;
-
-      if (currentPlayer) {
-        // Log the end turn attempt
-        this.loggingService.info(`Ending turn ${gameState.turn}`, {
-          playerId: currentPlayer.id,
-          action: 'endTurn',
-          turn: gameState.turn,
-          status: 'attempt'
-        });
-      }
-
-      await this.turnService.endTurn();
-
-      // Log successful turn ending
-      if (currentPlayer) {
-        this.loggingService.info(`Successfully ended turn ${gameState.turn}`, {
-          playerId: currentPlayer.id,
-          action: 'endTurn',
-          turn: gameState.turn,
-          success: true
-        });
-      }
-
-    } catch (error) {
-      // Log turn ending failure
-      const gameState = this.stateService.getGameState();
-      const currentPlayer = gameState.currentPlayerId ? this.stateService.getPlayer(gameState.currentPlayerId) : null;
-      
-      if (currentPlayer) {
-        this.loggingService.error(
-          `Failed to end turn ${gameState.turn}`,
-          error instanceof Error ? error : new Error(error as string),
-          {
-            playerId: currentPlayer.id,
-            action: 'endTurn',
-            turn: gameState.turn,
-            success: false
-          }
-        );
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new Error(`Failed to end turn: ${errorMessage}`);
-    }
-  }
+  // Phase 2.1 audit (2026-06-04): rollDice + private handlePlayerMovement +
+  // endTurn deleted. These were a legacy monolithic dice-and-move pattern that
+  // had zero callers in src as of 2026-06-04 (only the playCard method is
+  // used by CardActions.tsx; rollDice / endTurn were only exercised by the
+  // service's own unit tests). The live UI calls
+  // turnService.rollDiceWithFeedback (delegates to
+  // DiceRollProcessor.rollDiceWithFeedback — richer: tracks effect deltas for
+  // the modal feedback, decouples roll from movement) and
+  // turnService.endTurnWithMovement (drives MovementExecutor.executeMovement
+  // for the deferred end-of-turn move). The deleted rollDice path was also
+  // a third caller of MovementService.getDiceDestination without the Stage-1
+  // gate override that v3.0.62 added — removing it eliminates the only
+  // remaining parallel-systems debt site on the movement resolver.
+  //
+  // Constructor still accepts movementService, turnService, effectEngineService
+  // for back-compat with ServiceProvider + test mocks; playCard only uses
+  // dataService, stateService, gameRulesService, effectEngineService,
+  // loggingService. Dropping the unused constructor args is a follow-up sweep.
 }

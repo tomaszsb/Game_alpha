@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.66] - 2026-06-04
+
+### Parallel-systems audit Phase 2.1 — movement resolver merge
+
+The bigger of the two merges from the seven-debt audit. Closes the structural debt that caused the v3.0.61 → v3.0.62 crash family — two destination resolvers (`MovementService.getValidMoves` for the list, `MovementService.getDiceDestination` for the single roll) that needed every new movement-override rule hand-mirrored across both. v3.0.61 patched only the list; v3.0.62 patched the dice path symmetrically; every future override rule would have had 2× the patch surface.
+
+**Design — one resolver, optional narrowing.** `IMovementService.getValidMoves` now accepts an optional `{ diceRoll }` option. When provided on a dice/dice_outcome space, the base set is narrowed to that single roll's destination from DICE_OUTCOMES.csv BEFORE the override stack (lock-point filter, resume-hub augmentation, Stage-1 approval gate) runs. Without the option, behavior is unchanged: returns all possible destinations for board-arrow rendering, choice modals, and `validateMove` membership checks. New `GetValidMovesOptions` interface in [src/types/ServiceContracts.ts](src/types/ServiceContracts.ts).
+
+**Live caller migration.** [MovementExecutor.executeMovement](src/services/MovementExecutor.ts) dice branch now calls `this.movementService.getValidMoves(player.id, { diceRoll })` and takes the single result, instead of `getDiceDestination(...)` followed by an inline Stage-1 gate override. The v3.0.62 inline gate block is **deleted** — the gate now applies in one place. MovementExecutor's `approvalService` constructor arg is unused going forward; the parameter is kept positionally for back-compat (typed as `_unusedApprovalService?: unknown`) until a follow-up sweep removes it from all wirings ([TurnService](src/services/TurnService.ts), [ServiceProvider](src/context/ServiceProvider.tsx), [ghost bootstrap](tests/ghost/bootstrapServices.ts)). [TurnService](src/services/TurnService.ts) updated to stop passing approvalService into the executor; ghost + ServiceProvider untouched (the call sites become no-ops).
+
+**Why this fix matters beyond the immediate crash.** The two-resolver pattern is the same structural shape as the state/log split closed in v3.0.63 — two systems hand-synchronized on every lifecycle event, drift trap on every new rule. With this merge, the dice path and `validateMove` agree by construction. Future movement-override rules apply once and propagate to all consumers (dice END TURN, intent move, auto-move, board arrows, choice modal).
+
+**Tests.** New [tests/services/MovementService-unifiedResolver.test.ts](tests/services/MovementService-unifiedResolver.test.ts) pins the contract with 8 cases: dice-narrowing without and with `diceRoll`, invalid `diceRoll`, gate-fails on the narrowed path (DOB missing → REG-DOB-PLAN-EXAM, FDNY missing → REG-FDNY-PLAN-EXAM), gate-passes keeps dice destination, defensive `diceRoll` on a choice space. Existing [MovementExecutor.test.ts](tests/services/MovementExecutor.test.ts) cases updated to mock `getValidMoves` instead of `getDiceDestination`; v3.0.62 regression tests reformulated to assert the executor consumes the resolver's gate-overridden output (gate logic itself tested in MovementService unit tests, not the executor).
+
+**Dead-code cleanup folded in.** Audit found a third caller of `getDiceDestination` in `PlayerActionService.handlePlayerMovement`, but the parent `PlayerActionService.rollDice` had zero src callers — only `playCard` is invoked externally (`CardActions.tsx`). Verified `rollDice` was superseded by `DiceRollProcessor.rollDiceWithFeedback` (richer: tracks effect deltas for the modal, **decouples roll from movement** — old code was monolithic auto-move-on-roll, new code defers movement to END TURN via MovementExecutor). `endTurn` was a stale thin wrapper superseded by `turnService.endTurnWithMovement` (which performs the deferred move). Deleted: `rollDice` + private `handlePlayerMovement` + `endTurn` from [PlayerActionService.ts](src/services/PlayerActionService.ts) (~185 lines), the two interface signatures from [IPlayerActionService](src/types/ServiceContracts.ts), and ~250 lines of tests in [PlayerActionService.test.ts](tests/services/PlayerActionService.test.ts) (kept the one test asserting `playCard` doesn't sneakily end the turn — still meaningful behavior pin). Constructor still takes `movementService`, `turnService`, `effectEngineService` for back-compat; trimming the unused two would force ServiceProvider + every test mock to update — left as a follow-up sweep. Total cleanup: **~435 lines removed**.
+
+**Regression gates.** Targeted sweep **1657/1657 green** (1664 v3.0.65 baseline + 8 new resolver tests − 15 deleted dead-code tests). Typecheck clean. **Ghost strict gate ✅** — 50 random games, 0 hard failures, win-rate ≥ floor (exit 0, ~13 min wall clock). The v3.0.62 family of bugs is pinned both by new unit tests and by real-game random-play coverage — the ghost specifically exercises FINAL-REVIEW dice rolls where the Stage-1 gate override fires.
+
+---
+
 ## [3.0.65] - 2026-06-04
 
 ### Parallel-systems audit Phase 1 — visitType invariant + shared log-display filter
