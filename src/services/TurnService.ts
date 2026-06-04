@@ -94,11 +94,14 @@ export class TurnService implements ITurnService {
     this.diceRollProcessor.setProcessDiceRollEffectsCallback(
       (playerId, diceRoll) => this.processDiceRollEffects(playerId, diceRoll)
     );
-    // Create MovementExecutor for movement execution during end-of-turn
+    // Create MovementExecutor for movement execution during end-of-turn.
+    // approvalService passed for the Stage-1 gate override on dice paths
+    // (v3.0.62 — symmetric with MovementService.getValidMoves).
     this.movementExecutor = new MovementExecutor(
       dataService,
       stateService,
-      movementService
+      movementService,
+      approvalService
     );
     // Create TurnTransitionHandler for turn-end processing and player advancement
     this.turnTransitionHandler = new TurnTransitionHandler(

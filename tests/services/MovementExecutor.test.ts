@@ -122,6 +122,67 @@ describe('MovementExecutor', () => {
       expect(result?.reason).toBe('none');
       expect(mockMovementService.getDiceDestination).not.toHaveBeenCalled();
     });
+
+    // v3.0.62 regression — Stage-1 gate override on the dice path.
+    // Before the fix, MovementExecutor's dice path read DICE_OUTCOMES.csv
+    // directly and ignored the gate; downstream validateMove (which DOES
+    // consult the gate via getValidMoves) would then throw "Invalid move".
+    it('overrides dice destination with gate.routeTo when has_final_review_gate fires', async () => {
+      const mockApprovalService = {
+        hasFinalReviewGate: vi.fn(),
+        checkFinalReviewGate: vi.fn().mockReturnValue({
+          passed: false,
+          missing: 'dob',
+          routeTo: 'REG-DOB-PLAN-EXAM',
+          reason: 'DOB approval missing',
+        }),
+      } as any;
+      const guardedExecutor = new MovementExecutor(
+        mockDataService,
+        mockStateService,
+        mockMovementService,
+        mockApprovalService
+      );
+      const player = makePlayer({
+        currentSpace: 'REG-DOB-FINAL-REVIEW',
+        lastDiceRoll: { total: 3, dice: [3] } as any,
+      });
+      mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
+      mockDataService.hasFinalReviewGate.mockReturnValue(true);
+      mockMovementService.getDiceDestination.mockReturnValue('FINISH');
+
+      const result = await guardedExecutor.executeMovement(player, makeGameState(), false);
+
+      expect(mockApprovalService.checkFinalReviewGate).toHaveBeenCalledWith(player);
+      expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'REG-DOB-PLAN-EXAM');
+      expect(result?.toSpace).toBe('REG-DOB-PLAN-EXAM');
+      expect(result?.reason).toBe('dice');
+    });
+
+    it('keeps dice destination when has_final_review_gate passes', async () => {
+      const mockApprovalService = {
+        hasFinalReviewGate: vi.fn(),
+        checkFinalReviewGate: vi.fn().mockReturnValue({ passed: true }),
+      } as any;
+      const guardedExecutor = new MovementExecutor(
+        mockDataService,
+        mockStateService,
+        mockMovementService,
+        mockApprovalService
+      );
+      const player = makePlayer({
+        currentSpace: 'REG-DOB-FINAL-REVIEW',
+        lastDiceRoll: { total: 1, dice: [1] } as any,
+      });
+      mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
+      mockDataService.hasFinalReviewGate.mockReturnValue(true);
+      mockMovementService.getDiceDestination.mockReturnValue('FINISH');
+
+      const result = await guardedExecutor.executeMovement(player, makeGameState(), false);
+
+      expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'FINISH');
+      expect(result?.toSpace).toBe('FINISH');
+    });
   });
 
   // === Intent movement path ===

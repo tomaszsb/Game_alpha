@@ -371,6 +371,12 @@ function BoardCanvasInner({
     required: 0,
     completed: 0,
   });
+  // v3.0.62 (fb:55b6626f) — when false, suppress the green next-move highlight
+  // on outgoing edges from the current player's tile. Arrows stay in the
+  // structural layout but render in the dim path-taken style until the player
+  // resolves every other required action on the space. Default true so
+  // non-choice spaces and any pre-flag state render normally.
+  const [movementChoiceUnlocked, setMovementChoiceUnlocked] = useState<boolean>(true);
 
   // Pan-button helper. panOnDrag is off in gameplay (left-click drag would
   // eat tile clicks, see v2.69.5), so players need explicit pan controls.
@@ -444,6 +450,7 @@ function BoardCanvasInner({
         required: s.requiredActions ?? 0,
         completed: s.completedActionCount ?? 0,
       });
+      setMovementChoiceUnlocked(s.movementChoiceUnlocked ?? true);
     };
     update();
     return stateService.subscribe(update);
@@ -546,7 +553,11 @@ function BoardCanvasInner({
         currentPlayer.spaceVisitLog || [],
       );
       allowedIds = vis.allowedIds;
-      nextMoveIds = vis.nextMoveIds;
+      // v3.0.62 (fb:55b6626f) — suppress the green next-move highlight while
+      // the movement choice is gated. Edges still render in path-taken style
+      // (dim gray, dashed) so the board layout stays intact; they flip to
+      // green the instant the player completes the last non-movement action.
+      nextMoveIds = movementChoiceUnlocked ? vis.nextMoveIds : new Set();
     }
 
     return edges.filter(e => {
@@ -573,7 +584,7 @@ function BoardCanvasInner({
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#adb5bd' },
       };
     });
-  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves]);
+  }, [edges, edgesVisible, hiddenEdgeIds, isAdmin, currentPlayerId, players, validMoves, movementChoiceUnlocked]);
 
   // Click an edge in admin mode → hide it. Single-click is the gesture
   // (React Flow has no native double-click on edges, and right-click

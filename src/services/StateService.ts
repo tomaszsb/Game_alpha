@@ -1022,13 +1022,14 @@ export class StateService implements IStateService {
       ...this.currentState,
       requiredActions: actionCounts.required,
       completedActionCount: actionCounts.completed,
-      availableActionTypes: actionCounts.availableTypes
+      availableActionTypes: actionCounts.availableTypes,
+      movementChoiceUnlocked: actionCounts.movementChoiceUnlocked
     };
 
     this.notifyListeners();
   }
-  
-  private calculateRequiredActions(player: Player): { required: number, completed: number, availableTypes: string[] } {
+
+  private calculateRequiredActions(player: Player): { required: number, completed: number, availableTypes: string[], movementChoiceUnlocked: boolean } {
     const availableTypes: string[] = [];
     let required = 0;
     let completed = 0;
@@ -1141,13 +1142,31 @@ export class StateService implements IStateService {
           completed++;
         }
       });
+
+      // v3.0.62 — movement choice "show last" gate (fb:55b6626f). Unlocks the
+      // destination-picker UI only after every NON-movement required action
+      // has been completed. On non-choice spaces the rule doesn't apply, so
+      // the flag is permissively true (UI surfaces decide independently).
+      const isChoiceMovement = availableTypes.includes('movement_choice');
+      if (isChoiceMovement) {
+        const movementChoiceCompleted = player.moveIntent ? 1 : 0;
+        const otherRequired = required - 1; // movement_choice contributed +1
+        const otherCompleted = completed - movementChoiceCompleted;
+        const movementChoiceUnlocked = otherRequired <= otherCompleted;
+        return { required, completed, availableTypes, movementChoiceUnlocked };
+      }
     } catch (error) {
       console.error('Error calculating required actions:', error);
       // Fallback to basic turn requirements
-      return { required: 1, completed: this.currentState.hasPlayerMovedThisTurn ? 1 : 0, availableTypes: ['movement'] };
+      return {
+        required: 1,
+        completed: this.currentState.hasPlayerMovedThisTurn ? 1 : 0,
+        availableTypes: ['movement'],
+        movementChoiceUnlocked: true
+      };
     }
 
-    return { required, completed, availableTypes };
+    return { required, completed, availableTypes, movementChoiceUnlocked: true };
   }
 
   /**
@@ -1539,6 +1558,7 @@ export class StateService implements IStateService {
       requiredActions: 1,
       completedActionCount: 0,
       availableActionTypes: [],
+      movementChoiceUnlocked: true,
       completedActions: {
         diceRoll: undefined as string | undefined,
         manualActions: {} as { [key: string]: string },

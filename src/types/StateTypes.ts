@@ -298,6 +298,14 @@ export interface GameState {
   requiredActions: number;
   completedActionCount: number;
   availableActionTypes: string[];
+  // v3.0.62 — movement choice "show last" gate (fb:55b6626f). True when:
+  // (a) the current space is NOT a choice-movement space (rule doesn't apply,
+  //     default-show), OR
+  // (b) every non-movement required action on the space has been completed.
+  // Components consult this flag to hide the destination picker until the
+  // player has resolved everything else, preventing "the move overpowers the
+  // thinking" reported in the fb:55b6626f playtest.
+  movementChoiceUnlocked: boolean;
   completedActions: {
     diceRoll: string | undefined;
     manualActions: { [key: string]: string };

@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.62] - 2026-06-03
+
+### Movement choice "show last" gate (fb:55b6626f)
+
+User playtest report: *"When the movement choices show up on the TV screen they overpower the thinking — the player thinks of it first, gets ahead of themselves, and gets lost. I want the moves to show up only after other choices were made first."*
+
+**Implementation — one new flag, three rendering gates.** Added `movementChoiceUnlocked: boolean` to `GameState`, computed in [StateService.calculateRequiredActions](src/services/StateService.ts) at the end of the existing pass. Logic: on `movement_type === 'choice'` spaces, unlock only when every non-movement required action is complete (i.e., `requiredActions − movementChoiceSlot ≤ completedActions − movementChoiceCompleted`). On all other space types, unlock is permissively `true` so non-choice rendering is unchanged.
+
+Three UI surfaces consult the flag:
+
+- [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx) — the "CHOOSE YOUR DESTINATION" section renders only when `movementChoice && movementChoiceUnlocked`. `needsMovementChoice` (used in pendingCount) is also gated so the on-panel count doesn't claim a pending step that isn't surfaced.
+- [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx) — the green next-move highlight on the current player's outgoing edges is suppressed while locked. Edges still render in path-taken style (dim gray, dashed) so the board layout stays intact; they flip to green the instant the gate opens. Subscription updated to also pull `movementChoiceUnlocked` from state.
+- TV display reads the same gameState via the underlying components — no separate component to gate.
+
+**Why the existing action counter alone wasn't the signal.** User correctly observed that movement is already counted by the [v3.0.4 fix](src/services/StateService.ts) (movement_choice in `availableTypes`). But "1 action remaining" doesn't guarantee that 1 *is* movement — the player could resolve movement first and leave a manual action incomplete. The flag asks the right question: "are all non-movement actions done?" — same intent, simpler signal, prevents premature movement selection at the source rather than after the fact.
+
+**Coverage by space type (no special-casing needed).**
+- Choice spaces with other actions (PM-DECISION-CHECK pattern): locked at arrival → unlocks when last manual action lands.
+- Pure-choice spaces (DESIGN-PATH-DECISION pattern): `requiredActions = 1`, "other actions" trivially complete → unlocks immediately.
+- Dice spaces (FINAL-REVIEW, CON-INSPECT): `movement_type !== 'choice'` → flag stays `true`, picker UI doesn't apply.
+- Fixed/logic/none spaces: same as dice → no change.
+
+**Tests.** 5 new cases in [tests/services/StateService-actionCounter.test.ts](tests/services/StateService-actionCounter.test.ts) covering the four space-type branches plus the moveIntent-set monotonicity. All 10 file tests green.
+
+**Manual UI verification.** Dev server build + page load smoke test clean, 0 console errors at app boot. End-to-end choice-space flow validates in user's live playtest after deploy.
+
+---
+
+### Final Review gate crash, round 2 — dice path patched symmetrically
+
+User playtest of v3.0.61 crashed mid-game on END TURN (fb:fec517ec). Reported as "game crashed, many turns to get to the end, was clicking quickly" with `consoleSummary` showing only ResizeObserver noise (benign browser warning, not the real trail). Diagnosis from the captured `gitCommit: 3c70db9` + the user's narrative:
+
+**Root cause — incomplete fix from v3.0.61.** v3.0.61 patched [MovementService.getValidMoves](src/services/MovementService.ts#L167) to collapse to `[gate.routeTo]` when the Stage-1 approval gate at `REG-DOB-FINAL-REVIEW` fails. But [MovementExecutor.executeMovement](src/services/MovementExecutor.ts#L55)'s dice branch bypasses `getValidMoves` entirely — it reads `DICE_OUTCOMES.csv` via `getDiceDestination` directly and feeds the result into `movePlayer`. `movePlayer` → `validateMove` → `getValidMoves` (now collapsed to `[REG-DOB-PLAN-EXAM]`) → throws `Invalid move: FINISH is not a valid destination from REG-DOB-FINAL-REVIEW`. Same error family as v3.0.61, different code path.
+
+**Who's affected:** any player who loses DOB or FDNY approval mid-game (W-card scope-change revoke or L-card `revokes_approval`) and rolls at FINAL-REVIEW. The "many turns, frustrated" symptom is the diagnostic — repeated gate bounces back to PLAN-EXAM is exactly what that mechanic produces.
+
+**Why the ghost gate missed it.** The ghost picks destinations by calling `getValidMoves` and choosing from the list — with v3.0.61's collapse, it picks `REG-DOB-PLAN-EXAM` directly via `movePlayer(REG-DOB-PLAN-EXAM)` and never exercises the dice-driven END TURN path. The real game's END TURN button routes through `executeMovement.dice-path` which the ghost doesn't touch.
+
+**Fix — symmetric override on the dice path.** [MovementExecutor.ts](src/services/MovementExecutor.ts) constructor now takes optional `ApprovalService`; the dice branch checks `hasFinalReviewGate(currentSpace)` and, if the gate fails, overrides `destination` with `gate.routeTo` before calling `movePlayer`. Same data-flag pattern as v3.0.61 — no new mechanism, just the missing call site. Wired through [TurnService.ts:98-103](src/services/TurnService.ts#L98) (passes its existing `approvalService` to the executor constructor).
+
+**Tests.** 2 new cases in [tests/services/MovementExecutor.test.ts](tests/services/MovementExecutor.test.ts) — "overrides dice destination with gate.routeTo when has_final_review_gate fires" + "keeps dice destination when has_final_review_gate passes." All 21 MovementExecutor tests green.
+
+**Structural debt logged.** This is the second crash this month from the two-resolver problem (`getValidMoves` list vs. `getDiceDestination` single-pick). Every new movement override has to be patched into both paths or they disagree. New TODO entry under "External architecture audit" flags this as a dedicated-session refactor: merge into one "where does this player go next?" function. Until that ships, treat any movement-rule change as a 2× patch surface.
+
+**Bookkeeping.**
+- TODO L199 stamped with `<!-- fb:feedback-1780432903404-fec517ec -->` and flipped to `[x]`. Future `/start` runs will no longer propose it as new.
+
+---
+
 ## [3.0.61] - 2026-06-02
 
 ### Final Review gate crash + ghost gate Workstream 7 wire-up (TODO L64 / L117 progress)

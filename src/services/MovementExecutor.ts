@@ -1,7 +1,7 @@
 // src/services/MovementExecutor.ts
 // Extracted from TurnService - handles movement execution during end-of-turn
 
-import { IDataService, IStateService, IMovementService } from '../types/ServiceContracts';
+import { IDataService, IStateService, IMovementService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { Player } from '../types/StateTypes';
 import { GameState } from '../types/StateTypes';
@@ -31,7 +31,8 @@ export class MovementExecutor {
   constructor(
     private dataService: IDataService,
     private stateService: IStateService,
-    private movementService: IMovementService
+    private movementService: IMovementService,
+    private approvalService?: IApprovalService
   ) {}
 
   /**
@@ -54,7 +55,21 @@ export class MovementExecutor {
       const movement = this.dataService.getMovement(player.currentSpace, player.visitType);
       if ((movement?.movement_type === 'dice_outcome' || movement?.movement_type === 'dice') && player.lastDiceRoll) {
         const diceRoll = player.lastDiceRoll.total;
-        const destination = this.movementService.getDiceDestination(player.currentSpace, player.visitType, diceRoll);
+        let destination = this.movementService.getDiceDestination(player.currentSpace, player.visitType, diceRoll);
+
+        // v3.0.62 — Stage-1 approval gate override on the dice path.
+        // Mirrors the v3.0.61 fix in MovementService.getValidMoves. The gate at
+        // has_final_review_gate spaces forces the player back to the missing
+        // examiner; the dice destination from DICE_OUTCOMES.csv would otherwise
+        // win here and fail downstream validateMove (which DOES consult the
+        // gate via getValidMoves). Without this override, players who lose
+        // DOB/FDNY approval mid-game crash on END TURN at REG-DOB-FINAL-REVIEW.
+        if (this.approvalService && this.dataService.hasFinalReviewGate(player.currentSpace)) {
+          const gate = this.approvalService.checkFinalReviewGate(player);
+          if (!gate.passed && gate.routeTo) {
+            destination = gate.routeTo;
+          }
+        }
 
         if (destination) {
           // Movement logged via emitAutoAction below

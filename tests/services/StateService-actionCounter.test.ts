@@ -222,3 +222,147 @@ describe('StateService.updateActionCounts — choice-movement spaces', () => {
     }
   });
 });
+
+// v3.0.62 (fb:55b6626f) — movement choice "show last" gate. Hides the
+// destination picker on choice-movement spaces until every other required
+// action is complete. Tests below pin the flag-setting logic.
+describe('StateService.updateActionCounts — movementChoiceUnlocked flag', () => {
+  let stateService: StateService;
+  let dataService: any;
+
+  beforeEach(() => {
+    dataService = {
+      isLoaded: vi.fn().mockReturnValue(true),
+      getGameConfig: vi.fn().mockReturnValue([{
+        space_name: 'PM-DECISION-CHECK',
+        is_starting_space: false,
+        starting_money: 0,
+        starting_cards: [],
+        min_players: 1,
+        max_players: 4,
+      }]),
+      getGameConfigBySpace: vi.fn().mockReturnValue({
+        space_name: 'PM-DECISION-CHECK',
+        requires_dice_roll: false,
+        phase: 'DESIGN',
+      }),
+      getMovement: vi.fn(),
+      getSpaceEffects: vi.fn().mockReturnValue([]),
+      getSpaceContent: vi.fn(),
+      getCardsByType: vi.fn().mockReturnValue([]),
+      getDiceOutcome: vi.fn(),
+      getAllDiceOutcomes: vi.fn().mockReturnValue([]),
+      getAllSpaces: vi.fn().mockReturnValue([]),
+    };
+
+    stateService = new StateService(dataService);
+    (stateService as any).gameRulesService = {
+      evaluateCondition: vi.fn().mockReturnValue(true),
+    };
+  });
+
+  function seedPlayerAndCompute(player: Player) {
+    stateService.setGameState({
+      ...stateService.getGameState(),
+      players: [player],
+      currentPlayerId: player.id,
+      gamePhase: 'PLAY',
+    });
+    stateService.updateActionCounts();
+    return stateService.getGameState();
+  }
+
+  it('locks the gate (false) while non-movement required actions remain', () => {
+    dataService.getMovement.mockReturnValue({
+      movement_type: 'choice',
+      destinations: ['LEND-SCOPE-CHECK', 'ARCH-INITIATION'],
+    });
+    // One manual cards effect still pending.
+    dataService.getSpaceEffects.mockReturnValue([{
+      space_name: 'PM-DECISION-CHECK',
+      visit_type: 'First',
+      effect_type: 'cards',
+      effect_action: 'draw_e',
+      effect_value: '1',
+      description: 'Hire Expeditor',
+      trigger_type: 'manual',
+      condition: '',
+    }]);
+
+    const state = seedPlayerAndCompute(makePlayer());
+
+    expect(state.requiredActions).toBe(2);
+    expect(state.completedActionCount).toBe(0);
+    expect(state.movementChoiceUnlocked).toBe(false);
+  });
+
+  it('unlocks the gate (true) once non-movement actions are completed', () => {
+    dataService.getMovement.mockReturnValue({
+      movement_type: 'choice',
+      destinations: ['LEND-SCOPE-CHECK'],
+    });
+    dataService.getSpaceEffects.mockReturnValue([{
+      space_name: 'PM-DECISION-CHECK',
+      visit_type: 'First',
+      effect_type: 'cards',
+      effect_action: 'draw_e',
+      effect_value: '1',
+      description: 'Hire Expeditor',
+      trigger_type: 'manual',
+      condition: '',
+    }]);
+
+    // Seed the manual effect as already completed.
+    const state0 = stateService.getGameState();
+    stateService.setGameState({
+      ...state0,
+      players: [makePlayer()],
+      currentPlayerId: 'p1',
+      gamePhase: 'PLAY',
+      completedActions: { ...state0.completedActions, manualActions: { 'cards:draw_e': 'Hire Expeditor' } },
+    });
+    stateService.updateActionCounts();
+    const state = stateService.getGameState();
+
+    expect(state.completedActionCount).toBe(1); // manual done
+    expect(state.movementChoiceUnlocked).toBe(true); // gate opens
+  });
+
+  it('unlocks immediately on pure-choice spaces (no other required actions)', () => {
+    dataService.getMovement.mockReturnValue({
+      movement_type: 'choice',
+      destinations: ['LEND-SCOPE-CHECK', 'ARCH-INITIATION'],
+    });
+    dataService.getSpaceEffects.mockReturnValue([]); // nothing else required
+
+    const state = seedPlayerAndCompute(makePlayer());
+
+    expect(state.requiredActions).toBe(1); // just movement_choice
+    expect(state.movementChoiceUnlocked).toBe(true);
+  });
+
+  it('defaults to unlocked (true) on non-choice movement spaces', () => {
+    dataService.getMovement.mockReturnValue({
+      movement_type: 'fixed',
+      destinations: ['ARCH-INITIATION'],
+    });
+
+    const state = seedPlayerAndCompute(makePlayer());
+
+    expect(state.availableActionTypes).not.toContain('movement_choice');
+    expect(state.movementChoiceUnlocked).toBe(true);
+  });
+
+  it('stays unlocked once player sets moveIntent (gate is monotonic forward)', () => {
+    dataService.getMovement.mockReturnValue({
+      movement_type: 'choice',
+      destinations: ['LEND-SCOPE-CHECK'],
+    });
+    dataService.getSpaceEffects.mockReturnValue([]); // pure choice space
+
+    const state = seedPlayerAndCompute(makePlayer({ moveIntent: 'LEND-SCOPE-CHECK' } as any));
+
+    expect(state.completedActionCount).toBe(1);
+    expect(state.movementChoiceUnlocked).toBe(true);
+  });
+});

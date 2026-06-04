@@ -377,7 +377,12 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     return collapsePairedDiceActions(mapped);
   }, [player.currentSpace, player.visitType, completedActions, gameServices]);
 
-  const needsMovementChoice = !!movementChoice && !selectedDestination;
+  // v3.0.62 (fb:55b6626f) — hide the destination picker until every other
+  // required action on the space is complete. The flag is computed in
+  // StateService.calculateRequiredActions; defaults to true so non-choice
+  // spaces and any pre-v3.0.62 state shapes still render normally.
+  const movementChoiceUnlocked = gameServices.stateService.getGameState().movementChoiceUnlocked ?? true;
+  const needsMovementChoice = !!movementChoice && !selectedDestination && movementChoiceUnlocked;
   const visiblePendingActions = pendingActions.filter(a => !a.isCompleted);
   // v2.70.3 — When a SPACE_EFFECTS dice button is already in the list (e.g.
   // CHEAT-BYPASS's "🎲 Roll dice" from the Time/Fees Paid dedup), the same
@@ -802,8 +807,8 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Movement Choices */}
-        {movementChoice && (
+        {/* Movement Choices — gated on movementChoiceUnlocked (v3.0.62, fb:55b6626f) */}
+        {movementChoice && movementChoiceUnlocked && (
           <div className="action-center__movement">
             <div className="action-center__movement-header">🚶 CHOOSE YOUR DESTINATION</div>
             {movementChoice.options.map((option, index) => (
