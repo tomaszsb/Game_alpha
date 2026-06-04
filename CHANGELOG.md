@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.65] - 2026-06-04
+
+### Parallel-systems audit Phase 1 — visitType invariant + shared log-display filter
+
+First two items from the seven-debt audit logged at the end of v3.0.64. Both are small by design — the goal of Phase 1 was to validate the "shared helper" pattern before the bigger movement-resolver and TurnTransaction merges in Phase 2.
+
+**Phase 1.1 — visitType "parallel system" closed via audit, not deletion.** The TODO entry framed `player.visitType` (stored) vs `MovementService.hasPlayerVisitedSpace()` (computed) as a drift trap. On inspection, `hasPlayerVisitedSpace(destinationSpace)` at [MovementService.ts:248](src/services/MovementService.ts#L248) is computing the visit type for the **destination** the player is moving to — `player.visitType` describes the player's **current** space and can't substitute for that question. There is no parallel system to delete. What does exist is a small data-integrity invariant that the move pipeline upholds today but that a future caller of `updatePlayer` could break: `visitedSpaces` must contain `currentSpace`, must have no duplicates, and when `visitType='First'` the current space must be the most recent entry. Pinned by new [tests/services/MovementService-visitTypeInvariant.test.ts](tests/services/MovementService-visitTypeInvariant.test.ts) — multi-hop sequence (First → First → Subsequent) plus a contrived-violation sanity check, 5 cases. No production code change.
+
+**Phase 1.2 — Log display filter lifted into shared helper.** Three viewers (PlayerLogSection in-game per-player, GameLog in-game admin toggle, PostGameLogViewer end-of-game) each carried their own filter inline. Pre-v3.0.63 the divergence was harmless because end-of-turn commit happened to everything; post-v3.0.63 it matters — uncommitted "pencil mark" entries exist mid-turn and can be torn out by Try Again via `discardCurrentSession`. Canonical rule settled as **`isCommitted && visibility === 'player'`** (the existing PlayerLogSection rule), aligned with the v3.0.63 log-honesty theme. New [src/utils/logFiltering.ts](src/utils/logFiltering.ts) with `getDisplayableLogEntries(entries, { playerId? })`; all three viewers consume it. **Behavior change for GameLog admin toggle:** admin observer no longer sees mid-turn provisional entries during a turn — honest about Try Again rollback, less "live" feel. PostGameLogViewer change is no-op in practice (end-game state has everything committed) but defensive. 6 unit tests in [tests/utils/logFiltering.test.ts](tests/utils/logFiltering.test.ts).
+
+Targeted sweep **1664/1664 green** (was 1653 baseline + 11 new). Typecheck clean. Phase 2 (movement resolver merge + TurnTransaction boundary) is the bigger surgery and stays open for a dedicated session.
+
+---
+
 ## [3.0.64] - 2026-06-04
 
 ### Drop the duplicated `canEndTurn` derivation in ActionCenterPanel + parallel-systems audit

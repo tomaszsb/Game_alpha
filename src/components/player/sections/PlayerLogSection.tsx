@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { IServiceContainer } from '../../../types/ServiceContracts';
 import { ActionLogEntry } from '../../../types/StateTypes';
 import { formatActionDescription } from '../../../utils/actionLogFormatting';
+import { getDisplayableLogEntries } from '../../../utils/logFiltering';
 import { LogRowDetail } from '../../game/LogRowDetail';
 
 interface PlayerLogSectionProps {
@@ -20,17 +21,11 @@ export const PlayerLogSection: React.FC<PlayerLogSectionProps> = ({ gameServices
 
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe((gameState) => {
-      const playerLogs = gameState.globalActionLog.filter(
-        entry => entry.playerId === playerId && entry.isCommitted && entry.visibility === 'player'
-      );
-      setActionLog(playerLogs);
+      setActionLog(getDisplayableLogEntries(gameState.globalActionLog, { playerId }));
     });
 
     const gameState = gameServices.stateService.getGameState();
-    const playerLogs = gameState.globalActionLog.filter(
-      entry => entry.playerId === playerId && entry.isCommitted && entry.visibility === 'player'
-    );
-    setActionLog(playerLogs);
+    setActionLog(getDisplayableLogEntries(gameState.globalActionLog, { playerId }));
 
     return unsubscribe;
   }, [gameServices.stateService, playerId]);

@@ -3,6 +3,7 @@ import { colors } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { ActionLogEntry } from '../../types/StateTypes';
 import { formatActionDescription } from '../../utils/actionLogFormatting';
+import { getDisplayableLogEntries } from '../../utils/logFiltering';
 import { debugWarn } from '../../utils/debugLog';
 import { LogRowDetail } from './LogRowDetail';
 
@@ -34,21 +35,16 @@ export function GameLog(): JSX.Element {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to state changes to get the global action log (filtered for player visibility)
+  // Phase 1.2 audit (2026-06-04): canonical filter is isCommitted && visibility==='player',
+  // shared with PlayerLogSection + PostGameLogViewer. Mid-turn provisional entries are
+  // hidden until they commit at end-of-turn (or vanish entirely on Try Again).
   useEffect(() => {
     const unsubscribe = stateService.subscribe((gameState) => {
-      // Filter for only player-visible logs
-      const playerVisibleLogs = gameState.globalActionLog.filter(entry =>
-        entry.visibility === 'player'
-      );
-      setActionLog(playerVisibleLogs);
+      setActionLog(getDisplayableLogEntries(gameState.globalActionLog));
     });
 
-    // Initialize with current state
     const gameState = stateService.getGameState();
-    const playerVisibleLogs = gameState.globalActionLog.filter(entry =>
-      entry.visibility === 'player'
-    );
-    setActionLog(playerVisibleLogs);
+    setActionLog(getDisplayableLogEntries(gameState.globalActionLog));
 
     return unsubscribe;
   }, [stateService]);

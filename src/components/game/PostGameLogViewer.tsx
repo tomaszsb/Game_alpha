@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { ActionLogEntry } from '../../types/StateTypes';
 import { formatActionDescription } from '../../utils/actionLogFormatting';
+import { getDisplayableLogEntries } from '../../utils/logFiltering';
 import { LogRowDetail } from './LogRowDetail';
 import {
   exportLogToMarkdown,
@@ -30,8 +31,12 @@ type Scope = 'mine' | 'all';
 export const PostGameLogViewer: React.FC<PostGameLogViewerProps> = ({ viewingPlayerId }) => {
   const { stateService } = useGameContext();
   const gameState = stateService.getGameState();
+  // Phase 1.2 audit (2026-06-04): canonical isCommitted && visibility==='player' filter
+  // shared with PlayerLogSection + GameLog via getDisplayableLogEntries. End-game state
+  // has everything committed (or removed via discardCurrentSession) so isCommitted is a
+  // defensive no-op here, but consistency makes future log-rule changes a single edit.
   const fullLog = useMemo(
-    () => gameState.globalActionLog.filter(e => e.visibility === 'player'),
+    () => getDisplayableLogEntries(gameState.globalActionLog),
     [gameState.globalActionLog],
   );
 

@@ -2,6 +2,17 @@
 
 ---
 
+## v3.0.62 → v3.0.64 — Crash fix + cleaner choice timing + log honesty (June 4, 2026)
+
+- **Fixed a mid-game crash at the final DOB review.** If you reached `REG-DOB-FINAL-REVIEW` after losing your DOB or FDNY approval (via a scope-change Work Package or a "Law Changed" Life Event), clicking End Turn would crash the game with "Invalid move." Now the game correctly bounces you back to the missing examiner instead.
+- **Movement choices now wait for everything else to be done.** On spaces where you can choose your next destination (like PM-DECISION-CHECK or path forks), the destination buttons and the green next-move arrows on the board now stay hidden until you've finished the space's other required actions. No more picking your move first and then realizing you missed a card draw or a manual action. Pure-choice spaces with nothing else to do still show the choice immediately.
+- **Try Again no longer leaves ghost actions in the log.** Previously, if you used Try Again after drawing a card or rolling, the end-of-game log would still show the actions you rolled back — the gameplay state was correct but the log narrated things that hadn't really happened. Now those entries get torn out cleanly. The "Used Try Again" line stays as your audit trail.
+- **Removed the orange "Dev note" banner** at the top of the post-game log viewer (it pointed at the Try Again log bug, which is now fixed).
+
+Everything else this run is invisible plumbing: a structural-debt audit that found 7 places in the codebase where two systems answer the same question (and have to be kept in sync by hand). One was cleaned up in this batch (`canEndTurn` was duplicated in three places, now down to one); the rest are logged for a future architecture session.
+
+---
+
 ## v3.0.52 → v3.0.55 — Phone & play-quality polish (June 1, 2026)
 
 - **Fixed: tapping an Expeditor card you can't afford now tells you why.** Previously it silently did nothing and flooded the console with 32 errors. Now the card shows "💸 Not enough funds — costs $8,000, you have $X" and the Activate button doesn't appear at all if you're short.

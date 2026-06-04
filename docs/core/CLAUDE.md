@@ -333,6 +333,48 @@ When conducting User Acceptance Testing via browser automation:
 Compact field notes accumulated from real sessions. Read these BEFORE doing the
 matching kind of work — each pattern saved a real chunk of guess-and-check.
 
+### Parallel-systems audit before extending state, log, or movement rules (v3.0.62–v3.0.64, 2026-06-04)
+
+Three sequential bugs in two days surfaced the same architectural shape: two systems answer the same conceptual question, a new rule lands in one, the other goes stale, drift breaks something. v3.0.61's FINAL-REVIEW gate fix patched `MovementService.getValidMoves` but not `MovementExecutor.executeMovement` dice path → v3.0.61 still crashed on end-turn → v3.0.62 patched the dice path. v3.0.62's Try Again worked on state (`discardTempState`) but not log (`globalActionLog` entries committed at end-of-turn anyway) → ghost log entries in post-game viewer → v3.0.63 added `discardCurrentSession` symmetric to `discardTempState`. v3.0.63 retrospective spotted ActionCenterPanel re-deriving `GameRulesService.canEndTurn` line-for-line → v3.0.64 dropped the duplicate.
+
+**Pattern:** before extending ANY of these subsystems — state lifecycle (`TEMP/REAL`), logging (sessions/`isCommitted`), movement (`getValidMoves` + `getDiceDestination` + `validateMove`), turn gating (`canEndTurn`) — grep for parallel consumers FIRST. If the same conceptual rule exists in two functions/components, you must update both or surface the drift as a known limitation.
+
+**Diagnostic greps:**
+- Movement rule: `Grep "getValidMoves\|getDiceDestination\|validateMove"` — three call sites today, must all agree on destination after gate/path-memory/resume-hub overrides.
+- Logging rule: `Grep "isCommitted\|globalActionLog\.filter"` — display layers diverge on filter rules (PlayerLogSection filters isCommitted; PostGameLogViewer doesn't).
+- Turn gate: `Grep "canEndTurn\|requiredActions.*completedActionCount"` — service has canonical impl, components and TurnService.endTurnWithMovement each have their own counter check.
+- Visit type: `Grep "player\.visitType\|hasPlayerVisitedSpace"` — stored field vs. recomputed from `visitedSpaces.includes`. MovementService.validateMove recomputes; everyone else trusts the field.
+
+**Open structural debts** in TODO under "Parallel-systems audit": (1) merge `getValidMoves`/`getDiceDestination`, (2) unify state TEMP/REAL with log sessions into one `TurnTransaction`, (3) lift log filter to shared helper, (4) resolve visitType stored-vs-computed, (5) notification + logging event bus, (6) money/moneySources denormalization, (7) three effect pipelines under one `EffectExecutor`. All same shape — should probably be tackled in one dedicated architecture session.
+
+**Symptom map** — when you see these, suspect a parallel-systems gap:
+- "Button enabled but click throws" or "button disabled but everything's ready" → `canEndTurn` divergence.
+- Log shows actions that didn't happen / state shows different total than log narrates → state/log split.
+- Crash with `"Invalid move: X is not a valid destination"` → getValidMoves vs getDiceDestination drift.
+- "First" visit behavior on a Subsequent visit (or vice versa) → visitType drift.
+
+### `regen-clean-files.mjs` is also a slip-through detector (v3.0.61, 2026-06-02)
+
+If a previous fix edited a `CLEAN_FILES/*.csv` directly without carrying the change back to the matching `SOURCE_FILES/*.csv`, running `node scripts/regen-clean-files.mjs` will silently OVERWRITE the orphan edit. Whatever was in CLEAN-but-not-SOURCE disappears.
+
+This bit us in v3.0.61: while doing a data-driven lift, the regen wiped v3.0.7's `{fundingAmount}` token at OWNER-FUND-INITIATION because commit `b9d85cb` had only touched CLEAN. The token would have silently vanished from the next deploy. Caught and fixed by adding the token to SOURCE.
+
+**Rule:** EVERY edit to `CLEAN_FILES/*.csv` must be paired with the same edit (or its SOURCE equivalent) in `SOURCE_FILES/*.csv`. If you find yourself reaching for the CLEAN file because the SOURCE pipeline doesn't yet support the change, fix the pipeline first.
+
+**Diagnostic:** before any session that's likely to touch CSV data, run regen first and check `git diff public/data/CLEAN_FILES/`. Anything that comes back is an orphan CLEAN edit that needs reconciling. Same applies whenever you've done a SOURCE/processGameData/pipeline change — regen then diff to confirm only intended things changed.
+
+**Bonus diagnostic from this session:** after fixing v3.0.7's token, also grep `git log --pretty=format:"%h %s" -- public/data/CLEAN_FILES/SPACE_CONTENT.csv` and check whether any other commits touched ONLY CLEAN_FILES (no paired SOURCE_FILES change). v3.0.61's regen audit found just the one (b9d85cb); the rest of the history was clean.
+
+### Wiring an existing service into the ghost bot can expose dead production code (v3.0.61, 2026-06-02)
+
+TODO L64 was framed as a tiny test-infra change: wire `ApprovalService` into `tests/ghost/bootstrapServices.ts` so the regression bot exercises Workstream 7. First run: 15 hard failures all at `REG-DOB-FINAL-REVIEW` with `Invalid move: REG-DOB-PLAN-EXAM is not a valid destination`. Not a bot bug — a REAL production crash that nobody had hit yet because production play rarely reached FINAL-REVIEW without DOB approval (the gate's "missing-approval" branch was dead code in normal flow). Players hitting it via W-card scope revoke or L-card `revokes_approval` would have crashed.
+
+**Pattern:** wiring an unused service into the ghost is NOT just test-infra cleanup. The ghost makes random choices and reaches edge-condition state that organic playtest never explores. Code paths that look "obviously dead in practice" can be live for the bot. Be ready for the wire-up to surface a real bug.
+
+**Reverse-applies:** if a unit test passes but the same code path crashes under the ghost, the bug is almost certainly in a SIBLING service the unit test mocked but the ghost wires for real. Trace the route the bot took (the trail strings in the failure summary) to find the actual seam.
+
+**Fix shape used in v3.0.61:** the gate logic in ApprovalService correctly returned `{passed: false, routeTo: 'REG-DOB-PLAN-EXAM'}` and DiceRollProcessor correctly set `moveIntent` to it. The miss was MovementService.getValidMoves never knowing about the gate-bounce destination, so downstream validateMove rejected the move. Added a 6-line block to getValidMoves that consults `dataService.hasFinalReviewGate(currentSpace)` + `approvalService.checkFinalReviewGate(player)` and collapses validMoves to `[gate.routeTo]` when the gate fails. Data-driven via a new `has_final_review_gate` CSV column on GAME_CONFIG.
+
 ### Bump `package.json` when releasing — UI version label reads it at build time (v3.0.51→v3.0.55 incident, 2026-06-02)
 
 User reported deployed game showed `v3.0.51 · 35f3573 ⚠ 10 behind` after multiple "v3.0.55" commits had supposedly shipped. Two stacked causes diagnosed via `git log` + `vite.config.ts:13`:
@@ -1130,5 +1172,5 @@ Cards like E030 "Time Crunch" encode their activation spend in the `money_effect
 
 ---
 
-**Last Updated:** June 2, 2026 (Session **v3.0.60** — TV header polish round + 4 PATCH-flips + `/health` 500 hotfix)
-**Charter Version:** 3.27 (added scope-bug-in-route-handler pattern, phantom-flex-scrollbar rule, DOM-bbox edge-routing verification recipe. Prior 3.26: `money_effect` E-card cost + GameLog turnKey space-name fix.)
+**Last Updated:** June 4, 2026 (Session **v3.0.62–v3.0.64** — FINAL-REVIEW dice-path crash, movement-choice show-last UI gate, Try Again log honesty, canEndTurn de-duplication + parallel-systems audit)
+**Charter Version:** 3.29 (added parallel-systems audit pattern — three sequential bugs from two systems drifting; diagnostic greps + symptom map. Prior 3.28: regen-as-audit, ghost-wire-up-exposes-dead-code. Prior 3.27: scope-bug-in-route-handler, phantom-flex-scrollbar, DOM-bbox edge-routing verification.)
