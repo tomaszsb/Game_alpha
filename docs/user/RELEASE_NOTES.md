@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.67 — Final review crash fix (again) + reliable bug reports (June 5, 2026)
+
+- **Fixed the "Accept does nothing" crash at the final DOB review.** If you reached `REG-DOB-FINAL-REVIEW` without a required approval and hit Accept, the game could flash a red "Invalid move" error and refuse to move you. This was the same crash fixed back in v3.0.62 that quietly came back in v3.0.66 — now properly fixed and guarded by a test so it can't sneak back again. You're correctly sent back to the missing examiner instead.
+- **Bug reports now include your console log reliably.** The "Include browser console log" box now defaults to ON, stays on between reports, and the "Thank you" message tells you whether a log was actually attached — so the details we need to fix a bug actually make it into the report. (Previously the log could be silently dropped even when the box looked checked.)
+
+---
+
 ## v3.0.62 → v3.0.64 — Crash fix + cleaner choice timing + log honesty (June 4, 2026)
 
 - **Fixed a mid-game crash at the final DOB review.** If you reached `REG-DOB-FINAL-REVIEW` after losing your DOB or FDNY approval (via a scope-change Work Package or a "Law Changed" Life Event), clicking End Turn would crash the game with "Invalid move." Now the game correctly bounces you back to the missing examiner instead.

@@ -346,7 +346,7 @@ Three sequential bugs in two days surfaced the same architectural shape: two sys
 - Visit type: `Grep "player\.visitType\|hasPlayerVisitedSpace"` — stored field vs. recomputed from `visitedSpaces.includes`. MovementService.validateMove recomputes; everyone else trusts the field.
 
 **Open structural debts** in TODO under "Parallel-systems audit":
-- ✅ (1) merge `getValidMoves`/`getDiceDestination` → **DONE v3.0.66 Phase 2.1** (one resolver, optional `{ diceRoll }` narrows base before override stack).
+- ✅ (1) merge `getValidMoves`/`getDiceDestination` → **DONE v3.0.66 Phase 2.1** (one resolver, optional `{ diceRoll }` narrows base before override stack). ⚠️ **REGRESSED → re-fixed v3.0.67:** the merge deleted v3.0.62's inline gate override in MovementExecutor on the premise "validateMove agrees by construction." It didn't, for the `moveIntent` path — see "Resolver merges and the 'agree by construction' trap" below.
 - ⏳ (2) unify state TEMP/REAL with log sessions into one `TurnTransaction` → **Phase 2.2 queued**.
 - ✅ (3) lift log filter to shared helper → **DONE v3.0.65 Phase 1.2** (`getDisplayableLogEntries` in `src/utils/logFiltering.ts`, consumed by PlayerLogSection + GameLog + PostGameLogViewer; canonical `isCommitted && visibility === 'player'`).
 - ✅ (4) visitType stored-vs-computed → **AUDITED + CLOSED v3.0.65 Phase 1.1** — the "parallel system" framing was **wrong**: `hasPlayerVisitedSpace(destinationSpace)` answers a different question than `player.visitType` (destination's prior-visit status vs current space's visit type). No parallel system to delete. Pinned a small data invariant instead via `tests/services/MovementService-visitTypeInvariant.test.ts`.
@@ -357,6 +357,18 @@ Three sequential bugs in two days surfaced the same architectural shape: two sys
 - Log shows actions that didn't happen / state shows different total than log narrates → state/log split.
 - Crash with `"Invalid move: X is not a valid destination"` → getValidMoves vs getDiceDestination drift.
 - "First" visit behavior on a Subsequent visit (or vice versa) → visitType drift.
+
+### Resolver merges and the "agree by construction" trap (v3.0.67, 2026-06-05)
+
+v3.0.66 Phase 2.1 merged the two movement resolvers and **deleted** v3.0.62's inline Stage-1 gate override in `MovementExecutor`, on the stated premise that "the dice path and validateMove now agree by construction." A playtester immediately hit the **exact v3.0.61 crash again** (`Invalid move: REG-DOB-PLAN-EXAM is not a valid destination from REG-DOB-FINAL-REVIEW`). The premise was false for the **`moveIntent` path**: `DiceRollProcessor` sets `moveIntent` to the gate reroute at *roll time*; `MovementExecutor` consumes it at *END TURN*; `movePlayer→validateMove` re-derives `getValidMoves` at that later moment. A value **produced at T1 and validated at T2** can diverge if state changed in between (here: approval status), and the stored intent then gets rejected.
+
+**Rule:** "agree by construction" is a claim to *verify*, not trust. When a destination/decision is produced at one moment and validated at another, reconcile at execution time. Fix (v3.0.67): `MovementExecutor` now reconciles `moveIntent` against the live `getValidMoves` before calling `movePlayer` — valid intent moves; a resolver collapsed to a single forced destination (the gate reroute) wins over the stale intent; an ambiguous stale intent is cleared and reported as no-move instead of throwing onto the red banner. Regression-tested in `tests/ghost/finalReviewStaleIntent.test.ts` (full-flow, real services). Note the **strict ghost gate alone did NOT catch this** — it only surfaces via the moveIntent path after an approval-state change (Try Again revert / mid-game revoke), which random strict play rarely hits; the screenshot is what caught it.
+
+### Pull the FULL feedback report for screenshots + gameState (v3.0.67, 2026-06-05)
+
+The `/api/public/feedback/open` summary endpoint (what `/start` fetches) **strips the screenshot, full `consoleLogs`, and `gameState`** — it keeps only a `consoleSummary`. When a report's `consoleSummary` is null but you need to diagnose, fetch the full record: `curl -sS "https://game.unravelcodes.com/api/feedback/<feedback-id>.json"` (NOT token-gated; `.json` suffix required). It carries the base64 `screenshot` (data URL — split on `,`, base64-decode, `Read` the image), full `consoleLogs`, and a pruned `gameState`. The Final Review crash was diagnosed **entirely from the screenshot** (it showed the player at FINAL-REVIEW with DOB missing + the red error banner with the exact invalid-move text) — the summary had nothing.
+
+Two related facts confirmed this session: (a) `StateService.getPlayer` returns **effective (TEMP-overlaid) state**, not pristine REAL — don't chase a REAL-vs-TEMP approval divergence theory; `updateTempState` writes are visible to `getPlayer`. (b) Bug-reporter console logs can be silently dropped by a **`useCallback` stale-closure**: `FeedbackButton.handleSubmit` read `includeConsole` but omitted it from its deps, so ticking the box after the last keystroke left a stale `false`. Any handler reading opt-in UI state must list it in `useCallback` deps.
 
 ### Audit-before-refactor — verify the "parallel system" actually exists (v3.0.65 Phase 1.1, 2026-06-04)
 
@@ -1212,5 +1224,5 @@ Cards like E030 "Time Crunch" encode their activation spend in the `money_effect
 
 ---
 
-**Last Updated:** June 4, 2026 (Session **v3.0.65–v3.0.66** — Phase 1 visitType invariant + log-display filter helper, Phase 2.1 movement resolver merge + PlayerActionService dead-code cleanup. Parallel-systems audit now 4 of 7 closed.)
-**Charter Version:** 3.30 (added: audit-before-refactor when TODO frames parallel system; grep-for-all-callers surfaces dead code in same commit; `describe.skip` is NOT TypeScript-safe — delete directly. Prior 3.29: parallel-systems audit pattern. Prior 3.28: regen-as-audit, ghost-wire-up-exposes-dead-code.)
+**Last Updated:** June 5, 2026 (Session **v3.0.67** — Final Review crash fix: v3.0.66 Phase 2.1 reintroduced the v3.0.61 crash by deleting v3.0.62's inline gate override; MovementExecutor now reconciles stale `moveIntent` against the live resolver. Plus bug-reporter console-log fix (stale-closure + default-on).)
+**Charter Version:** 3.31 (added: "agree by construction" is a claim to verify not trust — reconcile values produced-at-T1/validated-at-T2 at execution time; pull FULL feedback report for screenshot/gameState when /open summary is thin; getPlayer returns effective TEMP-overlaid state; useCallback stale-closure can drop opt-in UI flags. Prior 3.30: audit-before-refactor when TODO frames parallel system; grep-for-all-callers; `describe.skip` not TS-safe.)
