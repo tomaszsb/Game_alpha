@@ -59,14 +59,16 @@ For new patterns going to CLAUDE.md: write directly into the TACTICAL section (s
 
 Don't read every doc. React to what changed this session.
 
-| If this happened in the session | Update this |
-|---|---|
-| Shipped any version | `CHANGELOG.md` — one entry per version, explain *why* not just what |
-| Shipped a user-visible feature/fix | `docs/user/RELEASE_NOTES.md` — only if a playtester needs to know |
-| Discovered a cross-session pattern (gotcha, framework trick, deploy quirk, formatter chain) | `docs/core/CLAUDE.md` TACTICAL section — add a new subheading. Bump the footer charter version. |
-| Version number changed | `docs/core/PROJECT_STATUS.md` — top-line version + 1–3 sentence blurb on the sprint |
-| Service boundary / data flow / major file role changed | `docs/core/ARCHITECTURE.md` |
-| Tier / Workstream / phase milestone moved | `docs/core/BETA_PLAN_V3.md` |
+**One summary, the right home — do NOT re-summarize the session into every doc.** Each living doc has ONE distinct job. A full prose summary belongs in exactly two places: CHANGELOG (technical) and RELEASE_NOTES (player-facing) — and only if it triggered. Everything else is a *short pointer or snapshot*, never a re-narration of the changelog.
+
+| If this happened in the session | Update this | How |
+|---|---|---|
+| Shipped any version | `CHANGELOG.md` | **append** one entry per version, explain *why* not just what. The canonical technical record + the home for all history. |
+| Shipped a user-visible feature/fix | `docs/user/RELEASE_NOTES.md` | **append** a release intro — plain-language, player audience, different voice from CHANGELOG. Only if a playtester needs to know. |
+| Discovered a cross-session pattern (gotcha, framework trick, deploy quirk) | `docs/core/CLAUDE.md` TACTICAL section | **append** a new subheading. Bump the footer charter version (a 2-line pointer, not a summary). |
+| Version number changed | `docs/core/PROJECT_STATUS.md` | **REPLACE the snapshot — never prepend.** ~15 lines: version + 2–3 sentence *current-sprint* blurb + test/build health + top-3 open items. It is "where are we NOW," NOT a log. CHANGELOG owns per-version history. If you see a "Prior summary retained below" tail or the file is >5KB, delete the history — it has rotted into a second changelog. |
+| Service boundary / data flow / major file role changed | `docs/core/ARCHITECTURE.md` | edit in place |
+| Tier / Workstream / phase milestone moved | `docs/core/BETA_PLAN_V3.md` | edit in place |
 
 If none of those triggered, the sweep is done — skip the read entirely. A no-op pass that didn't read the docs is faster than a no-op pass that read and decided nothing changed.
 
@@ -137,14 +139,28 @@ fi
 
 Mention the cleanup in step 6's wrap line if it fired. Otherwise silent — no need to report a no-op.
 
+## 5c. Commit the wrap-up — don't leave docs dirty
+
+The doc sweep + NEXT_SESSION must not drift into next session uncommitted (that's how `/start` ends up flagging mystery "uncommitted changes" and nobody knows what shipped). Commit the wrap-up artifacts and push.
+
+```bash
+git add CHANGELOG.md TODO.md docs/ .claude/NEXT_SESSION.md package.json package-lock.json
+git status --short            # eyeball what's staged
+```
+
+- **Stage only the wrap-up + already-intended files** (living docs, NEXT_SESSION, version bump). Do NOT `git add -A` blindly — if there is *other* uncommitted work in the tree (un-committed source changes the session never committed), that is a **blocker**, not something to bundle. Leave it unstaged and call it out loudly in the step-6 wrap line.
+- Commit: `docs: /koniec sweep for vX.Y.Z` (+ the standard `Co-Authored-By` trailer).
+- Push: `git push origin master`, then verify `git log origin/master..master` is empty. This project deploys from master via `git pull`, so an unpushed commit is its own kind of drift.
+- `.claude/settings.local.json` is local machine config — include it only if it changed meaningfully; it's fine to leave.
+
 ## 6. Three-line wrap, then stop
 
 End with three lines. No structured summary report — the user is about to `/exit` and the next `/start` will surface everything actionable.
 
 ```
 Pre-flight: <typecheck>, <build>, vitest <N/N> (or N failures).
-NEXT_SESSION.md written. <doc updates: brief>.
-<Blocker, if any — uncommitted work, undeployed build, regression discovered too late>. Otherwise: clean handoff.
+NEXT_SESSION.md written. <doc updates: brief>. Wrap-up committed + pushed (or: nothing to commit).
+<Blocker, if any — uncommitted SOURCE left in tree, undeployed build, regression discovered too late>. Otherwise: clean handoff.
 ```
 
 Don't run `/exit` yourself.
