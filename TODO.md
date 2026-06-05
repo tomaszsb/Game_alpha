@@ -101,6 +101,15 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🎯 **Ghost win-rate tracking** (2026-06-04)
+*Source: user wish at /koniec — "would love to eventually get to a 90% success rate" with the random bot. Today the strict gate floor is ≥36 wins (recalibrated v3.0.37 after life events activated, baseline ~39/50). Pre-life-events the bot hit 45/50 (90%) because life events did nothing. Goal isn't to game the floor — it's to use win-rate + avgTurns together as a casual-play balance signal across versions.*
+
+- [ ] **Append ghost strict gate results to a tracked history file.** Today the test prints `[ghost strict baseSeed=1] N/50 wins, avgTurns=X.X` via `console.log` but vitest swallows it on pass. Add `appendFileSync('.claude/ghost-history.jsonl', JSON.stringify({date, version, wins, avgTurns, hardFailures, baseSeed}) + '\n')` at the end of the strict-gate `it()` block in [tests/ghost/ghostPlayer.test.ts](tests/ghost/ghostPlayer.test.ts). Decide: gitignore the file (per-machine history) or commit it (cross-machine baseline). At `/koniec` and `/start` dump the last 5 runs so the trend surfaces. ~20 min.
+- [ ] **Honest read of the "90%" target.** Random bot ≠ casual human. Use win-rate + avgTurns TOGETHER: wins↑ avgTurns→ = easier ✓; wins→ avgTurns↑ = grindier ✗; wins↓ avgTurns↑ = harder+slower ✗. Don't chase wins by making the economy artificially easier if avgTurns inflates — that's "more wins but each game drags." Real balance signal is "wins go up while avgTurns stays flat or shrinks."
+- [ ] **If pursuing 90% intentionally, the lever options are:** (a) easier economy (more starting money, gentler fees, more forgiving regulator dice — playtest-driven), (b) smarter ghost (different question — a smarter bot won't catch regressions a dumb bot would; tracked separately if pursued), (c) ship a tutorial / onboarding so casual players play closer to "smart bot" than "random bot." (c) is already in scope as the onboarding package (Top-3 #2). (a) is balance tuning; (b) is bot research — both deferred until win-rate history shows a sustained problem.
+
+---
+
 ## 🧐 **External architecture audit** (2026-05-29)
 *Source: external AI audit run by user. Each claim verified against the actual code before listing. Items dropped: a "Multi-path Click-to-Move Bug" claim that was a false alarm (executeMovement is only called from `TurnService.endTurn` — gated behind End Turn, no auto-fire path), and the "PM_VOICED_SPACES / ApprovalService constants / SPECIAL_NAMES" cleanup items (PM_VOICED_SPACES is the project voice contract; ApprovalService string constants are fine — the hardcoded **behavior** is the real debt and already tracked above; SPECIAL_NAMES is a fallback path that CSV `display_label_override` already supersedes).*
 

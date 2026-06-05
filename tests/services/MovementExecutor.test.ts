@@ -180,6 +180,9 @@ describe('MovementExecutor', () => {
     it('moves player to moveIntent destination', async () => {
       const player = makePlayer({ moveIntent: 'SPACE-D' });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'linear' });
+      // Phase 2.1 follow-up (v3.0.67): intent is reconciled against the live
+      // resolver before execution — intent must be a currently-valid move.
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-D']);
 
       const result = await executor.executeMovement(player, makeGameState(), false);
 
@@ -196,6 +199,7 @@ describe('MovementExecutor', () => {
     it('clears moveIntent after execution', async () => {
       const player = makePlayer({ moveIntent: 'SPACE-E' });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'linear' });
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-E']);
 
       await executor.executeMovement(player, makeGameState(), false);
 
@@ -205,6 +209,7 @@ describe('MovementExecutor', () => {
     it('emits auto-action event before moving', async () => {
       const player = makePlayer({ moveIntent: 'SPACE-F' });
       mockDataService.getMovement.mockReturnValue({ movement_type: 'linear' });
+      mockMovementService.getValidMoves.mockReturnValue(['SPACE-F']);
 
       await executor.executeMovement(player, makeGameState(), false);
 
@@ -216,6 +221,40 @@ describe('MovementExecutor', () => {
           toSpace: 'SPACE-F'
         })
       );
+    });
+
+    // v3.0.67 — stale-intent reconciliation (fb:49559c76 / fb:dc702660).
+    // A moveIntent set earlier (e.g. a Stage-1 gate reroute to REG-DOB-PLAN-EXAM
+    // when DOB was missing) can go stale if approval state changes before END
+    // TURN. v3.0.66 removed the inline gate override, so a stale intent reached
+    // validateMove and threw "Invalid move" (v3.0.61 crash family reintroduced).
+    // The executor now reconciles intent against the live resolver first.
+    it('does NOT crash when moveIntent is stale (not in current valid moves); clears it and reports no move', async () => {
+      const player = makePlayer({ currentSpace: 'REG-DOB-FINAL-REVIEW', moveIntent: 'REG-DOB-PLAN-EXAM' });
+      mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
+      // DOB now reads approved at execution → resolver returns the raw Final
+      // Review destinations, which do NOT include the stale reroute intent.
+      mockMovementService.getValidMoves.mockReturnValue(['FINISH', 'CON-INSPECT', 'REG-FDNY-FEE-REVIEW']);
+
+      const result = await executor.executeMovement(player, makeGameState(), false);
+
+      expect(result).toEqual({ moved: false, fromSpace: 'REG-DOB-FINAL-REVIEW', toSpace: null, reason: 'none' });
+      expect(mockMovementService.movePlayer).not.toHaveBeenCalled();
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('p1', null);
+    });
+
+    it('reconciles a stale intent to the single forced destination (gate reroute) instead of crashing', async () => {
+      const player = makePlayer({ currentSpace: 'REG-DOB-FINAL-REVIEW', moveIntent: 'FINISH' });
+      mockDataService.getMovement.mockReturnValue({ movement_type: 'dice' });
+      // Gate fails at execution → resolver collapses to the single reroute, which
+      // differs from the stale intent. Executor trusts the resolver.
+      mockMovementService.getValidMoves.mockReturnValue(['REG-DOB-PLAN-EXAM']);
+
+      const result = await executor.executeMovement(player, makeGameState(), false);
+
+      expect(result?.moved).toBe(true);
+      expect(result?.toSpace).toBe('REG-DOB-PLAN-EXAM');
+      expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'REG-DOB-PLAN-EXAM');
     });
 
     it('dice path takes priority over intent when both exist', async () => {

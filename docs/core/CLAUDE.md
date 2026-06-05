@@ -345,13 +345,53 @@ Three sequential bugs in two days surfaced the same architectural shape: two sys
 - Turn gate: `Grep "canEndTurn\|requiredActions.*completedActionCount"` — service has canonical impl, components and TurnService.endTurnWithMovement each have their own counter check.
 - Visit type: `Grep "player\.visitType\|hasPlayerVisitedSpace"` — stored field vs. recomputed from `visitedSpaces.includes`. MovementService.validateMove recomputes; everyone else trusts the field.
 
-**Open structural debts** in TODO under "Parallel-systems audit": (1) merge `getValidMoves`/`getDiceDestination`, (2) unify state TEMP/REAL with log sessions into one `TurnTransaction`, (3) lift log filter to shared helper, (4) resolve visitType stored-vs-computed, (5) notification + logging event bus, (6) money/moneySources denormalization, (7) three effect pipelines under one `EffectExecutor`. All same shape — should probably be tackled in one dedicated architecture session.
+**Open structural debts** in TODO under "Parallel-systems audit":
+- ✅ (1) merge `getValidMoves`/`getDiceDestination` → **DONE v3.0.66 Phase 2.1** (one resolver, optional `{ diceRoll }` narrows base before override stack).
+- ⏳ (2) unify state TEMP/REAL with log sessions into one `TurnTransaction` → **Phase 2.2 queued**.
+- ✅ (3) lift log filter to shared helper → **DONE v3.0.65 Phase 1.2** (`getDisplayableLogEntries` in `src/utils/logFiltering.ts`, consumed by PlayerLogSection + GameLog + PostGameLogViewer; canonical `isCommitted && visibility === 'player'`).
+- ✅ (4) visitType stored-vs-computed → **AUDITED + CLOSED v3.0.65 Phase 1.1** — the "parallel system" framing was **wrong**: `hasPlayerVisitedSpace(destinationSpace)` answers a different question than `player.visitType` (destination's prior-visit status vs current space's visit type). No parallel system to delete. Pinned a small data invariant instead via `tests/services/MovementService-visitTypeInvariant.test.ts`.
+- ⏳ (5) notification + logging event bus, (6) money/moneySources denormalization, (7) three effect pipelines under one `EffectExecutor` — all deferred (lower priority + higher risk surface, per TODO's own notes).
 
 **Symptom map** — when you see these, suspect a parallel-systems gap:
 - "Button enabled but click throws" or "button disabled but everything's ready" → `canEndTurn` divergence.
 - Log shows actions that didn't happen / state shows different total than log narrates → state/log split.
 - Crash with `"Invalid move: X is not a valid destination"` → getValidMoves vs getDiceDestination drift.
 - "First" visit behavior on a Subsequent visit (or vice versa) → visitType drift.
+
+### Audit-before-refactor — verify the "parallel system" actually exists (v3.0.65 Phase 1.1, 2026-06-04)
+
+When a TODO frames structural debt as "two systems doing the same conceptual thing," **read the code carefully BEFORE deleting one of them.** The framing can be sloppy. Phase 1.1 was scoped as "delete `MovementService.hasPlayerVisitedSpace`, route `validateMove` through stored `player.visitType`." On inspection: `hasPlayerVisitedSpace(destinationSpace)` is computing visit type for the **destination** the player is moving to — `player.visitType` describes the **current** space. There is no parallel system; they answer different questions, and you can't substitute one for the other.
+
+The audit (15 min) saved a code-golf cleanup that would have changed nothing meaningful. The honest residual concern was a small data integrity invariant — pinned by `tests/services/MovementService-visitTypeInvariant.test.ts` (5 cases: `visitedSpaces` non-empty + contains `currentSpace` + no duplicates + when `visitType='First'` last entry === currentSpace) — without touching production code. The TODO entry was updated to reflect the honest finding ("AUDITED + CLOSED — no actual parallel system; replaced with smaller invariant test").
+
+**Rule:** before code-changing any TODO that says "merge X and Y," do a 5-min read of both code paths and answer: "Do these answer the same question, or different questions that happen to share underlying data?" Different-questions ≠ parallel system. The drift trap is real only when the same conceptual rule lives in two places.
+
+**Signal to use this pattern:** the user's "audit before reducing X" rule (memory: `feedback_audit_before_cleanup.md`). When the TODO is yours to interpret (not user-prescribed), assume it might be wrong about the scope. When the user explicitly directed the work, the audit is still useful but the bar for declaring "TODO is wrong" is higher.
+
+### Grep for ALL callers when refactoring a service boundary — dead code lurks (v3.0.66 Phase 2.1, 2026-06-04)
+
+When refactoring a service method that's part of a "parallel systems" merge (e.g. unifying `MovementService.getDiceDestination` consumers under `getValidMoves({ diceRoll })`), grep across `src/` for EVERY caller before declaring scope. Phase 2.1 found three callers:
+1. `MovementExecutor.executeMovement` — live, refactored to use the new API.
+2. `MovementService.getValidMoves` itself — internal use, refactored.
+3. **`PlayerActionService.handlePlayerMovement`** — dead! Its parent method `PlayerActionService.rollDice` had zero src callers (only `playCard` is invoked from `CardActions.tsx`). The actual UI calls `turnService.rollDiceWithFeedback` and `turnService.endTurnWithMovement` instead.
+
+Verified `rollDice` was **superseded** (not just dropped) — `DiceRollProcessor.rollDiceWithFeedback` is the richer successor that decouples dice roll from movement (movement now deferred to END TURN via `MovementExecutor`). Old code was monolithic auto-move-on-roll; new architecture is roll → see consequences → take other actions → end turn → move. Better UX, and the v3.0.62 crash family lived in this newer architecture.
+
+Cleanup deleted from `PlayerActionService.ts` (~185 lines), `IPlayerActionService` (2 method signatures), and `PlayerActionService.test.ts` (~250 lines, 2 `describe` blocks — kept the one test asserting `playCard` doesn't sneakily end the turn since that's still a meaningful behavior pin). Total: **~435 lines removed** in the same commit as Phase 2.1. The dead code was a third place that would have needed parallel-systems patches if it had a live caller.
+
+**Rule:** when a service method has 2+ apparent callers, search for ALL of them with `Grep "<methodName>(" path=src`. Any caller whose parent function has zero src callers is dead code — delete it alongside the refactor rather than maintaining it in sync forever. Also check the caller is **superseded** vs just removed (look for a newer method that does the same work plus more) — if superseded, the dead code is a fossil; if removed, you might be deleting functionality that should be restored.
+
+### `describe.skip` does NOT skip TypeScript validation — delete directly for dead-code (v3.0.66 Phase 2.1, 2026-06-04)
+
+Tempting pattern when you want to delete a large block of tests but the Edit tool's single-string match is awkward for >100 line ranges: mark the block as `describe.skip('LEGACY — to be deleted')` and clean up later. **DO NOT DO THIS.** TypeScript still validates the body inside a skipped describe — calls to methods that no longer exist on the service will still fail typecheck. The tests don't run at runtime, but the file won't compile.
+
+Fix: delete the block directly. For ranges too large for a single Edit, use a node fs one-liner:
+
+```bash
+node -e "const fs=require('fs');const t=fs.readFileSync(P,'utf8').split('\n');const a=t.findIndex(l=>l.includes('<start anchor>'));const b=t.findIndex(l=>l.includes('<end anchor>'));fs.writeFileSync(P,[...t.slice(0,a),...t.slice(b+1)].join('\n'))"
+```
+
+Find start/end anchor lines (often the opening `describe(...)` and the matching `});`), slice them out, write back. Faster than 5 sequential Edit calls and cleaner than `describe.skip`. Used in Phase 2.1 to delete the 267-line dead `rollDice` + `endTurn` test blocks in one shot.
 
 ### `regen-clean-files.mjs` is also a slip-through detector (v3.0.61, 2026-06-02)
 
@@ -1172,5 +1212,5 @@ Cards like E030 "Time Crunch" encode their activation spend in the `money_effect
 
 ---
 
-**Last Updated:** June 4, 2026 (Session **v3.0.62–v3.0.64** — FINAL-REVIEW dice-path crash, movement-choice show-last UI gate, Try Again log honesty, canEndTurn de-duplication + parallel-systems audit)
-**Charter Version:** 3.29 (added parallel-systems audit pattern — three sequential bugs from two systems drifting; diagnostic greps + symptom map. Prior 3.28: regen-as-audit, ghost-wire-up-exposes-dead-code. Prior 3.27: scope-bug-in-route-handler, phantom-flex-scrollbar, DOM-bbox edge-routing verification.)
+**Last Updated:** June 4, 2026 (Session **v3.0.65–v3.0.66** — Phase 1 visitType invariant + log-display filter helper, Phase 2.1 movement resolver merge + PlayerActionService dead-code cleanup. Parallel-systems audit now 4 of 7 closed.)
+**Charter Version:** 3.30 (added: audit-before-refactor when TODO frames parallel system; grep-for-all-callers surfaces dead code in same commit; `describe.skip` is NOT TypeScript-safe — delete directly. Prior 3.29: parallel-systems audit pattern. Prior 3.28: regen-as-audit, ghost-wire-up-exposes-dead-code.)

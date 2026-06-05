@@ -71,9 +71,16 @@ export function FeedbackButton(): JSX.Element {
     whatDoing: '', whatWrong: '', extra: '',
     contactName: '', contactEmail: '', contactPhone: ''
   });
-  // fb:TODO-234 — console logs are opt-in (default off) so routine bug reports
-  // stay lean and avoid accidental PII / verbose internal-state leakage.
-  const [includeConsole, setIncludeConsole] = useState(false);
+  // fb:TODO-234 — console logs were originally opt-in (default off). v3.0.67:
+  // default ON. A playtester filed reports believing the box was checked when
+  // it had silently reverted (default-off + reset-after-submit), so every
+  // report arrived with no logs — the one thing that would have pinned the bug.
+  // The buffer is only error/warn lines (capped at 50), so the PII/verbosity
+  // risk that motivated opt-in is low. Players can still untick it.
+  const [includeConsole, setIncludeConsole] = useState(true);
+  // Whether the just-submitted report actually carried a console log — surfaced
+  // in the success toast so the reporter knows, instead of guessing.
+  const [submittedWithLogs, setSubmittedWithLogs] = useState(false);
   const [showFullScreenshot, setShowFullScreenshot] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   // Snapshot the console-capture state at the moment the modal opens
@@ -194,6 +201,8 @@ export function FeedbackButton(): JSX.Element {
     ]);
 
     const consoleLogs = includeConsole ? getConsoleLogs() : [];
+    // Record what actually went out so the success toast can confirm it.
+    setSubmittedWithLogs(consoleLogs.length > 0);
 
     try {
       // Build optional contact block — only included if any field is set.
@@ -225,16 +234,20 @@ export function FeedbackButton(): JSX.Element {
       setTimeout(() => {
         setState('idle');
         setForm({ whatDoing: '', whatWrong: '', extra: '', contactName: '', contactEmail: '', contactPhone: '' });
-        setIncludeConsole(false);
+        setIncludeConsole(true); // back to the new default-on
         setScreenshot(null);
         setCaptureSummary(null);
-      }, 1500);
+      }, 2200);
     } catch (err) {
       console.error('Failed to submit feedback:', err);
       setErrorMsg('Failed to submit. Please try again.');
       setState('form');
     }
-  }, [form, screenshot, getApiBase, fetchGameStateSummary]);
+    // includeConsole MUST be a dependency: without it, ticking the box after the
+    // last form keystroke leaves handleSubmit closed over a stale (false) value,
+    // silently dropping the console log even though the box looks checked. This
+    // was a contributing cause of reports arriving with no logs (v3.0.67 fix).
+  }, [form, screenshot, includeConsole, getApiBase, fetchGameStateSummary]);
 
   const handleCancel = useCallback(() => {
     setState('idle');
@@ -540,8 +553,14 @@ export function FeedbackButton(): JSX.Element {
           fontSize: '15px',
           fontWeight: '600',
           animation: 'modalSlideIn 0.2s ease-out',
+          maxWidth: '280px',
         }}>
-          Thank you for the report!
+          <div>Thank you for the report!</div>
+          <div style={{ fontSize: '12px', fontWeight: 400, marginTop: '4px', opacity: 0.95 }}>
+            {submittedWithLogs
+              ? '✓ Console log included'
+              : 'Sent without a console log'}
+          </div>
         </div>
       )}
 

@@ -103,27 +103,58 @@ export class MovementExecutor {
           return { moved: false, fromSpace: player.currentSpace, toSpace: null, reason: 'none' };
         }
       } else if (player.moveIntent) {
-        // Execute the intended move
-        // Emit movement event BEFORE the move so UI can show transition overlay
-        this.stateService.emitAutoAction({
-          type: 'movement',
-          playerId: player.id,
-          playerName: player.name,
-          playerColor: player.color,
-          spaceName: player.currentSpace,
-          fromSpace: player.currentSpace,
-          toSpace: player.moveIntent,
-          success: true,
-          message: `${player.name} moved from ${player.currentSpace} to ${player.moveIntent}`
-        });
-        await this.movementService.movePlayer(player.id, player.moveIntent);
+        // Reconcile the stored intent against the live resolver BEFORE handing
+        // it to movePlayer. v3.0.66 (Phase 2.1) collapsed the dice/intent
+        // resolvers into getValidMoves and removed the inline Stage-1 gate
+        // override that used to keep the dice path and validateMove in sync.
+        // A moveIntent is set at an earlier moment than it is executed — e.g.
+        // DiceRollProcessor sets it to a Stage-1 gate reroute (REG-DOB-PLAN-EXAM)
+        // when an approval is missing. If the player's approval state changes
+        // between when the intent is set and END TURN, that intent is now stale:
+        // getValidMoves no longer includes it, and movePlayer's validateMove
+        // throws "Invalid move: … is not a valid destination" — the v3.0.61
+        // crash family, reintroduced. Reconciling here means a stale intent can
+        // never reach validateMove.
+        const validMoves = this.movementService.getValidMoves(player.id);
+        let toSpace: string | null;
+        if (validMoves.includes(player.moveIntent)) {
+          toSpace = player.moveIntent;
+        } else if (validMoves.length === 1) {
+          // The resolver has collapsed to a single forced destination (e.g. the
+          // Stage-1 gate reroute). Trust the resolver over the stale intent.
+          toSpace = validMoves[0];
+        } else {
+          toSpace = null;
+        }
 
-        const toSpace = player.moveIntent;
+        if (toSpace) {
+          // Emit movement event BEFORE the move so UI can show transition overlay
+          this.stateService.emitAutoAction({
+            type: 'movement',
+            playerId: player.id,
+            playerName: player.name,
+            playerColor: player.color,
+            spaceName: player.currentSpace,
+            fromSpace: player.currentSpace,
+            toSpace,
+            success: true,
+            message: `${player.name} moved from ${player.currentSpace} to ${toSpace}`
+          });
+          await this.movementService.movePlayer(player.id, toSpace);
 
-        // Clear the move intent after execution
+          // Clear the move intent after execution
+          this.stateService.setPlayerMoveIntent(player.id, null);
+
+          return { moved: true, fromSpace: player.currentSpace, toSpace, reason: 'intent' };
+        }
+
+        // Stale intent with no unambiguous reconciliation (the resolver offers
+        // multiple choices that don't include the intent). Clear it and report
+        // no move rather than crashing — the player keeps their turn and the UI
+        // re-resolves the choice instead of dead-ending on an error banner.
+        debugWarn(`[MovementExecutor] Stale moveIntent "${player.moveIntent}" not in validMoves [${validMoves.join(', ')}] at ${player.currentSpace} (${player.visitType}); cleared without moving.`);
         this.stateService.setPlayerMoveIntent(player.id, null);
-
-        return { moved: true, fromSpace: player.currentSpace, toSpace, reason: 'intent' };
+        return { moved: false, fromSpace: player.currentSpace, toSpace: null, reason: 'none' };
       } else {
         // No intent set - fall back to auto-move for single destinations
         const validMoves = this.movementService.getValidMoves(player.id);

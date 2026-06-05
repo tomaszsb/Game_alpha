@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.67] - 2026-06-05
+
+### Final Review "Accept doesn't move + error flash" crash — v3.0.62 regression reintroduced by v3.0.66
+
+Two dashboard reports on v3.0.66 (`fb:49559c76` "HITTING ACcept button does not move me anywhere" + `fb:dc702660` "error message showed up and disappeared", filed within a minute) turned out to be one incident. The bug-reporter screenshots (no `gameState` attached, but full images) showed a player at **REG-DOB-FINAL-REVIEW** with the red banner: **"Invalid move: REG-DOB-PLAN-EXAM is not a valid destination from REG-DOB-FINAL-REVIEW. Valid destinations: FINISH, CON-INSPECT, REG-FDNY-FEE-REVIEW (step: execute_movement)."** That is the **exact v3.0.61 crash** that v3.0.62 fixed — reintroduced.
+
+**Root cause.** v3.0.66 (Phase 2.1) collapsed the two destination resolvers into one `getValidMoves({ diceRoll })` and **deleted the inline Stage-1 gate override** that v3.0.62 had added to `MovementExecutor`, on the premise that "the dice path and validateMove now agree by construction." They don't — for the **`moveIntent` path**. `DiceRollProcessor` sets `moveIntent` to the Stage-1 gate reroute (`REG-DOB-PLAN-EXAM`) at *roll time* when DOB approval is missing. That intent is consumed later at *END TURN*. If the approval state `getValidMoves` reads at execution time differs from the state when the intent was set, the intent is **stale**: `getValidMoves` no longer lists it, and `MovementExecutor` handed it straight to `movePlayer` → `validateMove` threw "Invalid move." The dice branch was unaffected (it recomputes via `getValidMoves({ diceRoll })` at execution time, so it and `validateMove` agree); only the stale-`moveIntent` branch could diverge.
+
+**Diagnosis discipline.** Initial static analysis wrongly cleared the merge ("no `dice_outcome` spaces, no dice-typed resume-hub/lock-point spaces, gate logic identical, data flag parses correctly, ghost gate green"). The bug-reporter **screenshots** (pulled via `/api/feedback/:id`, which keeps the screenshot the summary endpoint strips) corrected that. Reproduced the exact "Invalid move" throw with real services + real data via the headless bootstrap before changing anything.
+
+**Fix — reconcile intent against the live resolver in the executor** ([MovementExecutor.executeMovement](src/services/MovementExecutor.ts)). The `moveIntent` branch now resolves `getValidMoves(playerId)` first: if the intent is currently valid, move there; if the resolver has collapsed to a single forced destination (the gate reroute), trust the resolver over the stale intent; otherwise clear the stale intent and report no move (the player keeps their turn and the UI re-resolves) instead of letting `validateMove` throw an uncaught error onto the red banner. A stale intent can no longer reach `validateMove`. This restores v3.0.62's "gate is authoritative at execution time" robustness while keeping v3.0.66's single-resolver design.
+
+**Tests.** New [tests/ghost/finalReviewStaleIntent.test.ts](tests/ghost/finalReviewStaleIntent.test.ts) reproduces the crash end-to-end with real services (stale reroute intent + both approvals → END TURN no longer throws; DOB-missing still routes to the gate — no regression). [tests/services/MovementExecutor.test.ts](tests/services/MovementExecutor.test.ts) gains two unit cases (stale intent not in valid moves → cleared, no move, no `movePlayer` call; stale intent reconciled to a single forced gate reroute) and the three existing intent tests now mock the resolver since the branch consults it. Targeted sweep **1659/1659 green**, typecheck clean, ghost strict gate ✅.
+
+### Bug reporter: console logs now attach reliably
+
+Investigating the crash above, both dashboard reports arrived with **no `consoleLogs`** despite the reporter believing the "Include browser console log" box was checked — which would have pinned the bug immediately. The capture mechanism itself is sound ([consoleCapture.ts](src/utils/consoleCapture.ts) is installed at startup and records `console.error`/`console.warn` + uncaught errors; verified by new [tests/utils/consoleCapture.test.ts](tests/utils/consoleCapture.test.ts)). The logs were dropped by the UI:
+
+- **Stale-closure bug (real cause):** [FeedbackButton.handleSubmit](src/components/feedback/FeedbackButton.tsx) read `includeConsole` but omitted it from its `useCallback` dependency array. Ticking the box *after* the last form keystroke left the submit handler closed over the old `false` value, so the log was silently dropped even with the box visibly checked. Added `includeConsole` to the deps.
+- **UX traps:** the checkbox defaulted **off** and **reset to off after every submit**, and the success toast gave no indication of what was sent. Now: the box **defaults on** (the buffer is only error/warn lines, capped at 50 — low PII risk; players can still untick it), stays on after submit, and the "Thank you" toast confirms **"✓ Console log included"** or **"Sent without a console log."**
+
+(The missing `gameState` in those reports is separate and expected — solo/PC play often has no server-side state snapshot to fetch.)
+
+---
+
 ## [3.0.66] - 2026-06-04
 
 ### Parallel-systems audit Phase 2.1 — movement resolver merge
