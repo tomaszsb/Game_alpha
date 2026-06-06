@@ -2,6 +2,17 @@
 
 ---
 
+## v3.0.68 — Life Events read like the news + board editor fixes (June 6, 2026)
+
+- **Life Events are no longer an angry red alarm.** The pop-up that appears when a Life Event lands is now a calm newspaper bulletin — "📰 THE DAILY PERMIT" — that reads the situation: good news (like allies speeding up your permit) shows a green *GOOD NEWS* headline, while real setbacks show a muted *SETBACK*. It only shakes when something actually goes wrong.
+- **Life Events now tell you what happened, not what to do.** Cards used to print rulebook text like *"Roll a die. On 1-3…"* — but the game already rolls for you. Now the bulletin just shows the result (e.g. *"−3 days · the project earned LEED certification"*, or *"No change this time"*), and all the card wording was rewritten in plain language with no game jargon.
+- **You can now rename a board space.** In the space editor, the name box at the top now actually renames the tile on the board *and* in the player panel. (It used to quietly edit a different field, so your new name never showed up.) The story subtitle got its own clearly-labeled box.
+- **Board tiles stop overlapping.** The dashed spacing guide in the layout editor now grows to match a tile's actual text, so when you place tiles so the dashed boxes don't touch, the real tiles won't overlap either. (You may need to nudge a few tiles you'd already placed.)
+- **The "Button Labels" section moved to the bottom of the editor**, matching where the End Turn / Try Again buttons appear in the game.
+- **Fixed a missing board arrow** — the line from the cheat space to the FDNY review now draws (this was missing for every dice-based space).
+
+---
+
 ## v3.0.67 — Final review crash fix (again) + reliable bug reports (June 5, 2026)
 
 - **Fixed the "Accept does nothing" crash at the final DOB review.** If you reached `REG-DOB-FINAL-REVIEW` without a required approval and hit Accept, the game could flash a red "Invalid move" error and refuse to move you. This was the same crash fixed back in v3.0.62 that quietly came back in v3.0.66 — now properly fixed and guarded by a test so it can't sneak back again. You're correctly sent back to the missing examiner instead.

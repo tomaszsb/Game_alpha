@@ -5,17 +5,17 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** June 5, 2026
+**Last Updated:** June 6, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.67** (deployed 2026-06-05, commit `c455813`)
+**Current Version:** **3.0.68** (code committed `98a6d23` + this /koniec bump; ⚠️ user deployed `98a6d23` which still read 3.0.67 in package.json — re-deploy after this wrap-up to sync the version label)
 
 ## Current sprint
-Fixed the Final Review "Accept does nothing" crash: v3.0.66's resolver merge (Phase 2.1) reintroduced the v3.0.61 crash by deleting v3.0.62's inline Stage-1 gate override, assuming `validateMove` would "agree by construction" — it doesn't for the `moveIntent` path (intent set at roll-time, validated at END-TURN against changed approval state). `MovementExecutor` now reconciles a stale `moveIntent` against the live resolver before moving. Same release fixed the bug reporter silently dropping console logs (a `useCallback` stale-closure on the opt-in flag; box now defaults on + the toast confirms attachment).
+Cleared all 8 open dashboard reports from the v3.0.66/67 playtest in three threads. **Life Event modal v2:** reframed the red "major disturbance" pop-up as a tone-aware "📰 THE DAILY PERMIT" newspaper bulletin (good news reads as good news), made it show the realized outcome instead of "roll a die" instructions (SpaceArrivalProcessor now builds receipts on the dice-piggyback path; shared diff extracted to `lifeEventReceipts.ts`), and rewrote 14 leaky L-card descriptions into in-character news. **Board/tile editing:** the editor's top input now renames the actual tile (`display_label_override`) not the story subtitle; the buffer ghost is content-aware so tiles stop overlapping; Button Labels moved to the editor bottom. **Dice-space arrows:** the board edge graph now pulls dice destinations from DICE_OUTCOMES (was MOVEMENT-only, blank for dice spaces) — fixes the missing cheat→FDNY line. Two latent bugs fixed in passing: the broken `E2E-01` happy-path test (stuck on the haptic gate, testing nothing) and a dead "approval revoked" receipt (uppercase/lowercase enum mismatch since v3.0.40).
 
 ## Health
-- **Tests:** 1602/1602 canonical sweep (1663/1663 broad). 0 pre-existing failures in those sweeps.
+- **Tests:** 1623/1623 targeted koniec sweep (components + utils + services) green. 0 pre-existing failures in that sweep.
 - **Build / typecheck:** clean.
-- **Strict ghost gate:** passing. ⚠️ The `try-again-happy` ghost variant is **pre-existing red** (32/50 wins, overruns its 15-min timeout — verified identical on v3.0.66 baseline, NOT a regression). Tracked in TODO → "Ghost win-rate tracking."
+- **Strict ghost gate:** not re-run this session (data/UI work, not movement-engine). ⚠️ The `try-again-happy` ghost variant remains **pre-existing red** (32/50 wins, overruns its 15-min timeout — NOT a regression). Tracked in TODO → "Ghost win-rate tracking."
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
 1. **Phase 2.2 — TurnTransaction boundary** — last big parallel-systems merge (state TEMP/REAL + log sessions → one transaction). Closes 5 of 7 audit items. Dedicated-session work.

@@ -102,12 +102,16 @@ describe('CardEffectHandler.handleCardDraw — Life Event effect application', (
       expect(moneyReceipt.label).toBe('-$5,000');
     });
 
-    it('emits an approval-revoke receipt when DOB approval flips out of APPROVED (Kid A)', async () => {
+    it('emits an approval-revoke receipt when DOB approval flips out of approved (Kid A)', async () => {
+      // ApprovalStatus is lowercase ('approved' | 'none' | …). This fixture used
+      // uppercase 'APPROVED'/'PENDING' and so masked the v3.0.40 dead-code bug
+      // (the diff compared to 'APPROVED' and never fired). v3.0.68 fixed the diff
+      // to lowercase; the fixture now uses the real enum values.
       mockCardService.drawCards.mockReturnValue(['L003']);
       mockStateService.getPlayer
-        .mockReturnValueOnce({ ...playerBase, dobApprovalStatus: 'APPROVED', hand: [] })
-        .mockReturnValueOnce({ ...playerBase, dobApprovalStatus: 'PENDING', hand: ['L003'] })
-        .mockReturnValue({ ...playerBase, dobApprovalStatus: 'PENDING', hand: ['L003'] });
+        .mockReturnValueOnce({ ...playerBase, dobApprovalStatus: 'approved', hand: [] })
+        .mockReturnValueOnce({ ...playerBase, dobApprovalStatus: 'none', hand: ['L003'] })
+        .mockReturnValue({ ...playerBase, dobApprovalStatus: 'none', hand: ['L003'] });
 
       await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
 

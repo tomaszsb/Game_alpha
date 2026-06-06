@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.68] - 2026-06-06
+
+Cleared the eight open dashboard reports from the v3.0.66/67 playtest in three threads — Life Event modal, board/tile editing, and a dice-space arrow — plus two latent bugs surfaced along the way.
+
+### Life Event modal v2 — newspaper bulletin, realized outcome, de-jargoned copy
+
+Three reports were one modal seen twice (`fb:7a2a2956`, `fb:701b26e3`, `fb:1e76c24c`). The v3.0.40 modal was a hard red **"⚡ A major disturbance just hit the project"** banner that (a) framed *good* news as a disaster — "City Council Allies" *saves* you time yet shouted disturbance; (b) printed the card's raw **"Roll a die. On 1-3…"** instruction text even though the engine already rolled and applied the outcome (CardService Kid D); and (c) leaked game terms ("roll", "draw a card").
+
+- **Newspaper redesign** ([LifeEventModal.tsx](src/components/modals/LifeEventModal.tsx)). Parchment **"📰 THE DAILY PERMIT"** masthead with a dateline, a **tone-aware kicker** computed from the realized receipts (saved days/money/resources → *GOOD NEWS*; lost time/money/approval → *SETBACK*; else *PROJECT BULLETIN*), serif article body, and a **"The bottom line"** receipts box. Shake only fires on a genuine setback — good/neutral bulletins arrive calmly. The dateline ("Day N") is derived in [GameLayout](src/components/layout/GameLayout.tsx) from the player's `timeSpent`.
+- **Show the outcome, not the instructions.** The common 1-in-6 dice-piggyback path ([SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts)) emitted the modal with **no receipts**, so it fell back to the raw card text. It now builds the realized-outcome receipts, including an explicit **"No change this time"** line when a dice-conditional card rolls into the 0-effect branch. The snapshot/diff logic was extracted from CardEffectHandler into shared [src/utils/lifeEventReceipts.ts](src/utils/lifeEventReceipts.ts) so the two emission paths can't drift (same anti-parallel-systems theme as the v3.0.6x audit).
+- **Copy voice pass.** Rewrote all **14** L-card descriptions that leaked mechanics (L005/L007/L009/L010/L013/L017/L024/L025/L032/L037/L039/L040/L043/L045) in [CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv) into in-character news. For dice-conditional cards the copy sets up the event without stating the outcome (the receipt shows the realized number); for "draw" cards the E-card draw is reframed as an expeditor joining the team. Comma-free to match the unquoted CSV convention; column counts verified intact (32 each).
+- **Dead "approval revoked" receipt fixed.** The diff compared `dobApprovalStatus === 'APPROVED'` but the enum is lowercase `'approved'` — so the revoke receipt never fired (dead since v3.0.40). Now correct; e.g. L023 "Project Redesign" (revokes DOB) will surface the revoke line.
+
+### Board/tile editor — rename the tile, stop the overlap, mirror the panel
+
+- **Tile/panel name is now editable** (`fb:24c3849c`, `fb:170b98e6`). The board tile + player-panel label is `display_label_override` (GAME_CONFIG.csv), which the Space Data Editor never exposed — its top "Display name…" input actually edited the per-visit *story* `Title`, so renames never reached the board. The header input now edits `display_label_override` (with the `shortName` fallback shown as placeholder); the story title moved to the Story section, clearly labeled. It's a per-space value written to **both** First+Subsequent rows, riding in `_extraColumns` so the Spaces.csv layout stays byte-stable, and reflects live via `reloadAllData`. [SpaceEditor.tsx](src/components/editor/SpaceEditor.tsx) + [DataEditor.tsx](src/components/editor/DataEditor.tsx).
+- **Content-aware buffer ghost** (`fb:a4c50822`). The editor's dashed buffer guide was a fixed 240×130, but a tile in its largest in-grid state grows downward with no max height, so a text-heavy tile (e.g. REG Plan Exam) rendered taller than its ghost and overlapped a flush neighbor. New `estimateTileMaxIngridHeight()` ([boardCommon.ts](src/utils/boardCommon.ts)) estimates worst-case rendered height from each tile's text; the [BoardCanvas](src/components/board/BoardCanvas.tsx) ghost now uses it so the guide grows to match. Non-destructive: makes the placement guide truthful — existing hand-placed layouts may need re-spacing; tiles are not auto-moved.
+- **Button Labels section moved to the bottom** (`fb:8f64c34c`) of the SpaceEditor form, mirroring the in-game panel where End Turn / Try Again sit last.
+
+### Board edges for dice spaces — fixes the missing cheat→FDNY arrow
+
+`fb:35daf1ba` — the board edge graph ([BoardCanvas](src/components/board/BoardCanvas.tsx)) was built only from MOVEMENT.csv destination columns, which are **blank for every dice space** (their destinations live in DICE_OUTCOMES.csv). So no dice space had static edges, and the path-taken line couldn't render after a CHEAT-BYPASS→FDNY move. The edge-builder now pulls unique dice destinations via the new `uniqueDiceDestinations` helper ([boardCommon.ts](src/utils/boardCommon.ts)) for dice rows; the visibleEdges filter still hides them until path-taken/current. Fixes arrows for **every** dice space, not just the cheat space.
+
+### Tests
+
+Repaired [E2E-01_HappyPath](tests/E2E-01_HappyPath.test.tsx), which had been silently failing since the `fb:6e1e8ac4` haptic-prime gate landed — it was stuck on the "Tap to Enter Game" welcome overlay and never reached the board, so the happy-path turn flow tested nothing. The shared `setupGameE2E` helper now dismisses the gate. New/updated coverage: [lifeEventReceipts.test.ts](tests/utils/lifeEventReceipts.test.ts) (9), [LifeEventModal.test.tsx](tests/components/modals/LifeEventModal.test.tsx) (rewritten to the newspaper/tone contract, 19), [DataEditor.test.tsx](tests/components/editor/DataEditor.test.tsx) (+ per-space tile-label test), [boardCommon.test.ts](tests/utils/boardCommon.test.ts) (+ estimator + dice-destination cases). Typecheck + build clean.
+
+### Follow-up noted (not shipped)
+
+CardEffectHandler's *other* (non-dice) L-draw receipt path snapshots `before` **after** `drawCards`, so the shared diff's `-1` primary-card correction over-subtracts → a possible spurious "lost 1 resource" line. Pre-existing (v3.0.40); the common dice-piggyback path fixed here is correct. See TODO.
+
 ## [3.0.67] - 2026-06-05
 
 ### Final Review "Accept doesn't move + error flash" crash — v3.0.62 regression reintroduced by v3.0.66
