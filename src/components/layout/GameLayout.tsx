@@ -376,14 +376,18 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         // Queue the life event for its OWN dedicated modal instead of stomping
         // the dice modal state. fb:dfdeaf1c — life events used to look like a
         // continuation of the originating space's roll outcome; now they pop a
-        // distinct red-themed LifeEventModal once the dice modal closes (or
-        // immediately, if no dice modal is currently open).
+        // distinct newspaper-style LifeEventModal once the dice modal closes (or
+        // immediately, if no dice modal is currently open). v3.0.68 reframed the
+        // old red "disturbance" banner as a tone-aware bulletin.
         const card = dataService.getCardById(event.cardId);
         if (card) {
+          // Dateline for the newspaper masthead — the project's elapsed days.
+          const days = stateService.getPlayer(event.playerId)?.timeSpent;
           setPendingLifeEvent({
             card,
             diceValue: event.diceValue,
             spaceName: event.spaceName,
+            dayLabel: typeof days === 'number' ? `Day ${days}` : undefined,
             effectsSummary: event.effectsSummary,
           });
         }

@@ -192,6 +192,23 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
     setHasUnsavedChanges(true);
   }, [selectedSpaceId]);
 
+  // Tile label (display_label_override) is a per-space GAME_CONFIG value that
+  // rides in _extraColumns. It must stay identical on the First + Subsequent
+  // rows so the regenerated GAME_CONFIG.csv carries one consistent value
+  // regardless of which visit row the regen reads. Update both at once.
+  const handleDisplayLabelChange = useCallback((value: string) => {
+    setSpacesData(prev => prev.map(space => {
+      if (space.space_name === selectedSpaceId) {
+        return {
+          ...space,
+          _extraColumns: { ...(space._extraColumns ?? {}), display_label_override: value },
+        };
+      }
+      return space;
+    }));
+    setHasUnsavedChanges(true);
+  }, [selectedSpaceId]);
+
   // Handle dice roll changes
   const handleDiceRollUpdate = useCallback((
     index: number,
@@ -430,6 +447,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
                   modalConfigData={modalConfigData}
                   onVisitTypeChange={setVisitType}
                   onFieldChange={handleFieldChange}
+                  displayLabelOverride={spaceFirst?._extraColumns?.display_label_override ?? spaceSubsequent?._extraColumns?.display_label_override ?? ''}
+                  onDisplayLabelChange={handleDisplayLabelChange}
                   onUpdateDiceRoll={handleDiceRollUpdate}
                   onAddDiceRoll={handleAddDiceRoll}
                   onDeleteDiceRoll={handleDeleteDiceRoll}

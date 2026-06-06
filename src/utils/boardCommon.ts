@@ -281,4 +281,80 @@ export function computeVisibleEdgeIds(
 export const BOARD_TILE_COMPACT = { w: 150, h: 60 };
 // v3.0.27: currentBig grew to 240×130 (now == expanded footprint), so the
 // largest in-grid tile the editor must leave room for matches that.
+// 130 is only the *floor* — a tile with a long story/action grows taller than
+// this (see estimateTileMaxIngridHeight). fb:a4c50822.
 export const BOARD_TILE_MAX_INGRID = { w: 240, h: 130 };
+
+/**
+ * fb:a4c50822 — "tiles overlap despite buffers." The editor's buffer ghost used
+ * a fixed 240×130 footprint, but a board tile in its largest in-grid state
+ * (currentBig — full story + action text, see computeTileVisualState) grows
+ * DOWNWARD to fit its content with no max height. A content-heavy tile (e.g.
+ * REG Plan Exam's long FDNY blurb) therefore renders taller than the ghost, so
+ * neighbors placed flush against the ghost still get overlapped.
+ *
+ * This estimates the worst-case in-grid rendered height from the tile's text so
+ * the buffer ghost can grow to match. It's an approximation (no DOM measure):
+ * we estimate wrapped-line counts at currentBig's content width + font sizes,
+ * matching the BoardNode render in BoardCanvas.tsx. We round up and keep
+ * BOARD_TILE_MAX_INGRID.h as the floor — over-reserving space is safe (the user
+ * just leaves a little more room); under-reserving is what causes overlap.
+ */
+export interface TileHeightContent {
+  title?: string;
+  story?: string;
+  action?: string;
+  npcName?: string;
+}
+
+export function estimateTileMaxIngridHeight(content: TileHeightContent): number {
+  // currentBig content box: 240 wide minus 10px horizontal padding each side.
+  const CONTENT_W = BOARD_TILE_MAX_INGRID.w - 20; // 220
+  // Approx chars-per-line for a sans-serif font: avg glyph ≈ 0.52em.
+  const cpl = (fontPx: number) => Math.max(1, Math.floor(CONTENT_W / (fontPx * 0.52)));
+  // Wrapped line count, honoring explicit newlines in authored copy.
+  const lines = (text: string | undefined, fontPx: number): number => {
+    if (!text) return 0;
+    const perLine = cpl(fontPx);
+    return text.split('\n').reduce((acc, seg) => acc + Math.max(1, Math.ceil(seg.length / perLine)), 0);
+  };
+
+  const PAD_Y = 8 + 8;            // top + bottom padding
+  const PHASE_H = 11;            // phase label (fontSize 9, single line)
+  const TITLE_LH = 14 * 1.2;    // title line height (isBig fontSize 14)
+  const STORY_LH = 11 * 1.35;   // story line height
+  const ACTION_LH = 10 * 1.35;  // action line height
+  const GAP = 6;                // marginTop between blocks
+
+  const titleLines = Math.max(1, lines(content.title, 14));
+  const storyText = content.story
+    ? (content.npcName ? `${content.npcName}: ${content.story}` : content.story)
+    : '';
+  const storyLines = lines(storyText, 11);
+  const actionText = content.action ? `Next: ${content.action}` : '';
+  const actionLines = lines(actionText, 10);
+
+  let h = PAD_Y + PHASE_H + 2 + titleLines * TITLE_LH;
+  if (storyLines > 0) h += GAP + storyLines * STORY_LH;
+  if (actionLines > 0) h += GAP + actionLines * ACTION_LH;
+  // A little slack for the player-token row / rounding so we never under-reserve.
+  h += 10;
+
+  return Math.max(BOARD_TILE_MAX_INGRID.h, Math.ceil(h));
+}
+
+/**
+ * fb:35daf1ba — dice spaces keep their destinations in DICE_OUTCOMES.csv (six
+ * roll columns), not MOVEMENT.csv. The board edge graph needs the unique set so
+ * a dice space gets static edges (e.g. CHEAT-BYPASS → REG-FDNY-FEE-REVIEW),
+ * letting the path-taken line render after a player moves through it. Dedups
+ * repeated rolls (CHEAT-BYPASS lands PM-DECISION-CHECK on both 5 and 6) and
+ * drops blanks. Returns [] for a missing outcome.
+ */
+export function uniqueDiceDestinations(
+  outcome: { roll_1?: string; roll_2?: string; roll_3?: string; roll_4?: string; roll_5?: string; roll_6?: string } | undefined,
+): string[] {
+  if (!outcome) return [];
+  const rolls = [outcome.roll_1, outcome.roll_2, outcome.roll_3, outcome.roll_4, outcome.roll_5, outcome.roll_6];
+  return Array.from(new Set(rolls.filter((d): d is string => !!d && d.trim().length > 0)));
+}

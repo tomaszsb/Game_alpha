@@ -108,6 +108,15 @@ const setupGameE2E = async (initialPlayerName: string = 'Alice') => {
     { gameServices }
   );
 
+  // fb:6e1e8ac4 added a one-time "Tap to Enter Game" haptic-prime gate that
+  // renders as a full-screen overlay in phone view (viewPlayerId set) before
+  // the game UI. Without dismissing it the test is stuck on "Welcome, Alice!"
+  // and never reaches the board — dismiss it so the happy-path flow runs.
+  const enterGameButton = screen.queryByRole('button', { name: /Tap to Enter Game/i });
+  if (enterGameButton) {
+    fireEvent.click(enterGameButton);
+  }
+
   return { gameServices, actualPlayerId, rerender };
 };
 

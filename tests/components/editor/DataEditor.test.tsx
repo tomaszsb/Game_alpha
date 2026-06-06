@@ -206,6 +206,34 @@ describe('DataEditor', () => {
       });
     });
 
+    it('edits the tile label (display_label_override) and shares it across First/Subsequent visits', async () => {
+      // fb:24c3849c / fb:170b98e6 — the editor had no field for the board tile's
+      // "easy name". The header input now edits display_label_override, a
+      // per-space value, so it must persist when toggling visit type.
+      renderEditor();
+
+      await waitFor(() => {
+        expect(screen.getByText('TEST-SPACE-1')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('TEST-SPACE-1'));
+
+      const tileLabelInput = await screen.findByTestId('space-tile-label-input');
+      // No override in the mock data → empty, with a shortName fallback placeholder.
+      expect(tileLabelInput).toHaveValue('');
+      expect(tileLabelInput).toHaveAttribute('placeholder', expect.stringMatching(/Tile label \(blank = /i));
+
+      fireEvent.change(tileLabelInput, { target: { value: 'My Custom Tile' } });
+      expect(screen.getByTestId('space-tile-label-input')).toHaveValue('My Custom Tile');
+
+      // Toggle to Subsequent — the tile label is per-space, so it should persist.
+      fireEvent.click(screen.getByText('Sub'));
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Test event 1 sub')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('space-tile-label-input')).toHaveValue('My Custom Tile');
+    });
+
     it('marks changes as unsaved when editing', async () => {
       renderEditor();
 

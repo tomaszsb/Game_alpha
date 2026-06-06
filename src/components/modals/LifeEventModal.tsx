@@ -1,35 +1,42 @@
 // src/components/modals/LifeEventModal.tsx
 //
 // Dedicated modal for the 1-in-6 dice-conditional Life Event card draw.
-// fb:dfdeaf1c — playtester said life events felt "mixed with the Architect modal."
-// Root cause: the AutoActionEvent {type: 'life_event'} handler in GameLayout
-// previously reused the generic DiceResultModal, stomped its state, and inherited
-// the originating space's header — so visually it looked like a row inside the
-// Architect roll outcome.
 //
-// This component is the player-facing other-half of that fix: a distinct,
-// branded modal that frames the event as a major disturbance — red theme,
-// ⚡ icon, shake animation on open. The hidden-when-unrolled property of the
-// life-event mechanic stays intact (no modal opens unless a card actually drops).
+// History:
+//  - fb:dfdeaf1c — life events used to render inside the generic DiceResultModal
+//    with the originating space's header, so they read as part of the Architect
+//    roll. The fix gave them their own dedicated modal.
+//  - v3.0.68 (fb:1e76c24c / fb:701b26e3 / fb:7a2a2956) — that dedicated modal was
+//    a hard red "⚡ A major disturbance just hit the project" banner. Playtest:
+//    it "looks angry because it is red" and framed *good* news (e.g. "City
+//    Council Allies — filing takes 2 days less") as a disaster, and showed the
+//    card's raw "Roll a die. On 1-3…" instruction text even though the engine
+//    already rolled and applied the outcome. This redesign reframes the event as
+//    a newspaper bulletin — neutral parchment chrome, a tone-aware kicker (good
+//    news reads as good news), and a "bottom line" receipt of what actually
+//    changed rather than roll instructions.
 
 import React from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
-import { colors, theme } from '../../styles/theme';
+import { colors } from '../../styles/theme';
 import { Card } from '../../types/DataTypes';
 import type { LifeEventEffectSummary } from '../../services/StateService';
 
 export interface LifeEventModalData {
   card: Card;
-  /** Roll value that triggered the draw (1-6). Surfaced for transparency. */
+  /** Roll value that triggered the draw (1-6). Kept for back-compat; not shown. */
   diceValue?: number;
-  /** Space the player was on when it fired (for context, not header). */
+  /** Space the player was on when it fired. Kept for back-compat; not shown. */
   spaceName?: string;
   /**
-   * v3.0.40 — ordered receipts of what the auto-applied card actually did
-   * (money/time deltas, approval flips, card gains/losses, multi-turn
-   * duration callout). Rendered as the "What just happened" block under
-   * the card narrative. Empty/undefined → block is hidden so cards that
-   * are pure narrative (no Kids effects) keep the legacy look.
+   * Dateline for the newspaper masthead, e.g. "DAY 146". Optional — falls back
+   * to a generic "SPECIAL EDITION" so legacy callers still render cleanly.
+   */
+  dayLabel?: string;
+  /**
+   * Ordered receipts of what the auto-applied card actually did (money/time
+   * deltas, approval flips, card gains/losses, multi-turn duration). Rendered as
+   * the "bottom line" block. Empty/undefined → block is hidden.
    */
   effectsSummary?: LifeEventEffectSummary[];
 }
@@ -40,17 +47,78 @@ interface LifeEventModalProps {
   onClose: () => void;
 }
 
+// --- Newspaper palette (local — these are deliberately not theme tokens; the
+// "newsprint" look is specific to this modal). ----------------------------------
+const NEWS = {
+  parchment: '#efe7d3',   // masthead background
+  paper: '#fbf8ef',       // article background
+  ink: '#1f1b16',         // body text / rules
+  inkSoft: '#5b5346',     // dateline / secondary
+  goodNews: '#1b6b3a',    // editorial green
+  setback: '#8a2b22',     // muted brick (NOT the old alarm red)
+  neutral: '#2a3b4d',     // ink-blue
+};
+
+const SERIF = '"Georgia", "Times New Roman", Times, serif';
+
+type NewsTone = 'goodNews' | 'setback' | 'neutral';
+
 /**
- * LifeEventModal — dedicated UI for a life event card draw.
+ * Decide the headline tone from the realized receipts so the modal doesn't
+ * frame good news as a disaster (the core fb:1e76c24c complaint). Saved days,
+ * money in, and resources gained read as good; lost time/money, revoked
+ * approvals, and lost resources read as a setback. Mixed or nothing-changed →
+ * neutral bulletin.
+ */
+function computeNewsTone(summary?: LifeEventEffectSummary[]): NewsTone {
+  let good = false;
+  let bad = false;
+  for (const e of summary ?? []) {
+    switch (e.kind) {
+      case 'money':
+        if ((e.amount ?? 0) > 0) good = true; else if ((e.amount ?? 0) < 0) bad = true;
+        break;
+      case 'time':
+        // Negative time delta = days saved = good; positive = delay = bad; 0 = no change.
+        if ((e.amount ?? 0) < 0) good = true; else if ((e.amount ?? 0) > 0) bad = true;
+        break;
+      case 'card_gained':
+        good = true;
+        break;
+      case 'card_lost':
+      case 'approval_revoke':
+        bad = true;
+        break;
+      // duration_start / competing_reveal / leader_reveal carry no inherent tone.
+    }
+  }
+  if (bad && !good) return 'setback';
+  if (good && !bad) return 'goodNews';
+  return 'neutral';
+}
+
+function toneAccent(tone: NewsTone): string {
+  return tone === 'goodNews' ? NEWS.goodNews : tone === 'setback' ? NEWS.setback : NEWS.neutral;
+}
+
+function toneKicker(tone: NewsTone): string {
+  return tone === 'goodNews'
+    ? 'GOOD NEWS FOR THE PROJECT'
+    : tone === 'setback'
+      ? 'SETBACK ON THE PROJECT'
+      : 'PROJECT BULLETIN';
+}
+
+/**
+ * LifeEventModal — newspaper-style bulletin for an auto-applied life event.
  *
  * Visual contract:
- *   - Red header (#dc3545 / cardTypes.L theme) so it's obviously NOT a normal
- *     dice result modal.
- *   - "⚡ LIFE EVENT" title — distinct from any space's roll outcome label.
- *   - Shake animation on open (the "major disturbance" feel from feedback).
- *   - Card name as the primary heading, then the description body verbatim.
- *   - Single dismiss button; no choices, no branching. The card's actual
- *     effects already applied before this modal opened.
+ *   - "📰 THE DAILY PERMIT" masthead on parchment (not an alarm-red header).
+ *   - A dateline + a tone-aware kicker so good news reads as good news.
+ *   - Card name as the serif headline, description as the article body.
+ *   - "The bottom line" receipts: what actually changed (the realized outcome),
+ *     never the card's "roll a die" instructions.
+ *   - Shake only on a genuine setback; good/neutral bulletins arrive calmly.
  */
 export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): JSX.Element | null {
   // Render closed ModalBase when data is missing so AnimatePresence can play
@@ -63,31 +131,31 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
     );
   }
 
-  // v3.0.23: diceValue / spaceName from `data` are no longer rendered
-  // (voice rule, fb:1aad6035). Props remain on the interface for backward
-  // compatibility with callers and possible future admin-side use.
-  const { card, effectsSummary } = data;
-  const lColors = colors.game.cardTypes.L;
+  const { card, effectsSummary, dayLabel } = data;
   const hasEffects = !!(effectsSummary && effectsSummary.length > 0);
+  const tone = computeNewsTone(effectsSummary);
+  const accent = toneAccent(tone);
 
   return (
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="LIFE EVENT"
-      emoji="⚡"
+      title="THE DAILY PERMIT"
+      emoji="📰"
       testId="life-event-modal"
-      headerColor={lColors.primary}
-      headerBorderColor={lColors.border}
-      shake={true}
-      maxWidth="520px"
+      headerColor={NEWS.parchment}
+      headerBorderColor={NEWS.ink}
+      shake={tone === 'setback'}
+      maxWidth="560px"
       footer={
         <button
           type="button"
           onClick={onClose}
           style={{
-            ...modalButtonStyles.danger,
-            backgroundColor: lColors.primary,
+            ...modalButtonStyles.secondary,
+            backgroundColor: NEWS.ink,
+            color: colors.white,
+            border: `1px solid ${NEWS.ink}`,
           }}
           data-testid="life-event-modal-dismiss"
         >
@@ -95,54 +163,78 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
         </button>
       }
     >
-      <div data-testid="life-event-modal-body">
-        {/* Sub-banner: frames severity */}
+      <div
+        data-testid="life-event-modal-body"
+        style={{
+          backgroundColor: NEWS.paper,
+          margin: '-16px',
+          padding: '20px 22px',
+          fontFamily: SERIF,
+          color: NEWS.ink,
+        }}
+      >
+        {/* Dateline rule under the masthead */}
         <div
           style={{
-            backgroundColor: lColors.bg,
-            border: `1px solid ${lColors.border}`,
-            borderRadius: theme.button.borderRadius,
-            padding: '12px 16px',
-            marginBottom: '16px',
-            color: lColors.text,
-            fontWeight: 600,
-            fontSize: '0.95rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            borderBottom: `2px solid ${NEWS.ink}`,
+            paddingBottom: '6px',
+            fontSize: '0.72rem',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: NEWS.inkSoft,
+            fontFamily: SERIF,
           }}
         >
-          A major disturbance just hit the project.
-          {/*
-            v3.0.23 (fb:1aad6035): removed the "(rolled {diceValue} at {spaceName})"
-            parenthetical. Both "rolled" and the raw space-id leaked game machinery
-            at the player (voice rule violation). The card body explains severity in
-            character — players don't need the dice value to interpret the event.
-            diceValue / spaceName props are still accepted so callers don't need to
-            change; they're now visually unused but kept for potential future use
-            (e.g. an admin-side replay view).
-          */}
+          <span>{dayLabel || 'Special Edition'}</span>
+          <span>New York · Permits Desk</span>
         </div>
 
-        {/* Card name — the headline event */}
+        {/* Tone-aware kicker — replaces the old red "major disturbance" banner */}
+        <div
+          data-testid="life-event-modal-kicker"
+          style={{
+            marginTop: '14px',
+            marginBottom: '6px',
+            fontSize: '0.74rem',
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: accent,
+            fontFamily: SERIF,
+          }}
+        >
+          {toneKicker(tone)}
+        </div>
+
+        {/* Headline — the card name set as a newspaper headline */}
         <h3
           style={{
-            margin: '0 0 8px 0',
-            color: colors.text.primary,
-            fontSize: '1.15rem',
+            margin: '0 0 10px 0',
+            color: NEWS.ink,
+            fontSize: '1.5rem',
+            lineHeight: 1.15,
             fontWeight: 700,
+            fontFamily: SERIF,
           }}
           data-testid="life-event-modal-card-name"
         >
           {card.card_name || 'Life Event'}
         </h3>
 
-        {/* Card description — the narrative body */}
+        {/* Article body — the narrative, set as a justified news column */}
         {card.description && (
           <p
             style={{
               margin: 0,
-              color: colors.text.primary,
-              fontSize: '1rem',
-              lineHeight: 1.5,
+              color: NEWS.ink,
+              fontSize: '1.02rem',
+              lineHeight: 1.55,
+              textAlign: 'justify',
               whiteSpace: 'pre-wrap',
+              fontFamily: SERIF,
             }}
             data-testid="life-event-modal-card-description"
           >
@@ -150,34 +242,33 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
           </p>
         )}
 
-        {/*
-          v3.0.40 — receipts block. Playtest signal (2026-05-29): Kids A–E
-          richer life-event effects ship in v3.0.39, but the modal showed only
-          the card story so players couldn't tell the card had any teeth.
-          This block surfaces each delta the card produced, in plain language,
-          PM voice (PM is the in-character narrator for life-event spaces per
-          the project voice rule — one of the 5 PM-voiced exceptions).
-        */}
+        {/* "The bottom line" — the realized outcome, framed as a boxed sidebar.
+            This is what the player should read instead of any "roll a die"
+            instruction: it shows what actually changed (fb:7a2a2956). */}
         {hasEffects && (
           <div
             data-testid="life-event-modal-effects"
             style={{
-              marginTop: '16px',
-              paddingTop: '12px',
-              borderTop: `1px dashed ${lColors.border}`,
+              marginTop: '18px',
+              padding: '12px 14px',
+              backgroundColor: '#fffdf6',
+              border: `1px solid ${NEWS.ink}`,
+              borderLeft: `4px solid ${accent}`,
             }}
           >
             <div
+              data-testid="life-event-modal-effects-heading"
               style={{
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: colors.text.muted ?? colors.text.primary,
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                color: NEWS.inkSoft,
                 marginBottom: '8px',
-                letterSpacing: '0.02em',
+                letterSpacing: '0.08em',
                 textTransform: 'uppercase',
+                fontFamily: SERIF,
               }}
             >
-              What just happened
+              The bottom line
             </div>
             <ul
               style={{
@@ -199,8 +290,9 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      fontSize: '0.95rem',
-                      color: colors.text.primary,
+                      fontSize: '0.98rem',
+                      color: NEWS.ink,
+                      fontFamily: SERIF,
                     }}
                   >
                     <span aria-hidden="true" style={{ fontSize: '1.1rem', lineHeight: 1 }}>{icon}</span>
@@ -217,10 +309,10 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
 }
 
 /**
- * v3.0.40 — icon for each life-event receipt kind. Money/time use the
- * existing project symbols (💰 / ⏱️) for consistency with the resource
- * panel; approvals get a stamp, card moves get a card face, duration
- * effects get the clock-back to signal "this isn't over yet."
+ * Icon for each life-event receipt kind. Money/time use the existing project
+ * symbols (💰 / ⏱️) for consistency with the resource panel; approvals get a
+ * stamp, card moves get a card face, duration effects get the clock-back to
+ * signal "this isn't over yet."
  */
 function lifeEventEffectIcon(kind: LifeEventEffectSummary['kind']): string {
   switch (kind) {

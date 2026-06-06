@@ -60,7 +60,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations } from '../../utils/boardCommon';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -181,7 +181,11 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       {/* Buffer ghost — visualizes how much room this tile will eat in game.
           Editor-only; admins should leave at least this footprint clear when
           placing neighbors. Dashed to read as a guideline, not a real border.
-          fb:97fa9c75. */}
+          fb:97fa9c75. fb:a4c50822 — height is now content-aware: a tile with a
+          long story/action renders taller than the 130 floor and would overlap
+          a flush neighbor, so the ghost grows downward to its estimated
+          worst-case in-grid height. Top stays anchored to the currentBig
+          centering (content grows down from there). */}
       {data.showBuffer && data.isEditMode && (
         <div
           aria-hidden
@@ -190,7 +194,12 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
             left: -((BOARD_TILE_MAX_INGRID.w - BOARD_TILE_COMPACT.w) / 2),
             top: -((BOARD_TILE_MAX_INGRID.h - BOARD_TILE_COMPACT.h) / 2),
             width: BOARD_TILE_MAX_INGRID.w,
-            height: BOARD_TILE_MAX_INGRID.h,
+            height: estimateTileMaxIngridHeight({
+              title: data.title,
+              story: data.story,
+              action: data.actionDescription,
+              npcName: data.npcName,
+            }),
             border: '1.5px dashed #adb5bd',
             borderRadius: 10,
             background: 'rgba(173,181,189,0.06)',
@@ -502,10 +511,22 @@ function BoardCanvasInner({
     const edges: Edge[] = [];
     for (const mov of movements) {
       if (mov.visit_type !== 'First') continue;
-      const dests = [
+      let dests = [
         mov.destination_1, mov.destination_2,
         mov.destination_3, mov.destination_4, mov.destination_5,
       ].filter((d): d is string => !!d && d.trim().length > 0);
+
+      // fb:35daf1ba — dice spaces (e.g. CHEAT-BYPASS) carry their destinations
+      // in DICE_OUTCOMES.csv, not MOVEMENT.csv (whose destination columns are
+      // blank for dice rows). Without this, NO dice space got static edges, so
+      // the path-taken line couldn't render afterward (the reporter cheated to
+      // FDNY and saw no line). Pull the unique roll destinations so the edge
+      // exists in the graph; the visibleEdges filter still hides it until it's
+      // path-taken or the current tile's outgoing move.
+      if (dests.length === 0 && mov.movement_type === 'dice') {
+        dests = uniqueDiceDestinations(dataService.getDiceOutcome(mov.space_name, 'First'));
+      }
+
       for (const dest of dests) {
         edges.push({
           id: `${mov.space_name}__${dest}`,

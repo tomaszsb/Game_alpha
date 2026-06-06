@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, computeVisitNumber, formatVisitBadge } from '../../src/utils/boardCommon';
+import { computeTileVisualState, shortName, truncate, computeVisibleEdgeIds, computeVisitNumber, formatVisitBadge, estimateTileMaxIngridHeight, BOARD_TILE_MAX_INGRID, uniqueDiceDestinations } from '../../src/utils/boardCommon';
 
 // fb:97fa9c75 — five-step tile size hierarchy. Was a 3-step ladder where the
 // current-player tile and valid-move tiles got only border treatment, which
@@ -246,5 +246,68 @@ describe('formatVisitBadge (panel header revisit label)', () => {
     // still show a badge rather than contradict the engine.
     expect(formatVisitBadge('Subsequent', 1)).toBe('↩ Return visit');
     expect(formatVisitBadge('Subsequent', 0)).toBe('↩ Return visit');
+  });
+});
+
+describe('estimateTileMaxIngridHeight (content-aware buffer ghost — fb:a4c50822)', () => {
+  it('returns the 130 floor for empty / minimal content', () => {
+    expect(estimateTileMaxIngridHeight({})).toBe(BOARD_TILE_MAX_INGRID.h);
+    expect(estimateTileMaxIngridHeight({ title: 'Fee Review' })).toBe(BOARD_TILE_MAX_INGRID.h);
+  });
+
+  it('grows above the floor for a long story + action (the overlap case)', () => {
+    const tall = estimateTileMaxIngridHeight({
+      title: 'Plan Exam',
+      npcName: 'FDNY Inspector',
+      story:
+        'I read for what kills people in fires. Sprinkler heads, standpipe risers, ' +
+        'egress widths, alarm zones. Sound like you know the code if you want — I actually ' +
+        'know it. Objections come back specific.',
+      action: "Accept FDNY's verdict, or push back on objections.",
+    });
+    expect(tall).toBeGreaterThan(BOARD_TILE_MAX_INGRID.h);
+  });
+
+  it('a content-heavy tile reserves more room than a sparse one', () => {
+    const sparse = estimateTileMaxIngridHeight({ title: 'Inspect', story: 'Quick look.' });
+    const heavy = estimateTileMaxIngridHeight({
+      title: 'Inspect',
+      story: 'Quick look. '.repeat(40),
+      action: 'Decide next step. '.repeat(10),
+    });
+    expect(heavy).toBeGreaterThan(sparse);
+  });
+
+  it('counts explicit newlines in authored copy as separate lines', () => {
+    const oneLine = estimateTileMaxIngridHeight({ title: 'X', story: 'short' });
+    const manyBreaks = estimateTileMaxIngridHeight({ title: 'X', story: 'a\nb\nc\nd\ne\nf\ng\nh' });
+    expect(manyBreaks).toBeGreaterThan(oneLine);
+  });
+});
+
+describe('uniqueDiceDestinations (board edges for dice spaces — fb:35daf1ba)', () => {
+  it('returns [] for a missing outcome', () => {
+    expect(uniqueDiceDestinations(undefined)).toEqual([]);
+  });
+
+  it('includes the FDNY destination CHEAT-BYPASS could only reach via dice', () => {
+    // The exact CHEAT-BYPASS DICE_OUTCOMES row — REG-FDNY-FEE-REVIEW was the
+    // missing arrow the reporter hit. PM-DECISION-CHECK appears on rolls 5+6.
+    const dests = uniqueDiceDestinations({
+      roll_1: 'ENG-INITIATION',
+      roll_2: 'REG-DOB-FEE-REVIEW',
+      roll_3: 'REG-FDNY-FEE-REVIEW',
+      roll_4: 'CON-INITIATION',
+      roll_5: 'PM-DECISION-CHECK',
+      roll_6: 'PM-DECISION-CHECK',
+    });
+    expect(dests).toContain('REG-FDNY-FEE-REVIEW');
+    // Deduped: PM-DECISION-CHECK appears once despite two rolls.
+    expect(dests.filter(d => d === 'PM-DECISION-CHECK')).toHaveLength(1);
+    expect(dests).toHaveLength(5);
+  });
+
+  it('drops blank roll columns', () => {
+    expect(uniqueDiceDestinations({ roll_1: 'A', roll_2: '', roll_3: '   ', roll_4: 'B' })).toEqual(['A', 'B']);
   });
 });

@@ -6,9 +6,15 @@ import { LifeEventModal, type LifeEventModalData } from '../../../src/components
 import { Card } from '../../../src/types/DataTypes';
 
 // fb:dfdeaf1c — life events used to render inside the generic DiceResultModal
-// with the originating space's header, so the playtester perceived them as
-// "mixed with the Architect modal." LifeEventModal is the dedicated red-themed
-// replacement; these tests pin its behavior.
+// with the originating space's header. LifeEventModal is the dedicated
+// replacement.
+//
+// v3.0.68 (fb:1e76c24c / fb:701b26e3 / fb:7a2a2956) — the dedicated modal was a
+// hard red "⚡ A major disturbance just hit the project" banner that framed good
+// news as a disaster and showed the card's raw "roll a die" instructions. It is
+// now a newspaper bulletin: a parchment "THE DAILY PERMIT" masthead, a
+// tone-aware kicker (good news reads as good news), and a "bottom line" receipt
+// of what actually changed. These tests pin the new contract.
 
 describe('LifeEventModal', () => {
   afterEach(() => {
@@ -19,7 +25,7 @@ describe('LifeEventModal', () => {
     card_id: 'L001',
     card_name: 'Lawsuit Filed',
     card_type: 'L',
-    description: 'A neighbor filed a complaint. Project delayed 2 weeks.',
+    description: 'A neighbor filed a complaint and the project stalls.',
   };
 
   const mockData: LifeEventModalData = {
@@ -40,13 +46,11 @@ describe('LifeEventModal', () => {
     expect(screen.getByTestId('life-event-modal-body')).toBeInTheDocument();
   });
 
-  it('uses its OWN header (not the originating space name) — the key fix for fb:dfdeaf1c', () => {
+  it('uses a newspaper masthead, not the originating space name — the key fix for fb:dfdeaf1c', () => {
     render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
-    // The headline reads "LIFE EVENT" regardless of which space triggered it.
-    // Previously DiceResultModal showed e.g. "ARCH-INITIATION" as the header
-    // and the player thought the life event was part of the Architect flow.
-    expect(screen.getByText(/LIFE EVENT/i)).toBeInTheDocument();
-    // The originating space appears only in the parenthetical context line.
+    // The masthead reads "THE DAILY PERMIT" regardless of which space triggered it.
+    expect(screen.getByText(/THE DAILY PERMIT/i)).toBeInTheDocument();
+    // The originating space is never a heading.
     expect(screen.queryByRole('heading', { name: /ARCH-INITIATION/i })).not.toBeInTheDocument();
   });
 
@@ -55,15 +59,54 @@ describe('LifeEventModal', () => {
     expect(screen.getByTestId('life-event-modal-card-name')).toHaveTextContent('Lawsuit Filed');
   });
 
-  it('renders the card description as the narrative body', () => {
+  it('renders the card description as the article body', () => {
     render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
     expect(screen.getByTestId('life-event-modal-card-description'))
-      .toHaveTextContent('A neighbor filed a complaint. Project delayed 2 weeks.');
+      .toHaveTextContent('A neighbor filed a complaint and the project stalls.');
   });
 
-  it('frames the event as a major disturbance (player-facing severity cue)', () => {
+  // --- Tone-aware kicker (replaces the old red "major disturbance" banner) ---
+
+  it('shows a neutral "PROJECT BULLETIN" kicker when nothing measurable changed', () => {
     render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
-    expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-modal-kicker')).toHaveTextContent(/PROJECT BULLETIN/i);
+  });
+
+  it('frames saved time as GOOD NEWS, not a disturbance (fb:1e76c24c)', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{ ...mockData, effectsSummary: [{ kind: 'time', amount: -2, label: '-2 days' }] }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-modal-kicker')).toHaveTextContent(/GOOD NEWS/i);
+    // The old alarmist wording must be gone.
+    expect(screen.queryByText(/major disturbance/i)).not.toBeInTheDocument();
+  });
+
+  it('frames lost time / revoked approval as a SETBACK', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{
+          ...mockData,
+          effectsSummary: [
+            { kind: 'time', amount: 5, label: '+5 days' },
+            { kind: 'approval_revoke', label: 'DOB approval revoked — you will need to re-apply' },
+          ],
+        }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-modal-kicker')).toHaveTextContent(/SETBACK/i);
+  });
+
+  it('renders the dateline when a dayLabel is provided', () => {
+    render(
+      <LifeEventModal isOpen={true} data={{ ...mockData, dayLabel: 'Day 146' }} onClose={mockOnClose} />,
+    );
+    expect(screen.getByText(/Day 146/i)).toBeInTheDocument();
   });
 
   it('calls onClose when the dismiss button is clicked', () => {
@@ -74,7 +117,6 @@ describe('LifeEventModal', () => {
 
   it('renders nothing visible when data is null (allows AnimatePresence exit)', () => {
     render(<LifeEventModal isOpen={true} data={null} onClose={mockOnClose} />);
-    // The modal mounts in a closed state — body content should not be present.
     expect(screen.queryByTestId('life-event-modal-body')).not.toBeInTheDocument();
   });
 
@@ -87,20 +129,14 @@ describe('LifeEventModal', () => {
         onClose={mockOnClose}
       />,
     );
-    // Headline still renders; description block is omitted.
     expect(screen.getByTestId('life-event-modal-card-name')).toBeInTheDocument();
     expect(screen.queryByTestId('life-event-modal-card-description')).not.toBeInTheDocument();
   });
 
-  it('never exposes game-machinery language (rolled / raw space-id) — v3.0.23 fb:1aad6035', () => {
-    // With diceValue + spaceName fully populated, the rendered modal must NOT
-    // contain "rolled" or the raw space-id. The card body explains severity
-    // in character; meta details stay out of the player view.
+  it('never exposes game-machinery language (rolled / raw space-id) — voice rule', () => {
     render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
     expect(screen.queryByText(/rolled/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/ARCH-INITIATION/)).not.toBeInTheDocument();
-    // Severity banner still shows.
-    expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
   });
 
   it('also renders cleanly when diceValue / spaceName are absent (no-op props)', () => {
@@ -111,20 +147,18 @@ describe('LifeEventModal', () => {
         onClose={mockOnClose}
       />,
     );
-    expect(screen.getByText(/major disturbance/i)).toBeInTheDocument();
+    expect(screen.getByTestId('life-event-modal-kicker')).toBeInTheDocument();
     expect(screen.getByTestId('life-event-modal-card-name')).toBeInTheDocument();
   });
 
-  // v3.0.40 — effects-applied block. Playtest signal (2026-05-29): Kids A–E
-  // worked but were invisible. The modal now shows a receipts block under the
-  // card narrative when effectsSummary is non-empty.
+  // --- "The bottom line" receipts block (the realized outcome) ---
 
-  it('omits the effects block when effectsSummary is absent (legacy narrative-only card)', () => {
+  it('omits the bottom-line block when effectsSummary is absent (legacy narrative-only card)', () => {
     render(<LifeEventModal isOpen={true} data={mockData} onClose={mockOnClose} />);
     expect(screen.queryByTestId('life-event-modal-effects')).not.toBeInTheDocument();
   });
 
-  it('omits the effects block when effectsSummary is empty', () => {
+  it('omits the bottom-line block when effectsSummary is empty', () => {
     render(
       <LifeEventModal
         isOpen={true}
@@ -176,7 +210,23 @@ describe('LifeEventModal', () => {
     expect(screen.getByTestId('life-event-effect-duration_start')).toBeInTheDocument();
   });
 
-  it('voice rule: the effects block uses "What just happened" — no "machinery" wording', () => {
+  it('shows a realized "no change this time" line for a dice card that landed on no effect', () => {
+    // SpaceArrivalProcessor pushes this for dice_conditional cards whose roll hit
+    // the 0-effect branch, so the player sees the outcome instead of instructions.
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{
+          ...mockData,
+          effectsSummary: [{ kind: 'time', amount: 0, label: 'No change this time' }],
+        }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-effect-time')).toHaveTextContent(/no change this time/i);
+  });
+
+  it('voice rule: the receipts block uses "The bottom line" — no engine jargon', () => {
     render(
       <LifeEventModal
         isOpen={true}
@@ -187,8 +237,7 @@ describe('LifeEventModal', () => {
         onClose={mockOnClose}
       />,
     );
-    expect(screen.getByText(/what just happened/i)).toBeInTheDocument();
-    // No engine/processor jargon should leak into player view.
+    expect(screen.getByText(/the bottom line/i)).toBeInTheDocument();
     expect(screen.queryByText(/effect type|process|applyCardEffects|RESOURCE_CHANGE/i)).not.toBeInTheDocument();
   });
 });

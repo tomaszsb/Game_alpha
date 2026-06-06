@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SpaceRow, DiceRollRow, ModalConfigRow, PHASES, PATH_TYPES, YES_NO_OPTIONS, YES_NO_LOWER_OPTIONS, SHAKE_OPTIONS, TTS_FIELD_OPTIONS } from './types/EditorTypes';
 import { InlineDiceRollEditor } from './InlineDiceRollEditor';
+import { shortName } from '../../utils/boardCommon';
 
 interface SpaceEditorProps {
   spaceFirst: SpaceRow | null;
@@ -11,6 +12,10 @@ interface SpaceEditorProps {
   modalConfigData: ModalConfigRow[];
   onVisitTypeChange: (visitType: 'First' | 'Subsequent') => void;
   onFieldChange: (visitType: 'First' | 'Subsequent', field: keyof SpaceRow, value: string) => void;
+  /** Current tile label override (GAME_CONFIG.display_label_override) — per-space, shared across visits. */
+  displayLabelOverride: string;
+  /** Update the per-space tile label; writes to both First + Subsequent rows. */
+  onDisplayLabelChange: (value: string) => void;
   onUpdateDiceRoll: (index: number, field: keyof DiceRollRow, value: string) => void;
   onAddDiceRoll: (diceRoll: DiceRollRow) => void;
   onDeleteDiceRoll: (index: number) => void;
@@ -46,6 +51,8 @@ export function SpaceEditor({
   modalConfigData,
   onVisitTypeChange,
   onFieldChange,
+  displayLabelOverride,
+  onDisplayLabelChange,
   onUpdateDiceRoll,
   onAddDiceRoll,
   onDeleteDiceRoll,
@@ -122,17 +129,25 @@ export function SpaceEditor({
 
   return (
     <div style={styles.container}>
-      {/* Header with space name, title, and visit type toggle */}
+      {/* Header with space name, tile label, and visit type toggle.
+          The inline input edits the TILE LABEL (display_label_override) — the
+          name shown on the board tile and player panel. It's a per-space value
+          shared across First/Subsequent. The per-visit story title moved into
+          the Story section below so the two are no longer conflated
+          (fb:24c3849c / fb:170b98e6 — users typed here expecting the tile to
+          rename, but this box used to edit the per-visit story title). */}
       <div style={styles.header}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h3 style={styles.spaceName}>{currentSpace.space_name}</h3>
             <input
               type="text"
-              value={currentSpace.Title || ''}
-              onChange={(e) => handleChange('Title', e.target.value)}
-              placeholder="Display name..."
+              value={displayLabelOverride || ''}
+              onChange={(e) => onDisplayLabelChange(e.target.value)}
+              placeholder={`Tile label (blank = ${shortName(currentSpace.space_name)})`}
+              title="Tile label shown on the board and player panel. Leave blank to auto-name from the space ID."
               style={styles.titleInline}
+              data-testid="space-tile-label-input"
             />
           </div>
         </div>
@@ -192,37 +207,15 @@ export function SpaceEditor({
           </div>
         </fieldset>
 
-        {/* Button Labels */}
-        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
-          <legend style={styles.legend}>🎮 Button Labels</legend>
-          <div style={styles.fieldRow}>
-            <Field
-              label="End Turn Label"
-              value={currentSpace.end_turn_label}
-              onChange={(v) => handleChange('end_turn_label', v)}
-              placeholder="End Turn"
-            />
-            <Field
-              label="Try Again Label"
-              value={currentSpace.try_again_label}
-              onChange={(v) => handleChange('try_again_label', v)}
-              placeholder="Try Again"
-            />
-            <div style={styles.field}>
-              <label style={styles.label}>Preview</label>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <span style={styles.btnPreviewGreen}>{currentSpace.end_turn_label || 'End Turn'}</span>
-                {currentSpace.Negotiate === 'YES' && (
-                  <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </fieldset>
-
         {/* Story & Narrative */}
         <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.story}` }}>
           <legend style={styles.legend}>📖 Story & Narrative</legend>
+          <TextareaField
+            label="Story title (subtitle, per visit)"
+            value={currentSpace.Title}
+            onChange={(v) => handleChange('Title', v)}
+            rows={1}
+          />
           <TextareaField
             label="Event (Story)"
             value={currentSpace.Event}
@@ -414,6 +407,35 @@ export function SpaceEditor({
             and <code>{'{spaceName}'}</code>.
           </div>
           <ModalConfigExpander effectAction="end_game" getModalConfig={getModalConfig} setModalConfigField={setModalConfigField} />
+        </fieldset>
+
+        {/* Button Labels — kept LAST to mirror the in-game panel, where the
+            End Turn / Try Again buttons sit at the bottom (fb:8f64c34c). */}
+        <fieldset style={{ ...styles.fieldset, borderLeft: `3px solid ${SECTION_COLORS.buttons}` }}>
+          <legend style={styles.legend}>🎮 Button Labels</legend>
+          <div style={styles.fieldRow}>
+            <Field
+              label="End Turn Label"
+              value={currentSpace.end_turn_label}
+              onChange={(v) => handleChange('end_turn_label', v)}
+              placeholder="End Turn"
+            />
+            <Field
+              label="Try Again Label"
+              value={currentSpace.try_again_label}
+              onChange={(v) => handleChange('try_again_label', v)}
+              placeholder="Try Again"
+            />
+            <div style={styles.field}>
+              <label style={styles.label}>Preview</label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <span style={styles.btnPreviewGreen}>{currentSpace.end_turn_label || 'End Turn'}</span>
+                {currentSpace.Negotiate === 'YES' && (
+                  <span style={styles.btnPreviewYellow}>{currentSpace.try_again_label || 'Try Again'}</span>
+                )}
+              </div>
+            </div>
+          </div>
         </fieldset>
       </div>
     </div>

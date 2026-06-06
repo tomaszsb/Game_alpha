@@ -9,7 +9,8 @@ import { SpaceEffect, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { AutoActionEvent } from './StateService';
+import { AutoActionEvent, LifeEventEffectSummary } from './StateService';
+import { snapshotPlayerForLifeEvent, diffLifeEventSnapshot } from '../utils/lifeEventReceipts';
 
 /**
  * SpaceArrivalProcessor handles the processing of space effects when a player arrives at a space.
@@ -218,6 +219,14 @@ export class SpaceArrivalProcessor {
       debugLog(`🎯 Dice roll ${diceRoll} matches ${requiredRoll}! Drawing ${cardType} card for ${currentPlayer.name}`);
 
       try {
+        // Snapshot before the draw so we can diff what the auto-applied L-card
+        // actually did and show the player a receipt instead of the card's raw
+        // "roll a die / on 1-3…" instruction text (fb:7a2a2956, fb:701b26e3).
+        const isCapturing = this.stateService.getGameState().isCapturingStartingHand;
+        const beforeSnapshot = (cardType === 'L' && !isCapturing)
+          ? snapshotPlayerForLifeEvent(this.stateService.getPlayer(currentPlayer.id))
+          : null;
+
         const drawnCardIds = this.cardService.drawCards(
           currentPlayer.id,
           cardType as CardType,
@@ -232,7 +241,7 @@ export class SpaceArrivalProcessor {
         // applies just the pure-arithmetic money/time + Kid B (self-E draws) +
         // Kid D (dice-conditional, using diceRoll). Kid E (global forced
         // discard) still deferred. Card stays in hand as a record.
-        if (cardType === 'L' && !this.stateService.getGameState().isCapturingStartingHand) {
+        if (cardType === 'L' && !isCapturing) {
           for (const drawnId of drawnCardIds) {
             await this.cardService.applyCardEffects(currentPlayer.id, drawnId, {
               onlyResourceEffects: true,
@@ -244,6 +253,21 @@ export class SpaceArrivalProcessor {
         // Get card details for display
         const cardData = drawnCardIds.length > 0 ? this.dataService.getCardById(drawnCardIds[0]) : null;
         const cardName = cardData?.card_name || `${cardType} Card`;
+
+        // Build the "what just happened" receipts for the LifeEventModal. Shared
+        // with CardEffectHandler via lifeEventReceipts so the two emission paths
+        // can't drift. For a dice_conditional card whose roll landed on the
+        // "no effect" branch (e.g. L043 4-6 → 0 days), the diff is empty — add an
+        // explicit "no change this time" line so the realized outcome is never
+        // ambiguous (the player shouldn't be left reading roll instructions).
+        let effectsSummary: LifeEventEffectSummary[] = [];
+        if (cardType === 'L' && !isCapturing) {
+          const afterSnapshot = snapshotPlayerForLifeEvent(this.stateService.getPlayer(currentPlayer.id));
+          effectsSummary = diffLifeEventSnapshot(beforeSnapshot, afterSnapshot, drawnCardIds[0]);
+          if (cardData?.card_mechanic === 'dice_conditional' && !effectsSummary.some(e => e.kind === 'time')) {
+            effectsSummary = [...effectsSummary, { kind: 'time', amount: 0, label: 'No change this time' }];
+          }
+        }
 
         // Emit auto-action event for modal display
         const autoActionEvent: AutoActionEvent = {
@@ -257,7 +281,8 @@ export class SpaceArrivalProcessor {
           cardId: drawnCardIds.length > 0 ? drawnCardIds[0] : undefined,
           success: true,
           spaceName: spaceName,
-          message: `Rolled ${diceRoll} and drew: ${cardName}`
+          message: `Rolled ${diceRoll} and drew: ${cardName}`,
+          effectsSummary: effectsSummary.length > 0 ? effectsSummary : undefined,
         };
         this.stateService.emitAutoAction(autoActionEvent);
 
