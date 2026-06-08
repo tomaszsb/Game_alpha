@@ -41,6 +41,18 @@ export interface GhostGameOptions {
    */
   tryAgainProbability?: number;
   /**
+   * When true, the ghost plays Try Again like a rational player: it will NOT
+   * undo a turn on which it just earned a DOB or FDNY approval stamp. Blind
+   * Try Again at an examiner space reverts the freshly-granted approval (it
+   * lives in TEMP state until end-of-turn), and the Stage-1 gate at FINAL-REVIEW
+   * then routes the un-approved player back to the examiner — an infinite
+   * regulatory loop that a real player never hits. The win-rate gate uses this
+   * smart bot so its floor reflects competent play; the negotiate-coverage gate
+   * leaves it false so it still stress-tests reverting an approval grant.
+   * Default false.
+   */
+  smartTryAgain?: boolean;
+  /**
    * Optional abort signal. When triggered, the game loop and inner helpers
    * (resolveAnyPendingChoice, triggerManualSpaceEffects) return early at the
    * next yield point. Used by runGhostBatch to enforce a per-game wall-clock
@@ -163,6 +175,11 @@ export async function playOneGame(
       const invariantErr = checkInvariants(p, dataService);
       if (invariantErr) return fail('INVARIANT_VIOLATION', invariantErr, turn);
 
+      // Snapshot approval state at turn start (TEMP == REAL right after startTurn)
+      // so the smart-bot Try Again rule can tell whether THIS turn earned a stamp.
+      const dobApprovedAtStart = p.dobApprovalStatus === 'approved';
+      const fdnyApprovedAtStart = p.fdnyApprovalStatus === 'approved';
+
       const wCards = p.hand?.filter((c: string) => c.startsWith('W')).length ?? 0;
       trail.push(`T${turn} ${p.currentSpace}:${p.visitType} hand=${p.hand?.length ?? 0}(W=${wCards}) $${p.money}`);
       if (options.verbose) console.log(`T${turn} @ ${p.currentSpace} (${p.visitType})`);
@@ -237,22 +254,33 @@ export async function playOneGame(
       const tryAgainProb = options.tryAgainProbability ?? 0;
       if (tryAgainProb > 0 && Math.random() < tryAgainProb) {
         const pp = stateService.getPlayer(playerId);
-        const spaceContent = pp ? dataService.getSpaceContent(pp.currentSpace, pp.visitType) : null;
-        if (spaceContent?.can_negotiate) {
-          const handBefore = pp?.hand?.length ?? 0;
-          const timeBefore = pp?.timeSpent ?? 0;
-          const moneyBefore = pp?.money ?? 0;
-          const tryResult = await turnService.tryAgainOnSpace(playerId);
-          if (tryResult.success && tryResult.shouldAdvanceTurn) {
-            const after = stateService.getPlayer(playerId);
-            trail.push(
-              `  tryAgain@${pp?.currentSpace} hand:${handBefore}→${after?.hand?.length ?? 0} ` +
-                `time:${timeBefore}→${after?.timeSpent ?? 0} $:${moneyBefore}→${after?.money ?? 0}`
-            );
-            await turnService.endTurnWithMovement(true, true);
-            continue;
+        // Smart bot: never undo a turn that just earned an approval stamp — a
+        // rational player keeps that progress. Skipping the Try Again here breaks
+        // the regulatory loop (revert-approval → Stage-1 gate → back to examiner).
+        const gainedApproval =
+          (!dobApprovedAtStart && pp?.dobApprovalStatus === 'approved') ||
+          (!fdnyApprovedAtStart && pp?.fdnyApprovalStatus === 'approved');
+        if (options.smartTryAgain && gainedApproval) {
+          trail.push(`  smart: kept approval at ${pp?.currentSpace}, skipped Try Again`);
+          // fall through to the normal end-turn path below
+        } else {
+          const spaceContent = pp ? dataService.getSpaceContent(pp.currentSpace, pp.visitType) : null;
+          if (spaceContent?.can_negotiate) {
+            const handBefore = pp?.hand?.length ?? 0;
+            const timeBefore = pp?.timeSpent ?? 0;
+            const moneyBefore = pp?.money ?? 0;
+            const tryResult = await turnService.tryAgainOnSpace(playerId);
+            if (tryResult.success && tryResult.shouldAdvanceTurn) {
+              const after = stateService.getPlayer(playerId);
+              trail.push(
+                `  tryAgain@${pp?.currentSpace} hand:${handBefore}→${after?.hand?.length ?? 0} ` +
+                  `time:${timeBefore}→${after?.timeSpent ?? 0} $:${moneyBefore}→${after?.money ?? 0}`
+              );
+              await turnService.endTurnWithMovement(true, true);
+              continue;
+            }
+            trail.push(`  tryAgain failed: ${tryResult.message}`);
           }
-          trail.push(`  tryAgain failed: ${tryResult.message}`);
         }
       }
 

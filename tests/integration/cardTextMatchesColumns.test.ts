@@ -323,4 +323,36 @@ describe('CARDS_EXPANDED.csv — description matches structured behavior', () =>
     });
     expect(violators.map(c => formatViolator(c, 'tick_modifier', 'scope', 'affected_phase'))).toEqual([]);
   });
+
+  // De-jargoned cards: their player-facing copy intentionally drops "draw" /
+  // "discard" / "card" game terms (voice rule — fb:931a55de + the v3.0.68 sweep),
+  // so the English-pattern gates above no longer match them and can't watch their
+  // columns. Pin the card-movement columns by ID against the REAL CSV so a silent
+  // regression can't slip back in. This is the exact gap that let L049 ship a bare
+  // `draw_cards=1` — parseCardDrawFormat defaults a typeless count to W, so L049
+  // drew a Work Package (inflating scope) instead of the Expeditor its text
+  // promised. The English gate only checked non-empty and the unit test mocked
+  // '1 E', so neither caught it (fixed to '1 E' alongside the copy rewrite).
+  it('de-jargoned draw/discard L-cards: card-movement columns still match the narrated effect', () => {
+    const expected: Record<string, { draw_cards?: string; discard_cards?: string }> = {
+      L003: { discard_cards: '1 E' }, // every team loses an expeditor
+      L016: { discard_cards: '1 E' }, // an expeditor moves on
+      L023: { discard_cards: '2 E' }, // two expeditors walk off
+      L035: { discard_cards: '2 E' }, // two expeditors quit
+      L048: { discard_cards: '1 E' }, // every team loses an expeditor
+      L049: { draw_cards: '1 E' },    // a fresh expeditor joins every team
+    };
+    const violators: string[] = [];
+    for (const [id, cols] of Object.entries(expected)) {
+      const c = cards.find(x => x.id === id);
+      if (!c) { violators.push(`${id} missing from CSV`); continue; }
+      if (cols.draw_cards !== undefined && c.draw_cards.trim() !== cols.draw_cards) {
+        violators.push(`${id} draw_cards='${c.draw_cards.trim()}' expected '${cols.draw_cards}'`);
+      }
+      if (cols.discard_cards !== undefined && c.discard_cards.trim() !== cols.discard_cards) {
+        violators.push(`${id} discard_cards='${c.discard_cards.trim()}' expected '${cols.discard_cards}'`);
+      }
+    }
+    expect(violators).toEqual([]);
+  });
 });

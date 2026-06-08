@@ -2,6 +2,14 @@
 
 ---
 
+## v3.0.69 — Life Event wording + an expeditor that actually shows up (June 7, 2026)
+
+- **More Life Event cards now read in plain language.** Six cards still said things like *"discard 1 Expeditor card"* or *"draw 1 Expeditor Card"* — game-rulebook wording. They now read in-character (e.g. *"a fresh expeditor joins every team"*, *"two of your expeditors quit for better offers"*), finishing the cleanup started last release.
+- **A Life Event that promised an expeditor now actually gives you one.** The "Permitting Process Overhaul" card said it adds an expeditor to every team, but a data slip-up meant it was quietly handing out a Work Package instead (which made your project look bigger than it was). Fixed — you get the expeditor it promises, and the new helper now shows up in the bulletin's receipt.
+- **No more phantom "lost 1 resource" message.** A counting bug in the Life Event receipt could show *"lost 1 resource"* when nothing was lost, hide an expeditor you actually gained, or double-count a loss. The math is fixed, so the bulletin's receipt now matches what really happened.
+
+---
+
 ## v3.0.68 — Life Events read like the news + board editor fixes (June 6, 2026)
 
 - **Life Events are no longer an angry red alarm.** The pop-up that appears when a Life Event lands is now a calm newspaper bulletin — "📰 THE DAILY PERMIT" — that reads the situation: good news (like allies speeding up your permit) shows a green *GOOD NEWS* headline, while real setbacks show a muted *SETBACK*. It only shakes when something actually goes wrong.

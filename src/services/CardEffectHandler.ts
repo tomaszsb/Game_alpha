@@ -86,6 +86,21 @@ export class CardEffectHandler implements ICardEffectHandler {
 
 
     try {
+      // Snapshot BEFORE the draw, mirroring SpaceArrivalProcessor. diffLifeEventSnapshot
+      // subtracts 1 from the hand delta for the primary L-card landing in hand, so
+      // `before` must be pre-draw or that correction over-subtracts — the bug that
+      // showed a spurious "lost 1 resource" on plain L-cards and hid Kid B's free
+      // Expeditor gain (snapshot was taken AFTER drawCards until 2026-06-07).
+      // Only L cards get the receipt snapshot; keep the getGameState() call gated
+      // behind the cardType check (as the original `&&` short-circuit was) so a
+      // W/B/E/I draw never reaches into game state it doesn't need.
+      const isLifeEvent = payload.cardType === 'L';
+      const isCapturing = isLifeEvent && this.stateService.getGameState().isCapturingStartingHand;
+      const before =
+        isLifeEvent && !isCapturing
+          ? snapshotPlayerForLifeEvent(this.stateService.getPlayer(payload.playerId))
+          : null;
+
       const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
 
       // Apply the auto-drawn Life Event (L) card's money/time effects. drawCards
@@ -96,8 +111,7 @@ export class CardEffectHandler implements ICardEffectHandler {
       // block in the LifeEventModal (Kids A–E playtest signal — effects worked
       // but were invisible behind the card narrative).
       let effectsSummary: import('./StateService').LifeEventEffectSummary[] = [];
-      if (payload.cardType === 'L' && !this.stateService.getGameState().isCapturingStartingHand) {
-        const before = snapshotPlayerForLifeEvent(this.stateService.getPlayer(payload.playerId));
+      if (payload.cardType === 'L' && !isCapturing) {
         for (const drawnId of drawnCards) {
           await this.cardService.applyCardEffects(payload.playerId, drawnId, { onlyResourceEffects: true });
         }
