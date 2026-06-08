@@ -7,7 +7,7 @@
 
 **Last Updated:** June 7, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.69** (package.json bumped this session; **pending deploy** — v3.0.68 was deployed overnight, v3.0.69 ships next deploy)
+**Current Version:** **3.0.69** (deployed 2026-06-07)
 
 ## Current sprint
 A housekeeping + test-health + bug-fix session on top of the deployed v3.0.68. **Dashboard housekeeping:** flipped the 8 v3.0.68-fixed reports to resolved. **Ghost test redesign:** the `try-again-happy` gate had been pre-existing red; investigated and found the regulatory-loop losses are a *bot artifact* (the bot blindly hits Try Again on examiner spaces, reverting approval it just earned, and the Stage-1 gate routes it back) — not a game-balance bug (0 hard failures throughout). Split the one gate into a blind **`negotiate-coverage`** test (sole job: 0 crashes/state-leaks) and a new **`smart-bot`** win-rate test (a rational bot that won't undo a turn it just earned approval on). **Two Life-card fixes:** the receipt off-by-one on the non-dice draw path (spurious "lost 1 resource"), and fb:931a55de (6 more L-cards de-jargoned + a hidden L049 bug where a bare `draw_cards=1` drew a Work Package instead of the Expeditor its text promised — fixed to `1 E`, guarded by a new by-ID integrity pin).

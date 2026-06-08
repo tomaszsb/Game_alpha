@@ -1,7 +1,7 @@
 # Next session starter — written 2026-06-07 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.69 — package.json bumped, **pending deploy** (v3.0.68 was deployed overnight; v3.0.69 ships next deploy).
+- **Version:** v3.0.69 — **deployed 2026-06-07**.
 - **Branch:** master, clean after the /koniec commit (only `.claude/settings.local.json` local).
 - **Last shipped:** Dashboard housekeeping (8-report flip) + ghost `try-again-happy` gate split (coverage vs smart-bot) + two Life-card fixes (receipt off-by-one + fb:931a55de voice/L049-draw).
 - **Test suite:** 1634/1634 targeted koniec sweep (components + utils + services + card-integrity) green. 0 pre-existing failures.
@@ -16,10 +16,10 @@
 (None — sweep is green.)
 
 ## Decisions waiting on the user
-- **Deploy v3.0.69?** — syncs the live label and ships the Life-card fixes. Best validated in live play: trigger a Life Event to see the receipt (no phantom "lost 1 resource"); draw L049 "Permitting Process Overhaul" to confirm an *expeditor* is granted (not a Work Package).
+- (None pending.) v3.0.69 deployed 2026-06-07. Optional: validate the Life-card fixes in live play — trigger a Life Event (receipt should show no phantom "lost 1 resource"); draw L049 "Permitting Process Overhaul" to confirm an *expeditor* is granted (not a Work Package).
 
 ## Suggested first move
-Quick win: re-run the smart-bot calibration (item #1) to close out the ghost-gate work cleanly, then decide deploy vs. Phase 2.2 vs. onboarding. Or deploy v3.0.69 first and validate the Life-card fixes in live play.
+Quick win: re-run the smart-bot calibration (item #1) to close out the ghost-gate work cleanly, then pick between Phase 2.2 (architectural) and the onboarding package (product). v3.0.69 is already live, so the Life-card fixes can be spot-checked in play whenever.
 
 ## Reminders
 - Deploy runs from **Windows PowerShell**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Confirm the build log `Version:` reads 3.0.69.
