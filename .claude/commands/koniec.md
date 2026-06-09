@@ -120,6 +120,16 @@ Template — keep under 35 lines:
 
 The point: "fresh-context me reads this in 15 seconds and knows exactly where to start." Full recap is in CHANGELOG + memory graph; this is just the handoff.
 
+## 5a. Self-correction — did this session expose a flaw in `/start` or `/koniec`? (skip if not)
+
+A 30-second reflection, strictly conditional. Did anything THIS session reveal a bug or missing check in the `/start` or `/koniec` skills *themselves* — not the project, the skill? Signals: a skill step gave a wrong/misleading result, made you redo work, matched the wrong thing, or baked in a false assumption.
+
+Examples that triggered adding this step: (a) the `/start` fb-id matcher checked only one of TODO's two marker forms (`fb:<hex>` vs `fb:feedback-<ts>-<hex>`) → proposed already-tracked reports as "new candidates," burning a full reconciliation (2026-06-09); (b) the dashboard PATCH sweep flipping a *data-fix* report resolved when the data wasn't actually live (the data-deploy gap — "fixed in code ≠ live" for CSV data).
+
+If yes → **fix it directly** in `.claude/commands/start.md` / `.claude/commands/koniec.md` (or the CLAUDE.md note the step leans on), with a dated one-line rationale so the fix isn't silently reverted. These are self-correcting skills: a process bug caught once should never recur. The skill-file edits get committed in step 5c (its `git add` includes `.claude/commands/`).
+
+If nothing surfaced (most sessions) → **skip silently.** Do NOT invent a "change" to satisfy the step — the bar is "a real flaw bit me this session," not "polish for its own sake."
+
 ## 5b. Auto-sweep `.claude/tmp/` if it's accumulated
 
 `.claude/tmp/` is gitignored — by convention it's scratch (feedback screenshots, debug artifacts, one-off scripts). Auto-clean when either threshold trips. Nothing tracked lives here, so a delete can't lose anything that mattered.
@@ -145,6 +155,7 @@ The doc sweep + NEXT_SESSION must not drift into next session uncommitted (that'
 
 ```bash
 git add CHANGELOG.md TODO.md docs/ .claude/NEXT_SESSION.md package.json package-lock.json
+git add .claude/commands/    # ONLY if step 5a edited a skill file — else skip this line
 git status --short            # eyeball what's staged
 ```
 

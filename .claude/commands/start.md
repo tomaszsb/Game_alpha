@@ -58,7 +58,7 @@ Response shape: `{ reports: [{ id, createdAt, whatDoing, whatWrong, contact, ver
 
 Read `TODO.md`. For each fetched report:
 
-- **Already tracked:** report's id appears as `<!-- fb:<id> -->` anywhere in `TODO.md` → skip.
+- **Already tracked:** report's id appears anywhere in `TODO.md` → skip. ⚠️ **Match BOTH marker forms** — TODO mixes them: the full id `fb:feedback-<ts>-<hex>` AND the short hex suffix `fb:<hex>`. A report `feedback-1778583921001-0aa9660c` is tracked if EITHER `fb:feedback-1778583921001-0aa9660c` OR `fb:0aa9660c` appears. Grepping only one form (e.g. the short 8-char) silently misses every entry written in the other form → proposes already-tracked items as "new candidates." This burned a full reconciliation on 2026-06-09. Extract the trailing hex from each fetched id and check both.
 - **New candidate:** draft a bullet in the existing style:
 
 ```
