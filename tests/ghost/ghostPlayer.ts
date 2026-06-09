@@ -473,7 +473,7 @@ function safeGetPlayerSpace(stateService: any): string | undefined {
  */
 export async function runGhostBatch(
   gameCount: number,
-  options: GhostGameOptions & { baseSeed?: number } = {}
+  options: GhostGameOptions & { baseSeed?: number; perGameTimeoutMs?: number } = {}
 ): Promise<{
   total: number;
   wins: number;
@@ -486,9 +486,14 @@ export async function runGhostBatch(
   let totalTurns = 0;
   let longGames = 0;
   const LONG_GAME_THRESHOLD = 60;
-  const PER_GAME_TIMEOUT_MS = 30000;
+  // Wall-clock cap per game. Default 30s keeps the blind/coverage runs bounded
+  // against pathological loops. The smart-bot win-rate test overrides this with
+  // a high value so every game reaches its NATURAL end (win, or the maxTurns
+  // cap) instead of being cut off by a machine-speed-dependent stopwatch —
+  // making the win count deterministic. See ghostPlayer.test.ts smart-bot test.
+  const PER_GAME_TIMEOUT_MS = options.perGameTimeoutMs ?? 30000;
 
-  const { baseSeed, ...gameOptions } = options;
+  const { baseSeed, perGameTimeoutMs: _perGameTimeoutMs, ...gameOptions } = options;
   const originalRandom = Math.random;
 
   try {

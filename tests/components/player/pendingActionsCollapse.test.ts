@@ -12,7 +12,7 @@
 // regression to that behavior.
 
 import { describe, it, expect } from 'vitest';
-import { collapsePairedDiceActions, COLLAPSED_DICE_LABEL } from '../../../src/components/player/pendingActionsCollapse';
+import { collapsePairedDiceActions, shouldShowMovementDiceButton, COLLAPSED_DICE_LABEL } from '../../../src/components/player/pendingActionsCollapse';
 
 interface TestAction {
   effectKey: string;
@@ -105,5 +105,50 @@ describe('collapsePairedDiceActions', () => {
     collapsePairedDiceActions(input);
 
     expect(input).toEqual(snapshot);
+  });
+});
+
+// Locks the v2.70.3 second half of the CHEAT-BYPASS two-button fix
+// (fb:89d9f101 b): the separate "Determine Next Step" movement button is
+// suppressed whenever a (collapsed) SPACE_EFFECTS dice button is already shown,
+// because the one physical roll resolves both. Previously this rule was an
+// untested inline boolean in ActionCenterPanel — a refactor could have silently
+// re-introduced the two-button state. Extracted to a pure helper so it can't.
+describe('shouldShowMovementDiceButton', () => {
+  it('SUPPRESSES the movement button when a collapsed dice button is present (cheat-space end-to-end)', () => {
+    // The post-collapse cheat-space action list: Return + one merged dice button.
+    const visible = collapsePairedDiceActions(cheatBypassActions());
+    expect(visible.some(a => a.isDiceEffect)).toBe(true); // sanity: merged dice button is there
+
+    const show = shouldShowMovementDiceButton(visible, {
+      isDiceMovementSpace: true,
+      hasPlayerRolledDice: false,
+    });
+    expect(show).toBe(false); // no second "Determine Next Step" button
+  });
+
+  it('SHOWS the movement button on a dice-movement space with no dice-effect button', () => {
+    const visible = [{ effectKey: 'cards:return_e', isDiceEffect: false, label: 'Return 1 E card' }];
+    const show = shouldShowMovementDiceButton(visible, {
+      isDiceMovementSpace: true,
+      hasPlayerRolledDice: false,
+    });
+    expect(show).toBe(true);
+  });
+
+  it('hides the movement button once the player has rolled', () => {
+    const show = shouldShowMovementDiceButton([], {
+      isDiceMovementSpace: true,
+      hasPlayerRolledDice: true,
+    });
+    expect(show).toBe(false);
+  });
+
+  it('hides the movement button on a non-dice-movement space', () => {
+    const show = shouldShowMovementDiceButton([], {
+      isDiceMovementSpace: false,
+      hasPlayerRolledDice: false,
+    });
+    expect(show).toBe(false);
   });
 });

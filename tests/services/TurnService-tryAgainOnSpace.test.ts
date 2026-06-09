@@ -19,6 +19,7 @@ describe('TurnService.tryAgainOnSpace', () => {
   let stateService: StateService;
   let dataService: DataService;
   let gameRulesService: GameRulesService;
+  let loggingService: LoggingService;
 
   beforeEach(() => {
     // Create mock services
@@ -62,7 +63,7 @@ describe('TurnService.tryAgainOnSpace', () => {
       }),
     } as any;
 
-    const loggingService = new LoggingService(stateService);
+    loggingService = new LoggingService(stateService);
     const resourceService = {} as any;
     const cardService = {} as any;
     const choiceService = {} as any;
@@ -270,5 +271,58 @@ describe('TurnService.tryAgainOnSpace', () => {
     // Verify the pending choice was cancelled
     expect(mockChoiceService.getActiveChoice).toHaveBeenCalled();
     expect(mockChoiceService.skipChoice).toHaveBeenCalledWith('choice-123');
+  });
+
+  // Phase 2.2 anti-drift gate: the TWO books a turn keeps — TEMP/REAL state
+  // and the exploration-session log — must be discarded TOGETHER by Try Again.
+  // This pins the single transaction boundary (discardTurnTransaction) so a
+  // future edit can't roll back state while leaving the log session behind
+  // (the exact split that caused the v3.0.63 ghost-log bug).
+  it('discards BOTH the state TEMP and the log session together on Try Again', async () => {
+    stateService.addPlayer('Player 1');
+    stateService.startGame();
+    const gameState = stateService.getGameStateDeepCopy();
+    const player1 = gameState.players[0];
+    player1.currentSpace = 'OWNER-SCOPE-INITIATION';
+    player1.visitType = 'First';
+    stateService.setGameState(gameState);
+
+    // Open BOTH books, the way startTurn's beginTurnTransaction does.
+    loggingService.startNewExplorationSession();
+    stateService.createTempStateFromReal({
+      playerId: player1.id,
+      spaceName: 'OWNER-SCOPE-INITIATION',
+      visitType: 'First'
+    });
+
+    // Write a provisional "pencil" entry into the session (uncommitted, since
+    // a session is open and the playerId isn't 'system').
+    loggingService.info('Drew W001', { playerId: player1.id, action: 'card_draw' });
+
+    // Both books are open and the pencil entry is provisional.
+    expect(loggingService.getCurrentSessionId()).not.toBeNull();
+    expect(stateService.hasActiveTempState(player1.id)).toBe(true);
+    const pencil = stateService.getGameState().globalActionLog
+      .find(e => e.description === 'Drew W001');
+    expect(pencil).toBeDefined();
+    expect(pencil!.isCommitted).toBe(false);
+
+    (dataService.getSpaceContent as any).mockReturnValue({ can_negotiate: true });
+    (dataService.getSpaceEffects as any).mockReturnValue([{
+      effect_type: 'time', effect_action: 'add', effect_value: 1
+    }]);
+
+    const result = await turnService.tryAgainOnSpace(player1.id);
+    expect(result.success).toBe(true);
+
+    // State book closed: TEMP rolled back.
+    expect(stateService.hasActiveTempState(player1.id)).toBe(false);
+    // Log book closed: session ended...
+    expect(loggingService.getCurrentSessionId()).toBeNull();
+    // ...and the provisional pencil entry was torn out (not silently committed).
+    const log = stateService.getGameState().globalActionLog;
+    expect(log.find(e => e.description === 'Drew W001')).toBeUndefined();
+    // The committed Try Again audit line survives the discard.
+    expect(log.find(e => e.details?.action === 'try_again')).toBeDefined();
   });
 });

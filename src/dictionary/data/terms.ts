@@ -94,17 +94,47 @@ const CSV_PATHS = [
 ];
 
 /**
+ * Raw term shape as returned by the dashboard API. Loosely typed on purpose —
+ * the API is an external boundary, so every field may be absent or null, and
+ * the array fields arrive untrusted (validated via Array.isArray below).
+ * normalizeApiTerm coerces this into the strict GlossaryTerm shape.
+ */
+interface RawApiTerm {
+  id?: string | null;
+  term?: string | null;
+  definition?: string | null;
+  definitionSimple?: string | null;
+  instructions?: string | null;
+  category?: string | null;
+  source?: string | null;
+  needsReview?: unknown;
+  aliases?: unknown;
+  relatedTerms?: unknown;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  sourceUrl?: string | null;
+  instagramLink?: string | null;
+  whyItMatters?: string | null;
+  relatedDocuments?: unknown;
+  gameCardId?: string | null;
+  gameSpaceId?: string | null;
+  adCopy?: string | null;
+  adLink?: string | null;
+  adImageUrl?: string | null;
+}
+
+/**
  * Normalize API response to match GlossaryTerm interface.
  * Handles null → undefined conversions for optional fields.
  */
-function normalizeApiTerm(raw: any): GlossaryTerm {
+function normalizeApiTerm(raw: RawApiTerm): GlossaryTerm {
   return {
     id: raw.id || '',
     term: raw.term || '',
     definition: raw.definition || '',
     definitionSimple: raw.definitionSimple || undefined,
     instructions: raw.instructions || undefined,
-    category: raw.category || 'Construction',
+    category: (raw.category || 'Construction') as TermCategory,
     source: (raw.source === 'game' ? 'game' : 'iqarius') as 'iqarius' | 'game',
     needsReview: !!raw.needsReview,
     aliases: Array.isArray(raw.aliases) ? raw.aliases : [],

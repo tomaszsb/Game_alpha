@@ -48,3 +48,19 @@ export function collapsePairedDiceActions<T extends CollapsibleAction>(actions: 
 
   return collapsed;
 }
+
+// v2.70.3 rule, extracted (2026-06-08) so the second half of the CHEAT-BYPASS
+// two-button fix is testable, not just an inline boolean. A dice-movement space
+// resolves movement from the SAME physical roll as its SPACE_EFFECTS dice
+// outcomes. So when a (collapsed) dice-effect button is already showing, the
+// separate "Determine Next Step" movement button must be SUPPRESSED — otherwise
+// the player sees two buttons that both fire the one roll (the fb:89d9f101(b)
+// complaint). Show the movement button only on a dice-movement space, before
+// the roll, and when no dice-effect button is already present.
+export function shouldShowMovementDiceButton(
+  visiblePendingActions: Pick<CollapsibleAction, 'isDiceEffect'>[],
+  flags: { isDiceMovementSpace: boolean; hasPlayerRolledDice: boolean }
+): boolean {
+  const hasDiceEffectButton = visiblePendingActions.some((a) => a.isDiceEffect);
+  return flags.isDiceMovementSpace && !flags.hasPlayerRolledDice && !hasDiceEffectButton;
+}

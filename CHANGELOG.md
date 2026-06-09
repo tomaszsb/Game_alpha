@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.70] - 2026-06-08
+
+An architecture session: the last parallel-systems merge (Phase 2.2), a smart-bot calibration that revealed the 90% win-rate goal was already met (and was being hidden by a test timeout), a cheat-space report verified already-fixed and locked against regression, and a small type-safety tidy. No player-facing behavior change — this is internal hardening.
+
+### Phase 2.2 — one TurnTransaction boundary for state + log ([TurnService.ts](src/services/TurnService.ts))
+
+Every turn keeps two books that must move in lockstep: the player's TEMP/REAL **state** (`StateService`) and the exploration-session **log** (`LoggingService`). They were hand-coded side-by-side at three lifecycle points — turn start (`createTempStateFromReal` + `startNewExplorationSession`), end turn (`commitTempToReal` + `commitCurrentSession`), and Try Again (`discardTempState` + `discardCurrentSession`). Any new rule had to be plumbed into BOTH or they drift — the exact trap that produced the v3.0.63 ghost-log bug (log entries surviving a Try Again that rolled state back). This is the last of the "parallel systems" merges flagged in the architecture audit, sibling to the v3.0.6x movement-resolver merge (Phase 2.1).
+
+Bundled the two books into three private `TurnService` methods — `beginTurnTransaction` / `commitTurnTransaction` / `discardTurnTransaction` — each doing both halves. All four call sites now route through them (including the legacy test-only `endTurn`, whose prior lone `commitCurrentSession` was exactly the divergence this removes; `commitTempToReal` no-ops gracefully when there's no TEMP state). Chosen the **"private methods on TurnService"** shape over a dedicated injected service — lowest risk for the riskiest audit item, no DI/interface/mock churn, public surface unchanged. The Try-Again ledger reconciliation (outflows stick / inflows revert) stays as business logic *around* the discard boundary. New anti-drift test in [TurnService-tryAgainOnSpace.test.ts](tests/services/TurnService-tryAgainOnSpace.test.ts) pins that a Try Again tears out provisional log entries AND rolls back state together, while the committed audit line survives — locking out the v3.0.63 split for good.
+
+### Ghost smart-bot win-rate — the 90% goal was already met, hidden by a 30s timeout ([ghostPlayer.ts](tests/ghost/ghostPlayer.ts), [ghostPlayer.test.ts](tests/ghost/ghostPlayer.test.ts))
+
+Finalized the v3.0.69 placeholder floor, and the calibration told a bigger story. **First pass** (existing 30s/game wall-clock cap): 31/50 wins — but **all 19 non-wins were `Aborted by wall-clock signal`**, not real losses. The win count was timeout-contaminated and machine-speed-dependent. Made the per-game timeout **opt-in** (`perGameTimeoutMs`, default unchanged at 30s so the blind/coverage runs stay bounded against their pathological loops) and raised it to 120s for the smart-bot test so every game reaches its **natural** end. **Second pass: 47/50 wins (94%), avgTurns=149, 0 hard failures, 3 genuine losses** — machine-independent (longest game ~50–80s, never hits the 120s cap). 16 of the first pass's 19 "losses" were just unfinished games that win with time. **The 90% win-rate goal is met** — no balance change was needed; the difficulty was never the problem. Floor set to `≥43` (measured − 4). The live signal now is game *length* (avgTurns 149), tracked against the user's ~40-min class-period budget — not urgent (bot turns ≠ human minutes; comparable games run 60+ min). Also added `recordGhostHistory()` → `.claude/ghost-history.jsonl` so a passing test's win count is never swallowed by vitest again (closed a standing TODO).
+
+### Cheat-space buttons (fb:89d9f101 b) — verified already-fixed, locked against regression ([pendingActionsCollapse.ts](src/components/player/pendingActionsCollapse.ts), [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx))
+
+The report's "Determine time impact should not be a separate button" was **already resolved** by the v2.70.1–v2.70.3 work — the TODO was stale. The two CHEAT-BYPASS `dice_outcome` rows (Time / Fees) share the same effectKey `dice:dice_outcome`, so `collapsePairedDiceActions` already merges them into one "🎲 Determine Outcome" button (existing test), and the v2.70.3 rule suppresses the separate movement button when that merged button is present. Chose the **UI heuristic over a `dice_group` data column** — "one physical roll resolves all of a space's dice outcomes" is universal, so per-space data config would be over-engineering. The suppression rule was an untested inline boolean in ActionCenterPanel; extracted it to a pure `shouldShowMovementDiceButton` helper with 4 new tests (incl. the cheat-space end-to-end collapse→suppress path) so a refactor can't silently bring the second button back.
+
+### Type safety — 3 safe `any` narrowings
+
+`normalizeApiTerm(raw: any)` → new `RawApiTerm` boundary interface ([terms.ts](src/dictionary/data/terms.ts)); `choice: any` in [CurrentCardSection.tsx](src/components/player/sections/CurrentCardSection.tsx) → inferred from the already-typed `card.effect.choices`; `handleOfferChange(value: any)` → `number` in [NegotiationModal.tsx](src/components/modals/NegotiationModal.tsx) (the card-toggle caller passes `0` for the unused slot, was `null`). The remaining ~24 `any` sites are Bucket E intentional (catch blocks, console signatures, legacy browser casts) — correct as-is, no further narrowing planned.
+
+### Tests
+
+1628/1628 koniec sweep green (components + utils + services), typecheck + build clean. Net new tests: anti-drift transaction boundary (+1), movement-button suppression (+4).
+
 ## [3.0.69] - 2026-06-07
 
 Dashboard housekeeping, a ghost-test redesign that separates Try-Again *coverage* from *win-rate*, and two Life-card fixes (a receipt off-by-one and the fb:931a55de voice/draw report).
@@ -19,7 +45,7 @@ The `try-again-happy` ghost gate had been **red since before v3.0.66** (pre-exis
 The fix splits the one conflated gate into two, each testing one thing:
 - **`smartTryAgain` bot rule** ([ghostPlayer.ts](tests/ghost/ghostPlayer.ts)) — snapshots approval at turn start and **skips Try Again on any turn that just earned a DOB/FDNY stamp**, like a rational player. Breaks the regulatory loop.
 - **`negotiate-coverage` test** — the blind bot, kept *because* hammering Try Again everywhere is its job: stress the snapshot-revert path. Real gate = **0 EXCEPTION/INVARIANT failures**; the win floor is now a coarse `≥20` anti-deadlock sanity check, not a balance assertion.
-- **`try-again smart-bot` test** — same aggressive Try Again but rational, so win-rate is a *usable* balance signal. Floor calibrated to the deterministic `baseSeed=100001` result with a buffer (same policy as the strict gate). <!-- CALIBRATE: smart-bot N/50, avgTurns, final floor -->
+- **`try-again smart-bot` test** — same aggressive Try Again but rational, so win-rate is a *usable* balance signal. Floor calibrated to the deterministic `baseSeed=100001` result with a buffer (same policy as the strict gate). **Calibration — two passes (2026-06-08).** *First pass* (30s/game wall-clock cap): 31/50 wins, but **all 19 non-wins were `Aborted by wall-clock signal`**, not real losses — a machine-speed-dependent, timeout-contaminated number. *Second pass*, after making the per-game timeout opt-in and raising it to 120s for this test so every game reaches its natural end (`perGameTimeoutMs`, [ghostPlayer.ts](tests/ghost/ghostPlayer.ts)): **47/50 wins (94%), avgTurns=149, 0 hard failures, 3 genuine losses.** Machine-independent (no game reaches the 120s cap; the longest grind to the 300-turn limit is ~50–80s). **Floor set to `≥43` (measured − 4).** So 16 of the first pass's 19 "losses" were simply unfinished games that win when given time — **the 90% win-rate goal is already MET.** The live signal now is game *length* (avgTurns 149, 40/50 long games), not win-rate; tracked in TODO. Each run now appends to `.claude/ghost-history.jsonl` so a passing test's count is never lost again.
 - Per-test timeout bumped 900000 → **1_200_000ms** (the batch genuinely needs ~17 min).
 
 ### Life Event receipts — off-by-one on the non-dice draw path ([CardEffectHandler.ts](src/services/CardEffectHandler.ts))

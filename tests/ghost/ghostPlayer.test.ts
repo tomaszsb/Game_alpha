@@ -15,8 +15,24 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { bootstrapHeadlessServices } from './bootstrapServices';
 import { playOneGame, runGhostBatch, type GhostGameResult } from './ghostPlayer';
+
+// Append one ghost-batch result (one JSON object per line) to
+// .claude/ghost-history.jsonl so the win count is NEVER lost — vitest swallows
+// a passing test's console.log, so the only durable record is a file write.
+// Runs before the assertions, so it records on a FAIL too. Closes TODO #107.
+function recordGhostHistory(entry: Record<string, unknown>): void {
+  try {
+    const path = '.claude/ghost-history.jsonl';
+    mkdirSync(dirname(path), { recursive: true });
+    appendFileSync(path, JSON.stringify({ ts: new Date().toISOString(), ...entry }) + '\n');
+  } catch {
+    // Non-fatal: history logging must never break the test.
+  }
+}
 
 describe('Ghost Player', () => {
   it('diagnostic: runs one game and reports findings (never fails CI)', async () => {
@@ -145,6 +161,11 @@ describe('Ghost Player', () => {
       tryAgainProbability: 0.2,
       smartTryAgain: true,
       baseSeed: 100001,
+      // Pursuing the 90% win-rate goal: give every game enough wall-clock to
+      // reach its NATURAL end (win, or the 300-turn cap) instead of being cut
+      // off at 30s. Removes the machine-speed dependence so the win count is
+      // deterministic and a usable balance signal. Worst-case batch ~25 min.
+      perGameTimeoutMs: 120000,
     });
     console.log(`[ghost try-again smart baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
@@ -162,8 +183,29 @@ describe('Ghost Player', () => {
         })
         .join('\n');
 
+    recordGhostHistory({
+      test: 'smart-bot',
+      baseSeed: 100001,
+      wins: batch.wins,
+      total: batch.total,
+      avgTurns: Number(batch.avgTurns.toFixed(1)),
+      longGames: batch.longGames,
+      failures: batch.failures.length,
+      hardFailures: hardFailures.length,
+      perGameTimeoutMs: 120000,
+      deterministic: true,
+    });
+
     expect(hardFailures, summary).toHaveLength(0);
-    // Calibrated 2026-06-07 to the deterministic smart-bot result (see CHANGELOG).
-    expect(batch.wins, summary).toBeGreaterThanOrEqual(32);
-  }, 1_200_000);
+    // Calibrated 2026-06-08 to the DETERMINISTIC (games-finish) run, baseSeed=100001
+    // with perGameTimeoutMs=120000: 47/50 wins (94%), avgTurns=149, 0 hard failures,
+    // 3 genuine losses. Floor = measured − 4 = 43 (strict-gate buffer policy). This
+    // run is machine-independent — no game reaches the 120s cap (the longest grind
+    // to the 300-turn limit is ~50–80s), so the 3 losses are real, not timeouts.
+    // The prior 31/50 was timeout-contaminated (30s cap); 16 of those 19 "losses"
+    // were just unfinished games that win when given time. The 90% win-rate goal is
+    // MET. The live signal now is game LENGTH (avgTurns 149, 40/50 long games) —
+    // see ghost-win-rate TODO. Each run is appended to .claude/ghost-history.jsonl.
+    expect(batch.wins, summary).toBeGreaterThanOrEqual(43);
+  }, 2_700_000);
 });

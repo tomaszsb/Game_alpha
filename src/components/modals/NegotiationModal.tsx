@@ -94,7 +94,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
     }
   };
 
-  const handleOfferChange = (type: 'money' | 'cards', value: any, cardType?: CardType, cardId?: string) => {
+  const handleOfferChange = (type: 'money' | 'cards', value: number, cardType?: CardType, cardId?: string) => {
     setOffer(prev => {
       if (type === 'money') {
         return { ...prev, money: Math.max(0, value) };
@@ -440,7 +440,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
                       return (
                         <button
                           key={cardId}
-                          onClick={() => handleOfferChange('cards', null, cardType, cardId)}
+                          onClick={() => handleOfferChange('cards', 0, cardType, cardId)}
                           style={{
                             padding: '8px 12px',
                             border: `2px solid ${isSelected ? colors.success.main : colors.secondary.border}`,

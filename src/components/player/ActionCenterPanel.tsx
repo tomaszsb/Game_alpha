@@ -17,7 +17,7 @@ import { getBackendURL } from '../../utils/networkDetection';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
-import { collapsePairedDiceActions } from './pendingActionsCollapse';
+import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { shortName, computeVisitNumber, formatVisitBadge } from '../../utils/boardCommon';
 import './ActionCenterPanel.css';
@@ -385,13 +385,16 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const needsMovementChoice = !!movementChoice && !selectedDestination && movementChoiceUnlocked;
   const visiblePendingActions = pendingActions.filter(a => !a.isCompleted);
   // v2.70.3 — When a SPACE_EFFECTS dice button is already in the list (e.g.
-  // CHEAT-BYPASS's "🎲 Roll dice" from the Time/Fees Paid dedup), the same
-  // single roll also resolves dice-driven movement. Suppress the separate
+  // CHEAT-BYPASS's "🎲 Determine Outcome" from the Time/Fees Paid dedup), the
+  // same single roll also resolves dice-driven movement. Suppress the separate
   // "Determine Next Step" button so the player doesn't see two buttons that
   // both fire the same roll. The dice-roll handler (handleDiceRoll) already
-  // covers both effects + movement.
-  const hasDiceEffectButton = visiblePendingActions.some(a => a.isDiceEffect);
-  const showMovementDiceButton = isDiceMovementSpace && !hasPlayerRolledDice && !hasDiceEffectButton;
+  // covers both effects + movement. Rule extracted to shouldShowMovementDiceButton
+  // (pendingActionsCollapse.ts) so it's unit-tested, not just an inline boolean.
+  const showMovementDiceButton = shouldShowMovementDiceButton(visiblePendingActions, {
+    isDiceMovementSpace,
+    hasPlayerRolledDice,
+  });
   const pendingCount = visiblePendingActions.length +
     (showMovementDiceButton ? 1 : 0) +
     (needsMovementChoice ? 1 : 0);

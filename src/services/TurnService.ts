@@ -421,17 +421,10 @@ export class TurnService implements ITurnService {
         return { nextPlayerId: gameState.currentPlayerId }; // Winner remains current player
       }
 
-      step = 'commit_session';
-      // Commit current exploration session before advancing to next player
-      this.loggingService.commitCurrentSession();
-
-      step = 'commit_temp_to_real';
-      // Commit TEMP state to REAL (new REAL/TEMP state model)
-      // This finalizes all turn effects into the committed state
-      const commitResult = this.stateService.commitTempToReal(gameState.currentPlayerId);
-      if (!commitResult.success) {
-        debugWarn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
-      }
+      step = 'commit_turn_transaction';
+      // COMMIT the turn transaction — finalizes the log session AND folds TEMP
+      // into REAL together (see commitTurnTransaction), before advancing.
+      this.commitTurnTransaction(gameState.currentPlayerId);
 
       // v3.0.41: clear any unresolved choice promises before advancing the
       // turn. Normal happy-path choices await synchronously in the calling
@@ -542,8 +535,11 @@ export class TurnService implements ITurnService {
       return { nextPlayerId: finalWinnerId };
     }
 
-    // Commit current exploration session before advancing to next player
-    this.loggingService.commitCurrentSession();
+    // COMMIT the turn transaction before advancing. Mirrors
+    // endTurnWithMovement so the legacy path can't commit the log session
+    // while leaving TEMP state uncommitted. Safe when no TEMP state exists
+    // (commitTempToReal no-ops with a debugWarn).
+    this.commitTurnTransaction(gameState.currentPlayerId);
 
     // Use the common nextPlayer method
     return await this.nextPlayer();
@@ -719,6 +715,55 @@ export class TurnService implements ITurnService {
     return null;
   }
 
+  // ==========================================================================
+  // Turn transaction boundary (Phase 2.2)
+  //
+  // A turn keeps TWO books that must move in lockstep: the player's TEMP/REAL
+  // state (StateService) and the exploration-session log (LoggingService).
+  // These three methods are the SINGLE place those two books are opened,
+  // committed, or thrown away together. Any future turn-lifecycle bookkeeping
+  // belongs HERE, not hand-coded at the call sites — that is what keeps the
+  // two systems from drifting (the drift that caused the v3.0.63 ghost-log bug).
+  // ==========================================================================
+
+  /**
+   * BEGIN a turn transaction: open a fresh log session AND snapshot REAL→TEMP.
+   * Called once at the top of every turn.
+   */
+  private beginTurnTransaction(opts: CreateTempOptions): void {
+    this.loggingService.startNewExplorationSession();
+    const tempResult = this.stateService.createTempStateFromReal(opts);
+    if (!tempResult.success) {
+      debugWarn(`⚠️ Failed to create TEMP state: ${tempResult.error}`);
+    }
+  }
+
+  /**
+   * COMMIT a turn transaction: finalize the log session AND fold TEMP into REAL.
+   * Called when a turn ends normally.
+   */
+  private commitTurnTransaction(playerId: string): void {
+    this.loggingService.commitCurrentSession();
+    const commitResult = this.stateService.commitTempToReal(playerId);
+    if (!commitResult.success) {
+      debugWarn(`⚠️ Failed to commit TEMP state: ${commitResult.error}`);
+    }
+  }
+
+  /**
+   * DISCARD a turn transaction: throw away the session's provisional log
+   * entries AND roll TEMP state back to REAL. Called by Try Again.
+   *
+   * NOTE: Try-Again ledger reconciliation (outflows stick / inflows revert)
+   * is a separate business rule that runs in tryAgainOnSpace BEFORE this —
+   * applyToRealState must precede discardTempState, which restores the
+   * player's main state from REAL.
+   */
+  private discardTurnTransaction(playerId: string): void {
+    this.loggingService.discardCurrentSession();
+    this.stateService.discardTempState(playerId);
+  }
+
   /**
    * Unified turn start function with correct sequence:
    * 1. Lock UI to prevent player actions
@@ -756,20 +801,15 @@ export class TurnService implements ITurnService {
         isCommitted: true  // Force turn_start to be immediately visible in log
       });
 
-      // 1. Start new exploration session for transactional logging
-      const sessionId = this.loggingService.startNewExplorationSession();
-
-      // 1.5. Create TEMP state from REAL for this turn (new REAL/TEMP state model)
-      // This allows all turn effects to apply to TEMP, preserving REAL for Try Again
+      // 1. BEGIN the turn transaction — opens the log session AND snapshots
+      // REAL→TEMP together (see beginTurnTransaction). TEMP holds this turn's
+      // effects; REAL is preserved for Try Again.
       const tempOptions: CreateTempOptions = {
         playerId: player.id,
         spaceName: player.currentSpace,
         visitType: player.visitType
       };
-      const tempResult = this.stateService.createTempStateFromReal(tempOptions);
-      if (!tempResult.success) {
-        debugWarn(`⚠️ Failed to create TEMP state: ${tempResult.error}`);
-      }
+      this.beginTurnTransaction(tempOptions);
 
       // 2. Lock UI to prevent player actions during arrival processing
       this.stateService.updateGameState({ isProcessingArrival: true });
@@ -1708,17 +1748,6 @@ export class TurnService implements ITurnService {
         isCommitted: true
       });
 
-      // 5.5. v3.0.63 — Discard the abandoned attempt's pencil log entries.
-      // Symmetric with the discardTempState call at step 7: both erase the
-      // attempt's traces. Without this, commitCurrentSession at end-of-turn
-      // would mark every session entry committed, leaving ghost actions
-      // ("Drew W001", "Rolled a 3", "Money +$5K") in the post-game log even
-      // though the underlying state was rolled back. fb:feedback-1780432903404-fec517ec
-      // wasn't this bug, but the integration test #3 in
-      // tests/integration/TransactionalLoggingFlow.test.ts pinned it as an
-      // architecture gap during v3.0.61 work.
-      this.loggingService.discardCurrentSession();
-
       // 6. Cancel any pending choice (e.g., card replacement modal) so the
       // awaiting promise resolves and the action button stops spinning
       const activeChoice = this.choiceService?.getActiveChoice?.();
@@ -1756,7 +1785,17 @@ export class TurnService implements ITurnService {
         }
       }
       this.stateService.applyToRealState(playerId, changes);
-      this.stateService.discardTempState(playerId);
+
+      // DISCARD the turn transaction — throws away the abandoned attempt's
+      // provisional log entries AND rolls TEMP state back to REAL together
+      // (see discardTurnTransaction). Runs AFTER applyToRealState: the ledger
+      // reconciliation above writes the sticky outflows into REAL, then
+      // discardTempState restores the player's main state from that REAL.
+      // The committed try_again entry (step 5, isCommitted=true) survives the
+      // log discard; only the uncommitted pencil entries are torn out — which
+      // is what keeps ghost actions out of the post-game log after a rollback
+      // (the v3.0.63 fix, now part of the single transaction boundary).
+      this.discardTurnTransaction(playerId);
 
 
       // 8. Prepare success message

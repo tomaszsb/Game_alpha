@@ -73,7 +73,7 @@ export function CurrentCardSection({ card, onChoice }: CurrentCardSectionProps) 
 
         {choices.length > 0 && (
           <div className="card-choices">
-            {choices.map((choice: any, idx: number) => (
+            {choices.map((choice, idx) => (
               <ActionButton
                 key={idx}
                 label={choice.label}
