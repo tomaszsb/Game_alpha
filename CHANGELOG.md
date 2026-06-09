@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-06-09 — deploy + production data-sync (no version change, no source change)
+
+Deployed v3.0.70, then a dashboard-cleanup + live spot-check pass. Spot-checking 5 "resolved" reports **caught fb:931a55de fixed-in-code-but-never-live**, surfacing the **data-deploy gap**: the server serves CSVs from a writable working-copy that deploys preserve (so board edits survive updates), so data fixes in `public/data` don't reach production unless synced. Audited live-vs-master and found **5 stale CLEAN files** — `CARDS_EXPANDED` (21 L-card voice fixes + L049 draw-type bug), `LOGIC_QUESTIONS` (`auto_answer_from` column), `SPACE_CONTENT` (14 voiced titles + `{fundingAmount}` token), `SPACE_EFFECTS` ("Accept Owner Funding" label), `GAME_CONFIG` (`has_final_review_gate` flag). Fixed all 5 on the live server **preserving the user's board layout** (only `pos_x`/`pos_y` are live user-data; a blind copy would wipe the board), verified by running the real `processGameData` regen locally + checking the served origin (cf-cache MISS). Also flipped 5 verified-fixed dashboard reports to resolved (open **9→4**). Full pattern + recipe in CLAUDE.md TACTICAL ("CSV data fixes do NOT reach the live server on deploy"); the proper fix is tracked as the **teacher-instance-layer + space-catalog** initiative in TODO.
+
 ## [3.0.70] - 2026-06-08
 
 An architecture session: the last parallel-systems merge (Phase 2.2), a smart-bot calibration that revealed the 90% win-rate goal was already met (and was being hidden by a test timeout), a cheat-space report verified already-fixed and locked against regression, and a small type-safety tidy. No player-facing behavior change — this is internal hardening.
