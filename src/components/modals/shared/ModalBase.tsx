@@ -22,12 +22,26 @@ export interface ModalBaseProps {
   shake?: boolean;
   /** If provided, renders speech control buttons in the header */
   speechControls?: SpeechControls;
+  /** Fires when the exit animation has fully finished (AnimatePresence
+   *  onExitComplete). Lets callers sequence a reopen deterministically
+   *  instead of re-toggling mid-exit (fb:ac29b623). */
+  onExitComplete?: () => void;
 }
 
 // Check reduced motion preference once at module level
 const prefersReducedMotion =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Click-through protection window (fb:ac29b623). When a result modal opens
+// UNDER a click the player already committed (rapid clicking through
+// actions), that in-flight click lands on the backdrop and instantly
+// dismisses the modal — it flashes and the player never reads the outcome.
+// Verified with a live repro 2026-06-12: trailing click ~110ms after open
+// backdrop-closed the modal. Backdrop clicks within this window of opening
+// are ignored; deliberate dismissals (read first, then click away) take far
+// longer. The ✕ button, Escape, and footer buttons are unaffected.
+export const BACKDROP_GRACE_MS = 500;
 
 // Animation variants
 const overlayVariants = {
@@ -76,9 +90,16 @@ export function ModalBase({
   testId,
   shake = false,
   speechControls,
+  onExitComplete,
 }: ModalBaseProps): JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  // When this open started — drives the backdrop click-through grace window.
+  const openedAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (isOpen) openedAtRef.current = Date.now();
+  }, [isOpen]);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -117,6 +138,9 @@ export function ModalBase({
 
   const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
+      // Ignore clicks that were already in flight when the modal appeared —
+      // see BACKDROP_GRACE_MS above (fb:ac29b623).
+      if (Date.now() - openedAtRef.current < BACKDROP_GRACE_MS) return;
       onClose();
     }
   }, [onClose]);
@@ -231,7 +255,7 @@ export function ModalBase({
   const modalTransition = applyShake ? { ...transitionConfig, ...shakeTransition } : transitionConfig;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExitComplete}>
       {isOpen && (
         <>
           {/* Overlay */}

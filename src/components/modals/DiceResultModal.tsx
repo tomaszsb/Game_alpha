@@ -24,13 +24,15 @@ interface DiceResultModalProps {
   result: DiceRollResult | null;
   onClose: () => void;
   onConfirm?: () => void;
+  /** Fires when the exit animation fully finishes — see ModalBase (fb:ac29b623). */
+  onExitComplete?: () => void;
 }
 
 /**
  * DiceResultModal displays detailed feedback about dice roll effects
  * Shows the dice value, applied effects, and summarizes the outcome
  */
-export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResultModalProps): JSX.Element | null {
+export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComplete }: DiceResultModalProps): JSX.Element | null {
   const { dataService } = useGameContext();
   const { getPortraitForSpace } = useNpcPortrait();
 
@@ -52,7 +54,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
       console.error('DiceResultModal: result.effects is not a valid array', result);
     }
     return (
-      <ModalBase isOpen={false} onClose={onClose} title="" emoji="" testId="dice-result-modal">
+      <ModalBase isOpen={false} onClose={onClose} onExitComplete={onExitComplete} title="" emoji="" testId="dice-result-modal">
         {null}
       </ModalBase>
     );
@@ -332,6 +334,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm }: DiceResu
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
+      onExitComplete={onExitComplete}
       title={title}
       emoji={headerEmoji}
       maxWidth="500px"

@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.71] - 2026-06-12
+
+The two real bugs from the 2026-06-11 playtest, both fixed and **verified with live browser repros** (Playwright against the dev build — flash reproduced on pre-fix code, then confirmed gone on the fix).
+
+### Bank-loan button said "Accept Owner Funding" (fb:06e5d66f)
+
+Taking a Bank Loan at BANK-FUND-REVIEW showed the loan secured but the confirm button read **"Accept Owner Funding"** — Bank vs Owner funding are distinct concepts the game teaches. Three layers fixed:
+
+- **Data (the label the player actually saw).** The result modal's button comes from `modal_button_label` on the SPACE_EFFECTS row via [TurnService.ts](src/services/TurnService.ts) — and the data itself carried the wrong label. Fixed BANK-FUND-REVIEW First+Subsequent `draw_B` rows in [SOURCE_FILES/ModalConfig.csv](public/data/SOURCE_FILES/ModalConfig.csv) and [CLEAN_FILES/SPACE_EFFECTS.csv](public/data/CLEAN_FILES/SPACE_EFFECTS.csv) → **"Accept Bank Loan"**. ⚠️ **Data-deploy gap applies:** this CSV fix does NOT reach the live server on a normal deploy — needs the live-sync step (see deploy note in TODO).
+- **Code fallback** ([FinancesSection.tsx](src/components/player/sections/FinancesSection.tsx) `getButtonLabel`): now funding-source-aware — `draw_b` → "Accept Bank Loan", `draw_i` → "Accept Investment" (voice canon B="Bank Loan", I="Investment"). The old hardcoded "Accept Owner Funding" fallback could mislabel any non-owner draw (incl. START-QUICK-PLAY-GUIDE's draw_B/draw_I).
+- **Audit note (deliberate non-fix).** FinancesSection's `fundingCardEffects` filter exact-matches lowercase `'draw_b'/'draw_i'` and never matches real CSV (`draw_B`) — the funding button in the FINANCES section is dead in production. Left as-is ON PURPOSE: lowercasing the filter would surface a DUPLICATE button next to ActionCenterPanel's "Get Bank Loan". Documented in-code.
+- **Tests:** 3 new FinancesSection label cases + a [processGameData.test.ts](tests/server/processGameData.test.ts) fingerprint pinning the real CSV label on both visits.
+
+### Result modal flash-closes on fast clicks (fb:ac29b623)
+
+**The live repro found the real root cause differs from last session's hypothesis.** It is NOT an AnimatePresence mid-exit swallow — framer-motion 12 handles a reopen during the exit animation fine (verified: reopen at +130ms mid-exit survived). It's **click-through**: the next result modal opens UNDER a click the player already committed; that trailing click lands on the backdrop and instantly dismisses it. Reproduced live on pre-fix code: modal appeared +468ms, backdrop click killed it at +578ms — exactly the reported flash.
+
+- **Fix 1 — backdrop grace window (the operative fix).** [ModalBase.tsx](src/components/modals/shared/ModalBase.tsx): backdrop clicks within `BACKDROP_GRACE_MS` (500ms) of the modal opening are ignored. The ✕ button, Escape, and footer buttons are unaffected; deliberate read-then-dismiss takes far longer than 500ms. Because it's in ModalBase, every modal gets the protection.
+- **Fix 2 — result-modal queue (defense-in-depth + deterministic ordering).** New [useModalQueue](src/hooks/useModalQueue.ts) hook, same shape as the v3.0.9 life-event queue: results queue and the shared DiceResultModal only (re)opens after the previous instance has FULLY animated out — `onExitComplete` plumbed through ModalBase → DiceResultModal → [GameLayout](src/components/layout/GameLayout.tsx), with a 600ms timeout fallback so a missed callback can never soft-lock results. All 5 open-sites route through `enqueue`; the life-event flush now also waits for queued results so the two modals never stack.
+- **Verified:** post-fix, the identical trailing-click scenario keeps the modal open, and a deliberate backdrop dismiss after the grace window still closes it.
+- **Tests:** 6 useModalQueue cases (incl. the fast-click scenario and the no-soft-lock fallback), 4 new [ModalBase.test.tsx](tests/components/modals/ModalBase.test.tsx) grace cases; 2 existing backdrop-close tests updated to jump past the grace window.
+
+### Tests
+
+1911/1911 non-ghost sweep green (full run, twice), typecheck + production build clean. Net new tests: +14.
+
 ## [Ops] 2026-06-09 — deploy + production data-sync (no version change, no source change)
 
 Deployed v3.0.70, then a dashboard-cleanup + live spot-check pass. Spot-checking 5 "resolved" reports **caught fb:931a55de fixed-in-code-but-never-live**, surfacing the **data-deploy gap**: the server serves CSVs from a writable working-copy that deploys preserve (so board edits survive updates), so data fixes in `public/data` don't reach production unless synced. Audited live-vs-master and found **5 stale CLEAN files** — `CARDS_EXPANDED` (21 L-card voice fixes + L049 draw-type bug), `LOGIC_QUESTIONS` (`auto_answer_from` column), `SPACE_CONTENT` (14 voiced titles + `{fundingAmount}` token), `SPACE_EFFECTS` ("Accept Owner Funding" label), `GAME_CONFIG` (`has_final_review_gate` flag). Fixed all 5 on the live server **preserving the user's board layout** (only `pos_x`/`pos_y` are live user-data; a blind copy would wipe the board), verified by running the real `processGameData` regen locally + checking the served origin (cf-cache MISS). Also flipped 5 verified-fixed dashboard reports to resolved (open **9→4**). Full pattern + recipe in CLAUDE.md TACTICAL ("CSV data fixes do NOT reach the live server on deploy"); the proper fix is tracked as the **teacher-instance-layer + space-catalog** initiative in TODO.

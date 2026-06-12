@@ -3,6 +3,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { CardReplacementModal } from '../../../src/components/modals/CardReplacementModal';
+import { BACKDROP_GRACE_MS } from '../../../src/components/modals/shared/ModalBase';
 import { Player, Card } from '../../../src/types/DataTypes';
 import { DataService } from '../../../src/services/DataService';
 import { CARD_REPLACE } from '../../../src/constants/uiStrings';
@@ -309,7 +310,7 @@ describe('CardReplacementModal', () => {
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onCancel when backdrop is clicked', () => {
+  it('should call onCancel when backdrop is clicked (after the click-through grace window)', () => {
     renderWithDictionary(
       <CardReplacementModal
         isOpen={true}
@@ -322,7 +323,11 @@ describe('CardReplacementModal', () => {
     );
 
     const backdrop = screen.getByText('Replace Work Package').closest('div')?.parentElement?.parentElement;
+    // Backdrop clicks within BACKDROP_GRACE_MS of opening are ignored
+    // (fb:ac29b623 click-through protection) — jump past the window.
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + BACKDROP_GRACE_MS + 100);
     fireEvent.click(backdrop!);
+    nowSpy.mockRestore();
 
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
   });

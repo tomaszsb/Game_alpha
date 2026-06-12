@@ -257,6 +257,10 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
 
     // Get manual card effects that represent funding (B/I cards at OWNER-FUND-INITIATION)
     // These are condition-filtered, so only ONE will show (B for scope ≤ $4M, I for scope > $4M)
+    // NOTE: the exact-lowercase match means real CSV rows ('draw_B'/'draw_I')
+    // never land here — funding draws surface via ActionCenterPanel instead.
+    // Kept as-is deliberately: lowercasing this would add a DUPLICATE button
+    // next to ActionCenterPanel's "Get Bank Loan". (fb:06e5d66f audit note.)
     const fundingEffects = conditionFilteredEffects.filter(
       effect => effect.trigger_type === 'manual' &&
                 effect.effect_type === 'cards' &&
@@ -368,9 +372,14 @@ export const FinancesSection: React.FC<FinancesSectionProps> = ({
     //      never matched the CSV value `'draw_B'`, so the curated label was
     //      effectively dead. Either path now lands the player on the
     //      intended label.
+    //   3. Funding-source-aware fallback (fb:06e5d66f) — a bank draw must
+    //      never read "Accept Owner Funding"; Bank/Investor/Owner are
+    //      distinct funding concepts the game teaches. Voice canon:
+    //      B = "Bank Loan", I = "Investment".
     const action = effect.effect_action?.toLowerCase() || '';
     if (effect.effect_type === 'cards' && (action === 'draw_b' || action === 'draw_i')) {
-      return effect.modal_button_label || 'Accept Owner Funding';
+      if (effect.modal_button_label) return effect.modal_button_label;
+      return action === 'draw_b' ? 'Accept Bank Loan' : 'Accept Investment';
     }
     const formatted = formatManualEffectButton(effect);
     if (formatted.text) return formatted.text;

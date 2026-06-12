@@ -679,4 +679,48 @@ describe('FinancesSection', () => {
       expect(screen.queryByText(/%\/20%/)).not.toBeInTheDocument();
     });
   });
+
+  // fb:06e5d66f — a bank-loan draw must never be labeled "Accept Owner Funding".
+  // Bank / Investor / Owner are distinct funding concepts the game teaches.
+  describe('Funding Button Labels (fb:06e5d66f)', () => {
+    const fundingEffect = (action: string, label?: string) => ({
+      space_name: 'START-SPACE',
+      visit_type: 'First',
+      trigger_type: 'manual',
+      effect_type: 'cards',
+      effect_action: action,
+      effect_value: 1,
+      description: `Draw 1 ${action} cards`,
+      ...(label ? { modal_button_label: label } : {})
+    });
+
+    it('should prefer the curated modal_button_label when populated', () => {
+      mockServices.dataService.getSpaceEffects.mockReturnValue([
+        fundingEffect('draw_b', 'Accept Bank Loan')
+      ]);
+
+      render(<FinancesSection {...defaultProps} />);
+      expect(screen.getByText('Accept Bank Loan')).toBeInTheDocument();
+    });
+
+    it('should fall back to "Accept Bank Loan" for a bank draw without a curated label', () => {
+      mockServices.dataService.getSpaceEffects.mockReturnValue([
+        fundingEffect('draw_b')
+      ]);
+
+      render(<FinancesSection {...defaultProps} />);
+      expect(screen.getByText('Accept Bank Loan')).toBeInTheDocument();
+      expect(screen.queryByText('Accept Owner Funding')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to "Accept Investment" for an investor draw without a curated label', () => {
+      mockServices.dataService.getSpaceEffects.mockReturnValue([
+        fundingEffect('draw_i')
+      ]);
+
+      render(<FinancesSection {...defaultProps} />);
+      expect(screen.getByText('Accept Investment')).toBeInTheDocument();
+      expect(screen.queryByText('Accept Owner Funding')).not.toBeInTheDocument();
+    });
+  });
 });

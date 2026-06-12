@@ -1042,4 +1042,17 @@ describe('processGameData — per-action narratives', () => {
     // Column layout: space,visit,type,action,value,condition,desc,trigger,fee_type,narrative,...
     expect(cols[9]).toBe('');
   });
+
+  // fb:06e5d66f — the bank-loan result button must say "Accept Bank Loan",
+  // never "Accept Owner Funding" (Bank vs Owner funding are distinct concepts).
+  // Pins the real CLEAN data; the label originates in SOURCE_FILES/ModalConfig.csv.
+  it('labels the BANK-FUND-REVIEW draw_B button "Accept Bank Loan" on both visits', () => {
+    for (const visit of ['First', 'Subsequent']) {
+      const row = findRow(cleanEffectsCsv(), 'BANK-FUND-REVIEW', visit, 'draw_B');
+      expect(row).toBeDefined();
+      const cols = row!.split(',');
+      // Column layout: ...,modal_title[10],modal_description[11],modal_button_label[12],modal_summary[13]
+      expect(cols[12]).toBe('Accept Bank Loan');
+    }
+  });
 });

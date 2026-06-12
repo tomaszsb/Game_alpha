@@ -3,6 +3,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DiceResultModal, DiceRollResult } from '../../../src/components/modals/DiceResultModal';
+import { BACKDROP_GRACE_MS } from '../../../src/components/modals/shared/ModalBase';
 import { GameContext } from '../../../src/context/GameContext';
 import { createAllMockServices } from '../../mocks/mockServices';
 
@@ -145,7 +146,7 @@ describe('DiceResultModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onClose when backdrop is clicked', () => {
+  it('should call onClose when backdrop is clicked (after the click-through grace window)', () => {
     render(
       <GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
@@ -155,7 +156,11 @@ describe('DiceResultModal', () => {
     );
 
     const backdrop = screen.getByTestId('dice-result-modal-overlay');
+    // Backdrop clicks within BACKDROP_GRACE_MS of opening are ignored
+    // (fb:ac29b623 click-through protection) — jump past the window.
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + BACKDROP_GRACE_MS + 100);
     fireEvent.click(backdrop);
+    nowSpy.mockRestore();
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 

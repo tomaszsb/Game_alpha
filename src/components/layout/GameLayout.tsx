@@ -30,6 +30,7 @@ import { getWebSocketService, ConnectionState } from '../../services/WebSocketSy
 import { pushNotifications } from '../../utils/pushNotifications';
 import { PullToRefresh } from '../common/PullToRefresh';
 import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
+import { useModalQueue } from '../../hooks/useModalQueue';
 import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
 
@@ -149,14 +150,21 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [previewSpaceId, setPreviewSpaceId] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
-  const [isDiceResultModalOpen, setIsDiceResultModalOpen] = useState<boolean>(false);
-  const [diceResult, setDiceResult] = useState<TurnEffectResult | null>(null);
   // Life event queue — set when a `life_event` AutoAction fires; opens its own
   // dedicated modal once the regular dice modal closes (or immediately if none
   // was open). Replaces the v3.0.8-and-earlier behavior of stomping diceResult.
   // fb:dfdeaf1c.
   const [pendingLifeEvent, setPendingLifeEvent] = useState<LifeEventModalData | null>(null);
   const [isLifeEventModalOpen, setIsLifeEventModalOpen] = useState<boolean>(false);
+  // Result-modal queue (fb:ac29b623) — the shared DiceResultModal used to be
+  // a synchronous open/close toggle, so clicking the next action fast enough
+  // re-opened it DURING the previous exit animation and the in-flight close
+  // swallowed the new modal (it flashed and vanished). Results now queue and
+  // only open once the previous modal has fully animated out. Same pattern
+  // as the life-event queue above. Blocked while the LifeEventModal is up so
+  // the two never stack.
+  const diceResultQueue = useModalQueue<TurnEffectResult>({ blocked: isLifeEventModalOpen });
+  const { current: diceResult, isOpen: isDiceResultModalOpen } = diceResultQueue;
   // Per-player one-shot request to switch the panel's active reference tab.
   // Set when a result modal opens so the matching tab (Ledger / Expeditors /
   // Events) auto-opens and stays open after the player dismisses the modal —
@@ -401,13 +409,20 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
   // Life-event queue flush. Open the LifeEventModal when (a) we have a queued
   // event, (b) the LifeEventModal isn't already showing, and (c) the regular
-  // dice modal isn't currently visible (so the player handles one outcome at
-  // a time — dice roll first, then life event). fb:dfdeaf1c.
+  // dice modal isn't visible, exiting, or holding queued results (so the
+  // player handles one outcome at a time — dice/action results first, then
+  // the life event). fb:dfdeaf1c; queue-awareness added with fb:ac29b623.
   useEffect(() => {
-    if (pendingLifeEvent && !isLifeEventModalOpen && !isDiceResultModalOpen) {
+    if (
+      pendingLifeEvent &&
+      !isLifeEventModalOpen &&
+      !isDiceResultModalOpen &&
+      !diceResultQueue.isExiting &&
+      diceResultQueue.pendingCount === 0
+    ) {
       setIsLifeEventModalOpen(true);
     }
-  }, [pendingLifeEvent, isLifeEventModalOpen, isDiceResultModalOpen]);
+  }, [pendingLifeEvent, isLifeEventModalOpen, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
 
   // Persist visiblePanels to localStorage whenever it changes
   useEffect(() => {
@@ -437,7 +452,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     const handlePopState = (e: PopStateEvent) => {
       // Close the topmost modal in priority order
       if (isDiceResultModalOpen) {
-        setIsDiceResultModalOpen(false);
+        diceResultQueue.close();
       } else if (isCardDetailsModalOpen) {
         setIsCardDetailsModalOpen(false);
         setSelectedCard(null);
@@ -747,9 +762,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       const currentPlayer = players.find(p => p.id === currentPlayerId);
 
       if (currentPlayer) {
-        // Show dice result modal with detailed feedback
-        setDiceResult(result);
-        setIsDiceResultModalOpen(true);
+        // Show dice result modal with detailed feedback (queued — fb:ac29b623)
+        diceResultQueue.enqueue(result);
 
         // Also use unified notification system for the banner
         notificationService.notify(
@@ -800,10 +814,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     try {
       const result = await turnService.triggerManualEffectWithFeedback(currentPlayerId, effectType);
 
-      // Show modal if there are effects to display
+      // Show modal if there are effects to display (queued — fb:ac29b623)
       if (result && result.effects && result.effects.length > 0) {
-        setDiceResult(result);
-        setIsDiceResultModalOpen(true);
+        diceResultQueue.enqueue(result);
         // Notification already sent by TurnService
       }
     } catch (error) {
@@ -820,10 +833,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     try {
       const result = await turnService.handleAutomaticFunding(currentPlayerId);
 
-      // Show modal with funding details
+      // Show modal with funding details (queued — fb:ac29b623)
       if (result && result.effects && result.effects.length > 0) {
-        setDiceResult(result);
-        setIsDiceResultModalOpen(true);
+        diceResultQueue.enqueue(result);
 
         // Notification is already sent by TurnService
       }
@@ -994,8 +1006,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 onAutomaticFunding={handleAutomaticFunding}
                 onManualEffectResult={(result) => {
                   if (result && result.effects && result.effects.length > 0) {
-                    setDiceResult(result);
-                    setIsDiceResultModalOpen(true);
+                    diceResultQueue.enqueue(result);
                   }
                 }}
                 completedActions={completedActions}
@@ -1095,8 +1106,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                           onAutomaticFunding={handleAutomaticFunding}
                           onManualEffectResult={(result) => {
                             if (result && result.effects && result.effects.length > 0) {
-                              setDiceResult(result);
-                              setIsDiceResultModalOpen(true);
+                              diceResultQueue.enqueue(result);
                             }
                           }}
                           completedActions={completedActions}
@@ -1198,7 +1208,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       <DiceResultModal
         isOpen={isDiceResultModalOpen}
         result={diceResult}
-        onClose={() => setIsDiceResultModalOpen(false)}
+        onClose={diceResultQueue.close}
+        onExitComplete={diceResultQueue.handleExitComplete}
       />
 
       {/* LifeEventModal - dedicated modal for 1-in-6 life event card draws.
