@@ -702,7 +702,7 @@ Neither pattern touches production game logic — both are local to the test bot
 
 ### Deploy command
 
-User runs deploy from a **regular Windows terminal**, not WSL — the `unraid` ssh alias is in their Windows ssh config, not the WSL one (and not Git Bash's `~/.ssh/config` either, which is what Claude Code's shell sees). CLAUDE.md's `ssh unraid "..."` snippet works only after the alias is replicated to `~/.ssh/config` in Git Bash. Don't rerun deploy on the user's behalf — produce the command for them to copy. `git push` over HTTPS does work from Claude Code; only the ssh leg is the blocker.
+User runs deploy from a **regular Windows terminal**, not WSL. The `unraid` ssh alias (→ `root@192.168.86.57`, password auth) lives in `C:\Users\tomas\.ssh\config` — created 2026-06-12; PowerShell's ssh and Claude Code's Git Bash shell both read that same file, so `ssh unraid "..."` resolves from either. Don't run deploy on the user's behalf — produce the command for them to copy (it prompts for the root password interactively anyway). `git push` over HTTPS works from Claude Code.
 
 ### WebFetch is blocked by Cloudflare on game/dashboard.unravelcodes.com
 
