@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-06-12 — Unraid Docker UI polish (no app change)
+
+Dockerfile `LABEL`s for the Unraid Docker page: `net.unraid.docker.icon` (the Unravel logo, served by the game itself at `/images/logo.png` — already live) + `net.unraid.docker.webui` (click-through to game.unravelcodes.com) + OCI title/description. Replaces the generic third-party cog. Companion labels for the dashboard stack's three containers went into dictionary-scraper's `docker-compose.override.yml`. Applies on next deploy/recreate.
+
 ## [3.0.73] - 2026-06-12
 
 One-endpoint follow-up to v3.0.72, caught during post-deploy live verification: **`/health` leaked every gameId** (a per-game list plus websocket room keys, which are gameIds) — and game codes are the join secret, so the public health check defeated the brand-new `GET /api/games` admin lock through a side door. `/health` now returns counts only (`activeGames`, websocket totals); both client consumers (ConnectionStatus, networkDetection) only ever checked `response.ok`, so nothing breaks. Per-game detail remains available behind admin auth at `/api/debug/games`. New fingerprint test pins `/health` as id-free. Server tests 82/82, typecheck clean.

@@ -4,6 +4,16 @@
 
 FROM node:20-alpine
 
+# Unraid Docker UI metadata — replaces the generic third-party cog with the
+# project logo and gives the container a clickable Web UI link. The icon is
+# served by this very container (public/images/logo.png -> dist on build).
+LABEL net.unraid.docker.icon="https://game.unravelcodes.com/images/logo.png" \
+      net.unraid.docker.webui="https://game.unravelcodes.com" \
+      org.opencontainers.image.title="Unravel Codes: The Game" \
+      org.opencontainers.image.description="Multi-player board game simulating NYC construction permitting" \
+      org.opencontainers.image.url="https://game.unravelcodes.com" \
+      org.opencontainers.image.source="https://github.com/tomaszsb/Game_alpha"
+
 # Build argument for version tracking
 ARG GIT_COMMIT=unknown
 
