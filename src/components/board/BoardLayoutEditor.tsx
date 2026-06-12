@@ -13,9 +13,10 @@
 // purpose-built for arranging tiles, so there's no need to flip between
 // implementations or modes.
 //
-// Drag-save persists through the same /api/admin/save-source-files endpoint
-// the in-game edit mode uses, so a change here is immediately reflected the
-// next time anyone (player or admin) loads the game.
+// Drag-save persists into the classroom's instance config (the teacher
+// instance layer, /api/instances/.../positions) — same path the in-game
+// edit mode uses, so a change here is immediately reflected the next time
+// anyone (player or admin) loads the game, and survives every deploy.
 //
 // IMPORTANT (v2.69.4): DataService caches GAME_CONFIG.csv at app startup
 // and never refetches it (the `loaded` flag guards loadData() from re-runs).

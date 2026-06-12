@@ -1,6 +1,6 @@
 {
   "name": "unravel-codes",
-  "version": "3.0.73",
+  "version": "3.0.74",
   "type": "module",
   "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
@@ -11,6 +11,7 @@
   },
   "scripts": {
     "server": "node server/server.js",
+    "migrate:check": "node server/migrateCheck.js",
     "test": "vitest run --config vitest.config.dev.ts",
     "test:dev": "vitest run --config vitest.config.dev.ts",
     "test:ci": "vitest run --config vitest.config.ci.ts",

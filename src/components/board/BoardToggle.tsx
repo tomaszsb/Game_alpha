@@ -82,7 +82,7 @@ export function BoardToggle({
         type="button"
         style={editMode ? activeStyle : buttonStyle}
         onClick={() => onEditModeChange(!editMode)}
-        title="Drag tiles to reposition. Saves to disk via /api/admin/save-source-files."
+        title="Drag tiles to reposition. Saves to the classroom config (survives updates)."
       >
         ✏️ Edit {editMode ? 'on' : 'off'}
       </button>

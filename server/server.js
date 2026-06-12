@@ -16,6 +16,21 @@ import path from 'path';
 import { initializeWebSocket, broadcastStateUpdate, getRoomStats, validateStateSchema } from './websocket.js';
 import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
+import {
+  DEFAULT_INSTANCE_ID,
+  createInstance,
+  loadInstance,
+  saveInstance,
+  checkInstanceWriteAccess,
+  setSlotPositions,
+} from './instanceStore.js';
+import {
+  computeStockVersion,
+  ensureFreshBake,
+  readBakeStamp,
+  resolvedDir,
+} from './instanceResolver.js';
+import { computeMigrationPlan, applyMigrationPlan, formatMigrationPlan } from './migrateInstance.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -115,57 +130,128 @@ function backupSourceFiles(reason) {
   }
 }
 
+// ===== TEACHER INSTANCE LAYER (Phase 1) =====
+// docs/core/TEACHER_LAYER_DESIGN.md. Stock (SOURCE/CLEAN/BASELINE in the
+// writable dir) now follows every deploy; per-classroom customizations live
+// in instances/<id>/config.json and are overlaid back by the bake. There is
+// no merge step anywhere — that is what kills the data-deploy gap.
+const instancesRoot = path.join(writableDataDir, 'instances');
+let instanceLayerActive = false;
+
+function copyStockSubdirs(distDataDir) {
+  for (const sub of ['SOURCE_FILES', 'CLEAN_FILES', 'BASELINE']) {
+    const src = path.join(distDataDir, sub);
+    const dst = path.join(writableDataDir, sub);
+    if (!fs.existsSync(src)) continue;
+    fs.mkdirSync(dst, { recursive: true });
+    for (const file of fs.readdirSync(src)) {
+      const srcFile = path.join(src, file);
+      if (!fs.statSync(srcFile).isFile()) continue;
+      fs.copyFileSync(srcFile, path.join(dst, file));
+    }
+    console.log(`   Copied ${sub}/`);
+  }
+}
+
+// One-time capture of the pre-instance-layer working copy: tile positions
+// become classroom-1 config; every other live-vs-stock difference is stale
+// content (logged, replaced by stock — the 2026-06-09 rule, codified).
+// Idempotent: a no-op once classroom-1 exists.
+function migrateLegacyWorkingCopy(distDataDir) {
+  try {
+    if (loadInstance(instancesRoot, DEFAULT_INSTANCE_ID)) return;
+  } catch (err) {
+    // Existing-but-corrupt config: never re-migrate over it, that could
+    // mask a recoverable classroom. Surface and leave it for the admin.
+    console.error(`⚠️ ${DEFAULT_INSTANCE_ID} config exists but is unreadable: ${err.message}`);
+    return;
+  }
+  const liveSpacesPath = path.join(writableSourceDir, 'Spaces.csv');
+  const stockSpacesPath = path.join(distDataDir, 'SOURCE_FILES', 'Spaces.csv');
+  if (!fs.existsSync(liveSpacesPath) || !fs.existsSync(stockSpacesPath)) return;
+
+  const plan = computeMigrationPlan({
+    liveSpacesCsv: fs.readFileSync(liveSpacesPath, 'utf-8'),
+    stockSpacesCsv: fs.readFileSync(stockSpacesPath, 'utf-8'),
+  });
+  applyMigrationPlan({ instancesRoot, plan, id: DEFAULT_INSTANCE_ID, displayName: 'Classroom 1' });
+  console.log(`🏫 Migrated live board into "${DEFAULT_INSTANCE_ID}": ${Object.keys(plan.positions).length} tile position(s) preserved`);
+  if (plan.contentDrift.length || plan.liveOnlySpaces.length) {
+    console.log('🏫 Migration detail (stale live content below is replaced by stock):');
+    console.log(formatMigrationPlan(plan));
+  }
+}
+
 function initWritableData() {
   const distDataDir = path.join(distPath, 'data');
-  const versionFile = path.join(writableDataDir, '.version');
-  const currentVersion = process.env.VITE_GIT_COMMIT || 'dev';
-  const existingVersion = fs.existsSync(versionFile) ? fs.readFileSync(versionFile, 'utf-8').trim() : '';
-
-  // Re-init BASELINE on every deploy (so reset-to-baseline uses latest)
-  // Only re-init SOURCE/CLEAN if no prior edits exist (first deploy)
   const needsFullInit = !fs.existsSync(path.join(writableSourceDir, 'Spaces.csv'));
-  const needsBaselineUpdate = currentVersion !== existingVersion;
 
   if (needsFullInit) {
     backupSourceFiles('pre-init');
     console.log('📋 Initializing writable data from dist...');
-    for (const sub of ['SOURCE_FILES', 'CLEAN_FILES', 'BASELINE']) {
-      const src = path.join(distDataDir, sub);
-      const dst = path.join(writableDataDir, sub);
-      if (fs.existsSync(src)) {
-        fs.mkdirSync(dst, { recursive: true });
-        for (const file of fs.readdirSync(src)) {
-          const srcFile = path.join(src, file);
-          if (!fs.statSync(srcFile).isFile()) continue;
-          fs.copyFileSync(srcFile, path.join(dst, file));
-        }
-        console.log(`   Copied ${sub}/`);
-      }
-    }
-  } else if (needsBaselineUpdate) {
-    // Update BASELINE from new build but keep user-edited SOURCE/CLEAN
-    const baselineSrc = path.join(distDataDir, 'BASELINE');
-    if (fs.existsSync(baselineSrc)) {
-      fs.mkdirSync(writableBaselineDir, { recursive: true });
-      for (const file of fs.readdirSync(baselineSrc)) {
-        const srcFile = path.join(baselineSrc, file);
-        if (!fs.statSync(srcFile).isFile()) continue;
-        fs.copyFileSync(srcFile, path.join(writableBaselineDir, file));
-      }
-      console.log('📋 Updated BASELINE from new deploy');
-    }
-  } else {
-    console.log('📋 Writable data dir already initialized');
+    copyStockSubdirs(distDataDir);
+    return;
   }
 
-  // Write version marker
-  fs.mkdirSync(writableDataDir, { recursive: true });
-  fs.writeFileSync(versionFile, currentVersion);
+  // Capture legacy customizations BEFORE the stock refresh can overwrite them.
+  migrateLegacyWorkingCopy(distDataDir);
+
+  // Stock refresh: SOURCE/CLEAN/BASELINE follow the deploy whenever the
+  // shipped data differs from the working copy. (Replaces the old
+  // first-boot-only rule that caused the data-deploy gap. Live edits to
+  // stock — e.g. via the content editor — do not survive this; content's
+  // home is the repo, per spec decision 3.)
+  const distVersion = computeStockVersion(distDataDir);
+  const writableVersion = computeStockVersion(writableDataDir);
+  if (distVersion !== writableVersion) {
+    backupSourceFiles('pre-stock-refresh');
+    console.log('📋 Refreshing stock data from new deploy...');
+    copyStockSubdirs(distDataDir);
+  } else {
+    console.log('📋 Stock data already current');
+  }
+}
+
+// Boot-time bake, fault-isolated: a corrupt classroom config must never
+// block the server from starting (spec). On failure we fall back to
+// serving the writable stock directly, exactly like pre-instance-layer.
+function initInstanceLayer() {
+  try {
+    let config = loadInstance(instancesRoot, DEFAULT_INSTANCE_ID);
+    if (!config) {
+      config = createInstance(instancesRoot, { id: DEFAULT_INSTANCE_ID, displayName: 'Classroom 1' });
+      console.log(`🏫 Created instance "${DEFAULT_INSTANCE_ID}"`);
+    }
+    const { rebaked } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+    console.log(rebaked ? `🏫 Baked resolved board for "${DEFAULT_INSTANCE_ID}"` : `🏫 Resolved board for "${DEFAULT_INSTANCE_ID}" is fresh`);
+    instanceLayerActive = true;
+  } catch (err) {
+    console.error('❌ Instance layer init failed — falling back to legacy data serving:', err.message);
+    instanceLayerActive = false;
+  }
+}
+
+// Rebake the default classroom if its config or the stock changed. Used by
+// the positions endpoint, the content editor save, and the game-create gate
+// (spec: game creation requires configVersion == resolvedVersion).
+function rebakeDefaultInstance() {
+  const config = loadInstance(instancesRoot, DEFAULT_INSTANCE_ID);
+  if (!config) throw new Error(`Instance "${DEFAULT_INSTANCE_ID}" not found`);
+  return ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
 }
 
 if (fs.existsSync(distPath)) {
   initWritableData();
-  // Serve writable data BEFORE dist so edited CSVs take precedence
+  initInstanceLayer();
+  // Resolved classroom data first (stock + teacher overlay, baked); the
+  // writable stock is the fallback when the instance layer is down. The
+  // static root path is constant — the bake swaps the directory under it
+  // atomically, so requests always see a complete set.
+  const resolvedStatic = express.static(resolvedDir(instancesRoot, DEFAULT_INSTANCE_ID));
+  app.use('/data', (req, res, next) => {
+    if (!instanceLayerActive) return next();
+    resolvedStatic(req, res, next);
+  });
   app.use('/data', express.static(writableDataDir));
 }
 
@@ -553,6 +639,12 @@ app.post('/api/admin/save-source-files', (req, res) => {
     const results = processGameData(spacesCSV, diceRollCSV, writableCleanDir, modalConfigCSV || null);
     console.log(`✅ CLEAN_FILES regenerated (${results.length} files)`);
 
+    // The edit above changed stock, so the served (resolved) data is stale
+    // until rebaked. Note: live stock edits do not survive the next deploy
+    // (spec decision 3 — content's home is the repo).
+    step = 'rebake';
+    if (instanceLayerActive) rebakeDefaultInstance();
+
     logVisitor(req, 'SAVE_SOURCE_FILES', {
       filesGenerated: results.map(r => r.filename)
     });
@@ -628,6 +720,8 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
 
     console.log(`✅ CLEAN_FILES regenerated from baseline (${results.length} files)`);
 
+    if (instanceLayerActive) rebakeDefaultInstance();
+
     logVisitor(req, 'RESET_TO_BASELINE', {
       filesRestored: baselineFiles,
       filesGenerated: results.map(r => r.filename)
@@ -642,6 +736,80 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
   } catch (err) {
     console.error('❌ Failed to reset to baseline:', err);
     res.status(500).json({ success: false, error: 'Failed to reset to baseline' });
+  }
+});
+
+// ===== TEACHER INSTANCE LAYER ENDPOINTS (Phase 1) =====
+
+// Open read (access model: watching is open) — board layout is visible on
+// the public board anyway. The write token is never included.
+app.get('/api/instances/:id', (req, res) => {
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+    const { writeToken: _writeToken, ...meta } = config.meta;
+    res.json({
+      success: true,
+      meta,
+      configVersion: config.configVersion,
+      slots: config.slots,
+      resolved: readBakeStamp(instancesRoot, req.params.id),
+    });
+  } catch (err) {
+    console.error(`❌ Instance read failed for "${req.params.id}":`, err.message);
+    res.status(500).json({ success: false, error: 'Instance config unreadable' });
+  }
+});
+
+// Tile positions (board drag-save). Replaces the old whole-Spaces.csv
+// round-trip through /api/admin/save-source-files — positions are classroom
+// config now, so they survive every deploy by construction. Auth: the
+// instance write token or the admin password (watching open, touching keyed).
+app.post('/api/instances/:id/positions', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const { positions } = req.body || {};
+  if (!positions || typeof positions !== 'object' || Object.keys(positions).length === 0) {
+    return res.status(400).json({ success: false, error: 'positions object is required' });
+  }
+
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || req.body.password,
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_POSITIONS_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    const applied = setSlotPositions(config, positions);
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+
+    logVisitor(req, 'INSTANCE_POSITIONS_SAVED', { instanceId: req.params.id, spaces: applied });
+    res.json({
+      success: true,
+      applied,
+      configVersion: config.configVersion,
+      resolvedVersion: stamp.configVersion,
+    });
+  } catch (err) {
+    console.error(`❌ Position save failed (step: ${step}):`, err.message);
+    res.status(500).json({ success: false, error: 'Failed to save positions', step, detail: err.message });
   }
 });
 
@@ -673,6 +841,22 @@ app.get('/api/games', (req, res) => {
 });
 
 app.post('/api/games', async (req, res) => {
+  // Spec gate: a game may only be seeded from a resolved board whose version
+  // matches the current classroom config (configVersion == resolvedVersion).
+  // ensureFreshBake makes that true or throws — a half-failed bake can never
+  // seed a game, and the atomic dir swap means a torn board cannot exist.
+  if (instanceLayerActive) {
+    try {
+      rebakeDefaultInstance();
+    } catch (err) {
+      console.error('❌ Bake failed at game create:', err.message);
+      return res.status(503).json({
+        success: false,
+        error: 'The game board could not be prepared. Please try again or contact the administrator.'
+      });
+    }
+  }
+
   const gameId = generateGameId();
   const token = generateGameToken();
   const now = formatTimestamp();

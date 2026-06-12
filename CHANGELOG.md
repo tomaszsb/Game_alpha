@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.74] - 2026-06-12
+
+**Teacher instance layer — Phase 1 (foundation).** First implementation slice of [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md) (the "deck of cards" model, designed + 4-review-audited same day). **This kills the data-deploy gap permanently**: stock data now refreshes on every deploy, and the teacher's customizations live in a separate per-classroom config that deploys never touch — no merge step exists anywhere, so nothing can be lost.
+
+### New server modules (pure, unit-tested — server.js only wires)
+
+- **[instanceStore.js](server/instanceStore.js)** — per-classroom config (`game-data/instances/<id>/config.json`): slots (used flag + tile positions), teacher copies + detours (schema reserved for Phase 2), Phase 3 ownership fields reserved. **Atomic single-file replacement** (temp → fsync → rename; spec invariant), configVersion bump on every save, per-instance **write token** (same pattern as game tokens: watching open, touching keyed).
+- **[instanceResolver.js](server/instanceResolver.js)** — "baking": stock + classroom config → complete resolved data set (`instances/<id>/resolved/` mirroring SOURCE_FILES + CLEAN_FILES). **Atomic directory swap** (bake into `resolved.new-*`, rename into place; crashed-bake debris swept), **version-stamped** (`bake-stamp.json`: configVersion + stockVersion), **on-demand** (rebake only when config or stock changed). Stock identity = content hash of the shipped data files (deliberately not `VITE_GIT_COMMIT`, which reads "dev" at container runtime).
+- **[migrateInstance.js](server/migrateInstance.js)** — one-time, idempotent migration of the pre-instance live working copy into `classroom-1`: tile positions become classroom config; every other live-vs-stock difference is reported as **stale content and replaced by stock** (the 2026-06-09 manual-merge rule, codified). **`npm run migrate:check`** ([migrateCheck.js](server/migrateCheck.js)) prints the full plan as a dry run — verified against the real local working copy: caught 7 genuine stale drifts (incl. the v3.0.70 `{fundingAmount}` fix and `has_final_review_gate` flags that had never reached the working copy).
+
+### server.js wiring
+
+- Boot: migrate (once) → refresh stock from dist when its content hash differs (replaces the first-boot-only rule that caused the gap) → bake classroom-1 (**fault-isolated**: a corrupt classroom config logs and falls back to legacy serving; it can never block boot).
+- `/data` now serves the **baked resolved board** (writable stock as fallback). The static root path is constant; the bake swaps the directory under it atomically, so readers never see a torn set.
+- New endpoints: `GET /api/instances/:id` (open read, write token stripped), `POST /api/instances/:id/positions` (instance token or admin; saves + rebakes).
+- `POST /api/games` **gated on a fresh bake** (spec: configVersion == resolvedVersion — a half-failed bake can never seed a game).
+- Editor saves (`save-source-files`, `reset-to-baseline`) trigger a rebake so edits appear immediately. Note: live stock content edits now do NOT survive the next deploy — content's home is the repo (spec decision 3).
+
+### Client
+
+- [saveBoardPosition.ts](src/components/board/saveBoardPosition.ts) rewritten: drag-save POSTs just the coordinates to the instance endpoint (admin header) instead of round-tripping the whole Spaces.csv through `save-source-files`. Positions survive every deploy by construction. Result contract (step + detail) unchanged, so BoardCanvas toasts keep working.
+
+### Tests + verification
+
++35 new/rewritten across 4 files: [instanceStore.test.ts](tests/server/instanceStore.test.ts) (15), [instanceResolver.test.ts](tests/server/instanceResolver.test.ts) (10 — incl. atomic-swap, failed-bake-preserves-old-output, stock-change-triggers-rebake), [migrateInstance.test.ts](tests/server/migrateInstance.test.ts) (7), [saveBoardPosition.test.ts](tests/components/board/saveBoardPosition.test.ts) (5, rewritten), +3 wiring fingerprints in [serverEndpointAuth.test.ts](tests/server/serverEndpointAuth.test.ts) (positions write gated; instance read open but token-free; game-create bake gate). Server+board suites 131/131, typecheck + build clean. **Live boot smoke verified end to end**: migration ran once, stock refreshed, bake stamped, resolved data served, 401 without auth, authed position save bumped v1→v2 and appeared in served GAME_CONFIG, game created through the gate.
+
 ## [Ops] 2026-06-12 — Unraid Docker UI polish (no app change)
 
 Dockerfile `LABEL`s for the Unraid Docker page: `net.unraid.docker.icon` (the Unravel logo, served by the game itself at `/images/logo.png` — already live) + `net.unraid.docker.webui` (click-through to game.unravelcodes.com) + OCI title/description. Replaces the generic third-party cog. Companion labels for the dashboard stack's three containers went into dictionary-scraper's `docker-compose.override.yml`. Deployed + visually confirmed (all 4 containers show the logo).

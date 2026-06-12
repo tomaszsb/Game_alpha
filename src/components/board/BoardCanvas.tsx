@@ -688,11 +688,10 @@ function BoardCanvasInner({
     setEdges(prev => applyEdgeChanges(changes, prev));
   }, []);
 
-  // Drag-to-save (Workstream 3 Phase D, v2.66.0). When an admin drops a
-  // tile, the new pos_x/pos_y goes through the same /api/admin/save-source-files
-  // pipeline the editor uses. saveBoardPosition fetches the current CSVs,
-  // mutates the dragged space's coords, and POSTs the round-trip — see
-  // saveBoardPosition.ts for the diagnostic-step contract.
+  // Drag-to-save (Workstream 3 Phase D, v2.66.0; instance layer since
+  // Phase 1). When an admin drops a tile, the new pos_x/pos_y is POSTed to
+  // the classroom's instance config (/api/instances/.../positions), which
+  // survives deploys — see saveBoardPosition.ts for the step contract.
   const onNodeDragStop = useCallback(async (_e: unknown, node: Node) => {
     if (!isAdmin) return;
     const x = Math.round(node.position.x);

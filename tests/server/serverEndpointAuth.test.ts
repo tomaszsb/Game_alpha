@@ -18,12 +18,12 @@ const source = fs.readFileSync(
  * Find the registration of a route and return the first ~200 chars of its
  * handler body — enough to see the guard call that must lead the handler.
  */
-function handlerHead(method: string, route: string): string {
+function handlerHead(method: string, route: string, len = 600): string {
   // Trailing comma disambiguates '/api/feedback' from '/api/feedback/:id'
   const needle = `app.${method}('${route}',`;
   const start = source.indexOf(needle);
   expect(start, `route ${method.toUpperCase()} ${route} not found in server.js`).toBeGreaterThan(-1);
-  return source.slice(start, start + 600);
+  return source.slice(start, start + len);
 }
 
 describe('server.js endpoint auth wiring', () => {
@@ -89,5 +89,25 @@ describe('server.js endpoint auth wiring', () => {
     expect(head).not.toContain('requireAdmin(req');
     expect(head).not.toContain('requireGameTokenOrAdmin(req');
     expect(head).not.toContain('validateGameToken(req');
+  });
+
+  // ===== Teacher instance layer (Phase 1) =====
+
+  it('POST /api/instances/:id/positions requires instance write token or admin', () => {
+    expect(handlerHead('post', '/api/instances/:id/positions', 1200))
+      .toContain('checkInstanceWriteAccess(config');
+  });
+
+  it('GET /api/instances/:id is open by design but never includes the write token', () => {
+    const head = handlerHead('get', '/api/instances/:id', 800);
+    // The destructure that strips writeToken from the response must stay.
+    expect(head).toContain('writeToken: _writeToken');
+    expect(head).not.toContain('requireAdmin(req');
+  });
+
+  it('POST /api/games is gated on a fresh bake (configVersion == resolvedVersion)', () => {
+    // Spec: a game may only be seeded from a resolved board matching the
+    // current classroom config; a half-failed bake can never seed a game.
+    expect(handlerHead('post', '/api/games', 800)).toContain('rebakeDefaultInstance()');
   });
 });

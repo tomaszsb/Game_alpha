@@ -6,8 +6,11 @@ import fs from 'fs';
 import path from 'path';
 
 // ===== CSV UTILITIES =====
+// Exported for reuse by the instance layer (instanceResolver/migrateInstance):
+// same parse/emit semantics everywhere, so baked files and migration diffs
+// can never disagree with the generator about CSV shape.
 
-function parseCsvLine(line) {
+export function parseCsvLine(line) {
   const result = [];
   let current = '';
   let inQuotes = false;
@@ -27,7 +30,11 @@ function parseCsvLine(line) {
   return result;
 }
 
-function parseCsvWithHeaders(csvText) {
+/**
+ * @param {string} csvText
+ * @returns {Array<Object<string, string>>}
+ */
+export function parseCsvWithHeaders(csvText) {
   // Remove BOM if present
   const text = csvText.replace(/^\uFEFF/, '');
   const lines = text.trim().split('\n').map(l => l.replace(/\r$/, ''));
@@ -53,7 +60,7 @@ function escapeCSV(value) {
   return str;
 }
 
-function toCsv(rows, fieldnames) {
+export function toCsv(rows, fieldnames) {
   const header = fieldnames.join(',');
   const lines = rows.map(row =>
     fieldnames.map(f => escapeCSV(row[f] ?? '')).join(',')
