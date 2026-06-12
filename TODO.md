@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** May 19, 2026
-**Status:** Beta — regression gates in place and deterministic; Workstream 6 closed; Workstream 3 Phase C closed v2.64.0; Workstream 3 Phase D drag-to-save shipped v2.66.0; multiline CSV parser hotfix v2.66.1; verdict-gate visibility fixes v2.66.2; per-space hardcoding audit closed v2.66.3
-**Current Version:** 2.66.3 (drag-to-save + multiline parser + verdict-gate UX + funding-heuristic cleanup; BoardV3 retirement deferred to v2.66.4)
+**Last Updated:** June 12, 2026
+**Status:** Beta — live in production; v3.0.72 security hardening committed + pushed, pending deploy
+**Current Version:** 3.0.72 (header refreshed 2026-06-12 — was 7 minor versions stale, flagged as DEF-7)
 
 ---
 
@@ -22,6 +22,16 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [x] **CARDS_EXPANDED.csv — DONE live 2026-06-09.** 21 L-card voice fixes + L049 `draw_cards`/`affected_phase`. Hand-authored (not regen'd), replaced served CLEAN file directly. See fb:931a55de below.
 - [x] **Source migration for the other 4 — DONE live 2026-06-09.** LOGIC_QUESTIONS `auto_answer_from` col, SPACE_CONTENT 14 voiced titles + funding token, SPACE_EFFECTS BANK-FUND-REVIEW "Accept Owner Funding" label, GAME_CONFIG `has_final_review_gate=Yes`. Built a corrected single-line `Spaces.csv` (live + master Title/Event from the parseable master SPACE_CONTENT CLEAN + new gate column; master `Spaces.csv` itself is malformed/multi-line so was NOT parsed) + master ModalConfig; **verified by running the real `processGameData` regen locally — output matched master CLEAN exactly except `pos_x`/`pos_y` (user's board layout, preserved)**. Applied to live SOURCE **and** CLEAN (durable) via `scp` bundle + `cp` (root@192.168.86.57, password auth — the `unraid` ssh alias doesn't resolve under scp). Verified serving at origin (cf-cache MISS): cheat title "I cut a corner", gate=Yes, board pos -590 intact. Backups in `server/data/game-data/_migration_bak/`. Build script + bundle in `.claude/tmp/`.
 - [ ] **Broader implication:** any CSV *data* fix since the live volume was first initialized may also be stale-live. After the above, consider a one-time full live-vs-master audit of all CLEAN files (most already match — only these 5 diverged as of 2026-06-09).
+
+---
+
+## 🔐 **Security follow-ups** (2026-06-12, v3.0.72 session)
+*The v3.0.72 hardening itself shipped (see CHANGELOG). These are the loose ends.*
+
+- [ ] **USER CHORE: revoke the old GitHub personal access token.** dictionary-scraper's git remote URL had a `ghp_…` token embedded in plaintext (also echoed into the 2026-06-12 chat). The remote was switched to clean HTTPS + credential manager and verified working — but the token itself stays valid until revoked: github.com → Settings → Developer settings → Personal access tokens → delete it.
+- [ ] **USER CHORE: rotate the Unraid root password** (typed into the terminal/chat by accident 2026-06-12). Unraid web UI → Users → root.
+- [ ] **Deploy v3.0.72** — the endpoint locks aren't live until deployed. Dashboard companion fix is ALREADY live (proxy sends FEEDBACK_TOKEN; Unraid stack has the env var). No game-server config needed.
+- [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` not set** — compose warns and defaults blank on every `docker compose up` (pre-existing, surfaced 2026-06-12). If the dashboard's AI features ever misbehave, this is why. Don't fix without asking the user whether it's intentional.
 
 ---
 
