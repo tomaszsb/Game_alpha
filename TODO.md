@@ -44,18 +44,14 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🏫 **Teacher instance layer + space catalog** (design initiative, 2026-06-09)
-*Source: user, after the data-deploy gap surfaced. The manual SSH file-sync we did 2026-06-09 should become a product feature, and it shares a foundation with the long-standing "catalog of spaces teachers can add/remove" vision. NOT a quick fix — design deliberately before any code.*
+## 🏫 **Teacher instance layer + space catalog** (design initiative, 2026-06-09 · **design approved 2026-06-12**)
+*Source: user, after the data-deploy gap surfaced. Design session held 2026-06-12 — the user reframed it as a **"deck of cards" model** (master stock deck refreshed by every deploy; each classroom holds only its own used/unused markers, positions, teacher copies, and detours; no merge step exists, so nothing can ever be lost). Full spec with all 6 maintainer decisions: [docs/core/TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md).*
 
-**The core idea: split the data into two layers.**
-- **Master library** = canonical content (card text, space titles, the full set of spaces). Versioned + shipped on deploy. You own/update this.
-- **Per-instance config** = one teacher's customizations: which spaces are enabled, board layout (`pos_x`/`pos_y`), any local overrides. Preserved across updates.
-
-Today these are *mixed* in the same CLEAN/SOURCE files on the live server — which is the root cause of the data-deploy gap (updating content risks wiping board layout, so the server preserves the whole working copy and content fixes never land). Separating the layers fixes the gap AND enables the catalog.
-
-- [ ] **"Apply latest updates" button** (admin dashboard) — replaces the manual SSH sync. Smart merge using the rule proven on 2026-06-09: **take new content, keep my customizations** (board layout + enabled-spaces). Distinct from the existing nuclear "Reset to Baseline" (which wipes edits). This is the smaller, nearer-term half.
-- [ ] **Space catalog** (teacher-facing) — browse the master space library, toggle spaces on/off, arrange the board. The bigger half. **Hard part: spaces are connected by movement paths** — turning a space off orphans the spaces that route *to* it, so the catalog needs reroute rules ("when X is off, send players to Y instead"). Real design work, not a checkbox list.
-- [ ] **Architecture prerequisite:** design the master-library vs per-instance-config separation FIRST — it's the foundation both features sit on. Worth a focused brainstorm/spec session (the data model, where config lives, how merge/reroute works) before writing code.
+- [x] **Architecture/design session** — DONE 2026-06-12. Spec written; decisions: everything overridable via teacher copies (never in-place), stock auto-refreshes on deploy, maintainer's live edits = classroom copies by default, multi-teacher in the data model from day one, board locked at game start, switch-off uses hybrid confirm (auto-skip suggestion + before/after path + optional custom detour).
+- [ ] **Phase 1 — Foundation**: library/instance split, migrate live board → classroom #1, stock auto-refresh on deploy. Kills the data-deploy gap permanently. *(The old "Apply latest updates" smart-merge button idea is obsolete — superseded by the no-merge model.)*
+- [ ] **Phase 2 — Teacher catalog screen**: browse deck, on/off with hybrid confirm flow, swap in copies, arrange board.
+- [ ] **Phase 3 — Multi-teacher front door**: sign-in, classroom creation, instance picker on game create (auth model TBD — see spec's open questions).
+- [ ] **Phase 4 — Card insertion**: teacher-authored spaces / "replace one card with several". Most invasive; last.
 
 ---
 
