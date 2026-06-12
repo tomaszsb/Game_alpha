@@ -1,28 +1,28 @@
-# Next session starter — written 2026-06-11 by /koniec
+# Next session starter — written 2026-06-12 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.70 (deployed 2026-06-09; no new version this session)
-- **Branch:** master, clean after wrap-up commit
-- **Last shipped:** v3.0.70 (Phase 2.2 TurnTransaction + smart-bot 90% calibration)
-- **This session:** audit + bug triage only — no source changes. Produced `docs/technical/DEFICIENCY_AUDIT.md`; triaged 3 new dashboard reports into TODO.
-- **Test suite:** 1628/1628 passing (re-confirmed). Pre-existing: 0 failures.
-- **Build/typecheck:** clean. **Lint:** 386 errors (long-standing config issue, not a regression — DEF-4).
+- **Version:** v3.0.71 (deployed 2026-06-12, bundle verified live; CSV label fix live-synced + verified at origin)
+- **Branch:** master, clean after wrap-up commit (only `.claude/settings.local.json` + untracked `ghost-history.jsonl` remain, both intentional)
+- **Last shipped:** both 2026-06-11 playtest bugs — bank-loan label (data + source-aware fallback) and result-modal flash (backdrop grace window + result queue)
+- **Test suite:** 1911/1911 non-ghost green (full run, twice). `npm test` full-suite hung at koniec (known Windows issue, killed). Ghost batch not re-run — no game-logic changes this session (UI/label only); last ghost green 2026-06-11.
+- **Build/typecheck:** clean. **Lint:** 386 errors (long-standing config issue — DEF-4).
 
 ## Top 3 open items
-1. **Bank-loan button mislabeled "Accept Owner Funding"** (fb:...06e5d66f) — real v3.0.70 bug, easy fix. `FinancesSection.ts:373` hardcodes the fallback for ALL funding draws; make it source-aware (draw_b→Bank Loan, draw_i→Investment). Wrong label is also in live data (migrated 2026-06-09) but the code-default fix lands on a normal deploy.
-2. **Result modal flash-closes on fast click** (fb:...ac29b623) — apply the v3.0.9 modal-queue pattern to the shared DiceResultModal (currently a synchronous toggle; reopening mid-exit-animation swallows the new modal). Confirm with a fast-click repro first.
-3. **Security gaps from the audit** (DEF-2, DEF-6) — WebSocket `subscribe` skips token auth (state readable without token); feedback-read endpoints unauthenticated + expose reporter PII. See DEFICIENCY_AUDIT.md.
+1. **Security gaps from the audit** (DEF-2, DEF-6) — WebSocket `subscribe` skips token auth (state readable without token); feedback-read endpoints unauthenticated + expose reporter PII. DEF-2 is the sharpest. See `docs/technical/DEFICIENCY_AUDIT.md`.
+2. **Onboarding package** (fb:0aa9660c + fb:8ad42b52 + fb:f22035af) — the remaining dashboard cluster (5 open reports, all design/onboarding); recurring "overwhelming for newcomers" theme; biggest product lever.
+3. **Teacher instance layer + space catalog** (design initiative) — needs a focused design/brainstorm session BEFORE code; foundation for killing the data-deploy gap properly.
 
 ## Test failures to address
 (None — suite is green.)
 
 ## Decisions waiting on the user
-- Whether to fix the 2 real bugs (#1, #2 above) now, and how far to go on the audit security findings (DEF-2/DEF-6) vs leave as documented. User was offered the fixes and chose to queue them in TODO instead.
+- Which of the top-3 to take next (security hardening vs onboarding design vs teacher-layer design). No pending technical decision.
 
 ## Suggested first move
-The two playtest bugs (#1, #2) are the highest-value, lowest-risk work — #1 is a ~10-line source fix. Want to start there, or take on the audit's security findings (DEF-2 WebSocket auth is the sharpest)?
+v3.0.71 closed out the quick wins — the board is now strategic items only. DEF-2 (WebSocket auth) is the most self-contained: server-side, testable, no design input needed. Want to start there, or kick off one of the two design sessions (onboarding / teacher layer)?
 
 ## Reminders
-- Deploy command runs from a **Windows terminal**, not WSL (ssh `unraid` alias is Windows-only).
-- Bug #1's data side is a casualty of the data-deploy gap — fix the code default, don't chase the CSV alone.
-- Full deficiency list lives in `docs/technical/DEFICIENCY_AUDIT.md`; new bug reports are in TODO under "Dashboard reports — 2026-06-11 playtest".
+- `ssh unraid` now resolves from PowerShell AND Claude Code's shell (`C:\Users\tomas\.ssh\config`, created 2026-06-12) — but still don't run deploys from Claude Code; hand the command to the user.
+- fb:ac29b623 post-mortem: the queued diagnosis was wrong (see CLAUDE.md TACTICAL "Repro the bug BEFORE building the prescribed fix"). Repro first when a TODO arrives with an untested root cause.
+- Orphan-history side bug (back button needs extra presses after modal closes) is still open in TODO — the naive fix re-introduces a fast-click race; needs care.
+- Local dev: ports 3001–3004 may be hijacked by stale WSL portproxy rules — see CLAUDE.md TACTICAL before browser-verifying anything locally.

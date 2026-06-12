@@ -103,6 +103,11 @@ Template — keep under 35 lines:
 2. **[Title]** — same.
 3. **[Title]** — same.
 
+(If an item carries a root-cause theory that was never reproduced this session, label it
+"hypothesis — unverified", never as settled fact. 2026-06-12: a confident AnimatePresence
+diagnosis written at handoff turned out wrong on live repro — the real cause was backdrop
+click-through; presenting it as settled nearly shipped a fix that wouldn't have fixed the bug.)
+
 ## Test failures to address
 (Skip section if green.)
 - `tests/<path> > test name` — one-line root-cause guess.
