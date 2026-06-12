@@ -15,6 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import { initializeWebSocket, broadcastStateUpdate, getRoomStats, validateStateSchema } from './websocket.js';
 import { processGameData } from './processGameData.js';
+import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -647,7 +648,13 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
 
 // ===== GAME MANAGEMENT ENDPOINTS =====
 
+// Admin-only since 2026-06-12: listing every gameId publicly defeated the
+// join-by-code model — game codes act as the join secret, and join-info
+// hands out a game's token to anyone who knows its code. A public list of
+// all codes therefore meant write access to every game. The only client
+// consumer is the admin Game Manager (PlayerSetup), which sends the header.
 app.get('/api/games', (req, res) => {
+  if (!requireAdmin(req, res)) return;
   logVisitor(req, 'LIST_GAMES');
 
   const gameList = Array.from(games.entries()).map(([id, data]) => ({
@@ -702,9 +709,7 @@ app.post('/api/games', async (req, res) => {
 app.delete('/api/games/:gameId', (req, res) => {
   const { gameId } = req.params;
 
-  if (!games.has(gameId)) {
-    return res.status(404).json({ error: 'Game not found', gameId });
-  }
+  if (!requireGameTokenOrAdmin(req, res, gameId)) return;
 
   logVisitor(req, 'DELETE_GAME', { gameId });
   games.delete(gameId);
@@ -875,13 +880,11 @@ app.post('/api/games/:gameId/state', async (req, res) => {
 app.delete('/api/games/:gameId/state', (req, res) => {
   const { gameId } = req.params;
 
-  if (!games.has(gameId)) {
-    return res.status(404).json({ error: 'Game not found', gameId });
-  }
+  const game = requireGameTokenOrAdmin(req, res, gameId);
+  if (!game) return;
 
   logVisitor(req, 'RESET_GAME', { gameId });
 
-  const game = games.get(gameId);
   const previousVersion = game.version;
 
   game.state = null;
@@ -899,7 +902,10 @@ app.delete('/api/games/:gameId/state', (req, res) => {
 });
 
 // ===== LOGS ENDPOINT =====
+// Gated 2026-06-12: visitor logs carry IP addresses + device strings (PII).
+// Same access rule as feedback: admin password or FEEDBACK_TOKEN.
 app.get('/api/logs', (req, res) => {
+  if (!requireFeedbackAccess(req, res)) return;
   try {
     if (!fs.existsSync(CONFIG.LOG_FILE)) {
       return res.json({ logs: [], count: 0 });
@@ -931,6 +937,7 @@ app.get('/api/logs', (req, res) => {
 
 // ===== DAILY SUMMARY ENDPOINT =====
 app.get('/api/logs/summary', (req, res) => {
+  if (!requireFeedbackAccess(req, res)) return; // exposes visitor IP list
   try {
     if (!fs.existsSync(CONFIG.LOG_FILE)) {
       return res.json({ summary: 'No logs yet' });
@@ -988,8 +995,15 @@ app.get('/api/gamestate', (req, res) => {
 });
 
 app.post('/api/gamestate', (req, res) => {
+  // Gated 2026-06-12: this legacy single-game write had NO auth. Modern
+  // clients never use it intentionally (the accidental fallback to it caused
+  // the stale-PLAY-phase bug — see App.tsx) — requiring G0's token both
+  // closes the open write and turns any accidental legacy write into a
+  // clean 401 instead of silent state corruption.
+  const game = validateGameToken(req, res, LEGACY_GAME_ID);
+  if (!game) return;
+
   const { state, clientVersion } = req.body;
-  const game = games.get(LEGACY_GAME_ID);
 
   if (!state) {
     return res.status(400).json({ error: 'State is required', received: req.body });
@@ -1008,7 +1022,10 @@ app.post('/api/gamestate', (req, res) => {
 });
 
 app.delete('/api/gamestate', (req, res) => {
-  const game = games.get(LEGACY_GAME_ID);
+  // Gated 2026-06-12 (was unauthenticated): legacy reset is admin-or-token.
+  const game = requireGameTokenOrAdmin(req, res, LEGACY_GAME_ID);
+  if (!game) return;
+
   const previousVersion = game.version;
 
   game.state = null;
@@ -1020,14 +1037,55 @@ app.delete('/api/gamestate', (req, res) => {
   res.json({ success: true, message: 'Game state reset', previousVersion });
 });
 
+// ===== ENDPOINT AUTH GUARDS =====
+// requireAdmin: x-admin-password header, fail-closed when hash unset (DEF-5).
+// requireFeedbackAccess: admin password OR FEEDBACK_TOKEN (DEF-6) — keeps
+// both the admin BugReportsPanel and token-holding maintainer scripts working.
+// Returns true if authorized; otherwise writes the error response and returns false.
+function requireAdmin(req, res) {
+  const result = checkAdminPassword(req.headers['x-admin-password'], CONFIG.ADMIN_PASSWORD_HASH);
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.error });
+    return false;
+  }
+  return true;
+}
+
+// Destructive per-game operations (delete game, reset state) accept EITHER
+// that game's own token (a player in the game) OR the admin password (the
+// teacher/maintainer). Added 2026-06-12: these endpoints previously had NO
+// auth — anyone who guessed a gameId could delete or wipe a game.
+function requireGameTokenOrAdmin(req, res, gameId) {
+  const game = games.get(gameId);
+  if (!game) {
+    res.status(404).json({ error: `Game ${gameId} not found` });
+    return null;
+  }
+  if (checkAdminPassword(req.headers['x-admin-password'], CONFIG.ADMIN_PASSWORD_HASH).ok) {
+    return game;
+  }
+  // Falls through to token validation (writes its own 401/403 on failure)
+  return validateGameToken(req, res, gameId);
+}
+
+function requireFeedbackAccess(req, res) {
+  const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
+  const authHeader = req.headers.authorization || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const result = checkFeedbackAccess(
+    { adminHeader: req.headers['x-admin-password'], token: queryToken || bearerToken },
+    { adminHash: CONFIG.ADMIN_PASSWORD_HASH, feedbackToken: process.env.FEEDBACK_TOKEN }
+  );
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.error });
+    return false;
+  }
+  return true;
+}
+
 // Debug endpoints - admin only
 app.get('/api/debug/state', (req, res) => {
-  const passwordHash = req.headers['x-admin-password']
-    ? crypto.createHash('sha256').update(req.headers['x-admin-password']).digest('hex')
-    : '';
-  if (passwordHash !== CONFIG.ADMIN_PASSWORD_HASH) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!requireAdmin(req, res)) return;
   const game = games.get(LEGACY_GAME_ID);
   res.set('Content-Type', 'application/json');
   res.send(JSON.stringify({
@@ -1038,12 +1096,7 @@ app.get('/api/debug/state', (req, res) => {
 });
 
 app.get('/api/debug/games', (req, res) => {
-  const passwordHash = req.headers['x-admin-password']
-    ? crypto.createHash('sha256').update(req.headers['x-admin-password']).digest('hex')
-    : '';
-  if (passwordHash !== CONFIG.ADMIN_PASSWORD_HASH) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!requireAdmin(req, res)) return;
   const allGames = {};
   games.forEach((data, id) => {
     allGames[id] = {
@@ -1129,7 +1182,12 @@ app.post('/api/feedback', async (req, res) => {
   }
 });
 
+// Reads/updates require admin password or FEEDBACK_TOKEN (DEF-6):
+// reports can carry reporter contact info (name/email/phone), console
+// logs, and screenshots — PII that must not be publicly enumerable.
+// POST (the in-game bug-report button) stays open by design.
 app.get('/api/feedback', (req, res) => {
+  if (!requireFeedbackAccess(req, res)) return;
   try {
     ensureFeedbackDir();
 
@@ -1155,6 +1213,7 @@ app.get('/api/feedback', (req, res) => {
 });
 
 app.get('/api/feedback/:id', (req, res) => {
+  if (!requireFeedbackAccess(req, res)) return;
   try {
     const sanitizedId = path.basename(req.params.id);
     if (!/^feedback-\d+-[a-f0-9]+\.json$/.test(sanitizedId)) {
@@ -1175,6 +1234,7 @@ app.get('/api/feedback/:id', (req, res) => {
 });
 
 app.patch('/api/feedback/:id', (req, res) => {
+  if (!requireFeedbackAccess(req, res)) return;
   try {
     const sanitizedId = path.basename(req.params.id);
     if (!/^feedback-\d+-[a-f0-9]+\.json$/.test(sanitizedId)) {
@@ -1207,12 +1267,7 @@ app.patch('/api/feedback/:id', (req, res) => {
 // Returns compact form (no screenshots, no metadata) for low token cost.
 // Requires FEEDBACK_TOKEN env var; rejects with 503 if unset to avoid
 // accidental public exposure when deployed without a token.
-function timingSafeEqualStr(a, b) {
-  const ab = Buffer.from(a || '');
-  const bb = Buffer.from(b || '');
-  if (ab.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ab, bb);
-}
+// (timingSafeEqualStr now lives in authGuards.js)
 
 app.get('/api/public/feedback/open', (req, res) => {
   try {

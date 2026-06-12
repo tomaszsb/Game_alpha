@@ -1,7 +1,14 @@
 // server/websocket.js
 // WebSocket module for real-time game state synchronization
 // Provides sub-100ms updates for TV displays and instant turn notifications
-// Authentication: requires valid game token on connect and for state_push
+//
+// Auth model (user decision 2026-06-12, see DEFICIENCY_AUDIT DEF-2):
+// - READS are open by design: this is a classroom spectator game — anyone
+//   may connect bare and subscribe to watch a board, no token required.
+// - WRITES (state_push) require the token of the SPECIFIC game being
+//   written to. A token authenticates you for ONE game (authGameId), not
+//   all games — without that, any player could overwrite other classes'
+//   boards.
 // Schema validation: validates state_push payload structure before accepting
 
 import { WebSocketServer } from 'ws';
@@ -10,7 +17,9 @@ import crypto from 'crypto';
 // Room management: gameId -> Set<WebSocket>
 const rooms = new Map();
 
-// Client tracking: WebSocket -> { gameId, playerId, authenticated }
+// Client tracking: WebSocket -> { gameId, playerId, authenticated, authGameId }
+// gameId = room currently subscribed to; authGameId = game the token was
+// validated against at connect time (null for unauthenticated spectators).
 const clients = new Map();
 
 // Message types
@@ -56,8 +65,9 @@ export function initializeWebSocket(server, games) {
       return;
     }
 
-    // Track this client
-    clients.set(ws, { gameId: null, playerId, authenticated });
+    // Track this client. authGameId pins WHICH game the token unlocked —
+    // state_push checks it so a game-A token can't write to game B.
+    clients.set(ws, { gameId: null, playerId, authenticated, authGameId: authenticated ? gameId : null });
 
     // Auto-subscribe if gameId provided in URL (already authenticated)
     if (gameId) {
@@ -228,10 +238,13 @@ function handleStatePush(ws, gameId, payload, games) {
     return;
   }
 
-  // Verify client is authenticated for this game
+  // Verify client is authenticated FOR THIS GAME — a valid token for
+  // game A must not authorize writes to game B (cross-game write fix,
+  // 2026-06-12). Spectators (no token) are read-only by definition.
   const clientInfo = clients.get(ws);
-  if (!clientInfo?.authenticated) {
-    sendError(ws, 'Authentication required for state_push');
+  if (!clientInfo?.authenticated || clientInfo.authGameId !== gameId) {
+    console.warn(`🔒 state_push rejected: client not authenticated for game ${gameId} (authGameId=${clientInfo?.authGameId || 'none'})`);
+    sendError(ws, 'Authentication required for state_push: connect with this game\'s token');
     return;
   }
 

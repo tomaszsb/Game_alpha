@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.72] - 2026-06-12
+
+Security hardening session. Every server endpoint audited and locked to the maintainer's access model — **watching is open** (classroom spectator design: "others are supposed to look and spectate"), **touching requires keys**. Closes DEF-1, DEF-2, DEF-5, DEF-6 from [DEFICIENCY_AUDIT.md](docs/technical/DEFICIENCY_AUDIT.md), plus four unauthenticated surfaces the audit missed (documented there in the 2026-06-12 addendum). No player-visible behavior change.
+
+### Access decisions (maintainer, 2026-06-12)
+
+- **Open by design, now documented + test-pinned:** WebSocket spectator subscribe (DEF-2 read half ruled NOT a bug), `POST /api/feedback` (bug button), `POST /api/games` (lobby create), `GET /api/games/:id/join-info` (join-by-code — the game code is the secret), legacy `GET /api/gamestate`, `/health`.
+
+### Fixed — write/PII gaps
+
+- **Cross-game WebSocket write** ([websocket.js](server/websocket.js)): `state_push` only checked a boolean `authenticated`, so a valid token for game A authorized writes to game B. Now per-game (`authGameId` pinned at connect). Spectators remain read-only.
+- **Unauthenticated game deletion/reset**: `DELETE /api/games/:gameId`, `DELETE /api/games/:gameId/state`, and legacy `POST`/`DELETE /api/gamestate` had NO auth — anyone who guessed a gameId could delete or wipe a board mid-class. Now `requireGameTokenOrAdmin` (that game's token, or the admin password). The legacy-POST gate also converts the known accidental-fallback client bug from silent G0 corruption into a clean 401.
+- **`GET /api/games` now admin-only**: a public list of all game codes + join-info's code→token exchange = write access to every game. The only consumer (admin Game Manager in [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx)) sends `x-admin-password`.
+- **DEF-6 — feedback reads/PATCH gated** (reporter PII: contact info, screenshots, console logs): `GET /api/feedback`, `GET/PATCH /api/feedback/:id` now need `x-admin-password` or `FEEDBACK_TOKEN` (query/bearer). [BugReportsPanel.tsx](src/components/editor/BugReportsPanel.tsx) sends the header (and now surfaces PATCH failures so the resolve toggle reverts honestly); CLAUDE.md screenshot/PATCH-sweep recipes updated to pass the token.
+- **`GET /api/logs` + `/api/logs/summary` gated** (visitor IPs/devices = PII): same admin-or-token rule.
+- **DEF-5 — `/api/debug/*` fail-open**: bare `!==` let `'' === ''` pass when `ADMIN_PASSWORD_HASH` was unset. All admin checks now route through fail-closed (503) timing-safe guards.
+- **DEF-1 — dependency vulns**: `concurrently` pinned 9.2.0 (exact) + `npm audit fix` → **`npm audit`: 0 vulnerabilities** (was 2 critical via `shell-quote`).
+
+### Infrastructure
+
+- New [server/authGuards.js](server/authGuards.js): pure, unit-testable auth helpers (`checkAdminPassword`, `checkFeedbackAccess`, `timingSafeEqualStr`) shared by all gated endpoints — extracted because `server.js` auto-listens on import and can't be unit-tested directly.
+- **Companion fix shipped to the dashboard repo** (dictionary-scraper): its feedback proxy now sends `Authorization: Bearer FEEDBACK_TOKEN`; deployed live to the Unraid stack (compose override + `.env`) ahead of this release, so dashboard.unravelcodes.com's feedback page keeps working the moment these locks go live. Server compose there had drifted (extra hardening) — fixed via `docker-compose.override.yml`, NOT by overwriting.
+
+### Tests
+
++37 across 4 new files: [authGuards.test.ts](tests/server/authGuards.test.ts) (14 — incl. fail-closed matrix), [websocketAuth.test.ts](tests/server/websocketAuth.test.ts) (5 — real ws clients against a live server: spectator read ✓, spectator write ✗, cross-game write ✗, same-game write ✓, bad-token connect ✗), [serverEndpointAuth.test.ts](tests/server/serverEndpointAuth.test.ts) (16 — wiring fingerprints incl. open-by-design pins), [BugReportsPanel.test.tsx](tests/components/editor/BugReportsPanel.test.tsx) (2 — auth headers). Server+editor+setup+utils sweep 596/596 green; typecheck + build clean; plus a live curl smoke against a booted server verified every 401/200/503 path. **Deploy note:** production already has `ADMIN_PASSWORD_HASH` + `FEEDBACK_TOKEN` set — no server config change needed.
+
 ## [3.0.71] - 2026-06-12
 
 The two real bugs from the 2026-06-11 playtest, both fixed and **verified with live browser repros** (Playwright against the dev build — flash reproduced on pre-fix code, then confirmed gone on the fix).

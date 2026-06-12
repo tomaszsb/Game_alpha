@@ -1,7 +1,7 @@
 # API Reference — Unravel Codes: The Game
 
-**Last Updated:** May 8, 2026
-**Status:** Beta (v2.62.0)
+**Last Updated:** June 12, 2026 (endpoint auth hardening pass)
+**Status:** Beta (v3.0.71+)
 
 > **Scope of this doc:** server REST endpoints + a one-line summary of each service in `IServiceContainer`. For full TypeScript signatures, the source under `src/types/ServiceContracts.ts` is authoritative — this doc used to duplicate those interfaces and went stale fast. For architectural context (DI, real cycles, handler pattern, REAL/TEMP) see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -18,12 +18,13 @@ Express backend at `server/server.js`. Base URLs:
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/games` | List active games (no token returned) |
-| `POST` | `/api/games` | Create new game (returns `gameId` + `token`) |
-| `GET` | `/api/games/:gameId/join-info` | Public lookup of `token` + basic game info by `gameId`. Used by the lobby's join-by-code flow (state endpoints below require the token in headers). Added v2.61.1. |
+| `GET` | `/api/games` | List active games (no token returned). **Requires `x-admin-password`** (2026-06-12: game codes are the join secret, so the full list is admin-only). |
+| `POST` | `/api/games` | Create new game (returns `gameId` + `token`). Open by design (lobby button). |
+| `GET` | `/api/games/:gameId/join-info` | Public lookup of `token` + basic game info by `gameId`. Used by the lobby's join-by-code flow (state endpoints below require the token in headers). Added v2.61.1. Deliberately open — the game code is the secret. |
 | `GET` | `/api/games/:gameId/state` | Read current state (full `GameState`). Requires `X-Game-Token` header or `?token=` query. |
 | `POST` | `/api/games/:gameId/state` | Replace state (rejects stale `clientVersion` with HTTP 409). Requires `X-Game-Token`. |
-| `DELETE` | `/api/games/:gameId` | Delete a game (admin-only) |
+| `DELETE` | `/api/games/:gameId` | Delete a game. **Requires the game's token or `x-admin-password`** (2026-06-12; was unauthenticated). |
+| `DELETE` | `/api/games/:gameId/state` | Reset a game's state. **Requires the game's token or `x-admin-password`** (2026-06-12; was unauthenticated). |
 
 ### Auth
 
@@ -35,16 +36,18 @@ Express backend at `server/server.js`. Base URLs:
 
 | Method | Path | Purpose |
 |---|---|---|
-| `POST` | `/api/feedback` | Submit bug report (with optional screenshot) |
-| `GET` | `/api/feedback` | List reports (admin) |
-| `PATCH` | `/api/feedback/:id` | Update report status |
+| `POST` | `/api/feedback` | Submit bug report (with optional screenshot). Open by design (in-game button). |
+| `GET` | `/api/feedback` | List reports (no screenshots). **Requires `x-admin-password` or `?token={FEEDBACK_TOKEN}`** (2026-06-12, DEF-6: reports carry reporter PII). |
+| `GET` | `/api/feedback/:id` | Full report incl. screenshot/consoleLogs/contact. **Same auth as list** (2026-06-12). |
+| `PATCH` | `/api/feedback/:id` | Update report status. **Same auth as list** (2026-06-12). |
+| `GET` | `/api/public/feedback/open` | Compact unresolved list for `/start`. Requires `?token={FEEDBACK_TOKEN}` (since v2.63.5). |
 
 ### Telemetry
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/logs` | Visitor logs (admin) |
-| `GET` | `/api/logs/summary` | Daily summary (admin) |
+| `GET` | `/api/logs` | Visitor logs. **Requires `x-admin-password` or `?token={FEEDBACK_TOKEN}`** (2026-06-12: logs carry visitor IPs). |
+| `GET` | `/api/logs/summary` | Daily summary incl. visitor IP list. **Same auth** (2026-06-12). |
 
 ### Auth tokens
 

@@ -374,7 +374,7 @@ v3.0.66 Phase 2.1 merged the two movement resolvers and **deleted** v3.0.62's in
 
 ### Pull the FULL feedback report for screenshots + gameState (v3.0.67, 2026-06-05)
 
-The `/api/public/feedback/open` summary endpoint (what `/start` fetches) **strips the screenshot, full `consoleLogs`, and `gameState`** — it keeps only a `consoleSummary`. When a report's `consoleSummary` is null but you need to diagnose, fetch the full record: `curl -sS "https://game.unravelcodes.com/api/feedback/<feedback-id>.json"` (NOT token-gated; `.json` suffix required). It carries the base64 `screenshot` (data URL — split on `,`, base64-decode, `Read` the image), full `consoleLogs`, and a pruned `gameState`. The Final Review crash was diagnosed **entirely from the screenshot** (it showed the player at FINAL-REVIEW with DOB missing + the red error banner with the exact invalid-move text) — the summary had nothing.
+The `/api/public/feedback/open` summary endpoint (what `/start` fetches) **strips the screenshot, full `consoleLogs`, and `gameState`** — it keeps only a `consoleSummary`. When a report's `consoleSummary` is null but you need to diagnose, fetch the full record: `TOKEN=$(grep '^FEEDBACK_TOKEN=' .env | cut -d= -f2-); curl -sS "https://game.unravelcodes.com/api/feedback/<feedback-id>.json?token=$TOKEN"` (token-gated since 2026-06-12 — DEF-6 PII fix; `.json` suffix required). It carries the base64 `screenshot` (data URL — split on `,`, base64-decode, `Read` the image), full `consoleLogs`, and a pruned `gameState`. The Final Review crash was diagnosed **entirely from the screenshot** (it showed the player at FINAL-REVIEW with DOB missing + the red error banner with the exact invalid-move text) — the summary had nothing.
 
 Two related facts confirmed this session: (a) `StateService.getPlayer` returns **effective (TEMP-overlaid) state**, not pristine REAL — don't chase a REAL-vs-TEMP approval divergence theory; `updateTempState` writes are visible to `getPlayer`. (b) Bug-reporter console logs can be silently dropped by a **`useCallback` stale-closure**: `FeedbackButton.handleSubmit` read `includeConsole` but omitted it from its deps, so ticking the box after the last keystroke left a stale `false`. Any handler reading opt-in UI state must list it in `useCallback` deps.
 
@@ -725,14 +725,15 @@ For JSON parsing, pipe through `python -c "import sys,json; ..."` — `jq` is no
 
 ### Dashboard is a proxy, not a store
 
-`dashboard.unravelcodes.com` (source at `D:\Unravel\dictionary-scraper`, Next.js + FastAPI Docker stack on Unraid) is a UI wrapper. Its `GET /api/feedback` forwards to `https://game.unravelcodes.com/api/feedback`. **The game server in this repo is the source of truth for feedback data.** To read feedback programmatically, hit the game server directly — use the v2.63.5 `GET /api/public/feedback/open?token=…` endpoint, not the OAuth-gated dashboard.
+`dashboard.unravelcodes.com` (source at `D:\Unravel\dictionary-scraper`, Next.js + FastAPI Docker stack on Unraid) is a UI wrapper. Its `GET /api/feedback` forwards to `https://game.unravelcodes.com/api/feedback`. **The game server in this repo is the source of truth for feedback data.** To read feedback programmatically, hit the game server directly — use the v2.63.5 `GET /api/public/feedback/open?token=…` endpoint, not the OAuth-gated dashboard. ⚠️ Since the 2026-06-12 DEF-6 fix, the game server's `/api/feedback` requires the token — the dashboard's proxy must append `?token={FEEDBACK_TOKEN}` or its feedback list 401s (tracked as a follow-up in the dictionary-scraper repo).
 
 ### Feedback screenshots — fetch via `/api/feedback/:id.json`
 
-The public `/api/public/feedback/open` endpoint strips screenshots deliberately (low token cost). The per-id endpoint `GET /api/feedback/<id>.json` returns the full record including a base64 `screenshot` field, and appears to NOT be token-gated. Pipeline that makes triage massively faster:
+The public `/api/public/feedback/open` endpoint strips screenshots deliberately (low token cost). The per-id endpoint `GET /api/feedback/<id>.json` returns the full record including a base64 `screenshot` field. **Token-gated since 2026-06-12 (DEF-6 PII fix)** — pass `?token=$FEEDBACK_TOKEN` (same token as the open-feedback endpoint). Pipeline that makes triage massively faster:
 
 ```
-curl -sS --max-time 30 "https://game.unravelcodes.com/api/feedback/<id>.json" -o .claude/tmp/<id>.json
+TOKEN=$(grep '^FEEDBACK_TOKEN=' .env | cut -d= -f2-)
+curl -sS --max-time 30 "https://game.unravelcodes.com/api/feedback/<id>.json?token=$TOKEN" -o .claude/tmp/<id>.json
 python3 -c "import json,base64; d=json.load(open('.claude/tmp/<id>.json')); h,b=d['screenshot'].split(',',1); open('.claude/tmp/<id>.jpg','wb').write(base64.b64decode(b))"
 ```
 
@@ -955,8 +956,8 @@ Why three layers: each layer's tests are sharp and fast. The wisdom layer can gr
 
 Standing housekeeping pattern at every `/koniec`. Code-side fixes don't auto-flip the dashboard `resolved` flag — that requires an explicit PATCH.
 
-- Endpoint: `PATCH https://game.unravelcodes.com/api/feedback/{id}.json` with body `{ "resolved": true }`. The `.json` suffix on the id is **required** (regex `/^feedback-\d+-[a-f0-9]+\.json$/` at `server/server.js:1166`). Dashboard list shows ids without it — add it for the PATCH.
-- **Not** token-protected (admin-write surface; open). Read-side `GET /api/public/feedback/open?token={FEEDBACK_TOKEN}` IS token-gated.
+- Endpoint: `PATCH https://game.unravelcodes.com/api/feedback/{id}.json?token={FEEDBACK_TOKEN}` with body `{ "resolved": true }`. The `.json` suffix on the id is **required** (regex `/^feedback-\d+-[a-f0-9]+\.json$/`). Dashboard list shows ids without it — add it for the PATCH.
+- **Token-protected since 2026-06-12** (DEF-6 fix): pass `?token={FEEDBACK_TOKEN}` (or `x-admin-password` header). Read-side `GET /api/public/feedback/open?token={FEEDBACK_TOKEN}` was already token-gated.
 - Sweep script: grep TODO.md for `fb:` markers on `[x]`-checked lines, intersect with the live unresolved set, PATCH each. Don't blindly flip every TODO marker — only ones still showing unresolved on the dashboard. **Match BOTH marker forms** — full `fb:feedback-<ts>-<hex>` AND short `fb:<hex>`; a grep for only `fb:(feedback-\d+-[a-f0-9]+)` silently misses short-form `[x]` items (same trap as `/start`, 2026-06-09).
 - ⚠️ **"Fixed in code" ≠ "live" for CSV DATA fixes (data-deploy gap, 2026-06-09).** Before flipping a report whose fix was a *data-file* change (card text, space titles, CSV columns), confirm the live server is actually serving it — `fetch /data/CLEAN_FILES/<F>.csv` from game.unravelcodes.com (origin, cf-cache MISS) and check the value. Code fixes deploy reliably and skip this; data fixes can sit un-propagated in the repo while the report looks resolved (the server preserves its writable CLEAN copy — see "CSV data fixes do NOT reach the live server on deploy"). fb:931a55de was nearly flipped resolved while production still served stale jargon.
 

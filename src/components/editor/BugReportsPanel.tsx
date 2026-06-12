@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getBackendURL } from '../../utils/networkDetection';
+import { getAdminPassword } from '../../utils/adminAuth';
 
 const UNDO_KEY = 'bugReportsUndo';
 
@@ -65,7 +66,12 @@ export function BugReportsPanel({ onClose }: BugReportsPanelProps): JSX.Element 
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${getBackendURL()}/api/feedback`);
+      // Feedback reads are admin-gated server-side (reports can carry
+      // reporter contact info). The panel only renders after the admin
+      // unlock, so the session password is available here.
+      const res = await fetch(`${getBackendURL()}/api/feedback`, {
+        headers: { 'x-admin-password': getAdminPassword() || '' },
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setReports(data.reports || []);
@@ -79,11 +85,17 @@ export function BugReportsPanel({ onClose }: BugReportsPanelProps): JSX.Element 
   useEffect(() => { fetchReports(); }, [fetchReports]);
 
   const patchReport = useCallback(async (id: string, resolved: boolean) => {
-    await fetch(`${getBackendURL()}/api/feedback/${id}`, {
+    const res = await fetch(`${getBackendURL()}/api/feedback/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': getAdminPassword() || '',
+      },
       body: JSON.stringify({ resolved }),
     });
+    // Surface auth/server rejections so callers' catch-and-revert works
+    // (fetch only rejects on network errors, not 401/500).
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
   }, []);
 
   const toggleResolved = useCallback(async (e: React.MouseEvent, report: FeedbackReport) => {

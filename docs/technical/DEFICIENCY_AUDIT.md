@@ -31,6 +31,11 @@ Health checks I ran this session, for context:
 ### DEF-1 — Two critical dependency vulnerabilities (`shell-quote` via `concurrently`)
 **Severity: High · Confidence: Verified**
 
+> **RESOLVED 2026-06-12.** `concurrently` pinned to 9.2.0 (exact) +
+> `npm audit fix` for the transitive `shell-quote`. `npm audit` now reports
+> **0 vulnerabilities**; `concurrently` verified working (9.2.0 runs the
+> dual-command pattern the `dev` script uses).
+
 `npm audit` reports 2 critical advisories: `shell-quote@1.1.0–1.8.3` (GHSA-w7jw-789q-3m8p, `quote()` does not escape newlines) pulled in transitively by `concurrently@9.2.1`.
 
 - `concurrently` is a **devDependency** used only by `npm run dev`, so this is not a production-runtime exposure — but it is still a critical advisory in the tree.
@@ -40,6 +45,18 @@ Health checks I ran this session, for context:
 
 ### DEF-2 — WebSocket `subscribe` path does not check authentication (game state readable without token)
 **Severity: High · Confidence: Verified**
+
+> **RESOLVED 2026-06-12 (split decision).** The READ half is **intentional by
+> design** per the maintainer: this is a classroom spectator game ("jack in
+> the box" — others are supposed to look and watch), so tokenless subscribe
+> stays open on purpose. The WRITE half was a real gap and is fixed:
+> `state_push` previously only checked a boolean `authenticated`, so a valid
+> token for game A authorized writes to game B. `state_push` now requires
+> the token of the specific game being written (`authGameId` check in
+> [server/websocket.js](../../server/websocket.js)). Pinned by
+> [tests/server/websocketAuth.test.ts](../../tests/server/websocketAuth.test.ts)
+> (spectator read works; spectator write rejected; cross-game write rejected;
+> same-game write works).
 
 In [server/websocket.js](../../server/websocket.js):
 
@@ -94,6 +111,12 @@ This is a "broken windows" situation: the lint tool exists but is unrunnable, so
 ### DEF-5 — Admin debug endpoints fail open when `ADMIN_PASSWORD_HASH` is unset
 **Severity: Medium · Confidence: Verified**
 
+> **RESOLVED 2026-06-12.** Both `/api/debug/*` endpoints now use the shared
+> `requireAdmin` guard ([server/authGuards.js](../../server/authGuards.js)):
+> timing-safe comparison, and **503 fail-closed** when `ADMIN_PASSWORD_HASH`
+> is unset. Unit-tested in [tests/server/authGuards.test.ts](../../tests/server/authGuards.test.ts);
+> wiring pinned by [tests/server/serverEndpointAuth.test.ts](../../tests/server/serverEndpointAuth.test.ts).
+
 In [server/server.js](../../server/server.js), `/api/debug/state` (line 1024) and `/api/debug/games` (line 1040) gate with:
 
 ```js
@@ -108,6 +131,16 @@ The primary `/api/admin/verify` and save/reset endpoints are safe from this beca
 
 ### DEF-6 — Feedback-read endpoints are unauthenticated; reports carry reporter PII
 **Severity: Medium · Confidence: Verified**
+
+> **RESOLVED 2026-06-12.** `GET /api/feedback`, `GET /api/feedback/:id`, and
+> `PATCH /api/feedback/:id` now require either the admin password
+> (`x-admin-password` header — used by the BugReportsPanel, which sits behind
+> the admin unlock) or the `FEEDBACK_TOKEN` secret (query/bearer — used by
+> maintainer session scripts for screenshot pulls and resolved-flips). 503
+> fail-closed when neither secret is configured. `POST /api/feedback` (the
+> in-game bug-report button) stays open by design. Guard logic in
+> [server/authGuards.js](../../server/authGuards.js); wiring pinned by
+> [tests/server/serverEndpointAuth.test.ts](../../tests/server/serverEndpointAuth.test.ts).
 
 In [server/server.js](../../server/server.js):
 - `GET /api/feedback` (line 1132) — lists **all** feedback reports, no auth.
@@ -170,6 +203,36 @@ The largest services are big: CardService.ts (2,260), TurnService.ts (2,187), St
 
 ---
 
+## Addendum — 2026-06-12 endpoint sweep (found + fixed beyond the original findings)
+
+Closing DEF-2/5/6 prompted a full re-sweep of every `server.js` route. Four more
+unauthenticated surfaces were found and fixed the same day (all pinned by
+[tests/server/serverEndpointAuth.test.ts](../../tests/server/serverEndpointAuth.test.ts)
+and live-smoke-tested against a running server):
+
+1. **`DELETE /api/games/:gameId` and `DELETE /api/games/:gameId/state` had NO auth** —
+   anyone who guessed a gameId could delete a game or wipe its board mid-class.
+   Now `requireGameTokenOrAdmin`: that game's token (a player) or the admin
+   password (the teacher). The admin Game Manager's reset button sends the header.
+2. **`GET /api/games` (full game list) was public**, which defeated the
+   join-by-code model: game codes are the join secret (`join-info` exchanges a
+   code for the game's token), so a public list of all codes = write access to
+   all games. Now admin-only; the only consumer (admin Game Manager) sends the header.
+3. **`GET /api/logs` + `GET /api/logs/summary` exposed visitor IPs/devices (PII)** —
+   same class as DEF-6. Now gated by admin password or `FEEDBACK_TOKEN`.
+4. **Legacy `POST /api/gamestate` was an unauthenticated write; `DELETE` an
+   unauthenticated reset** (single-game G0 era). POST now requires G0's token —
+   which also converts the known "accidental legacy fallback" client bug from
+   silent state corruption into a clean 401. DELETE is admin-or-token.
+   `GET /api/gamestate` stays open (spectator-consistent).
+
+**Deliberately still open** (design decisions, also pinned by test):
+`POST /api/feedback` (bug-report button), `POST /api/games` (lobby create),
+`GET /api/games/:gameId/join-info` (join-by-code — the game code is the secret),
+`GET /api/gamestate`, `/health`, and WebSocket spectator reads (DEF-2 decision).
+
+---
+
 ## Open items already tracked in TODO.md (not re-litigated here)
 
 The project's [TODO.md](../../TODO.md) already carries **41 open checkboxes**, including substantive architectural debt that I'm not duplicating as new findings. The most load-bearing ones to be aware of:
@@ -185,12 +248,12 @@ The project's [TODO.md](../../TODO.md) already carries **41 open checkboxes**, i
 
 | ID | Severity | One-liner |
 |---|---|---|
-| DEF-1 | High | 2 critical dep vulns (`shell-quote` via dev-only `concurrently`) |
-| DEF-2 | High | WebSocket `subscribe` skips auth → game state readable without token |
+| DEF-1 | High | ✅ Resolved 2026-06-12: `concurrently` 9.2.0 + audit fix → 0 vulnerabilities |
+| DEF-2 | High | ✅ Resolved 2026-06-12: reads open BY DESIGN (spectator game); cross-game `state_push` write gap fixed |
 | DEF-3 | High | `useMemo` after early `return null` in player-panel sections (latent React crash) |
 | DEF-4 | Medium | `npm run lint` unrunnable (386 errors, misconfigured `no-undef`, not in CI) |
-| DEF-5 | Medium | `/api/debug/*` fail open when admin hash unset |
-| DEF-6 | Medium | Feedback read endpoints unauthenticated; expose reporter PII |
+| DEF-5 | Medium | ✅ Resolved 2026-06-12: `/api/debug/*` now fail closed via shared `requireAdmin` guard |
+| DEF-6 | Medium | ✅ Resolved 2026-06-12: feedback reads/PATCH gated by admin password or FEEDBACK_TOKEN |
 | DEF-7 | Medium | README + CLAUDE.md header + TODO header version drift |
 | DEF-8 | Medium | Untyped `any` surface remains (Tier 4 unfinished) |
 | DEF-9 | Medium | 164 raw `console.*` calls bypass debug gating |
@@ -199,4 +262,4 @@ The project's [TODO.md](../../TODO.md) already carries **41 open checkboxes**, i
 | DEF-12 | Low | Documented-default `npm test` is known to hang |
 | DEF-13 | Low | Large service files (explicitly accepted policy — informational) |
 
-**Overall:** the production build, typecheck, and sampled tests are healthy, and the project keeps disciplined session docs (PROJECT_STATUS, TODO, CLAUDE.md tactical notes). The findings worth acting on first are the two security gaps (DEF-2 WebSocket auth, DEF-6 feedback PII), the latent React hook-ordering bug (DEF-3), and rehabilitating lint (DEF-4) so its real signals stop being invisible.
+**Overall:** the production build, typecheck, and sampled tests are healthy, and the project keeps disciplined session docs (PROJECT_STATUS, TODO, CLAUDE.md tactical notes). ~~The findings worth acting on first are the two security gaps (DEF-2 WebSocket auth, DEF-6 feedback PII)~~ *(both closed 2026-06-12 — DEF-2's open reads ruled intentional spectator design, its cross-game write gap fixed; DEF-5 closed in the same pass)*. Next up: the latent React hook-ordering bug (DEF-3) and rehabilitating lint (DEF-4) so its real signals stop being invisible.

@@ -9,7 +9,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/StateTypes';
 import { getCurrentGameId, getBackendURL } from '../../utils/networkDetection';
 import { isSmartTV } from '../../utils/deviceDetection';
-import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth } from '../../utils/adminAuth';
+import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth, getAdminPassword } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
@@ -205,7 +205,12 @@ export function PlayerSetup({
     try {
       setGamesLoading(true);
       const backendURL = getBackendURL();
-      const response = await fetch(`${backendURL}/api/games`);
+      // Game list is admin-gated server-side (game codes are the join
+      // secret); this only runs after the admin unlock, so the session
+      // password is available.
+      const response = await fetch(`${backendURL}/api/games`, {
+        headers: { 'x-admin-password': getAdminPassword() || '' },
+      });
       if (response.ok) {
         const data = await response.json();
         const games = data.games.filter(
@@ -278,7 +283,12 @@ export function PlayerSetup({
     if (!window.confirm(`Clear all data for game ${gameId}? This cannot be undone.`)) return;
     try {
       const backendURL = getBackendURL();
-      const resp = await fetch(`${backendURL}/api/games/${gameId}/state`, { method: 'DELETE' });
+      // Reset is admin-or-game-token server-side; the Game Manager only
+      // renders behind the admin unlock, so send the admin password.
+      const resp = await fetch(`${backendURL}/api/games/${gameId}/state`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': getAdminPassword() || '' },
+      });
       if (resp.ok) {
         fetchActiveGames();
       } else {
