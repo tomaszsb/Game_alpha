@@ -442,15 +442,15 @@ function validateGameToken(req, res, gameId) {
 }
 
 // ===== HEALTH CHECK =====
+// Counts only — no per-game detail. /health used to list every gameId
+// (and websocket room keys, which ARE gameIds), but game codes are the
+// join secret (join-info exchanges a code for the game token), so the
+// public health check leaked what the 2026-06-12 GET /api/games lock
+// protects. Both client consumers (ConnectionStatus, networkDetection)
+// only check response.ok and never read the body. Per-game detail lives
+// behind admin auth at /api/debug/games.
 app.get('/health', (req, res) => {
-  const gameList = Array.from(games.entries()).map(([id, data]) => ({
-    gameId: id,
-    version: data.version,
-    playerCount: data.state?.players?.length || 0,
-    gamePhase: data.state?.gamePhase || 'unknown',
-    lastActivity: data.lastActivity
-  }));
-
+  const wsStats = getRoomStats();
   res.json({
     status: 'ok',
     // Same scope fix as commit 95f46f9 (startup log): `currentVersion` is
@@ -459,8 +459,7 @@ app.get('/health', (req, res) => {
     version: process.env.VITE_GIT_COMMIT || 'dev',
     timestamp: formatTimestamp(),
     activeGames: games.size,
-    games: gameList,
-    websocket: getRoomStats()
+    websocket: { totalRooms: wsStats.totalRooms, totalClients: wsStats.totalClients }
   });
 });
 

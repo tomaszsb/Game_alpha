@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.73] - 2026-06-12
+
+One-endpoint follow-up to v3.0.72, caught during post-deploy live verification: **`/health` leaked every gameId** (a per-game list plus websocket room keys, which are gameIds) — and game codes are the join secret, so the public health check defeated the brand-new `GET /api/games` admin lock through a side door. `/health` now returns counts only (`activeGames`, websocket totals); both client consumers (ConnectionStatus, networkDetection) only ever checked `response.ok`, so nothing breaks. Per-game detail remains available behind admin auth at `/api/debug/games`. New fingerprint test pins `/health` as id-free. Server tests 82/82, typecheck clean.
+
 ## [3.0.72] - 2026-06-12
 
 Security hardening session. Every server endpoint audited and locked to the maintainer's access model — **watching is open** (classroom spectator design: "others are supposed to look and spectate"), **touching requires keys**. Closes DEF-1, DEF-2, DEF-5, DEF-6 from [DEFICIENCY_AUDIT.md](docs/technical/DEFICIENCY_AUDIT.md), plus four unauthenticated surfaces the audit missed (documented there in the 2026-06-12 addendum). No player-visible behavior change.

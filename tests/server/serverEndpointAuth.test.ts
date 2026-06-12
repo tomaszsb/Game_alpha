@@ -67,6 +67,16 @@ describe('server.js endpoint auth wiring', () => {
     expect(handlerHead('post', '/api/gamestate')).toContain('validateGameToken(req, res, LEGACY_GAME_ID)');
   });
 
+  it('GET /health does not leak game ids (codes are the join secret)', () => {
+    // /health stays public for uptime checks, but it used to list every
+    // gameId (plus websocket room keys = gameIds), defeating the
+    // GET /api/games admin lock. Pin counts-only.
+    const head = handlerHead('get', '/health');
+    expect(head).not.toContain('games.entries()');
+    expect(head).not.toContain('gameId:');
+    expect(head).not.toContain('rooms:');
+  });
+
   it.each([
     ['post', '/api/feedback'],          // the in-game bug-report button
     ['post', '/api/games'],             // lobby "create game" button
