@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Ops] 2026-06-12 — Unraid Docker UI polish (no app change)
 
-Dockerfile `LABEL`s for the Unraid Docker page: `net.unraid.docker.icon` (the Unravel logo, served by the game itself at `/images/logo.png` — already live) + `net.unraid.docker.webui` (click-through to game.unravelcodes.com) + OCI title/description. Replaces the generic third-party cog. Companion labels for the dashboard stack's three containers went into dictionary-scraper's `docker-compose.override.yml`. Applies on next deploy/recreate.
+Dockerfile `LABEL`s for the Unraid Docker page: `net.unraid.docker.icon` (the Unravel logo, served by the game itself at `/images/logo.png` — already live) + `net.unraid.docker.webui` (click-through to game.unravelcodes.com) + OCI title/description. Replaces the generic third-party cog. Companion labels for the dashboard stack's three containers went into dictionary-scraper's `docker-compose.override.yml`. Deployed + visually confirmed (all 4 containers show the logo).
+
+Bonus find while reviewing the Docker page: a **zombie `game-alpha` container** (dash, not underscore — an old deployment) had been running for 7 days on ports 3001/3002, serving a pre-hardening build with all the unlocked endpoints. Not what game.unravelcodes.com routes to (that's `game_alpha` on 3080), but an old open server on the LAN regardless. Stopped + removed 2026-06-12 (its `game_alpha_game-data` volume left intact).
 
 ## [3.0.73] - 2026-06-12
 
