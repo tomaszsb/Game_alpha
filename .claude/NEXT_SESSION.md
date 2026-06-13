@@ -1,26 +1,25 @@
-# Next session starter — written 2026-06-12 (eve) by /koniec
+# Next session starter — written 2026-06-13 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.76 (**PENDING DEPLOY** — v3.0.74/75/76 all queued; **Unraid is down on purpose**: failing drives, user copying to a new drive, Docker stopped. Both public domains show tunnel-404 — expected, not a bug.)
-- **Branch:** master, clean + pushed (only `.claude/settings.local.json` + `ghost-history.jsonl`, intentional)
-- **Last shipped:** the ENTIRE teacher instance layer in one session — spec (4 reviews + Q&A), Phase 1 foundation (data-deploy gap dead by construction), Phase 2 catalog engine + Classroom Setup screen, Phase 3 design settled
-- **Test suite:** koniec sweep 1805/1805 green (+89 new). Ghost batch not re-run (server/data-layer work; last green 2026-06-11).
-- **Build/typecheck:** clean. Lint: 386 pre-existing (DEF-4).
+- **Version:** v3.0.76 — **DEPLOYED + LIVE** (verified: origin serves `index-z9qhpdgL.js`, commit 44e84ea). Unraid back up after the drive rebuild.
+- **Branch:** master, clean + pushed (only `.claude/settings.local.json` + `ghost-history.jsonl`, intentional).
+- **Last shipped:** no new code — a deploy/ops session that got v3.0.74–76 live and exposed two deploy-infra bugs.
+- **Test suite:** 1805/1805 (last run 2026-06-12; no source changed this session). Typecheck + build clean.
+- **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Deploy v3.0.74–76 once the new drive is in** — `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Then: (a) boot log must show `🏫 Migrated live board into "classroom-1": N tile position(s) preserved` (the one-time migration — N = user's arranged tiles); (b) eyeball Admin Tools → 🏫 Classroom Setup (component-tested, never human-seen); (c) confirm a repo CSV fix now reaches live (the gap's death certificate).
-2. **Onboarding package** (fb:0aa9660c + 8ad42b52 + f22035af) — biggest product lever; pure design session, deploy-independent. Recommended next session.
-3. **Phase 3 build** (multi-teacher: admin-mediated accounts, games carry classroom) — design done in spec; **gated on item 1 proving out**. Filler meanwhile: DEF-3 (hook-order), DEF-4 (lint).
+1. **Fix `deploy.sh` for the teacher layer (HIGH).** It WIPES `instances/` every deploy (classroom config dies) and resurrects old SOURCE/CLEAN. Fix: preserve `instances/`; drop the SOURCE/CLEAN restore (the server's on-boot stock-refresh handles stock). **Plus fix the migration** to read positions from CLEAN `GAME_CONFIG.csv`, not just SOURCE `Spaces.csv`. Must land before the teacher uses 🏫 Classroom Setup, or every deploy eats their work. (Full breakdown in TODO "Deploy infrastructure — teacher-layer gaps" + CLAUDE.md TACTICAL.)
+2. **Eyeball 🏫 Classroom Setup live** (now reachable, never human-seen) + **board-layout decision**: the maintainer's custom tile layout was lost ~June 12 (unrecoverable). Current board = the stock grid. Keep it, or re-arrange once — but only after item 1 so it survives.
+3. **Onboarding package** (`fb:0aa9660c` + `fb:8ad42b52` + `fb:f22035af`) — biggest product lever, deploy-independent. Then **Phase 3 build** (multi-teacher front door, design done).
 
 ## Decisions waiting on the user
-- Rotate the Unraid root password (typed into chat 2026-06-12) — still pending, natural to do during the drive rebuild.
+- **Board layout:** keep the stock grid, or re-arrange a custom one? (Old custom layout is gone for good.)
+- Rotate the Unraid root password (typed into chat 2026-06-12) — still pending.
 
 ## Suggested first move
-Is the new drive in and Docker back? If yes → deploy + the 3 verification steps above. If no → onboarding-package design session (needs nothing from the server).
+Fix `deploy.sh` + the migration (item 1) — it's the thing actively eating work and blocks safe teacher-layer use. Want to start there, or do the onboarding design session first? Clean up the recovery tool early: `ssh unraid "rm /mnt/user/appdata/Game_alpha/server/data/recover-board.mjs"`.
 
 ## Reminders
-- Deploy runs from the user's Windows terminal, never from Claude's shell.
-- First boot post-deploy: stock refresh will REPLACE live stale content (7+ known drifts incl. `{fundingAmount}` + `has_final_review_gate`) — that's the fix working, not data loss; positions are preserved via the migration.
-- Live content edits via Space Data Editor no longer survive deploys (spec decision 3 — content's home is the repo).
-- Phase 4 stays gated until Phases 1–3 run live (user-affirmed; in TODO).
-- CLAUDE.md's old "CSV live-sync" recipe is flagged obsolete-pending-verification — clean up after deploy (TODO item exists).
+- **Deploy ONLY via `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`** — NEVER `docker compose up` (spawns a parallel `game-alpha` container NPM doesn't route to). NPM routes the domain → port 3080; cf-cache is DYNAMIC (Cloudflare doesn't cache the HTML, so a stale page after deploy is the wrong-container trap, not a cache).
+- Deploy runs from the Windows terminal, never from Claude's shell.
+- A recovery tool `recover-board.mjs` is sitting on the live server in `server/data/` — delete it.

@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** June 12, 2026
-**Status:** Beta — live in production; v3.0.72 security hardening committed + pushed, pending deploy
-**Current Version:** 3.0.72 (header refreshed 2026-06-12 — was 7 minor versions stale, flagged as DEF-7)
+**Last Updated:** June 13, 2026
+**Status:** Beta — live in production; **v3.0.76 deployed + live 2026-06-13** (teacher instance layer Phases 1–2 now serving)
+**Current Version:** 3.0.76
 
 ---
 
@@ -13,6 +13,18 @@
 **🎯 Goals/Priorities** → Keep here
 
 This file contains ONLY current and future work. For completed work, see CHANGELOG.md.
+
+---
+
+## 🚀 **Deploy infrastructure — teacher-layer gaps** (2026-06-13, HIGH)
+*v3.0.76 went live 2026-06-13. The deploy + verification exposed two real bugs in the deploy/migration plumbing. Full context in CLAUDE.md TACTICAL "Deploy: `deploy.sh` is not teacher-layer-aware" + auto-memory `project_deploy_method`. Recovery tool sits at `server/data/recover-board.mjs` on the live server (`/app/data/recover-board.mjs` in-container) — harmless, clean up.*
+
+- [ ] **`deploy.sh` preserve `instances/` across deploys** — it backs up the whole `game-data` then restores ONLY `SOURCE_FILES`+`CLEAN_FILES`, so it WIPES `instances/` (classroom config: positions, copies, detours) every deploy. The moment the teacher uses 🏫 Classroom Setup, the next deploy eats it. **Must fix before relying on the teacher layer.** Fix: restore `instances/` too (the server's on-boot stock-refresh already handles SOURCE/CLEAN — see next item).
+- [ ] **`deploy.sh` stop restoring old SOURCE/CLEAN** — the server's Phase-1 stock-refresh already overwrites them with fresh stock on boot (backs up to `game-data/backups/<ts>_pre-stock-refresh/` first). deploy.sh restoring the old editor copy is now redundant AND keeps the data-deploy gap half-alive. Verify "a repo CSV fix reaches live" after fixing (the gap's death certificate — was never actually confirmed).
+- [ ] **Migration reads SOURCE but editor saves to CLEAN** — `migrateInstance.computeMigrationPlan` reads `pos_x/pos_y` from SOURCE `Spaces.csv`; the board editor historically wrote positions to CLEAN `GAME_CONFIG.csv`. So the one-time migration captured 0 positions and the stock-refresh overwrote the custom layout. The migration already ran (idempotent), so this is correctness-for-the-future: make it read CLEAN, or run before stock-refresh against the served file.
+- [ ] **Board layout decision (user)** — the maintainer's custom tile arrangement was lost ~June 12 (unrecoverable; confirmed absent from live CLEAN/SOURCE, classroom-1 config, pre-refresh backup, AND git). Current board = the stock grid (a real layout, committed in repo). **Decide:** keep the grid, or re-arrange once in the editor (drag-save now persists to classroom config) — only after `deploy.sh` is fixed so it survives.
+- [ ] **Clean up `recover-board.mjs`** from the live server: `ssh unraid "rm /mnt/user/appdata/Game_alpha/server/data/recover-board.mjs"`.
+- [ ] **Cosmetic: deploy stamps commit "unknown" on compose builds** — Alpine build container has no `git`; `deploy.sh` passes the real commit via `--build-arg GIT_COMMIT=$(git rev-parse --short HEAD)` so the canonical path is fine, but a `docker compose` build shows `unknown` + breaks the "N behind" badge. Non-issue if always using deploy.sh.
 
 ---
 
