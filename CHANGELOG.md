@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.76] - 2026-06-12
+
+**Teacher instance layer — Phase 2 complete: the Classroom Setup screen.** The maintainer chose the "separate teacher screen" option (the spec's last open Phase 2 question). Launched from the lobby's 🛠️ Admin Tools → **🏫 Classroom Setup**.
+
+### New endpoint
+
+- `GET /api/instances/:id/catalog` ([instanceCatalog.js](server/instanceCatalog.js)) — the screen's data source: the **full stock deck including switched-off spaces** (the resolved board under `/data` deliberately omits those), each card's classroom state (in play / off + detour / custom copy), its **protection tier + reason** (so the UI disables forbidden switches honestly), the safe-subset stock values per visit type, copies, and the last validation report. Open read; write token never included (fingerprint-pinned).
+
+### New screen ([src/components/classroom/](src/components/classroom/))
+
+- **[ClassroomSetup.tsx](src/components/classroom/ClassroomSetup.tsx)** — browse the deck grouped by phase; protected spaces show 🔒 "always on" with a plain-language reason on hover; off spaces show "players go to X instead"; staleness/schema-drift hints from the validation report render as 💡 banners.
+- **[SwitchOffConfirm.tsx](src/components/classroom/SwitchOffConfirm.tsx)** — the hybrid confirm flow (spec decision 6) made real: switching off calls the board endpoint with `dryRun:true`, the dialog shows the **pre-filled pass-through** ("Players who would land here go to: …") with the path preview, the teacher confirms or picks any other in-play space, and only then does the real save+bake happen. Switching back ON saves directly — nothing can break.
+- **[CopyEditor.tsx](src/components/classroom/CopyEditor.tsx)** — make/edit "your copy" of a card: safe field subset (Title, Event, Action, Outcome, Time, Fee) per visit type, **per-field "differs from original" highlighting with one-click revert**, and "Remove my copy" which brings the stock original straight back.
+- **[classroomApi.ts](src/components/classroom/classroomApi.ts)** — typed client, DI-testable like saveBoardPosition; Phase 2 writes send the admin header (Phase 3 swaps in classroom write tokens here, one module).
+
+### Tests + verification
+
++10: [instanceCatalog.test.ts](tests/server/instanceCatalog.test.ts) (4 — full-deck listing, safe-subset-only leak check, protection pass-through, dangling-copy refs), catalog open-read fingerprint, [ClassroomSetup.test.tsx](tests/components/classroom/ClassroomSetup.test.tsx) (5 — deck renders incl. off spaces, lock-not-switch for protected, full dryRun→confirm→save flow with admin header + chosen detour pinned, direct switch-on, copy-editor create). All affected suites 182/182; typecheck + build clean. Live smoke: real board catalog = 27 spaces, 17 protected, 10 teacher-switchable.
+
 ## [3.0.75] - 2026-06-12
 
 **Teacher instance layer — Phase 2 server core (the catalog's engine).** Switch-off + detours, teacher copies, and the validation report from [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md), all server-side. The catalog UI is the remaining Phase 2 half (UI shape = the spec's open question, awaiting maintainer decision).

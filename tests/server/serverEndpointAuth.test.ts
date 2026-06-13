@@ -120,6 +120,13 @@ describe('server.js endpoint auth wiring', () => {
     expect(handlerHead(method, route, 1200)).toContain('handleInstanceMutation(req, res');
   });
 
+  it('GET /api/instances/:id/catalog is open by design (full deck read, no token)', () => {
+    const head = handlerHead('get', '/api/instances/:id/catalog', 800);
+    expect(head).not.toContain('requireAdmin(req');
+    expect(head).not.toContain('checkInstanceWriteAccess(');
+    expect(head).toContain('buildCatalog(');
+  });
+
   it('handleInstanceMutation itself enforces write token or admin', () => {
     const start = source.indexOf('function handleInstanceMutation');
     expect(start).toBeGreaterThan(-1);

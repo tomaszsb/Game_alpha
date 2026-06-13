@@ -29,6 +29,7 @@ import {
   deleteTeacherCopy,
 } from './instanceStore.js';
 import { validateConfig } from './instanceValidation.js';
+import { buildCatalog } from './instanceCatalog.js';
 import { parseCsvWithHeaders } from './processGameData.js';
 import {
   computeStockVersion,
@@ -776,6 +777,40 @@ app.get('/api/instances/:id', (req, res) => {
   } catch (err) {
     console.error(`❌ Instance read failed for "${req.params.id}":`, err.message);
     res.status(500).json({ success: false, error: 'Instance config unreadable' });
+  }
+});
+
+// The Classroom Setup screen's data source: the FULL stock deck (the
+// resolved board omits switched-off spaces, so /data can't serve this),
+// each card's classroom state, protection tiers, copies, and the last
+// validation report. Open read — board content is public by design and
+// the write token is never included.
+app.get('/api/instances/:id/catalog', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+    const { stockSpacesCsv, pathChoiceCsv, stockVersion } = readStockForValidation();
+    const catalog = buildCatalog({ stockSpacesCsv, pathChoiceCsv, config, stockVersion });
+    let validation = null;
+    try {
+      const reportPath = path.join(resolvedDir(instancesRoot, req.params.id), 'validation-report.json');
+      if (fs.existsSync(reportPath)) validation = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+    } catch { /* informational only */ }
+    res.json({
+      success: true,
+      ...catalog,
+      copies: config.teacherCopies,
+      configVersion: config.configVersion,
+      validation,
+    });
+  } catch (err) {
+    console.error(`❌ Catalog read failed for "${req.params.id}":`, err.message);
+    res.status(500).json({ success: false, error: 'Catalog unavailable' });
   }
 });
 

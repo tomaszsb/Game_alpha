@@ -12,6 +12,7 @@ import { isSmartTV } from '../../utils/deviceDetection';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth, getAdminPassword } from '../../utils/adminAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
+import { ClassroomSetup } from '../classroom/ClassroomSetup';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
@@ -69,6 +70,7 @@ export function PlayerSetup({
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false);
   const [isBugReportsOpen, setIsBugReportsOpen] = useState(false);
   const [isBoardLayoutEditorOpen, setIsBoardLayoutEditorOpen] = useState(false);
+  const [isClassroomSetupOpen, setIsClassroomSetupOpen] = useState(false);
   const [showCardSelection, setShowCardSelection] = useState(false);
 
   // Lobby controls — merged from the retired GameLobby screen so setup
@@ -1028,6 +1030,26 @@ export function PlayerSetup({
                   </button>
                   <button
                     type="button"
+                    onClick={() => setIsClassroomSetupOpen(true)}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      backgroundColor: colors.secondary.main,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                    title="Browse the deck of spaces: switch cards on/off, make your own copies. Applies to every future game."
+                  >
+                    🏫 Classroom Setup
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setIsBugReportsOpen(true)}
                     style={{
                       padding: '0.6rem 1rem',
@@ -1229,6 +1251,9 @@ export function PlayerSetup({
 
       {/* Board Layout Editor Modal */}
       {isBoardLayoutEditorOpen && <BoardLayoutEditor onClose={() => setIsBoardLayoutEditorOpen(false)} />}
+
+      {/* Classroom Setup (teacher catalog) Modal */}
+      {isClassroomSetupOpen && <ClassroomSetup onClose={() => setIsClassroomSetupOpen(false)} />}
 
       {/* Educational Card Selection Modal */}
       <EducationalCardSelectionModal
