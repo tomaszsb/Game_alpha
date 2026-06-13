@@ -11,6 +11,9 @@ import path from 'path';
 import {
   computeStockVersion,
   applyPositionsToSpacesCsv,
+  applyConfigToSpacesCsv,
+  applyConfigToDiceCsv,
+  scrubSpaceReferences,
   bakeInstance,
   ensureFreshBake,
   readBakeStamp,
@@ -18,7 +21,7 @@ import {
   sweepBakeDebris,
   resolvedDir,
 } from '../../server/instanceResolver.js';
-import { createInstance, saveInstance } from '../../server/instanceStore.js';
+import { createInstance, saveInstance, createTeacherCopy, setSlotUsed } from '../../server/instanceStore.js';
 import { parseCsvWithHeaders } from '../../server/processGameData.js';
 
 let tmp: string;
@@ -172,6 +175,185 @@ describe('ensureFreshBake', () => {
       'utf-8'
     );
     expect(baked).toContain('You begin anew.');
+  });
+});
+
+// ===== Phase 2: copies, switch-off, detours =====
+
+const P2_HEADER =
+  'space_name,phase,visit_type,Title,Event,Action,Outcome,w_card,b_card,i_card,l_card,e_card,Time,Fee,' +
+  'space_1,space_2,space_3,space_4,space_5,Negotiate,requires_dice_roll,path,pos_x,pos_y,' +
+  'is_starting_space,is_ending_space,is_resume_hub,path_choice_memory_key,is_path_choice_lock_point';
+
+const P2_SPACES = [
+  P2_HEADER,
+  'ALPHA-START,SETUP,First,Start,Begin.,Go,Done,,,,,,1,0,BETA-MIDDLE,,,,,NO,NO,Main,0,0,Yes,No,No,,No',
+  'BETA-MIDDLE,SETUP,First,Middle,Mid.,Go,Done,,,,,,1,0,GAMMA-FORK,,,,,NO,NO,Main,100,0,No,No,No,,No',
+  'BETA-MIDDLE,SETUP,Subsequent,Middle,Again.,Go,Done,,,,,,1,0,GAMMA-FORK,,,,,NO,NO,Main,100,0,No,No,No,,No',
+  'GAMMA-FORK,SETUP,First,Fork,Roll it.,Go,Done,,,,,,1,0,DELTA-LEFT,EPSILON-RIGHT,,,,NO,YES,Main,200,0,No,No,No,,No',
+  'DELTA-LEFT,SETUP,First,Left,Left.,Go,Done,,,,,,1,0,ZETA-END,,,,,NO,NO,Main,300,0,No,No,No,,No',
+  'EPSILON-RIGHT,SETUP,First,Right,Right.,Go,Done,,,,,,1,0,ZETA-END,,,,,NO,NO,Main,300,100,No,No,No,,No',
+  'ZETA-END,SETUP,First,End,Fin.,Go,Done,,,,,,1,0,,,,,,NO,NO,Main,400,0,No,Yes,No,,No',
+].join('\n') + '\n';
+
+const P2_DICE =
+  'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
+  'GAMMA-FORK,Next Step,First,DELTA-LEFT,DELTA-LEFT,DELTA-LEFT or EPSILON-RIGHT,EPSILON-RIGHT,EPSILON-RIGHT,EPSILON-RIGHT\n';
+
+const P2_DICE_OUTCOMES =
+  'space_name,visit_type,roll_1,roll_2,roll_3,roll_4,roll_5,roll_6\n' +
+  'GAMMA-FORK,First,DELTA-LEFT,DELTA-LEFT,DELTA-LEFT or EPSILON-RIGHT,EPSILON-RIGHT,EPSILON-RIGHT,EPSILON-RIGHT\n' +
+  'DELTA-LEFT,First,ZETA-END,ZETA-END,ZETA-END,ZETA-END,ZETA-END,ZETA-END\n';
+
+function setupPhase2Stock() {
+  fs.writeFileSync(path.join(stockDir, 'SOURCE_FILES', 'Spaces.csv'), P2_SPACES);
+  fs.writeFileSync(path.join(stockDir, 'SOURCE_FILES', 'DiceRoll Info.csv'), P2_DICE);
+  fs.writeFileSync(path.join(stockDir, 'CLEAN_FILES', 'DICE_OUTCOMES.csv'), P2_DICE_OUTCOMES);
+}
+
+function readResolved(rel: string) {
+  return fs.readFileSync(path.join(resolvedDir(instancesRoot, 'classroom-1'), rel), 'utf-8');
+}
+
+describe('Phase 2 bake: switch-off + detours', () => {
+  it('removes the off space from every resolved file and detours all references', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    setSlotUsed(config, 'DELTA-LEFT', false); // pass-through → ZETA-END
+    const stockVersion = computeStockVersion(stockDir);
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    // INVARIANT: no resolved file references the off space — any file.
+    const base = resolvedDir(instancesRoot, 'classroom-1');
+    for (const sub of ['SOURCE_FILES', 'CLEAN_FILES']) {
+      for (const file of fs.readdirSync(path.join(base, sub))) {
+        const text = fs.readFileSync(path.join(base, sub, file), 'utf-8');
+        expect(text, `${sub}/${file} still references DELTA-LEFT`).not.toContain('DELTA-LEFT');
+      }
+    }
+
+    // Detoured: GAMMA's destination cells now point at ZETA-END, and the
+    // "DELTA-LEFT or EPSILON-RIGHT" compound was rewritten (not collapsed —
+    // targets differ).
+    const dice = readResolved('SOURCE_FILES/DiceRoll Info.csv');
+    expect(dice).toContain('ZETA-END or EPSILON-RIGHT');
+    const outcomes = readResolved('CLEAN_FILES/DICE_OUTCOMES.csv');
+    expect(outcomes).toContain('ZETA-END or EPSILON-RIGHT');
+    // DELTA-LEFT's own outcome row is gone entirely.
+    expect(outcomes.split('\n').filter(l => l.trim()).length).toBe(2); // header + GAMMA
+
+    // The board no longer carries the tile.
+    expect(readResolved('CLEAN_FILES/GAME_CONFIG.csv')).not.toContain('DELTA-LEFT');
+
+    // The validation report ships with the bake.
+    const report = JSON.parse(readResolved('validation-report.json'));
+    expect(report.ok).toBe(true);
+    expect(report.detours).toEqual({ 'DELTA-LEFT': 'ZETA-END' });
+  });
+
+  it('collapses "A or B" when both branches detour to the same target', () => {
+    const out = applyConfigToDiceCsv(
+      'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
+      'GAMMA-FORK,Next Step,First,DELTA-LEFT or ZETA-END,,,,,\n',
+      { slots: { 'DELTA-LEFT': { used: false } }, teacherCopies: {}, detours: {} },
+      { 'DELTA-LEFT': 'ZETA-END' }
+    );
+    expect(out).toContain(',ZETA-END,');
+    expect(out).not.toContain('or');
+  });
+
+  it('refuses to bake a config that fails validation (protected space off)', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    setSlotUsed(config, 'ALPHA-START', false); // structural — forbidden
+    const stockVersion = computeStockVersion(stockDir);
+
+    let thrown: any = null;
+    try {
+      bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown.report?.errors?.[0]).toMatchObject({ code: 'PROTECTED_SPACE', space: 'ALPHA-START' });
+    // Nothing half-baked left behind.
+    expect(fs.existsSync(resolvedDir(instancesRoot, 'classroom-1'))).toBe(false);
+  });
+});
+
+describe('Phase 2 bake: teacher copies', () => {
+  it('substitutes the copy content under the slot name — copy ids never leak', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const stockVersion = computeStockVersion(stockDir);
+    const stockRows = [
+      { space_name: 'BETA-MIDDLE', visit_type: 'First', Title: 'Middle', Event: 'Mid.' },
+      { space_name: 'BETA-MIDDLE', visit_type: 'Subsequent', Title: 'Middle', Event: 'Again.' },
+    ];
+    const copyId = createTeacherCopy(config, {
+      slotName: 'BETA-MIDDLE',
+      stockRows,
+      overrides: { First: { Title: 'My custom middle', Event: 'Teacher words.' } },
+      stockVersion,
+    });
+    expect(copyId).toBe('beta_middle_copy_1');
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const spaces = readResolved('SOURCE_FILES/Spaces.csv');
+    expect(spaces).toContain('My custom middle');
+    expect(spaces).toContain('Teacher words.');
+    // Subsequent row untouched by the override.
+    expect(spaces).toContain('Again.');
+    // Slot name is the identifier everywhere; the copy id appears nowhere.
+    const base = resolvedDir(instancesRoot, 'classroom-1');
+    for (const sub of ['SOURCE_FILES', 'CLEAN_FILES']) {
+      for (const file of fs.readdirSync(path.join(base, sub))) {
+        expect(fs.readFileSync(path.join(base, sub, file), 'utf-8')).not.toContain('beta_middle_copy_1');
+      }
+    }
+    expect(readResolved('CLEAN_FILES/SPACE_CONTENT.csv')).toContain('BETA-MIDDLE');
+  });
+
+  it('aligns structure automatically: columns the copy predates come from current stock', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const stockVersion = computeStockVersion(stockDir);
+    // A copy made before the Action column existed (sparse rows).
+    config.teacherCopies['beta_middle_copy_1'] = {
+      slot: 'BETA-MIDDLE',
+      createdAt: 'x', updatedAt: 'x', copiedFromStockVersion: 'old',
+      rows: { First: { space_name: 'BETA-MIDDLE', visit_type: 'First', Title: 'Old-school copy' } },
+    };
+    config.slots['BETA-MIDDLE'] = { used: true, card: 'beta_middle_copy_1' };
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const spaces = readResolved('SOURCE_FILES/Spaces.csv');
+    const betaFirst = spaces.split('\n').find(l => l.startsWith('BETA-MIDDLE,SETUP,First'));
+    expect(betaFirst).toBeDefined();
+    expect(betaFirst).toContain('Old-school copy'); // teacher's meaning kept
+    expect(betaFirst).toContain('GAMMA-FORK');       // structure from stock
+    // And the report carries both hints.
+    const report = JSON.parse(readResolved('validation-report.json'));
+    expect(report.warnings.some((w: any) => w.code === 'COPY_SCHEMA_DRIFT')).toBe(true);
+    expect(report.warnings.some((w: any) => w.code === 'COPY_STOCK_UPDATED')).toBe(true);
+  });
+});
+
+describe('scrubSpaceReferences', () => {
+  it('drops keyed rows and rewrites references in every column', () => {
+    const out = scrubSpaceReferences(
+      'space_name,visit_type,note\n' +
+      'OFF-SPACE,First,whatever\n' +
+      'KEPT-SPACE,First,go to OFF-SPACE next\n',
+      new Set(['OFF-SPACE']),
+      { 'OFF-SPACE': 'TARGET-SPACE' }
+    );
+    expect(out).not.toContain('OFF-SPACE');
+    expect(out).toContain('go to TARGET-SPACE next');
+    expect(out).toContain('KEPT-SPACE');
   });
 });
 

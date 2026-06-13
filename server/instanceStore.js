@@ -190,3 +190,101 @@ export function setSlotPositions(config, positions) {
   }
   return applied;
 }
+
+// ===== Phase 2: switch-off + teacher copies =====
+
+/**
+ * Switch a slot on or off. `detour` (only meaningful when switching off)
+ * is the teacher's chosen destination from the hybrid confirm flow; omit
+ * it to rely on the computed pass-through. Switching back on clears any
+ * stored detour. Validation happens in instanceValidation, not here.
+ * @param {InstanceConfig} config
+ * @param {string} spaceName
+ * @param {boolean} used
+ * @param {string} [detour]
+ */
+export function setSlotUsed(config, spaceName, used, detour) {
+  config.slots[spaceName] = { ...(config.slots[spaceName] ?? {}), used: Boolean(used) };
+  if (used) {
+    delete config.detours[spaceName];
+  } else if (detour !== undefined) {
+    if (detour) config.detours[spaceName] = String(detour).trim();
+    else delete config.detours[spaceName];
+  }
+}
+
+/**
+ * Create a teacher copy of a slot's card: a COMPLETE copy of the current
+ * stock rows with the teacher's overrides applied (spec: full copies, not
+ * field-level inheritance), under a stable id distinct from the slot name
+ * (`fee_review_copy_1`). The slot is switched to play the copy; the stock
+ * original stays untouched in the library.
+ * @param {InstanceConfig} config
+ * @param {{ slotName: string, stockRows: Array<Object<string, string>>,
+ *   overrides?: Object<string, Object<string, string>>, stockVersion?: string }} args
+ *   overrides is keyed by visit_type ("First"/"Subsequent").
+ * @returns {string} the new copy id
+ */
+export function createTeacherCopy(config, { slotName, stockRows, overrides = {}, stockVersion }) {
+  if (!stockRows || stockRows.length === 0) {
+    throw new Error(`No stock rows for "${slotName}" — cannot copy a card that does not exist`);
+  }
+  const base = slotName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  let n = 1;
+  while (config.teacherCopies[`${base}_copy_${n}`]) n += 1;
+  const copyId = `${base}_copy_${n}`;
+
+  const now = new Date().toISOString();
+  const rows = {};
+  for (const stockRow of stockRows) {
+    const visitType = stockRow.visit_type || '';
+    rows[visitType] = {
+      ...stockRow,
+      ...(overrides[visitType] || {}),
+      space_name: slotName, // slot names are the only space identifiers
+    };
+  }
+  config.teacherCopies[copyId] = {
+    slot: slotName,
+    createdAt: now,
+    updatedAt: now,
+    copiedFromStockVersion: stockVersion || null,
+    rows,
+  };
+  config.slots[slotName] = { used: true, ...config.slots[slotName], card: copyId };
+  return copyId;
+}
+
+/**
+ * Update a copy's fields (keyed by visit_type). Only the teacher changes a
+ * copy's meaning — never the bake (spec: structure aligns automatically,
+ * meaning never does).
+ * @param {InstanceConfig} config
+ * @param {string} copyId
+ * @param {Object<string, Object<string, string>>} overrides
+ */
+export function updateTeacherCopy(config, copyId, overrides) {
+  const copy = config.teacherCopies[copyId];
+  if (!copy) throw new Error(`No such copy: "${copyId}"`);
+  for (const [visitType, fields] of Object.entries(overrides || {})) {
+    if (!copy.rows[visitType]) {
+      throw new Error(`Copy "${copyId}" has no "${visitType}" row`);
+    }
+    copy.rows[visitType] = { ...copy.rows[visitType], ...fields, space_name: copy.slot };
+  }
+  copy.updatedAt = new Date().toISOString();
+}
+
+/**
+ * Delete a copy. If the slot is playing it, the slot reverts to the stock
+ * card (the original was never gone — that is the whole point).
+ * @param {InstanceConfig} config
+ * @param {string} copyId
+ */
+export function deleteTeacherCopy(config, copyId) {
+  const copy = config.teacherCopies[copyId];
+  if (!copy) throw new Error(`No such copy: "${copyId}"`);
+  delete config.teacherCopies[copyId];
+  const slot = config.slots[copy.slot];
+  if (slot && slot.card === copyId) delete slot.card;
+}

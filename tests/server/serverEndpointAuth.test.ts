@@ -110,4 +110,22 @@ describe('server.js endpoint auth wiring', () => {
     // current classroom config; a half-failed bake can never seed a game.
     expect(handlerHead('post', '/api/games', 800)).toContain('rebakeDefaultInstance()');
   });
+
+  it.each([
+    ['post', '/api/instances/:id/board'],
+    ['post', '/api/instances/:id/copies'],
+    ['patch', '/api/instances/:id/copies/:copyId'],
+    ['delete', '/api/instances/:id/copies/:copyId'],
+  ])('%s %s routes through the guarded mutation flow', (method, route) => {
+    expect(handlerHead(method, route, 1200)).toContain('handleInstanceMutation(req, res');
+  });
+
+  it('handleInstanceMutation itself enforces write token or admin', () => {
+    const start = source.indexOf('function handleInstanceMutation');
+    expect(start).toBeGreaterThan(-1);
+    const body = source.slice(start, start + 1200);
+    expect(body).toContain('checkInstanceWriteAccess(config');
+    // And validation gates the save: errors → 422, never a silent bake.
+    expect(body).toContain('validateConfig(');
+  });
 });

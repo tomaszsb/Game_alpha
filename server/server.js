@@ -23,7 +23,13 @@ import {
   saveInstance,
   checkInstanceWriteAccess,
   setSlotPositions,
+  setSlotUsed,
+  createTeacherCopy,
+  updateTeacherCopy,
+  deleteTeacherCopy,
 } from './instanceStore.js';
+import { validateConfig } from './instanceValidation.js';
+import { parseCsvWithHeaders } from './processGameData.js';
 import {
   computeStockVersion,
   ensureFreshBake,
@@ -750,17 +756,161 @@ app.get('/api/instances/:id', (req, res) => {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
     const { writeToken: _writeToken, ...meta } = config.meta;
+    // Last bake's validation report (warnings incl. schema drift + the
+    // stock-updated staleness hints) — the catalog UI's data source.
+    let validation = null;
+    try {
+      const reportPath = path.join(resolvedDir(instancesRoot, req.params.id), 'validation-report.json');
+      if (fs.existsSync(reportPath)) validation = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+    } catch { /* report is informational — never fail the read over it */ }
     res.json({
       success: true,
       meta,
       configVersion: config.configVersion,
       slots: config.slots,
+      detours: config.detours,
+      teacherCopies: config.teacherCopies,
       resolved: readBakeStamp(instancesRoot, req.params.id),
+      validation,
     });
   } catch (err) {
     console.error(`❌ Instance read failed for "${req.params.id}":`, err.message);
     res.status(500).json({ success: false, error: 'Instance config unreadable' });
   }
+});
+
+// Stock inputs for config validation, read from the writable stock (which
+// follows the deploy). stockVersion keys the copies' staleness hints.
+function readStockForValidation() {
+  const stockSpacesCsv = fs.readFileSync(path.join(writableSourceDir, 'Spaces.csv'), 'utf-8');
+  const pcPath = path.join(writableCleanDir, 'PATH_CHOICE_RULES.csv');
+  const pathChoiceCsv = fs.existsSync(pcPath) ? fs.readFileSync(pcPath, 'utf-8') : null;
+  return { stockSpacesCsv, pathChoiceCsv, stockVersion: computeStockVersion(writableDataDir) };
+}
+
+// Shared flow for catalog mutations: auth → mutate the loaded config →
+// validate → dryRun returns the report unsaved (the hybrid confirm flow's
+// preview) → otherwise errors reject with 422, clean configs save + bake.
+function handleInstanceMutation(req, res, mutate) {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  let step = 'load';
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) {
+      return res.status(404).json({ success: false, error: 'No such instance' });
+    }
+    const access = checkInstanceWriteAccess(config, {
+      token: req.headers['x-instance-token'],
+      adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
+      adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+    });
+    if (!access.ok) {
+      logVisitor(req, 'INSTANCE_MUTATION_AUTH_FAILED', { instanceId: req.params.id });
+      return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
+    }
+
+    step = 'apply';
+    const result = mutate(config) || {};
+    step = 'validate';
+    const stock = readStockForValidation();
+    const report = validateConfig({ config, ...stock });
+    if (req.body && req.body.dryRun) {
+      // Nothing saved: the loaded config object is discarded.
+      return res.json({ success: true, dryRun: true, report, ...result });
+    }
+    if (!report.ok) {
+      return res.status(422).json({ success: false, report, ...result });
+    }
+    step = 'save';
+    saveInstance(instancesRoot, config);
+    step = 'bake';
+    const { stamp } = ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+    logVisitor(req, 'INSTANCE_MUTATED', { instanceId: req.params.id, ...result });
+    res.json({
+      success: true,
+      report,
+      configVersion: config.configVersion,
+      resolvedVersion: stamp.configVersion,
+      ...result,
+    });
+  } catch (err) {
+    console.error(`❌ Instance mutation failed (step: ${step}):`, err.message);
+    const payload = { success: false, error: 'Instance update failed', step, detail: err.message };
+    if (err.report) payload.report = err.report;
+    res.status(err.statusCode || 500).json(payload);
+  }
+}
+
+// Switch spaces on/off — the hybrid confirm flow's backend. The UI first
+// POSTs with dryRun:true to get the report (pass-through suggestions,
+// protection errors, detour candidates), shows the teacher the before/after
+// path, and the confirmed call (optionally with a custom detour) saves.
+app.post('/api/instances/:id/board', (req, res) => {
+  const { changes } = req.body || {};
+  if (!changes || typeof changes !== 'object' || Object.keys(changes).length === 0) {
+    return res.status(400).json({ success: false, error: 'changes object is required (space name → { used, detour? })' });
+  }
+  handleInstanceMutation(req, res, (config) => {
+    for (const [space, change] of Object.entries(changes)) {
+      if (!change || typeof change.used !== 'boolean') {
+        const err = new Error(`Change for "${space}" needs a boolean "used"`);
+        err.statusCode = 400;
+        throw err;
+      }
+      setSlotUsed(config, space, change.used, change.detour);
+    }
+    return { changed: Object.keys(changes) };
+  });
+});
+
+// Teacher copies: full copies of the current stock card under a stable id;
+// the slot plays the copy, the stock original stays in the library.
+app.post('/api/instances/:id/copies', (req, res) => {
+  const { slot, overrides } = req.body || {};
+  if (!slot || typeof slot !== 'string') {
+    return res.status(400).json({ success: false, error: 'slot (space name) is required' });
+  }
+  handleInstanceMutation(req, res, (config) => {
+    const { stockSpacesCsv, stockVersion } = readStockForValidation();
+    const stockRows = parseCsvWithHeaders(stockSpacesCsv).filter(r => r.space_name === slot);
+    if (stockRows.length === 0) {
+      const err = new Error(`No such space in stock: "${slot}"`);
+      err.statusCode = 404;
+      throw err;
+    }
+    const copyId = createTeacherCopy(config, { slotName: slot, stockRows, overrides, stockVersion });
+    return { copyId, slot };
+  });
+});
+
+app.patch('/api/instances/:id/copies/:copyId', (req, res) => {
+  const { overrides } = req.body || {};
+  if (!overrides || typeof overrides !== 'object' || Object.keys(overrides).length === 0) {
+    return res.status(400).json({ success: false, error: 'overrides object is required (visit_type → fields)' });
+  }
+  handleInstanceMutation(req, res, (config) => {
+    if (!config.teacherCopies[req.params.copyId]) {
+      const err = new Error(`No such copy: "${req.params.copyId}"`);
+      err.statusCode = 404;
+      throw err;
+    }
+    updateTeacherCopy(config, req.params.copyId, overrides);
+    return { copyId: req.params.copyId };
+  });
+});
+
+app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
+  handleInstanceMutation(req, res, (config) => {
+    if (!config.teacherCopies[req.params.copyId]) {
+      const err = new Error(`No such copy: "${req.params.copyId}"`);
+      err.statusCode = 404;
+      throw err;
+    }
+    deleteTeacherCopy(config, req.params.copyId);
+    return { copyId: req.params.copyId, deleted: true };
+  });
 });
 
 // Tile positions (board drag-save). Replaces the old whole-Spaces.csv

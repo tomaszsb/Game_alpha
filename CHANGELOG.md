@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.75] - 2026-06-12
+
+**Teacher instance layer — Phase 2 server core (the catalog's engine).** Switch-off + detours, teacher copies, and the validation report from [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md), all server-side. The catalog UI is the remaining Phase 2 half (UI shape = the spec's open question, awaiting maintainer decision).
+
+### New modules
+
+- **[spaceProtection.js](server/spaceProtection.js)** — the two-tier protection rules: structural (start/end/resume hubs, from stock flags), **semantic anchors** (16 spaces the engine hardcodes — enumerated by grep audit and pinned by a test that re-greps `src/services` + `src/hooks` against the real board, so a new hardcoded reference fails CI until the list is updated), and **conditionally protected path-choice participants** (memory keys, lock points, PATH_CHOICE_RULES rows).
+- **[instanceValidation.js](server/instanceValidation.js)** — config validation + detour resolution. Pass-through computation (follow the off space's own movement; transitive chains; ambiguous = teacher must choose, with candidates listed), explicit detours win, cycles rejected with the full loop spelled out. Copy integrity: renaming a slot is an error; **schema drift and stock-updated staleness are warnings, never errors** (structure aligns at bake, meaning never does). PATH_CHOICE tripwire hard-errors if rules ever reference an off space.
+
+### Resolver (bake) upgrades
+
+- **Validates before baking** — a config with errors never bakes (`err.report` carries the details); the report is written into the resolved set as `validation-report.json` (the catalog UI's data source — auditor requirement "final graph plus a validation report").
+- **Teacher-copy substitution**: the copy's stored fields win, columns the copy predates fall through from the current stock row (automatic structural alignment), `space_name` is forced to the slot — **copy ids never leak into resolved files** (test-pinned).
+- **Switch-off + detour rewriting everywhere**: off spaces' rows dropped from Spaces.csv + DiceRoll Info.csv (then the 5 derived CLEAN files regenerate clean), curated CLEAN files (DICE_OUTCOMES, DICE_ROLL_INFO, LOGIC_QUESTIONS, ACTION_TOOLTIPS) scrubbed row- and token-level, including compound `"A or B"` dice destinations (with `"X or X"` collapse). **Invariant test: after a bake, no resolved file in either directory references the off space.**
+
+### Endpoints (all writes through one guarded flow: token/admin → mutate → validate → 422 on errors → save → bake)
+
+- `POST /api/instances/:id/board` — switch spaces on/off. **`dryRun:true` is the hybrid confirm flow's preview**: returns the validation report (pass-through suggestion, candidates, protection errors) without saving; the confirmed call (optionally with a custom detour) saves + bakes.
+- `POST /api/instances/:id/copies` (create full copy of current stock + overrides), `PATCH /api/instances/:id/copies/:copyId` (teacher edits meaning), `DELETE` (slot reverts to stock — the original was never gone).
+- `GET /api/instances/:id` now includes detours, teacher copies, and the last validation report.
+
+### Tests + verification
+
++44 across the server suite (now 158; with board suites 172/172): protection tiers + the self-auditing anchor list, 17 validation cases, 6 Phase 2 bake cases (invariant sweep, or-collapse, refused bake leaves no debris, copy substitution, structural alignment), 9 store helper cases, 5 endpoint wiring fingerprints. Typecheck + build clean. **Live smoke on the real board**: dry-run suggested "ARCH-FEE-REVIEW → ARCH-SCOPE-CHECK", REG-DOB-FINAL-REVIEW switch-off rejected 422 with the semantic-anchor reason, real switch-off removed every reference from served GAME_CONFIG/MOVEMENT/DICE_OUTCOMES, a teacher copy's custom title served under the slot name with zero copy-id leakage, delete + re-enable restored the board exactly.
+
 ## [3.0.74] - 2026-06-12
 
 **Teacher instance layer — Phase 1 (foundation).** First implementation slice of [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md) (the "deck of cards" model, designed + 4-review-audited same day). **This kills the data-deploy gap permanently**: stock data now refreshes on every deploy, and the teacher's customizations live in a separate per-classroom config that deploys never touch — no merge step exists anywhere, so nothing can be lost.

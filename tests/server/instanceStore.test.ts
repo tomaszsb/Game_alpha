@@ -14,6 +14,10 @@ import {
   saveInstance,
   checkInstanceWriteAccess,
   setSlotPositions,
+  setSlotUsed,
+  createTeacherCopy,
+  updateTeacherCopy,
+  deleteTeacherCopy,
   configPath,
   DEFAULT_INSTANCE_ID,
 } from '../../server/instanceStore.js';
@@ -149,5 +153,92 @@ describe('setSlotPositions', () => {
 describe('DEFAULT_INSTANCE_ID', () => {
   it('is classroom-1 (the Phase 1 migration target)', () => {
     expect(DEFAULT_INSTANCE_ID).toBe('classroom-1');
+  });
+});
+
+// ===== Phase 2 helpers =====
+
+describe('setSlotUsed', () => {
+  it('switches a slot off with a chosen detour, and back on (clearing it)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setSlotUsed(config, 'BETA-MIDDLE', false, 'ZETA-END');
+    expect(config.slots['BETA-MIDDLE'].used).toBe(false);
+    expect(config.detours['BETA-MIDDLE']).toBe('ZETA-END');
+
+    setSlotUsed(config, 'BETA-MIDDLE', true);
+    expect(config.slots['BETA-MIDDLE'].used).toBe(true);
+    expect(config.detours['BETA-MIDDLE']).toBeUndefined();
+  });
+
+  it('switching off without a detour leaves it to the computed pass-through', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setSlotUsed(config, 'BETA-MIDDLE', false);
+    expect(config.slots['BETA-MIDDLE'].used).toBe(false);
+    expect(config.detours['BETA-MIDDLE']).toBeUndefined();
+  });
+
+  it('preserves positions on the slot when toggling', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    setSlotPositions(config, { 'BETA-MIDDLE': { x: 9, y: 8 } });
+    setSlotUsed(config, 'BETA-MIDDLE', false);
+    expect(config.slots['BETA-MIDDLE']).toMatchObject({ used: false, pos_x: '9', pos_y: '8' });
+  });
+});
+
+describe('teacher copies', () => {
+  const stockRows = [
+    { space_name: 'FEE-REVIEW', visit_type: 'First', Title: 'Fee review', Fee: '100' },
+    { space_name: 'FEE-REVIEW', visit_type: 'Subsequent', Title: 'Fee review', Fee: '50' },
+  ];
+
+  it('creates a complete copy under a stable id and plays it in the slot', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, {
+      slotName: 'FEE-REVIEW',
+      stockRows,
+      overrides: { First: { Title: 'My fee review' } },
+      stockVersion: 'v123',
+    });
+    expect(copyId).toBe('fee_review_copy_1');
+    const copy = config.teacherCopies[copyId];
+    expect(copy.slot).toBe('FEE-REVIEW');
+    expect(copy.copiedFromStockVersion).toBe('v123');
+    // FULL copy: override applied, untouched fields carried over, both rows.
+    expect(copy.rows['First']).toMatchObject({ Title: 'My fee review', Fee: '100', space_name: 'FEE-REVIEW' });
+    expect(copy.rows['Subsequent']).toMatchObject({ Title: 'Fee review', Fee: '50' });
+    expect(config.slots['FEE-REVIEW']).toMatchObject({ used: true, card: copyId });
+  });
+
+  it('numbers subsequent copies of the same slot (fee_review_copy_2)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    const second = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    expect(second).toBe('fee_review_copy_2');
+    // The slot plays the latest copy; the first still exists.
+    expect(config.slots['FEE-REVIEW'].card).toBe('fee_review_copy_2');
+    expect(config.teacherCopies['fee_review_copy_1']).toBeDefined();
+  });
+
+  it('updates fields per visit type and pins space_name to the slot', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    updateTeacherCopy(config, copyId, { First: { Fee: '999', space_name: 'sneaky_rename' } });
+    expect(config.teacherCopies[copyId].rows['First']).toMatchObject({ Fee: '999', space_name: 'FEE-REVIEW' });
+    expect(() => updateTeacherCopy(config, copyId, { Ghost: { Fee: '1' } })).toThrow(/no "Ghost" row/);
+    expect(() => updateTeacherCopy(config, 'nope', {})).toThrow(/No such copy/);
+  });
+
+  it('deleting a copy reverts the slot to the stock card', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const copyId = createTeacherCopy(config, { slotName: 'FEE-REVIEW', stockRows });
+    deleteTeacherCopy(config, copyId);
+    expect(config.teacherCopies[copyId]).toBeUndefined();
+    expect(config.slots['FEE-REVIEW'].card).toBeUndefined();
+    expect(config.slots['FEE-REVIEW'].used).toBe(true);
+  });
+
+  it('refuses to copy a card that does not exist in stock', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => createTeacherCopy(config, { slotName: 'GHOST', stockRows: [] })).toThrow(/does not exist/);
   });
 });
