@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.77] - 2026-06-13
+
+**Deploy infrastructure made teacher-layer-aware — the two deploy/migration bugs the v3.0.76 go-live exposed.** Both were eating (or would have eaten) the teacher's classroom work on every deploy.
+
+### `deploy.sh` (bug 1 + 2)
+
+- **Stopped wiping `game-data/instances/`.** The script backed up the whole `game-data`, `rm -rf`'d it, then restored ONLY `SOURCE_FILES`+`CLEAN_FILES` — so per-classroom config (tile positions, teacher copies, detours) was destroyed every deploy. The moment the teacher used 🏫 Classroom Setup, the next deploy would eat it.
+- **Stopped restoring the old editor `SOURCE/CLEAN`.** The server's Phase-1 stock-refresh ([initWritableData](server/server.js)) already overwrites stock from the freshly-built image on boot (backing up to `game-data/backups/` first) whenever the shipped data differs. deploy.sh restoring the old copy was redundant AND kept the data-deploy gap half-alive.
+- **Net change:** the bind-mounted `server/data/game-data` is now left entirely untouched by the deploy — no backup, no wipe, no restore. Stock follows the deploy via the server; classroom config persists via the volume. No merge step anywhere (the thing that kills the data-deploy gap).
+
+### Migration reads positions from CLEAN, not just SOURCE (bug 3)
+
+- **[migrateInstance.js](server/migrateInstance.js)** `computeMigrationPlan` now reads tile positions from CLEAN `GAME_CONFIG.csv` as well as SOURCE `Spaces.csv`, unioned, **CLEAN winning on conflict**. The legacy board editor persisted positions to CLEAN `GAME_CONFIG.csv`, so the original SOURCE-only read captured zero positions and the stock-refresh silently overwrote the custom layout (this is how the ~June-12 custom layout was lost). Correctness-for-the-future: the live migration already ran (idempotent), but any other pre-instance-layer working copy now migrates its arrangement correctly.
+- `defaultMigrationPaths` returns the GAME_CONFIG paths; both callers wired ([server.js](server/server.js) boot migration + [migrateCheck.js](server/migrateCheck.js) `npm run migrate:check`, which now prints the position-source files).
+
+### Tests + verification
+
++2 migration cases (CLEAN positions captured when SOURCE carries stock coords; CLEAN wins over SOURCE on conflict). Server suite 165/165, typecheck + build clean, `deploy.sh` syntax-checked, `migrate:check` exercised end-to-end. ⚠️ **Not yet deployed** — and the transition deploy is special (see NEXT_SESSION): the running OLD `deploy.sh` self-updates mid-run, so run it twice on the first go.
+
 ## [3.0.76] - 2026-06-12
 
 **Teacher instance layer — Phase 2 complete: the Classroom Setup screen.** The maintainer chose the "separate teacher screen" option (the spec's last open Phase 2 question). Launched from the lobby's 🛠️ Admin Tools → **🏫 Classroom Setup**.

@@ -26,6 +26,16 @@ const STOCK = csv(
   'BETA-TWO,SETUP,First,Beta,Beta event,300,400',
 );
 
+// CLEAN GAME_CONFIG.csv: one row per space (no visit_type), carries pos_x/pos_y.
+const CONFIG_HEADER = 'space_name,phase,pos_x,pos_y';
+function configCsv(...rows: string[]) {
+  return [CONFIG_HEADER, ...rows].join('\n') + '\n';
+}
+const STOCK_CONFIG = configCsv(
+  'ALPHA-ONE,SETUP,100,200',
+  'BETA-TWO,SETUP,300,400',
+);
+
 let root: string;
 
 beforeEach(() => {
@@ -75,6 +85,43 @@ describe('computeMigrationPlan', () => {
     );
     const plan = computeMigrationPlan({ liveSpacesCsv: live, stockSpacesCsv: STOCK });
     expect(plan.positions['ALPHA-ONE']).toEqual({ x: '100', y: '999' });
+  });
+
+  it('captures positions from CLEAN GAME_CONFIG even when SOURCE has stock positions', () => {
+    // The 2026-06-13 fix: the legacy editor wrote positions to CLEAN
+    // GAME_CONFIG.csv, not SOURCE Spaces.csv. SOURCE here still has stock
+    // coords, so a SOURCE-only read would capture nothing.
+    const liveConfig = configCsv(
+      'ALPHA-ONE,SETUP,-50,75',
+      'BETA-TWO,SETUP,300,400',
+    );
+    const plan = computeMigrationPlan({
+      liveSpacesCsv: STOCK,
+      stockSpacesCsv: STOCK,
+      liveGameConfigCsv: liveConfig,
+      stockGameConfigCsv: STOCK_CONFIG,
+    });
+    expect(plan.positions).toEqual({ 'ALPHA-ONE': { x: '-50', y: '75' } });
+    expect(plan.contentDrift).toEqual([]);
+  });
+
+  it('lets CLEAN GAME_CONFIG positions win over SOURCE on conflict', () => {
+    const liveSpaces = csv(
+      'ALPHA-ONE,SETUP,First,Alpha,Stock event text,11,22',
+      'ALPHA-ONE,SETUP,Subsequent,Alpha,Stock again,11,22',
+      'BETA-TWO,SETUP,First,Beta,Beta event,300,400',
+    );
+    const liveConfig = configCsv(
+      'ALPHA-ONE,SETUP,-50,75',
+      'BETA-TWO,SETUP,300,400',
+    );
+    const plan = computeMigrationPlan({
+      liveSpacesCsv: liveSpaces,
+      stockSpacesCsv: STOCK,
+      liveGameConfigCsv: liveConfig,
+      stockGameConfigCsv: STOCK_CONFIG,
+    });
+    expect(plan.positions).toEqual({ 'ALPHA-ONE': { x: '-50', y: '75' } });
   });
 
   it('reports live-only and stock-only spaces', () => {

@@ -14,11 +14,14 @@ import { computeMigrationPlan, formatMigrationPlan, defaultMigrationPaths } from
 const dataDir = process.env.DATA_DIR || './server/data';
 const distPath = process.env.DIST_PATH || path.join(process.cwd(), 'dist');
 
-const { liveSpacesPath, stockSpacesPath } = defaultMigrationPaths({ dataDir, distPath });
+const { liveSpacesPath, stockSpacesPath, liveGameConfigPath, stockGameConfigPath } =
+  defaultMigrationPaths({ dataDir, distPath });
 
 console.log('migrate:check — classroom-1 migration dry run');
 console.log(`  live working copy: ${liveSpacesPath}`);
 console.log(`  stock deck:        ${stockSpacesPath}`);
+console.log(`  live positions:    ${liveGameConfigPath}`);
+console.log(`  stock positions:   ${stockGameConfigPath}`);
 console.log('');
 
 if (!fs.existsSync(stockSpacesPath)) {
@@ -31,9 +34,12 @@ if (!fs.existsSync(liveSpacesPath)) {
   process.exit(0);
 }
 
+const hasGameConfig = fs.existsSync(liveGameConfigPath) && fs.existsSync(stockGameConfigPath);
 const plan = computeMigrationPlan({
   liveSpacesCsv: fs.readFileSync(liveSpacesPath, 'utf-8'),
   stockSpacesCsv: fs.readFileSync(stockSpacesPath, 'utf-8'),
+  liveGameConfigCsv: hasGameConfig ? fs.readFileSync(liveGameConfigPath, 'utf-8') : undefined,
+  stockGameConfigCsv: hasGameConfig ? fs.readFileSync(stockGameConfigPath, 'utf-8') : undefined,
 });
 
 console.log(formatMigrationPlan(plan));

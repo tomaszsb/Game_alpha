@@ -12,39 +12,23 @@ echo "Stopping existing container..."
 docker stop game_alpha 2>/dev/null || true
 docker rm game_alpha 2>/dev/null || true
 
-# Preserve editor data across deploys (customized CSV content)
-EDITOR_DATA="$(pwd)/server/data/game-data"
-EDITOR_BACKUP="$(pwd)/server/data/.game-data-backup"
-if [ -d "$EDITOR_DATA/SOURCE_FILES" ] && [ "$(ls -A "$EDITOR_DATA/SOURCE_FILES" 2>/dev/null)" ]; then
-  echo "Backing up editor data..."
-  rm -rf "$EDITOR_BACKUP" 2>/dev/null || true
-  cp -a "$EDITOR_DATA" "$EDITOR_BACKUP"
-else
-  echo "No editor data to preserve (will use build defaults)"
-fi
-rm -rf "$EDITOR_DATA" 2>/dev/null || true
+# Teacher instance layer (docs/core/TEACHER_LAYER_DESIGN.md): the bind-mounted
+# server/data/game-data is intentionally left UNTOUCHED here. Do NOT back up,
+# wipe, or restore it.
+#   - Stock (SOURCE_FILES/CLEAN_FILES/BASELINE) follows the deploy on its own:
+#     the server's initWritableData() refreshes it from the freshly-built image
+#     on boot (backing up to game-data/backups/ first) whenever the shipped
+#     data differs. Restoring the old editor copy here is redundant and was
+#     what kept the data-deploy gap half-alive.
+#   - Per-classroom config (game-data/instances/<id>/config.json — tile
+#     positions, teacher copies, detours) MUST survive every deploy. The old
+#     "rm -rf game-data" wiped it, so the next deploy ate the teacher's work.
+# There is no merge step anywhere; that is what kills the data-deploy gap.
 
 echo "Building new image..."
 GIT_COMMIT=$(git rev-parse --short HEAD)
 echo "   Version: $GIT_COMMIT"
 docker build --build-arg GIT_COMMIT=$GIT_COMMIT -t game_alpha .
-
-# Restore editor data BEFORE starting the container. Doing this host-side
-# while no container is running avoids the race where the server's
-# initWritableData() would otherwise create SOURCE_FILES/ first, causing
-# `cp -a backup/SOURCE_FILES live/SOURCE_FILES` to nest one folder deep
-# (server then reads the dist defaults at the un-nested path).
-# Server's needsFullInit check skips init when Spaces.csv already exists.
-if [ -d "$EDITOR_BACKUP" ]; then
-  echo "Restoring editor data from backup (pre-start)..."
-  mkdir -p "$EDITOR_DATA"
-  cp -a "$EDITOR_BACKUP/SOURCE_FILES" "$EDITOR_DATA/SOURCE_FILES"
-  cp -a "$EDITOR_BACKUP/CLEAN_FILES" "$EDITOR_DATA/CLEAN_FILES"
-  rm -rf "$EDITOR_BACKUP"
-  echo "   Editor data restored successfully"
-else
-  echo "No editor backup to restore (using build defaults)"
-fi
 
 echo "Ensuring isolated network exists..."
 docker network create game-net 2>/dev/null || true

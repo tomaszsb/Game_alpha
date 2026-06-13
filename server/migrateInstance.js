@@ -10,6 +10,12 @@
 //     (so the maintainer can verify nothing intentional gets dropped) but
 //     NOT migrated — stock is the home of content (spec decision 3).
 //
+// Positions are read from BOTH the SOURCE Spaces.csv AND the CLEAN
+// GAME_CONFIG.csv, unioned, with CLEAN winning on conflict. This is the
+// 2026-06-13 fix: the legacy board editor persisted tile positions to CLEAN
+// GAME_CONFIG.csv, NOT to SOURCE Spaces.csv, so a SOURCE-only read captured
+// zero positions and the stock refresh silently overwrote the custom layout.
+//
 // Idempotent: if classroom-1 already exists, apply is a no-op. The dry-run
 // CLI (npm run migrate:check) prints the plan without writing anything.
 
@@ -29,6 +35,20 @@ function rowsByKey(csvText) {
   return map;
 }
 
+// CLEAN GAME_CONFIG.csv has one row per space (no visit_type), each carrying
+// pos_x/pos_y. Returns space_name -> { x, y } with trimmed string values.
+function positionsByConfigSpace(csvText) {
+  const map = new Map();
+  for (const row of parseCsvWithHeaders(csvText)) {
+    if (!row.space_name) continue;
+    map.set(row.space_name, {
+      x: (row.pos_x ?? '').trim(),
+      y: (row.pos_y ?? '').trim(),
+    });
+  }
+  return map;
+}
+
 /**
  * @typedef {Object} MigrationPlan
  * @property {Object<string, { x?: string, y?: string }>} positions
@@ -38,11 +58,19 @@ function rowsByKey(csvText) {
  */
 
 /**
- * Diff the live working copy's Spaces.csv against stock.
- * @param {{ liveSpacesCsv: string, stockSpacesCsv: string }} args
+ * Diff the live working copy against stock to build the migration plan.
+ * Content drift comes from SOURCE Spaces.csv. Tile positions come from BOTH
+ * SOURCE Spaces.csv and (when provided) CLEAN GAME_CONFIG.csv — the latter is
+ * where the legacy board editor actually persisted them, so it wins on conflict.
+ * @param {{
+ *   liveSpacesCsv: string,
+ *   stockSpacesCsv: string,
+ *   liveGameConfigCsv?: string,
+ *   stockGameConfigCsv?: string,
+ * }} args
  * @returns {MigrationPlan}
  */
-export function computeMigrationPlan({ liveSpacesCsv, stockSpacesCsv }) {
+export function computeMigrationPlan({ liveSpacesCsv, stockSpacesCsv, liveGameConfigCsv, stockGameConfigCsv }) {
   const live = rowsByKey(liveSpacesCsv);
   const stock = rowsByKey(stockSpacesCsv);
 
@@ -102,6 +130,26 @@ export function computeMigrationPlan({ liveSpacesCsv, stockSpacesCsv }) {
     }
   }
 
+  // Overlay positions from CLEAN GAME_CONFIG.csv — where the legacy board
+  // editor actually wrote them. A space whose CLEAN coordinate differs from
+  // stock is a moved tile; CLEAN wins, taking the full live coordinate (an
+  // empty CLEAN axis falls back to stock so the slot stays complete).
+  if (liveGameConfigCsv && stockGameConfigCsv) {
+    const liveCfg = positionsByConfigSpace(liveGameConfigCsv);
+    const stockCfg = positionsByConfigSpace(stockGameConfigCsv);
+    for (const [spaceName, lp] of liveCfg) {
+      const sp = stockCfg.get(spaceName) ?? { x: '', y: '' };
+      const xMoved = lp.x !== '' && lp.x !== sp.x;
+      const yMoved = lp.y !== '' && lp.y !== sp.y;
+      if (xMoved || yMoved) {
+        positions[spaceName] = {
+          x: lp.x !== '' ? lp.x : sp.x,
+          y: lp.y !== '' ? lp.y : sp.y,
+        };
+      }
+    }
+  }
+
   return {
     positions,
     contentDrift,
@@ -155,16 +203,22 @@ export function applyMigrationPlan({ instancesRoot, plan, id, displayName }) {
 }
 
 /**
- * Locate live + stock Spaces.csv for the current environment. Live = the
+ * Locate live + stock data files for the current environment. Live = the
  * writable working copy (production volume); stock = dist (production
- * build) falling back to public/ (dev checkout).
+ * build) falling back to public/ (dev checkout). Positions are read from CLEAN
+ * GAME_CONFIG.csv as well as SOURCE Spaces.csv (see computeMigrationPlan).
  */
 export function defaultMigrationPaths({ dataDir, distPath, cwd = process.cwd() }) {
   const liveSpaces = path.join(dataDir, 'game-data', 'SOURCE_FILES', 'Spaces.csv');
   const distSpaces = path.join(distPath, 'data', 'SOURCE_FILES', 'Spaces.csv');
   const publicSpaces = path.join(cwd, 'public', 'data', 'SOURCE_FILES', 'Spaces.csv');
+  const liveGameConfig = path.join(dataDir, 'game-data', 'CLEAN_FILES', 'GAME_CONFIG.csv');
+  const distGameConfig = path.join(distPath, 'data', 'CLEAN_FILES', 'GAME_CONFIG.csv');
+  const publicGameConfig = path.join(cwd, 'public', 'data', 'CLEAN_FILES', 'GAME_CONFIG.csv');
   return {
     liveSpacesPath: liveSpaces,
     stockSpacesPath: fs.existsSync(distSpaces) ? distSpaces : publicSpaces,
+    liveGameConfigPath: liveGameConfig,
+    stockGameConfigPath: fs.existsSync(distGameConfig) ? distGameConfig : publicGameConfig,
   };
 }

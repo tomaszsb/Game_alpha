@@ -177,9 +177,17 @@ function migrateLegacyWorkingCopy(distDataDir) {
   const stockSpacesPath = path.join(distDataDir, 'SOURCE_FILES', 'Spaces.csv');
   if (!fs.existsSync(liveSpacesPath) || !fs.existsSync(stockSpacesPath)) return;
 
+  // Positions also come from CLEAN GAME_CONFIG.csv (where the legacy editor
+  // saved them); read it when present, fall back to SOURCE-only otherwise.
+  const liveGameConfigPath = path.join(writableCleanDir, 'GAME_CONFIG.csv');
+  const stockGameConfigPath = path.join(distDataDir, 'CLEAN_FILES', 'GAME_CONFIG.csv');
+  const hasGameConfig = fs.existsSync(liveGameConfigPath) && fs.existsSync(stockGameConfigPath);
+
   const plan = computeMigrationPlan({
     liveSpacesCsv: fs.readFileSync(liveSpacesPath, 'utf-8'),
     stockSpacesCsv: fs.readFileSync(stockSpacesPath, 'utf-8'),
+    liveGameConfigCsv: hasGameConfig ? fs.readFileSync(liveGameConfigPath, 'utf-8') : undefined,
+    stockGameConfigCsv: hasGameConfig ? fs.readFileSync(stockGameConfigPath, 'utf-8') : undefined,
   });
   applyMigrationPlan({ instancesRoot, plan, id: DEFAULT_INSTANCE_ID, displayName: 'Classroom 1' });
   console.log(`🏫 Migrated live board into "${DEFAULT_INSTANCE_ID}": ${Object.keys(plan.positions).length} tile position(s) preserved`);
