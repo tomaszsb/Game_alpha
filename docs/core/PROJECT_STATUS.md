@@ -5,20 +5,19 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** June 12, 2026 (second session)
-**Current Phase:** Beta — live in production
-**Current Version:** **3.0.73** (deployed + live-verified 2026-06-12)
+**Last Updated:** June 12, 2026 (third session)
+**Current Phase:** Beta — live in production (server temporarily down: drive migration)
+**Current Version:** **3.0.76** (**PENDING DEPLOY** — v3.0.74/75/76 all queued; Unraid drives being replaced, Docker intentionally stopped)
 
 ## Current sprint
-**2026-06-12 (pm) — security hardening shipped (v3.0.72).** Every server endpoint audited and locked to the maintainer's access model: spectator **reads stay open by design** (classroom "jack-in-the-box" game), writes and PII reads require keys. Closed audit items DEF-1 (0 npm vulns), DEF-2 (read half ruled by-design; cross-game WebSocket write FIXED), DEF-5 (debug fail-open), DEF-6 (feedback PII) **plus four gaps the audit missed**: unauthenticated game delete/reset, public game-code list (defeated join-by-code), public visitor logs (IPs), legacy gamestate writes. Companion dashboard fix (feedback proxy sends FEEDBACK_TOKEN) already **deployed live** to the Unraid dictionary-scraper stack, so the dashboard survives the game deploy. New `server/authGuards.js` + 37 tests incl. live ws/curl verification.
+**2026-06-12 (pm/eve) — the teacher instance layer, designed and built in one session.** Deck-of-cards model designed with the user, hardened by 4 external reviews + Q&A (spec: [TEACHER_LAYER_DESIGN.md](./TEACHER_LAYER_DESIGN.md)). Shipped: **Phase 1** (v3.0.74 — stock refreshes every deploy, classroom config preserved, one-time live-board migration, atomic version-stamped bakes; **kills the data-deploy gap**), **Phase 2** (v3.0.75 server core: two-tier space protection, detour resolution, teacher copies, validation report; v3.0.76 UI: lobby → Admin Tools → 🏫 Classroom Setup with hybrid switch-off confirm + copy editor). **Phase 3 design settled** (admin-mediated full accounts, games carry their classroom) — build gated on Phases 1–2 running live. Phase 4 stays behind its design gate.
 
 ## Health
-- **Tests:** koniec sweep 1718/1718 green (components/utils/services/server; +37 new this session).
-- **Build / typecheck:** clean. **npm audit: 0 vulnerabilities** (was 2 critical).
-- **Lint:** `npm run lint` reports 386 errors (DEFICIENCY_AUDIT DEF-4 — config is TS-unaware; long-standing, not a regression).
-- **Deploy:** v3.0.73 LIVE (commit 360f0ed, bundle index-Bc3AUC4f verified). All locks verified against production with curl (401s without keys, 200s with). v3.0.73 follow-up: /health no longer lists game codes.
+- **Tests:** koniec sweep 1805/1805 green (components/utils/services/server; +89 new this session).
+- **Build / typecheck:** clean. **Lint:** 386 pre-existing errors (DEF-4, long-standing).
+- **Deploy:** BLOCKED on hardware — user replacing failing Unraid drives (Docker stopped deliberately; both public domains show tunnel-down 404s, expected). First boot after deploy runs the one-time classroom-1 migration — **check the boot log for "🏫 Migrated live board"**.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Onboarding package** (`fb:0aa9660c` + `fb:8ad42b52` + `fb:f22035af`) — game-level tutorial; the biggest remaining product lever (recurring "overwhelming for newcomers" feedback theme). Moves up: the security project is fully shipped and live-verified.
-2. **Teacher instance layer + space catalog** (design initiative) — master-library vs per-instance-config split; needs a focused design session first.
-3. **Remaining audit items** — DEF-3 (hook-order crash risk) and DEF-4 (lint rehab). Plus user chore: rotate the Unraid root password (TODO).
+1. **Deploy v3.0.74–76 + verify** once the new drive is in — migration log line, then eyeball the new Classroom Setup screen (no human has seen it yet).
+2. **Onboarding package** (`fb:0aa9660c` + `fb:8ad42b52` + `fb:f22035af`) — biggest product lever; design session, deploy-independent.
+3. **Phase 3 build** (multi-teacher front door — design done) after 1–2 prove out live; DEF-3/DEF-4 cleanup as filler.

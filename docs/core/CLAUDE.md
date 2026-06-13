@@ -1281,7 +1281,17 @@ Settled with the user during the v3.0.72 security sweep; future endpoint work fo
 - Adding an endpoint? Pick its row: write/PII → guard it; spectator read → leave open AND add it to the open-by-design fingerprint test.
 - Companion constraint: the **dashboard** (dictionary-scraper) proxies feedback — its backend must send `FEEDBACK_TOKEN` (deployed 2026-06-12 via compose override; see auto-memory `project_dictionary_scraper_deploy`).
 
-### CSV data fixes do NOT reach the live server on deploy — sync the working copy (2026-06-09)
+### Teacher instance layer — data lives in three places now (v3.0.74–76, PENDING DEPLOY)
+
+Once v3.0.74+ is live, the data model changes fundamentally (spec: [TEACHER_LAYER_DESIGN.md](./TEACHER_LAYER_DESIGN.md)):
+- **Stock** (writable SOURCE/CLEAN) **refreshes on every deploy** — repo CSV fixes reach production automatically. The manual live-sync recipe below becomes OBSOLETE for new deploys (kept for reference until live-verified).
+- **Classroom config** (`game-data/instances/classroom-1/config.json`): positions, on/off + detours, teacher copies. Deploys never touch it. Drag-save posts to `/api/instances/:id/positions` — positions are NOT in stock Spaces.csv anymore.
+- **Served board** = the baked `instances/<id>/resolved/` (atomic dir swap, version-stamped; `/data` serves it with writable stock as fallback). Game creation gated on `configVersion == resolvedVersion`.
+- ⚠️ Live **content** edits via Space Data Editor still write stock — and now get **overwritten by the next deploy** (decision: content's home is the repo; the editor save is for preview/classroom-copy workflows).
+- First deploy runs the one-time migration (positions → classroom-1; stale content replaced; logged at boot). Dry-run: `npm run migrate:check`.
+- Protected spaces: structural + 16 semantic anchors ([spaceProtection.js](../../server/spaceProtection.js)) — the anchor list is pinned by a test that re-greps engine code; adding a hardcoded space name to src/services will fail CI until listed (or the feature graduates via ghost gate).
+
+### CSV data fixes do NOT reach the live server on deploy — sync the working copy (2026-06-09) — ⚠️ OBSOLETE once v3.0.74 deploys (see entry above)
 
 The server serves `/data/CLEAN_FILES/*` from its **writable copy** at `server/data/game-data/CLEAN_FILES` (`server.js:168` `express.static(writableDataDir)`), NOT from `dist/data`/`public/data`. `initWritableData` (`server.js:117`) does a full SOURCE/CLEAN copy from dist **only on the first deploy** (`needsFullInit = !exists(Spaces.csv)`); later deploys update **only BASELINE** and deliberately keep the user-edited SOURCE/CLEAN (so board-editor edits survive updates). **Consequence:** a CSV *data* fix lands in the repo/dist + BASELINE but the game keeps reading the stale working copy — it never goes live unless the user hits "Reset to Baseline" (nuclear, wipes their board) or it's synced manually. **Code/version changes deploy normally; only CSV data is affected.** Discovered spot-checking fb:931a55de — the v3.0.68/69 L-card voice rewrite was code-shipped but the deployed game still served old jargon. Audit found 5 stale CLEAN files; all fixed on live.
 
@@ -1296,5 +1306,5 @@ Proper long-term fix = a "teacher instance layer" (master library vs per-instanc
 
 ---
 
-**Last Updated:** June 12, 2026 second session (Session 2026-06-12 pm — **v3.0.72**: security hardening, committed + pushed, PENDING DEPLOY. Access model settled with user: spectator reads open by design, writes/PII keyed. Closed DEF-1/2/5/6 + 4 unlisted gaps [game delete/reset, public game list, visitor-log IPs, legacy writes]; new server/authGuards.js; +37 tests incl. live ws/curl smoke. Dashboard proxy companion fix DEPLOYED live to Unraid [compose override + .env FEEDBACK_TOKEN]. Two credential exposures handled: dictionary-scraper's embedded-PAT remote cleaned → user to revoke old PAT; Unraid root password typed into chat → user to rotate.)
-**Charter Version:** 3.37 (added: server endpoint access model — reads open / writes+PII keyed, game code is the join secret, open-by-design endpoints are fingerprint-test-pinned; don't re-flag spectator reads in audits. Prior 3.36: repro the bug before building the prescribed fix; WSL portproxy hijacks dev ports 3001-3004.)
+**Last Updated:** June 12, 2026 third session (Session 2026-06-12 eve — **v3.0.74–76**: the entire teacher instance layer, PENDING DEPLOY (Unraid drive replacement in progress, Docker intentionally down). Phase 1 foundation kills the data-deploy gap; Phase 2 = catalog engine + Classroom Setup screen; Phase 3 designed (admin-mediated accounts); Phase 4 gated. Spec: TEACHER_LAYER_DESIGN.md, 4 reviews + Q&A reconciled.)
+**Charter Version:** 3.38 (added: teacher instance layer data model — stock refreshes every deploy / classroom config untouched / baked resolved board served; live-sync recipe obsolete post-deploy; semantic-anchor protection list is self-auditing. Prior 3.37: server endpoint access model — reads open / writes+PII keyed.)
