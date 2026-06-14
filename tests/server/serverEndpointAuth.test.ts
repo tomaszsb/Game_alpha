@@ -200,6 +200,18 @@ describe('server.js endpoint auth wiring', () => {
     expect(head).toContain('instanceId: game.instanceId || DEFAULT_INSTANCE_ID');
   });
 
+  it('GET /api/instances/mine requires a teacher session, registered before :id', () => {
+    const head = handlerHead('get', '/api/instances/mine', 400);
+    expect(head).toContain('resolveTeacherAccountId(req)');
+    // Registration order matters: '/api/instances/:id' would otherwise
+    // capture "mine" as an id and never reach this handler.
+    const mineIdx = source.indexOf("app.get('/api/instances/mine'");
+    const idIdx = source.indexOf("app.get('/api/instances/:id'");
+    expect(mineIdx).toBeGreaterThan(-1);
+    expect(idIdx).toBeGreaterThan(-1);
+    expect(mineIdx).toBeLessThan(idIdx);
+  });
+
   it('per-instance board serving validates the id (no path traversal)', () => {
     const needle = "app.use('/data/i/:instanceId'";
     const start = source.indexOf(needle);

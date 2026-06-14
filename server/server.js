@@ -22,6 +22,7 @@ import {
   loadInstance,
   saveInstance,
   checkInstanceWriteAccess,
+  instanceOwnedBy,
   setInstanceOwner,
   listInstanceIds,
   setSlotPositions,
@@ -812,6 +813,29 @@ app.post('/api/admin/reset-to-baseline', (req, res) => {
 });
 
 // ===== TEACHER INSTANCE LAYER ENDPOINTS (Phase 1) =====
+
+// A logged-in teacher's own classrooms (Phase 3c). MUST be registered before
+// '/api/instances/:id' or that route would capture "mine" as an id.
+app.get('/api/instances/mine', (req, res) => {
+  const accountId = resolveTeacherAccountId(req);
+  if (!accountId) return res.status(401).json({ success: false, error: 'Not logged in' });
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const instances = [];
+  for (const id of listInstanceIds(instancesRoot)) {
+    try {
+      const cfg = loadInstance(instancesRoot, id);
+      if (cfg && instanceOwnedBy(cfg, accountId)) {
+        const { writeToken: _writeToken, ...meta } = cfg.meta;
+        instances.push({ ...meta, configVersion: cfg.configVersion });
+      }
+    } catch {
+      // Skip a corrupt classroom rather than failing the whole list.
+    }
+  }
+  res.json({ success: true, instances });
+});
 
 // Open read (access model: watching is open) — board layout is visible on
 // the public board anyway. The write token is never included.
