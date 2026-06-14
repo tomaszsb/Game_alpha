@@ -135,4 +135,40 @@ describe('server.js endpoint auth wiring', () => {
     // And validation gates the save: errors → 422, never a silent bake.
     expect(body).toContain('validateConfig(');
   });
+
+  // ===== Teacher accounts (Phase 3) =====
+
+  it.each([
+    ['post', '/api/admin/accounts'],
+    ['post', '/api/admin/accounts/:id/reset-password'],
+  ])('%s %s (account admin) requires admin password', (method, route) => {
+    expect(handlerHead(method, route, 800)).toContain('requireAdmin(req, res)');
+  });
+
+  it.each([
+    ['post', '/api/accounts/login'],   // authenticating — open by necessity
+    ['post', '/api/accounts/logout'],  // revokes the presented session, idempotent
+  ])('%s %s stays open by design (not behind the admin/game guards)', (method, route) => {
+    const head = handlerHead(method, route, 600);
+    expect(head).not.toContain('requireAdmin(req');
+    expect(head).not.toContain('requireGameTokenOrAdmin(req');
+    expect(head).not.toContain('requireFeedbackAccess(req');
+  });
+
+  it('GET /api/accounts/me authorizes via the teacher session, not a req-guard', () => {
+    // Tight window: this handler is short and the next route (admin account
+    // creation) legitimately contains requireAdmin — don't spill into it.
+    const head = handlerHead('get', '/api/accounts/me', 360);
+    expect(head).toContain('resolveTeacherAccountId(req)');
+    expect(head).not.toContain('requireAdmin(req');
+  });
+
+  it('instance write endpoints accept a teacher session (ownership) as well', () => {
+    // The two instance-mutating auth sites must pass the resolved accountId
+    // into the access check so a classroom owner can write to their own room.
+    const positions = handlerHead('post', '/api/instances/:id/positions', 1400);
+    expect(positions).toContain('accountId: resolveTeacherAccountId(req)');
+    const mutation = source.slice(source.indexOf('function handleInstanceMutation'), source.indexOf('function handleInstanceMutation') + 1400);
+    expect(mutation).toContain('accountId: resolveTeacherAccountId(req)');
+  });
 });

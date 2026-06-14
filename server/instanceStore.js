@@ -144,23 +144,63 @@ export function saveInstance(instancesRoot, config) {
 }
 
 /**
- * Instance-mutating requests need the instance's write token or the admin
- * password (mirrors requireGameTokenOrAdmin). Fail-closed: no token and no
- * admin hash configured → 401/503, never a pass.
+ * Instance-mutating requests need (in order): the instance's write token,
+ * a logged-in teacher who OWNS this classroom (Phase 3 — session resolved to
+ * an accountId by the caller), or the admin password (mirrors
+ * requireGameTokenOrAdmin). Fail-closed: nothing valid and no admin hash
+ * configured → 401/503, never a pass.
+ *
+ * The session is "just a key to" the per-instance write token (spec): the
+ * caller resolves the session token to an accountId via accountStore and
+ * passes it here as `accountId`; ownership is `meta.owner` or `meta.coTeachers`.
+ * instanceStore stays free of any session dependency.
  * @param {InstanceConfig} config
- * @param {{ token?: string|string[], adminPassword?: string|string[], adminPasswordHash?: string }} creds
+ * @param {{ token?: string|string[], adminPassword?: string|string[], adminPasswordHash?: string, accountId?: string }} creds
  * @returns {{ ok: true, via: string } | { ok: false, status?: number, error?: string }}
  */
-export function checkInstanceWriteAccess(config, { token, adminPassword, adminPasswordHash }) {
+export function checkInstanceWriteAccess(config, { token, adminPassword, adminPasswordHash, accountId }) {
   if (token && timingSafeEqualStr(token, config.meta.writeToken)) {
     return { ok: true, via: 'token' };
+  }
+  if (accountId) {
+    const owner = config.meta?.owner;
+    if (owner && timingSafeEqualStr(accountId, owner)) return { ok: true, via: 'owner' };
+    const coTeachers = config.meta?.coTeachers;
+    if (Array.isArray(coTeachers) && coTeachers.includes(accountId)) return { ok: true, via: 'coteacher' };
   }
   if (adminPassword) {
     const admin = checkAdminPassword(adminPassword, adminPasswordHash);
     if (admin.ok) return { ok: true, via: 'admin' };
     return admin;
   }
-  return { ok: false, status: 401, error: 'Instance write token or admin password required' };
+  return { ok: false, status: 401, error: 'Instance write token, classroom ownership, or admin password required' };
+}
+
+/**
+ * True if `accountId` owns or co-teaches this classroom. Comparison is
+ * timing-safe on the owner field; co-teacher membership is a plain check
+ * (the list is not a secret — it's authorization config, and the accountId
+ * came from an already-verified session).
+ * @param {InstanceConfig} config
+ * @param {string} accountId
+ * @returns {boolean}
+ */
+export function instanceOwnedBy(config, accountId) {
+  if (!accountId) return false;
+  const owner = config.meta?.owner;
+  if (owner && timingSafeEqualStr(accountId, owner)) return true;
+  const coTeachers = config.meta?.coTeachers;
+  return Array.isArray(coTeachers) && coTeachers.includes(accountId);
+}
+
+/**
+ * Bind (or clear) a classroom's owner account. Mutates the in-memory config;
+ * the caller saves. Clearing with null returns the classroom to admin-only.
+ * @param {InstanceConfig} config
+ * @param {string|null} accountId
+ */
+export function setInstanceOwner(config, accountId) {
+  config.meta.owner = accountId || null;
 }
 
 /**

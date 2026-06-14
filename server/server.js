@@ -38,6 +38,17 @@ import {
   resolvedDir,
 } from './instanceResolver.js';
 import { computeMigrationPlan, applyMigrationPlan, formatMigrationPlan } from './migrateInstance.js';
+import {
+  createAccount,
+  resetPassword,
+  verifyLogin,
+  getAccount,
+  publicAccount,
+  createSession,
+  verifySession,
+  revokeSession,
+  revokeAccountSessions,
+} from './accountStore.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -144,6 +155,19 @@ function backupSourceFiles(reason) {
 // no merge step anywhere — that is what kills the data-deploy gap.
 const instancesRoot = path.join(writableDataDir, 'instances');
 let instanceLayerActive = false;
+
+// ===== TEACHER ACCOUNTS (Phase 3) =====
+// Teacher logins + sessions live alongside the instances they own. The
+// session token arrives in the x-teacher-session header; resolving it to an
+// accountId is how a logged-in teacher authorizes writes to owned classrooms
+// (instanceStore.checkInstanceWriteAccess accepts the accountId).
+const accountsRoot = path.join(writableDataDir, 'accounts');
+
+/** Resolve a request's teacher session to an accountId, or null. */
+function resolveTeacherAccountId(req) {
+  const session = verifySession(accountsRoot, req.headers['x-teacher-session']);
+  return session ? session.accountId : null;
+}
 
 function copyStockSubdirs(distDataDir) {
   for (const sub of ['SOURCE_FILES', 'CLEAN_FILES', 'BASELINE']) {
@@ -848,6 +872,7 @@ function handleInstanceMutation(req, res, mutate) {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || (req.body && req.body.password),
       adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
     });
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_MUTATION_AUTH_FAILED', { instanceId: req.params.id });
@@ -980,6 +1005,7 @@ app.post('/api/instances/:id/positions', (req, res) => {
       token: req.headers['x-instance-token'],
       adminPassword: req.headers['x-admin-password'] || req.body.password,
       adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+      accountId: resolveTeacherAccountId(req),
     });
     if (!access.ok) {
       logVisitor(req, 'INSTANCE_POSITIONS_AUTH_FAILED', { instanceId: req.params.id });
@@ -1003,6 +1029,72 @@ app.post('/api/instances/:id/positions', (req, res) => {
   } catch (err) {
     console.error(`❌ Position save failed (step: ${step}):`, err.message);
     res.status(500).json({ success: false, error: 'Failed to save positions', step, detail: err.message });
+  }
+});
+
+// ===== TEACHER ACCOUNTS + SESSIONS (Phase 3) =====
+// Admin-mediated, per the settled spec: only the admin creates accounts and
+// resets passwords (no self-signup, no email, no "forgot password"). Login
+// yields a session token the client sends as x-teacher-session; that token
+// authorizes writes to classrooms the account owns (see resolveTeacherAccountId
+// + checkInstanceWriteAccess). Reads stay open — this only gates writes.
+
+// Teacher login: username + password → opaque session token + public account.
+app.post('/api/accounts/login', (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ success: false, error: 'username and password are required' });
+  }
+  const account = verifyLogin(accountsRoot, username, password);
+  if (!account) {
+    logVisitor(req, 'TEACHER_LOGIN_FAILED', { username: String(username).slice(0, 64) });
+    return res.status(401).json({ success: false, error: 'Invalid username or password' });
+  }
+  const sessionToken = createSession(accountsRoot, account.id);
+  logVisitor(req, 'TEACHER_LOGIN', { accountId: account.id });
+  res.json({ success: true, sessionToken, account });
+});
+
+// Teacher logout: revoke the presented session. Idempotent.
+app.post('/api/accounts/logout', (req, res) => {
+  revokeSession(accountsRoot, req.headers['x-teacher-session']);
+  res.json({ success: true });
+});
+
+// Who am I — the client uses this on boot to restore a session into UI state.
+app.get('/api/accounts/me', (req, res) => {
+  const accountId = resolveTeacherAccountId(req);
+  if (!accountId) return res.status(401).json({ success: false, error: 'Not logged in' });
+  const account = getAccount(accountsRoot, accountId);
+  if (!account) return res.status(401).json({ success: false, error: 'Session no longer valid' });
+  res.json({ success: true, account: publicAccount(account) });
+});
+
+// Admin: create a teacher account (the only way accounts come into being).
+app.post('/api/admin/accounts', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const { username, password, displayName } = req.body || {};
+  try {
+    const account = createAccount(accountsRoot, { username, password, displayName });
+    logVisitor(req, 'TEACHER_ACCOUNT_CREATED', { accountId: account.id, username: account.username });
+    res.json({ success: true, account });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: reset a teacher's password. Revokes their existing sessions so a
+// reset also locks out anyone holding an old token.
+app.post('/api/admin/accounts/:id/reset-password', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const { newPassword } = req.body || {};
+  try {
+    const account = resetPassword(accountsRoot, req.params.id, newPassword);
+    revokeAccountSessions(accountsRoot, req.params.id);
+    logVisitor(req, 'TEACHER_PASSWORD_RESET', { accountId: req.params.id });
+    res.json({ success: true, account });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
