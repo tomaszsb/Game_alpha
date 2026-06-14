@@ -24,6 +24,12 @@ import { colors } from '../../styles/theme';
 
 interface ClassroomSetupProps {
   onClose: () => void;
+  /** Which classroom to edit. Defaults to the public default classroom so
+   *  the existing admin-launched flow is unchanged; a teacher opens it with
+   *  their own classroom id. */
+  instanceId?: string;
+  /** Display name shown in the header (the teacher's classroom name). */
+  classroomName?: string;
 }
 
 const TIER_LABEL: Record<string, string> = {
@@ -32,7 +38,7 @@ const TIER_LABEL: Record<string, string> = {
   'path-choice': 'players make a remembered path choice through this space',
 };
 
-export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
+export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomName }: ClassroomSetupProps): JSX.Element {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,12 +48,12 @@ export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
 
   const reload = useCallback(async () => {
     try {
-      setCatalog(await fetchCatalog());
+      setCatalog(await fetchCatalog(instanceId));
       setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load the catalog.');
     }
-  }, []);
+  }, [instanceId]);
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -90,12 +96,12 @@ export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
     try {
       if (!space.used) {
         // Switching back ON needs no confirmation — nothing can break.
-        const result = await postBoardChange({ space: space.name, used: true });
+        const result = await postBoardChange(instanceId, { space: space.name, used: true });
         await finishMutation(result, `“${space.title}” is back on the board.`);
         return;
       }
       // Hybrid confirm: dry-run first, show the preview, then save.
-      const preview = await postBoardChange({ space: space.name, used: false, dryRun: true });
+      const preview = await postBoardChange(instanceId, { space: space.name, used: false, dryRun: true });
       if (preview.success && preview.report) {
         setConfirm({ space, report: preview.report });
       } else {
@@ -110,7 +116,7 @@ export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
     if (!confirm) return;
     setBusy(true);
     try {
-      const result = await postBoardChange({ space: confirm.space.name, used: false, detour });
+      const result = await postBoardChange(instanceId, { space: confirm.space.name, used: false, detour });
       const ok = await finishMutation(result, `“${confirm.space.title}” switched off — players go to ${detour} instead.`);
       if (ok) setConfirm(null);
     } finally {
@@ -123,8 +129,8 @@ export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
     setBusy(true);
     try {
       const result = editing.copyId
-        ? await updateCopy(editing.copyId, overrides)
-        : await createCopy({ slot: editing.name, overrides });
+        ? await updateCopy(instanceId, editing.copyId, overrides)
+        : await createCopy(instanceId, { slot: editing.name, overrides });
       const ok = await finishMutation(result, `Your copy of “${editing.title}” is saved and live for new games.`);
       if (ok) setEditing(null);
     } finally {
@@ -136,7 +142,7 @@ export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
     if (!editing?.copyId) return;
     setBusy(true);
     try {
-      const result = await deleteCopy(editing.copyId);
+      const result = await deleteCopy(instanceId, editing.copyId);
       const ok = await finishMutation(result, `Your copy was removed — “${editing.title}” plays the original card again.`);
       if (ok) setEditing(null);
     } finally {
@@ -158,7 +164,7 @@ export function ClassroomSetup({ onClose }: ClassroomSetupProps): JSX.Element {
       }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: colors.text.primary }}>
-            🏫 Classroom Setup
+            🏫 Classroom Setup{classroomName ? ` — ${classroomName}` : ''}
           </h2>
           <p style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: colors.text.secondary }}>
             Your deck of spaces. Switch cards off, or make your own copy of a

@@ -9,12 +9,14 @@
 // only this module needs to change.
 
 import { getAdminPassword } from '../../utils/adminAuth';
+import { getTeacherSession } from '../../utils/teacherAuth';
 import { getBackendURL } from '../../utils/networkDetection';
 import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
 
 export interface ClassroomApiDeps {
   fetch?: typeof fetch;
   getAdminPassword?: () => string | null;
+  getTeacherSession?: () => string | null;
   getBackendURL?: () => string;
 }
 
@@ -77,32 +79,40 @@ function resolveDeps(deps: ClassroomApiDeps) {
   return {
     fetchFn: deps.fetch ?? fetch,
     getPassword: deps.getAdminPassword ?? getAdminPassword,
+    getSession: deps.getTeacherSession ?? getTeacherSession,
     getURL: deps.getBackendURL ?? getBackendURL,
   };
 }
 
-export async function fetchCatalog(deps: ClassroomApiDeps = {}): Promise<CatalogResponse> {
+export async function fetchCatalog(
+  instanceId: string = DEFAULT_INSTANCE_ID,
+  deps: ClassroomApiDeps = {}
+): Promise<CatalogResponse> {
   const { fetchFn, getURL } = resolveDeps(deps);
-  const response = await fetchFn(`${getURL()}/api/instances/${DEFAULT_INSTANCE_ID}/catalog?_=${Date.now()}`);
+  const response = await fetchFn(`${getURL()}/api/instances/${instanceId}/catalog?_=${Date.now()}`);
   if (!response.ok) {
     throw new Error(`Catalog unavailable (HTTP ${response.status})`);
   }
   return await response.json() as CatalogResponse;
 }
 
+// Catalog writes authorize with EITHER the admin master password OR the
+// teacher's session (Phase 3 — a classroom owner can edit their own room).
+// Whichever is present is sent; the server checks ownership for the session.
 async function mutate(path: string, method: string, body: unknown, deps: ClassroomApiDeps): Promise<MutationResult> {
-  const { fetchFn, getPassword, getURL } = resolveDeps(deps);
+  const { fetchFn, getPassword, getSession, getURL } = resolveDeps(deps);
   const password = getPassword();
-  if (!password) {
-    return { success: false, error: 'Admin session expired. Re-open Admin Tools to re-authenticate.' };
+  const session = getSession();
+  if (!password && !session) {
+    return { success: false, error: 'Not signed in. Log in as the classroom owner or admin.' };
   }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (password) headers['x-admin-password'] = password;
+  if (session) headers['x-teacher-session'] = session;
   try {
     const response = await fetchFn(`${getURL()}${path}`, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-password': password,
-      },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const data = await response.json().catch(() => ({}));
@@ -119,6 +129,7 @@ async function mutate(path: string, method: string, body: unknown, deps: Classro
  * teacher's chosen detour) saves and rebakes.
  */
 export function postBoardChange(
+  instanceId: string,
   args: { space: string; used: boolean; detour?: string; dryRun?: boolean },
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
@@ -126,27 +137,33 @@ export function postBoardChange(
     changes: { [args.space]: { used: args.used, ...(args.detour !== undefined ? { detour: args.detour } : {}) } },
   };
   if (args.dryRun) body.dryRun = true;
-  return mutate(`/api/instances/${DEFAULT_INSTANCE_ID}/board`, 'POST', body, deps);
+  return mutate(`/api/instances/${instanceId}/board`, 'POST', body, deps);
 }
 
 /** Create a full copy of the current stock card, with optional overrides. */
 export function createCopy(
+  instanceId: string,
   args: { slot: string; overrides?: Record<string, Record<string, string>> },
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
-  return mutate(`/api/instances/${DEFAULT_INSTANCE_ID}/copies`, 'POST', args, deps);
+  return mutate(`/api/instances/${instanceId}/copies`, 'POST', args, deps);
 }
 
 /** Update a copy's fields (keyed by visit type). */
 export function updateCopy(
+  instanceId: string,
   copyId: string,
   overrides: Record<string, Record<string, string>>,
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
-  return mutate(`/api/instances/${DEFAULT_INSTANCE_ID}/copies/${copyId}`, 'PATCH', { overrides }, deps);
+  return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'PATCH', { overrides }, deps);
 }
 
 /** Delete a copy; the slot reverts to the stock card. */
-export function deleteCopy(copyId: string, deps: ClassroomApiDeps = {}): Promise<MutationResult> {
-  return mutate(`/api/instances/${DEFAULT_INSTANCE_ID}/copies/${copyId}`, 'DELETE', undefined, deps);
+export function deleteCopy(
+  instanceId: string,
+  copyId: string,
+  deps: ClassroomApiDeps = {}
+): Promise<MutationResult> {
+  return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'DELETE', undefined, deps);
 }

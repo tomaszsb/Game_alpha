@@ -10,9 +10,12 @@ import { Player } from '../../types/StateTypes';
 import { getCurrentGameId, getBackendURL } from '../../utils/networkDetection';
 import { isSmartTV } from '../../utils/deviceDetection';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth, getAdminPassword } from '../../utils/adminAuth';
+import { teacherLogin, getTeacherAccount, getTeacherSession, type TeacherAccount } from '../../utils/teacherAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { ClassroomSetup } from '../classroom/ClassroomSetup';
+import { TeacherClassroomPanel } from '../classroom/TeacherClassroomPanel';
+import { ClassroomAdminPanel } from '../classroom/ClassroomAdminPanel';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
@@ -119,6 +122,11 @@ export function PlayerSetup({
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
   const [adminVerifying, setAdminVerifying] = useState(false);
+  // Combined login (Phase 3c): a username makes it a teacher login; blank
+  // username = the admin master password (today's behavior).
+  const [loginUsername, setLoginUsername] = useState('');
+  const [teacherAccount, setTeacherAccount] = useState<TeacherAccount | null>(() => getTeacherAccount());
+  const [isClassroomAdminOpen, setIsClassroomAdminOpen] = useState(false);
 
   // Use validation hook with services
   const validation = usePlayerValidation(players, gameSettings, stateService, gameRulesService, selectedMode === 'tv');
@@ -185,20 +193,71 @@ export function PlayerSetup({
   };
 
   /**
-   * Verify admin password
+   * Combined login (Phase 3c). A username present → teacher account login;
+   * a blank username → the admin master password (today's behavior).
    */
-  const handleAdminVerify = async () => {
+  const handleLogin = async () => {
     if (!adminPassword.trim()) return;
     setAdminVerifying(true);
     setAdminError('');
-    const success = await verifyAdminPassword(adminPassword);
-    setAdminVerifying(false);
-    if (success) {
-      setIsAdminUnlocked(true);
-      setShowAdminPrompt(false);
-      setAdminPassword('');
-    } else {
-      setAdminError('Incorrect password');
+    try {
+      if (loginUsername.trim()) {
+        const account = await teacherLogin(loginUsername.trim(), adminPassword);
+        if (account) {
+          setTeacherAccount(account);
+          setShowAdminPrompt(false);
+          setAdminPassword('');
+          setLoginUsername('');
+        } else {
+          setAdminError('Incorrect username or password');
+        }
+      } else {
+        const success = await verifyAdminPassword(adminPassword);
+        if (success) {
+          setIsAdminUnlocked(true);
+          setShowAdminPrompt(false);
+          setAdminPassword('');
+        } else {
+          setAdminError('Incorrect password');
+        }
+      }
+    } catch (err) {
+      setAdminError(err instanceof Error ? err.message : 'Could not reach the server.');
+    } finally {
+      setAdminVerifying(false);
+    }
+  };
+
+  /**
+   * Start a new game bound to a teacher's classroom: create it with the
+   * instanceId (server authorizes via the teacher session), then navigate to
+   * it carrying ?i= so the client loads that classroom's board.
+   */
+  const handleStartClassroomGame = async (instanceId: string) => {
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getTeacherSession() ? { 'x-teacher-session': getTeacherSession() as string } : {}),
+        },
+        body: JSON.stringify({ instanceId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        alert(`Could not start a game: ${data.error || `server returned ${response.status}`}`);
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set('g', data.gameId);
+      url.searchParams.set('token', data.token);
+      if (instanceId && instanceId !== 'classroom-1') url.searchParams.set('i', instanceId);
+      else url.searchParams.delete('i');
+      if (selectedMode === 'tv') url.searchParams.set('mode', 'tv');
+      window.location.href = url.toString();
+    } catch (err) {
+      alert(`Could not start a game: ${err instanceof Error ? err.message : 'network error'}`);
     }
   };
 
@@ -986,13 +1045,18 @@ export function PlayerSetup({
             </div>
           </div>
 
-          {/* Admin Tools section */}
+          {/* Admin Tools / Teacher login section */}
           <div style={styles.settingsBlock}>
             <h3 style={styles.sectionTitleSmall}>
-              🛠️ Admin Tools
+              {teacherAccount ? '👩‍🏫 My Classrooms' : '🛠️ Admin Tools'}
             </h3>
 
-            {isAdminUnlocked ? (
+            {teacherAccount ? (
+              <TeacherClassroomPanel
+                onStartGame={handleStartClassroomGame}
+                onLoggedOut={() => setTeacherAccount(null)}
+              />
+            ) : isAdminUnlocked ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
@@ -1053,6 +1117,26 @@ export function PlayerSetup({
                     title="Browse the deck of spaces: switch cards on/off, make your own copies. Applies to every future game."
                   >
                     🏫 Classroom Setup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsClassroomAdminOpen(true)}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      backgroundColor: colors.secondary.main,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                    title="Create teacher accounts and classrooms, and assign owners."
+                  >
+                    👥 Manage Classrooms &amp; Teachers
                   </button>
                   <button
                     type="button"
@@ -1166,12 +1250,28 @@ export function PlayerSetup({
             ) : showAdminPrompt ? (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <input
+                  type="text"
+                  placeholder="Teacher username (blank = admin)"
+                  value={loginUsername}
+                  onChange={(e) => { setLoginUsername(e.target.value); setAdminError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  autoFocus
+                  autoComplete="username"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    border: `2px solid ${adminError ? '#dc3545' : colors.secondary.light}`,
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    width: '220px'
+                  }}
+                />
+                <input
                   type="password"
-                  placeholder="Admin password"
+                  placeholder="Password"
                   value={adminPassword}
                   onChange={(e) => { setAdminPassword(e.target.value); setAdminError(''); }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdminVerify()}
-                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  autoComplete="current-password"
                   style={{
                     padding: '0.5rem 0.75rem',
                     border: `2px solid ${adminError ? '#dc3545' : colors.secondary.light}`,
@@ -1182,7 +1282,7 @@ export function PlayerSetup({
                 />
                 <button
                   type="button"
-                  onClick={handleAdminVerify}
+                  onClick={handleLogin}
                   disabled={adminVerifying}
                   style={{
                     padding: '0.5rem 0.75rem',
@@ -1195,11 +1295,11 @@ export function PlayerSetup({
                     fontWeight: '500'
                   }}
                 >
-                  {adminVerifying ? '...' : 'Unlock'}
+                  {adminVerifying ? '...' : 'Log in'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowAdminPrompt(false); setAdminPassword(''); setAdminError(''); }}
+                  onClick={() => { setShowAdminPrompt(false); setAdminPassword(''); setLoginUsername(''); setAdminError(''); }}
                   style={{
                     padding: '0.5rem 0.75rem',
                     backgroundColor: 'transparent',
@@ -1233,7 +1333,7 @@ export function PlayerSetup({
                   gap: '0.4rem'
                 }}
               >
-                🔒 Unlock Admin Tools
+                🔑 Log in (admin or teacher)
               </button>
             )}
           </div>
@@ -1260,6 +1360,9 @@ export function PlayerSetup({
 
       {/* Classroom Setup (teacher catalog) Modal */}
       {isClassroomSetupOpen && <ClassroomSetup onClose={() => setIsClassroomSetupOpen(false)} />}
+
+      {/* Manage Classrooms & Teachers (admin) Modal */}
+      {isClassroomAdminOpen && <ClassroomAdminPanel onClose={() => setIsClassroomAdminOpen(false)} />}
 
       {/* Educational Card Selection Modal */}
       <EducationalCardSelectionModal

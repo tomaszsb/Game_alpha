@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.78] - 2026-06-14
+
+**Teacher instance layer — Phase 3: the multi-teacher front door.** Real teacher accounts, each owning their own classroom(s), able to run games on their own customized board — while ordinary players notice nothing. Admin-mediated per the settled spec ([TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md) build-order item 3): only the admin creates accounts and classrooms; no self-signup, no email, no "forgot password". Built across this session as 3a→3c; **not a third-party auth dependency** — a thin layer over Node's stdlib scrypt, mirroring the existing token patterns.
+
+### Accounts + sessions (3a)
+
+- **[accountStore.js](server/accountStore.js)** — scrypt-hashed teacher accounts + persisted login sessions (TTL, per-session and per-account revoke), atomic flat-file writes like instanceStore. **[instanceStore.checkInstanceWriteAccess](server/instanceStore.js)** now accepts a session-resolved `accountId`; a classroom owner/co-teacher authorizes writes to their own room (`via: 'owner'/'coteacher'`). instanceStore stays free of any session dependency (the server resolves it).
+- Endpoints: `POST /api/accounts/login|logout`, `GET /api/accounts/me`, admin `POST /api/admin/accounts` + `GET /api/admin/accounts` + `/:id/reset-password` (reset revokes the teacher's sessions).
+
+### Multi-classroom plumbing (3b)
+
+- Admin `GET/POST /api/admin/instances` (list / create-with-optional-owner, bakes immediately) + `POST /api/admin/instances/:id/owner`. `GET /api/instances/mine` (a teacher's owned classrooms). Per-instance board serving `app.use('/data/i/:instanceId')` (strict id regex blocks path traversal; cached static; registered before `/data` and `/api/instances/:id`).
+- Games belong to a classroom: `POST /api/games` takes an optional `instanceId` (default/omitted = classroom-1, open; a non-default classroom requires the owner's session or admin), bakes + records it; `join-info` returns it; instance-less/legacy games = classroom-1. Player join flow unchanged.
+
+### Client (3c)
+
+- **[dataInstance.ts](src/utils/dataInstance.ts)** — board-data loads derive their base path from the URL `?i=<id>` (default → plain `/data`, so every existing game is unchanged). DataService + TooltipService routed through it; join flows propagate the classroom id.
+- **[teacherAuth.ts](src/utils/teacherAuth.ts)** + combined login in [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): one login box — blank username = the admin master password (today's behavior), a username = teacher account → their classroom view. **[TeacherClassroomPanel](src/components/classroom/TeacherClassroomPanel.tsx)** (a teacher's classrooms → open Classroom Setup / start a game) + **[ClassroomAdminPanel](src/components/classroom/ClassroomAdminPanel.tsx)** (admin: create accounts/classrooms, assign owners) in Admin Tools. ClassroomSetup + saveBoardPosition are now classroom-aware and send the teacher session.
+
+### Tests + verification
+
++~40 tests (accountStore 14, instanceStore/endpoint-auth/dataInstance, classroom suites still green); **209 server+util+component tests pass**, typecheck + build clean. **Live end-to-end smoke** (local server): admin creates account → creates owned classroom → teacher logs in → `/api/instances/mine` lists it → teacher starts a game bound to it → `/data/i/classroom-2/…` serves (200) → a stranger is refused (401). Boundary checks: login/mine/admin endpoints fail-closed; per-instance path traversal → 400. **Scoped out (documented):** teacher board-position drag editing stays the admin/classroom-1 flow; teachers customize via Classroom Setup. **Not deployed yet** (Phase 3d: deploy + verify live → unblocks Phase 4).
+
 ## [3.0.77] - 2026-06-13
 
 **Deploy infrastructure made teacher-layer-aware — the two deploy/migration bugs the v3.0.76 go-live exposed.** Both were eating (or would have eaten) the teacher's classroom work on every deploy.

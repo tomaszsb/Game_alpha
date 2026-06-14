@@ -140,6 +140,7 @@ describe('server.js endpoint auth wiring', () => {
   // ===== Teacher accounts (Phase 3) =====
 
   it.each([
+    ['get', '/api/admin/accounts'],
     ['post', '/api/admin/accounts'],
     ['post', '/api/admin/accounts/:id/reset-password'],
   ])('%s %s (account admin) requires admin password', (method, route) => {

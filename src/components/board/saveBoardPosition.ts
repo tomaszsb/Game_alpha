@@ -15,14 +15,16 @@
 // toast rendering keeps working.
 
 import { getAdminPassword } from '../../utils/adminAuth';
+import { getTeacherSession } from '../../utils/teacherAuth';
 import { getBackendURL } from '../../utils/networkDetection';
 
-/** Phase 1: a single classroom per server. Phase 3 makes this dynamic. */
+/** The public default classroom. Per-teacher board editing passes an id. */
 export const DEFAULT_INSTANCE_ID = 'classroom-1';
 
 export interface SaveBoardPositionDeps {
   fetch?: typeof fetch;
   getAdminPassword?: () => string | null;
+  getTeacherSession?: () => string | null;
   getBackendURL?: () => string;
 }
 
@@ -39,26 +41,29 @@ export async function saveBoardPosition(
   spaceName: string,
   x: number,
   y: number,
-  deps: SaveBoardPositionDeps = {}
+  deps: SaveBoardPositionDeps = {},
+  instanceId: string = DEFAULT_INSTANCE_ID
 ): Promise<SaveBoardPositionResult> {
   const fetchFn = deps.fetch ?? fetch;
   const getPassword = deps.getAdminPassword ?? getAdminPassword;
+  const getSession = deps.getTeacherSession ?? getTeacherSession;
   const getURL = deps.getBackendURL ?? getBackendURL;
 
   const password = getPassword();
-  if (!password) {
-    return { success: false, step: 'auth', detail: 'Admin session expired. Re-open the editor to re-authenticate.' };
+  const session = getSession();
+  if (!password && !session) {
+    return { success: false, step: 'auth', detail: 'Not signed in. Log in as the classroom owner or admin.' };
   }
 
   const step = 'post';
   try {
     const backendURL = getURL();
-    const response = await fetchFn(`${backendURL}/api/instances/${DEFAULT_INSTANCE_ID}/positions`, {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (password) headers['x-admin-password'] = password;
+    if (session) headers['x-teacher-session'] = session;
+    const response = await fetchFn(`${backendURL}/api/instances/${instanceId}/positions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-password': password
-      },
+      headers,
       body: JSON.stringify({ positions: { [spaceName]: { x, y } } })
     });
 

@@ -46,6 +46,7 @@ import {
   resetPassword,
   verifyLogin,
   getAccount,
+  loadAccounts,
   publicAccount,
   createSession,
   verifySession,
@@ -1125,6 +1126,13 @@ app.get('/api/accounts/me', (req, res) => {
   const account = getAccount(accountsRoot, accountId);
   if (!account) return res.status(401).json({ success: false, error: 'Session no longer valid' });
   res.json({ success: true, account: publicAccount(account) });
+});
+
+// Admin: list teacher accounts (for the management UI's owner picker).
+app.get('/api/admin/accounts', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const accounts = loadAccounts(accountsRoot);
+  res.json({ success: true, accounts: Object.values(accounts).map(publicAccount) });
 });
 
 // Admin: create a teacher account (the only way accounts come into being).
