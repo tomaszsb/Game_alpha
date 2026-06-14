@@ -41,7 +41,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 *The v3.0.72 hardening itself shipped (see CHANGELOG). These are the loose ends.*
 
 - [x] **GitHub PATs revoked — DONE 2026-06-12 (same session).** User deleted 3 of 4 tokens (incl. the exposed "gemini dictionary scraper" one embedded in dictionary-scraper's remote, plus a never-used broad-scope one and a stale WSL one). The deletion broke the machine's stored git credential — purged via `git credential reject`, re-authed through GCM browser flow, both repos verified pushing (`Everything up-to-date`). Remaining optional: delete the unused "Code2027" token (proven unused by this machine).
-- [ ] **USER CHORE: rotate the Unraid root password** (typed into the terminal/chat by accident 2026-06-12). Unraid web UI → Users → root.
+- [x] **USER CHORE: rotate the Unraid root password — DONE 2026-06-13.** (Was typed into the terminal/chat by accident 2026-06-12.)
 - [ ] **Deploy v3.0.72** — the endpoint locks aren't live until deployed. Dashboard companion fix is ALREADY live (proxy sends FEEDBACK_TOKEN; Unraid stack has the env var). No game-server config needed.
 - [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` not set** — compose warns and defaults blank on every `docker compose up` (pre-existing, surfaced 2026-06-12). If the dashboard's AI features ever misbehave, this is why. Don't fix without asking the user whether it's intentional.
 
