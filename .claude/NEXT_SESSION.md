@@ -1,25 +1,24 @@
-# Next session starter — written 2026-06-13 by /koniec
+# Next session starter — written 2026-06-14 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.76 — **DEPLOYED + LIVE** (verified: origin serves `index-z9qhpdgL.js`, commit 44e84ea). Unraid back up after the drive rebuild.
+- **Version:** v3.0.78 — **PENDING DEPLOY** (live is still v3.0.77). v3.0.78 = teacher layer Phase 3 + Vite 8 upgrade, all committed + pushed.
 - **Branch:** master, clean + pushed (only `.claude/settings.local.json` + `ghost-history.jsonl`, intentional).
-- **Last shipped:** no new code — a deploy/ops session that got v3.0.74–76 live and exposed two deploy-infra bugs.
-- **Test suite:** 1805/1805 (last run 2026-06-12; no source changed this session). Typecheck + build clean.
-- **Build/typecheck:** clean.
+- **Last shipped (live):** v3.0.77 — deploy.sh + migration fixes, data-deploy gap proven dead. v3.0.78 built but NOT deployed.
+- **Test suite:** 1841/1841 on the broad sweep (new Vite 8/vitest toolchain); full suite (incl. ghost/E2E) was running at wrap — check `/tmp/koniec-fulltest.log` if in doubt, but the broad sweep + a live local end-to-end smoke both passed.
+- **Build/typecheck:** clean. **npm audit: 0 vulnerabilities.**
 
 ## Top 3 open items
-1. **Fix `deploy.sh` for the teacher layer (HIGH).** It WIPES `instances/` every deploy (classroom config dies) and resurrects old SOURCE/CLEAN. Fix: preserve `instances/`; drop the SOURCE/CLEAN restore (the server's on-boot stock-refresh handles stock). **Plus fix the migration** to read positions from CLEAN `GAME_CONFIG.csv`, not just SOURCE `Spaces.csv`. Must land before the teacher uses 🏫 Classroom Setup, or every deploy eats their work. (Full breakdown in TODO "Deploy infrastructure — teacher-layer gaps" + CLAUDE.md TACTICAL.)
-2. **Eyeball 🏫 Classroom Setup live** (now reachable, never human-seen) + **board-layout decision**: the maintainer's custom tile layout was lost ~June 12 (unrecoverable). Current board = the stock grid. Keep it, or re-arrange once — but only after item 1 so it survives.
-3. **Onboarding package** (`fb:0aa9660c` + `fb:8ad42b52` + `fb:f22035af`) — biggest product lever, deploy-independent. Then **Phase 3 build** (multi-teacher front door, design done).
+1. **Deploy v3.0.78 + verify live (Phase 3d).** `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (from Windows). Then **browser smoke** because Vite 8 swapped Rollup→Rolldown — confirm the game loads/plays, AND walk the teacher flow: Admin Tools → 👥 Manage Classrooms & Teachers → create a test teacher + classroom → log out → log in as that teacher (username + password in the same login box) → see the classroom → start a game.
+2. **Phase 4 — card insertion** (teacher-authored spaces / "replace one card with several"). The last + most invasive teacher-layer phase. **Gate: only design it once Phase 3 runs live** (i.e. after item 1).
+3. **Onboarding package** (`fb:0aa9660c` + `fb:8ad42b52` + `fb:f22035af`) — biggest product lever, deploy-independent.
 
 ## Decisions waiting on the user
-- **Board layout:** keep the stock grid, or re-arrange a custom one? (Old custom layout is gone for good.)
-- Rotate the Unraid root password (typed into chat 2026-06-12) — still pending.
+- None open. (Phase 3 auth model settled: admin-minted scrypt accounts, combined login, no third-party auth — don't re-litigate.)
 
 ## Suggested first move
-Fix `deploy.sh` + the migration (item 1) — it's the thing actively eating work and blocks safe teacher-layer use. Want to start there, or do the onboarding design session first? Clean up the recovery tool early: `ssh unraid "rm /mnt/user/appdata/Game_alpha/server/data/recover-board.mjs"`.
+Deploy v3.0.78 and do the teacher-flow browser smoke (item 1). It's the moment of truth for Phase 3 *and* the Vite 8 bundler swap. Want to deploy and verify together, then move on to Phase 4 design?
 
 ## Reminders
-- **Deploy ONLY via `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`** — NEVER `docker compose up` (spawns a parallel `game-alpha` container NPM doesn't route to). NPM routes the domain → port 3080; cf-cache is DYNAMIC (Cloudflare doesn't cache the HTML, so a stale page after deploy is the wrong-container trap, not a cache).
-- Deploy runs from the Windows terminal, never from Claude's shell.
-- A recovery tool `recover-board.mjs` is sitting on the live server in `server/data/` — delete it.
+- Deploy runs from the **Windows terminal**, not WSL / not from Claude's shell. Only `bash deploy.sh` — never `docker compose up`.
+- Vite 8 needs Node ≥20.19; `node:20-alpine` is above that — but if the Docker build errors on engines, that's why.
+- Nothing live changes until a teacher account + classroom exist, so the deploy itself is low-risk for existing players.
