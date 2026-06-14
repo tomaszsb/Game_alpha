@@ -2,6 +2,7 @@
 
 import { DataService } from './DataService';
 import { debugLog } from '../utils/debugLog';
+import { getDataBasePath } from '../utils/dataInstance';
 
 export interface ActionTooltip {
   action_type: string;
@@ -28,7 +29,7 @@ export class TooltipService {
     if (this.loaded) return;
 
     try {
-      const response = await fetch('/data/CLEAN_FILES/ACTION_TOOLTIPS.csv');
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/ACTION_TOOLTIPS.csv');
       const csvText = await response.text();
       this.parseCSV(csvText);
       this.loaded = true;

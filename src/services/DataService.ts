@@ -14,6 +14,7 @@ import {
   LogicQuestion,
   PathChoiceRule
 } from '../types/DataTypes';
+import { getDataBasePath } from '../utils/dataInstance';
 
 export class DataService implements IDataService {
   private gameConfigs: GameConfig[] = [];
@@ -467,7 +468,7 @@ export class DataService implements IDataService {
 
   // Private CSV loading methods
   private async loadGameConfig(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/GAME_CONFIG.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/GAME_CONFIG.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch GAME_CONFIG.csv: ${response.status} ${response.statusText}`);
     }
@@ -476,7 +477,7 @@ export class DataService implements IDataService {
   }
 
   private async loadMovements(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/MOVEMENT.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/MOVEMENT.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch MOVEMENT.csv: ${response.status} ${response.statusText}`);
     }
@@ -485,7 +486,7 @@ export class DataService implements IDataService {
   }
 
   private async loadDiceOutcomes(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/DICE_OUTCOMES.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/DICE_OUTCOMES.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch DICE_OUTCOMES.csv: ${response.status} ${response.statusText}`);
     }
@@ -494,7 +495,7 @@ export class DataService implements IDataService {
   }
 
   private async loadSpaceEffects(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/SPACE_EFFECTS.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/SPACE_EFFECTS.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch SPACE_EFFECTS.csv: ${response.status} ${response.statusText}`);
     }
@@ -503,7 +504,7 @@ export class DataService implements IDataService {
   }
 
   private async loadDiceEffects(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/DICE_EFFECTS.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/DICE_EFFECTS.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch DICE_EFFECTS.csv: ${response.status} ${response.statusText}`);
     }
@@ -555,7 +556,7 @@ export class DataService implements IDataService {
   }
 
   private async loadSpaceContents(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/SPACE_CONTENT.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/SPACE_CONTENT.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch SPACE_CONTENT.csv: ${response.status} ${response.statusText}`);
     }
@@ -564,7 +565,7 @@ export class DataService implements IDataService {
   }
 
   private async loadCards(): Promise<void> {
-    const response = await fetch('/data/CLEAN_FILES/CARDS_EXPANDED.csv?_=' + Date.now()); // Cache busting
+    const response = await fetch(getDataBasePath() + '/CLEAN_FILES/CARDS_EXPANDED.csv?_=' + Date.now()); // Cache busting
     if (!response.ok) {
       throw new Error(`Failed to fetch CARDS_EXPANDED.csv: ${response.status} ${response.statusText}`);
     }
@@ -579,7 +580,7 @@ export class DataService implements IDataService {
    */
   private async loadLogicQuestions(): Promise<void> {
     try {
-      const response = await fetch('/data/CLEAN_FILES/LOGIC_QUESTIONS.csv?_=' + Date.now());
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/LOGIC_QUESTIONS.csv?_=' + Date.now());
       if (!response.ok) {
         this.logicQuestions = [];
         return;
@@ -598,7 +599,7 @@ export class DataService implements IDataService {
    */
   private async loadPathChoiceRules(): Promise<void> {
     try {
-      const response = await fetch('/data/CLEAN_FILES/PATH_CHOICE_RULES.csv?_=' + Date.now());
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/PATH_CHOICE_RULES.csv?_=' + Date.now());
       if (!response.ok) {
         this.pathChoiceRules = [];
         return;
@@ -633,7 +634,7 @@ export class DataService implements IDataService {
    */
   private async loadModalConfigs(): Promise<void> {
     try {
-      const response = await fetch('/data/SOURCE_FILES/ModalConfig.csv?_=' + Date.now());
+      const response = await fetch(getDataBasePath() + '/SOURCE_FILES/ModalConfig.csv?_=' + Date.now());
       if (!response.ok) {
         // Not fatal — file is optional
         this.modalConfigs = new Map();

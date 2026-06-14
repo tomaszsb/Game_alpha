@@ -266,10 +266,14 @@ export function PlayerSetup({
         setJoinError(`Could not reach game ${normalized} (server returned ${response.status}).`);
         return;
       }
-      const data: { token: string } = await response.json();
+      const data: { token: string; instanceId?: string } = await response.json();
       const url = new URL(window.location.href);
       url.searchParams.set('g', normalized);
       if (data.token) url.searchParams.set('token', data.token);
+      // Carry the game's classroom so its board loads (Phase 3c); the default
+      // classroom needs no param (plain /data).
+      if (data.instanceId && data.instanceId !== 'classroom-1') url.searchParams.set('i', data.instanceId);
+      else url.searchParams.delete('i');
       if (selectedMode === 'tv') {
         url.searchParams.set('mode', 'tv');
       } else {
@@ -312,10 +316,12 @@ export function PlayerSetup({
         alert(`Cannot join ${gameId}: server returned ${response.status}`);
         return;
       }
-      const data: { token: string } = await response.json();
+      const data: { token: string; instanceId?: string } = await response.json();
       const url = new URL(window.location.href);
       url.searchParams.set('g', gameId);
       url.searchParams.set('token', data.token);
+      if (data.instanceId && data.instanceId !== 'classroom-1') url.searchParams.set('i', data.instanceId);
+      else url.searchParams.delete('i');
       window.location.href = url.toString();
     } catch (err) {
       alert('Cannot connect to server.');
