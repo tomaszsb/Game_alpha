@@ -22,6 +22,8 @@ import {
   loadInstance,
   saveInstance,
   checkInstanceWriteAccess,
+  setInstanceOwner,
+  listInstanceIds,
   setSlotPositions,
   setSlotUsed,
   createTeacherCopy,
@@ -273,19 +275,50 @@ function initInstanceLayer() {
 // Rebake the default classroom if its config or the stock changed. Used by
 // the positions endpoint, the content editor save, and the game-create gate
 // (spec: game creation requires configVersion == resolvedVersion).
-function rebakeDefaultInstance() {
-  const config = loadInstance(instancesRoot, DEFAULT_INSTANCE_ID);
-  if (!config) throw new Error(`Instance "${DEFAULT_INSTANCE_ID}" not found`);
+// Rebake a specific classroom (Phase 3 generalizes the default-only helper).
+function rebakeInstance(id) {
+  const config = loadInstance(instancesRoot, id);
+  if (!config) throw new Error(`Instance "${id}" not found`);
   return ensureFreshBake({ stockDataDir: writableDataDir, instancesRoot, config });
+}
+function rebakeDefaultInstance() {
+  return rebakeInstance(DEFAULT_INSTANCE_ID);
+}
+
+// Per-instance static middlewares, cached by id. The resolved dir path is
+// constant per instance (the bake swaps its CONTENTS atomically under the
+// same path), so a cached express.static stays correct across re-bakes.
+const instanceStaticCache = new Map();
+function instanceStatic(id) {
+  if (!instanceStaticCache.has(id)) {
+    instanceStaticCache.set(id, express.static(resolvedDir(instancesRoot, id)));
+  }
+  return instanceStaticCache.get(id);
 }
 
 if (fs.existsSync(distPath)) {
   initWritableData();
   initInstanceLayer();
-  // Resolved classroom data first (stock + teacher overlay, baked); the
-  // writable stock is the fallback when the instance layer is down. The
-  // static root path is constant — the bake swaps the directory under it
-  // atomically, so requests always see a complete set.
+
+  // Per-instance resolved board (Phase 3): /data/i/<id>/CLEAN_FILES/... — how
+  // a game bound to a non-default classroom loads its board. The id regex
+  // blocks path traversal (no '.' or '/'). Baking is the responsibility of
+  // create/mutation/game-create (same model as the default classroom below);
+  // serving stays a fast static read. Must be registered BEFORE the generic
+  // '/data' static or that would swallow '/data/i/...' as classroom-1 files.
+  app.use('/data/i/:instanceId', (req, res, next) => {
+    if (!instanceLayerActive) return res.status(404).end();
+    const id = req.params.instanceId;
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return res.status(400).end();
+    if (!fs.existsSync(resolvedDir(instancesRoot, id))) return res.status(404).end();
+    return instanceStatic(id)(req, res, next);
+  });
+
+  // Default classroom (classroom-1) served at /data — players unchanged.
+  // Resolved data first (stock + teacher overlay, baked); the writable stock
+  // is the fallback when the instance layer is down. The static root path is
+  // constant — the bake swaps the directory under it atomically, so requests
+  // always see a complete set.
   const resolvedStatic = express.static(resolvedDir(instancesRoot, DEFAULT_INSTANCE_ID));
   app.use('/data', (req, res, next) => {
     if (!instanceLayerActive) return next();
@@ -1098,6 +1131,78 @@ app.post('/api/admin/accounts/:id/reset-password', (req, res) => {
   }
 });
 
+// ===== ADMIN: CLASSROOM (INSTANCE) MANAGEMENT (Phase 3) =====
+// Only the admin creates classrooms and binds owners (admin-mediated model).
+// A teacher then manages their owned classroom via their session.
+
+// List all classrooms (admin tool) — never includes write tokens.
+app.get('/api/admin/instances', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const instances = [];
+  for (const id of listInstanceIds(instancesRoot)) {
+    try {
+      const cfg = loadInstance(instancesRoot, id);
+      if (!cfg) continue;
+      const { writeToken: _writeToken, ...meta } = cfg.meta;
+      instances.push({ ...meta, configVersion: cfg.configVersion });
+    } catch (err) {
+      instances.push({ id, error: err.message });
+    }
+  }
+  res.json({ success: true, instances });
+});
+
+// Create a classroom, optionally binding an owner account in one step.
+app.post('/api/admin/instances', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const { id, displayName, owner } = req.body || {};
+  try {
+    if (owner && !getAccount(accountsRoot, owner)) {
+      return res.status(400).json({ success: false, error: `No such account: "${owner}"` });
+    }
+    const config = createInstance(instancesRoot, { id, displayName });
+    if (owner) {
+      setInstanceOwner(config, owner);
+      saveInstance(instancesRoot, config);
+    }
+    // Bake immediately so the new classroom is playable right away.
+    rebakeInstance(config.meta.id);
+    const { writeToken: _writeToken, ...meta } = config.meta;
+    logVisitor(req, 'INSTANCE_CREATED', { instanceId: config.meta.id, owner: owner || null });
+    res.json({ success: true, instance: { ...meta, configVersion: config.configVersion } });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Bind / rebind / clear a classroom's owner (admin). owner=null → admin-only.
+app.post('/api/admin/instances/:id/owner', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const { owner } = req.body || {};
+  try {
+    const config = loadInstance(instancesRoot, req.params.id);
+    if (!config) return res.status(404).json({ success: false, error: 'No such instance' });
+    if (owner && !getAccount(accountsRoot, owner)) {
+      return res.status(400).json({ success: false, error: `No such account: "${owner}"` });
+    }
+    setInstanceOwner(config, owner || null);
+    saveInstance(instancesRoot, config);
+    logVisitor(req, 'INSTANCE_OWNER_SET', { instanceId: req.params.id, owner: owner || null });
+    res.json({ success: true, owner: config.meta.owner });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // ===== GAME MANAGEMENT ENDPOINTS =====
 
 // Admin-only since 2026-06-12: listing every gameId publicly defeated the
@@ -1126,13 +1231,34 @@ app.get('/api/games', (req, res) => {
 });
 
 app.post('/api/games', async (req, res) => {
+  // Phase 3: a game belongs to a classroom. Default (or omitted) = classroom-1,
+  // open to anyone (today's behavior, unchanged). A non-default classroom is a
+  // teacher's room — creating a game from it requires that teacher's session
+  // (owner) or admin, so a stranger can't spawn games from a private classroom.
+  const requestedInstanceId = (req.body && req.body.instanceId) || DEFAULT_INSTANCE_ID;
+
   // Spec gate: a game may only be seeded from a resolved board whose version
   // matches the current classroom config (configVersion == resolvedVersion).
   // ensureFreshBake makes that true or throws — a half-failed bake can never
   // seed a game, and the atomic dir swap means a torn board cannot exist.
   if (instanceLayerActive) {
+    if (requestedInstanceId !== DEFAULT_INSTANCE_ID) {
+      const cfg = loadInstance(instancesRoot, requestedInstanceId);
+      if (!cfg) {
+        return res.status(404).json({ success: false, error: `No such classroom: "${requestedInstanceId}"` });
+      }
+      const access = checkInstanceWriteAccess(cfg, {
+        adminPassword: req.headers['x-admin-password'],
+        adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+        accountId: resolveTeacherAccountId(req),
+      });
+      if (!access.ok) {
+        logVisitor(req, 'CREATE_GAME_INSTANCE_DENIED', { instanceId: requestedInstanceId });
+        return res.status(access.status || 403).json({ success: false, error: 'Not authorized to start a game from this classroom' });
+      }
+    }
     try {
-      rebakeDefaultInstance();
+      rebakeInstance(requestedInstanceId);
     } catch (err) {
       console.error('❌ Bake failed at game create:', err.message);
       return res.status(503).json({
@@ -1150,11 +1276,12 @@ app.post('/api/games', async (req, res) => {
     state: null,
     version: 0,
     token,
+    instanceId: requestedInstanceId,
     createdAt: now,
     lastActivity: now
   });
 
-  const logEntry = logVisitor(req, 'CREATE_GAME', { gameId });
+  const logEntry = logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
 
   // Send notification
   await sendNotification(
@@ -1170,6 +1297,7 @@ app.post('/api/games', async (req, res) => {
     success: true,
     gameId,
     token,
+    instanceId: requestedInstanceId,
     message: `Game ${gameId} created. Share this code with players!`
   });
 });
@@ -1218,6 +1346,9 @@ app.get('/api/games/:gameId/join-info', (req, res) => {
   res.json({
     gameId,
     token: game.token,
+    // Which classroom's board to load (Phase 3). Legacy/instance-less games
+    // fall back to the default classroom — players' join flow is unchanged.
+    instanceId: game.instanceId || DEFAULT_INSTANCE_ID,
     gamePhase: game.state?.gamePhase || 'SETUP',
     playerCount: game.state?.players?.length || 0,
   });

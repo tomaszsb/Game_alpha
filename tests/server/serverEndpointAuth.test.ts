@@ -108,7 +108,8 @@ describe('server.js endpoint auth wiring', () => {
   it('POST /api/games is gated on a fresh bake (configVersion == resolvedVersion)', () => {
     // Spec: a game may only be seeded from a resolved board matching the
     // current classroom config; a half-failed bake can never seed a game.
-    expect(handlerHead('post', '/api/games', 800)).toContain('rebakeDefaultInstance()');
+    // Phase 3b: bakes the game's chosen classroom (default or a teacher's).
+    expect(handlerHead('post', '/api/games', 2600)).toContain('rebakeInstance(requestedInstanceId)');
   });
 
   it.each([
@@ -170,5 +171,42 @@ describe('server.js endpoint auth wiring', () => {
     expect(positions).toContain('accountId: resolveTeacherAccountId(req)');
     const mutation = source.slice(source.indexOf('function handleInstanceMutation'), source.indexOf('function handleInstanceMutation') + 1400);
     expect(mutation).toContain('accountId: resolveTeacherAccountId(req)');
+  });
+
+  // ===== Multi-classroom plumbing (Phase 3b) =====
+
+  it.each([
+    ['get', '/api/admin/instances'],
+    ['post', '/api/admin/instances'],
+    ['post', '/api/admin/instances/:id/owner'],
+  ])('%s %s (classroom admin) requires admin password', (method, route) => {
+    expect(handlerHead(method, route, 800)).toContain('requireAdmin(req, res)');
+  });
+
+  it('POST /api/games binds the chosen classroom and authorizes non-default ones', () => {
+    const head = handlerHead('post', '/api/games', 2600);
+    // Reads the requested classroom, defaulting to classroom-1 (open).
+    expect(head).toContain('req.body.instanceId');
+    // A non-default classroom requires ownership/admin to spawn a game.
+    expect(head).toContain('checkInstanceWriteAccess(cfg');
+    expect(head).toContain('accountId: resolveTeacherAccountId(req)');
+    // Bakes the requested instance (not just the default) and records it.
+    expect(head).toContain('rebakeInstance(requestedInstanceId)');
+    expect(head).toContain('instanceId: requestedInstanceId');
+  });
+
+  it('GET /api/games/:gameId/join-info returns the game\'s classroom id', () => {
+    const head = handlerHead('get', '/api/games/:gameId/join-info', 800);
+    expect(head).toContain('instanceId: game.instanceId || DEFAULT_INSTANCE_ID');
+  });
+
+  it('per-instance board serving validates the id (no path traversal)', () => {
+    const needle = "app.use('/data/i/:instanceId'";
+    const start = source.indexOf(needle);
+    expect(start, '/data/i/:instanceId route not found').toBeGreaterThan(-1);
+    const body = source.slice(start, start + 500);
+    // Strict id pattern blocks '.'/'/' so a crafted id can't escape the dir.
+    expect(body).toContain('/^[a-z0-9][a-z0-9-]*$/.test(id)');
+    expect(body).toContain('instanceStatic(id)');
   });
 });

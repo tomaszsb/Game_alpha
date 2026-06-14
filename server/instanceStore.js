@@ -41,6 +41,14 @@ export function instanceDir(instancesRoot, id) {
   return path.join(instancesRoot, id);
 }
 
+/** List all classroom ids that have a config file. Sorted, [] if none. */
+export function listInstanceIds(instancesRoot) {
+  if (!fs.existsSync(instancesRoot)) return [];
+  return fs.readdirSync(instancesRoot)
+    .filter(name => fs.existsSync(configPath(instancesRoot, name)))
+    .sort();
+}
+
 export function configPath(instancesRoot, id) {
   return path.join(instancesRoot, id, CONFIG_FILE);
 }

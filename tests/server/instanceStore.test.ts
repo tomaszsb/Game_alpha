@@ -18,6 +18,7 @@ import {
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
+  listInstanceIds,
   configPath,
   DEFAULT_INSTANCE_ID,
 } from '../../server/instanceStore.js';
@@ -240,5 +241,20 @@ describe('teacher copies', () => {
   it('refuses to copy a card that does not exist in stock', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     expect(() => createTeacherCopy(config, { slotName: 'GHOST', stockRows: [] })).toThrow(/does not exist/);
+  });
+});
+
+describe('listInstanceIds (Phase 3)', () => {
+  it('returns [] when no classrooms exist', () => {
+    expect(listInstanceIds(root)).toEqual([]);
+    expect(listInstanceIds(path.join(root, 'nope'))).toEqual([]);
+  });
+
+  it('lists only directories that have a config, sorted', () => {
+    createInstance(root, { id: 'classroom-2' });
+    createInstance(root, { id: 'classroom-1' });
+    // A stray directory with no config.json must not be listed.
+    fs.mkdirSync(path.join(root, 'not-a-classroom'), { recursive: true });
+    expect(listInstanceIds(root)).toEqual(['classroom-1', 'classroom-2']);
   });
 });
