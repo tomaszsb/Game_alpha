@@ -1,5 +1,5 @@
 action_type,action_value,button_label,tooltip_why,tooltip_context
-cards,draw_W,Add Work Package,Your project scope is defined by Work Packages. Adding Work Packages brings new tasks and materials to your project - increasing both value and cost.,Scope determines project value and construction budget. Each Work Package adds specific work items.
+cards,draw_W,Add Work Package,Your project scope is defined by Work Packages. Adding Work Packages brings new tasks and materials to your project - increasing both value and cost.,Scope determines project value and construction budget. Each Work Package adds specific work items. [deploytest-0000f3b]
 cards,draw_B,Get Bank Loan,Banks provide quick funding at lower rates for smaller projects. Bank Loans give you working capital to pay fees and staff.,Bank loans are faster but capped at lower amounts. Good for projects under $4M scope.
 cards,draw_I,Get Investment,Investors fund larger projects but take longer and charge higher rates. Investments provide substantial capital for big scope projects.,Investor funding suits projects over $4M. Higher fees but more capital available.
 cards,draw_L,Life Event,Life happens! Life Events represent unexpected developments that affect your project - sometimes good sometimes bad.,Life Events add realism to project management. They can help or hurt your progress.
