@@ -205,6 +205,14 @@ describe('ApprovalService', () => {
       expect(update.fdnyApprovedDestinations).toEqual([]);
     });
 
+    it('grantProfCertApproval: grants DOB approval like passing the plan exam (fb:f1bc011b)', () => {
+      const update = service.grantProfCertApproval();
+      expect(update.dobApprovalStatus).toBe('approved');
+      expect(update.dobApprovedDestinations).toEqual(['REG-FDNY-FEE-REVIEW']);
+      // DOB-only — never touches FDNY state.
+      expect(update.fdnyApprovalStatus).toBeUndefined();
+    });
+
     it('on denied: clears stored destinations', () => {
       const update = service.applyOutcome({ approval: 'dob', kind: 'denied' });
       expect(update.dobApprovalStatus).toBe('denied');

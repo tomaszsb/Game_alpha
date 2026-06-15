@@ -10,7 +10,7 @@ import { describeCardAction } from './DiceService';
 import { Effect } from '../types/EffectTypes';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { shortName } from '../utils/boardCommon';
-import { DOB_FINAL_REVIEW_SPACE } from './ApprovalService';
+import { DOB_FINAL_REVIEW_SPACE, DOB_PROF_CERT_SPACE, DOB_AUDIT_SPACE } from './ApprovalService';
 
 /**
  * Interface for dice roll effects processing result
@@ -531,6 +531,18 @@ export class DiceRollProcessor {
 
       debugLog(`🎲 Single dice destination: ${singleDest} - auto-selecting`);
       this.stateService.setPlayerMoveIntent(playerId, singleDest);
+
+      // Prof Cert self-certification grants DOB approval on a "pass" roll — one
+      // that routes onward (to FDNY) rather than into the DOB audit. Without
+      // this, a Prof Cert player never gets the DOB-approval flag and loops at
+      // FDNY forever (fb:f1bc011b). Granting on the resolved destination (not a
+      // re-hardcoded roll threshold) keeps it in lockstep with the dice table.
+      // Routed through TEMP so Try-Again rolls it back like other approvals.
+      if (this.approvalService && currentPlayer.currentSpace === DOB_PROF_CERT_SPACE && singleDest !== DOB_AUDIT_SPACE) {
+        this.stateService.updateTempState(playerId, this.approvalService.grantProfCertApproval());
+        this.lastApprovalNarration = '🧾 Your professional certification is accepted — DOB approval granted.';
+        debugLog(`📋 Prof Cert pass at ${currentPlayer.currentSpace} (roll ${diceRoll}) → DOB approval granted`);
+      }
 
       // Show explanation if player is being sent back to a review/exam space
       const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, singleDest);

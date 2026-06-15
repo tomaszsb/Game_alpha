@@ -44,6 +44,12 @@ export const FDNY_EXAM_SPACE = 'REG-FDNY-PLAN-EXAM';
  */
 export const DOB_AUDIT_SPACE = 'REG-DOB-AUDIT';
 /**
+ * Professional Certification — the self-cert alternative to the DOB plan exam.
+ * A "pass" roll (routing onward to FDNY) grants DOB approval; a roll that routes
+ * into the DOB audit does not (the audit decides). fb:f1bc011b.
+ */
+export const DOB_PROF_CERT_SPACE = 'REG-DOB-PROF-CERT';
+/**
  * DOB clerk's final review (Phase 7.4). Two-stage:
  *   Stage 1 — logic gate on DOB + FDNY approval. Missing approvals bounce.
  *   Stage 2 — existing dice (other paperwork: insurance, structural, energy).
@@ -104,6 +110,14 @@ export interface IApprovalService {
    * Convert an outcome into a PlayerUpdateData partial. Caller applies via StateService.
    */
   applyOutcome(outcome: ApprovalOutcome): PlayerUpdateData;
+
+  /**
+   * Prof Cert self-certification grants DOB approval — same effect as passing
+   * the plan exam (next stop FDNY). The caller invokes this ONLY on a "pass"
+   * roll (one routing the player onward, not into the DOB audit); an audited
+   * filing isn't approved until the audit clears. fb:f1bc011b.
+   */
+  grantProfCertApproval(): PlayerUpdateData;
 
   /**
    * Build a PlayerUpdateData that revokes the specified approval(s) to 'none'
@@ -182,6 +196,12 @@ export class ApprovalService implements IApprovalService {
       update.fdnyApprovedDestinations = outcome.kind === 'approved' ? (outcome.destinations || []) : [];
     }
     return update;
+  }
+
+  grantProfCertApproval(): PlayerUpdateData {
+    // Same approval an examiner 'approved' DOB outcome produces — the player
+    // self-certified successfully, so the next stop is FDNY.
+    return this.applyOutcome({ approval: 'dob', kind: 'approved', destinations: DOB_APPROVED_DESTINATIONS });
   }
 
   revoke(target: RevokeTarget): PlayerUpdateData {

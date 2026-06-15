@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.80] - 2026-06-14
+
+**Hotfix: Prof Cert now grants DOB approval — fixes an inescapable FDNY loop.** Surfaced by the v3.0.79 logic-question auto-answers during live playtest.
+
+- The DOB Type Select space is a **path lock-point** (it remembers your first choice). A player who chose **Prof Cert** was locked into it — but Prof Cert never set `dobApprovalStatus`, so the FDNY chain's Q5 auto-answer ("Do you have DOB approval?") kept reading "no" and routing them back to the DOB path → **infinite loop**, with no way to switch to Plan Exam. (Pre-v3.0.79 this was hidden because the player answered Q5 "yes" themselves.)
+- **Fix:** Professional Certification now grants DOB approval on a **"pass" roll** — one that routes onward to FDNY. A roll into the DOB **audit** does NOT grant it (the audit decides), matching the real-world prof-cert-with-audit-risk model. Granted on the *resolved dice destination* (`!== REG-DOB-AUDIT`) rather than a re-hardcoded roll threshold, so it stays in lockstep with the dice table. New `ApprovalService.grantProfCertApproval()` + `DOB_PROF_CERT_SPACE`; wired in [DiceRollProcessor.handleDiceBasedMovement](src/services/DiceRollProcessor.ts) through TEMP (Try-Again-safe). +1 ApprovalService test; MovementService 64 + ApprovalService 50 green, typecheck + build clean.
+
 ## [3.0.79] - 2026-06-14
 
 **Teacher-layer Phase 3 polish (the maintainer's own first-contact reports) + the FDNY logic-question auto-answer.** Two clusters from playtesting the just-shipped Phase 3 front door. Not yet deployed.
