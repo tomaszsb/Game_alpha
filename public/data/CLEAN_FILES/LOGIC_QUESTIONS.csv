@@ -1,11 +1,11 @@
 space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from,yes_reason,no_reason
 REG-FDNY-FEE-REVIEW,First,Q1,Did you pass FDNY approval before?,Q2,Q3,fdny_approved,,
-REG-FDNY-FEE-REVIEW,First,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q3,scope_changed_since_last_visit,"Your scope changed since your last visit, so you need a fresh FDNY plan exam.",
+REG-FDNY-FEE-REVIEW,First,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q5,scope_changed_since_last_visit,"Your scope changed since your last visit, so you need a fresh FDNY plan exam.","Nothing changed since your last visit, so you don't need a new FDNY review."
 REG-FDNY-FEE-REVIEW,First,Q3,Did Department of Buildings send you here?,REG-FDNY-PLAN-EXAM,Q4,dob_referred,"The Department of Buildings sent you here, so you head to the FDNY plan exam.",
 REG-FDNY-FEE-REVIEW,First,Q4,Do you have sprinklers / standpipe / fire alarm / fire suppression?,REG-FDNY-PLAN-EXAM,Q5,has_fire_protection,"Your project includes fire-protection systems, so the FDNY plan exam is required.",
-REG-FDNY-FEE-REVIEW,First,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT,dob_approved,"You already have DOB approval, so you're clear to move ahead.","You don't have DOB approval yet, so you head back to start the DOB path."
+REG-FDNY-FEE-REVIEW,First,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT,dob_approved,"You have DOB approval, so you're clear to move ahead.","You don't have DOB approval yet, so you head back to start the DOB path."
 REG-FDNY-FEE-REVIEW,Subsequent,Q1,Did you pass FDNY approval before?,Q2,Q3,fdny_approved,,
-REG-FDNY-FEE-REVIEW,Subsequent,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q3,scope_changed_since_last_visit,"Your scope changed since your last visit, so you need a fresh FDNY plan exam.",
+REG-FDNY-FEE-REVIEW,Subsequent,Q2,Did the scope change since the last visit?,REG-FDNY-PLAN-EXAM,Q5,scope_changed_since_last_visit,"Your scope changed since your last visit, so you need a fresh FDNY plan exam.","Nothing changed since your last visit, so you don't need a new FDNY review."
 REG-FDNY-FEE-REVIEW,Subsequent,Q3,Did Department of Buildings send you here?,REG-FDNY-PLAN-EXAM,Q4,dob_referred,"The Department of Buildings sent you here, so you head to the FDNY plan exam.",
 REG-FDNY-FEE-REVIEW,Subsequent,Q4,Do you have sprinklers / standpipe / fire alarm / fire suppression?,REG-FDNY-PLAN-EXAM,Q5,has_fire_protection,"Your project includes fire-protection systems, so the FDNY plan exam is required.",
-REG-FDNY-FEE-REVIEW,Subsequent,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT,dob_approved,"You already have DOB approval, so you're clear to move ahead.","You don't have DOB approval yet, so you head back to start the DOB path."
+REG-FDNY-FEE-REVIEW,Subsequent,Q5,Do you have DOB approval?,"PM-DECISION-CHECK,CON-INITIATION",REG-DOB-TYPE-SELECT,dob_approved,"You have DOB approval, so you're clear to move ahead.","You don't have DOB approval yet, so you head back to start the DOB path."

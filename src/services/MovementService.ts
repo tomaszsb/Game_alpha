@@ -1042,7 +1042,8 @@ export class MovementService implements IMovementService {
     playerId: string,
     question: LogicQuestion,
     stepIndex: number,
-    stepTotal: number
+    stepTotal: number,
+    reasonsSoFar: string[] = []
   ): Promise<void> {
     const autoAnswer = this.tryAutoAnswer(playerId, question);
     let answerId: string;
@@ -1081,20 +1082,24 @@ export class MovementService implements IMovementService {
     }
 
     const target = answerId === 'yes' ? question.yes_target : question.no_target;
-    // The branch reason is shown ONLY if this branch routes to a destination
-    // (a terminal target), so the player understands where they're headed —
-    // especially when every question auto-answered and no modal appeared.
-    const reason = answerId === 'yes' ? question.yes_reason : question.no_reason;
-    await this.resolveLogicTarget(playerId, question, target, stepIndex + 1, stepTotal, reason);
+    // Accumulate each branch's reason down the chain. The routing modal shows
+    // them joined at the terminal, so a player whose destination is decided by
+    // a LATER question still sees the EARLIER "why" too — e.g. "Nothing changed
+    // since your last visit, so no new FDNY review. But you don't have DOB
+    // approval yet, so you head to the DOB path." (fb:f1bc011b)
+    const branchReason = answerId === 'yes' ? question.yes_reason : question.no_reason;
+    const reasons = branchReason ? [...reasonsSoFar, branchReason] : reasonsSoFar;
+    await this.resolveLogicTarget(playerId, question, target, stepIndex + 1, stepTotal, reasons);
   }
 
   /**
    * Tell the player WHY the logic chain is sending them to `toSpace`, via the
-   * routing-explanation modal (fb:f1bc011b). No-op without an authored reason.
+   * routing-explanation modal (fb:f1bc011b). The accumulated branch reasons are
+   * joined into one message. No-op when no branch on the path had a reason.
    * @private
    */
-  private emitRoutingExplanation(playerId: string, toSpace: string, reason?: string): void {
-    if (!reason) return;
+  private emitRoutingExplanation(playerId: string, toSpace: string, reasons: string[]): void {
+    if (!reasons.length) return;
     const player = this.stateService.getPlayer(playerId);
     if (!player) return;
     this.stateService.emitAutoAction({
@@ -1105,7 +1110,7 @@ export class MovementService implements IMovementService {
       spaceName: player.currentSpace,
       fromSpace: player.currentSpace,
       toSpace,
-      message: reason,
+      message: reasons.join(' '),
       success: true,
     });
   }
@@ -1213,7 +1218,7 @@ export class MovementService implements IMovementService {
     target: string,
     nextStepIndex: number,
     stepTotal: number,
-    reason?: string
+    reasons: string[] = []
   ): Promise<void> {
     const trimmed = (target || '').trim();
     if (!trimmed) {
@@ -1236,7 +1241,7 @@ export class MovementService implements IMovementService {
         );
         return;
       }
-      await this.walkLogicChain(playerId, nextQuestion, nextStepIndex, stepTotal);
+      await this.walkLogicChain(playerId, nextQuestion, nextStepIndex, stepTotal, reasons);
       return;
     }
 
@@ -1250,7 +1255,7 @@ export class MovementService implements IMovementService {
       if (destinations.length === 0) return;
       if (destinations.length === 1) {
         this.stateService.setPlayerMoveIntent(playerId, destinations[0]);
-        this.emitRoutingExplanation(playerId, destinations[0], reason);
+        this.emitRoutingExplanation(playerId, destinations[0], reasons);
         return;
       }
 
@@ -1262,13 +1267,13 @@ export class MovementService implements IMovementService {
         choiceOptions
       );
       this.stateService.setPlayerMoveIntent(playerId, selected);
-      this.emitRoutingExplanation(playerId, selected, reason);
+      this.emitRoutingExplanation(playerId, selected, reasons);
       return;
     }
 
     // Case 3: single space name
     this.stateService.setPlayerMoveIntent(playerId, trimmed);
-    this.emitRoutingExplanation(playerId, trimmed, reason);
+    this.emitRoutingExplanation(playerId, trimmed, reasons);
   }
 
   /**

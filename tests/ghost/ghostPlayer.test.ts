@@ -103,7 +103,15 @@ describe('Ghost Player', () => {
     // (loops/state drift → many TURN_CAPs) while tolerating the now-correct,
     // harder economy (this + the v3.0.35 construction-cost / bank-loan fixes).
     expect(batch.wins, summary).toBeGreaterThanOrEqual(36);
-  }, 900000);
+    // Timeout raised 900000 → 1800000 (2026-06-14): 50 games at the current
+    // game length need ~15-20 min (the sibling negotiate-coverage run takes
+    // ~17 min), so the old 15-min budget timed out before reaching the
+    // assertions — same fix v3.0.70 made for the smart-bot test. The per-game
+    // 30s cap (the real pathological-loop guard) is unchanged. v3.0.79's FDNY
+    // auto-answers route the blind bot correctly through the regulatory path
+    // (a few more turns/game) instead of randomly skipping ahead, which is
+    // what tipped the borderline budget over.
+  }, 1800000);
 
   // NEGOTIATE-COVERAGE VARIANT — a bot that aggressively hammers Try Again on
   // negotiable spaces (blind p=0.2, regardless of whether the turn went well).

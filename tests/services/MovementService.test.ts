@@ -1637,6 +1637,37 @@ describe('MovementService', () => {
       );
     });
 
+    it('joins reasons from multiple branches along the path (earlier "why" + terminal)', async () => {
+      // Q1 (approved → yes, reason A) recurses to Q2 (approved → yes, reason B,
+      // terminal). The modal shows BOTH, so the player sees the earlier reason
+      // even though a later question decided the destination. (fb:f1bc011b)
+      const q1 = {
+        space_name: 'REG-FDNY-FEE-REVIEW', visit_type: 'First' as const, question_id: 'Q1',
+        question_text: 'q1?', yes_target: 'Q2', no_target: 'DEST-NO',
+        auto_answer_from: 'fdny_approved', yes_reason: 'Nothing changed.', no_reason: '',
+      };
+      const q2 = {
+        space_name: 'REG-FDNY-FEE-REVIEW', visit_type: 'First' as const, question_id: 'Q2',
+        question_text: 'q2?', yes_target: 'DEST-YES', no_target: 'DEST-NO2',
+        auto_answer_from: 'dob_approved', yes_reason: 'You have DOB approval.', no_reason: '',
+      };
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q1);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q1, q2]);
+      mockDataService.getLogicQuestion.mockImplementation((_s: string, _v: string, id: string) => (id === 'Q2' ? q2 : undefined));
+      mockStateService.getPlayer.mockReturnValue({
+        ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW', fdnyApprovalStatus: 'approved', dobApprovalStatus: 'approved',
+      });
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+      expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'routing_explanation',
+          toSpace: 'DEST-YES',
+          message: 'Nothing changed. You have DOB approval.',
+        })
+      );
+    });
+
     it('does NOT emit a routing_explanation when the branch has no authored reason', async () => {
       await runAuto(autoQ('dob_approved', 'DEST-CLEARED', 'DEST-BACK'), {
         ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW', dobApprovalStatus: 'approved',
