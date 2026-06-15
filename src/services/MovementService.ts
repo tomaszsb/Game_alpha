@@ -6,6 +6,14 @@ import { shortName } from '../utils/boardCommon';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { GameState, Player, PlayerUpdateData } from '../types/StateTypes';
 import { Movement, VisitType, LogicQuestion } from '../types/DataTypes';
+import { DOB_EXAM_SPACE, DOB_AUDIT_SPACE } from './ApprovalService';
+
+// Q4 ("Do you have sprinklers / standpipe / fire alarm / fire suppression?")
+// auto-answers YES when the player holds any W card whose work type is a
+// fire-protection system. Keyword match (not an exact set) so both the four
+// named types AND specific cards like "sprinkler system in a warehouse"
+// count — the honest reading of "do you have sprinklers?" (fb:f1bc011b).
+const FIRE_PROTECTION_KEYWORDS = ['sprinkler', 'standpipe', 'fire alarm', 'fire suppression'];
 
 /**
  * Result of creating a movement choice
@@ -337,12 +345,15 @@ export class MovementService implements IMovementService {
       };
     }
 
-    // Add new entry for destination space
+    // Add new entry for destination space. scopeAtEntry snapshots the project
+    // scope on arrival so a later visit can answer "did the scope change since
+    // the last visit?" (Q2 auto-answer, fb:f1bc011b).
     updatedLog.push({
       spaceName: destinationSpace,
       entryTurn: currentTurn,
       entryTime: currentTime,
-      daysSpent: 0
+      daysSpent: 0,
+      scopeAtEntry: this.gameRulesService.calculateProjectScope(player.id)
     });
 
     // Add spaceVisitLog to playerUpdate
@@ -1070,7 +1081,33 @@ export class MovementService implements IMovementService {
     }
 
     const target = answerId === 'yes' ? question.yes_target : question.no_target;
-    await this.resolveLogicTarget(playerId, question, target, stepIndex + 1, stepTotal);
+    // The branch reason is shown ONLY if this branch routes to a destination
+    // (a terminal target), so the player understands where they're headed —
+    // especially when every question auto-answered and no modal appeared.
+    const reason = answerId === 'yes' ? question.yes_reason : question.no_reason;
+    await this.resolveLogicTarget(playerId, question, target, stepIndex + 1, stepTotal, reason);
+  }
+
+  /**
+   * Tell the player WHY the logic chain is sending them to `toSpace`, via the
+   * routing-explanation modal (fb:f1bc011b). No-op without an authored reason.
+   * @private
+   */
+  private emitRoutingExplanation(playerId: string, toSpace: string, reason?: string): void {
+    if (!reason) return;
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return;
+    this.stateService.emitAutoAction({
+      type: 'routing_explanation',
+      playerId,
+      playerName: player.name,
+      playerColor: player.color,
+      spaceName: player.currentSpace,
+      fromSpace: player.currentSpace,
+      toSpace,
+      message: reason,
+      success: true,
+    });
   }
 
   /**
@@ -1082,6 +1119,11 @@ export class MovementService implements IMovementService {
    * warning and fall through to the modal):
    *   'fdny_approved' — player.fdnyApprovalStatus === 'approved'
    *   'dob_approved'  — player.dobApprovalStatus === 'approved'
+   *   'dob_referred'  — player arrived directly from the DOB audit or DOB
+   *                     plan-exam space (those route to FDNY) → 'yes' (Q3)
+   *   'has_fire_protection' — player holds a fire-systems W card → 'yes' (Q4)
+   *   'scope_changed_since_last_visit' — project scope differs from the prior
+   *                     visit to this space → 'yes' (Q2)
    * @private
    */
   private tryAutoAnswer(playerId: string, question: LogicQuestion): 'yes' | 'no' | null {
@@ -1096,6 +1138,24 @@ export class MovementService implements IMovementService {
         return player.fdnyApprovalStatus === 'approved' ? 'yes' : 'no';
       case 'dob_approved':
         return player.dobApprovalStatus === 'approved' ? 'yes' : 'no';
+      case 'dob_referred': {
+        // "Did DOB send you here?" — yes only when the immediately-prior space
+        // was the DOB audit or DOB plan exam (the spaces that route to FDNY).
+        const prior = this.priorSpace(player);
+        return prior === DOB_EXAM_SPACE || prior === DOB_AUDIT_SPACE ? 'yes' : 'no';
+      }
+      case 'has_fire_protection':
+        return this.playerHoldsFireProtection(player) ? 'yes' : 'no';
+      case 'scope_changed_since_last_visit': {
+        // Q2 — compare the project scope recorded at the previous visit to this
+        // same space against the current scope. No prior visit (or a pre-feature
+        // record with no snapshot) → 'no' (nothing to compare).
+        const sameSpace = (player.spaceVisitLog ?? []).filter(r => r.spaceName === player.currentSpace);
+        if (sameSpace.length < 2) return 'no';
+        const priorScope = sameSpace[sameSpace.length - 2].scopeAtEntry;
+        if (typeof priorScope !== 'number') return 'no';
+        return this.gameRulesService.calculateProjectScope(playerId) !== priorScope ? 'yes' : 'no';
+      }
       default:
         debugWarn(
           `LOGIC_QUESTIONS row ${question.space_name}/${question.visit_type}/${question.question_id} ` +
@@ -1104,6 +1164,37 @@ export class MovementService implements IMovementService {
         );
         return null;
     }
+  }
+
+  /**
+   * The space the player arrived from: the most recent visit-log entry that
+   * isn't the current space (robust to whether the current space is already
+   * logged when the chain runs). Null if there's no prior space.
+   * @private
+   */
+  private priorSpace(player: Player): string | null {
+    const log = player.spaceVisitLog ?? [];
+    for (let i = log.length - 1; i >= 0; i--) {
+      if (log[i].spaceName !== player.currentSpace) return log[i].spaceName;
+    }
+    return null;
+  }
+
+  /**
+   * True when the player holds any W card whose work type is a fire-protection
+   * system (sprinklers / standpipe / fire alarm / fire suppression) — the
+   * answer to Q4. Mirrors CardService's work-type checks (hand W cards), but
+   * keyword-matches so specific cards like "sprinkler system in a warehouse"
+   * also count.
+   * @private
+   */
+  private playerHoldsFireProtection(player: Player): boolean {
+    return (player.hand ?? []).some(cardId => {
+      const card = this.dataService.getCardById(cardId);
+      if (card?.card_type !== 'W' || !card.work_type_restriction) return false;
+      const wt = card.work_type_restriction.toLowerCase();
+      return FIRE_PROTECTION_KEYWORDS.some(kw => wt.includes(kw));
+    });
   }
 
   /**
@@ -1121,7 +1212,8 @@ export class MovementService implements IMovementService {
     currentQuestion: LogicQuestion,
     target: string,
     nextStepIndex: number,
-    stepTotal: number
+    stepTotal: number,
+    reason?: string
   ): Promise<void> {
     const trimmed = (target || '').trim();
     if (!trimmed) {
@@ -1131,7 +1223,7 @@ export class MovementService implements IMovementService {
       return;
     }
 
-    // Case 1: Q-id → recurse
+    // Case 1: Q-id → recurse (no terminal yet, so no explanation here)
     if (/^Q\d+$/i.test(trimmed)) {
       const nextQuestion = this.dataService.getLogicQuestion(
         currentQuestion.space_name,
@@ -1158,6 +1250,7 @@ export class MovementService implements IMovementService {
       if (destinations.length === 0) return;
       if (destinations.length === 1) {
         this.stateService.setPlayerMoveIntent(playerId, destinations[0]);
+        this.emitRoutingExplanation(playerId, destinations[0], reason);
         return;
       }
 
@@ -1169,11 +1262,13 @@ export class MovementService implements IMovementService {
         choiceOptions
       );
       this.stateService.setPlayerMoveIntent(playerId, selected);
+      this.emitRoutingExplanation(playerId, selected, reason);
       return;
     }
 
     // Case 3: single space name
     this.stateService.setPlayerMoveIntent(playerId, trimmed);
+    this.emitRoutingExplanation(playerId, trimmed, reason);
   }
 
   /**

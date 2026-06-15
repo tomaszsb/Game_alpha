@@ -107,13 +107,23 @@ export interface LogicQuestion {
   yes_target: string;
   no_target: string;
   // v3.0.20 (fb:58a2112b) — when set, the engine consults player state
-  // instead of asking the user. Supported keys:
-  //   'fdny_approved' → player.fdnyApprovalStatus === 'approved' → 'yes'
-  //   'dob_approved'  → player.dobApprovalStatus === 'approved'  → 'yes'
+  // instead of asking the user. Supported keys (see MovementService.tryAutoAnswer):
+  //   'fdny_approved'       → player.fdnyApprovalStatus === 'approved' → 'yes'
+  //   'dob_approved'        → player.dobApprovalStatus === 'approved'  → 'yes'
+  //   'dob_referred'        → arrived from DOB audit / plan-exam space  → 'yes' (Q3)
+  //   'has_fire_protection' → holds a fire-systems W card              → 'yes' (Q4)
   // Empty / undefined → ask the user via choice modal (legacy behavior).
   // The auto-answered chain still walks its tree and produces a moveIntent
   // identical to a player-answered chain — it just skips the modal.
   auto_answer_from?: string;
+  // fb:f1bc011b — authored explanation shown when THIS question's branch is
+  // the one that routes the player to a destination (a terminal target, not
+  // another question). Lets the player understand why they're moving where
+  // they are, especially when every question auto-answered and no modal showed.
+  // Surfaced via the routing-explanation modal; blank for branches that just
+  // recurse to the next question.
+  yes_reason?: string;
+  no_reason?: string;
 }
 
 export interface DiceRollInfo {
@@ -280,6 +290,10 @@ export interface SpaceVisitRecord {
   entryTime: number;    // Time spent when player arrived
   exitTurn?: number;    // Turn when player left (undefined if current space)
   exitTime?: number;    // Time spent when player left
+  // fb:f1bc011b — project scope at the moment of arrival, so a later visit to
+  // the same space can answer "did the scope change since the last visit?"
+  // (Q2). Undefined for records written before this field existed.
+  scopeAtEntry?: number;
 }
 
 export interface Player {

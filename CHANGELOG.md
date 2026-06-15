@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.79] - 2026-06-14
+
+**Teacher-layer Phase 3 polish (the maintainer's own first-contact reports) + the FDNY logic-question auto-answer.** Two clusters from playtesting the just-shipped Phase 3 front door. Not yet deployed.
+
+### Phase 3 teacher-layer polish (fb cluster, 2026-06-14)
+
+- **Teachers create their own classrooms** (`fb:517bf765`) — reversing the admin-only-creation half of the Phase 3 model after the maintainer used it. New `POST /api/instances` (teacher-session-authed, room auto-owned, id generated from the name) + a "➕ New classroom" form in [TeacherClassroomPanel](src/components/classroom/TeacherClassroomPanel.tsx). Admin can still create rooms on a teacher's behalf. Account creation stays admin-only. Spec amended ([TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md)).
+- **Delete teachers + classrooms** (`fb:511b1812`) — `deleteInstance`/`removeAccountFromAllInstances` ([instanceStore.js](server/instanceStore.js)) + `deleteAccount` ([accountStore.js](server/accountStore.js)); `DELETE /api/instances/:id` (owner-or-admin) + `DELETE /api/admin/accounts/:id` (admin, releases the teacher's rooms to admin-only). `classroom-1` is never deletable. Delete buttons in the teacher panel (own rooms) + [ClassroomAdminPanel](src/components/classroom/ClassroomAdminPanel.tsx) (any).
+- **Classroom indicator on game screens** (`fb:75bec2bc`) — new [ClassroomBadge](src/components/classroom/ClassroomBadge.tsx) (🏫 + classroom name, hidden on the default board) on the setup top bar, the TV in-game header, and the phone player view.
+- **Locked-space reason surfaced inline** (`fb:a5d4ae45`) in Classroom Setup — was hover-tooltip-only (invisible on touch); now reads "🔒 Always on — a game mechanic depends on this space."
+- **Classroom button layout fix** (`fb:845c64d6`) — the teacher "My Classrooms" buttons no longer clip "🎮 Start a game" off the edge; they wrap on a narrow screen.
+
+### FDNY logic-question auto-answer + routing explanation (`fb:f1bc011b`)
+
+- The FDNY logic chain now answers everything it can from game state, so the player isn't quizzed on what the engine already knows. Already auto-answered Q1 (passed FDNY) + Q5 (DOB approval); **added Q2** (scope changed since last visit — new `scopeAtEntry` snapshot on each visit record), **Q3** (DOB referred — prior space was the DOB audit/plan-exam), **Q4** (fire systems — reads the player's Work Package cards: sprinkler/standpipe/fire alarm/fire suppression, incl. descriptive names). New `tryAutoAnswer` keys in [MovementService.ts](src/services/MovementService.ts).
+- **New "🧭 Where you're headed next" modal** ([RoutingExplanationModal.tsx](src/components/modals/RoutingExplanationModal.tsx)) explains the routing after the (now usually invisible) chain resolves — authored `yes_reason`/`no_reason` columns in [LOGIC_QUESTIONS.csv](public/data/CLEAN_FILES/LOGIC_QUESTIONS.csv), surfaced via a queued AutoActionEvent (phone modal + TV overlay). Reason copy is first-draft, open to maintainer wording.
+
+### Tests + verification
+
++~40 tests (instanceStore/accountStore/serverEndpointAuth/dataInstance for Phase 3; +8 MovementService for the auto-answers + routing emit; processGameData LOGIC_QUESTIONS schema updated to 9 columns). Typecheck + build clean. ⚠️ **Full ghost regression gate NOT yet run this session** — the logic-chain changes are ghost-exercised, so run it (via `/koniec`) before relying on the deploy.
+
 ## [3.0.78] - 2026-06-14
 
 **Teacher instance layer — Phase 3: the multi-teacher front door.** Real teacher accounts, each owning their own classroom(s), able to run games on their own customized board — while ordinary players notice nothing. Admin-mediated per the settled spec ([TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md) build-order item 3): only the admin creates accounts and classrooms; no self-signup, no email, no "forgot password". Built across this session as 3a→3c; **not a third-party auth dependency** — a thin layer over Node's stdlib scrypt, mirroring the existing token patterns.

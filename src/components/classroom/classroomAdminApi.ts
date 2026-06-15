@@ -81,6 +81,46 @@ export async function listMyClassrooms(d: AdminApiDeps = {}): Promise<ClassroomM
   return (data as { instances: ClassroomMeta[] }).instances || [];
 }
 
+/** Teacher self-service: create a classroom owned by the logged-in teacher. */
+export async function createMyClassroom(
+  args: { displayName: string },
+  d: AdminApiDeps = {}
+): Promise<ClassroomMeta> {
+  const { fetchFn, getSession, getURL } = deps(d);
+  const session = getSession();
+  if (!session) throw new Error('Not signed in.');
+  const response = await fetchFn(`${getURL()}/api/instances`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-teacher-session': session },
+    body: JSON.stringify(args),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || (data as { success?: boolean }).success === false) {
+    throw new Error((data as { error?: string }).error || `Request failed (HTTP ${response.status})`);
+  }
+  return (data as { instance: ClassroomMeta }).instance;
+}
+
+/**
+ * Delete a classroom. Sends whichever credential is present — a teacher's
+ * session (the server checks they own it) or the admin password (any room).
+ * The default classroom is refused server-side.
+ */
+export async function deleteClassroom(instanceId: string, d: AdminApiDeps = {}): Promise<void> {
+  const { fetchFn, getPassword, getSession, getURL } = deps(d);
+  const password = getPassword();
+  const session = getSession();
+  if (!password && !session) throw new Error('Not signed in.');
+  const headers: Record<string, string> = {};
+  if (password) headers['x-admin-password'] = password;
+  if (session) headers['x-teacher-session'] = session;
+  const response = await fetchFn(`${getURL()}/api/instances/${instanceId}`, { method: 'DELETE', headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || (data as { success?: boolean }).success === false) {
+    throw new Error((data as { error?: string }).error || `Request failed (HTTP ${response.status})`);
+  }
+}
+
 // ===== admin (master-password-authed) =====
 
 /** Every classroom (admin tool). */
@@ -129,4 +169,13 @@ export async function resetTeacherPassword(
   d: AdminApiDeps = {}
 ): Promise<void> {
   await adminRequest(`/api/admin/accounts/${accountId}/reset-password`, 'POST', { newPassword }, d);
+}
+
+/**
+ * Delete a teacher account (admin). Their owned classrooms survive but revert
+ * to admin-only. Returns the ids of the classrooms that were released.
+ */
+export async function deleteTeacherAccount(accountId: string, d: AdminApiDeps = {}): Promise<string[]> {
+  const data = await adminRequest<{ releasedClassrooms?: string[] }>(`/api/admin/accounts/${accountId}`, 'DELETE', undefined, d);
+  return data.releasedClassrooms || [];
 }

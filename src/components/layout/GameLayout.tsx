@@ -7,10 +7,13 @@ import { CardDetailsModal } from '../modals/CardDetailsModal';
 import { ChoiceModal } from '../modals/ChoiceModal';
 import { DiceResultModal } from '../modals/DiceResultModal';
 import { LifeEventModal, type LifeEventModalData } from '../modals/LifeEventModal';
+import { RoutingExplanationModal } from '../modals/RoutingExplanationModal';
+import { friendlySpaceName } from '../../utils/logFormatting';
 import { EndGameModal } from '../modals/EndGameModal';
 import { NegotiationModal } from '../modals/NegotiationModal';
 import { RulesModal } from '../modals/RulesModal';
 import { PlayerSetup } from '../setup/PlayerSetup';
+import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { PlayerPanelWrapper } from '../player/PlayerPanelWrapper';
 import { ProjectProgress } from '../game/ProjectProgress';
 import { SpaceExplorerPanel } from '../game/SpaceExplorerPanel';
@@ -156,6 +159,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // fb:dfdeaf1c.
   const [pendingLifeEvent, setPendingLifeEvent] = useState<LifeEventModalData | null>(null);
   const [isLifeEventModalOpen, setIsLifeEventModalOpen] = useState<boolean>(false);
+  // Routing explanation (fb:f1bc011b) — queued like the life event so it never
+  // stomps the dice modal; shown after the FDNY logic chain routes the player.
+  const [pendingRouting, setPendingRouting] = useState<{ message: string; toSpaceLabel: string } | null>(null);
+  const [isRoutingModalOpen, setIsRoutingModalOpen] = useState<boolean>(false);
   // Result-modal queue (fb:ac29b623) — the shared DiceResultModal used to be
   // a synchronous open/close toggle, so clicking the next action fast enough
   // re-opened it DURING the previous exit animation and the in-flight close
@@ -380,6 +387,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         );
         return;
       }
+      if (event.type === 'routing_explanation' && event.toSpace && event.message) {
+        // Queue the "why am I here" modal (fb:f1bc011b) so it waits behind any
+        // dice result, same as the life event below.
+        setPendingRouting({ message: event.message, toSpaceLabel: friendlySpaceName(dataService, event.toSpace) });
+        return;
+      }
       if (event.type === 'life_event' && event.cardId) {
         // Queue the life event for its OWN dedicated modal instead of stomping
         // the dice modal state. fb:dfdeaf1c — life events used to look like a
@@ -424,6 +437,23 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     }
   }, [pendingLifeEvent, isLifeEventModalOpen, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
 
+  // Routing-explanation queue flush (fb:f1bc011b). Same one-at-a-time rule as
+  // the life event, and it also waits behind the life event so the player
+  // reads the event first, then learns where they're being routed.
+  useEffect(() => {
+    if (
+      pendingRouting &&
+      !isRoutingModalOpen &&
+      !isLifeEventModalOpen &&
+      !pendingLifeEvent &&
+      !isDiceResultModalOpen &&
+      !diceResultQueue.isExiting &&
+      diceResultQueue.pendingCount === 0
+    ) {
+      setIsRoutingModalOpen(true);
+    }
+  }, [pendingRouting, isRoutingModalOpen, isLifeEventModalOpen, pendingLifeEvent, isDiceResultModalOpen, diceResultQueue.isExiting, diceResultQueue.pendingCount]);
+
   // Persist visiblePanels to localStorage whenever it changes
   useEffect(() => {
     try {
@@ -436,7 +466,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Back-button modal interception
   const historyPushedRef = useRef(false);
   const anyModalOpen = isRulesModalOpen || isNegotiationModalOpen || isCardDetailsModalOpen ||
-    isDiceResultModalOpen || isLifeEventModalOpen || isSpaceExplorerVisible || isGameLogVisible || isDictionaryOpen;
+    isDiceResultModalOpen || isLifeEventModalOpen || isRoutingModalOpen || isSpaceExplorerVisible || isGameLogVisible || isDictionaryOpen;
 
   useEffect(() => {
     if (anyModalOpen && !historyPushedRef.current) {
@@ -451,7 +481,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
       // Close the topmost modal in priority order
-      if (isDiceResultModalOpen) {
+      if (isRoutingModalOpen) {
+        setIsRoutingModalOpen(false);
+        setPendingRouting(null);
+      } else if (isDiceResultModalOpen) {
         diceResultQueue.close();
       } else if (isCardDetailsModalOpen) {
         setIsCardDetailsModalOpen(false);
@@ -979,6 +1012,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
             position: 'relative'
           }}
         >
+          {/* Which classroom this game belongs to (fb:75bec2bc) — a corner
+              chip so a student always knows they're on their teacher's board,
+              not the public one. Hidden on the default classroom. */}
+          <div style={{ position: 'absolute', top: 6, right: 8, zIndex: 101 }}>
+            <ClassroomBadge />
+          </div>
           {/* Reconnect banner — shown when WS drops so the player knows
               why the screen froze. Tap anywhere triggers PullToRefresh.
               fb:TODO-216 */}
@@ -1223,6 +1262,19 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           setPendingLifeEvent(null);
         }}
       />
+
+      {/* RoutingExplanationModal - "why am I here" after the FDNY logic chain
+          routes the player. Queued behind dice + life event. fb:f1bc011b. */}
+      {isRoutingModalOpen && pendingRouting && (
+        <RoutingExplanationModal
+          message={pendingRouting.message}
+          toSpaceLabel={pendingRouting.toSpaceLabel}
+          onClose={() => {
+            setIsRoutingModalOpen(false);
+            setPendingRouting(null);
+          }}
+        />
+      )}
 
       {/* EndGameModal - always rendered, visibility controlled by state */}
       <EndGameModal />

@@ -24,6 +24,8 @@ import {
   checkInstanceWriteAccess,
   instanceOwnedBy,
   setInstanceOwner,
+  deleteInstance,
+  removeAccountFromAllInstances,
   listInstanceIds,
   setSlotPositions,
   setSlotUsed,
@@ -43,6 +45,7 @@ import {
 import { computeMigrationPlan, applyMigrationPlan, formatMigrationPlan } from './migrateInstance.js';
 import {
   createAccount,
+  deleteAccount,
   resetPassword,
   verifyLogin,
   getAccount,
@@ -285,6 +288,23 @@ function rebakeInstance(id) {
 }
 function rebakeDefaultInstance() {
   return rebakeInstance(DEFAULT_INSTANCE_ID);
+}
+
+// Generate a unique, URL-safe classroom id from a teacher-supplied name.
+// Teachers name a room ("Room 4B"); the id is derived ("room-4b") and
+// de-duplicated with a numeric suffix, so a teacher never has to invent an
+// id and createInstance's id rules are always satisfied.
+function generateInstanceId(displayName) {
+  let base = String(displayName || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!base) base = 'room';
+  const existing = new Set(listInstanceIds(instancesRoot));
+  if (!existing.has(base)) return base;
+  let n = 2;
+  while (existing.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
 }
 
 // Per-instance static middlewares, cached by id. The resolved dir path is
@@ -838,6 +858,68 @@ app.get('/api/instances/mine', (req, res) => {
   res.json({ success: true, instances });
 });
 
+// Teacher self-service: a logged-in teacher creates a classroom they own.
+// (Phase 3 polish, 2026-06-14 — the maintainer decided teachers shouldn't
+// need the admin to make rooms. The admin can still create rooms on a
+// teacher's behalf via /api/admin/instances.) The new room is owned by the
+// caller automatically and its id is generated from the name.
+app.post('/api/instances', (req, res) => {
+  const accountId = resolveTeacherAccountId(req);
+  if (!accountId) return res.status(401).json({ success: false, error: 'Not logged in' });
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  if (!getAccount(accountsRoot, accountId)) {
+    return res.status(401).json({ success: false, error: 'Session no longer valid' });
+  }
+  const displayName = String((req.body && req.body.displayName) || '').trim();
+  try {
+    const id = generateInstanceId(displayName);
+    const config = createInstance(instancesRoot, { id, displayName: displayName || undefined });
+    setInstanceOwner(config, accountId);
+    saveInstance(instancesRoot, config);
+    // Bake immediately so the new classroom is playable right away.
+    rebakeInstance(config.meta.id);
+    const { writeToken: _writeToken, ...meta } = config.meta;
+    logVisitor(req, 'INSTANCE_CREATED', { instanceId: config.meta.id, owner: accountId, via: 'teacher' });
+    res.json({ success: true, instance: { ...meta, configVersion: config.configVersion } });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Delete a classroom. A teacher may delete one they own; the admin may
+// delete any. The default classroom can never be deleted. Running games
+// already hold their own baked board, so deleting a classroom never
+// disturbs a game in progress.
+app.delete('/api/instances/:id', (req, res) => {
+  if (!instanceLayerActive) {
+    return res.status(503).json({ success: false, error: 'Instance layer is not active on this server' });
+  }
+  const id = req.params.id;
+  if (id === DEFAULT_INSTANCE_ID) {
+    return res.status(400).json({ success: false, error: 'The default classroom cannot be deleted' });
+  }
+  const config = loadInstance(instancesRoot, id);
+  if (!config) return res.status(404).json({ success: false, error: 'No such classroom' });
+  const access = checkInstanceWriteAccess(config, {
+    adminPassword: req.headers['x-admin-password'],
+    adminPasswordHash: CONFIG.ADMIN_PASSWORD_HASH,
+    accountId: resolveTeacherAccountId(req),
+  });
+  if (!access.ok) {
+    logVisitor(req, 'INSTANCE_DELETE_DENIED', { instanceId: id });
+    return res.status(access.status || 401).json({ success: false, error: access.error || 'Not authorized to delete this classroom' });
+  }
+  try {
+    deleteInstance(instancesRoot, id);
+    logVisitor(req, 'INSTANCE_DELETED', { instanceId: id, via: access.via });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // Open read (access model: watching is open) — board layout is visible on
 // the public board anyway. The write token is never included.
 app.get('/api/instances/:id', (req, res) => {
@@ -1158,6 +1240,23 @@ app.post('/api/admin/accounts/:id/reset-password', (req, res) => {
     revokeAccountSessions(accountsRoot, req.params.id);
     logVisitor(req, 'TEACHER_PASSWORD_RESET', { accountId: req.params.id });
     res.json({ success: true, account });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: delete a teacher account. Revokes their sessions and clears them
+// from any classroom they owned — the rooms survive, reverting to admin-only,
+// so nothing points at a ghost owner.
+app.delete('/api/admin/accounts/:id', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    deleteAccount(accountsRoot, req.params.id);
+    const releasedClassrooms = instanceLayerActive
+      ? removeAccountFromAllInstances(instancesRoot, req.params.id)
+      : [];
+    logVisitor(req, 'TEACHER_ACCOUNT_DELETED', { accountId: req.params.id, releasedClassrooms });
+    res.json({ success: true, releasedClassrooms });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }

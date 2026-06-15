@@ -180,6 +180,23 @@ export function resetPassword(accountsRoot, accountId, newPassword) {
 }
 
 /**
+ * Delete a teacher account and revoke all of its sessions (so a deleted
+ * teacher can't keep acting on a still-valid token). Throws if the account
+ * doesn't exist. Ownership of any classrooms the account held is the
+ * caller's concern — accountStore has no instance dependency, mirroring how
+ * instanceStore stays free of any session dependency.
+ * @param {string} accountsRoot
+ * @param {string} accountId
+ */
+export function deleteAccount(accountsRoot, accountId) {
+  const accounts = loadAccounts(accountsRoot);
+  if (!accounts[accountId]) throw new Error(`No such account: "${accountId}"`);
+  delete accounts[accountId];
+  atomicWriteJson(accountsPath(accountsRoot), accounts);
+  revokeAccountSessions(accountsRoot, accountId);
+}
+
+/**
  * Verify a login. Returns the public account on success, null on any failure
  * (unknown user, bad password). Constant-ish: we still run a verify against a
  * dummy hash when the user is unknown to blunt username enumeration timing.

@@ -38,3 +38,25 @@ export function instanceDataBasePath(search: string): string {
 export function getDataBasePath(): string {
   return instanceDataBasePath(typeof window !== 'undefined' ? window.location.search : '');
 }
+
+/**
+ * The non-default classroom id from a URL query string, or null when the
+ * game is on the public default board. Used to decide whether to show a
+ * "which classroom am I in" badge (fb:75bec2bc).
+ */
+export function instanceIdFromSearch(search: string): string | null {
+  try {
+    const id = new URLSearchParams(search || '').get('i');
+    if (id && id !== DEFAULT_INSTANCE_ID && /^[a-z0-9][a-z0-9-]*$/.test(id)) {
+      return id;
+    }
+  } catch {
+    // Malformed query string — treat as the default board.
+  }
+  return null;
+}
+
+/** The current non-default classroom id from the browser URL, or null. */
+export function getInstanceId(): string | null {
+  return instanceIdFromSearch(typeof window !== 'undefined' ? window.location.search : '');
+}

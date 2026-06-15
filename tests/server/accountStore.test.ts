@@ -10,6 +10,7 @@ import {
   hashPassword,
   verifyPassword,
   createAccount,
+  deleteAccount,
   resetPassword,
   verifyLogin,
   getAccount,
@@ -88,6 +89,16 @@ describe('accounts', () => {
     expect(verifyLogin(root, 'reset', 'oldpassword')).toBeNull();
     expect(verifyLogin(root, 'reset', 'newpassword')?.id).toBe(acct.id);
     expect(() => resetPassword(root, 'teacher-nope', 'newpassword')).toThrow(/No such account/);
+  });
+
+  it('deletes an account, blocks future logins, and revokes its sessions', () => {
+    const acct = createAccount(root, { username: 'gone', password: 'password123' });
+    const token = createSession(root, acct.id);
+    deleteAccount(root, acct.id);
+    expect(getAccount(root, acct.id)).toBeNull();
+    expect(verifyLogin(root, 'gone', 'password123')).toBeNull();
+    expect(verifySession(root, token)).toBeNull(); // session revoked too
+    expect(() => deleteAccount(root, acct.id)).toThrow(/No such account/);
   });
 });
 

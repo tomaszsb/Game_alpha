@@ -7,10 +7,11 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  listAllClassrooms, createClassroom, setClassroomOwner,
-  listTeacherAccounts, createTeacherAccount, resetTeacherPassword,
+  listAllClassrooms, createClassroom, setClassroomOwner, deleteClassroom,
+  listTeacherAccounts, createTeacherAccount, resetTeacherPassword, deleteTeacherAccount,
   type ClassroomMeta, type TeacherAccountInfo,
 } from './classroomAdminApi';
+import { DEFAULT_INSTANCE_ID } from '../board/saveBoardPosition';
 import { colors } from '../../styles/theme';
 
 interface ClassroomAdminPanelProps {
@@ -72,6 +73,16 @@ export function ClassroomAdminPanel({ onClose }: ClassroomAdminPanelProps): JSX.
     return a ? `${a.displayName} (${a.username})` : id;
   };
 
+  const handleDeleteAccount = (a: TeacherAccountInfo) => {
+    if (!window.confirm(`Delete teacher "${a.displayName}" (${a.username})? Any classrooms they own revert to admin-only — the rooms themselves are kept.`)) return;
+    void run(async () => { await deleteTeacherAccount(a.id); }, `Teacher "${a.username}" deleted.`);
+  };
+
+  const handleDeleteClassroom = (c: ClassroomMeta) => {
+    if (!window.confirm(`Delete classroom "${c.displayName || c.id}"? This removes its board setup. Games already in progress are not affected.`)) return;
+    void run(() => deleteClassroom(c.id), `Classroom "${c.displayName || c.id}" deleted.`);
+  };
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -106,18 +117,23 @@ export function ClassroomAdminPanel({ onClose }: ClassroomAdminPanelProps): JSX.
             {accounts.map((a) => (
               <div key={a.id} style={styles.listItem}>
                 <span>{a.displayName} <span style={styles.muted}>({a.username})</span></span>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    const np = window.prompt(`New password for ${a.username} (min 8 chars):`);
-                    if (np && np.length >= 8) void run(() => resetTeacherPassword(a.id, np), `Password reset for ${a.username}.`);
-                    else if (np !== null) setError('Password must be at least 8 characters.');
-                  }}
-                  style={styles.tinyBtn}
-                >
-                  Reset password
-                </button>
+                <span style={styles.btnRow}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      const np = window.prompt(`New password for ${a.username} (min 8 chars):`);
+                      if (np && np.length >= 8) void run(() => resetTeacherPassword(a.id, np), `Password reset for ${a.username}.`);
+                      else if (np !== null) setError('Password must be at least 8 characters.');
+                    }}
+                    style={styles.tinyBtn}
+                  >
+                    Reset password
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => handleDeleteAccount(a)} style={styles.tinyDangerBtn}>
+                    Delete
+                  </button>
+                </span>
               </div>
             ))}
           </section>
@@ -146,7 +162,14 @@ export function ClassroomAdminPanel({ onClose }: ClassroomAdminPanelProps): JSX.
             {classrooms.length === 0 && <div style={styles.muted}>None yet.</div>}
             {classrooms.map((c) => (
               <div key={c.id} style={styles.listItemCol}>
-                <div><strong>{c.displayName || c.id}</strong> <span style={styles.muted}>({c.id})</span></div>
+                <div style={styles.roomTitleRow}>
+                  <span><strong>{c.displayName || c.id}</strong> <span style={styles.muted}>({c.id})</span></span>
+                  {c.id !== DEFAULT_INSTANCE_ID && (
+                    <button type="button" disabled={busy} onClick={() => handleDeleteClassroom(c)} style={styles.tinyDangerBtn}>
+                      Delete
+                    </button>
+                  )}
+                </div>
                 <div style={styles.muted}>owner: {accountName(c.owner)}</div>
                 <select
                   style={{ ...styles.input, marginTop: '0.25rem' }}
@@ -187,6 +210,9 @@ const styles: Record<string, React.CSSProperties> = {
   input: { padding: '0.5rem 0.6rem', border: `1px solid ${colors.secondary.light}`, borderRadius: '6px', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' },
   primaryBtn: { padding: '0.55rem 0.9rem', backgroundColor: colors.primary.main, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 },
   tinyBtn: { padding: '0.3rem 0.6rem', backgroundColor: 'transparent', color: colors.secondary.main, border: `1px solid ${colors.secondary.light}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', flexShrink: 0 },
+  tinyDangerBtn: { padding: '0.3rem 0.6rem', backgroundColor: 'transparent', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', flexShrink: 0 },
+  btnRow: { display: 'flex', gap: '0.4rem', flexShrink: 0 },
+  roomTitleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' },
   listItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', padding: '0.4rem 0', borderBottom: `1px solid ${colors.secondary.light}`, fontSize: '0.85rem' },
   listItemCol: { display: 'flex', flexDirection: 'column', padding: '0.5rem 0', borderBottom: `1px solid ${colors.secondary.light}`, fontSize: '0.85rem' },
   muted: { color: colors.secondary.main, fontSize: '0.8rem' },

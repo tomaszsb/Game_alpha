@@ -12,6 +12,7 @@ import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
 import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
+import { ClassroomBadge } from '../classroom/ClassroomBadge';
 
 interface TVDisplayProps {
   /** Callback when setup should start (optional - for showing setup on TV) */
@@ -66,7 +67,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   useEffect(() => {
     const unsubscribe = stateService.subscribeToAutoActions((event) => {
       // Show overlay for significant events
-      if (event.type === 'dice_conditional_card' || event.type === 'life_event' || event.type === 'movement') {
+      if (event.type === 'dice_conditional_card' || event.type === 'life_event' || event.type === 'movement' || event.type === 'routing_explanation') {
         setLastAction(event.message);
         setShowActionOverlay(true);
 
@@ -128,6 +129,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
           {gameId && (
             <span style={styles.gameCode}>Game: {gameId}</span>
           )}
+          <ClassroomBadge style={{ fontSize: '1rem', padding: '0.35rem 0.9rem' }} />
           <button
             onClick={() => setIsRulesOpen(true)}
             style={{

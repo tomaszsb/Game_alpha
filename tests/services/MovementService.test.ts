@@ -1552,5 +1552,98 @@ describe('MovementService', () => {
       // Falls through to modal — protects against typos in the CSV
       expect(mockChoiceService.createChoice).toHaveBeenCalledTimes(1);
     });
+
+    // fb:f1bc011b — Q2/Q3/Q4 auto-answers + the routing-explanation emit.
+    const autoQ = (auto_answer_from: string, yes = 'DEST-YES', no = 'DEST-NO', extra: Record<string, unknown> = {}) => ({
+      space_name: 'REG-FDNY-FEE-REVIEW', visit_type: 'First' as const, question_id: 'QX',
+      question_text: 'auto?', yes_target: yes, no_target: no, auto_answer_from, ...extra,
+    });
+    const runAuto = async (q: any, player: any) => {
+      mockDataService.getLogicQuestionEntry.mockReturnValue(q);
+      mockDataService.getLogicQuestionsForSpace.mockReturnValue([q]);
+      mockStateService.getPlayer.mockReturnValue(player);
+      movementService.handleLogicMovement('player1');
+      await new Promise((r) => setImmediate(r));
+    };
+
+    it('dob_referred: YES when the prior space was the DOB plan exam', async () => {
+      await runAuto(autoQ('dob_referred'), {
+        ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW',
+        spaceVisitLog: [{ spaceName: 'REG-DOB-PLAN-EXAM' }, { spaceName: 'REG-FDNY-FEE-REVIEW' }],
+      });
+      expect(mockChoiceService.createChoice).not.toHaveBeenCalled();
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-YES');
+    });
+
+    it('dob_referred: NO when the player arrived from somewhere else', async () => {
+      await runAuto(autoQ('dob_referred'), {
+        ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW',
+        spaceVisitLog: [{ spaceName: 'PM-DECISION-CHECK' }, { spaceName: 'REG-FDNY-FEE-REVIEW' }],
+      });
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-NO');
+    });
+
+    it('has_fire_protection: YES when the player holds a fire-systems W card (incl. descriptive names)', async () => {
+      mockDataService.getCardById.mockImplementation((id: string) =>
+        id === 'Wfire' ? { card_type: 'W', work_type_restriction: 'sprinkler system in a warehouse' } : undefined
+      );
+      await runAuto(autoQ('has_fire_protection'), { ...mockPlayer, hand: ['Wfire'] });
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-YES');
+    });
+
+    it('has_fire_protection: NO when no held W card is a fire system', async () => {
+      mockDataService.getCardById.mockImplementation((id: string) =>
+        id === 'Wother' ? { card_type: 'W', work_type_restriction: 'Foundation' } : undefined
+      );
+      await runAuto(autoQ('has_fire_protection'), { ...mockPlayer, hand: ['Wother'] });
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-NO');
+    });
+
+    it('scope_changed_since_last_visit: YES when current scope differs from the prior visit', async () => {
+      mockGameRulesService.calculateProjectScope.mockReturnValue(15);
+      await runAuto(autoQ('scope_changed_since_last_visit'), {
+        ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW',
+        spaceVisitLog: [
+          { spaceName: 'REG-FDNY-FEE-REVIEW', scopeAtEntry: 10 },
+          { spaceName: 'REG-FDNY-FEE-REVIEW', scopeAtEntry: 15 },
+        ],
+      });
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-YES');
+    });
+
+    it('scope_changed_since_last_visit: NO when scope is unchanged (or no prior visit)', async () => {
+      mockGameRulesService.calculateProjectScope.mockReturnValue(10);
+      await runAuto(autoQ('scope_changed_since_last_visit'), {
+        ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW',
+        spaceVisitLog: [
+          { spaceName: 'REG-FDNY-FEE-REVIEW', scopeAtEntry: 10 },
+          { spaceName: 'REG-FDNY-FEE-REVIEW', scopeAtEntry: 10 },
+        ],
+      });
+      expect(mockStateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'DEST-NO');
+    });
+
+    it('emits a routing_explanation when a branch with an authored reason terminates at a destination', async () => {
+      await runAuto(
+        autoQ('dob_approved', 'DEST-CLEARED', 'DEST-BACK', { yes_reason: 'You already have DOB approval.' }),
+        { ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW', dobApprovalStatus: 'approved' }
+      );
+      expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'routing_explanation',
+          toSpace: 'DEST-CLEARED',
+          message: 'You already have DOB approval.',
+        })
+      );
+    });
+
+    it('does NOT emit a routing_explanation when the branch has no authored reason', async () => {
+      await runAuto(autoQ('dob_approved', 'DEST-CLEARED', 'DEST-BACK'), {
+        ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW', dobApprovalStatus: 'approved',
+      });
+      const routingEmits = (mockStateService.emitAutoAction.mock.calls as any[][])
+        .filter(([e]) => e?.type === 'routing_explanation');
+      expect(routingEmits).toHaveLength(0);
+    });
   });
 });

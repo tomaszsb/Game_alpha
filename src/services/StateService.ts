@@ -43,7 +43,7 @@ export interface LifeEventEffectSummary {
 
 // Auto-action event type for modal notifications
 export interface AutoActionEvent {
-  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement';
+  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement' | 'routing_explanation';
   playerId: string;
   playerName: string;
   playerColor?: string; // Player's color for UI display

@@ -16,6 +16,7 @@ import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
 import { ClassroomSetup } from '../classroom/ClassroomSetup';
 import { TeacherClassroomPanel } from '../classroom/TeacherClassroomPanel';
 import { ClassroomAdminPanel } from '../classroom/ClassroomAdminPanel';
+import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
@@ -623,6 +624,7 @@ export function PlayerSetup({
               )}
             </div>
           )}
+          <ClassroomBadge />
           {getCurrentGameId() && (
             <div style={styles.gameCodeBadge}>
               <span style={styles.gameCodeLabel}>Game Code: </span>

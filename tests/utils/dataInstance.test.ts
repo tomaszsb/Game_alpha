@@ -4,7 +4,7 @@
 // without mocking window.location.
 
 import { describe, it, expect } from 'vitest';
-import { instanceDataBasePath } from '../../src/utils/dataInstance';
+import { instanceDataBasePath, instanceIdFromSearch } from '../../src/utils/dataInstance';
 
 describe('instanceDataBasePath', () => {
   it('defaults to /data when no classroom is in the URL', () => {
@@ -26,5 +26,19 @@ describe('instanceDataBasePath', () => {
     expect(instanceDataBasePath('?i=a/b')).toBe('/data');
     expect(instanceDataBasePath('?i=')).toBe('/data');
     expect(instanceDataBasePath('?i=Bad_Caps')).toBe('/data'); // uppercase/underscore not allowed
+  });
+});
+
+describe('instanceIdFromSearch (classroom badge)', () => {
+  it('returns the non-default classroom id', () => {
+    expect(instanceIdFromSearch('?g=G1&i=classroom-7')).toBe('classroom-7');
+    expect(instanceIdFromSearch('?i=room-2')).toBe('room-2');
+  });
+
+  it('returns null for the default board, a missing id, or an unsafe id', () => {
+    expect(instanceIdFromSearch('')).toBeNull();
+    expect(instanceIdFromSearch('?i=classroom-1')).toBeNull();
+    expect(instanceIdFromSearch('?i=../secret')).toBeNull();
+    expect(instanceIdFromSearch('?i=Bad_Caps')).toBeNull();
   });
 });

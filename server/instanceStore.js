@@ -114,6 +114,25 @@ export function createInstance(instancesRoot, { id, displayName }) {
 }
 
 /**
+ * Delete a classroom: remove its entire on-disk directory (config.json AND
+ * the baked resolved/ output both live under <instancesRoot>/<id>/, so one
+ * recursive remove takes the whole classroom). Refuses the default
+ * classroom — the public board must always exist. Throws if it doesn't
+ * exist so a stale id surfaces instead of silently "succeeding".
+ * @param {string} instancesRoot
+ * @param {string} id
+ */
+export function deleteInstance(instancesRoot, id) {
+  if (id === DEFAULT_INSTANCE_ID) {
+    throw new Error(`The default classroom ("${DEFAULT_INSTANCE_ID}") cannot be deleted`);
+  }
+  if (!fs.existsSync(configPath(instancesRoot, id))) {
+    throw new Error(`No such instance: "${id}"`);
+  }
+  fs.rmSync(instanceDir(instancesRoot, id), { recursive: true, force: true });
+}
+
+/**
  * Load a classroom config, or null if it doesn't exist. Throws on a config
  * that exists but doesn't parse/validate — callers (boot, bake) decide how
  * to fault-isolate; silently returning null would mask corruption.
@@ -209,6 +228,44 @@ export function instanceOwnedBy(config, accountId) {
  */
 export function setInstanceOwner(config, accountId) {
   config.meta.owner = accountId || null;
+}
+
+/**
+ * Strip an account from every classroom's ownership: clear it as owner
+ * (back to admin-only) and drop it from any coTeachers list. Used when an
+ * account is deleted so no classroom points at a ghost owner. Saves each
+ * changed config (bumping its version, same as setInstanceOwner). Returns
+ * the ids of the classrooms that were touched.
+ * @param {string} instancesRoot
+ * @param {string} accountId
+ * @returns {string[]}
+ */
+export function removeAccountFromAllInstances(instancesRoot, accountId) {
+  const affected = [];
+  if (!accountId) return affected;
+  for (const id of listInstanceIds(instancesRoot)) {
+    let config;
+    try {
+      config = loadInstance(instancesRoot, id);
+    } catch {
+      continue; // skip a corrupt classroom rather than failing the sweep
+    }
+    if (!config) continue;
+    let changed = false;
+    if (config.meta.owner && timingSafeEqualStr(accountId, config.meta.owner)) {
+      config.meta.owner = null;
+      changed = true;
+    }
+    if (Array.isArray(config.meta.coTeachers) && config.meta.coTeachers.includes(accountId)) {
+      config.meta.coTeachers = config.meta.coTeachers.filter((x) => x !== accountId);
+      changed = true;
+    }
+    if (changed) {
+      saveInstance(instancesRoot, config);
+      affected.push(id);
+    }
+  }
+  return affected;
 }
 
 /**

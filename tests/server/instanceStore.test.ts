@@ -18,8 +18,12 @@ import {
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
+  deleteInstance,
+  setInstanceOwner,
+  removeAccountFromAllInstances,
   listInstanceIds,
   configPath,
+  instanceDir,
   DEFAULT_INSTANCE_ID,
 } from '../../server/instanceStore.js';
 
@@ -241,6 +245,54 @@ describe('teacher copies', () => {
   it('refuses to copy a card that does not exist in stock', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     expect(() => createTeacherCopy(config, { slotName: 'GHOST', stockRows: [] })).toThrow(/does not exist/);
+  });
+});
+
+describe('deleteInstance (Phase 3 polish)', () => {
+  it('removes the whole classroom directory (config + baked resolved/)', () => {
+    createInstance(root, { id: 'classroom-2' });
+    // Simulate a baked output dir living alongside the config.
+    fs.mkdirSync(path.join(instanceDir(root, 'classroom-2'), 'resolved'), { recursive: true });
+    deleteInstance(root, 'classroom-2');
+    expect(fs.existsSync(instanceDir(root, 'classroom-2'))).toBe(false);
+    expect(loadInstance(root, 'classroom-2')).toBeNull();
+  });
+
+  it('refuses to delete the default classroom', () => {
+    createInstance(root, { id: DEFAULT_INSTANCE_ID });
+    expect(() => deleteInstance(root, DEFAULT_INSTANCE_ID)).toThrow(/cannot be deleted/);
+    expect(loadInstance(root, DEFAULT_INSTANCE_ID)).not.toBeNull();
+  });
+
+  it('throws on a non-existent classroom', () => {
+    expect(() => deleteInstance(root, 'ghost')).toThrow(/No such instance/);
+  });
+});
+
+describe('removeAccountFromAllInstances (Phase 3 polish)', () => {
+  it('clears the deleted account as owner and drops it from coTeachers, returning affected ids', () => {
+    const a = createInstance(root, { id: 'classroom-2' });
+    setInstanceOwner(a, 'teacher-aaa');
+    saveInstance(root, a);
+    const b = createInstance(root, { id: 'classroom-3' });
+    b.meta.coTeachers = ['teacher-aaa', 'teacher-bbb'];
+    saveInstance(root, b);
+    const untouched = createInstance(root, { id: 'classroom-4' });
+    setInstanceOwner(untouched, 'teacher-bbb');
+    saveInstance(root, untouched);
+
+    const affected = removeAccountFromAllInstances(root, 'teacher-aaa');
+    expect(affected.sort()).toEqual(['classroom-2', 'classroom-3']);
+    expect(loadInstance(root, 'classroom-2')!.meta.owner).toBeNull();
+    expect(loadInstance(root, 'classroom-3')!.meta.coTeachers).toEqual(['teacher-bbb']);
+    // A classroom owned by a different teacher is left alone.
+    expect(loadInstance(root, 'classroom-4')!.meta.owner).toBe('teacher-bbb');
+  });
+
+  it('is a no-op (returns []) when the account owns nothing', () => {
+    createInstance(root, { id: 'classroom-2' });
+    expect(removeAccountFromAllInstances(root, 'teacher-nobody')).toEqual([]);
+    expect(removeAccountFromAllInstances(root, '')).toEqual([]);
   });
 });
 

@@ -245,18 +245,34 @@ describe('LOGIC_QUESTIONS.csv — schema + integrity', () => {
     const lines = text.split('\n').map(l => l.replace(/\r$/, ''));
     const headers = lines[0].split(',');
     return lines.slice(1).map(line => {
-      // Naive split is fine — the file has no quoted commas today.
-      const cells = line.split(',');
+      // Quote-aware split — yes_target (multi-destination) and the reason
+      // columns can contain quoted commas.
+      const cells = splitCsv(line);
       const row: Record<string, string> = {};
-      headers.forEach((h, i) => { row[h.trim()] = (cells[i] || '').trim(); });
+      headers.forEach((h, i) => { row[h.trim()] = (cells[i] || '').replace(/^"|"$/g, '').trim(); });
       return row;
     });
   }
 
-  it('should have the expected 7-column header', () => {
+  // Minimal quoted-CSV line splitter (no embedded newlines in this file).
+  function splitCsv(line: string): string[] {
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; cur += ch; }
+      else if (ch === ',' && !inQuotes) { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  it('should have the expected 9-column header', () => {
     const text = fs.readFileSync(logicCsvPath, 'utf-8');
     const header = text.split('\n')[0].trim();
-    expect(header).toBe('space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from');
+    expect(header).toBe('space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from,yes_reason,no_reason');
   });
 
   it('should have Q1 for every (space_name, visit_type) that has any question', () => {

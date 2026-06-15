@@ -861,7 +861,7 @@ export class DataService implements IDataService {
    */
   /**
    * Parse LOGIC_QUESTIONS.csv. Schema:
-   *   space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from
+   *   space_name,visit_type,question_id,question_text,yes_target,no_target,auto_answer_from,yes_reason,no_reason
    *
    * `yes_target` / `no_target` may contain:
    *   - another question_id (e.g. "Q2") → chain continues
@@ -892,6 +892,8 @@ export class DataService implements IDataService {
         yes_target: (values[4] || '').trim(),
         no_target: (values[5] || '').trim(),
         auto_answer_from: (values[6] || '').trim() || undefined,
+        yes_reason: (values[7] || '').trim() || undefined,
+        no_reason: (values[8] || '').trim() || undefined,
       });
     }
     return result;

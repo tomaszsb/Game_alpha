@@ -248,6 +248,13 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
                       )}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{space.name}</div>
+                    {space.protection && (
+                      // fb:a5d4ae45 — say WHY a space is locked, inline, not
+                      // only in the chip's hover tooltip (invisible on touch).
+                      <div style={{ fontSize: '0.72rem', color: '#92400e', marginTop: '0.15rem' }}>
+                        🔒 Always on — {TIER_LABEL[space.protection.tier] ?? space.protection.reason}
+                      </div>
+                    )}
                   </div>
 
                   <button

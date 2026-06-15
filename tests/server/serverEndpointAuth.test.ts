@@ -143,8 +143,15 @@ describe('server.js endpoint auth wiring', () => {
     ['get', '/api/admin/accounts'],
     ['post', '/api/admin/accounts'],
     ['post', '/api/admin/accounts/:id/reset-password'],
+    ['delete', '/api/admin/accounts/:id'],
   ])('%s %s (account admin) requires admin password', (method, route) => {
     expect(handlerHead(method, route, 800)).toContain('requireAdmin(req, res)');
+  });
+
+  it('DELETE /api/admin/accounts/:id also releases the deleted teacher\'s classrooms', () => {
+    const head = handlerHead('delete', '/api/admin/accounts/:id', 800);
+    expect(head).toContain('deleteAccount(accountsRoot, req.params.id)');
+    expect(head).toContain('removeAccountFromAllInstances(instancesRoot, req.params.id)');
   });
 
   it.each([
@@ -199,6 +206,31 @@ describe('server.js endpoint auth wiring', () => {
   it('GET /api/games/:gameId/join-info returns the game\'s classroom id', () => {
     const head = handlerHead('get', '/api/games/:gameId/join-info', 800);
     expect(head).toContain('instanceId: game.instanceId || DEFAULT_INSTANCE_ID');
+  });
+
+  // ===== Phase 3 polish: teacher self-service create + delete =====
+
+  it('POST /api/instances lets a logged-in teacher create a room they own (not admin-gated)', () => {
+    const head = handlerHead('post', '/api/instances', 900);
+    // Authorized by the teacher session, NOT the admin guard.
+    expect(head).toContain('resolveTeacherAccountId(req)');
+    expect(head).not.toContain('requireAdmin(req');
+    // The new room is owned by the caller automatically.
+    expect(head).toContain('setInstanceOwner(config, accountId)');
+    // Registered before '/api/instances/:id' so it isn't shadowed by it.
+    const createIdx = source.indexOf("app.post('/api/instances'");
+    const idIdx = source.indexOf("app.get('/api/instances/:id'");
+    expect(createIdx).toBeGreaterThan(-1);
+    expect(createIdx).toBeLessThan(idIdx);
+  });
+
+  it('DELETE /api/instances/:id allows the owner or admin, and refuses the default classroom', () => {
+    const head = handlerHead('delete', '/api/instances/:id', 1400);
+    expect(head).toContain('checkInstanceWriteAccess(config');
+    expect(head).toContain('accountId: resolveTeacherAccountId(req)');
+    // The public default classroom can never be deleted.
+    expect(head).toContain('DEFAULT_INSTANCE_ID');
+    expect(head).toContain('deleteInstance(instancesRoot, id)');
   });
 
   it('GET /api/instances/mine requires a teacher session, registered before :id', () => {
