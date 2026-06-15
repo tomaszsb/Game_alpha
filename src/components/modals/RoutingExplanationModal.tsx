@@ -20,8 +20,10 @@ interface RoutingExplanationModalProps {
 
 export function RoutingExplanationModal({ message, toSpaceLabel, onClose }: RoutingExplanationModalProps): JSX.Element {
   return (
-    <div style={styles.overlay} onClick={onClose} role="dialog" aria-label="Where you're headed next">
-      <div style={styles.card} onClick={(e) => e.stopPropagation()}>
+    // Button-only dismissal (no backdrop close) — the explanation's whole job
+    // is comprehension, so a stray tap must not dismiss it before it's read.
+    <div style={styles.overlay} role="dialog" aria-modal="true" aria-label="Where you're headed next">
+      <div style={styles.card}>
         <div style={styles.header}>🧭 Where you're headed next</div>
         <div style={styles.destination}>
           Heading to <strong>{toSpaceLabel}</strong>
