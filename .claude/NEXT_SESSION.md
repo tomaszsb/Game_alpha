@@ -1,24 +1,25 @@
-# Next session starter — written 2026-06-15 by /koniec
+# Next session starter — written 2026-06-16 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.80 — committed + pushed, **PENDING RE-DEPLOY**. ⚠️ **Live still runs v3.0.78** — none of v3.0.79/80 is deployed.
-- **Branch:** master, clean + pushed (only `.claude/settings.local.json` + `ghost-history.jsonl`, intentional).
-- **Last shipped:** v3.0.79 (Phase 3 teacher-layer polish: teachers self-create classrooms + delete + classroom badge + locked-space reason + button-fit; FDNY logic-question auto-answer Q2/Q3/Q4; "🧭 where you're headed next" modal) + **v3.0.80** (Prof Cert grants DOB approval — hotfix for an inescapable loop).
-- **Test suite:** koniec targeted sweep **1658/1658** (services+components+utils). Ghost gate validated mid-session: strict green (0 hard failures, wins ≥36), smart-bot + negotiate green. Typecheck + build clean.
+- **Version:** v3.0.80 (last shipped). **No new version this session.** User was deploying v3.0.80 at session start — deploy completion **unverified by me** (confirm live header reads v3.0.80).
+- **Branch:** ⚠️ **on `phase-4a-card-insertion`**, not master. 3 commits (design, implementation, koniec wrap-up). **Not merged, not pushed, not deployed.** master is clean.
+- **Last built:** Phase 4a (card insertion) end-to-end — teacher-authored narrative spaces on an edge: engine + endpoints (+409 concurrency) + catalog UI + LOOP ghost gate. Tiers 4c/4d CUT.
+- **Test suite:** all green — 1658 components/utils/services + 226 server + 6 ghost-LOOP units. Smart-bot gate 50/50 with detectLoops armed.
+- **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **RE-DEPLOY v3.0.80 + finish the playtest** — the maintainer's last playtest got stuck in the Prof Cert loop (now fixed) and never finished. The teacher create/delete flow, classroom badge, and FDNY routing modal are still *unverified live* (I built them without seeing them render). Deploy, then walk a game: teacher flow → FDNY fee review routing modal → take **Prof Cert**, pass a roll → should bank DOB approval + NOT loop (confirm roll-1→Audit still does NOT grant).
-2. **Phase 4 — card insertion** (teacher-authored spaces). Spec's biggest-risk phase — design pass first, **fresh session**, after v3.0.80 deploys clean.
-3. **Onboarding package** (`fb:0aa9660c`+`8ad42b52`+`f22035af`) — biggest product lever, deploy-independent. Or the small **ghost `LOOP` detection** (TODO) so soft-locks like the Prof Cert one can't slip a green gate again.
+1. **Verify Phase 4a in-app, then decide merge** — the two UI components are build-verified only (no behavior tests). Walk the teacher flow locally (Add a space → pick edge → save → see the tile route A→N→B) before merging `phase-4a-card-insertion` → master.
+2. **Player dashboard redesign** (the user's explicit next-day ask) — full variables reference ready at `.claude/player-dashboard-variables.md`. Independent of Phase 4a.
+3. **`deploy.sh` instances-wipe is the live blocker for Phase 4a** — authored spaces won't survive a deploy until it's fixed (already DONE in repo v3.0.77 per TODO, but ⚠️ *not yet deployed* — verify it actually shipped before relying on it).
 
 ## Decisions waiting on the user
-- **Lift ApprovalService regulatory-space constants to CSV?** (DOB_EXAM/FDNY_EXAM/DOB_AUDIT/FINAL_REVIEW — accepted "defensible domain constants" today.) Offered after the Prof Cert hardcode reminder; user hasn't decided. Tracked as a possible sweep.
-- **Routing-modal copy** is first-draft (5 authored reasons in LOGIC_QUESTIONS.csv `yes_reason`/`no_reason`) — maintainer may want to reword in the FDNY-examiner voice.
+- Merge Phase 4a branch to master now, or keep iterating (then 4b)?
+- Fix/confirm the deploy.sh-wipe is live before deploying Phase 4a (hard prerequisite).
 
 ## Suggested first move
-Re-deploy v3.0.80 and finish the playtest — that's the gate on everything (the Prof Cert fix isn't live, and three v3.0.79 UI pieces have never been eyeballed). Want to deploy + playtest first, or start the Phase 4 design pass in parallel?
+Want to start by **verifying Phase 4a in the local app** (I can launch it and screenshot the Add-a-space flow), or jump straight into the **player dashboard redesign** using the variables reference? The dashboard work is deploy-independent; Phase 4a needs the deploy-wipe confirmed before it can go live.
 
 ## Reminders
-- Deploy from the **Windows terminal**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never `docker compose up`. Header should read **v3.0.80** after.
-- The maintainer's **stuck Prof-Cert game won't recover** (path-locked, no banked approval) — start a fresh game to test.
-- META (CLAUDE.md TACTICAL): auto-answering a previously-manual question can expose latent state gaps — audit that every path writes the state you read. And the ghost gate catches crashes, not soft-locks.
+- Deploy runs from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- You're on a **feature branch** — `git checkout phase-4a-card-insertion` if a fresh shell lands on master. Nothing is pushed; work is local-only until you choose to push.
+- Phase 4a authored spaces ride `display_label_override` (real Spaces.csv has the column; confirmed).

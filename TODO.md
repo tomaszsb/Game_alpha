@@ -16,6 +16,17 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🧩 **Phase 4a — card insertion (teacher-authored spaces)** (2026-06-16)
+*Built end-to-end on branch `phase-4a-card-insertion` (committed, NOT merged to master / not pushed / not deployed). Engine + endpoints + UI + LOOP ghost gate, all green (1658 + 226 + 6, typecheck + build clean). Design + audit trail in [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md). Tiers 4c/4d CUT. Remaining before this is production-ready:*
+
+- [ ] **Verify Phase 4a in the app** — the two UI components ([InsertionEditor](src/components/classroom/InsertionEditor.tsx) + "Your own spaces" in ClassroomSetup) are typecheck/build-verified only, no behavior tests. Walk the teacher flow locally: Add a space → pick edge → save → start a game → confirm the authored tile renders and routes A→N→B.
+- [ ] **Authored-insertion ghost fixture** — `detectLoops` is armed on the smart-bot gate (catches a loop from any source), but a gate that bakes a board *with* an authored insertion and runs the bot needs ghost-loads-instance-board plumbing (the ghost loads stock data today). Follow-up to close the round-3 prerequisite fully.
+- [ ] **`deploy.sh` instances-wipe is the live blocker** — authored spaces (+ all classroom customization) won't survive a deploy until the fix below ships. See the next section; this is a hard prerequisite for Phase 4a going live.
+- [ ] **Merge decision (user)** — when verified, merge `phase-4a-card-insertion` → master (or keep iterating on the branch). Then 4b (palette mechanics: fees need a `fee_category` lift, card draws, dice-edge splicing).
+- [ ] **Player dashboard redesign (user, tomorrow)** — variables reference at `.claude/player-dashboard-variables.md` (every per-player tracked field, grouped). Separate from Phase 4a.
+
+---
+
 ## 🚀 **Deploy infrastructure — teacher-layer gaps** (2026-06-13, HIGH)
 *v3.0.76 went live 2026-06-13. The deploy + verification exposed two real bugs in the deploy/migration plumbing. Full context in CLAUDE.md TACTICAL "Deploy: `deploy.sh` is not teacher-layer-aware" + auto-memory `project_deploy_method`. Recovery tool sits at `server/data/recover-board.mjs` on the live server (`/app/data/recover-board.mjs` in-container) — harmless, clean up.*
 
