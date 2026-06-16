@@ -61,6 +61,27 @@ export interface ValidationReport {
   suggestions: Record<string, { target: string | null; candidates: string[] }>;
 }
 
+/** A teacher-authored space spliced onto an A→B edge (Phase 4a). */
+export interface Insertion {
+  id: string;
+  displayName: string;
+  from: string;
+  to: string;
+  story?: string;
+  time?: string;
+  fee?: string;
+  pos_x?: string;
+  pos_y?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A fixed (4a-eligible) edge the teacher can splice a new space onto. */
+export interface InsertionEdge {
+  from: string;
+  to: string;
+}
+
 export interface CatalogResponse {
   success: boolean;
   editableFields: string[];
@@ -69,10 +90,14 @@ export interface CatalogResponse {
   configVersion: number;
   stockVersion?: string;
   validation: ValidationReport | null;
+  /** Existing authored spaces (Phase 4a), keyed by authored id. */
+  insertions: Record<string, Insertion>;
+  /** Fixed edges available to splice a new space onto (Phase 4a). */
+  edges: InsertionEdge[];
 }
 
 export type MutationResult =
-  | { success: true; report: ValidationReport; dryRun?: boolean; copyId?: string }
+  | { success: true; report: ValidationReport; dryRun?: boolean; copyId?: string; insertionId?: string }
   | { success: false; report?: ValidationReport; error?: string; detail?: string };
 
 function resolveDeps(deps: ClassroomApiDeps) {
@@ -166,4 +191,49 @@ export function deleteCopy(
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
   return mutate(`/api/instances/${instanceId}/copies/${copyId}`, 'DELETE', undefined, deps);
+}
+
+/**
+ * Author a new narrative space on the A→B edge (Phase 4a). Same hybrid
+ * confirm flow as board changes: dryRun:true returns the validation report
+ * (edge exists? endpoints active? fixed edge?) WITHOUT saving; the confirmed
+ * call saves and rebakes. `baseConfigVersion` opts into 409 conflict
+ * rejection if the classroom changed in another session (audit round 4).
+ */
+export function createInsertion(
+  instanceId: string,
+  args: {
+    from: string; to: string; displayName: string;
+    story?: string; time?: string; fee?: string;
+    pos_x?: string; pos_y?: string; dryRun?: boolean; baseConfigVersion?: number;
+  },
+  deps: ClassroomApiDeps = {}
+): Promise<MutationResult> {
+  return mutate(`/api/instances/${instanceId}/insertions`, 'POST', args, deps);
+}
+
+/** Edit an authored space's content/edge (fields → values). */
+export function updateInsertion(
+  instanceId: string,
+  insertionId: string,
+  patch: Record<string, string>,
+  args: { dryRun?: boolean; baseConfigVersion?: number } = {},
+  deps: ClassroomApiDeps = {}
+): Promise<MutationResult> {
+  return mutate(`/api/instances/${instanceId}/insertions/${insertionId}`, 'PATCH', { patch, ...args }, deps);
+}
+
+/** Remove an authored space; the bake re-stitches the original A→B edge. */
+export function deleteInsertion(
+  instanceId: string,
+  insertionId: string,
+  args: { baseConfigVersion?: number } = {},
+  deps: ClassroomApiDeps = {}
+): Promise<MutationResult> {
+  return mutate(
+    `/api/instances/${instanceId}/insertions/${insertionId}`,
+    'DELETE',
+    Object.keys(args).length ? args : undefined,
+    deps
+  );
 }

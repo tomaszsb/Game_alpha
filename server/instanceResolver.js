@@ -131,6 +131,54 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
     }
     out.push(effective);
   }
+
+  // Phase 4a: splice teacher-authored spaces onto their edges. For each
+  // insertion on edge A→B: rewrite A's destination cell (B → authored id) so
+  // players route through the new space, then append the authored space's own
+  // rows with a single fixed edge to B. Validation (edge exists, endpoints
+  // active, A is a fixed edge) already passed at bake time. Templates are
+  // captured from A's rows for column-completeness, so the authored rows carry
+  // exactly the stock schema regardless of how it has drifted.
+  for (const ins of Object.values(config.insertions || {})) {
+    const templates = out.filter(r => r.space_name === ins.from).map(r => ({ ...r }));
+    if (templates.length === 0) continue;
+    for (const row of out) {
+      if (row.space_name !== ins.from) continue;
+      for (let i = 1; i <= 5; i++) {
+        if (row[`space_${i}`] === ins.to) row[`space_${i}`] = ins.id;
+      }
+    }
+    for (const tpl of templates) {
+      const isFirst = (tpl.visit_type || '') === 'First';
+      const authored = { ...tpl };
+      authored.space_name = ins.id;
+      authored.Title = ins.displayName;
+      authored.Event = ins.story || '';
+      if ('Action' in authored) authored.Action = '';
+      if ('Outcome' in authored) authored.Outcome = '';
+      authored.space_1 = ins.to;
+      authored.space_2 = ''; authored.space_3 = ''; authored.space_4 = ''; authored.space_5 = '';
+      if ('requires_dice_roll' in authored) authored.requires_dice_roll = 'NO';
+      if ('Negotiate' in authored) authored.Negotiate = 'NO';
+      // Flat effects are First-visit only (a pass-through must not re-charge on revisit).
+      if ('Time' in authored) authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
+      if ('Fee' in authored) authored.Fee = isFirst && ins.fee != null ? String(ins.fee) : '0';
+      for (const cardCol of ['w_card', 'b_card', 'i_card', 'l_card', 'e_card']) {
+        if (cardCol in authored) authored[cardCol] = '';
+      }
+      if (ins.pos_x != null) authored.pos_x = String(ins.pos_x);
+      if (ins.pos_y != null) authored.pos_y = String(ins.pos_y);
+      // An authored mid-path space is never structural / a choice anchor.
+      for (const flag of ['is_starting_space', 'is_ending_space', 'is_resume_hub', 'is_path_choice_lock_point']) {
+        if (flag in authored) authored[flag] = 'No';
+      }
+      if ('path_choice_memory_key' in authored) authored.path_choice_memory_key = '';
+      // displayName rides display_label_override (audit round 4). Harmless if
+      // the stock header lacks the column — toCsv writes only header columns.
+      authored.display_label_override = ins.displayName;
+      out.push(authored);
+    }
+  }
   return toCsv(out, headers);
 }
 

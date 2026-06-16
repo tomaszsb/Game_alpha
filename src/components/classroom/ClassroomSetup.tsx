@@ -16,10 +16,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   fetchCatalog, postBoardChange, createCopy, updateCopy, deleteCopy,
-  type CatalogResponse, type CatalogSpace, type ValidationReport,
+  createInsertion, updateInsertion, deleteInsertion,
+  type CatalogResponse, type CatalogSpace, type ValidationReport, type Insertion,
 } from './classroomApi';
 import { SwitchOffConfirm } from './SwitchOffConfirm';
 import { CopyEditor } from './CopyEditor';
+import { InsertionEditor, type InsertionDraft } from './InsertionEditor';
 import { colors } from '../../styles/theme';
 
 interface ClassroomSetupProps {
@@ -45,6 +47,9 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
   const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ space: CatalogSpace; report: ValidationReport } | null>(null);
   const [editing, setEditing] = useState<CatalogSpace | null>(null);
+  // Phase 4a: authoring a space. null = closed; { existing: null } = new;
+  // { existing } = editing an authored space.
+  const [insertionEdit, setInsertionEdit] = useState<{ existing: Insertion | null } | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -145,6 +150,48 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
       const result = await deleteCopy(instanceId, editing.copyId);
       const ok = await finishMutation(result, `Your copy was removed — “${editing.title}” plays the original card again.`);
       if (ok) setEditing(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const nameToTitle = useCallback(
+    (name: string) => catalog?.spaces.find(s => s.name === name)?.title || name,
+    [catalog]
+  );
+
+  const insertions = useMemo(() => Object.values(catalog?.insertions ?? {}), [catalog]);
+
+  const handleSaveInsertion = async (draft: InsertionDraft) => {
+    if (!insertionEdit) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const existing = insertionEdit.existing;
+      const result = existing
+        ? await updateInsertion(instanceId, existing.id, {
+            displayName: draft.displayName, story: draft.story, time: draft.time, fee: draft.fee,
+          })
+        : await createInsertion(instanceId, draft);
+      const ok = await finishMutation(
+        result,
+        existing
+          ? `“${draft.displayName}” updated and live for new games.`
+          : `“${draft.displayName}” added between ${nameToTitle(draft.from)} and ${nameToTitle(draft.to)}.`
+      );
+      if (ok) setInsertionEdit(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteInsertion = async () => {
+    if (!insertionEdit?.existing) return;
+    setBusy(true);
+    try {
+      const result = await deleteInsertion(instanceId, insertionEdit.existing.id);
+      const ok = await finishMutation(result, `“${insertionEdit.existing.displayName}” removed — the path closes back up.`);
+      if (ok) setInsertionEdit(null);
     } finally {
       setBusy(false);
     }
@@ -301,6 +348,67 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
             </div>
           </section>
         ))}
+
+        {catalog && (
+          <section style={{ marginBottom: '1.1rem' }}>
+            <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', margin: '1rem 0 0.4rem' }}>
+              Your own spaces
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '0 0 0.5rem' }}>
+              Add a brand-new step to the path — a beat that isn’t in the standard deck.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {insertions.map(ins => (
+                <div
+                  key={ins.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    background: '#fff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '0.55rem 0.9rem',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: colors.text.primary }}>
+                      {ins.displayName}
+                      <span style={{
+                        marginLeft: '0.5rem', fontSize: '0.7rem', fontWeight: 700,
+                        background: '#ede9fe', color: '#6d28d9', borderRadius: 999, padding: '0.1rem 0.5rem',
+                      }}>
+                        your space
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                      between {nameToTitle(ins.from)} and {nameToTitle(ins.to)}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInsertionEdit({ existing: ins })}
+                    disabled={busy}
+                    style={{
+                      padding: '0.35rem 0.7rem', borderRadius: 8, fontSize: '0.8rem',
+                      border: '1px solid #ddd6fe', background: '#fff', color: '#6d28d9',
+                      cursor: busy ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    ✏️ Edit
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setInsertionEdit({ existing: null })}
+                disabled={busy || (catalog.edges?.length ?? 0) === 0}
+                style={{
+                  alignSelf: 'flex-start', padding: '0.45rem 0.9rem', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+                  border: '1px dashed #a78bfa', background: '#faf5ff', color: '#6d28d9',
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                }}
+              >
+                ➕ Add a space
+              </button>
+            </div>
+          </section>
+        )}
       </div>
 
       {confirm && (
@@ -322,6 +430,17 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
           onSave={overrides => void handleSaveCopy(overrides)}
           onDelete={() => void handleDeleteCopy()}
           onCancel={() => setEditing(null)}
+        />
+      )}
+      {insertionEdit && catalog && (
+        <InsertionEditor
+          existing={insertionEdit.existing}
+          edges={catalog.edges ?? []}
+          nameToTitle={nameToTitle}
+          busy={busy}
+          onSave={draft => void handleSaveInsertion(draft)}
+          onDelete={insertionEdit.existing ? () => void handleDeleteInsertion() : undefined}
+          onCancel={() => setInsertionEdit(null)}
         />
       )}
     </div>

@@ -21,7 +21,7 @@ import {
   sweepBakeDebris,
   resolvedDir,
 } from '../../server/instanceResolver.js';
-import { createInstance, saveInstance, createTeacherCopy, setSlotUsed } from '../../server/instanceStore.js';
+import { createInstance, saveInstance, createTeacherCopy, setSlotUsed, addInsertion } from '../../server/instanceStore.js';
 import { parseCsvWithHeaders } from '../../server/processGameData.js';
 
 let tmp: string;
@@ -339,6 +339,109 @@ describe('Phase 2 bake: teacher copies', () => {
     const report = JSON.parse(readResolved('validation-report.json'));
     expect(report.warnings.some((w: any) => w.code === 'COPY_SCHEMA_DRIFT')).toBe(true);
     expect(report.warnings.some((w: any) => w.code === 'COPY_STOCK_UPDATED')).toBe(true);
+  });
+});
+
+// ===== Phase 4a: teacher-authored insertions =====
+
+describe('Phase 4a bake: teacher-authored insertions', () => {
+  it('splices an authored space onto a fixed edge and rewires movement', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const id = addInsertion(config, {
+      from: 'BETA-MIDDLE',
+      to: 'GAMMA-FORK',
+      displayName: 'Community Board Review',
+      story: 'The community weighs in.',
+      time: '3',
+      fee: '5000',
+      pos_x: '150',
+      pos_y: '50',
+    });
+    expect(id).toBe('auth-classroom-1-1');
+    const stockVersion = computeStockVersion(stockDir);
+
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const rows = parseCsvWithHeaders(readResolved('SOURCE_FILES/Spaces.csv'));
+    // BETA-MIDDLE now routes through the authored space, not straight to GAMMA-FORK.
+    for (const visit of ['First', 'Subsequent']) {
+      const beta = rows.find(r => r.space_name === 'BETA-MIDDLE' && r.visit_type === visit);
+      expect(beta!.space_1).toBe(id);
+    }
+    // The authored space exists, mirrors BETA's visit rows, and flows on to GAMMA-FORK.
+    const authored = rows.filter(r => r.space_name === id);
+    expect(authored).toHaveLength(2);
+    const first = authored.find(r => r.visit_type === 'First')!;
+    expect(first.space_1).toBe('GAMMA-FORK');
+    expect(first.space_2).toBe('');
+    expect(first.Title).toBe('Community Board Review');
+    expect(first.Event).toBe('The community weighs in.');
+    expect(first.Time).toBe('3');
+    expect(first.Fee).toBe('5000');
+    expect(String(first.requires_dice_roll).toUpperCase()).toBe('NO');
+    // Subsequent visit does not re-charge the flat effects.
+    const sub = authored.find(r => r.visit_type === 'Subsequent')!;
+    expect(sub.Time).toBe('0');
+    expect(sub.Fee).toBe('0');
+
+    // It flows through processGameData into the served board.
+    expect(readResolved('CLEAN_FILES/MOVEMENT.csv')).toContain(id);
+    const gc = parseCsvWithHeaders(readResolved('CLEAN_FILES/GAME_CONFIG.csv')).find(r => r.space_name === id);
+    expect(gc).toBeDefined();
+    expect(gc!.pos_x).toBe('150');
+
+    expect(JSON.parse(readResolved('validation-report.json')).ok).toBe(true);
+  });
+
+  it('refuses to bake an insertion on a dice edge (4b, not 4a)', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    addInsertion(config, { from: 'GAMMA-FORK', to: 'DELTA-LEFT', displayName: 'Too soon' });
+    const stockVersion = computeStockVersion(stockDir);
+
+    let thrown: any = null;
+    try {
+      bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown.report.errors.some((e: any) => e.code === 'INSERT_ON_DICE_EDGE')).toBe(true);
+    expect(fs.existsSync(resolvedDir(instancesRoot, 'classroom-1'))).toBe(false);
+  });
+
+  it('rejects an insertion whose A→B edge does not exist', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    addInsertion(config, { from: 'BETA-MIDDLE', to: 'ZETA-END', displayName: 'No such edge' });
+    const stockVersion = computeStockVersion(stockDir);
+
+    let thrown: any = null;
+    try {
+      bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown.report.errors.some((e: any) => e.code === 'INSERT_EDGE_MISSING')).toBe(true);
+  });
+
+  it('rejects an insertion whose endpoint is switched off', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    setSlotUsed(config, 'BETA-MIDDLE', false);
+    addInsertion(config, { from: 'BETA-MIDDLE', to: 'GAMMA-FORK', displayName: 'Orphaned' });
+    const stockVersion = computeStockVersion(stockDir);
+
+    let thrown: any = null;
+    try {
+      bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown.report.errors.some((e: any) => e.code === 'INSERT_ENDPOINT_OFF')).toBe(true);
   });
 });
 

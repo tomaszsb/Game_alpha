@@ -35,6 +35,7 @@ export const DEFAULT_INSTANCE_ID = 'classroom-1';
  * @property {Object<string, SlotConfig>} slots
  * @property {Object<string, any>} teacherCopies
  * @property {Object<string, string>} detours
+ * @property {Object<string, InsertionConfig>} insertions
  */
 
 export function instanceDir(instancesRoot, id) {
@@ -107,6 +108,11 @@ export function createInstance(instancesRoot, { id, displayName }) {
     teacherCopies: {},
     // detours[space_name] = destination for switched-off spaces (Phase 2).
     detours: {},
+    // insertions[authoredId] = a teacher-authored space spliced into an edge
+    // (Phase 4a). Edge-keyed (audit round 3): { from, to } names the A→B edge
+    // the new space sits on. Sectioned as its own top-level key (audit round 4)
+    // so a future config-directory split is mechanical.
+    insertions: {},
   };
   fs.mkdirSync(instanceDir(instancesRoot, id), { recursive: true });
   atomicWriteJson(file, config);
@@ -151,6 +157,13 @@ export function loadInstance(instancesRoot, id) {
   }
   for (const key of ['slots', 'teacherCopies', 'detours']) {
     if (!parsed[key] || typeof parsed[key] !== 'object') throw new Error(`Instance "${id}": missing ${key}`);
+  }
+  // insertions (Phase 4a) is newer than the original schema — default it so
+  // configs written before Phase 4 still load. A present value must be valid.
+  if (parsed.insertions === undefined) {
+    parsed.insertions = {};
+  } else if (!parsed.insertions || typeof parsed.insertions !== 'object') {
+    throw new Error(`Instance "${id}": invalid insertions`);
   }
   return parsed;
 }
@@ -392,4 +405,94 @@ export function deleteTeacherCopy(config, copyId) {
   delete config.teacherCopies[copyId];
   const slot = config.slots[copy.slot];
   if (slot && slot.card === copyId) delete slot.card;
+}
+
+// ===== Phase 4a: teacher-authored spaces (card insertion) =====
+
+/**
+ * @typedef {Object} InsertionConfig
+ * @property {string} id          authored space id — the slot name in baked files
+ * @property {string} displayName human-readable label (rides display_label_override)
+ * @property {string} from        edge source space name
+ * @property {string} to          edge target space name (the A→B edge being spliced)
+ * @property {string} [story]     narrative shown on the authored space
+ * @property {string} [time]      optional flat First-visit time cost (string, CSV-shaped)
+ * @property {string} [fee]       optional flat First-visit fee (string, CSV-shaped)
+ * @property {string} [pos_x]
+ * @property {string} [pos_y]
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
+
+/**
+ * Add a teacher-authored narrative space onto the A→B edge (Phase 4a).
+ * Generates a stable internal id in the slot namespace (`auth-<instanceId>-<n>`,
+ * audit round 3) distinct from copy ids and never emitted by stock. The
+ * displayName is the human label (audit round 4 — internalId + displayName,
+ * both baked). Topology validation (edge exists, endpoints active, from is a
+ * fixed edge, no double-occupied edge) lives in instanceValidation, not here —
+ * the save endpoint rejects an invalid insertion the same way it rejects a
+ * bad detour.
+ * @param {InstanceConfig} config
+ * @param {{ from: string, to: string, displayName: string, story?: string,
+ *   time?: string, fee?: string, pos_x?: string|number, pos_y?: string|number }} spec
+ * @returns {string} the new authored space id
+ */
+export function addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y }) {
+  if (!from || !to) throw new Error('Insertion requires both `from` and `to` (the A→B edge)');
+  if (!displayName || !String(displayName).trim()) throw new Error('Insertion requires a displayName');
+  if (!config.insertions) config.insertions = {};
+
+  let n = 1;
+  while (config.insertions[`auth-${config.meta.id}-${n}`]) n += 1;
+  const id = `auth-${config.meta.id}-${n}`;
+
+  const now = new Date().toISOString();
+  config.insertions[id] = {
+    id,
+    displayName: String(displayName).trim(),
+    from: String(from).trim(),
+    to: String(to).trim(),
+    story: story != null ? String(story) : '',
+    ...(time != null && time !== '' ? { time: String(time) } : {}),
+    ...(fee != null && fee !== '' ? { fee: String(fee) } : {}),
+    ...(pos_x != null ? { pos_x: String(pos_x) } : {}),
+    ...(pos_y != null ? { pos_y: String(pos_y) } : {}),
+    createdAt: now,
+    updatedAt: now,
+  };
+  return id;
+}
+
+/**
+ * Edit an authored space's content/label/effects (never its id). Changing the
+ * edge (`from`/`to`) is allowed — it re-splices the space — and re-validated
+ * at save like any topology edit.
+ * @param {InstanceConfig} config
+ * @param {string} id
+ * @param {Partial<InsertionConfig>} patch
+ */
+export function updateInsertion(config, id, patch) {
+  const ins = config.insertions?.[id];
+  if (!ins) throw new Error(`No such insertion: "${id}"`);
+  const next = { ...ins };
+  for (const key of ['displayName', 'from', 'to', 'story', 'time', 'fee', 'pos_x', 'pos_y']) {
+    if (patch[key] !== undefined) next[key] = patch[key] === null ? undefined : String(patch[key]);
+  }
+  next.id = ins.id;            // id is immutable (it's the movement key)
+  next.createdAt = ins.createdAt;
+  next.updatedAt = new Date().toISOString();
+  config.insertions[id] = next;
+}
+
+/**
+ * Remove an authored space. The bake then re-stitches the edge it sat on back
+ * to its original A→B (the rewrite is recomputed from scratch each bake, so
+ * removal needs no inverse — just drop the record).
+ * @param {InstanceConfig} config
+ * @param {string} id
+ */
+export function removeInsertion(config, id) {
+  if (!config.insertions?.[id]) throw new Error(`No such insertion: "${id}"`);
+  delete config.insertions[id];
 }

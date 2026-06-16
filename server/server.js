@@ -32,6 +32,9 @@ import {
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
+  addInsertion,
+  updateInsertion,
+  removeInsertion,
 } from './instanceStore.js';
 import { validateConfig } from './instanceValidation.js';
 import { buildCatalog } from './instanceCatalog.js';
@@ -1019,6 +1022,20 @@ function handleInstanceMutation(req, res, mutate) {
       return res.status(access.status || 401).json({ success: false, error: access.error || 'Unauthorized' });
     }
 
+    // Optimistic concurrency (audit round 4): if the client sends the
+    // configVersion its edit was based on and the classroom has since moved
+    // on (another tab/teacher saved), reject with 409 rather than silently
+    // clobbering that save. Backward-compatible — clients that omit it are
+    // unaffected. Skipped for dryRun (a preview mutates nothing).
+    const base = req.body && req.body.baseConfigVersion;
+    if (base != null && !(req.body && req.body.dryRun) && base !== config.configVersion) {
+      return res.status(409).json({
+        success: false,
+        error: 'This classroom was changed in another session — reload and reapply your edit',
+        configVersion: config.configVersion,
+      });
+    }
+
     step = 'apply';
     const result = mutate(config) || {};
     step = 'validate';
@@ -1118,6 +1135,49 @@ app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
     }
     deleteTeacherCopy(config, req.params.copyId);
     return { copyId: req.params.copyId, deleted: true };
+  });
+});
+
+// Teacher-authored insertions (Phase 4a): a new narrative space spliced onto
+// an A→B edge. Same hybrid-confirm/validate/bake flow as copies — a topology
+// error (missing edge, dice edge → 4b, switched-off endpoint, id collision)
+// comes back as a 422 with the validation report; dryRun previews unsaved.
+app.post('/api/instances/:id/insertions', (req, res) => {
+  const { from, to, displayName, story, time, fee, pos_x, pos_y } = req.body || {};
+  if (!from || !to || !displayName) {
+    return res.status(400).json({ success: false, error: 'from, to, and displayName are required' });
+  }
+  handleInstanceMutation(req, res, (config) => {
+    const id = addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y });
+    return { insertionId: id, from, to };
+  });
+});
+
+app.patch('/api/instances/:id/insertions/:insertionId', (req, res) => {
+  const patch = req.body && req.body.patch;
+  if (!patch || typeof patch !== 'object' || Object.keys(patch).length === 0) {
+    return res.status(400).json({ success: false, error: 'patch object is required (field → value)' });
+  }
+  handleInstanceMutation(req, res, (config) => {
+    if (!config.insertions || !config.insertions[req.params.insertionId]) {
+      const err = new Error(`No such insertion: "${req.params.insertionId}"`);
+      err.statusCode = 404;
+      throw err;
+    }
+    updateInsertion(config, req.params.insertionId, patch);
+    return { insertionId: req.params.insertionId };
+  });
+});
+
+app.delete('/api/instances/:id/insertions/:insertionId', (req, res) => {
+  handleInstanceMutation(req, res, (config) => {
+    if (!config.insertions || !config.insertions[req.params.insertionId]) {
+      const err = new Error(`No such insertion: "${req.params.insertionId}"`);
+      err.statusCode = 404;
+      throw err;
+    }
+    removeInsertion(config, req.params.insertionId);
+    return { insertionId: req.params.insertionId, deleted: true };
   });
 });
 

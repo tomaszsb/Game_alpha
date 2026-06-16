@@ -24,9 +24,72 @@ export interface GhostGameResult {
   success: boolean;
   turns: number;
   finalSpace: string | undefined;
-  reason: 'WIN' | 'TURN_CAP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
+  // LOOP is a TURN_CAP game whose trail shows a player stuck cycling through a
+  // small set of spaces with no progress — an unwinnable soft-lock. Split out
+  // from TURN_CAP (audit round 3 / CLAUDE.md "ghost gate catches crashes, not
+  // soft-locks") so it counts as a HARD failure: the win-floor's slack would
+  // otherwise absorb it as a normal loss, which is how the Prof Cert loop
+  // shipped through a green gate (v3.0.79).
+  reason: 'WIN' | 'TURN_CAP' | 'LOOP' | 'EXCEPTION' | 'INVARIANT_VIOLATION';
   error?: string;
   trail: string[];
+}
+
+/**
+ * Hard failures are correctness bugs the gate must never let through:
+ * crashes (EXCEPTION), broken invariants (INVARIANT_VIOLATION), and now
+ * soft-lock loops (LOOP). A plain TURN_CAP (slow but progressing game) is NOT
+ * hard — it's absorbed by the win-rate floor. Single source of truth so the
+ * three gate tests can't drift apart on what "hard" means.
+ */
+export function isHardFailure(result: GhostGameResult): boolean {
+  return result.reason === 'EXCEPTION'
+    || result.reason === 'INVARIANT_VIOLATION'
+    || result.reason === 'LOOP';
+}
+
+/** Pull the per-turn space sequence out of a game trail (the `T<n> SPACE:…` lines). */
+export function extractSpaceSequence(trail: string[]): string[] {
+  const seq: string[] = [];
+  for (const line of trail) {
+    const m = /^T\d+ ([^:\s]+):/.exec(line);
+    if (m) seq.push(m[1]);
+  }
+  return seq;
+}
+
+/**
+ * Detect a soft-lock loop in a (TURN_CAP) trail: the tail is an exact repeat
+ * of a short space-cycle for several periods, i.e. the player made no real
+ * progress before the turn cap. Only meaningful for games that DIDN'T finish —
+ * a winning game's trail naturally ends at FINISH. Pure + unit-tested.
+ * @param trail the game's trail lines
+ * @param opts minRepeats: how many back-to-back repeats prove a stuck cycle;
+ *   maxPeriod: largest cycle length considered.
+ */
+export function detectSpaceLoop(
+  trail: string[],
+  opts: { minRepeats?: number; maxPeriod?: number } = {}
+): { looped: boolean; period?: number; cycle?: string[] } {
+  const minRepeats = opts.minRepeats ?? 3;
+  const maxPeriod = opts.maxPeriod ?? 12;
+  const seq = extractSpaceSequence(trail);
+  for (let k = 1; k <= maxPeriod; k++) {
+    const need = k * minRepeats;
+    if (seq.length < need) continue;
+    const tail = seq.slice(seq.length - need);
+    const base = tail.slice(0, k);
+    let exact = true;
+    for (let i = 0; i < tail.length; i++) {
+      if (tail[i] !== base[i % k]) { exact = false; break; }
+    }
+    // k ascends, so an all-same tail is caught at k=1 ("stuck on one space");
+    // any exact repeat reaching k>1 therefore spans ≥2 distinct spaces.
+    if (exact) {
+      return { looped: true, period: k, cycle: base };
+    }
+  }
+  return { looped: false };
 }
 
 export interface GhostGameOptions {
@@ -52,6 +115,17 @@ export interface GhostGameOptions {
    * Default false.
    */
   smartTryAgain?: boolean;
+  /**
+   * When true, a game that hits the turn cap while stuck in a repeating
+   * space-cycle is reclassified TURN_CAP → LOOP (a HARD failure). Default
+   * false, and deliberately so: random/blind bots loop because they make dumb
+   * choices (the strict floor tolerates it; negotiate-coverage loops ON PURPOSE
+   * by reverting approvals), so a loop there is not a game bug. A loop under
+   * RATIONAL play (smart-bot, or a fixture board) IS a soft-lock bug — that's
+   * the Prof Cert case (v3.0.79) where every path was trapped. Enable only on
+   * gates where the bot plays sensibly.
+   */
+  detectLoops?: boolean;
   /**
    * Optional abort signal. When triggered, the game loop and inner helpers
    * (resolveAnyPendingChoice, triggerManualSpaceEffects) return early at the
@@ -300,6 +374,15 @@ export async function playOneGame(
       if (signal?.aborted) return abortedResult(turn);
     }
 
+    // A game that hit the cap without finishing is either slow-but-progressing
+    // (TURN_CAP, a soft loss) or stuck in a cycle (LOOP, a hard failure). Only
+    // reclassify under rational play — see detectLoops doc on GhostGameOptions.
+    if (options.detectLoops) {
+      const loop = detectSpaceLoop(trail);
+      if (loop.looped) {
+        return fail('LOOP', `Stuck in a ${loop.period}-space cycle (${loop.cycle?.join(' → ')}) — never reaches FINISH`, maxTurns);
+      }
+    }
     return fail('TURN_CAP', `Game did not finish within ${maxTurns} turns`, maxTurns);
   } catch (err: any) {
     const turns = trail.length;

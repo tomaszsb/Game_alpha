@@ -38,12 +38,35 @@ export function buildCatalog({ stockSpacesCsv, pathChoiceCsv, config, stockVersi
     const name = (row.space_name || '').trim();
     if (!name) continue;
     if (!byName.has(name)) {
-      byName.set(name, { name, phase: (row.phase || '').trim(), stock: {} });
+      byName.set(name, { name, phase: (row.phase || '').trim(), stock: {}, dice: false, destCells: [] });
     }
     const entry = byName.get(name);
     const fields = {};
     for (const field of EDITABLE_FIELDS) fields[field] = row[field] ?? '';
     entry.stock[row.visit_type || ''] = fields;
+    if (String(row.requires_dice_roll || '').toUpperCase() === 'YES') entry.dice = true;
+    for (let i = 1; i <= 5; i++) {
+      if (row[`space_${i}`]) entry.destCells.push(row[`space_${i}`]);
+    }
+  }
+
+  // 4a-eligible insertion edges: fixed (non-dice) A→B where both ends exist.
+  // The UI offers these as the "pick an edge to splice" dropdown; the server
+  // re-validates on save (dice edges are 4b, rejected there too).
+  const known = new Set(byName.keys());
+  const edges = [];
+  const seen = new Set();
+  for (const entry of byName.values()) {
+    if (entry.dice) continue;
+    for (const cell of entry.destCells) {
+      for (const token of String(cell).match(/[A-Z][A-Z0-9-]{2,}/g) || []) {
+        if (token === entry.name || !known.has(token)) continue;
+        const key = `${entry.name} ${token}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        edges.push({ from: entry.name, to: token });
+      }
+    }
   }
 
   const spaces = [...byName.values()].map(entry => {
@@ -60,5 +83,11 @@ export function buildCatalog({ stockSpacesCsv, pathChoiceCsv, config, stockVersi
     };
   });
 
-  return { stockVersion, editableFields: EDITABLE_FIELDS, spaces };
+  return {
+    stockVersion,
+    editableFields: EDITABLE_FIELDS,
+    spaces,
+    edges,
+    insertions: config.insertions || {},
+  };
 }

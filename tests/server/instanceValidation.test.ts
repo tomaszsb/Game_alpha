@@ -241,3 +241,52 @@ describe('validateConfig — PATH_CHOICE drift tripwire', () => {
     expect(report.errors.some(e => e.code === 'PATH_CHOICE_REFERENCES_OFF_SPACE')).toBe(true);
   });
 });
+
+describe('validateConfig — insertions (Phase 4a)', () => {
+  const ins = (over: Record<string, unknown>) => ({
+    id: 'auth-classroom-1-1', displayName: 'Authored', story: '', ...over,
+  });
+
+  it('accepts an authored space on a real fixed edge', () => {
+    const config = makeConfig({
+      insertions: { 'auth-classroom-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
+  });
+
+  it('rejects a self-edge (from === to)', () => {
+    const config = makeConfig({
+      insertions: { 'auth-classroom-1-1': ins({ from: 'BETA-MIDDLE', to: 'BETA-MIDDLE' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.some(e => e.code === 'INSERT_SELF_EDGE')).toBe(true);
+  });
+
+  it('rejects an authored id that collides with a stock space name', () => {
+    const config = makeConfig({
+      insertions: { 'ZETA-END': ins({ id: 'ZETA-END', from: 'BETA-MIDDLE', to: 'GAMMA-FORK' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.some(e => e.code === 'INSERT_ID_COLLISION')).toBe(true);
+  });
+
+  it('rejects a non-existent A→B edge', () => {
+    const config = makeConfig({
+      insertions: { 'auth-classroom-1-1': ins({ from: 'ALPHA-START', to: 'GAMMA-FORK' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.some(e => e.code === 'INSERT_EDGE_MISSING')).toBe(true);
+  });
+
+  it('rejects two insertions on the same edge (no chains in 4a)', () => {
+    const config = makeConfig({
+      insertions: {
+        'auth-classroom-1-1': ins({ id: 'auth-classroom-1-1', from: 'BETA-MIDDLE', to: 'GAMMA-FORK' }),
+        'auth-classroom-1-2': ins({ id: 'auth-classroom-1-2', from: 'BETA-MIDDLE', to: 'GAMMA-FORK' }),
+      },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.some(e => e.code === 'INSERT_EDGE_OCCUPIED')).toBe(true);
+  });
+});

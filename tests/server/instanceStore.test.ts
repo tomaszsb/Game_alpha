@@ -18,6 +18,9 @@ import {
   createTeacherCopy,
   updateTeacherCopy,
   deleteTeacherCopy,
+  addInsertion,
+  updateInsertion,
+  removeInsertion,
   deleteInstance,
   setInstanceOwner,
   removeAccountFromAllInstances,
@@ -293,6 +296,71 @@ describe('removeAccountFromAllInstances (Phase 3 polish)', () => {
     createInstance(root, { id: 'classroom-2' });
     expect(removeAccountFromAllInstances(root, 'teacher-nobody')).toEqual([]);
     expect(removeAccountFromAllInstances(root, '')).toEqual([]);
+  });
+});
+
+describe('insertions (Phase 4a)', () => {
+  it('createInstance seeds an empty insertions section; loadInstance round-trips it', () => {
+    createInstance(root, { id: 'classroom-1' });
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.insertions).toEqual({});
+  });
+
+  it('loadInstance defaults insertions for configs written before Phase 4', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    // Simulate a pre-Phase-4 config on disk (no insertions key).
+    delete (config as any).insertions;
+    fs.writeFileSync(configPath(root, 'classroom-1'), JSON.stringify(config, null, 2));
+    const loaded = loadInstance(root, 'classroom-1')!;
+    expect(loaded.insertions).toEqual({});
+  });
+
+  it('addInsertion mints a stable auth-<instanceId>-<n> id and stores the edge', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, {
+      from: 'A-SPACE',
+      to: 'B-SPACE',
+      displayName: 'Community Review',
+      story: 'A beat.',
+      time: '2',
+    });
+    expect(id).toBe('auth-classroom-1-1');
+    expect(config.insertions[id]).toMatchObject({
+      id,
+      from: 'A-SPACE',
+      to: 'B-SPACE',
+      displayName: 'Community Review',
+      story: 'A beat.',
+      time: '2',
+    });
+    // Second insertion gets the next counter.
+    expect(addInsertion(config, { from: 'B-SPACE', to: 'C-SPACE', displayName: 'Another' })).toBe('auth-classroom-1-2');
+  });
+
+  it('addInsertion rejects a missing edge or blank displayName', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    expect(() => addInsertion(config, { from: 'A', to: '', displayName: 'X' } as any)).toThrow();
+    expect(() => addInsertion(config, { from: 'A', to: 'B', displayName: '  ' })).toThrow();
+  });
+
+  it('updateInsertion edits content but never the id or createdAt', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, { from: 'A', to: 'B', displayName: 'Old' });
+    const createdAt = config.insertions[id].createdAt;
+    updateInsertion(config, id, { displayName: 'New', story: 'Edited', to: 'C' });
+    expect(config.insertions[id].id).toBe(id);
+    expect(config.insertions[id].createdAt).toBe(createdAt);
+    expect(config.insertions[id].displayName).toBe('New');
+    expect(config.insertions[id].story).toBe('Edited');
+    expect(config.insertions[id].to).toBe('C');
+  });
+
+  it('removeInsertion drops the record (the bake re-stitches the edge)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, { from: 'A', to: 'B', displayName: 'Gone soon' });
+    removeInsertion(config, id);
+    expect(config.insertions[id]).toBeUndefined();
+    expect(() => removeInsertion(config, id)).toThrow();
   });
 });
 

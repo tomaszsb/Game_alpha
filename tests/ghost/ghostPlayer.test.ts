@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { bootstrapHeadlessServices } from './bootstrapServices';
-import { playOneGame, runGhostBatch, type GhostGameResult } from './ghostPlayer';
+import { playOneGame, runGhostBatch, isHardFailure, detectSpaceLoop, type GhostGameResult } from './ghostPlayer';
 
 // Append one ghost-batch result (one JSON object per line) to
 // .claude/ghost-history.jsonl so the win count is NEVER lost — vitest swallows
@@ -74,9 +74,7 @@ describe('Ghost Player', () => {
     const batch = await runGhostBatch(50, { maxTurns: 300, baseSeed: 1 });
     console.log(`[ghost strict baseSeed=1] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
-    const hardFailures = batch.failures.filter(
-      (f: GhostGameResult) => f.reason === 'EXCEPTION' || f.reason === 'INVARIANT_VIOLATION'
-    );
+    const hardFailures = batch.failures.filter(isHardFailure);
 
     const summary =
       `\n${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
@@ -134,9 +132,7 @@ describe('Ghost Player', () => {
     const batch = await runGhostBatch(50, { maxTurns: 300, tryAgainProbability: 0.2, baseSeed: 100001 });
     console.log(`[ghost negotiate-coverage baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
-    const hardFailures = batch.failures.filter(
-      (f: GhostGameResult) => f.reason === 'EXCEPTION' || f.reason === 'INVARIANT_VIOLATION'
-    );
+    const hardFailures = batch.failures.filter(isHardFailure);
 
     const summary =
       `\n[negotiate-coverage] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
@@ -174,12 +170,14 @@ describe('Ghost Player', () => {
       // off at 30s. Removes the machine-speed dependence so the win count is
       // deterministic and a usable balance signal. Worst-case batch ~25 min.
       perGameTimeoutMs: 120000,
+      // Rational play must never soft-lock: a 300-turn non-finish that is an
+      // exact space-cycle is a LOOP (hard failure), not a tolerated slow loss.
+      // This is the gate that would have caught the Prof Cert loop (v3.0.79).
+      detectLoops: true,
     });
     console.log(`[ghost try-again smart baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
-    const hardFailures = batch.failures.filter(
-      (f: GhostGameResult) => f.reason === 'EXCEPTION' || f.reason === 'INVARIANT_VIOLATION'
-    );
+    const hardFailures = batch.failures.filter(isHardFailure);
 
     const summary =
       `\n[try-again smart-bot] ${batch.failures.length}/${batch.total} failures (${hardFailures.length} hard), ${batch.wins} wins, avgTurns=${batch.avgTurns.toFixed(1)}\n` +
@@ -206,14 +204,68 @@ describe('Ghost Player', () => {
 
     expect(hardFailures, summary).toHaveLength(0);
     // Calibrated 2026-06-08 to the DETERMINISTIC (games-finish) run, baseSeed=100001
-    // with perGameTimeoutMs=120000: 47/50 wins (94%), avgTurns=149, 0 hard failures,
-    // 3 genuine losses. Floor = measured − 4 = 43 (strict-gate buffer policy). This
-    // run is machine-independent — no game reaches the 120s cap (the longest grind
-    // to the 300-turn limit is ~50–80s), so the 3 losses are real, not timeouts.
-    // The prior 31/50 was timeout-contaminated (30s cap); 16 of those 19 "losses"
-    // were just unfinished games that win when given time. The 90% win-rate goal is
-    // MET. The live signal now is game LENGTH (avgTurns 149, 40/50 long games) —
-    // see ghost-win-rate TODO. Each run is appended to .claude/ghost-history.jsonl.
+    // with perGameTimeoutMs=120000. Re-measured 2026-06-16 after adding detectLoops:
+    // now 50/50 wins, avgTurns=83.6, 0 hard failures, 0 LOOPs (was 47/50 avgTurns=149
+    // on 2026-06-08 — the v3.0.79/80 FDNY auto-answer + Prof Cert routing fixes let
+    // rational play finish faster and more reliably). Floor stays 43 (a minimum, not
+    // a target — leave headroom so a small balance shift doesn't flake the gate).
+    // detectLoops:true means a 300-turn exact-cycle non-finish would now count as a
+    // hard LOOP failure; 0 today confirms rational play never soft-locks. Each run is
+    // appended to .claude/ghost-history.jsonl.
     expect(batch.wins, summary).toBeGreaterThanOrEqual(43);
   }, 2_700_000);
+});
+
+// Fast, deterministic unit tests for the LOOP classifier (no game runs).
+// Kept separate from the multi-minute batch gates so the detector logic is
+// validated in milliseconds. Pins the round-3 / v3.0.79 soft-lock detection.
+describe('LOOP detection (detectSpaceLoop / isHardFailure)', () => {
+  const trailOf = (spaces: string[]): string[] =>
+    spaces.map((s, i) => `T${i} ${s}:First hand=0(W=0) $1000`);
+
+  it('flags an exact 2-space cycle repeated at the tail', () => {
+    const trail = trailOf(['START', 'A', 'B', 'A', 'B', 'A', 'B']);
+    const loop = detectSpaceLoop(trail);
+    expect(loop.looped).toBe(true);
+    expect(loop.period).toBe(2);
+    expect(loop.cycle).toEqual(['A', 'B']);
+  });
+
+  it('flags being stuck on a single space (period 1)', () => {
+    expect(detectSpaceLoop(trailOf(['X', 'STUCK', 'STUCK', 'STUCK'])).period).toBe(1);
+  });
+
+  it('does NOT flag a progressing game that reaches new spaces', () => {
+    const trail = trailOf(['START', 'A', 'B', 'C', 'D', 'E', 'F', 'FINISH']);
+    expect(detectSpaceLoop(trail).looped).toBe(false);
+  });
+
+  it('does NOT flag a brief revisit that is not a sustained cycle', () => {
+    // A→B→A once, then moves on — only one repeat, below minRepeats.
+    const trail = trailOf(['A', 'B', 'A', 'C', 'D', 'E']);
+    expect(detectSpaceLoop(trail).looped).toBe(false);
+  });
+
+  it('ignores non-turn trail lines when extracting the sequence', () => {
+    const trail = [
+      ...trailOf(['HUB', 'SPOKE']).slice(0, 1),
+      '  rolled(3) fx=2 → hand=4',
+      'T1 SPOKE:First hand=0(W=0) $1',
+      '  triggered(draw) → hand=5',
+      'T2 HUB:First hand=0(W=0) $1',
+      'T3 SPOKE:First hand=0(W=0) $1',
+      'T4 HUB:First hand=0(W=0) $1',
+      'T5 SPOKE:First hand=0(W=0) $1',
+    ];
+    expect(detectSpaceLoop(trail)).toMatchObject({ looped: true, period: 2 });
+  });
+
+  it('isHardFailure treats LOOP as hard, TURN_CAP as soft', () => {
+    const base = { success: false, turns: 300, finalSpace: 'X', trail: [] };
+    expect(isHardFailure({ ...base, reason: 'LOOP' })).toBe(true);
+    expect(isHardFailure({ ...base, reason: 'EXCEPTION' })).toBe(true);
+    expect(isHardFailure({ ...base, reason: 'INVARIANT_VIOLATION' })).toBe(true);
+    expect(isHardFailure({ ...base, reason: 'TURN_CAP' })).toBe(false);
+    expect(isHardFailure({ ...base, reason: 'WIN', success: true })).toBe(false);
+  });
 });

@@ -117,8 +117,18 @@ describe('server.js endpoint auth wiring', () => {
     ['post', '/api/instances/:id/copies'],
     ['patch', '/api/instances/:id/copies/:copyId'],
     ['delete', '/api/instances/:id/copies/:copyId'],
+    ['post', '/api/instances/:id/insertions'],
+    ['patch', '/api/instances/:id/insertions/:insertionId'],
+    ['delete', '/api/instances/:id/insertions/:insertionId'],
   ])('%s %s routes through the guarded mutation flow', (method, route) => {
     expect(handlerHead(method, route, 1200)).toContain('handleInstanceMutation(req, res');
+  });
+
+  it('handleInstanceMutation enforces optimistic concurrency (409 on stale configVersion)', () => {
+    const start = source.indexOf('function handleInstanceMutation');
+    const body = source.slice(start, start + 1600);
+    expect(body).toContain('baseConfigVersion');
+    expect(body).toContain('409');
   });
 
   it('GET /api/instances/:id/catalog is open by design (full deck read, no token)', () => {
@@ -131,7 +141,7 @@ describe('server.js endpoint auth wiring', () => {
   it('handleInstanceMutation itself enforces write token or admin', () => {
     const start = source.indexOf('function handleInstanceMutation');
     expect(start).toBeGreaterThan(-1);
-    const body = source.slice(start, start + 1200);
+    const body = source.slice(start, start + 2400);
     expect(body).toContain('checkInstanceWriteAccess(config');
     // And validation gates the save: errors → 422, never a silent bake.
     expect(body).toContain('validateConfig(');
