@@ -136,9 +136,19 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
   // insertion on edge A→B: rewrite A's destination cell (B → authored id) so
   // players route through the new space, then append the authored space's own
   // rows with a single fixed edge to B. Validation (edge exists, endpoints
-  // active, A is a fixed edge) already passed at bake time. Templates are
-  // captured from A's rows for column-completeness, so the authored rows carry
-  // exactly the stock schema regardless of how it has drifted.
+  // active, A is a fixed edge) already passed at bake time.
+  //
+  // The authored row is built CLEAN (allowlist): start from A's row only for
+  // column-completeness (so every header column exists regardless of schema
+  // drift), then blank EVERYTHING and re-set just the narrow set a narrative
+  // pass-through needs. The earlier clone-and-blank-a-denylist approach leaked
+  // A's *behavioral* columns (funding_source, auto_apply_funding,
+  // auto_trigger_card_types, fee_calculation_method, …) and A's *position* into
+  // the authored space — so a story beat spliced after a funding space secretly
+  // behaved like that funding space and rendered stacked on top of its tile
+  // (both found verifying 4a). Blanking is safe: processGameData defaults the
+  // behavioral columns (e.g. fee_calculation_method → 'flat'), and Time/Fee are
+  // read straight off their own columns.
   for (const ins of Object.values(config.insertions || {})) {
     const templates = out.filter(r => r.space_name === ins.from).map(r => ({ ...r }));
     if (templates.length === 0) continue;
@@ -148,38 +158,61 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
         if (row[`space_${i}`] === ins.to) row[`space_${i}`] = ins.id;
       }
     }
+    // Auto-place at the spliced edge's midpoint (design: "auto-place adjacent to
+    // the spliced edge's midpoint, then let the teacher drag it"). An explicit
+    // teacher position wins. Never inherit A's coords (that caused the overlap).
+    const placement = computeInsertionPosition(ins, templates[0], out);
     for (const tpl of templates) {
       const isFirst = (tpl.visit_type || '') === 'First';
-      const authored = { ...tpl };
+      const authored = {};
+      for (const k of Object.keys(tpl)) authored[k] = '';        // blank every column
       authored.space_name = ins.id;
+      authored.visit_type = tpl.visit_type;
+      authored.phase = tpl.phase || '';                          // keep A's phase band
+      authored.path = tpl.path && tpl.path !== 'LOGIC' ? tpl.path : 'Main'; // plain fixed lane
       authored.Title = ins.displayName;
       authored.Event = ins.story || '';
-      if ('Action' in authored) authored.Action = '';
-      if ('Outcome' in authored) authored.Outcome = '';
-      authored.space_1 = ins.to;
-      authored.space_2 = ''; authored.space_3 = ''; authored.space_4 = ''; authored.space_5 = '';
-      if ('requires_dice_roll' in authored) authored.requires_dice_roll = 'NO';
-      if ('Negotiate' in authored) authored.Negotiate = 'NO';
+      authored.display_label_override = ins.displayName;         // the human label (audit round 4)
+      authored.requires_dice_roll = 'NO';
+      authored.Negotiate = 'NO';
+      authored.space_1 = ins.to;                                 // single fixed onward edge
       // Flat effects are First-visit only (a pass-through must not re-charge on revisit).
-      if ('Time' in authored) authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
-      if ('Fee' in authored) authored.Fee = isFirst && ins.fee != null ? String(ins.fee) : '0';
-      for (const cardCol of ['w_card', 'b_card', 'i_card', 'l_card', 'e_card']) {
-        if (cardCol in authored) authored[cardCol] = '';
-      }
-      if (ins.pos_x != null) authored.pos_x = String(ins.pos_x);
-      if (ins.pos_y != null) authored.pos_y = String(ins.pos_y);
-      // An authored mid-path space is never structural / a choice anchor.
+      authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
+      authored.Fee = isFirst && ins.fee != null ? String(ins.fee) : '0';
+      // A mid-path space is never structural / a choice anchor.
       for (const flag of ['is_starting_space', 'is_ending_space', 'is_resume_hub', 'is_path_choice_lock_point']) {
         if (flag in authored) authored[flag] = 'No';
       }
-      if ('path_choice_memory_key' in authored) authored.path_choice_memory_key = '';
-      // displayName rides display_label_override (audit round 4). Harmless if
-      // the stock header lacks the column — toCsv writes only header columns.
-      authored.display_label_override = ins.displayName;
+      authored.pos_x = String(placement.x);
+      authored.pos_y = String(placement.y);
       out.push(authored);
     }
   }
   return toCsv(out, headers);
+}
+
+/**
+ * Where to drop an authored tile. Explicit teacher coords win; otherwise the
+ * midpoint of the spliced A→B edge (so the new tile sits between its neighbors
+ * instead of on top of A). Falls back to a small offset from A when either
+ * endpoint lacks coords.
+ * @param {{ pos_x?: string|number, pos_y?: string|number, to: string }} ins
+ * @param {Record<string,string>} fromRow  A's row (carries A's pos)
+ * @param {Array<Record<string,string>>} rows  all rows (to look up B's pos)
+ * @returns {{ x: number, y: number }}
+ */
+function computeInsertionPosition(ins, fromRow, rows) {
+  if (ins.pos_x != null && ins.pos_x !== '' && ins.pos_y != null && ins.pos_y !== '') {
+    return { x: Number(ins.pos_x), y: Number(ins.pos_y) };
+  }
+  const toRow = rows.find(r => r.space_name === ins.to);
+  const fx = Number(fromRow?.pos_x), fy = Number(fromRow?.pos_y);
+  const tx = Number(toRow?.pos_x), ty = Number(toRow?.pos_y);
+  if ([fx, fy, tx, ty].every(Number.isFinite)) {
+    return { x: Math.round((fx + tx) / 2), y: Math.round((fy + ty) / 2) };
+  }
+  if (Number.isFinite(fx) && Number.isFinite(fy)) return { x: fx + 60, y: fy + 60 };
+  return { x: 0, y: 0 };
 }
 
 /**

@@ -426,8 +426,15 @@ export function deleteTeacherCopy(config, copyId) {
 
 /**
  * Add a teacher-authored narrative space onto the A→B edge (Phase 4a).
- * Generates a stable internal id in the slot namespace (`auth-<instanceId>-<n>`,
- * audit round 3) distinct from copy ids and never emitted by stock. The
+ * Generates a stable internal id in the slot namespace (`AUTH-<INSTANCEID>-<n>`,
+ * audit round 3) distinct from copy ids and never emitted by stock. The id is
+ * UPPERCASE on purpose: every space-name parser in the pipeline keys off the
+ * uppercase token rule (processGameData's `isValidSpaceName` /^[A-Z]…/, the
+ * catalog/resolver `[A-Z][A-Z0-9-]{2,}` token regexes). A lowercase id is
+ * silently dropped as an invalid destination — the source space's movement
+ * collapses to `none` and the authored space is orphaned (the soft-lock found
+ * verifying 4a). An UPPERCASE id is recognized everywhere by construction; the
+ * stock-name-collision guard (INSERT_ID_COLLISION) still backstops it. The
  * displayName is the human label (audit round 4 — internalId + displayName,
  * both baked). Topology validation (edge exists, endpoints active, from is a
  * fixed edge, no double-occupied edge) lives in instanceValidation, not here —
@@ -443,9 +450,13 @@ export function addInsertion(config, { from, to, displayName, story, time, fee, 
   if (!displayName || !String(displayName).trim()) throw new Error('Insertion requires a displayName');
   if (!config.insertions) config.insertions = {};
 
+  // UPPERCASE so the id passes every space-name parser (see the doc comment).
+  // The instance-id echo is uppercased too — the whole token must be uppercase
+  // to satisfy isValidSpaceName's /^[A-Z][A-Z0-9-]+$/.
+  const prefix = `AUTH-${String(config.meta.id).toUpperCase()}`;
   let n = 1;
-  while (config.insertions[`auth-${config.meta.id}-${n}`]) n += 1;
-  const id = `auth-${config.meta.id}-${n}`;
+  while (config.insertions[`${prefix}-${n}`]) n += 1;
+  const id = `${prefix}-${n}`;
 
   const now = new Date().toISOString();
   config.insertions[id] = {

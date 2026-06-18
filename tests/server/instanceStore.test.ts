@@ -315,7 +315,7 @@ describe('insertions (Phase 4a)', () => {
     expect(loaded.insertions).toEqual({});
   });
 
-  it('addInsertion mints a stable auth-<instanceId>-<n> id and stores the edge', () => {
+  it('addInsertion mints a stable AUTH-<INSTANCEID>-<n> id and stores the edge', () => {
     const config = createInstance(root, { id: 'classroom-1' });
     const id = addInsertion(config, {
       from: 'A-SPACE',
@@ -324,7 +324,9 @@ describe('insertions (Phase 4a)', () => {
       story: 'A beat.',
       time: '2',
     });
-    expect(id).toBe('auth-classroom-1-1');
+    // UPPERCASE so every space-name parser recognizes it (see addInsertion).
+    expect(id).toBe('AUTH-CLASSROOM-1-1');
+    expect(/^[A-Z][A-Z0-9-]+$/.test(id)).toBe(true);
     expect(config.insertions[id]).toMatchObject({
       id,
       from: 'A-SPACE',
@@ -334,7 +336,7 @@ describe('insertions (Phase 4a)', () => {
       time: '2',
     });
     // Second insertion gets the next counter.
-    expect(addInsertion(config, { from: 'B-SPACE', to: 'C-SPACE', displayName: 'Another' })).toBe('auth-classroom-1-2');
+    expect(addInsertion(config, { from: 'B-SPACE', to: 'C-SPACE', displayName: 'Another' })).toBe('AUTH-CLASSROOM-1-2');
   });
 
   it('addInsertion rejects a missing edge or blank displayName', () => {

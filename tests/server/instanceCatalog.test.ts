@@ -63,14 +63,14 @@ describe('buildCatalog', () => {
   it('lists fixed A→B edges for splicing and the existing insertions (Phase 4a)', () => {
     const config = baseConfig();
     config.insertions = {
-      'auth-classroom-1-1': { id: 'auth-classroom-1-1', displayName: 'Hearing', from: 'BETA-MIDDLE', to: 'ZETA-END' },
+      'AUTH-CLASSROOM-1-1': { id: 'AUTH-CLASSROOM-1-1', displayName: 'Hearing', from: 'BETA-MIDDLE', to: 'ZETA-END' },
     };
     const catalog = buildCatalog({ stockSpacesCsv: STOCK, config }) as any;
     expect(catalog.edges).toEqual([
       { from: 'ALPHA-START', to: 'BETA-MIDDLE' },
       { from: 'BETA-MIDDLE', to: 'ZETA-END' },
     ]);
-    expect(catalog.insertions['auth-classroom-1-1']).toMatchObject({ displayName: 'Hearing', from: 'BETA-MIDDLE', to: 'ZETA-END' });
+    expect(catalog.insertions['AUTH-CLASSROOM-1-1']).toMatchObject({ displayName: 'Hearing', from: 'BETA-MIDDLE', to: 'ZETA-END' });
   });
 
   it('defaults insertions to an empty object and never leaks hidden columns into edges', () => {

@@ -358,7 +358,7 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
       pos_x: '150',
       pos_y: '50',
     });
-    expect(id).toBe('auth-classroom-1-1');
+    expect(id).toBe('AUTH-CLASSROOM-1-1');
     const stockVersion = computeStockVersion(stockDir);
 
     bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
@@ -380,18 +380,54 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
     expect(first.Time).toBe('3');
     expect(first.Fee).toBe('5000');
     expect(String(first.requires_dice_roll).toUpperCase()).toBe('NO');
+    // Clean build (allowlist): populated columns on the SOURCE row (Action/Outcome
+    // here; funding_source/auto_apply_funding against real stock) must NOT leak —
+    // the authored space is a blank pass-through, not a copy of A. (The fixture's
+    // P2_HEADER has no display_label_override column, so the label round-trip is
+    // verified against real stock, not here.)
+    expect(first.Action).toBe('');
+    expect(first.Outcome).toBe('');
     // Subsequent visit does not re-charge the flat effects.
     const sub = authored.find(r => r.visit_type === 'Subsequent')!;
     expect(sub.Time).toBe('0');
     expect(sub.Fee).toBe('0');
 
-    // It flows through processGameData into the served board.
-    expect(readResolved('CLEAN_FILES/MOVEMENT.csv')).toContain(id);
+    // It flows through processGameData into the served board — and crucially the
+    // SOURCE space's regenerated movement actually routes TO the authored id.
+    // (A lowercase id would be dropped by isValidSpaceName, collapsing this row
+    // to movement_type 'none' with no destination — the 4a soft-lock. A plain
+    // `.toContain(id)` would still pass on the authored space's OWN row, so it
+    // must assert the rewired source edge specifically.)
+    const movement = parseCsvWithHeaders(readResolved('CLEAN_FILES/MOVEMENT.csv'));
+    const betaMove = movement.find(r => r.space_name === 'BETA-MIDDLE' && r.visit_type === 'First');
+    expect(betaMove!.movement_type).toBe('fixed');
+    expect(betaMove!.destination_1).toBe(id);
+    const authMove = movement.find(r => r.space_name === id && r.visit_type === 'First');
+    expect(authMove!.movement_type).toBe('fixed');
+    expect(authMove!.destination_1).toBe('GAMMA-FORK');
     const gc = parseCsvWithHeaders(readResolved('CLEAN_FILES/GAME_CONFIG.csv')).find(r => r.space_name === id);
     expect(gc).toBeDefined();
     expect(gc!.pos_x).toBe('150');
 
     expect(JSON.parse(readResolved('validation-report.json')).ok).toBe(true);
+  });
+
+  it('auto-places the authored tile at the spliced edge midpoint when no position is given', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    // No pos_x/pos_y — the resolver must auto-place, never inherit A's coords
+    // (inheriting put the tile on top of A — the overlap found verifying 4a).
+    const id = addInsertion(config, { from: 'BETA-MIDDLE', to: 'GAMMA-FORK', displayName: 'Hearing' });
+    const stockVersion = computeStockVersion(stockDir);
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const gc = parseCsvWithHeaders(readResolved('CLEAN_FILES/GAME_CONFIG.csv')).find(r => r.space_name === id);
+    // Midpoint of BETA-MIDDLE (100,0) and GAMMA-FORK (200,0).
+    expect(gc!.pos_x).toBe('150');
+    expect(gc!.pos_y).toBe('0');
+    // Distinct from BETA's own position — not stacked on top of it.
+    const beta = parseCsvWithHeaders(readResolved('CLEAN_FILES/GAME_CONFIG.csv')).find(r => r.space_name === 'BETA-MIDDLE');
+    expect(`${gc!.pos_x},${gc!.pos_y}`).not.toBe(`${beta!.pos_x},${beta!.pos_y}`);
   });
 
   it('refuses to bake an insertion on a dice edge (4b, not 4a)', () => {
