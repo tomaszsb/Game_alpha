@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] — branch `phase-4a-card-insertion` (2026-06-18)
+
+**Phase 4a verified in the running game — found + fixed four real bugs the build-only tests missed.** Per the user's "verify 4a before building 4b" call. All four were exposed by actually baking a classroom-1 insertion (`OWNER-FUND-INITIATION → "Community Board Review" → PM-DECISION-CHECK`) and walking it; routing + tile render confirmed end-to-end through the Express-served client. Commit `af3e5f6`. Not merged/pushed/deployed.
+
+- **Soft-lock (critical).** Authored-space ids were lowercase (`auth-<id>-<n>`), but every space-name parser is uppercase-only — `processGameData`'s `isValidSpaceName` (`/^[A-Z]…/`) + the catalog/resolver token regexes. A lowercase id is silently dropped as an invalid destination, so the **source** space's regenerated movement collapses to `none` (no exit) and the authored space is orphaned. Fix: generate **UPPERCASE** ids (`AUTH-<INSTANCEID>-<n>`) — recognized everywhere by construction; the existing `INSERT_ID_COLLISION` guard still backstops stock-name clashes. ([instanceStore.js](server/instanceStore.js))
+- **Behavioral leak.** The resolver built the authored row by cloning the source row and blanking a *partial* denylist, leaking the source's behavioral columns (`funding_source`, `auto_apply_funding`, `auto_trigger_card_types`, …) — a narrative pass-through spliced after a funding space behaved like a funding space. Fix: build the row **clean via allowlist** (blank everything, set only what a pass-through needs). Safe because `processGameData` defaults the behavioral columns (e.g. `fee_calculation_method → 'flat'`) and Time/Fee read their own columns. ([instanceResolver.js](server/instanceResolver.js))
+- **Position overlap.** With no teacher-supplied position the clone inherited the source tile's **exact** coords → the authored tile rendered stacked invisibly on top of it. Fix: new `computeInsertionPosition()` **auto-places at the spliced edge's midpoint** (the design intent that was never implemented) unless an explicit position is given.
+- **Label.** Confirmed `display_label_override` carries the teacher's `displayName` through to the served board (renders "Community Board Review", not the mangled id).
+- **Tests.** Strengthened the resolver test to assert the **source** edge actually routes to the authored id (the old `.toContain(id)` matched the authored space's *own* row, so it never caught the soft-lock) + Action/Outcome blanked; new midpoint auto-placement test; id-format assertions updated to uppercase. **227 server + 1658 component/util/service tests pass; typecheck + build clean.**
+
 ## [3.0.80] - 2026-06-14
 
 **Hotfix: Prof Cert now grants DOB approval — fixes an inescapable FDNY loop.** Surfaced by the v3.0.79 logic-question auto-answers during live playtest.

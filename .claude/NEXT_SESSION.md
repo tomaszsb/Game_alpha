@@ -1,24 +1,23 @@
-# Next session starter — written 2026-06-16 by /koniec
+# Next session starter — written 2026-06-18 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.80 (no new version this session). Live deploy of v3.0.80 was user-driven at session start — **confirm the live header reads v3.0.80** (I never verified).
-- **Branch:** ⚠️ still on **`phase-4a-card-insertion`**, not master. 3 code/doc commits + this wrap-up. **Not merged, not pushed, not deployed.** master clean.
-- **This session (2 blocks):** (1) built **Phase 4a card insertion** end-to-end (engine + endpoints + UI + LOOP gate; 4c/4d cut). (2) Built a **UI-redesign handoff package** for the design team (no code).
-- **Test suite:** 1658 components/utils/services + 226 server + 6 ghost-LOOP — all green (from this session; no code changed since). **Build/typecheck:** clean.
+- **Version:** v3.0.80 (no new version this session). Live still serves **v3.0.78** — v3.0.79/80 pending deploy.
+- **Branch:** ⚠️ on **`phase-4a-card-insertion`** (this session's 4a fixes = commit `af3e5f6`). **NOT merged/pushed/deployed.** master clean.
+- **This session:** **verified Phase 4a in the running game** (user call: verify before building 4b) → found + fixed **4 real bugs** the build-only tests missed (lowercase-id soft-lock; resolver clone-and-blank behavioral leak; tile position overlap; label OK). 4a is now genuinely usable; routing + tile render confirmed end-to-end. Did NOT start 4b.
+- **Test suite:** 227 server + 1658 component/util/service — all green. **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **UI redesign — player panel + scoreboard** (user + design team). Handoff ready: `.claude/player-dashboard-variables.md`, `.claude/player-dashboard-context.md`, `UI-screenshots.pdf` (20p), `modal-inventory.pdf` (5p). Scope/constraints confirmed (panel primary + scoreboard; HARD no-scroll on both surfaces; not a ranked race). See TODO "UI redesign" for the one open design tension.
-2. **Verify Phase 4a in-app, then decide merge** — UI components are build-verified only. Walk the teacher flow locally (Add a space → pick edge → save → tile routes A→N→B) before merging the branch to master.
-3. **Mobile board-bleed-through bug** (found this session) + **`deploy.sh` instances-wipe** — both block Phase 4a going live cleanly. The bleed-through is independently fixable (panel needs opaque bg). See TODO.
+1. **4b slice 1 — fork-splice** (splice authored stops onto choice/dice edges). **Full plan in `.claude/plans/replicated-baking-hoare.md`.** Key: plain **choice** edges ALREADY work (catalog enumerates non-dice multi-dest edges, resolver rewrites `space_N`) — the genuinely-new work is the **dice** case (catalog must enumerate dice-table edges; validation allow them + reject path-choice lock-point edges; resolver rewrite the dice roll columns).
+2. **`deploy.sh` instances-wipe** — hard blocker: no teacher customization (incl. Phase 4a) survives a deploy until fixed. Plus v3.0.79/80 still need deploying. See TODO "Deploy infrastructure".
+3. **UI redesign — player panel + scoreboard** (deploy-independent, design-team handoff package ready) + the mobile board-bleed-through bug.
 
 ## Decisions waiting on the user
-- Merge `phase-4a-card-insertion` → master now, or keep iterating (then 4b)?
-- Scoreboard "who's ahead" framing — confirm the reconciliation (soft positional standings, not a hard leaderboard).
+- **Merge `phase-4a-card-insertion` → master** — when? (kept local through 4b so far, per prior handoffs.)
+- 4b scope: **sliced** (decided 2026-06-18) — fork-splice → card-draws → dice-outcomes → percentage-fees.
 
 ## Suggested first move
-Pick the track: **UI redesign** (deploy-independent, handoff package is ready to hand the design team) or **verify + merge Phase 4a** (needs the deploy-wipe confirmed before it can go live)? The redesign is the lower-friction start.
+Start **4b slice 1 (fork-splice)** on the branch — the plan is written and 4a underneath it is now solid. The dice-edge case is the real work; confirm the choice-edge case already works first (quick), then build the dice path. Or: does the maintainer want to merge 4a → master before stacking 4b on it?
 
 ## Reminders
-- Deploy runs from the **Windows terminal**, not WSL.
-- You're on a **feature branch** — `git checkout phase-4a-card-insertion` if a fresh shell lands on master. Nothing pushed; local-only.
-- Modal/screenshot artifacts (`*.pdf`, `modal-*.png`, `dashboard-*.png`) sit **uncommitted** at root + `.claude/` — deliverables for the design team, not committed (binaries). Throwaway live game G374 was left mid-state (harmless).
+- Deploy runs from the **Windows terminal**, not WSL. You're on branch `phase-4a-card-insertion`.
+- **Verify per-instance/classroom boards via Express (`localhost:3001`), NOT Vite (`localhost:3000`)** — Vite serves `/data` from `public/` (stock); only Express serves the baked classroom board. Cost ~1hr this session. (CLAUDE.md TACTICAL has this + the Windows resolved-dir EPERM bake note + the authored-id-uppercase rule.)
