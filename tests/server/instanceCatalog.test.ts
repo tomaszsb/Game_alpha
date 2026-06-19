@@ -67,8 +67,8 @@ describe('buildCatalog', () => {
     };
     const catalog = buildCatalog({ stockSpacesCsv: STOCK, config }) as any;
     expect(catalog.edges).toEqual([
-      { from: 'ALPHA-START', to: 'BETA-MIDDLE' },
-      { from: 'BETA-MIDDLE', to: 'ZETA-END' },
+      { from: 'ALPHA-START', to: 'BETA-MIDDLE', dice: false },
+      { from: 'BETA-MIDDLE', to: 'ZETA-END', dice: false },
     ]);
     expect(catalog.insertions['AUTH-CLASSROOM-1-1']).toMatchObject({ displayName: 'Hearing', from: 'BETA-MIDDLE', to: 'ZETA-END' });
   });
@@ -77,6 +77,36 @@ describe('buildCatalog', () => {
     const catalog = buildCatalog({ stockSpacesCsv: STOCK, config: baseConfig() }) as any;
     expect(catalog.insertions).toEqual({});
     expect(JSON.stringify(catalog.edges)).not.toContain('hidden');
+  });
+
+  it('enumerates dice-table edges (4b) and never offers a lock-point source', () => {
+    // P-ROLL is a dice source whose destinations live only in the dice table;
+    // P-LOCK is a path-choice lock point that must never be offered for splicing.
+    const DICE_HEADER =
+      'space_name,phase,visit_type,Title,Event,Action,Outcome,Time,Fee,space_1,space_2,' +
+      'requires_dice_roll,is_path_choice_lock_point';
+    const DICE_STOCK = [
+      DICE_HEADER,
+      'P-START,SETUP,First,Start,Begin,Go,Done,0,0,P-ROLL,,No,No',
+      'P-ROLL,REVIEW,First,Roll,Roll it,Go,Done,0,0,,,Yes,No',
+      'P-LOCK,REVIEW,First,Lock,Pick,Go,Done,0,0,P-LEFT,P-RIGHT,No,Yes',
+      'P-LEFT,REVIEW,First,Left,L,Go,Done,0,0,P-END,,No,No',
+      'P-RIGHT,REVIEW,First,Right,R,Go,Done,0,0,P-END,,No,No',
+      'P-END,DONE,First,End,Fin,Go,Done,0,0,,,No,No',
+    ].join('\n') + '\n';
+    const DICE_CSV =
+      'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
+      'P-ROLL,movement,First,P-LEFT,P-LEFT,P-RIGHT,P-RIGHT,P-END,P-END\n';
+
+    const catalog = buildCatalog({ stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV, config: baseConfig() }) as any;
+    // Dice edges come from the dice table, flagged dice:true.
+    expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-LEFT', dice: true });
+    expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-RIGHT', dice: true });
+    expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-END', dice: true });
+    // Fixed edges still flagged dice:false.
+    expect(catalog.edges).toContainEqual({ from: 'P-START', to: 'P-ROLL', dice: false });
+    // The lock-point source is never offered as a spliceable edge.
+    expect(catalog.edges.some((e: any) => e.from === 'P-LOCK')).toBe(false);
   });
 
   it('reports which slot plays a teacher copy (and ignores dangling card refs)', () => {

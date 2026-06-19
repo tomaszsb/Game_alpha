@@ -290,3 +290,51 @@ describe('validateConfig — insertions (Phase 4a)', () => {
     expect(report.errors.some(e => e.code === 'INSERT_EDGE_OCCUPIED')).toBe(true);
   });
 });
+
+describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', () => {
+  // A dice source (DICE-ROLL) whose destinations live only in the dice table,
+  // and a path-choice lock point (LOCK-PICK) that must never be spliceable.
+  const DICE_HEADER =
+    'space_name,visit_type,Title,Event,Outcome,space_1,space_2,pos_x,pos_y,' +
+    'requires_dice_roll,is_starting_space,is_ending_space,is_resume_hub,path_choice_memory_key,is_path_choice_lock_point';
+  const DICE_STOCK = [
+    DICE_HEADER,
+    'A-START,First,Start,Begin,Done,DICE-ROLL,,0,0,No,Yes,No,No,,No',
+    'DICE-ROLL,First,Roll,Roll it,Done,,,100,0,Yes,No,No,No,,No',
+    'LOCK-PICK,First,Pick,Choose,Done,LEFT-PATH,RIGHT-PATH,200,0,No,No,No,No,pick_key,Yes',
+    'LEFT-PATH,First,Left,L,Done,END-SPACE,,300,0,No,No,No,No,,No',
+    'RIGHT-PATH,First,Right,R,Done,END-SPACE,,300,100,No,No,No,No,,No',
+    'END-SPACE,First,End,Fin,Done,,,400,0,No,No,Yes,No,,No',
+  ].join('\n') + '\n';
+  const DICE_CSV =
+    'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
+    'DICE-ROLL,movement,First,LEFT-PATH,LEFT-PATH,LEFT-PATH,RIGHT-PATH,RIGHT-PATH,RIGHT-PATH\n';
+
+  const ins = (over: Record<string, unknown>) => ({
+    id: 'AUTH-CLASSROOM-1-1', displayName: 'Authored', story: '', ...over,
+  });
+
+  it('accepts a dice-edge insertion when B is a real dice outcome of A', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'DICE-ROLL', to: 'LEFT-PATH' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV });
+    expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
+  });
+
+  it('rejects a dice-edge insertion when B is not among A’s dice outcomes', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'DICE-ROLL', to: 'END-SPACE' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV });
+    expect(report.errors.some(e => e.code === 'INSERT_EDGE_MISSING')).toBe(true);
+  });
+
+  it('rejects splicing onto a path-choice lock point (breaks the choice memory)', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'LOCK-PICK', to: 'LEFT-PATH' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV });
+    expect(report.errors.some(e => e.code === 'INSERT_ON_LOCK_POINT')).toBe(true);
+  });
+});

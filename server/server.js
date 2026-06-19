@@ -969,8 +969,8 @@ app.get('/api/instances/:id/catalog', (req, res) => {
     if (!config) {
       return res.status(404).json({ success: false, error: 'No such instance' });
     }
-    const { stockSpacesCsv, pathChoiceCsv, stockVersion } = readStockForValidation();
-    const catalog = buildCatalog({ stockSpacesCsv, pathChoiceCsv, config, stockVersion });
+    const { stockSpacesCsv, pathChoiceCsv, diceCsv, stockVersion } = readStockForValidation();
+    const catalog = buildCatalog({ stockSpacesCsv, pathChoiceCsv, diceCsv, config, stockVersion });
     let validation = null;
     try {
       const reportPath = path.join(resolvedDir(instancesRoot, req.params.id), 'validation-report.json');
@@ -995,7 +995,10 @@ function readStockForValidation() {
   const stockSpacesCsv = fs.readFileSync(path.join(writableSourceDir, 'Spaces.csv'), 'utf-8');
   const pcPath = path.join(writableCleanDir, 'PATH_CHOICE_RULES.csv');
   const pathChoiceCsv = fs.existsSync(pcPath) ? fs.readFileSync(pcPath, 'utf-8') : null;
-  return { stockSpacesCsv, pathChoiceCsv, stockVersion: computeStockVersion(writableDataDir) };
+  // Dice table feeds 4b dice-edge validation + the catalog's dice-edge list.
+  const dicePath = path.join(writableSourceDir, 'DiceRoll Info.csv');
+  const diceCsv = fs.existsSync(dicePath) ? fs.readFileSync(dicePath, 'utf-8') : null;
+  return { stockSpacesCsv, pathChoiceCsv, diceCsv, stockVersion: computeStockVersion(writableDataDir) };
 }
 
 // Shared flow for catalog mutations: auth → mutate the loaded config →

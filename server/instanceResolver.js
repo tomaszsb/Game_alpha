@@ -219,16 +219,71 @@ function computeInsertionPosition(ins, fromRow, rows) {
  * Classroom overlay for DiceRoll Info.csv: rows of switched-off spaces
  * dropped, destination tokens in the roll columns (1-6) detoured. (Teacher
  * copies cover Spaces.csv fields only in Phase 2 — dice tables stay stock.)
+ *
+ * Phase 4b fork-splice: a dice source's destinations live here, not in
+ * Spaces.csv `space_N`, so an insertion on a dice edge A→B must rewrite the
+ * roll columns (every roll that went to B now routes through the authored
+ * id, which then takes its own fixed edge to B — that authored row is
+ * appended in applyConfigToSpacesCsv). The detour rewrite runs first; `to`
+ * is always an active space (validation rejects off endpoints) so it is
+ * never itself detoured, and the two passes don't collide.
+ * @param {Object<string, import('./instanceStore.js').InsertionConfig>} insertions
  */
-export function applyConfigToDiceCsv(diceCsv, config, detours = {}) {
+export function applyConfigToDiceCsv(diceCsv, config, detours = {}, insertions = {}) {
   const { headers, rows } = parseWithHeaderLine(diceCsv);
   const off = inactiveSpaces(config);
+  const insByFrom = new Map();
+  for (const ins of Object.values(insertions || {})) {
+    if (!ins || !ins.from) continue;
+    if (!insByFrom.has(ins.from)) insByFrom.set(ins.from, []);
+    insByFrom.get(ins.from).push(ins);
+  }
   const out = [];
   for (const row of rows) {
     if (off.has(row.space_name)) continue;
     const effective = { ...row };
     for (const col of ['1', '2', '3', '4', '5', '6']) {
       if (effective[col]) effective[col] = rewriteSpaceTokens(effective[col], detours);
+    }
+    for (const ins of insByFrom.get(row.space_name) || []) {
+      for (const col of ['1', '2', '3', '4', '5', '6']) {
+        if (effective[col]) effective[col] = rewriteSpaceTokens(effective[col], { [ins.to]: ins.id });
+      }
+    }
+    out.push(effective);
+  }
+  return toCsv(out, headers);
+}
+
+/**
+ * Apply teacher-authored insertions to a curated CLEAN file that processGameData
+ * does NOT regenerate (DICE_OUTCOMES.csv above all — the client reads it directly
+ * for every dice destination). Unlike a detour (a global token swap), an insertion
+ * rewrite is SCOPED to the `from` space's own rows: only there does B → authored
+ * id, so the player rolling at A now lands on the authored space, which takes its
+ * own fixed edge onward to B. Without this pass a dice splice is functionally dead
+ * — the authored tile renders but the curated outcomes still route A straight to B.
+ * @param {string} csvText
+ * @param {Object<string, import('./instanceStore.js').InsertionConfig>} insertions
+ * @returns {string}
+ */
+export function applyInsertionsToCuratedCsv(csvText, insertions = {}) {
+  const insByFrom = new Map();
+  for (const ins of Object.values(insertions || {})) {
+    if (!ins || !ins.from || !ins.to || !ins.id) continue;
+    if (!insByFrom.has(ins.from)) insByFrom.set(ins.from, []);
+    insByFrom.get(ins.from).push(ins);
+  }
+  if (insByFrom.size === 0) return csvText;
+  const { headers, rows } = parseWithHeaderLine(csvText);
+  const out = [];
+  for (const row of rows) {
+    const effective = { ...row };
+    for (const ins of insByFrom.get(row.space_name) || []) {
+      for (const key of headers) {
+        if (key === 'space_name' || key === 'visit_type') continue;
+        if (effective[key]) effective[key] = rewriteSpaceTokens(effective[key], { [ins.to]: ins.id });
+      }
     }
     out.push(effective);
   }
@@ -348,7 +403,10 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     const stockSpacesCsv = fs.readFileSync(spacesPath, 'utf-8');
     const pathChoicePath = path.join(stockCleanDir, 'PATH_CHOICE_RULES.csv');
     const pathChoiceCsv = fs.existsSync(pathChoicePath) ? fs.readFileSync(pathChoicePath, 'utf-8') : null;
-    const report = validateConfig({ config, stockSpacesCsv, pathChoiceCsv, stockVersion });
+    // Dice table is read up front: validation needs it to verify 4b dice-edge
+    // insertions, and the overlay below rewrites its roll columns.
+    const diceCsv = fs.readFileSync(path.join(stockSourceDir, DICE_CSV), 'utf-8');
+    const report = validateConfig({ config, stockSpacesCsv, pathChoiceCsv, diceCsv, stockVersion });
     if (!report.ok) {
       const err = new Error(`Config validation failed: ${report.errors.map(e => e.message).join('; ')}`);
       err.report = report;
@@ -363,8 +421,7 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     copyDirFiles(stockSourceDir, newSourceDir);
     const effectiveSpacesCsv = applyConfigToSpacesCsv(stockSpacesCsv, config, detours);
     fs.writeFileSync(path.join(newSourceDir, SPACES_CSV), effectiveSpacesCsv, 'utf-8');
-    const diceCsv = fs.readFileSync(path.join(stockSourceDir, DICE_CSV), 'utf-8');
-    const effectiveDiceCsv = applyConfigToDiceCsv(diceCsv, config, detours);
+    const effectiveDiceCsv = applyConfigToDiceCsv(diceCsv, config, detours, config.insertions || {});
     fs.writeFileSync(path.join(newSourceDir, DICE_CSV), effectiveDiceCsv, 'utf-8');
 
     // 2. Resolved CLEAN_FILES: stock copies first (covers the manually
@@ -376,12 +433,21 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     const modalPath = path.join(stockSourceDir, MODAL_CSV);
     const modalCsv = fs.existsSync(modalPath) ? fs.readFileSync(modalPath, 'utf-8') : null;
     processGameData(effectiveSpacesCsv, effectiveDiceCsv, newCleanDir, modalCsv);
-    if (off.size > 0) {
+    // Curated CLEAN files (NOT regenerated above) need two scoped rewrites:
+    // detours for switched-off spaces, and insertions for spliced dice edges.
+    // DICE_OUTCOMES.csv is the load-bearing one — the client reads it directly
+    // for every dice destination, so a dice splice that doesn't touch it is
+    // functionally dead. Both passes are skipped when neither applies.
+    const insertions = config.insertions || {};
+    const hasInsertions = Object.keys(insertions).length > 0;
+    if (off.size > 0 || hasInsertions) {
       for (const curated of ['DICE_OUTCOMES.csv', 'DICE_ROLL_INFO.csv', 'LOGIC_QUESTIONS.csv', 'ACTION_TOOLTIPS.csv']) {
         const curatedPath = path.join(newCleanDir, curated);
         if (!fs.existsSync(curatedPath)) continue;
-        const scrubbed = scrubSpaceReferences(fs.readFileSync(curatedPath, 'utf-8'), off, detours);
-        fs.writeFileSync(curatedPath, scrubbed, 'utf-8');
+        let text = fs.readFileSync(curatedPath, 'utf-8');
+        if (off.size > 0) text = scrubSpaceReferences(text, off, detours);
+        if (hasInsertions) text = applyInsertionsToCuratedCsv(text, insertions);
+        fs.writeFileSync(curatedPath, text, 'utf-8');
       }
       // PATH_CHOICE_RULES is deliberately NOT rewritten — protection forbids
       // disabling its participants, and validateConfig hard-errors if the

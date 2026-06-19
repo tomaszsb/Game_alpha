@@ -76,10 +76,13 @@ export interface Insertion {
   updatedAt: string;
 }
 
-/** A fixed (4a-eligible) edge the teacher can splice a new space onto. */
+/** An edge the teacher can splice a new space onto (4a fixed/choice + 4b dice). */
 export interface InsertionEdge {
   from: string;
   to: string;
+  /** True when this edge is a dice outcome — players only route through the
+   *  new space on the rolls that lead to `to`, not every visit (Phase 4b). */
+  dice?: boolean;
 }
 
 export interface CatalogResponse {
