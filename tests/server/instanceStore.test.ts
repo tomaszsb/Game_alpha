@@ -392,6 +392,15 @@ describe('insertions (Phase 4a)', () => {
     updateInsertion(config, id, { feePercent: null });
     expect(config.insertions[id].feePercent).toBeUndefined();
   });
+
+  it('persists feeBasis=scope and treats anything else as the default (slice 4)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, { from: 'A', to: 'B', displayName: 'Design fee', feePercent: 5, feeBasis: 'scope' });
+    expect(config.insertions[id].feeBasis).toBe('scope');
+    // 'loans' (the default) is not stored; switching back clears it.
+    updateInsertion(config, id, { feeBasis: 'loans' });
+    expect(config.insertions[id].feeBasis).toBeUndefined();
+  });
 });
 
 describe('listInstanceIds (Phase 3)', () => {

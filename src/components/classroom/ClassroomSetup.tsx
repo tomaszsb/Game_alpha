@@ -172,6 +172,7 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
         ? await updateInsertion(instanceId, existing.id, {
             displayName: draft.displayName, story: draft.story, time: draft.time, fee: draft.fee,
             feePercent: draft.feePercent ?? null,
+            feeBasis: draft.feeBasis ?? 'loans',
             cardDraw: draft.cardDraw ?? null,
             diceOutcomes: draft.diceOutcomes ?? null,
           })

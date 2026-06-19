@@ -418,7 +418,8 @@ export function deleteTeacherCopy(config, copyId) {
  * @property {string} [story]     narrative shown on the authored space
  * @property {string} [time]      optional flat First-visit time cost (string, CSV-shaped)
  * @property {string} [fee]       optional flat First-visit fee (string, CSV-shaped)
- * @property {number} [feePercent] optional First-visit fee as a % of the player's loans (slice 4); wins over flat fee
+ * @property {number} [feePercent] optional First-visit fee as a percentage (slice 4); wins over flat fee
+ * @property {'loans'|'scope'} [feeBasis] what the percentage is charged on — the player's loans (default) or project scope
  * @property {string} [pos_x]
  * @property {string} [pos_y]
  * @property {{ type: string, count: number }} [cardDraw] cards dealt on arrival (slice 2)
@@ -455,7 +456,7 @@ export function deleteTeacherCopy(config, copyId) {
  *   diceOutcomes?: string[]|null }} spec
  * @returns {string} the new authored space id
  */
-export function addInsertion(config, { from, to, displayName, story, time, fee, feePercent, pos_x, pos_y, cardDraw, diceOutcomes }) {
+export function addInsertion(config, { from, to, displayName, story, time, fee, feePercent, feeBasis, pos_x, pos_y, cardDraw, diceOutcomes }) {
   if (!from || !to) throw new Error('Insertion requires both `from` and `to` (the A→B edge)');
   if (!displayName || !String(displayName).trim()) throw new Error('Insertion requires a displayName');
   if (!config.insertions) config.insertions = {};
@@ -478,6 +479,7 @@ export function addInsertion(config, { from, to, displayName, story, time, fee, 
     ...(time != null && time !== '' ? { time: String(time) } : {}),
     ...(fee != null && fee !== '' ? { fee: String(fee) } : {}),
     ...(feePercent != null && feePercent !== '' ? { feePercent: Number(feePercent) } : {}),
+    ...(feeBasis === 'scope' ? { feeBasis: 'scope' } : {}),
     ...(pos_x != null ? { pos_x: String(pos_x) } : {}),
     ...(pos_y != null ? { pos_y: String(pos_y) } : {}),
     ...(cardDraw ? { cardDraw: normalizeCardDraw(cardDraw) } : {}),
@@ -521,6 +523,10 @@ export function updateInsertion(config, id, patch) {
   // feePercent is numeric (or null/'' to clear — revert to flat fee).
   if (patch.feePercent !== undefined) {
     next.feePercent = (patch.feePercent === null || patch.feePercent === '') ? undefined : Number(patch.feePercent);
+  }
+  // feeBasis: only 'scope' is stored; anything else (incl. 'loans'/null) is the default.
+  if (patch.feeBasis !== undefined) {
+    next.feeBasis = patch.feeBasis === 'scope' ? 'scope' : undefined;
   }
   // cardDraw / diceOutcomes are structured (or null to clear), not scalars.
   if (patch.cardDraw !== undefined) {

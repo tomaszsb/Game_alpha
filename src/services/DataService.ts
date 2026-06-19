@@ -788,7 +788,7 @@ export class DataService implements IDataService {
 
       // Add fee_type if it exists (column 8)
       if (values[8] && values[8].trim()) {
-        spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+        spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
       }
 
       // Add narrative if it exists (column 9)

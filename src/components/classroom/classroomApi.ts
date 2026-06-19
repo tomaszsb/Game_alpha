@@ -79,8 +79,10 @@ export interface Insertion {
   story?: string;
   time?: string;
   fee?: string;
-  /** Fee as a % of the player's loans (slice 4); wins over the flat fee. */
+  /** Fee as a percentage (slice 4); wins over the flat fee. */
   feePercent?: number;
+  /** What the percentage is charged on: the player's loans (default) or project scope. */
+  feeBasis?: 'loans' | 'scope';
   pos_x?: string;
   pos_y?: string;
   /** Cards dealt automatically when a player lands here (slice 2). */
@@ -222,7 +224,7 @@ export function createInsertion(
   instanceId: string,
   args: {
     from: string; to: string; displayName: string;
-    story?: string; time?: string; fee?: string; feePercent?: number | null;
+    story?: string; time?: string; fee?: string; feePercent?: number | null; feeBasis?: 'loans' | 'scope';
     pos_x?: string; pos_y?: string; cardDraw?: CardDrawSpec | null;
     diceOutcomes?: string[] | null;
     dryRun?: boolean; baseConfigVersion?: number;

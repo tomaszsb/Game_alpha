@@ -182,3 +182,49 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     expect(stateService.endGame).not.toHaveBeenCalled();
   });
 });
+
+describe('FinancialEffectHandler — SCOPE_PERCENTAGE authored fee (4b slice 4)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function makeScopeServices(projectScope: number) {
+    const player = { id: 'p1', name: 'Player 1', money: 5_000_000, loans: [], currentSpace: 'AUTH-CLASSROOM-1-1' } as any;
+    const stateService = {
+      getPlayer: vi.fn(() => player),
+      updateTempState: vi.fn(),
+      emitAutoAction: vi.fn(),
+      endGame: vi.fn(),
+      getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
+    } as unknown as IStateService;
+    const resourceService = {
+      canAfford: vi.fn(() => true),
+      spendMoney: vi.fn(() => true),
+      addMoney: vi.fn(() => true),
+    } as unknown as IResourceService;
+    const gameRulesService = { calculateProjectScope: vi.fn(() => projectScope) } as unknown as IGameRulesService;
+    const loggingService = { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ILoggingService;
+    const handler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    return { handler, stateService, resourceService, gameRulesService };
+  }
+
+  const scopeFee = (desc: string): Effect => ({
+    effectType: 'FEE_DEDUCTION',
+    payload: { playerId: 'p1', feeType: 'SCOPE_PERCENTAGE', feeDescription: desc, source: 'AUTH-CLASSROOM-1-1' },
+  } as any);
+
+  it('charges the percentage against project scope, not loans', () => {
+    const { handler, resourceService, gameRulesService } = makeScopeServices(1_000_000);
+    handler.handleFeeDeduction(scopeFee('5% of scope'), ctx);
+    expect(gameRulesService.calculateProjectScope).toHaveBeenCalledWith('p1');
+    // 5% of 1,000,000 = 50,000 (charged even with zero loans).
+    expect(resourceService.spendMoney).toHaveBeenCalledWith('p1', 50_000, expect.anything(), '5% of scope');
+  });
+
+  it('does NOT touch the 20% design-fee game-over cap (no instant-loss footgun)', () => {
+    const { handler, stateService } = makeScopeServices(1_000_000);
+    handler.handleFeeDeduction(scopeFee('25% of scope'), ctx); // would blow a real design cap
+    expect(stateService.endGame).not.toHaveBeenCalled();
+    const designWrite = (stateService.updateTempState as any).mock.calls
+      .find((c: any[]) => c[1]?.expenditures?.design != null);
+    expect(designWrite).toBeUndefined();
+  });
+});

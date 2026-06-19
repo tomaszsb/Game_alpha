@@ -147,7 +147,7 @@ export interface SpaceEffect {
   condition: string;
   description: string;
   trigger_type?: 'manual' | 'auto';
-  fee_type?: 'LOAN_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+  fee_type?: 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
   narrative?: string;
   modal_title?: string;
   modal_description?: string;

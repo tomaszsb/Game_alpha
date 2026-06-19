@@ -530,6 +530,11 @@ function processSpaceEffects(spacesCsv, diceRollCsv, modalConfigLookup = new Map
       let feeType = 'FIXED';
       if (feeValLower.includes('dice') || feeValLower.includes('roll')) {
         feeType = 'DICE_BASED';
+      } else if (feeValLower.includes('%') && feeValLower.includes('scope')) {
+        // "N% of scope" — charged on project size (checked before the plain-%
+        // loan case, which would otherwise swallow it). No stock space uses
+        // this in its Fee column; it's the authored scope-fee path (4b slice 4).
+        feeType = 'SCOPE_PERCENTAGE';
       } else if (feeValLower.includes('%')) {
         feeType = 'LOAN_PERCENTAGE';
       }

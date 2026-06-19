@@ -189,13 +189,14 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
       }
       // Flat effects are First-visit only (a pass-through must not re-charge on revisit).
       authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
-      // Fee (slice 4): a percentage wins over a flat amount. Writing "N%" makes
-      // processGameData tag the effect LOAN_PERCENTAGE — the engine charges that
-      // % of the player's outstanding loans (no loans → no fee). A flat number
-      // stays FIXED. First-visit only, like Time.
+      // Fee (slice 4): a percentage wins over a flat amount. "N%" → the engine
+      // charges that % of the player's loans (LOAN_PERCENTAGE); "N% of scope" →
+      // that % of the player's project size (SCOPE_PERCENTAGE). A flat number
+      // stays FIXED. processGameData tags the fee_type from this string.
+      // First-visit only, like Time.
       authored.Fee = isFirst
         ? (ins.feePercent != null && Number(ins.feePercent) > 0
-            ? `${Number(ins.feePercent)}%`
+            ? `${Number(ins.feePercent)}%${ins.feeBasis === 'scope' ? ' of scope' : ''}`
             : (ins.fee != null ? String(ins.fee) : '0'))
         : '0';
       // Card draw (slice 2): deal cards on arrival. First-visit only (a

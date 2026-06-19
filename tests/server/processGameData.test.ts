@@ -45,6 +45,30 @@ function findEffect(lines: string[], spaceName: string, actionSubstring: string)
   return lines.find(l => l.includes(spaceName) && l.includes(actionSubstring));
 }
 
+describe('processGameData — fee_type tagging', () => {
+  it('tags "N% of scope" as SCOPE_PERCENTAGE (checked before the loan-% case)', () => {
+    const csv = [spacesHeader, spacesLabelRow,
+      makeSpaceRow('AUTH-CLASSROOM-1-1', { Fee: '5% of scope' })
+    ].join('\n');
+    processGameData(csv, diceRollCsv, tmpDir);
+    const effect = findEffect(readEffects(), 'AUTH-CLASSROOM-1-1', 'deduct');
+    expect(effect).toBeDefined();
+    expect(effect).toContain('SCOPE_PERCENTAGE');
+    expect(effect).not.toContain('LOAN_PERCENTAGE');
+  });
+
+  it('still tags a plain "N%" fee as LOAN_PERCENTAGE (regression)', () => {
+    const csv = [spacesHeader, spacesLabelRow,
+      makeSpaceRow('AUTH-CLASSROOM-1-2', { Fee: '3%' })
+    ].join('\n');
+    processGameData(csv, diceRollCsv, tmpDir);
+    const effect = findEffect(readEffects(), 'AUTH-CLASSROOM-1-2', 'deduct');
+    expect(effect).toBeDefined();
+    expect(effect).toContain('LOAN_PERCENTAGE');
+    expect(effect).not.toContain('SCOPE_PERCENTAGE');
+  });
+});
+
 describe('processGameData — card action parsing', () => {
   it('should generate return_e for "Return 1" in e_card column', () => {
     const csv = [spacesHeader, spacesLabelRow,

@@ -450,6 +450,18 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
           debugLog(`    ${percentValue}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
         }
       }
+    } else if (payload.feeType === 'SCOPE_PERCENTAGE') {
+      // "N% of scope" — a one-time fee on the player's project size. Used by
+      // teacher-authored spaces (4b slice 4). Deliberately NOT routed through
+      // trackDesignExpenditure / the 20% design-fee game-over cap: that cap is
+      // for the stock architect/engineer mechanic, and tying authored fees to
+      // it would let a teacher accidentally author an instant-loss space.
+      const percentValue = extractPercentage(payload.feeDescription.toLowerCase());
+      if (percentValue !== null && percentValue > 0) {
+        const scope = this.gameRulesService.calculateProjectScope(payload.playerId);
+        feeAmount = Math.round(scope * (percentValue / 100));
+        debugLog(`    ${percentValue}% of scope fee: $${feeAmount} (scope: $${scope})`);
+      }
     } else if (payload.feeType === 'DICE_BASED') {
       return null; // Indicates dice roll required
     } else if (payload.feeType === 'FIXED') {

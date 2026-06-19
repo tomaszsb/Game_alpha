@@ -589,6 +589,22 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
     expect(fee!.fee_type).toBe('LOAN_PERCENTAGE');
   });
 
+  it('bakes a scope-basis percentage fee into a SCOPE_PERCENTAGE effect (slice 4)', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    addInsertion(config, { from: 'BETA-MIDDLE', to: 'GAMMA-FORK', displayName: 'Design Fee', feePercent: 5, feeBasis: 'scope' });
+    const stockVersion = computeStockVersion(stockDir);
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const rows = parseCsvWithHeaders(readResolved('SOURCE_FILES/Spaces.csv'));
+    expect(rows.find(r => r.space_name === 'AUTH-CLASSROOM-1-1' && r.visit_type === 'First')!.Fee).toBe('5% of scope');
+
+    const effects = parseCsvWithHeaders(readResolved('CLEAN_FILES/SPACE_EFFECTS.csv'));
+    const fee = effects.find(r => r.space_name === 'AUTH-CLASSROOM-1-1' && r.effect_type === 'fee');
+    expect(fee!.effect_value).toBe('5% of scope');
+    expect(fee!.fee_type).toBe('SCOPE_PERCENTAGE');
+  });
+
   it('bakes an authored DICE space: dice flag, DiceRoll Info + DICE_OUTCOMES rows, dice movement (slice 3)', () => {
     setupPhase2Stock();
     const config = createInstance(instancesRoot, { id: 'classroom-1' });
