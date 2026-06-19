@@ -5,19 +5,19 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** June 18, 2026
+**Last Updated:** June 20, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.80** — **PENDING RE-DEPLOY** (live still serves v3.0.78; v3.0.79/80 not yet deployed). Active dev on branch **`phase-4a-card-insertion`** (NOT merged/pushed/deployed).
+**Current Version:** **3.0.80** — **deployed + live** (confirmed by maintainer 2026-06-20, `bbbd984`). Active dev on branch **`phase-4a-card-insertion`** (all of Phase 4 — NOT merged/pushed/deployed; on-branch by standing decision).
 
 ## Current sprint
-**2026-06-18 — verified Phase 4a (teacher-authored spaces) in the running game before building 4b, per the maintainer's call.** Walking the real teacher flow exposed **four real bugs the build-only tests had missed**, all now fixed (commit `af3e5f6`): (1) lowercase authored ids soft-locked the game — every space-name parser is uppercase-only, so the source space's movement collapsed to `none`; (2) the resolver's clone-and-blank leaked the source space's *behavioral* columns (a story beat after a funding space acted like a funding space); (3) authored tiles inherited the source's exact position → rendered invisibly stacked → now auto-placed at the spliced edge midpoint; (4) label confirmed OK. Routing + tile render verified end-to-end. 4a is now genuinely usable. **4b is sliced** (user call): fork-splice → card-draws → dice-outcomes → percentage-fees; fork-splice is next.
+**2026-06-20 — Phase 4b complete on the branch: the full teacher-authored-space capability set.** Built across four slices (after 2026-06-18's 4a in-app verification): (1) **fork-splice** — an authored space can sit on any edge, including dice; (2) **card-draws** — it deals W/B/I/L/E cards on arrival; (3) **dice-outcomes** — it can itself be a dice roll with per-face destinations; (4) **fees** — flat, % of the player's loans (bank-style), or % of project scope (architect-style, but *not* tied to the 20% game-over cap, so teachers can't author an instant-loss space). Each slice re-validated against the full ghost gate. Phase 4c/4d remain CUT (engine authoring, out of scope). Remaining loose end: the authored-insertion **ghost fixture** (bot can't yet stress-test instance boards for unwinnable loops).
 
 ## Health
-- **Tests:** **227 server + 1658 component/util/service — all green** (this session). Typecheck + build clean.
+- **Tests:** full suite green at the last run — **~2166 passing / 1 skipped**, modulo 3 confirmed-flaky env failures (Windows `rmdir` race on a bake test + 2 E2E timeouts under load), all green re-run in isolation. Typecheck + build clean (a JSDoc typecheck slip in `3d4bae1` was caught at koniec pre-flight, fixed in `4921d69`).
 - **Build / typecheck:** clean. **Lint:** ~386 pre-existing errors (DEF-4, long-standing).
-- **Deploy:** ⚠️ **v3.0.80 NOT deployed** — live still runs v3.0.78. Phase 4a *cannot* go live until the `deploy.sh` instances-wipe is fixed (TODO "Deploy infrastructure"). Never `docker compose up`; NPM routes domain → 3080; cf-cache is DYNAMIC. **Local-dev:** verify per-instance boards via Express (localhost:3001), not Vite (3000) — see CLAUDE.md.
+- **Deploy:** v3.0.80 is live. **Phase 4 still cannot go live** until the `deploy.sh` instances-wipe is fixed (TODO "Deploy infrastructure") — teacher customization won't survive a deploy. Never `docker compose up`; NPM routes domain → 3080; cf-cache is DYNAMIC. **Local-dev:** verify per-instance boards via Express (localhost:3001), not Vite (3000) — see CLAUDE.md.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **4b slice 1 — fork-splice** (splice authored stops onto choice/dice edges). Plan in `.claude/plans/replicated-baking-hoare.md`. Plain choice edges already work; the new work is the dice case.
-2. **`deploy.sh` instances-wipe** — hard blocker for any teacher-layer customization (incl. Phase 4a) going live. Plus v3.0.79/80 still need deploying.
-3. **UI redesign — player panel + scoreboard** (deploy-independent; design-team handoff ready) + the mobile board-bleed-through bug.
+1. **`deploy.sh` instances-wipe** — hard blocker for any teacher-layer customization (incl. all of Phase 4) going live.
+2. **Merge decision (user)** — `phase-4a-card-insertion` (now all of 4a + 4b) → master, when ready.
+3. **UI redesign — player panel + scoreboard** (deploy-independent; design-team handoff ready) + the mobile board-bleed-through bug. Plus the deferred authored-insertion ghost fixture.

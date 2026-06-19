@@ -34,6 +34,23 @@ Report each as a one-liner:
 > - **Uncommitted:** clean (only `.claude/settings.local.json`).
 > - **Branch:** master.
 
+## 3.5 Monthly maintenance — README freshness + TODO drift (first session of a new month only)
+
+**Trigger (compute, don't guess):** compare the **current month** (`YYYY-MM` of today's date, from the session context) against the **last-session month** — the `written YYYY-MM-DD` date on line 1 of `NEXT_SESSION.md` (already read in step 1). If they're the **same month**, skip this whole step silently. If today is in a **later month** (or NEXT_SESSION is missing and the top CHANGELOG entry's date is a prior month), this is the first session of a new month → run the pass below. If neither date is parseable, skip silently — never nag.
+
+Rationale: requested 2026-06-19. README was thinned to a self-maintaining pointer that *shouldn't* need edits; this is the once-a-month sanity check that it (and the TODO) haven't quietly drifted. Cheap, and only fires ~once per month.
+
+**(a) README skim.** `README.md` is a deliberate thin pointer (no version/counts/feature lists — those rot). Skim it against reality and flag ONLY if something structural broke: a doc it links to was renamed/moved (dead link), the one-paragraph "what this game is" description is no longer true, or the run-it-locally commands changed. If it's still accurate (the common case), say so in one line and move on. Do **not** re-pad it with version numbers or feature lists — that's the rot it was built to avoid.
+
+**(b) TODO drift triage.** A deeper pass than the routine feedback sweep. Read `TODO.md` and check the **unchecked `- [ ]` items** for drift:
+- **Stale-done:** shipped in CHANGELOG but never checked off (e.g. a "Deploy vX" line when live is already past vX). → propose checking off / moving to CHANGELOG.
+- **Superseded / won't-do:** items overtaken by later decisions, or that are really "flag only / accepted limitation / far-future wishlist" masquerading as active work.
+- **Mis-bucketed:** genuine non-actions mixed in with active work, making the backlog look heavier than it is.
+
+Propose a re-bucket: keep only *real, actionable, not-blocked-on-the-user* items at the top; gather the non-actions under a clearly labelled **"Parking lot / someday"** section so nothing is deleted but the active list reads honestly. **Same approval gate as step 4 — surface the proposed changes and wait for `yes / no / edit`; write nothing to `TODO.md` (or `README.md`) without an explicit OK.**
+
+Keep it tight: this is a drift check, not a rewrite. If nothing drifted, one line ("Monthly check: README + TODO still accurate, no drift") and continue.
+
 ## 4. Pull dashboard feedback, cluster, propose
 
 Fresh dashboard pull every session is intentional — clustering similar reports into coherent sprints (like "board readability v2") happens MID-SESSION based on seeing them all together. Lazy fetching breaks that. **Nothing is written to `TODO.md` without explicit user approval.**

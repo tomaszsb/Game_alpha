@@ -86,6 +86,8 @@ If nothing new — skip. Don't write a "no changes" line.
 
 Resolve the main checkout's `.claude/` path: `git rev-parse --show-toplevel`. If the result contains `.claude/worktrees/`, take the segment before it. Otherwise use the root directly. Write to `<main-checkout>/.claude/NEXT_SESSION.md`, overwriting (this file is a rolling handoff, not a log).
 
+**Reference only durable, committed artifacts in the handoff** — never a `.claude/tmp/` path or an uncommitted/never-saved plan file; they get swept or never exist, and the next session wastes time hunting. Inline the key points instead, or point at a committed doc. (2026-06-20: a prior handoff cited `.claude/plans/replicated-baking-hoare.md` that never existed — cost a hunt before the plan was reconstructed from code.)
+
 Template — keep under 35 lines:
 
 ```markdown
