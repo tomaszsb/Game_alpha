@@ -259,6 +259,15 @@ export function validateInsertions({ config, names, rowsByName, off, diceDests =
         }
       }
     }
+
+    // Percentage fee (slice 4): optional, but if present must be a positive
+    // percentage no greater than 100 (charged against the player's loans).
+    if (ins.feePercent != null && ins.feePercent !== '') {
+      const pct = Number(ins.feePercent);
+      if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+        where({ code: 'INSERT_BAD_FEE_PERCENT', message: `Insertion "${id}": a percentage fee must be more than 0 and at most 100` });
+      }
+    }
   }
   return errors;
 }

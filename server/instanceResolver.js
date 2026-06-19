@@ -189,7 +189,15 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
       }
       // Flat effects are First-visit only (a pass-through must not re-charge on revisit).
       authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
-      authored.Fee = isFirst && ins.fee != null ? String(ins.fee) : '0';
+      // Fee (slice 4): a percentage wins over a flat amount. Writing "N%" makes
+      // processGameData tag the effect LOAN_PERCENTAGE — the engine charges that
+      // % of the player's outstanding loans (no loans → no fee). A flat number
+      // stays FIXED. First-visit only, like Time.
+      authored.Fee = isFirst
+        ? (ins.feePercent != null && Number(ins.feePercent) > 0
+            ? `${Number(ins.feePercent)}%`
+            : (ins.fee != null ? String(ins.fee) : '0'))
+        : '0';
       // Card draw (slice 2): deal cards on arrival. First-visit only (a
       // pass-through must not re-deal on revisit) and AUTO-triggered so the
       // turn never hangs on a manual draw the player might skip. L cards are

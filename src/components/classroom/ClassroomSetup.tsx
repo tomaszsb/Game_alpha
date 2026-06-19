@@ -171,6 +171,7 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
       const result = existing
         ? await updateInsertion(instanceId, existing.id, {
             displayName: draft.displayName, story: draft.story, time: draft.time, fee: draft.fee,
+            feePercent: draft.feePercent ?? null,
             cardDraw: draft.cardDraw ?? null,
             diceOutcomes: draft.diceOutcomes ?? null,
           })

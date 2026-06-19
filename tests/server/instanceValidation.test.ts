@@ -344,6 +344,22 @@ describe('validateConfig — insertions (Phase 4a)', () => {
     });
     expect(selfLoop.errors.some(e => e.code === 'INSERT_BAD_DICE_OUTCOMES')).toBe(true);
   });
+
+  it('accepts a valid percentage fee and rejects one outside 0–100 (slice 4)', () => {
+    const ok = validateConfig({
+      config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', feePercent: 2.5 }) } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(ok.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
+
+    for (const bad of [0, -5, 150]) {
+      const report = validateConfig({
+        config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', feePercent: bad }) } }),
+        stockSpacesCsv: STOCK,
+      });
+      expect(report.errors.some(e => e.code === 'INSERT_BAD_FEE_PERCENT'), `feePercent ${bad} should be rejected`).toBe(true);
+    }
+  });
 });
 
 describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', () => {

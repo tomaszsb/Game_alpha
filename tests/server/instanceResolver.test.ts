@@ -571,6 +571,24 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
     expect(draw!.effect_type).toBe('cards');
   });
 
+  it('bakes a percentage fee into a LOAN_PERCENTAGE fee effect (slice 4)', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    // Percentage fee wins over any flat fee and writes "N%" into Fee.
+    addInsertion(config, { from: 'BETA-MIDDLE', to: 'GAMMA-FORK', displayName: 'Financing Fee', fee: '999', feePercent: 3 });
+    const stockVersion = computeStockVersion(stockDir);
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const rows = parseCsvWithHeaders(readResolved('SOURCE_FILES/Spaces.csv'));
+    expect(rows.find(r => r.space_name === 'AUTH-CLASSROOM-1-1' && r.visit_type === 'First')!.Fee).toBe('3%');
+
+    const effects = parseCsvWithHeaders(readResolved('CLEAN_FILES/SPACE_EFFECTS.csv'));
+    const fee = effects.find(r => r.space_name === 'AUTH-CLASSROOM-1-1' && r.effect_type === 'fee');
+    expect(fee).toBeDefined();
+    expect(fee!.effect_value).toBe('3%');
+    expect(fee!.fee_type).toBe('LOAN_PERCENTAGE');
+  });
+
   it('bakes an authored DICE space: dice flag, DiceRoll Info + DICE_OUTCOMES rows, dice movement (slice 3)', () => {
     setupPhase2Stock();
     const config = createInstance(instancesRoot, { id: 'classroom-1' });

@@ -79,6 +79,8 @@ export interface Insertion {
   story?: string;
   time?: string;
   fee?: string;
+  /** Fee as a % of the player's loans (slice 4); wins over the flat fee. */
+  feePercent?: number;
   pos_x?: string;
   pos_y?: string;
   /** Cards dealt automatically when a player lands here (slice 2). */
@@ -220,7 +222,7 @@ export function createInsertion(
   instanceId: string,
   args: {
     from: string; to: string; displayName: string;
-    story?: string; time?: string; fee?: string;
+    story?: string; time?: string; fee?: string; feePercent?: number | null;
     pos_x?: string; pos_y?: string; cardDraw?: CardDrawSpec | null;
     diceOutcomes?: string[] | null;
     dryRun?: boolean; baseConfigVersion?: number;
@@ -231,7 +233,7 @@ export function createInsertion(
 }
 
 /** A field in an insertion patch: a scalar, a card-draw spec, dice outcomes, or null to clear. */
-export type InsertionPatchValue = string | CardDrawSpec | string[] | null;
+export type InsertionPatchValue = string | number | CardDrawSpec | string[] | null;
 
 /** Edit an authored space's content/edge (fields → values). */
 export function updateInsertion(

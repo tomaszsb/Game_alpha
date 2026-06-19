@@ -384,6 +384,14 @@ describe('insertions (Phase 4a)', () => {
     updateInsertion(config, id, { diceOutcomes: null });
     expect(config.insertions[id].diceOutcomes).toBeUndefined();
   });
+
+  it('persists a numeric fee percent, and updateInsertion can clear it (slice 4)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, { from: 'A', to: 'B', displayName: 'Financing fee', feePercent: '2.5' });
+    expect(config.insertions[id].feePercent).toBe(2.5);
+    updateInsertion(config, id, { feePercent: null });
+    expect(config.insertions[id].feePercent).toBeUndefined();
+  });
 });
 
 describe('listInstanceIds (Phase 3)', () => {

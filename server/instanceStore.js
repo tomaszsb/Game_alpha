@@ -418,6 +418,7 @@ export function deleteTeacherCopy(config, copyId) {
  * @property {string} [story]     narrative shown on the authored space
  * @property {string} [time]      optional flat First-visit time cost (string, CSV-shaped)
  * @property {string} [fee]       optional flat First-visit fee (string, CSV-shaped)
+ * @property {number} [feePercent] optional First-visit fee as a % of the player's loans (slice 4); wins over flat fee
  * @property {string} [pos_x]
  * @property {string} [pos_y]
  * @property {{ type: string, count: number }} [cardDraw] cards dealt on arrival (slice 2)
@@ -449,12 +450,12 @@ export function deleteTeacherCopy(config, copyId) {
  * (rejected at save like a bad edge), not here.
  * @param {InstanceConfig} config
  * @param {{ from: string, to: string, displayName: string, story?: string,
- *   time?: string, fee?: string, pos_x?: string|number, pos_y?: string|number,
+ *   time?: string, fee?: string, feePercent?: string|number, pos_x?: string|number, pos_y?: string|number,
  *   cardDraw?: { type: string, count: string|number }|null,
  *   diceOutcomes?: string[]|null }} spec
  * @returns {string} the new authored space id
  */
-export function addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw, diceOutcomes }) {
+export function addInsertion(config, { from, to, displayName, story, time, fee, feePercent, pos_x, pos_y, cardDraw, diceOutcomes }) {
   if (!from || !to) throw new Error('Insertion requires both `from` and `to` (the A→B edge)');
   if (!displayName || !String(displayName).trim()) throw new Error('Insertion requires a displayName');
   if (!config.insertions) config.insertions = {};
@@ -476,6 +477,7 @@ export function addInsertion(config, { from, to, displayName, story, time, fee, 
     story: story != null ? String(story) : '',
     ...(time != null && time !== '' ? { time: String(time) } : {}),
     ...(fee != null && fee !== '' ? { fee: String(fee) } : {}),
+    ...(feePercent != null && feePercent !== '' ? { feePercent: Number(feePercent) } : {}),
     ...(pos_x != null ? { pos_x: String(pos_x) } : {}),
     ...(pos_y != null ? { pos_y: String(pos_y) } : {}),
     ...(cardDraw ? { cardDraw: normalizeCardDraw(cardDraw) } : {}),
@@ -515,6 +517,10 @@ export function updateInsertion(config, id, patch) {
   const next = { ...ins };
   for (const key of ['displayName', 'from', 'to', 'story', 'time', 'fee', 'pos_x', 'pos_y']) {
     if (patch[key] !== undefined) next[key] = patch[key] === null ? undefined : String(patch[key]);
+  }
+  // feePercent is numeric (or null/'' to clear — revert to flat fee).
+  if (patch.feePercent !== undefined) {
+    next.feePercent = (patch.feePercent === null || patch.feePercent === '') ? undefined : Number(patch.feePercent);
   }
   // cardDraw / diceOutcomes are structured (or null to clear), not scalars.
   if (patch.cardDraw !== undefined) {

@@ -1147,12 +1147,12 @@ app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
 // endpoint, id collision, bad card draw) comes back as a 422 with the
 // validation report; dryRun previews unsaved.
 app.post('/api/instances/:id/insertions', (req, res) => {
-  const { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw, diceOutcomes } = req.body || {};
+  const { from, to, displayName, story, time, fee, feePercent, pos_x, pos_y, cardDraw, diceOutcomes } = req.body || {};
   if (!from || !to || !displayName) {
     return res.status(400).json({ success: false, error: 'from, to, and displayName are required' });
   }
   handleInstanceMutation(req, res, (config) => {
-    const id = addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw, diceOutcomes });
+    const id = addInsertion(config, { from, to, displayName, story, time, fee, feePercent, pos_x, pos_y, cardDraw, diceOutcomes });
     return { insertionId: id, from, to };
   });
 });
