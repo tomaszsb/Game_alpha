@@ -451,7 +451,8 @@ export function deleteTeacherCopy(config, copyId) {
  * (rejected at save like a bad edge), not here.
  * @param {InstanceConfig} config
  * @param {{ from: string, to: string, displayName: string, story?: string,
- *   time?: string, fee?: string, feePercent?: string|number, pos_x?: string|number, pos_y?: string|number,
+ *   time?: string, fee?: string, feePercent?: string|number, feeBasis?: 'loans'|'scope',
+ *   pos_x?: string|number, pos_y?: string|number,
  *   cardDraw?: { type: string, count: string|number }|null,
  *   diceOutcomes?: string[]|null }} spec
  * @returns {string} the new authored space id
