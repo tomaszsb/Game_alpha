@@ -37,6 +37,7 @@ yarn-error.log*
 .claude/NEXT_SESSION.md
 .claude/feedback-staged.md
 .claude/fb-*.png
+.claude/dashboard-screenshots/
 
 # OS-generated files
 .DS_Store
