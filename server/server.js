@@ -1141,17 +1141,18 @@ app.delete('/api/instances/:id/copies/:copyId', (req, res) => {
   });
 });
 
-// Teacher-authored insertions (Phase 4a): a new narrative space spliced onto
-// an A→B edge. Same hybrid-confirm/validate/bake flow as copies — a topology
-// error (missing edge, dice edge → 4b, switched-off endpoint, id collision)
-// comes back as a 422 with the validation report; dryRun previews unsaved.
+// Teacher-authored insertions (Phase 4a/4b): a new narrative space spliced onto
+// an A→B edge (fixed, choice, or dice). Same hybrid-confirm/validate/bake flow
+// as copies — a topology error (missing edge, lock-point edge, switched-off
+// endpoint, id collision, bad card draw) comes back as a 422 with the
+// validation report; dryRun previews unsaved.
 app.post('/api/instances/:id/insertions', (req, res) => {
-  const { from, to, displayName, story, time, fee, pos_x, pos_y } = req.body || {};
+  const { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw } = req.body || {};
   if (!from || !to || !displayName) {
     return res.status(400).json({ success: false, error: 'from, to, and displayName are required' });
   }
   handleInstanceMutation(req, res, (config) => {
-    const id = addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y });
+    const id = addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw });
     return { insertionId: id, from, to };
   });
 });

@@ -179,6 +179,21 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
       // Flat effects are First-visit only (a pass-through must not re-charge on revisit).
       authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
       authored.Fee = isFirst && ins.fee != null ? String(ins.fee) : '0';
+      // Card draw (slice 2): deal cards on arrival. First-visit only (a
+      // pass-through must not re-deal on revisit) and AUTO-triggered so the
+      // turn never hangs on a manual draw the player might skip. L cards are
+      // auto by nature; W/B/I/E need their letter in auto_trigger_card_types.
+      // processGameData turns "Draw N" in the <type>_card column into the
+      // cards/draw_<T> SPACE_EFFECTS row the engine deals from.
+      if (isFirst && ins.cardDraw && ins.cardDraw.type && Number(ins.cardDraw.count) > 0) {
+        const type = String(ins.cardDraw.type).toUpperCase();
+        const col = `${type.toLowerCase()}_card`;
+        if (col in authored) {
+          authored[col] = `Draw ${Number(ins.cardDraw.count)}`;
+          if (`${col}_narrative` in authored) authored[`${col}_narrative`] = ins.story || '';
+          if (type !== 'L' && 'auto_trigger_card_types' in authored) authored.auto_trigger_card_types = type;
+        }
+      }
       // A mid-path space is never structural / a choice anchor.
       for (const flag of ['is_starting_space', 'is_ending_space', 'is_resume_hub', 'is_path_choice_lock_point']) {
         if (flag in authored) authored[flag] = 'No';

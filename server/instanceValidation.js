@@ -231,9 +231,23 @@ export function validateInsertions({ config, names, rowsByName, off, diceDests =
     } else {
       seenEdges.set(edgeKey, id);
     }
+
+    // Card draw (slice 2): optional, but if present the type must be a real
+    // deck and the count a small positive integer.
+    if (ins.cardDraw != null) {
+      const type = String(ins.cardDraw.type || '').trim().toUpperCase();
+      const count = Number(ins.cardDraw.count);
+      if (!CARD_DECKS.has(type) || !Number.isInteger(count) || count < 1 || count > MAX_CARD_DRAW) {
+        where({ code: 'INSERT_BAD_CARD_DRAW', message: `Insertion "${id}": card draw must be 1–${MAX_CARD_DRAW} of W, B, I, L or E` });
+      }
+    }
   }
   return errors;
 }
+
+/** Card decks an authored space may deal from, and a sane upper bound. */
+const CARD_DECKS = new Set(['W', 'B', 'I', 'L', 'E']);
+const MAX_CARD_DRAW = 9;
 
 /**
  * Full config validation: protection tiers, unknown names, detour

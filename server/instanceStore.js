@@ -440,12 +440,16 @@ export function deleteTeacherCopy(config, copyId) {
  * fixed edge, no double-occupied edge) lives in instanceValidation, not here —
  * the save endpoint rejects an invalid insertion the same way it rejects a
  * bad detour.
+ * The optional `cardDraw` makes the authored space deal cards on arrival
+ * (Phase 4b slice 2): { type: 'W'|'B'|'I'|'L'|'E', count }. Shape is validated
+ * in instanceValidation (rejected at save like a bad edge), not here.
  * @param {InstanceConfig} config
  * @param {{ from: string, to: string, displayName: string, story?: string,
- *   time?: string, fee?: string, pos_x?: string|number, pos_y?: string|number }} spec
+ *   time?: string, fee?: string, pos_x?: string|number, pos_y?: string|number,
+ *   cardDraw?: { type: string, count: string|number }|null }} spec
  * @returns {string} the new authored space id
  */
-export function addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y }) {
+export function addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw }) {
   if (!from || !to) throw new Error('Insertion requires both `from` and `to` (the A→B edge)');
   if (!displayName || !String(displayName).trim()) throw new Error('Insertion requires a displayName');
   if (!config.insertions) config.insertions = {};
@@ -469,10 +473,19 @@ export function addInsertion(config, { from, to, displayName, story, time, fee, 
     ...(fee != null && fee !== '' ? { fee: String(fee) } : {}),
     ...(pos_x != null ? { pos_x: String(pos_x) } : {}),
     ...(pos_y != null ? { pos_y: String(pos_y) } : {}),
+    ...(cardDraw ? { cardDraw: normalizeCardDraw(cardDraw) } : {}),
     createdAt: now,
     updatedAt: now,
   };
   return id;
+}
+
+/** Normalize a card-draw spec to { type: upper, count: number } (validation rejects bad ones). */
+function normalizeCardDraw(cardDraw) {
+  return {
+    type: String(cardDraw.type || '').trim().toUpperCase(),
+    count: Number(cardDraw.count),
+  };
 }
 
 /**
@@ -489,6 +502,10 @@ export function updateInsertion(config, id, patch) {
   const next = { ...ins };
   for (const key of ['displayName', 'from', 'to', 'story', 'time', 'fee', 'pos_x', 'pos_y']) {
     if (patch[key] !== undefined) next[key] = patch[key] === null ? undefined : String(patch[key]);
+  }
+  // cardDraw is an object (or null to clear), not a stringifiable scalar.
+  if (patch.cardDraw !== undefined) {
+    next.cardDraw = patch.cardDraw ? normalizeCardDraw(patch.cardDraw) : undefined;
   }
   next.id = ins.id;            // id is immutable (it's the movement key)
   next.createdAt = ins.createdAt;

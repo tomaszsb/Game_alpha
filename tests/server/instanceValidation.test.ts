@@ -289,6 +289,28 @@ describe('validateConfig — insertions (Phase 4a)', () => {
     const report = validateConfig({ config, stockSpacesCsv: STOCK });
     expect(report.errors.some(e => e.code === 'INSERT_EDGE_OCCUPIED')).toBe(true);
   });
+
+  it('accepts a valid card draw on an authored space (slice 2)', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', cardDraw: { type: 'E', count: 2 } }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
+  });
+
+  it('rejects a card draw with an unknown deck or an out-of-range count', () => {
+    const badType = validateConfig({
+      config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', cardDraw: { type: 'Z', count: 1 } }) } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(badType.errors.some(e => e.code === 'INSERT_BAD_CARD_DRAW')).toBe(true);
+
+    const badCount = validateConfig({
+      config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', cardDraw: { type: 'E', count: 0 } }) } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(badCount.errors.some(e => e.code === 'INSERT_BAD_CARD_DRAW')).toBe(true);
+  });
 });
 
 describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', () => {

@@ -364,6 +364,15 @@ describe('insertions (Phase 4a)', () => {
     expect(config.insertions[id]).toBeUndefined();
     expect(() => removeInsertion(config, id)).toThrow();
   });
+
+  it('persists a normalized card draw, and updateInsertion can clear it (slice 2)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, { from: 'A', to: 'B', displayName: 'Bonus', cardDraw: { type: 'e', count: '2' } });
+    // Normalized: type upper-cased, count coerced to a number.
+    expect(config.insertions[id].cardDraw).toEqual({ type: 'E', count: 2 });
+    updateInsertion(config, id, { cardDraw: null });
+    expect(config.insertions[id].cardDraw).toBeUndefined();
+  });
 });
 
 describe('listInstanceIds (Phase 3)', () => {

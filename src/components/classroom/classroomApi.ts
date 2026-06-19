@@ -61,7 +61,16 @@ export interface ValidationReport {
   suggestions: Record<string, { target: string | null; candidates: string[] }>;
 }
 
-/** A teacher-authored space spliced onto an A→B edge (Phase 4a). */
+/** A card deck an authored space can deal from (Phase 4b slice 2). */
+export type CardDeck = 'W' | 'B' | 'I' | 'L' | 'E';
+
+/** An optional card draw dealt on arrival at an authored space. */
+export interface CardDrawSpec {
+  type: CardDeck;
+  count: number;
+}
+
+/** A teacher-authored space spliced onto an A→B edge (Phase 4a/4b). */
 export interface Insertion {
   id: string;
   displayName: string;
@@ -72,6 +81,8 @@ export interface Insertion {
   fee?: string;
   pos_x?: string;
   pos_y?: string;
+  /** Cards dealt automatically when a player lands here (slice 2). */
+  cardDraw?: CardDrawSpec;
   createdAt: string;
   updatedAt: string;
 }
@@ -208,18 +219,22 @@ export function createInsertion(
   args: {
     from: string; to: string; displayName: string;
     story?: string; time?: string; fee?: string;
-    pos_x?: string; pos_y?: string; dryRun?: boolean; baseConfigVersion?: number;
+    pos_x?: string; pos_y?: string; cardDraw?: CardDrawSpec | null;
+    dryRun?: boolean; baseConfigVersion?: number;
   },
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {
   return mutate(`/api/instances/${instanceId}/insertions`, 'POST', args, deps);
 }
 
+/** A field in an insertion patch: a scalar, a card-draw spec, or null to clear. */
+export type InsertionPatchValue = string | CardDrawSpec | null;
+
 /** Edit an authored space's content/edge (fields → values). */
 export function updateInsertion(
   instanceId: string,
   insertionId: string,
-  patch: Record<string, string>,
+  patch: Record<string, InsertionPatchValue>,
   args: { dryRun?: boolean; baseConfigVersion?: number } = {},
   deps: ClassroomApiDeps = {}
 ): Promise<MutationResult> {

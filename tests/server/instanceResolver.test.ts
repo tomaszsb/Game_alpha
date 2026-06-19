@@ -529,6 +529,47 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
     expect(thrown).not.toBeNull();
     expect(thrown.report.errors.some((e: any) => e.code === 'INSERT_ENDPOINT_OFF')).toBe(true);
   });
+
+  it('populates the card-draw columns on the authored space and auto-triggers (slice 2)', () => {
+    // Inline stock with the card / narrative / auto-trigger columns the P2
+    // fixture omits, so the auto-trigger wiring is observable.
+    const header =
+      'space_name,phase,visit_type,Title,Event,Time,Fee,space_1,space_2,requires_dice_roll,' +
+      'e_card,e_card_narrative,auto_trigger_card_types,is_path_choice_lock_point';
+    const csv = [
+      header,
+      'A-SPACE,SETUP,First,A,Begin,0,0,B-SPACE,,NO,,,,No',
+      'B-SPACE,SETUP,First,B,Mid,0,0,,,NO,,,,No',
+    ].join('\n') + '\n';
+    const config: any = {
+      meta: { id: 'classroom-1' }, slots: {}, teacherCopies: {}, detours: {},
+      insertions: {
+        'AUTH-CLASSROOM-1-1': {
+          id: 'AUTH-CLASSROOM-1-1', from: 'A-SPACE', to: 'B-SPACE',
+          displayName: 'Bonus', story: 'Free help!', cardDraw: { type: 'E', count: 2 },
+        },
+      },
+    };
+    const out = parseCsvWithHeaders(applyConfigToSpacesCsv(csv, config));
+    const authored = out.find(r => r.space_name === 'AUTH-CLASSROOM-1-1' && r.visit_type === 'First')!;
+    expect(authored.e_card).toBe('Draw 2');
+    expect(authored.e_card_narrative).toBe('Free help!');
+    expect(authored.auto_trigger_card_types).toBe('E'); // dealt on arrival, no manual gate
+  });
+
+  it('bakes a card-draw authored space into a draw effect processGameData picks up (slice 2)', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    addInsertion(config, { from: 'BETA-MIDDLE', to: 'GAMMA-FORK', displayName: 'Expeditor Gift', cardDraw: { type: 'E', count: 2 } });
+    const stockVersion = computeStockVersion(stockDir);
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    const effects = parseCsvWithHeaders(readResolved('CLEAN_FILES/SPACE_EFFECTS.csv'));
+    const draw = effects.find(r => r.space_name === 'AUTH-CLASSROOM-1-1' && r.effect_action === 'draw_E');
+    expect(draw).toBeDefined();
+    expect(draw!.effect_value).toBe('2');
+    expect(draw!.effect_type).toBe('cards');
+  });
 });
 
 describe('scrubSpaceReferences', () => {
