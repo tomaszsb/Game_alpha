@@ -420,6 +420,8 @@ export function deleteTeacherCopy(config, copyId) {
  * @property {string} [fee]       optional flat First-visit fee (string, CSV-shaped)
  * @property {string} [pos_x]
  * @property {string} [pos_y]
+ * @property {{ type: string, count: number }} [cardDraw] cards dealt on arrival (slice 2)
+ * @property {string[]} [diceOutcomes] six destinations, one per die face — makes it a dice space (slice 3)
  * @property {string} createdAt
  * @property {string} updatedAt
  */
@@ -441,15 +443,18 @@ export function deleteTeacherCopy(config, copyId) {
  * the save endpoint rejects an invalid insertion the same way it rejects a
  * bad detour.
  * The optional `cardDraw` makes the authored space deal cards on arrival
- * (Phase 4b slice 2): { type: 'W'|'B'|'I'|'L'|'E', count }. Shape is validated
- * in instanceValidation (rejected at save like a bad edge), not here.
+ * (Phase 4b slice 2): { type: 'W'|'B'|'I'|'L'|'E', count }. The optional
+ * `diceOutcomes` (Phase 4b slice 3) makes it a dice space — exactly 6 entries,
+ * one destination per die face. Both shapes are validated in instanceValidation
+ * (rejected at save like a bad edge), not here.
  * @param {InstanceConfig} config
  * @param {{ from: string, to: string, displayName: string, story?: string,
  *   time?: string, fee?: string, pos_x?: string|number, pos_y?: string|number,
- *   cardDraw?: { type: string, count: string|number }|null }} spec
+ *   cardDraw?: { type: string, count: string|number }|null,
+ *   diceOutcomes?: string[]|null }} spec
  * @returns {string} the new authored space id
  */
-export function addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw }) {
+export function addInsertion(config, { from, to, displayName, story, time, fee, pos_x, pos_y, cardDraw, diceOutcomes }) {
   if (!from || !to) throw new Error('Insertion requires both `from` and `to` (the A→B edge)');
   if (!displayName || !String(displayName).trim()) throw new Error('Insertion requires a displayName');
   if (!config.insertions) config.insertions = {};
@@ -474,6 +479,7 @@ export function addInsertion(config, { from, to, displayName, story, time, fee, 
     ...(pos_x != null ? { pos_x: String(pos_x) } : {}),
     ...(pos_y != null ? { pos_y: String(pos_y) } : {}),
     ...(cardDraw ? { cardDraw: normalizeCardDraw(cardDraw) } : {}),
+    ...(diceOutcomes ? { diceOutcomes: normalizeDiceOutcomes(diceOutcomes) } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -488,13 +494,20 @@ function normalizeCardDraw(cardDraw) {
   };
 }
 
+/** Normalize dice outcomes to a trimmed string[] (validation rejects bad ones). */
+function normalizeDiceOutcomes(diceOutcomes) {
+  return (Array.isArray(diceOutcomes) ? diceOutcomes : []).map(d => String(d ?? '').trim());
+}
+
 /**
  * Edit an authored space's content/label/effects (never its id). Changing the
  * edge (`from`/`to`) is allowed — it re-splices the space — and re-validated
  * at save like any topology edit.
+ * Scalar fields and the structured ones (cardDraw/diceOutcomes) all accept null
+ * to clear them.
  * @param {InstanceConfig} config
  * @param {string} id
- * @param {Partial<InsertionConfig>} patch
+ * @param {Record<string, string|number|string[]|{type:string,count:number}|null>} patch
  */
 export function updateInsertion(config, id, patch) {
   const ins = config.insertions?.[id];
@@ -503,9 +516,12 @@ export function updateInsertion(config, id, patch) {
   for (const key of ['displayName', 'from', 'to', 'story', 'time', 'fee', 'pos_x', 'pos_y']) {
     if (patch[key] !== undefined) next[key] = patch[key] === null ? undefined : String(patch[key]);
   }
-  // cardDraw is an object (or null to clear), not a stringifiable scalar.
+  // cardDraw / diceOutcomes are structured (or null to clear), not scalars.
   if (patch.cardDraw !== undefined) {
     next.cardDraw = patch.cardDraw ? normalizeCardDraw(patch.cardDraw) : undefined;
+  }
+  if (patch.diceOutcomes !== undefined) {
+    next.diceOutcomes = patch.diceOutcomes ? normalizeDiceOutcomes(patch.diceOutcomes) : undefined;
   }
   next.id = ins.id;            // id is immutable (it's the movement key)
   next.createdAt = ins.createdAt;

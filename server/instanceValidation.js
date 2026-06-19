@@ -241,6 +241,24 @@ export function validateInsertions({ config, names, rowsByName, off, diceDests =
         where({ code: 'INSERT_BAD_CARD_DRAW', message: `Insertion "${id}": card draw must be 1–${MAX_CARD_DRAW} of W, B, I, L or E` });
       }
     }
+
+    // Dice outcomes (slice 3): optional, but if present must assign all six die
+    // faces to a space that's on the board, switched on, and not the authored
+    // space itself (a self-loop would trap the player).
+    if (ins.diceOutcomes != null) {
+      const faces = ins.diceOutcomes;
+      if (!Array.isArray(faces) || faces.length !== DIE_FACES) {
+        where({ code: 'INSERT_BAD_DICE_OUTCOMES', message: `Insertion "${id}": a dice space must set all ${DIE_FACES} die faces` });
+      } else {
+        for (const dest of faces) {
+          const d = String(dest || '').trim();
+          if (!d || !names.has(d) || off.has(d) || d === id) {
+            where({ code: 'INSERT_BAD_DICE_OUTCOMES', message: `Insertion "${id}": every die face must point to a space that is on the board and switched on (not the new space itself)` });
+            break;
+          }
+        }
+      }
+    }
   }
   return errors;
 }
@@ -248,6 +266,8 @@ export function validateInsertions({ config, names, rowsByName, off, diceDests =
 /** Card decks an authored space may deal from, and a sane upper bound. */
 const CARD_DECKS = new Set(['W', 'B', 'I', 'L', 'E']);
 const MAX_CARD_DRAW = 9;
+/** A die has six faces — an authored dice space must assign all of them. */
+const DIE_FACES = 6;
 
 /**
  * Full config validation: protection tiers, unknown names, detour

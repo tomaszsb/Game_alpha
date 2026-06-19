@@ -311,6 +311,39 @@ describe('validateConfig — insertions (Phase 4a)', () => {
     });
     expect(badCount.errors.some(e => e.code === 'INSERT_BAD_CARD_DRAW')).toBe(true);
   });
+
+  it('accepts six valid die-face destinations on an authored dice space (slice 3)', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({
+        from: 'BETA-MIDDLE', to: 'GAMMA-FORK',
+        diceOutcomes: ['DELTA-LEFT', 'DELTA-LEFT', 'EPSILON-RIGHT', 'EPSILON-RIGHT', 'GAMMA-FORK', 'GAMMA-FORK'],
+      }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
+  });
+
+  it('rejects dice outcomes that are not exactly six faces', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', diceOutcomes: ['DELTA-LEFT', 'EPSILON-RIGHT'] }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: STOCK });
+    expect(report.errors.some(e => e.code === 'INSERT_BAD_DICE_OUTCOMES')).toBe(true);
+  });
+
+  it('rejects a die face pointing at an unknown space or at the authored space itself', () => {
+    const unknown = validateConfig({
+      config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', diceOutcomes: ['DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'NARNIA-PORTAL'] }) } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(unknown.errors.some(e => e.code === 'INSERT_BAD_DICE_OUTCOMES')).toBe(true);
+
+    const selfLoop = validateConfig({
+      config: makeConfig({ insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'BETA-MIDDLE', to: 'GAMMA-FORK', diceOutcomes: ['DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'AUTH-CLASSROOM-1-1'] }) } }),
+      stockSpacesCsv: STOCK,
+    });
+    expect(selfLoop.errors.some(e => e.code === 'INSERT_BAD_DICE_OUTCOMES')).toBe(true);
+  });
 });
 
 describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', () => {

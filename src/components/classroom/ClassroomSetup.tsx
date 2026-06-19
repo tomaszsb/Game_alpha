@@ -172,6 +172,7 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
         ? await updateInsertion(instanceId, existing.id, {
             displayName: draft.displayName, story: draft.story, time: draft.time, fee: draft.fee,
             cardDraw: draft.cardDraw ?? null,
+            diceOutcomes: draft.diceOutcomes ?? null,
           })
         : await createInsertion(instanceId, draft);
       const ok = await finishMutation(
@@ -437,6 +438,7 @@ export function ClassroomSetup({ onClose, instanceId = 'classroom-1', classroomN
         <InsertionEditor
           existing={insertionEdit.existing}
           edges={catalog.edges ?? []}
+          destinations={(catalog.spaces ?? []).filter(s => s.used).map(s => ({ name: s.name, title: s.title }))}
           nameToTitle={nameToTitle}
           busy={busy}
           onSave={draft => void handleSaveInsertion(draft)}

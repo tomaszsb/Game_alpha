@@ -83,6 +83,8 @@ export interface Insertion {
   pos_y?: string;
   /** Cards dealt automatically when a player lands here (slice 2). */
   cardDraw?: CardDrawSpec;
+  /** Six destinations, one per die face — makes this a dice space (slice 3). */
+  diceOutcomes?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -220,6 +222,7 @@ export function createInsertion(
     from: string; to: string; displayName: string;
     story?: string; time?: string; fee?: string;
     pos_x?: string; pos_y?: string; cardDraw?: CardDrawSpec | null;
+    diceOutcomes?: string[] | null;
     dryRun?: boolean; baseConfigVersion?: number;
   },
   deps: ClassroomApiDeps = {}
@@ -227,8 +230,8 @@ export function createInsertion(
   return mutate(`/api/instances/${instanceId}/insertions`, 'POST', args, deps);
 }
 
-/** A field in an insertion patch: a scalar, a card-draw spec, or null to clear. */
-export type InsertionPatchValue = string | CardDrawSpec | null;
+/** A field in an insertion patch: a scalar, a card-draw spec, dice outcomes, or null to clear. */
+export type InsertionPatchValue = string | CardDrawSpec | string[] | null;
 
 /** Edit an authored space's content/edge (fields → values). */
 export function updateInsertion(

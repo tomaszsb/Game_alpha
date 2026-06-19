@@ -373,6 +373,17 @@ describe('insertions (Phase 4a)', () => {
     updateInsertion(config, id, { cardDraw: null });
     expect(config.insertions[id].cardDraw).toBeUndefined();
   });
+
+  it('persists trimmed dice outcomes, and updateInsertion can clear them (slice 3)', () => {
+    const config = createInstance(root, { id: 'classroom-1' });
+    const id = addInsertion(config, {
+      from: 'A', to: 'B', displayName: 'Roll',
+      diceOutcomes: [' C ', 'D', 'C', 'D', 'C', 'D'],
+    });
+    expect(config.insertions[id].diceOutcomes).toEqual(['C', 'D', 'C', 'D', 'C', 'D']);
+    updateInsertion(config, id, { diceOutcomes: null });
+    expect(config.insertions[id].diceOutcomes).toBeUndefined();
+  });
 });
 
 describe('listInstanceIds (Phase 3)', () => {

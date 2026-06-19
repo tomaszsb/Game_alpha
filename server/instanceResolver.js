@@ -173,9 +173,20 @@ export function applyConfigToSpacesCsv(spacesCsv, config, detours = {}) {
       authored.Title = ins.displayName;
       authored.Event = ins.story || '';
       authored.display_label_override = ins.displayName;         // the human label (audit round 4)
-      authored.requires_dice_roll = 'NO';
       authored.Negotiate = 'NO';
-      authored.space_1 = ins.to;                                 // single fixed onward edge
+      // Slice 3: a dice space rolls to teacher-set outcomes (its DiceRoll Info /
+      // DICE_OUTCOMES rows are injected at bake — see bakeInstance). Movement for
+      // a dice space comes from the dice table, not space_N, but the distinct
+      // outcomes are listed in space_1..5 so the board can draw the edges. A
+      // plain pass-through keeps its single fixed onward edge to `to`.
+      const diceOutcomes = Array.isArray(ins.diceOutcomes) && ins.diceOutcomes.length ? ins.diceOutcomes : null;
+      if (diceOutcomes) {
+        authored.requires_dice_roll = 'YES';
+        [...new Set(diceOutcomes)].slice(0, 5).forEach((dest, i) => { authored[`space_${i + 1}`] = dest; });
+      } else {
+        authored.requires_dice_roll = 'NO';
+        authored.space_1 = ins.to;                               // single fixed onward edge
+      }
       // Flat effects are First-visit only (a pass-through must not re-charge on revisit).
       authored.Time = isFirst && ins.time != null ? String(ins.time) : '0';
       authored.Fee = isFirst && ins.fee != null ? String(ins.fee) : '0';
@@ -268,6 +279,67 @@ export function applyConfigToDiceCsv(diceCsv, config, detours = {}, insertions =
     out.push(effective);
   }
   return toCsv(out, headers);
+}
+
+/**
+ * Slice 3 (authored dice space): derive the dice rows the authored space needs.
+ * Reads the already-built effective Spaces.csv for the authored rows (one per
+ * visit type, mirroring `from`) and pairs each with the teacher's six outcomes.
+ * @param {string} effectiveSpacesCsv
+ * @param {import('./instanceStore.js').InstanceConfig} config
+ * @returns {Array<{ id: string, visit_type: string, outcomes: string[] }>}
+ */
+export function collectAuthoredDiceRows(effectiveSpacesCsv, config) {
+  const insById = config.insertions || {};
+  const out = [];
+  for (const row of parseCsvWithHeaders(effectiveSpacesCsv)) {
+    const ins = insById[row.space_name];
+    if (ins && Array.isArray(ins.diceOutcomes) && ins.diceOutcomes.length
+        && String(row.requires_dice_roll || '').toUpperCase() === 'YES') {
+      out.push({ id: row.space_name, visit_type: row.visit_type || '', outcomes: ins.diceOutcomes });
+    }
+  }
+  return out;
+}
+
+/**
+ * Append authored dice rows to the SOURCE DiceRoll Info.csv. die_roll='Next
+ * Step' is exactly what loadDiceData/processMovement recognize as dice
+ * MOVEMENT, so the baked MOVEMENT.csv marks the authored space movement_type=
+ * 'dice' (its destinations come from the dice table, not space_N).
+ */
+export function appendAuthoredDiceRows(diceCsv, authoredRows) {
+  if (!authoredRows.length) return diceCsv;
+  const { headers, rows } = parseWithHeaderLine(diceCsv);
+  for (const a of authoredRows) {
+    const row = {};
+    for (const h of headers) row[h] = '';
+    row.space_name = a.id;
+    row.die_roll = 'Next Step';
+    row.visit_type = a.visit_type;
+    for (let f = 1; f <= 6; f++) row[String(f)] = a.outcomes[f - 1] || '';
+    rows.push(row);
+  }
+  return toCsv(rows, headers);
+}
+
+/**
+ * Append authored dice outcomes to the curated DICE_OUTCOMES.csv — the file the
+ * client reads directly for every dice destination (processGameData does NOT
+ * generate it). Without this the authored dice space would roll into the void.
+ */
+export function appendAuthoredDiceOutcomes(outcomesCsv, authoredRows) {
+  if (!authoredRows.length) return outcomesCsv;
+  const { headers, rows } = parseWithHeaderLine(outcomesCsv);
+  for (const a of authoredRows) {
+    const row = {};
+    for (const h of headers) row[h] = '';
+    row.space_name = a.id;
+    row.visit_type = a.visit_type;
+    for (let f = 1; f <= 6; f++) row[`roll_${f}`] = a.outcomes[f - 1] || '';
+    rows.push(row);
+  }
+  return toCsv(rows, headers);
 }
 
 /**
@@ -436,7 +508,12 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
     copyDirFiles(stockSourceDir, newSourceDir);
     const effectiveSpacesCsv = applyConfigToSpacesCsv(stockSpacesCsv, config, detours);
     fs.writeFileSync(path.join(newSourceDir, SPACES_CSV), effectiveSpacesCsv, 'utf-8');
-    const effectiveDiceCsv = applyConfigToDiceCsv(diceCsv, config, detours, config.insertions || {});
+    // Slice 3: an authored dice space needs its own DiceRoll Info row so
+    // loadDiceData/processMovement see it as dice movement, plus a curated
+    // DICE_OUTCOMES row (added below) the client reads for the destinations.
+    const authoredDiceRows = collectAuthoredDiceRows(effectiveSpacesCsv, config);
+    let effectiveDiceCsv = applyConfigToDiceCsv(diceCsv, config, detours, config.insertions || {});
+    effectiveDiceCsv = appendAuthoredDiceRows(effectiveDiceCsv, authoredDiceRows);
     fs.writeFileSync(path.join(newSourceDir, DICE_CSV), effectiveDiceCsv, 'utf-8');
 
     // 2. Resolved CLEAN_FILES: stock copies first (covers the manually
@@ -467,6 +544,16 @@ export function bakeInstance({ stockDataDir, instancesRoot, config, stockVersion
       // PATH_CHOICE_RULES is deliberately NOT rewritten — protection forbids
       // disabling its participants, and validateConfig hard-errors if the
       // rules reference an off space, so reaching here means it is clean.
+    }
+    // Slice 3: add the authored dice spaces' outcome rows to the curated
+    // DICE_OUTCOMES.csv (done after the rewrite pass — these rows are new, not
+    // rewritten). Their outcomes are validated active, so no scrub is needed.
+    if (authoredDiceRows.length) {
+      const outcomesPath = path.join(newCleanDir, 'DICE_OUTCOMES.csv');
+      if (fs.existsSync(outcomesPath)) {
+        const appended = appendAuthoredDiceOutcomes(fs.readFileSync(outcomesPath, 'utf-8'), authoredDiceRows);
+        fs.writeFileSync(outcomesPath, appended, 'utf-8');
+      }
     }
 
     // 3. Validation report (the catalog UI's data source), stamp, swap.

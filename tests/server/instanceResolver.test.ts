@@ -570,6 +570,43 @@ describe('Phase 4a bake: teacher-authored insertions', () => {
     expect(draw!.effect_value).toBe('2');
     expect(draw!.effect_type).toBe('cards');
   });
+
+  it('bakes an authored DICE space: dice flag, DiceRoll Info + DICE_OUTCOMES rows, dice movement (slice 3)', () => {
+    setupPhase2Stock();
+    const config = createInstance(instancesRoot, { id: 'classroom-1' });
+    const outcomes = ['DELTA-LEFT', 'DELTA-LEFT', 'DELTA-LEFT', 'EPSILON-RIGHT', 'EPSILON-RIGHT', 'EPSILON-RIGHT'];
+    const id = addInsertion(config, { from: 'BETA-MIDDLE', to: 'GAMMA-FORK', displayName: 'Fork in the Road', diceOutcomes: outcomes });
+    const stockVersion = computeStockVersion(stockDir);
+    bakeInstance({ stockDataDir: stockDir, instancesRoot, config, stockVersion });
+
+    // BETA-MIDDLE (both visit rows) routes into the authored space.
+    const spaces = parseCsvWithHeaders(readResolved('SOURCE_FILES/Spaces.csv'));
+    for (const visit of ['First', 'Subsequent']) {
+      expect(spaces.find(r => r.space_name === 'BETA-MIDDLE' && r.visit_type === visit)!.space_1).toBe(id);
+    }
+    // The authored row is a dice space (mirrors BETA's two visit rows).
+    const authored = spaces.filter(r => r.space_name === id);
+    expect(authored).toHaveLength(2);
+    expect(authored.every(r => String(r.requires_dice_roll).toUpperCase() === 'YES')).toBe(true);
+
+    // SOURCE DiceRoll Info row: die_roll='Next Step', the six faces in cols 1-6.
+    const dice = parseCsvWithHeaders(readResolved('SOURCE_FILES/DiceRoll Info.csv'));
+    const diceRow = dice.find(r => r.space_name === id && r.visit_type === 'First')!;
+    expect(diceRow.die_roll).toBe('Next Step');
+    expect([1, 2, 3, 4, 5, 6].map(n => diceRow[String(n)])).toEqual(outcomes);
+
+    // Curated DICE_OUTCOMES row (what the client actually reads) per visit.
+    const outRows = parseCsvWithHeaders(readResolved('CLEAN_FILES/DICE_OUTCOMES.csv'));
+    expect(outRows.filter(r => r.space_name === id)).toHaveLength(2);
+    const outFirst = outRows.find(r => r.space_name === id && r.visit_type === 'First')!;
+    expect([1, 2, 3, 4, 5, 6].map(n => outFirst[`roll_${n}`])).toEqual(outcomes);
+
+    // processGameData marks the authored space as dice movement.
+    const movement = parseCsvWithHeaders(readResolved('CLEAN_FILES/MOVEMENT.csv'));
+    expect(movement.find(r => r.space_name === id && r.visit_type === 'First')!.movement_type).toBe('dice');
+
+    expect(JSON.parse(readResolved('validation-report.json')).ok).toBe(true);
+  });
 });
 
 describe('scrubSpaceReferences', () => {
