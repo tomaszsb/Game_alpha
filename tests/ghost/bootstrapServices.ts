@@ -32,9 +32,17 @@ import { FinancialEffectHandler } from '../../src/services/FinancialEffectHandle
 import { ApprovalService } from '../../src/services/ApprovalService';
 
 class NodeDataService extends DataService {
+  private readonly cleanFilesDir: string;
+  // Defaults to the stock CLEAN_FILES, but accepts an explicit dir so a test
+  // can point the ghost at a baked classroom instance (e.g. one carrying a
+  // teacher-authored insertion) instead of stock.
+  constructor(cleanFilesDir?: string) {
+    super();
+    this.cleanFilesDir = cleanFilesDir ?? join(process.cwd(), 'public', 'data', 'CLEAN_FILES');
+  }
   async loadData(): Promise<void> {
     if ((this as any).loaded) return;
-    const dataDir = join(process.cwd(), 'public', 'data', 'CLEAN_FILES');
+    const dataDir = this.cleanFilesDir;
     const read = (file: string) => readFileSync(join(dataDir, file), 'utf-8');
     (this as any).gameConfigs = (this as any).parseGameConfigCsv(read('GAME_CONFIG.csv'));
     (this as any).movements = (this as any).parseMovementCsv(read('MOVEMENT.csv'));
@@ -65,8 +73,8 @@ export interface HeadlessServices {
   loggingService: LoggingService;
 }
 
-export async function bootstrapHeadlessServices(): Promise<HeadlessServices> {
-  const dataService = new NodeDataService();
+export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise<HeadlessServices> {
+  const dataService = new NodeDataService(cleanFilesDir);
   await dataService.loadData();
 
   const stateService = new StateService(dataService);
