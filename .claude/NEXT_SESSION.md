@@ -4,7 +4,7 @@
 - **Version:** v3.0.81 — **committed + pushed to origin/master, NOT deployed.** Live prod is still v3.0.80 (`9666140`). `deploy.sh` will pull v3.0.81; just run it.
 - **Branch:** master, clean (only `.claude/settings.local.json` + untracked `.claude/ghost-history.jsonl`).
 - **Last shipped:** four post-deploy fixes — validator dice-drift fix, mobile board-bleed fix, expeditor phase chips+sort (fb:f8dc7c38), authored-insertion ghost fixture.
-- **Test suite:** targeted sweep **1661/1661** (components+utils+services) + server **250/250** + new ghost fixture **3/3**, all green. Full vitest run is slow (~25 min ghost gates) — launched but not confirmed end-to-end; pre-existing flakies: 3 (Windows rmdir race + 2 E2E timeouts, green in isolation).
+- **Test suite:** full vitest **confirmed 2173 pass / 1 skip / 1 fail** (31 min). The 1 fail is the known **Windows `rmdir`-race** in teardown (`instanceStore.test.ts > refuses to copy a card that does not exist in stock` — `ENOTEMPTY` in `afterEach`, body passed, green in isolation), NOT a regression. No cross-file ripple from this session.
 - **Build/typecheck:** clean.
 
 ## Top 3 open items
