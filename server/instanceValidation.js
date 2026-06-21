@@ -28,15 +28,24 @@ export function extractSpaceTokens(text, knownSpaces) {
 }
 
 /**
- * Map each dice-source space name → the Set of destinations reachable from
- * its roll columns (1-6). Compound cells ("A or B") and free text contribute
- * every known token. Phase 4b uses this to verify a dice A→B edge exists.
+ * Map each dice-MOVEMENT source space name → the Set of destinations reachable
+ * from its roll columns (1-6). Compound cells ("A or B") and free text
+ * contribute every known token. Phase 4b uses this to verify a dice A→B edge
+ * exists — and the map's keys identify which spaces actually route by dice.
+ *
+ * Only `die_roll === 'Next Step'` rows are movement: that is exactly what the
+ * engine routes on (processGameData.js skips every other die_roll). Spaces with
+ * a `requires_dice_roll=Yes` *effect* roll (W Cards / Time outcomes / Fees Paid)
+ * still move along their fixed `space_N` edge, so they must NOT appear here —
+ * otherwise validation/catalog would look for their onward edge in an empty
+ * dice table instead of `space_N` (the parallel-systems drift this guards).
  * @returns {Map<string, Set<string>>}
  */
 export function buildDiceDests(diceCsv, knownSpaces) {
   const map = new Map();
   if (!diceCsv) return map;
   for (const row of parseCsvWithHeaders(diceCsv)) {
+    if ((row.die_roll || '').trim() !== 'Next Step') continue;
     const name = (row.space_name || '').trim();
     if (!name) continue;
     let set = map.get(name);
@@ -203,13 +212,15 @@ export function validateInsertions({ config, names, rowsByName, off, diceDests =
     // The A→B edge must exist on `from` (else "insert between A and B" is
     // meaningless). A path-choice lock point is never spliceable — it
     // remembers which destination the player chose, and rewriting that
-    // destination to the authored id would break the memory. A dice source
-    // (4b) keeps its edges in the dice table, so check there; otherwise the
-    // fixed/choice `space_N` cells (4a).
+    // destination to the authored id would break the memory. A dice-MOVEMENT
+    // source (4b) keeps its edges in the dice table, so check there; otherwise
+    // the fixed/choice `space_N` cells (4a). "Dice source" is keyed off the
+    // dice table's Next Step rows (diceDests), NOT requires_dice_roll — a space
+    // with only an *effect* roll (W Cards / Fees) still moves by its fixed edge.
     if (names.has(from) && names.has(to)) {
       const fromRows = rowsByName.get(from) || [];
       const isLockPoint = fromRows.some(r => String(r.is_path_choice_lock_point || '').trim().toLowerCase() === 'yes');
-      const isDice = fromRows.some(r => String(r.requires_dice_roll || '').toUpperCase() === 'YES');
+      const isDice = diceDests.has(from);
       if (isLockPoint) {
         where({ code: 'INSERT_ON_LOCK_POINT', message: `Insertion "${id}": "${from}" remembers which path the player picked — splicing a space here would break that choice. Pick a different edge.` });
       } else if (isDice) {

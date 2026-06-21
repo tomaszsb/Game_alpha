@@ -85,6 +85,9 @@ describe('buildCatalog', () => {
     const DICE_HEADER =
       'space_name,phase,visit_type,Title,Event,Action,Outcome,Time,Fee,space_1,space_2,' +
       'requires_dice_roll,is_path_choice_lock_point';
+    // P-FEE has requires_dice_roll=Yes but only an *effect* roll (Fees Paid) —
+    // it still moves along its fixed space_1 (P-END), so that edge must be
+    // offered as a normal fixed edge, not looked for in the (empty) dice table.
     const DICE_STOCK = [
       DICE_HEADER,
       'P-START,SETUP,First,Start,Begin,Go,Done,0,0,P-ROLL,,No,No',
@@ -92,11 +95,14 @@ describe('buildCatalog', () => {
       'P-LOCK,REVIEW,First,Lock,Pick,Go,Done,0,0,P-LEFT,P-RIGHT,No,Yes',
       'P-LEFT,REVIEW,First,Left,L,Go,Done,0,0,P-END,,No,No',
       'P-RIGHT,REVIEW,First,Right,R,Go,Done,0,0,P-END,,No,No',
+      'P-FEE,REVIEW,First,Fee,Pay,Go,Done,0,0,P-END,,Yes,No',
       'P-END,DONE,First,End,Fin,Go,Done,0,0,,,No,No',
     ].join('\n') + '\n';
+    // die_roll='Next Step' is movement; 'Fees Paid' is an effect (not movement).
     const DICE_CSV =
       'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
-      'P-ROLL,movement,First,P-LEFT,P-LEFT,P-RIGHT,P-RIGHT,P-END,P-END\n';
+      'P-ROLL,Next Step,First,P-LEFT,P-LEFT,P-RIGHT,P-RIGHT,P-END,P-END\n' +
+      'P-FEE,Fees Paid,First,$100,$100,$200,$200,$300,$300\n';
 
     const catalog = buildCatalog({ stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV, config: baseConfig() }) as any;
     // Dice edges come from the dice table, flagged dice:true.
@@ -105,6 +111,8 @@ describe('buildCatalog', () => {
     expect(catalog.edges).toContainEqual({ from: 'P-ROLL', to: 'P-END', dice: true });
     // Fixed edges still flagged dice:false.
     expect(catalog.edges).toContainEqual({ from: 'P-START', to: 'P-ROLL', dice: false });
+    // An effect-only-roll space offers its fixed edge as dice:false (drift fix).
+    expect(catalog.edges).toContainEqual({ from: 'P-FEE', to: 'P-END', dice: false });
     // The lock-point source is never offered as a spliceable edge.
     expect(catalog.edges.some((e: any) => e.from === 'P-LOCK')).toBe(false);
   });

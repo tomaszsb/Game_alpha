@@ -368,6 +368,8 @@ describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', 
   const DICE_HEADER =
     'space_name,visit_type,Title,Event,Outcome,space_1,space_2,pos_x,pos_y,' +
     'requires_dice_roll,is_starting_space,is_ending_space,is_resume_hub,path_choice_memory_key,is_path_choice_lock_point';
+  // FEE-ROLL is the drift case: requires_dice_roll=Yes, but its only dice row
+  // is an *effect* roll (Fees Paid) — it still moves along its fixed space_1.
   const DICE_STOCK = [
     DICE_HEADER,
     'A-START,First,Start,Begin,Done,DICE-ROLL,,0,0,No,Yes,No,No,,No',
@@ -375,11 +377,15 @@ describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', 
     'LOCK-PICK,First,Pick,Choose,Done,LEFT-PATH,RIGHT-PATH,200,0,No,No,No,No,pick_key,Yes',
     'LEFT-PATH,First,Left,L,Done,END-SPACE,,300,0,No,No,No,No,,No',
     'RIGHT-PATH,First,Right,R,Done,END-SPACE,,300,100,No,No,No,No,,No',
+    'FEE-ROLL,First,Fee,Pay,Done,LEFT-PATH,,500,0,Yes,No,No,No,,No',
     'END-SPACE,First,End,Fin,Done,,,400,0,No,No,Yes,No,,No',
   ].join('\n') + '\n';
+  // die_roll='Next Step' is movement (what the engine routes on); 'Fees Paid'
+  // is an effect and must NOT mark FEE-ROLL as a dice-movement source.
   const DICE_CSV =
     'space_name,die_roll,visit_type,1,2,3,4,5,6\n' +
-    'DICE-ROLL,movement,First,LEFT-PATH,LEFT-PATH,LEFT-PATH,RIGHT-PATH,RIGHT-PATH,RIGHT-PATH\n';
+    'DICE-ROLL,Next Step,First,LEFT-PATH,LEFT-PATH,LEFT-PATH,RIGHT-PATH,RIGHT-PATH,RIGHT-PATH\n' +
+    'FEE-ROLL,Fees Paid,First,$1000,$1000,$2000,$2000,$3000,$3000\n';
 
   const ins = (over: Record<string, unknown>) => ({
     id: 'AUTH-CLASSROOM-1-1', displayName: 'Authored', story: '', ...over,
@@ -407,5 +413,18 @@ describe('validateConfig — insertions on dice & lock-point edges (Phase 4b)', 
     });
     const report = validateConfig({ config, stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV });
     expect(report.errors.some(e => e.code === 'INSERT_ON_LOCK_POINT')).toBe(true);
+  });
+
+  // Validator/engine drift fix (found 2026-06-20): a requires_dice_roll=Yes
+  // space whose only roll is an effect (W Cards / Time / Fees) moves along its
+  // fixed space_N edge. "Is this a dice source?" is keyed off the dice table's
+  // Next Step rows, so the fixed edge must be spliceable, not rejected as a
+  // missing dice outcome.
+  it('accepts splicing onto the fixed edge of a space that only effect-rolls', () => {
+    const config = makeConfig({
+      insertions: { 'AUTH-CLASSROOM-1-1': ins({ from: 'FEE-ROLL', to: 'LEFT-PATH' }) },
+    });
+    const report = validateConfig({ config, stockSpacesCsv: DICE_STOCK, diceCsv: DICE_CSV });
+    expect(report.errors.filter(e => e.code.startsWith('INSERT_'))).toEqual([]);
   });
 });

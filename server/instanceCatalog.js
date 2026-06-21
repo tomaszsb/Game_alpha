@@ -44,7 +44,6 @@ export function buildCatalog({ stockSpacesCsv, pathChoiceCsv, diceCsv, config, s
     const fields = {};
     for (const field of EDITABLE_FIELDS) fields[field] = row[field] ?? '';
     entry.stock[row.visit_type || ''] = fields;
-    if (String(row.requires_dice_roll || '').toUpperCase() === 'YES') entry.dice = true;
     if (String(row.is_path_choice_lock_point || '').trim().toLowerCase() === 'yes') entry.lock = true;
     for (let i = 1; i <= 5; i++) {
       if (row[`space_${i}`]) entry.destCells.push(row[`space_${i}`]);
@@ -58,6 +57,11 @@ export function buildCatalog({ stockSpacesCsv, pathChoiceCsv, diceCsv, config, s
   // re-validates every save regardless.
   const known = new Set(byName.keys());
   const diceDests = buildDiceDests(diceCsv, known);
+  // A space routes by dice only if the dice table has a Next Step (movement)
+  // row for it — same key the engine + validateInsertions use. A
+  // requires_dice_roll=Yes space whose only roll is an effect (W Cards / Time /
+  // Fees) still moves along its fixed space_N edge, so it must enumerate those.
+  for (const entry of byName.values()) entry.dice = diceDests.has(entry.name);
   const edges = [];
   const seen = new Set();
   for (const entry of byName.values()) {
