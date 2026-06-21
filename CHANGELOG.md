@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] — post-deploy fixes (2026-06-20)
+## [3.0.81] - 2026-06-20
+
+*Four post-deploy items on master, committed but **not yet deployed**: a validator/engine dice-drift fix, the mobile board-bleed fix, the expeditor phase indicator (fb:f8dc7c38), and the authored-insertion ghost fixture.*
 
 ### Authored-insertion ghost fixture (2026-06-20)
 
@@ -30,7 +32,7 @@ All notable changes to this project will be documented in this file.
 - **Fix — aligned all three to `Next Step`.** `buildDiceDests` skips non-`Next Step` dice rows, so the map's keys now *are* the true dice-movement sources ([instanceValidation.js](server/instanceValidation.js)). `validateInsertions` keys `isDice` off `diceDests.has(from)` instead of `requires_dice_roll`; the catalog sets `entry.dice = diceDests.has(name)` so an effect-roll space enumerates its fixed `space_N` edges in the "pick an edge" dropdown ([instanceCatalog.js](server/instanceCatalog.js)). Found during the 2026-06-20 local Phase 4b walk; low severity (workaround was to splice onto a truly-fixed edge like `FUND→PM`).
 - **Tests.** +2 regression tests (validation accepts an effect-roll space's fixed edge; the catalog offers it as `dice:false`). Corrected 2 stale fixtures that used the placeholder `die_roll='movement'` to the real engine value `'Next Step'`. 66 server tests green; typecheck clean. Not deployed.
 
-## [Unreleased] — branch `phase-4a-card-insertion` (2026-06-18)
+## [3.0.80 · Phase 4a/4b] — merged + deployed live 2026-06-20 (branch `phase-4a-card-insertion`, 2026-06-18)
 
 **Phase 4a verified in the running game — found + fixed four real bugs the build-only tests missed.** Per the user's "verify 4a before building 4b" call. All four were exposed by actually baking a classroom-1 insertion (`OWNER-FUND-INITIATION → "Community Board Review" → PM-DECISION-CHECK`) and walking it; routing + tile render confirmed end-to-end through the Express-served client. Commit `af3e5f6`. Not merged/pushed/deployed.
 
