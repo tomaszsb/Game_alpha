@@ -6,7 +6,46 @@ import { IServiceContainer } from '../../../types/ServiceContracts';
 import { Card, CardType } from '../../../types/DataTypes';
 import { DiscardPileModal } from '../../modals/DiscardPileModal';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
+import { PHASE_COLORS } from '../../../utils/boardCommon';
 import './CardsSection.css';
+
+/**
+ * Expeditor phase chip (fb:f8dc7c38). A player with many filing reps couldn't
+ * tell which phase each serves; this maps an E card's `phase_restriction` to a
+ * colored label + a sort order so same-phase expeditors cluster and duplicates
+ * are easy to spot when deciding which to let go. Colors reuse the board's
+ * PHASE_COLORS so the chip matches the tile/phase-bar palette (note E cards
+ * spell it REGULATORY_REVIEW where the palette key is REGULATORY).
+ */
+const NEUTRAL_PHASE = { border: '#9e9e9e', text: '#616161' };
+const EXPEDITOR_PHASES: Record<string, { label: string; colorKey: string; order: number }> = {
+  FUNDING: { label: 'Funding', colorKey: 'FUNDING', order: 1 },
+  DESIGN: { label: 'Design', colorKey: 'DESIGN', order: 2 },
+  REGULATORY_REVIEW: { label: 'Regulatory', colorKey: 'REGULATORY', order: 3 },
+  CONSTRUCTION: { label: 'Construction', colorKey: 'CONSTRUCTION', order: 4 },
+};
+function expeditorPhaseInfo(phaseRestriction?: string): { label: string; border: string; text: string; order: number } {
+  const raw = (phaseRestriction || 'Any').toUpperCase();
+  const known = EXPEDITOR_PHASES[raw];
+  if (!known) return { label: 'Any phase', ...NEUTRAL_PHASE, order: 5 };
+  const c = PHASE_COLORS[known.colorKey] || NEUTRAL_PHASE;
+  return { label: known.label, border: c.border, text: c.text, order: known.order };
+}
+function PhaseChip({ phaseRestriction }: { phaseRestriction?: string }) {
+  const p = expeditorPhaseInfo(phaseRestriction);
+  return (
+    <span
+      title={`Works during the ${p.label} phase`}
+      style={{
+        marginLeft: '6px', padding: '1px 7px', borderRadius: '9px',
+        fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap',
+        color: p.text, border: `1px solid ${p.border}`, backgroundColor: `${p.border}1a`,
+      }}
+    >
+      {p.label}
+    </span>
+  );
+}
 
 /**
  * Props for the CardsSection component
@@ -275,7 +314,12 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
               {(Object.keys(cardCounts) as CardType[]).map((cardType) => {
                 const cardsOfType = playerHand
                   .map(cardId => ({ id: cardId, card: gameServices.dataService.getCardById(cardId) }))
-                  .filter(item => item.card && gameServices.cardService.getCardType(item.id) === cardType);
+                  .filter(item => item.card && gameServices.cardService.getCardType(item.id) === cardType)
+                  .sort((a, b) => {
+                    const pa = expeditorPhaseInfo(a.card?.phase_restriction);
+                    const pb = expeditorPhaseInfo(b.card?.phase_restriction);
+                    return pa.order - pb.order || (a.card?.card_name || '').localeCompare(b.card?.card_name || '');
+                  });
                 const isTypeExpanded = expandedCardType === cardType;
                 const playableInGroup = cardType === 'E' ? cardsOfType.filter(item => item.card && canPlayCard(item.card)).length : 0;
                 return (
@@ -321,7 +365,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                             </>
                           );
                           return (
-                            <CardDisplay key={item.id} card={item.card} variant="detailed" isExpanded={isCardExpanded} onToggle={() => toggleCard(item.id)} isPlayable={isPlayable} highlight={isPlayable ? 'playable' : 'none'} actions={cardActions} />
+                            <CardDisplay key={item.id} card={item.card} variant="detailed" isExpanded={isCardExpanded} onToggle={() => toggleCard(item.id)} isPlayable={isPlayable} highlight={isPlayable ? 'playable' : 'none'} actions={cardActions} headerBadge={<PhaseChip phaseRestriction={item.card.phase_restriction} />} />
                           );
                         })}
                       </div>
@@ -371,7 +415,12 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                   id: cardId,
                   card: gameServices.dataService.getCardById(cardId)
                 }))
-                .filter(item => item.card && gameServices.cardService.getCardType(item.id) === cardType);
+                .filter(item => item.card && gameServices.cardService.getCardType(item.id) === cardType)
+                .sort((a, b) => {
+                  const pa = expeditorPhaseInfo(a.card?.phase_restriction);
+                  const pb = expeditorPhaseInfo(b.card?.phase_restriction);
+                  return pa.order - pb.order || (a.card?.card_name || '').localeCompare(b.card?.card_name || '');
+                });
 
               const isTypeExpanded = expandedCardType === cardType;
 
@@ -467,6 +516,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                             isPlayable={isPlayable}
                             highlight={isPlayable ? 'playable' : 'none'}
                             actions={cardActions}
+                            headerBadge={<PhaseChip phaseRestriction={item.card.phase_restriction} />}
                           />
                         );
                       })}

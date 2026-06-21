@@ -41,6 +41,9 @@ export interface CardDisplayProps {
   onSelect?: () => void;
   /** Card type icon to display */
   cardTypeIcon?: string;
+  /** Optional badge shown in the collapsed header (e.g. a phase chip) so the
+   *  reader can scan the attribute without expanding each card. */
+  headerBadge?: ReactNode;
 }
 
 /**
@@ -66,7 +69,8 @@ export function CardDisplay({
   isSelected = false,
   selectedColor,
   onSelect,
-  cardTypeIcon
+  cardTypeIcon,
+  headerBadge
 }: CardDisplayProps) {
   const { openWithTerm } = useDictionaryPanel();
   const highlightClass = highlight !== 'none' ? `card-display--${highlight}` : '';
@@ -145,6 +149,7 @@ export function CardDisplay({
           <span className="card-display__expand-icon">{isExpanded ? '▼' : '▶'}</span>
           {isPlayable && <span className="card-display__playable-icon">⚡</span>}
           <span className="card-display__name">{card.card_name}</span>
+          {headerBadge}
           {isPlayable && <span className="card-display__play-badge">PLAY</span>}
         </span>
         {displayAmount && (

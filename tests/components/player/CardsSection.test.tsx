@@ -239,4 +239,38 @@ describe('CardsSection', () => {
       });
     });
   });
+
+  describe('Expeditor phase chips & sorting (fb:f8dc7c38)', () => {
+    beforeEach(() => {
+      mockPlayer.hand = ['E1', 'E2', 'E3'];
+      const phaseById: Record<string, string | null> = {
+        E1: 'CONSTRUCTION', E2: 'FUNDING', E3: null, // null → "Any phase"
+      };
+      mockServices.dataService.getCardById.mockImplementation((cardId: string) => ({
+        card_id: cardId,
+        card_name: `E Card ${cardId.slice(1)}`,
+        card_type: 'E',
+        description: `Test card ${cardId}`,
+        phase_restriction: phaseById[cardId] ?? null,
+      }));
+    });
+
+    it('shows a phase chip on each expeditor and sorts them by phase', () => {
+      const { container } = renderWithContext(<CardsSection {...defaultProps} />);
+      // Expand the Expeditors group to reveal the individual cards.
+      fireEvent.click(screen.getByText(/Expeditors \(3\)/));
+
+      // Each expeditor surfaces its phase as a chip (REGULATORY_REVIEW → Regulatory,
+      // null/Any → "Any phase").
+      expect(screen.getByText('Funding')).toBeInTheDocument();
+      expect(screen.getByText('Construction')).toBeInTheDocument();
+      expect(screen.getByText('Any phase')).toBeInTheDocument();
+
+      // Sorted by phase order: Funding (1) → Construction (4) → Any (5),
+      // so same-phase reps cluster and duplicates are easy to spot.
+      const names = Array.from(container.querySelectorAll('.card-display__name'))
+        .map(n => n.textContent);
+      expect(names).toEqual(['E Card 2', 'E Card 1', 'E Card 3']);
+    });
+  });
 });
