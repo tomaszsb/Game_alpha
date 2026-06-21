@@ -626,6 +626,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           .game-interface-responsive > * {
             grid-column: 1 !important;
           }
+          /* One column means the board would stack into the panel's cell and
+             its React-Flow layers bleed through the panel text — hide it on the
+             shared layout at phone width (the panel is the actionable surface;
+             per-player phone view already shows no board). */
+          .game-board-area {
+            display: none !important;
+          }
         }
 
         @media (max-width: 480px) {
@@ -1164,7 +1171,16 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               the only board. Admin-only Edit/Edges/Hidden controls in the
               top-right toggle still drive its props. */}
           {gamePhase === 'PLAY' && (
-            <div style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}>
+            // At phone width the grid collapses to one column, so the board and
+            // the left player panel (both gridRow 2) would land in the same cell
+            // and the board's React-Flow layers bleed through the panel text
+            // (fb mobile board-bleed). Tag it so the ≤768px rule hides it — but
+            // only when a panel is actually shown; with the panel column hidden
+            // the board is alone and full-width, so there's nothing to overlap.
+            <div
+              className={hidePanelColumn ? undefined : 'game-board-area'}
+              style={{ gridColumn: hidePanelColumn ? '1 / -1' : '2', gridRow: '2', overflow: 'hidden' }}
+            >
               <BoardCanvas
                 currentPlayerId={currentPlayerId}
                 players={players}
