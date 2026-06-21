@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] — post-deploy fixes (2026-06-20)
+
+### Expeditor phase indicator (2026-06-20, fb:f8dc7c38)
+
+**A player with many filing reps (expeditors) couldn't tell which phase each one works in, and asked for color or sorting to decide which to let go.** Each expeditor now carries a **color-coded phase chip** — Funding / Design / Regulatory / Construction / Any phase — in its collapsed row, and the EXPEDITORS list is **sorted by phase** so same-phase reps cluster and duplicates are obvious. Previously the phase showed only as plain text inside the expanded card detail, so you had to open every card to compare.
+
+- Chip colors reuse the board's `PHASE_COLORS` so they match the tile / phase-bar palette ([boardCommon.ts](src/utils/boardCommon.ts)). E cards spell the regulatory phase `REGULATORY_REVIEW`; it's normalized to the palette's `REGULATORY` key, and `Any`/unknown gets a neutral gray "Any phase" chip sorted last.
+- New opt-in `headerBadge` slot on [CardDisplay](src/components/common/CardDisplay.tsx) (default undefined — no change to its other callers); the phase chip + phase sort are applied in both render paths of [CardsSection](src/components/player/sections/CardsSection.tsx). +1 test (chips render, list sorts by phase order); 11 CardsSection tests + typecheck + build green. Not deployed.
+
+### Mobile board-bleed-through fix (2026-06-20)
+
+**On a phone, the shared/solo game screen showed the board ghosting through the player panel** — faint board tiles plus the React-Flow zoom controls, LEDGER tab, and attribution logo painted over the narrative text. Root cause: at `max-width:768px` the layout grid collapses to a single column, but the left player panel and the board both carry an inline `gridRow:'2'`. On a wide screen they sit in different columns; on a phone they collapse into the *same* grid cell and overlap, and React-Flow's absolutely-positioned layers bleed through the panel.
+
+- **Fix.** The board wrapper is tagged `game-board-area` (only when a player panel is actually shown — with the panel column hidden the board is alone and full-width, so there's nothing to overlap) and a `≤768px` rule hides it ([GameLayout.tsx](src/components/layout/GameLayout.tsx)). At phone width the panel becomes the single-column surface; the board is illegible at ~390px anyway, and the per-player phone view already renders no board. Product call: hide rather than stack the board below the panel, because stacking would reintroduce vertical scroll (against the panel's no-scroll requirement). typecheck + 9 panel-visibility tests green; not deployed. The separate "action buttons fall below the fold" concern is panel-internal length and belongs to the player-panel redesign.
+
+### Phase 4b follow-up — validator/engine dice-drift fix (2026-06-20)
+
+**A teacher couldn't splice an authored space onto the fixed/choice edge of a space that *effect*-rolls (W Cards / Time / Fees) — the edge wasn't offered, and saving it was rejected with a misleading "no dice outcome" error.** Classic parallel-systems drift (CLAUDE.md pattern): three spots decided "is this a dice-movement source?" from the Spaces column `requires_dice_roll === 'YES'`, but the engine routes movement off the dice table's `die_roll === 'Next Step'` rows ([processGameData.js](server/processGameData.js):105,410). Spaces like `OWNER-SCOPE-INITIATION` (fixed → `OWNER-FUND-INITIATION`) and `LEND-SCOPE-CHECK` (choice) carry `requires_dice_roll=Yes` *only* for an effect roll, so they were misclassified as dice sources whose edges live in the dice table — and that table has no movement row for them, so their real edge looked missing.
+
+- **Fix — aligned all three to `Next Step`.** `buildDiceDests` skips non-`Next Step` dice rows, so the map's keys now *are* the true dice-movement sources ([instanceValidation.js](server/instanceValidation.js)). `validateInsertions` keys `isDice` off `diceDests.has(from)` instead of `requires_dice_roll`; the catalog sets `entry.dice = diceDests.has(name)` so an effect-roll space enumerates its fixed `space_N` edges in the "pick an edge" dropdown ([instanceCatalog.js](server/instanceCatalog.js)). Found during the 2026-06-20 local Phase 4b walk; low severity (workaround was to splice onto a truly-fixed edge like `FUND→PM`).
+- **Tests.** +2 regression tests (validation accepts an effect-roll space's fixed edge; the catalog offers it as `dice:false`). Corrected 2 stale fixtures that used the placeholder `die_roll='movement'` to the real engine value `'Next Step'`. 66 server tests green; typecheck clean. Not deployed.
+
 ## [Unreleased] — branch `phase-4a-card-insertion` (2026-06-18)
 
 **Phase 4a verified in the running game — found + fixed four real bugs the build-only tests missed.** Per the user's "verify 4a before building 4b" call. All four were exposed by actually baking a classroom-1 insertion (`OWNER-FUND-INITIATION → "Community Board Review" → PM-DECISION-CHECK`) and walking it; routing + tile render confirmed end-to-end through the Express-served client. Commit `af3e5f6`. Not merged/pushed/deployed.
