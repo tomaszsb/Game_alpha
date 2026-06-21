@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] — post-deploy fixes (2026-06-20)
 
+### Authored-insertion ghost fixture (2026-06-20)
+
+**A safety net for teacher-authored spaces.** The smart-bot regression gate plays the ghost over stock data, so it couldn't catch a soft-lock that only an authored insertion introduces — and a teacher can now author a dice space whose faces cycle back on themselves, seeding an unwinnable loop. The ghost bootstrap now accepts an optional CLEAN_FILES directory ([bootstrapServices.ts](tests/ghost/bootstrapServices.ts)), so a test can bake a board *with* an authored insertion and run the bot over it.
+
+- New [authoredInsertion.test.ts](tests/ghost/authoredInsertion.test.ts), two halves: (1) bakes the **real** board plus a benign pass-through authored space (card draw + flat fee) and asserts the ghost still reaches a win with no crash / broken invariant / false-positive loop — the integration net; it also exercises the validator/engine dice-drift fix end-to-end (the splice sits on `OWNER-SCOPE-INITIATION`, a `requires_dice_roll=Yes` effect-roll space). (2) bakes a **minimal synthetic** board plus an authored dice space whose six faces all route back to the source and asserts the loop guard flags it `LOOP` and names the authored space. A forced loop on the full board is impractical — its hubs and per-space effects let the bot escape — so the loop teeth are demonstrated on a board we fully control. Runs are seeded (mulberry32) for determinism. 3 tests green; typecheck clean. Not deployed.
+
 ### Expeditor phase indicator (2026-06-20, fb:f8dc7c38)
 
 **A player with many filing reps (expeditors) couldn't tell which phase each one works in, and asked for color or sorting to decide which to let go.** Each expeditor now carries a **color-coded phase chip** — Funding / Design / Regulatory / Construction / Any phase — in its collapsed row, and the EXPEDITORS list is **sorted by phase** so same-phase reps cluster and duplicates are obvious. Previously the phase showed only as plain text inside the expanded card detail, so you had to open every card to compare.
