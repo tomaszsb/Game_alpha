@@ -1,0 +1,387 @@
+// PlayerPanelV2 — the redesigned player panel (see docs/design/player-panel-redesign.md).
+//
+// Increment 2: playable. Renders the locked 5-zone layout from REAL player +
+// space data AND wires the real turn actions — manual effects, movement choice,
+// dice, end turn, and negotiate (Try Again). It deliberately REUSES the same
+// service handlers and the `gameRulesService.canEndTurn` RULE that the classic
+// panel uses (no re-derivation — the codebase has been burned by parallel-systems
+// drift on exactly this logic). The action *list* is recomputed from the same
+// data via the shared helpers (buttonFormatting / pendingActionsCollapse).
+//
+// Behind the classic/new toggle (off by default). Optional E-card play and the
+// detailed-card/modal restyle are later increments.
+
+import React, { useEffect, useState } from 'react';
+import { ActionCenterPanelProps } from './ActionCenterPanel';
+import { TextWithTerms } from '../../dictionary';
+import { PanelMode, panelPalettes } from './panelTheme';
+import { shortName } from '../../utils/boardCommon';
+import { colors } from '../../styles/theme';
+import { formatManualEffectButton } from '../../utils/buttonFormatting';
+import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
+
+export interface PlayerPanelV2Props extends ActionCenterPanelProps {
+  mode: PanelMode;
+}
+
+type ApprovalView = { label: string; dot: string; mark: string };
+
+function approvalView(status: string | undefined): ApprovalView | null {
+  if (!status || status === 'none') return null; // only when relevant
+  switch (status) {
+    case 'approved':
+      return { label: 'approved', dot: '#22c55e', mark: '✓' };
+    case 'minor-objection':
+      return { label: 'objection', dot: '#f59e0b', mark: '!' };
+    case 'denied':
+      return { label: 'denied', dot: '#ef4444', mark: '✗' };
+    default:
+      return { label: status, dot: '#94a3b8', mark: '·' };
+  }
+}
+
+export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
+  gameServices,
+  playerId,
+  mode,
+  onTryAgain,
+  onRollDice,
+  onManualEffectResult,
+  completedActions = { manualActions: {} },
+}) => {
+  const p = panelPalettes[mode];
+  const [, force] = useState(0);
+  const [isRollingDice, setIsRollingDice] = useState(false);
+  const [isEndingTurn, setIsEndingTurn] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = gameServices.stateService.subscribe(() => force((n) => n + 1));
+    return () => unsubscribe();
+  }, [gameServices.stateService]);
+
+  const player = gameServices.stateService.getPlayer(playerId);
+  if (!player) return null;
+
+  const gameState = gameServices.stateService.getGameState();
+  const isMyTurn = gameState.currentPlayerId === playerId;
+  const currentPlayerName = gameState.players.find((pl) => pl.id === gameState.currentPlayerId)?.name || '';
+
+  const content = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
+  const config = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
+  const spaceLabel = config?.display_label_override || (content && content.title) || shortName(player.currentSpace);
+  const phaseLabel = config?.phase || '';
+
+  const dob = approvalView(player.dobApprovalStatus);
+  const fdny = approvalView(player.fdnyApprovalStatus);
+
+  // Card counts by player-facing type.
+  const counts: Record<string, number> = {};
+  player.hand.forEach((id) => {
+    const card = gameServices.dataService.getCardById(id);
+    if (card && card.card_type) counts[card.card_type] = (counts[card.card_type] ?? 0) + 1;
+  });
+  const cardChips = Object.keys(counts).map((type) => {
+    const meta = colors.game.cardTypes[type];
+    return { label: meta ? meta.label : type, emoji: meta ? meta.emoji : '🃏', n: counts[type] };
+  });
+  const activeEffects = player.activeEffects ?? [];
+
+  // --- actions (recomputed from the same data via shared helpers) ----------
+  const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
+  const conditionFiltered = gameServices.turnService.filterSpaceEffectsByCondition(allSpaceEffects, player) || [];
+  const manualEffects = conditionFiltered.filter((e) => e.trigger_type === 'manual');
+  const mapped = manualEffects.map((effect) => {
+    const effectKey = effect.effect_action ? `${effect.effect_type}:${effect.effect_action}` : effect.effect_type;
+    const isDiceEffect = effect.effect_type === 'dice';
+    const isDiceCompleted = completedActions.diceRoll !== undefined;
+    const completedKeys = Object.keys(completedActions.manualActions);
+    const isCompleted = isDiceEffect
+      ? isDiceCompleted
+      : completedKeys.some(
+          (key) =>
+            key === effectKey ||
+            (effect.effect_action && key === effect.effect_action) ||
+            key.toLowerCase() === effectKey.toLowerCase() ||
+            (effect.effect_action && key.toLowerCase() === effect.effect_action.toLowerCase()),
+        );
+    const formatted = formatManualEffectButton(effect);
+    return {
+      effectKey,
+      label: formatted.text || effect.effect_type,
+      isCompleted,
+      isDiceEffect,
+    };
+  });
+  const pendingActions = collapsePairedDiceActions(mapped);
+  const visiblePendingActions = pendingActions.filter((a) => !a.isCompleted);
+
+  const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
+  const isDiceMovementSpace = movement?.movement_type === 'dice';
+  const hasPlayerRolledDice = gameState.hasPlayerRolledDice;
+  const movementChoiceUnlocked = gameState.movementChoiceUnlocked ?? true;
+  const movementChoice =
+    isMyTurn && gameState.awaitingChoice?.type === 'MOVEMENT' ? gameState.awaitingChoice : null;
+  const selectedDestination = player.moveIntent || null;
+  const needsMovementChoice = !!movementChoice && !selectedDestination && movementChoiceUnlocked;
+  const showMovementDiceButton = shouldShowMovementDiceButton(visiblePendingActions, {
+    isDiceMovementSpace,
+    hasPlayerRolledDice,
+  });
+
+  const canEndTurn = gameServices.gameRulesService.canEndTurn(playerId);
+  const remaining = Math.max(0, gameState.requiredActions - gameState.completedActionCount);
+
+  // --- handlers (same service calls as the classic panel) ------------------
+  const handleManualEffect = async (effectKey: string) => {
+    try {
+      const result = await gameServices.turnService.triggerManualEffectWithFeedback(playerId, effectKey);
+      if (onManualEffectResult && result) onManualEffectResult(result);
+    } catch (err) {
+      console.error(`Manual effect error (${effectKey}):`, err);
+    }
+  };
+  const handleMovementChoice = (destinationId: string) => {
+    if (selectedDestination === destinationId) return;
+    gameServices.stateService.setPlayerMoveIntent(playerId, destinationId);
+  };
+  const handleEndTurn = async () => {
+    setIsEndingTurn(true);
+    try {
+      await gameServices.turnService.endTurnWithMovement();
+    } catch (err) {
+      console.error('End turn error:', err);
+    } finally {
+      setIsEndingTurn(false);
+    }
+  };
+  const handleDiceRoll = async () => {
+    if (!onRollDice) return;
+    setIsRollingDice(true);
+    try {
+      await onRollDice();
+    } catch (err) {
+      console.error('Dice roll error:', err);
+    } finally {
+      setIsRollingDice(false);
+    }
+  };
+
+  // --- commit (single spine button) ---------------------------------------
+  let commit: { label: string; ready: boolean; onClick?: () => void };
+  if (!isMyTurn) {
+    commit = { label: `Waiting for ${currentPlayerName || 'the other player'}`, ready: false };
+  } else if (showMovementDiceButton) {
+    commit = {
+      label: isRollingDice ? 'Working…' : content?.end_turn_label || 'Take your next step',
+      ready: true,
+      onClick: handleDiceRoll,
+    };
+  } else if (canEndTurn) {
+    commit = { label: isEndingTurn ? 'Ending…' : content?.end_turn_label || 'End turn', ready: true, onClick: handleEndTurn };
+  } else {
+    commit = { label: `${remaining} action${remaining === 1 ? '' : 's'} left`, ready: false };
+  }
+  const showGreenDot = isMyTurn && commit.ready && player.visitType === 'First';
+
+  // --- styles -------------------------------------------------------------
+  const cardStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: 360,
+    margin: '0 auto',
+    background: p.bg,
+    color: p.text,
+    border: `0.5px solid ${p.border}`,
+    borderRadius: 18,
+    overflow: 'hidden',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  };
+  const pad: React.CSSProperties = { padding: '11px 13px', borderBottom: `0.5px solid ${p.border}` };
+  const zlbl: React.CSSProperties = {
+    fontSize: 10,
+    letterSpacing: '0.05em',
+    color: p.muted,
+    textTransform: 'uppercase',
+    margin: '0 0 6px',
+  };
+  const stat: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 500 };
+  const actionBtn: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    background: p.surf,
+    border: `1px solid ${p.borderStrong}`,
+    color: p.text,
+    borderRadius: 9,
+    padding: '10px 11px',
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: 'pointer',
+    marginBottom: 7,
+    textAlign: 'left',
+  };
+
+  return (
+    <div style={cardStyle}>
+      {/* Header */}
+      <div style={{ ...pad, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
+          <span style={{ width: 11, height: 11, borderRadius: '50%', background: player.color || p.accent }} />
+          {player.name}
+        </div>
+        {phaseLabel && <div style={{ fontSize: 11, color: p.muted, textAlign: 'right' }}>{phaseLabel}</div>}
+      </div>
+
+      {/* Status */}
+      <div style={pad}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={stat} title="Cash on hand">
+            <span aria-hidden>💰</span>${player.money.toLocaleString()}
+          </span>
+          <span style={stat} title="Days spent">
+            <span aria-hidden>🕐</span>{player.timeSpent}
+          </span>
+          {(dob || fdny) && (
+            <span style={{ marginLeft: 'auto', display: 'flex', gap: 9, fontSize: 11, color: p.muted }}>
+              {dob && (
+                <span title={`DOB ${dob.label}`}>
+                  DOB <span style={{ color: dob.dot, fontWeight: 500 }}>{dob.mark}</span>
+                </span>
+              )}
+              {fdny && (
+                <span title={`FDNY ${fdny.label}`}>
+                  FDNY <span style={{ color: fdny.dot, fontWeight: 500 }}>{fdny.mark}</span>
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Purpose */}
+      <div style={pad}>
+        <p style={zlbl}>Where you are &amp; why</p>
+        <div style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
+          {content && content.story && (
+            <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>
+              <TextWithTerms text={content.story} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Things you can do */}
+      {isMyTurn && (visiblePendingActions.length > 0 || needsMovementChoice) && (
+        <div style={pad}>
+          <p style={zlbl}>Things you can do</p>
+          {visiblePendingActions.map((a) => (
+            <button
+              key={a.effectKey}
+              style={actionBtn}
+              disabled={a.isDiceEffect && isRollingDice}
+              onClick={() =>
+                a.isDiceEffect && onRollDice ? handleDiceRoll() : handleManualEffect(a.effectKey)
+              }
+            >
+              {a.isDiceEffect && isRollingDice ? '🎲 Deciding…' : a.label}
+            </button>
+          ))}
+          {needsMovementChoice &&
+            movementChoice!.options.map((opt) => {
+              const oc = gameServices.dataService.getGameConfigBySpace(opt.id);
+              const label = oc?.display_label_override || opt.label || shortName(opt.id);
+              return (
+                <button key={opt.id} style={actionBtn} onClick={() => handleMovementChoice(opt.id)}>
+                  ➡️ {label}
+                </button>
+              );
+            })}
+        </div>
+      )}
+
+      {/* Influence */}
+      <div style={pad}>
+        <p style={zlbl}>What&apos;s affecting you</p>
+        {activeEffects.length === 0 && cardChips.length === 0 ? (
+          <div style={{ fontSize: 12, color: p.muted, background: p.surf, borderRadius: 9, padding: '8px 10px' }}>
+            Nothing affecting you yet
+          </div>
+        ) : (
+          <>
+            {activeEffects.map((eff, i) => (
+              <div
+                key={i}
+                style={{ fontSize: 12, background: p.surf, borderRadius: 9, padding: '8px 10px', marginBottom: 6 }}
+              >
+                ⚡ {eff.description}
+              </div>
+            ))}
+            {cardChips.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {cardChips.map((c) => (
+                  <span key={c.label} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 8, background: p.surf2 }}>
+                    {c.emoji} {c.label} ×{c.n}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Footer: negotiate + commit spine */}
+      <div style={{ padding: '11px 13px' }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {isMyTurn && content && content.can_negotiate && onTryAgain && (
+            <button
+              onClick={() => onTryAgain(playerId)}
+              style={{
+                flex: '0 0 auto',
+                border: `1px solid ${p.borderStrong}`,
+                background: p.surf,
+                color: p.text,
+                borderRadius: 11,
+                padding: '8px 11px',
+                fontSize: 11,
+                fontWeight: 500,
+                cursor: 'pointer',
+                lineHeight: 1.2,
+                textAlign: 'left',
+              }}
+            >
+              {content.try_again_label || 'Negotiate again'}
+              <small style={{ display: 'block', fontSize: 9, color: p.muted }}>costs 🕐 + 💰</small>
+            </button>
+          )}
+          <button
+            onClick={commit.onClick}
+            disabled={!commit.ready}
+            style={{
+              flex: 1,
+              border: 'none',
+              borderRadius: 11,
+              padding: 13,
+              fontSize: 15,
+              fontWeight: 500,
+              color: commit.ready ? '#fff' : p.muted,
+              background: commit.ready ? p.accent : p.surf2,
+              cursor: commit.ready ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            {showGreenDot && (
+              <span
+                style={{ width: 9, height: 9, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,.3)' }}
+              />
+            )}
+            {commit.label}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

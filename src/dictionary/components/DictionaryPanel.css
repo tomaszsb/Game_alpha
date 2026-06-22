@@ -22,6 +22,24 @@
   --dictionary-transition: 0.3s ease-in-out;
 }
 
+/* Dark mode — set by PlayerPanelWrapper when the redesigned panel is in dark
+ * mode (docs/design §6). Only the ~10 variables flip; the rest of the module's
+ * rules consume them, so the whole panel follows. Deeper flat-style alignment
+ * (radii, badge tints) is a later pass. */
+html[data-uc-dark='true'] {
+  --dictionary-primary: #3b9bff;
+  --dictionary-primary-dark: #9ccbff;
+  --dictionary-primary-light: rgba(59, 155, 255, 0.16);
+  --dictionary-secondary: #94a3b8;
+  --dictionary-secondary-light: #2a3950;
+  --dictionary-bg: #1e293b;
+  --dictionary-border: #334155;
+  --dictionary-text: #f1f5f9;
+  --dictionary-text-muted: #a3b3c7;
+  --dictionary-white: #0f172a;
+  --dictionary-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
 /* Backdrop */
 .dictionary-backdrop {
   position: fixed;
