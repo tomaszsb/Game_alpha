@@ -65,6 +65,15 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   const typeColors = getCardTypeColors(card.card_type || '');
   const canPlay = gameServices.cardService.canPlayCard(playerId, card.card_id);
 
+  // "What it does" renders `effects_on_play`, but ALL 74 E + 49 L cards carry the
+  // generic placeholder "Apply Card" (audit 2026-06-23) — and it's redundant with
+  // the description + key-facts rows anyway. Suppress the section for the
+  // placeholder (and when it just echoes the description) so the detail stays
+  // clean until/unless real effect prose is authored. W/B/I cards are authored
+  // and unaffected.
+  const effects = (card.effects_on_play || '').trim();
+  const showEffects = effects !== '' && !/^apply card$/i.test(effects) && effects !== (card.description || '').trim();
+
   // Key facts — only rendered when the card actually carries them.
   const cost = card.cost != null ? card.cost : card.money_effect ? parseInt(card.money_effect, 10) : undefined;
   const tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
@@ -187,8 +196,8 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
           </div>
         </div>
 
-        {/* What it does */}
-        {card.effects_on_play && (
+        {/* What it does — hidden for the "Apply Card" placeholder (all E/L cards). */}
+        {showEffects && (
           <div style={{ marginBottom: 16 }}>
             <p style={sectionLabel}>What it does</p>
             <div
@@ -201,7 +210,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
                 padding: '10px 12px',
               }}
             >
-              <TextWithTerms text={card.effects_on_play} />
+              <TextWithTerms text={effects} />
             </div>
           </div>
         )}

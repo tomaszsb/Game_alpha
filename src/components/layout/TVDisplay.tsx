@@ -8,6 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { BoardCanvas } from '../board/BoardCanvas';
 import { ProjectProgress } from '../game/ProjectProgress';
+import { ScoreboardV2 } from '../player/ScoreboardV2';
 import { RulesModal } from '../modals/RulesModal';
 import { useGameContext } from '../../context/GameContext';
 import { Player, GamePhase } from '../../types/StateTypes';
@@ -30,13 +31,17 @@ interface TVDisplayProps {
  * - No interactive controls (players use their phones)
  */
 export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
-  const { stateService, dataService, gameRulesService } = useGameContext();
+  const gameServices = useGameContext();
+  const { stateService, dataService, gameRulesService } = gameServices;
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showActionOverlay, setShowActionOverlay] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  // Opt-in "who's where" standings overlay (redesign §2 scoreboard). Default
+  // hidden so the live TV layout is unchanged until the host chooses to show it.
+  const [showScoreboard, setShowScoreboard] = useState(false);
   const [isProgressExpanded, setIsProgressExpanded] = useState(false);
   const [showQRPanel, setShowQRPanel] = useState(false);
   // fb:608bb670 follow-up — the "Look at your phone" pill grabs attention when
@@ -144,6 +149,21 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             }}
           >
             📋 Rules
+          </button>
+          <button
+            onClick={() => setShowScoreboard(s => !s)}
+            style={{
+              padding: '8px 16px',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              backgroundColor: showScoreboard ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: '2px solid rgba(255,255,255,0.5)',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            📊 Standings
           </button>
           <button
             onClick={() => {
@@ -472,6 +492,47 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
 
       {/* Rules Modal */}
       <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
+
+      {/* Standings overlay (opt-in, redesign §2 scoreboard) */}
+      {showScoreboard && (
+        <div
+          onClick={() => setShowScoreboard(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '48px 16px',
+            overflow: 'auto',
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, position: 'relative' }}>
+            <button
+              onClick={() => setShowScoreboard(false)}
+              aria-label="Close standings"
+              style={{
+                position: 'absolute',
+                top: -40,
+                right: 0,
+                padding: '6px 14px',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                border: '2px solid rgba(255,255,255,0.5)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Close
+            </button>
+            <ScoreboardV2 gameServices={gameServices} mode="light" />
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer style={styles.footer}>

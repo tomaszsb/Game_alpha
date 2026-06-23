@@ -71,6 +71,31 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     });
   });
 
+  it('shows "What it does" for authored effect text', () => {
+    renderDetail();
+    expect(screen.getByText('What it does')).toBeInTheDocument();
+    expect(screen.getByText(/Saves 2 days/)).toBeInTheDocument();
+  });
+
+  it('hides "What it does" for the generic "Apply Card" placeholder (all E/L cards)', () => {
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ ...card, effects_on_play: 'Apply Card' }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    expect(screen.queryByText('What it does')).not.toBeInTheDocument();
+    // The description + key facts still carry the meaning.
+    expect(screen.getByText('What this is')).toBeInTheDocument();
+    expect(screen.getByText('Key facts')).toBeInTheDocument();
+  });
+
   it('hides Activate when the card is not currently playable', () => {
     services.cardService.canPlayCard.mockReturnValue(false);
     renderDetail();
