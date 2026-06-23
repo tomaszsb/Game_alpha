@@ -115,3 +115,17 @@ The 17-doc brief is **well-aligned** with this direction and validated many call
 4. **"Recommended action" can over-spoon-feed** — for a teaching tool, a do-this arrow can remove the learning. Keep guidance gentle (green dot, first visit only) — which is why we chose that.
 5. **Generic.** Correct but could describe any PM board game; it doesn't know this game's soul (voice rule, loop traps, cheat/bypass, dice-vs-effect-roll, per-space funding). We supply the game-specific flesh.
 6. **Minor factual wobbles:** brief orders phases Design-before-Funding (game funds first); implies a "lose/why did I lose" state, but the game has **no bankruptcy/elimination** — only the DOB end-game penalty.
+
+---
+
+## 10. Integration with the change-legibility UX layer (added 2026-06-23)
+
+A separate initiative — the **change-legibility / companion / time-feel UX spec** (TODO: "🎛️ Change-legibility / companion / time-feel UX") — layers *change communication over time* (event feed, deltas, transitions) on top of this panel. It is a **second track that runs AFTER this redesign's core panel**, not a rewrite of it: this doc owns the panel's *resting layout*; that spec owns its *dynamics*, and it mostly lives on the bottom tabs (Ledger/Time/Log) and in modals, not in the 5 zones. The philosophies match (teach-don't-dumb-down ↔ diegetic permitting vocabulary; gentle green-dot guidance ↔ "minor changes never interrupt").
+
+Three forward-compatibility tweaks fold into *this* plan now so we don't rework:
+
+1. **Card/modal restyle (§5) must be able to host a "permitting-document" card variant.** The UX spec's Tier-3 events (Change Order, DOB Objection, Stop-Work) arrive as document-styled cards via the existing `emitAutoAction` rail. Build the §5 detailed-card + outcome-modal system so a document-slip variant slots in later without a rebuild.
+2. **Accessibility / redundant coding is built in NOW, not deferred.** The new visual language this redesign introduces (icon stats, approval diodes, green first-visit dot, gray→blue commit) must follow **icon + shape + text, colorblind-safe, no-color-alone**. Most already comply (diodes = check/✗/clock; commit = text label). **At-risk: the green first-visit dot** (color carrying meaning) — pair it with a shape or fixed position cue. Retrofitting a11y onto these later is harder than building it in.
+3. **The shared screen co-hosts the scoreboard AND the Chronicle feed.** Plan the "who" screen layout to hold both; on the phone, reserve one small affordance to *open* the feed as a modal / side panel (no-scroll is preserved — it opens over the panel, doesn't extend it).
+
+Already covered, no change: the glossary term affordance (§6 solid-underline + ⓘ, tap → side panel) is exactly the fix for the "I expected a *read more* link" report (fb:c240a14c) — that player saw the **classic** panel; shipping this redesign closes it.

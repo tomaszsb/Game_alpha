@@ -19,6 +19,7 @@ import { shortName } from '../../utils/boardCommon';
 import { colors } from '../../styles/theme';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
+import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 
 export interface PlayerPanelV2Props extends ActionCenterPanelProps {
   mode: PanelMode;
@@ -53,6 +54,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [, force] = useState(0);
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [isEndingTurn, setIsEndingTurn] = useState(false);
+  const [playingCardId, setPlayingCardId] = useState<string | null>(null);
+  const [detailCardId, setDetailCardId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe(() => force((n) => n + 1));
@@ -85,6 +88,20 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     return { label: meta ? meta.label : type, emoji: meta ? meta.emoji : '🃏', n: counts[type] };
   });
   const activeEffects = player.activeEffects ?? [];
+
+  // Playable Expeditor (E) cards — the influence zone lets the player deploy them.
+  // The gate AND the play both go through the canonical SERVICE rule
+  // (`gameRulesService.canPlayCard` via cardService) — the same rule the engine
+  // enforces. We deliberately do NOT re-derive playability here (the classic
+  // CardsSection keeps its own component-local copy; forking it again is exactly
+  // the parallel-systems drift CLAUDE.md warns about).
+  const expeditorCards = player.hand
+    .map((id) => ({ id, card: gameServices.dataService.getCardById(id) }))
+    .filter((x): x is { id: string; card: NonNullable<typeof x.card> } =>
+      !!x.card && x.card.card_type === 'E');
+  const playableExpeditors = isMyTurn
+    ? expeditorCards.filter((x) => gameServices.cardService.canPlayCard(playerId, x.id))
+    : [];
 
   // --- actions (recomputed from the same data via shared helpers) ----------
   const allSpaceEffects = gameServices.dataService.getSpaceEffects(player.currentSpace, player.visitType);
@@ -163,6 +180,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       console.error('Dice roll error:', err);
     } finally {
       setIsRollingDice(false);
+    }
+  };
+  const handlePlayExpeditor = async (cardId: string) => {
+    setPlayingCardId(cardId);
+    try {
+      await gameServices.cardService.playCard(playerId, cardId);
+    } catch (err) {
+      console.error('Expeditor play error:', err);
+    } finally {
+      setPlayingCardId(null);
     }
   };
 
@@ -303,12 +330,66 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       {/* Influence */}
       <div style={pad}>
         <p style={zlbl}>What&apos;s affecting you</p>
-        {activeEffects.length === 0 && cardChips.length === 0 ? (
+        {activeEffects.length === 0 && cardChips.length === 0 && playableExpeditors.length === 0 ? (
           <div style={{ fontSize: 12, color: p.muted, background: p.surf, borderRadius: 9, padding: '8px 10px' }}>
             Nothing affecting you yet
           </div>
         ) : (
           <>
+            {/* Expeditors you can deploy right now (optional E-card play) */}
+            {playableExpeditors.map(({ id, card }) => (
+              <div
+                key={id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: p.surf,
+                  borderRadius: 9,
+                  padding: '8px 10px',
+                  marginBottom: 6,
+                }}
+              >
+                <button
+                  onClick={() => setDetailCardId(id)}
+                  aria-label={`Details for ${card.card_name}`}
+                  style={{
+                    flex: 1,
+                    textAlign: 'left',
+                    border: 'none',
+                    background: 'transparent',
+                    color: p.text,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  ⚡ {card.card_name} <span aria-hidden style={{ color: p.muted }}>ⓘ</span>
+                  {card.phase_restriction && card.phase_restriction !== 'Any' && (
+                    <span style={{ color: p.muted, marginLeft: 6 }}>· {card.phase_restriction} phase</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handlePlayExpeditor(id)}
+                  disabled={playingCardId !== null}
+                  aria-label={`Activate ${card.card_name}`}
+                  style={{
+                    flex: '0 0 auto',
+                    border: `1px solid ${p.accent}`,
+                    background: p.accent,
+                    color: '#fff',
+                    borderRadius: 8,
+                    padding: '5px 11px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: playingCardId !== null ? 'default' : 'pointer',
+                    opacity: playingCardId !== null && playingCardId !== id ? 0.5 : 1,
+                  }}
+                >
+                  {playingCardId === id ? 'Working…' : 'Activate'}
+                </button>
+              </div>
+            ))}
             {activeEffects.map((eff, i) => (
               <div
                 key={i}
@@ -382,6 +463,16 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           </button>
         </div>
       </div>
+
+      {/* Detailed-card view (redesign §5) — opened from the influence zone. */}
+      <PlayerCardDetailV2
+        isOpen={detailCardId !== null}
+        onClose={() => setDetailCardId(null)}
+        card={detailCardId ? gameServices.dataService.getCardById(detailCardId) ?? null : null}
+        playerId={playerId}
+        gameServices={gameServices}
+        mode={mode}
+      />
     </div>
   );
 };

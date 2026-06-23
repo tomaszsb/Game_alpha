@@ -8,6 +8,7 @@ import { ConnectionStatus } from '../common/ConnectionStatus';
 import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { designFeeIndicator, timelineIndicator } from '../../utils/progressIndicators';
+import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -126,38 +127,11 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
   // Get dynamic phase order from data service
   const phases = dataService.getPhaseOrder();
 
-  // Calculate project progress for a single player
-  // Uses the MAXIMUM phase reached from all visited spaces (phase never regresses)
-  const calculatePlayerProgress = (player: Player) => {
-    // Find the maximum phase index from all visited spaces (including current)
-    const allSpaces = [...(player.visitedSpaces || []), player.currentSpace];
-    let maxPhaseIndex = -1;
-    let maxPhase = 'UNKNOWN';
-
-    for (const spaceName of allSpaces) {
-      const spaceConfig = dataService.getGameConfigBySpace(spaceName);
-      if (spaceConfig) {
-        const phaseIndex = phases.findIndex(phase =>
-          spaceConfig.phase.toUpperCase().includes(phase)
-        );
-        if (phaseIndex > maxPhaseIndex) {
-          maxPhaseIndex = phaseIndex;
-          maxPhase = phases[phaseIndex];
-        }
-      }
-    }
-
-    if (maxPhaseIndex === -1) {
-      return { phase: 'UNKNOWN', progress: 0, phaseIndex: -1 };
-    }
-
-    const progress = ((maxPhaseIndex + 1) / phases.length) * 100;
-    return {
-      phase: maxPhase,
-      progress,
-      phaseIndex: maxPhaseIndex
-    };
-  };
+  // Calculate project progress for a single player. Delegates to the shared
+  // playerLifecyclePosition helper (max phase reached, never regresses) so this
+  // observer panel and ScoreboardV2 ("who" screen) compute the furthest-phase
+  // number identically — no parallel re-derivation to drift.
+  const calculatePlayerProgress = (player: Player) => playerLifecyclePosition(player, dataService);
 
   // Calculate overall project progress
   const calculateOverallProgress = () => {
