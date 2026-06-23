@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.83 — A "who's where" standings board on the shared screen (June 23, 2026)
+
+- **New "📊 Standings" button on the TV.** When you play on a shared screen (TV mode), the top bar now has a **📊 Standings** button. Tap it for a quick "who's where" snapshot: each player shows up as a marker on the project journey (Funding → Design → Regulatory → Construction → Finish) at how far they've gotten, plus their cash and days at a glance. It's a friendly picture of where everyone is — **not** a win/lose ranking — and it stays hidden until you open it, so nothing about your game changes unless you want it.
+- *Behind the scenes, work continued on the opt-in redesigned player panel (the "Try new design" button on your panel). It's still being polished and stays off unless you turn it on — normal play is unchanged.*
+
+---
+
 ## v3.0.71 — Result pop-ups stop vanishing + bank loans say "Bank Loan" (June 12, 2026)
 
 - **Result pop-ups no longer vanish when you click fast.** If you clicked through actions quickly, the next result pop-up could flash open and disappear before you read it — your click was landing on the dark background around the pop-up, which dismisses it. The pop-up now ignores background clicks for the first half-second after it appears, so a click you'd already fired can't swat it away. Clicking the background to dismiss still works normally once you've had a moment to read. Results also now politely queue up instead of interrupting each other.
