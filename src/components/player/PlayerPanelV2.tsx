@@ -13,13 +13,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { ActionCenterPanelProps } from './ActionCenterPanel';
-import { TextWithTerms } from '../../dictionary';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { shortName } from '../../utils/boardCommon';
 import { colors } from '../../styles/theme';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
+import { ModalBase } from '../modals/shared/ModalBase';
+import { getCardTypeName } from '../../utils/cardTypeNames';
 
 export interface PlayerPanelV2Props extends ActionCenterPanelProps {
   mode: PanelMode;
@@ -51,11 +53,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   completedActions = { manualActions: {} },
 }) => {
   const p = panelPalettes[mode];
+  const { openWithTerm } = useDictionaryPanel();
   const [, force] = useState(0);
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [isEndingTurn, setIsEndingTurn] = useState(false);
   const [playingCardId, setPlayingCardId] = useState<string | null>(null);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
+  // When a count chip with several cards is tapped, list them so the player can
+  // pick which one to view (a "×3" tag can't open three different cards).
+  const [listType, setListType] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe(() => force((n) => n + 1));
@@ -77,17 +83,37 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const dob = approvalView(player.dobApprovalStatus);
   const fdny = approvalView(player.fdnyApprovalStatus);
 
-  // Card counts by player-facing type.
+  // Card counts by player-facing type, with a representative card id per type so
+  // each chip can be tapped to open its details (user call 2026-06-23).
   const counts: Record<string, number> = {};
+  const firstIdByType: Record<string, string> = {};
   player.hand.forEach((id) => {
     const card = gameServices.dataService.getCardById(id);
-    if (card && card.card_type) counts[card.card_type] = (counts[card.card_type] ?? 0) + 1;
+    if (card && card.card_type) {
+      counts[card.card_type] = (counts[card.card_type] ?? 0) + 1;
+      if (!firstIdByType[card.card_type]) firstIdByType[card.card_type] = id;
+    }
   });
   const cardChips = Object.keys(counts).map((type) => {
     const meta = colors.game.cardTypes[type];
-    return { label: meta ? meta.label : type, emoji: meta ? meta.emoji : '🃏', n: counts[type] };
+    return {
+      type,
+      cardId: firstIdByType[type],
+      label: meta ? meta.label : type,
+      emoji: meta ? meta.emoji : '🃏',
+      n: counts[type],
+      // Life Events are past occurrences, not live influences — show them grayed
+      // (still tappable to review what happened). User call 2026-06-23 (fb:3aad5f84).
+      inactive: type === 'L',
+    };
   });
   const activeEffects = player.activeEffects ?? [];
+  // Replace/return/give expeditor all act on the player's E cards
+  // (CardEffectService.handleReplace/Return/GiveCards → getPlayerCards) and no-op
+  // SILENTLY when there are none — the button fired but no modal appeared
+  // (fb:3accbe92). Hide them when there's nothing to act on; they're skippable, so
+  // hiding can't soft-lock the turn.
+  const hasExpeditorCards = (counts['E'] ?? 0) > 0;
 
   // Playable Expeditor (E) cards — the influence zone lets the player deploy them.
   // The gate AND the play both go through the canonical SERVICE rule
@@ -130,7 +156,10 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     };
   });
   const pendingActions = collapsePairedDiceActions(mapped);
-  const visiblePendingActions = pendingActions.filter((a) => !a.isCompleted);
+  const expeditorTargetAction = /(replace|return|give)_e\b/i;
+  const visiblePendingActions = pendingActions
+    .filter((a) => !a.isCompleted)
+    .filter((a) => hasExpeditorCards || !expeditorTargetAction.test(a.effectKey));
 
   const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
   const isDiceMovementSpace = movement?.movement_type === 'dice';
@@ -292,7 +321,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
           {content && content.story && (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>
-              <TextWithTerms text={content.story} />
+              <TextWithTerms text={content.story} onTermClick={(term) => openWithTerm(term.id)} />
             </div>
           )}
         </div>
@@ -390,20 +419,64 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 </button>
               </div>
             ))}
-            {activeEffects.map((eff, i) => (
-              <div
-                key={i}
-                style={{ fontSize: 12, background: p.surf, borderRadius: 9, padding: '8px 10px', marginBottom: 6 }}
-              >
-                ⚡ {eff.description}
-              </div>
-            ))}
+            {activeEffects.map((eff, i) => {
+              // Tap an ongoing effect to open the card that created it (when that
+              // card resolves) — same intuitive "tap for details" as the chips.
+              const src = eff.sourceCardId && gameServices.dataService.getCardById(eff.sourceCardId) ? eff.sourceCardId : null;
+              return (
+                <button
+                  key={eff.effectId || i}
+                  onClick={() => src && setDetailCardId(src)}
+                  disabled={!src}
+                  title={src ? 'Tap to see details' : undefined}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 12,
+                    background: p.surf,
+                    border: `1px solid ${p.border}`,
+                    color: p.text,
+                    borderRadius: 9,
+                    padding: '8px 10px',
+                    marginBottom: 6,
+                    cursor: src ? 'pointer' : 'default',
+                  }}
+                >
+                  ⚡ {eff.description}
+                </button>
+              );
+            })}
             {cardChips.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {cardChips.map((c) => (
-                  <span key={c.label} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 8, background: p.surf2 }}>
+                  <button
+                    key={c.type}
+                    // One card → open its detail; several → open a list to pick
+                    // which (user call 2026-06-23, fb:88a88773 — a "×3" tag must
+                    // be able to reveal all three cards, not just the first).
+                    onClick={() => {
+                      if (!c.cardId) return;
+                      if (c.n > 1) setListType(c.type);
+                      else setDetailCardId(c.cardId);
+                    }}
+                    disabled={!c.cardId}
+                    title={c.inactive ? 'Already happened — tap to see what it did' : 'Tap to see details'}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 8px',
+                      borderRadius: 8,
+                      background: p.surf2,
+                      border: `1px solid ${p.border}`,
+                      // Grayed = finished/not currently affecting you (Life Events);
+                      // full color = a resource you hold. Both tappable.
+                      color: c.inactive ? p.muted : p.text,
+                      opacity: c.inactive ? 0.55 : 1,
+                      cursor: c.cardId ? 'pointer' : 'default',
+                    }}
+                  >
                     {c.emoji} {c.label} ×{c.n}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -473,6 +546,50 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         gameServices={gameServices}
         mode={mode}
       />
+
+      {/* Pick-a-card list — a count chip holding several cards opens this so the
+          player can choose which one to view, then taps through to its detail
+          (fb:88a88773 — "×3" must reveal all three, not just the first). */}
+      <ModalBase
+        isOpen={listType !== null}
+        onClose={() => setListType(null)}
+        title={listType ? `Your ${getCardTypeName(listType, 2)}` : ''}
+        emoji={listType ? colors.game.cardTypes[listType]?.emoji || '🃏' : ''}
+        testId="affecting-card-list"
+        maxWidth="360px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {player.hand
+            .map((id) => ({ id, card: gameServices.dataService.getCardById(id) }))
+            .filter((x) => x.card && x.card.card_type === listType)
+            .map(({ id, card }) => (
+              <button
+                key={id}
+                onClick={() => {
+                  setListType(null);
+                  setDetailCardId(id);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  textAlign: 'left',
+                  border: '1px solid #e2e8f0',
+                  background: '#fff',
+                  color: '#1e293b',
+                  borderRadius: 9,
+                  padding: '10px 12px',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{card!.card_name}</span>
+                <span aria-hidden style={{ opacity: 0.45 }}>›</span>
+              </button>
+            ))}
+        </div>
+      </ModalBase>
     </div>
   );
 };

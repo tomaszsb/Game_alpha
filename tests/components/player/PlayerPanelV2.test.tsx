@@ -112,3 +112,185 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
     expect(screen.getByText(/real NYC permitting pros/i)).toBeInTheDocument();
   });
 });
+
+describe('PlayerPanelV2 — "What\'s affecting you" chips (tappable + graying)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  // A player holding a Work Package and a (past) Life Event, no playable expeditor.
+  const handPlayer: any = {
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: ['W001', 'L001'], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  };
+
+  const gameState: any = {
+    players: [handPlayer], currentPlayerId: 'player1', gamePhase: 'PLAY',
+    hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+    requiredActions: 0, completedActionCount: 0,
+    completedActions: { diceRoll: undefined, manualActions: {} },
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(handPlayer);
+    services.stateService.getGameState.mockReturnValue(gameState);
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockImplementation((id: string) => {
+      if (id === 'W001') return { card_id: 'W001', card_type: 'W', card_name: 'Foundation' };
+      if (id === 'L001') return { card_id: 'L001', card_type: 'L', card_name: 'Permit Fee Hike' };
+      return null;
+    });
+  });
+
+  afterEach(() => cleanup());
+
+  it('grays the Life Event chip (finished) but not a held Work Package', () => {
+    renderPanel();
+    const lifeChip = screen.getByRole('button', { name: /Life Event ×1/i });
+    const workChip = screen.getByRole('button', { name: /Work Package ×1/i });
+    // Grayed = finished/not affecting you; full opacity = a resource you hold.
+    expect(lifeChip).toHaveStyle({ opacity: '0.55' });
+    expect(workChip).toHaveStyle({ opacity: '1' });
+  });
+
+  it('opens the detail view directly when a single-card chip is tapped', () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: /Life Event ×1/i }));
+    // The L-type teaching callout is unique to the detail view.
+    expect(screen.getByText(/real-world surprises/i)).toBeInTheDocument();
+  });
+});
+
+describe('PlayerPanelV2 — multi-card chip opens a pick list (fb:88a88773)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  // Three expeditors held, none currently playable — they collapse to "×3".
+  const player: any = {
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: ['E001', 'E002', 'E003'], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false); // none playable → count chip
+    services.dataService.getCardById.mockImplementation((id: string) => {
+      const names: Record<string, string> = { E001: 'Equipment Rush Order', E002: 'Permit Expediter', E003: 'Zoning Specialist' };
+      return names[id] ? { card_id: id, card_type: 'E', card_name: names[id], phase_restriction: 'Any' } : null;
+    });
+  });
+
+  afterEach(() => cleanup());
+
+  it('lists all three expeditors, then drills into the chosen one', () => {
+    renderPanel();
+    // Tapping the "×3" chip opens a list of all three, not just the first.
+    fireEvent.click(screen.getByRole('button', { name: /Expeditor ×3/i }));
+    expect(screen.getByText('Equipment Rush Order')).toBeInTheDocument();
+    expect(screen.getByText('Permit Expediter')).toBeInTheDocument();
+    expect(screen.getByText('Zoning Specialist')).toBeInTheDocument();
+
+    // Choosing one opens its detail (the teaching callout is detail-only).
+    fireEvent.click(screen.getByText('Zoning Specialist'));
+    expect(screen.getByText(/real NYC permitting pros/i)).toBeInTheDocument();
+  });
+});
+
+describe('PlayerPanelV2 — expeditor-action guard', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const replaceEffect: any = {
+    effect_type: 'cards', effect_action: 'replace_e', trigger_type: 'manual',
+    condition: 'always', effect_value: 1,
+  };
+
+  const makePlayer = (hand: string[]): any => ({
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand, activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  });
+
+  const setup = (hand: string[]) => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player = makePlayer(hand);
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 1, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([replaceEffect]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([replaceEffect]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false); // not played as Activate row
+    services.dataService.getCardById.mockImplementation((id: string) =>
+      id.startsWith('E') ? { card_id: id, card_type: 'E', card_name: 'Filing Rep' } : null);
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  afterEach(() => cleanup());
+
+  it('hides a Replace-Expeditor action when the player has no expeditors (fb:3accbe92)', () => {
+    setup([]); // no E cards
+    renderPanel();
+    expect(screen.queryByText(/Things you can do/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the Replace-Expeditor action when the player has an expeditor to act on', () => {
+    setup(['E001']); // has an E card
+    renderPanel();
+    expect(screen.getByText(/Things you can do/i)).toBeInTheDocument();
+  });
+});

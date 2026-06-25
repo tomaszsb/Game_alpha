@@ -223,8 +223,9 @@ export class SpaceArrivalProcessor {
         // actually did and show the player a receipt instead of the card's raw
         // "roll a die / on 1-3…" instruction text (fb:7a2a2956, fb:701b26e3).
         const isCapturing = this.stateService.getGameState().isCapturingStartingHand;
+        const resolveCard = (id: string) => this.dataService.getCardById(id);
         const beforeSnapshot = (cardType === 'L' && !isCapturing)
-          ? snapshotPlayerForLifeEvent(this.stateService.getPlayer(currentPlayer.id))
+          ? snapshotPlayerForLifeEvent(this.stateService.getPlayer(currentPlayer.id), resolveCard)
           : null;
 
         const drawnCardIds = this.cardService.drawCards(
@@ -262,7 +263,7 @@ export class SpaceArrivalProcessor {
         // ambiguous (the player shouldn't be left reading roll instructions).
         let effectsSummary: LifeEventEffectSummary[] = [];
         if (cardType === 'L' && !isCapturing) {
-          const afterSnapshot = snapshotPlayerForLifeEvent(this.stateService.getPlayer(currentPlayer.id));
+          const afterSnapshot = snapshotPlayerForLifeEvent(this.stateService.getPlayer(currentPlayer.id), resolveCard);
           effectsSummary = diffLifeEventSnapshot(beforeSnapshot, afterSnapshot, drawnCardIds[0]);
           if (cardData?.card_mechanic === 'dice_conditional' && !effectsSummary.some(e => e.kind === 'time')) {
             effectsSummary = [...effectsSummary, { kind: 'time', amount: 0, label: 'No change this time' }];

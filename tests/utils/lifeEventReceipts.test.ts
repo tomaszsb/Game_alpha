@@ -61,6 +61,20 @@ describe('lifeEventReceipts', () => {
         fdnyApprovalStatus: undefined,
       });
     });
+
+    it('captures the hand by identity when a card resolver is provided', () => {
+      const snap = snapshotPlayerForLifeEvent(
+        makePlayer({ hand: ['E001', 'W042'] }),
+        (id) =>
+          id === 'E001'
+            ? { card_type: 'E', card_name: 'Speed Demon' }
+            : { card_type: 'W', card_name: 'Foundation' },
+      );
+      expect(snap?.handCards).toEqual([
+        { id: 'E001', type: 'E', name: 'Speed Demon' },
+        { id: 'W042', type: 'W', name: 'Foundation' },
+      ]);
+    });
   });
 
   describe('diffLifeEventSnapshot', () => {
@@ -112,6 +126,62 @@ describe('lifeEventReceipts', () => {
       expect(out).toEqual([
         { kind: 'approval_revoke', label: 'DOB approval revoked — you will need to re-apply' },
       ]);
+    });
+
+    it('names the specific card lost when the hand was captured (fb:0fc63fc1)', () => {
+      const b: LifeEventSnapshot = {
+        ...before,
+        handSize: 1,
+        handCards: [{ id: 'E005', type: 'E', name: 'Speed Demon' }],
+      };
+      // The L card landed; the expeditor was discarded by the event.
+      const a: LifeEventSnapshot = {
+        ...before,
+        handSize: 1,
+        handCards: [{ id: 'L048', type: 'L', name: 'Audit Notice' }],
+      };
+      const out = diffLifeEventSnapshot(b, a, 'L048');
+      expect(out).toEqual([{ kind: 'card_lost', amount: -1, label: 'lost 1 Expeditor (Speed Demon)' }]);
+    });
+
+    it('names multiple lost expeditors with a plural type (fb:0001f5df)', () => {
+      const b: LifeEventSnapshot = {
+        ...before,
+        handSize: 2,
+        handCards: [
+          { id: 'E001', type: 'E', name: 'Speed Demon' },
+          { id: 'E002', type: 'E', name: 'Paper Pusher' },
+        ],
+      };
+      const a: LifeEventSnapshot = {
+        ...before,
+        handSize: 1,
+        handCards: [{ id: 'L031', type: 'L', name: 'Permit Fee Hike' }],
+      };
+      const out = diffLifeEventSnapshot(b, a, 'L031');
+      expect(out).toEqual([
+        { kind: 'card_lost', amount: -2, label: 'lost 2 Expeditors (Speed Demon, Paper Pusher)' },
+      ]);
+    });
+
+    it('names a gained card, excluding the primary L card', () => {
+      const b: LifeEventSnapshot = { ...before, handSize: 0, handCards: [] };
+      const a: LifeEventSnapshot = {
+        ...before,
+        handSize: 2,
+        handCards: [
+          { id: 'L010', type: 'L', name: 'City Council Allies' },
+          { id: 'E012', type: 'E', name: 'Night Owl' },
+        ],
+      };
+      const out = diffLifeEventSnapshot(b, a, 'L010');
+      expect(out).toEqual([{ kind: 'card_gained', amount: 1, label: 'gained 1 Expeditor (Night Owl)' }]);
+    });
+
+    it('falls back to the count-only label when the hand was not captured', () => {
+      // No handCards on either snapshot → legacy behavior is preserved.
+      const out = diffLifeEventSnapshot(before, { ...afterCardOnly, handSize: 0 }, 'L048');
+      expect(out).toEqual([{ kind: 'card_lost', amount: -1, label: 'lost 1 resource' }]);
     });
 
     it('orders receipts money → time → approval → card → duration', () => {

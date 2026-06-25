@@ -96,9 +96,12 @@ export class CardEffectHandler implements ICardEffectHandler {
       // W/B/E/I draw never reaches into game state it doesn't need.
       const isLifeEvent = payload.cardType === 'L';
       const isCapturing = isLifeEvent && this.stateService.getGameState().isCapturingStartingHand;
+      const resolveCard = this.dataService
+        ? (id: string) => this.dataService!.getCardById(id)
+        : undefined;
       const before =
         isLifeEvent && !isCapturing
-          ? snapshotPlayerForLifeEvent(this.stateService.getPlayer(payload.playerId))
+          ? snapshotPlayerForLifeEvent(this.stateService.getPlayer(payload.playerId), resolveCard)
           : null;
 
       const drawnCards = this.cardService.drawCards(payload.playerId, payload.cardType, payload.count, source, reason);
@@ -115,7 +118,7 @@ export class CardEffectHandler implements ICardEffectHandler {
         for (const drawnId of drawnCards) {
           await this.cardService.applyCardEffects(payload.playerId, drawnId, { onlyResourceEffects: true });
         }
-        const after = snapshotPlayerForLifeEvent(this.stateService.getPlayer(payload.playerId));
+        const after = snapshotPlayerForLifeEvent(this.stateService.getPlayer(payload.playerId), resolveCard);
         effectsSummary = diffLifeEventSnapshot(before, after, drawnCards[0]);
 
         // L041-style competing_worktype_conditional cards reveal each other
@@ -471,17 +474,20 @@ export class CardEffectHandler implements ICardEffectHandler {
   ): Promise<{ cardIds: string[]; skipped?: boolean; error?: string }> {
 
     try {
+      const cardType = payload.cardType ?? '';
       const options = allCardsOfType.map(cardId => {
         const cardData = this.dataService?.getCardById(cardId);
         return {
           id: cardId,
-          label: cardData ? cardData.card_name : `${payload.cardType} Card`
+          label: cardData ? cardData.card_name : getCardTypeName(cardType)
         };
       });
 
       const actionVerb = isDiceRollReplace ? 'replace' : 'remove';
       const count = payload.count ?? 1;
-      const prompt = `Choose ${count} ${payload.cardType} card${count > 1 ? 's' : ''} to ${actionVerb}:`;
+      // Voice rule: never surface the letter code (E/W/B/L/I) or the word "card"
+      // — use the player-facing type name (fb:1990c71e: "Choose 1 E card to remove").
+      const prompt = `Choose ${count} ${getCardTypeName(cardType, count)} to ${actionVerb}:`;
 
       const selectedCardId = await this.choiceService.createChoice(
         payload.playerId,

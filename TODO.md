@@ -81,6 +81,37 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🆕 **Dashboard reports — Newly arrived (2026-06-23) — player-panel redesign playtest** (v3.0.83)
+*Swept in via /start 2026-06-23. 18 reports from one playthrough (18:16–19:01 UTC, commit `e4d956b`), ALL against the new (opt-in) player panel — effectively a structured QA pass on the redesign. Clusters into commit-spine UX (A), change-legibility (B, feeds the change-legibility initiative), recall/reference (C), plus standalone bugs/copy. Bundles with the top-3 panel-redesign + change-legibility threads.*
+
+### 🔗 Cluster A — commit-spine / "buttons vanish, no way back, no confirmation"
+- [ ] **Buttons disappeared after zooming the board — can't make a move** — clicked the board to read the green-box choices, came back and the panel actions were gone. <!-- fb:feedback-1782241319794-45cb8b0c -->
+- [ ] **Every button vanishes on press; want a leftover hint + confirmation of choices made** — pressing a button removes it with no residual trace of what was chosen. <!-- fb:feedback-1782239443615-d2070ed1 -->
+- [ ] **Picked a next space, the others disappeared — no way to change my mind / go back** — wants to undo a space choice. <!-- fb:feedback-1782238833744-c2e489dc -->
+- [ ] **First-visit green hint dot didn't show on the active buttons** — expected the first-visit green dot on a first visit; didn't appear. <!-- fb:feedback-1782239119421-e84e4d11 -->
+- [ ] **"Things you can do" buttons look too alike** — wants visual differentiation for movement vs expeditors vs work packages. <!-- fb:feedback-1782239015754-40cc3674 -->
+
+### 🔗 Cluster B — change legibility / "what did I lose? which one?"
+- [x] **News modal "costs you two expeditors" — doesn't say which two were taken — DONE 2026-06-23.** The life-event "bottom line" now names the specific cards lost/gained. <!-- fb:feedback-1782240764304-0001f5df -->
+- [x] **"Lost one resource" never names the resource — DONE 2026-06-23.** Root cause: the receipt snapshot ([lifeEventReceipts.ts](src/utils/lifeEventReceipts.ts)) only stored `handSize` (a count), so it literally couldn't name what changed. The snapshot now optionally captures the hand by identity (id + type + name) via a card resolver passed at both engine emission sites ([CardEffectHandler.ts](src/services/CardEffectHandler.ts), [SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts)); `diffLifeEventSnapshot` does a multiset diff and labels e.g. "lost 2 Expeditors (Speed Demon, Paper Pusher)" / "gained 1 Expeditor (Night Owl)", excluding the primary L card. Falls back to the old count-only label when no resolver is supplied (legacy tests preserved). +5 tests (14 receipt + 19 modal green; CardEffectHandler 9 + CardService 61 green; typecheck clean). NOT yet deployed. <!-- fb:feedback-1782239813750-0fc63fc1 -->
+- [x] **Lost expeditor vacates "what's affecting you" but a spent life event doesn't — DONE 2026-06-23.** The "What's affecting you" box mixed live effects with a count of cards in hand, so a fired life event lingered as if active. Per user call: a spent Life Event chip is now **grayed** ("Already happened — tap to see what it did") while held resources stay full-color — it reads as finished but is still reviewable ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx)). +test. <!-- fb:feedback-1782240301405-3aad5f84 -->
+- [ ] **"Effect applied" but nothing visibly changed / dice roll didn't report its result** — modal claims an effect with no detail; a roll should say what it determined. <!-- fb:feedback-1782240411854-31e5c4b8 -->
+- [ ] **Can't see details to decide which expeditor to replace** — replace-expeditor flow lacks the info to make an informed choice. <!-- fb:feedback-1782239725956-76fa69c7 -->
+
+### 🔗 Cluster C — "let me recall scope/cost — give me a reference"
+- [ ] **Choosing a path with no recall of scope / approximate cost / spreadsheets** — no way to review prior numbers when deciding a route. <!-- fb:feedback-1782239266060-f028e262 -->
+- [ ] **No way to recall what a Work Package was or its cost** — wants to look up a previously-drawn work package. <!-- fb:feedback-1782238725271-cea108fb -->
+
+### Standalone — bugs & copy
+- [x] **Replace-expeditor button triggers no modal — DONE 2026-06-23.** Screenshot showed the player had no expeditors. `handleReplace/Return/GiveCards` ([CardEffectService.ts](src/services/CardEffectService.ts)) no-op SILENTLY when the player holds no E cards, so the button fired but nothing happened. The new panel now hides replace/return/give-expeditor manual actions when there are no expeditors to act on (they're skippable, so hiding can't soft-lock) ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx)). +2 tests. <!-- fb:feedback-1782240625591-3accbe92 -->
+- [x] **Life-event button gives no information when pressed — DONE 2026-06-23.** The "Life Event ×1" item in "What's affecting you" was a non-interactive count, not a button. The influence-zone items are now **tappable**: a single-card chip opens its detail; a multi-card chip (e.g. "Expeditor ×3") opens a **"Your …" pick-list** of all the cards so every one is reachable (fixed the live-verify catch where ×3 only opened the first), each drilling into the §5 detail. Active effects are tappable to their source card too. ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx)). +tests; verified live (game G36). <!-- fb:feedback-1782240006966-88a88773 -->
+- [ ] **Movement "you moved from space to space" between-turns popup is gone — want it back** — the prior move-summary popup disappeared in the new panel. <!-- fb:feedback-1782240515140-15499d9b -->
+- [ ] **Expeditor card says "active in Funding phase" while in Setup, but button says Activate** — possible E-card play-gate phase mismatch in the new panel. <!-- fb:feedback-1782238561064-66bb0bda -->
+- [x] **Underwriting glossary link didn't open the dictionary — DONE 2026-06-23.** Screenshot showed the new panel's purpose-zone story ("Underwriting" underlined + ⓘ). Root cause: the new panel rendered `<TextWithTerms text={...} />` WITHOUT the `onTermClick` prop, so terms looked tappable but no-opped (classic passes `onTermClick={(term) => openWithTerm(term.id)}`). Wired `useDictionaryPanel().openWithTerm` into [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx) (purpose story) and [PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx) (description + effects), mirroring classic exactly. Safe by construction — `DictionaryProvider` wraps the whole app (App.tsx:299) and classic calls the same hook from the same subtree. Typecheck + 138 player/handler tests green. NOT yet deployed. <!-- fb:feedback-1782239550235-baa01a70 -->
+- [x] **Modal shows raw game language "E card" — DONE 2026-06-23.** Screenshot: the "Make Your Choice" modal read *"Choose 1 E card to remove"*. Source: the card-discard/replace choice prompt in [CardEffectHandler.ts:487](src/services/CardEffectHandler.ts) built the string from the raw type code + the word "card". Now uses `getCardTypeName(cardType, count)` → "Choose 1 Expeditor to remove" (voice rule: never surface W/B/E/L/I codes or "card"); fallback option label also de-jargoned. Typecheck + tests green. NOT yet deployed. <!-- fb:feedback-1782239664052-1990c71e -->
+
+---
+
 ## 🆕 **Dashboard reports — Newly arrived (2026-06-15)** (v3.0.80)
 *Swept in via /start 2026-06-20.*
 

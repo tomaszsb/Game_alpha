@@ -21,7 +21,7 @@
 import React, { useState } from 'react';
 import { Card } from '../../types/DataTypes';
 import { IServiceContainer } from '../../types/ServiceContracts';
-import { TextWithTerms } from '../../dictionary';
+import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeColors } from '../common/CardTypeBadge';
 import { panelPalettes, PanelMode } from './panelTheme';
@@ -57,6 +57,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   gameServices,
 }) => {
   const p = panelPalettes.light; // light-first; dark modal body is a follow-up
+  const { openWithTerm } = useDictionaryPanel();
   const [busy, setBusy] = useState(false);
 
   if (!card) return null;
@@ -192,7 +193,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
         <div style={{ marginBottom: 16 }}>
           <p style={sectionLabel}>What this is</p>
           <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-            <TextWithTerms text={card.description || 'No description available.'} />
+            <TextWithTerms text={card.description || 'No description available.'} onTermClick={(term) => openWithTerm(term.id)} />
           </div>
         </div>
 
@@ -210,7 +211,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
                 padding: '10px 12px',
               }}
             >
-              <TextWithTerms text={effects} />
+              <TextWithTerms text={effects} onTermClick={(term) => openWithTerm(term.id)} />
             </div>
           </div>
         )}
