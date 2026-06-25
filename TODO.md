@@ -71,6 +71,14 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🔧 **Build / dependency housekeeping** (2026-06-23, LOW)
+*Two informational messages seen during the v3.0.84 `deploy.sh` build. Neither blocked the deploy or affects the running game — captured here so they're not lost.*
+
+- [ ] **`npm audit`: 1 moderate-severity vulnerability** (printed during the Docker build, 2026-06-23). A dependency advisory, not caused by app code. Next time: run `npm audit` to identify the package + whether a safe `npm audit fix` (non-breaking) clears it; only force-fix major bumps after checking the build/tests. Don't chase it for its own sake (see *audit-before-cleanup*).
+- [ ] **Build perf: `vite:terser` plugin is slow** — the build logged `[PLUGIN_TIMINGS] significant time in plugin vite:terser` (see https://rolldown.rs/options/checks#plugintimings). Cosmetic; minification just takes a while. If build time ever becomes annoying, consider swapping terser for esbuild minify (`build.minify: 'esbuild'`) and compare bundle size — not worth doing until it's a real pain.
+
+---
+
 ## 🔐 **Security follow-ups** (2026-06-12, v3.0.72 session)
 *The v3.0.72 hardening itself shipped (see CHANGELOG). These are the loose ends.*
 

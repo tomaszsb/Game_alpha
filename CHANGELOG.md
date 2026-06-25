@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.0.84] - 2026-06-23
+## [3.0.84] - 2026-06-24
 
 **Playtest-feedback fixes from the 2026-06-23 new-panel QA pass (7 of 18 reports).** A single playthrough on the opt-in redesigned panel produced 18 dashboard reports; this ships the clear bugs. Two fixes touch shared code and so improve the **live default game**; the rest are scoped to the opt-in new panel.
 

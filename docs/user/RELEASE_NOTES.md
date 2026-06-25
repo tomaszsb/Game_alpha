@@ -2,6 +2,20 @@
 
 ---
 
+## v3.0.84 — Clearer Life Events + fixes to the new panel you're testing (June 24, 2026)
+
+Two improvements you'll see in **normal play**:
+- **Life Events now tell you exactly what they took or gave.** When a Life Event costs you a resource, the bulletin's bottom line used to just say *"lost 2 resources."* It now names them — e.g. *"lost 2 Expeditors (Speed Demon, Paper Pusher)"* — so you can tell what actually changed.
+- **No more "E card" in pop-ups.** The "choose a card" pop-up said *"Choose 1 E card to remove."* It now uses plain language: *"Choose 1 Expeditor to remove."*
+
+And several fixes to the **opt-in redesigned panel** (the "Try new design" button — off unless you turn it on), all from a round of testing:
+- **Glossary words you tap now open the dictionary** (they looked tappable but did nothing).
+- **The "what's affecting you" area is now tappable.** Tap any item to see its details; if you're holding several of one kind (say three expeditors), tapping opens a short list so you can pick which to view — no more seeing only the first.
+- **A Life Event that already happened now appears grayed out** ("already happened — tap to see what it did") instead of looking like it's still in effect.
+- **The "Replace Expeditor" button no longer appears when you have no expeditors** to replace (it used to be there but do nothing).
+
+---
+
 ## v3.0.83 — A "who's where" standings board on the shared screen (June 23, 2026)
 
 - **New "📊 Standings" button on the TV.** When you play on a shared screen (TV mode), the top bar now has a **📊 Standings** button. Tap it for a quick "who's where" snapshot: each player shows up as a marker on the project journey (Funding → Design → Regulatory → Construction → Finish) at how far they've gotten, plus their cash and days at a glance. It's a friendly picture of where everyone is — **not** a win/lose ranking — and it stays hidden until you open it, so nothing about your game changes unless you want it.
