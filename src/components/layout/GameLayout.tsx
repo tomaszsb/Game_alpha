@@ -36,6 +36,7 @@ import { useDictionaryPanel } from '../../dictionary/context/DictionaryContext';
 import { useModalQueue } from '../../hooks/useModalQueue';
 import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -1135,7 +1136,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                           fontSize: '0.8rem',
                           color: '#757575',
                         }}>
-                          <span style={{ fontSize: '1.2rem' }}>{player.avatar}</span>
+                          <PlayerAvatar avatar={player.avatar} color={player.color} size={24} title={player.name} />
                           <span style={{ fontWeight: 'bold', color: '#343a40' }}>{player.name}</span>
                           <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>📍 {player.currentSpace}</span>
                         </div>

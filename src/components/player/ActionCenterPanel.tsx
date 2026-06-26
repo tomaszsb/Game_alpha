@@ -20,6 +20,7 @@ import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { shortName, computeVisitNumber, formatVisitBadge } from '../../utils/boardCommon';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 import './ActionCenterPanel.css';
 
 export type ReferenceTab = 'ledger' | 'money' | 'time' | 'expeditors' | 'events' | 'scope' | 'log' | null;
@@ -696,7 +697,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
             alignItems: 'flex-start',
             gap: '8px',
           }}>
-            <span style={{ fontSize: '20px', flexShrink: 0 }}>{player.avatar}</span>
+            <PlayerAvatar avatar={player.avatar} color={player.color} size={26} title={player.name} />
             <span><strong>PM Action:</strong> {spaceAction}</span>
           </div>
         )}

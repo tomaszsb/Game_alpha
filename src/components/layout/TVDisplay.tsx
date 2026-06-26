@@ -14,6 +14,7 @@ import { useGameContext } from '../../context/GameContext';
 import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 interface TVDisplayProps {
   /** Callback when setup should start (optional - for showing setup on TV) */
@@ -257,7 +258,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                     animation: isCurrentPlayer ? 'pulse 2s ease-in-out infinite' : undefined,
                   }}
                 >
-                  <span style={styles.playerStripAvatar}>{player.avatar}</span>
+                  <PlayerAvatar avatar={player.avatar} color={player.color} size={34} title={player.name} />
                   <div style={styles.playerStripText}>
                     <div style={{
                       ...styles.playerStripName,
@@ -393,7 +394,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                 >
                   {/* Player info */}
                   <div style={styles.playerInfo}>
-                    <span style={styles.playerCardAvatar}>{player.avatar}</span>
+                    <PlayerAvatar avatar={player.avatar} color={player.color} size={30} title={player.name} />
                     <span style={{
                       ...styles.playerCardName,
                       color: player.color || colors.text.primary

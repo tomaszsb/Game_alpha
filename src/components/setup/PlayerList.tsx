@@ -6,6 +6,7 @@ import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { ColorOption, AVAILABLE_COLORS } from './usePlayerValidation';
 import { getServerURL, getNetworkInfo } from '../../utils/networkDetection';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 interface PlayerListProps {
   players: Player[];
@@ -150,7 +151,7 @@ export function PlayerList({
               onClick={() => onCycleAvatar(player.id)}
               title="Click to change avatar"
             >
-              {player.avatar}
+              <PlayerAvatar avatar={player.avatar} color={player.color} size={40} />
             </div>
           </div>
 

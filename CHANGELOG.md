@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.85] - 2026-06-26
+
+**Player-panel "Pile 2" UX rulings + an expeditor phase-gate correctness fix + the held 2026-06-25 playtest fixes.** Three threads ship together (all reach a normal deploy): (a) the maintainer's "Pile 2" rulings from the 2026-06-23 new-panel playtest cluster; (b) a fix so a phase-restricted expeditor can no longer be *activated* outside its work phase — the shared rule now matches what the classic panel always enforced locally; (c) relabeling the owner spaces' lifecycle phase from `SETUP` → `OWNER`; plus the seven 2026-06-25 fixes that were built and verified but never committed.
+
+### Pile 2 — "Things you can do" / commit-spine (opt-in new panel)
+- **Per-type action icons (fb:40cc3674).** The action buttons were visually identical; they now carry the type icon `formatManualEffectButton` already computed (⚡ expeditor, 📐 work package, 💰 funding, 🎲 dice roll) but the panel had been discarding — one button color kept (maintainer ruling: "icons, same color"). ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx))
+- **First-visit glow (fb:e84e4d11).** A new player expected the green hint *on* the action buttons, not only the bottom commit spine. First-visit action buttons now glow green (the same hint color), with a static ring under `prefers-reduced-motion`. ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx))
+- **Checkmark trace (fb:d2070ed1, fb:45cb8b0c).** A used draw/roll action no longer vanishes — it stays as a grayed, non-interactive `✓` row so the player can see what they did this turn. (Also resolves the "zoomed the board, my buttons disappeared" report: actions and picks now persist instead of emptying the zone.) ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx))
+- **Reversible move pick (fb:c2e489dc).** Destination options stay on screen after one is chosen; the pick shows `✅` + highlight, tapping it again unchecks, tapping another switches — reversible until **End Turn / Negotiate** locks it in. This needed no engine change: movement was already a deferred `moveIntent` (committed only by `endTurnWithMovement`); the options were just being hidden once a pick was made. ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx))
+
+### Expeditor phase gate — shared rule now matches the classic panel
+- **A phase-restricted expeditor can't be activated outside its work phase.** The new panel's influence-zone Activate (and the detail-view Activate) defer to the shared `cardService.canPlayCard`, but that rule had a carve-out — `getCurrentActivityPhase` returned `null` ("allow any card") for any non-work stage (SETUP/OWNER/END), so a "Funding phase" expeditor showed Activate during the owner stage. The classic panel never had this — it gates locally on an exact phase match ([CardsSection.tsx](src/components/player/sections/CardsSection.tsx), [ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx)). Fixed at the source: [getCurrentActivityPhase](src/services/GameRulesService.ts) now returns the stage name for SETUP/OWNER/END instead of `null`. Safe because **no card is ever restricted to those stages** — every `phase_restriction` is one of the 4 work phases or `Any` — so this simply enforces "use an expeditor in its phase," and `Any` cards still play everywhere. The shared rule now matches the classic panel's long-standing behavior (setting up the eventual removal of the duplicate local gate). +3 tests.
+- **"Not yet" hint (new panel).** When a held expeditor is blocked by its phase, the detail view explains the wait — *"⏳ Not yet — this expeditor can only be activated during the Regulatory Review phase…"* — instead of silently offering no action (mirrors the classic panel's "Can only be activated during X phase"). ([PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx)) +2 tests.
+
+### Owner spaces relabeled `SETUP` → `OWNER`
+- The three owner-stage spaces (`START-QUICK-PLAY-GUIDE`, `OWNER-SCOPE-INITIATION`, `OWNER-FUND-INITIATION`) were tagged phase `SETUP`, conflating the project's first *lifecycle* stage with the unrelated game-screen `GamePhase` enum. Relabeled to `OWNER` in both the served [GAME_CONFIG.csv](public/data/CLEAN_FILES/GAME_CONFIG.csv) and the source [Spaces.csv](public/data/SOURCE_FILES/Spaces.csv) (survives regen). The phase rail is data-derived (`DataService.getPhaseOrder`), so it cleanly drops the empty SETUP segment and groups them under OWNER — no code change, no dangling segment. (`GamePhase = 'SETUP' | 'PLAY' | 'END'` is a separate concept and untouched.)
+
+### Held 2026-06-25 playtest fixes (built + verified earlier, now committed)
+- **"Pays $X" was backwards for a cost (fb:9c110d52).** A Work Package's estimated cost rendered as income; `card.cost` is always money spent — only a positive `money_effect` reads "Pays." ([PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx))
+- **Activate on a non-activatable card (fb:8d68ab14).** The detail view gates Activate to `E` cards; W/B/I/L reach it for reference only.
+- **DiceResultModal effect rows are tappable (fb:0c523a17, fb:b413cc2e).** Each drawn/affected card opens its detail (reference by default; Activate self-gates on the shared rule). ([DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx))
+- **Owner narration voice unified (fb:7065e8df).** The OWNER-SCOPE-INITIATION portrait box spoke 3rd-person while the summary spoke 1st-person; rewrote the portrait to 1st-person Owner voice in CLEAN + SOURCE.
+- **Device-consistent avatars (fb:e9852ae6).** OS emoji differ per device; a new shared [PlayerAvatar.tsx](src/components/common/PlayerAvatar.tsx) wraps the emoji in an always-on player-color ring (a CSS color is identical everywhere), rolled out across the player-facing surfaces.
+- **Always-visible version badge.** A fixed corner [VersionBadge.tsx](src/components/common/VersionBadge.tsx) (`v<semver>`, commit on hover) mounted at the app root so feedback screenshots always capture the build.
+
+### Checks
+- Full vitest suite green; typecheck clean. Pile 2, the phase gate, the relabel, and the "not yet" hint all verified live in a running game (new panel). New-panel changes remain behind the opt-in toggle; the phase-gate fix + the relabel + the shared 2026-06-25 fixes (narration, avatars, badge) also improve the live default game.
+
 ## [3.0.84] - 2026-06-24
 
 **Playtest-feedback fixes from the 2026-06-23 new-panel QA pass (7 of 18 reports).** A single playthrough on the opt-in redesigned panel produced 18 dashboard reports; this ships the clear bugs. Two fixes touch shared code and so improve the **live default game**; the rest are scoped to the opt-in new panel.

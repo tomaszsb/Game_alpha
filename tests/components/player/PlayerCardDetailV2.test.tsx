@@ -103,4 +103,80 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     // Keep (close without playing) is always available.
     expect(screen.getByRole('button', { name: /Keep/i })).toBeInTheDocument();
   });
+
+  // The "not yet" phase hint explains the missing Activate (mirrors the classic
+  // panel's "Can only be activated during X phase"). E030 is REGULATORY_REVIEW-
+  // restricted, so the raw code prettifies to "Regulatory Review".
+  it('shows a "not yet" phase hint when a phase-restricted expeditor is blocked', () => {
+    services.cardService.canPlayCard.mockReturnValue(false);
+    renderDetail();
+    const hint = screen.getByTestId('phase-wait-hint');
+    expect(hint).toHaveTextContent(/Not yet/i);
+    expect(hint).toHaveTextContent(/Regulatory Review phase/i);
+  });
+
+  it('shows no phase hint once the expeditor is playable', () => {
+    services.cardService.canPlayCard.mockReturnValue(true);
+    renderDetail();
+    expect(screen.queryByTestId('phase-wait-hint')).not.toBeInTheDocument();
+  });
+
+  // fb:8d68ab14 — a Work Package's detail showed an "Activate" button with nothing
+  // to activate. Only Expeditors are played from hand; W/B/I/L reach this view for
+  // reference, so no Activate even if the shared canPlayCard rule says yes.
+  it('shows NO Activate for a non-Expeditor card even when canPlayCard is true', () => {
+    services.cardService.canPlayCard.mockReturnValue(true);
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ card_id: 'W042', card_type: 'W', card_name: 'Foundation Work', description: 'Pour the footings.', cost: 50000 }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    expect(screen.queryByRole('button', { name: /Activate/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Keep/i })).toBeInTheDocument();
+  });
+
+  // fb:9c110d52 — a Work Package's estimated cost rendered as "Pays $X" (reads like
+  // income). `card.cost` is always money spent, so it must label as a cost.
+  it('labels a positive card.cost as "Costs", never "Pays"', () => {
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ card_id: 'W042', card_type: 'W', card_name: 'Foundation Work', description: 'Pour the footings.', cost: 50000 }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    expect(screen.getByText('Costs')).toBeInTheDocument();
+    expect(screen.getByText('$50,000')).toBeInTheDocument();
+    expect(screen.queryByText('Pays')).not.toBeInTheDocument();
+  });
+
+  // The "Pays" label is still correct for genuine income (a positive money_effect).
+  it('labels a positive money_effect as "Pays" (income)', () => {
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={{ card_id: 'L012', card_type: 'L', card_name: 'Grant Awarded', description: 'A surprise grant lands.', money_effect: '5000' }}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    expect(screen.getByText('Pays')).toBeInTheDocument();
+    expect(screen.getByText('$5,000')).toBeInTheDocument();
+  });
 });

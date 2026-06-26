@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DiceResultModal, DiceRollResult } from '../../../src/components/modals/DiceResultModal';
 import { BACKDROP_GRACE_MS } from '../../../src/components/modals/shared/ModalBase';
 import { GameContext } from '../../../src/context/GameContext';
+import { DictionaryProvider } from '../../../src/dictionary';
 import { createAllMockServices } from '../../mocks/mockServices';
 
 describe('DiceResultModal', () => {
@@ -47,13 +48,13 @@ describe('DiceResultModal', () => {
 
   it('should render when open with valid result', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal
           isOpen={true}
           result={mockResult}
           onClose={mockOnClose}
         />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     // Check modal is rendered with dice result
@@ -64,13 +65,13 @@ describe('DiceResultModal', () => {
 
   it('should not render when closed', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal
           isOpen={false}
           result={mockResult}
           onClose={mockOnClose}
         />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.queryByText('Dice Roll: 4')).not.toBeInTheDocument();
@@ -78,13 +79,13 @@ describe('DiceResultModal', () => {
 
   it('should not render when result is null', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal
           isOpen={true}
           result={null}
           onClose={mockOnClose}
         />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.queryByText('Dice Roll:')).not.toBeInTheDocument();
@@ -92,13 +93,13 @@ describe('DiceResultModal', () => {
 
   it('should display money effects with proper formatting', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal
           isOpen={true}
           result={mockResult}
           onClose={mockOnClose}
         />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.getByText('+$50K')).toBeInTheDocument();
@@ -107,13 +108,13 @@ describe('DiceResultModal', () => {
 
   it('should display card effects correctly', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal
           isOpen={true}
           result={mockResult}
           onClose={mockOnClose}
         />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.getByText('+2 Bank Loans')).toBeInTheDocument();
@@ -122,11 +123,11 @@ describe('DiceResultModal', () => {
 
   it('should display summary when provided', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={mockResult}
         onClose={mockOnClose} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     // Check for summary content
@@ -135,11 +136,11 @@ describe('DiceResultModal', () => {
 
   it('should call onClose when Continue button is clicked', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={mockResult}
         onClose={mockOnClose} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     fireEvent.click(screen.getByText('Continue'));
@@ -148,11 +149,11 @@ describe('DiceResultModal', () => {
 
   it('should call onClose when backdrop is clicked (after the click-through grace window)', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={mockResult}
         onClose={mockOnClose} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     const backdrop = screen.getByTestId('dice-result-modal-overlay');
@@ -172,12 +173,12 @@ describe('DiceResultModal', () => {
     };
 
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={choiceResult}
         onClose={mockOnClose}
         onConfirm={mockOnConfirm} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.getByText('Review')).toBeInTheDocument();
@@ -197,11 +198,11 @@ describe('DiceResultModal', () => {
     };
 
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={noEffectsResult}
         onClose={mockOnClose} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.getByText('No special effects this turn')).toBeInTheDocument();
@@ -209,11 +210,11 @@ describe('DiceResultModal', () => {
 
   it('should handle keyboard navigation', () => {
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={mockResult}
         onClose={mockOnClose} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     const dialog = screen.getByRole('dialog');
@@ -221,6 +222,61 @@ describe('DiceResultModal', () => {
     // Test Escape key
     fireEvent.keyDown(dialog, { key: 'Escape' });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  // Surface B (fb:0c523a17 / fb:b413cc2e): a drawn card is shown as its own row,
+  // and tapping it opens the card detail. Reference by default; Activate self-
+  // gates on budget + phase via canPlayCard (false here → info-only, as at setup).
+  describe('drawn-card tap-through to detail', () => {
+    const drawResult: DiceRollResult = {
+      diceValue: 0,
+      spaceName: 'OWNER-SETUP',
+      effects: [{
+        type: 'cards',
+        description: 'Hired 3 Expeditors',
+        cardType: 'E',
+        cardCount: 3,
+        cardAction: 'draw',
+        cardIds: ['E001', 'E002', 'E003'],
+      }],
+      summary: '',
+      hasChoices: false,
+    };
+
+    beforeEach(() => {
+      mockServices.dataService.getCardById.mockImplementation((id: string) => ({
+        card_id: id, card_type: 'E', card_name: `Expeditor ${id}`, description: 'A filing rep.',
+      }));
+      mockServices.cardService.canPlayCard.mockReturnValue(false); // setup: no budget / off-phase
+    });
+
+    const renderDraw = () => render(
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
+        <DiceResultModal isOpen result={drawResult} onClose={mockOnClose} />
+      </GameContext.Provider></DictionaryProvider>
+    );
+
+    it('renders each drawn card as its own tappable row', () => {
+      renderDraw();
+      expect(screen.getAllByRole('button', { name: /Details for Expeditor E00/ })).toHaveLength(3);
+    });
+
+    it('opens the detail for the tapped card, info-only when not playable', () => {
+      renderDraw();
+      expect(screen.queryByTestId('player-card-detail-v2')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Details for Expeditor E002' }));
+      const detail = screen.getByTestId('player-card-detail-v2');
+      expect(detail).toBeInTheDocument();
+      // canPlayCard=false → reference only, no Activate (matches the setup space).
+      expect(screen.queryByRole('button', { name: /Activate/i })).not.toBeInTheDocument();
+    });
+
+    it('surfaces Activate when the card IS playable (budget + phase met later)', () => {
+      mockServices.cardService.canPlayCard.mockReturnValue(true);
+      renderDraw();
+      fireEvent.click(screen.getByRole('button', { name: 'Details for Expeditor E001' }));
+      expect(screen.getByRole('button', { name: /Activate/i })).toBeInTheDocument();
+    });
   });
 
   describe('ModalConfig Overrides (Phase 4)', () => {
@@ -240,13 +296,13 @@ describe('DiceResultModal', () => {
       );
 
       render(
-        <GameContext.Provider value={mockServices}>
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
           <DiceResultModal
             isOpen={true}
             result={mockResult}
             onClose={mockOnClose}
           />
-        </GameContext.Provider>
+        </GameContext.Provider></DictionaryProvider>
       );
 
       expect(screen.getByText('Lucky 4 on TEST-SPACE!')).toBeInTheDocument();
@@ -259,13 +315,13 @@ describe('DiceResultModal', () => {
       mockServices.dataService.getModalConfig.mockReturnValue(undefined);
 
       render(
-        <GameContext.Provider value={mockServices}>
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
           <DiceResultModal
             isOpen={true}
             result={mockResult}
             onClose={mockOnClose}
           />
-        </GameContext.Provider>
+        </GameContext.Provider></DictionaryProvider>
       );
 
       expect(screen.getByText('Continue')).toBeInTheDocument();
@@ -278,13 +334,13 @@ describe('DiceResultModal', () => {
       mockServices.dataService.getModalConfig.mockReturnValue(undefined);
 
       render(
-        <GameContext.Provider value={mockServices}>
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
           <DiceResultModal
             isOpen={true}
             result={mockResult}
             onClose={mockOnClose}
           />
-        </GameContext.Provider>
+        </GameContext.Provider></DictionaryProvider>
       );
 
       expect(mockServices.dataService.getModalConfig).toHaveBeenCalledWith(
@@ -312,11 +368,11 @@ describe('DiceResultModal', () => {
     };
 
     render(
-      <GameContext.Provider value={mockServices}>
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
         <DiceResultModal isOpen={true}
         result={timeResult}
         onClose={mockOnClose} />
-      </GameContext.Provider>
+      </GameContext.Provider></DictionaryProvider>
     );
 
     expect(screen.getByText('-3 days')).toBeInTheDocument();
@@ -356,9 +412,9 @@ describe('DiceResultModal', () => {
 
     it('suppresses Effects-row bold value when BeforeAfterBlock will render it', () => {
       render(
-        <GameContext.Provider value={mockServices}>
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
           <DiceResultModal isOpen={true} result={snapshotResult} onClose={mockOnClose} />
-        </GameContext.Provider>
+        </GameContext.Provider></DictionaryProvider>
       );
 
       // Effects-row narrative description still visible.
@@ -389,9 +445,9 @@ describe('DiceResultModal', () => {
         hasChoices: false,
       };
       render(
-        <GameContext.Provider value={mockServices}>
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
           <DiceResultModal isOpen={true} result={noSnapshot} onClose={mockOnClose} />
-        </GameContext.Provider>
+        </GameContext.Provider></DictionaryProvider>
       );
 
       // Without before/after, the Effects-row continues to show its value.

@@ -294,3 +294,130 @@ describe('PlayerPanelV2 — expeditor-action guard', () => {
     expect(screen.getByText(/Things you can do/i)).toBeInTheDocument();
   });
 });
+
+describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45cb8b0c)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const options = [
+    { id: 'SPACE-A', label: 'Go to A' },
+    { id: 'SPACE-B', label: 'Go to B' },
+  ];
+
+  const makePlayer = (moveIntent: string | null): any => ({
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent,
+  });
+
+  const setup = (moveIntent: string | null) => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    const player = makePlayer(moveIntent);
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true,
+      awaitingChoice: { type: 'MOVEMENT', options },
+      requiredActions: 1, completedActionCount: moveIntent ? 1 : 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue({ movement_type: 'choice' });
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(!!moveIntent);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  afterEach(() => cleanup());
+
+  it('keeps every destination on screen AFTER one is picked (no vanishing)', () => {
+    setup('SPACE-A'); // already picked A
+    renderPanel();
+    // Both options still rendered so the player can change their mind.
+    expect(screen.getByRole('button', { name: /Go to A/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Go to B/i })).toBeInTheDocument();
+    expect(screen.getByText(/switch until you end your turn/i)).toBeInTheDocument();
+  });
+
+  it('unchecks the picked destination when tapped again (reversible)', () => {
+    setup('SPACE-A');
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: /Go to A/i }));
+    // Tapping the chosen one clears the intent — engine treats it as not-yet-moved.
+    expect(services.stateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', null);
+  });
+
+  it('switches the pick to another destination', () => {
+    setup('SPACE-A');
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: /Go to B/i }));
+    expect(services.stateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'SPACE-B');
+  });
+});
+
+describe('PlayerPanelV2 — completed-action checkmark trace (Pile 2: fb:d2070ed1)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const drawEffect: any = {
+    effect_type: 'cards', effect_action: 'draw_W', trigger_type: 'manual',
+    condition: 'always', effect_value: 1,
+  };
+
+  const player: any = {
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 1, completedActionCount: 1,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([drawEffect]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([drawEffect]);
+    services.gameRulesService.canEndTurn.mockReturnValue(true);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+  });
+
+  afterEach(() => cleanup());
+
+  it('leaves a non-interactive ✓ trace instead of vanishing the used action', () => {
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2
+          gameServices={services as any}
+          playerId="player1"
+          mode="light"
+          completedActions={{ manualActions: { 'cards:draw_W': true } } as any}
+        />
+      </DictionaryProvider>,
+    );
+    // The done action is still shown (as a trace) but is no longer a button.
+    expect(screen.getByLabelText(/Done: Add Work Package/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add Work Package/i })).not.toBeInTheDocument();
+  });
+});

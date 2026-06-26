@@ -12,6 +12,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { openInDictionary } from '../../utils/dictionaryBridge';
 import { CARD_DETAILS } from '../../constants/uiStrings';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -400,8 +401,8 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
                   onChange={(e) => setSelectedTargetPlayer(e.target.value)}
                   style={{ margin: 0 }}
                 />
-                <span style={{ fontSize: '1rem', marginRight: '8px' }}>
-                  {player.avatar}
+                <span style={{ marginRight: '8px', display: 'inline-flex' }}>
+                  <PlayerAvatar avatar={player.avatar} color={player.color} size={22} title={player.name} />
                 </span>
                 <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>
                   {player.name}

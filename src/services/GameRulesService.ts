@@ -236,7 +236,16 @@ export class GameRulesService implements IGameRulesService {
       case 'REGULATORY':
         return 'REGULATORY_REVIEW';
       default:
-        return null; // Unknown phase, allow any cards
+        // SETUP / OWNER / END are real lifecycle stages, but no card is ever
+        // restricted to them — every phase_restriction is one of the 4 work
+        // phases above or "Any". Returning the stage name (instead of null)
+        // means a phase-restricted expeditor won't match and is correctly
+        // blocked until its work phase, matching the classic panel's
+        // long-standing local gate (CardsSection / ActionCenterPanel: "Can only
+        // be activated during X phase"). "Any" cards are never gated by the
+        // caller, so they still play in every stage. Only a space with NO phase
+        // at all (guarded above) falls through to the permissive null.
+        return spaceConfig.phase.toUpperCase();
     }
   }
 

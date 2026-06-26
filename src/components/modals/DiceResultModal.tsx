@@ -1,7 +1,8 @@
 // src/components/modals/DiceResultModal.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
+import { PlayerCardDetailV2 } from '../player/PlayerCardDetailV2';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { colors, theme } from '../../styles/theme';
 import { FormatUtils } from '../../utils/FormatUtils';
@@ -33,8 +34,20 @@ interface DiceResultModalProps {
  * Shows the dice value, applied effects, and summarizes the outcome
  */
 export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComplete }: DiceResultModalProps): JSX.Element | null {
-  const { dataService } = useGameContext();
+  const gameServices = useGameContext();
+  const { dataService } = gameServices;
   const { getPortraitForSpace } = useNpcPortrait();
+
+  // Tap a drawn/affected card to open its detail. It opens for REFERENCE, and
+  // surfaces Activate only when the shared canPlayCard rule allows (budget +
+  // phase) — so at the setup space (no budget yet, E cards out of phase) it's
+  // effectively info-only, but at later spaces a just-hired expeditor can be
+  // used right away. That mirrors real life: the moment you hire a rep you can
+  // put them to work, and once used the cost is committed even if you later
+  // renegotiate (playCard records the consumed card in the turn ledger, so Try
+  // Again won't refund it). fb:0c523a17 / fb:b413cc2e.
+  const [detailCardId, setDetailCardId] = useState<string | null>(null);
+  const currentPlayerId = gameServices.stateService.getGameState().currentPlayerId;
 
   // Look up space content early (needed for data-driven shake/TTS config)
   const spaceContent = result?.spaceName
@@ -161,11 +174,12 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     }
 
     // Get card details if card IDs are available
-    let cardDetails: Array<{ name: string; type: string }> = [];
+    let cardDetails: Array<{ id: string; name: string; type: string }> = [];
     if (effect.type === 'cards' && effect.cardIds && effect.cardIds.length > 0) {
       cardDetails = effect.cardIds.map(cardId => {
         const card = dataService.getCardById(cardId);
         return {
+          id: cardId,
           name: card ? card.card_name : cardId,
           type: card ? card.card_type : ''
         };
@@ -206,12 +220,18 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
               {cardDetails.map((card, cardIndex) => {
                 const cardColors = getCardTypeColors(card.type);
                 return (
-                  <div
+                  <button
                     key={cardIndex}
+                    onClick={() => setDetailCardId(card.id)}
+                    aria-label={`Details for ${card.name}`}
+                    title="Tap to see details"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
+                      width: '100%',
+                      textAlign: 'left',
+                      cursor: 'pointer',
                       padding: '4px 8px',
                       marginBottom: '4px',
                       backgroundColor: cardColors.bg,
@@ -220,10 +240,11 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
                     }}
                   >
                     <span style={{ fontSize: '14px' }}>{getCardTypeEmoji(card.type)}</span>
-                    <span style={{ fontStyle: 'italic', color: cardColors.text, fontSize: '13px' }}>
+                    <span style={{ fontStyle: 'italic', color: cardColors.text, fontSize: '13px', flex: 1 }}>
                       {card.name}
                     </span>
-                  </div>
+                    <span aria-hidden style={{ color: cardColors.text, opacity: 0.5, fontSize: '13px' }}>ⓘ</span>
+                  </button>
                 );
               })}
             </div>
@@ -331,6 +352,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   );
 
   return (
+    <>
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
@@ -449,5 +471,18 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         </div>
       )}
     </ModalBase>
+
+    {/* Tap-through card detail — opened from a drawn/affected card row above.
+        Sibling of the result ModalBase so it paints on top (same z-index, later
+        in DOM) with its own independent backdrop-grace. Reference by default;
+        Activate self-gates on budget + phase via the shared canPlayCard rule. */}
+    <PlayerCardDetailV2
+      isOpen={detailCardId !== null}
+      onClose={() => setDetailCardId(null)}
+      card={detailCardId ? dataService.getCardById(detailCardId) ?? null : null}
+      playerId={currentPlayerId || ''}
+      gameServices={gameServices}
+    />
+    </>
   );
 }

@@ -297,6 +297,49 @@ describe('GameRulesService', () => {
         expect(gameRulesService.canPlayCard('player1', 'B_001')).toBe(true);
       });
     });
+
+    // A phase-restricted expeditor must NOT be playable outside its work phase —
+    // including during the SETUP / OWNER / END stages, which earlier returned
+    // `null` ("allow any") from getCurrentActivityPhase. This makes the shared
+    // rule match the classic panel's long-standing local gate ("Can only be
+    // activated during X phase"); no card is ever restricted to SETUP/OWNER/END,
+    // so blocking phase-restricted cards there is exactly "use it in its phase".
+    describe('phase restriction gating (setup/owner/end block phase-restricted cards)', () => {
+      const fundingExpeditor = {
+        card_id: 'E_FUND', card_type: 'E', card_name: 'Funding Rep', phase_restriction: 'FUNDING',
+      };
+      const anyExpeditor = {
+        card_id: 'E_ANY', card_type: 'E', card_name: 'Generalist', phase_restriction: 'Any',
+      };
+      const playerWith = (cardId: string) => ({ ...mockPlayer, hand: [cardId] });
+
+      it('blocks a FUNDING expeditor during the SETUP / owner stage', () => {
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+        mockStateService.getPlayer.mockReturnValue(playerWith('E_FUND'));
+        mockDataService.getCardById.mockReturnValue(fundingExpeditor as any);
+        mockDataService.getGameConfigBySpace.mockReturnValue({ space_name: 'OWNER-SCOPE-INITIATION', phase: 'SETUP' } as any);
+
+        expect(gameRulesService.canPlayCard('player1', 'E_FUND')).toBe(false);
+      });
+
+      it('allows the same FUNDING expeditor once on a FUNDING-phase space', () => {
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+        mockStateService.getPlayer.mockReturnValue(playerWith('E_FUND'));
+        mockDataService.getCardById.mockReturnValue(fundingExpeditor as any);
+        mockDataService.getGameConfigBySpace.mockReturnValue({ space_name: 'BANK-FUND-REVIEW', phase: 'FUNDING' } as any);
+
+        expect(gameRulesService.canPlayCard('player1', 'E_FUND')).toBe(true);
+      });
+
+      it('always allows an "Any"-phase card, even during the setup stage', () => {
+        mockStateService.getGameState.mockReturnValue(mockGameState);
+        mockStateService.getPlayer.mockReturnValue(playerWith('E_ANY'));
+        mockDataService.getCardById.mockReturnValue(anyExpeditor as any);
+        mockDataService.getGameConfigBySpace.mockReturnValue({ space_name: 'OWNER-SCOPE-INITIATION', phase: 'SETUP' } as any);
+
+        expect(gameRulesService.canPlayCard('player1', 'E_ANY')).toBe(true);
+      });
+    });
   });
 
   describe('canDrawCard', () => {

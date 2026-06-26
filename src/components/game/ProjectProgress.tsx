@@ -9,6 +9,7 @@ import { getBackendURL, getCurrentGameId } from '../../utils/networkDetection';
 import { FormatUtils } from '../../utils/FormatUtils';
 import { designFeeIndicator, timelineIndicator } from '../../utils/progressIndicators';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -589,8 +590,8 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
 
             return (
               <div key={player.id} style={playerItemStyle}>
-                <div style={playerNameStyle}>
-                  {player.avatar} {player.name}
+                <div style={{ ...playerNameStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <PlayerAvatar avatar={player.avatar} color={player.color} size={20} title={player.name} /> {player.name}
                 </div>
                 <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={`Project completion: ${Math.round(playerProgress.progress)}% — how far through all phases you've progressed (Funding → Design → Regulatory → Construction). Advances each time you reach a new phase.`}>
                   <span style={{ whiteSpace: 'nowrap' }}>🚀 <span style={{ fontWeight: 'bold', color: colors.secondary.dark }}>{Math.round(playerProgress.progress)}% done</span></span>

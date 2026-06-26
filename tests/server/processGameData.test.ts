@@ -1052,7 +1052,9 @@ describe('processGameData — per-action narratives', () => {
   it('emits authored e_card narrative for OWNER-SCOPE-INITIATION/First draw_E', () => {
     const row = findRow(cleanEffectsCsv(), 'OWNER-SCOPE-INITIATION', 'First', 'draw_E');
     expect(row).toBeDefined();
-    expect(row!).toContain("The owner hands you a stack of contacts");
+    // 1st-person Owner voice — matches the modal's Owner portrait + Summary box
+    // (fb:7065e8df: the portrait box read 3rd-person while the Summary read 1st).
+    expect(row!).toContain("I'm handing you a stack of contacts");
   });
 
   it('emits authored l_card narrative for ARCH-FEE-REVIEW/First draw_L', () => {

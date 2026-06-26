@@ -64,7 +64,32 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
 
   const meta = CARD_TYPE_META[card.card_type] || { label: card.card_type, emoji: '🃏', teaches: '' };
   const typeColors = getCardTypeColors(card.card_type || '');
-  const canPlay = gameServices.cardService.canPlayCard(playerId, card.card_id);
+  // Only Expeditors (E) are "activated" from this view. The influence zone offers
+  // Activate on E cards only, and an E activation is the game's one play-from-hand
+  // action — Work Packages (scope), funding (B/I), and Life Events (auto-applied)
+  // reach this detail view via the card chips for REFERENCE, with nothing to
+  // activate (fb:8d68ab14 — a Work Package detail showed an Activate button with
+  // "nothing to activate"). TYPE eligibility is gated here, mirroring
+  // PlayerPanelV2's E-only `playableExpeditors` filter; TIMING/phase/affordability
+  // stays in the shared `canPlayCard` rule (no logic re-derived in the component).
+  // NOTE: the shared rule itself still returns true for non-E types, so the classic
+  // CardModal shows the same stray Activate — tightening that rule is a design call
+  // (bundled with fb:66bb0bda), deliberately left to the maintainer.
+  const canPlay = card.card_type === 'E' && gameServices.cardService.canPlayCard(playerId, card.card_id);
+
+  // When an Expeditor is held but not currently playable AND it carries a phase
+  // restriction, explain the wait instead of silently offering no action —
+  // mirrors the classic panel's "Can only be activated during X phase"
+  // (CardsSection). Presentation only; the gate itself stays in canPlayCard. We
+  // don't re-derive WHY it's blocked, but an expeditor with a phase restriction
+  // is overwhelmingly blocked by phase, and the phase is a real requirement
+  // either way (it's shown as a Key Fact too).
+  const showPhaseWait =
+    card.card_type === 'E' && !canPlay && !!card.phase_restriction && card.phase_restriction !== 'Any';
+  const phaseWaitName = (card.phase_restriction || '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
   // "What it does" renders `effects_on_play`, but ALL 74 E + 49 L cards carry the
   // generic placeholder "Apply Card" (audit 2026-06-23) — and it's redundant with
@@ -76,11 +101,21 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   const showEffects = effects !== '' && !/^apply card$/i.test(effects) && effects !== (card.description || '').trim();
 
   // Key facts — only rendered when the card actually carries them.
-  const cost = card.cost != null ? card.cost : card.money_effect ? parseInt(card.money_effect, 10) : undefined;
   const tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
   const facts: { icon: string; label: string; value: string }[] = [];
-  if (cost != null && !isNaN(cost) && cost !== 0) {
-    facts.push({ icon: cost < 0 ? '💸' : '💰', label: cost < 0 ? 'Costs' : 'Pays', value: `$${Math.abs(cost).toLocaleString()}` });
+  // Money: `card.cost` is always money the player SPENDS (a Work Package's
+  // estimated construction cost, an Expeditor's activation fee), whereas
+  // `money_effect` is a signed delta (negative = pays out, positive = receives).
+  // The old code merged them, so a positive `card.cost` rendered as "Pays $X" —
+  // reading like income (fb:9c110d52: "says Pays but this is an estimated cost,
+  // not a reward"). Treat a cost as a cost; only a positive money_effect is income.
+  if (card.cost != null && !isNaN(card.cost) && card.cost > 0) {
+    facts.push({ icon: '💸', label: 'Costs', value: `$${card.cost.toLocaleString()}` });
+  } else if (card.money_effect) {
+    const m = parseInt(card.money_effect, 10);
+    if (!isNaN(m) && m !== 0) {
+      facts.push({ icon: m < 0 ? '💸' : '💰', label: m < 0 ? 'Costs' : 'Pays', value: `$${Math.abs(m).toLocaleString()}` });
+    }
   }
   if (tick != null && !isNaN(tick) && tick !== 0) {
     facts.push({ icon: '🕐', label: tick < 0 ? 'Saves' : 'Adds', value: `${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}` });
@@ -188,6 +223,26 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
             {meta.emoji} {meta.label}
           </span>
         </div>
+
+        {/* Not-yet (phase) hint — why there's no Activate button right now. */}
+        {showPhaseWait && (
+          <div
+            data-testid="phase-wait-hint"
+            style={{
+              fontSize: 12.5,
+              lineHeight: 1.5,
+              color: p.text,
+              background: '#fff7ed',
+              borderLeft: '3px solid #f59e0b',
+              borderRadius: 8,
+              padding: '9px 12px',
+              marginBottom: 14,
+            }}
+          >
+            ⏳ <span style={{ fontWeight: 600 }}>Not yet —</span> this expeditor can only be activated during the{' '}
+            {phaseWaitName} phase. Hold onto it until you get there.
+          </div>
+        )}
 
         {/* What this is */}
         <div style={{ marginBottom: 16 }}>

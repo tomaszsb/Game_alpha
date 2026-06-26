@@ -151,6 +151,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     return {
       effectKey,
       label: formatted.text || effect.effect_type,
+      // Per-type icon so movement / expeditor / work-package / money / dice
+      // actions are tellable apart at a glance (fb:40cc3674 — "buttons look too
+      // alike"). The formatter already derives an icon by card type; dice rolls
+      // get 🎲 (the collapsed-dice label carries its own, stripped at render).
+      icon: isDiceEffect ? '🎲' : formatted.icon,
       isCompleted,
       isDiceEffect,
     };
@@ -160,6 +165,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const visiblePendingActions = pendingActions
     .filter((a) => !a.isCompleted)
     .filter((a) => hasExpeditorCards || !expeditorTargetAction.test(a.effectKey));
+  // Completed draw/roll actions stay on screen as a grayed ✓ trace instead of
+  // vanishing, so the player can see what they already did this turn (fb:d2070ed1
+  // — "every button vanishes on press, I want a leftover hint"). Movement keeps
+  // its own reversible checkmark below; these one-shot actions can't be undone.
+  const doneActionTraces = pendingActions.filter((a) => a.isCompleted);
 
   const movement = gameServices.dataService.getMovement(player.currentSpace, player.visitType);
   const isDiceMovementSpace = movement?.movement_type === 'dice';
@@ -169,6 +179,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     isMyTurn && gameState.awaitingChoice?.type === 'MOVEMENT' ? gameState.awaitingChoice : null;
   const selectedDestination = player.moveIntent || null;
   const needsMovementChoice = !!movementChoice && !selectedDestination && movementChoiceUnlocked;
+  // Keep the destination options on screen even AFTER one is picked, so the
+  // player can check/uncheck/switch freely until End Turn or Negotiate locks the
+  // turn in (fb:c2e489dc — "the other spaces disappeared, I wanted to change my
+  // mind"). The move is only an intent (setPlayerMoveIntent) until endTurn.
+  const showMovementOptions = !!movementChoice && movementChoiceUnlocked;
   const showMovementDiceButton = shouldShowMovementDiceButton(visiblePendingActions, {
     isDiceMovementSpace,
     hasPlayerRolledDice,
@@ -187,8 +202,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     }
   };
   const handleMovementChoice = (destinationId: string) => {
-    if (selectedDestination === destinationId) return;
-    gameServices.stateService.setPlayerMoveIntent(playerId, destinationId);
+    // Toggle: tapping the chosen destination again unchecks it; tapping a
+    // different one switches. Reversible until End Turn / Negotiate commits the
+    // move (engine treats this as intent only — setPlayerMoveIntent(null) clears
+    // it and updateActionCounts keeps the End Turn gate correct).
+    const next = selectedDestination === destinationId ? null : destinationId;
+    gameServices.stateService.setPlayerMoveIntent(playerId, next);
   };
   const handleEndTurn = async () => {
     setIsEndingTurn(true);
@@ -238,6 +257,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     commit = { label: `${remaining} action${remaining === 1 ? '' : 's'} left`, ready: false };
   }
   const showGreenDot = isMyTurn && commit.ready && player.visitType === 'First';
+  // First-visit nudge: the action buttons themselves glow so a new player's eye
+  // lands on what to press (fb:e84e4d11 — expected the green hint ON the action
+  // buttons, not only the commit spine). Same green as the commit dot. Once an
+  // action is used it drops to a ✓ trace and stops glowing.
+  const firstVisitHint = isMyTurn && player.visitType === 'First';
 
   // --- styles -------------------------------------------------------------
   const cardStyle: React.CSSProperties = {
@@ -276,9 +300,45 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     marginBottom: 7,
     textAlign: 'left',
   };
+  // A picked destination: highlighted + ✓, still a button (tap to uncheck/switch).
+  const selectedActionBtn: React.CSSProperties = {
+    ...actionBtn,
+    background: p.surf2,
+    border: `1.5px solid ${p.accent}`,
+    color: p.text,
+    fontWeight: 600,
+  };
+  // A finished one-shot action: grayed, checked, not interactive.
+  const doneActionRow: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    background: p.surf2,
+    border: `1px solid ${p.border}`,
+    color: p.muted,
+    borderRadius: 9,
+    padding: '10px 11px',
+    fontSize: 13,
+    fontWeight: 500,
+    marginBottom: 7,
+    textAlign: 'left',
+  };
 
   return (
     <div style={cardStyle}>
+      {/* First-visit hint glow for the action buttons (fb:e84e4d11). Pulses gently
+          to draw a new player's eye; static ring under reduced-motion. */}
+      <style>{`
+        @keyframes uc-hint-glow-kf {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+          50% { box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.45); }
+        }
+        .uc-hint-glow { animation: uc-hint-glow-kf 1.8s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .uc-hint-glow { animation: none; box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.5); }
+        }
+      `}</style>
       {/* Header */}
       <div style={{ ...pad, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
@@ -328,31 +388,53 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       </div>
 
       {/* Things you can do */}
-      {isMyTurn && (visiblePendingActions.length > 0 || needsMovementChoice) && (
+      {isMyTurn &&
+        (visiblePendingActions.length > 0 || doneActionTraces.length > 0 || showMovementOptions) && (
         <div style={pad}>
           <p style={zlbl}>Things you can do</p>
           {visiblePendingActions.map((a) => (
             <button
               key={a.effectKey}
+              className={firstVisitHint ? 'uc-hint-glow' : undefined}
               style={actionBtn}
               disabled={a.isDiceEffect && isRollingDice}
               onClick={() =>
                 a.isDiceEffect && onRollDice ? handleDiceRoll() : handleManualEffect(a.effectKey)
               }
             >
-              {a.isDiceEffect && isRollingDice ? '🎲 Deciding…' : a.label}
+              {a.isDiceEffect && isRollingDice
+                ? '🎲 Deciding…'
+                : `${a.icon ? a.icon + ' ' : ''}${a.label.replace(/^🎲\s*/, '')}`}
             </button>
           ))}
-          {needsMovementChoice &&
+          {showMovementOptions &&
             movementChoice!.options.map((opt) => {
               const oc = gameServices.dataService.getGameConfigBySpace(opt.id);
               const label = oc?.display_label_override || opt.label || shortName(opt.id);
+              const isSelected = selectedDestination === opt.id;
               return (
-                <button key={opt.id} style={actionBtn} onClick={() => handleMovementChoice(opt.id)}>
-                  ➡️ {label}
+                <button
+                  key={opt.id}
+                  className={firstVisitHint && !selectedDestination ? 'uc-hint-glow' : undefined}
+                  style={isSelected ? selectedActionBtn : actionBtn}
+                  aria-pressed={isSelected}
+                  title={isSelected ? 'Tap again to unpick — you can still change your mind' : undefined}
+                  onClick={() => handleMovementChoice(opt.id)}
+                >
+                  {isSelected ? '✅' : '➡️'} {label}
                 </button>
               );
             })}
+          {showMovementOptions && selectedDestination && (
+            <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
+              You can switch until you end your turn.
+            </p>
+          )}
+          {doneActionTraces.map((a) => (
+            <div key={`done-${a.effectKey}`} style={doneActionRow} aria-label={`Done: ${a.label}`}>
+              ✓ {a.label.replace(/^🎲\s*/, '')}
+            </div>
+          ))}
         </div>
       )}
 

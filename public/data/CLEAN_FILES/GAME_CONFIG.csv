@@ -1,7 +1,7 @@
 space_name,phase,path_type,is_starting_space,is_ending_space,min_players,max_players,requires_dice_roll,is_resume_hub,is_point_of_no_return,min_w_cards_to_leave,fee_calculation_method,fee_label,auto_apply_funding,auto_trigger_card_types,path_choice_memory_key,is_path_choice_lock_point,display_label_override,review_loop_message,pos_x,pos_y,funding_source,has_final_review_gate
-START-QUICK-PLAY-GUIDE,SETUP,none,No,No,1,4,No,No,No,0,flat,,No,,,No,Quick Play,,20,240,,No
-OWNER-SCOPE-INITIATION,SETUP,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,,,No,,,20,130,,No
-OWNER-FUND-INITIATION,SETUP,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I",,No,,,20,20,owner,No
+START-QUICK-PLAY-GUIDE,OWNER,none,No,No,1,4,No,No,No,0,flat,,No,,,No,Quick Play,,20,240,,No
+OWNER-SCOPE-INITIATION,OWNER,Main,Yes,No,1,4,Yes,No,No,1,flat,,No,,,No,,,20,130,,No
+OWNER-FUND-INITIATION,OWNER,Main,No,No,1,4,No,No,No,0,flat,,Yes,"B,I",,No,,,20,20,owner,No
 PM-DECISION-CHECK,OWNER,Special,No,No,1,4,Yes,Yes,No,0,flat,,No,,,No,PM Check,,220,240,,No
 LEND-SCOPE-CHECK,FUNDING,Side quest money,No,No,1,4,Yes,No,No,0,flat,,No,,,No,,,420,240,,No
 BANK-FUND-REVIEW,FUNDING,Side quest money,No,No,1,4,No,No,No,0,flat,,No,,,No,Bank Review,,420,20,bank,No

@@ -14,6 +14,7 @@ import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dicti
 import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
 import { FeedbackButton } from './components/feedback/FeedbackButton';
+import { VersionBadge } from './components/common/VersionBadge';
 import { debugWarn } from './utils/debugLog';
 
 /**
@@ -301,6 +302,7 @@ export function App(): JSX.Element {
             <AppContent />
             <DictionaryPanelWrapper />
             <FeedbackButton />
+            <VersionBadge />
           </ErrorBoundary>
         </DictionaryProvider>
       </ServiceProvider>
