@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.86] - 2026-06-26
+
+**Pile 3 — "recall my numbers" change-legibility, three pieces (opt-in new panel).** The recall/reference cluster from the 2026-06-23 new-panel playtest: the new panel had no Log tab, no Ledger tab, and no between-turns move popup, so a player couldn't look back at what they'd done or remember their numbers. Built in technical order (smallest/most-isolated → biggest), all behind the opt-in panel — the live default game is untouched.
+
+- **Between-turns move popup (fb:15499d9b).** Re-adds the classic panel's "📍 You moved from X to Y" moment to the new panel ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx)) — a brief overlay with friendly space names (display-label / shortName, not raw ids), 5s auto-dismiss + tap-to-dismiss. Tracks the player's space across renders and shows on a change; skips the first resolve so a freshly-loaded game doesn't flash it. (Panel-scoped: a full-screen arrival result-modal takes precedence over it — acceptable for v1.)
+- **"📋 My numbers" recall reference (fb:f028e262, fb:cea108fb).** A new modal ([PlayerNumbersV2.tsx](src/components/player/PlayerNumbersV2.tsx)) openable any time — including mid-decision when choosing a path — showing total scope, **each work package by name with its cost** (the thing players kept asking to recall), money raised/spent/on-hand, and days. Reuses the same W-card `cost` basis as the classic ProjectLedger's "Project Scope" line, so the two can't disagree. Deliberately NOT the dense pro-forma ledger (capital stack / variance / ROI = analysis, more than "what are my numbers again?").
+- **"📜 History" — Project Chronicle, first slice.** A new modal ([PlayerChronicleV2.tsx](src/components/player/PlayerChronicleV2.tsx)) showing a committed-action timeline grouped by space. Reuses the canonical log pipeline — `getDisplayableLogEntries` (which only surfaces `isCommitted` + player-visible entries, so discardable mid-turn TEMP "pencil marks" never show — REAL/TEMP-safe by construction) + `formatActionDescription`. The fuller Chronicle (inline ▲/▼ deltas, click-an-entry-to-replay-its-highlight, a TV-persistent feed via NotificationService) is a tracked follow-on (TODO P1/P2); this slice delivers the readable history now.
+
+Two small recall buttons (📋 / 📜) live in the panel's status zone, always reachable. +12 tests (PlayerNumbersV2, PlayerChronicleV2, +2 PlayerPanelV2 move-overlay). Typecheck clean; component suites green. Verified live in a running game (move overlay fires on a real move; My numbers listed both work packages summing to the scope total; History showed the grouped, committed timeline).
+
 ## [3.0.85] - 2026-06-26
 
 **Player-panel "Pile 2" UX rulings + an expeditor phase-gate correctness fix + the held 2026-06-25 playtest fixes.** Three threads ship together (all reach a normal deploy): (a) the maintainer's "Pile 2" rulings from the 2026-06-23 new-panel playtest cluster; (b) a fix so a phase-restricted expeditor can no longer be *activated* outside its work phase — the shared rule now matches what the classic panel always enforced locally; (c) relabeling the owner spaces' lifecycle phase from `SETUP` → `OWNER`; plus the seven 2026-06-25 fixes that were built and verified but never committed.

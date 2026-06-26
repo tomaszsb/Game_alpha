@@ -11,7 +11,7 @@
 // Behind the classic/new toggle (off by default). Optional E-card play and the
 // detailed-card/modal restyle are later increments.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActionCenterPanelProps } from './ActionCenterPanel';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { PanelMode, panelPalettes } from './panelTheme';
@@ -20,6 +20,8 @@ import { colors } from '../../styles/theme';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
+import { PlayerNumbersV2 } from './PlayerNumbersV2';
+import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 
@@ -62,11 +64,33 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // When a count chip with several cards is tapped, list them so the player can
   // pick which one to view (a "×3" tag can't open three different cards).
   const [listType, setListType] = useState<string | null>(null);
+  // Between-turns "you moved" moment (fb:15499d9b) — re-adds the classic panel's
+  // movement overlay to the new panel, which had dropped it. Track the player's
+  // space across renders; when it changes, briefly show where they came from.
+  const prevSpaceRef = useRef<string | null>(null);
+  const [moveFrom, setMoveFrom] = useState<string | null>(null);
+  // "Recall my numbers" reference (fb:f028e262, fb:cea108fb) — openable any time.
+  const [showNumbers, setShowNumbers] = useState(false);
+  // "What's happened" history (Pile 3 Chronicle, first slice).
+  const [showChronicle, setShowChronicle] = useState(false);
+  const currentSpaceForPopup = gameServices.stateService.getPlayer(playerId)?.currentSpace ?? null;
 
   useEffect(() => {
     const unsubscribe = gameServices.stateService.subscribe(() => force((n) => n + 1));
     return () => unsubscribe();
   }, [gameServices.stateService]);
+
+  useEffect(() => {
+    const prev = prevSpaceRef.current;
+    prevSpaceRef.current = currentSpaceForPopup;
+    // Skip the first resolve (prev null) so a freshly-loaded game doesn't flash
+    // the overlay. Auto-dismiss after 5s; tappable to dismiss sooner.
+    if (prev && currentSpaceForPopup && prev !== currentSpaceForPopup) {
+      setMoveFrom(prev);
+      const t = setTimeout(() => setMoveFrom(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [currentSpaceForPopup]);
 
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return null;
@@ -273,6 +297,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     border: `0.5px solid ${p.border}`,
     borderRadius: 18,
     overflow: 'hidden',
+    position: 'relative', // anchors the between-turns move overlay
     fontFamily: 'system-ui, -apple-system, sans-serif',
   };
   const pad: React.CSSProperties = { padding: '11px 13px', borderBottom: `0.5px solid ${p.border}` };
@@ -308,6 +333,18 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     color: p.text,
     fontWeight: 600,
   };
+  // Small recall affordances (My numbers / History) in the status zone.
+  const recallBtn: React.CSSProperties = {
+    flex: 1,
+    border: `1px solid ${p.borderStrong}`,
+    background: p.surf,
+    color: p.text,
+    borderRadius: 8,
+    padding: '5px 10px',
+    fontSize: 11,
+    fontWeight: 500,
+    cursor: 'pointer',
+  };
   // A finished one-shot action: grayed, checked, not interactive.
   const doneActionRow: React.CSSProperties = {
     display: 'flex',
@@ -339,6 +376,42 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           .uc-hint-glow { animation: none; box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.5); }
         }
       `}</style>
+
+      {/* Between-turns move overlay (fb:15499d9b) — "you moved from X to Y". */}
+      {moveFrom && (
+        <div
+          onClick={() => setMoveFrom(null)}
+          role="button"
+          tabIndex={0}
+          aria-label={`You moved from ${gameServices.dataService.getGameConfigBySpace(moveFrom)?.display_label_override || shortName(moveFrom)} to ${spaceLabel}. Tap to continue.`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 60,
+            background: mode === 'dark' ? 'rgba(15,23,42,0.94)' : 'rgba(255,255,255,0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: 22,
+            textAlign: 'center',
+            cursor: 'pointer',
+            borderRadius: 18,
+          }}
+        >
+          <div style={{ fontSize: 22 }} aria-hidden>📍</div>
+          <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', color: p.muted, textTransform: 'uppercase' }}>
+            You moved
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: p.text }}>
+            from <strong>{gameServices.dataService.getGameConfigBySpace(moveFrom)?.display_label_override || shortName(moveFrom)}</strong>
+            <br />to <strong>{spaceLabel}</strong>
+          </div>
+          <div style={{ fontSize: 11, color: p.muted, marginTop: 10 }}>Tap to continue</div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ ...pad, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 500 }}>
@@ -371,6 +444,22 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               )}
             </span>
           )}
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <button
+            onClick={() => setShowNumbers(true)}
+            aria-label="See your numbers — scope, work packages, money and time"
+            style={recallBtn}
+          >
+            📋 My numbers
+          </button>
+          <button
+            onClick={() => setShowChronicle(true)}
+            aria-label="See what's happened — your move and change history"
+            style={recallBtn}
+          >
+            📜 History
+          </button>
         </div>
       </div>
 
@@ -618,6 +707,24 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           </button>
         </div>
       </div>
+
+      {/* "Recall my numbers" reference — scope, work packages, money, time. */}
+      <PlayerNumbersV2
+        isOpen={showNumbers}
+        onClose={() => setShowNumbers(false)}
+        playerId={playerId}
+        gameServices={gameServices}
+        mode={mode}
+      />
+
+      {/* "What's happened" history — the Chronicle (first slice). */}
+      <PlayerChronicleV2
+        isOpen={showChronicle}
+        onClose={() => setShowChronicle(false)}
+        playerId={playerId}
+        gameServices={gameServices}
+        mode={mode}
+      />
 
       {/* Detailed-card view (redesign §5) — opened from the influence zone. */}
       <PlayerCardDetailV2

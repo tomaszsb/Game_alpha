@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PlayerPanelV2 } from '../../../src/components/player/PlayerPanelV2';
@@ -419,5 +419,68 @@ describe('PlayerPanelV2 — completed-action checkmark trace (Pile 2: fb:d2070ed
     // The done action is still shown (as a trace) but is no longer a button.
     expect(screen.getByLabelText(/Done: Add Work Package/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Add Work Package/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('PlayerPanelV2 — between-turns move overlay (Pile 3: fb:15499d9b)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+  let sub: (() => void) | undefined;
+
+  // A mutable player so a test can "move" it and push a state update.
+  const player: any = {
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  };
+
+  const renderPanel = () =>
+    render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    player.currentSpace = 'OWNER-SCOPE-INITIATION';
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockImplementation((cb: any) => { sub = cb; return () => {}; });
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockImplementation((id: string) => ({
+      phase: 'DESIGN',
+      display_label_override: id === 'OWNER-SCOPE-INITIATION' ? 'Scope Start' : undefined,
+    }));
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+  });
+
+  afterEach(() => cleanup());
+
+  it('shows no overlay on first render (no flash on game load)', () => {
+    renderPanel();
+    expect(screen.queryByText(/You moved/i)).not.toBeInTheDocument();
+  });
+
+  it('shows "you moved from X to Y" once the player\'s space changes', () => {
+    renderPanel();
+    act(() => {
+      player.currentSpace = 'OWNER-FUND-INITIATION'; // the move
+      sub?.(); // push a state update (engine would do this)
+    });
+    expect(screen.getByText(/You moved/i)).toBeInTheDocument();
+    // Friendly "from" label (display_label_override), not the raw space id.
+    expect(screen.getByText('Scope Start')).toBeInTheDocument();
   });
 });
