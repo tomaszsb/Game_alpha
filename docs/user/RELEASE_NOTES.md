@@ -2,6 +2,27 @@
 
 ---
 
+## v3.0.86 — Remember your numbers + a look back at what happened (June 26, 2026)
+
+Three additions to the **opt-in redesigned panel** (the "Try new design" button — off unless you turn it on), all about helping you remember where you are:
+- **"You moved from … to …" is back.** When your turn takes you to a new space, a quick note now shows where you came from and where you landed — the between-turns reminder the new panel had been missing. Tap it (or wait a few seconds) to dismiss.
+- **📋 My numbers — recall your project at a glance.** A new button opens a plain summary: your total scope, **each work package you've taken and what it cost**, how much money you've raised and spent, and how many days you've used. Open it any time — handy right when you're deciding which way to go.
+- **📜 History — a look back at what's happened.** A new button shows a tidy timeline of your moves and changes, grouped by space, so you can retrace what you did.
+
+## v3.0.85 — Easier-to-read actions + consistent player colors (June 26, 2026)
+
+Things you'll see in **normal play**:
+- **Your player color is now consistent on every device.** Emoji avatars look different on a phone vs. a computer; each player now also wears a colored ring so you can always tell who's who on the shared screen, no matter the device.
+- **The owner's intro reads as one voice.** At the very first space, the owner now speaks to you in the first person throughout ("I'm handing you a stack of contacts…") instead of switching between "I" and "the owner."
+
+And several improvements to the **opt-in redesigned panel** (the "Try new design" button):
+- **The action buttons are easier to tell apart** — each kind now has its own icon (move, hire an expeditor, get work packages), and on a first visit they gently glow to show you what to try.
+- **Used actions leave a checkmark** instead of just vanishing, so you can see what you've already done this turn.
+- **You can change your mind about where to move.** Pick a destination, and the other choices stay visible — tap again to switch — right up until you end your turn.
+- **Expeditors can only be activated during their phase.** A "Funding phase" expeditor now waits until you reach Funding, with a note explaining why (it used to offer an "Activate" button too early).
+
+---
+
 ## v3.0.84 — Clearer Life Events + fixes to the new panel you're testing (June 24, 2026)
 
 Two improvements you'll see in **normal play**:
