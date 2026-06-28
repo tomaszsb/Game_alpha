@@ -86,6 +86,8 @@ If nothing new — skip. Don't write a "no changes" line.
 
 Resolve the main checkout's `.claude/` path: `git rev-parse --show-toplevel`. If the result contains `.claude/worktrees/`, take the segment before it. Otherwise use the root directly. Write to `<main-checkout>/.claude/NEXT_SESSION.md`, overwriting (this file is a rolling handoff, not a log).
 
+**Load-bearing:** the `written YYYY-MM-DD` date on line 1 of the template below is what `/start`'s monthly maintenance gate reads to decide when to fire the feedback sweep + drift check. Keep it accurate and in that exact format — if it's missing or unparseable, `/start` just skips the monthly pass (it never nags), so feedback could rot silently.
+
 **Reference only durable, committed artifacts in the handoff** — never a `.claude/tmp/` path or an uncommitted/never-saved plan file; they get swept or never exist, and the next session wastes time hunting. Inline the key points instead, or point at a committed doc. (2026-06-20: a prior handoff cited `.claude/plans/replicated-baking-hoare.md` that never existed — cost a hunt before the plan was reconstructed from code.)
 
 Template — keep under 35 lines:

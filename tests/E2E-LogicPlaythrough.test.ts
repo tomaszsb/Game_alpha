@@ -101,13 +101,9 @@ describe('Logic E2E: Full Game Playthrough', () => {
                     await turnService.rollDiceWithFeedback(playerId);
                     stateService.updateGameState({ hasPlayerMovedThisTurn: false });
                 } else {
-                    const promise = turnService.triggerManualEffect(playerId, key);
-                    await new Promise(r => setTimeout(r, 10));
-                    const choice = stateService.getGameState().awaitingChoice;
-                    if (choice && choice.type !== 'MOVEMENT') {
-                        choiceService.resolveChoice(choice.id, choice.options[0].id);
-                    }
-                    await promise;
+                    // The background choice pump (started below) resolves any non-movement
+                    // choice this effect raises, whenever it appears — so we can just await.
+                    await turnService.triggerManualEffect(playerId, key);
                 }
             }
         }
@@ -128,25 +124,48 @@ describe('Logic E2E: Full Game Playthrough', () => {
         console.log(`✅ Turn Ended. New Space: ${stateService.getPlayer(playerId)?.currentSpace}`);
     };
 
-    await playStep('OWNER-SCOPE-INITIATION');
-    await playStep('OWNER-FUND-INITIATION');
-    await playStep('PM-DECISION-CHECK', 'ARCH-INITIATION');
-    await playStep('ARCH-INITIATION');
-    await playStep('ARCH-FEE-REVIEW');
-    await playStep('ARCH-SCOPE-CHECK', 'ENG-INITIATION');
-    await playStep('ENG-INITIATION');
-    await playStep('ENG-FEE-REVIEW');
-    await playStep('ENG-SCOPE-CHECK', 'REG-DOB-FEE-REVIEW');
-    await playStep('REG-DOB-FEE-REVIEW');
-    await playStep('REG-DOB-TYPE-SELECT', 'REG-DOB-PROF-CERT');
-    await playStep('REG-DOB-PROF-CERT', undefined, 1);   // roll 1 → REG-DOB-AUDIT
-    await playStep('REG-DOB-AUDIT', undefined, 1);       // roll 1 → REG-DOB-FINAL-REVIEW
-    await playStep('REG-DOB-FINAL-REVIEW', undefined, 1); // roll 1 → FINISH
+    // Background choice pump: continuously auto-resolve any non-movement choice the
+    // instant it appears, regardless of which await is blocked on it. Replaces the old
+    // per-step `setTimeout(10)` guess, which raced choices emitted on a later async tick
+    // and hung the test to its 60s timeout ~1-in-3 under load. Movement choices are
+    // excluded — the test drives those explicitly via setPlayerMoveIntent.
+    let pumpRunning = true;
+    let lastPumped: string | null = null;
+    const choicePump = (async () => {
+        while (pumpRunning) {
+            const choice = stateService.getGameState().awaitingChoice;
+            if (choice && choice.type !== 'MOVEMENT' && choice.id !== lastPumped && choice.options.length > 0) {
+                lastPumped = choice.id;
+                try { choiceService.resolveChoice(choice.id, choice.options[0].id); } catch { /* stale / clearing */ }
+            }
+            await new Promise(r => setTimeout(r, 0));
+        }
+    })();
 
-    expect(stateService.getPlayer(playerId)!.currentSpace).toBe('FINISH');
-    expect(stateService.getGameState().isGameOver).toBe(true);
-    expect(stateService.getGameState().winner).toBe(playerId);
+    try {
+        await playStep('OWNER-SCOPE-INITIATION');
+        await playStep('OWNER-FUND-INITIATION');
+        await playStep('PM-DECISION-CHECK', 'ARCH-INITIATION');
+        await playStep('ARCH-INITIATION');
+        await playStep('ARCH-FEE-REVIEW');
+        await playStep('ARCH-SCOPE-CHECK', 'ENG-INITIATION');
+        await playStep('ENG-INITIATION');
+        await playStep('ENG-FEE-REVIEW');
+        await playStep('ENG-SCOPE-CHECK', 'REG-DOB-FEE-REVIEW');
+        await playStep('REG-DOB-FEE-REVIEW');
+        await playStep('REG-DOB-TYPE-SELECT', 'REG-DOB-PROF-CERT');
+        await playStep('REG-DOB-PROF-CERT', undefined, 1);   // roll 1 → REG-DOB-AUDIT
+        await playStep('REG-DOB-AUDIT', undefined, 1);       // roll 1 → REG-DOB-FINAL-REVIEW
+        await playStep('REG-DOB-FINAL-REVIEW', undefined, 1); // roll 1 → FINISH
 
-    console.log('🏆 LOGIC PLAYTHROUGH SUCCESSFUL!');
+        expect(stateService.getPlayer(playerId)!.currentSpace).toBe('FINISH');
+        expect(stateService.getGameState().isGameOver).toBe(true);
+        expect(stateService.getGameState().winner).toBe(playerId);
+
+        console.log('🏆 LOGIC PLAYTHROUGH SUCCESSFUL!');
+    } finally {
+        pumpRunning = false;
+        await choicePump;
+    }
   }, 60000);
 });
