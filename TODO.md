@@ -16,7 +16,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-
 ## 🎛️ **Change-legibility / companion / time-feel UX** (2026-06-23)
 *Spec from the user's AI-research + Claude-chat merge, reviewed against the live code 2026-06-23. Engine/infra claims verified accurate (one emission point = `EffectEngineService`/`LogEffect`→`globalActionLog`; `emitAutoAction`/`subscribeToAutoActions` rails; `ResourceChangeEffect(TIME)` magnitude; REAL/TEMP via the `isCommitted` flag on every log entry; expeditor = E card; **NO float/critical-path model — confirmed absent, do not invent one**). The "spreadsheet" target = the **player-panel bottom tabs** ([ProjectLedger.tsx](src/components/player/sections/ProjectLedger.tsx) budget/actual/variance, [TimeSection.tsx](src/components/player/sections/TimeSection.tsx), [PlayerLogSection.tsx](src/components/player/sections/PlayerLogSection.tsx)) — NOT an imaginary data grid. The Log tab already renders `globalActionLog`, so the Chronicle is its upgrade. Must conform to the locked [player-panel-redesign.md](docs/design/player-panel-redesign.md) (teach-don't-dumb-down; one-screen no-scroll — but side panels / popup modals ARE allowed) and the NPC-speaker voice + glossary `TextWithTerms` rules.*
 
@@ -58,46 +57,16 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🔧 **Build / dependency housekeeping** (2026-06-23, LOW)
-*Two informational messages seen during the v3.0.84 `deploy.sh` build. Neither blocked the deploy or affects the running game — captured here so they're not lost.*
-
-- [ ] **Build perf: `vite:terser` plugin is slow** — the build logged `[PLUGIN_TIMINGS] significant time in plugin vite:terser` (see https://rolldown.rs/options/checks#plugintimings). Cosmetic; minification just takes a while. If build time ever becomes annoying, consider swapping terser for esbuild minify (`build.minify: 'esbuild'`) and compare bundle size — not worth doing until it's a real pain.
-
----
-
 ## 🔐 **Security follow-ups** (2026-06-12, v3.0.72 session)
 *The v3.0.72 hardening itself shipped (see CHANGELOG). These are the loose ends.*
 
-- [ ] **Deploy v3.0.72** — the endpoint locks aren't live until deployed. Dashboard companion fix is ALREADY live (proxy sends FEEDBACK_TOKEN; Unraid stack has the env var). No game-server config needed.
 - [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` not set** — compose warns and defaults blank on every `docker compose up` (pre-existing, surfaced 2026-06-12). If the dashboard's AI features ever misbehave, this is why. Don't fix without asking the user whether it's intentional.
-
----
-
-## 🆕 **Dashboard reports — Newly arrived (2026-06-14)** (v3.0.78)
-*Maintainer's own first-contact testing of the just-shipped Phase 3 teacher/classroom UI (5 reports, 11:26–11:34) + one game-logic note (12:21). Swept in via /start 2026-06-14.*
-
-**🔗 Phase 3 teacher-layer polish cluster — DONE; live since v3.0.78, resolved on dashboard 2026-06-22.** Server: `deleteInstance`/`removeAccountFromAllInstances` (instanceStore) + `deleteAccount` (accountStore); new endpoints `POST /api/instances` (teacher self-create, session-authed, auto-owned), `DELETE /api/instances/:id` (owner-or-admin, refuses classroom-1), `DELETE /api/admin/accounts/:id` (admin, releases the teacher's rooms). Client: TeacherClassroomPanel create+delete, ClassroomAdminPanel delete buttons, ClassroomBadge, inline lock reason. +tests (instanceStore 30, accountStore 15, endpointAuth 44, dataInstance 6); typecheck + build clean.
-
-**Standalone (game logic):**
-- [ ] **Known limitation — Q2 first-visit blind spot (low priority, maintainer accepted 2026-06-15).** `scope_changed_since_last_visit` compares scope to the *prior visit to this space*; on a FIRST FDNY-FEE-REVIEW visit there's no snapshot → defaults "no change". Benign in the normal flow (first fee-review visit immediately follows FDNY approval, nothing's changed yet) but could skip a needed FDNY review if a player got FDNY approval, changed scope, then reached fee review for the first time via an unusual loop. The sturdier fix is to snapshot scope at the moment FDNY approval is *granted* (an approval baseline, always present) instead of per-visit. Maintainer chose the simple per-visit version knowingly.
-
----
-
-## 🐞 **Dashboard reports — 2026-06-11 playtest** (v3.0.70)
-*Three reports came in 2026-06-11 against live v3.0.70 (gitCommit f1cfac7). Two real bugs (both FIXED v3.0.71) + one environmental.*
-
-- [ ] **Environmental (no code bug): "play on Perplexity" load failure.** <!-- fb:feedback-1781190420890-5a155a1a --> Console showed `ERR_BLOCKED_BY_CLIENT` (ad-blocker / Perplexity in-app browser blocking a script) + `404 /api/games/G337/state` (stale/expired game id). Game wasn't broken — opened inside a resource-blocking embedded browser on an old link. **No fix required.** At most a friendlier "this game expired / open in a full browser" message — ties into the onboarding package already tracked (Top-3 #1). Flag-only.
 
 ---
 
 ## 🏫 **Teacher instance layer + space catalog** (design initiative, 2026-06-09 · **design approved 2026-06-12**)
 *Source: user, after the data-deploy gap surfaced. Design session held 2026-06-12 — the user reframed it as a **"deck of cards" model** (master stock deck refreshed by every deploy; each classroom holds only its own used/unused markers, positions, teacher copies, and detours; no merge step exists, so nothing can ever be lost). Full spec with all 6 maintainer decisions: [docs/core/TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md).*
 
-- [~] **Phase 1 — Foundation**: CODE COMPLETE v3.0.74 (2026-06-12) — library/instance split, classroom-1 migration (idempotent + `npm run migrate:check` dry-run), stock auto-refresh on deploy, atomic bake + version gate, instance write tokens, drag-save rerouted. 131/131 server+board tests, live boot smoke verified. **Pending deploy** — the live Unraid server's board positions migrate into classroom-1 at first boot of this version (one-time; watch the boot log for the migration summary). *(The old "Apply latest updates" smart-merge button idea is obsolete — superseded by the no-merge model.)*
-- [~] **Phase 3 — Multi-teacher front door**: DESIGN SETTLED 2026-06-12 (full accounts, admin-mediated — no self-signup, no email infra, admin resets passwords; ownership via `meta.owner`; games carry their classroom's instanceId, players unchanged; classroom-1 stays the public default). **Build gate CLEARED 2026-06-13** (Phases 1–2 live + verified, data-deploy gap proven dead). Login model decided 2026-06-13: admin-minted, hand-rolled thin layer over stdlib scrypt (no third-party auth — see CHANGELOG). Building in sub-phases:
-  - [~] **3c — Client: per-instance data + login/picker UI** (in progress):
-    - [~] **3c-2 — Teacher login UI + classroom picker** (UX DECIDED 2026-06-14: **one combined login** — admin password → admin view, teacher username+password → their classroom; admin manages accounts/classrooms inside 🛠️ Admin Tools):
-  - [ ] **3d — Deploy + verify live** → unblocks Phase 4. (v3.0.78 ready to deploy; nothing live changes until a teacher account + classroom exist.)
 - [ ] **Phase 4 — Card insertion**: teacher-authored spaces / "replace one card with several". Most invasive; last. **Gate (user-affirmed 2026-06-12): do not design until Phases 1–3 run successfully live.**
 - [ ] **Post-deploy doc cleanup**: once v3.0.74+ is live-verified, mark the CLAUDE.md "CSV data fixes do NOT reach the live server" recipe fully obsolete (header already flagged) and update auto-memory `project_data_deploy_gap.md` (gap dead by construction).
 
@@ -119,45 +88,14 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🧹 **Per-space hardcoding audit** (May 18, 2026)
-*Source: in-session grep for `player.currentSpace === '...'` and related shapes. Workstream 6 swept this pattern aggressively (10+ lifts, see receipts in `DataService.ts:92-185`, `TurnService.ts:398/789/931`, `MovementService.ts:122/341/352`, `CardService.ts:1205/1250`), but new instances escaped or crept back in. Ordered by urgency.*
-
-### Defensible domain constants (flag only, no immediate action)
-- [ ] **`ApprovalService.ts:37,41,45,51`** — `DOB_EXAM_SPACE`, `FDNY_EXAM_SPACE`, `DOB_AUDIT_SPACE`, `DOB_FINAL_REVIEW_SPACE`. These encode real-world regulator-role mappings. Named constants are reasonable; lifting would matter only if an educator wants a non-standard examiner layout.
-- [ ] **`ApprovalService.ts:64`** — `DOB_APPROVED_DESTINATIONS = ['REG-FDNY-FEE-REVIEW']`. Could be computed from MOVEMENT.csv when the DOB examiner space resolves.
-- [ ] **`ApprovalService.ts:71-74`** — `AUDIT_TRIGGERED_FROM = ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK']`. Could lift to a `triggers_dob_audit` bool column.
-
-### Not the failure mode (documentation, no action)
-- Dynamic comparisons (`player.currentSpace === n.id` in iterations) at `MovementService.ts:213`, `BoardV3.tsx:162,193`, `SpaceExplorerPanel.tsx:93,351,360`, `BoardCanvas.tsx:373` — legitimate.
-- `constants/characters.ts` + `SpeechService.ts:19,20` — speaker-identity / TTS voice profile map. Lift deferred as Phase 6.4 (see Audit-Recovered Items).
-- `utils/boardLayout.ts` — already slated for deletion in Workstream 3 Phase D.
-
----
-
 ## 🎯 **Ghost win-rate tracking** (2026-06-04)
 *Source: user wish at /koniec — "would love to eventually get to a 90% success rate" with the random bot. Today the strict gate floor is ≥36 wins (recalibrated v3.0.37 after life events activated, baseline ~39/50). Pre-life-events the bot hit 45/50 (90%) because life events did nothing. Goal isn't to game the floor — it's to use win-rate + avgTurns together as a casual-play balance signal across versions.*
 
-- [ ] **Switch the minifier off terser → Rolldown native (Vite 8 hint, 2026-06-14).** Vite 8's Rolldown bundler flags `[PLUGIN_TIMINGS] significant time in vite:terser` — terser is now the slow legacy path; Rolldown's native (Oxc) minifier is much faster + drops the `terser` devDependency. **Must preserve the intentional [vite.config.ts:227](vite.config.ts) behaviors:** keep `console.*` (drop_console:false), drop `debugger`, strip `console.debug` (pure_funcs). Verify the native minifier exposes equivalents (debugger-drop yes; the `console.debug`-only strip may not map 1:1 — acceptable to lose that micro-optimization). ⚠️ **Bundle-affecting** — same rule as the Vite 8 upgrade: tests run vs source and won't catch a minifier regression, so verify via the next deploy's playtest. Low priority (build is still ~8s); bundle it with the next planned deploy, don't rush it. *(NOT a separate item from the ghost heartbeat below — both are 2026-06-14 follow-ups.)*
 - [ ] **Ghost-run progress heartbeat (observability) — requested 2026-06-14.** The full suite ran **~52 min** that session (ghost `coverage` alone = 17 min, `ghostPlayer` strict+try-again the rest) and there was **no way to tell mid-run whether it was progressing or hung** — vitest swallows `console.log` on passing tests, and `.claude/ghost-history.jsonl` only writes once per batch (at the very end). Add a per-game (or every-N-games) heartbeat inside `runGhostBatch` ([ghostPlayer.ts](tests/ghost/ghostPlayer.ts)) that appends `{ts, test, gameIndex, total, elapsedMs}` to a tail-able file (e.g. `.claude/ghost-progress.log`) — `tail -f` then confirms movement, and a stuck game shows as `gameIndex` flatlining. Cheap: `appendFileSync`, same pattern as the existing `recordGhostHistory()`. Optional extra: a single-line overwrite file (`.claude/ghost-progress.txt` = `"strict 23/50 · 12m"`) for an at-a-glance check. *(This session we couldn't distinguish "still grinding the 50-game batch" from "hung" without inspecting the node process's CPU — the heartbeat removes that guesswork.)*
 - [ ] **Ghost should flag soft-locks, not just crashes — `LOOP` detection (2026-06-14).** The v3.0.80 Prof Cert loop (player path-locked into Prof Cert, which never granted DOB approval → FDNY "no approval" → back to DOB → forever) slipped the gate because **a loop isn't a crash**: the game runs to the 300-turn cap and counts as a normal *loss*, which the win-floor's slack (≥36/50 → up to 14 losses) absorbs. The primary "0 hard failures" assertion only catches EXCEPTION/INVARIANT_VIOLATION. **Fix:** in `runGhostBatch` ([ghostPlayer.ts](tests/ghost/ghostPlayer.ts)), when a game hits TURN_CAP, scan its trail for a **repeating space cycle** (same 2–3 spaces over and over) and classify it as a distinct `LOOP` hard-failure instead of a quiet loss. Would have caught this immediately + any future soft-lock. Contained change to the test harness. *(Surfaced when the user asked "ghost test never caught this?" — the honest answer is the gate is crash-focused.)*
 - [ ] **Honest read of the "90%" target.** Random bot ≠ casual human. Use win-rate + avgTurns TOGETHER: wins↑ avgTurns→ = easier ✓; wins→ avgTurns↑ = grindier ✗; wins↓ avgTurns↑ = harder+slower ✗. Don't chase wins by making the economy artificially easier if avgTurns inflates — that's "more wins but each game drags." Real balance signal is "wins go up while avgTurns stays flat or shrinks."
 - [ ] **If pursuing 90% intentionally, the lever options are:** (a) easier economy (more starting money, gentler fees, more forgiving regulator dice — playtest-driven), (b) smarter ghost (different question — a smarter bot won't catch regressions a dumb bot would; tracked separately if pursued), (c) ship a tutorial / onboarding so casual players play closer to "smart bot" than "random bot." (c) is already in scope as the onboarding package (Top-3 #2). (a) is balance tuning; (b) is bot research — both deferred until win-rate history shows a sustained problem.
 - [ ] **Game length is the live signal now — watch against the ~40 min class-period budget.** Deterministic smart-bot run: avgTurns=149, 40/50 games "long" (>60 turns), 3 grind to the 300-turn cap. Bot turns ≠ human minutes (the bot plays aggressively/randomly, so it takes far more turns than a guided student), so this is NOT yet a red flag — user's call: comparable games (Monopoly/Catan/Wingspan) run 60+ min and a class period is ~40 min, so current length is acceptable. **Trigger to act:** when a *real* playtest game runs past ~40 min, start trimming individual mechanics / space requirements to chop time (this is the lever, not win-rate). Until then, just track avgTurns across versions via `.claude/ghost-history.jsonl`. The 3 deterministic losses (grind to 300 turns) are the worst-case length tail worth a look if length tuning starts.
-
----
-
-## 🧐 **External architecture audit** (2026-05-29)
-*Source: external AI audit run by user. Each claim verified against the actual code before listing. Items dropped: a "Multi-path Click-to-Move Bug" claim that was a false alarm (executeMovement is only called from `TurnService.endTurn` — gated behind End Turn, no auto-fire path), and the "PM_VOICED_SPACES / ApprovalService constants / SPECIAL_NAMES" cleanup items (PM_VOICED_SPACES is the project voice contract; ApprovalService string constants are fine — the hardcoded **behavior** is the real debt and already tracked above; SPECIAL_NAMES is a fallback path that CSV `display_label_override` already supersedes).*
-
-- [ ] **Unify TEMP/REAL state transactions with logging sessions into one turn-transaction model.** Structural debt surfaced by the Try Again log gap (closed symptomatically in v3.0.63 via `LoggingService.discardCurrentSession` mirroring `StateService.discardTempState`). Same shape as the movement-resolver debt above: two parallel systems (state TEMP/REAL + log exploration sessions) that both react to the same lifecycle events (turn start, Try Again, end turn), and any new rule has to be plumbed into BOTH or they drift. Today's symmetry is hand-coded — `tryAgainOnSpace` calls both `discardTempState` and `discardCurrentSession`; `startTurn` calls both `createTempStateFromReal` and `startNewExplorationSession`. The proper fix is one `TurnTransaction` boundary: begin/commit/discard at one call site, with state changes AND log entries bundled inside. Touches `StateService`, `LoggingService`, `TurnService`, and the integration test suite. Estimated 1–2 dedicated sessions. **DO NOT do casually — schedule alongside the movement-resolver merge above; both are the same architectural pattern and should probably be tackled together.**
-
-### Parallel-systems audit — additional candidates (2026-06-04)
-*Surfaced during the v3.0.63 retrospective ("any other place where we could combine similar situations?"). Each is the same shape as the two debts above: two systems answer the same conceptual question, hand-synchronized today, drift trap tomorrow. Investigate alongside the movement-resolver merge + state/log unify in the same architecture session — bundling lets us spot shared abstractions instead of three one-off fixes.*
-
-- [ ] **NotificationService.notify + LoggingService.info — two "something happened" channels.** Most game events fire both: a toast via `notify` and a log entry via `info`. Adding a new event means hooking both. Forget one → toast appears but no audit trail, or log entry but no player feedback. Bigger refactor (touches every event call site) but the underlying shape is one bus: "an event happened, route it to toast + log + analytics + …" Worth scoping but probably not in the same session as the others — more callers, more risk surface.
-- [ ] **`player.money` + `player.moneySources` denormalization.** Total tracked alongside source breakdown (`ownerFunding + bankLoans + investmentDeals + other`). Any code path that changes money has to update both. Pattern is slightly different from "parallel systems" — it's denormalized state — but the drift shape is identical (one updated, the other forgotten). Fix: make `money` a computed getter over `moneySources`, kill the stored field. Touches every money mutation. Probably the riskiest of this batch; do last or split into a separate session.
-- [ ] **Three effect pipelines (SpaceEffects / DiceEffects / CardEffects).** All CSV-driven, all flow through different services. Separated today for legit reasons (different triggers, different timing) but conceptually they're all "apply an effect to the game." Worth investigating whether the three handlers can sit behind one `EffectExecutor` interface with trigger-type metadata, vs. staying as three parallel implementations. Lower priority than the others — no observed bug yet, just shape worth examining.
-- [ ] **Mobile-tab-freeze TEMP-state-loss claim — needs a real repro.** External audit flagged this but the `visibilitychange` handler in [WebSocketSyncService.ts:114](src/services/WebSocketSyncService.ts#L114) already reconnects on resume ("THE phone-reliability fix"). What the audit specifically claims — that the conflict-resolution path silently discards mid-turn TEMP state when server version is ahead — is plausible but unverified. Don't act until a playtester reports an actual session where a phone-locked player came back to lost actions; then trace the reconcile path from there.
 
 ---
 
@@ -232,16 +170,6 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Per-NPC rich sentence templates for dice summary** — v3.0.6 ships `"The Owner: You took on 2 work packages."` (attribution + standard verb phrase). User's wished phrasing is `"I'm wiring you funds — that buys two work packages."` (NPC speaks in first person about THEIR action, with PM as object). Would need per-NPC × per-effect-type sentence templates with count interpolation (~30-40 authored sentences). Authoring-heavy; revisit if the attribution form feels too thin in playtest.
 - [~] **Adopt `{fundingAmount}` token at other funding spaces — partial 2026-05-29.** Added to BANK-FUND-REVIEW Subsequent and INVESTOR-FUND-REVIEW Subsequent rows (in both SOURCE Spaces.csv and CLEAN SPACE_CONTENT.csv). Used running cumulative source total. **Skipped:** First-visit Event for these spaces (amount=0 at read time, would render empty); LEND-SCOPE-CHECK Subsequent (dialogue doesn't take an amount naturally). Outcome-column adoption would need `spaceOutcome` to also be run through `interpolateTemplate` ([ActionCenterPanel.tsx:302](src/components/player/ActionCenterPanel.tsx#L302) currently only interpolates `spaceStory`) — small follow-up if author wants Outcome to cite the amount.
 
-### Dependency major-version jumps (deferred 2026-05-29)
-*Captured during the post-v3.0.39 hygiene pass. `npm audit` returned 0 vulnerabilities. `npm update` ran the safe minor/patch bumps (1536/1536 still green, typecheck clean, push pending). These five need explicit review — major-version semver, may break tests/build silently.*
-- [ ] **TypeScript 5.9.3 → 6.0.3** — newly released major. Risky for a strict-typed codebase; expect a wave of stricter checks (function bivariance, narrowing changes). Suggest waiting 1-2 months for the ecosystem to settle, then attempting on a branch.
-- [ ] **Vite 7.3.3 → 8.0.14 + @vitejs/plugin-react 5.2.0 → 6.0.2** — together; plugin major usually paired with host major. Check breaking-change notes; check our `manualChunks` config still parses.
-- [ ] **ESLint 9.39.4 → 10.4.1 + @eslint/js 9.39.4 → 10.0.1** — flat-config era; we're already on flat config so the surface area may be small. Try after Vite/TS settle.
-- [ ] **jsdom 27.4.0 → 29.1.1** — could shake out test-side `location`/DOM behavior; would re-test our `forksFiles` jsdom workarounds.
-- [ ] **playwright 1.57.0 → 1.60.0** — minor under the version mask but the project is in active flux; do alongside any Playwright-driven test work.
-
----
-
 ## 🖥️ **Dashboard UI follow-ups**
 
 - [ ] **Surface `version` + `gitCommit` on bug-report list/detail pages** — v2.70.2 stamped reports with deploy version (game side) and surfaces them at top-level on `/api/public/feedback/open` (already consumed by `/start` briefing). The dashboard at `dashboard.unravelcodes.com` (separate repo: `D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/`) doesn't yet render either field. ~15 min change: extend `FeedbackReport.metadata` interface in [feedback/page.tsx](D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/src/app/feedback/page.tsx) (and the `[id]/page.tsx` detail view), render a small `v2.70.2`-style badge per report. Optional: color-code against "current production version" so stale reports go gray. Optional+: filter dropdown for "show reports from version X or older". Data is already flowing; this is purely display.
@@ -285,10 +213,50 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🚀 **Deployment Status**
-- **Production URL**: `https://game.unravelcodes.com` (Port 3080 on Unraid)
-- **Current Version**: v2.63.2
-- **Last Deploy**: see git log / `docker logs game_alpha` for live build
-- **Status**: Stable
+## 🅿️ **Parking lot — revisit when triggered, not active work**
+
+*Real but deliberately deferred. Each item fires on a trigger noted inline; none is part of the active sprint. Kept here (not deleted) so nothing is lost.*
+
+- [ ] **Swap the terser minifier → native (Rolldown/Oxc or esbuild).** Build logs `[PLUGIN_TIMINGS] vite:terser` slow; native is faster + drops the terser dep. ⚠️ Bundle-affecting (tests run vs source), so verify via a deploy playtest; preserve [vite.config.ts:227](vite.config.ts) behaviors (keep `console.*`, drop `debugger`, strip `console.debug`). Low priority — build is ~8s; bundle with a planned deploy. (Merged the two duplicate terser/minifier notes 2026-06-28.)
+- [ ] **Known limitation — Q2 first-visit blind spot (low priority, maintainer accepted 2026-06-15).** `scope_changed_since_last_visit` compares scope to the *prior visit to this space*; on a FIRST FDNY-FEE-REVIEW visit there's no snapshot → defaults "no change". Benign in the normal flow (first fee-review visit immediately follows FDNY approval, nothing's changed yet) but could skip a needed FDNY review if a player got FDNY approval, changed scope, then reached fee review for the first time via an unusual loop. The sturdier fix is to snapshot scope at the moment FDNY approval is *granted* (an approval baseline, always present) instead of per-visit. Maintainer chose the simple per-visit version knowingly.
+- [ ] **Environmental (no code bug): "play on Perplexity" load failure.** <!-- fb:feedback-1781190420890-5a155a1a --> Console showed `ERR_BLOCKED_BY_CLIENT` (ad-blocker / Perplexity in-app browser blocking a script) + `404 /api/games/G337/state` (stale/expired game id). Game wasn't broken — opened inside a resource-blocking embedded browser on an old link. **No fix required.** At most a friendlier "this game expired / open in a full browser" message — ties into the onboarding package already tracked (Top-3 #1). Flag-only.
+
+### Dependency major-version jumps (deferred 2026-05-29)
+*Captured during the post-v3.0.39 hygiene pass. `npm audit` returned 0 vulnerabilities. `npm update` ran the safe minor/patch bumps (1536/1536 still green, typecheck clean, push pending). These five need explicit review — major-version semver, may break tests/build silently.*
+- [ ] **TypeScript 5.9.3 → 6.0.3** — newly released major. Risky for a strict-typed codebase; expect a wave of stricter checks (function bivariance, narrowing changes). Suggest waiting 1-2 months for the ecosystem to settle, then attempting on a branch.
+- [ ] **Vite 7.3.3 → 8.0.14 + @vitejs/plugin-react 5.2.0 → 6.0.2** — together; plugin major usually paired with host major. Check breaking-change notes; check our `manualChunks` config still parses.
+- [ ] **ESLint 9.39.4 → 10.4.1 + @eslint/js 9.39.4 → 10.0.1** — flat-config era; we're already on flat config so the surface area may be small. Try after Vite/TS settle.
+- [ ] **jsdom 27.4.0 → 29.1.1** — could shake out test-side `location`/DOM behavior; would re-test our `forksFiles` jsdom workarounds.
+- [ ] **playwright 1.57.0 → 1.60.0** — minor under the version mask but the project is in active flux; do alongside any Playwright-driven test work.
+
+---
+
+### 🧹 **Per-space hardcoding audit** (May 18, 2026)
+*Source: in-session grep for `player.currentSpace === '...'` and related shapes. Workstream 6 swept this pattern aggressively (10+ lifts, see receipts in `DataService.ts:92-185`, `TurnService.ts:398/789/931`, `MovementService.ts:122/341/352`, `CardService.ts:1205/1250`), but new instances escaped or crept back in. Ordered by urgency.*
+
+### Defensible domain constants (flag only, no immediate action)
+- [ ] **`ApprovalService.ts:37,41,45,51`** — `DOB_EXAM_SPACE`, `FDNY_EXAM_SPACE`, `DOB_AUDIT_SPACE`, `DOB_FINAL_REVIEW_SPACE`. These encode real-world regulator-role mappings. Named constants are reasonable; lifting would matter only if an educator wants a non-standard examiner layout.
+- [ ] **`ApprovalService.ts:64`** — `DOB_APPROVED_DESTINATIONS = ['REG-FDNY-FEE-REVIEW']`. Could be computed from MOVEMENT.csv when the DOB examiner space resolves.
+- [ ] **`ApprovalService.ts:71-74`** — `AUDIT_TRIGGERED_FROM = ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK']`. Could lift to a `triggers_dob_audit` bool column.
+
+### Not the failure mode (documentation, no action)
+- Dynamic comparisons (`player.currentSpace === n.id` in iterations) at `MovementService.ts:213`, `BoardV3.tsx:162,193`, `SpaceExplorerPanel.tsx:93,351,360`, `BoardCanvas.tsx:373` — legitimate.
+- `constants/characters.ts` + `SpeechService.ts:19,20` — speaker-identity / TTS voice profile map. Lift deferred as Phase 6.4 (see Audit-Recovered Items).
+- `utils/boardLayout.ts` — already slated for deletion in Workstream 3 Phase D.
+
+---
+
+### 🧐 **External architecture audit** (2026-05-29)
+*Source: external AI audit run by user. Each claim verified against the actual code before listing. Items dropped: a "Multi-path Click-to-Move Bug" claim that was a false alarm (executeMovement is only called from `TurnService.endTurn` — gated behind End Turn, no auto-fire path), and the "PM_VOICED_SPACES / ApprovalService constants / SPECIAL_NAMES" cleanup items (PM_VOICED_SPACES is the project voice contract; ApprovalService string constants are fine — the hardcoded **behavior** is the real debt and already tracked above; SPECIAL_NAMES is a fallback path that CSV `display_label_override` already supersedes).*
+
+- [ ] **Unify TEMP/REAL state transactions with logging sessions into one turn-transaction model.** Structural debt surfaced by the Try Again log gap (closed symptomatically in v3.0.63 via `LoggingService.discardCurrentSession` mirroring `StateService.discardTempState`). Same shape as the movement-resolver debt above: two parallel systems (state TEMP/REAL + log exploration sessions) that both react to the same lifecycle events (turn start, Try Again, end turn), and any new rule has to be plumbed into BOTH or they drift. Today's symmetry is hand-coded — `tryAgainOnSpace` calls both `discardTempState` and `discardCurrentSession`; `startTurn` calls both `createTempStateFromReal` and `startNewExplorationSession`. The proper fix is one `TurnTransaction` boundary: begin/commit/discard at one call site, with state changes AND log entries bundled inside. Touches `StateService`, `LoggingService`, `TurnService`, and the integration test suite. Estimated 1–2 dedicated sessions. **DO NOT do casually — schedule alongside the movement-resolver merge above; both are the same architectural pattern and should probably be tackled together.**
+
+### Parallel-systems audit — additional candidates (2026-06-04)
+*Surfaced during the v3.0.63 retrospective ("any other place where we could combine similar situations?"). Each is the same shape as the two debts above: two systems answer the same conceptual question, hand-synchronized today, drift trap tomorrow. Investigate alongside the movement-resolver merge + state/log unify in the same architecture session — bundling lets us spot shared abstractions instead of three one-off fixes.*
+
+- [ ] **NotificationService.notify + LoggingService.info — two "something happened" channels.** Most game events fire both: a toast via `notify` and a log entry via `info`. Adding a new event means hooking both. Forget one → toast appears but no audit trail, or log entry but no player feedback. Bigger refactor (touches every event call site) but the underlying shape is one bus: "an event happened, route it to toast + log + analytics + …" Worth scoping but probably not in the same session as the others — more callers, more risk surface.
+- [ ] **`player.money` + `player.moneySources` denormalization.** Total tracked alongside source breakdown (`ownerFunding + bankLoans + investmentDeals + other`). Any code path that changes money has to update both. Pattern is slightly different from "parallel systems" — it's denormalized state — but the drift shape is identical (one updated, the other forgotten). Fix: make `money` a computed getter over `moneySources`, kill the stored field. Touches every money mutation. Probably the riskiest of this batch; do last or split into a separate session.
+- [ ] **Three effect pipelines (SpaceEffects / DiceEffects / CardEffects).** All CSV-driven, all flow through different services. Separated today for legit reasons (different triggers, different timing) but conceptually they're all "apply an effect to the game." Worth investigating whether the three handlers can sit behind one `EffectExecutor` interface with trigger-type metadata, vs. staying as three parallel implementations. Lower priority than the others — no observed bug yet, just shape worth examining.
+- [ ] **Mobile-tab-freeze TEMP-state-loss claim — needs a real repro.** External audit flagged this but the `visibilitychange` handler in [WebSocketSyncService.ts:114](src/services/WebSocketSyncService.ts#L114) already reconnects on resume ("THE phone-reliability fix"). What the audit specifically claims — that the conflict-resolution path silently discards mid-turn TEMP state when server version is ahead — is plausible but unverified. Don't act until a playtester reports an actual session where a phone-locked player came back to lost actions; then trace the reconcile path from there.
 
 ---
