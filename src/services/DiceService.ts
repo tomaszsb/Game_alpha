@@ -157,7 +157,7 @@ export class DiceService implements IDiceService {
     const hasOnlyChoiceEffect = actualEffects.length === 0 && effects.some(e => e.type === 'choice');
 
     if (hasOnlyChoiceEffect) {
-      return `${prefix}Choose your destination.`;
+      return `${prefix}Choose your next step.`;
     }
 
     const summaryParts: string[] = [];
@@ -193,7 +193,7 @@ export class DiceService implements IDiceService {
           }
           break;
         case 'choice':
-          summaryParts.push('must choose next move');
+          summaryParts.push('must choose your next step');
           break;
       }
     });

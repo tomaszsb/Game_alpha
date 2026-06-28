@@ -57,10 +57,10 @@ describe('DiceResultModal', () => {
       </GameContext.Provider></DictionaryProvider>
     );
 
-    // Check modal is rendered with dice result
+    // Check modal is rendered with the outcome. Voice rule (no game language):
+    // the die number is no longer shown — assert the outcome content instead.
     expect(screen.getByTestId('dice-result-modal')).toBeInTheDocument();
-    // Check for roll value (may be in separate element from emoji)
-    expect(screen.getByText(/Roll: 4|4/)).toBeInTheDocument();
+    expect(screen.getByText(/What happened/)).toBeInTheDocument();
   });
 
   it('should not render when closed', () => {
@@ -205,7 +205,59 @@ describe('DiceResultModal', () => {
       </GameContext.Provider></DictionaryProvider>
     );
 
-    expect(screen.getByText('No special effects this turn')).toBeInTheDocument();
+    expect(screen.getByText('Nothing changed this time')).toBeInTheDocument();
+  });
+
+  // fb:31e5c4b8 — "says effect applied but no effect was applied. if this was
+  // a roll it should say what was determined." A routing-only roll yields a
+  // single suppressed 'choice' effect, which used to render the "Effects
+  // Applied:" header above an empty body.
+  describe('routing-only roll (choice is the only effect)', () => {
+    const choiceOnlyResult: DiceRollResult = {
+      diceValue: 5,
+      spaceName: 'FORK-SPACE',
+      effects: [
+        { type: 'choice', description: 'Choose your next destination', moveOptions: ['A', 'B'] },
+      ],
+      summary: '',
+      hasChoices: true,
+    };
+
+    const renderChoiceOnly = () => render(
+      <DictionaryProvider><GameContext.Provider value={mockServices}>
+        <DiceResultModal isOpen result={choiceOnlyResult} onClose={mockOnClose} onConfirm={mockOnConfirm} />
+      </GameContext.Provider></DictionaryProvider>
+    );
+
+    it('does NOT render the empty "Effects Applied:" header', () => {
+      renderChoiceOnly();
+      expect(screen.queryByText(/Effects Applied/)).not.toBeInTheDocument();
+    });
+
+    it('reports the outcome in plain real-world language (no dice/game jargon)', () => {
+      renderChoiceOnly();
+      expect(screen.getByText(/Based on how that turned out, choose your next step below/)).toBeInTheDocument();
+      // Must NOT restate the dice mechanic — voice rule (real-world language).
+      expect(screen.queryByText(/rolled/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/🎲/)).not.toBeInTheDocument();
+      // and does not claim "no special effects" when a choice is pending
+      expect(screen.queryByText('No special effects this turn')).not.toBeInTheDocument();
+    });
+
+    it('drops the "outcome" framing for a non-dice (manual) choice result', () => {
+      render(
+        <DictionaryProvider><GameContext.Provider value={mockServices}>
+          <DiceResultModal
+            isOpen
+            result={{ ...choiceOnlyResult, diceValue: 0 }}
+            onClose={mockOnClose}
+            onConfirm={mockOnConfirm}
+          />
+        </GameContext.Provider></DictionaryProvider>
+      );
+      expect(screen.queryByText(/turned out/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Choose your next step below/)).toBeInTheDocument();
+    });
   });
 
   it('should handle keyboard navigation', () => {

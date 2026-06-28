@@ -166,7 +166,9 @@ export function formatManualEffectButton(effect: SpaceEffect): ButtonInfo {
   // Generate appropriate icon based on effect type
   let icon = '';
   if (isCardEffect) {
-    icon = cardType === 'E' ? '⚡' : cardType === 'B' || cardType === 'I' ? '💰' : cardType === 'W' ? '📐' : cardType === 'L' ? '🎲' : '🃏';
+    // Voice rule (no game language): L = real-world life event (📰, not 🎲);
+    // generic fallback is a document (📄, not the 🃏 joker).
+    icon = cardType === 'E' ? '⚡' : cardType === 'B' || cardType === 'I' ? '💰' : cardType === 'W' ? '📐' : cardType === 'L' ? '📰' : '📄';
   } else if (effect.effect_type === 'turn') {
     icon = '⏹️';
   } else {

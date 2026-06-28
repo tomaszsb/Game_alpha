@@ -21,9 +21,11 @@ export const DICE_BUTTON = {
   OUTCOME: 'Determine Outcome',
 };
 
-// --- Dice roll feedback (formatDiceRollFeedback) ---
+// --- Outcome feedback (formatDiceRollFeedback) ---
+// Voice rule (no game language): never surface the raw die number — lead with a
+// neutral word and let the outcomes carry the message.
 export const DICE_FEEDBACK = {
-  prefix: (value: number) => `Result: ${value}`,
+  prefix: (_value: number) => 'Outcome:',
   got: (count: number, typeName: string, plural: string) => `Got ${count} ${typeName}${plural}`,
   gained: (amount: number) => `Gained $${amount}`,
   spent: (amount: number) => `Spent $${amount}`,
@@ -37,12 +39,13 @@ export const DICE_FEEDBACK = {
 
 // --- Notification format strings ---
 export const NOTIF = {
-  // createDiceRollNotification
-  diceRollMedium: (value: number, summary: string) =>
-    summary ? `🎲 Result: ${value} → ${summary}` : `🎲 Result: ${value} → No effects`,
-  diceRollDetailed: (player: string, value: number, summary: string) =>
-    summary ? `${player} got ${value} and gained: ${summary}` : `${player} got ${value}`,
-  NO_EFFECTS: 'No effects',
+  // createDiceRollNotification. Voice rule (no game language): no 🎲, no die
+  // number — describe the outcome only.
+  diceRollMedium: (summary: string) =>
+    summary ? `→ ${summary}` : 'No change this time',
+  diceRollDetailed: (player: string, summary: string) =>
+    summary ? `${player}: ${summary}` : `${player}: no change this time`,
+  NO_EFFECTS: 'No change',
 
   // createCardPlayNotification
   cardPlayShort: '✓',

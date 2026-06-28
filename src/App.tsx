@@ -38,7 +38,7 @@ function LoadingScreen({ message }: { message?: string }): JSX.Element {
         color: colors.neutral.black
       }}
     >
-      <div style={{ marginBottom: '20px', fontSize: '48px' }}>🎲</div>
+      <div style={{ marginBottom: '20px', fontSize: '48px' }}>🏗️</div>
       <div>{message || 'Loading Game Data...'}</div>
       <div style={{ fontSize: '16px', color: colors.text.secondary, marginTop: '10px' }}>
         Please wait while we initialize the game

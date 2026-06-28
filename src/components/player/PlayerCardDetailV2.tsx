@@ -45,7 +45,7 @@ const CARD_TYPE_META: Record<string, { label: string; emoji: string; teaches: st
   W: { label: 'Work Package', emoji: '🧱', teaches: 'Work packages are the scope of construction — what actually gets built, filed, and inspected.' },
   B: { label: 'Bank Loan', emoji: '🏦', teaches: 'Bank financing funds the project, but loans carry fees charged against the principal.' },
   E: { label: 'Expeditor', emoji: '⚡', teaches: 'Expeditors are real NYC permitting pros — each one speeds a specific project phase.' },
-  L: { label: 'Life Event', emoji: '🎲', teaches: 'Life events are the real-world surprises that shift a project’s time and money.' },
+  L: { label: 'Life Event', emoji: '📰', teaches: 'Life events are the real-world surprises that shift a project’s time and money.' },
   I: { label: 'Investor', emoji: '💼', teaches: 'Investor capital funds the project for a share — no repayment, but a fee applies.' },
 };
 
@@ -62,7 +62,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
 
   if (!card) return null;
 
-  const meta = CARD_TYPE_META[card.card_type] || { label: card.card_type, emoji: '🃏', teaches: '' };
+  const meta = CARD_TYPE_META[card.card_type] || { label: card.card_type, emoji: '📄', teaches: '' };
   const typeColors = getCardTypeColors(card.card_type || '');
   // Only Expeditors (E) are "activated" from this view. The influence zone offers
   // Activate on E cards only, and an E activation is the game's one play-from-hand

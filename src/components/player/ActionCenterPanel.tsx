@@ -528,7 +528,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
   const tabConfig: { key: ReferenceTab; icon: string; label: string; hasBadge: boolean; color?: string }[] = [
     { key: 'ledger', icon: '📊', label: 'Ledger', hasBadge: hasMoneyActions, color: hasFundingGap ? '#e74c3c' : hasFundingSurplus ? '#27ae60' : undefined },
     { key: 'expeditors', icon: '⚡', label: 'Expeditors', hasBadge: hasECardActions || playableECards.length > 0 },
-    { key: 'events', icon: '🎲', label: 'Life Events', hasBadge: hasLCardActions },
+    { key: 'events', icon: '📰', label: 'Life Events', hasBadge: hasLCardActions },
     { key: 'time', icon: '⏱', label: `${player.timeSpent || 0}d`, hasBadge: false },
     { key: 'log', icon: '📜', label: 'Log', hasBadge: false },
   ];
@@ -765,10 +765,12 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           </div>
         )}
 
-        {/* Dice roll result */}
+        {/* Outcome confirmation. Voice rule (no game language): never show the
+            raw die number — just confirm the outcome is in; the result modal +
+            destination picker carry the detail. */}
         {isDiceMovementSpace && hasPlayerRolledDice && completedActions.diceRoll && (
           <div className="action-center__dice-result">
-            🎲 {completedActions.diceRoll}
+            ✓ Outcome ready
           </div>
         )}
 
@@ -793,7 +795,7 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 }}
                 disabled={!isMyTurn || (action.isDiceEffect && isRollingDice)}
               >
-                {action.isDiceEffect && isRollingDice ? '🎲 Deciding...' : action.label}
+                {action.isDiceEffect && isRollingDice ? 'Deciding…' : action.label}
               </button>
             ))}
             {showMovementDiceButton && onRollDice && (
@@ -802,16 +804,18 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
                 onClick={handleDiceRoll}
                 disabled={isRollingDice}
               >
-                {isRollingDice ? '🎲 Deciding...' : '🎲 Determine Next Step'}
+                {isRollingDice ? 'Deciding…' : 'Determine Next Step'}
               </button>
             )}
           </>
         )}
 
-        {/* Auto effect result (e.g., owner seed money) */}
+        {/* Auto effect result (e.g., owner seed money). Voice rule (no game
+            language): the old badge showed the raw die value as if it were a
+            money amount — confirm completion instead. */}
         {completedActions.diceRoll && !isDiceMovementSpace && pendingActions.length === 0 && (
           <div className="action-center__auto-effect-result">
-            💰 {completedActions.diceRoll}
+            ✓ Done
           </div>
         )}
 

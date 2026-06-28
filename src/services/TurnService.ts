@@ -239,7 +239,7 @@ export class TurnService implements ITurnService {
       const diceRoll = this.rollDice();
       
       // Log dice roll to action history
-      this.loggingService.info(`Rolled a ${diceRoll}`, {
+      this.loggingService.info(`Outcome determined`, {
         playerId: currentPlayer.id,
         playerName: currentPlayer.name,
         action: 'dice_roll',
@@ -312,7 +312,7 @@ export class TurnService implements ITurnService {
       });
 
       // Log dice roll to action history
-      this.loggingService.info(`Rolled a ${diceRoll}`, {
+      this.loggingService.info(`Outcome determined`, {
         playerId: currentPlayer.id,
         playerName: currentPlayer.name,
         action: 'dice_roll',

@@ -399,6 +399,54 @@ describe('CardReplacementModal', () => {
     expect(screen.getByText('Marketing Campaign')).toBeInTheDocument();
   });
 
+  // fb:76fa69c7 — "trying to figure out which expeditor to replace, I can't see
+  // the details to make an informed decision." Each expeditor now shows its
+  // phase chip inline (same chip as the hand list) so the player can compare
+  // which phase each rep serves without opening Details on every one.
+  it('shows the phase chip for expeditors so the choice is informed', () => {
+    const fundingRep: Card = {
+      card_id: 'E1', card_name: 'Speed Demon', card_type: 'E', cost: 5000,
+      description: 'Rushes funding paperwork', phase_restriction: 'FUNDING',
+    };
+    const regRep: Card = {
+      card_id: 'E2', card_name: 'Paper Pusher', card_type: 'E', cost: 3000,
+      description: 'Handles regulatory filings', phase_restriction: 'REGULATORY_REVIEW',
+    };
+    (mockDataService.getCardById as Mock).mockImplementation((id: string) =>
+      id === 'E1' ? fundingRep : id === 'E2' ? regRep : null);
+
+    renderWithDictionary(
+      <CardReplacementModal
+        isOpen={true}
+        player={{ ...mockPlayer, hand: ['E1', 'E2'] }}
+        cardType="E"
+        maxReplacements={1}
+        onReplace={mockOnReplace}
+        onCancel={mockOnCancel}
+      />
+    );
+
+    // Each rep's phase is visible at a glance (the chip labels).
+    expect(screen.getByText('Funding')).toBeInTheDocument();
+    expect(screen.getByText('Regulatory')).toBeInTheDocument();
+  });
+
+  it('does not show a phase chip for non-expeditor card types', () => {
+    renderWithDictionary(
+      <CardReplacementModal
+        isOpen={true}
+        player={mockPlayer}
+        cardType="W"
+        maxReplacements={2}
+        onReplace={mockOnReplace}
+        onCancel={mockOnCancel}
+      />
+    );
+    // The W cards (mockCard1/2) carry no phase chip.
+    expect(screen.queryByText('Any phase')).not.toBeInTheDocument();
+    expect(screen.queryByText('Funding')).not.toBeInTheDocument();
+  });
+
   it('should handle cards with long descriptions', () => {
     const longDescCard: Card = {
       card_id: 'W3',

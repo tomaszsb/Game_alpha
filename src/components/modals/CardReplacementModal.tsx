@@ -8,6 +8,7 @@ import { CardDisplay } from '../common/CardDisplay';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { CardDetailsModal } from './CardDetailsModal';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import { PhaseChip } from '../player/expeditorPhase';
 import { CARD_REPLACE } from '../../constants/uiStrings';
 import '../common/CardDisplay.css';
 
@@ -271,6 +272,11 @@ export function CardReplacementModal({
                   cardTypeIcon={getCardTypeEmoji(cardType)}
                   displayAmount={FormatUtils.formatCardCost(card.cost || 0)}
                   actions={detailsButton}
+                  // Expeditors: show the phase chip inline so the player can tell
+                  // which phase each rep serves when choosing which to let go,
+                  // without opening Details on every one (fb:76fa69c7). Same chip
+                  // as the hand list (shared expeditorPhase module — no drift).
+                  headerBadge={cardType === 'E' ? <PhaseChip phaseRestriction={card.phase_restriction} /> : undefined}
                 />
               );
             })}

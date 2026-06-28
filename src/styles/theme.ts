@@ -220,7 +220,9 @@ export const colors = {
         bg: '#fce4ec',
         border: '#dc3545',
         text: '#b71c1c',
-        emoji: '🎲',
+        // Voice rule (no game language): a Life Event is an unexpected real-world
+        // event, not a dice mechanic — 📰 reads as "news / something happened".
+        emoji: '📰',
         label: 'Life Event',
       },
       I: { // Investments - Green
@@ -352,7 +354,9 @@ export const theme = {
     success: '✓',
     info: '📋',
     warning: '⚠️',
-    cards: '🃏',
+    // Voice rule (no game language): generic "resources/holdings" icon — 🃏
+    // (joker) leaked playing-deck framing. 📄 reads as a document/permit.
+    cards: '📄',
     money: '💰',
     time: '⏱️',
     dice: '🎲',

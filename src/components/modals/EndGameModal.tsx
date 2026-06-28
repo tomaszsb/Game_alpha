@@ -133,7 +133,7 @@ export function EndGameModal(): JSX.Element {
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {customButtonLabel || `${theme.emoji.dice} Play Again`}
+      {customButtonLabel || `🔄 Play Again`}
     </button>
   );
 
@@ -294,7 +294,7 @@ function EndGameStatsPanel({ stats, gameEndTime, journeyOpen, onToggleJourney }:
             tooltip="Full rounds of play completed — one round is every player taking a turn once." />
           <Stat label="🎯 Final score" value={stats.finalScore.toLocaleString()} testid="stat-score"
             tooltip="Cash on hand + project scope, minus 5,000 per loan and 1,000 per day spent." />
-          <Stat label="🃏 Work cards" value={String(stats.construction.workCardCount)} testid="stat-workcards" />
+          <Stat label="🏗️ Work packages" value={String(stats.construction.workCardCount)} testid="stat-workcards" />
         </div>
       </div>
 

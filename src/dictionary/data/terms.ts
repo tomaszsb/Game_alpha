@@ -154,6 +154,33 @@ function normalizeApiTerm(raw: RawApiTerm): GlossaryTerm {
 }
 
 /**
+ * Drop terms with a duplicate `id`, keeping the first occurrence.
+ *
+ * The term list is rendered with `key={term.id}` (DictionaryPanel), so a
+ * repeated id triggers React's "two children with the same key" warning and
+ * can mis-reconcile rows. The data is external (dashboard API / CSV), so we
+ * can't guarantee uniqueness upstream — we enforce it here at the boundary.
+ * Dropped ids are surfaced via debugWarn so a dirty source is still visible.
+ */
+function dedupeById(terms: GlossaryTerm[]): GlossaryTerm[] {
+  const seen = new Set<string>();
+  const out: GlossaryTerm[] = [];
+  const dropped: string[] = [];
+  for (const term of terms) {
+    if (seen.has(term.id)) {
+      dropped.push(term.id);
+      continue;
+    }
+    seen.add(term.id);
+    out.push(term);
+  }
+  if (dropped.length > 0) {
+    debugWarn(`Dictionary: dropped ${dropped.length} duplicate term id(s): ${dropped.join(', ')}`);
+  }
+  return out;
+}
+
+/**
  * Load terms — tries dashboard API first, falls back to local CSV.
  * API provides live data (approved volunteer submissions appear instantly).
  * CSV fallback ensures the game works even if the dashboard is down.
@@ -170,7 +197,7 @@ export async function loadTerms(): Promise<GlossaryTerm[]> {
     if (response.ok) {
       const rawTerms = await response.json();
       if (Array.isArray(rawTerms) && rawTerms.length > 0) {
-        termsCache = rawTerms.map(normalizeApiTerm).filter(t => t.id && t.term);
+        termsCache = dedupeById(rawTerms.map(normalizeApiTerm).filter(t => t.id && t.term));
         buildCaches();
         return termsCache;
       }
@@ -185,7 +212,7 @@ export async function loadTerms(): Promise<GlossaryTerm[]> {
       const response = await fetch(csvPath + '?_=' + Date.now());
       if (response.ok) {
         const csvText = await response.text();
-        termsCache = parseGlossaryCsv(csvText);
+        termsCache = dedupeById(parseGlossaryCsv(csvText));
         buildCaches();
         return termsCache;
       }

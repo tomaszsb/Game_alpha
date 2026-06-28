@@ -420,7 +420,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
           {/* Card Offer */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: colors.text.primary }}>
-              {theme.emoji.cards} Card Offer:
+              {theme.emoji.cards} Resources Offered:
             </label>
             {(['W', 'B', 'E', 'L', 'I'] as CardType[]).map(cardType => {
               const playerCards = getPlayerCardsByType(currentPlayer, cardType);

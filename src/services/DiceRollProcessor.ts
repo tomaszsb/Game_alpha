@@ -572,7 +572,9 @@ export class DiceRollProcessor {
     } else if (destinations.length > 1) {
       // Multiple destinations - present choice
       const currentSpaceContent = this.dataService.getSpaceContent(currentPlayer.currentSpace, currentPlayer.visitType);
-      const prompt = `You rolled ${diceRoll}. Based on your outcome at ${currentSpaceContent?.title || currentPlayer.currentSpace}, choose your next path:`;
+      // Voice rule (no game language): no "you rolled N" — frame the real-world
+      // outcome and ask for the next step (not "path").
+      const prompt = `Based on how things turned out at ${currentSpaceContent?.title || currentPlayer.currentSpace}, choose your next step:`;
 
       effects.push({
         type: 'choice',

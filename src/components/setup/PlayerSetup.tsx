@@ -818,7 +818,7 @@ export function PlayerSetup({
                 ? validation.validateGameStart().errorMessage || 'Add at least one player to start.'
                 : undefined}
             >
-              {isStarting ? '🎲 Starting…' : '🚀 Start Game'}
+              {isStarting ? '⏳ Starting…' : '🚀 Start Game'}
             </button>
           </div>
         </div>

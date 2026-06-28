@@ -64,9 +64,9 @@ function effectIcon(effect: SpaceEffect): string {
     if (action.endsWith('_w')) return '🔨';
     if (action.endsWith('_b')) return '🏦';
     if (action.endsWith('_i')) return '💼';
-    if (action.endsWith('_l')) return '🎲';
+    if (action.endsWith('_l')) return '📰';
   }
-  if (effect.effect_type === 'dice') return '🎲';
+  if (effect.effect_type === 'dice') return '🎯';
   if (effect.effect_type === 'money') return '💰';
   if (effect.effect_type === 'time') return '⏱';
   return '📌';

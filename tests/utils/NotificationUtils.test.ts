@@ -24,10 +24,11 @@ describe('NotificationUtils', () => {
 
       const result = NotificationUtils.createDiceRollNotification(4, effects, 'Alice');
 
+      // Voice rule (no game language): short is a neutral ✓, no die number.
       expect(result).toEqual({
-        short: '4',
-        medium: NOTIF.diceRollMedium(4, '2 Work Packages, +$500'),
-        detailed: NOTIF.diceRollDetailed('Alice', 4, '2 Work Packages, +$500'),
+        short: '✓',
+        medium: NOTIF.diceRollMedium('2 Work Packages, +$500'),
+        detailed: NOTIF.diceRollDetailed('Alice', '2 Work Packages, +$500'),
       });
     });
 
@@ -40,9 +41,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createDiceRollNotification(1, effects, 'Bob');
 
       expect(result).toEqual({
-        short: '1',
-        medium: NOTIF.diceRollMedium(1, '--2d, -$100'),
-        detailed: NOTIF.diceRollDetailed('Bob', 1, '--2d, -$100'),
+        short: '✓',
+        medium: NOTIF.diceRollMedium('--2d, -$100'),
+        detailed: NOTIF.diceRollDetailed('Bob', '--2d, -$100'),
       });
     });
 
@@ -50,9 +51,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createDiceRollNotification(3, [], 'Charlie');
 
       expect(result).toEqual({
-        short: '3',
-        medium: NOTIF.diceRollMedium(3, ''),
-        detailed: NOTIF.diceRollDetailed('Charlie', 3, ''),
+        short: '✓',
+        medium: NOTIF.diceRollMedium(''),
+        detailed: NOTIF.diceRollDetailed('Charlie', ''),
       });
     });
 
@@ -64,9 +65,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createDiceRollNotification(5, effects, 'Dave');
 
       expect(result).toEqual({
-        short: '5',
-        medium: NOTIF.diceRollMedium(5, 'unknown_effect'),
-        detailed: NOTIF.diceRollDetailed('Dave', 5, 'unknown_effect'),
+        short: '✓',
+        medium: NOTIF.diceRollMedium('unknown_effect'),
+        detailed: NOTIF.diceRollDetailed('Dave', 'unknown_effect'),
       });
     });
   });
@@ -342,9 +343,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createDiceRollNotification(2, effects, 'Alice');
 
       expect(result).toEqual({
-        short: '2',
-        medium: NOTIF.diceRollMedium(2, '-$500'),
-        detailed: NOTIF.diceRollDetailed('Alice', 2, '-$500'),
+        short: '✓',
+        medium: NOTIF.diceRollMedium('-$500'),
+        detailed: NOTIF.diceRollDetailed('Alice', '-$500'),
       });
     });
 
@@ -357,9 +358,9 @@ describe('NotificationUtils', () => {
       const result = NotificationUtils.createDiceRollNotification(3, effects, 'Bob');
 
       expect(result).toEqual({
-        short: '3',
-        medium: NOTIF.diceRollMedium(3, '-$0, -0d'),
-        detailed: NOTIF.diceRollDetailed('Bob', 3, '-$0, -0d'),
+        short: '✓',
+        medium: NOTIF.diceRollMedium('-$0, -0d'),
+        detailed: NOTIF.diceRollDetailed('Bob', '-$0, -0d'),
       });
     });
   });

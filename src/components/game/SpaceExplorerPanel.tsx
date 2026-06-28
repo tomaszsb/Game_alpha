@@ -600,8 +600,8 @@ export function SpaceExplorerPanel({
                         }}>
                           <div style={{ marginBottom: '8px', fontSize: '12px', fontWeight: 'bold' }}>
                             Movement Type: {movement.movement_type} 
-                            {movement.movement_type === 'dice' && ' 🎲'}
-                            {movement.movement_type === 'choice' && ' 🎯'}
+                            {movement.movement_type === 'dice' && ' 🎯'}
+                            {movement.movement_type === 'choice' && ' 🔀'}
                             {movement.movement_type === 'fixed' && ' ➡️'}
                           </div>
                           
@@ -685,7 +685,7 @@ export function SpaceExplorerPanel({
                     color: colors.text.primary,
                     margin: '0 0 8px 0'
                   }}>
-                    🎲 Roll Outcomes ({spaceDetails.diceEffects.length}):
+                    🎯 Possible Outcomes ({spaceDetails.diceEffects.length}):
                   </h5>
                   {spaceDetails.diceEffects.map((effect, index) => (
                     <div

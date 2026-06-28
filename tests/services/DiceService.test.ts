@@ -181,7 +181,7 @@ describe('DiceService', () => {
       ];
       const summary = diceService.generateEffectSummary(effects, 4);
       // When there's only a choice effect (no other effects), the summary is different
-      expect(summary).toContain('Choose your destination');
+      expect(summary).toContain('Choose your next step');
     });
 
     it('should generate mixed results for positive and negative effects', () => {
@@ -285,7 +285,7 @@ describe('DiceService', () => {
         undefined,
         'PM-DECISION-CHECK'
       );
-      expect(summary).toBe('Choose your destination.');
+      expect(summary).toBe('Choose your next step.');
     });
   });
 });

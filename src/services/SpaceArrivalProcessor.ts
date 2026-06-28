@@ -233,7 +233,8 @@ export class SpaceArrivalProcessor {
           cardType as CardType,
           1,
           'dice_conditional_effect',
-          `Auto effect: Rolled ${diceRoll} - Drew ${cardType} card`
+          // Voice rule (no game language): no die number, no "card"/type code.
+          `Auto effect: ${cardType === 'L' ? 'a life event occurred' : 'received a new resource'}`
         );
 
         // Apply the auto-drawn Life Event (L) card's money/time effects.
@@ -282,7 +283,7 @@ export class SpaceArrivalProcessor {
           cardId: drawnCardIds.length > 0 ? drawnCardIds[0] : undefined,
           success: true,
           spaceName: spaceName,
-          message: `Rolled ${diceRoll} and drew: ${cardName}`,
+          message: cardType === 'L' ? `Life event: ${cardName}` : `Received: ${cardName}`,
           effectsSummary: effectsSummary.length > 0 ? effectsSummary : undefined,
         };
         this.stateService.emitAutoAction(autoActionEvent);
@@ -291,9 +292,12 @@ export class SpaceArrivalProcessor {
         if (this.notificationService) {
           this.notificationService.notify(
             {
-              short: `🎲 ${diceRoll}!`,
-              medium: `🎲 Rolled ${diceRoll} - Drew: ${cardName}`,
-              detailed: `${currentPlayer.name} rolled ${diceRoll} (needed ${requiredRoll}) and drew a ${cardType} card: ${cardName}`
+              // Voice rule (no game language): describe what happened, not the roll.
+              short: cardType === 'L' ? '📰' : '✓',
+              medium: cardType === 'L' ? `📰 Life event: ${cardName}` : `Received: ${cardName}`,
+              detailed: cardType === 'L'
+                ? `${currentPlayer.name} hit a life event: ${cardName}`
+                : `${currentPlayer.name} received: ${cardName}`
             },
             {
               playerId: currentPlayer.id,

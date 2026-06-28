@@ -111,7 +111,7 @@ export function CardDisplay({
             <span className="card-display__type-icon">{cardTypeIcon}</span>
           )}
           <div className="card-display__info">
-            <div className="card-display__name">{card.card_name}</div>
+            <div className="card-display__name">{card.card_name}{headerBadge}</div>
             {card.description && (
               <div className="card-display__description"><TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} /></div>
             )}

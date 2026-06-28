@@ -3,15 +3,20 @@ import { ActionLogEntry } from '../types/StateTypes';
 export const formatActionDescription = (entry: ActionLogEntry): string => {
   switch (entry.type) {
     case 'dice_roll':
-      // Use the unified description that already includes outcomes
-      return `🎲 ${entry.description}`;
-      
+      // Voice rule (no game language): no 🎲. The description already carries the
+      // real-world outcome; 🎯 reads as "result/outcome".
+      return `🎯 ${entry.description}`;
+
     case 'card_draw': {
       if (entry.details?.cardType && entry.details?.cardCount) {
         const typeNames: Record<string, string> = { W: 'Work Package', B: 'Bank Loan', E: 'Expeditor', L: 'Life Event', I: 'Investment' };
+        // Voice rule (no game language): no 🎴 playing-card icon — use the
+        // real-world per-type icon that matches the rest of the UI.
+        const typeIcons: Record<string, string> = { W: '🏗️', B: '🏦', E: '⚡', L: '📰', I: '💰' };
         const name = typeNames[entry.details.cardType] || entry.details.cardType;
+        const icon = typeIcons[entry.details.cardType] || '📄';
         const count = entry.details.cardCount;
-        return `🎴 Got ${count} ${name}${count > 1 ? 's' : ''}`;
+        return `${icon} Got ${count} ${name}${count > 1 ? 's' : ''}`;
       }
       return entry.description;
     }

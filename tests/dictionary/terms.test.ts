@@ -160,6 +160,31 @@ describe('Dictionary Terms Module', () => {
       expect(hvac.relatedTerms).toEqual([]);
     });
 
+    it('should drop duplicate ids, keeping the first occurrence', async () => {
+      // The live dashboard data has shipped duplicate slugs (e.g.
+      // certificate-of-occupancy, dcas, emissions) which collided on the
+      // React key={term.id} render. The loader must guarantee unique ids.
+      const dupTerms = [
+        ...apiTerms,
+        { id: 'dob', term: 'DOB (duplicate)', definition: 'a second dob', aliases: [], relatedTerms: [] },
+        { id: 'acris', term: 'ACRIS (duplicate)', definition: 'a second acris', aliases: [], relatedTerms: [] }
+      ];
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(dupTerms)
+      });
+
+      const terms = await loadTerms();
+
+      // 3 originals + 2 dupes in → 3 out (dupes dropped)
+      expect(terms).toHaveLength(3);
+      const ids = terms.map(t => t.id);
+      expect(new Set(ids).size).toBe(ids.length); // all ids unique
+      // first occurrence wins
+      expect(getTermById('dob')!.term).toBe('DOB');
+      expect(getTermById('acris')!.term).toBe('ACRIS');
+    });
+
     it('should filter out terms missing id or term', async () => {
       const badTerms = [
         ...apiTerms,

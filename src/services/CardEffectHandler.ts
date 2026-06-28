@@ -353,8 +353,8 @@ export class CardEffectHandler implements ICardEffectHandler {
 
     const cardNames = cardDetails.map(c => c.name);
     const notificationMessage = drawnCards.length === 1
-      ? `🎲 Life Event: ${cardNames[0]}`
-      : `🎲 Life Events: ${cardNames.join(', ')}`;
+      ? `📰 Life Event: ${cardNames[0]}`
+      : `📰 Life Events: ${cardNames.join(', ')}`;
 
     // Voice rule: real-life label, no "card(s)" word. fb:7a99da1a/004dc390.
     const lifeEventLabel = drawnCards.length === 1 ? 'Life Event' : 'Life Events';

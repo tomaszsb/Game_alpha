@@ -208,7 +208,7 @@ export const EventsSection: React.FC<EventsSectionProps> = ({
     <>
       <ExpandableSection
         title="EVENTS"
-        icon="🎲"
+        icon="📰"
         hasAction={hasLCardActions}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}

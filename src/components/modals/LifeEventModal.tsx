@@ -319,7 +319,7 @@ function lifeEventEffectIcon(kind: LifeEventEffectSummary['kind']): string {
     case 'money': return '💰';
     case 'time': return '⏱️';
     case 'approval_revoke': return '🚫';
-    case 'card_gained': return '🃏';
+    case 'card_gained': return '📄';
     case 'card_lost': return '🗑️';
     case 'duration_start': return '🔁';
     case 'competing_reveal': return '🔍';

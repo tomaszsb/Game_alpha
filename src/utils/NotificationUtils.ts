@@ -9,7 +9,7 @@ import { getCardTypeName } from './cardTypeNames';
 export class NotificationUtils {
 
   // Dice Roll Notifications
-  static createDiceRollNotification(diceValue: number, effects: DiceFeedbackEffect[], playerName: string): NotificationContent {
+  static createDiceRollNotification(_diceValue: number, effects: DiceFeedbackEffect[], playerName: string): NotificationContent {
     // Voice rule: real-life card-type label ("2 Work Packages" not "2 W").
     // fb:7a99da1a/004dc390.
     const effectSummary = effects.map(effect => {
@@ -29,10 +29,12 @@ export class NotificationUtils {
       }
     }).join(', ');
 
+    // Voice rule (no game language): the short badge must not be the raw die
+    // number — show a neutral confirmation; outcomes live in medium/detailed.
     return {
-      short: `${diceValue}`,
-      medium: NOTIF.diceRollMedium(diceValue, effectSummary),
-      detailed: NOTIF.diceRollDetailed(playerName, diceValue, effectSummary),
+      short: '✓',
+      medium: NOTIF.diceRollMedium(effectSummary),
+      detailed: NOTIF.diceRollDetailed(playerName, effectSummary),
     };
   }
 

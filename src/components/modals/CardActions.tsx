@@ -173,7 +173,7 @@ export function CardActions({
           onMouseLeave={canPlay ? handleMouseLeave : undefined}
           title={canPlay ? `Click to ${playButtonText.toLowerCase()}` : "This cannot be activated right now"}
         >
-          🎴 {playButtonText}
+          ⚡ {playButtonText}
         </button>
       )}
 

@@ -81,14 +81,6 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     }
   };
 
-  const getDiceIcon = (value: number): string => {
-    const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-    if (value < 1 || value > 6) {
-      return '🎲';
-    }
-    return diceIcons[value - 1] || '🎲';
-  };
-
   const getEffectIcon = (effectType: string, outcomeKind?: 'quality' | 'multiplier'): string => {
     switch (effectType) {
       case 'money': return theme.emoji.money;
@@ -287,10 +279,14 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     ? interpolateTemplate(diceModalConfig.modal_summary, templateContext)
     : undefined;
 
+  // Voice rule (no game language): never title or icon the modal with the raw
+  // die number / a dice face — it's an outcome, so fall back to a neutral title
+  // and the "what happened" icon.
   const title = overrideTitle
     || firstEffectModalConfig?.title
-    || (isDiceRoll ? (narrativeTitle || `Result: ${result.diceValue}`) : (narrativeTitle || 'Action Result'));
-  const headerEmoji = isDiceRoll ? getDiceIcon(result.diceValue) : theme.emoji.effects;
+    || narrativeTitle
+    || (isDiceRoll ? 'Outcome' : 'Action Result');
+  const headerEmoji = theme.emoji.effects;
   const customButtonLabel = overrideButtonLabel || firstEffectModalConfig?.buttonLabel;
   // Visual Summary block prefers the narrative-only `visualSummary` (NPC story
   // prose) over the full assembled `summary` (which includes auto-generated
@@ -302,6 +298,16 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
 
   // Data-driven shake: uses shake_on config from space content
   const hasNegativeEffect = shouldShake(spaceContent?.shake_on, { effects: result.effects });
+
+  // 'choice' effects are suppressed in renderEffect (the destination picker
+  // lives in the player panel, not the modal — fb:6ec5c01f). So count only the
+  // DISPLAYABLE effects when deciding whether to show the "Effects Applied:"
+  // header — otherwise a routing-only roll renders the header above an empty
+  // body, which a playtester read as "says effect applied but no effect was
+  // applied" (fb:31e5c4b8). When nothing displayable applied but the roll DID
+  // determine a routing choice, we report that instead of a bare header.
+  const displayableEffects = result.effects.filter(e => e.type !== 'choice');
+  const hasPendingChoice = result.effects.some(e => e.type === 'choice');
 
   const footer = (
     <>
@@ -365,17 +371,9 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       shake={hasNegativeEffect}
       speechControls={speechControls}
     >
-      {/* Dice value subtitle when narrative title is used */}
-      {isDiceRoll && narrativeTitle && (
-        <div style={{
-          textAlign: 'center',
-          color: colors.text.secondary,
-          fontSize: '13px',
-          marginBottom: '12px'
-        }}>
-          🎲 Result: {result.diceValue}
-        </div>
-      )}
+      {/* Voice rule (no game language): the old "🎲 Result: N" subtitle surfaced
+          the raw die number — removed. The outcome is told by the Summary +
+          effects below, never by the die value. */}
 
       {/* Character Badge */}
       {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} />}
@@ -421,8 +419,9 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         </div>
       )}
 
-      {/* Effects */}
-      {result.effects.length > 0 ? (
+      {/* Effects — gated on displayableEffects (see comment above) so a
+          routing-only roll never shows the header with an empty body. */}
+      {displayableEffects.length > 0 ? (
         <>
           <h3 style={{
             fontSize: '16px',
@@ -434,11 +433,27 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
             alignItems: 'center',
             gap: '6px',
           }}>
-            {theme.emoji.effects} Effects Applied:
+            {theme.emoji.effects} What happened:
           </h3>
 
-          {result.effects.map((effect, index) => renderEffect(effect, index))}
+          {displayableEffects.map((effect, index) => renderEffect(effect, index))}
         </>
+      ) : hasPendingChoice ? (
+        // Nothing changed on the books, but the outcome decided which paths are
+        // open — say that in plain real-world language (NOT "you rolled a N":
+        // the dice are a game mechanic, and the player asked what was DETERMINED,
+        // not the number). The actual narrative outcome lives in the Summary
+        // above; the destinations live in the panel picker (fb:6ec5c01f).
+        <div style={{
+          textAlign: 'center',
+          color: colors.text.secondary,
+          fontSize: '15px',
+          padding: '16px'
+        }}>
+          {isDiceRoll
+            ? 'Based on how that turned out, choose your next step below.'
+            : 'Choose your next step below.'}
+        </div>
       ) : (
         <div style={{
           textAlign: 'center',
@@ -447,7 +462,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           padding: '20px'
         }}>
           <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>😐</span>
-          No special effects this turn
+          Nothing changed this time
         </div>
       )}
 

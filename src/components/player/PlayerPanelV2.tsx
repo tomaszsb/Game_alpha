@@ -124,7 +124,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       type,
       cardId: firstIdByType[type],
       label: meta ? meta.label : type,
-      emoji: meta ? meta.emoji : '🃏',
+      emoji: meta ? meta.emoji : '📄', // voice rule: no 🃏 deck icon
       n: counts[type],
       // Life Events are past occurrences, not live influences — show them grayed
       // (still tappable to review what happened). User call 2026-06-23 (fb:3aad5f84).
@@ -175,11 +175,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     return {
       effectKey,
       label: formatted.text || effect.effect_type,
-      // Per-type icon so movement / expeditor / work-package / money / dice
+      // Per-type icon so movement / expeditor / work-package / money / outcome
       // actions are tellable apart at a glance (fb:40cc3674 — "buttons look too
-      // alike"). The formatter already derives an icon by card type; dice rolls
-      // get 🎲 (the collapsed-dice label carries its own, stripped at render).
-      icon: isDiceEffect ? '🎲' : formatted.icon,
+      // alike"). Voice rule (no game language): outcome ("dice") actions get 🎯,
+      // not a 🎲 die.
+      icon: isDiceEffect ? '🎯' : formatted.icon,
       isCompleted,
       isDiceEffect,
     };
@@ -492,7 +492,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               }
             >
               {a.isDiceEffect && isRollingDice
-                ? '🎲 Deciding…'
+                ? 'Deciding…'
                 : `${a.icon ? a.icon + ' ' : ''}${a.label.replace(/^🎲\s*/, '')}`}
             </button>
           ))}
@@ -743,7 +743,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         isOpen={listType !== null}
         onClose={() => setListType(null)}
         title={listType ? `Your ${getCardTypeName(listType, 2)}` : ''}
-        emoji={listType ? colors.game.cardTypes[listType]?.emoji || '🃏' : ''}
+        emoji={listType ? colors.game.cardTypes[listType]?.emoji || '📄' : ''}
         testId="affecting-card-list"
         maxWidth="360px"
       >

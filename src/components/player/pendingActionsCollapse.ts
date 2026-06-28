@@ -15,11 +15,10 @@ export interface CollapsibleAction {
 }
 
 // v3.0.22 (fb:adbc48b0): switched from "🎲 Roll dice" to the project's
-// established in-character verb "Determine Outcome" (already used at
-// ActionCenterPanel.tsx:71, StoryAccordion.tsx:92, uiStrings.ts:21).
-// Voice rule: player-facing copy avoids game-machinery words like
-// "roll" / "dice" / "card(s)" / "game".
-export const COLLAPSED_DICE_LABEL = '🎲 Determine Outcome';
+// established in-character verb "Determine Outcome".
+// Voice rule (no game language): player-facing copy avoids game-machinery words
+// like "roll" / "dice" / "card(s)" / "game" AND the 🎲 icon — dropped here too.
+export const COLLAPSED_DICE_LABEL = 'Determine Outcome';
 
 export function collapsePairedDiceActions<T extends CollapsibleAction>(actions: T[]): T[] {
   const collapsed: T[] = [];

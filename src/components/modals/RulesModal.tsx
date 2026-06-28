@@ -86,7 +86,7 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
 
         <section style={sectionStyle}>
           <h3 style={headingStyle}>
-            {theme.emoji.dice} Turn Structure
+            📋 Turn Structure
           </h3>
           <ol style={listStyle}>
             <li style={listItemStyle}>
@@ -108,27 +108,27 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
           <div style={cardGridStyle}>
             <div>
               <strong style={{ color: colors.game.cardTypes.W.primary }}>
-                {colors.game.cardTypes.W.emoji} Work Packages (W):
+                {colors.game.cardTypes.W.emoji} Work Packages:
               </strong> Construction work scopes and project requirements
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.B.primary }}>
-                {colors.game.cardTypes.B.emoji} Bank Loans (B):
+                {colors.game.cardTypes.B.emoji} Bank Loans:
               </strong> Funding and financial resources
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.E.primary }}>
-                {colors.game.cardTypes.E.emoji} Expeditors (E):
+                {colors.game.cardTypes.E.emoji} Expeditors:
               </strong> Filing representatives who can help or hinder application processes
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.L.primary }}>
-                {colors.game.cardTypes.L.emoji} Life Events (L):
-              </strong> Random events like new laws, weather delays, and unforeseen circumstances
+                {colors.game.cardTypes.L.emoji} Life Events:
+              </strong> Real-world surprises like new laws, weather delays, and unforeseen circumstances
             </div>
             <div>
               <strong style={{ color: colors.game.cardTypes.I.primary }}>
-                {colors.game.cardTypes.I.emoji} Investors (I):
+                {colors.game.cardTypes.I.emoji} Investors:
               </strong> Investment opportunities and funding partners
             </div>
           </div>

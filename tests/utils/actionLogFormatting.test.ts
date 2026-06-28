@@ -26,7 +26,8 @@ describe('actionLogFormatting', () => {
       };
 
       const result = formatActionDescription(entry);
-      expect(result).toBe('🎲 Rolled 4 for movement');
+      // Voice rule (no game language): outcome icon 🎯, not a 🎲 die.
+      expect(result).toBe('🎯 Rolled 4 for movement');
     });
 
     it('should format card_draw type with details', () => {
@@ -45,7 +46,7 @@ describe('actionLogFormatting', () => {
       };
 
       const result = formatActionDescription(entry);
-      expect(result).toBe('🎴 Got 2 Work Packages');
+      expect(result).toBe('🏗️ Got 2 Work Packages');
     });
 
     it('should format card_draw type with single card', () => {
@@ -64,7 +65,7 @@ describe('actionLogFormatting', () => {
       };
 
       const result = formatActionDescription(entry);
-      expect(result).toBe('🎴 Got 1 Bank Loan');
+      expect(result).toBe('🏦 Got 1 Bank Loan');
     });
 
     it('should format card_draw type without details', () => {
