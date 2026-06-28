@@ -74,13 +74,17 @@ If none of those triggered, the sweep is done — skip the read entirely. A no-o
 
 **CHANGELOG inline during the session is best.** If you wrote entries as each version shipped, just verify they're current — don't rewrite.
 
-## 4. Append new follow-ups to `TODO.md`
+## 4. Prune completed items from `TODO.md`, then append new follow-ups
 
-Things discovered today that didn't ship and aren't already tracked. Use the existing bucket structure. Also add:
+**Prune first — this is load-bearing.** TODO.md's own rule is "completed → CHANGELOG; this file holds ONLY current/future work." So every item finished this session whose work you just wrote into CHANGELOG (step 3) must be **DELETED from TODO.md — not merely checked off `[x]`.** A checked-off item still sitting in the file is the bug: marking ≠ removing, and that gap let 248 completed items accumulate back to March (cleaned 2026-06-28). While you're in the file, do a quick safety sweep: any stray `[x]`/`✅` items from prior sessions whose version is already in CHANGELOG → delete those too. If you can't confirm an item actually shipped, **leave it** and note it for next session rather than guess (user rule 2026-06-28).
+
+After this step the only checkboxes left should be `[ ]` (pending) and `[~]` (in-progress). If you ever see `[x]` survive a `/koniec`, this step didn't run.
+
+**Then append** things discovered today that didn't ship and aren't already tracked. Use the existing bucket structure. Also add:
 - Pre-existing test failures noticed during pre-flight if not already tracked.
 - Living-doc updates that need human judgment rather than an inline guess.
 
-If nothing new — skip. Don't write a "no changes" line.
+If nothing new to append — skip. Don't write a "no changes" line.
 
 ## 5. Write the next-session starter prompt
 
