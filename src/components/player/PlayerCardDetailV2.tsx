@@ -141,6 +141,12 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   };
 
   // Footer — light-button rule: every control has a visible dark border + text.
+  // The dismiss button only reads "Keep" when there's a real choice to make
+  // (an activatable expeditor: activate now vs. keep for later). In a review-only
+  // view "Keep" wrongly implies a keep/replace/fire decision (fb:f4d0e327 — "I'm
+  // only reviewing; there's no need for a keep button"), so it reads "Done".
+  // ("Close" would collide with ModalBase's X-button accessible name.)
+  const dismissLabel = canPlay ? 'Keep' : 'Done';
   const footer = (
     <>
       {canPlay && (
@@ -168,7 +174,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
       )}
       <button
         onClick={onClose}
-        aria-label="Keep"
+        aria-label={dismissLabel}
         style={{
           border: `1px solid ${p.borderStrong}`,
           background: p.surf,
@@ -181,7 +187,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
           minHeight: 44,
         }}
       >
-        Keep
+        {dismissLabel}
       </button>
     </>
   );

@@ -314,6 +314,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     alignItems: 'center',
     gap: 8,
     width: '100%',
+    // border-box so the selected/done states (which change border width) can't
+    // resize the control — fb:44df6d5d, "the button became longer once pressed".
+    boxSizing: 'border-box',
     background: p.surf,
     border: `1px solid ${p.borderStrong}`,
     color: p.text,
@@ -333,7 +336,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     color: p.text,
     fontWeight: 600,
   };
-  // Small recall affordances (My numbers / History) in the status zone.
+  // "My numbers" is the recall players actually reach for — keep it the primary
+  // affordance, filling the row.
   const recallBtn: React.CSSProperties = {
     flex: 1,
     border: `1px solid ${p.borderStrong}`,
@@ -345,21 +349,29 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     fontWeight: 500,
     cursor: 'pointer',
   };
-  // A finished one-shot action: grayed, checked, not interactive.
+  // History is rarely opened (fb:341475d7 — "very prominent, can almost be
+  // hidden"); demote it to a quiet, borderless, muted text link beside it.
+  const historyBtn: React.CSSProperties = {
+    flex: '0 0 auto',
+    border: 'none',
+    background: 'transparent',
+    color: p.muted,
+    borderRadius: 8,
+    padding: '5px 8px',
+    fontSize: 11,
+    fontWeight: 500,
+    cursor: 'pointer',
+    opacity: 0.7,
+  };
+  // A finished one-shot action: grayed, checked, not interactive. Shares
+  // actionBtn's geometry so a used action keeps the exact same footprint as the
+  // live button it replaced (fb:44df6d5d) — only the colors/cursor differ.
   const doneActionRow: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    width: '100%',
+    ...actionBtn,
     background: p.surf2,
     border: `1px solid ${p.border}`,
     color: p.muted,
-    borderRadius: 9,
-    padding: '10px 11px',
-    fontSize: 13,
-    fontWeight: 500,
-    marginBottom: 7,
-    textAlign: 'left',
+    cursor: 'default',
   };
 
   return (
@@ -456,7 +468,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
           <button
             onClick={() => setShowChronicle(true)}
             aria-label="See what's happened — your move and change history"
-            style={recallBtn}
+            style={historyBtn}
           >
             📜 History
           </button>
