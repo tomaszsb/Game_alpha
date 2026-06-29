@@ -8,7 +8,7 @@
 - **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Land the teacher card-insertion feature.** Phases 1–3 are live + verified (2026-06-14); the full authored-space feature (Phase 4a/4b) is built + green on the `phase-4a-card-insertion` branch, unmerged by a standing decision. Its gate (Phases 1–3 live) is now cleared — decide whether to merge + deploy it.
+1. ~~Land the teacher card-insertion feature.~~ **RESOLVED 2026-06-29 — it was already merged + deployed live** (the "built but unmerged" note was stale; feature code is in `server/instanceStore.js` + `server/server.js`, live since pre-v3.0.87). The `phase-4a-card-insertion` branch was a fully-merged leftover and has been deleted. No action remains.
 2. **Onboarding Phase C** — plain-English aliases for tile/button labels (newcomer mode). Core to the non-DOB-savvy-player goal; blocked only on the maintainer writing the alias strings. (Plus the fuller Project Chronicle P2–P5.)
 3. **Dashboard PATCH sweep** — flip the now-resolved feedback reports (the 3 Cluster B fb-ids: 31e5c4b8, 76fa69c7, + the glossary one) to `resolved` on the dashboard once v3.0.87 is confirmed live.
 
@@ -17,7 +17,7 @@ Green — targeted sweep 1719/1719. (Full ghost gate not run; not a known failur
 
 ## Decisions waiting on the user
 - **New panel default — DECIDED 2026-06-29: not yet** (panel not ready; stays opt-in). No longer open.
-- **Merge the phase-4a teacher card-insertion branch?** — built + green, gate cleared; awaiting the go/no-go (it's a real deploy).
+- ~~Merge the phase-4a teacher card-insertion branch?~~ **Moot — already merged + deployed live (resolved 2026-06-29).**
 
 ## Suggested first move
 First confirm v3.0.87 is live (the deploy was handed over this session) — check the version badge / `docker logs`. Then: do you want to **land the teacher card-insertion feature** (merge + deploy the phase-4a branch), or pick up **onboarding Phase C** (you'd supply the plain-English alias strings)?

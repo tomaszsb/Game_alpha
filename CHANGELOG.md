@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.88] - 2026-06-29
+
+**Three new-panel playtest fixes from the 2026-06-28 batch (v3.0.86 reports).** All scoped to the opt-in redesigned player panel — the live default game is unchanged. Picked up in technical order (smallest/most-isolated first) and verified live in a running game.
+
+- **"A button got longer once I pressed it" (fb:44df6d5d).** The action buttons in "Things you can do" used the browser-default `content-box`, and the selected-destination state bumps the border `1px → 1.5px` (plus weight `500 → 600`), so a picked option visibly grew. Added `box-sizing: border-box` to `actionBtn` (inherited by the selected state) so a border-width change can't resize the control, and made the grayed `✓` done-trace row spread `actionBtn`'s geometry instead of duplicating it — a used action now keeps the exact same footprint as the live button it replaced. Verified live: the `✓` row measures 39×260px, identical to the live button. ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx))
+- **History button too prominent (fb:341475d7).** "📜 History" shared the bordered `recallBtn` style with "📋 My numbers" at `flex: 1`, so it looked equally important; the maintainer noted players rarely open it. Demoted it to a quiet borderless, muted, `opacity: 0.7` text link while "My numbers" stays the primary recall affordance. ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx))
+- **Stray "Keep" button in the review-only card view (fb:f4d0e327).** The card-detail dismiss button was hardwired to "Keep", which implies a keep/replace/fire decision — wrong when you're only inspecting a card. It now reads "Keep" only when there's a genuine choice (an activatable expeditor: use now vs. hold for later) and "Done" in the review-only case. "Done" rather than "Close" avoids colliding with ModalBase's "Close" X-button accessible name. +1 test locking the "Keep" case. ([PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx))
+
+### Checks
+Typecheck + build clean; PlayerCardDetailV2 + PlayerPanelV2 suites green (26/26). All three verified live on the opt-in new panel. (Also this session, not user-facing: corrected stale TODO/NEXT_SESSION notes that described the teacher card-insertion feature as "built but unmerged" — it was in fact merged and deployed live well before v3.0.87; deleted the fully-merged `phase-4a-card-insertion` branch.)
+
 ## [3.0.87] - 2026-06-29
 
 **Cluster B playtest leftovers + a full "no game language" copy sweep.** Two threads ship together; both touch the live default game (the voice sweep especially).
