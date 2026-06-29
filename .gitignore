@@ -38,6 +38,9 @@ yarn-error.log*
 .claude/feedback-staged.md
 .claude/fb-*.png
 .claude/dashboard-screenshots/
+.claude/ghost-history.jsonl
+.claude/ghost-progress.log
+.claude/ghost-progress.txt
 
 # OS-generated files
 .DS_Store

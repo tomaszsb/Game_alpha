@@ -71,7 +71,7 @@ describe('Ghost Player', () => {
   // count by a known amount, and we can update the threshold consciously
   // rather than chase phantom flakes.
   it('strict: 50 games with no exceptions or invariants, win-rate floor', async () => {
-    const batch = await runGhostBatch(50, { maxTurns: 300, baseSeed: 1 });
+    const batch = await runGhostBatch(50, { maxTurns: 300, baseSeed: 1, progressLabel: 'strict' });
     console.log(`[ghost strict baseSeed=1] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
     const hardFailures = batch.failures.filter(isHardFailure);
@@ -129,7 +129,7 @@ describe('Ghost Player', () => {
   // smart-bot variant below. The coarse floor here only catches Try Again
   // stalling EVERY game outright (deadlock with no crash).
   it('negotiate-coverage: aggressive Try Again across spaces never crashes or leaks state', async () => {
-    const batch = await runGhostBatch(50, { maxTurns: 300, tryAgainProbability: 0.2, baseSeed: 100001 });
+    const batch = await runGhostBatch(50, { maxTurns: 300, tryAgainProbability: 0.2, baseSeed: 100001, progressLabel: 'negotiate-coverage' });
     console.log(`[ghost negotiate-coverage baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 
     const hardFailures = batch.failures.filter(isHardFailure);
@@ -174,6 +174,7 @@ describe('Ghost Player', () => {
       // exact space-cycle is a LOOP (hard failure), not a tolerated slow loss.
       // This is the gate that would have caught the Prof Cert loop (v3.0.79).
       detectLoops: true,
+      progressLabel: 'smart-bot',
     });
     console.log(`[ghost try-again smart baseSeed=100001] ${batch.wins}/${batch.total} wins, avgTurns=${batch.avgTurns.toFixed(1)}`);
 

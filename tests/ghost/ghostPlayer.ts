@@ -17,8 +17,36 @@
  *   - Current space missing from the space table (corrupt move)
  */
 
+import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type { HeadlessServices } from './bootstrapServices';
 import { bootstrapHeadlessServices } from './bootstrapServices';
+
+/**
+ * Per-game progress heartbeat (TODO 2026-06-14). A full ghost batch can run
+ * ~50 min and vitest swallows console.log on passing tests, so there was no way
+ * to tell mid-run whether it was progressing or hung. When a batch passes a
+ * `progressLabel`, every finished game appends one line to a tail-able log
+ * (`tail -f` confirms movement; a flatlining gameIndex = a stuck game) and
+ * overwrites a one-line at-a-glance file. Best-effort: a write failure must
+ * never break a test. Separate from `.claude/ghost-history.jsonl`, which is the
+ * once-per-batch durable record of the final tally.
+ */
+function writeGhostProgress(
+  label: string, gameIndex: number, total: number, elapsedMs: number, wins: number, lastReason: string
+): void {
+  try {
+    const logPath = '.claude/ghost-progress.log';
+    mkdirSync(dirname(logPath), { recursive: true });
+    appendFileSync(logPath, JSON.stringify({
+      ts: new Date().toISOString(), label, gameIndex, total, elapsedMs, wins, lastReason,
+    }) + '\n');
+    const mins = (elapsedMs / 60000).toFixed(1);
+    writeFileSync('.claude/ghost-progress.txt', `${label} ${gameIndex}/${total} · ${mins}m · wins ${wins} · last ${lastReason}\n`);
+  } catch {
+    // Non-fatal: progress logging must never break the test.
+  }
+}
 
 export interface GhostGameResult {
   success: boolean;
@@ -556,7 +584,7 @@ function safeGetPlayerSpace(stateService: any): string | undefined {
  */
 export async function runGhostBatch(
   gameCount: number,
-  options: GhostGameOptions & { baseSeed?: number; perGameTimeoutMs?: number } = {}
+  options: GhostGameOptions & { baseSeed?: number; perGameTimeoutMs?: number; progressLabel?: string } = {}
 ): Promise<{
   total: number;
   wins: number;
@@ -576,8 +604,9 @@ export async function runGhostBatch(
   // making the win count deterministic. See ghostPlayer.test.ts smart-bot test.
   const PER_GAME_TIMEOUT_MS = options.perGameTimeoutMs ?? 30000;
 
-  const { baseSeed, perGameTimeoutMs: _perGameTimeoutMs, ...gameOptions } = options;
+  const { baseSeed, perGameTimeoutMs: _perGameTimeoutMs, progressLabel, ...gameOptions } = options;
   const originalRandom = Math.random;
+  const batchStart = Date.now();
 
   try {
     for (let i = 0; i < gameCount; i++) {
@@ -602,6 +631,11 @@ export async function runGhostBatch(
         }
       } else {
         failures.push(result);
+      }
+
+      // Per-game heartbeat so a long batch is observable / a hang is visible.
+      if (progressLabel) {
+        writeGhostProgress(progressLabel, i + 1, gameCount, Date.now() - batchStart, wins, result.reason);
       }
     }
   } finally {
