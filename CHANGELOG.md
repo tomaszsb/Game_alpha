@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.89] - 2026-06-29
+
+**Finalized the new-view ledger ("My numbers").** The new panel's recall modal was a bare scope+money+time list; the classic `ProjectLedger`'s useful depth never crossed over. This brings it across in the new-view design language — grounded in the locked redesign spec (teach-don't-dumb-down §1, glossary §6, one-screen §9), opt-in new panel only, live default game untouched.
+
+- **Shared finances helper.** New pure, tested [projectFinances.ts](src/utils/projectFinances.ts) (8 unit tests) computes scope, spent-vs-budget per area, contingency, and the funding gap — mirroring the classic ledger's assumptions (design ~20% of scope, regulatory ~5%, contingency ~10% of uses) so the two can't disagree. New-view-owned; the dying classic ledger is left untouched (per the migrate-to-new-view direction).
+- **"Where your money's going"** — Design / Regulatory / Construction / Contingency spent-of-budget, with an over-budget flag carried by an arrow + words (not colour alone, a11y). **"Still to raise"** surfaces the funding gap.
+- **Scope grouped by trade** — work packages now sit under their real DOB work type (`work_type_restriction`: General Construction / Plumbing / Sprinklers / Mechanical Systems / …), with a per-trade subtotal (fb:222cd521). Real data, no fabrication.
+- **Glossary §6 done right** — domain terms (scope, Construction, Mechanical Systems, …) are wrapped in `TextWithTerms` → glossary side-panel (teach on demand), *not* stripped. (A first pass had de-jargoned by removing teachable terms — the opposite of the north star — corrected after reading the locked spec.)
+- **Dropped the redundant "Days spent" row** (already always-visible in the panel status zone; time is a separate axis from a money ledger), and tightened spacing so the whole ledger fits one screen with no scroll (§9).
+
+Typecheck + build clean; 16/16 new-view tests green; verified live (glossary opens on term tap, trade groups render, fits one screen, no console errors). Known follow-ups logged to TODO: ledger accordion/progressive-disclosure, the confusing "Still to raise > Total scope" presentation, dark-mode + glossary-link contrast for the V2 modals, and the before→after outcome modal (next planned piece).
+
 ## [3.0.88] - 2026-06-29
 
 **Three new-panel playtest fixes from the 2026-06-28 batch (v3.0.86 reports).** All scoped to the opt-in redesigned player panel — the live default game is unchanged. Picked up in technical order (smallest/most-isolated first) and verified live in a running game.

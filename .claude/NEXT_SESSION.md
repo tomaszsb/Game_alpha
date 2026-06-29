@@ -1,27 +1,30 @@
 # Next session starter — written 2026-06-29 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.87 — **PENDING DEPLOY** (built + pushed; deploy command handed to the user this session — confirm it actually went live).
-- **Branch:** master, clean apart from the usual `.claude/settings.local.json` + untracked `.claude/ghost-*` scratch (now gitignored).
-- **Last shipped:** Cluster B leftovers (glossary dup-key, roll-result clarity, expeditor-replace phase chip) + a full **no-game-language copy sweep** (no die number/🎲/🃏 in player copy; Life Event=📰, generic=📄). Touches the live default game.
-- **Test suite:** typecheck + build clean; targeted sweep (components/utils/services) **1719/1719 green**; ghost fast unit tests green. ⚠️ The 50-game ghost gates were NOT run this session (~50 min) — run them if touching engine/movement/cards.
-- **Build/typecheck:** clean.
+- **Version:** v3.0.89 — **built + pushed; deploy handed to the user** (confirm the badge reads v3.0.89 / `<HEAD>` live). v3.0.88 already deployed + confirmed live earlier today.
+- **Branch:** master, clean apart from the usual `.claude/settings.local.json`.
+- **Last shipped:** the **new-view ledger** ("My numbers") — scope grouped by trade, spent-vs-budget per area, funding gap, glossary-taught terms; shared `projectFinances.ts` helper. Opt-in new panel only; classic untouched.
+- **Test suite:** typecheck + build clean; full sweep **1734/1734 green**. (50-game ghost gates not run — opt-in-panel-only, no engine touch.)
 
-## Top 3 open items
-1. ~~Land the teacher card-insertion feature.~~ **RESOLVED 2026-06-29 — it was already merged + deployed live** (the "built but unmerged" note was stale; feature code is in `server/instanceStore.js` + `server/server.js`, live since pre-v3.0.87). The `phase-4a-card-insertion` branch was a fully-merged leftover and has been deleted. No action remains.
-2. **Onboarding Phase C** — plain-English aliases for tile/button labels (newcomer mode). Core to the non-DOB-savvy-player goal; blocked only on the maintainer writing the alias strings. (Plus the fuller Project Chronicle P2–P5.)
-3. ~~Dashboard PATCH sweep~~ **DONE 2026-06-29.** Flipped 5 resolved reports to `resolved` (v3.0.87 Cluster B: 31e5c4b8, 76fa69c7; v3.0.88 batch: 44df6d5d, 341475d7, f4d0e327) — open count 37→32. The "glossary one" was a console-only React dup-key warning with no feedback report, so nothing to flip. ⚠️ The PATCH endpoint is now **token-gated** (was open when the old recipe was written): `?token=<FEEDBACK_TOKEN>` required.
+## Top open items
+1. **Before→after outcome modal** — the next planned piece (the "what just happened" / dice-result modal). See the sketch below.
+2. **New-view ledger follow-ups (logged in TODO this session):** accordion/progressive-disclosure to stay one-screen; clarify the confusing "Still to raise $3.1M vs Total scope $2.2M" (it's total project cost incl. soft costs + contingency, not a bug, but it misleads); dark mode + glossary-link contrast for the V2 modals (light-only today — blue links on light-gray are hard to read).
+3. **Onboarding Phase C** (plain-English tile/button aliases) — blocked on the maintainer writing the alias strings.
 
-## Test failures to address
-Green — targeted sweep 1719/1719. (Full ghost gate not run; not a known failure.)
+## Before→after outcome modal — the sketch (the user wanted this written down)
+Goal: after an action resolves, show **what changed** in the new-view language. Approach:
+- **Gate to the new panel** (`ucPanelVersion==='new'`) so the **shared, live** `DiceResultModal` is untouched for classic (its restyle was deferred for exactly this risk).
+- Render **before vs after** rows for the affected figures — cash, scope, days, and (the key ask) **which specific resource/expeditor was added or taken** — reusing `projectFinances.ts` + the ledger row styling so the two read identically. There's an existing `BeforeAfterBlock` component to lean on.
+- Resolves the cluster: fb:dc7652ec (before/after should look like "My numbers"), fb:0001f5df / fb:0fc63fc1 / fb:3aad5f84 ("which resource/expeditor did I lose?").
+- Start by reading `DiceResultModal.tsx` (fired from `GameLayout` via AutoActionEvent) to find the cleanest new-view-gated seam.
 
 ## Decisions waiting on the user
-- **New panel default — DECIDED 2026-06-29: not yet** (panel not ready; stays opt-in). No longer open.
-- ~~Merge the phase-4a teacher card-insertion branch?~~ **Moot — already merged + deployed live (resolved 2026-06-29).**
+- None blocking. (Trade-grouping currently uses the raw 40 DOB work types; rolling them into ~5 high-level buckets — GC/plumbing/electrical/HVAC/FDNY — needs the maintainer's mapping calls, deferred.)
 
 ## Suggested first move
-First confirm v3.0.87 is live (the deploy was handed over this session) — check the version badge / `docker logs`. Then: do you want to **land the teacher card-insertion feature** (merge + deploy the phase-4a branch), or pick up **onboarding Phase C** (you'd supply the plain-English alias strings)?
+Confirm v3.0.89 is live, then start the before→after outcome modal (sketch above) — or pick a new-view ledger follow-up if you'd rather tidy the ledger first. Which?
 
 ## Reminders
-- Deploy runs from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy (done this session).
-- The Parking lot at the bottom of TODO.md is deferred-not-active — don't treat it as the backlog.
+- Deploy from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy (done).
+- **Migrating to the new view** — don't invest in classic-only components (see memory `migrate-to-new-view`); the TODO change-legibility P2–P5 framing is stale classic-speak.
+- On the locked redesign surface, **read `docs/design/player-panel-redesign.md` before building** — jargon gets taught via `TextWithTerms` glossary links, not stripped.
