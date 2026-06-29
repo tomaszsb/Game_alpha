@@ -1,27 +1,27 @@
-# Next session starter — written 2026-06-27 by /koniec
+# Next session starter — written 2026-06-29 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.86 — **deployed live (commit `6e017d7`).** No new release this session.
-- **Branch:** master. This was a **tooling/process session, no version shipped.** Wrap-up committed + pushed; clean apart from the usual `.claude/settings.local.json` + untracked `.claude/ghost-history.jsonl`.
-- **Last shipped (unchanged):** v3.0.86 — between-turns move popup, "📋 My numbers", "📜 History" Chronicle first slice (all opt-in new panel).
-- **This session:** (1) restructured `/start` + `/koniec` (see Reminders — `/start` behaves differently now); (2) 4 TODO housekeeping items — npm audit cleared (js-yaml, dev-only), E2E flaky-hang fixed, version-badge drift removed, recover-board.mjs verified already gone.
-- **Test suite:** typecheck + build clean; targeted sweep (components/utils/services) **1714/1714 green**; the previously-flaky `E2E-LogicPlaythrough` now **15/15** after the choice-pump fix.
+- **Version:** v3.0.87 — **PENDING DEPLOY** (built + pushed; deploy command handed to the user this session — confirm it actually went live).
+- **Branch:** master, clean apart from the usual `.claude/settings.local.json` + untracked `.claude/ghost-*` scratch (now gitignored).
+- **Last shipped:** Cluster B leftovers (glossary dup-key, roll-result clarity, expeditor-replace phase chip) + a full **no-game-language copy sweep** (no die number/🎲/🃏 in player copy; Life Event=📰, generic=📄). Touches the live default game.
+- **Test suite:** typecheck + build clean; targeted sweep (components/utils/services) **1719/1719 green**; ghost fast unit tests green. ⚠️ The 50-game ghost gates were NOT run this session (~50 min) — run them if touching engine/movement/cards.
+- **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Decision — make the new panel the default?** Pile 2 + Pile 3 closed the gap (recall modals, phase-correct Activate); the classic/new toggle stays until the maintainer says flip it. The big call.
-2. **Fuller Project Chronicle (TODO P2–P5).** Only the readable-history first slice shipped. Remaining: inline ▲/▼ deltas, click-an-entry-to-replay-highlight, TV-persistent feed via `NotificationService`, tiered work cards, time-feel, a11y pass.
-3. **Cluster B leftovers.** Two new-panel reports open: fb:31e5c4b8 ("effect applied but nothing changed / a roll should say what it determined") and fb:76fa69c7 ("can't see details to pick which expeditor to replace"). Plus deferred outcome-modal restyle, glossary duplicate-key bug (spawned task_37088946).
+1. **Land the teacher card-insertion feature.** Phases 1–3 are live + verified (2026-06-14); the full authored-space feature (Phase 4a/4b) is built + green on the `phase-4a-card-insertion` branch, unmerged by a standing decision. Its gate (Phases 1–3 live) is now cleared — decide whether to merge + deploy it.
+2. **Onboarding Phase C** — plain-English aliases for tile/button labels (newcomer mode). Core to the non-DOB-savvy-player goal; blocked only on the maintainer writing the alias strings. (Plus the fuller Project Chronicle P2–P5.)
+3. **Dashboard PATCH sweep** — flip the now-resolved feedback reports (the 3 Cluster B fb-ids: 31e5c4b8, 76fa69c7, + the glossary one) to `resolved` on the dashboard once v3.0.87 is confirmed live.
 
 ## Test failures to address
-Green — the one known flake (E2E hang) was fixed this session.
+Green — targeted sweep 1719/1719. (Full ghost gate not run; not a known failure.)
 
 ## Decisions waiting on the user
-- **Make the new panel the default yet?** (Top-3 #1)
+- **New panel default — DECIDED 2026-06-29: not yet** (panel not ready; stays opt-in). No longer open.
+- **Merge the phase-4a teacher card-insertion branch?** — built + green, gate cleared; awaiting the go/no-go (it's a real deploy).
 
 ## Suggested first move
-Ask the maintainer: flip the new panel to default, build out the fuller Chronicle (P2–P5), or clear the Cluster B leftovers? Note `/start` will only sweep dashboard feedback automatically once it's a new month (it's June→still June) — run `/start full` to force a fresh feedback pull.
+First confirm v3.0.87 is live (the deploy was handed over this session) — check the version badge / `docker logs`. Then: do you want to **land the teacher card-insertion feature** (merge + deploy the phase-4a branch), or pick up **onboarding Phase C** (you'd supply the plain-English alias strings)?
 
 ## Reminders
-- **`/start` is now auto-sizing.** Light briefing every session; the heavy feedback sweep + README/TODO drift fire only on the first session of a new month, or on `/start full`. The monthly gate reads the `written YYYY-MM-DD` date on line 1 of THIS file — keep it accurate.
-- **Commit + push BEFORE handing over the deploy command.** `deploy.sh` does `git pull origin master` then stamps the badge from HEAD. Deploy from the **Windows terminal**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-- **Local browser verify needs BOTH servers:** Express (`npm run server`, 3001) + the preview MCP's Vite (3000).
+- Deploy runs from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy (done this session).
+- The Parking lot at the bottom of TODO.md is deferred-not-active — don't treat it as the backlog.

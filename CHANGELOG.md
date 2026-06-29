@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.87] - 2026-06-29
+
+**Cluster B playtest leftovers + a full "no game language" copy sweep.** Two threads ship together; both touch the live default game (the voice sweep especially).
+
+### Cluster B — the last three reports from the 2026-06-23 new-panel playtest
+- **Glossary duplicate-key React warning (pre-existing).** Opening the Dictionary side panel logged ~24 `Encountered two children with the same key` warnings — duplicate ids in the **external** glossary data (the live dashboard API / CSV fallback; there is no static `glossary.json` in the repo). Fixed with a `dedupeById` guard at the load boundary in [terms.ts](src/dictionary/data/terms.ts) (keep-first, `debugWarn`s any dropped ids), applied to BOTH the API and CSV paths so a dirty source can never reach the `key={term.id}` render again. +1 uniqueness test.
+- **"Effect applied but nothing changed / a roll should say what it determined" (fb:31e5c4b8).** [DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx) gated its "Effects Applied" header on `result.effects.length`, which counts the *suppressed* `'choice'` effect — so a routing-only roll rendered the header above an empty body. Now gated on `displayableEffects` (effects minus `'choice'`); when nothing displayable applied but the outcome decided the routing, it says so in plain language instead. +3 tests.
+- **"Can't see details to decide which expeditor to replace" (fb:76fa69c7).** The replace/return/give flow (both panels, via the shared [CardReplacementModal.tsx](src/components/modals/CardReplacementModal.tsx)) showed name + description + cost but not each expeditor's **phase** — the decisive "which to keep" detail (the same gap v3.0.80 fixed in the hand list). Extracted `PhaseChip`/`expeditorPhaseInfo` into a shared [expeditorPhase.tsx](src/components/player/expeditorPhase.tsx) (no parallel copy to drift), taught `CardDisplay`'s compact variant to render `headerBadge`, and pass the phase chip per-expeditor. +2 tests.
+
+### No game language — full player-facing copy sweep (voice rule)
+The maintainer rejected a generated line ("🎲 You rolled a N…"); the die is an in-app mechanic with no real-world meaning, so player copy must describe **outcomes**, never the roll. Swept ~24 player-facing files: removed the raw die number + 🎲 from the result modal (subtitle, title, header), the classic panel's number badges, the dice notification, the action log, and auto-draw messages; reframed wording ("Effects Applied" → "What happened", "Choose your destination" → "Choose your next step", routing prompt no longer says "you rolled N", dropped the "(W)/(B)/(E)" codes from the rules modal); and replaced board-game iconography — Life Events `🎲 → 📰` (propagates everywhere via `getCardTypeEmoji`), generic deck `🃏 → 📄`. Editor/teacher surfaces left as-is (they author the mechanics). Saved the directive to memory so future copy follows it. Updated the four test files whose assertions pinned the old strings.
+
+### Checks
+Typecheck + build clean; targeted vitest sweep (components/utils/services) 1719/1719 green; ghost fast unit tests green. (Also this session, not user-facing: TODO.md pruned of ~248 accumulated completed items + a Parking lot for deferred non-actions; `/koniec` taught to delete completed items not just check them off; a ghost-run progress heartbeat added to `runGhostBatch`.)
+
 ## [3.0.86] - 2026-06-26
 
 **Pile 3 — "recall my numbers" change-legibility, three pieces (opt-in new panel).** The recall/reference cluster from the 2026-06-23 new-panel playtest: the new panel had no Log tab, no Ledger tab, and no between-turns move popup, so a player couldn't look back at what they'd done or remember their numbers. Built in technical order (smallest/most-isolated → biggest), all behind the opt-in panel — the live default game is untouched.

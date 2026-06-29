@@ -2,6 +2,14 @@
 
 ---
 
+## v3.0.87 — Plainer language about what happens (June 29, 2026)
+
+The game now talks to you about **what happened in your project**, not about the dice or the cards behind the scenes:
+- **No more dice numbers in the messages.** When something is decided by chance, the game tells you the *outcome* ("Based on how that turned out, choose your next step") instead of showing a die roll. The 🎲 has been swept out of the player text.
+- **Friendlier wording throughout** — "What happened" instead of "Effects Applied", "Life Events" now shown with a 📰 instead of a die, and the rules screen no longer shows the internal letter codes.
+- **Clearer outcome popup.** When a step decides which way you go (without changing your money or scope), the popup now says so plainly instead of showing an empty "effects" box.
+- **Replacing an expeditor is clearer** — each filing rep now shows which phase it helps with right in the picker, so you can tell at a glance which one to let go.
+
 ## v3.0.86 — Remember your numbers + a look back at what happened (June 26, 2026)
 
 Three additions to the **opt-in redesigned panel** (the "Try new design" button — off unless you turn it on), all about helping you remember where you are:
