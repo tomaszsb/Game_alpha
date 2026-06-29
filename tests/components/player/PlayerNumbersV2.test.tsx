@@ -38,8 +38,8 @@ describe('PlayerNumbersV2 — recall reference', () => {
     vi.clearAllMocks();
     services = createAllMockServices();
     services.dataService.getCardById.mockImplementation((id: string) => {
-      if (id === 'W1') return { card_id: 'W1', card_type: 'W', card_name: 'Foundation', cost: 80000 } as any;
-      if (id === 'W2') return { card_id: 'W2', card_type: 'W', card_name: 'Steel Frame', cost: 120000 } as any;
+      if (id === 'W1') return { card_id: 'W1', card_type: 'W', card_name: 'Foundation', cost: 80000, work_type_restriction: 'Structural' } as any;
+      if (id === 'W2') return { card_id: 'W2', card_type: 'W', card_name: 'Steel Frame', cost: 120000, work_type_restriction: 'Structural' } as any;
       if (id === 'E1') return { card_id: 'E1', card_type: 'E', card_name: 'Rush Rep' } as any;
       return null;
     });
@@ -47,23 +47,69 @@ describe('PlayerNumbersV2 — recall reference', () => {
 
   afterEach(() => cleanup());
 
-  it('lists each work package by name (recall what they were) and the money/time sections', () => {
+  it('lists each work package by name (recall what they were) and the money section', () => {
     renderModal();
     expect(screen.getByText(/What you're building/i)).toBeInTheDocument();
     // Each work package is recallable by name (only the W cards, not the E card).
     expect(screen.getByText('Foundation')).toBeInTheDocument();
     expect(screen.getByText('Steel Frame')).toBeInTheDocument();
     expect(screen.queryByText('Rush Rep')).not.toBeInTheDocument();
-    // Money + time labels present.
+    // Money labels present.
     expect(screen.getByText('Cash on hand')).toBeInTheDocument();
     expect(screen.getByText('Funding raised')).toBeInTheDocument();
     expect(screen.getByText('Spent so far')).toBeInTheDocument();
-    expect(screen.getByText('Days spent')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument(); // days
+  });
+
+  it('groups work packages under their trade and drops the redundant days row', () => {
+    renderModal();
+    const modal = screen.getByTestId('player-numbers-v2');
+    // Both W cards are Structural → grouped under that trade heading.
+    expect(modal).toHaveTextContent(/Structural/i);
+    // Days spent moved out (it's already always-visible in the panel status zone).
+    expect(screen.queryByText('Days spent')).not.toBeInTheDocument();
   });
 
   it('shows an empty-state when no work packages are held yet', () => {
     renderModal({ ...player, hand: ['E1'] }); // only a non-W card
     expect(screen.getByText(/No work packages yet/i)).toBeInTheDocument();
+  });
+
+  it('breaks down where the money is going, spent vs budget per area', () => {
+    renderModal();
+    const modal = screen.getByTestId('player-numbers-v2');
+    expect(screen.getByText(/Where your money's going/i)).toBeInTheDocument();
+    // Labels can be split by glossary term-links (TextWithTerms), so assert on
+    // the modal's full text content rather than single text nodes.
+    expect(modal).toHaveTextContent('Design & professional fees');
+    expect(modal).toHaveTextContent('Regulatory & filings');
+    expect(modal).toHaveTextContent('Construction');
+    expect(modal).toHaveTextContent(/Contingency/i);
+  });
+
+  // Note: glossary term-linking (§6 — TextWithTerms wraps "Regulatory" /
+  // "Construction" / "scope") is a runtime behavior verified live in the browser;
+  // the test DictionaryProvider doesn't load real glossary data in jsdom.
+
+  it('hides the breakdown until there is scope to budget against', () => {
+    renderModal({ ...player, hand: ['E1'] }); // no W cards → no scope
+    expect(screen.queryByText(/Where your money's going/i)).not.toBeInTheDocument();
+  });
+
+  it('flags a funding gap when commitments exceed money raised', () => {
+    // scope 200k → commitments (scope + 20% + 5% + 10% contingency) ≈ 255k vs 150k raised.
+    renderModal();
+    expect(screen.getByText('Still to raise')).toBeInTheDocument();
+  });
+
+  it('shows no funding gap once enough has been raised', () => {
+    renderModal({ ...player, moneySources: { ownerFunding: 5000000 } });
+    expect(screen.queryByText('Still to raise')).not.toBeInTheDocument();
+  });
+
+  it('marks an area that has overrun its budget', () => {
+    // scope 200k → design budget 40k; spend 60k → design ▲ over budget (and the
+    // overrun spills into the contingency buffer, which also flags over).
+    renderModal({ ...player, expenditures: { design: 60000, fees: 0, construction: 0 } });
+    expect(screen.getAllByText(/over budget/i).length).toBeGreaterThan(0);
   });
 });
