@@ -88,6 +88,22 @@ describe('computeProjectFinances', () => {
     expect(fin.scopeByTrade[0].trade).toBe('Other work');
   });
 
+  it('allocates each work package its share of the soft costs + a full cost', () => {
+    const fin = computeProjectFinances(makePlayer({ hand: ['W1', 'W2'] }), getCardById);
+    // scope 150k → design 30k / regulatory 7.5k / contingency 12.75k (see above).
+    // W1 is 100k of 150k scope = 2/3 share; W2 is 50k = 1/3 share.
+    const w1 = fin.workPackages.find((w) => w.id === 'W1')!;
+    expect(w1.breakdown.build).toBe(100000);
+    expect(w1.breakdown.design).toBe(20000); // round(30000 * 2/3)
+    expect(w1.breakdown.regulatory).toBe(5000); // round(7500 * 2/3)
+    expect(w1.breakdown.contingency).toBe(8500); // round(12750 * 2/3)
+    expect(w1.fullCost).toBe(133500); // 100000 + 20000 + 5000 + 8500
+
+    // Every package's full cost reconciles (±rounding) to total commitments.
+    const sumFull = fin.workPackages.reduce((s, w) => s + w.fullCost, 0);
+    expect(Math.abs(sumFull - fin.commitments)).toBeLessThanOrEqual(2);
+  });
+
   it('handles a player with no work packages', () => {
     const fin = computeProjectFinances(makePlayer(), getCardById);
     expect(fin.scopeTotal).toBe(0);

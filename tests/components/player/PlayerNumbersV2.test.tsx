@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PlayerNumbersV2 } from '../../../src/components/player/PlayerNumbersV2';
@@ -47,9 +47,15 @@ describe('PlayerNumbersV2 — recall reference', () => {
 
   afterEach(() => cleanup());
 
+  // The scope list is collapsed behind the "Total scope" header; tap it open.
+  const openScope = () => fireEvent.click(screen.getByRole('button', { name: /Total scope/i }));
+
   it('lists each work package by name (recall what they were) and the money section', () => {
     renderModal();
     expect(screen.getByText(/What you're building/i)).toBeInTheDocument();
+    // Collapsed by default — packages appear once the scope header is opened.
+    expect(screen.queryByText('Foundation')).not.toBeInTheDocument();
+    openScope();
     // Each work package is recallable by name (only the W cards, not the E card).
     expect(screen.getByText('Foundation')).toBeInTheDocument();
     expect(screen.getByText('Steel Frame')).toBeInTheDocument();
@@ -60,8 +66,21 @@ describe('PlayerNumbersV2 — recall reference', () => {
     expect(screen.getByText('Spent so far')).toBeInTheDocument();
   });
 
+  it('collapses the work packages behind the Total scope drill-down', () => {
+    renderModal();
+    const scope = screen.getByRole('button', { name: /Total scope/i });
+    expect(scope).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Foundation')).not.toBeInTheDocument();
+    fireEvent.click(scope);
+    expect(scope).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Foundation')).toBeInTheDocument();
+    fireEvent.click(scope); // tap again → collapses
+    expect(screen.queryByText('Foundation')).not.toBeInTheDocument();
+  });
+
   it('groups work packages under their trade and drops the redundant days row', () => {
     renderModal();
+    openScope();
     const modal = screen.getByTestId('player-numbers-v2');
     // Both W cards are Structural → grouped under that trade heading.
     expect(modal).toHaveTextContent(/Structural/i);
@@ -89,6 +108,34 @@ describe('PlayerNumbersV2 — recall reference', () => {
   // Note: glossary term-linking (§6 — TextWithTerms wraps "Regulatory" /
   // "Construction" / "scope") is a runtime behavior verified live in the browser;
   // the test DictionaryProvider doesn't load real glossary data in jsdom.
+
+  it('drills a work package open to show where its full cost goes', () => {
+    renderModal();
+    openScope();
+    // Collapsed: the breakdown lines are not in the DOM yet.
+    expect(screen.queryByText(/The build itself/i)).not.toBeInTheDocument();
+    const row = screen.getByRole('button', { name: /Foundation/i });
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+    // Tap it open → the soft-cost components + a full cost appear.
+    fireEvent.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+    // Drill-down-unique lines (the area-budget section also says "Design…", so
+    // assert on labels that only the breakdown shows).
+    expect(screen.getByText(/The build itself/i)).toBeInTheDocument();
+    expect(screen.getByText(/Safety buffer \(contingency\)/i)).toBeInTheDocument();
+    expect(screen.getByText('Full cost')).toBeInTheDocument();
+    // Tap again → collapses.
+    fireEvent.click(row);
+    expect(screen.queryByText(/The build itself/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the full project budget that "Still to raise" is measured against', () => {
+    renderModal();
+    const modal = screen.getByTestId('player-numbers-v2');
+    expect(modal).toHaveTextContent('Full project budget');
+    // The plain-language reconciliation explaining why it exceeds the scope.
+    expect(modal).toHaveTextContent(/fold in design/i);
+  });
 
   it('hides the breakdown until there is scope to budget against', () => {
     renderModal({ ...player, hand: ['E1'] }); // no W cards → no scope

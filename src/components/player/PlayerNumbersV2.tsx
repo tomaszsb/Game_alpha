@@ -12,12 +12,12 @@
 // expenditures. Reuses the proven ModalBase shell (light body, like
 // PlayerCardDetailV2 — a dark modal body is a shared later step).
 
-import React from 'react';
+import React, { useState } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { panelPalettes, PanelMode } from './panelTheme';
 import { FormatUtils } from '../../utils/FormatUtils';
-import { computeProjectFinances } from '../../utils/projectFinances';
+import { computeProjectFinances, WorkPackage } from '../../utils/projectFinances';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 
 export interface PlayerNumbersV2Props {
@@ -39,6 +39,17 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   // Glossary terms in the ledger are taught on demand, not stripped (redesign §1
   // "teach, don't dumb down" + §6 — wrap jargon in TextWithTerms → side panel).
   const { openWithTerm } = useDictionaryPanel();
+  // The scope list collapses behind the "Total scope" header (progressive
+  // disclosure — keeps the recall view to one screen); tap it to reveal the
+  // work packages. Which work packages have their own cost drill-down open.
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return null;
 
@@ -86,6 +97,73 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
     padding: '5px 10px 1px',
+  };
+
+  // One line inside a work package's cost drill-down: a soft-cost component (or
+  // the bold "Full cost" total). Indented under the package row.
+  const subLine = (label: string, value: number, opts?: { bold?: boolean }) => (
+    <div
+      style={{
+        display: 'flex',
+        gap: 8,
+        fontSize: 12,
+        padding: '2px 10px 2px 32px',
+        ...(opts?.bold
+          ? { borderTop: `1px solid ${p.border}`, marginTop: 2, paddingTop: 4 }
+          : null),
+      }}
+    >
+      <span style={{ flex: 1, color: opts?.bold ? p.text : p.muted }}>{label}</span>
+      <span style={{ fontWeight: opts?.bold ? 700 : 500, color: opts?.bold ? p.text : p.muted }}>
+        {fmt(value)}
+      </span>
+    </div>
+  );
+
+  // A work-package row. The headline is the build cost (so the list still sums to
+  // Total scope); tapping it drills into the soft costs the owner's price folds
+  // in — design, city filings, a safety buffer — and the package's full cost.
+  // That's why the money you must raise runs ahead of the bare scope.
+  const packageRow = (w: WorkPackage, key: string) => {
+    const isOpen = expanded.has(w.id);
+    return (
+      <div key={key} style={{ marginBottom: 4 }}>
+        <button
+          type="button"
+          onClick={() => toggle(w.id)}
+          aria-expanded={isOpen}
+          style={{
+            ...row,
+            paddingLeft: 14,
+            marginBottom: 0,
+            width: '100%',
+            border: 'none',
+            background: p.surf,
+            font: 'inherit',
+            color: p.text,
+            textAlign: 'left',
+            cursor: 'pointer',
+            minHeight: 36,
+          }}
+        >
+          <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏗️</span>
+          <span style={{ flex: 1 }}>{w.name}</span>
+          <span style={{ fontWeight: 600 }}>{fmt(w.cost)}</span>
+          <span aria-hidden style={{ color: p.muted, fontSize: 11, width: 12, textAlign: 'center' }}>
+            {isOpen ? '▾' : '▸'}
+          </span>
+        </button>
+        {isOpen && (
+          <div style={{ background: p.surf2, borderRadius: 8, padding: '4px 0', margin: '2px 0 0' }}>
+            {subLine('The build itself', w.breakdown.build)}
+            {subLine('Design & professional fees (20%)', w.breakdown.design)}
+            {subLine('Regulatory & filings (5%)', w.breakdown.regulatory)}
+            {subLine('Safety buffer (contingency)', w.breakdown.contingency)}
+            {subLine('Full cost', w.fullCost, { bold: true })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   // A "where the money's going" area: spent of budget, with a plain over-budget
@@ -153,38 +231,79 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
         {/* Scope — what you're building, and what each piece cost */}
         <div style={{ marginBottom: 12 }}>
           <p style={sectionLabel}>What you&apos;re building (scope)</p>
-          <div style={{ ...row, background: p.surf2, fontSize: 15 }}>
-            <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏢</span>
-            <span style={{ color: p.muted, flex: 1 }}>
-              <TextWithTerms text="Total scope" onTermClick={(term) => openWithTerm(term.id)} />
-            </span>
-            <span style={{ fontWeight: 700 }}>{fmt(fin.scopeTotal)}</span>
-          </div>
           {fin.workPackages.length === 0 ? (
-            <div style={{ fontSize: 12, color: p.muted, padding: '6px 2px' }}>
-              No work packages yet — you&apos;ll pick these up as you go.
-            </div>
+            <>
+              <div style={{ ...row, background: p.surf2, fontSize: 15 }}>
+                <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏢</span>
+                <span style={{ color: p.muted, flex: 1 }}>
+                  <TextWithTerms text="Total scope" onTermClick={(term) => openWithTerm(term.id)} />
+                </span>
+                <span style={{ fontWeight: 700 }}>{fmt(fin.scopeTotal)}</span>
+              </div>
+              <div style={{ fontSize: 12, color: p.muted, padding: '6px 2px' }}>
+                No work packages yet — you&apos;ll pick these up as you go.
+              </div>
+            </>
           ) : (
-            // Grouped by trade (DOB work type) so the scope reads the way it's
-            // actually filed — General Construction / Plumbing / Sprinklers / …
-            // (fb:222cd521). Each trade carries its own scope subtotal.
-            fin.scopeByTrade.map((g) => (
-              <div key={g.trade} style={{ marginBottom: 2 }}>
-                <div style={tradeHeader}>
-                  <span style={{ flex: 1 }}>
-                    <TextWithTerms text={g.trade} onTermClick={(term) => openWithTerm(term.id)} />
-                  </span>
-                  {g.packages.length > 1 && <span>{fmt(g.total)}</span>}
-                </div>
-                {g.packages.map((w, i) => (
-                  <div key={w.id || i} style={{ ...row, paddingLeft: 14 }}>
-                    <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏗️</span>
-                    <span style={{ flex: 1 }}>{w.name}</span>
-                    <span style={{ fontWeight: 600 }}>{fmt(w.cost)}</span>
+            <>
+              {/* Total scope is itself a drill-down: tap to reveal the work
+                  packages (the "scope" word still opens the glossary — its click
+                  stops propagation, so it won't toggle the section). */}
+              <button
+                type="button"
+                onClick={() => setScopeOpen((o) => !o)}
+                aria-expanded={scopeOpen}
+                style={{
+                  ...row,
+                  background: p.surf2,
+                  fontSize: 15,
+                  width: '100%',
+                  border: 'none',
+                  font: 'inherit',
+                  color: p.text,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  minHeight: 40,
+                }}
+              >
+                <span aria-hidden style={{ width: 18, textAlign: 'center' }}>🏢</span>
+                <span style={{ color: p.muted, flex: 1 }}>
+                  <TextWithTerms text="Total scope" onTermClick={(term) => openWithTerm(term.id)} />
+                </span>
+                <span style={{ fontWeight: 700 }}>{fmt(fin.scopeTotal)}</span>
+                <span aria-hidden style={{ color: p.muted, fontSize: 11, width: 12, textAlign: 'center' }}>
+                  {scopeOpen ? '▾' : '▸'}
+                </span>
+              </button>
+              {/* Grouped by trade (DOB work type) so the scope reads the way it's
+                  actually filed — General Construction / Plumbing / Sprinklers / …
+                  (fb:222cd521). Each trade carries its own scope subtotal. */}
+              {scopeOpen &&
+                fin.scopeByTrade.map((g) => (
+                  <div key={g.trade} style={{ marginBottom: 2 }}>
+                    <div style={tradeHeader}>
+                      <span style={{ flex: 1 }}>
+                        <TextWithTerms text={g.trade} onTermClick={(term) => openWithTerm(term.id)} />
+                      </span>
+                      {g.packages.length > 1 && <span>{fmt(g.total)}</span>}
+                    </div>
+                    {g.packages.map((w, i) => packageRow(w, w.id || String(i)))}
                   </div>
                 ))}
+              {/* Reconciles the scope list with "Still to raise": the owner's prices
+                  fold in design, filings + a buffer, so the money to raise runs ahead
+                  of the bare build. Always visible — the summary that ties it together. */}
+              <div style={{ ...row, background: p.surf2, fontSize: 14, marginTop: 6 }}>
+                <span aria-hidden style={{ width: 18, textAlign: 'center' }}>💰</span>
+                <span style={{ color: p.muted, flex: 1 }}>Full project budget</span>
+                <span style={{ fontWeight: 700 }}>{fmt(fin.commitments)}</span>
               </div>
-            ))
+              <p style={{ fontSize: 11, color: p.muted, margin: '4px 2px 0', lineHeight: 1.4 }}>
+                More than the scope above: the owner&apos;s prices fold in design,
+                city filings &amp; a safety buffer.{' '}
+                {scopeOpen ? 'Tap any item to see its full cost.' : 'Tap “Total scope” to see each item.'}
+              </p>
+            </>
           )}
         </div>
 

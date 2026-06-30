@@ -21,11 +21,37 @@ interface CardLike {
   work_type_restriction?: string;
 }
 
+/**
+ * The soft costs + buffer a single work package carries, allocated from the
+ * project-wide budgets by this package's share of total scope. Drives the
+ * per-item drill-down in the ledger so a player can see WHY the money they must
+ * raise is bigger than the bare construction cost: the owner's prices fold in
+ * design fees, city filings, and a contingency buffer.
+ *
+ * design + regulatory + contingency are each `<aggregate budget> × scopeShare`,
+ * so summing every package's `fullCost` reconciles to `commitments` (the figure
+ * "Still to raise" is measured against).
+ */
+export interface WorkPackageBreakdown {
+  /** The build itself — this package's W-card `cost`. */
+  build: number;
+  /** Allocated share of the 20%-of-scope design budget. */
+  design: number;
+  /** Allocated share of the 5%-of-scope regulatory/filings budget. */
+  regulatory: number;
+  /** Allocated share of the contingency buffer. */
+  contingency: number;
+}
+
 export interface WorkPackage {
   id: string;
   name: string;
   cost: number;
   trade: string;
+  /** Loaded cost components (build + design + filings + buffer). */
+  breakdown: WorkPackageBreakdown;
+  /** build + design + regulatory + contingency — the fully-loaded cost. */
+  fullCost: number;
 }
 
 /** Work packages grouped by trade (DOB work type), with a per-trade subtotal. */
@@ -87,13 +113,33 @@ export function computeProjectFinances(
     .map((id) => getCardById(id))
     .filter((c): c is CardLike => !!c && c.card_type === 'W');
 
-  const workPackages: WorkPackage[] = wCards.map((c) => ({
-    id: c.card_id || '',
-    name: c.card_name || c.card_id || 'Work package',
-    cost: num(c.cost),
-    trade: (c.work_type_restriction || '').trim() || 'Other work',
-  }));
-  const scopeTotal = workPackages.reduce((s, w) => s + w.cost, 0);
+  // Scope + the project-wide budgets first, so each work package can carry its
+  // allocated share of the soft costs (the per-item drill-down).
+  const scopeTotal = wCards.reduce((s, c) => s + num(c.cost), 0);
+  const constructionBudget = wCards.reduce((s, c) => s + num(c.work_cost), 0);
+
+  const designBudget = Math.round(scopeTotal * 0.20);
+  const regulatoryBudget = Math.round(scopeTotal * 0.05);
+  const totalUseBudget = designBudget + regulatoryBudget + constructionBudget;
+  const contingencyBudget = Math.round(totalUseBudget * 0.10);
+
+  const workPackages: WorkPackage[] = wCards.map((c) => {
+    const cost = num(c.cost);
+    // Allocate the soft costs by this package's share of scope, so the drill-down
+    // adds up within a row and every package's fullCost sums to `commitments`.
+    const share = scopeTotal > 0 ? cost / scopeTotal : 0;
+    const design = Math.round(designBudget * share);
+    const regulatory = Math.round(regulatoryBudget * share);
+    const contingency = Math.round(contingencyBudget * share);
+    return {
+      id: c.card_id || '',
+      name: c.card_name || c.card_id || 'Work package',
+      cost,
+      trade: (c.work_type_restriction || '').trim() || 'Other work',
+      breakdown: { build: cost, design, regulatory, contingency },
+      fullCost: cost + design + regulatory + contingency,
+    };
+  });
 
   // Group by trade, preserving the order each trade first appears.
   const scopeByTrade: TradeGroup[] = [];
@@ -108,12 +154,6 @@ export function computeProjectFinances(
     g.total += w.cost;
     g.packages.push(w);
   }
-  const constructionBudget = wCards.reduce((s, c) => s + num(c.work_cost), 0);
-
-  const designBudget = Math.round(scopeTotal * 0.20);
-  const regulatoryBudget = Math.round(scopeTotal * 0.05);
-  const totalUseBudget = designBudget + regulatoryBudget + constructionBudget;
-  const contingencyBudget = Math.round(totalUseBudget * 0.10);
 
   const designSpent = num(ex.design);
   const regulatorySpent = num(ex.fees);
