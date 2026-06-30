@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.90] - 2026-06-30
+
+**Cost drill-down in the new-view ledger ("My numbers") — resolves the confusing "Still to raise > Total scope" presentation (a v3.0.89 follow-up).** The funding gap was always *total project cost* (construction scope + design + filings + contingency), but only the bare construction scope was shown next to it — so players read "Still to raise $2.4M" beside "Total scope $1.8M" as a bug. The fix is to make the soft costs *visible and tappable* rather than relabel or hide them. Opt-in new panel only; classic + the live default game untouched.
+
+- **Per-work-package soft-cost allocation.** [projectFinances.ts](src/utils/projectFinances.ts) now allocates the design (20%-of-scope) / regulatory (5%) / contingency budgets to each work package by its share of scope, giving every package a `fullCost`. The per-item fulls reconcile to `commitments` (the figure "Still to raise" measures against). +1 unit test asserting the allocation + reconciliation.
+- **Tap any work package to drill in.** Each package in [PlayerNumbersV2.tsx](src/components/player/PlayerNumbersV2.tsx) opens to show where its full cost goes — the build itself + design & professional fees (20%) + regulatory & filings (5%) + safety buffer (contingency) + a bold full cost. (e.g. water mains $1.2M build → +$240K design +$60K filings +$150K buffer.)
+- **"Total scope" is itself a drill-down** (progressive disclosure — the accordion follow-up). The scope list now collapses behind the "Total scope" header, **collapsed by default**, and taps open to the trade-grouped packages — keeping the recall view to one screen. The glossary "scope" term still opens the dictionary without toggling the section (its term click stops propagation).
+- **New "Full project budget" line** (always visible) ties the scope list to "Still to raise", with the diegetic explanation the maintainer chose: *"More than the scope above: the owner's prices fold in design, city filings & a safety buffer."* Leaves the 20% design rule intact; tightening the construction-cost calc stays a later job.
+
+Typecheck + build clean; 652/652 player+utils tests green (+3 new — allocation math, per-item expand/collapse, scope collapse/expand). Verified live in a running game (G52): scope opened collapsed, taps revealed the three trade-grouped packages, each package drilled to its breakdown, the numbers reconciled to the dollar, no console errors.
+
 ## [3.0.89] - 2026-06-29
 
 **Finalized the new-view ledger ("My numbers").** The new panel's recall modal was a bare scope+money+time list; the classic `ProjectLedger`'s useful depth never crossed over. This brings it across in the new-view design language — grounded in the locked redesign spec (teach-don't-dumb-down §1, glossary §6, one-screen §9), opt-in new panel only, live default game untouched.

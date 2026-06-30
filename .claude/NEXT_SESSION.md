@@ -1,30 +1,31 @@
-# Next session starter — written 2026-06-29 by /koniec
+# Next session starter — written 2026-06-30 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.89 — **deployed + confirmed live 2026-06-29** (`df64213`). Nothing pending deploy.
+- **Version:** v3.0.90 — **deployed + confirmed live 2026-06-30** (`aa1edba`). Nothing pending deploy.
 - **Branch:** master, clean apart from the usual `.claude/settings.local.json`.
-- **Last shipped:** the **new-view ledger** ("My numbers") — scope grouped by trade, spent-vs-budget per area, funding gap, glossary-taught terms; shared `projectFinances.ts` helper. Opt-in new panel only; classic untouched.
-- **Test suite:** typecheck + build clean; full sweep **1734/1734 green**. (50-game ghost gates not run — opt-in-panel-only, no engine touch.)
+- **Last shipped:** ledger **cost drill-down** in "My numbers" (opt-in new panel). Tap a work package → its full cost (build + design 20% + filings 5% + safety buffer); "Total scope" collapses behind a drill-down (work packages hidden by default); a new "Full project budget" line reconciles scope with "Still to raise". Resolves the confusing "Still to raise > Total scope" + delivers the first accordion slice.
+- **Test suite:** typecheck + build clean; targeted sweep (components/utils/services) **1738/1738 green** (+3 new). Full `npm test` hangs on Windows (known) — targeted sweep is the gate. (50-game ghost gates not run — opt-in-panel-only, no engine touch.)
 
-## Top open items
-1. **Before→after outcome modal** — the next planned piece (the "what just happened" / dice-result modal). See the sketch below.
-2. **New-view ledger follow-ups (logged in TODO this session):** accordion/progressive-disclosure to stay one-screen; clarify the confusing "Still to raise $3.1M vs Total scope $2.2M" (it's total project cost incl. soft costs + contingency, not a bug, but it misleads); dark mode + glossary-link contrast for the V2 modals (light-only today — blue links on light-gray are hard to read).
-3. **Onboarding Phase C** (plain-English tile/button aliases) — blocked on the maintainer writing the alias strings.
+## Top 3 open items
+1. **Before→after outcome modal** — the next planned new-view piece (the "what just happened" / dice-result modal). Sketch below.
+2. **Dark mode + glossary-link contrast for the V2 modals** — `ModalBase` body is hardcoded light-only (`panelPalettes.light`); blue glossary links on light-gray are hard to read and the modals ignore the panel's dark mode. Wire the panel light/dark theme into the modal bodies; ensure term-link contrast in both modes (redesign §4). NOTE for this work: a `TextWithTerms` term can live inside a clickable row — its click `stopPropagation`s (TextWithTerms.tsx:107), so it won't trigger the row.
+3. **Remaining accordion slices** (lower priority) — the "Where your money's going" budget block + funding-gap line are still un-collapsed; give them the same treatment only if one-screen starts fighting again. Plus **Onboarding Phase C** (blocked on the maintainer writing the plain-English alias strings).
 
-## Before→after outcome modal — the sketch (the user wanted this written down)
-Goal: after an action resolves, show **what changed** in the new-view language. Approach:
-- **Gate to the new panel** (`ucPanelVersion==='new'`) so the **shared, live** `DiceResultModal` is untouched for classic (its restyle was deferred for exactly this risk).
-- Render **before vs after** rows for the affected figures — cash, scope, days, and (the key ask) **which specific resource/expeditor was added or taken** — reusing `projectFinances.ts` + the ledger row styling so the two read identically. There's an existing `BeforeAfterBlock` component to lean on.
+## Before→after outcome modal — the sketch
+Goal: after an action resolves, show **what changed** in the new-view language.
+- **Gate to the new panel** (`ucPanelVersion==='new'`) so the **shared, live** `DiceResultModal` stays untouched for classic (its restyle was deferred for exactly this risk).
+- Render **before vs after** rows for the affected figures — cash, scope, days, and (the key ask) **which specific resource/expeditor was added or taken** — reusing `projectFinances.ts` (now with per-item `fullCost`/breakdown) + the ledger row styling so the two read identically. There's an existing `BeforeAfterBlock` to lean on.
 - Resolves the cluster: fb:dc7652ec (before/after should look like "My numbers"), fb:0001f5df / fb:0fc63fc1 / fb:3aad5f84 ("which resource/expeditor did I lose?").
 - Start by reading `DiceResultModal.tsx` (fired from `GameLayout` via AutoActionEvent) to find the cleanest new-view-gated seam.
 
 ## Decisions waiting on the user
-- None blocking. (Trade-grouping currently uses the raw 40 DOB work types; rolling them into ~5 high-level buckets — GC/plumbing/electrical/HVAC/FDNY — needs the maintainer's mapping calls, deferred.)
+- None blocking. (Trade-grouping still uses the raw 40 DOB work types; rolling them into ~5 buckets needs the maintainer's mapping calls — deferred. Construction-cost calc tightening also deferred per the v3.0.90 discussion.)
 
 ## Suggested first move
-Confirm v3.0.89 is live, then start the before→after outcome modal (sketch above) — or pick a new-view ledger follow-up if you'd rather tidy the ledger first. Which?
+Start the before→after outcome modal (sketch above) — `projectFinances.ts` now exposes the per-item breakdown it can reuse — or pick the dark-mode/contrast follow-up if you'd rather finish the V2-modal polish first. Which?
 
 ## Reminders
-- Deploy from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy (done).
-- **Migrating to the new view** — don't invest in classic-only components (see memory `migrate-to-new-view`); the TODO change-legibility P2–P5 framing is stale classic-speak.
+- Deploy from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy.
+- **Migrating to the new view** — don't invest in classic-only components (memory `migrate-to-new-view`).
 - On the locked redesign surface, **read `docs/design/player-panel-redesign.md` before building** — jargon gets taught via `TextWithTerms` glossary links, not stripped.
+- Local browser verify needs BOTH servers — Express (3001, start via Bash) + Vite (3000, preview MCP owns it).

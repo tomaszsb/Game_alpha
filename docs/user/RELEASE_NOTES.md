@@ -2,6 +2,14 @@
 
 ---
 
+## v3.0.90 — See where every dollar goes in "My numbers" (June 30, 2026)
+
+In the **opt-in redesigned panel**, the "📋 My numbers" summary now answers a question playtesters kept asking — *"why do I need to raise more money than the whole project costs?"*
+
+- **Tap any work package to see its full cost.** Open "My numbers," tap a piece of work (say, the water mains), and it folds out to show exactly what it costs: the build itself, plus the design fees, the city filing costs, and a safety buffer the owner built into the price.
+- **"Total scope" now opens and closes.** Your list of work starts tucked away behind the "Total scope" line, so the summary opens short and tidy — tap it to see everything, tap again to hide it.
+- **A new "Full project budget" line** sits right under your scope, so the two numbers finally line up: the bigger "Still to raise" number is the full budget (build + design + filings + buffer), not a mistake.
+
 ## v3.0.87 — Plainer language about what happens (June 29, 2026)
 
 The game now talks to you about **what happened in your project**, not about the dice or the cards behind the scenes:
