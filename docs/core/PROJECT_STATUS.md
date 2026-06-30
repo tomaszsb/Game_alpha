@@ -7,7 +7,7 @@
 
 **Last Updated:** June 29, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.89** — built + pushed, **deploy handed to user.** Finalized the new-view ledger ("My numbers"): brought the old classic ledger's depth (spent-vs-budget per area + funding gap) into the opt-in new panel, in the new-view design language. Earlier same day: v3.0.88 (three new-panel playtest fixes) deployed + confirmed live.
+**Current Version:** **3.0.89** — **deployed + confirmed live 2026-06-29** (`df64213`). Finalized the new-view ledger ("My numbers"): brought the old classic ledger's depth (spent-vs-budget per area + funding gap) into the opt-in new panel, in the new-view design language. Earlier same day: v3.0.88 (three new-panel playtest fixes) deployed + confirmed live.
 
 ## Current sprint
 **2026-06-29 (session 2) — new-view ledger + new-panel fixes.** Shipped **v3.0.88** (opt-in new-panel: button-grow CSS bug, History de-emphasis, review-only "Keep"→"Done") then **v3.0.89** (the new-view ledger). The ledger work: a shared, tested [projectFinances.ts](../../src/utils/projectFinances.ts) helper mirrors the classic ledger's math so the two can't disagree; "My numbers" now shows scope grouped by trade (DOB `work_type_restriction`), spent-vs-budget per area, a funding-gap line, and teaches its jargon via `TextWithTerms` glossary links (redesign §1/§6); days-spent dropped (redundant with the panel status zone). **Process note:** the "phase-4a unmerged" ghost was put to rest — it was already merged + live; the stale notes were corrected and the dead branch deleted.

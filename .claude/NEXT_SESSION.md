@@ -1,7 +1,7 @@
 # Next session starter — written 2026-06-29 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.89 — **built + pushed; deploy handed to the user** (confirm the badge reads v3.0.89 / `<HEAD>` live). v3.0.88 already deployed + confirmed live earlier today.
+- **Version:** v3.0.89 — **deployed + confirmed live 2026-06-29** (`df64213`). Nothing pending deploy.
 - **Branch:** master, clean apart from the usual `.claude/settings.local.json`.
 - **Last shipped:** the **new-view ledger** ("My numbers") — scope grouped by trade, spent-vs-budget per area, funding gap, glossary-taught terms; shared `projectFinances.ts` helper. Opt-in new panel only; classic untouched.
 - **Test suite:** typecheck + build clean; full sweep **1734/1734 green**. (50-game ghost gates not run — opt-in-panel-only, no engine touch.)
