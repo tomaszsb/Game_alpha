@@ -2,6 +2,14 @@
 
 ---
 
+## v3.0.91 — Run out of money and the project fails (July 1, 2026)
+
+Money now works the way it does on a real job: **if a bill comes due and you can't pay it, the project goes bankrupt and the game ends.** Before, a fee you couldn't afford was quietly skipped, so your numbers never added up. Now the charge lands in full — and you get fair warning before it does.
+
+- **Watch your cash colour.** In the redesigned panel, your money reads **green** when you're healthy, turns **orange ("running low")** when you're down to your last 20%, and goes **red ("in the red")** if you slip below zero. Keep an eye on it and raise funds before a big fee hits.
+- **See exactly what changed after each step.** In the redesigned panel, the "what just happened" popup now reads like your "My numbers" summary — and it names the *specific* expeditor or resource you gained or lost, so you're never left wondering "which one did that cost me?"
+- **Clearer wording:** accepting an architect's or engineer's revised design now says **"Accept"** rather than "Approve" — "Approve" is reserved for the official DOB and FDNY sign-offs. A Life Event on your dashboard now shows a 📰 (not the expeditor ⚡), and a filing rep's day savings show up in **green**, delays in **red**.
+
 ## v3.0.90 — See where every dollar goes in "My numbers" (June 30, 2026)
 
 In the **opt-in redesigned panel**, the "📋 My numbers" summary now answers a question playtesters kept asking — *"why do I need to raise more money than the whole project costs?"*

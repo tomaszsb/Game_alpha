@@ -711,7 +711,9 @@ describe('EffectEngineService', () => {
       await effectEngineService.applyActiveEffects('player1');
 
       // Assert - Verify effect was processed and duration decremented
-      expect(mockResourceService.spendMoney).toHaveBeenCalledWith('player1', 50, 'active:L002', 'Economic Downturn');
+      // Mandatory life-event bill: allowNegative (6th arg) so an unpayable
+      // charge drives bankruptcy rather than being silently dropped (v3.0.91).
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith('player1', 50, 'active:L002', 'Economic Downturn', undefined, true);
 
       // Verify player was updated via TEMP state with decremented duration
       expect(mockStateService.updateTempState).toHaveBeenCalledWith(
@@ -781,7 +783,7 @@ describe('EffectEngineService', () => {
 
       // Assert - Verify both effects were processed
       expect(mockResourceService.addTime).toHaveBeenCalledWith('player1', 4, 'active:L004', 'Labor Strike - increased construction time');
-      expect(mockResourceService.spendMoney).toHaveBeenCalledWith('player1', 25, 'active:L002', 'Economic Downturn');
+      expect(mockResourceService.spendMoney).toHaveBeenCalledWith('player1', 25, 'active:L002', 'Economic Downturn', undefined, true);
 
       // Verify only the continuing effect remains (expired effect removed)
       expect(mockStateService.updateTempState).toHaveBeenCalledWith(

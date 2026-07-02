@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.91] - 2026-07-01
+
+**Bankruptcy is real now + the first before→after outcome modal + a batch of new-panel playtest fixes.** The headline touches the **live default game's money model**; the rest is opt-in new-panel work and data copy. Triaged from the 2026-06-30 v3.0.90 playtest (63 open reports → 48 clustered candidates in TODO).
+
+### Money model — unpayable bills bankrupt you (live default game)
+The "my money doesn't add up" reports (fb:f0bdd78a / 0aae9865 / 40caa223) traced to `ResourceService.spendMoney` **silently refusing** any charge the player couldn't afford. A mandatory fee (design %, regulatory, life-event cost) that exceeded cash was dropped — but `trackDesignExpenditure` had already recorded it — so the ledger said "spent" while cash didn't move, and the intended bankruptcy (`FinancialEffectHandler.checkBankruptcy` → `endGame`, which already existed) could never fire because money never went negative.
+
+- **Mandatory bills now charge in full, into the red if needed.** Added an `allowNegative` flag threaded `spendMoney` → `updateResources` → `validateResourceChange` (both had a negative-money guard). The `RESOURCE_CHANGE` money-deduction path (fees, life-event costs) passes it, so an unpayable obligation drives real bankruptcy — "you can't pay the bill, you go under," like real life (maintainer call). **Discretionary card buys keep their up-front affordability block** (CardService) — you still can't *choose* to overspend. The `FEE_DEDUCTION` loan path is unchanged (still blocks-with-message) — logged as a follow-up.
+- **The misleading `MONEY change of 0` console error** now reports the real computed amount instead of the raw `0` payload (percentage-of-scope fees carry `amount: 0`).
+- **Balance:** strict ghost 50-game gate still passes (≥36 wins, 0 hard failures) — the harder economy didn't sink the blind bot or introduce loops.
+
+### New panel (opt-in, `ucPanelVersion==='new'`)
+- **Before→after outcome modal (first slice).** New [OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx) renders the "what just happened" delta in the **"My numbers" ledger language** and **names the exact card gained/lost** (from the effect payload) instead of a bare count — resolves fb:dc7652ec (should look like My numbers) + fb:0001f5df / 0fc63fc1 / 3aad5f84 ("which expeditor did I lose?"). Gated to the new panel via a non-hook `getStoredPanelVersion()`; classic keeps the untouched `BeforeAfterBlock`.
+- **Money runway cue** on the panel cash figure: green (healthy) → orange **"running low"** (under 20% of funds raised left) → red **"in the red"** (negative). Word + colour, never colour alone (a11y). The clue that makes students manage cash before a bill bankrupts them (fb:0aae9865).
+- **Active-effect chip emoji** now derives from its source card type (Life Event → 📰) instead of a blanket ⚡ that read as an expeditor (fb:308653b9).
+- **Card-detail day delta** coloured green (saves days) / red (adds days), the label word still the primary signal (fb:39fd9f04).
+
+### Data (reaches live via deploy)
+- **"Approve the redesign / revised structure" → "Accept …"** on ARCH-INITIATION + ENG-SCOPE-CHECK (Subsequent). "Approve" is reserved for DOB/FDNY regulatory approval (fb:e6ab0f25). SOURCE + regenerated CLEAN.
+
+### Also
+- **Already-fixed reports** confirmed for a dashboard `resolved` flip (no code): fb:9c110d52 (Pays→Costs) + fb:8d68ab14 (Activate only on E cards) — both fixed in earlier versions, never flipped.
+
+### Checks
+Typecheck + build clean; targeted sweep (components/utils/services) **1757/1757** after updating 2 EffectEngineService assertions that pinned the old `spendMoney` arg list (life-event bills now pass `allowNegative`). +18 new tests. Strict ghost gate green.
+
 ## [3.0.90] - 2026-06-30
 
 **Cost drill-down in the new-view ledger ("My numbers") — resolves the confusing "Still to raise > Total scope" presentation (a v3.0.89 follow-up).** The funding gap was always *total project cost* (construction scope + design + filings + contingency), but only the bare construction scope was shown next to it — so players read "Still to raise $2.4M" beside "Total scope $1.8M" as a bug. The fix is to make the soft costs *visible and tappable* rather than relabel or hide them. Opt-in new panel only; classic + the live default game untouched.

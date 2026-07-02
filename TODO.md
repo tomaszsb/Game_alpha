@@ -19,17 +19,15 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
 *Source: `/api/public/feedback/open`, 63 open → 48 new candidates (13 already tracked; 2 already-shipped awaiting dashboard flip: 222cd521, 1990c71e). Essentially one structured QA pass on the opt-in new panel — 30 reports from the 2026-06-30 v3.0.90 session + earlier un-triaged new-panel reports. Clusters below are sprint-shaped; standalone bugs are called out. Full staging: `.claude/feedback-staged.md`.*
 
-### 🔗 Money / fee legibility + a real engine warning (mini-sprint candidate)
-- [ ] **Fee/spend numbers don't reconcile — "shows I only spent 1/3 of the money I had"** — player was in deficit before but the panel shows most money unspent. Correlates with the console error `Failed to process MONEY change of 0`. Investigate the money math, not just the display. <!-- fb:feedback-1782852741655-f0bdd78a -->
-- [ ] **No spend-guard: hired a contractor while already in debt** — should block (or at least warn) when there isn't enough money. Suggested affordance: money button green at surplus → orange approaching 20% unused → red at 0. <!-- fb:feedback-1782852017638-0aae9865 -->
+### 🔗 Money / fee legibility (remaining after v3.0.91)
+*Shipped v3.0.91: the reconcile bug (fb:f0bdd78a — unpayable bills now bankrupt instead of silently dropping), the money runway colour cue (fb:0aae9865), and the misleading `MONEY change of 0` console error. Remaining:*
 - [ ] **Hired a contractor but never saw the agreed price** — modal only said "low quality" + "multiplier 6x"; the actual dollar amount agreed was never shown. <!-- fb:feedback-1782851829370-40caa223 -->
 - [ ] **End-turn button should show the money being paid + the time impact** — surface the cost/day delta on the commit button. <!-- fb:feedback-1782848416271-06f7da3b -->
 - [ ] **Show the fee once determined** — put it on the "Determine fee amount" button after it resolves, and echo it on the end-turn button. <!-- fb:feedback-1782846625959-b53864af -->
-- [ ] **Engine warning: `Failed to process MONEY change of 0`** — recurring console error across the 2026-06-30 session (errorCount 10–11). A MONEY resource-change of magnitude 0 is being rejected/failing. Trace `RESOURCE_CHANGE` MONEY=0 handling. <!-- console:MONEY-change-0 -->
+- [ ] **`FEE_DEDUCTION` (loan) path still blocks-with-message, doesn't bankrupt** — consistency follow-up to the v3.0.91 money model: mandatory `RESOURCE_CHANGE` bills now bankrupt, but the loan-fee path (`applyFeeDeduction`, tiered/dice fees) still pre-checks `canAfford` and fails with a notification. Decide whether loans should also be able to bankrupt.
 
 ### 🔗 Expeditor / life-event card clarity (mini-sprint candidate — feeds before→after modal + detail view)
 - [ ] **"How does this card work?" (Return to Sender expeditor)** — the card's actual mechanic isn't clear from the detail modal. <!-- fb:feedback-1782852609541-73318276 -->
-- [ ] **Expeditor modal: color the day delta** — text red when it adds days, green when it saves days (pair with icon/shape for a11y). <!-- fb:feedback-1782850822519-39fd9f04 -->
 - [ ] **Activate button should state the effect** — e.g. "−4 days / −$X" instead of a bare "Activate". <!-- fb:feedback-1782847829201-17cc481c -->
 - [ ] **Expeditor affordance: available expeditors should glow like action buttons** — and only reveal on hover/click of an expeditor button, not always listed. <!-- fb:feedback-1782847526340-ac68b5b3 -->
 - [ ] **Can't see expeditor details before choosing** — the 3-expeditor modal shows names but taps don't open details; make each clickable. <!-- fb:feedback-1782357238297-0c523a17 -->
@@ -54,12 +52,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Outcome modal has no "next steps" / doesn't show scope change** — should show which work packages were added or taken away. <!-- fb:feedback-1782846749403-7441e00b -->
 - [ ] **No plan-examiner verdict shown** — after a plan examination nothing surfaces the result; needs a verdict modal. <!-- fb:feedback-1782848524918-7300c51d -->
 - [ ] **Owner's words / summary boxes confused** — the "I"-voice owner narration and the summary box read as swapped/mixed. <!-- fb:feedback-1782357132800-7065e8df -->
-- [ ] **"Pays" label is wrong — it's an estimated cost, not a reward** — relabel on the work-package modal. <!-- fb:feedback-1782357427284-9c110d52 -->
-- [ ] **Work package has an "Activate" button but nothing to activate** — Activate shouldn't render on a work-package card. <!-- fb:feedback-1782357486253-8d68ab14 -->
 - [ ] **Work list shows no details** — make each work item clickable to pop its detail. <!-- fb:feedback-1782357365395-b413cc2e -->
+- ✅ *Already fixed in earlier versions — DASHBOARD FLIP ONLY (no code):* fb:9c110d52 (Pays→Costs, [PlayerCardDetailV2.tsx:108](src/components/player/PlayerCardDetailV2.tsx#L108)) + fb:8d68ab14 (Activate only on E cards, [:78](src/components/player/PlayerCardDetailV2.tsx#L78)). PATCH `resolved:true` on the dashboard next sweep. (Also awaiting flip from v3.0.90 triage: 222cd521, 1990c71e.)
 
 ### 🔗 Life-event surfacing
-- [ ] **Life-event button has the wrong emoji** — looks like an expeditor, not a life event. <!-- fb:feedback-1782851319050-308653b9 -->
+*Shipped v3.0.91: the wrong-emoji fix (fb:308653b9 — active-effect chip now uses the source card's emoji).*
 - [ ] **Used-up life events shouldn't remain clickable** — only the current multi-turn life event should be shown/reviewable; spent ones are greyed but still open. <!-- fb:feedback-1782851190923-78e20a61 -->
 
 ### 🔗 Newspaper / "Daily Permit" story
@@ -70,7 +67,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Make DOB/FDNY approval a bigger moment** — markers appear quietly; approval (and re-approval after a post-approval amendment) is a milestone worth a modal/celebration. (Pairs with the plan-examiner verdict modal above.) <!-- fb:feedback-1782850541659-a542fad6 -->
 
 ### Standalone
-- [ ] **End-turn label misuses "approve"** — "Approve the redesign" shouldn't say *approve* (reserve that word for DOB/FDNY). Likely CSV copy only. <!-- fb:feedback-1782850651225-e6ab0f25 -->
+*Shipped v3.0.91: the "Approve"→"Accept" copy fix (fb:e6ab0f25, ARCH-INITIATION + ENG-SCOPE-CHECK).*
 - [ ] **Filing-rep card: does it really add 2 days to other players?** — verify the effect matches the card text. <!-- fb:feedback-1782848315618-c51f9f16 -->
 - [ ] **History panel ordering** — "Turn ended" appears before "Turn started"; should follow the last action, with a divider between turns. <!-- fb:feedback-1782850969494-1eff7156 -->
 - [ ] **BUG: Move button disappeared after submitting a bug-report popup** — and more errors appeared in the log afterward. <!-- fb:feedback-1782843327269-bf8bf19a -->
@@ -103,7 +100,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 *The new-view ledger shipped v3.0.89 (scope-by-trade, spent-vs-budget, funding gap, glossary-taught terms; shared [projectFinances.ts](src/utils/projectFinances.ts) helper). Maintainer feedback during review:*
 - [ ] **Progressive disclosure / accordion for the ledger — REMAINING areas.** First slice shipped v3.0.90: "Total scope" now collapses behind a drill-down (work packages hidden by default, tap to reveal), and each package taps into its own cost breakdown. Still un-collapsed: the "Where your money's going" budget-area block + the funding-gap line. If the one-screen rule starts fighting again as more rows land, give those the same accordion treatment.
 - [ ] **Dark mode + glossary-link contrast for "My numbers" (and the V2 modals).** The ModalBase body is hardcoded **light-only** (`panelPalettes.light`), so the blue glossary term-links on the light-gray rows are hard to read, and the modal ignores the panel's dark mode. Wire the panel's light/dark theme into the modal bodies and ensure term-link contrast in *both* modes (redesign §4 — both modes first-class).
-- [ ] **Before→after change-legible outcome modal (the "what just happened" / dice-result modal).** Next planned piece: gate a before→after view to the new panel (`ucPanelVersion==='new'`) so classic stays untouched; reuse [projectFinances.ts](src/utils/projectFinances.ts) + the ledger row styling to show location/days/cash/scope **before vs after** an action, naming exactly which resource/expeditor changed. Resolves fb:dc7652ec, fb:0001f5df, fb:0fc63fc1, fb:3aad5f84. See NEXT_SESSION for the sketch.
+- [~] **Before→after change-legible outcome modal — FIRST SLICE SHIPPED v3.0.91.** [OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx) renders the "what just happened" delta in the "My numbers" ledger language (cash/scope/time before→after) AND names the exact card gained/lost, gated to `ucPanelVersion==='new'` (classic keeps `BeforeAfterBlock`). Resolves fb:dc7652ec / 0001f5df / 0fc63fc1 / 3aad5f84. **Not yet live-verified** (needs a playthrough to a card-gain/loss event with the new panel on). **Possible polish:** gained cards show both as a tappable effect-list row AND a "Gained:" ledger line — if that reads noisy on screen, have OutcomeChangesV2 show only lost/swapped. Judge live.
 
 ### Future enhancements (parked)
 - [ ] **Gantt / schedule "today-line" view** — too detailed for now, but if teachers add enough construction-section spaces it may become relevant. Revisit then (user call 2026-06-23).

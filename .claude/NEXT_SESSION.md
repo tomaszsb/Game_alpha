@@ -1,31 +1,25 @@
-# Next session starter — written 2026-06-30 by /koniec
+# Next session starter — written 2026-07-01 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.90 — **deployed + confirmed live 2026-06-30** (`aa1edba`). Nothing pending deploy.
+- **Version:** v3.0.91 — committed + pushed (`be7d135`), **PENDING DEPLOY**. Deploy not yet run.
 - **Branch:** master, clean apart from the usual `.claude/settings.local.json`.
-- **Last shipped:** ledger **cost drill-down** in "My numbers" (opt-in new panel). Tap a work package → its full cost (build + design 20% + filings 5% + safety buffer); "Total scope" collapses behind a drill-down (work packages hidden by default); a new "Full project budget" line reconciles scope with "Still to raise". Resolves the confusing "Still to raise > Total scope" + delivers the first accordion slice.
-- **Test suite:** typecheck + build clean; targeted sweep (components/utils/services) **1738/1738 green** (+3 new). Full `npm test` hangs on Windows (known) — targeted sweep is the gate. (50-game ghost gates not run — opt-in-panel-only, no engine touch.)
+- **Last shipped:** money model — unpayable **mandatory bills now bankrupt** (real `endGame`) instead of silently dropping (the "money doesn't reconcile" fix) + first **before→after outcome modal** (new-view) + green→orange→red **money runway cue** + emoji/day-colour/copy fixes.
+- **Test suite:** typecheck + build clean; targeted sweep (components/utils/services) **1757/1757**. Strict ghost 50-game gate **passed** (≥36 wins, 0 hard failures).
+- **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Before→after outcome modal** — the next planned new-view piece (the "what just happened" / dice-result modal). Sketch below.
-2. **Dark mode + glossary-link contrast for the V2 modals** — `ModalBase` body is hardcoded light-only (`panelPalettes.light`); blue glossary links on light-gray are hard to read and the modals ignore the panel's dark mode. Wire the panel light/dark theme into the modal bodies; ensure term-link contrast in both modes (redesign §4). NOTE for this work: a `TextWithTerms` term can live inside a clickable row — its click `stopPropagation`s (TextWithTerms.tsx:107), so it won't trigger the row.
-3. **Remaining accordion slices** (lower priority) — the "Where your money's going" budget block + funding-gap line are still un-collapsed; give them the same treatment only if one-screen starts fighting again. Plus **Onboarding Phase C** (blocked on the maintainer writing the plain-English alias strings).
-
-## Before→after outcome modal — the sketch
-Goal: after an action resolves, show **what changed** in the new-view language.
-- **Gate to the new panel** (`ucPanelVersion==='new'`) so the **shared, live** `DiceResultModal` stays untouched for classic (its restyle was deferred for exactly this risk).
-- Render **before vs after** rows for the affected figures — cash, scope, days, and (the key ask) **which specific resource/expeditor was added or taken** — reusing `projectFinances.ts` (now with per-item `fullCost`/breakdown) + the ledger row styling so the two read identically. There's an existing `BeforeAfterBlock` to lean on.
-- Resolves the cluster: fb:dc7652ec (before/after should look like "My numbers"), fb:0001f5df / fb:0fc63fc1 / fb:3aad5f84 ("which resource/expeditor did I lose?").
-- Start by reading `DiceResultModal.tsx` (fired from `GameLayout` via AutoActionEvent) to find the cleanest new-view-gated seam.
+1. **Deploy v3.0.91 + playtest the new economy.** It touches the **live default game's money model** — confirm an underfunded project hitting a design/regulatory fee now goes red → bankruptcy/game-over (cash cue warns orange→red first), not a swallowed fee. `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (from Windows terminal).
+2. **Money cluster follow-ups:** `FEE_DEDUCTION` loan path still blocks-with-message rather than bankrupting (consistency call); surface the contractor agreed-price (fb:40caa223); show $ + time on end-turn/fee buttons (fb:06f7da3b / b53864af).
+3. **Medium tier (untouched):** action-count "2 actions but 1" (fb:65160c0c / 8edd02b4 — it's `gameState.requiredActions`, an engine-counting question, not a label); Chronicle "Turn ended/started" ordering + dividers (fb:1eff7156 — the Chronicle groups by space, needs turn-awareness); dark-mode/contrast for the V2 modals.
 
 ## Decisions waiting on the user
-- None blocking. (Trade-grouping still uses the raw 40 DOB work types; rolling them into ~5 buckets needs the maintainer's mapping calls — deferred. Construction-cost calc tightening also deferred per the v3.0.90 discussion.)
+- **Should the loan (`FEE_DEDUCTION`) path also bankrupt?** The v3.0.91 change made `RESOURCE_CHANGE` bills bankrupt; loans still fail-with-message. Consistency vs. blast-radius call.
 
 ## Suggested first move
-Start the before→after outcome modal (sketch above) — `projectFinances.ts` now exposes the per-item breakdown it can reuse — or pick the dark-mode/contrast follow-up if you'd rather finish the V2-modal polish first. Which?
+Deploy v3.0.91 and playtest the bankruptcy economy first — it's a live-default-game change that genuinely wants real-play confirmation before building more on top. Or, if you'd rather keep coding, the medium tier's sharpest item is the action-count bug (fb:65160c0c). Which?
 
 ## Reminders
-- Deploy from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy.
-- **Migrating to the new view** — don't invest in classic-only components (memory `migrate-to-new-view`).
-- On the locked redesign surface, **read `docs/design/player-panel-redesign.md` before building** — jargon gets taught via `TextWithTerms` glossary links, not stripped.
-- Local browser verify needs BOTH servers — Express (3001, start via Bash) + Vite (3000, preview MCP owns it).
+- Deploy from the **Windows terminal**, not WSL. Commit + push BEFORE deploy (`deploy.sh` pulls master).
+- **Dashboard PATCH sweep pending:** flip `resolved:true` for fb:9c110d52, fb:8d68ab14 (already fixed in code), plus 222cd521, 1990c71e.
+- The before→after modal (OutcomeChangesV2) is **not yet live-verified** — check it reads well on a real card-gain/loss with the new panel toggled on.
+- New money-model gotcha now in CLAUDE.md TACTICAL: TWO negative-money guards; mandatory bills use `allowNegative`, discretionary buys keep the block.
