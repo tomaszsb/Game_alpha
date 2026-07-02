@@ -63,6 +63,27 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     expect(screen.getByText(/Why this matters/i)).toBeInTheDocument(); // teaching callout
   });
 
+  it('colours the day delta — green when it saves days, red when it adds (fb:39fd9f04)', () => {
+    renderDetail(); // card saves 2 days (tick_modifier '-2')
+    expect(screen.getByText('2 days')).toHaveStyle({ color: '#1e7e34' });
+    cleanup();
+
+    const delayCard = { ...card, card_id: 'L001', card_type: 'L', tick_modifier: '3', money_effect: '0' };
+    render(
+      <DictionaryProvider>
+        <PlayerCardDetailV2
+          isOpen
+          onClose={vi.fn()}
+          card={delayCard as any}
+          playerId="player1"
+          gameServices={services as any}
+          mode="light"
+        />
+      </DictionaryProvider>,
+    );
+    expect(screen.getByText('3 days')).toHaveStyle({ color: '#c0392b' });
+  });
+
   it('activates through the service when the player can play it', async () => {
     renderDetail();
     fireEvent.click(screen.getByRole('button', { name: 'Activate' }));

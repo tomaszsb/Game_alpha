@@ -484,3 +484,57 @@ describe('PlayerPanelV2 — between-turns move overlay (Pile 3: fb:15499d9b)', (
     expect(screen.getByText('Scope Start')).toBeInTheDocument();
   });
 });
+
+describe('PlayerPanelV2 — money runway cue (fb:0aae9865)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const makePlayer = (money: number, moneySources: any): any => ({
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources, moveIntent: null,
+  });
+
+  const renderWith = (player: any) => {
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 0, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Scope Initiation', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+    return render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+  };
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => cleanup());
+
+  it('flags "in the red" when cash is negative (bankruptcy territory)', () => {
+    renderWith(makePlayer(-5000, { ownerFunding: 100000 }));
+    expect(screen.getByText(/in the red/i)).toBeInTheDocument();
+  });
+
+  it('flags "running low" when under 20% of the money raised is left', () => {
+    renderWith(makePlayer(10000, { ownerFunding: 100000 })); // 10% left
+    expect(screen.getByText(/running low/i)).toBeInTheDocument();
+  });
+
+  it('shows no warning word when cash is healthy', () => {
+    renderWith(makePlayer(80000, { ownerFunding: 100000 })); // 80% left
+    expect(screen.queryByText(/in the red|running low/i)).not.toBeInTheDocument();
+  });
+});

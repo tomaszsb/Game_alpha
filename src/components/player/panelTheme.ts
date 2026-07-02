@@ -64,6 +64,21 @@ function writeStored(key: string, value: string): void {
   }
 }
 
+/**
+ * Non-hook reader for the persisted panel version. The new-view outcome modal
+ * (DiceResultModal) is a SHARED, short-lived modal rendered outside the panel
+ * tree, so it can't use the `usePanelVersion` hook cleanly — it reads the flag
+ * once at render instead. Mirrors the hook's fallback ('classic').
+ */
+export function getStoredPanelVersion(): PanelVersion {
+  return readStored(VERSION_KEY, 'classic') === 'new' ? 'new' : 'classic';
+}
+
+/** Non-hook reader for the persisted panel light/dark mode (see above). */
+export function getStoredPanelMode(): PanelMode {
+  return readStored(MODE_KEY, 'light') === 'dark' ? 'dark' : 'light';
+}
+
 /** Light/dark for the new panel. Persisted in localStorage. */
 export function usePanelMode(): [PanelMode, () => void] {
   const [mode, setMode] = useState<PanelMode>(() =>

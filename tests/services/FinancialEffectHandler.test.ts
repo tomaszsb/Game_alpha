@@ -228,3 +228,56 @@ describe('FinancialEffectHandler — SCOPE_PERCENTAGE authored fee (4b slice 4)'
     expect(designWrite).toBeUndefined();
   });
 });
+
+describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a / 0aae9865)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // A plain RESOURCE_CHANGE money deduction (a bill), and a player left below
+  // zero after it is charged so checkBankruptcy sees the deficit.
+  function makeBillServices(moneyAfterCharge: number) {
+    const player = { id: 'p1', name: 'Player 1', currentSpace: 'REG-DOB-FEE-REVIEW', money: moneyAfterCharge } as any;
+    const stateService = {
+      getPlayer: vi.fn(() => player),
+      updateTempState: vi.fn(),
+      emitAutoAction: vi.fn(),
+      endGame: vi.fn(),
+      getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
+    } as unknown as IStateService;
+    const resourceService = {
+      canAfford: vi.fn(() => false),
+      spendMoney: vi.fn(() => true), // pretend the deduction went through (into the red)
+      addMoney: vi.fn(() => true),
+    } as unknown as IResourceService;
+    const gameRulesService = { calculateProjectScope: vi.fn(() => 0) } as unknown as IGameRulesService;
+    const loggingService = { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ILoggingService;
+    const handler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService);
+    return { handler, stateService, resourceService };
+  }
+
+  const bill = (amount: number): Effect => ({
+    effectType: 'RESOURCE_CHANGE',
+    payload: { playerId: 'p1', resource: 'MONEY', amount, source: 'reg-fee', reason: 'Filing fee' },
+  } as any);
+
+  it('charges the bill with allowNegative so an unpayable fee is not silently dropped', () => {
+    const { handler, resourceService } = makeBillServices(-500);
+    handler.handleResourceChange(bill(-2000), ctx);
+    // 6th arg (allowNegative) must be true for a mandatory bill.
+    expect(resourceService.spendMoney).toHaveBeenCalledWith('p1', 2000, 'reg-fee', 'Filing fee', undefined, true);
+  });
+
+  it('ends the game when the charge leaves the player below zero', () => {
+    const { handler, stateService } = makeBillServices(-500);
+    handler.handleResourceChange(bill(-2000), ctx);
+    expect(stateService.endGame).toHaveBeenCalledTimes(1);
+    expect(stateService.emitAutoAction).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: expect.stringContaining('BANKRUPTCY') }),
+    );
+  });
+
+  it('does NOT bankrupt when the charge leaves a non-negative balance', () => {
+    const { handler, stateService } = makeBillServices(300);
+    handler.handleResourceChange(bill(-2000), ctx);
+    expect(stateService.endGame).not.toHaveBeenCalled();
+  });
+});

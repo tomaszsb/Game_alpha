@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** June 29, 2026
-**Status:** Beta — live in production; **v3.0.88 shipping 2026-06-29** (three opt-in new-panel playtest fixes)
-**Current Version:** 3.0.88
+**Last Updated:** July 1, 2026
+**Status:** Beta — live in production; **v3.0.90 deployed + confirmed live 2026-06-30** (new-view ledger cost drill-down)
+**Current Version:** 3.0.90
 
 ---
 
@@ -13,6 +13,78 @@
 **🎯 Goals/Priorities** → Keep here
 
 This file contains ONLY current and future work. For completed work, see CHANGELOG.md.
+
+---
+
+## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
+*Source: `/api/public/feedback/open`, 63 open → 48 new candidates (13 already tracked; 2 already-shipped awaiting dashboard flip: 222cd521, 1990c71e). Essentially one structured QA pass on the opt-in new panel — 30 reports from the 2026-06-30 v3.0.90 session + earlier un-triaged new-panel reports. Clusters below are sprint-shaped; standalone bugs are called out. Full staging: `.claude/feedback-staged.md`.*
+
+### 🔗 Money / fee legibility + a real engine warning (mini-sprint candidate)
+- [ ] **Fee/spend numbers don't reconcile — "shows I only spent 1/3 of the money I had"** — player was in deficit before but the panel shows most money unspent. Correlates with the console error `Failed to process MONEY change of 0`. Investigate the money math, not just the display. <!-- fb:feedback-1782852741655-f0bdd78a -->
+- [ ] **No spend-guard: hired a contractor while already in debt** — should block (or at least warn) when there isn't enough money. Suggested affordance: money button green at surplus → orange approaching 20% unused → red at 0. <!-- fb:feedback-1782852017638-0aae9865 -->
+- [ ] **Hired a contractor but never saw the agreed price** — modal only said "low quality" + "multiplier 6x"; the actual dollar amount agreed was never shown. <!-- fb:feedback-1782851829370-40caa223 -->
+- [ ] **End-turn button should show the money being paid + the time impact** — surface the cost/day delta on the commit button. <!-- fb:feedback-1782848416271-06f7da3b -->
+- [ ] **Show the fee once determined** — put it on the "Determine fee amount" button after it resolves, and echo it on the end-turn button. <!-- fb:feedback-1782846625959-b53864af -->
+- [ ] **Engine warning: `Failed to process MONEY change of 0`** — recurring console error across the 2026-06-30 session (errorCount 10–11). A MONEY resource-change of magnitude 0 is being rejected/failing. Trace `RESOURCE_CHANGE` MONEY=0 handling. <!-- console:MONEY-change-0 -->
+
+### 🔗 Expeditor / life-event card clarity (mini-sprint candidate — feeds before→after modal + detail view)
+- [ ] **"How does this card work?" (Return to Sender expeditor)** — the card's actual mechanic isn't clear from the detail modal. <!-- fb:feedback-1782852609541-73318276 -->
+- [ ] **Expeditor modal: color the day delta** — text red when it adds days, green when it saves days (pair with icon/shape for a11y). <!-- fb:feedback-1782850822519-39fd9f04 -->
+- [ ] **Activate button should state the effect** — e.g. "−4 days / −$X" instead of a bare "Activate". <!-- fb:feedback-1782847829201-17cc481c -->
+- [ ] **Expeditor affordance: available expeditors should glow like action buttons** — and only reveal on hover/click of an expeditor button, not always listed. <!-- fb:feedback-1782847526340-ac68b5b3 -->
+- [ ] **Can't see expeditor details before choosing** — the 3-expeditor modal shows names but taps don't open details; make each clickable. <!-- fb:feedback-1782357238297-0c523a17 -->
+- [ ] **Expeditor phase vs current phase mismatch** — card says active in funding phase, player is in setup, but the button still says Activate. Gate/label by phase. <!-- fb:feedback-1782238561064-66bb0bda -->
+- [ ] **Expeditors offered before they can help** — since they reduce days, maybe don't offer one until at least that many days have already elapsed. (Design call.) <!-- fb:feedback-1782842888855-aff0e337 -->
+- [ ] **Life-event button gives no information when pressed** — pressing it should open the current life event's detail. <!-- fb:feedback-1782240006966-88a88773 -->
+
+### 🔗 "Things you can do" action-zone readability + reversibility (mini-sprint candidate)
+- [ ] **BUG: all actions look done but End Turn does nothing** — end-turn button unresponsive with no remaining action visible. <!-- fb:feedback-1782847272646-e0694a57 -->
+- [ ] **End-turn action count off by one** — says "2 actions" when only one action exists. <!-- fb:feedback-1782847356270-65160c0c -->
+- [ ] **Action count reads as 4 when there are 2** — collapse to two buttons (e.g. Replace expeditor + Move) and reveal move choices on hover/click instead of listing each. <!-- fb:feedback-1782843206015-8edd02b4 -->
+- [ ] **Action buttons look too alike** — need slight visual differentiation for movement / expeditors / work packages. <!-- fb:feedback-1782239015754-40cc3674 -->
+- [ ] **BUG: "Replace expeditor" button opens no modal** — the replace flow doesn't trigger the chooser. <!-- fb:feedback-1782240625591-3accbe92 -->
+- [ ] **First-visit green dot missing** — player on a first visit expected the green first-visit hint on active buttons; didn't see it. <!-- fb:feedback-1782239119421-e84e4d11 -->
+- [ ] **No confirmation trace after pressing a button** — buttons vanish when pressed; player wants a small left-over hint confirming the choices they made. <!-- fb:feedback-1782239443615-d2070ed1 -->
+- [ ] **Can't change your mind after picking a next space** — other space options disappear on selection with no way back. <!-- fb:feedback-1782238833744-c2e489dc -->
+
+### 🔗 Modal content model (aligns with redesign §5 + the before→after modal)
+- [ ] **Type dropdown shows raw CSV-looking names** — the "all types" dropdown in the completion modal isn't humanized. <!-- fb:feedback-1782852822533-69fe31a4 -->
+- [ ] **Modal chrome: "Why this matters" should sit at the top; single close** — move the callout up and give most modals one X in the corner (two close paths today). <!-- fb:feedback-1782839742726-f036c7aa -->
+- [ ] **Card title should be the trade, not the full description** — e.g. Plumbing / HVAC / GC / Antenna as the title, with the long description only in the detail section (not repeated). <!-- fb:feedback-1782839603064-995028c7 -->
+- [ ] **Outcome modal has no "next steps" / doesn't show scope change** — should show which work packages were added or taken away. <!-- fb:feedback-1782846749403-7441e00b -->
+- [ ] **No plan-examiner verdict shown** — after a plan examination nothing surfaces the result; needs a verdict modal. <!-- fb:feedback-1782848524918-7300c51d -->
+- [ ] **Owner's words / summary boxes confused** — the "I"-voice owner narration and the summary box read as swapped/mixed. <!-- fb:feedback-1782357132800-7065e8df -->
+- [ ] **"Pays" label is wrong — it's an estimated cost, not a reward** — relabel on the work-package modal. <!-- fb:feedback-1782357427284-9c110d52 -->
+- [ ] **Work package has an "Activate" button but nothing to activate** — Activate shouldn't render on a work-package card. <!-- fb:feedback-1782357486253-8d68ab14 -->
+- [ ] **Work list shows no details** — make each work item clickable to pop its detail. <!-- fb:feedback-1782357365395-b413cc2e -->
+
+### 🔗 Life-event surfacing
+- [ ] **Life-event button has the wrong emoji** — looks like an expeditor, not a life event. <!-- fb:feedback-1782851319050-308653b9 -->
+- [ ] **Used-up life events shouldn't remain clickable** — only the current multi-turn life event should be shown/reviewable; spent ones are greyed but still open. <!-- fb:feedback-1782851190923-78e20a61 -->
+
+### 🔗 Newspaper / "Daily Permit" story
+- [ ] **Daily Permit bonus is opaque** — "player with most completed projects reduces filing time 4 days": how is it determined, and which player got it? <!-- fb:feedback-1782852124745-f3f89f0d -->
+- [ ] **Newspaper story should explain the fee-raise + name the real effect (CSV copy)** — reframe so "everyone saving money / shedding help" reads as "you fired 2 expeditors → save 2 days"; data edit, no code. <!-- fb:feedback-1782847150684-794ff9d6 -->
+
+### 🔗 Approval milestone
+- [ ] **Make DOB/FDNY approval a bigger moment** — markers appear quietly; approval (and re-approval after a post-approval amendment) is a milestone worth a modal/celebration. (Pairs with the plan-examiner verdict modal above.) <!-- fb:feedback-1782850541659-a542fad6 -->
+
+### Standalone
+- [ ] **End-turn label misuses "approve"** — "Approve the redesign" shouldn't say *approve* (reserve that word for DOB/FDNY). Likely CSV copy only. <!-- fb:feedback-1782850651225-e6ab0f25 -->
+- [ ] **Filing-rep card: does it really add 2 days to other players?** — verify the effect matches the card text. <!-- fb:feedback-1782848315618-c51f9f16 -->
+- [ ] **History panel ordering** — "Turn ended" appears before "Turn started"; should follow the last action, with a divider between turns. <!-- fb:feedback-1782850969494-1eff7156 -->
+- [ ] **BUG: Move button disappeared after submitting a bug-report popup** — and more errors appeared in the log afterward. <!-- fb:feedback-1782843327269-bf8bf19a -->
+- [ ] **BUG: buttons disappeared after zooming the board** — clicked/zoomed the board to read green boxes; panel buttons then gone, can't move. <!-- fb:feedback-1782241319794-45cb8b0c -->
+- [ ] **BUG: glossary link didn't open** — tapped "underwriting" term link, nothing opened. <!-- fb:feedback-1782239550235-baa01a70 -->
+- [ ] **Board node overlaps a tile** — want a way to force nodes not to overlap tiles. <!-- fb:feedback-1782842971898-c73c35ca -->
+- [ ] **Tiles don't show their discipline** — hard to organize because you can't tell which tile is architect / engineer / DOB / FDNY. <!-- fb:feedback-1782657383215-a9d3221a -->
+- [ ] **New-view dropped Action + Outcome text (maintainer question)** — "Where you are and why" now shows only the owner's words; the Action and Outcome data seem lost, so the space isn't fully explained to the student. *Maintainer explicitly asked for the rationale.* <!-- fb:feedback-1782819429688-f6e100b7 -->
+- [ ] **Avatars differ on phone vs computer** — same player, different avatar across devices. <!-- fb:feedback-1782356969059-e9852ae6 -->
+- [ ] **Spectator join fails for non-admins** — typing the game number said "unavailable"; only an admin login could join. How do remote students spectate? <!-- fb:feedback-1782659209554-7bede788 -->
+
+### 🔗 Landing / presentation polish
+- [ ] **Landing feels "naked" / lots of white space** — wants a more prominent title, a representative graphic (asks for a generation prompt), an optional jingle/sound, and subtle wavy motion on the player boxes. <!-- fb:feedback-1782833475856-7dbc2fcc -->
+- [ ] **Scroll bars / sizing + phone warning** — page should resize to always fit the screen; on a phone, warn that the game is designed for a tablet minimum, best on a TV. <!-- fb:feedback-1782833653490-5470235b -->
 
 ---
 

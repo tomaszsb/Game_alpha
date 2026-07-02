@@ -47,7 +47,7 @@ export class ResourceService implements IResourceService {
     });
   }
 
-  spendMoney(playerId: string, amount: number, source: string, reason?: string, category?: keyof import('../types/DataTypes').Expenditures): boolean {
+  spendMoney(playerId: string, amount: number, source: string, reason?: string, category?: keyof import('../types/DataTypes').Expenditures, allowNegative = false): boolean {
     if (amount <= 0) {
       const error = ErrorNotifications.resourceOperationFailed('spend', 'money', `Invalid amount: ${amount}`);
       debugWarn(error.medium);
@@ -61,7 +61,15 @@ export class ResourceService implements IResourceService {
       throw new Error(error.detailed);
     }
 
-    if (!this.canAfford(playerId, amount)) {
+    // `allowNegative` = a MANDATORY bill (design/regulatory/loan fee, life-event
+    // cost) the player can't decline. It must be charged in full even if it
+    // pushes cash below zero, so it can drive real bankruptcy (checkBankruptcy →
+    // endGame) — "you can't pay the bill, you go under," like real life. The
+    // silent refusal here was dropping such fees, so cash and the ledger
+    // disagreed (fb:f0bdd78a) and the player never actually went bankrupt. It
+    // stays a hard guard for DISCRETIONARY spends (card plays via CardService),
+    // where you shouldn't be allowed to choose to overspend.
+    if (!allowNegative && !this.canAfford(playerId, amount)) {
       const error = ErrorNotifications.insufficientFunds(amount, player.money);
       debugWarn(error.medium);
       return false;
@@ -100,7 +108,8 @@ export class ResourceService implements IResourceService {
     return this.updateResources(playerId, {
       money: -amount,
       source,
-      reason: reason || `Spent $${amount.toLocaleString()}`
+      reason: reason || `Spent $${amount.toLocaleString()}`,
+      allowNegative
     });
   }
 
@@ -414,8 +423,10 @@ export class ResourceService implements IResourceService {
         errors.push('Money change must be a valid number');
       }
       
-      // Check if spending more money than player has
-      if (changes.money < 0 && player.money + changes.money < 0) {
+      // Check if spending more money than player has — unless this is a
+      // mandatory bill (allowNegative), which must be charged in full so an
+      // unpayable obligation drives real bankruptcy rather than being blocked.
+      if (!changes.allowNegative && changes.money < 0 && player.money + changes.money < 0) {
         errors.push(`Insufficient funds: trying to spend $${Math.abs(changes.money).toLocaleString()}, but player only has $${player.money.toLocaleString()}`);
       }
 

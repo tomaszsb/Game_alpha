@@ -99,10 +99,17 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     }
 
     if (!success) {
+      // Report the amount ACTUALLY processed, not the raw payload. For a
+      // percentage-of-scope fee the payload carries `amount: 0` (the real charge
+      // is computed here into `actualAmount`), so the old message read
+      // "MONEY change of 0" for a genuine fee failure — misleading noise in the
+      // console during playtests (fb:f0bdd78a). The usual cause is an unaffordable
+      // spend that spendMoney rejected (see the separate reconcile follow-up).
+      const attempted = payload.resource === 'MONEY' ? actualAmount : payload.amount;
       return {
         success: false,
         effectType: effect.effectType,
-        error: `Failed to process ${payload.resource} change of ${payload.amount} for player ${payload.playerId}`
+        error: `Failed to process ${payload.resource} change of ${attempted} for player ${payload.playerId}`
       };
     }
 
@@ -202,7 +209,12 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         this.notifyMoneyReceived(playerId, amount, source, sourceType, reason);
       }
     } else if (amount < 0) {
-      success = this.resourceService.spendMoney(playerId, Math.abs(amount), source, reason);
+      // RESOURCE_CHANGE money deductions are engine-applied bills (fees, costs,
+      // life-event charges) — mandatory, not discretionary. Charge in full even
+      // if it drives cash negative (allowNegative), so an unpayable bill causes
+      // real bankruptcy via checkBankruptcy below rather than being silently
+      // dropped (fb:f0bdd78a / 0aae9865 / 40caa223).
+      success = this.resourceService.spendMoney(playerId, Math.abs(amount), source, reason, undefined, true);
       if (success) {
         this.notifyFeeDeducted(playerId, amount, payload);
         this.checkBankruptcy(playerId);

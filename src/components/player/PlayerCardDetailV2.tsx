@@ -100,9 +100,14 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   const effects = (card.effects_on_play || '').trim();
   const showEffects = effects !== '' && !/^apply card$/i.test(effects) && effects !== (card.description || '').trim();
 
-  // Key facts — only rendered when the card actually carries them.
+  // Key facts — only rendered when the card actually carries them. A `valueColor`
+  // tints the value where there's a clear good/bad axis (light-mode safe reds/
+  // greens); the label word (Adds / Saves) is always the primary signal so colour
+  // is never the sole cue (a11y).
+  const GOOD = '#1e7e34'; // saves days — green
+  const BAD = '#c0392b';  // adds days — red (same red as over-budget elsewhere)
   const tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
-  const facts: { icon: string; label: string; value: string }[] = [];
+  const facts: { icon: string; label: string; value: string; valueColor?: string }[] = [];
   // Money: `card.cost` is always money the player SPENDS (a Work Package's
   // estimated construction cost, an Expeditor's activation fee), whereas
   // `money_effect` is a signed delta (negative = pays out, positive = receives).
@@ -118,7 +123,15 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
     }
   }
   if (tick != null && !isNaN(tick) && tick !== 0) {
-    facts.push({ icon: '🕐', label: tick < 0 ? 'Saves' : 'Adds', value: `${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}` });
+    // Expeditors save time (tick < 0 = good); delays add it (tick > 0 = bad).
+    // Colour the value to match — fb:39fd9f04 ("adding days should read red,
+    // saving days green").
+    facts.push({
+      icon: '🕐',
+      label: tick < 0 ? 'Saves' : 'Adds',
+      value: `${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`,
+      valueColor: tick < 0 ? GOOD : BAD,
+    });
   }
   if (card.duration && card.duration !== 'Permanent' && card.duration !== '0') {
     facts.push({ icon: '⏳', label: 'Lasts', value: card.duration });
@@ -297,7 +310,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
                 >
                   <span aria-hidden style={{ width: 18, textAlign: 'center' }}>{f.icon}</span>
                   <span style={{ color: p.muted, flex: 1 }}>{f.label}</span>
-                  <span style={{ fontWeight: 600 }}>{f.value}</span>
+                  <span style={{ fontWeight: 600, color: f.valueColor ?? p.text }}>{f.value}</span>
                 </div>
               ))}
             </div>

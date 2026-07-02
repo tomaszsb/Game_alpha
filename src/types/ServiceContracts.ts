@@ -88,6 +88,12 @@ export interface ResourceChange {
   source: string;
   reason?: string;
   moneySourceType?: 'bank' | 'investment' | 'owner' | 'other';
+  /**
+   * When true, a spend may drive money below zero (a mandatory bill the player
+   * can't decline). Bankruptcy is then detected downstream. Default false keeps
+   * the insufficient-funds guard for discretionary spends.
+   */
+  allowNegative?: boolean;
 }
 
 export interface ResourceTransaction {
@@ -110,7 +116,7 @@ export interface ResourceValidation {
 export interface IResourceService {
   // Money operations
   addMoney(playerId: string, amount: number, source: string, reason?: string, sourceType?: 'bank' | 'investment' | 'owner' | 'other'): boolean;
-  spendMoney(playerId: string, amount: number, source: string, reason?: string): boolean;
+  spendMoney(playerId: string, amount: number, source: string, reason?: string, category?: keyof import('./DataTypes').Expenditures, allowNegative?: boolean): boolean;
   canAfford(playerId: string, amount: number): boolean;
   
   // Time operations  

@@ -287,6 +287,25 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // action is used it drops to a ✓ trace and stops glowing.
   const firstVisitHint = isMyTurn && player.visitType === 'First';
 
+  // Money runway cue (fb:0aae9865) — a running-out-of-money signal so students
+  // manage cash before a bill bankrupts them (bills now go through in full and
+  // can end the game). Redundant coding: colour AND a word, never colour alone
+  // (a11y). Green = healthy; orange = running low (<20% of the money raised is
+  // left, matching the reporter's "20%"); red = in the red (a bill has pushed
+  // cash below zero — bankruptcy territory).
+  const fundingRaised = player.moneySources
+    ? (player.moneySources.ownerFunding || 0) +
+      (player.moneySources.bankLoans || 0) +
+      (player.moneySources.investmentDeals || 0) +
+      (player.moneySources.other || 0)
+    : 0;
+  const moneyCue: { color: string; word?: string } =
+    player.money < 0
+      ? { color: '#dc2626', word: 'in the red' }
+      : fundingRaised > 0 && player.money < fundingRaised * 0.2
+        ? { color: '#d97706', word: 'running low' }
+        : { color: mode === 'dark' ? '#4ade80' : '#1e7e34' };
+
   // --- styles -------------------------------------------------------------
   const cardStyle: React.CSSProperties = {
     width: '100%',
@@ -437,7 +456,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
       <div style={pad}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={stat} title="Cash on hand">
-            <span aria-hidden>💰</span>${player.money.toLocaleString()}
+            <span aria-hidden>💰</span>
+            <span style={{ color: moneyCue.color, fontWeight: 600 }}>${player.money.toLocaleString()}</span>
+            {moneyCue.word && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: moneyCue.color, marginLeft: 2 }}>
+                {moneyCue.word}
+              </span>
+            )}
           </span>
           <span style={stat} title="Days spent">
             <span aria-hidden>🕐</span>{player.timeSpent}
@@ -605,7 +630,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             {activeEffects.map((eff, i) => {
               // Tap an ongoing effect to open the card that created it (when that
               // card resolves) — same intuitive "tap for details" as the chips.
-              const src = eff.sourceCardId && gameServices.dataService.getCardById(eff.sourceCardId) ? eff.sourceCardId : null;
+              const srcCard = eff.sourceCardId ? gameServices.dataService.getCardById(eff.sourceCardId) : null;
+              const src = srcCard ? eff.sourceCardId : null;
+              // Icon reflects WHAT created the effect, not a generic ⚡ (the ⚡ is
+              // the Expeditor mark, so a Life Event carrying it read as an
+              // expeditor — fb:308653b9). Use the source card type's emoji
+              // (Life Event → 📰, Expeditor → ⚡); fall back to a neutral
+              // "ongoing" hourglass when the source can't be resolved.
+              const effEmoji = srcCard ? (colors.game.cardTypes[srcCard.card_type]?.emoji ?? '⏳') : '⏳';
               return (
                 <button
                   key={eff.effectId || i}
@@ -626,7 +658,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     cursor: src ? 'pointer' : 'default',
                   }}
                 >
-                  ⚡ {eff.description}
+                  {effEmoji} {eff.description}
                 </button>
               );
             })}

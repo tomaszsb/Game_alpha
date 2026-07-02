@@ -133,6 +133,18 @@ describe('ResourceService', () => {
         expect(result).toBe(false);
         expect(mockStateService.updateTempState).not.toHaveBeenCalled();
       });
+
+      it('charges a mandatory bill in full even past zero when allowNegative (fb:f0bdd78a)', () => {
+        // Player has $1000; a $1500 mandatory fee must still go through, leaving
+        // −$500 so bankruptcy can be detected downstream.
+        const result = resourceService.spendMoney('player1', 1500, 'test:fee', 'Design fee', undefined, true);
+
+        expect(result).toBe(true);
+        expect(mockStateService.updateTempState).toHaveBeenCalledWith(
+          'player1',
+          expect.objectContaining({ money: -500 }),
+        );
+      });
     });
 
     describe('canAfford', () => {

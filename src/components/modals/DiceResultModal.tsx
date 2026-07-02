@@ -14,6 +14,8 @@ import { CharacterBadge } from './shared/CharacterBadge';
 import { shouldShake, getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
 import { BeforeAfterBlock } from './shared/BeforeAfterBlock';
+import { OutcomeChangesV2 } from '../player/OutcomeChangesV2';
+import { getStoredPanelVersion, getStoredPanelMode } from '../player/panelTheme';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 
@@ -48,6 +50,13 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   // Again won't refund it). fb:0c523a17 / fb:b413cc2e.
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const currentPlayerId = gameServices.stateService.getGameState().currentPlayerId;
+
+  // The outcome modal is SHARED between classic + new panels. In the new view we
+  // render the "My numbers"-styled OutcomeChangesV2 (before→after that reads like
+  // the ledger + names the exact card gained/lost); classic keeps the untouched
+  // BeforeAfterBlock. Read the flags once at render — this modal is short-lived.
+  const isNewView = getStoredPanelVersion() === 'new';
+  const panelMode = getStoredPanelMode();
 
   // Look up space content early (needed for data-driven shake/TTS config)
   const spaceContent = result?.spaceName
@@ -466,10 +475,26 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         </div>
       )}
 
-      {/* Before / after snapshot — shows the exact resource deltas (money,
-       * scope, time, hand counts) so playtesters don't have to dismiss the
-       * modal and hunt through tabs. Renders nothing if no field changed. */}
-      <BeforeAfterBlock before={result.before} after={result.after} effects={result.effects} />
+      {/* Before / after snapshot — the exact resource deltas (money, scope,
+       * time, hand) so playtesters don't dismiss the modal and hunt through
+       * tabs. New view: the "My numbers"-styled OutcomeChangesV2 that also names
+       * the specific card gained/lost (fb:dc7652ec / 0001f5df / 0fc63fc1 /
+       * 3aad5f84). Classic: the original block, untouched. Both render nothing
+       * if no field changed. */}
+      {isNewView ? (
+        <OutcomeChangesV2
+          before={result.before}
+          after={result.after}
+          effects={result.effects}
+          mode={panelMode}
+          resolveCard={(id) => {
+            const c = dataService.getCardById(id);
+            return c ? { name: c.card_name, type: c.card_type } : null;
+          }}
+        />
+      ) : (
+        <BeforeAfterBlock before={result.before} after={result.after} effects={result.effects} />
+      )}
 
       {/* Phase 4: Optional footer summary from ModalConfig.modal_summary */}
       {overrideFooterSummary && (
