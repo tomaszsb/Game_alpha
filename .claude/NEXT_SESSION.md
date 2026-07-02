@@ -8,7 +8,7 @@
 - **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Deploy v3.0.91 + playtest the new economy.** It touches the **live default game's money model** — confirm an underfunded project hitting a design/regulatory fee now goes red → bankruptcy/game-over (cash cue warns orange→red first), not a swallowed fee. `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` (from Windows terminal).
+1. **Two findings from the v3.0.91 post-deploy playtest (deployed + badge live) — triage first.** Both under TODO "Post-deploy playtest of v3.0.91": (a) **ran out of money → NO end screen** — bankruptcy only fires on the mandatory `RESOURCE_CHANGE` fee path; space-subtracts cap and blocked buys don't end the game, so you can get stuck at ~$0 with no resolution (design call: when does "broke" = lose? — options in the TODO; verify which path was actually hit before coding). (b) **No funding-gap signal** — cash showed $70K green while scope was several million; the runway cue ignores commitments-vs-raised. Surface `fin.fundingGap` on the panel + drive the cue off it. Cluster these with the existing money-cluster TODOs before picking a fix.
 2. **Money cluster follow-ups:** `FEE_DEDUCTION` loan path still blocks-with-message rather than bankrupting (consistency call); surface the contractor agreed-price (fb:40caa223); show $ + time on end-turn/fee buttons (fb:06f7da3b / b53864af).
 3. **Medium tier (untouched):** action-count "2 actions but 1" (fb:65160c0c / 8edd02b4 — it's `gameState.requiredActions`, an engine-counting question, not a label); Chronicle "Turn ended/started" ordering + dividers (fb:1eff7156 — the Chronicle groups by space, needs turn-awareness); dark-mode/contrast for the V2 modals.
 
