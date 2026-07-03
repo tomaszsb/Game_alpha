@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.92] - 2026-07-02
+
+**Bankruptcy gets a real loss screen, the money cue stops lying about the funding gap, the end-turn button shows the bill, and the contractor finally charges (and takes) real time and money.** Triaged from the 2026-07-01 post-deploy playtest of v3.0.91; the contractor redesign is a maintainer design call made mid-session ("A and C — I want time to vary too").
+
+### Loss screen — bankruptcy no longer ends on a blank page (live default game)
+Reproduced the playtest's "ran out of money → NO end screen": bankruptcy fired correctly (`checkBankruptcy → endGame`), but `endGame()` carries no winner and [EndGameModal](src/components/modals/EndGameModal.tsx) only opened for wins (`isOpen = isGameOver && !!winnerName`) while GameLayout unmounts every panel in phase END — so a loss rendered a **blank white page**. Fixed by threading a `gameEndReason` ({bankruptcy | design_fee_cap} + playerId) through `endGame` and giving EndGameModal a loss variant: "The project went under" (or "The design budget sank the project"), the story naming who went broke, full stats + log export, a "next time" lesson box, and Play Again. Both no-winner endings (bankruptcy AND the 20% design-fee cap) had the same blank screen. +4 tests.
+
+### Money cue — "deficit" replaces false green (new panel)
+The v3.0.91 runway cue only compared cash to funds raised, so $70K cash sat green while the project needed millions (playtest finding). The cue is now driven by the same `computeProjectFinances` as "My numbers" (can't disagree): green only when cash is healthy AND the project is fully funded; otherwise an orange **"$X deficit"** sits next to the cash figure (word + colour, a11y). Maintainer shortened "still to raise" → "deficit" for the tight slot; the ledger keeps its fuller "Still to raise" row. Priority: "in the red" > "running low" > "deficit" > green. +3 tests.
+
+### End-turn button shows this turn's tab (fb:06f7da3b / b53864af, new panel)
+The commit spine now carries "this turn: 🕐 +X days · 💰 −$Y": days = the space's unconditional auto time cost (applied on arrival, BEFORE the REAL turn-start snapshot — a snapshot diff alone misses it) + any time added during the turn; money = the turn cost ledger (`getTurnOutflow`, sticks across Try Again). The resolved outcome also lands as a hover tooltip on the ✓ done-trace ("show the fee once determined"). Known nuance: days landed by the previous turn's movement roll can attribute to the current line — honest total, blurred attribution. +4 tests.
+
+### Contractor redesign — price centers on the estimate, and time finally varies (live default game)
+The old signing charge was scope × (roll × 0.1) × quality(1.5/1.0/0.6) — i.e. 6–90% of the scope estimate, averaging ~36%, so every build came in wildly "under budget" vs the numbers "My numbers" shows; and the multiplier's documented time meaning (ACTION_TOOLTIPS: "multiply scope days") was never implemented. New model in the shared pure helper [contractorTerms.ts](src/utils/contractorTerms.ts) (engine + displays use the same math):
+- **Price** = workCost × (0.7 + roll×0.1) × quality (HIGH 1.15 / MED 1.0 / LOW 0.9) → 72–150% of the estimate, expected ≈105%. Bids now hover around the estimate like real ones.
+- **Schedule** = roll × 10 days × crew speed (HIGH 0.8 / MED 1.0 / LOW 1.3) → 8–78 days added at signing. Quality is the honest trade: pricier crew builds faster.
+- **The signing charge is a mandatory bill** (`allowNegative` → shared `FinancialEffectHandler.checkBankruptcy`, now public): an unpayable contract charges into the red and bankrupts, same rule as the design/regulatory fees. Pre-fix it silently no-oped — a signed contract that cost nothing (same fb:f0bdd78a class).
+- The dice modal now shows the real terms — "Agreed price: $7,506,000 (5×, +65d)" — resolving fb:40caa223 ("never saw the agreed price"); expenditure/costHistory recording is gated on the charge actually succeeding; ACTION_TOOLTIPS rows for Quality/Multiplier rewritten to describe the real mechanic.
+- Verified live end-to-end: price + schedule in the modal → cash $4.8M → −$2.7M → bankruptcy → the new loss screen.
+
+### Decisions recorded (maintainer, 2026-07-02)
+- **Loans do NOT bankrupt** — repayment starts after the building is in use, past this game's scope. Future repayment-deadline + Temporary Certificate of Occupancy mechanic parked in TODO.
+- **Low cash is OK** — space-subtract caps and blocked discretionary buys stay; only mandatory bills (fees, life-event costs, and now the contractor signing) bankrupt.
+
+### Checks
+Typecheck + build clean; targeted sweep (components/utils/services) **1772/1772** (+13 new tests). **Ghost gate: all three 50-game batches PASSED** on the new economy — strict floor cleared, negotiate-coverage clean, smart-bot 50/50 wins with avgTurns improving 83.6 → 66.6, 0 hard failures.
+
 ## [3.0.91] - 2026-07-01
 
 **Bankruptcy is real now + the first before→after outcome modal + a batch of new-panel playtest fixes.** The headline touches the **live default game's money model**; the rest is opt-in new-panel work and data copy. Triaged from the 2026-06-30 v3.0.90 playtest (63 open reports → 48 clustered candidates in TODO).

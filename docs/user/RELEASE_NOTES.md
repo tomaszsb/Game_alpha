@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.92 — Going broke ends properly, and the contractor talks real numbers (July 2, 2026)
+
+- **Going bankrupt now shows you what happened.** Before, running out of money ended the game on a blank white page. Now you get a proper closing screen — "The project went under," what it cost you, your full history, and a tip for next time. Losing teaches now, instead of just stopping.
+- **Your cash colour tells the whole story.** Green used to mean "cash looks fine" even when the project needed millions more than you'd raised. Now the panel shows an orange **"$X deficit"** next to your cash whenever the full project budget is bigger than the money you've secured — green means *actually* funded.
+- **The end-turn button shows the bill.** A small line under the big button now reads "this turn: 🕐 +50 days · 💰 −$556K" — you always know what this stretch of work is costing before you move on.
+- **The contractor finally talks like a contractor.** Signing now shows the **agreed price in dollars** — "Agreed price: $7,506,000" — not just a mysterious multiplier. Bids land realistically around your scope estimate (sometimes under, sometimes painfully over), and the crew you get sets your **schedule** too: a top-shelf crew costs about 15% more but builds faster; the cheap crew saves you money and drags the job out. And the contract is real — if you sign a deal you can't pay for, the project goes under. Raise your money before you hire.
+
 ## v3.0.91 — Run out of money and the project fails (July 1, 2026)
 
 Money now works the way it does on a real job: **if a bill comes due and you can't pay it, the project goes bankrupt and the game ends.** Before, a fee you couldn't afford was quietly skipped, so your numbers never added up. Now the charge lands in full — and you get fair warning before it does.

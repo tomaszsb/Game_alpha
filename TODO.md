@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 1, 2026
-**Status:** Beta — live in production; **v3.0.90 deployed + confirmed live 2026-06-30** (new-view ledger cost drill-down)
-**Current Version:** 3.0.90
+**Last Updated:** July 2, 2026
+**Status:** Beta — live in production; **v3.0.91 deployed + playtested 2026-07-01**; v3.0.92 pending deploy (ghost gate passed)
+**Current Version:** 3.0.92
 
 ---
 
@@ -19,16 +19,10 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
 *Source: `/api/public/feedback/open`, 63 open → 48 new candidates (13 already tracked; 2 already-shipped awaiting dashboard flip: 222cd521, 1990c71e). Essentially one structured QA pass on the opt-in new panel — 30 reports from the 2026-06-30 v3.0.90 session + earlier un-triaged new-panel reports. Clusters below are sprint-shaped; standalone bugs are called out. Full staging: `.claude/feedback-staged.md`.*
 
-### 🔗 Money / fee legibility (remaining after v3.0.91)
-*Shipped v3.0.91: the reconcile bug (fb:f0bdd78a — unpayable bills now bankrupt instead of silently dropping), the money runway colour cue (fb:0aae9865), and the misleading `MONEY change of 0` console error. Remaining:*
-- [ ] **Hired a contractor but never saw the agreed price** — modal only said "low quality" + "multiplier 6x"; the actual dollar amount agreed was never shown. <!-- fb:feedback-1782851829370-40caa223 -->
-- [ ] **End-turn button should show the money being paid + the time impact** — surface the cost/day delta on the commit button. <!-- fb:feedback-1782848416271-06f7da3b -->
-- [ ] **Show the fee once determined** — put it on the "Determine fee amount" button after it resolves, and echo it on the end-turn button. <!-- fb:feedback-1782846625959-b53864af -->
-- [ ] **`FEE_DEDUCTION` (loan) path still blocks-with-message, doesn't bankrupt** — consistency follow-up to the v3.0.91 money model: mandatory `RESOURCE_CHANGE` bills now bankrupt, but the loan-fee path (`applyFeeDeduction`, tiered/dice fees) still pre-checks `canAfford` and fails with a notification. Decide whether loans should also be able to bankrupt.
-
-#### 🔗 Post-deploy playtest of v3.0.91 (2026-07-01, maintainer) — NEEDS TRIAGE next session
-- [ ] **Ran out of money but got NO end screen.** Bankruptcy (`checkBankruptcy → endGame`) only fires on the mandatory `RESOURCE_CHANGE` fee path (design/regulatory %-of-scope fees). Other ways of running out do NOT end the game: `SpaceEffectService` "subtract" **caps to remaining cash** ([SpaceEffectService.ts:56-60](src/services/SpaceEffectService.ts#L56), never goes negative), discretionary card buys are blocked up front, and the loan `FEE_DEDUCTION` path fails-with-message. So a player can drain to ~$0 and be stuck with no resolution + no end screen. **Design call for next session:** when should "broke" = lose? (Options: make mandatory space-subtract/fee_percent also `allowNegative`+bankrupt for consistency; or an end-of-turn insolvency check; or only the fee path, and treat low-cash-but-recoverable as fine.) Re-run ghost after any change — more games would end in bankruptcy. NOT yet reproduced/confirmed which path the maintainer hit; verify first.
-- [ ] **No visible funding-gap signal — "got $70K, scope grew to several millions, cash just showed $70K green."** The v3.0.91 money runway cue only compares cash to *funds raised* (green when you hold ≥20% of what you raised), so it's blind to a huge gap between **committed scope/commitments** and **funds raised**. Surface the funding gap ("Still to raise $X" — already computed as `fin.fundingGap` in [projectFinances.ts](src/utils/projectFinances.ts) + shown in "My numbers") on the always-visible panel status, and drive the cue colour off the gap, not just cash-vs-raised. This pairs with fb:0aae9865 (the cue) and the "My numbers" drill-down.
+### 🔗 Money / fee legibility (remaining after v3.0.92)
+*Shipped v3.0.91: the reconcile bug (fb:f0bdd78a), the money runway cue (fb:0aae9865), the `MONEY change of 0` error. Shipped v3.0.92 (see CHANGELOG): the bankruptcy loss screen, the "$X deficit" cue, the end-turn this-turn cost line (fb:06f7da3b / b53864af), the contractor agreed price (fb:40caa223) + full price/schedule redesign (`contractorTerms.ts`, signing = mandatory bill). Decisions recorded: loans don't bankrupt (repayment post-scope), low cash OK. Remaining:*
+- [ ] **This-turn cost line attribution nuance** — days landed by the previous turn's movement roll can attribute to the current turn's line (arrival ordering). Honest total, blurred attribution; revisit only if playtesters notice.
+- [ ] **✓ done-trace outcome tooltip is desktop-hover only** — if players ask for it on touch, revisit with a tap-to-expand trace.
 
 ### 🔗 Expeditor / life-event card clarity (mini-sprint candidate — feeds before→after modal + detail view)
 - [ ] **"How does this card work?" (Return to Sender expeditor)** — the card's actual mechanic isn't clear from the detail modal. <!-- fb:feedback-1782852609541-73318276 -->
@@ -41,8 +35,8 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ### 🔗 "Things you can do" action-zone readability + reversibility (mini-sprint candidate)
 - [ ] **BUG: all actions look done but End Turn does nothing** — end-turn button unresponsive with no remaining action visible. <!-- fb:feedback-1782847272646-e0694a57 -->
-- [ ] **End-turn action count off by one** — says "2 actions" when only one action exists. <!-- fb:feedback-1782847356270-65160c0c -->
-- [ ] **Action count reads as 4 when there are 2** — collapse to two buttons (e.g. Replace expeditor + Move) and reveal move choices on hover/click instead of listing each. <!-- fb:feedback-1782843206015-8edd02b4 -->
+- [ ] **End-turn action count off by one** — says "2 actions" when only one action exists. <!-- fb:feedback-1782847356270-65160c0c --> *Investigated 2026-07-02: report doesn't name the space; engine (`StateService.calculateRequiredActions`) and panel (`PlayerPanelV2` visible actions) agreed on every space checked live (OWNER-SCOPE-INITIATION 2/2, ARCH-FEE-REVIEW 1 counted + skippable return_e uncounted, PM-DECISION-CHECK choice=1). Skippable replace_/return_/give_ actions surface a button but don't count — by design, and that produces MORE buttons than count, not fewer. Open suspects: a choice-movement space where the player doesn't perceive "pick a destination" as an action, or a dice-movement+manual space mid-roll. Needs a repro with the space name.*
+- [ ] **Action count reads as 4 when there are 2** — collapse to two buttons (e.g. Replace expeditor + Move) and reveal move choices on hover/click instead of listing each. <!-- fb:feedback-1782843206015-8edd02b4 --> *Triaged 2026-07-02: not an engine bug — the count is right (replace is optional/uncounted, movement choice = 1 action); it's a presentation request to fold the destination list behind one "Move" button. Partially conflicts with fb:c2e489dc below (keep options visible so you can change your mind) — design call on the collapse pattern.*
 - [ ] **Action buttons look too alike** — need slight visual differentiation for movement / expeditors / work packages. <!-- fb:feedback-1782239015754-40cc3674 -->
 - [ ] **BUG: "Replace expeditor" button opens no modal** — the replace flow doesn't trigger the chooser. <!-- fb:feedback-1782240625591-3accbe92 -->
 - [ ] **First-visit green dot missing** — player on a first visit expected the green first-visit hint on active buttons; didn't see it. <!-- fb:feedback-1782239119421-e84e4d11 -->
@@ -295,6 +289,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 - [ ] **Swap the terser minifier → native (Rolldown/Oxc or esbuild).** Build logs `[PLUGIN_TIMINGS] vite:terser` slow; native is faster + drops the terser dep. ⚠️ Bundle-affecting (tests run vs source), so verify via a deploy playtest; preserve [vite.config.ts:227](vite.config.ts) behaviors (keep `console.*`, drop `debugger`, strip `console.debug`). Low priority — build is ~8s; bundle with a planned deploy. (Merged the two duplicate terser/minifier notes 2026-06-28.)
 - [ ] **Known limitation — Q2 first-visit blind spot (low priority, maintainer accepted 2026-06-15).** `scope_changed_since_last_visit` compares scope to the *prior visit to this space*; on a FIRST FDNY-FEE-REVIEW visit there's no snapshot → defaults "no change". Benign in the normal flow (first fee-review visit immediately follows FDNY approval, nothing's changed yet) but could skip a needed FDNY review if a player got FDNY approval, changed scope, then reached fee review for the first time via an unusual loop. The sturdier fix is to snapshot scope at the moment FDNY approval is *granted* (an approval baseline, always present) instead of per-visit. Maintainer chose the simple per-visit version knowingly.
+- [ ] **Loan-repayment deadline + Temporary Certificate of Occupancy (maintainer idea, 2026-07-02 — "file under way later").** Bank/investor sets a time limit to start repayment; if the building isn't built (or under TCO) by then, the project fails at that point. Needs a TCO mechanic to work completely — a real expansion, not a tweak. Trigger: revisit if/when the game's scope extends past building-in-use.
 - [ ] **Environmental (no code bug): "play on Perplexity" load failure.** <!-- fb:feedback-1781190420890-5a155a1a --> Console showed `ERR_BLOCKED_BY_CLIENT` (ad-blocker / Perplexity in-app browser blocking a script) + `404 /api/games/G337/state` (stale/expired game id). Game wasn't broken — opened inside a resource-blocking embedded browser on an old link. **No fix required.** At most a friendlier "this game expired / open in a full browser" message — ties into the onboarding package already tracked (Top-3 #1). Flag-only.
 
 ### Dependency major-version jumps (deferred 2026-05-29)
