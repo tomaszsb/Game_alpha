@@ -1,7 +1,7 @@
 # Next session starter — written 2026-07-02 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.92 — committed + pushed, **PENDING DEPLOY** (deploy command handed to user at wrap-up; ghost gate PASSED so it's cleared to ship).
+- **Version:** v3.0.92 — **DEPLOYED + verified live 2026-07-02** (bundle serves 3.0.92/f6950b3; loss-screen copy, "deficit" cue, contractor strings, and the rewritten ACTION_TOOLTIPS row all confirmed at origin).
 - **Branch:** master, clean apart from `.claude/settings.local.json`.
 - **Last shipped:** bankruptcy **loss screen** (was a blank page), "$X **deficit**" cash cue (funding-gap aware), end-turn button shows "this turn: 🕐+Xd · 💰−$Y", **contractor redesign** — price 72–150% of estimate (was 6–90%), schedule 8–78 days at signing, unpayable contract = bankruptcy (`contractorTerms.ts` is the one math home).
 - **Test suite:** targeted sweep 1772/1772 (+13 new); typecheck + build clean.
