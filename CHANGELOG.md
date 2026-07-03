@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.94] - 2026-07-02
+
+**Glossary term links finally tap on tablets, the dictionary can't hang on a dead network, and a double-applied time effect on the classic card modal is gone.** Second bug batch of the Thursday-night session (first batch shipped as v3.0.93).
+
+### Glossary link "nothing opened" (fb:baa01a70, tapped "underwriting")
+Desktop was proven working end-to-end (term tap inside a modal → panel opens on top — DOM order beats the equal z-index 1000), so the failure had to be device/network. Two fixes, both in the dictionary module:
+- **Term links were `cursor: help` spans.** iOS Safari only synthesizes click events for elements it deems "clickable" (cursor pointer or a direct handler) — taps on the underlined terms died silently on iPads while mouse clicks worked. Now `cursor: pointer` + `touch-action: manipulation` + a tap highlight. *Hypothesis-level for the exact report (no tablet on hand) — confirm next playtest.*
+- **The embedded dashboard iframe could strand the panel on "Loading intelligence from dashboard…" forever** (its load event never fires on a hung network, and load errors weren't handled). [DictionaryPanel](src/dictionary/components/DictionaryPanel.tsx) now falls back to the **locally cached definition after 6s** (or instantly on iframe error) — the term data was already loaded locally, only the rich iframe view needed the network. Falls back for the rest of that open; next open retries the dashboard. +1 test.
+
+### Card audit: E013 verified truthful — and a real double-apply bug found next door (fb:c51f9f16)
+The report asked whether the "filing-rep" card really adds 2 days to other players. The card is **E013 "Redundant Requests"** ("All players' current filing takes 2 days more time"): via the normal play path (`cardService.playCard` → `parseCardIntoEffects`) it correctly fans out +2 days to **every player, self included** — text is truthful. But the audit exposed that the *parallel* effect parser used by the classic CardModal ([EffectFactory.createEffectsFromCard](src/utils/EffectFactory.ts), via PlayerActionService) had **two copy-pasted blocks each emitting the `tick_modifier` time effect** — any timed card played through that modal applied DOUBLE (E013 +4 instead of +2; an expeditor's −2-day saving became −4). The old unit test even documented the duplication in a comment and asserted the buggy count. Duplicate block removed; the test now asserts exactly one time effect.
+
+### Test repair: E2E-05 was stale, not broken
+The full-suite run surfaced 2 pre-existing failures (fail on v3.0.93 HEAD too): E2E-05's multiplayer tests play L003 from the starting space, but L003 gained `phase_restriction=CONSTRUCTION` in the data after the tests were written, so validation (correctly) refused. Tests now place the player on a CONSTRUCTION-phase space first.
+
+### Checks
+Typecheck + build clean. **Full suite run this session: 2,293 passed / 1 skipped** (the only 2 failures were the stale E2E-05 tests above, fixed and verified). Koniec targeted sweep 1818/1818.
+
+## [3.0.93] - 2026-07-02
+
+**The History drill-down reads in the order the turn actually happened, and the new panel's modals are finally dark-mode citizens.** First bug batch of the Thursday-night session, both from the dashboard backlog.
+
+### Chronicle ordering — "Turn ended" before "Turn started" (fb:1eff7156)
+Root cause: `turn_end` is logged **after** movement executes (TurnTransitionHandler), so it carries the **destination** space — and the Chronicle grouped by consecutive space name, dragging "Turn N ended" under the *next* space's 📍 header, directly above "Turn N+1 started". Presentation-only fix in [PlayerChronicleV2](src/components/player/PlayerChronicleV2.tsx): blocks now cut at `turn_start` boundaries (the same boundary rule the classic GameLog uses), each turn renders a **"Turn N · 📍 space" divider** (replacing the "Turn N started" text row), and "Turn N ended" naturally lands after the turn's last action. The canonical log pipeline is untouched — this can't drift from the classic Log tab's data. +3 tests.
+
+### Dark mode + glossary-link contrast for the V2 modal bodies (redesign §4)
+The shared [ModalBase](src/components/modals/shared/ModalBase.tsx) shell was hardcoded light, which also caused the term-link contrast complaint: in panel dark mode the glossary CSS flips to pale-blue links **globally** (`html[data-uc-dark]`), and pale blue on the light-gray modal rows was near-invisible. ModalBase grew an opt-in `mode` prop — **default 'light' renders the pre-existing shell pixel-identically**, so every classic modal is untouched. The three V2 drill-downs (Your numbers / What's happened / card detail) and DiceResultModal's tap-through card detail now pass the panel mode through; dark shell = panel palette (bg/header/title/close/footer), and the good/bad/alert tints moved into `panelPalettes` with dark-safe shades (light `#c0392b`-family ↔ dark `#f87171`/`#4ade80`). Card-type tinted headers deliberately keep their light tint + dark title in both modes (type identity). Live-verified both modes, zero console errors. +6 tests.
+
 ## [3.0.92] - 2026-07-02
 
 **Bankruptcy gets a real loss screen, the money cue stops lying about the funding gap, the end-turn button shows the bill, and the contractor finally charges (and takes) real time and money.** Triaged from the 2026-07-01 post-deploy playtest of v3.0.91; the contractor redesign is a maintainer design call made mid-session ("A and C — I want time to vary too").

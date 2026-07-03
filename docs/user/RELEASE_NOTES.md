@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.93–94 — Your history reads in order, dark mode everywhere, and word help that works on tablets (July 2, 2026)
+
+- **"What's happened" now reads like the turn actually went.** Each turn in your history gets its own divider — "Turn 3 · 📍 Fund Initiation" — with everything you did underneath, and "Turn ended" right after your last action instead of jumbled under the next stop's heading.
+- **Dark mode reaches the pop-ups.** If you use the redesigned panel in dark mode, "My numbers," your history, and the card details now open dark too — no more blinding white pop-up, and the underlined word-help links are finally readable in both looks.
+- **Underlined word help now works on tablets.** Tapping an underlined term (like "underwriting") on an iPad did nothing — a quirk of how tablets decide what's tappable. Fixed. And if the network is slow, the definition now appears from the game's own copy after a few seconds instead of loading forever.
+- **A double-charged time effect is gone.** Cards that add or save days, when played from the classic card pop-up, were applying their days twice (a "+2 days to everyone" card hit for 4). Every timed card now does exactly what it says.
+
 ## v3.0.92 — Going broke ends properly, and the contractor talks real numbers (July 2, 2026)
 
 - **Going bankrupt now shows you what happened.** Before, running out of money ended the game on a blank white page. Now you get a proper closing screen — "The project went under," what it cost you, your full history, and a tip for next time. Losing teaches now, instead of just stopping.

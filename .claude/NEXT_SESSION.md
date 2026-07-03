@@ -1,24 +1,27 @@
-# Next session starter — written 2026-07-02 by /koniec
+# Next session starter — written 2026-07-03 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.92 — **DEPLOYED + verified live 2026-07-02** (bundle serves 3.0.92/f6950b3; loss-screen copy, "deficit" cue, contractor strings, and the rewritten ACTION_TOOLTIPS row all confirmed at origin).
-- **Branch:** master, clean apart from `.claude/settings.local.json`.
-- **Last shipped:** bankruptcy **loss screen** (was a blank page), "$X **deficit**" cash cue (funding-gap aware), end-turn button shows "this turn: 🕐+Xd · 💰−$Y", **contractor redesign** — price 72–150% of estimate (was 6–90%), schedule 8–78 days at signing, unpayable contract = bankruptcy (`contractorTerms.ts` is the one math home).
-- **Test suite:** targeted sweep 1772/1772 (+13 new); typecheck + build clean.
-- **Ghost gate:** ALL THREE 50-game batches passed on the new economy — smart-bot 50/50, avgTurns improved 83.6 → 66.6, 0 hard failures.
+- **Version:** v3.0.94 (**pending deploy** — user was handed the deploy command; live is v3.0.92)
+- **Branch:** master, clean except `.claude/settings.local.json` (local config, fine)
+- **Last shipped:** v3.0.93+94 — Chronicle turn-dividers, dark-mode V2 modal bodies, tablet-tappable glossary links + 6s iframe fallback, EffectFactory double time-effect removed
+- **Test suite:** full suite 2,293 passed / 1 skipped this session; koniec sweep 1818/1818
+- **Build/typecheck:** clean
 
 ## Top 3 open items
-1. **Deploy v3.0.92 + playtest the contractor economy** — real-priced bids + schedules change game feel a lot; watch whether the deficit cue actually steers players to raise before hiring, and whether bankruptcies feel fair or brutal.
-2. **Medium tier:** Chronicle "Turn ended/started" ordering + turn dividers (fb:1eff7156); dark-mode/contrast sweep for the V2 modals; action-count off-by-one (fb:65160c0c — needs a repro WITH the space name; engine and panel agreed on every space checked 2026-07-02, notes in TODO).
-3. **Dashboard PATCH sweep** — flip `resolved:true` for: 9c110d52, 8d68ab14, 222cd521, 1990c71e (older) + this session's 40caa223, 06f7da3b, b53864af, plus the playtest pair (loss screen / funding gap) if they were filed as reports.
+1. **Verify the deploy + tablet-check the glossary tap fix.** The `cursor: help` → `pointer` cause for fb:baa01a70 is **hypothesis — unverified on a real iPad** (desktop path proven working). If a tablet playtest still can't tap terms, the next suspect is the tap landing inside the dashboard IFRAME content (dashboard repo, embedded=true view).
+2. **Dashboard PATCH sweep (after deploy confirms).** Flip `resolved:true` for: 1eff7156, baa01a70, c51f9f16 (this session) + the earlier pending batch 9c110d52, 8d68ab14, 222cd521, 1990c71e, 40caa223, 06f7da3b, b53864af. All are CODE fixes — no data-deploy-gap check needed.
+3. **Standalone bug pair, likely related:** Move button disappeared after the bug-report popup (fb:bf8bf19a) and buttons gone after zooming the board (fb:45cb8b0c) — both "panel controls vanished mid-game"; check for a shared cause (focus/overlay state?) before fixing separately.
+
+## Test failures to address
+(green)
 
 ## Decisions waiting on the user
-- None — this session CLOSED the open ones: loans don't bankrupt (repayment is post-scope; deadline+TCO parked), low cash is OK, "deficit" wording chosen.
+- None new. (Standing: E/L `effects_on_play` prose authoring is optional/deferred; new-view Action+Outcome rationale question fb:f6e100b7 is addressed *to* the maintainer.)
 
 ## Suggested first move
-Deploy v3.0.92 (it's a live-default-game economy change — the loss screen + real contractor pricing genuinely want a human playtest), then play one game to the contractor and go broke on purpose to feel the new failure arc. Or pick up the Chronicle ordering item if you'd rather code first. Which?
+Confirm v3.0.94 deployed (header should read v3.0.94 · 9685bfa ✓ — or the koniec commit's hash if that shipped after), then run the dashboard PATCH sweep — ~10 reports are shipped-but-unflipped, which pollutes the next feedback pull. After that, the bf8bf19a/45cb8b0c "buttons vanished" pair is the meatiest open bug.
 
 ## Reminders
-- Deploy from the **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Commit + push BEFORE deploy (done this session).
-- Contractor knobs live at the top of [src/utils/contractorTerms.ts](../src/utils/contractorTerms.ts) (base bid 0.7, 10 days/roll-point, quality 0.9/1.0/1.15 price × 1.3/1.0/0.8 speed) — tune there if the playtest says too harsh/soft, then re-run ghost.
-- Memory-graph session entity NOT written (memory MCP disconnected mid-wrap) — next session can add `Session 2026-07-02 (v3.0.92)` if it matters.
+- Deploy command runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- Preview-browser gotcha (cost time this session): a hidden preview tab freezes rAF → framer-motion modals look stuck open. Check `document.hidden` before chasing "modal won't close."
+- Two parallel card-play effect parsers exist (CardService.parseCardIntoEffects vs EffectFactory.createEffectsFromCard) — see CLAUDE.md TACTICAL (charter 3.52) before touching card effects.
