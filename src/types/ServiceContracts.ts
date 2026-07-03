@@ -270,7 +270,7 @@ export interface IStateService {
   // Game lifecycle methods
   initializeGame(): GameState;
   startGame(settings?: import('./StateTypes').GameModeSettings): GameState;
-  endGame(winnerId?: string): GameState;
+  endGame(winnerId?: string, endReason?: import('./StateTypes').GameEndReason): GameState;
   resetGame(): GameState;
   
   // Negotiation management methods
@@ -492,6 +492,8 @@ export interface ICardEffectService {
 export interface IFinancialEffectHandler {
   handleResourceChange(effect: Effect, context: EffectContext): EffectResult;
   handleFeeDeduction(effect: Effect, context: EffectContext): EffectResult;
+  /** Ends the game (no winner) if the player's cash is below zero. */
+  checkBankruptcy(playerId: string): void;
 }
 
 /**

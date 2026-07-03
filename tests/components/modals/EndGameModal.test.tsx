@@ -145,6 +145,46 @@ describe('EndGameModal', () => {
       
       expect(screen.getByText('🏆 Congratulations Unknown Player!')).toBeInTheDocument();
     });
+
+    // Loss endings (v3.0.92) — bankruptcy / design-fee cap end the game with
+    // NO winner. The modal must still open (post-deploy playtest: the game
+    // ended but the win-only modal never opened → blank page).
+    it('should render the bankruptcy loss screen when the game ends with no winner', () => {
+      const lossState = {
+        ...mockGameState,
+        isGameOver: true,
+        winner: undefined,
+        gameEndReason: { type: 'bankruptcy' as const, playerId: 'player1' },
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z')
+      };
+      mockStateService.getGameState.mockReturnValue(lossState);
+
+      render(<EndGameModal />);
+
+      expect(screen.getAllByText('The project went under')[0]).toBeInTheDocument();
+      expect(screen.getByTestId('end-game-loss-lesson')).toBeInTheDocument();
+      // Names the bankrupt player, and no win copy leaks in.
+      expect(screen.getByText(/Test Winner ran out of money/)).toBeInTheDocument();
+      expect(screen.queryByText(/Congratulations/)).not.toBeInTheDocument();
+    });
+
+    it('should render the design-fee-cap loss screen', () => {
+      const lossState = {
+        ...mockGameState,
+        isGameOver: true,
+        winner: undefined,
+        gameEndReason: { type: 'design_fee_cap' as const, playerId: 'player1' },
+        gamePhase: 'END' as const,
+        gameEndTime: new Date('2024-12-20T10:30:00Z')
+      };
+      mockStateService.getGameState.mockReturnValue(lossState);
+
+      render(<EndGameModal />);
+
+      expect(screen.getAllByText('The design budget sank the project')[0]).toBeInTheDocument();
+      expect(screen.queryByText(/Congratulations/)).not.toBeInTheDocument();
+    });
   });
 
   describe('State Subscription', () => {

@@ -262,6 +262,14 @@ export interface ActiveModal {
   cardId: string;
 }
 
+// Why the game ended when there is no winner. `bankruptcy` = a mandatory
+// bill drove cash below zero; `design_fee_cap` = design fees passed 20% of
+// project scope. Both are set by FinancialEffectHandler.
+export interface GameEndReason {
+  type: 'bankruptcy' | 'design_fee_cap';
+  playerId: string;
+}
+
 export interface GameState {
   players: Player[];
   currentPlayerId: string | null;
@@ -284,6 +292,10 @@ export interface GameState {
   gameStartTime?: Date;
   gameEndTime?: Date;
   winner?: string;
+  // Set when the game ends WITHOUT a winner (bankruptcy, design-fee cap).
+  // EndGameModal needs this to render a loss screen — with only `winner` to
+  // go on, a loss ended the game but opened no modal, leaving a blank page.
+  gameEndReason?: GameEndReason;
   // Workstream 7 Phase 7.4 — set when the winner reached FINISH without DOB
   // sign-off. EndGameModal renders a penalty section when this is present.
   endGamePenalty?: {

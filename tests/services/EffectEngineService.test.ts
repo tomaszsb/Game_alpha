@@ -1360,7 +1360,8 @@ describe('EffectEngineService', () => {
 
     it('multiplier update saves the multiplier AND deducts construction cost', async () => {
       // Player exists with MED quality already; total work cost is $1M.
-      // Expected cost: 1_000_000 × (3 × 0.1) × 1.0 = 300_000
+      // v3.0.92 terms: price = 1_000_000 × (0.7 + 3×0.1) × 1.0 = 1_000_000
+      // (bid centered on the estimate), schedule = 3 × 10 × 1.0 = 30 days.
       const playerInitial = {
         id: 'player1',
         currentSpace: 'CON-INITIATION',
@@ -1393,23 +1394,70 @@ describe('EffectEngineService', () => {
       expect(mockStateService.updatePlayer).toHaveBeenCalledWith(
         expect.objectContaining({ contractor: expect.objectContaining({ multiplier: 3 }) })
       );
+      // allowNegative: the signing charge is a mandatory bill — an unpayable
+      // contract charges into the red and bankrupts (v3.0.91 rule extended).
       expect(mockResourceService.spendMoney).toHaveBeenCalledWith(
         'player1',
-        300_000,
+        1_000_000,
         expect.anything(),
-        expect.stringContaining('Contractor hired')
+        expect.stringContaining('Contractor hired'),
+        undefined,
+        true
+      );
+      // The crew's schedule lands as real days (v3.0.92 — "I want time to vary too").
+      expect(mockResourceService.addTime).toHaveBeenCalledWith(
+        'player1',
+        30,
+        expect.anything(),
+        expect.stringContaining('Construction schedule')
       );
       // Construction cost is recorded via TEMP state (survives turn-commit) with
       // both the expenditures bump and a costHistory entry (feeds end-game Total Spent).
       expect(mockStateService.updateTempState).toHaveBeenCalledWith(
         'player1',
         expect.objectContaining({
-          expenditures: expect.objectContaining({ construction: 300_000 }),
+          expenditures: expect.objectContaining({ construction: 1_000_000 }),
           costHistory: expect.arrayContaining([
-            expect.objectContaining({ category: 'construction', amount: 300_000 })
+            expect.objectContaining({ category: 'construction', amount: 1_000_000 })
           ])
         })
       );
+      // The agreed terms ride back on the result so the dice modal can show
+      // the dollar figure + schedule, not just "3×" (fb:40caa223).
+      expect(result.data).toEqual({ constructionCost: 1_000_000, scheduleDays: 30 });
+    });
+
+    it('multiplier does NOT record the expenditure when the charge fails (ledger-vs-cash guard)', async () => {
+      // spendMoney refusing (can't afford) must not book the cost anyway —
+      // that would be the fb:f0bdd78a "ledger says spent, cash didn't move"
+      // mismatch all over again, and no agreed price should be displayed.
+      // The schedule still lands: the work takes the time it takes.
+      const player = {
+        id: 'player1',
+        currentSpace: 'CON-INITIATION',
+        contractor: { quality: 'MED' as const, multiplier: 1 },
+        expenditures: { construction: 0 }
+      };
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockGameRulesService.calculateTotalWorkCost = vi.fn().mockReturnValue(1_000_000);
+      mockResourceService.spendMoney.mockReturnValue(false);
+
+      const effect: Effect = {
+        effectType: 'CONTRACTOR_UPDATE',
+        payload: { playerId: 'player1', kind: 'multiplier', value: '3' }
+      };
+
+      const result = await effectEngineService.processEffect(effect, ctx);
+
+      expect(result.success).toBe(true);
+      expect(mockStateService.updateTempState).not.toHaveBeenCalled();
+      // (The static getPlayer mock never applies the multiplier write, so the
+      // engine reads the pre-existing 1× → 10 days. The point here is only
+      // that the schedule lands while the expenditure does not.)
+      expect(mockResourceService.addTime).toHaveBeenCalledWith(
+        'player1', 10, expect.anything(), expect.stringContaining('Construction schedule')
+      );
+      expect(result.data).toEqual({ constructionCost: 0, scheduleDays: 10 });
     });
 
     it('multiplier with no work cost skips spendMoney (no-op until W cards exist)', async () => {

@@ -19,7 +19,8 @@ import {
   TurnCostLedger,
   StateTransitionResult,
   CreateTempOptions,
-  NegotiationState
+  NegotiationState,
+  GameEndReason
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances, NpcImageRole } from '../constants/characters';
@@ -670,13 +671,14 @@ export class StateService implements IStateService {
     return null;
   }
 
-  endGame(winnerId?: string): GameState {
+  endGame(winnerId?: string, endReason?: GameEndReason): GameState {
     const newState: GameState = {
       ...this.currentState,
       gamePhase: 'END',
       gameEndTime: new Date(),
       isGameOver: true,
-      winner: winnerId
+      winner: winnerId,
+      gameEndReason: endReason
     };
 
     this.currentState = newState;

@@ -18,6 +18,7 @@ import {
 } from '../types/ServiceContracts';
 import { Card } from '../types/DataTypes';
 import { debugWarn } from '../utils/debugLog';
+import { computeContractorTerms } from '../utils/contractorTerms';
 import {
   Effect,
   EffectContext,
@@ -386,27 +387,54 @@ export class EffectEngineService implements IEffectEngineService {
                 }
               });
 
-              // Deduct construction cost using current quality + new multiplier.
+              // Charge the agreed price + add the crew's schedule, both from the
+              // shared computeContractorTerms helper (v3.0.92: bid centered on
+              // the scope estimate, schedule varies with roll + crew quality —
+              // maintainer call "A and C", 2026-07-02).
               const updatedPlayer = this.stateService.getPlayer(payload.playerId);
               const contractor = updatedPlayer?.contractor;
+              let chargedConstructionCost = 0;
+              let scheduleDaysAdded = 0;
               if (contractor) {
                 const totalWorkCost = this.gameRulesService.calculateTotalWorkCost(payload.playerId);
                 if (totalWorkCost > 0) {
-                  const qualityCoeffs: Record<'HIGH' | 'MED' | 'LOW', number> = {
-                    HIGH: 1.5, MED: 1.0, LOW: 0.6
-                  };
-                  const qualityCoeff = qualityCoeffs[contractor.quality] || 1.0;
-                  const multiplierPercent = contractor.multiplier * 0.1;
-                  const constructionCost = Math.round(totalWorkCost * multiplierPercent * qualityCoeff);
+                  const terms = computeContractorTerms(totalWorkCost, contractor.multiplier, contractor.quality);
+                  const constructionCost = terms.cost;
+
+                  // The crew's schedule lands regardless of the money charge —
+                  // the work takes the time it takes.
+                  if (terms.scheduleDays > 0) {
+                    this.resourceService.addTime(
+                      payload.playerId,
+                      terms.scheduleDays,
+                      payload.source || context.source,
+                      `Construction schedule: ${contractor.quality} quality crew at ${contractor.multiplier}× — ${terms.scheduleDays} days`
+                    );
+                    scheduleDaysAdded = terms.scheduleDays;
+                  }
 
                   if (constructionCost > 0) {
-                    this.resourceService.spendMoney(
+                    // The signing charge is a MANDATORY bill — the dice committed
+                    // the player to this contract. Charge in full, into the red
+                    // if needed (allowNegative), so an unpayable contract drives
+                    // real bankruptcy exactly like the design/regulatory fees do
+                    // (v3.0.91 rule). Pre-v3.0.92 this silently no-oped when
+                    // unaffordable — a signed contract that cost nothing.
+                    // Record the expenditure ONLY if the charge went through —
+                    // recording an unpaid cost is the exact ledger-vs-cash
+                    // mismatch the v3.0.91 money fix removed (fb:f0bdd78a).
+                    const paid = this.resourceService.spendMoney(
                       payload.playerId,
                       constructionCost,
                       payload.source || context.source,
-                      `Contractor hired: ${contractor.quality} quality, multiplier ${contractor.multiplier} — $${constructionCost.toLocaleString()}`
+                      `Contractor hired: ${contractor.quality} quality, multiplier ${contractor.multiplier} — $${constructionCost.toLocaleString()}`,
+                      undefined,
+                      true
                     );
-                    const refreshed = this.stateService.getPlayer(payload.playerId);
+                    const refreshed = paid ? this.stateService.getPlayer(payload.playerId) : null;
+                    if (paid) {
+                      chargedConstructionCost = constructionCost;
+                    }
                     if (refreshed) {
                       // Record through TEMP state (not updatePlayer): the turn-commit
                       // snapshot tracks `expenditures` + `costHistory`, so a real-state
@@ -433,9 +461,21 @@ export class EffectEngineService implements IEffectEngineService {
                         costHistory
                       });
                     }
+                    // An unpayable contract ends the project — same single
+                    // bankruptcy rule the mandatory fees use.
+                    this.financialEffectHandler?.checkBankruptcy(payload.playerId);
                   }
                 }
               }
+              // Surface the agreed price + schedule so the dice modal can show
+              // the real terms, not just "multiplier 6×" (fb:40caa223).
+              return {
+                success: true,
+                effectType: effect.effectType,
+                data: (chargedConstructionCost > 0 || scheduleDaysAdded > 0)
+                  ? { constructionCost: chargedConstructionCost, scheduleDays: scheduleDaysAdded }
+                  : undefined
+              };
             }
             success = true;
           }

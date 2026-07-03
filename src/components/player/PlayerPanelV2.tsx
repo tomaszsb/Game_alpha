@@ -24,6 +24,8 @@ import { PlayerNumbersV2 } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName } from '../../utils/cardTypeNames';
+import { computeProjectFinances } from '../../utils/projectFinances';
+import { FormatUtils } from '../../utils/FormatUtils';
 
 export interface PlayerPanelV2Props extends ActionCenterPanelProps {
   mode: PanelMode;
@@ -216,6 +218,28 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const canEndTurn = gameServices.gameRulesService.canEndTurn(playerId);
   const remaining = Math.max(0, gameState.requiredActions - gameState.completedActionCount);
 
+  // This turn's tab so far (fb:06f7da3b / b53864af) — the money paid and the
+  // days added by this visit, echoed under the commit spine so ending the turn
+  // isn't a mystery total. Three sources: (1) the space's own unconditional
+  // auto time cost ("Spend 50 days" rows — applied on arrival BEFORE the REAL
+  // turn-start snapshot is captured, so a snapshot diff alone misses it);
+  // (2) time added DURING the turn (dice outcomes, negotiate penalties) via
+  // the REAL-snapshot diff; (3) money from the turn cost ledger (every
+  // spendMoney this turn, sticks across Try Again). Dice-conditional time rows
+  // are excluded from (1) — when they land they show up in (2).
+  const spaceVisitDays = allSpaceEffects
+    .filter((e) => e.effect_type === 'time' && e.effect_action === 'add' && e.trigger_type === 'auto' && !e.condition)
+    .reduce((s, e) => s + (parseInt(String(e.effect_value), 10) || 0), 0);
+  const turnOutflow = isMyTurn ? gameServices.stateService.getTurnOutflow(playerId) : null;
+  const turnStartState = isMyTurn ? gameServices.stateService.getRealPlayerState(playerId) : null;
+  const turnMoneySpent = turnOutflow?.moneySpent ?? 0;
+  const turnDaysAdded =
+    spaceVisitDays + (turnStartState ? Math.max(0, player.timeSpent - turnStartState.timeSpent) : 0);
+  const turnCostParts: string[] = [];
+  if (turnDaysAdded > 0) turnCostParts.push(`🕐 +${turnDaysAdded} day${turnDaysAdded === 1 ? '' : 's'}`);
+  if (turnMoneySpent > 0) turnCostParts.push(`💰 −${FormatUtils.formatMoney(turnMoneySpent)}`);
+  const turnCostLine = isMyTurn && turnCostParts.length > 0 ? `this turn: ${turnCostParts.join(' · ')}` : null;
+
   // --- handlers (same service calls as the classic panel) ------------------
   const handleManualEffect = async (effectKey: string) => {
     try {
@@ -290,21 +314,24 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // Money runway cue (fb:0aae9865) — a running-out-of-money signal so students
   // manage cash before a bill bankrupts them (bills now go through in full and
   // can end the game). Redundant coding: colour AND a word, never colour alone
-  // (a11y). Green = healthy; orange = running low (<20% of the money raised is
-  // left, matching the reporter's "20%"); red = in the red (a bill has pushed
-  // cash below zero — bankruptcy territory).
-  const fundingRaised = player.moneySources
-    ? (player.moneySources.ownerFunding || 0) +
-      (player.moneySources.bankLoans || 0) +
-      (player.moneySources.investmentDeals || 0) +
-      (player.moneySources.other || 0)
-    : 0;
+  // (a11y). Red = in the red (a bill has pushed cash below zero — bankruptcy
+  // territory); orange "running low" = <20% of the money raised is left
+  // (matching the reporter's "20%"); orange "$X deficit" = the project's
+  // full budget exceeds the funding secured, so a green cash figure would lie
+  // (post-deploy playtest: "$70K green while scope grew to millions"; maintainer
+  // chose "deficit" over "still to raise" for the tight cue slot — the "My
+  // numbers" ledger keeps the fuller "Still to raise" row). Green only when
+  // cash is healthy AND the project is fully funded. Same
+  // computeProjectFinances as "My numbers", so the two can't disagree.
+  const fin = computeProjectFinances(player, (id) => gameServices.dataService.getCardById(id));
   const moneyCue: { color: string; word?: string } =
     player.money < 0
       ? { color: '#dc2626', word: 'in the red' }
-      : fundingRaised > 0 && player.money < fundingRaised * 0.2
+      : fin.fundingRaised > 0 && player.money < fin.fundingRaised * 0.2
         ? { color: '#d97706', word: 'running low' }
-        : { color: mode === 'dark' ? '#4ade80' : '#1e7e34' };
+        : fin.fundingGap > 0
+          ? { color: '#d97706', word: `${FormatUtils.formatMoney(fin.fundingGap)} deficit` }
+          : { color: mode === 'dark' ? '#4ade80' : '#1e7e34' };
 
   // --- styles -------------------------------------------------------------
   const cardStyle: React.CSSProperties = {
@@ -557,7 +584,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             </p>
           )}
           {doneActionTraces.map((a) => (
-            <div key={`done-${a.effectKey}`} style={doneActionRow} aria-label={`Done: ${a.label}`}>
+            // Outcome actions carry the resolved result as a hover/long-press
+            // tooltip (fb:b53864af — "show the fee once it's determined"); the
+            // exact amounts also land on the commit spine's this-turn line.
+            <div
+              key={`done-${a.effectKey}`}
+              style={doneActionRow}
+              aria-label={`Done: ${a.label}`}
+              title={a.isDiceEffect && completedActions.diceRoll ? completedActions.diceRoll : undefined}
+            >
               ✓ {a.label.replace(/^🎲\s*/, '')}
             </div>
           ))}
@@ -737,17 +772,33 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               background: commit.ready ? p.accent : p.surf2,
               cursor: commit.ready ? 'pointer' : 'default',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 2,
             }}
           >
-            {showGreenDot && (
-              <span
-                style={{ width: 9, height: 9, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,.3)' }}
-              />
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {showGreenDot && (
+                <span
+                  style={{ width: 9, height: 9, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,.3)' }}
+                />
+              )}
+              {commit.label}
+            </span>
+            {turnCostLine && (
+              <small
+                data-testid="turn-cost-line"
+                style={{
+                  display: 'block',
+                  fontSize: 9,
+                  fontWeight: 400,
+                  color: commit.ready ? 'rgba(255,255,255,.85)' : p.muted,
+                }}
+              >
+                {turnCostLine}
+              </small>
             )}
-            {commit.label}
           </button>
         </div>
       </div>

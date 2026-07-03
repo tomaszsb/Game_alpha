@@ -304,7 +304,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         spaceName: updatedPlayer.currentSpace,
         message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`
       });
-      this.stateService.endGame();
+      this.stateService.endGame(undefined, { type: 'design_fee_cap', playerId });
     }
   }
 
@@ -371,7 +371,10 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     );
   }
 
-  private checkBankruptcy(playerId: string): void {
+  // Public since v3.0.92: the contractor signing charge (EffectEngineService's
+  // CONTRACTOR_UPDATE) is a mandatory bill too, and shares this one bankruptcy
+  // rule instead of growing its own copy.
+  public checkBankruptcy(playerId: string): void {
     const updatedPlayer = this.stateService.getPlayer(playerId);
     if (updatedPlayer && updatedPlayer.money < 0) {
       debugLog(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
@@ -385,7 +388,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
         message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`
       });
 
-      this.stateService.endGame();
+      this.stateService.endGame(undefined, { type: 'bankruptcy', playerId });
     }
   }
 

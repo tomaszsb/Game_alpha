@@ -495,7 +495,7 @@ describe('PlayerPanelV2 — money runway cue (fb:0aae9865)', () => {
     dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources, moveIntent: null,
   });
 
-  const renderWith = (player: any) => {
+  const renderWith = (player: any, cardById: any = null) => {
     services = createAllMockServices();
     services.stateService.getPlayer.mockReturnValue(player);
     services.stateService.getGameState.mockReturnValue({
@@ -512,7 +512,7 @@ describe('PlayerPanelV2 — money runway cue (fb:0aae9865)', () => {
     services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
     services.gameRulesService.canEndTurn.mockReturnValue(false);
     services.cardService.canPlayCard.mockReturnValue(false);
-    services.dataService.getCardById.mockReturnValue(null);
+    services.dataService.getCardById.mockReturnValue(cardById);
     return render(
       <DictionaryProvider>
         <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
@@ -535,6 +535,113 @@ describe('PlayerPanelV2 — money runway cue (fb:0aae9865)', () => {
 
   it('shows no warning word when cash is healthy', () => {
     renderWith(makePlayer(80000, { ownerFunding: 100000 })); // 80% left
-    expect(screen.queryByText(/in the red|running low/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/in the red|running low|deficit/i)).not.toBeInTheDocument();
+  });
+
+  // Post-deploy playtest of v3.0.91: "$70K green while scope grew to millions".
+  // Healthy cash must NOT read green while the full project budget (scope +
+  // soft costs) exceeds the funding secured — surface the gap on the cue.
+  // Word "deficit" chosen by the maintainer (2026-07-02) for the tight slot.
+  it('flags "$X deficit" when commitments exceed funding raised', () => {
+    const player = makePlayer(80000, { ownerFunding: 100000 }); // cash healthy vs raised
+    player.hand = ['W_001'];
+    renderWith(player, {
+      card_id: 'W_001', card_type: 'W', card_name: 'Test work',
+      cost: 500000, work_cost: 400000, work_type_restriction: 'General Construction',
+    });
+    expect(screen.getByText(/deficit/i)).toBeInTheDocument();
+  });
+
+  it('prefers "running low" over the funding-gap word when both apply', () => {
+    const player = makePlayer(10000, { ownerFunding: 100000 }); // 10% left AND gap
+    player.hand = ['W_001'];
+    renderWith(player, {
+      card_id: 'W_001', card_type: 'W', card_name: 'Test work',
+      cost: 500000, work_cost: 400000, work_type_restriction: 'General Construction',
+    });
+    expect(screen.getByText(/running low/i)).toBeInTheDocument();
+    expect(screen.queryByText(/deficit/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('PlayerPanelV2 — this-turn cost line on the commit spine (fb:06f7da3b / b53864af)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const player: any = {
+    id: 'player1', name: 'Test Player', currentSpace: 'ARCH-FEE-REVIEW',
+    visitType: 'First', money: 50000, timeSpent: 55, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none',
+    moneySources: { ownerFunding: 100000 }, moveIntent: null,
+  };
+
+  const renderPanel = (opts: { moneySpent: number; turnStartTime: number | null; spaceEffects?: any[] }) => {
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 1, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.stateService.getTurnOutflow.mockReturnValue({
+      moneySpent: opts.moneySpent, cardsConsumed: [], lifeEventsDrawn: [],
+    });
+    services.stateService.getRealPlayerState.mockReturnValue(
+      opts.turnStartTime === null ? null : { ...player, timeSpent: opts.turnStartTime },
+    );
+    services.dataService.getSpaceContent.mockReturnValue({ title: 'Fee Review', story: '' });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue(opts.spaceEffects ?? []);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+    return render(
+      <DictionaryProvider>
+        <PlayerPanelV2 gameServices={services as any} playerId="player1" mode="light" />
+      </DictionaryProvider>,
+    );
+  };
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => cleanup());
+
+  it('shows the money paid and days added this turn under the commit button', () => {
+    renderPanel({ moneySpent: 28000, turnStartTime: 5 }); // 55 - 5 = +50 days
+    const line = screen.getByTestId('turn-cost-line');
+    expect(line.textContent).toMatch(/this turn:/);
+    expect(line.textContent).toMatch(/\+50 days/);
+    expect(line.textContent).toMatch(/28K/);
+  });
+
+  it('shows no cost line when nothing has been paid or added yet', () => {
+    renderPanel({ moneySpent: 0, turnStartTime: 55 }); // no delta
+    expect(screen.queryByTestId('turn-cost-line')).not.toBeInTheDocument();
+  });
+
+  it('omits the days part when only money moved (no REAL snapshot yet)', () => {
+    renderPanel({ moneySpent: 5000, turnStartTime: null });
+    const line = screen.getByTestId('turn-cost-line');
+    expect(line.textContent).not.toMatch(/day/);
+    expect(line.textContent).toMatch(/5K/);
+  });
+
+  it("includes the space's own unconditional auto time cost (applied before the REAL snapshot)", () => {
+    // Arrival already applied the 50 days (real == current == 55), so the
+    // snapshot diff alone shows nothing — the space's own time row must carry it.
+    // The dice-conditional row must NOT count (it lands via the diff when it hits).
+    renderPanel({
+      moneySpent: 0,
+      turnStartTime: 55,
+      spaceEffects: [
+        { space: 'ARCH-FEE-REVIEW', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: 50, condition: '', trigger_type: 'auto', description: 'Spend 50 days' },
+        { space: 'ARCH-FEE-REVIEW', visit_type: 'First', effect_type: 'time', effect_action: 'add', effect_value: 7, condition: 'dice_roll_3', trigger_type: 'auto', description: 'conditional — excluded' },
+      ],
+    });
+    const line = screen.getByTestId('turn-cost-line');
+    expect(line.textContent).toMatch(/\+50 days/);
   });
 });

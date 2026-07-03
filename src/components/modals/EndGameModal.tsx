@@ -5,6 +5,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors, theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { Player, VisitType } from '../../types/DataTypes';
+import { GameEndReason } from '../../types/StateTypes';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { buildEndGameStats, formatMoney, formatPercent, formatDays, EndGameStats } from '../../utils/endGameStats';
 import { buildEndGameInsights, Insight, InsightTone } from '../../utils/endGameInsights';
@@ -26,6 +27,11 @@ export function EndGameModal(): JSX.Element {
   const [gameEndTime, setGameEndTime] = useState<Date | undefined>();
   const [penalty, setPenalty] = useState<EndGamePenaltyView | null>(null);
   const [winnerPlayer, setWinnerPlayer] = useState<Player | null>(null);
+  // Loss ending (bankruptcy / design-fee cap): there is no winner, but the
+  // modal must still open — with only the winner branch, a loss left the
+  // player on a blank page (post-deploy playtest, v3.0.91).
+  const [endReason, setEndReason] = useState<GameEndReason | null>(null);
+  const [lossPlayer, setLossPlayer] = useState<Player | null>(null);
   // fb:cc345da9 + fb:3483b37b — collapsible journey list. Defaults closed so
   // the panel isn't dominated by a 20-row movement log; one click reveals it.
   const [journeyOpen, setJourneyOpen] = useState<boolean>(false);
@@ -55,6 +61,14 @@ export function EndGameModal(): JSX.Element {
         } else {
           setPenalty(null);
         }
+      }
+
+      if (gameState.isGameOver && !gameState.winner && gameState.gameEndReason) {
+        setEndReason(gameState.gameEndReason);
+        setLossPlayer(gameState.players.find(p => p.id === gameState.gameEndReason!.playerId) || null);
+      } else {
+        setEndReason(null);
+        setLossPlayer(null);
       }
     };
 
@@ -98,20 +112,23 @@ export function EndGameModal(): JSX.Element {
   // Pure helper; only depends on the post-win Player snapshot plus the
   // injected projectScope (which needs the service). Recomputed only when
   // the winner changes, not on every render.
+  const statsPlayer = winnerPlayer || lossPlayer;
   const stats: EndGameStats | null = useMemo(() => {
-    if (!winnerPlayer) return null;
-    const projectScope = gameRulesService.calculateProjectScope(winnerPlayer.id);
+    if (!statsPlayer) return null;
+    const projectScope = gameRulesService.calculateProjectScope(statsPlayer.id);
     const gs = stateService.getGameState();
-    return buildEndGameStats(winnerPlayer, {
+    return buildEndGameStats(statsPlayer, {
       projectScope,
       totalTurns: gs.globalTurnCount,
       rounds: gs.gameRound,
-      finalScore: gameRulesService.calculatePlayerScore(winnerPlayer.id),
+      finalScore: gameRulesService.calculatePlayerScore(statsPlayer.id),
     });
-  }, [winnerPlayer, gameRulesService, stateService]);
+  }, [statsPlayer, gameRulesService, stateService]);
 
   // v3.0.13 — Project Debrief: pure-helper insights derived from the same stats
   // snapshot. Capped at 5 so we celebrate, not lecture.
+  // Insights celebrate wins ("you kept fees low!") — wrong tone after going
+  // under, so they stay winner-only.
   const insights: Insight[] = useMemo(() => {
     if (!winnerPlayer || !stats) return [];
     return buildEndGameInsights(stats, winnerPlayer, { maxInsights: 5 });
@@ -137,40 +154,79 @@ export function EndGameModal(): JSX.Element {
     </button>
   );
 
+  // Loss endings share the stats + log body with wins but swap the chrome
+  // and copy. Real-world framing, names the player (works solo and shared
+  // screen alike).
+  const lossName = lossPlayer?.name || 'The team';
+  const lossCopy = endReason && (endReason.type === 'bankruptcy'
+    ? {
+        title: 'The project went under',
+        body: `${lossName} ran out of money — a bill came due with nothing left to pay it. In this business, that's the end of the road.`,
+        lesson: `Next time: raise funding before the bills come due — "Still to raise" in My numbers shows how far ahead of the project's costs you are.`,
+      }
+    : {
+        title: 'The design budget sank the project',
+        body: `${lossName}'s design fees passed 20% of the project's scope — more than the owner was ever going to carry. The project is over.`,
+        lesson: `Next time: keep design fees under a fifth of the scope — settle the design early instead of paying for round after round of revisions.`,
+      });
+
   return (
     <ModalBase
-      isOpen={isGameOver && !!winnerName}
+      isOpen={isGameOver && (!!winnerName || !!endReason)}
       onClose={handlePlayAgain}
-      title={customTitle || 'Game Complete!'}
-      emoji={theme.emoji.celebration}
+      title={lossCopy ? lossCopy.title : (customTitle || 'Game Complete!')}
+      emoji={lossCopy ? '💸' : theme.emoji.celebration}
       maxWidth="600px"
-      headerColor={colors.success.light}
-      headerBorderColor={colors.success.main}
+      headerColor={lossCopy ? colors.danger.light : colors.success.light}
+      headerBorderColor={lossCopy ? colors.danger.main : colors.success.main}
       footer={footer}
       testId="end-game-modal"
     >
       <div style={{ textAlign: 'center' }}>
-        {/* Celebration Icon */}
-        <div style={{ fontSize: '80px', marginBottom: '20px' }}>
-          {theme.emoji.celebration}
-        </div>
+        {lossCopy ? (
+          <>
+            <div style={{ fontSize: '80px', marginBottom: '20px' }}>💸</div>
+            <h2 style={{
+              margin: '0 0 10px 0',
+              color: colors.danger.dark,
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }} data-testid="end-game-loss-title">
+              {lossCopy.title}
+            </h2>
+            <p style={{
+              margin: '0 0 24px 0',
+              color: colors.text.secondary,
+              fontSize: '18px'
+            }}>
+              {lossCopy.body}
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Celebration Icon */}
+            <div style={{ fontSize: '80px', marginBottom: '20px' }}>
+              {theme.emoji.celebration}
+            </div>
 
-        {/* Winner Announcement */}
-        <h2 style={{
-          margin: '0 0 10px 0',
-          color: colors.success.main,
-          fontSize: '24px',
-          fontWeight: 'bold'
-        }}>
-          {theme.emoji.trophy} Congratulations {winnerName}!
-        </h2>
-        <p style={{
-          margin: '0 0 24px 0',
-          color: colors.text.secondary,
-          fontSize: '18px'
-        }}>
-          {customDescription || 'You have successfully reached an ending space and won the game!'}
-        </p>
+            {/* Winner Announcement */}
+            <h2 style={{
+              margin: '0 0 10px 0',
+              color: colors.success.main,
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }}>
+              {theme.emoji.trophy} Congratulations {winnerName}!
+            </h2>
+            <p style={{
+              margin: '0 0 24px 0',
+              color: colors.text.secondary,
+              fontSize: '18px'
+            }}>
+              {customDescription || 'You have successfully reached an ending space and won the game!'}
+            </p>
+          </>
+        )}
 
         {/* fb:cc345da9 + fb:3483b37b — comprehensive end-game stats panel.
             Replaces the bare timestamp that was the only "stat" the playtester
@@ -193,7 +249,7 @@ export function EndGameModal(): JSX.Element {
             Collapsible by default. When the modal opens for a specific
             winner, default the viewer's scope to "My log" so they see
             their own actions first; they can toggle to "All players". */}
-        <PostGameLogViewer viewingPlayerId={winnerPlayer?.id} />
+        <PostGameLogViewer viewingPlayerId={statsPlayer?.id} />
 
         {/* Workstream 7 Phase 7.4 — Missing-DOB penalty section.
             Rendered above the celebration banner so the player sees the cost
@@ -228,22 +284,46 @@ export function EndGameModal(): JSX.Element {
           </div>
         )}
 
-        {/* Celebration Message */}
-        <div style={{
-          padding: '20px',
-          backgroundColor: colors.success.light,
-          borderRadius: theme.borderRadius.lg,
-          border: `2px solid ${colors.success.border}`
-        }}>
-          <p style={{
-            margin: '0',
-            fontSize: '16px',
-            color: colors.success.darker,
-            fontWeight: '500'
+        {lossCopy ? (
+          /* What-to-try-next-time lesson — mirrors the DOB penalty box's
+             coaching tone so a loss teaches instead of just ending. */
+          <div
+            data-testid="end-game-loss-lesson"
+            style={{
+              padding: '20px',
+              backgroundColor: colors.danger.light,
+              borderRadius: theme.borderRadius.lg,
+              border: `2px solid ${colors.danger.border}`,
+              textAlign: 'left'
+            }}
+          >
+            <p style={{
+              margin: '0',
+              fontSize: '15px',
+              color: colors.danger.darker,
+              fontWeight: '500'
+            }}>
+              {lossCopy.lesson}
+            </p>
+          </div>
+        ) : (
+          /* Celebration Message */
+          <div style={{
+            padding: '20px',
+            backgroundColor: colors.success.light,
+            borderRadius: theme.borderRadius.lg,
+            border: `2px solid ${colors.success.border}`
           }}>
-            {theme.emoji.celebration} {customSummary || "Well played! You've mastered the game and reached your destination successfully!"}
-          </p>
-        </div>
+            <p style={{
+              margin: '0',
+              fontSize: '16px',
+              color: colors.success.darker,
+              fontWeight: '500'
+            }}>
+              {theme.emoji.celebration} {customSummary || "Well played! You've mastered the game and reached your destination successfully!"}
+            </p>
+          </div>
+        )}
       </div>
     </ModalBase>
   );

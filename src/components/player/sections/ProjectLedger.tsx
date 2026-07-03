@@ -86,8 +86,8 @@ export const ProjectLedger: React.FC<ProjectLedgerProps> = ({
     // Contractor info
     const contractor = player.contractor;
     const qualityLabel = contractor ? { HIGH: 'High', MED: 'Medium', LOW: 'Low' }[contractor.quality] : null;
-    const qualityCoeff = contractor ? { HIGH: 1.5, MED: 1.0, LOW: 0.6 }[contractor.quality] : 1.0;
-    const multiplierFactor = contractor ? contractor.multiplier * 0.1 : 0;
+    // (The price/schedule math lives in utils/contractorTerms — this ledger only
+    // displays recorded actuals, so it carries no copy of the formula.)
 
     // Funding breakdown from fundingHistory
     const fundingHistory = player.fundingHistory || [];

@@ -123,6 +123,9 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     });
     handler.handleResourceChange(makeFeeEffect(5), ctx);
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
+    // No winner + a reason, so EndGameModal can render the loss screen
+    // (post-deploy playtest: loss endings left a blank page).
+    expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'design_fee_cap', playerId: 'p1' });
     expect(stateService.emitAutoAction).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
@@ -270,6 +273,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
     const { handler, stateService } = makeBillServices(-500);
     handler.handleResourceChange(bill(-2000), ctx);
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
+    expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'bankruptcy', playerId: 'p1' });
     expect(stateService.emitAutoAction).toHaveBeenCalledWith(
       expect.objectContaining({ success: false, message: expect.stringContaining('BANKRUPTCY') }),
     );

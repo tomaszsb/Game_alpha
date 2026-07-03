@@ -309,7 +309,7 @@ export class DiceRollProcessor {
    */
   private convertEffectsToResults(
     generatedEffects: Effect[],
-    effectResults: { results: Array<{ data?: { cardIds?: string[]; skipped?: boolean } }> } | undefined,
+    effectResults: { results: Array<{ data?: { cardIds?: string[]; skipped?: boolean; constructionCost?: number; scheduleDays?: number } }> } | undefined,
     effects: DiceResultEffect[],
     currentPlayer: Player
   ): void {
@@ -365,14 +365,26 @@ export class DiceRollProcessor {
             outcomeValue: friendly
           });
         } else {
-          // multiplier: "1" → "1×"
+          // multiplier: "1" → "1×". When the hire actually charged money, the
+          // engine hands back the computed terms — show the dollar figure and
+          // schedule the player agreed to, not just the multiplier (fb:40caa223
+          // + the v3.0.92 price/schedule redesign).
           const clean = value.trim();
+          const agreedPrice = effectResult?.data?.constructionCost;
+          const scheduleDays = effectResult?.data?.scheduleDays;
+          const parts: string[] = [];
+          if (agreedPrice && agreedPrice > 0) parts.push(`agreed price $${agreedPrice.toLocaleString()}`);
+          if (scheduleDays && scheduleDays > 0) parts.push(`schedule +${scheduleDays} days`);
           effects.push({
             type: 'qualitative_outcome',
-            description: `Contractor cost multiplier: ${clean}×`,
+            description: parts.length > 0
+              ? `Contractor signed at ${clean}× — ${parts.join(', ')}`
+              : `Contractor cost multiplier: ${clean}×`,
             outcomeKind: 'multiplier',
-            outcomeLabel: 'Multiplier',
-            outcomeValue: `${clean}×`
+            outcomeLabel: agreedPrice && agreedPrice > 0 ? 'Agreed price' : 'Multiplier',
+            outcomeValue: agreedPrice && agreedPrice > 0
+              ? `$${agreedPrice.toLocaleString()} (${clean}×${scheduleDays ? `, +${scheduleDays}d` : ''})`
+              : `${clean}×`
           });
         }
       } else if (effect.effectType === 'RESOURCE_CHANGE') {
