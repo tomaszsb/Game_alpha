@@ -170,15 +170,18 @@ describe('EffectFactory', () => {
       // Act
       const effects = EffectFactory.createEffectsFromCard(mockCard, mockPlayerId);
 
-      // Assert
-      // Note: tick_modifier creates effects twice in EffectFactory (lines 105-119 and 188-202)
-      expect(effects).toHaveLength(3); // Time effect (twice) + LOG effect
+      // Assert — exactly ONE time effect + the LOG effect. A duplicated
+      // "TIME MODIFIER EFFECTS" block used to emit the tick twice, doubling
+      // every timed card played through this factory (fb:c51f9f16 — E013's
+      // "+2 days to all players" applied +4). Fixed 2026-07-02.
+      expect(effects).toHaveLength(2);
 
-      const timeEffect = effects.find(e =>
+      const timeEffects = effects.filter(e =>
         e.effectType === 'RESOURCE_CHANGE' &&
         e.payload.resource === 'TIME'
       );
-      expect(timeEffect).toBeDefined();
+      expect(timeEffects).toHaveLength(1);
+      const timeEffect = timeEffects[0];
       expect(timeEffect).toEqual({
         effectType: 'RESOURCE_CHANGE',
         payload: {

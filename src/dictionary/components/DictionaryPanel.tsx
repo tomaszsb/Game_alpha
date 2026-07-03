@@ -5,7 +5,7 @@
  * Can be used standalone or integrated with the game.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GlossaryTerm, TermCategory, DictionaryPanelProps } from '../types';
 import { useDictionary } from '../hooks/useDictionary';
 import { TermCard } from './TermCard';
@@ -24,6 +24,13 @@ const defaultColors = {
 
 // Dashboard URL for embedded iframe mode
 const DASHBOARD_BASE_URL = 'https://dashboard.unravelcodes.com/dictionary';
+
+// How long to wait for the dashboard iframe before falling back to the local
+// definition. On a slow or blocked network the iframe's load event never
+// fires, which used to leave the panel stuck on "Loading intelligence from
+// dashboard…" forever — the term's definition is already in the local cache,
+// so show that instead (fb:baa01a70 hardening).
+export const EMBED_LOAD_TIMEOUT_MS = 6000;
 
 export function DictionaryPanel({
   isOpen,
@@ -44,10 +51,15 @@ export function DictionaryPanel({
   // from the browse list, or when opened with initialTermId)
   const [embeddedTermId, setEmbeddedTermId] = useState<string | null>(null);
 
+  // The dashboard iframe timed out — fall back to the local definition for the
+  // rest of this open (retrying per-term would just re-hang for 6s each time).
+  const [embedFailed, setEmbedFailed] = useState(false);
+  const embedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Use embedded dashboard when viewing a specific term (either from initialTermId
   // or from clicking a term in the browse list)
   const activeEmbeddedTermId = initialTermId || embeddedTermId;
-  const effectiveEmbedded = useEmbeddedDashboard && !!activeEmbeddedTermId;
+  const effectiveEmbedded = useEmbeddedDashboard && !!activeEmbeddedTermId && !embedFailed;
 
   // Fetch remote config when panel opens
   useEffect(() => {
@@ -66,10 +78,19 @@ export function DictionaryPanel({
     }
   }, [initialTermId, terms, getTerm]);
 
-  // Set iframe loading state when embedded mode opens with a term
+  // Set iframe loading state when embedded mode opens with a term, and arm the
+  // fallback timer: if the iframe hasn't loaded in EMBED_LOAD_TIMEOUT_MS, show
+  // the locally cached definition instead of an endless loading state.
   useEffect(() => {
     if (isOpen && effectiveEmbedded) {
       setIsIframeLoading(true);
+      embedTimerRef.current = setTimeout(() => {
+        setEmbedFailed(true);
+        setIsIframeLoading(false);
+      }, EMBED_LOAD_TIMEOUT_MS);
+      return () => {
+        if (embedTimerRef.current) clearTimeout(embedTimerRef.current);
+      };
     }
   }, [isOpen, effectiveEmbedded, activeEmbeddedTermId]);
 
@@ -140,12 +161,14 @@ export function DictionaryPanel({
     setEmbeddedTermId(null);
   };
 
-  // Reset browse state when panel closes
+  // Reset browse state when panel closes (embedFailed too — next open retries
+  // the dashboard iframe fresh).
   useEffect(() => {
     if (!isOpen) {
       setEmbeddedTermId(null);
       setSelectedTerm(null);
       setSearchQuery('');
+      setEmbedFailed(false);
     }
   }, [isOpen]);
 
@@ -255,8 +278,16 @@ export function DictionaryPanel({
                   display: isIframeLoading ? 'none' : 'block'
                 }}
                 title="Dictionary Content"
-                onLoad={() => setIsIframeLoading(false)}
-                onError={() => setIsIframeLoading(false)}
+                onLoad={() => {
+                  if (embedTimerRef.current) clearTimeout(embedTimerRef.current);
+                  setIsIframeLoading(false);
+                }}
+                onError={() => {
+                  if (embedTimerRef.current) clearTimeout(embedTimerRef.current);
+                  // Outright load error → local definition immediately.
+                  setEmbedFailed(true);
+                  setIsIframeLoading(false);
+                }}
               />
             </>
           )}

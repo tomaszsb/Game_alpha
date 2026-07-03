@@ -200,22 +200,12 @@ export class EffectFactory {
       }
     }
 
-    // === TIME MODIFIER EFFECTS (New expanded mechanic) ===
-    if (card.tick_modifier && card.tick_modifier !== '0' && card.tick_modifier !== '') {
-      const tickModifier = this.parseTickModifier(card.tick_modifier);
-      if (tickModifier !== 0) {
-        effects.push({
-          effectType: 'RESOURCE_CHANGE',
-          payload: {
-            playerId,
-            resource: 'TIME',
-            amount: tickModifier,
-            source: cardSource,
-            reason: `${cardName}: Time modifier ${tickModifier > 0 ? '+' : ''}${tickModifier}`
-          }
-        });
-      }
-    }
+    // NOTE: tick_modifier is handled ONCE, in the TIME EFFECTS block above.
+    // A second "TIME MODIFIER EFFECTS" block used to re-emit the same
+    // RESOURCE_CHANGE here, so every timed card played through this factory
+    // (the classic CardModal path) applied double time — an expeditor's
+    // "-2 days" cost 4, E013's "+2 days to all players" hit for 4
+    // (fb:c51f9f16 "does it really add 2 days?"). Removed 2026-07-02.
 
     // === TURN SKIP EFFECTS (New expanded mechanic) ===
     if (card.turn_skip && card.turn_skip !== '0' && card.turn_skip !== '') {
@@ -920,13 +910,6 @@ export class EffectFactory {
    */
   private static parseLoanAmount(loanAmount: string): number {
     return extractPositiveNumeric(loanAmount);
-  }
-
-  /**
-   * Parse time modifier (e.g., "+1", "-2", "0")
-   */
-  private static parseTickModifier(tickModifier: string): number {
-    return extractNumeric(tickModifier);
   }
 
   /**

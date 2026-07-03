@@ -208,8 +208,10 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       const bob = stateService.getPlayer(bobId)!;
       const charlie = stateService.getPlayer(charlieId)!;
       
-      // Initialize hand with E cards to players' hands
-      stateService.updatePlayer({ id: aliceId, hand: ['E001', 'E002', 'L003'] });
+      // Initialize hand with E cards to players' hands. L003 carries
+      // phase_restriction=CONSTRUCTION (data change after this test was
+      // written), so Alice must be on a CONSTRUCTION-phase space to play it.
+      stateService.updatePlayer({ id: aliceId, hand: ['E001', 'E002', 'L003'], currentSpace: 'CON-INITIATION' });
       stateService.updatePlayer({ id: bobId, hand: ['E003', 'E004'] });
       stateService.updatePlayer({ id: charlieId, hand: ['E005'] });
       
@@ -336,10 +338,12 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       expect(l003Card).toBeDefined();
       expect(l003Card!.target).toBe('All Players');
       
-      // Give Alice some E cards and the L003 card
+      // Give Alice some E cards and the L003 card. L003 is CONSTRUCTION-phase
+      // restricted, so put her on a CONSTRUCTION space (see the test above).
       stateService.updatePlayer({
         id: aliceId,
-        hand: ['E001', 'E002', 'L003']
+        hand: ['E001', 'E002', 'L003'],
+        currentSpace: 'CON-INITIATION'
       });
       
       // Give other players E cards too
