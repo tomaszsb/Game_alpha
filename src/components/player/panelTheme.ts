@@ -20,6 +20,14 @@ export interface PanelPalette {
   /** Border + text strong enough to stay visible in light mode (no ghost buttons). */
   borderStrong: string;
   accent: string;
+  /** Good/bad value tints readable on this mode's surfaces (never the sole cue — a11y). */
+  good: string;
+  bad: string;
+  /** Soft alert surface + border for "needs attention" rows (e.g. Still to raise). */
+  badSurf: string;
+  badBorder: string;
+  /** Soft warning surface for "not yet / hold on" hints. */
+  warnSurf: string;
 }
 
 export const panelPalettes: Record<PanelMode, PanelPalette> = {
@@ -32,6 +40,11 @@ export const panelPalettes: Record<PanelMode, PanelPalette> = {
     border: '#d7dde6',
     borderStrong: '#8d9bb0',
     accent: '#3b82f6',
+    good: '#1e7e34',
+    bad: '#c0392b',
+    badSurf: '#fdecea',
+    badBorder: '#f5c6cb',
+    warnSurf: '#fff7ed',
   },
   dark: {
     bg: '#0f172a',
@@ -42,6 +55,11 @@ export const panelPalettes: Record<PanelMode, PanelPalette> = {
     border: '#334155',
     borderStrong: '#52627a',
     accent: '#3b82f6',
+    good: '#4ade80',
+    bad: '#f87171',
+    badSurf: 'rgba(248, 113, 113, 0.14)',
+    badBorder: 'rgba(248, 113, 113, 0.4)',
+    warnSurf: 'rgba(245, 158, 11, 0.14)',
   },
 };
 

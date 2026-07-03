@@ -9,8 +9,8 @@
 // It REUSES the same canonical figures so it can't drift from the ledger: the
 // work-package list + scope are the W-card `cost` basis the ledger's "Project
 // Scope" line shows; money/spend come from the player's moneySources /
-// expenditures. Reuses the proven ModalBase shell (light body, like
-// PlayerCardDetailV2 — a dark modal body is a shared later step).
+// expenditures. Reuses the proven ModalBase shell, which follows the panel's
+// light/dark mode via `mode` (like PlayerCardDetailV2 / PlayerChronicleV2).
 
 import React, { useState } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
@@ -25,7 +25,7 @@ export interface PlayerNumbersV2Props {
   onClose: () => void;
   playerId: string;
   gameServices: IServiceContainer;
-  /** Reserved for the panel's light/dark mode; body is light-only for now. */
+  /** The panel's light/dark mode — body and ModalBase shell follow it. */
   mode?: PanelMode;
 }
 
@@ -34,8 +34,9 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
   onClose,
   playerId,
   gameServices,
+  mode = 'light',
 }) => {
-  const p = panelPalettes.light; // ModalBase body is light-only (mirrors PlayerCardDetailV2)
+  const p = panelPalettes[mode];
   // Glossary terms in the ledger are taught on demand, not stripped (redesign §1
   // "teach, don't dumb down" + §6 — wrap jargon in TextWithTerms → side panel).
   const { openWithTerm } = useDictionaryPanel();
@@ -187,7 +188,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
               textAlign: 'right',
               fontSize: 11,
               fontWeight: 700,
-              color: '#c0392b',
+              color: p.bad,
             }}
           >
             ▲ {fmt(over)} over budget
@@ -226,6 +227,7 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
       maxWidth="420px"
       footer={footer}
       testId="player-numbers-v2"
+      mode={mode}
     >
       <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: p.text }}>
         {/* Scope — what you're building, and what each piece cost */}
@@ -330,13 +332,13 @@ export const PlayerNumbersV2: React.FC<PlayerNumbersV2Props> = ({
             <div
               style={{
                 ...row,
-                background: '#fdecea',
-                border: '1px solid #f5c6cb',
+                background: p.badSurf,
+                border: `1px solid ${p.badBorder}`,
               }}
             >
               <span aria-hidden style={{ width: 18, textAlign: 'center' }}>⚠️</span>
-              <span style={{ flex: 1, color: '#c0392b', fontWeight: 600 }}>Still to raise</span>
-              <span style={{ fontWeight: 700, color: '#c0392b' }}>{fmt(fin.fundingGap)}</span>
+              <span style={{ flex: 1, color: p.bad, fontWeight: 600 }}>Still to raise</span>
+              <span style={{ fontWeight: 700, color: p.bad }}>{fmt(fin.fundingGap)}</span>
             </div>
           )}
         </div>

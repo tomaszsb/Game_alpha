@@ -5,6 +5,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme, colors } from '../../../styles/theme';
+import { panelPalettes, PanelMode } from '../../player/panelTheme';
 import type { SpeechControls } from '../../../hooks/useModalSpeech';
 
 export interface ModalBaseProps {
@@ -26,6 +27,11 @@ export interface ModalBaseProps {
    *  onExitComplete). Lets callers sequence a reopen deterministically
    *  instead of re-toggling mid-exit (fb:ac29b623). */
   onExitComplete?: () => void;
+  /** Light/dark shell following the new panel's mode (redesign §4 — both modes
+   *  first-class). Defaults to 'light', which renders exactly the pre-existing
+   *  shell, so classic callers are unaffected. An explicit `headerColor` (e.g.
+   *  the card-type tint) keeps its light header + dark title in both modes. */
+  mode?: PanelMode;
 }
 
 // Check reduced motion preference once at module level
@@ -91,6 +97,7 @@ export function ModalBase({
   shake = false,
   speechControls,
   onExitComplete,
+  mode = 'light',
 }: ModalBaseProps): JSX.Element | null {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -145,6 +152,14 @@ export function ModalBase({
     }
   }, [onClose]);
 
+  // Shell surfaces per mode. `headerIsLight` drives the header's TEXT colors:
+  // an explicit headerColor is always a light tint (card-type headers), so its
+  // title/buttons stay dark even when the body goes dark.
+  const dark = mode === 'dark';
+  const dp = panelPalettes.dark;
+  const headerIsLight = !!headerColor || !dark;
+  const shellHoverBg = headerIsLight ? colors.secondary.light : dp.surf2;
+
   // Responsive styles
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
@@ -161,7 +176,7 @@ export function ModalBase({
   };
 
   const containerStyle: React.CSSProperties = {
-    backgroundColor: theme.modal.container.background,
+    backgroundColor: dark ? dp.bg : theme.modal.container.background,
     borderRadius: isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius,
     boxShadow: theme.modal.container.boxShadow,
     maxWidth: isMobile ? `calc(100% - ${theme.mobile.modal.margin} * 2)` : maxWidth,
@@ -175,7 +190,7 @@ export function ModalBase({
 
   const headerStyle: React.CSSProperties = {
     padding: isMobile ? '12px 16px' : theme.modal.header.padding,
-    backgroundColor: headerColor || theme.modal.header.backgroundColor,
+    backgroundColor: headerColor || (dark ? dp.surf : theme.modal.header.backgroundColor),
     borderBottom: `3px solid ${headerBorderColor || colors.primary.main}`,
     borderRadius: `${isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius} ${isMobile ? theme.mobile.modal.borderRadius : theme.modal.container.borderRadius} 0 0`,
     display: 'flex',
@@ -188,17 +203,20 @@ export function ModalBase({
     margin: 0,
     fontSize: isMobile ? theme.mobile.typography.heading : theme.typography.heading.h3.fontSize,
     fontWeight: 'bold',
-    color: colors.text.primary,
+    color: headerIsLight ? colors.text.primary : dp.text,
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
   };
 
+  const closeButtonColor = headerIsLight ? theme.modal.closeButton.color : dp.muted;
+  const closeButtonHoverColor = headerIsLight ? theme.modal.closeButton.hoverColor : dp.text;
+
   const closeButtonStyle: React.CSSProperties = {
     background: 'none',
     border: 'none',
     fontSize: theme.modal.closeButton.fontSize,
-    color: theme.modal.closeButton.color,
+    color: closeButtonColor,
     cursor: 'pointer',
     padding: '8px',
     borderRadius: theme.borderRadius.sm,
@@ -237,7 +255,7 @@ export function ModalBase({
 
   const footerStyle: React.CSSProperties = {
     padding: isMobile ? '12px 16px' : theme.modal.footer.padding,
-    borderTop: `1px solid ${colors.secondary.light}`,
+    borderTop: `1px solid ${dark ? dp.border : colors.secondary.light}`,
     display: 'flex',
     justifyContent: 'flex-end',
     gap: theme.modal.footer.gap,
@@ -296,7 +314,7 @@ export function ModalBase({
                     <button
                       onClick={speechControls.isSpeaking ? speechControls.stop : speechControls.replay}
                       style={speechButtonStyle}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = shellHoverBg; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                       aria-label={speechControls.isSpeaking ? 'Stop speech' : 'Replay speech'}
                       title={speechControls.isSpeaking ? 'Stop' : 'Replay'}
@@ -306,7 +324,7 @@ export function ModalBase({
                     <button
                       onClick={speechControls.toggleMute}
                       style={speechButtonStyle}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.secondary.light; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = shellHoverBg; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                       aria-label={speechControls.muted ? 'Unmute speech' : 'Mute speech'}
                       title={speechControls.muted ? 'Unmute' : 'Mute'}
@@ -319,12 +337,12 @@ export function ModalBase({
                   onClick={onClose}
                   style={closeButtonStyle}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.secondary.light;
-                    e.currentTarget.style.color = theme.modal.closeButton.hoverColor;
+                    e.currentTarget.style.backgroundColor = shellHoverBg;
+                    e.currentTarget.style.color = closeButtonHoverColor;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = theme.modal.closeButton.color;
+                    e.currentTarget.style.color = closeButtonColor;
                   }}
                   aria-label="Close modal"
                   title="Close"

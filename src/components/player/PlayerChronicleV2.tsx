@@ -5,10 +5,16 @@
 //
 // It REUSES the canonical log data + formatting the classic Log tab uses
 // (getDisplayableLogEntries for the player-filtered, displayable entries;
-// formatActionDescription for the wording) so the two can't drift. Grouping by
-// space is presentation only. Reuses the proven ModalBase shell (light body,
-// like PlayerCardDetailV2 / PlayerNumbersV2 — modals MAY scroll; the no-scroll
-// rule is about the main panel, not its drill-downs).
+// formatActionDescription for the wording) so the two can't drift. Grouping is
+// presentation only: blocks are cut at turn_start boundaries (like the classic
+// GameLog), NOT on space-name changes — "Turn N ended" is logged AFTER movement
+// so it carries the DESTINATION space, and space-grouping dragged it under the
+// next space's header, above the next "Turn started" (fb:1eff7156). Cutting at
+// turn_start keeps it where it belongs: after the turn's last action. Each
+// turn_start renders as a divider ("Turn N · 📍 space") instead of a text row.
+// Reuses the proven ModalBase shell (body + shell follow the panel's light/dark
+// mode — modals MAY scroll; the no-scroll rule is about the main panel, not its
+// drill-downs).
 //
 // First slice deliberately: this is the readable history. The fuller Project
 // Chronicle (inline deltas, click-an-entry-to-replay-its-highlight, a
@@ -28,11 +34,13 @@ export interface PlayerChronicleV2Props {
   onClose: () => void;
   playerId: string;
   gameServices: IServiceContainer;
-  /** Reserved for the panel's light/dark mode; body is light-only for now. */
+  /** The panel's light/dark mode — body and ModalBase shell follow it. */
   mode?: PanelMode;
 }
 
-interface SpaceGroup {
+interface TurnBlock {
+  /** Global turn number from the turn_start entry; null for the pre-game block. */
+  turnNumber: number | null;
   spaceName: string;
   entries: ActionLogEntry[];
 }
@@ -42,8 +50,9 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
   onClose,
   playerId,
   gameServices,
+  mode = 'light',
 }) => {
-  const p = panelPalettes.light; // ModalBase body is light-only (mirrors the other drill-downs)
+  const p = panelPalettes[mode];
   const [entries, setEntries] = useState<ActionLogEntry[]>([]);
 
   useEffect(() => {
@@ -56,21 +65,33 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
     return unsubscribe;
   }, [gameServices.stateService, playerId]);
 
-  // Group consecutive entries by their space (presentation only). Chronological,
+  // Cut blocks at turn_start boundaries (presentation only). Chronological,
   // oldest first — newest at the bottom, matching the classic Log tab's reading.
-  const groups: SpaceGroup[] = [];
+  // The turn_start itself becomes the block's divider (not a row), so within a
+  // block the reading is: the turn's actions, then "Turn N ended" last — exactly
+  // the order the turn happened in (fb:1eff7156).
+  const groups: TurnBlock[] = [];
   const sorted = [...entries].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
   for (const entry of sorted) {
-    const raw = entry.details?.spaceName || entry.details?.space || '';
-    const spaceName = raw ? shortName(raw) : 'Setup';
-    const last = groups[groups.length - 1];
-    if (!last || last.spaceName !== spaceName) {
-      groups.push({ spaceName, entries: [entry] });
-    } else {
-      last.entries.push(entry);
+    if (entry.type === 'turn_start') {
+      const raw = entry.details?.spaceName || entry.details?.space || '';
+      groups.push({
+        turnNumber: entry.globalTurnNumber ?? null,
+        spaceName: raw ? shortName(raw) : 'Setup',
+        entries: [],
+      });
+      continue;
     }
+    let last = groups[groups.length - 1];
+    if (!last) {
+      // Entries before the first turn_start (game setup) get their own block.
+      const raw = entry.details?.spaceName || entry.details?.space || '';
+      last = { turnNumber: null, spaceName: raw ? shortName(raw) : 'Setup', entries: [] };
+      groups.push(last);
+    }
+    last.entries.push(entry);
   }
 
   const fmtTime = (t: Date | string) => {
@@ -107,6 +128,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
       maxWidth="420px"
       footer={footer}
       testId="player-chronicle-v2"
+      mode={mode}
     >
       <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: p.text }}>
         {groups.length === 0 ? (
@@ -117,6 +139,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
           <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {groups.map((group, gi) => (
               <div key={gi}>
+                {/* Turn divider — replaces the "Turn N started" row (fb:1eff7156). */}
                 <div
                   style={{
                     fontSize: 11,
@@ -127,7 +150,7 @@ export const PlayerChronicleV2: React.FC<PlayerChronicleV2Props> = ({
                     marginBottom: 4,
                   }}
                 >
-                  📍 {group.spaceName}
+                  {group.turnNumber != null ? `Turn ${group.turnNumber} · ` : ''}📍 {group.spaceName}
                 </div>
                 {group.entries.map((entry, ei) => (
                   <div

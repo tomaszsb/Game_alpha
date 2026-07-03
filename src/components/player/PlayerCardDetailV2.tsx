@@ -14,9 +14,8 @@
 // DOB Objection from the change-legibility UX layer) reuse this exact shell with
 // document styling — no second modal system.
 //
-// Dark-mode body is a deliberate follow-up: ModalBase's container is light-only,
-// so the body renders in the light palette regardless of `mode` for now (mirrors
-// how glossary dark-mode shipped as its own step).
+// Body + ModalBase shell follow the panel's light/dark `mode` (redesign §4).
+// The card-type header keeps its light tint in both modes (type identity).
 
 import React, { useState } from 'react';
 import { Card } from '../../types/DataTypes';
@@ -34,7 +33,7 @@ export interface PlayerCardDetailV2Props {
   card: Card | null;
   playerId: string;
   gameServices: IServiceContainer;
-  /** Reserved for the panel's light/dark mode; body is light-only for now. */
+  /** The panel's light/dark mode — body and ModalBase shell follow it. */
   mode?: PanelMode;
   /** §10.1 seam — 'document' reuses this shell for permitting-document cards. */
   variant?: CardVariant;
@@ -55,8 +54,9 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   card,
   playerId,
   gameServices,
+  mode = 'light',
 }) => {
-  const p = panelPalettes.light; // light-first; dark modal body is a follow-up
+  const p = panelPalettes[mode];
   const { openWithTerm } = useDictionaryPanel();
   const [busy, setBusy] = useState(false);
 
@@ -104,8 +104,8 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   // tints the value where there's a clear good/bad axis (light-mode safe reds/
   // greens); the label word (Adds / Saves) is always the primary signal so colour
   // is never the sole cue (a11y).
-  const GOOD = '#1e7e34'; // saves days — green
-  const BAD = '#c0392b';  // adds days — red (same red as over-budget elsewhere)
+  const GOOD = p.good; // saves days — green (mode-safe shade from the palette)
+  const BAD = p.bad;   // adds days — red (same red as over-budget elsewhere)
   const tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
   const facts: { icon: string; label: string; value: string; valueColor?: string }[] = [];
   // Money: `card.cost` is always money the player SPENDS (a Work Package's
@@ -224,6 +224,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
       headerBorderColor={typeColors.primary}
       footer={footer}
       testId="player-card-detail-v2"
+      mode={mode}
     >
       <div style={{ fontFamily: 'system-ui, -apple-system, sans-serif', color: p.text }}>
         {/* Type chip */}
@@ -251,7 +252,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
               fontSize: 12.5,
               lineHeight: 1.5,
               color: p.text,
-              background: '#fff7ed',
+              background: p.warnSurf,
               borderLeft: '3px solid #f59e0b',
               borderRadius: 8,
               padding: '9px 12px',

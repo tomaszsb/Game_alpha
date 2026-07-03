@@ -522,6 +522,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       card={detailCardId ? dataService.getCardById(detailCardId) ?? null : null}
       playerId={currentPlayerId || ''}
       gameServices={gameServices}
+      mode={isNewView ? panelMode : 'light'}
     />
     </>
   );

@@ -248,7 +248,7 @@ export function OutcomeChangesV2({
     marginBottom: 4,
     flexWrap: 'wrap',
   };
-  const gainColor = mode === 'dark' ? '#4ade80' : '#1e7e34';
+  const gainColor = p.good; // mode-safe green from the shared palette
 
   return (
     <div

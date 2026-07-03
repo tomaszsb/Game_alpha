@@ -80,3 +80,45 @@ describe('ModalBase backdrop click-through protection (fb:ac29b623)', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+
+describe('ModalBase light/dark shell (`mode` prop)', () => {
+  afterEach(() => cleanup());
+
+  it('defaults to the light shell — classic callers are unaffected', () => {
+    render(
+      <ModalBase isOpen={true} onClose={vi.fn()} title="Light" testId="light-modal">
+        <div>body</div>
+      </ModalBase>
+    );
+    // Pre-existing light container background (theme.modal.container.background).
+    expect(screen.getByTestId('light-modal')).toHaveStyle({ backgroundColor: '#ffffff' });
+  });
+
+  it('mode="dark" renders the dark container + light title', () => {
+    render(
+      <ModalBase isOpen={true} onClose={vi.fn()} title="Dark" testId="dark-modal" mode="dark">
+        <div>body</div>
+      </ModalBase>
+    );
+    // panelPalettes.dark.bg / .text — the shell follows the panel's dark palette.
+    expect(screen.getByTestId('dark-modal')).toHaveStyle({ backgroundColor: '#0f172a' });
+    expect(screen.getByText('Dark')).toHaveStyle({ color: '#f1f5f9' });
+  });
+
+  it('an explicit headerColor (card-type tint) keeps a dark title even in dark mode', () => {
+    render(
+      <ModalBase
+        isOpen={true}
+        onClose={vi.fn()}
+        title="Tinted"
+        testId="tinted-modal"
+        mode="dark"
+        headerColor="#e3f2fd"
+      >
+        <div>body</div>
+      </ModalBase>
+    );
+    // The light tint header stays readable: dark title text, not the dark-mode white.
+    expect(screen.getByText('Tinted')).not.toHaveStyle({ color: '#f1f5f9' });
+  });
+});
