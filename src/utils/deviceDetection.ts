@@ -24,6 +24,26 @@ export function detectDeviceType(): DeviceType {
 }
 
 /**
+ * True when the physical screen is phone-sized — too small to comfortably
+ * play Unravel Codes, so the landing page should steer the visitor to set a
+ * reminder and come back on a bigger screen rather than "Play now".
+ *
+ * Deliberately measures the SHORT side of `window.screen` (physical pixels),
+ * not `innerWidth`, so the answer doesn't flip on split-screen, browser zoom,
+ * or a narrow desktop window — and so the two tablet gotchas resolve
+ * correctly: a modern iPad reports a Mac/desktop user-agent (would look like a
+ * PC to a UA check) and an Android tablet reports the same UA as an Android
+ * phone (would look like a phone). Both clear a ~600px short-side bar; real
+ * phones (~360–430px short side) don't. Result: phone → reminder view;
+ * tablet / laptop / desktop / TV → play view.
+ */
+export function isPhoneScreen(): boolean {
+  if (typeof window === 'undefined' || !window.screen) return false;
+  const shortSide = Math.min(window.screen.width, window.screen.height);
+  return shortSide > 0 && shortSide < 600;
+}
+
+/**
  * Best-effort detection of a real smart-TV / set-top browser via user-agent.
  *
  * Used to auto-preselect "TV mode" on the setup screen (v3.0.25). Covers the

@@ -1,259 +1,260 @@
 // src/playtest/ReminderHub.tsx
 //
-// Reminder options for the playtester landing page. Calendar, Bookmark, PWA
-// install, Browser Notification, and Email/text are all real. Browser
-// Notification uses real Web Push (server/pushScheduler.js) — it survives a
-// closed tab, unlike a plain setTimeout — and Email/text is live once
-// SMTP_* env vars are configured (see mailer.js).
+// The "Remind me later" flow for the playtester landing page. One consistent
+// path for every channel: pick HOW (calendar / device alert / email / text),
+// then pick WHEN (a preset, or a custom date & time). Calendar downloads an
+// .ics; the other three are truly scheduled server-side for the chosen time
+// (server/reminderScheduler.js), so they fire even with the tab closed.
+//
+// iOS Safari can't do Web Push from a browser tab (only from an installed
+// Home-Screen app), so the "Phone alert" option there explains the Add-to-
+// Home-Screen step inline instead of sitting dead — a disabled button's
+// tooltip never shows on touch.
 
-import React, { useEffect, useState } from 'react';
-import { downloadICS, resolveTargetDate, ReminderChoice } from './generateICS';
+import React, { useState } from 'react';
+import { downloadICSForDate, resolveWhen, ReminderChoice, ReminderWhen } from './generateICS';
 import { trackPlaytestEvent } from './playtestAnalytics';
-import { isIOSSafari, isPwaInstallable, isPwaInstalled, promptPwaInstall } from './pwaInstall';
 import { isPushSupported, schedulePushReminder } from './browserPush';
+import { isIOSSafari } from './pwaInstall';
 import { CARRIERS, sendRemindMe } from './remindMe';
-import { detectDeviceType } from '../utils/deviceDetection';
 
-const CALENDAR_OPTIONS: { choice: ReminderChoice; label: string }[] = [
+type Method = 'calendar' | 'push' | 'email' | 'sms';
+type Step = 'method' | 'when' | 'contact' | 'done';
+
+const WHEN_PRESETS: { choice: ReminderChoice; label: string }[] = [
   { choice: 'tonight', label: 'Tonight' },
-  { choice: 'tomorrow-evening', label: 'Tomorrow Evening' },
-  { choice: 'saturday-afternoon', label: 'Saturday Afternoon' },
-  { choice: 'next-weekend', label: 'Next Weekend' },
+  { choice: 'tomorrow-evening', label: 'Tomorrow evening' },
+  { choice: 'saturday-afternoon', label: 'Saturday afternoon' },
+  { choice: 'next-weekend', label: 'Next weekend' },
 ];
 
 const buttonBase: React.CSSProperties = {
+  height: 44,
   borderRadius: 8,
-  padding: '0.6rem 1rem',
+  padding: '0 0.75rem',
   fontSize: '0.9rem',
   cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '0.4rem',
+  width: '100%',
+  boxSizing: 'border-box',
 };
 
-function GrayedOption({ label, reason }: { label: string; reason: string }): JSX.Element {
-  return (
-    <button
-      type="button"
-      disabled
-      title={reason}
-      style={{
-        ...buttonBase,
-        opacity: 0.45,
-        cursor: 'not-allowed',
-        border: '1px dashed #999',
-        background: 'transparent',
-      }}
-    >
-      {label} <span style={{ fontSize: '0.75rem' }}>(coming soon)</span>
-    </button>
-  );
-}
+const outlineBtn: React.CSSProperties = {
+  ...buttonBase,
+  border: '1px solid #333',
+  background: '#fff',
+  color: '#333',
+};
 
-function InstallAppOption(): JSX.Element {
-  // The beforeinstallprompt event can arrive after this component mounts, so
-  // poll briefly rather than reading pwaInstall's module state only once.
-  const [installable, setInstallable] = useState(isPwaInstallable());
-  const [installed, setInstalled] = useState(isPwaInstalled());
+const primaryBtn: React.CSSProperties = {
+  ...buttonBase,
+  border: '1px solid #007bff',
+  background: '#007bff',
+  color: '#fff',
+};
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setInstallable(isPwaInstallable());
-      setInstalled(isPwaInstalled());
-    }, 500);
-    return () => window.clearInterval(id);
-  }, []);
+const gridTwo: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: '0.5rem',
+};
 
-  if (installed) {
-    return <GrayedOption label="Installed as an app ✓" reason="Already installed" />;
-  }
-
-  if (installable) {
-    return (
-      <button
-        type="button"
-        onClick={() => { void promptPwaInstall(); }}
-        style={{
-          ...buttonBase,
-          border: '1px solid #333',
-          background: 'transparent',
-        }}
-      >
-        📲 Install as an app
-      </button>
-    );
-  }
-
-  if (isIOSSafari()) {
-    return (
-      <GrayedOption
-        label="Install as an app"
-        reason='On iPhone/iPad: tap Share, then "Add to Home Screen"'
-      />
-    );
-  }
-
-  return <GrayedOption label="Install as an app" reason="Not available in this browser" />;
-}
-
-function BrowserNotificationOption(): JSX.Element {
-  const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  if (!isPushSupported()) {
-    return (
-      <GrayedOption
-        label="Browser Notification"
-        reason="Not available in this browser"
-      />
-    );
-  }
-
-  const handleChoice = async (choice: ReminderChoice): Promise<void> => {
-    setStatus('sending');
-    const result = await schedulePushReminder(resolveTargetDate(choice));
-    if (result.ok) {
-      setStatus('sent');
-      trackPlaytestEvent('reminder_selected');
-    } else {
-      setStatus('error');
-      setErrorMsg(result.error || 'Something went wrong');
-    }
-  };
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{ ...buttonBase, border: '1px solid #333', background: 'transparent' }}
-      >
-        🔔 Browser Notification
-      </button>
-    );
-  }
-
-  if (status === 'sent') {
-    return (
-      <p style={{ margin: 0, fontSize: '0.9rem', color: '#1a7f37' }}>
-        ✓ We'll notify you — works even if this tab is closed.
-      </p>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-        {CALENDAR_OPTIONS.map(opt => (
-          <button
-            key={opt.choice}
-            type="button"
-            disabled={status === 'sending'}
-            onClick={() => { void handleChoice(opt.choice); }}
-            style={{
-              ...buttonBase,
-              border: '1px solid #333',
-              background: 'transparent',
-              opacity: status === 'sending' ? 0.6 : 1,
-            }}
-          >
-            🔔 {opt.label}
-          </button>
-        ))}
-      </div>
-      {status === 'error' && (
-        <p style={{ margin: 0, fontSize: '0.8rem', color: '#c0392b' }}>{errorMsg}</p>
-      )}
-    </div>
-  );
-}
+const stepLabel: React.CSSProperties = {
+  fontSize: '0.7rem',
+  color: '#999',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  margin: '0 0 0.4rem',
+};
 
 const inputStyle: React.CSSProperties = {
   border: '1px solid #ccc',
   borderRadius: 6,
-  padding: '0.5rem',
+  padding: '0.55rem',
   fontSize: '0.9rem',
-  flex: '1 1 160px',
+  width: '100%',
+  boxSizing: 'border-box',
 };
 
-function EmailTextOption(): JSX.Element {
-  const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState<'email' | 'sms'>('email');
+function BackLink({ onClick }: { onClick: () => void }): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        color: '#007bff',
+        cursor: 'pointer',
+        fontSize: '0.8rem',
+        padding: 0,
+        alignSelf: 'flex-start',
+      }}
+    >
+      ← Change
+    </button>
+  );
+}
+
+export function ReminderHub({ isPhone }: { isPhone: boolean }): JSX.Element {
+  const [step, setStep] = useState<Step>('method');
+  const [method, setMethod] = useState<Method | null>(null);
+  const [when, setWhen] = useState<{ date: Date; label: string } | null>(null);
+  const [status, setStatus] = useState<'idle' | 'sending' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [doneMsg, setDoneMsg] = useState('');
+  const [pushHint, setPushHint] = useState('');
+
+  // Custom date/time entry
+  const [customValue, setCustomValue] = useState('');
+
+  // Contact fields (email / text)
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [carrier, setCarrier] = useState(CARRIERS[0].value);
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  const alertLabel = isPhone ? '🔔 Phone alert' : '🔔 Browser alert';
+
+  const reset = (): void => {
+    setStep('method');
+    setMethod(null);
+    setWhen(null);
+    setStatus('idle');
+    setErrorMsg('');
+    setDoneMsg('');
+    setPushHint('');
+    setCustomValue('');
+  };
+
+  const pickMethod = (m: Method): void => {
+    setPushHint('');
+    if (m === 'push' && !isPushSupported()) {
+      // No Web Push in this browser. On iPhone/iPad Safari it works only from
+      // an installed app, so tell them how; elsewhere point at email/text.
+      setPushHint(
+        isIOSSafari()
+          ? 'On iPhone, first tap the Share button, then "Add to Home Screen" — open it from there and this alert will work. Or use Email or Text below.'
+          : "This browser can't pop up alerts. Try Email or Text instead."
+      );
+      return;
+    }
+    setMethod(m);
+    setStatus('idle');
+    setErrorMsg('');
+    setStep('when');
+  };
+
+  const runWhen = async (resolved: { date: Date; label: string }): Promise<void> => {
+    setWhen(resolved);
+    if (method === 'calendar') {
+      downloadICSForDate(resolved.date);
+      trackPlaytestEvent('reminder_selected');
+      setDoneMsg(`Saved to your calendar for ${resolved.label}.`);
+      setStep('done');
+      return;
+    }
+    if (method === 'push') {
+      setStatus('sending');
+      const result = await schedulePushReminder(resolved.date);
+      if (result.ok) {
+        trackPlaytestEvent('reminder_selected');
+        setDoneMsg(`We'll alert you ${resolved.label} — works even with this tab closed.`);
+        setStep('done');
+      } else {
+        setStatus('error');
+        setErrorMsg(result.error || 'Something went wrong');
+      }
+      return;
+    }
+    // email / sms need contact details next.
+    setStep('contact');
+  };
+
+  const chooseWhen = (choice: ReminderChoice): void => {
+    void runWhen(resolveWhen(choice));
+  };
+
+  const chooseCustom = (): void => {
+    if (!customValue) return;
+    // datetime-local has no timezone — parsed as local time, which is what the
+    // visitor means. Guard against a past time.
+    const date = new Date(customValue);
+    if (Number.isNaN(date.getTime())) {
+      setErrorMsg('That date didn\'t look right — try again.');
+      return;
+    }
+    if (date.getTime() <= Date.now()) {
+      setErrorMsg('Pick a time in the future.');
+      return;
+    }
+    setErrorMsg('');
+    void runWhen(resolveWhen({ custom: date } as ReminderWhen));
+  };
+
+  const sendContact = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (!when || !method) return;
     setStatus('sending');
+    const base = { whenLabel: when.label, sendAt: when.date.toISOString() };
     const result = await sendRemindMe(
-      method === 'email' ? { method, email } : { method, phone, carrier }
+      method === 'email'
+        ? { method: 'email', email, ...base }
+        : { method: 'sms', phone, carrier, ...base }
     );
     if (result.ok) {
-      setStatus('sent');
       trackPlaytestEvent('reminder_selected');
+      setDoneMsg(
+        method === 'email'
+          ? `We'll email you ${when.label}.`
+          : `We'll text you ${when.label} — carrier gateways can be slow or drop it.`
+      );
+      setStep('done');
     } else {
       setStatus('error');
       setErrorMsg(result.error || 'Something went wrong');
     }
   };
 
-  if (!open) {
+  // --- Step: done ---------------------------------------------------------
+  if (step === 'done') {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{ ...buttonBase, border: '1px solid #333', background: 'transparent' }}
-      >
-        ✉️ Email / text me
-      </button>
-    );
-  }
-
-  if (status === 'sent') {
-    return (
-      <p style={{ margin: 0, fontSize: '0.9rem', color: '#1a7f37' }}>
-        ✓ Sent{method === 'sms' ? ' — texts can take a few minutes, or may not arrive depending on your carrier' : ''}.
-      </p>
-    );
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}
-    >
-      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
-        <label>
-          <input
-            type="radio"
-            checked={method === 'email'}
-            onChange={() => setMethod('email')}
-          />{' '}
-          Email
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={method === 'sms'}
-            onChange={() => setMethod('sms')}
-          />{' '}
-          Text
-        </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <p style={{ margin: 0, fontWeight: 600 }}>Remind me later</p>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: '#1a7f37' }}>✓ {doneMsg}</p>
+        <button
+          type="button"
+          onClick={reset}
+          style={{ ...outlineBtn, width: 'auto', height: 38, alignSelf: 'flex-start' }}
+        >
+          Set another reminder
+        </button>
       </div>
+    );
+  }
 
-      {method === 'email' ? (
-        <input
-          type="email"
-          required
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={inputStyle}
-        />
-      ) : (
-        <>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+  // --- Step: contact (email / text) --------------------------------------
+  if (step === 'contact' && when) {
+    return (
+      <form onSubmit={sendContact} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        <p style={{ margin: 0, fontWeight: 600 }}>Remind me later</p>
+        <BackLink onClick={() => { setStep('when'); setStatus('idle'); setErrorMsg(''); }} />
+        <p style={stepLabel}>
+          {method === 'email' ? 'Your email' : 'Your number'} · {when.label}
+        </p>
+        {method === 'email' ? (
+          <input
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={inputStyle}
+          />
+        ) : (
+          <>
             <input
               type="tel"
               required
@@ -267,105 +268,95 @@ function EmailTextOption(): JSX.Element {
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
-          </div>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
-            Sent via your carrier's email-to-text gateway — some carriers block these, so it may not arrive.
-          </p>
-        </>
-      )}
-
-      {status === 'error' && (
-        <p style={{ margin: 0, fontSize: '0.8rem', color: '#c0392b' }}>{errorMsg}</p>
-      )}
-
-      <button
-        type="submit"
-        disabled={status === 'sending'}
-        style={{
-          ...buttonBase,
-          border: 'none',
-          background: '#007bff',
-          color: 'white',
-          alignSelf: 'flex-start',
-          opacity: status === 'sending' ? 0.6 : 1,
-        }}
-      >
-        {status === 'sending' ? 'Sending…' : 'Send reminder'}
-      </button>
-    </form>
-  );
-}
-
-export function ReminderHub(): JSX.Element {
-  const handleCalendar = (choice: ReminderChoice): void => {
-    downloadICS(choice);
-    trackPlaytestEvent('reminder_selected');
-  };
-
-  const [bookmarkTapped, setBookmarkTapped] = useState(false);
-  const handleBookmark = (): void => {
-    setBookmarkTapped(true);
-    trackPlaytestEvent('bookmark_click');
-  };
-
-  const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform || '');
-  // Browsers have blocked JS from opening the native bookmark dialog since
-  // ~2018 (security), so the button can only show an instruction — it can't
-  // do the bookmarking itself. Most visitors here arrive on a phone (car QR
-  // scan), where there's no Ctrl/Cmd+D at all, so the instruction has to
-  // branch on device type rather than assuming desktop.
-  const isMobile = typeof navigator !== 'undefined' && detectDeviceType() === 'mobile';
-  const bookmarkInstruction = isMobile
-    ? "Tap your browser's menu (⋮ or •••) and choose \"Add to bookmarks\" or \"Add to Home Screen\""
-    : `Press ${isMac ? 'Cmd' : 'Ctrl'}+D now to bookmark this page`;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <p style={{ margin: 0, fontWeight: 600 }}>Remind me later</p>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-        {CALENDAR_OPTIONS.map(opt => (
-          <button
-            key={opt.choice}
-            type="button"
-            onClick={() => handleCalendar(opt.choice)}
-            style={{
-              ...buttonBase,
-              border: '1px solid #007bff',
-              background: '#007bff',
-              color: 'white',
-            }}
-          >
-            📅 {opt.label}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.35rem' }}>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
+              Sent via your carrier's email-to-text gateway — some carriers block these, so it may not arrive.
+            </p>
+          </>
+        )}
+        {status === 'error' && (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#c0392b' }}>{errorMsg}</p>
+        )}
         <button
-          type="button"
-          onClick={handleBookmark}
-          style={{
-            ...buttonBase,
-            border: '1px solid #333',
-            background: 'transparent',
-          }}
+          type="submit"
+          disabled={status === 'sending'}
+          style={{ ...primaryBtn, opacity: status === 'sending' ? 0.6 : 1 }}
         >
-          🔖 Bookmark this page{!isMobile ? ` (${isMac ? 'Cmd' : 'Ctrl'}+D)` : ''}
+          {status === 'sending' ? 'Setting…' : 'Set reminder'}
         </button>
-        {bookmarkTapped && (
-          <span style={{ fontSize: '0.8rem', color: '#666' }}>{bookmarkInstruction}</span>
+      </form>
+    );
+  }
+
+  // --- Step: when ---------------------------------------------------------
+  if (step === 'when') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        <p style={{ margin: 0, fontWeight: 600 }}>Remind me later</p>
+        <BackLink onClick={() => { setStep('method'); setStatus('idle'); setErrorMsg(''); }} />
+        <p style={stepLabel}>2 · when</p>
+        <div style={gridTwo}>
+          {WHEN_PRESETS.map(p => (
+            <button
+              key={p.choice}
+              type="button"
+              disabled={status === 'sending'}
+              onClick={() => chooseWhen(p.choice)}
+              style={{ ...outlineBtn, opacity: status === 'sending' ? 0.6 : 1 }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input
+            type="datetime-local"
+            value={customValue}
+            onChange={(e) => setCustomValue(e.target.value)}
+            style={{ ...inputStyle, flex: 1 }}
+            aria-label="Pick a date and time"
+          />
+          <button
+            type="button"
+            disabled={!customValue || status === 'sending'}
+            onClick={chooseCustom}
+            style={{ ...outlineBtn, width: 'auto', padding: '0 1rem', opacity: (!customValue || status === 'sending') ? 0.5 : 1 }}
+          >
+            Set
+          </button>
+        </div>
+        {status === 'sending' && (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>Setting up your reminder…</p>
+        )}
+        {status === 'error' && (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#c0392b' }}>{errorMsg}</p>
+        )}
+        {errorMsg && status !== 'error' && (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#c0392b' }}>{errorMsg}</p>
         )}
       </div>
+    );
+  }
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
-        <BrowserNotificationOption />
-        <InstallAppOption />
+  // --- Step: method (default) --------------------------------------------
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+      <div>
+        <p style={{ margin: 0, fontWeight: 600 }}>
+          Remind me later{isPhone ? ' ' : ''}
+          {isPhone && <span style={{ fontSize: '0.7rem', color: '#007bff', fontWeight: 400 }}>· recommended</span>}
+        </p>
+        <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: '#777' }}>Pick how, then when.</p>
       </div>
-
-      <div style={{ marginTop: '0.25rem' }}>
-        <EmailTextOption />
+      <p style={stepLabel}>1 · how</p>
+      <div style={gridTwo}>
+        <button type="button" onClick={() => pickMethod('calendar')} style={primaryBtn}>📅 Add to calendar</button>
+        <button type="button" onClick={() => pickMethod('push')} style={outlineBtn}>{alertLabel}</button>
+        <button type="button" onClick={() => pickMethod('email')} style={outlineBtn}>✉️ Email me</button>
+        <button type="button" onClick={() => pickMethod('sms')} style={outlineBtn}>💬 Text me</button>
       </div>
+      {pushHint && (
+        <p style={{ margin: 0, fontSize: '0.8rem', color: '#666', lineHeight: 1.4 }}>{pushHint}</p>
+      )}
     </div>
   );
 }

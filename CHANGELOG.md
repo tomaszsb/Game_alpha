@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.96] - 2026-07-05
+
+**The `/challenge` funnel gets a phone-vs-big-screen split, one honest reminder flow, a real game screenshot carousel, and true scheduling for email/text — all driven by on-a-real-phone feedback.**
+
+### Two views, decided by screen size (not brand)
+`isPhoneScreen()` (short side of `window.screen` < 600px) splits the landing page in two, sidestepping the two tablet traps a user-agent check falls into (modern iPads report as Macs; Android tablets look like Android phones). **Phone** → too small to play: the reminder is the hero (blue "recommended" card), "Quick game" is hidden, and the play button becomes a quiet "Play anyway" with a plain warning. **Tablet / laptop / desktop / TV** → a real screen: "Quick game" + the big green "Play now" lead, reminder offered quietly. Fixes the prior bug where every tablet was wrongly treated as a phone.
+
+### One unified "Remind me later" flow
+Pick **how** (Add to calendar / device alert / Email / Text — all one uniform size) → pick **when** (Tonight, Tomorrow evening, Saturday, Next weekend, or a **custom date & time**). The device-alert button reads "Phone alert" on a phone, "Browser alert" on a computer, and on iOS Safari (no in-tab Web Push) it explains the Add-to-Home-Screen step inline instead of sitting dead — because a disabled button's tooltip never shows on touch, which is why greyed options felt broken on the phone.
+
+### Email + text are now truly scheduled
+`server/pushScheduler.js` → `server/reminderScheduler.js`, generalized from push-only to hold pending **push, email, and SMS** in one file-based queue checked every 60s. `/api/playtest/remind-me` now schedules for the chosen time (was sent instantly) and validates the recipient up front (`mailer.resolveRecipient`) so a bad address/carrier is rejected on the form, not silently dropped when it fires.
+
+### A game screenshot carousel
+`GameTour` replaces the single screenshot — auto-discovers any image in `src/playtest/tour/` (`import.meta.glob`), captions from the filename, arrows + dots. Adding a photo is just dropping a numbered PNG in the folder; no code edit. Seeded via `scripts/capture-game-screenshot.js` (Puppeteer) with the 2-player setup, opening board, action modals, a term popup, and the glossary. Preloads off-DOM so a missing image can't trip `index.html`'s fatal-on-any-broken-resource handler.
+
+### Misc
+- Uniform button sizing across the action row; the Share button uses the real share glyph (SVG), not an outbox emoji.
+- Bookmark button replaced on phones by an honest "Add to Home Screen"; real Ctrl/Cmd+D only on desktop.
+- New tests: `tests/playtest/generateICS.test.ts`, `tests/playtest/mailerRecipient.test.ts` (18 cases — date/`when` resolution, ICS format, recipient validation).
+
 ## [3.0.95] - 2026-07-05
 
 **A QR-code landing page turns a car-window scan into a scheduled comeback — real calendar reminders, real browser push notifications, real email/text, real "install as an app," with an honest gray-out for the two pieces that still need content (a real mobile demo puzzle, a demo video).** First cut of the Playtester Acquisition System (PRD in `Mockups/`).

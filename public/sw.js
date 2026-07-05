@@ -19,7 +19,7 @@ self.addEventListener('fetch', () => {
 });
 
 // Browser-notification reminders (Reminder Hub's "Browser Notification"
-// option). The server (server/pushScheduler.js) fires these via the Web
+// option). The server (server/reminderScheduler.js) fires these via the Web
 // Push API at the scheduled time, which works even if no tab is open —
 // the browser wakes this service worker to handle it.
 self.addEventListener('push', (event) => {

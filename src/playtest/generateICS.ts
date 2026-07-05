@@ -7,6 +7,37 @@ import { getChallengeUrl, getCleanChallengeUrl } from './playtestStorage';
 
 export type ReminderChoice = 'tonight' | 'tomorrow-evening' | 'saturday-afternoon' | 'next-weekend';
 
+// A "when" is either one of the presets above or a specific instant the
+// visitor typed in ("Pick a date & time"). The unified reminder flow resolves
+// whichever they chose into a concrete Date + a human label (used in the
+// email/calendar wording) via resolveWhen(), so calendar / notification /
+// email / text all schedule against the same value.
+export type ReminderWhen = ReminderChoice | { custom: Date };
+
+const CHOICE_LABELS: Record<ReminderChoice, string> = {
+  tonight: 'tonight',
+  'tomorrow-evening': 'tomorrow evening',
+  'saturday-afternoon': 'Saturday afternoon',
+  'next-weekend': 'next weekend',
+};
+
+function formatCustomLabel(d: Date): string {
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+export function resolveWhen(when: ReminderWhen): { date: Date; label: string } {
+  if (typeof when === 'object') {
+    return { date: when.custom, label: formatCustomLabel(when.custom) };
+  }
+  return { date: resolveTargetDate(when), label: CHOICE_LABELS[when] };
+}
+
 export function resolveTargetDate(choice: ReminderChoice): Date {
   const now = new Date();
   const target = new Date(now);
@@ -52,7 +83,10 @@ function toICSDate(d: Date): string {
 }
 
 export function buildICS(choice: ReminderChoice): string {
-  const target = resolveTargetDate(choice);
+  return buildICSForDate(resolveTargetDate(choice));
+}
+
+export function buildICSForDate(target: Date): string {
   const end = new Date(target.getTime() + 60 * 60 * 1000);
   const uid = `playtest-${Date.now()}@unravelcodes.com`;
   // The tracked URL (with ?src=) is the functional destination — calendar
@@ -82,7 +116,11 @@ export function buildICS(choice: ReminderChoice): string {
 }
 
 export function downloadICS(choice: ReminderChoice): void {
-  const content = buildICS(choice);
+  downloadICSForDate(resolveTargetDate(choice));
+}
+
+export function downloadICSForDate(target: Date): void {
+  const content = buildICSForDate(target);
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

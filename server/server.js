@@ -59,8 +59,14 @@ import {
   revokeSession,
   revokeAccountSessions,
 } from './accountStore.js';
-import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS } from './mailer.js';
-import { initPushScheduler, isPushConfigured, getVapidPublicKey, schedulePush } from './pushScheduler.js';
+import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS, resolveRecipient } from './mailer.js';
+import {
+  initReminderScheduler,
+  isPushConfigured,
+  getVapidPublicKey,
+  schedulePush,
+  scheduleMail,
+} from './reminderScheduler.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -95,7 +101,7 @@ const CONFIG = {
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || '',
 };
 
-initPushScheduler(CONFIG.DATA_DIR);
+initReminderScheduler(CONFIG.DATA_DIR);
 
 // Middleware
 app.use(cors({
@@ -2216,10 +2222,23 @@ app.post('/api/playtest/remind-me', async (req, res) => {
     return res.status(503).json({ error: 'Email/text reminders are not set up yet' });
   }
 
-  const { method, email, phone, carrier, whenLabel, campaignSource } = req.body || {};
+  const { method, email, phone, carrier, whenLabel, campaignSource, sendAt } = req.body || {};
   try {
-    await sendReminder({ method, email, phone, carrier, whenLabel, campaignSource });
-    logVisitor(req, 'PLAYTEST_REMINDER_SENT', { method, carrier: carrier || null, campaignSource: campaignSource || null });
+    // Validate the recipient now so a bad address/carrier is rejected while
+    // the visitor is still on the form, not silently dropped when the
+    // scheduler fires later.
+    resolveRecipient({ method, email, phone, carrier });
+
+    const sendAtMs = Date.parse(sendAt);
+    if (sendAt && !Number.isNaN(sendAtMs) && sendAtMs > Date.now()) {
+      // Scheduled for a chosen time — hand off to the reminder scheduler.
+      scheduleMail({ method, email, phone, carrier, whenLabel }, sendAt, campaignSource);
+      logVisitor(req, 'PLAYTEST_REMINDER_SCHEDULED', { method, carrier: carrier || null, campaignSource: campaignSource || null });
+    } else {
+      // No (or already-past) time — send right away.
+      await sendReminder({ method, email, phone, carrier, whenLabel, campaignSource });
+      logVisitor(req, 'PLAYTEST_REMINDER_SENT', { method, carrier: carrier || null, campaignSource: campaignSource || null });
+    }
     res.json({ success: true });
   } catch (err) {
     if (err && err.code === 'BAD_REQUEST') {

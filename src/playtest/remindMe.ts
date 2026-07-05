@@ -27,6 +27,9 @@ export interface RemindMeParams {
   phone?: string;
   carrier?: string;
   whenLabel?: string;
+  // ISO timestamp for when the reminder should actually be sent. The server
+  // holds it until then (see server/reminderScheduler.js); omit to send now.
+  sendAt?: string;
 }
 
 export async function sendRemindMe(params: RemindMeParams): Promise<{ ok: boolean; error?: string }> {

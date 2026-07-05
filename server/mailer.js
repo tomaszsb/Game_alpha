@@ -80,28 +80,36 @@ function buildReminderHtml(whenLabel, campaignSource) {
  * Send a reminder email, or a text via a carrier's email-to-SMS gateway.
  * @param {{ method: 'email'|'sms', email?: string, phone?: string, carrier?: string, whenLabel?: string, campaignSource?: string }} opts
  */
+// Validate the recipient and resolve the "to" address. Exported so a reminder
+// can be validated up front (at schedule time) even though it's actually sent
+// later — a bad address should be rejected while the visitor is still looking
+// at the form, not silently dropped when the scheduler fires hours later.
+// Throws a BAD_REQUEST-coded Error on invalid input.
+export function resolveRecipient(opts) {
+  if (opts.method === 'email') {
+    if (!opts.email || typeof opts.email !== 'string') {
+      throw Object.assign(new Error('email is required'), { code: 'BAD_REQUEST' });
+    }
+    return opts.email;
+  }
+  if (opts.method === 'sms') {
+    const gateway = CARRIER_GATEWAYS[opts.carrier];
+    const digits = typeof opts.phone === 'string' ? opts.phone.replace(/\D/g, '') : '';
+    if (!digits || !gateway) {
+      throw Object.assign(new Error('phone and a supported carrier are required'), { code: 'BAD_REQUEST' });
+    }
+    return `${digits}@${gateway}`;
+  }
+  throw Object.assign(new Error('method must be "email" or "sms"'), { code: 'BAD_REQUEST' });
+}
+
 export async function sendReminder(opts) {
   const t = getTransporter();
   if (!t) {
     throw Object.assign(new Error('Mailer not configured'), { code: 'NOT_CONFIGURED' });
   }
 
-  let to;
-  if (opts.method === 'email') {
-    if (!opts.email || typeof opts.email !== 'string') {
-      throw Object.assign(new Error('email is required'), { code: 'BAD_REQUEST' });
-    }
-    to = opts.email;
-  } else if (opts.method === 'sms') {
-    const gateway = CARRIER_GATEWAYS[opts.carrier];
-    const digits = typeof opts.phone === 'string' ? opts.phone.replace(/\D/g, '') : '';
-    if (!digits || !gateway) {
-      throw Object.assign(new Error('phone and a supported carrier are required'), { code: 'BAD_REQUEST' });
-    }
-    to = `${digits}@${gateway}`;
-  } else {
-    throw Object.assign(new Error('method must be "email" or "sms"'), { code: 'BAD_REQUEST' });
-  }
+  const to = resolveRecipient(opts);
 
   const mail = {
     from: process.env.SMTP_FROM || process.env.SMTP_USER,

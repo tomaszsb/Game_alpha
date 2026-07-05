@@ -5,7 +5,7 @@
 // browser — the OS/browser's push service wakes the service worker
 // (public/sw.js) at the scheduled time. Requires the SW to be registered
 // (production only, see main.tsx) and the backend's VAPID keys to be
-// configured (server/pushScheduler.js).
+// configured (server/reminderScheduler.js).
 
 import { getBackendURL } from '../utils/networkDetection';
 import { getStoredCampaignSource } from './playtestStorage';
