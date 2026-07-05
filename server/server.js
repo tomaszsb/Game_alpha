@@ -59,6 +59,7 @@ import {
   revokeSession,
   revokeAccountSessions,
 } from './accountStore.js';
+import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS } from './mailer.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -2127,6 +2128,106 @@ app.get('/api/public/feedback/open', (req, res) => {
   }
 });
 
+// ===== PLAYTESTER ACQUISITION TRACKING =====
+// Minimal funnel tracking for the QR-code -> landing page -> reminder ->
+// return-visit -> play funnel (TODO.md "Playtester Acquisition System").
+// Reuses the existing logVisitor() file-log pattern — no new storage.
+const PLAYTEST_EVENTS = new Set([
+  'landing_view',
+  'preview_click',
+  'reminder_selected',
+  'bookmark_click',
+  'play_click',
+  'return_visit',
+]);
+
+app.post('/api/playtest/track', (req, res) => {
+  const { event, campaignSource } = req.body || {};
+  if (typeof event !== 'string' || !PLAYTEST_EVENTS.has(event)) {
+    return res.status(400).json({ error: 'Unknown or missing event' });
+  }
+  logVisitor(req, `PLAYTEST_${event.toUpperCase()}`, {
+    campaignSource: typeof campaignSource === 'string' ? campaignSource.slice(0, 60) : null,
+  });
+  res.json({ success: true });
+});
+
+// Rate limit "remind me" separately from admin auth (stricter — this
+// endpoint sends real email/SMS on the caller's behalf, an abuse vector if
+// left open, e.g. spamming an arbitrary phone number via a carrier gateway).
+const remindMeAttempts = new Map(); // IP -> { count, resetAt }
+const REMIND_ME_RATE_LIMIT = { maxAttempts: 5, windowMs: 60 * 60 * 1000 }; // 5 per hour
+
+function checkRemindMeRateLimit(req, res) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = remindMeAttempts.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= REMIND_ME_RATE_LIMIT.maxAttempts) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      res.status(429).json({ error: `Too many attempts. Retry after ${retryAfter}s` });
+      return false;
+    }
+    entry.count++;
+  } else {
+    remindMeAttempts.set(ip, { count: 1, resetAt: now + REMIND_ME_RATE_LIMIT.windowMs });
+  }
+  return true;
+}
+
+app.get('/api/playtest/carriers', (req, res) => {
+  res.json({ carriers: Object.keys(CARRIER_GATEWAYS) });
+});
+
+app.post('/api/playtest/remind-me', async (req, res) => {
+  if (!checkRemindMeRateLimit(req, res)) return;
+  if (!isMailerConfigured()) {
+    return res.status(503).json({ error: 'Email/text reminders are not set up yet' });
+  }
+
+  const { method, email, phone, carrier, whenLabel } = req.body || {};
+  try {
+    await sendReminder({ method, email, phone, carrier, whenLabel });
+    logVisitor(req, 'PLAYTEST_REMINDER_SENT', { method, carrier: carrier || null });
+    res.json({ success: true });
+  } catch (err) {
+    if (err && err.code === 'BAD_REQUEST') {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('Failed to send playtest reminder:', err && err.message);
+    res.status(500).json({ error: 'Failed to send reminder' });
+  }
+});
+
+// Aggregated view of the funnel — answers "where did they come from" without
+// a dashboard. Admin-gated like /api/debug/state (visitor log carries IPs).
+app.get('/api/admin/playtest-stats', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    if (!fs.existsSync(CONFIG.LOG_FILE)) {
+      return res.json({ total: 0, byEvent: {}, bySource: {} });
+    }
+    const content = fs.readFileSync(CONFIG.LOG_FILE, 'utf8');
+    const lines = content.trim().split('\n').filter(Boolean);
+    const playtestLogs = lines
+      .map(line => { try { return JSON.parse(line); } catch { return null; } })
+      .filter(log => log && typeof log.action === 'string' && log.action.startsWith('PLAYTEST_'));
+
+    const byEvent = {};
+    const bySource = {};
+    for (const log of playtestLogs) {
+      byEvent[log.action] = (byEvent[log.action] || 0) + 1;
+      const source = log.campaignSource || 'unknown';
+      bySource[source] = (bySource[source] || 0) + 1;
+    }
+
+    res.json({ total: playtestLogs.length, byEvent, bySource });
+  } catch (err) {
+    console.error('Failed to read playtest stats:', err.message);
+    res.status(500).json({ error: 'Failed to read playtest stats' });
+  }
+});
+
 // ===== SPA FALLBACK & ERROR HANDLERS =====
 // For non-API routes, serve index.html (SPA client-side routing)
 app.use((req, res, next) => {
@@ -2149,7 +2250,11 @@ app.use((req, res, next) => {
         'GET /api/feedback',
         'GET /api/feedback/:id',
         'PATCH /api/feedback/:id',
-        'GET /api/public/feedback/open'
+        'GET /api/public/feedback/open',
+        'POST /api/playtest/track',
+        'GET /api/playtest/carriers',
+        'POST /api/playtest/remind-me',
+        'GET /api/admin/playtest-stats'
       ]
     });
   }

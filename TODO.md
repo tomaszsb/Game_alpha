@@ -16,6 +16,14 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
+## 🎯 **Playtester Acquisition System** (new initiative — PRD added 2026-07-03)
+*Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Goal: turn a QR-code scan into a completed playtest — QR → landing page → 30–60s mobile preview → reminder (calendar/bookmark) → return later on PC/TV/tablet → play → built-in bug report. Deliberately out of scope until the funnel is validated: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
+- [ ] **Phase 1 — QR code, landing page, mobile preview, demo video, analytics.** QR uses error-correction H + logo + campaign tags (`?src=vehicle`, conference, businesscard, friend, reddit). Landing page explains the game in <20s and why it's not phone-playable, with Preview/Demo/Reminder/Bookmark buttons. Analytics tracks: QR scan, landing page view, preview start/finish, reminder selection, return visit, game start/finish, feedback submission — each with campaign source, timestamp, device type. *Cross-checked 2026-07-03: PRD's "existing floating bug button" (§11, no new feedback system needed) = [FeedbackButton.tsx](src/components/feedback/FeedbackButton.tsx), already built — just needs a pre-game explainer. Analytics/campaign tracking has no existing counterpart in the codebase; this is genuinely new infra.*
+- [ ] **Phase 2 — Reminder hub, calendar (.ics), return-visit cookie.** Reminder options: Calendar Event, Bookmark, Browser Notifications (email/SMS optional/secondary). ICS generator offers Tonight / Tomorrow Evening / Saturday Afternoon / Next Weekend. Session cookie lets returning visitors skip onboarding straight into play.
+- [ ] **Phase 3 — optimize using real funnel data** before adding anything new. Success metrics: return rate, play completion, feedback rate (primary); avg play time, campaign performance, device distribution (secondary).
+Separate the public URL from the tracking URL. Show people: game.unravelcodes.com/challenge But have the QR code actually point to: game.unravelcodes.com/challenge?src=vehicle&utm_campaign=car1
+---
+
 ## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
 *Source: `/api/public/feedback/open`, 63 open → 48 new candidates (13 already tracked; 2 already-shipped awaiting dashboard flip: 222cd521, 1990c71e). Essentially one structured QA pass on the opt-in new panel — 30 reports from the 2026-06-30 v3.0.90 session + earlier un-triaged new-panel reports. Clusters below are sprint-shaped; standalone bugs are called out. Full staging: `.claude/feedback-staged.md`.*
 
