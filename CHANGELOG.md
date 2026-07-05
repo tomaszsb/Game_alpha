@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.95] - 2026-07-05
+
+**A QR-code landing page turns a car-window scan into a scheduled comeback — real calendar reminders, real browser push notifications, real email/text, real "install as an app," with an honest gray-out for the two pieces that still need content (a real mobile demo puzzle, a demo video).** First cut of the Playtester Acquisition System (PRD in `Mockups/`).
+
+### Landing page at `/challenge` — zero risk to existing game code
+Mounted as its own React root from `main.tsx`, chosen by `window.location.pathname` **before** `<App/>` ever renders — because `App.tsx` auto-creates a new backend game on every load lacking `?g=`, and a landing-page visit must never trigger that. Result: this feature touches `main.tsx` with a four-line branch and nothing else in the game's component tree. "Quick game" and "Play Now" are a deliberate placebo test — both route to the identical real game, tracked under different event names, to see which framing gets more clicks with zero extra engineering. Copy is device-aware (`detectDeviceType()`): a phone visitor is told outright they're on the wrong device and gets the Jackbox Games comparison (TV/PC shows the board, phone is the controller) — the mental model a stranger scanning a car-window sticker actually has; a desktop/tablet visitor is told they're already on a good-enough screen. Applies to both first-visit and returning-visitor states, so the explanation never silently disappears.
+
+### Reminder Hub — all four options are real, not mocked
+- **Calendar (.ics)** — Tonight / Tomorrow Evening / Saturday Afternoon / Next Weekend, pure client-side date math, no library.
+- **Bookmark** — initially just tracked a click with no visible feedback ("does nothing" per live playtest). Fixed: browsers have blocked JS from opening the native bookmark dialog since ~2018, so the button now shows a device-aware instruction instead (`Ctrl/Cmd+D` on desktop, "tap ⋮ → Add to bookmarks" on mobile, detected via the existing `detectDeviceType()`).
+- **PWA install** — grayed out on first deploy despite a registered service worker. Root cause: `public/manifest.json` declared the logo icon as `"512x512"` when the real file was 1024×1024, and had no 192×192 icon at all — a hard installability-criteria failure, not an engagement-heuristic delay. Generated correctly-sized `icon-192.png`/`icon-512.png` (`scripts/generate-pwa-icons.js`, via `sharp`) and fixed the manifest. Falls back to "Add to Home Screen" instructions on iOS Safari (no `beforeinstallprompt` there).
+- **Browser Notification** — real Web Push (VAPID keypair generated locally, no third-party account needed), with a persistent server-side scheduler (`server/pushScheduler.js`) that survives a closed tab **and** a container restart — file-based pending queue, checked every 60s, same durability pattern as the rest of this server's storage.
+- **Email / Text me** — real SMTP via `nodemailer` (`server/mailer.js`), configured with a Gmail app-password account. Text goes out via a carrier's email-to-SMS gateway (9 major US carriers) — no SMS API, but delivery isn't guaranteed (carriers throttle these as anti-spam; caveat shown in the UI). Verified cross-account delivery via a real send to a second address; a same-account self-send test revealed Gmail silently drops SMTP-relay mail addressed back to itself (confirmed via direct IMAP inspection of Inbox/Sent/All Mail/Spam) — a known Gmail quirk, not a bug in this code, and irrelevant to real playtesters at different addresses.
+- **Campaign source now survives every reminder path.** `?src=vehicle` (etc.) was captured on landing but never propagated into the actual reminder links — a return visit via calendar/email/text/push would have shown up as "unknown" in the funnel stats. Fixed by threading the stored campaign source through `generateICS.ts`, `mailer.js`, and `pushScheduler.js`'s URL-building.
+- **That fix immediately surfaced a second problem (live playtest catch): the tracking parameter was then visibly ugly in the email/calendar text.** Plain SMS text can't separate what's shown from what's linked, so it was always going to show *something* — but email and calendar invites can. Email now sends an HTML body with clean anchor text (`game.unravelcodes.com/challenge`) wrapping the tracked `href`; the plain-text fallback and SMS gateway keep working links but SMS drops the tracking param entirely (it's the PRD's "optional secondary" channel, and there's no way to hide it in a raw text message). The `.ics` calendar invite's `DESCRIPTION` text now shows the clean URL while its `URL:` field (what calendar apps actually open) keeps the tracked one.
+- **Returning-visitor copy was actively unhelpful (live playtest catch).** The "Welcome back!" state dropped the "why a PC/TV, why we're reminding you" explanation entirely — exactly backwards, since that's the one thing a confused re-visitor (or someone testing repeatedly and tripping their own returning-visitor flag) needs restated. Both first-visit and returning copy now always explain the device requirement and the reminder's purpose.
+- **New: Share button.** Web Share API opens the native share sheet (Messages, WhatsApp, email, social apps) on supported browsers; falls back to copy-to-clipboard elsewhere. The shared link is always tagged `?src=friend` regardless of the sharer's own campaign source — a share is its own referral channel, distinct from whatever QR/link brought the sharer here.
+
+### Backend
+`POST /api/playtest/track` + `GET /api/admin/playtest-stats` reuse the existing `logVisitor()` file-log pattern — no new database. QR codes for 5 campaign tags (`vehicle`/`conference`/`businesscard`/`friend`/`reddit`) generated once via `scripts/generate-playtest-qr.js`.
+
+### Explicitly deferred (placeholder, not simulated)
+Real mobile-preview mini-puzzle and the demo video — both need actual design/content work the placebo test and grayed-out "coming soon" button don't fake. PRD's Phase 3 (funnel optimization) waits on real traffic data.
+
+### Checks
+Typecheck + build clean. Full suite 2,293 passed / 1 skipped (one unrelated timeout under heavy concurrent session load, confirmed non-regression by isolated re-run at 114ms).
+
 ## [3.0.94] - 2026-07-02
 
 **Glossary term links finally tap on tablets, the dictionary can't hang on a dead network, and a double-applied time effect on the classic card modal is gone.** Second bug batch of the Thursday-night session (first batch shipped as v3.0.93).

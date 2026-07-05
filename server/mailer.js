@@ -43,17 +43,42 @@ export function isMailerConfigured() {
   return getTransporter() !== null;
 }
 
-function buildReminderBody(whenLabel) {
+const CLEAN_URL = 'game.unravelcodes.com/challenge';
+const BASE_URL = 'https://game.unravelcodes.com/challenge';
+
+function buildReminderUrl(campaignSource) {
+  return campaignSource ? `${BASE_URL}?src=${encodeURIComponent(campaignSource)}` : BASE_URL;
+}
+
+// Plain text (SMS, and email's fallback for clients that don't render HTML)
+// has no way to show clean text while linking somewhere else — whatever
+// string is sent is both what's read and what's tapped. For SMS specifically
+// (the "optional secondary" channel per the PRD) we drop the tracking param
+// entirely rather than show an ugly link; the email plain-text fallback
+// keeps it, since almost every modern client renders the HTML version below
+// instead, where the tracking is hidden behind clean anchor text.
+function buildReminderText(whenLabel, campaignSource, method) {
+  const url = method === 'sms' ? BASE_URL : buildReminderUrl(campaignSource);
   return (
     `Reminder to play Unravel Codes${whenLabel ? ` (${whenLabel})` : ''}.\n\n` +
-    'Grab a PC, TV, or tablet and head to:\nhttps://game.unravelcodes.com/challenge\n\n' +
+    `Grab a PC, TV, or tablet and head to:\n${url}\n\n` +
     'See you there!'
+  );
+}
+
+function buildReminderHtml(whenLabel, campaignSource) {
+  const url = buildReminderUrl(campaignSource);
+  return (
+    `<p>Reminder to play Unravel Codes${whenLabel ? ` (${whenLabel})` : ''}.</p>` +
+    `<p>Grab a PC, TV, or tablet and head to:<br>` +
+    `<a href="${url}">${CLEAN_URL}</a></p>` +
+    `<p>See you there!</p>`
   );
 }
 
 /**
  * Send a reminder email, or a text via a carrier's email-to-SMS gateway.
- * @param {{ method: 'email'|'sms', email?: string, phone?: string, carrier?: string, whenLabel?: string }} opts
+ * @param {{ method: 'email'|'sms', email?: string, phone?: string, carrier?: string, whenLabel?: string, campaignSource?: string }} opts
  */
 export async function sendReminder(opts) {
   const t = getTransporter();
@@ -78,10 +103,14 @@ export async function sendReminder(opts) {
     throw Object.assign(new Error('method must be "email" or "sms"'), { code: 'BAD_REQUEST' });
   }
 
-  await t.sendMail({
+  const mail = {
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to,
     subject: 'Play Unravel Codes',
-    text: buildReminderBody(opts.whenLabel),
-  });
+    text: buildReminderText(opts.whenLabel, opts.campaignSource, opts.method),
+  };
+  if (opts.method === 'email') {
+    mail.html = buildReminderHtml(opts.whenLabel, opts.campaignSource);
+  }
+  await t.sendMail(mail);
 }

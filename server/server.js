@@ -60,6 +60,7 @@ import {
   revokeAccountSessions,
 } from './accountStore.js';
 import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS } from './mailer.js';
+import { initPushScheduler, isPushConfigured, getVapidPublicKey, schedulePush } from './pushScheduler.js';
 
 const app = express();
 const DEFAULT_PORT = 3001;
@@ -93,6 +94,8 @@ const CONFIG = {
   // Generate: node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH || '',
 };
+
+initPushScheduler(CONFIG.DATA_DIR);
 
 // Middleware
 app.use(cors({
@@ -2139,6 +2142,7 @@ const PLAYTEST_EVENTS = new Set([
   'bookmark_click',
   'play_click',
   'return_visit',
+  'share_click',
 ]);
 
 app.post('/api/playtest/track', (req, res) => {
@@ -2179,16 +2183,43 @@ app.get('/api/playtest/carriers', (req, res) => {
   res.json({ carriers: Object.keys(CARRIER_GATEWAYS) });
 });
 
+app.get('/api/playtest/push-public-key', (req, res) => {
+  if (!isPushConfigured()) {
+    return res.status(503).json({ error: 'Browser notifications are not set up yet' });
+  }
+  res.json({ publicKey: getVapidPublicKey() });
+});
+
+app.post('/api/playtest/schedule-push', (req, res) => {
+  if (!checkRemindMeRateLimit(req, res)) return;
+  if (!isPushConfigured()) {
+    return res.status(503).json({ error: 'Browser notifications are not set up yet' });
+  }
+
+  const { subscription, sendAt, campaignSource } = req.body || {};
+  if (!subscription || typeof subscription !== 'object' || !subscription.endpoint) {
+    return res.status(400).json({ error: 'A valid push subscription is required' });
+  }
+  const sendAtMs = Date.parse(sendAt);
+  if (!sendAt || Number.isNaN(sendAtMs)) {
+    return res.status(400).json({ error: 'sendAt must be a valid date' });
+  }
+
+  schedulePush(subscription, sendAt, campaignSource);
+  logVisitor(req, 'PLAYTEST_PUSH_SCHEDULED', { campaignSource: campaignSource || null });
+  res.json({ success: true });
+});
+
 app.post('/api/playtest/remind-me', async (req, res) => {
   if (!checkRemindMeRateLimit(req, res)) return;
   if (!isMailerConfigured()) {
     return res.status(503).json({ error: 'Email/text reminders are not set up yet' });
   }
 
-  const { method, email, phone, carrier, whenLabel } = req.body || {};
+  const { method, email, phone, carrier, whenLabel, campaignSource } = req.body || {};
   try {
-    await sendReminder({ method, email, phone, carrier, whenLabel });
-    logVisitor(req, 'PLAYTEST_REMINDER_SENT', { method, carrier: carrier || null });
+    await sendReminder({ method, email, phone, carrier, whenLabel, campaignSource });
+    logVisitor(req, 'PLAYTEST_REMINDER_SENT', { method, carrier: carrier || null, campaignSource: campaignSource || null });
     res.json({ success: true });
   } catch (err) {
     if (err && err.code === 'BAD_REQUEST') {
@@ -2254,6 +2285,8 @@ app.use((req, res, next) => {
         'POST /api/playtest/track',
         'GET /api/playtest/carriers',
         'POST /api/playtest/remind-me',
+        'GET /api/playtest/push-public-key',
+        'POST /api/playtest/schedule-push',
         'GET /api/admin/playtest-stats'
       ]
     });

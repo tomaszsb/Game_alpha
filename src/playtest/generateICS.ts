@@ -3,9 +3,11 @@
 // Client-side .ics calendar file generation for the Reminder Hub — no
 // backend or library needed, ICS is plain text.
 
+import { getChallengeUrl, getCleanChallengeUrl } from './playtestStorage';
+
 export type ReminderChoice = 'tonight' | 'tomorrow-evening' | 'saturday-afternoon' | 'next-weekend';
 
-function resolveTargetDate(choice: ReminderChoice): Date {
+export function resolveTargetDate(choice: ReminderChoice): Date {
   const now = new Date();
   const target = new Date(now);
 
@@ -53,6 +55,12 @@ export function buildICS(choice: ReminderChoice): string {
   const target = resolveTargetDate(choice);
   const end = new Date(target.getTime() + 60 * 60 * 1000);
   const uid = `playtest-${Date.now()}@unravelcodes.com`;
+  // The tracked URL (with ?src=) is the functional destination — calendar
+  // apps use the URL: field for their "open link" button, not as raw text.
+  // The DESCRIPTION text a human actually reads shows the clean, memorable
+  // URL instead.
+  const url = getChallengeUrl();
+  const displayUrl = getCleanChallengeUrl();
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -64,7 +72,8 @@ export function buildICS(choice: ReminderChoice): string {
     `DTSTART:${toICSDate(target)}`,
     `DTEND:${toICSDate(end)}`,
     'SUMMARY:Play Unravel Codes',
-    'DESCRIPTION:Reminder to play Unravel Codes on a PC\\, TV\\, or tablet. Visit game.unravelcodes.com/challenge to start.',
+    `DESCRIPTION:Reminder to play Unravel Codes on a PC\\, TV\\, or tablet. Visit ${displayUrl} to start.`,
+    `URL:${url}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ];

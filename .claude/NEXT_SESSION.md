@@ -1,27 +1,31 @@
-# Next session starter — written 2026-07-03 by /koniec
+# Next session starter — written 2026-07-05 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.94 — **DEPLOYED 2026-07-03** (user confirmed header reads v3.0.94 · c0dfb10 ✓)
-- **Branch:** master, clean except `.claude/settings.local.json` (local config, fine)
-- **Last shipped:** v3.0.93+94 — Chronicle turn-dividers, dark-mode V2 modal bodies, tablet-tappable glossary links + 6s iframe fallback, EffectFactory double time-effect removed
-- **Test suite:** full suite 2,293 passed / 1 skipped this session; koniec sweep 1818/1818
-- **Build/typecheck:** clean
+- **Version:** v3.0.95 — **pending deploy** (production still runs v3.0.94; the `.env` on the server already has the new SMTP + VAPID keys, added this session via scp+ssh, so deploy just needs the code)
+- **Branch:** master, clean (this session's wrap-up commit pushed)
+- **Last shipped:** Playtester Acquisition landing page at `/challenge` — real calendar/bookmark/PWA-install/browser-push/email-text reminders, a Share button (Web Share API + clipboard fallback, tags shares `?src=friend`), device-aware copy with a Jackbox Games analogy for phone visitors, plus three live-playtest bug fixes (bookmark did nothing, PWA install grayed out, campaign source missing from reminder links + then visibly ugly once added).
+- **Test suite:** 2,290/2,294 passing this session's official run — the 3 failures were 30-60s timeouts in `E2E-AllPaths.test.ts` (unrelated dice/movement paths, not playtest code); confirmed non-regression by re-running that file alone: 10/10 passed in 3.46s. This machine ran dev servers + browser preview + several full suites concurrently all session — same pattern seen twice earlier in the session on different tests each time.
+- **Build/typecheck:** clean throughout.
 
 ## Top 3 open items
-1. **Tablet-check the glossary tap fix (fb:baa01a70).** The `cursor: help` → `pointer` cause is **hypothesis — unverified on a real iPad** (desktop path proven working). If a tablet playtest still can't tap terms, the next suspect is the tap landing inside the dashboard IFRAME content (dashboard repo, embedded=true view).
-2. **Triage the 2026-07-03 playtest feedback.** v3.0.94 deployed right before a playtest night; expect fresh reports. Dashboard was at 62 open after the sweep (see below).
-3. **Standalone bug pair, likely related:** Move button disappeared after the bug-report popup (fb:bf8bf19a) and buttons gone after zooming the board (fb:45cb8b0c) — both "panel controls vanished mid-game"; check for a shared cause (focus/overlay state?) before fixing separately.
+1. **Deploy v3.0.95.** Code is committed/pushed; production `.env` already has the SMTP/VAPID keys. Just run the deploy command below, then live-verify the whole `/challenge` flow on an actual phone — nothing in this feature has been checked on a real device yet (all verification this session was via the browser preview, which lacks `navigator.share` and blocks clipboard writes without a trusted gesture, so the Share button's real behavior is unconfirmed).
+2. **Confirm the glossary tap fix on a real tablet** (carried over from 2026-07-02 — cursor:pointer fix is desktop-verified only, hypothesis for fb:baa01a70).
+3. **Standalone bug pair, likely related** (carried over): Move button disappeared after the bug-report popup (fb:bf8bf19a) and buttons gone after zooming the board (fb:45cb8b0c) — both "panel controls vanished mid-game."
 
 ## Test failures to address
-(green)
+(Green after isolated re-run — see note above. Nothing to fix.)
 
 ## Decisions waiting on the user
-- None new. (Standing: E/L `effects_on_play` prose authoring is optional/deferred; new-view Action+Outcome rationale question fb:f6e100b7 is addressed *to* the maintainer.)
+- **Real mobile-preview mini-puzzle** — "Quick game" currently aliases to the real game (placebo test). A genuine 30-60s phone demo is design work; scope it separately once there's a concrete idea of what to show.
+- **QR code logo overlay** — the 5 generated PNGs (`Mockups/qr-codes/`) are plain URLs, no logo. PRD asks for one; add in image software before printing, or ask if it's worth scripting.
 
 ## Suggested first move
-The PATCH sweep already ran post-deploy (2026-07-03): all 10 shipped reports flipped resolved, dashboard 72 → 62 open. Start by pulling any NEW reports from the post-deploy playtest; if quiet, the bf8bf19a/45cb8b0c "buttons vanished" pair is the meatiest open bug.
+Deploy v3.0.95, then open `game.unravelcodes.com/challenge?src=vehicle` on an actual phone to check the whole funnel for real — the Jackbox copy, Share button, and PWA install prompt in particular have never been seen outside this session's headless browser preview.
+
+## Suggested model for next session
+**Sonnet 5.** Next session is deploy + live device verification + triage of whatever a real phone/tablet turns up — straightforward debugging and coding work, not long-horizon autonomous execution or unusually hard reasoning. Only reach for Opus if a real-device bug turns out to need deep architectural surgery.
 
 ## Reminders
 - Deploy command runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-- Preview-browser gotcha (cost time this session): a hidden preview tab freezes rAF → framer-motion modals look stuck open. Check `document.hidden` before chasing "modal won't close."
-- Two parallel card-play effect parsers exist (CardService.parseCardIntoEffects vs EffectFactory.createEffectsFromCard) — see CLAUDE.md TACTICAL (charter 3.52) before touching card effects.
+- Gmail SMTP silently drops mail sent back to the *same* authenticated account (no Sent-folder copy, not in Inbox/All Mail/Spam) — confirmed via direct IMAP inspection this session, not a bug. Cross-account delivery works fine; don't re-diagnose if it resurfaces.
+- `main.tsx` pathname-branch pattern (mount a new top-level page before `<App/>`, bypassing its auto-create effect) is now documented in CLAUDE.md TACTICAL — reuse it for any future "before the game" surface.

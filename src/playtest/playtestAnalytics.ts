@@ -16,7 +16,8 @@ export type PlaytestEvent =
   | 'reminder_selected'
   | 'bookmark_click'
   | 'play_click'
-  | 'return_visit';
+  | 'return_visit'
+  | 'share_click';
 
 function resolveCampaignSource(): string | null {
   const params = new URLSearchParams(window.location.search);

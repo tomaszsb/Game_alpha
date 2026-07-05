@@ -7,6 +7,7 @@
 // server/mailer.js for the carrier list and the same caveat server-side.
 
 import { getBackendURL } from '../utils/networkDetection';
+import { getStoredCampaignSource } from './playtestStorage';
 
 export const CARRIERS: { value: string; label: string }[] = [
   { value: 'att', label: 'AT&T' },
@@ -33,7 +34,7 @@ export async function sendRemindMe(params: RemindMeParams): Promise<{ ok: boolea
     const response = await fetch(`${getBackendURL()}/api/playtest/remind-me`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify({ ...params, campaignSource: getStoredCampaignSource() }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {

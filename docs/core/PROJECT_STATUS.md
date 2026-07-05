@@ -5,19 +5,19 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** July 3, 2026
+**Last Updated:** July 5, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.94** — **DEPLOYED 2026-07-03** (header verified: v3.0.94 · c0dfb10 ✓). Dashboard PATCH sweep done post-deploy: 10 shipped reports flipped resolved (72 → 62 open). Two bug batches from the dashboard backlog: Chronicle turn-dividers (turn_end no longer files under the next space), dark-mode V2 modal bodies + term-link contrast, tablet-tappable glossary links + a 6s local fallback when the dashboard iframe hangs, and a double-applied time effect removed from the classic CardModal path (E013's +2 was hitting for +4).
+**Current Version:** **3.0.95** — **pending deploy** (production still runs v3.0.94; the mid-session `deploy.sh` run happened before this session's commits existed, so it re-pulled the old code). New Playtester Acquisition landing page at `/challenge`: real calendar/bookmark/PWA-install/browser-push/email-text reminders, campaign-source tracking through every link.
 
 ## Current sprint
-**2026-07-02/03 — Thursday-night bug batch, dashboard backlog.** Four reports closed (fb:1eff7156 Chronicle ordering, dark-mode/contrast, fb:baa01a70 glossary tap, fb:c51f9f16 E013 audit) + one engine bug found by the audit (EffectFactory double tick_modifier emission) + two stale E2E-05 tests repaired (L003 gained phase_restriction=CONSTRUCTION after they were written). ModalBase grew an opt-in `mode` prop (default light = classic pixel-identical); good/bad/alert tints centralized in `panelPalettes`.
+**2026-07-05 — Playtester Acquisition System, first cut.** QR-code landing page mounted as its own React root (zero changes to `App.tsx`/game code). All four Reminder Hub options are real: calendar (.ics), bookmark (fixed — was silently doing nothing, now shows device-aware instructions), PWA install (fixed a manifest icon-size bug that silently failed installability), browser push (VAPID + persistent scheduler), email/text (SMTP + carrier-gateway SMS). Found and fixed a campaign-source propagation gap across all three reminder link-builders. Deferred: real mobile-preview mini-puzzle and demo video (both grayed "coming soon" — need actual content, not more engineering).
 
 ## Health
-- **Tests:** typecheck + build clean. **Full suite ran this session: 2,293 passed / 1 skipped** (only failures were the 2 stale E2E-05 tests, fixed + verified). Koniec targeted sweep 1818/1818.
+- **Tests:** typecheck + build clean. **Full suite ran this session: 2,293 passed / 1 skipped** (previous session's baseline — see NEXT_SESSION.md for this session's own run).
 - **Lint:** ~386 pre-existing errors (DEF-4, long-standing).
-- **Deploy:** **v3.0.93+94 pending.** Always **commit + push BEFORE** the deploy command (`deploy.sh` pulls master). Deploy from a **Windows terminal**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never `docker compose up`. **Local-dev browser verify needs BOTH servers** — Express (3001) + Vite (3000).
+- **Deploy:** **v3.0.95 pending.** Production's `.env` already has SMTP + VAPID keys added (this session, via scp+ssh append) — deploying just needs `deploy.sh` to pull the code that uses them. Always **commit + push BEFORE** the deploy command (`deploy.sh` pulls master). Deploy from a **Windows terminal**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never `docker compose up`. **Local-dev browser verify needs BOTH servers** — Express (3001) + Vite (3000).
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Confirm the glossary tap fix on a real tablet** (the cursor:pointer cause is desktop-verified only — hypothesis for the iPad report fb:baa01a70).
-2. **Triage fresh reports from the 2026-07-03 post-deploy playtest.**
+1. **Deploy v3.0.95** — code is committed/pushed; production `.env` already has the new SMTP/VAPID keys, so a normal `deploy.sh` run should light up email/text + push reminders live.
+2. **Confirm the glossary tap fix on a real tablet** (the cursor:pointer cause is desktop-verified only — hypothesis for the iPad report fb:baa01a70, carried over from the 2026-07-02 session).
 3. **Remaining standalone bugs:** Move button disappeared after bug-report popup (fb:bf8bf19a), buttons gone after board zoom (fb:45cb8b0c), action-count off-by-one (fb:65160c0c — needs repro with space name).

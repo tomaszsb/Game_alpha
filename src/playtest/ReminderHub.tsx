@@ -1,15 +1,18 @@
 // src/playtest/ReminderHub.tsx
 //
-// Reminder options for the playtester landing page. Calendar, Bookmark, and
-// PWA install are real. Browser Notifications stays a grayed-out placeholder
-// (no push-capable service worker exists — see the approved plan for why).
-// Email/text is real once SMTP_* env vars are configured (see mailer.js).
+// Reminder options for the playtester landing page. Calendar, Bookmark, PWA
+// install, Browser Notification, and Email/text are all real. Browser
+// Notification uses real Web Push (server/pushScheduler.js) — it survives a
+// closed tab, unlike a plain setTimeout — and Email/text is live once
+// SMTP_* env vars are configured (see mailer.js).
 
 import React, { useEffect, useState } from 'react';
-import { downloadICS, ReminderChoice } from './generateICS';
+import { downloadICS, resolveTargetDate, ReminderChoice } from './generateICS';
 import { trackPlaytestEvent } from './playtestAnalytics';
 import { isIOSSafari, isPwaInstallable, isPwaInstalled, promptPwaInstall } from './pwaInstall';
+import { isPushSupported, schedulePushReminder } from './browserPush';
 import { CARRIERS, sendRemindMe } from './remindMe';
+import { detectDeviceType } from '../utils/deviceDetection';
 
 const CALENDAR_OPTIONS: { choice: ReminderChoice; label: string }[] = [
   { choice: 'tonight', label: 'Tonight' },
@@ -88,6 +91,79 @@ function InstallAppOption(): JSX.Element {
   }
 
   return <GrayedOption label="Install as an app" reason="Not available in this browser" />;
+}
+
+function BrowserNotificationOption(): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  if (!isPushSupported()) {
+    return (
+      <GrayedOption
+        label="Browser Notification"
+        reason="Not available in this browser"
+      />
+    );
+  }
+
+  const handleChoice = async (choice: ReminderChoice): Promise<void> => {
+    setStatus('sending');
+    const result = await schedulePushReminder(resolveTargetDate(choice));
+    if (result.ok) {
+      setStatus('sent');
+      trackPlaytestEvent('reminder_selected');
+    } else {
+      setStatus('error');
+      setErrorMsg(result.error || 'Something went wrong');
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={{ ...buttonBase, border: '1px solid #333', background: 'transparent' }}
+      >
+        🔔 Browser Notification
+      </button>
+    );
+  }
+
+  if (status === 'sent') {
+    return (
+      <p style={{ margin: 0, fontSize: '0.9rem', color: '#1a7f37' }}>
+        ✓ We'll notify you — works even if this tab is closed.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        {CALENDAR_OPTIONS.map(opt => (
+          <button
+            key={opt.choice}
+            type="button"
+            disabled={status === 'sending'}
+            onClick={() => { void handleChoice(opt.choice); }}
+            style={{
+              ...buttonBase,
+              border: '1px solid #333',
+              background: 'transparent',
+              opacity: status === 'sending' ? 0.6 : 1,
+            }}
+          >
+            🔔 {opt.label}
+          </button>
+        ))}
+      </div>
+      {status === 'error' && (
+        <p style={{ margin: 0, fontSize: '0.8rem', color: '#c0392b' }}>{errorMsg}</p>
+      )}
+    </div>
+  );
 }
 
 const inputStyle: React.CSSProperties = {
@@ -226,11 +302,22 @@ export function ReminderHub(): JSX.Element {
     trackPlaytestEvent('reminder_selected');
   };
 
+  const [bookmarkTapped, setBookmarkTapped] = useState(false);
   const handleBookmark = (): void => {
+    setBookmarkTapped(true);
     trackPlaytestEvent('bookmark_click');
   };
 
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform || '');
+  // Browsers have blocked JS from opening the native bookmark dialog since
+  // ~2018 (security), so the button can only show an instruction — it can't
+  // do the bookmarking itself. Most visitors here arrive on a phone (car QR
+  // scan), where there's no Ctrl/Cmd+D at all, so the instruction has to
+  // branch on device type rather than assuming desktop.
+  const isMobile = typeof navigator !== 'undefined' && detectDeviceType() === 'mobile';
+  const bookmarkInstruction = isMobile
+    ? "Tap your browser's menu (⋮ or •••) and choose \"Add to bookmarks\" or \"Add to Home Screen\""
+    : `Press ${isMac ? 'Cmd' : 'Ctrl'}+D now to bookmark this page`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -254,24 +341,25 @@ export function ReminderHub(): JSX.Element {
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={handleBookmark}
-        style={{
-          ...buttonBase,
-          border: '1px solid #333',
-          background: 'transparent',
-          alignSelf: 'flex-start',
-        }}
-      >
-        🔖 Bookmark this page ({isMac ? 'Cmd' : 'Ctrl'}+D)
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.35rem' }}>
+        <button
+          type="button"
+          onClick={handleBookmark}
+          style={{
+            ...buttonBase,
+            border: '1px solid #333',
+            background: 'transparent',
+          }}
+        >
+          🔖 Bookmark this page{!isMobile ? ` (${isMac ? 'Cmd' : 'Ctrl'}+D)` : ''}
+        </button>
+        {bookmarkTapped && (
+          <span style={{ fontSize: '0.8rem', color: '#666' }}>{bookmarkInstruction}</span>
+        )}
+      </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
-        <GrayedOption
-          label="Browser Notification"
-          reason="Coming soon — needs a background service to survive a closed tab"
-        />
+        <BrowserNotificationOption />
         <InstallAppOption />
       </div>
 

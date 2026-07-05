@@ -126,12 +126,17 @@ click-through; presenting it as settled nearly shipped a fix that wouldn't have 
 ## Suggested first move
 2–3 sentences, phrased as a question when a choice is involved.
 
+## Suggested model for next session
+One line: model name + why, sized to what the top-3 items actually need.
+
 ## Reminders
 - Deploy command runs from Windows terminal, not WSL.
 - (Any session-specific gotcha worth 5 seconds.)
 ```
 
 The point: "fresh-context me reads this in 15 seconds and knows exactly where to start." Full recap is in CHANGELOG + memory graph; this is just the handoff.
+
+**Filling in "Suggested model for next session" (added 2026-07-05, user request):** default to **Sonnet 5** — it's the coding/agentic workhorse (near-Opus quality on coding/debugging at a third of the price) and covers the overwhelming majority of sessions in this repo: feature work, bug fixes, refactors, investigation. Only suggest **Opus 4.8** when the top-3 items are genuinely long-horizon/autonomous (many hours of unsupervised execution, minimal expected human checkpoints) or need its deeper judgment on an architecturally ambiguous problem — not just "this feels hard." Only suggest **Fable 5** if a top-3 item is itself the hardest class of reasoning problem and the user would explicitly opt into the cost (~3x Opus, ~7x Sonnet) — it is never the default upgrade path. When in doubt, recommend Sonnet 5 and note that effort can be raised to `xhigh` first before reaching for a bigger model.
 
 ## 5a. Self-correction — did this session expose a flaw in `/start` or `/koniec`? (skip if not)
 

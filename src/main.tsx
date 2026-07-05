@@ -10,10 +10,12 @@ import { capturePwaInstallPrompt } from './playtest/pwaInstall';
 // Install console capture early so we catch errors during init
 installConsoleCapture();
 
-// PWA installability (production only — a no-op passthrough SW adds nothing
-// useful to the dev workflow and can confuse HMR debugging). Must run before
-// React renders so the beforeinstallprompt listener is attached in time.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// PWA installability + push-reminder delivery both need the service worker
+// registered (a no-op passthrough for fetch — see public/sw.js — so this is
+// safe in dev too; localhost counts as a secure context for SW/Push). Must
+// run before React renders so the beforeinstallprompt listener is attached
+// in time.
+if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => { /* non-critical */ });
 }
 capturePwaInstallPrompt();

@@ -17,3 +17,29 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', () => {
   // No-op passthrough — every request still goes straight to the network.
 });
+
+// Browser-notification reminders (Reminder Hub's "Browser Notification"
+// option). The server (server/pushScheduler.js) fires these via the Web
+// Push API at the scheduled time, which works even if no tab is open —
+// the browser wakes this service worker to handle it.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = data.title || 'Unravel Codes';
+  const options = {
+    body: data.body || 'Ready to play?',
+    icon: '/images/icon-192.png',
+    data: { url: data.url || '/' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(self.clients.openWindow(url));
+});

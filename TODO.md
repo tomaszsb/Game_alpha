@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 2, 2026
-**Status:** Beta — live in production; **v3.0.91 deployed + playtested 2026-07-01**; v3.0.92 pending deploy (ghost gate passed)
-**Current Version:** 3.0.92
+**Last Updated:** July 5, 2026
+**Status:** Beta — live in production; **v3.0.94 deployed 2026-07-03**; v3.0.95 pending deploy
+**Current Version:** 3.0.95
 
 ---
 
@@ -16,12 +16,13 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🎯 **Playtester Acquisition System** (new initiative — PRD added 2026-07-03)
-*Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Goal: turn a QR-code scan into a completed playtest — QR → landing page → 30–60s mobile preview → reminder (calendar/bookmark) → return later on PC/TV/tablet → play → built-in bug report. Deliberately out of scope until the funnel is validated: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
-- [ ] **Phase 1 — QR code, landing page, mobile preview, demo video, analytics.** QR uses error-correction H + logo + campaign tags (`?src=vehicle`, conference, businesscard, friend, reddit). Landing page explains the game in <20s and why it's not phone-playable, with Preview/Demo/Reminder/Bookmark buttons. Analytics tracks: QR scan, landing page view, preview start/finish, reminder selection, return visit, game start/finish, feedback submission — each with campaign source, timestamp, device type. *Cross-checked 2026-07-03: PRD's "existing floating bug button" (§11, no new feedback system needed) = [FeedbackButton.tsx](src/components/feedback/FeedbackButton.tsx), already built — just needs a pre-game explainer. Analytics/campaign tracking has no existing counterpart in the codebase; this is genuinely new infra.*
-- [ ] **Phase 2 — Reminder hub, calendar (.ics), return-visit cookie.** Reminder options: Calendar Event, Bookmark, Browser Notifications (email/SMS optional/secondary). ICS generator offers Tonight / Tomorrow Evening / Saturday Afternoon / Next Weekend. Session cookie lets returning visitors skip onboarding straight into play.
-- [ ] **Phase 3 — optimize using real funnel data** before adding anything new. Success metrics: return rate, play completion, feedback rate (primary); avg play time, campaign performance, device distribution (secondary).
-Separate the public URL from the tracking URL. Show people: game.unravelcodes.com/challenge But have the QR code actually point to: game.unravelcodes.com/challenge?src=vehicle&utm_campaign=car1
+## 🎯 **Playtester Acquisition System** (PRD added 2026-07-03, Phases 1–2 shipped v3.0.95)
+*Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Landing page (`/challenge`), all four Reminder Hub options (calendar/bookmark/PWA-install/browser-push), email/text via SMTP, campaign-source tracking through every link — see CHANGELOG v3.0.95. Still deliberately out of scope: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
+- [ ] **Deploy v3.0.95** — code is committed/pushed to master; production `.env` already has the SMTP + VAPID keys (added this session via scp+ssh). Just needs `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- [ ] **Real mobile-preview mini-puzzle** — "Quick preview" currently routes to the same real game as "Play Now" (a deliberate placebo A/B test on button framing). A genuine 30–60s phone-playable demo puzzle is design work, not engineering — scope separately once there's a clear idea of what to show.
+- [ ] **Demo video** — 30–45s video showing multiplayer/TV/phone-controller/puzzle-solving. Grayed "coming soon" until footage exists.
+- [ ] **Phase 3 — optimize using real funnel data** once traffic exists. Success metrics: return rate, play completion, feedback rate (primary); avg play time, campaign performance, device distribution (secondary). `GET /api/admin/playtest-stats` already aggregates the funnel events by event type + campaign source.
+- [ ] **Print the QR codes** — 5 campaign-tagged PNGs already generated in `Mockups/qr-codes/` (no logo overlay yet; PRD asks for one, add in image software before printing).
 ---
 
 ## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)

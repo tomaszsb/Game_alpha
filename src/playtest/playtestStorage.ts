@@ -38,3 +38,25 @@ export function storeCampaignSource(source: string): void {
     /* ignored */
   }
 }
+
+/**
+ * The URL reminders should point back to, carrying the campaign source so a
+ * return visit via calendar/email/text/push still attributes to the QR/link
+ * that originally brought the visitor here. Use this as the functional
+ * destination (an <a href>, an ICS URL: field) — never as text a human reads,
+ * since the tracking param makes it look cluttered. For display text, use
+ * getCleanChallengeUrl() instead.
+ */
+export function getChallengeUrl(): string {
+  const src = getStoredCampaignSource();
+  return `https://game.unravelcodes.com/challenge${src ? `?src=${encodeURIComponent(src)}` : ''}`;
+}
+
+/**
+ * The memorable, human-readable URL — no tracking parameter. Use this
+ * anywhere the URL is shown as literal text (email/SMS body copy, calendar
+ * description).
+ */
+export function getCleanChallengeUrl(): string {
+  return 'https://game.unravelcodes.com/challenge';
+}
