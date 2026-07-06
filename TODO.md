@@ -16,11 +16,12 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ---
 
-## 🎯 **Playtester Acquisition System** (PRD added 2026-07-03, Phases 1–2 shipped v3.0.95)
-*Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Landing page (`/challenge`), all four Reminder Hub options (calendar/bookmark/PWA-install/browser-push), email/text via SMTP, campaign-source tracking through every link — see CHANGELOG v3.0.95. Still deliberately out of scope: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
-- [ ] **Deploy v3.0.95** — code is committed/pushed to master; production `.env` already has the SMTP + VAPID keys (added this session via scp+ssh). Just needs `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+## 🎯 **Playtester Acquisition System** (PRD added 2026-07-03; Phases 1–2 shipped v3.0.95; `/challenge` reworked v3.0.96)
+*Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Landing page (`/challenge`), all reminder options, email/text via SMTP, campaign-source tracking — see CHANGELOG v3.0.95/v3.0.96. v3.0.96 added the phone/big-screen split, the unified pick-how-then-when flow with true email/text scheduling, and the screenshot carousel. Still deliberately out of scope: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
+- [ ] **Deploy v3.0.96 + live-verify on the user's iPhone 16** — phone view, "Phone alert" → Add-to-Home-Screen flow, carousel, and the "Play anyway" warning have only been seen in the headless preview. `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- [ ] **Finish the screenshot carousel** — 6 shots captured (setup, opening board, glossary, two action modals, a term popup). Still wanted (drop numbered PNGs into `src/playtest/tour/`): **mid-game with revealed nodes**, **won game**, **lost game** (all reachable via the state-injection recipe in CLAUDE.md TACTICAL "Capturing a transient modal"/"Live verification by cheating state"), **teacher edit-spaces** (needs the teacher password), and a **money-deducted modal**. Also: re-shoot `01-player-setup` from production (local shot shows "localhost only" on the QR), and swap `12-a-word-explained.png` (rough AI-draft label). Regenerate reachable ones with `node scripts/capture-game-screenshot.js`.
 - [ ] **Real mobile-preview mini-puzzle** — "Quick preview" currently routes to the same real game as "Play Now" (a deliberate placebo A/B test on button framing). A genuine 30–60s phone-playable demo puzzle is design work, not engineering — scope separately once there's a clear idea of what to show.
-- [ ] **Demo video** — 30–45s video showing multiplayer/TV/phone-controller/puzzle-solving. Grayed "coming soon" until footage exists.
+- [ ] **Demo video** — 30–45s video showing multiplayer/TV/phone-controller/puzzle-solving. **Script + storyboard drafted 2026-07-05 (session 2, in chat)** — still needs actual footage before the "Watch demo" button goes live. Wire the button to the file once it exists.
 - [ ] **Phase 3 — optimize using real funnel data** once traffic exists. Success metrics: return rate, play completion, feedback rate (primary); avg play time, campaign performance, device distribution (secondary). `GET /api/admin/playtest-stats` already aggregates the funnel events by event type + campaign source.
 - [ ] **Print the QR codes** — 5 campaign-tagged PNGs already generated in `Mockups/qr-codes/` (no logo overlay yet; PRD asks for one, add in image software before printing).
 ---
@@ -84,8 +85,9 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Spectator join fails for non-admins** — typing the game number said "unavailable"; only an admin login could join. How do remote students spectate? <!-- fb:feedback-1782659209554-7bede788 -->
 
 ### 🔗 Landing / presentation polish
-- [ ] **Landing feels "naked" / lots of white space** — wants a more prominent title, a representative graphic (asks for a generation prompt), an optional jingle/sound, and subtle wavy motion on the player boxes. <!-- fb:feedback-1782833475856-7dbc2fcc -->
-- [ ] **Scroll bars / sizing + phone warning** — page should resize to always fit the screen; on a phone, warn that the game is designed for a tablet minimum, best on a TV. <!-- fb:feedback-1782833653490-5470235b -->
+*NOTE: these two are about the GAME's own setup/landing screen (`PlayerSetup`), NOT the `/challenge` invite page — but v3.0.96 addressed the same asks on `/challenge` (screenshot carousel = representative graphic; phone view now warns "not recommended on a small screen"). Reassess whether the game-setup screen still needs them after the v3.0.96 approach is seen live.*
+- [ ] **Landing feels "naked" / lots of white space** — wants a more prominent title, a representative graphic (asks for a generation prompt), an optional jingle/sound, and subtle wavy motion on the player boxes. (Graphic idea now proven on `/challenge` via the screenshot carousel — could reuse.) <!-- fb:feedback-1782833475856-7dbc2fcc -->
+- [ ] **Scroll bars / sizing + phone warning** — page should resize to always fit the screen; on a phone, warn that the game is designed for a tablet minimum, best on a TV. (`/challenge` now does the phone warning; the game-setup screen still may want it.) <!-- fb:feedback-1782833653490-5470235b -->
 
 ---
 

@@ -7,17 +7,17 @@
 
 **Last Updated:** July 5, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.95** — **pending deploy** (production still runs v3.0.94; the mid-session `deploy.sh` run happened before this session's commits existed, so it re-pulled the old code). New Playtester Acquisition landing page at `/challenge`: real calendar/bookmark/PWA-install/browser-push/email-text reminders, campaign-source tracking through every link.
+**Current Version:** **3.0.96** — **pending deploy** (production runs v3.0.95's code once the earlier deploy landed; this session's `/challenge` rework is committed/pushed but not yet deployed). Phone-vs-big-screen split on the landing page, one unified reminder flow with true email/text scheduling, and a real game-screenshot carousel.
 
 ## Current sprint
-**2026-07-05 — Playtester Acquisition System, first cut.** QR-code landing page mounted as its own React root (zero changes to `App.tsx`/game code). All four Reminder Hub options are real: calendar (.ics), bookmark (fixed — was silently doing nothing, now shows device-aware instructions), PWA install (fixed a manifest icon-size bug that silently failed installability), browser push (VAPID + persistent scheduler), email/text (SMTP + carrier-gateway SMS). Found and fixed a campaign-source propagation gap across all three reminder link-builders. Deferred: real mobile-preview mini-puzzle and demo video (both grayed "coming soon" — need actual content, not more engineering).
+**2026-07-05 (session 2) — `/challenge` reworked from on-a-real-phone feedback.** Two views chosen by physical screen size (`isPhoneScreen`): phone → reminder-first ("Play anyway" + warning, no Quick game); tablet/laptop/desktop/TV → play-first (fixes tablets being mis-treated as phones). One unified "pick how → pick when" reminder flow with a custom date/time; device-aware "Phone alert"/"Browser alert" with an inline iOS Add-to-Home-Screen path. Email/text are now **truly scheduled** — `pushScheduler.js` → `reminderScheduler.js` holds push+email+sms in one file-queue. `GameTour` carousel auto-discovers `src/playtest/tour/*.png` (drop a file, no code edit); seeded with 6 real in-game shots via `scripts/capture-game-screenshot.js` (Puppeteer). Uniform buttons + real SVG share glyph. +18 tests.
 
 ## Health
-- **Tests:** typecheck + build clean. **Full suite ran this session: 2,293 passed / 1 skipped** (previous session's baseline — see NEXT_SESSION.md for this session's own run).
+- **Tests:** typecheck ✅ + build ✅ clean. **Full suite ran this session: green (exit 0)** — including the E2E-AllPaths tests that were flaky last session.
 - **Lint:** ~386 pre-existing errors (DEF-4, long-standing).
-- **Deploy:** **v3.0.95 pending.** Production's `.env` already has SMTP + VAPID keys added (this session, via scp+ssh append) — deploying just needs `deploy.sh` to pull the code that uses them. Always **commit + push BEFORE** the deploy command (`deploy.sh` pulls master). Deploy from a **Windows terminal**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never `docker compose up`. **Local-dev browser verify needs BOTH servers** — Express (3001) + Vite (3000).
+- **Deploy:** **v3.0.96 pending.** Committed + pushed (`dfecc87`). Deploy from a **Windows terminal**: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`. Never `docker compose up`. **Local-dev browser verify needs BOTH servers** — Express (3001) + Vite (3000).
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.0.95** — code is committed/pushed; production `.env` already has the new SMTP/VAPID keys, so a normal `deploy.sh` run should light up email/text + push reminders live.
-2. **Confirm the glossary tap fix on a real tablet** (the cursor:pointer cause is desktop-verified only — hypothesis for the iPad report fb:baa01a70, carried over from the 2026-07-02 session).
-3. **Remaining standalone bugs:** Move button disappeared after bug-report popup (fb:bf8bf19a), buttons gone after board zoom (fb:45cb8b0c), action-count off-by-one (fb:65160c0c — needs repro with space name).
+1. **Deploy v3.0.96**, then live-verify the `/challenge` funnel on the user's **iPhone 16** — phone view, "Phone alert" → Add-to-Home-Screen flow, and the carousel have only been seen in the headless preview.
+2. **Finish the screenshot carousel:** capture the remaining requested shots — mid-game, **won game**, **lost game** (all reachable via the state-injection recipe in CLAUDE.md TACTICAL), **teacher edit-spaces** (needs the teacher password), and re-shoot the player-setup from production (local shot shows "localhost only" on the QR). Swap the rough term-popup shot (`12-a-word-explained.png` shows an AI-draft label). Drop files in `src/playtest/tour/`.
+3. **Video demo** — script + storyboard drafted this session (in chat); still needs actual footage before the "Watch demo" button goes live.

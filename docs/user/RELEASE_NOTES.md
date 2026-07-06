@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.96 — The "come play" page knows what screen you're on (July 5, 2026)
+
+- **On a phone, we steer you to come back on a real screen.** Unravel Codes needs a PC, TV, or tablet, so when you open the invite page on a phone it now leads with "set a reminder" and only offers a quiet "Play anyway" (with an honest heads-up that a phone screen will be rough). On a computer or tablet, it leads with "Play now" like before.
+- **One tidy way to set a reminder.** Pick *how* you want reminding — add to calendar, a pop-up alert, email, or text — then pick *when*: tonight, tomorrow evening, Saturday, next weekend, or your own date and time. Email and text reminders now actually arrive at the time you chose.
+- **A peek at the game.** The invite page now shows a little photo carousel of the real game — the board, the glossary, and more — so a stranger can see what they're getting before they commit.
+- **Small touches:** the buttons are all one size now (no more ragged rows), the Share button uses the proper share icon, and on a phone "bookmark" is replaced by the real "Add to Home Screen."
+
 ## v3.0.93–94 — Your history reads in order, dark mode everywhere, and word help that works on tablets (July 2, 2026)
 
 - **"What's happened" now reads like the turn actually went.** Each turn in your history gets its own divider — "Turn 3 · 📍 Fund Initiation" — with everything you did underneath, and "Turn ended" right after your last action instead of jumbled under the next stop's heading.
