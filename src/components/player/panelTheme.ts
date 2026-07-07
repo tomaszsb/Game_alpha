@@ -86,10 +86,10 @@ function writeStored(key: string, value: string): void {
  * Non-hook reader for the persisted panel version. The new-view outcome modal
  * (DiceResultModal) is a SHARED, short-lived modal rendered outside the panel
  * tree, so it can't use the `usePanelVersion` hook cleanly — it reads the flag
- * once at render instead. Mirrors the hook's fallback ('classic').
+ * once at render instead. Mirrors the hook's fallback ('new').
  */
 export function getStoredPanelVersion(): PanelVersion {
-  return readStored(VERSION_KEY, 'classic') === 'new' ? 'new' : 'classic';
+  return readStored(VERSION_KEY, 'new') === 'classic' ? 'classic' : 'new';
 }
 
 /** Non-hook reader for the persisted panel light/dark mode (see above). */
@@ -113,13 +113,13 @@ export function usePanelMode(): [PanelMode, () => void] {
 }
 
 /**
- * Classic ↔ new panel switch (see docs/design §7). Defaults to 'classic' so
- * normal gameplay is never affected; the maintainer flips to 'new' to verify
- * the redesign includes every piece of information before we commit to it.
+ * Classic ↔ new panel switch (see docs/design §7). Defaults to 'new' — the
+ * redesign is now the primary experience; the maintainer flips back to
+ * 'classic' only to compare against the old behavior.
  */
 export function usePanelVersion(): [PanelVersion, () => void] {
   const [version, setVersion] = useState<PanelVersion>(() =>
-    readStored(VERSION_KEY, 'classic') === 'new' ? 'new' : 'classic',
+    readStored(VERSION_KEY, 'new') === 'classic' ? 'classic' : 'new',
   );
   const toggle = useCallback(() => {
     setVersion((v) => {

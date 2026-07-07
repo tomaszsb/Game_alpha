@@ -2,7 +2,7 @@
 // Web Speech API wrapper for character voice narration.
 // Standalone module — no game state deps, not part of ServiceProvider.
 
-import { CHARACTER_MAP, extractPrefix } from '../constants/characters';
+import { CHARACTER_MAP, extractPrefix, PM_VOICED_SPACES } from '../constants/characters';
 
 export interface VoiceProfile {
   pitch: number;    // 0–2, default 1
@@ -51,6 +51,11 @@ if (typeof speechSynthesis !== 'undefined') {
 }
 
 export function getProfileForSpace(spaceName: string): VoiceProfile {
+  // PM-voiced spaces (fb:7065e8df) fall back to the neutral narrator voice —
+  // the text is the PM's own first-person thought, not an NPC's, so reading
+  // it in (say) the Architect's pitch/rate would be the audio version of the
+  // same "which character is this?" confusion the visual badge fix addresses.
+  if (PM_VOICED_SPACES.has(spaceName)) return CHARACTER_PROFILES.NARRATOR;
   const prefix = extractPrefix(spaceName);
   return CHARACTER_PROFILES[prefix] || CHARACTER_PROFILES.NARRATOR;
 }

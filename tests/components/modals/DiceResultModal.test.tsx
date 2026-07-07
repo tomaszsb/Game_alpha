@@ -437,6 +437,17 @@ describe('DiceResultModal', () => {
   // (the table below already shows the delta). Movement and qualitative
   // effects always render their value because the table doesn't cover them.
   describe('duplicate-render suppression when snapshot is present', () => {
+    // This block specifically exercises the classic BeforeAfterBlock render
+    // path (vs. the new panel's OutcomeChangesV2) — pin it explicitly rather
+    // than relying on whatever `ucPanelVersion` happens to default to (the
+    // app-wide default flipped to 'new' 2026-07-06; see panelTheme.ts).
+    beforeEach(() => {
+      localStorage.setItem('ucPanelVersion', 'classic');
+    });
+    afterEach(() => {
+      localStorage.removeItem('ucPanelVersion');
+    });
+
     const snapshotResult: DiceRollResult = {
       diceValue: 4,
       spaceName: 'TEST-SPACE',

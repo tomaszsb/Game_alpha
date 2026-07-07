@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatActionDescription } from '../../src/utils/actionLogFormatting';
+import { formatActionDescription, getLogTypeLabel } from '../../src/utils/actionLogFormatting';
 import { ActionLogEntry } from '../../src/types/StateTypes';
 
 const BASE_ENTRY = {
@@ -359,6 +359,21 @@ describe('actionLogFormatting', () => {
 
       const result = formatActionDescription(entry);
       expect(result).toBe('Drew cards');
+    });
+  });
+
+  describe('getLogTypeLabel', () => {
+    it('should return a human-readable label for every ActionLogEntry.type', () => {
+      // Raw snake_case enum values read as "directly from a CSV" when shown
+      // verbatim in the post-game log's type filter dropdown (fb:69fe31a4).
+      expect(getLogTypeLabel('manual_action')).toBe('Action taken');
+      expect(getLogTypeLabel('space_entry')).toBe('Arrived at a space');
+      expect(getLogTypeLabel('card_draw')).toBe('Card drawn');
+      expect(getLogTypeLabel('player_movement')).toBe('Moved');
+    });
+
+    it('should fall back to the raw type for an unmapped value', () => {
+      expect(getLogTypeLabel('made_up_type' as ActionLogEntry['type'])).toBe('made_up_type');
     });
   });
 });

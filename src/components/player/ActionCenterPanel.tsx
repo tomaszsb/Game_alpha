@@ -15,7 +15,7 @@ import { ConnectionStatus } from '../common/ConnectionStatus';
 import { ApprovalBadges } from './ApprovalBadges';
 import { getBackendURL } from '../../utils/networkDetection';
 import { useNpcPortrait } from '../../hooks/useNpcPortrait';
-import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
+import { getNpcCharacterInfo } from '../../constants/characters';
 import { formatManualEffectButton } from '../../utils/buttonFormatting';
 import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendingActionsCollapse';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
@@ -619,8 +619,10 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
           >
             {(() => {
               const portraitSrc = player ? getPortraitForSpace(player.currentSpace) : null;
-              const prefix = player ? extractPrefix(player.currentSpace) : null;
-              const npcInfo = prefix ? CHARACTER_MAP[prefix] : null;
+              // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC
+              // name/portrait when the story is the PM's own first-person
+              // thought, not an NPC's.
+              const npcInfo = player ? getNpcCharacterInfo(player.currentSpace) : null;
               return portraitSrc && npcInfo ? (
                 <div style={{
                   float: 'left',

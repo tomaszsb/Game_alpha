@@ -269,6 +269,26 @@ export class SpaceArrivalProcessor {
           if (cardData?.card_mechanic === 'dice_conditional' && !effectsSummary.some(e => e.kind === 'time')) {
             effectsSummary = [...effectsSummary, { kind: 'time', amount: 0, label: 'No change this time' }];
           }
+          // L041-style competing_worktype_conditional and L046-style
+          // leader_phase_conditional cards need a reveal saying WHICH player the
+          // effect actually landed on — CardEffectHandler's copy of this same
+          // receipt-building logic added these two branches, but this arrival-
+          // triggered path (auto dice-conditional draws on landing, e.g. every
+          // space's "draw_L on dice_roll_N" effect) never got them, so an L046
+          // drawn this way showed "-4 days" with no name attached (fb:f3f89f0d
+          // — "how is this determined? How do I know which player got the
+          // bonus?"). Mirrors CardEffectHandler.ts exactly to close the drift.
+          for (const drawnId of drawnCardIds) {
+            const drawnCard = this.dataService.getCardById(drawnId);
+            if (drawnCard?.card_mechanic === 'competing_worktype_conditional') {
+              const reveal = this.cardService.buildCompetingWorktypeReveal(currentPlayer.id);
+              effectsSummary = [...reveal, ...effectsSummary];
+            } else if (drawnCard?.card_mechanic === 'leader_phase_conditional') {
+              const days = parseInt(drawnCard.tick_modifier ?? '0', 10) || 0;
+              const reveal = this.cardService.buildLeaderReveal(currentPlayer.id, days);
+              effectsSummary = [...reveal, ...effectsSummary];
+            }
+          }
         }
 
         // Emit auto-action event for modal display

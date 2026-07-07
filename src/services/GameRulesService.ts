@@ -117,6 +117,26 @@ export class GameRulesService implements IGameRulesService {
       }
     }
 
+    // fb:73318276 — same "button does nothing" class as fb:58277eca above.
+    // E024 "Return to Sender" cancels any player's currently-ACTIVE Expeditor
+    // effect (CardService.handleReturnToSender picks a target from every
+    // player's activeCards — self OR opponents). When nobody currently has an
+    // active E effect in play (common, since most Expeditors are Immediate-
+    // duration one-shots, not ongoing), activating it silently no-ops — no
+    // modal, no message, nothing observable, which read as "how does this
+    // card work?" Gate it here so the button isn't offered with no target.
+    if (card?.card_id === 'E024') {
+      const anyActiveExpeditor = this.stateService.getGameState().players.some((p) =>
+        (p.activeCards || []).some((ac) => {
+          const activeCardData = this.dataService.getCardById(ac.cardId);
+          return activeCardData?.card_type === 'E';
+        }),
+      );
+      if (!anyActiveExpeditor) {
+        return false;
+      }
+    }
+
     return true;
   }
 

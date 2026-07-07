@@ -243,9 +243,14 @@ describe('E2E-01: Happy Path with New UI', () => {
 
     // Assert Phase 1: Initial UI state and player info
     expect(screen.getByText('Alice')).toBeInTheDocument();
-    // Verify starting space exists in the UI
+    // Verify starting space via game state, not DOM text — the raw space id
+    // used to leak into the classic panel's small muted "space-id" debug
+    // label (`.action-center__space-id`), but the new panel (now default,
+    // 2026-07-06) never showed it, and player-facing copy is meant to show
+    // friendly names, not CSV-style identifiers (see the "no game language"
+    // voice rule). Checking state directly makes this assertion panel-agnostic.
     await waitFor(() => {
-      expect(screen.getAllByText(/OWNER-SCOPE-INITIATION/i).length).toBeGreaterThan(0);
+      expect(gameServices.stateService.getPlayer(actualPlayerId)?.currentSpace).toBe('OWNER-SCOPE-INITIATION');
     });
 
     // Mock dice roll to return 4 consistently for controlled movement
@@ -262,8 +267,11 @@ describe('E2E-01: Happy Path with New UI', () => {
     fireEvent.click(rollForWCardsButton);
 
     // Wait for end-turn to become enabled. The label is CSV-driven:
-    // OWNER-SCOPE-INITIATION/First → "Lock the scope"
-    const endTurnButton = screen.getByRole('button', { name: /Lock the scope/i });
+    // OWNER-SCOPE-INITIATION/First → "Lock the scope". Async find, not a bare
+    // getByRole — the button's accessible name only flips from "N actions
+    // left" to "Lock the scope" once both manual effects above finish
+    // resolving (triggerManualEffectWithFeedback is async in both panels).
+    const endTurnButton = await screen.findByRole('button', { name: /Lock the scope/i }, { timeout: 5000 });
     await waitFor(() => {
         expect(endTurnButton).toBeEnabled();
     }, { timeout: 3000 });
@@ -278,9 +286,10 @@ describe('E2E-01: Happy Path with New UI', () => {
       if (overlay) fireEvent.click(overlay);
     }, { timeout: 5000 });
 
-    // After End Turn, the player moves to OWNER-FUND-INITIATION
+    // After End Turn, the player moves to OWNER-FUND-INITIATION. Check state
+    // directly, not DOM text — see the currentSpace check above for why.
     await waitFor(() => {
-      expect(screen.getAllByText(/OWNER-FUND-INITIATION/i).length).toBeGreaterThan(0);
+      expect(gameServices.stateService.getPlayer(actualPlayerId)?.currentSpace).toBe('OWNER-FUND-INITIATION');
     }, { timeout: 5000 });
 
     // OWNER-FUND-INITIATION/First → "Take the check"

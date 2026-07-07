@@ -90,11 +90,20 @@ describe('SpeechService', () => {
     });
 
     it('should return Architect profile for ARCH- spaces', () => {
-      expect(getProfileForSpace('ARCH-INITIATION').name).toBe('The Architect');
+      // ARCH-FEE-REVIEW, not ARCH-INITIATION — the latter is one of the 5
+      // PM-voiced spaces (fb:7065e8df) and falls back to the narrator voice.
+      expect(getProfileForSpace('ARCH-FEE-REVIEW').name).toBe('The Architect');
     });
 
     it('should return Engineer profile for ENG- spaces', () => {
-      expect(getProfileForSpace('ENG-INITIATION').name).toBe('The Engineer');
+      // ENG-FEE-REVIEW, not ENG-INITIATION — see ARCH- note above.
+      expect(getProfileForSpace('ENG-FEE-REVIEW').name).toBe('The Engineer');
+    });
+
+    it('should return narrator profile for PM-voiced spaces even though the prefix matches a known NPC (fb:7065e8df)', () => {
+      expect(getProfileForSpace('ARCH-INITIATION').name).toBe('Narrator');
+      expect(getProfileForSpace('ENG-INITIATION').name).toBe('Narrator');
+      expect(getProfileForSpace('REG-DOB-TYPE-SELECT').name).toBe('Narrator');
     });
 
     it('should return DOB Examiner for REG-DOB- spaces', () => {

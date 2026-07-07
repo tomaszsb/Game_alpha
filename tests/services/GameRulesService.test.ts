@@ -340,6 +340,66 @@ describe('GameRulesService', () => {
         expect(gameRulesService.canPlayCard('player1', 'E_ANY')).toBe(true);
       });
     });
+
+    // fb:73318276 — "how does this card work?" E024 "Return to Sender"
+    // cancels any player's currently-active Expeditor effect
+    // (CardService.handleReturnToSender). With nobody's Expeditor currently
+    // active, the button used to activate anyway and silently no-op — same
+    // "button does nothing" class as fb:58277eca above.
+    describe('E024 "Return to Sender" target check (fb:73318276)', () => {
+      const returnToSender = { card_id: 'E024', card_type: 'E', card_name: 'Return to Sender', phase_restriction: 'Any' };
+
+      it('blocks activation when no player has an active Expeditor', () => {
+        const player = { ...mockPlayer, hand: ['E024'], activeCards: [] };
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [player] });
+        mockDataService.getCardById.mockImplementation((id: string) =>
+          id === 'E024' ? returnToSender : undefined,
+        );
+
+        expect(gameRulesService.canPlayCard('player1', 'E024')).toBe(false);
+      });
+
+      it('allows activation when the activating player has an active Expeditor', () => {
+        const player = { ...mockPlayer, hand: ['E024'], activeCards: [{ cardId: 'E_ACTIVE' }] };
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [player] });
+        mockDataService.getCardById.mockImplementation((id: string) => {
+          if (id === 'E024') return returnToSender;
+          if (id === 'E_ACTIVE') return { card_id: 'E_ACTIVE', card_type: 'E', card_name: 'Some Expeditor' };
+          return undefined;
+        });
+
+        expect(gameRulesService.canPlayCard('player1', 'E024')).toBe(true);
+      });
+
+      it('allows activation when an OPPONENT (not the activating player) has an active Expeditor', () => {
+        const player = { ...mockPlayer, hand: ['E024'], activeCards: [] };
+        const opponent = { ...mockPlayer, id: 'player2', activeCards: [{ cardId: 'E_ACTIVE' }] };
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [player, opponent] });
+        mockDataService.getCardById.mockImplementation((id: string) => {
+          if (id === 'E024') return returnToSender;
+          if (id === 'E_ACTIVE') return { card_id: 'E_ACTIVE', card_type: 'E', card_name: 'Some Expeditor' };
+          return undefined;
+        });
+
+        expect(gameRulesService.canPlayCard('player1', 'E024')).toBe(true);
+      });
+
+      it('ignores an active card that is not an Expeditor (e.g. a held Work Package)', () => {
+        const player = { ...mockPlayer, hand: ['E024'], activeCards: [{ cardId: 'W_ACTIVE' }] };
+        mockStateService.getPlayer.mockReturnValue(player);
+        mockStateService.getGameState.mockReturnValue({ ...mockGameState, players: [player] });
+        mockDataService.getCardById.mockImplementation((id: string) => {
+          if (id === 'E024') return returnToSender;
+          if (id === 'W_ACTIVE') return { card_id: 'W_ACTIVE', card_type: 'W', card_name: 'Some Work Package' };
+          return undefined;
+        });
+
+        expect(gameRulesService.canPlayCard('player1', 'E024')).toBe(false);
+      });
+    });
   });
 
   describe('canDrawCard', () => {

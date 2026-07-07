@@ -7,6 +7,7 @@ import { Card, CardType } from '../../../types/DataTypes';
 import { DiscardPileModal } from '../../modals/DiscardPileModal';
 import { CardDetailsModal } from '../../modals/CardDetailsModal';
 import { PhaseChip, expeditorPhaseInfo } from '../expeditorPhase';
+import { getCardEffectSummary } from '../../../utils/cardTypeNames';
 import './CardsSection.css';
 
 /**
@@ -313,7 +314,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                               </div>
                               {item.card.card_type === 'E' && isPlayable && (
                                 <div className="card-action-row">
-                                  <ActionButton label="Activate Expeditor" variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Activate ${item.card.card_name}`} />
+                                  <ActionButton label={`Activate Expeditor${getCardEffectSummary(item.card) ? ` (${getCardEffectSummary(item.card)})` : ''}`} variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Activate ${item.card.card_name}`} />
                                 </div>
                               )}
                               {item.card.card_type === 'E' && !isPlayable && isUnaffordable && (
@@ -445,7 +446,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                             {item.card.card_type === 'E' && isPlayable && (
                               <div className="card-action-row">
                                 <ActionButton
-                                  label="Activate Expeditor"
+                                  label={`Activate Expeditor${getCardEffectSummary(item.card) ? ` (${getCardEffectSummary(item.card)})` : ''}`}
                                   variant="primary"
                                   onClick={() => handlePlayCard(item.id)}
                                   disabled={isLoading}

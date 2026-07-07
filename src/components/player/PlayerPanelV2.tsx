@@ -23,7 +23,7 @@ import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2 } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { ModalBase } from '../modals/shared/ModalBase';
-import { getCardTypeName } from '../../utils/cardTypeNames';
+import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { FormatUtils } from '../../utils/FormatUtils';
 
@@ -61,6 +61,12 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [, force] = useState(0);
   const [isRollingDice, setIsRollingDice] = useState(false);
   const [isEndingTurn, setIsEndingTurn] = useState(false);
+  // Surface end-turn guard failures instead of swallowing them (matches the
+  // classic panel's fb:56d0282c fix — TurnService.endTurnWithMovement throws
+  // user-readable messages from guards like the scope gate, but this panel
+  // never showed them, so a blocked End Turn looked like it "did nothing"
+  // (fb:e0694a57). Auto-clears after 6s, same as classic.
+  const [endTurnError, setEndTurnError] = useState<string | null>(null);
   const [playingCardId, setPlayingCardId] = useState<string | null>(null);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   // When a count chip with several cards is tapped, list them so the player can
@@ -209,7 +215,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // player can check/uncheck/switch freely until End Turn or Negotiate locks the
   // turn in (fb:c2e489dc — "the other spaces disappeared, I wanted to change my
   // mind"). The move is only an intent (setPlayerMoveIntent) until endTurn.
-  const showMovementOptions = !!movementChoice && movementChoiceUnlocked;
+  //
+  // Render the destination options as soon as a movement choice exists — even
+  // before movementChoiceUnlocked flips true — and gray them out (disabled)
+  // until then, rather than not rendering them at all. The "show last" gate
+  // (v3.0.62, fb:55b6626f) was built so players finish other required actions
+  // first, but hiding the section entirely made it look like the Move option
+  // had vanished (fb:bf8bf19a — "Move button disappeared").
+  const showMovementOptions = !!movementChoice;
   const showMovementDiceButton = shouldShowMovementDiceButton(visiblePendingActions, {
     isDiceMovementSpace,
     hasPlayerRolledDice,
@@ -259,10 +272,20 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   };
   const handleEndTurn = async () => {
     setIsEndingTurn(true);
+    setEndTurnError(null);
     try {
       await gameServices.turnService.endTurnWithMovement();
     } catch (err) {
+      // Surface the failure instead of silently swallowing it (fb:56d0282c,
+      // fb:e0694a57) — TurnService throws user-readable messages from its
+      // validation guards (e.g. the scope gate), with a `step` property for
+      // where it failed, matching the classic panel's diagnostic contract.
+      const message = err instanceof Error ? err.message : String(err);
+      const step = (err as { step?: string } | null)?.step;
+      const display = step ? `${message} (step: ${step})` : message;
       console.error('End turn error:', err);
+      setEndTurnError(display);
+      window.setTimeout(() => setEndTurnError((prev) => (prev === display ? null : prev)), 6000);
     } finally {
       setIsEndingTurn(false);
     }
@@ -568,17 +591,30 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               return (
                 <button
                   key={opt.id}
-                  className={firstVisitHint && !selectedDestination ? 'uc-hint-glow' : undefined}
-                  style={isSelected ? selectedActionBtn : actionBtn}
+                  className={firstVisitHint && !selectedDestination && movementChoiceUnlocked ? 'uc-hint-glow' : undefined}
+                  style={!movementChoiceUnlocked ? doneActionRow : isSelected ? selectedActionBtn : actionBtn}
+                  disabled={!movementChoiceUnlocked}
                   aria-pressed={isSelected}
-                  title={isSelected ? 'Tap again to unpick — you can still change your mind' : undefined}
-                  onClick={() => handleMovementChoice(opt.id)}
+                  aria-disabled={!movementChoiceUnlocked}
+                  title={
+                    !movementChoiceUnlocked
+                      ? 'Finish your other actions first'
+                      : isSelected
+                      ? 'Tap again to unpick — you can still change your mind'
+                      : undefined
+                  }
+                  onClick={() => movementChoiceUnlocked && handleMovementChoice(opt.id)}
                 >
-                  {isSelected ? '✅' : '➡️'} {label}
+                  {!movementChoiceUnlocked ? '➡️' : isSelected ? '✅' : '➡️'} {label}
                 </button>
               );
             })}
-          {showMovementOptions && selectedDestination && (
+          {showMovementOptions && !movementChoiceUnlocked && (
+            <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
+              Finish your other actions first, then pick where to go.
+            </p>
+          )}
+          {showMovementOptions && movementChoiceUnlocked && selectedDestination && (
             <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
               You can switch until you end your turn.
             </p>
@@ -658,7 +694,13 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     opacity: playingCardId !== null && playingCardId !== id ? 0.5 : 1,
                   }}
                 >
-                  {playingCardId === id ? 'Working…' : 'Activate'}
+                  {playingCardId === id
+                    ? 'Working…'
+                    // fb:17cc481c — state the effect instead of a bare "Activate".
+                    : (() => {
+                        const summary = getCardEffectSummary(card);
+                        return summary ? `Activate (${summary})` : 'Activate';
+                      })()}
                 </button>
               </div>
             ))}
@@ -736,6 +778,23 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
       {/* Footer: negotiate + commit spine */}
       <div style={{ padding: '11px 13px' }}>
+        {endTurnError && (
+          <div
+            role="alert"
+            style={{
+              background: p.badSurf,
+              color: p.bad,
+              border: `1px solid ${p.badBorder}`,
+              padding: '8px 10px',
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 8,
+              lineHeight: 1.35,
+            }}
+          >
+            {endTurnError}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8 }}>
           {isMyTurn && content && content.can_negotiate && onTryAgain && (
             <button

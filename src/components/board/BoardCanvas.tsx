@@ -61,7 +61,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
 import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations } from '../../utils/boardCommon';
-import { extractPrefix, CHARACTER_MAP } from '../../constants/characters';
+import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
 // ===================================================================
@@ -482,8 +482,10 @@ function BoardCanvasInner({
       // content is preferred when the current viewer has visited; we
       // refresh those in the dynamic useEffect below.
       const content = dataService.getSpaceContent(cfg.space_name, 'First');
-      const npcPrefix = extractPrefix(cfg.space_name);
-      const npcName = CHARACTER_MAP[npcPrefix]?.name;
+      // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC name
+      // prefix on the hover card when the story is the PM's own first-person
+      // thought, not an NPC's.
+      const npcName = getNpcCharacterInfo(cfg.space_name)?.name;
       return {
         id: cfg.space_name,
         type: 'boardNode',

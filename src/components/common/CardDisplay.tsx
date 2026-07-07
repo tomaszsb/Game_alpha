@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { Card } from '../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { FormatUtils } from '../../utils/FormatUtils';
+import { getCardDisplayTitle } from '../../utils/cardTypeNames';
 import './CardDisplay.css';
 
 /**
@@ -80,7 +81,7 @@ export function CardDisplay({
   if (variant === 'inline') {
     return (
       <span className={`card-display card-display--inline ${highlightClass}`}>
-        <span className="card-display__name">{card.card_name}</span>
+        <span className="card-display__name">{getCardDisplayTitle(card)}</span>
         {displayAmount && (
           <span className="card-display__amount">{displayAmount}</span>
         )}
@@ -111,7 +112,7 @@ export function CardDisplay({
             <span className="card-display__type-icon">{cardTypeIcon}</span>
           )}
           <div className="card-display__info">
-            <div className="card-display__name">{card.card_name}{headerBadge}</div>
+            <div className="card-display__name">{getCardDisplayTitle(card)}{headerBadge}</div>
             {card.description && (
               <div className="card-display__description"><TextWithTerms text={card.description} onTermClick={(term) => openWithTerm(term.id)} /></div>
             )}
@@ -148,7 +149,7 @@ export function CardDisplay({
         <span className="card-display__title">
           <span className="card-display__expand-icon">{isExpanded ? '▼' : '▶'}</span>
           {isPlayable && <span className="card-display__playable-icon">⚡</span>}
-          <span className="card-display__name">{card.card_name}</span>
+          <span className="card-display__name">{getCardDisplayTitle(card)}</span>
           {headerBadge}
           {isPlayable && <span className="card-display__play-badge">PLAY</span>}
         </span>

@@ -60,6 +60,35 @@ export function extractPrefix(spaceName: string): string {
   return idx > 0 ? spaceName.substring(0, idx) : spaceName;
 }
 
+// Five spaces are PM-voiced (the narration is the PM's own first-person
+// thought, not an NPC addressing the PM) — per the project NPC-speaker map
+// (memory `project_npc_speakers`). Single source of truth: DiceService's
+// dice-result summary already branched on this list; CharacterBadge and
+// friends did not, so a PM-voiced space whose prefix happens to collide with
+// a real NPC entry (ARCH-INITIATION → "The Architect", ENG-INITIATION →
+// "The Engineer", REG-DOB-TYPE-SELECT → "DOB Examiner") showed that NPC's
+// name/portrait next to first-person "I" text — read as "the boxes are
+// confused" (fb:7065e8df, "the owner says words are I").
+export const PM_VOICED_SPACES = new Set<string>([
+  'PM-DECISION-CHECK',
+  'CHEAT-BYPASS',
+  'ARCH-INITIATION',
+  'ENG-INITIATION',
+  'REG-DOB-TYPE-SELECT',
+]);
+
+/**
+ * Resolve which NPC (if any) is "speaking" for a space — undefined for
+ * PM-voiced spaces (no NPC to attribute the text to) or spaces whose prefix
+ * has no character entry. Use this instead of `CHARACTER_MAP[extractPrefix(x)]`
+ * directly wherever narration is attributed to a character (badges, portraits,
+ * accent colors) so PM-voiced spaces never get a stray NPC label.
+ */
+export function getNpcCharacterInfo(spaceName: string): CharacterInfo | undefined {
+  if (PM_VOICED_SPACES.has(spaceName)) return undefined;
+  return CHARACTER_MAP[extractPrefix(spaceName)];
+}
+
 /** Build image path for a given role + appearance */
 export function getNpcImagePath(role: NpcImageRole, appearance: NpcAppearance): string {
   return `/images/characters/${role}_${appearance.ethnicity}_${appearance.gender}.png`;

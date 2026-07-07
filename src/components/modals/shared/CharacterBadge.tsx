@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { colors, theme } from '../../../styles/theme';
-import { CHARACTER_MAP, extractPrefix } from '../../../constants/characters';
+import { getNpcCharacterInfo } from '../../../constants/characters';
 
 interface CharacterBadgeProps {
   spaceName: string;
@@ -12,8 +12,9 @@ interface CharacterBadgeProps {
 }
 
 export function CharacterBadge({ spaceName, portraitSrc }: CharacterBadgeProps): JSX.Element | null {
-  const prefix = extractPrefix(spaceName);
-  const info = CHARACTER_MAP[prefix];
+  // PM-voiced spaces (fb:7065e8df) resolve to undefined here — no NPC badge
+  // when the narration is the PM's own first-person thought.
+  const info = getNpcCharacterInfo(spaceName);
   if (!info) return null;
 
   return (

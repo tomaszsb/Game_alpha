@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { ActionLogEntry } from '../../types/StateTypes';
-import { formatActionDescription } from '../../utils/actionLogFormatting';
+import { formatActionDescription, getLogTypeLabel } from '../../utils/actionLogFormatting';
 import { getDisplayableLogEntries } from '../../utils/logFiltering';
 import { LogRowDetail } from './LogRowDetail';
 import {
@@ -232,7 +232,7 @@ export const PostGameLogViewer: React.FC<PostGameLogViewerProps> = ({ viewingPla
         >
           <option value="all">All types</option>
           {distinctTypes.map(t => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>{getLogTypeLabel(t as ActionLogEntry['type'])}</option>
           ))}
         </select>
       </div>

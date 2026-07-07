@@ -16,15 +16,28 @@ describe('CharacterBadge', () => {
   });
 
   it('should render Architect badge for ARCH- spaces', () => {
-    render(<CharacterBadge spaceName="ARCH-INITIATION" />);
+    // ARCH-FEE-REVIEW, not ARCH-INITIATION — the latter is one of the 5
+    // PM-voiced spaces (fb:7065e8df) where the narration is the PM's own
+    // first-person thought, not the Architect's, so no badge should render.
+    render(<CharacterBadge spaceName="ARCH-FEE-REVIEW" />);
     expect(screen.getByText('The Architect')).toBeInTheDocument();
     expect(screen.getByText('— Design')).toBeInTheDocument();
   });
 
   it('should render Engineer badge for ENG- spaces', () => {
-    render(<CharacterBadge spaceName="ENG-INITIATION" />);
+    // ENG-FEE-REVIEW, not ENG-INITIATION — see ARCH- note above.
+    render(<CharacterBadge spaceName="ENG-FEE-REVIEW" />);
     expect(screen.getByText('The Engineer')).toBeInTheDocument();
     expect(screen.getByText('— Engineering')).toBeInTheDocument();
+  });
+
+  it('should return null for PM-voiced spaces even though the prefix matches a known NPC (fb:7065e8df)', () => {
+    // ARCH-INITIATION's narration is the PM's own first-person thought
+    // ("I..."), not the Architect's — showing "The Architect" here read as
+    // "the boxes are confused" (the character badge didn't match the voice
+    // of the text next to it).
+    const { container } = render(<CharacterBadge spaceName="ARCH-INITIATION" />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('should render DOB Examiner badge for REG-DOB- spaces', () => {

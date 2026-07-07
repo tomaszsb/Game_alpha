@@ -2,9 +2,9 @@
 //
 // Wrapper that renders the player panel for all screen sizes. Hosts the
 // classic ↔ new design toggle (see docs/design/player-panel-redesign.md §7):
-// 'classic' (default) renders the existing ActionCenterPanel; 'new' renders
-// the redesigned PlayerPanelV2 with its own light/dark switch. The toggle is a
-// verification aid until the new panel is confirmed feature-complete.
+// 'new' (default) renders the redesigned PlayerPanelV2 with its own
+// light/dark switch; 'classic' renders the legacy ActionCenterPanel. The
+// toggle now exists to compare against the old behavior, not to gate rollout.
 
 import React, { useEffect } from 'react';
 import { ActionCenterPanel, ActionCenterPanelProps } from './ActionCenterPanel';

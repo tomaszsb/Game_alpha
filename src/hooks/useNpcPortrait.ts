@@ -4,9 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useGameContext } from '../context/GameContext';
 import {
-  extractPrefix,
   getNpcImagePath,
-  CHARACTER_MAP,
+  getNpcCharacterInfo,
   NpcAppearances,
 } from '../constants/characters';
 
@@ -33,8 +32,9 @@ export function useNpcPortrait() {
    */
   function getPortraitForSpace(spaceName: string): string | null {
     if (!appearances) return null;
-    const prefix = extractPrefix(spaceName);
-    const info = CHARACTER_MAP[prefix];
+    // PM-voiced spaces (fb:7065e8df) resolve to undefined — no portrait when
+    // the narration is the PM's own first-person thought, not an NPC's.
+    const info = getNpcCharacterInfo(spaceName);
     if (!info || info.imageRoles.length === 0) return null;
     const role = info.imageRoles[0]; // primary role
     const appearance = appearances[role];

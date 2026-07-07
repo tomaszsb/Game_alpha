@@ -1,22 +1,15 @@
 import { DiceEffect } from '../types/DataTypes';
 import { DiceResultEffect } from '../types/StateTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
-import { extractPrefix } from '../constants/characters';
+import { extractPrefix, PM_VOICED_SPACES } from '../constants/characters';
 
 // Speakers for the dice-result summary. Per the project NPC-speaker map
 // (memory `project_npc_speakers`): five spaces are PM-voiced (first person),
 // everything else uses an NPC narrator addressing the PM as "you".
 // fb:c3e5322b / fb:94c374d8 / fb:44a4eb47 — players reported the generic
 // "Good news! …" narrator voice broke immersion at OWNER-FUND-INITIATION
-// and similar NPC-led spaces.
-const PM_VOICED_SPACES = new Set<string>([
-  'PM-DECISION-CHECK',
-  'CHEAT-BYPASS',
-  'ARCH-INITIATION',
-  'ENG-INITIATION',
-  'REG-DOB-TYPE-SELECT',
-]);
-
+// and similar NPC-led spaces. `PM_VOICED_SPACES` lives in characters.ts (single
+// source of truth shared with CharacterBadge/NarrativeBlock/etc. — see fb:7065e8df).
 const NPC_SPEAKER_NAMES: Record<string, string> = {
   OWNER:     'The Owner',
   BANK:      'The Banker',

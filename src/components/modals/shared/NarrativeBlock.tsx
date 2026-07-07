@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { colors, theme } from '../../../styles/theme';
-import { CHARACTER_MAP, extractPrefix } from '../../../constants/characters';
+import { getNpcCharacterInfo } from '../../../constants/characters';
 import { TextWithTerms, useDictionaryPanel } from '../../../dictionary';
 
 interface NarrativeBlockProps {
@@ -17,8 +17,9 @@ export function NarrativeBlock({ text, spaceName, portraitSrc }: NarrativeBlockP
 
   if (!text) return null;
 
-  const prefix = spaceName ? extractPrefix(spaceName) : '';
-  const npcInfo = prefix ? CHARACTER_MAP[prefix] : undefined;
+  // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC portrait/name
+  // when the narration is the PM's own first-person thought.
+  const npcInfo = spaceName ? getNpcCharacterInfo(spaceName) : undefined;
   const borderColor = npcInfo?.color || colors.primary.main;
 
   return (

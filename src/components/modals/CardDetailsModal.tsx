@@ -13,6 +13,7 @@ import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { openInDictionary } from '../../utils/dictionaryBridge';
 import { CARD_DETAILS } from '../../constants/uiStrings';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { getCardDisplayTitle } from '../../utils/cardTypeNames';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -160,7 +161,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title={card.card_name}
+      title={getCardDisplayTitle(card)}
       emoji={cardEmoji}
       maxWidth="600px"
       headerColor={cardColors.bg}

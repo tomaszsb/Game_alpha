@@ -23,6 +23,7 @@ import { IServiceContainer } from '../../types/ServiceContracts';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeColors } from '../common/CardTypeBadge';
+import { getCardDisplayTitle, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { panelPalettes, PanelMode } from './panelTheme';
 
 type CardVariant = 'portfolio' | 'document';
@@ -160,6 +161,11 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   // only reviewing; there's no need for a keep button"), so it reads "Done".
   // ("Close" would collide with ModalBase's X-button accessible name.)
   const dismissLabel = canPlay ? 'Keep' : 'Done';
+  // fb:17cc481c — "maybe activate the button can say + or - x days + or - x $
+  // instead of Activate?" Same tick_modifier/cost/money_effect data already
+  // shown in Key Facts above, just echoed on the button so the effect is
+  // visible without scrolling back up.
+  const activateEffectSummary = canPlay ? getCardEffectSummary(card) : null;
   const footer = (
     <>
       {canPlay && (
@@ -180,9 +186,18 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
             fontWeight: 600,
             cursor: busy ? 'default' : 'pointer',
             minHeight: 44,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
           }}
         >
-          {busy ? 'Working…' : 'Activate'}
+          <span>{busy ? 'Working…' : 'Activate'}</span>
+          {!busy && activateEffectSummary && (
+            <small style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,.85)' }}>
+              {activateEffectSummary}
+            </small>
+          )}
         </button>
       )}
       <button
@@ -217,7 +232,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title={card.card_name}
+      title={getCardDisplayTitle(card)}
       emoji={meta.emoji}
       maxWidth="460px"
       headerColor={typeColors.bg}

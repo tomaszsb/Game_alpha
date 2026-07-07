@@ -4,6 +4,7 @@ import React from 'react';
 import { colors, theme } from '../../styles/theme';
 import { Card } from '../../types/DataTypes';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
+import { getCardDisplayTitle } from '../../utils/cardTypeNames';
 
 interface CardContentProps {
   card?: Card | null;
@@ -132,7 +133,7 @@ export function CardContent({ card, isFlipped = false }: CardContentProps): JSX.
             fontSize: '1.5rem',
             fontWeight: 'bold'
           }}>
-            {card.card_name}
+            {getCardDisplayTitle(card)}
           </h2>
         </div>
 

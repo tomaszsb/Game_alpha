@@ -86,10 +86,17 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
 
   it('activates through the service when the player can play it', async () => {
     renderDetail();
-    fireEvent.click(screen.getByRole('button', { name: 'Activate' }));
+    // fb:17cc481c — the button now states the effect ("Activate -2 days ·
+    // -$8,000"), not a bare "Activate", so match by prefix rather than exact text.
+    fireEvent.click(screen.getByRole('button', { name: /^Activate/ }));
     await waitFor(() => {
       expect(services.cardService.playCard).toHaveBeenCalledWith('player1', 'E030');
     });
+  });
+
+  it('states the effect on the Activate button instead of a bare label (fb:17cc481c)', () => {
+    renderDetail();
+    expect(screen.getByRole('button', { name: /^Activate/ })).toHaveTextContent('-2 days · -$8,000');
   });
 
   it('shows "What it does" for authored effect text', () => {

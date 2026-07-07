@@ -66,3 +66,36 @@ export const formatActionDescription = (entry: ActionLogEntry): string => {
       return entry.description;
   }
 };
+
+// Human-readable label for an ActionLogEntry.type — the raw value is a
+// snake_case internal enum ("manual_action", "space_entry", etc.) that read
+// as "directly from a CSV" when shown verbatim in the post-game log's type
+// filter dropdown (fb:69fe31a4). Kept separate from formatActionDescription
+// (which formats the whole line, not just the type name).
+const LOG_TYPE_LABELS: Record<ActionLogEntry['type'], string> = {
+  space_entry: 'Arrived at a space',
+  space_effect: 'Space effect',
+  time_effect: 'Time change',
+  dice_roll: 'Dice roll',
+  card_draw: 'Card drawn',
+  resource_change: 'Resource change',
+  manual_action: 'Action taken',
+  turn_start: 'Turn started',
+  turn_end: 'Turn ended',
+  card_play: 'Card played',
+  card_transfer: 'Card transferred',
+  card_discard: 'Card discarded',
+  player_movement: 'Moved',
+  card_activate: 'Card activated',
+  card_expire: 'Card expired',
+  deck_reshuffle: 'Deck reshuffled',
+  game_start: 'Game started',
+  game_end: 'Game ended',
+  error_event: 'Error',
+  choice_made: 'Choice made',
+  negotiation_resolved: 'Negotiation resolved',
+  system_log: 'System note',
+};
+
+export const getLogTypeLabel = (type: ActionLogEntry['type']): string =>
+  LOG_TYPE_LABELS[type] || type;

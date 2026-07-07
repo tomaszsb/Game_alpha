@@ -319,11 +319,16 @@ export function PlayerSetup({
       const backendURL = getBackendURL();
       const response = await fetch(`${backendURL}/api/games/${normalized}/join-info`);
       if (response.status === 404) {
-        setJoinError(`Game ${normalized} not found. Check the code and try again.`);
+        // Non-technical reporters have described this as the game being
+        // "unavailable" (fb:7bede788) — the actual cause is almost always a
+        // mistyped or expired code (games auto-expire after ~24-41h idle),
+        // not a permissions problem. Anyone with a valid code can join —
+        // there's no separate admin-only path — so say that plainly.
+        setJoinError(`No game found with code ${normalized}. It may be mistyped, or the game may have ended — ask whoever's hosting for the current code.`);
         return;
       }
       if (!response.ok) {
-        setJoinError(`Could not reach game ${normalized} (server returned ${response.status}).`);
+        setJoinError(`Couldn't reach game ${normalized} right now (server returned ${response.status}). Try again in a moment.`);
         return;
       }
       const data: { token: string; instanceId?: string } = await response.json();
@@ -341,7 +346,11 @@ export function PlayerSetup({
       }
       window.location.href = url.toString();
     } catch (err) {
-      setJoinError(err instanceof Error ? err.message : 'Network error. Try again.');
+      // A real network failure (offline, DNS, CORS) throws something like
+      // "Failed to fetch" — technical and alarming to a non-technical
+      // reporter. Log the real error for debugging; show something actionable.
+      console.error('Join by code failed:', err);
+      setJoinError('Could not connect to the server. Check your connection and try again.');
     }
   };
 
@@ -871,6 +880,9 @@ export function PlayerSetup({
                 way the retired GameLobby did. */}
             <div style={{ marginTop: '0.85rem' }}>
               <label style={styles.label}>Join existing game</label>
+              <p style={{ fontSize: '0.72rem', color: colors.text.secondary, margin: '0 0 0.4rem' }}>
+                Anyone with the code can join — no login needed. This is also how to watch a game in progress without playing.
+              </p>
               <div style={{ display: 'flex', gap: '0.4rem' }}>
                 <input
                   type="text"

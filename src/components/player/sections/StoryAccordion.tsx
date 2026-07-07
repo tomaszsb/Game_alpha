@@ -16,7 +16,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { IDataService } from '../../../types/ServiceContracts';
 import { SpaceEffect, VisitType } from '../../../types/DataTypes';
 import { TextWithTerms, useDictionaryPanel } from '../../../dictionary';
-import { CHARACTER_MAP, extractPrefix } from '../../../constants/characters';
+import { getNpcCharacterInfo } from '../../../constants/characters';
 
 export interface StoryAccordionProps {
   dataService: IDataService;
@@ -190,8 +190,9 @@ export function StoryAccordion({
     });
   };
 
-  const prefix = extractPrefix(spaceName);
-  const npcInfo = prefix ? CHARACTER_MAP[prefix] : undefined;
+  // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC portrait when
+  // the narration is the PM's own first-person thought, not an NPC's.
+  const npcInfo = getNpcCharacterInfo(spaceName);
   const accentColor = npcInfo?.color || '#4caf50';
 
   return (
