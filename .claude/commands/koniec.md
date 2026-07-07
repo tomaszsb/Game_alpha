@@ -67,8 +67,10 @@ Don't read every doc. React to what changed this session.
 | Shipped a user-visible feature/fix | `docs/user/RELEASE_NOTES.md` | **append** a release intro — plain-language, player audience, different voice from CHANGELOG. Only if a playtester needs to know. |
 | Discovered a cross-session pattern (gotcha, framework trick, deploy quirk) | `docs/core/CLAUDE.md` TACTICAL section | **append** a new subheading. Bump the footer charter version (a 2-line pointer, not a summary). |
 | Version number changed | `docs/core/PROJECT_STATUS.md` | **REPLACE the snapshot — never prepend.** ~15 lines: version + 2–3 sentence *current-sprint* blurb + test/build health + top-3 open items. It is "where are we NOW," NOT a log. CHANGELOG owns per-version history. If you see a "Prior summary retained below" tail or the file is >5KB, delete the history — it has rotted into a second changelog. |
-| Service boundary / data flow / major file role changed | `docs/core/ARCHITECTURE.md` | edit in place |
+| Service boundary / data flow / major file role changed | `docs/technical/ARCHITECTURE.md` | edit in place |
 | Tier / Workstream / phase milestone moved | `docs/core/BETA_PLAN_V3.md` | edit in place |
+
+*(2026-07-06: ARCHITECTURE.md path corrected from `docs/core/` to `docs/technical/` — the file actually lives there; the old path would have silently skipped this row's trigger since the file "didn't exist" at the listed location.)*
 
 If none of those triggered, the sweep is done — skip the read entirely. A no-op pass that didn't read the docs is faster than a no-op pass that read and decided nothing changed.
 

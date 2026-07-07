@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.97] - 2026-07-06
+
+**The new player panel is the default now, and a backlog re-triage against live behavior (not just old notes) found 16 bugs — 9 already fixed but gated behind the classic default, 2 real parallel-systems-drift bugs, and 5 fresh ones.**
+
+### Classic → new panel default flip
+[panelTheme.ts](src/components/player/panelTheme.ts) now defaults `ucPanelVersion` to `'new'` instead of `'classic'`. The redesign (docs/design/player-panel-redesign.md) has been feature-complete since v3.0.85, but stayed opt-in as a verification aid — meanwhile a long tail of fixes shipped into the new panel and never reached real players because classic stayed the default. Flipping it closes 9 previously-filed reports immediately, no new code: checkmark trace on used actions (fb:45cb8b0c, fb:d2070ed1), first-visit green glow (fb:e84e4d11), reversible move pick (fb:c2e489dc), the "Replace expeditor" dead-end (fb:3accbe92), the expeditor phase-mismatch label (fb:66bb0bda), life-event tap-to-detail (fb:88a88773), per-type action icons (fb:40cc3674), and the end-turn action-count-off-by-one report (fb:65160c0c, same root cause as the movement-gate fix below).
+
+### Movement options were hidden, not disabled (fb:bf8bf19a)
+On a choice-movement space with another required action still pending, [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx) rendered the destination options *nowhere at all* until unlocked — looked exactly like "the Move button disappeared," and (since a hidden action still counted toward the required total) also explained the separate "says 2 actions when only one exists" report. Destination options now always render once a movement choice exists, grayed out with a "Finish your other actions first" hint until unlocked, then become active — same lifecycle already used for the reversible-pick fix above.
+
+### End Turn could look ready while a real guard still blocked it (fb:e0694a57)
+`TurnService.endTurnWithMovement()` has a scope gate (`min_w_cards_to_leave`, today only on OWNER-SCOPE-INITIATION) that throws a real, user-readable error independent of the requiredActions/completedActionCount check. The classic panel has surfaced this since v2.66.2 (fb:56d0282c) with a red banner; the new panel — built months later — never got the same treatment and just `console.error`'d it, so a blocked End Turn looked exactly like "does nothing." Ported the classic panel's fix: `endTurnError` state + a red banner above the commit spine, 6s auto-clear.
+
+### PM-voiced spaces showed the wrong NPC's badge/portrait/voice (fb:7065e8df)
+Five spaces are deliberately PM-voiced (first-person "I" narration, not an NPC addressing the player) — PM-DECISION-CHECK, CHEAT-BYPASS, ARCH-INITIATION, ENG-INITIATION, REG-DOB-TYPE-SELECT. `DiceService`'s dice-summary voice logic already had this list, but `CharacterBadge`, `NarrativeBlock`, `useNpcPortrait`, `StoryAccordion`, `BoardCanvas`, `ActionCenterPanel`, and `SpeechService` all resolved "who's speaking" by raw space-name prefix with no awareness of it — so ARCH-INITIATION showed "The Architect"'s badge/portrait/voice next to first-person "I" text (reported as "the owner says words are I... I think the boxes are confused"). Centralized the fix: a `PM_VOICED_SPACES` set + `getNpcCharacterInfo()` gate now live in [characters.ts](src/constants/characters.ts) as the single source of truth; all 7 call sites now use it instead of a raw `CHARACTER_MAP[extractPrefix(x)]` lookup. Two tests had unknowingly encoded the bug as expected behavior (using ARCH/ENG-INITIATION as "shows the NPC badge" examples) — fixed to use a non-PM-voiced space instead, plus new tests asserting the suppression.
+
+### Daily Permit bonus never named who got it (fb:f3f89f0d)
+L046 "Expeditor Awards" (`card_mechanic=leader_phase_conditional`) already had a proper reveal built for it — `CardService.buildLeaderReveal()` produces "You're the leader (CONSTRUCTION) — saves 4 days" / "Bob is the leader (...) — saves 4 days", shipped v3.0.43 — but only [CardEffectHandler.ts](src/services/CardEffectHandler.ts) (direct/manual card draws) called it. [SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts), which handles the auto dice-conditional L-card draw on landing (the "draw_L on dice_roll_N" effect present on nearly every space — the actual common path for this card), has its own copy of the same receipt-building logic and never got the leader_phase_conditional (or competing_worktype_conditional) branch, despite its own comment claiming the two paths "can't drift." Mirrored the fix exactly. Verified real by reverting and confirming the new test fails, then restoring.
+
+### Card modal titles repeated the description (fb:995028c7)
+All 176 Work Package cards have `card_name` authored identical to `description` — not a summary, verbatim — so using it as a modal title just repeated the description a beat later in the same modal. Added `getCardDisplayTitle(card)` to [cardTypeNames.ts](src/utils/cardTypeNames.ts): returns the trade (`work_type_restriction`, e.g. "Structural", "Plumbing") for W cards, `card_name` for every other type (B/E/I/L already have distinct names). Wired into all 4 title-rendering spots: PlayerCardDetailV2, CardDetailsModal, CardContent, CardDisplay (all 3 variants).
+
+### Bare "Activate" button now states the effect (fb:17cc481c)
+Added `getCardEffectSummary(card)` to cardTypeNames.ts (same sign/precedence rules the Key Facts list already uses). Wired into all 3 Activate surfaces — e.g. "Activate (-2 days · -$1,000)" instead of a bare "Activate" — in PlayerCardDetailV2, PlayerPanelV2's influence zone, and classic CardsSection.
+
+### "Return to Sender" silently did nothing with no target (fb:73318276)
+The mechanic itself is real and well-built (`CardService.handleReturnToSender`: cancels any player's currently-active Expeditor effect — self or opponent, auto-picks the sole target or opens a choice modal for several) — but there was no gate for "zero active Expeditors in play" (common, since most Expeditors are Immediate one-shots). Activating it then no-op'd with only a technical log line, nothing shown to the player — same "button does nothing" class as the already-fixed fb:58277eca (E030 affordability). Added the same style of gate to `GameRulesService.canPlayCard`.
+
+### Post-game log's type filter showed raw enum values (fb:69fe31a4)
+[PostGameLogViewer.tsx](src/components/game/PostGameLogViewer.tsx)'s "All types" dropdown rendered `ActionLogEntry.type` verbatim (`manual_action`, `space_entry`, `player_movement`, …). Added `getLogTypeLabel()` to [actionLogFormatting.ts](src/utils/actionLogFormatting.ts).
+
+### Join-by-code error copy was ambiguous (fb:7bede788)
+The join-by-code mechanism was never actually broken (confirmed live: `GET /api/games/:id/join-info` is public, no auth, works for a fresh non-admin session) — the real gap was that a "not found" error read "unavailable"-ish, a network failure showed a raw browser message, and nothing told a non-admin the box is also how to watch a game without playing. [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): clearer copy for both failure cases + a helper line under "Join existing game."
+
+### Maintainer decision recorded
+fb:78e20a61 ("used-up life events shouldn't remain clickable") — v3.0.84 deliberately made spent life events grayed-but-tappable as a review feature ("already happened — tap to see what it did"), not an oversight. Closed as working-as-designed; the maintainer chose to keep the review affordance.
+
+### Checks
+Typecheck + build clean (one pre-existing, unrelated typecheck error in `tests/playtest/mailerRecipient.test.ts` — not touched this session). Full suite green aside from the known `E2E-AllPaths.test.ts` concurrency flake (confirmed clean in isolation 3x this session). +5 new/updated test files, 4 tests fixed that had encoded pre-fix behavior as expected.
+
 ## [3.0.96] - 2026-07-05
 
 **The `/challenge` funnel gets a phone-vs-big-screen split, one honest reminder flow, a real game screenshot carousel, and true scheduling for email/text — all driven by on-a-real-phone feedback.**

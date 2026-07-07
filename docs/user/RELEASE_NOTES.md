@@ -2,6 +2,27 @@
 
 ---
 
+## v3.0.97 — The redesigned panel is now the default, and a dozen small annoyances are gone (July 6, 2026)
+
+The nicer-looking player panel — the one you could switch on with "Try new design" — is now what everyone sees by default. It was already finished; it just hadn't been turned on yet. Turning it on also means a bunch of already-fixed problems reach everyone at once:
+
+- **Buttons you already used stay put** (grayed out with a checkmark) instead of disappearing.
+- **First move of the game glows green** so it's obvious what to press.
+- **Picking where to go next stays changeable** until you actually end your turn.
+- **"Replace expeditor" and life-event buttons actually respond** instead of doing nothing.
+- **Action buttons look different by type** (a lightning bolt, a hammer, a dollar sign) instead of all looking the same.
+
+On top of that, this session went hunting for reports that were still open and fixed the real ones:
+
+- **The "move to next space" options no longer vanish** while you still have another thing to do first — they now sit there grayed out with a note ("finish your other actions first") instead of disappearing entirely, which used to look like the whole Move option had broken.
+- **End Turn no longer goes quiet when it's blocked.** If you try to leave a space without enough scope locked in, you'll now see exactly why, instead of nothing happening.
+- **The newspaper bonus now names who got it.** "The player with the most completed projects saves 4 days" used to leave you guessing — it now says whose project it was.
+- **The Activate button tells you what it does** — e.g. "Activate (-2 days · -$1,000)" — instead of a bare "Activate."
+- **"Return to Sender" no longer fires blind.** If there's nothing for it to cancel, the option won't offer itself anymore.
+- **Card pop-ups don't repeat themselves.** A work package's title used to be the same long sentence as the description right below it — the title is now just the trade (Plumbing, Structural, etc.).
+- Fixed a mix-up where a few narrators (the Architect, the Engineer, the DOB Examiner) appeared to be "speaking" at moments that are actually your own private thinking, not theirs.
+- Joining a game by code now explains itself better if the code's wrong, and tells you it's also how to just watch a game without playing.
+
 ## v3.0.96 — The "come play" page knows what screen you're on (July 5, 2026)
 
 - **On a phone, we steer you to come back on a real screen.** Unravel Codes needs a PC, TV, or tablet, so when you open the invite page on a phone it now leads with "set a reminder" and only offers a quiet "Play anyway" (with an honest heads-up that a phone screen will be rough). On a computer or tablet, it leads with "Play now" like before.
