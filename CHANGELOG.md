@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.98] - 2026-07-07
+
+**Live-verified the new-panel-as-default experience with a real 2-player game and found 4 real bugs along the way; closed the maintainer's Action/Outcome question with a real content gap (not a design choice); collapsed two more panel sections that read as more overwhelming than they needed to be; and did a broader content pass — 30 Life Event cards got missing narration, and the board editor got discipline labels + real overlap prevention.**
+
+### New panel never got the classic panel's {fundingAmount} template fix
+Funding spaces (OWNER-FUND-INITIATION, BANK-FUND-REVIEW, etc.) showed the literal text `{fundingAmount}` instead of the dollar figure — the classic panel's fix for this (fb:61a85444) was never ported when the new panel was built. [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx) now resolves the same token, verified live across both players' different funding amounts.
+
+### New panel never had NPC portraits/badges at all
+Found while live-playtesting: the new panel has zero occurrences of `getNpcCharacterInfo`/portrait rendering — not a PM-voice suppression bug, the whole feature was simply never built for this panel (classic has had it since early versions). Restored a smaller portrait+name badge (22px vs. classic's 40px) in the story block, correctly suppressed on the 5 PM-voiced spaces. Verified at ARCH-FEE-REVIEW, ENG-INITIATION, REG-DOB-TYPE-SELECT.
+
+### "What's affecting you" collapsed, with a glow when something's activatable (fb:feedback-1782847526340-ac68b5b3)
+Same overwhelm complaint as the Action/Outcome fix below — the effects/cards list was always fully listed. Now collapsed by default; the toggle glows with the same `uc-hint-glow` treatment action buttons use whenever a playable Expeditor is waiting, so collapsing it can never hide something actionable.
+
+### Inactive player's mini-bar sat above the active player's panel ("rolodex" fix)
+When Player 2's turn started, Player 1's collapsed mini-bar still rendered first (fixed player-index order), so the inactive player visually sat above the active one — confusing turn order at a glance. [GameLayout.tsx](src/components/layout/GameLayout.tsx) now sorts the active player to the top every render; inactive players sink below it, like flipping to the front card in a rolodex.
+
+### New-view dropped Action + Outcome text (maintainer question, fb:feedback-1782819429688-f6e100b7)
+"Where you are & why" only ever showed the story sentence — confirmed via audit this was a real gap, not an intentional simplification (only 1 of 52 real space/visit rows was actually missing data — FINISH/Subsequent's Outcome, fixed via the existing `set-narrative.mjs` pipeline). Restored both fields as a collapsed "What to do & why" disclosure (closed, supporting info rather than the headline) in [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx).
+
+### Modal chrome: "Why this matters" now leads, single close path (fb:feedback-1782839742726-f036c7aa)
+[PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx)'s teaching callout used to trail every other section — moved to right after the type chip so the point comes first. Also dropped the redundant footer "Keep"/"Done" button that did nothing but close, same as the modal's own X — a review-only card now shows no footer at all.
+
+### Movement destinations collapsed behind one "Move" toggle (fb:feedback-1782843206015-8edd02b4)
+A choice space (e.g. PM-DECISION-CHECK) used to list every destination as its own top-level button — 4 buttons where really it's 1 optional action + 1 movement choice with 3 options, inflating how big the turn looked. Destinations now collapse behind a single "Move — N options" row; expanding still shows every option, still fully switchable (doesn't regress fb:c2e489dc's "keep options visible so you can change your mind"). Once expanded, the individual destination buttons render indented with a connector line and a smaller footprint than the toggle, so they read as children of it rather than four more equal-weight actions.
+
+### 30 of 49 Life Event cards had no narration at all (fb:feedback-1782847150684-794ff9d6)
+The original report was about one card (the fee-hike one reading like abstract mechanics). Investigating turned up the wider pattern: confirmed via `trigger_type` that all 49 Life Event cards fire 100% automatically (zero player agency — the newspaper-bulletin framing is mechanically accurate for every one of them), but 30 had description text that was just the raw mechanical effect with no "something happened" sentence — e.g. old L001: *"The next inspection takes 3 additional days."* Wrote a narration sentence for all 30, matching the voice of cards that already worked ("Neighborly Complaints," "Labor Strike"). [CARDS_EXPANDED.csv](public/data/CLEAN_FILES/CARDS_EXPANDED.csv).
+
+### Board tiles now name their discipline, not just their phase (fb:feedback-1782657383215-a9d3221a)
+Tiles were colored by 5 broad phases only — an Architect tile and an Engineer tile both just read "DESIGN" in the same purple; DOB and FDNY both read "REGULATORY" in the same red (they even shared the exact same character color, `#f44336`, in `characters.ts`). The small phase-name label on each tile now reads the specific discipline ("ARCHITECT," "DOB EXAMINER," etc., its own color too) whenever a character is known for the space, falling back to phase name otherwise; gave FDNY its own magenta (`#E91E63`). [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx). Known gap: 6 spaces (Bank, Investor, Lender, PM's own decision point, Cheat/Bypass, Finish) have no NPC defined anywhere in the codebase, so they still fall back to phase-only — flagged for the maintainer, not fixed (would mean inventing characters that don't exist).
+
+### Board editor: tiles can no longer overlap each other while dragging (fb:feedback-1782842971898-c73c35ca)
+No collision detection existed before this — React Flow doesn't ship sibling-overlap prevention. Added `resolveTileOverlap()` ([boardCommon.ts](src/utils/boardCommon.ts)): live during drag, the dragged tile's actual measured size (React Flow's `.measured`, not a guessed size constant) is checked against every sibling's actual measured size; on overlap, the drop point is pushed back along the axis of least penetration so the tile hugs the neighbor's edge instead of crossing into it — a sliding response, not a hard block. 6 new unit tests cover the geometry.
+
+### Teacher edit-spaces screenshot for the `/challenge` carousel
+Logged into production as admin, opened the Board Layout Editor, captured [40-teacher-edit-spaces.png](src/playtest/tour/40-teacher-edit-spaces.png) — the last screenshot the carousel was missing that didn't require a full playthrough.
+
+### Pre-existing typecheck error fixed
+`tests/playtest/mailerRecipient.test.ts` had 3× `'err' is of type 'unknown'` + one test fixture using an invalid literal, flagged at the end of the v3.0.97 session. `catch (err: any)` + an `as any` cast on the deliberately-invalid test case; `npm run typecheck` is clean again.
+
+### Checks
+Typecheck + build clean. Full test suite green (452+ tests across touched surfaces; see the koniec sweep for the complete run). New/updated: 6 board-overlap geometry tests, `PlayerCardDetailV2.test.tsx` (modal-chrome assertions updated for the removed footer button), `PlayerPanelV2.test.tsx` (movement/effects tests updated to open the new collapsible sections first).
+
 ## [3.0.97] - 2026-07-06
 
 **The new player panel is the default now, and a backlog re-triage against live behavior (not just old notes) found 16 bugs — 9 already fixed but gated behind the classic default, 2 real parallel-systems-drift bugs, and 5 fresh ones.**

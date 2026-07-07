@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 7, 2026
-**Status:** Beta — live in production; **v3.0.97 deployed 2026-07-07** (verified via the live bundle's embedded version/commit strings)
-**Current Version:** 3.0.97
+**Status:** Beta — live in production; **v3.0.98 pending deploy** (v3.0.97 deployed 2026-07-07, verified via the live bundle's embedded version/commit strings)
+**Current Version:** 3.0.98
 
 ---
 
@@ -19,12 +19,11 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 ## 🎯 **Playtester Acquisition System** (PRD added 2026-07-03; Phases 1–2 shipped v3.0.95; `/challenge` reworked v3.0.96)
 *Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Landing page (`/challenge`), all reminder options, email/text via SMTP, campaign-source tracking — see CHANGELOG v3.0.95/v3.0.96. v3.0.96 added the phone/big-screen split, the unified pick-how-then-when flow with true email/text scheduling, and the screenshot carousel. Still deliberately out of scope: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
 - [ ] **Live-verify `/challenge` on the user's iPhone 16** — v3.0.97 is deployed, but the phone view, "Phone alert" → Add-to-Home-Screen flow, carousel, and the "Play anyway" warning have only been seen in the headless preview, not a real phone.
-- [ ] **Finish the screenshot carousel** — 6 shots captured (setup, opening board, glossary, two action modals, a term popup). Still wanted (drop numbered PNGs into `src/playtest/tour/`): **mid-game with revealed nodes**, **won game**, **lost game** (all reachable via the state-injection recipe in CLAUDE.md TACTICAL "Capturing a transient modal"/"Live verification by cheating state"), **teacher edit-spaces** (needs the teacher password), and a **money-deducted modal**. Also: re-shoot `01-player-setup` from production (local shot shows "localhost only" on the QR), and swap `12-a-word-explained.png` (rough AI-draft label). Regenerate reachable ones with `node scripts/capture-game-screenshot.js`.
+- [ ] **Finish the screenshot carousel** — 7 shots captured (setup, opening board, glossary, two action modals, a term popup, teacher edit-spaces). Still wanted (drop numbered PNGs into `src/playtest/tour/`): **mid-game with revealed nodes**, **won game**, **lost game** (all reachable via the state-injection recipe in CLAUDE.md TACTICAL "Capturing a transient modal"/"Live verification by cheating state"), and a **money-deducted modal**. Also: re-shoot `01-player-setup` from production (local shot shows "localhost only" on the QR), and swap `12-a-word-explained.png` (rough AI-draft label). Regenerate reachable ones with `node scripts/capture-game-screenshot.js`.
 - [ ] **Real mobile-preview mini-puzzle** — "Quick preview" currently routes to the same real game as "Play Now" (a deliberate placebo A/B test on button framing). A genuine 30–60s phone-playable demo puzzle is design work, not engineering — scope separately once there's a clear idea of what to show.
 - [ ] **Demo video** — 30–45s video showing multiplayer/TV/phone-controller/puzzle-solving. **Script + storyboard drafted 2026-07-05 (session 2, in chat)** — still needs actual footage before the "Watch demo" button goes live. Wire the button to the file once it exists.
 - [ ] **Phase 3 — optimize using real funnel data** once traffic exists. Success metrics: return rate, play completion, feedback rate (primary); avg play time, campaign performance, device distribution (secondary). `GET /api/admin/playtest-stats` already aggregates the funnel events by event type + campaign source.
 - [ ] **Print the QR codes** — 5 campaign-tagged PNGs already generated in `Mockups/qr-codes/` (no logo overlay yet; PRD asks for one, add in image software before printing).
-- [ ] **Pre-existing typecheck error in `tests/playtest/mailerRecipient.test.ts`** — noticed during the 2026-07-06 session's pre-flight (3× `'err' is of type 'unknown'` + 1 type-literal mismatch on a `"carrier-pigeon"` test fixture). Doesn't block build (vitest transform doesn't full-typecheck) or runtime tests (they still pass), but `npm run typecheck` isn't clean. Not touched this session — unrelated to the panel-default/bug-fix work.
 ---
 
 ## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
@@ -36,29 +35,18 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **✓ done-trace outcome tooltip is desktop-hover only** — if players ask for it on touch, revisit with a tap-to-expand trace.
 
 ### 🔗 Expeditor / life-event card clarity (mini-sprint candidate — feeds before→after modal + detail view)
-- [ ] **Expeditor affordance: available expeditors should glow like action buttons** — and only reveal on hover/click of an expeditor button, not always listed. <!-- fb:feedback-1782847526340-ac68b5b3 -->
 - [ ] **Expeditors offered before they can help** — since they reduce days, maybe don't offer one until at least that many days have already elapsed. (Design call.) <!-- fb:feedback-1782842888855-aff0e337 -->
 
-### 🔗 "Things you can do" action-zone readability + reversibility (mini-sprint candidate)
-- [ ] **Action count reads as 4 when there are 2** — collapse to two buttons (e.g. Replace expeditor + Move) and reveal move choices on hover/click instead of listing each. <!-- fb:feedback-1782843206015-8edd02b4 --> *Triaged 2026-07-02: not an engine bug — the count is right (replace is optional/uncounted, movement choice = 1 action); it's a presentation request to fold the destination list behind one "Move" button. Partially conflicts with fb:c2e489dc (already fixed — see CHANGELOG v3.0.97 — keep options visible so you can change your mind) — design call on the collapse pattern.*
-
 ### 🔗 Modal content model (aligns with redesign §5 + the before→after modal)
-- [ ] **Modal chrome: "Why this matters" should sit at the top; single close** — move the callout up and give most modals one X in the corner (two close paths today). <!-- fb:feedback-1782839742726-f036c7aa -->
 - [ ] **Outcome modal has no "next steps" / doesn't show scope change** — should show which work packages were added or taken away. <!-- fb:feedback-1782846749403-7441e00b -->
 - [ ] **No plan-examiner verdict shown** — after a plan examination nothing surfaces the result; needs a verdict modal. <!-- fb:feedback-1782848524918-7300c51d -->
 - ✅ *Already fixed in earlier versions — DASHBOARD FLIP ONLY (no code):* fb:9c110d52 (Pays→Costs, [PlayerCardDetailV2.tsx:108](src/components/player/PlayerCardDetailV2.tsx#L108)) + fb:8d68ab14 (Activate only on E cards, [:78](src/components/player/PlayerCardDetailV2.tsx#L78)). PATCH `resolved:true` on the dashboard next sweep. (Also awaiting flip from v3.0.90 triage: 222cd521, 1990c71e.)
-
-### 🔗 Newspaper / "Daily Permit" story
-- [ ] **Newspaper story should explain the fee-raise + name the real effect (CSV copy)** — reframe so "everyone saving money / shedding help" reads as "you fired 2 expeditors → save 2 days"; data edit, no code. <!-- fb:feedback-1782847150684-794ff9d6 -->
 
 ### 🔗 Approval milestone
 - [ ] **Make DOB/FDNY approval a bigger moment** — markers appear quietly; approval (and re-approval after a post-approval amendment) is a milestone worth a modal/celebration. (Pairs with the plan-examiner verdict modal above.) <!-- fb:feedback-1782850541659-a542fad6 -->
 
 ### Standalone
-*Shipped v3.0.93–94 (2026-07-02): Chronicle turn-dividers (fb:1eff7156), glossary tablet-tap + iframe fallback (fb:baa01a70 — **confirm tap fix on a real tablet next playtest**), E013 audit + EffectFactory double time-effect fix (fb:c51f9f16). Shipped v3.0.97 (2026-07-06, panel-default flip + backlog re-triage — 16 items, see CHANGELOG for full detail): movement-gate hiding, End-Turn error swallowing, PM-voiced-space NPC mismatch, avatar consistency (audited, already fine), spectator join copy, and 9 already-fixed-but-gated reports closed by the default flip. See CHANGELOG.*
-- [ ] **Board node overlaps a tile** — want a way to force nodes not to overlap tiles. <!-- fb:feedback-1782842971898-c73c35ca -->
-- [ ] **Tiles don't show their discipline** — hard to organize because you can't tell which tile is architect / engineer / DOB / FDNY. <!-- fb:feedback-1782657383215-a9d3221a -->
-- [ ] **New-view dropped Action + Outcome text (maintainer question)** — "Where you are and why" now shows only the owner's words; the Action and Outcome data seem lost, so the space isn't fully explained to the student. *Maintainer explicitly asked for the rationale.* <!-- fb:feedback-1782819429688-f6e100b7 -->
+*Shipped v3.0.93–94 (2026-07-02): Chronicle turn-dividers (fb:1eff7156), glossary tablet-tap + iframe fallback (fb:baa01a70 — **confirm tap fix on a real tablet next playtest**), E013 audit + EffectFactory double time-effect fix (fb:c51f9f16). Shipped v3.0.97 (2026-07-06, panel-default flip + backlog re-triage — 16 items, see CHANGELOG for full detail): movement-gate hiding, End-Turn error swallowing, PM-voiced-space NPC mismatch, avatar consistency (audited, already fine), spectator join copy, and 9 already-fixed-but-gated reports closed by the default flip. Shipped v3.0.98 (2026-07-07): live-playtest bug batch (fundingAmount template, missing NPC portraits, effects-list collapse, player-order "rolodex"), Action+Outcome restoration (fb:f6e100b7), modal chrome + movement-collapse polish (fb:f036c7aa, fb:8edd02b4), 30-card Life Event narration rewrite (fb:794ff9d6), board discipline labels (fb:a9d3221a) + drag-overlap prevention (fb:c73c35ca). See CHANGELOG.*
 
 ### 🔗 Landing / presentation polish
 *NOTE: these two are about the GAME's own setup/landing screen (`PlayerSetup`), NOT the `/challenge` invite page — but v3.0.96 addressed the same asks on `/challenge` (screenshot carousel = representative graphic; phone view now warns "not recommended on a small screen"). Reassess whether the game-setup screen still needs them after the v3.0.96 approach is seen live.*

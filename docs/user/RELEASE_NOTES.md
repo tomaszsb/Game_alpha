@@ -2,6 +2,17 @@
 
 ---
 
+## v3.0.98 — Faces on the panel, less clutter, and the newspaper finally explains itself (July 7, 2026)
+
+- **You can see who's talking.** The redesigned panel now shows the character's face next to what they're saying — the Architect, the Engineer, the DOB Examiner, the FDNY Inspector — instead of just text with no one attached to it.
+- **Funding conversations show real numbers.** A few spaces used to literally print `{fundingAmount}` instead of your actual dollar figure — that's fixed, so "Here's what I'm putting in — $1,860,000" now shows the number, not the placeholder.
+- **The panel is less crowded.** "What's affecting you" and "What to do & why" are tucked behind a tap now instead of always taking up space — they still light up when there's something worth checking (like an Expeditor ready to use), so nothing important hides.
+- **Picking where to go is one button, not four.** A space with several destinations used to list every option as its own button, making the turn look bigger than it was. Now it's one "Move" button — tap it to see and pick your destination, same as before, just tidier.
+- **Card pop-ups lead with the point.** "Why this matters" used to be the last thing you'd read in a card's details — it's now the first, and closing a card only has one button (the X) instead of two that did the same thing.
+- **When Player 2 (or 3, or 4) is up, they're the one on top.** The other players' mini-summaries used to stay in a fixed order regardless of whose turn it was, so the inactive player could visually sit above the one actually playing. Fixed — whoever's turn it is now always leads.
+- **The newspaper actually tells you what happened.** About 30 of the "Daily Permit" life-event stories used to skip straight to the effect ("All filing times increase by 2 days") with no explanation — now every one of them says *why*: a strike, a storm, an intern's mistake, a scandal.
+- **For teachers:** the board layout editor now labels each tile with its actual role (Architect, Engineer, DOB, FDNY, etc.) instead of just a broad phase color, and dragging a tile into another one now stops at the edge instead of letting them overlap.
+
 ## v3.0.97 — The redesigned panel is now the default, and a dozen small annoyances are gone (July 6, 2026)
 
 The nicer-looking player panel — the one you could switch on with "Try new design" — is now what everyone sees by default. It was already finished; it just hadn't been turned on yet. Turning it on also means a bunch of already-fixed problems reach everyone at once:
