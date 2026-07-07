@@ -1,7 +1,7 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 6, 2026
-**Status:** Beta — live in production; **v3.0.94 deployed 2026-07-03**; v3.0.95–3.0.97 pending deploy
+**Last Updated:** July 7, 2026
+**Status:** Beta — live in production; **v3.0.97 deployed 2026-07-07** (verified via the live bundle's embedded version/commit strings)
 **Current Version:** 3.0.97
 
 ---
@@ -18,7 +18,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 
 ## 🎯 **Playtester Acquisition System** (PRD added 2026-07-03; Phases 1–2 shipped v3.0.95; `/challenge` reworked v3.0.96)
 *Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Landing page (`/challenge`), all reminder options, email/text via SMTP, campaign-source tracking — see CHANGELOG v3.0.95/v3.0.96. v3.0.96 added the phone/big-screen split, the unified pick-how-then-when flow with true email/text scheduling, and the screenshot carousel. Still deliberately out of scope: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
-- [ ] **Deploy v3.0.96 + live-verify on the user's iPhone 16** — phone view, "Phone alert" → Add-to-Home-Screen flow, carousel, and the "Play anyway" warning have only been seen in the headless preview. `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- [ ] **Live-verify `/challenge` on the user's iPhone 16** — v3.0.97 is deployed, but the phone view, "Phone alert" → Add-to-Home-Screen flow, carousel, and the "Play anyway" warning have only been seen in the headless preview, not a real phone.
 - [ ] **Finish the screenshot carousel** — 6 shots captured (setup, opening board, glossary, two action modals, a term popup). Still wanted (drop numbered PNGs into `src/playtest/tour/`): **mid-game with revealed nodes**, **won game**, **lost game** (all reachable via the state-injection recipe in CLAUDE.md TACTICAL "Capturing a transient modal"/"Live verification by cheating state"), **teacher edit-spaces** (needs the teacher password), and a **money-deducted modal**. Also: re-shoot `01-player-setup` from production (local shot shows "localhost only" on the QR), and swap `12-a-word-explained.png` (rough AI-draft label). Regenerate reachable ones with `node scripts/capture-game-screenshot.js`.
 - [ ] **Real mobile-preview mini-puzzle** — "Quick preview" currently routes to the same real game as "Play Now" (a deliberate placebo A/B test on button framing). A genuine 30–60s phone-playable demo puzzle is design work, not engineering — scope separately once there's a clear idea of what to show.
 - [ ] **Demo video** — 30–45s video showing multiplayer/TV/phone-controller/puzzle-solving. **Script + storyboard drafted 2026-07-05 (session 2, in chat)** — still needs actual footage before the "Watch demo" button goes live. Wire the button to the file once it exists.
