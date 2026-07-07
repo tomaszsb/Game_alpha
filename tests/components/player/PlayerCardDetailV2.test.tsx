@@ -128,9 +128,9 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     services.cardService.canPlayCard.mockReturnValue(false);
     renderDetail();
     expect(screen.queryByRole('button', { name: /Activate/i })).not.toBeInTheDocument();
-    // Review-only (nothing to activate): the dismiss button reads "Done", not
-    // "Keep" — "Keep" wrongly implies a keep/replace decision (fb:f4d0e327).
-    expect(screen.getByRole('button', { name: /^Done$/i })).toBeInTheDocument();
+    // Review-only (nothing to activate): no footer dismiss button at all —
+    // the modal's own X is the single close path (fb:feedback-1782839742726-f036c7aa).
+    expect(screen.queryByRole('button', { name: /^Done$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Keep$/i })).not.toBeInTheDocument();
   });
 
@@ -153,11 +153,11 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
 
   // With a real choice (Activate now vs. keep for later) the dismiss button reads
   // "Keep" — the meaningful pairing the review-only "Close" case lacks (fb:f4d0e327).
-  it('labels the dismiss button "Keep" when the expeditor is activatable', () => {
+  it('shows only Activate — no separate Keep button (single close via X, fb:f036c7aa)', () => {
     services.cardService.canPlayCard.mockReturnValue(true);
     renderDetail();
     expect(screen.getByRole('button', { name: /Activate/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Keep$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Keep$/i })).not.toBeInTheDocument();
   });
 
   // fb:8d68ab14 — a Work Package's detail showed an "Activate" button with nothing
@@ -178,8 +178,8 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
       </DictionaryProvider>,
     );
     expect(screen.queryByRole('button', { name: /Activate/i })).not.toBeInTheDocument();
-    // No Activate → review-only → "Done", not "Keep" (fb:f4d0e327).
-    expect(screen.getByRole('button', { name: /^Done$/i })).toBeInTheDocument();
+    // No Activate → review-only → no footer dismiss button, X is the single close.
+    expect(screen.queryByRole('button', { name: /^Done$/i })).not.toBeInTheDocument();
   });
 
   // fb:9c110d52 — a Work Package's estimated cost rendered as "Pays $X" (reads like

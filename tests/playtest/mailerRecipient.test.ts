@@ -13,7 +13,7 @@ describe('mailer.resolveRecipient', () => {
     expect.assertions(2);
     try {
       resolveRecipient({ method: 'email' });
-    } catch (err) {
+    } catch (err: any) {
       expect(err.code).toBe('BAD_REQUEST');
       expect(err.message).toMatch(/email/i);
     }
@@ -36,8 +36,8 @@ describe('mailer.resolveRecipient', () => {
 
   it('throws BAD_REQUEST for an unsupported method', () => {
     try {
-      resolveRecipient({ method: 'carrier-pigeon' });
-    } catch (err) {
+      resolveRecipient({ method: 'carrier-pigeon' } as any);
+    } catch (err: any) {
       expect(err.code).toBe('BAD_REQUEST');
     }
   });

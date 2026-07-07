@@ -16,6 +16,12 @@ import { PlayerPanelV2 } from '../../../src/components/player/PlayerPanelV2';
 import { createAllMockServices } from '../../mocks/mockServices';
 import { DictionaryProvider } from '../../../src/dictionary';
 
+// "What's affecting you" is collapsed by default (fb:f6e100b7 follow-up) —
+// tests that assert on its contents (chips, Activate rows) need to open it first.
+const expandEffects = () => {
+  fireEvent.click(screen.getByRole('button', { name: /What's affecting you/i }));
+};
+
 describe('PlayerPanelV2 — E-card play from the influence zone', () => {
   let services: ReturnType<typeof createAllMockServices>;
 
@@ -85,6 +91,7 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
 
   it('offers Activate only for a playable expeditor', () => {
     renderPanel();
+    expandEffects();
     expect(screen.getByText(/Permit Expediter/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Activate Permit Expediter/i })).toBeInTheDocument();
     // The phase-restricted, not-currently-playable expeditor gets no Activate row.
@@ -93,6 +100,7 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
 
   it('plays the expeditor through the service rule when Activate is clicked', async () => {
     renderPanel();
+    expandEffects();
     fireEvent.click(screen.getByRole('button', { name: /Activate Permit Expediter/i }));
     await waitFor(() => {
       expect(services.cardService.playCard).toHaveBeenCalledWith('player1', 'E001');
@@ -107,6 +115,7 @@ describe('PlayerPanelV2 — E-card play from the influence zone', () => {
 
   it('opens the detailed-card view when an expeditor name is tapped', () => {
     renderPanel();
+    expandEffects();
     fireEvent.click(screen.getByRole('button', { name: /Details for Permit Expediter/i }));
     // The teaching callout is unique to the detail view, not the row.
     expect(screen.getByText(/real NYC permitting pros/i)).toBeInTheDocument();
@@ -162,6 +171,7 @@ describe('PlayerPanelV2 — "What\'s affecting you" chips (tappable + graying)',
 
   it('grays the Life Event chip (finished) but not a held Work Package', () => {
     renderPanel();
+    expandEffects();
     const lifeChip = screen.getByRole('button', { name: /Life Event ×1/i });
     const workChip = screen.getByRole('button', { name: /Work Package ×1/i });
     // Grayed = finished/not affecting you; full opacity = a resource you hold.
@@ -171,6 +181,7 @@ describe('PlayerPanelV2 — "What\'s affecting you" chips (tappable + graying)',
 
   it('opens the detail view directly when a single-card chip is tapped', () => {
     renderPanel();
+    expandEffects();
     fireEvent.click(screen.getByRole('button', { name: /Life Event ×1/i }));
     // The L-type teaching callout is unique to the detail view.
     expect(screen.getByText(/real-world surprises/i)).toBeInTheDocument();
@@ -223,6 +234,7 @@ describe('PlayerPanelV2 — multi-card chip opens a pick list (fb:88a88773)', ()
 
   it('lists all three expeditors, then drills into the chosen one', () => {
     renderPanel();
+    expandEffects();
     // Tapping the "×3" chip opens a list of all three, not just the first.
     fireEvent.click(screen.getByRole('button', { name: /Expeditor ×3/i }));
     expect(screen.getByText('Equipment Rush Order')).toBeInTheDocument();
@@ -342,9 +354,13 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
 
   afterEach(() => cleanup());
 
+  const expandMoveOptions = () =>
+    fireEvent.click(screen.getByRole('button', { name: /Move — where to go next/i }));
+
   it('keeps every destination on screen AFTER one is picked (no vanishing)', () => {
     setup('SPACE-A'); // already picked A
     renderPanel();
+    expandMoveOptions();
     // Both options still rendered so the player can change their mind.
     expect(screen.getByRole('button', { name: /Go to A/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Go to B/i })).toBeInTheDocument();
@@ -354,6 +370,7 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
   it('unchecks the picked destination when tapped again (reversible)', () => {
     setup('SPACE-A');
     renderPanel();
+    expandMoveOptions();
     fireEvent.click(screen.getByRole('button', { name: /Go to A/i }));
     // Tapping the chosen one clears the intent — engine treats it as not-yet-moved.
     expect(services.stateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', null);
@@ -362,6 +379,7 @@ describe('PlayerPanelV2 — movement check/uncheck (Pile 2: fb:c2e489dc / fb:45c
   it('switches the pick to another destination', () => {
     setup('SPACE-A');
     renderPanel();
+    expandMoveOptions();
     fireEvent.click(screen.getByRole('button', { name: /Go to B/i }));
     expect(services.stateService.setPlayerMoveIntent).toHaveBeenCalledWith('player1', 'SPACE-B');
   });

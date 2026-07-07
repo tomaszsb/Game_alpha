@@ -103,4 +103,4 @@ REG-DOB-FINAL-REVIEW,REGULATORY,Subsequent,"Final review, second pass","""Bad da
 ,Accept Result,Negotiate,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 FINISH,END,First,You delivered,"""You delivered. Took longer than I wanted, cost more than I budgeted — but it's done, and it's done right. That's what matters in the end. Good work.""",Final score gets calculated here.,Project delivered. Score incoming.,,,,,,,,,,,,,No,No,Main,,End the project,,,,,,,,story,,,,,,,,,,,,,,,,Finish,,1220,20,
 ,End Turn,Try Again,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-FINISH,END,Subsequent,Project Complete!,You Completed project!,YOU ARE done! Calculate final score.,,,,,,,,,,,,,,No,No,Main,,End Turn,Try Again,,,,,,,story,,,,,,,,,,,,,,,,,,1220,20,
+FINISH,END,Subsequent,Project Complete!,You Completed project!,YOU ARE done! Calculate final score.,Project's already delivered. Final score's locked in.,,,,,,,,,,,,,No,No,Main,,End Turn,Try Again,,,,,,,story,,,,,,,,,,,,,,,,,,1220,20,

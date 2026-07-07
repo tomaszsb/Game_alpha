@@ -60,7 +60,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -86,6 +86,12 @@ interface BoardNodeData {
   story?: string;
   actionDescription?: string;
   npcName?: string;
+  // Discipline label — phase color alone can't tell an Architect tile from an
+  // Engineer tile (both DESIGN), or DOB from FDNY (both REGULATORY). undefined
+  // for spaces with no character entry (Bank/Investor/Lender/PM/Cheat/Finish —
+  // the game has no NPC defined for those), which just falls back to phase.
+  disciplineLabel?: string;
+  disciplineColor?: string;
   // Callbacks back to the parent for hover/click state
   onHover?: (spaceName: string | null) => void;
   onClick?: (spaceName: string) => void;
@@ -212,8 +218,20 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       <Handle type="target" position={Position.Left} style={{ opacity: 0, pointerEvents: 'none' }} />
       <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: 'none' }} />
 
-      <div style={{ fontSize: 9, color: phaseColors.text, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-        {data.phase}
+      {/* Phase color alone can't distinguish an Architect tile from an
+          Engineer tile (both DESIGN), or DOB from FDNY (both REGULATORY) —
+          fb:feedback-1782657383215-a9d3221a. Named the discipline in plain
+          text instead of an icon needing a hover to decode; the border stays
+          phase-colored (coarse grouping), this label gets more specific
+          (and its own color) whenever a character is known for the space. */}
+      <div style={{
+        fontSize: 9,
+        color: data.disciplineColor || phaseColors.text,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+      }}>
+        {data.disciplineLabel || data.phase}
       </div>
       <div style={{
         fontSize: isBig ? 14 : 12,
@@ -485,7 +503,11 @@ function BoardCanvasInner({
       // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC name
       // prefix on the hover card when the story is the PM's own first-person
       // thought, not an NPC's.
-      const npcName = getNpcCharacterInfo(cfg.space_name)?.name;
+      const characterInfo = getNpcCharacterInfo(cfg.space_name);
+      const npcName = characterInfo?.name;
+      // "The Architect" -> "ARCHITECT" (drop the article, let the label's
+      // existing uppercase styling do the rest) — a name, not an icon to decode.
+      const disciplineLabel = npcName?.replace(/^The\s+/i, '');
       return {
         id: cfg.space_name,
         type: 'boardNode',
@@ -502,6 +524,8 @@ function BoardCanvasInner({
           story: content?.story,
           actionDescription: content?.action_description,
           npcName,
+          disciplineLabel,
+          disciplineColor: characterInfo?.color,
         },
       };
     });
@@ -682,8 +706,34 @@ function BoardCanvasInner({
     return () => window.clearTimeout(timer);
   }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView]);
 
+  // fb:feedback-1782842971898-c73c35ca — "board node overlaps a tile, want a
+  // way to force nodes not to overlap." Live during drag (not just on drop),
+  // check the dragged tile's ACTUAL rendered box (React Flow's `.measured` —
+  // no guessing at a fixed size) against every sibling's actual box; if it
+  // would overlap, push the drop point back along the axis of least
+  // penetration so the tile hugs the sibling's edge instead of crossing it.
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes(prev => applyNodeChanges(changes, prev) as Node<BoardNodeData>[]);
+    setNodes(prev => {
+      const resolved = changes.map(change => {
+        if (change.type !== 'position' || !change.dragging || !change.position) return change;
+        const dragged = prev.find(n => n.id === change.id);
+        const draggedW = dragged?.measured?.width ?? BOARD_TILE_COMPACT.w;
+        const draggedH = dragged?.measured?.height ?? BOARD_TILE_COMPACT.h;
+        let { x, y } = change.position;
+        for (const other of prev) {
+          if (other.id === change.id) continue;
+          const otherW = other.measured?.width ?? BOARD_TILE_COMPACT.w;
+          const otherH = other.measured?.height ?? BOARD_TILE_COMPACT.h;
+          const push = resolveTileOverlap(
+            { x, y, w: draggedW, h: draggedH },
+            { x: other.position.x, y: other.position.y, w: otherW, h: otherH }
+          );
+          if (push) { x += push.dx; y += push.dy; }
+        }
+        return { ...change, position: { x, y } };
+      });
+      return applyNodeChanges(resolved, prev) as Node<BoardNodeData>[];
+    });
   }, []);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {

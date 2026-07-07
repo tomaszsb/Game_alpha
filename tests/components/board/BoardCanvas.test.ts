@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState } from '../../../src/utils/boardCommon';
+import { computeTileVisualState, resolveTileOverlap } from '../../../src/utils/boardCommon';
 
 describe('computeTileVisualState — tile size state machine', () => {
 
@@ -91,4 +91,50 @@ describe('computeTileVisualState — tile size state machine', () => {
     expect(s.size).toBe('hover');
   });
 
+});
+
+describe('resolveTileOverlap — drag collision (fb:feedback-1782842971898-c73c35ca)', () => {
+  const box = (x: number, y: number, w = 150, h = 60) => ({ x, y, w, h });
+
+  it('no overlap → null (boxes fully apart)', () => {
+    expect(resolveTileOverlap(box(0, 0), box(300, 300))).toBeNull();
+  });
+
+  it('boxes exactly touching (0 overlap) → null, not treated as a collision', () => {
+    // Dragged right edge (150) exactly meets other's left edge (150).
+    expect(resolveTileOverlap(box(0, 0), box(150, 0))).toBeNull();
+  });
+
+  it('resolves along X when the X-penetration is smaller — pushes away from the other box\'s center', () => {
+    // Dragged at x=100 overlaps other at x=0 (w=150) by 50px on X; full 60px overlap on Y.
+    const push = resolveTileOverlap(box(100, 0), box(0, 0));
+    expect(push).not.toBeNull();
+    expect(push!.dy).toBe(0);
+    // Dragged center (175) is right of other's center (75) — push right (positive).
+    expect(push!.dx).toBe(50);
+  });
+
+  it('resolves along Y when the Y-penetration is smaller — pushes away from the other box\'s center', () => {
+    // Dragged at y=40 overlaps other at y=0 (h=60) by 20px on Y; full 150px overlap on X.
+    const push = resolveTileOverlap(box(0, 40), box(0, 0));
+    expect(push).not.toBeNull();
+    expect(push!.dx).toBe(0);
+    // Dragged center (70) is below other's center (30) — push down (positive).
+    expect(push!.dy).toBe(20);
+  });
+
+  it('pushes toward negative when the dragged box is left/above the other box\'s center', () => {
+    // Tall dragged box so Y-overlap (60) exceeds X-overlap (50) — resolves on X.
+    // Dragged spans x:[-100,50] vs other x:[0,150] → 50px X-overlap.
+    // Dragged center (-25) is left of other's center (75) — push further left.
+    const push = resolveTileOverlap(box(-100, 0, 150, 200), box(0, 0));
+    expect(push!.dx).toBe(-50);
+    expect(push!.dy).toBe(0);
+  });
+
+  it('different tile sizes (measured, not a fixed constant) resolve correctly', () => {
+    // A big 240x130 "current" tile dragged near a compact 150x60 sibling.
+    const push = resolveTileOverlap(box(100, 0, 240, 130), box(0, 0, 150, 60));
+    expect(push).not.toBeNull();
+  });
 });

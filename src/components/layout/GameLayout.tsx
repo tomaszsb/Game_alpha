@@ -1118,7 +1118,18 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                   // Show panels only for players not connected on their own device
                   const visiblePlayers = players.filter(p => shouldShowPlayerPanel(p.id));
                   const hasMultipleLocal = visiblePlayers.length > 1;
-                  return visiblePlayers.map(player => {
+                  // Rolodex order: the active player's full panel always sits on
+                  // top; inactive players' mini-bars sink below it (stable sort,
+                  // so their relative order among themselves doesn't shuffle).
+                  // Previously this list stayed in fixed player-index order, so
+                  // when Player 2 was active, Player 1's mini-bar still rendered
+                  // above Player 2's full panel — confusing turn order visually.
+                  const orderedPlayers = [...visiblePlayers].sort((a, b) => {
+                    const aRank = a.id === currentPlayerId ? 0 : 1;
+                    const bRank = b.id === currentPlayerId ? 0 : 1;
+                    return aRank - bRank;
+                  });
+                  return orderedPlayers.map(player => {
                     const isCurrentPlayer = player.id === currentPlayerId;
                     // When multiple local panels, collapse non-current players to a mini bar
                     if (hasMultipleLocal && !isCurrentPlayer) {

@@ -48,7 +48,9 @@ export const CHARACTER_MAP: Record<string, CharacterInfo> = {
   ARCH:       { emoji: '\u{1F4D0}', name: 'The Architect',    phase: 'Design',       color: '#9C27B0', imageRoles: ['architect'] },
   ENG:        { emoji: '\u2699\uFE0F',  name: 'The Engineer',     phase: 'Engineering',  color: '#FF9800', imageRoles: ['engineer'] },
   'REG-DOB':  { emoji: '\u{1F4CB}', name: 'DOB Examiner',     phase: 'Regulatory',   color: '#f44336', imageRoles: ['dob_examiner', 'dob_clerk'] },
-  'REG-FDNY': { emoji: '\u{1F692}', name: 'FDNY Inspector',   phase: 'Regulatory',   color: '#f44336', imageRoles: ['fdny_examiner', 'fdny_clerk'] },
+  // FDNY previously shared DOB's exact red — indistinguishable on the board's
+  // discipline badge (fb:feedback-1782657383215-a9d3221a). Distinct magenta.
+  'REG-FDNY': { emoji: '\u{1F692}', name: 'FDNY Inspector',   phase: 'Regulatory',   color: '#E91E63', imageRoles: ['fdny_examiner', 'fdny_clerk'] },
   CON:        { emoji: '\u{1F3D7}\uFE0F', name: 'The Contractor',   phase: 'Construction', color: '#4CAF50', imageRoles: ['contractor', 'inspector'] },
 };
 

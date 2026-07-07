@@ -155,70 +155,47 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   };
 
   // Footer — light-button rule: every control has a visible dark border + text.
-  // The dismiss button only reads "Keep" when there's a real choice to make
-  // (an activatable expeditor: activate now vs. keep for later). In a review-only
-  // view "Keep" wrongly implies a keep/replace/fire decision (fb:f4d0e327 — "I'm
-  // only reviewing; there's no need for a keep button"), so it reads "Done".
-  // ("Close" would collide with ModalBase's X-button accessible name.)
-  const dismissLabel = canPlay ? 'Keep' : 'Done';
+  // Only a REAL action (Activate) gets a footer button now — the modal's own
+  // X is the one close path (fb:feedback-1782839742726-f036c7aa, "two close
+  // paths today"). A review-only card (nothing to activate) renders no
+  // footer at all; ModalBase just omits the footer bar in that case.
   // fb:17cc481c — "maybe activate the button can say + or - x days + or - x $
   // instead of Activate?" Same tick_modifier/cost/money_effect data already
   // shown in Key Facts above, just echoed on the button so the effect is
   // visible without scrolling back up.
   const activateEffectSummary = canPlay ? getCardEffectSummary(card) : null;
-  const footer = (
-    <>
-      {canPlay && (
-        <button
-          onClick={handleActivate}
-          disabled={busy}
-          // No card name in the label: the dialog is already titled with the card
-          // name, and the influence-zone row carries "Activate <card name>". Two
-          // identical accessible names on screen at once (modal over panel) is an
-          // a11y ambiguity — keep the modal's plain "Activate" distinct.
-          style={{
-            border: `1px solid ${p.accent}`,
-            background: p.accent,
-            color: '#fff',
-            borderRadius: 9,
-            padding: '9px 16px',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: busy ? 'default' : 'pointer',
-            minHeight: 44,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <span>{busy ? 'Working…' : 'Activate'}</span>
-          {!busy && activateEffectSummary && (
-            <small style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,.85)' }}>
-              {activateEffectSummary}
-            </small>
-          )}
-        </button>
+  const footer = canPlay ? (
+    <button
+      onClick={handleActivate}
+      disabled={busy}
+      // No card name in the label: the dialog is already titled with the card
+      // name, and the influence-zone row carries "Activate <card name>". Two
+      // identical accessible names on screen at once (modal over panel) is an
+      // a11y ambiguity — keep the modal's plain "Activate" distinct.
+      style={{
+        border: `1px solid ${p.accent}`,
+        background: p.accent,
+        color: '#fff',
+        borderRadius: 9,
+        padding: '9px 16px',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: busy ? 'default' : 'pointer',
+        minHeight: 44,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 1,
+      }}
+    >
+      <span>{busy ? 'Working…' : 'Activate'}</span>
+      {!busy && activateEffectSummary && (
+        <small style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,.85)' }}>
+          {activateEffectSummary}
+        </small>
       )}
-      <button
-        onClick={onClose}
-        aria-label={dismissLabel}
-        style={{
-          border: `1px solid ${p.borderStrong}`,
-          background: p.surf,
-          color: p.text,
-          borderRadius: 9,
-          padding: '9px 16px',
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: 'pointer',
-          minHeight: 44,
-        }}
-      >
-        {dismissLabel}
-      </button>
-    </>
-  );
+    </button>
+  ) : undefined;
 
   const sectionLabel: React.CSSProperties = {
     fontSize: 10,
@@ -258,6 +235,26 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
             {meta.emoji} {meta.label}
           </span>
         </div>
+
+        {/* Why this matters — teaching callout, leads the modal instead of
+            trailing it (fb:feedback-1782839742726-f036c7aa: the point should
+            come first, not after everything else has been read). */}
+        {meta.teaches && (
+          <div
+            style={{
+              fontSize: 12,
+              lineHeight: 1.5,
+              color: p.text,
+              background: p.surf2,
+              borderRadius: 8,
+              padding: '10px 12px',
+              marginBottom: 14,
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>💡 Why this matters: </span>
+            {meta.teaches}
+          </div>
+        )}
 
         {/* Not-yet (phase) hint — why there's no Activate button right now. */}
         {showPhaseWait && (
@@ -330,23 +327,6 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Why this matters — teaching callout */}
-        {meta.teaches && (
-          <div
-            style={{
-              fontSize: 12,
-              lineHeight: 1.5,
-              color: p.text,
-              background: p.surf2,
-              borderRadius: 8,
-              padding: '10px 12px',
-            }}
-          >
-            <span style={{ fontWeight: 600 }}>💡 Why this matters: </span>
-            {meta.teaches}
           </div>
         )}
       </div>

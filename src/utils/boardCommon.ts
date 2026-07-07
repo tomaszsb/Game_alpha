@@ -343,6 +343,38 @@ export function estimateTileMaxIngridHeight(content: TileHeightContent): number 
   return Math.max(BOARD_TILE_MAX_INGRID.h, Math.ceil(h));
 }
 
+export interface TileBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * fb:feedback-1782842971898-c73c35ca — "board node overlaps a tile, want a
+ * way to force nodes not to overlap." Given a dragged tile's box and one
+ * sibling's box, returns the (dx, dy) to add to the dragged box's position so
+ * it just touches the sibling instead of crossing into it — or null if the
+ * two boxes don't overlap at all. Resolves along whichever axis has the
+ * SMALLER penetration (the "path of least resistance"), so a tile dragged
+ * mostly-past a neighbor slides along its edge rather than snapping back the
+ * way it came — it hugs the outline instead of being shoved through it.
+ */
+export function resolveTileOverlap(dragged: TileBox, other: TileBox): { dx: number; dy: number } | null {
+  const overlapX = Math.min(dragged.x + dragged.w, other.x + other.w) - Math.max(dragged.x, other.x);
+  const overlapY = Math.min(dragged.y + dragged.h, other.y + other.h) - Math.max(dragged.y, other.y);
+  if (overlapX <= 0 || overlapY <= 0) return null;
+
+  if (overlapX < overlapY) {
+    const draggedCenterX = dragged.x + dragged.w / 2;
+    const otherCenterX = other.x + other.w / 2;
+    return { dx: draggedCenterX < otherCenterX ? -overlapX : overlapX, dy: 0 };
+  }
+  const draggedCenterY = dragged.y + dragged.h / 2;
+  const otherCenterY = other.y + other.h / 2;
+  return { dx: 0, dy: draggedCenterY < otherCenterY ? -overlapY : overlapY };
+}
+
 /**
  * fb:35daf1ba — dice spaces keep their destinations in DICE_OUTCOMES.csv (six
  * roll columns), not MOVEMENT.csv. The board edge graph needs the unique set so

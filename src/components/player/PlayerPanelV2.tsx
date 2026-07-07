@@ -26,6 +26,8 @@ import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { computeProjectFinances } from '../../utils/projectFinances';
 import { FormatUtils } from '../../utils/FormatUtils';
+import { interpolateTemplate } from '../../utils/templateInterpolation';
+import { getNpcCharacterInfo, getNpcImagePath } from '../../constants/characters';
 
 export interface PlayerPanelV2Props extends ActionCenterPanelProps {
   mode: PanelMode;
@@ -81,6 +83,19 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const [showNumbers, setShowNumbers] = useState(false);
   // "What's happened" history (Pile 3 Chronicle, first slice).
   const [showChronicle, setShowChronicle] = useState(false);
+  // "What to do & why" — collapsed by default (supporting info, not the
+  // headline), so it doesn't eat phone screen space (fb:f6e100b7).
+  const [showWhy, setShowWhy] = useState(false);
+  // "What's affecting you" — same reasoning: collapsed by default so the
+  // panel doesn't read as overwhelming; the toggle glows instead when an
+  // Expeditor is ready to activate, so nothing actionable hides silently.
+  const [showEffects, setShowEffects] = useState(false);
+  // Movement destinations — collapsed behind one "Move" row instead of N
+  // separate buttons, so a choice space doesn't visually inflate the action
+  // count (fb:feedback-1782843206015-8edd02b4). Once expanded, every option
+  // stays visible/switchable per fb:c2e489dc — this only collapses the FIRST
+  // look, it never hides options again after you've opened the picker.
+  const [showMoveOptions, setShowMoveOptions] = useState(false);
   const currentSpaceForPopup = gameServices.stateService.getPlayer(playerId)?.currentSpace ?? null;
 
   useEffect(() => {
@@ -100,6 +115,11 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     }
   }, [currentSpaceForPopup]);
 
+  useEffect(() => {
+    setShowWhy(false);
+    setShowMoveOptions(false);
+  }, [currentSpaceForPopup]);
+
   const player = gameServices.stateService.getPlayer(playerId);
   if (!player) return null;
 
@@ -110,6 +130,28 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const content = gameServices.dataService.getSpaceContent(player.currentSpace, player.visitType);
   const config = gameServices.dataService.getGameConfigBySpace(player.currentSpace);
   const spaceLabel = config?.display_label_override || (content && content.title) || shortName(player.currentSpace);
+
+  // Resolve {fundingAmount} token so the NPC dialogue can quote the actual
+  // dollar figure inline (fb:61a85444, mirrors ActionCenterPanel's fix —
+  // this panel never got it, so funding spaces showed the raw "{fundingAmount}"
+  // token unrendered).
+  const fundingSource = gameServices.dataService.getFundingSource(player.currentSpace);
+  const moneySources = player.moneySources || { ownerFunding: 0, bankLoans: 0, investmentDeals: 0, other: 0 };
+  let fundingSourceAmount = 0;
+  if (fundingSource === 'owner') fundingSourceAmount = moneySources.ownerFunding;
+  else if (fundingSource === 'bank') fundingSourceAmount = moneySources.bankLoans;
+  else if (fundingSource === 'investor') fundingSourceAmount = moneySources.investmentDeals;
+  const fundingAmount = fundingSourceAmount > 0 ? `$${fundingSourceAmount.toLocaleString()}` : '';
+  const renderedStory = content?.story ? interpolateTemplate(content.story, { fundingAmount }) : '';
+
+  // Who's speaking — restores the classic panel's NPC identity cue (this
+  // panel never had it). PM-voiced spaces (fb:7065e8df) resolve to
+  // undefined, so no badge/portrait shows for the PM's own first-person
+  // narration. Smaller than classic's version by design (fb:f6e100b7 follow-up).
+  const npcInfo = getNpcCharacterInfo(player.currentSpace);
+  const npcAppearances = gameState.npcAppearances;
+  const npcAppearance = npcInfo && npcAppearances ? npcAppearances[npcInfo.imageRoles[0]] : undefined;
+  const portraitSrc = npcInfo && npcAppearance ? getNpcImagePath(npcInfo.imageRoles[0], npcAppearance) : null;
   const phaseLabel = config?.phase || '';
 
   const dob = approvalView(player.dobApprovalStatus);
@@ -223,6 +265,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // first, but hiding the section entirely made it look like the Move option
   // had vanished (fb:bf8bf19a — "Move button disappeared").
   const showMovementOptions = !!movementChoice;
+  const selectedMovementOption = selectedDestination
+    ? movementChoice?.options.find((o) => o.id === selectedDestination)
+    : null;
+  const selectedMovementLabel = selectedMovementOption
+    ? gameServices.dataService.getGameConfigBySpace(selectedMovementOption.id)?.display_label_override
+      || selectedMovementOption.label
+      || shortName(selectedMovementOption.id)
+    : null;
   const showMovementDiceButton = shouldShowMovementDiceButton(visiblePendingActions, {
     isDiceMovementSpace,
     hasPlayerRolledDice,
@@ -443,6 +493,14 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
     cursor: 'default',
   };
 
+  // Nested/smaller variants for options revealed under the "Move" toggle —
+  // same actionBtn family, scaled down so they read as children of the
+  // toggle rather than four equal-weight top-level actions (user feedback
+  // 2026-07-07: "they look exactly the same and it looks confusing").
+  const subActionBtn: React.CSSProperties = { ...actionBtn, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
+  const selectedSubActionBtn: React.CSSProperties = { ...selectedActionBtn, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
+  const doneSubActionRow: React.CSSProperties = { ...doneActionRow, padding: '7px 10px', fontSize: 12, marginBottom: 5 };
+
   return (
     <div style={cardStyle}>
       {/* First-visit hint glow for the action buttons (fb:e84e4d11). Pulses gently
@@ -555,12 +613,83 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
         <p style={zlbl}>Where you are &amp; why</p>
         <div style={{ background: p.surf, borderLeft: `3px solid ${p.accent}`, padding: '10px 12px' }}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>📍 {spaceLabel}</div>
-          {content && content.story && (
+          {content && renderedStory && (
             <div style={{ fontSize: 12, color: p.muted, marginTop: 4, lineHeight: 1.5 }}>
-              <TextWithTerms text={content.story} onTermClick={(term) => openWithTerm(term.id)} />
+              {portraitSrc && npcInfo && (
+                <span style={{ float: 'left', width: 36, marginRight: 6, marginBottom: 2, textAlign: 'center' }}>
+                  <img
+                    src={portraitSrc}
+                    alt={npcInfo.name}
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: `1.5px solid ${npcInfo.color}`,
+                      display: 'block',
+                      margin: '0 auto',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 8,
+                    fontWeight: 600,
+                    color: npcInfo.color,
+                    lineHeight: 1.15,
+                    display: 'block',
+                    whiteSpace: 'normal',
+                  }}>
+                    {npcInfo.name}
+                  </span>
+                </span>
+              )}
+              <TextWithTerms text={renderedStory} onTermClick={(term) => openWithTerm(term.id)} />
             </div>
           )}
         </div>
+        {content && (content.action_description || content.outcome_description) && (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowWhy((v) => !v)}
+              aria-expanded={showWhy}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                marginTop: 6,
+                padding: '4px 2px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 600,
+                color: p.accent,
+              }}
+            >
+              <span aria-hidden>{showWhy ? '▾' : '▸'}</span> What to do &amp; why
+            </button>
+            {showWhy && (
+              <div style={{ marginTop: 4 }}>
+                {content.action_description && (
+                  <div style={{ background: p.surf2, borderLeft: `3px solid ${p.accent}`, padding: '8px 10px', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      <strong>What to do:</strong>{' '}
+                      <TextWithTerms text={content.action_description} onTermClick={(term) => openWithTerm(term.id)} />
+                    </div>
+                  </div>
+                )}
+                {content.outcome_description && (
+                  <div style={{ background: p.surf2, borderLeft: `3px solid ${p.muted}`, padding: '8px 10px', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      <strong>Why:</strong>{' '}
+                      <TextWithTerms text={content.outcome_description} onTermClick={(term) => openWithTerm(term.id)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Things you can do */}
@@ -583,41 +712,74 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                 : `${a.icon ? a.icon + ' ' : ''}${a.label.replace(/^🎲\s*/, '')}`}
             </button>
           ))}
-          {showMovementOptions &&
-            movementChoice!.options.map((opt) => {
-              const oc = gameServices.dataService.getGameConfigBySpace(opt.id);
-              const label = oc?.display_label_override || opt.label || shortName(opt.id);
-              const isSelected = selectedDestination === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  className={firstVisitHint && !selectedDestination && movementChoiceUnlocked ? 'uc-hint-glow' : undefined}
-                  style={!movementChoiceUnlocked ? doneActionRow : isSelected ? selectedActionBtn : actionBtn}
-                  disabled={!movementChoiceUnlocked}
-                  aria-pressed={isSelected}
-                  aria-disabled={!movementChoiceUnlocked}
-                  title={
-                    !movementChoiceUnlocked
-                      ? 'Finish your other actions first'
-                      : isSelected
-                      ? 'Tap again to unpick — you can still change your mind'
-                      : undefined
-                  }
-                  onClick={() => movementChoiceUnlocked && handleMovementChoice(opt.id)}
-                >
-                  {!movementChoiceUnlocked ? '➡️' : isSelected ? '✅' : '➡️'} {label}
-                </button>
-              );
-            })}
-          {showMovementOptions && !movementChoiceUnlocked && (
-            <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
-              Finish your other actions first, then pick where to go.
-            </p>
-          )}
-          {showMovementOptions && movementChoiceUnlocked && selectedDestination && (
-            <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
-              You can switch until you end your turn.
-            </p>
+          {showMovementOptions && (
+            <>
+              {/* One row instead of N destination buttons, so a choice space
+                  doesn't visually inflate the action count (fb:feedback-
+                  1782843206015-8edd02b4). Expanding never hides options again
+                  once open — that's the part fb:c2e489dc protects. */}
+              <button
+                type="button"
+                onClick={() => setShowMoveOptions((v) => !v)}
+                aria-expanded={showMoveOptions}
+                // Distinct accessible name from any individual destination's own
+                // label — the visible text below can echo a destination name
+                // ("Moving to: Fee Review"), which would otherwise collide with
+                // that destination's own button in accessible-name lookups.
+                aria-label="Move — where to go next"
+                className={
+                  firstVisitHint && !selectedDestination && movementChoiceUnlocked && !showMoveOptions
+                    ? 'uc-hint-glow'
+                    : undefined
+                }
+                style={selectedDestination ? selectedActionBtn : actionBtn}
+              >
+                <span aria-hidden>{showMoveOptions ? '▾' : '▸'}</span>{' '}
+                {selectedDestination
+                  ? `✅ Moving to: ${selectedMovementLabel}`
+                  : `➡️ Move — ${movementChoice!.options.length} options`}
+              </button>
+              {showMoveOptions && (
+                // Indented + connector line so the options read as sliding out
+                // from under the toggle, not as four more equal-weight actions.
+                <div style={{ marginLeft: 12, paddingLeft: 10, borderLeft: `2px solid ${p.border}`, marginTop: 2 }}>
+                  {movementChoice!.options.map((opt) => {
+                    const oc = gameServices.dataService.getGameConfigBySpace(opt.id);
+                    const label = oc?.display_label_override || opt.label || shortName(opt.id);
+                    const isSelected = selectedDestination === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        style={!movementChoiceUnlocked ? doneSubActionRow : isSelected ? selectedSubActionBtn : subActionBtn}
+                        disabled={!movementChoiceUnlocked}
+                        aria-pressed={isSelected}
+                        aria-disabled={!movementChoiceUnlocked}
+                        title={
+                          !movementChoiceUnlocked
+                            ? 'Finish your other actions first'
+                            : isSelected
+                            ? 'Tap again to unpick — you can still change your mind'
+                            : undefined
+                        }
+                        onClick={() => movementChoiceUnlocked && handleMovementChoice(opt.id)}
+                      >
+                        {!movementChoiceUnlocked ? '➡️' : isSelected ? '✅' : '➡️'} {label}
+                      </button>
+                    );
+                  })}
+                  {!movementChoiceUnlocked && (
+                    <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
+                      Finish your other actions first, then pick where to go.
+                    </p>
+                  )}
+                  {movementChoiceUnlocked && selectedDestination && (
+                    <p style={{ fontSize: 10, color: p.muted, margin: '1px 0 6px' }}>
+                      You can switch until you end your turn.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           )}
           {doneActionTraces.map((a) => (
             // Outcome actions carry the resolved result as a hover/long-press
@@ -637,13 +799,49 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
 
       {/* Influence */}
       <div style={pad}>
-        <p style={zlbl}>What&apos;s affecting you</p>
         {activeEffects.length === 0 && cardChips.length === 0 && playableExpeditors.length === 0 ? (
-          <div style={{ fontSize: 12, color: p.muted, background: p.surf, borderRadius: 9, padding: '8px 10px' }}>
-            Nothing affecting you yet
-          </div>
+          <>
+            <p style={zlbl}>What&apos;s affecting you</p>
+            <div style={{ fontSize: 12, color: p.muted, background: p.surf, borderRadius: 9, padding: '8px 10px' }}>
+              Nothing affecting you yet
+            </div>
+          </>
         ) : (
           <>
+            {/* Collapsed by default — this list grows noisy fast, and it's
+                supporting detail, not the headline (fb:f6e100b7 follow-up).
+                The toggle glows the same way action buttons do (fb:e84e4d11)
+                when there's an Expeditor ready to activate, so collapsing it
+                can't hide something actionable. */}
+            <button
+              type="button"
+              onClick={() => setShowEffects((v) => !v)}
+              aria-expanded={showEffects}
+              className={playableExpeditors.length > 0 ? 'uc-hint-glow' : undefined}
+              style={{
+                ...zlbl,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                width: '100%',
+                padding: '4px 2px',
+                margin: '0 0 4px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                borderRadius: 6,
+                textAlign: 'left',
+              }}
+            >
+              <span aria-hidden>{showEffects ? '▾' : '▸'}</span> What&apos;s affecting you
+              {playableExpeditors.length > 0 && (
+                <span style={{ color: p.accent, fontWeight: 700, textTransform: 'none', letterSpacing: 0 }}>
+                  · {playableExpeditors.length} to activate
+                </span>
+              )}
+            </button>
+            {showEffects && (
+            <>
             {/* Expeditors you can deploy right now (optional E-card play) */}
             {playableExpeditors.map(({ id, card }) => (
               <div
@@ -771,6 +969,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                   </button>
                 ))}
               </div>
+            )}
+            </>
             )}
           </>
         )}
