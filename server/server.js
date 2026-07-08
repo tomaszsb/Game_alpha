@@ -58,7 +58,7 @@ import {
   revokeSession,
   revokeAccountSessions,
 } from './accountStore.js';
-import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS, resolveRecipient } from './mailer.js';
+import { sendReminder, isMailerConfigured, CARRIER_GATEWAYS, resolveRecipient, sendOwnerAlert } from './mailer.js';
 import {
   initReminderScheduler,
   isPushConfigured,
@@ -90,6 +90,16 @@ const CONFIG = {
 
   // Games file path
   GAMES_FILE: process.env.GAMES_FILE || './server/data/games.json',
+
+  // Settings file path (admin-toggleable runtime settings, e.g. alert kill switch)
+  SETTINGS_FILE: process.env.SETTINGS_FILE || './server/data/settings.json',
+
+  // Your home network's public IP (whatismyip.com). Games created from this
+  // IP are assumed to be you testing, so they skip the foreign-game text
+  // alert. Home IPs can change (ISP reassigns after outages/router
+  // restarts) — if alerts start firing for your own testing, re-check and
+  // update this value. Leave blank to treat every game as foreign.
+  HOME_IP: process.env.HOME_IP || '',
 
   // Admin password hash (SHA-256). MUST be set via ADMIN_PASSWORD_HASH env var.
   // Generate: node -e "console.log(require('crypto').createHash('sha256').update('YOUR_PASSWORD').digest('hex'))"
@@ -383,6 +393,19 @@ function getClientIP(req) {
 }
 
 /**
+ * True if the given IP matches CONFIG.HOME_IP (the maintainer's own
+ * network). Strips the ::ffff: prefix Node sometimes adds to IPv4
+ * addresses reported over an IPv6-capable socket, so a plain IPv4 value
+ * in HOME_IP still matches. Unset HOME_IP means "nothing is home" —
+ * every game is treated as foreign.
+ */
+function isHomeIP(ip) {
+  if (!CONFIG.HOME_IP) return false;
+  const normalize = (s) => (typeof s === 'string' ? s.replace(/^::ffff:/i, '') : s);
+  return normalize(ip) === normalize(CONFIG.HOME_IP);
+}
+
+/**
  * Get device info from user agent
  */
 function getDeviceInfo(req) {
@@ -445,6 +468,34 @@ function ensureDataDir() {
     console.log(`📁 Created data directory: ${CONFIG.DATA_DIR}`);
   }
 }
+
+// ===== ADMIN SETTINGS (persisted, toggled from the Admin Tools screen) =====
+
+let settings = {
+  foreignGameAlertsEnabled: true,
+};
+
+function loadSettings() {
+  try {
+    if (fs.existsSync(CONFIG.SETTINGS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CONFIG.SETTINGS_FILE, 'utf8'));
+      settings = { ...settings, ...data };
+    }
+  } catch (err) {
+    console.error('❌ Failed to load settings:', err.message);
+  }
+}
+
+function saveSettings() {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(CONFIG.SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  } catch (err) {
+    console.error('❌ Failed to save settings:', err.message);
+  }
+}
+
+loadSettings();
 
 /**
  * Save games to file
@@ -1367,6 +1418,22 @@ app.post('/api/admin/instances/:id/owner', (req, res) => {
   }
 });
 
+// Admin-toggleable runtime settings (currently just the foreign-game alert
+// kill switch). GET reads current state; POST merges in any recognized keys.
+app.get('/api/admin/settings', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({ success: true, settings });
+});
+
+app.post('/api/admin/settings', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (typeof req.body?.foreignGameAlertsEnabled === 'boolean') {
+    settings.foreignGameAlertsEnabled = req.body.foreignGameAlertsEnabled;
+  }
+  saveSettings();
+  res.json({ success: true, settings });
+});
+
 // ===== GAME MANAGEMENT ENDPOINTS =====
 
 // Admin-only since 2026-06-12: listing every gameId publicly defeated the
@@ -1445,7 +1512,15 @@ app.post('/api/games', async (req, res) => {
     lastActivity: now
   });
 
-  logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
+  const logEntry = logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
+
+  if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
+    try {
+      await sendOwnerAlert(`New game ${gameId} started from IP ${logEntry.ip} (${logEntry.device})`);
+    } catch (err) {
+      console.warn('⚠️ Could not send foreign-game alert:', err.message);
+    }
+  }
 
   isDirty = true;
   saveGames();

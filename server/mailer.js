@@ -103,6 +103,34 @@ export function resolveRecipient(opts) {
   throw Object.assign(new Error('method must be "email" or "sms"'), { code: 'BAD_REQUEST' });
 }
 
+/**
+ * Send a short text to the maintainer's own phone via a carrier email-to-SMS
+ * gateway (ALERT_PHONE/ALERT_CARRIER env vars), reusing the same transporter
+ * and CARRIER_GATEWAYS map as player reminders. Separate from sendReminder()
+ * because that function's copy/links are player-facing — this is a plain
+ * operational ping (e.g. "a game just started"), so it sends the message
+ * text as-is with no template.
+ */
+export async function sendOwnerAlert(message) {
+  const t = getTransporter();
+  if (!t) {
+    throw Object.assign(new Error('Mailer not configured'), { code: 'NOT_CONFIGURED' });
+  }
+
+  const gateway = CARRIER_GATEWAYS[process.env.ALERT_CARRIER];
+  const digits = typeof process.env.ALERT_PHONE === 'string' ? process.env.ALERT_PHONE.replace(/\D/g, '') : '';
+  if (!digits || !gateway) {
+    throw Object.assign(new Error('ALERT_PHONE and a supported ALERT_CARRIER are required'), { code: 'NOT_CONFIGURED' });
+  }
+
+  await t.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: `${digits}@${gateway}`,
+    subject: 'Unravel Codes alert',
+    text: message,
+  });
+}
+
 export async function sendReminder(opts) {
   const t = getTransporter();
   if (!t) {

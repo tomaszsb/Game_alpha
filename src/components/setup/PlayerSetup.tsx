@@ -10,6 +10,7 @@ import { Player } from '../../types/StateTypes';
 import { getCurrentGameId, getBackendURL } from '../../utils/networkDetection';
 import { isSmartTV } from '../../utils/deviceDetection';
 import { isAdminAuthenticated, verifyAdminPassword, clearAdminAuth, getAdminPassword } from '../../utils/adminAuth';
+import { getAdminSettings, setForeignGameAlertsEnabled as apiSetForeignGameAlertsEnabled } from '../../utils/adminSettingsApi';
 import { teacherLogin, getTeacherAccount, getTeacherSession, type TeacherAccount } from '../../utils/teacherAuth';
 import { DataEditor } from '../editor/DataEditor';
 import { BoardLayoutEditor } from '../board/BoardLayoutEditor';
@@ -116,6 +117,10 @@ export function PlayerSetup({
   }
   const [activeGames, setActiveGames] = useState<GameInfo[]>([]);
   const [gamesLoading, setGamesLoading] = useState(false);
+
+  // Foreign-game text alert kill switch (null = not loaded yet)
+  const [foreignGameAlertsEnabled, setForeignGameAlertsEnabledState] = useState<boolean | null>(null);
+  const [alertSettingBusy, setAlertSettingBusy] = useState(false);
 
   // Admin auth state
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => isAdminAuthenticated());
@@ -293,6 +298,27 @@ export function PlayerSetup({
     const interval = setInterval(fetchActiveGames, 5000);
     return () => clearInterval(interval);
   }, [isAdminUnlocked]);
+
+  useEffect(() => {
+    if (!isAdminUnlocked) return;
+    let cancelled = false;
+    getAdminSettings()
+      .then((s) => { if (!cancelled) setForeignGameAlertsEnabledState(s.foreignGameAlertsEnabled); })
+      .catch((err) => debugLog('Could not load admin settings:', err));
+    return () => { cancelled = true; };
+  }, [isAdminUnlocked]);
+
+  const handleToggleForeignGameAlerts = async (next: boolean) => {
+    setAlertSettingBusy(true);
+    try {
+      const s = await apiSetForeignGameAlertsEnabled(next);
+      setForeignGameAlertsEnabledState(s.foreignGameAlertsEnabled);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not update the setting.');
+    } finally {
+      setAlertSettingBusy(false);
+    }
+  };
 
   // Auto-create is handled at the App.tsx level (before ServiceProvider
   // mounts) so that ServerSyncService.loadFromServer can never fall through
@@ -1187,6 +1213,25 @@ export function PlayerSetup({
                     🔓 Lock
                   </button>
                 </div>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.85rem',
+                  color: colors.secondary.dark,
+                  cursor: foreignGameAlertsEnabled === null || alertSettingBusy ? 'default' : 'pointer',
+                  opacity: alertSettingBusy ? 0.6 : 1,
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={foreignGameAlertsEnabled ?? false}
+                    disabled={foreignGameAlertsEnabled === null || alertSettingBusy}
+                    onChange={(e) => handleToggleForeignGameAlerts(e.target.checked)}
+                  />
+                  📱 Text me when a game starts from an unrecognized IP
+                  {foreignGameAlertsEnabled === null && <span style={{ color: colors.text.secondary }}> (loading…)</span>}
+                </label>
 
                 {/* Game Manager */}
                 <div style={{
