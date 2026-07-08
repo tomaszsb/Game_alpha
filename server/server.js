@@ -94,11 +94,12 @@ const CONFIG = {
   // Settings file path (admin-toggleable runtime settings, e.g. alert kill switch)
   SETTINGS_FILE: process.env.SETTINGS_FILE || './server/data/settings.json',
 
-  // Your home network's public IP (whatismyip.com). Games created from this
-  // IP are assumed to be you testing, so they skip the foreign-game text
-  // alert. Home IPs can change (ISP reassigns after outages/router
-  // restarts) — if alerts start firing for your own testing, re-check and
-  // update this value. Leave blank to treat every game as foreign.
+  // Manual override for the "home" IP the foreign-game alert compares
+  // against. The server auto-detects its own public IP on startup (see
+  // detectHomeIP below) and re-checks it daily, so this is normally left
+  // blank — only set it if auto-detection is wrong for your network
+  // (e.g. a proxy in front of the server that changes what IP-echo
+  // services see).
   HOME_IP: process.env.HOME_IP || '',
 
   // Admin password hash (SHA-256). MUST be set via ADMIN_PASSWORD_HASH env var.
@@ -392,17 +393,74 @@ function getClientIP(req) {
     || 'unknown';
 }
 
+const normalizeIP = (s) => (typeof s === 'string' ? s.replace(/^::ffff:/i, '') : s);
+
 /**
- * True if the given IP matches CONFIG.HOME_IP (the maintainer's own
- * network). Strips the ::ffff: prefix Node sometimes adds to IPv4
- * addresses reported over an IPv6-capable socket, so a plain IPv4 value
- * in HOME_IP still matches. Unset HOME_IP means "nothing is home" —
- * every game is treated as foreign.
+ * True for loopback and RFC1918 private-range addresses. Covers the case
+ * where a device on the same LAN as the server visits it through the
+ * public domain and the home router's NAT hairpin/loopback rewrites the
+ * source IP to something private (e.g. its own LAN gateway address)
+ * instead of preserving a real public IP — that traffic should still
+ * count as "home" even though it won't match the detected public IP.
+ */
+function isPrivateOrLoopbackIP(ip) {
+  const normalized = normalizeIP(ip);
+  if (!normalized) return false;
+  if (normalized === '::1' || normalized === 'localhost') return true;
+  return /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(normalized);
+}
+
+// Auto-detected public IP of the machine running this server, refreshed
+// periodically so an ISP-reassigned home IP doesn't need a manual update.
+// CONFIG.HOME_IP (if set) always wins over this.
+let detectedHomeIP = '';
+
+const IP_ECHO_SERVICES = [
+  'https://api.ipify.org',
+  'https://ifconfig.me/ip',
+  'https://icanhazip.com',
+];
+
+async function detectHomeIP() {
+  for (const url of IP_ECHO_SERVICES) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!response.ok) continue;
+      const text = (await response.text()).trim();
+      // Crude sanity check: looks like an IPv4/IPv6 address, not an HTML error page
+      if (text && text.length <= 45 && /^[0-9a-fA-F:.]+$/.test(text)) {
+        detectedHomeIP = text;
+        console.log(`🏠 Auto-detected home IP: ${detectedHomeIP} (via ${url})`);
+        return;
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not detect home IP via ${url}: ${err.message}`);
+    }
+  }
+  console.warn('⚠️ Could not auto-detect home IP from any provider. Foreign-game alerts will fire for every non-private IP until this succeeds (or set HOME_IP manually).');
+}
+
+if (!CONFIG.HOME_IP) {
+  detectHomeIP();
+  setInterval(detectHomeIP, 24 * 60 * 60 * 1000); // re-check daily in case the ISP reassigns it
+}
+
+/**
+ * True if the given IP should be treated as "home" for the foreign-game
+ * alert: a private/loopback address (see isPrivateOrLoopbackIP), or a
+ * match against CONFIG.HOME_IP (manual override) or the auto-detected
+ * public IP. If neither is known yet, every public IP counts as foreign —
+ * fails toward alerting you rather than silently missing games.
  */
 function isHomeIP(ip) {
-  if (!CONFIG.HOME_IP) return false;
-  const normalize = (s) => (typeof s === 'string' ? s.replace(/^::ffff:/i, '') : s);
-  return normalize(ip) === normalize(CONFIG.HOME_IP);
+  const normalized = normalizeIP(ip);
+  if (isPrivateOrLoopbackIP(normalized)) return true;
+  const homeIP = CONFIG.HOME_IP || detectedHomeIP;
+  if (!homeIP) return false;
+  return normalized === normalizeIP(homeIP);
 }
 
 /**

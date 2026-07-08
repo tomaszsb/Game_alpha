@@ -140,7 +140,7 @@ ssh unraid "docker restart game_alpha"
 **Docker details:**
 - Container: `game_alpha`, port 3080 → 3001
 - Data volume: `server/data:/app/data`
-- Foreign-game text alert: `HOME_IP` + `ALERT_PHONE`/`ALERT_CARRIER` env vars (see `.env.example`), sent via `server/mailer.js`'s carrier email-to-SMS gateway. On/off kill switch lives in the game's own Admin Tools screen (persisted to `server/data/settings.json`, default on).
+- Foreign-game text alert: `ALERT_PHONE`/`ALERT_CARRIER` env vars (see `.env.example`), sent via `server/mailer.js`'s carrier email-to-SMS gateway. "Home" = the server's own public IP, auto-detected on startup + re-checked daily (`detectHomeIP()` in server.js), plus any private/LAN IP (covers NAT-hairpin quirks). `HOME_IP` env var is a manual override, normally left blank. On/off kill switch lives in the game's own Admin Tools screen (persisted to `server/data/settings.json`, default on).
 
 ---
 
