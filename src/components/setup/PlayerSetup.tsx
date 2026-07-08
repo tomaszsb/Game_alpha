@@ -424,6 +424,35 @@ export function PlayerSetup({
   };
 
   /**
+   * Open a read-only view of a live game in a new tab (the TV display —
+   * board + scoreboard, no action controls) so you can watch a game in
+   * progress without disturbing your own Admin Tools screen. Same
+   * join-info + token fetch as handleJoinGame, since game state reads
+   * still require the game's token; this just opens in a new tab instead
+   * of navigating away, and forces mode=tv for the display-only view.
+   */
+  const handleSpectateGame = async (gameId: string) => {
+    try {
+      const backendURL = getBackendURL();
+      const response = await fetch(`${backendURL}/api/games/${gameId}/join-info`);
+      if (!response.ok) {
+        alert(`Cannot spectate ${gameId}: server returned ${response.status}`);
+        return;
+      }
+      const data: { token: string; instanceId?: string } = await response.json();
+      const url = new URL(window.location.href);
+      url.searchParams.set('g', gameId);
+      url.searchParams.set('token', data.token);
+      url.searchParams.set('mode', 'tv');
+      if (data.instanceId && data.instanceId !== 'classroom-1') url.searchParams.set('i', data.instanceId);
+      else url.searchParams.delete('i');
+      window.open(url.toString(), '_blank', 'noopener');
+    } catch (err) {
+      alert('Cannot connect to server.');
+    }
+  };
+
+  /**
    * Start the game
    */
   const handleStartGame = async () => {
@@ -1283,6 +1312,23 @@ export function PlayerSetup({
                             }}
                           >
                             Join
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSpectateGame(game.gameId)}
+                            title="Open a read-only view of this game in a new tab"
+                            style={{
+                              padding: '0.2rem 0.5rem',
+                              backgroundColor: colors.secondary.main,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.7rem',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            👁️ Spectate
                           </button>
                           <button
                             type="button"
