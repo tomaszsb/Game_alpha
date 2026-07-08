@@ -140,7 +140,6 @@ ssh unraid "docker restart game_alpha"
 **Docker details:**
 - Container: `game_alpha`, port 3080 → 3001
 - Data volume: `server/data:/app/data`
-- Notifications: ntfy topic `unravel-game-alerts`
 
 ---
 

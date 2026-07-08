@@ -5,7 +5,6 @@
 // - Auto-save games to file (survives restarts)
 // - Game expiration (24 hours of inactivity)
 // - Visitor logging (IP, device, actions)
-// - Push notifications via ntfy.sh
 
 import express from 'express';
 import cors from 'cors';
@@ -73,10 +72,6 @@ const DEFAULT_PORT = 3001;
 
 // ===== CONFIGURATION =====
 const CONFIG = {
-  // ntfy.sh topic for push notifications (change this to your own topic!)
-  // To receive notifications: Install ntfy app and subscribe to this topic
-  NTFY_TOPIC: process.env.NTFY_TOPIC || 'unravel-game-alerts',
-
   // Game expiration time (24 hours in milliseconds)
   GAME_EXPIRATION_MS: 24 * 60 * 60 * 1000,
 
@@ -439,35 +434,6 @@ function logVisitor(req, action, details = {}) {
   return entry;
 }
 
-/**
- * Send push notification via ntfy.sh
- * Note: Headers must be ASCII-only, so we put emojis in the message body
- */
-async function sendNotification(title, message, priority = 'default', tags = 'game_die') {
-  try {
-    // Remove emojis from title (headers must be ASCII)
-    const asciiTitle = title.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
-
-    const response = await fetch(`https://ntfy.sh/${CONFIG.NTFY_TOPIC}`, {
-      method: 'POST',
-      headers: {
-        'Title': asciiTitle || 'Game Alert',
-        'Priority': priority,
-        'Tags': tags
-      },
-      body: message
-    });
-
-    if (response.ok) {
-      console.log(`🔔 Notification sent: ${asciiTitle}`);
-    } else {
-      console.warn(`⚠️ Notification failed: ${response.status}`);
-    }
-  } catch (err) {
-    console.warn('⚠️ Could not send notification:', err.message);
-  }
-}
-
 // ===== PERSISTENCE UTILITIES =====
 
 /**
@@ -563,13 +529,6 @@ function cleanupExpiredGames() {
     }
     isDirty = true;
     saveGames();
-
-    // Notify about cleanup
-    sendNotification(
-      'Games Cleaned Up',
-      `Removed ${expiredGames.length} expired game(s): ${expiredGames.map(g => g.id).join(', ')}`,
-      'low'
-    );
   }
 }
 
@@ -1486,14 +1445,7 @@ app.post('/api/games', async (req, res) => {
     lastActivity: now
   });
 
-  const logEntry = logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
-
-  // Send notification
-  await sendNotification(
-    '🎮 New Game Created!',
-    `Game ${gameId} created\nIP: ${logEntry.ip}\nDevice: ${logEntry.device}`,
-    'default'
-  );
+  logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
 
   isDirty = true;
   saveGames();
@@ -1630,13 +1582,6 @@ app.post('/api/games/:gameId/state', async (req, res) => {
       playerName: newPlayer?.name || 'Unknown',
       playerCount: newPlayerCount
     });
-
-    // Notify about new player
-    await sendNotification(
-      '👤 Player Joined!',
-      `${newPlayer?.name || 'Someone'} joined game ${gameId}\nNow ${newPlayerCount} player(s)`,
-      'default'
-    );
   }
 
   // Detect game start
@@ -1646,12 +1591,6 @@ app.post('/api/games/:gameId/state', async (req, res) => {
       playerCount: newPlayerCount,
       playerNames: state.players?.map(p => p.name).join(', ')
     });
-
-    await sendNotification(
-      '🎲 Game Started!',
-      `Game ${gameId} started with ${newPlayerCount} players: ${state.players?.map(p => p.name).join(', ')}`,
-      'high'
-    );
   }
 
   // Version conflict detection and rejection (Dec 29, 2025 fix)
@@ -1969,15 +1908,6 @@ app.post('/api/feedback', async (req, res) => {
       gameId: metadata?.gameId || 'unknown',
       whatDoing: whatDoing.substring(0, 80),
     });
-
-    // Send ntfy notification
-    const gameLabel = metadata?.gameId && metadata.gameId !== 'none' ? metadata.gameId : 'unknown game';
-    await sendNotification(
-      'Bug Report Received',
-      `Bug report from ${gameLabel}:\n${whatDoing.substring(0, 80)}`,
-      'default',
-      'bug'
-    );
 
     res.json({ success: true, id: filename });
   } catch (err) {
@@ -2359,16 +2289,8 @@ function startServer(port, maxAttempts = 10) {
     console.log(`   Version: ${process.env.VITE_GIT_COMMIT || 'dev'}`);
     console.log(`   Port: ${actualPort}`);
     console.log(`   WebSocket: ws://0.0.0.0:${actualPort}/ws`);
-    console.log(`   ntfy topic: ${CONFIG.NTFY_TOPIC}`);
     console.log(`   Data dir: ${CONFIG.DATA_DIR}`);
     console.log('');
-
-    // Send startup notification
-    sendNotification(
-      '🚀 Server Started',
-      `Game server is now online!\nPort: ${actualPort}`,
-      'low'
-    );
   });
 
   return server;
