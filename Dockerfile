@@ -22,11 +22,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Update npm to latest version. npm v11 (Oct 2025) added an install-script
+# Update npm to the latest v11.x. npm v11 (Oct 2025) added an install-script
 # allow-list as a supply-chain attack mitigation; trusted packages are listed
 # in the `allowScripts` field in package.json so postinstall scripts run
-# without warnings.
-RUN npm install -g npm@latest
+# without warnings. Pinned to the v11 line (not `@latest`) because npm v12
+# raised its engine requirement to Node >=22, which this image (node:20-alpine)
+# doesn't satisfy — `@latest` broke the build the day npm 12.0.0 shipped
+# (2026-07-09). Bump this pin (and the base image, if wanted) deliberately,
+# not automatically.
+RUN npm install -g npm@11
 
 # Install ALL dependencies (including build tools)
 # Skip Puppeteer browser download — not needed in production
