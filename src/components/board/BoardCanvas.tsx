@@ -715,7 +715,7 @@ function BoardCanvasInner({
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(prev => {
       const resolved = changes.map(change => {
-        if (change.type !== 'position' || !change.dragging || !change.position) return change;
+        if (change.type !== 'position' || !change.position) return change;
         const dragged = prev.find(n => n.id === change.id);
         const draggedW = dragged?.measured?.width ?? BOARD_TILE_COMPACT.w;
         const draggedH = dragged?.measured?.height ?? BOARD_TILE_COMPACT.h;
