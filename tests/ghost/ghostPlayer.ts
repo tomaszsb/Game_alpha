@@ -31,6 +31,11 @@ import { bootstrapHeadlessServices } from './bootstrapServices';
  * overwrites a one-line at-a-glance file. Best-effort: a write failure must
  * never break a test. Separate from `.claude/ghost-history.jsonl`, which is the
  * once-per-batch durable record of the final tally.
+ *
+ * The at-a-glance file is per-label (2026-07-09, split into parallel files):
+ * once strict/negotiate-coverage/smart-bot run as separate test files on
+ * separate workers, they call this concurrently — a single shared
+ * `ghost-progress.txt` would have each batch overwrite the others' line.
  */
 function writeGhostProgress(
   label: string, gameIndex: number, total: number, elapsedMs: number, wins: number, lastReason: string
@@ -42,7 +47,7 @@ function writeGhostProgress(
       ts: new Date().toISOString(), label, gameIndex, total, elapsedMs, wins, lastReason,
     }) + '\n');
     const mins = (elapsedMs / 60000).toFixed(1);
-    writeFileSync('.claude/ghost-progress.txt', `${label} ${gameIndex}/${total} · ${mins}m · wins ${wins} · last ${lastReason}\n`);
+    writeFileSync(`.claude/ghost-progress-${label}.txt`, `${label} ${gameIndex}/${total} · ${mins}m · wins ${wins} · last ${lastReason}\n`);
   } catch {
     // Non-fatal: progress logging must never break the test.
   }
@@ -601,7 +606,7 @@ export async function runGhostBatch(
   // against pathological loops. The smart-bot win-rate test overrides this with
   // a high value so every game reaches its NATURAL end (win, or the maxTurns
   // cap) instead of being cut off by a machine-speed-dependent stopwatch —
-  // making the win count deterministic. See ghostPlayer.test.ts smart-bot test.
+  // making the win count deterministic. See ghostPlayerSmartBot.test.ts.
   const PER_GAME_TIMEOUT_MS = options.perGameTimeoutMs ?? 30000;
 
   const { baseSeed, perGameTimeoutMs: _perGameTimeoutMs, progressLabel, ...gameOptions } = options;

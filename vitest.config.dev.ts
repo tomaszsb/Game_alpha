@@ -1,5 +1,27 @@
 import { defineConfig } from 'vitest/config';
+import { BaseSequencer, type TestSpecification } from 'vitest/node';
 import path from 'path';
+
+// Full-suite flake fix (2026-07-09): the two tests/ghost/ simulation files are
+// ~94% of the suite's total CPU (measured 1,989s of 2,125s cumulative), and
+// vitest's default sequencer schedules slowest-first — so both ghost files
+// started immediately, pinned 2 of the 4 workers with tight CPU loops for the
+// whole run, and starved whichever heavyweight E2E test happened to share the
+// machine past the 30s timeout (E2E-AllPaths flaked in one session's full run,
+// E2E-Multiplayer4P in another; each passes in <1s in isolation). Running the
+// ghost files LAST gives the rest of the suite an uncontended machine, then
+// lets the ghost sims have all workers to themselves. Preserves the default
+// slowest-first order within each group. If a starvation flake ever recurs
+// despite this, the next lever is a generous per-test timeout on the affected
+// E2E game-loop test — not lowering the ghost gate.
+class GhostLastSequencer extends BaseSequencer {
+  async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+    const sorted = await super.sort(files);
+    const isGhost = (f: TestSpecification) =>
+      f.moduleId.replace(/\\/g, '/').includes('/tests/ghost/');
+    return [...sorted.filter((f) => !isGhost(f)), ...sorted.filter(isGhost)];
+  }
+}
 
 // Development configuration optimized for SPEED and fast feedback loops
 export default defineConfig({
@@ -27,6 +49,11 @@ export default defineConfig({
     fileParallelism: true,
     maxWorkers: 4,
     minWorkers: 2,
+
+    // Ghost simulation files run after everything else — see GhostLastSequencer above.
+    sequence: {
+      sequencer: GhostLastSequencer,
+    },
 
     // Standard timeouts
     testTimeout: 30000,       // 30 seconds

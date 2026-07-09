@@ -40,7 +40,7 @@ yarn-error.log*
 .claude/dashboard-screenshots/
 .claude/ghost-history.jsonl
 .claude/ghost-progress.log
-.claude/ghost-progress.txt
+.claude/ghost-progress-*.txt
 
 # OS-generated files
 .DS_Store

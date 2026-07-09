@@ -684,7 +684,18 @@
       "Bash(powershell -Command \"Get-Content -Path 'C:\\\\Users\\\\tomas\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Unravel-Current-Game-Game-Alpha\\\\a793e1e7-6c9f-4de6-98a3-3d7b35936b50\\\\tasks\\\\b7exaj24i.output' -Tail 30\")",
       "Bash(tee /tmp/koniec-full-test.log)",
       "Bash(cat /tmp/koniec-full-test.log 2>/dev/null | tail -30; echo \"---LINES---\"; wc -l /tmp/koniec-full-test.log 2>/dev/null)",
-      "Bash(tail -60 /tmp/koniec-full-test.log 2>/dev/null)"
+      "Bash(tail -60 /tmp/koniec-full-test.log 2>/dev/null)",
+      "Bash(node -e \"const v = require\\('vitest/package.json'\\).version; console.log\\('vitest', v\\); const n = require\\('vitest/node'\\); console.log\\('BaseSequencer exported:', typeof n.BaseSequencer\\)\")",
+      "Bash(tee /tmp/sequencer-verify-test.log)",
+      "Bash(node -e \"const os=require\\('os'\\); console.log\\('logical cores:', os.cpus\\(\\).length\\); console.log\\('total RAM GB:', \\(os.totalmem\\(\\)/1e9\\).toFixed\\(1\\)\\)\")",
+      "Bash(tail -20 /tmp/sequencer-verify-test.log 2>/dev/null)",
+      "Bash(tail -40 /tmp/sequencer-verify-test.log)",
+      "Bash(tee /tmp/ghost-split-calibration.log)",
+      "Bash(grep -E \"ghost strict|ghost negotiate|ghost try-again smart\" /tmp/ghost-split-calibration.log)",
+      "Bash(tee /tmp/final-combined-verify.log)",
+      "Bash(tail -20 /tmp/final-combined-verify.log 2>/dev/null)",
+      "Bash(tail -30 /tmp/final-combined-verify.log)",
+      "Bash(rm -f .claude/ghost-progress.txt *)"
     ],
     "deny": [],
     "ask": []

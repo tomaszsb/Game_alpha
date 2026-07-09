@@ -15,7 +15,7 @@
 npm run typecheck                          # 0 errors required
 
 # Plus the regression bot for any change that could affect gameplay:
-npm test tests/ghost/ghostPlayer.test.ts   # strict + try-again-happy variants
+npm test tests/ghost/ghostPlayer*.test.ts   # strict + negotiate-coverage + smart-bot + loop-detection
 ```
 
 ### If ANY test fails:
@@ -295,7 +295,7 @@ The following scenarios must be tested to ensure production stability:
 
 ## Ghost Player Regression Bot
 
-`tests/ghost/ghostPlayer.test.ts` is the headless-bot regression gate that plays 50 random games per CI run. Two variants:
+`tests/ghost/ghostPlayerStrict.test.ts` + siblings (`ghostPlayerNegotiateCoverage.test.ts`, `ghostPlayerSmartBot.test.ts`) are the headless-bot regression gate that plays 50 random games per CI run, split into separate files 2026-07-09 so the three batches run in parallel instead of sequentially. Two variants (of several — see CHANGELOG v3.0.99 for the full current set):
 
 - **Strict gate**: zero exceptions / invariant violations + ≥90% wins. Plus space coverage gate (every `GAME_CONFIG.csv` space visited at least once). The current baseline is ~96% wins (2/50 games timeout in scope/fund-review loops — a documented bot-strategy artifact, not a game bug).
 - **Try-again-happy variant**: same 50 games but with p=0.2 chance of using Try Again on negotiable spaces. Catches Try Again–related state corruption.
