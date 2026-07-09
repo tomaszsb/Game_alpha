@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 7, 2026
-**Status:** Beta — live in production; **v3.0.98 pending deploy** (v3.0.97 deployed 2026-07-07, verified via the live bundle's embedded version/commit strings)
-**Current Version:** 3.0.98
+**Last Updated:** July 8, 2026
+**Status:** Beta — live in production; **v3.0.99 pending deploy** (v3.0.98 deployed 2026-07-07, verified via the live bundle's embedded version/commit strings)
+**Current Version:** 3.0.99
 
 ---
 
@@ -36,11 +36,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **This-turn cost line attribution nuance** — days landed by the previous turn's movement roll can attribute to the current turn's line (arrival ordering). Honest total, blurred attribution; revisit only if playtesters notice.
 - [ ] **✓ done-trace outcome tooltip is desktop-hover only** — if players ask for it on touch, revisit with a tap-to-expand trace.
 
-### 🔗 Expeditor / life-event card clarity (mini-sprint candidate — feeds before→after modal + detail view)
-- [ ] **Expeditors offered before they can help** — since they reduce days, maybe don't offer one until at least that many days have already elapsed. (Design call.) <!-- fb:feedback-1782842888855-aff0e337 -->
-
 ### 🔗 Modal content model (aligns with redesign §5 + the before→after modal)
-- [ ] **Outcome modal has no "next steps" / doesn't show scope change** — should show which work packages were added or taken away. <!-- fb:feedback-1782846749403-7441e00b -->
 - [ ] **No plan-examiner verdict shown** — after a plan examination nothing surfaces the result; needs a verdict modal. <!-- fb:feedback-1782848524918-7300c51d -->
 - ✅ *Already fixed in earlier versions — DASHBOARD FLIP ONLY (no code):* fb:9c110d52 (Pays→Costs, [PlayerCardDetailV2.tsx:108](src/components/player/PlayerCardDetailV2.tsx#L108)) + fb:8d68ab14 (Activate only on E cards, [:78](src/components/player/PlayerCardDetailV2.tsx#L78)). PATCH `resolved:true` on the dashboard next sweep. (Also awaiting flip from v3.0.90 triage: 222cd521, 1990c71e.)
 

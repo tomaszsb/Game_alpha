@@ -2,6 +2,11 @@
 
 ---
 
+## v3.0.99 — Expeditors are honest about partial savings, and a board-editor fix that actually holds up (July 8, 2026)
+
+- **An Expeditor's day-savings now tells you the real number.** If you use one before enough time has passed to use its full effect, it now says exactly how much you'll actually save (like "-2 of 5 days") instead of promising the full amount and quietly giving you less.
+- **For teachers:** the board layout editor's overlap-prevention (from last version) had a real gap — a tile could still land fully on top of a neighbor on drop. Fixed and confirmed with an actual mouse drag this time. There's also now a "👁️ Spectate" button next to any live game in Admin Tools, for watching a game in progress without joining it.
+
 ## v3.0.98 — Faces on the panel, less clutter, and the newspaper finally explains itself (July 7, 2026)
 
 - **You can see who's talking.** The redesigned panel now shows the character's face next to what they're saying — the Architect, the Engineer, the DOB Examiner, the FDNY Inspector — instead of just text with no one attached to it.

@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.99] - 2026-07-08
+
+**Two sessions landed in parallel: a foreign-IP text alert + spectator view for the user's first outside playtesters, and a real bug in the board-editor drag-overlap fix caught by an actual mouse drag (not a synthetic event).**
+
+### Text alert when a game starts from an unrecognized IP, with an admin kill switch
+The user is starting to get real outside playtesters and wanted to know the moment someone joins from off the home network — with the option to watch live. Removed the old ntfy.sh push integration entirely (it had been firing on six different events and was unreliable) rather than extending it. Replaced it with `sendOwnerAlert()` in [mailer.js](server/mailer.js), which sends a text via the carrier email-to-SMS gateway already used for player reminders (no new accounts) whenever `POST /api/games` sees a non-home IP. Gated behind `foreignGameAlertsEnabled` (default on), toggled by a checkbox in the game's own Admin Tools screen, backed by new `GET`/`POST /api/admin/settings` endpoints.
+
+"Home IP" detection was redesigned mid-session: it first shipped as a manually-set `HOME_IP` env var, then replaced with `detectHomeIP()` — queries api.ipify.org (falling back to ifconfig.me/icanhazip.com) on startup and every 24 hours, caching the result; `HOME_IP` remains as an optional manual override. Also added a private/loopback-IP allowlist for home routers that rewrite a LAN device's source address via NAT hairpin. Verified live against an isolated test server covering loopback, the detected public IP, a private LAN address, and a genuinely foreign address.
+
+**Production `.env` note:** the local `.env` now has `ALERT_PHONE`/`ALERT_CARRIER` set; the production Unraid `.env` needs the same two lines added before this deploy, since deploys don't touch env files.
+
+### Spectator view for live games from Admin Tools
+A "👁️ Spectate" button next to each game in the Admin Tools list opens a read-only TV-mode view in a new tab — reuses the existing join-info token flow and the already-read-only `TVDisplay.tsx`, no new backend work needed. Verified live in a real browser 2026-07-09: appears next to an active game, opens a genuine read-only view showing correct live board state.
+
+The one thing *not* built: sending a message into a live game — no broadcast channel exists yet, logged as a scoped TODO.md follow-up (also useful for remote-classroom teacher use, pending its own design pass).
+
+### Board editor: overlap-prevention had a real gap on the final drop (fb:feedback-1782842971898-c73c35ca)
+v3.0.98 shipped `resolveTileOverlap()` but only unit-tested it (documented limitation: synthetic `dispatchEvent` calls don't register with React Flow's drag system, so nobody had watched it happen live). This session verified it with a real multi-step mouse drag via Playwright and found the fix didn't actually work: React Flow always fires the drag's final settle event with `dragging: false`, but [BoardCanvas.tsx](src/components/board/BoardCanvas.tsx)'s `onNodesChange` only ran the push-back resolver when `dragging` was `true` — every in-flight step got corrected, but the actual drop bypassed the check entirely, letting a tile land in a full, exact overlap. Removed the `!change.dragging` condition so the resolver also runs on the settling event. Re-verified live: the tile now stops flush against the neighbor's edge instead of overlapping.
+
+### Expeditors: warn instead of silently wasting a partial day-reduction (fb:feedback-1782842888855-aff0e337)
+An Expeditor's "-N days" is a flat subtraction from the player's running `timeSpent` total, which floors at 0 (`ResourceService.updateResources`) — playing one before enough days have elapsed silently wastes part of the effect while still charging full price. Investigated as a design call (was previously flagged, not fixed): maintainer chose a soft warning over a hard block, applied uniformly to every negative-tick card regardless of bundled money/draw effects. `getCardEffectSummary()` and the Key Facts row in [PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx) now state the real, possibly-partial day count in amber ("-2 of 5 days") instead of the card's face value. Removed two now-superseded hard blocks that only covered the narrower zero-elapsed, no-other-benefit case (`GameRulesService.isTimeReductionBlockedByZeroTime` and a duplicate copy in `CardsSection.canPlayCard`).
+
+### Audited: outcome modal already shows scope changes by name (no code change)
+Investigated a TODO item asking the outcome modal to show which Work Packages were added/removed — found it was already resolved. `OutcomeChangesV2.tsx`'s "before→after modal" (shipped 2026-07-01, the day after the feedback was filed) already names specific Work Package cards gained/lost via `buildCardChanges()`, with `DiceRollProcessor.ts` carrying real card identity end-to-end and a passing test (`OutcomeChangesV2.test.tsx`) proving it. No path found where scope changes silently with no modal.
+
+### Checks
+Typecheck + build clean. See the koniec sweep below for the full test run.
+
 ## [3.0.98] - 2026-07-07
 
 **Live-verified the new-panel-as-default experience with a real 2-player game and found 4 real bugs along the way; closed the maintainer's Action/Outcome question with a real content gap (not a design choice); collapsed two more panel sections that read as more overwhelming than they needed to be; and did a broader content pass — 30 Life Event cards got missing narration, and the board editor got discipline labels + real overlap prevention.**

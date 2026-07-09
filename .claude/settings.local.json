@@ -681,7 +681,10 @@
       "Bash(powershell -Command \"Get-Process -Id 15312,2628 | Select-Object Id,ProcessName,Path,StartTime | Format-Table -AutoSize\")",
       "Bash(taskkill //F //PID 2628)",
       "Bash(taskkill //F //PID 15312)",
-      "Bash(powershell -Command \"Get-Content -Path 'C:\\\\Users\\\\tomas\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Unravel-Current-Game-Game-Alpha\\\\a793e1e7-6c9f-4de6-98a3-3d7b35936b50\\\\tasks\\\\b7exaj24i.output' -Tail 30\")"
+      "Bash(powershell -Command \"Get-Content -Path 'C:\\\\Users\\\\tomas\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Unravel-Current-Game-Game-Alpha\\\\a793e1e7-6c9f-4de6-98a3-3d7b35936b50\\\\tasks\\\\b7exaj24i.output' -Tail 30\")",
+      "Bash(tee /tmp/koniec-full-test.log)",
+      "Bash(cat /tmp/koniec-full-test.log 2>/dev/null | tail -30; echo \"---LINES---\"; wc -l /tmp/koniec-full-test.log 2>/dev/null)",
+      "Bash(tail -60 /tmp/koniec-full-test.log 2>/dev/null)"
     ],
     "deny": [],
     "ask": []
