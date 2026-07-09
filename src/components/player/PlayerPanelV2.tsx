@@ -896,7 +896,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
                     ? 'Working…'
                     // fb:17cc481c — state the effect instead of a bare "Activate".
                     : (() => {
-                        const summary = getCardEffectSummary(card);
+                        const summary = getCardEffectSummary(card, player.timeSpent);
                         return summary ? `Activate (${summary})` : 'Activate';
                       })()}
                 </button>

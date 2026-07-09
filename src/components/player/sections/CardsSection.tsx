@@ -207,15 +207,11 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
       if (currentPhase?.toUpperCase() !== card.phase_restriction.toUpperCase()) return false;
     }
 
-    // Block time-reduction-only cards when timeSpent is 0
-    if (card.tick_modifier) {
-      const tickVal = parseInt(card.tick_modifier, 10);
-      if (!isNaN(tickVal) && tickVal < 0 && (player.timeSpent || 0) === 0) {
-        const hasMoney = card.money_effect && parseInt(card.money_effect, 10) !== 0;
-        const hasDraw = card.draw_cards && parseInt(card.draw_cards, 10) > 0;
-        if (!hasMoney && !hasDraw) return false;
-      }
-    }
+    // fb:feedback-1782842888855-aff0e337 — used to hard-block a pure
+    // time-reduction card at timeSpent=0. Superseded 2026-07-08: the
+    // maintainer chose a soft warning (getCardEffectSummary shows the real,
+    // possibly-partial day count) over blocking the button, applied
+    // uniformly regardless of bundled effects — see cardTypeNames.ts.
 
     // Block unaffordable cards — money_effect encodes the spend cost for
     // cards like E030 "Time Crunch" ($8k). card.cost covers fixed-cost cards
@@ -314,7 +310,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                               </div>
                               {item.card.card_type === 'E' && isPlayable && (
                                 <div className="card-action-row">
-                                  <ActionButton label={`Activate Expeditor${getCardEffectSummary(item.card) ? ` (${getCardEffectSummary(item.card)})` : ''}`} variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Activate ${item.card.card_name}`} />
+                                  <ActionButton label={`Activate Expeditor${getCardEffectSummary(item.card, player.timeSpent) ? ` (${getCardEffectSummary(item.card, player.timeSpent)})` : ''}`} variant="primary" onClick={() => handlePlayCard(item.id)} disabled={isLoading} isLoading={isLoading} ariaLabel={`Activate ${item.card.card_name}`} />
                                 </div>
                               )}
                               {item.card.card_type === 'E' && !isPlayable && isUnaffordable && (
@@ -446,7 +442,7 @@ export const CardsSection: React.FC<CardsSectionProps> = ({
                             {item.card.card_type === 'E' && isPlayable && (
                               <div className="card-action-row">
                                 <ActionButton
-                                  label={`Activate Expeditor${getCardEffectSummary(item.card) ? ` (${getCardEffectSummary(item.card)})` : ''}`}
+                                  label={`Activate Expeditor${getCardEffectSummary(item.card, player.timeSpent) ? ` (${getCardEffectSummary(item.card, player.timeSpent)})` : ''}`}
                                   variant="primary"
                                   onClick={() => handlePlayCard(item.id)}
                                   disabled={isLoading}

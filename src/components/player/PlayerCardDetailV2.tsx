@@ -63,6 +63,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
 
   if (!card) return null;
 
+  const player = gameServices.stateService.getPlayer(playerId);
   const meta = CARD_TYPE_META[card.card_type] || { label: card.card_type, emoji: '📄', teaches: '' };
   const typeColors = getCardTypeColors(card.card_type || '');
   // Only Expeditors (E) are "activated" from this view. The influence zone offers
@@ -127,11 +128,19 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
     // Expeditors save time (tick < 0 = good); delays add it (tick > 0 = bad).
     // Colour the value to match — fb:39fd9f04 ("adding days should read red,
     // saving days green").
+    // fb:feedback-1782842888855-aff0e337 — a day-reduction is a flat
+    // subtraction from timeSpent (floors at 0), so playing it before enough
+    // days have elapsed wastes part of the effect. State the real amount in
+    // amber instead of the full face value when it would be partial.
+    const timeSpent = player?.timeSpent ?? 0;
+    const isPartialSavings = tick < 0 && timeSpent < Math.abs(tick);
     facts.push({
       icon: '🕐',
       label: tick < 0 ? 'Saves' : 'Adds',
-      value: `${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`,
-      valueColor: tick < 0 ? GOOD : BAD,
+      value: isPartialSavings
+        ? `${timeSpent} of ${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`
+        : `${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`,
+      valueColor: tick < 0 ? (isPartialSavings ? '#f59e0b' : GOOD) : BAD,
     });
   }
   if (card.duration && card.duration !== 'Permanent' && card.duration !== '0') {
@@ -163,7 +172,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   // instead of Activate?" Same tick_modifier/cost/money_effect data already
   // shown in Key Facts above, just echoed on the button so the effect is
   // visible without scrolling back up.
-  const activateEffectSummary = canPlay ? getCardEffectSummary(card) : null;
+  const activateEffectSummary = canPlay ? getCardEffectSummary(card, player?.timeSpent) : null;
   const footer = canPlay ? (
     <button
       onClick={handleActivate}

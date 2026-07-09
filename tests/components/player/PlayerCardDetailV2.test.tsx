@@ -49,6 +49,11 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     services = createAllMockServices();
     services.cardService.canPlayCard.mockReturnValue(true);
     services.cardService.playCard.mockResolvedValue({} as any);
+    // Enough elapsed time that a -2 or -3 day card (the ticks used below)
+    // always lands its full benefit, so tests unrelated to the partial-
+    // savings feature (fb:feedback-1782842888855-aff0e337) aren't affected
+    // by it. That feature has its own dedicated test further down.
+    services.stateService.getPlayer.mockReturnValue({ id: 'player1', name: 'Player 1', timeSpent: 10 } as any);
   });
 
   afterEach(() => cleanup());
@@ -82,6 +87,13 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
       </DictionaryProvider>,
     );
     expect(screen.getByText('3 days')).toHaveStyle({ color: '#c0392b' });
+  });
+
+  it('states the real (partial) day count in amber when not enough time has elapsed for the full benefit (fb:feedback-1782842888855-aff0e337)', () => {
+    services.stateService.getPlayer.mockReturnValue({ id: 'player1', name: 'Player 1', timeSpent: 1 } as any);
+    renderDetail(); // tick_modifier '-2', but only 1 day has elapsed
+    expect(screen.getByText('1 of 2 days')).toHaveStyle({ color: '#f59e0b' });
+    expect(screen.getByRole('button', { name: /^Activate/ })).toHaveTextContent('-1 of 2 days · -$8,000');
   });
 
   it('activates through the service when the player can play it', async () => {

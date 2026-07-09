@@ -35,12 +35,30 @@ export function getCardDisplayTitle(card: Card): string {
  * facts" list already uses (cost as cost; money_effect only when there's no
  * separate cost; tick_modifier negative = saves days). Returns null when the
  * card carries no numeric time/money effect to summarize.
+ *
+ * fb:feedback-1782842888855-aff0e337 — an Expeditor's day-reduction is a flat
+ * subtraction from the player's running `timeSpent` total, which floors at 0
+ * (ResourceService.updateResources). Play a "-5 days" card at timeSpent=2 and
+ * only 2 of the 5 days actually land — the rest is silently wasted. Pass the
+ * player's current timeSpent so the summary states the REAL amount that would
+ * apply ("-2 of 5 days") instead of the card's face value. Decided as a soft
+ * warning (still playable), not a hard block, applying uniformly to every
+ * negative-tick card regardless of other bundled effects (design call, made
+ * 2026-07-08 — maintainer chose "some benefit is still worth seeing honestly"
+ * over gating the button).
  */
-export function getCardEffectSummary(card: Card): string | null {
+export function getCardEffectSummary(card: Card, playerTimeSpent?: number): string | null {
   const parts: string[] = [];
   const tick = card.tick_modifier ? parseInt(card.tick_modifier, 10) : undefined;
   if (tick != null && !isNaN(tick) && tick !== 0) {
-    parts.push(`${tick < 0 ? '-' : '+'}${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`);
+    // No player context passed → show the card's face value (unchanged,
+    // backward-compatible default). Only apply the partial-benefit warning
+    // when a caller explicitly supplies the player's elapsed time.
+    if (tick < 0 && playerTimeSpent != null && playerTimeSpent < Math.abs(tick)) {
+      parts.push(`-${playerTimeSpent} of ${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`);
+    } else {
+      parts.push(`${tick < 0 ? '-' : '+'}${Math.abs(tick)} day${Math.abs(tick) === 1 ? '' : 's'}`);
+    }
   }
   if (card.cost != null && !isNaN(card.cost) && card.cost > 0) {
     parts.push(`-$${card.cost.toLocaleString()}`);

@@ -98,10 +98,12 @@ export class GameRulesService implements IGameRulesService {
       // If currentActivityPhase is null (player not on a phased space), allow any cards to be played
     }
 
-    // Block cards whose only effect is a time reduction when timeSpent is already 0
-    if (card && this.isTimeReductionBlockedByZeroTime(card, playerId)) {
-      return false;
-    }
+    // fb:feedback-1782842888855-aff0e337 — used to hard-block a pure
+    // time-reduction card at timeSpent=0 here (isTimeReductionBlockedByZeroTime).
+    // Superseded 2026-07-08: the maintainer chose a soft warning over a hard
+    // block (getCardEffectSummary states the real, possibly-partial day count
+    // instead), applied uniformly regardless of bundled effects — the button
+    // stays offered either way now.
 
     // fb:58277eca — block cards the player can't afford. E030 "Time Crunch"
     // costs $8K via money_effect=-8000; before this check, the Play button
@@ -344,32 +346,6 @@ export class GameRulesService implements IGameRulesService {
   private isValidCardType(cardType: string): boolean {
     const validTypes: CardType[] = ['W', 'B', 'E', 'L', 'I'];
     return validTypes.includes(cardType as CardType);
-  }
-
-  /**
-   * Checks if a card type requires the player's turn to play
-   * @private
-   */
-  private isTimeReductionBlockedByZeroTime(card: Card, playerId: string): boolean {
-    if (!card.tick_modifier) return false;
-    const tickVal = parseInt(card.tick_modifier, 10);
-    if (isNaN(tickVal) || tickVal >= 0) return false;
-
-    const player = this.stateService.getPlayer(playerId);
-    if (!player || player.timeSpent > 0) return false;
-
-    // Card has a negative tick_modifier and timeSpent is 0
-    // Only block if there are no other beneficial effects
-    if (card.money_effect) {
-      const moneyVal = parseInt(card.money_effect, 10);
-      if (!isNaN(moneyVal) && moneyVal !== 0) return false;
-    }
-    if (card.draw_cards) {
-      const drawVal = parseInt(card.draw_cards, 10);
-      if (!isNaN(drawVal) && drawVal > 0) return false;
-    }
-
-    return true;
   }
 
   private cardRequiresPlayerTurn(cardType: CardType): boolean {
