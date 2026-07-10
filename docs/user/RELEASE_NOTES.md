@@ -2,6 +2,15 @@
 
 ---
 
+## v3.0.100 — The plan examiner's verdict actually shows up now, and so does everything else that was quietly going nowhere (July 9, 2026)
+
+- **You'll actually see what the DOB and FDNY examiners decide.** Rolling at plan exam used to happen automatically with no popup at all — approved, sent back for revisions, denied, none of it showed up anywhere except a small badge that changed without explanation. Now it pops up in a clear box: green for approved, amber for a minor objection, red for denied.
+- **The owner's starting money shows up in its own box, too** — same fix, same reason. Before, the only sign your money had landed was a quick flash that was easy to miss.
+- **A whole category of pop-ups that used to say nothing now say something.** If a card or a change of plans just cost you your DOB or FDNY approval, you'll get a clear heads-up ("your DOB approval is on hold") instead of just noticing later that a badge disappeared.
+- **Funding conversations at the bank and the investor's office show real numbers now**, the same fix v3.0.98 made for the owner's — a couple of spots were still showing the placeholder text instead of your actual dollar figure.
+- **"Approve" is now reserved for the DOB and FDNY examiners only.** The architect, engineer, and contractor sign-off buttons used to say "Approve" too, which made it hard to tell those apart from a real regulatory approval. They now say "Sign off" instead.
+- **If you got a text alert about a game starting from an unrecognized location right after checking your own deploy, that's fixed** — restarting the server used to create a few-second window where even your own visit looked "foreign."
+
 ## v3.0.99 — Expeditors are honest about partial savings, and a board-editor fix that actually holds up (July 8, 2026)
 
 - **An Expeditor's day-savings now tells you the real number.** If you use one before enough time has passed to use its full effect, it now says exactly how much you'll actually save (like "-2 of 5 days") instead of promising the full amount and quietly giving you less.

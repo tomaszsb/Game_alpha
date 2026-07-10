@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.100] - 2026-07-09
+
+**Chased one bug report ("nothing showed me the plan examiner verdict") and it kept unraveling: a text-collapse bug, a dice-roll auto-fired with the result thrown away, a stale template token, a silent approval-revoke, and — the big one — the entire toast-notification system has been invisible on the default player panel since v3.0.97. Also fixed a deploy-restart false alarm on the new foreign-game text alert and reserved "approve" language for DOB/FDNY.**
+
+### Foreign-game alert false-fired on every deploy restart
+`detectHomeIP()` (shipped v3.0.99) fires at server startup but is never awaited, so the server accepts traffic while the outbound geo-IP lookup is still in flight. `isHomeIP()` was written to fail toward alerting when the home IP isn't known yet — so any visit landing in that window, including the maintainer's own "did the deploy work?" check right after a restart, got flagged as foreign and texted. [server.js](server/server.js) now tracks whether detection has settled at least once; only fails open (alerts) after it has. The brief startup window assumes home instead.
+
+### Plan-examiner verdict: the buried-text bug, and the real bug underneath it
+Two layers to fb:feedback-1782848524918-7300c51d ("nothing showed me the plan examiner verdict"):
+
+1. **Buried text.** The Phase 7.5 approval-outcome banner (v2.65.4) was concatenated into the modal Summary paragraph's `\n\n` separator, which a plain `<p>` collapses — it read as a continuation of the NPC's sentence instead of a distinct beat. Split into a new `TurnEffectResult.approvalOutcome` field, rendered as its own color-coded banner (green/amber/red by outcome) in [DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx). This also closes fb:feedback-1782850541659-a542fad6 ("make DOB/FDNY approval a bigger moment") — no separate celebration modal needed.
+2. **The actual root cause.** `TurnService.startTurn()` auto-rolls dice with **no button at all** for REGULATORY-phase dice-movement spaces (DOB/FDNY plan exam, DOB audit, DOB final review — "the examiner decides") and discarded the result completely. In real gameplay the verdict banner above could never reach a modal, because no modal ever opened. Same root shape independently affected `TurnService.handleAutomaticFunding()` (owner seed money) — also fires from inside `startTurn` with no React caller to capture the result, so the player got a 3s toast at best. Both now emit a `AutoActionEvent` carrying the full `TurnEffectResult`; [GameLayout.tsx](src/components/layout/GameLayout.tsx) enqueues it into the existing dice-result modal queue. Live-verified via a real multi-step playthrough (not a state-injection shortcut) that the modal now opens automatically ~500ms after arriving at `REG-DOB-PLAN-EXAM`.
+
+### {fundingAmount} token leak, generalized
+v3.0.98 fixed the raw `{fundingAmount}` placeholder for the on-panel story text, but `DiceRollProcessor.buildTurnEffectResult` and `TurnService.triggerManualEffectWithFeedback` both built the *modal's* summary from the raw, uninterpolated story — so `BANK-FUND-REVIEW`/`INVESTOR-FUND-REVIEW` Subsequent-visit modals still showed the literal token instead of the dollar figure. Extracted `resolveFundingAmountToken()` in [templateInterpolation.ts](src/utils/templateInterpolation.ts) and wired all three funding call sites (including refactoring the original owner-funding fix for consistency) to the same resolver. fb:feedback-1783080730748-5ccd596e (still-open duplicate of this exact bug, filed 2026-07-03) closed.
+
+### DOB/FDNY approval revokes were completely silent — and exposed a much bigger gap
+A W-card scope-change or an L-card with `revokes_approval` set (L003 "New Safety Regulations", L020 "Building Code Update") could invalidate a player's DOB/FDNY approval with zero feedback — only a badge quietly flipping in the panel header. Added `approval_revoked` `AutoActionEvent` emissions at both revoke sites in [CardService.ts](src/services/CardService.ts).
+
+Wiring this up surfaced two deeper bugs:
+- **`PlayerPanelV2` — the default panel since v3.0.97 — never rendered the `playerNotification` prop it receives.** The classic panel does. This means every `notificationService.notify()` call anywhere in the app (movement errors, dice-roll completions, card-play toasts, everything) has been silently swallowed on the default panel for weeks. Ported the missing render into [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx).
+- **A genuine race condition**, found via diagnostic logging once the render was fixed: the approval-revoke notice and the dice-roll's own generic completion toast share a single-value state slot (`playerNotifications[playerId]`), and the second silently overwrote the first within the same tick — confirmed via a traced `setPlayerNotifications` call sequence. Gave the approval notice its own dedicated state channel (`approvalRevokeNotice`) in GameLayout so it can't be clobbered by an unrelated toast.
+
+### "Approve" reserved for DOB/FDNY sign-off
+A direct report: "approve" was being used for architect/engineer/contractor sign-off buttons too, reading as confusable with the real regulatory approval badges. `ARCH-SCOPE-CHECK`, `ENG-SCOPE-CHECK`, and `CON-INITIATION` now use "sign off on"/"sign" — [Spaces.csv](public/data/SOURCE_FILES/Spaces.csv), CLEAN_FILES regenerated.
+
+### Dashboard sweep
+14 open feedback reports checked against current code and closed: 2 real fixes above (plan-examiner verdict, approval milestone), 1 duplicate-report closure (fb:5ccd596e), and 11 confirmed already-resolved by earlier sessions' work but never flipped — glossary term-tap discoverability, wrong life-event emoji, expeditor phase-gating, board movement-destination highlighting, "Replace Expeditor" button, life-event-button info, and others. Investigated E009 "Favor Called In" and E024 "Return to Sender" card mechanics against "is the plumbing built?" questions — both correctly implemented, no fix needed.
+
+### Flagged, not fixed
+- **6x duplicate `subscribeToAutoActions` firing** — diagnostic logging during the approval-revoke work showed every auto-action event firing 6 times instead of once, reproducible even on a fresh browser session. Currently harmless (existing handlers are idempotent) but worth root-causing before a future non-idempotent handler misbehaves. Flagged as a background task, not chased this session.
+- **"Move button disappeared after submitting a bug report"** (fb:bf8bf19a) — couldn't cleanly reproduce with the teleport-based test harness, which bypasses the natural action-counting flow the bug likely depends on. Left open rather than forcing a shaky fix.
+
+### Checks
+Typecheck + build clean. 172+ tests passing across the touched services/components in targeted runs during the session; full suite result in this session's koniec sweep.
+
 ## [3.0.99] - 2026-07-08
 
 **Two sessions landed in parallel: a foreign-IP text alert + spectator view for the user's first outside playtesters, and a real bug in the board-editor drag-overlap fix caught by an actual mouse drag (not a synthetic event).**

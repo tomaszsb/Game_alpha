@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 8, 2026
-**Status:** Beta — live in production; **v3.0.99 pending deploy** (v3.0.98 deployed 2026-07-07, verified via the live bundle's embedded version/commit strings)
-**Current Version:** 3.0.99
+**Last Updated:** July 9, 2026
+**Status:** Beta — live in production; **v3.0.100 pending deploy** (v3.0.98 deployed 2026-07-07, verified via the live bundle's embedded version/commit strings)
+**Current Version:** 3.0.100
 
 ---
 
@@ -28,6 +28,12 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **Print the QR codes** — 5 campaign-tagged PNGs already generated in `Mockups/qr-codes/` (no logo overlay yet; PRD asks for one, add in image software before printing).
 ---
 
+## 🔎 **Follow-ups from the v3.0.100 session** (2026-07-09)
+- [ ] **6x duplicate `subscribeToAutoActions` firing.** Diagnostic logging during the approval-revoke fix showed every auto-action event firing 6 times instead of once — reproducible even on a freshly-started browser session (ruled out dev-reload accumulation as the cause). Currently harmless: every existing handler on this event bus is idempotent, so 6 identical notify()/enqueue() calls just redo the same thing. But a future non-idempotent handler (anything that increments a counter, appends to a list, etc.) would silently misbehave 6x per action. Candidates to check when investigating: React 18 StrictMode double-invoke (explains 2x, not 6x), GameLayout or a wrapping component mounting multiple times simultaneously (solo view vs. multi-panel grid vs. TV mode, even if only one is CSS-visible), or `stateService.subscribeToAutoActions`'s unsubscribe not actually detaching on effect cleanup. Also noticed in the same diagnostic: `effectiveViewPlayerId` reads as stale/null inside that same effect's closure — currently harmless (the actual notify() calls use `event.playerId` from the payload, not the closure variable) but a footgun for future code added to that effect. Spawned as a background task this session (task_bb6cec79), not yet investigated.
+- [ ] **"Move button disappeared after submitting a bug report"** (fb:1782843327269-bf8bf19a, v3.0.90) — still open, couldn't verify either way this session. The teleport-based state-injection test harness can't reproduce it: it bypasses the client-computed `availableActionTypes`/`movementChoiceUnlocked` fields that gate the Move UI (see CLAUDE.md TACTICAL "State-injection teleport testing can't exercise client-computed-then-persisted UI-gating fields," 2026-07-09), so a teleported player never has the Move button in the right state to test the interaction. Needs either a real multi-step playthrough (reach a movement-choice space genuinely, then file a bug report while it's showing) or a live user confirmation that it still reproduces on v3.0.100+.
+
+---
+
 ## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
 *Source: `/api/public/feedback/open`, 63 open → 48 new candidates (13 already tracked; 2 already-shipped awaiting dashboard flip: 222cd521, 1990c71e). Essentially one structured QA pass on the opt-in new panel — 30 reports from the 2026-06-30 v3.0.90 session + earlier un-triaged new-panel reports. Clusters below are sprint-shaped; standalone bugs are called out. Full staging: `.claude/feedback-staged.md`.*
 
@@ -37,7 +43,7 @@ This file contains ONLY current and future work. For completed work, see CHANGEL
 - [ ] **✓ done-trace outcome tooltip is desktop-hover only** — if players ask for it on touch, revisit with a tap-to-expand trace.
 
 ### 🔗 Modal content model (aligns with redesign §5 + the before→after modal)
-*Fixed 2026-07-09 (uncommitted — pending this session's commit): plan-examiner verdict + "make DOB/FDNY approval a bigger moment" were the same underlying gap — the verdict banner (fb:feedback-1782848524918-7300c51d) was being concatenated into the Summary paragraph's `\n\n` separator, which a plain `<p>` collapses, so it read as a continuation of the NPC's sentence instead of a distinct beat. Split into its own color-coded banner (green/amber/red by outcome) in [DiceResultModal.tsx](src/components/modals/DiceResultModal.tsx), fed by a new `TurnEffectResult.approvalOutcome` field — closes fb:feedback-1782850541659-a542fad6 too, no separate celebration modal needed. Both dashboard-flipped.*
+*Shipped v3.0.100 (2026-07-09): plan-examiner verdict + "make DOB/FDNY approval a bigger moment" turned out to be the same underlying gap, plus a deeper one underneath — see CHANGELOG v3.0.100 for the full chain (buried-text bug → auto-roll discarding its result entirely → the modal never opening in normal play). Both fb:feedback-1782848524918-7300c51d and fb:feedback-1782850541659-a542fad6 dashboard-flipped.*
 - ✅ *Already fixed in earlier versions — DASHBOARD FLIP STILL PENDING (no code):* fb:9c110d52 (Pays→Costs, [PlayerCardDetailV2.tsx:108](src/components/player/PlayerCardDetailV2.tsx#L108)) + fb:8d68ab14 (Activate only on E cards, [:78](src/components/player/PlayerCardDetailV2.tsx#L78)) — not found in the current open feed as of 2026-07-09, likely already resolved from a prior sweep. (Also still awaiting flip from v3.0.90 triage: 222cd521, 1990c71e.)
 
 ### Standalone
