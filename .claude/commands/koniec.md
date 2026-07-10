@@ -91,6 +91,11 @@ If none of those triggered, the sweep is done — skip the read entirely. A no-o
 
 After this step the only checkboxes left should be `[ ]` (pending) and `[~]` (in-progress). If you ever see `[x]` survive a `/koniec`, this step didn't run.
 
+**Enforce the slimness contract (added 2026-07-10 — the file had regrown to 306 lines / ~26K tokens, past the Read cap, mostly from preamble recaps of shipped work):**
+- Section preambles are **ONE pointer line max** ("history: CHANGELOG v3.0.91–98"). If a preamble has grown a "Shipped vX: …" narration, cut it to the pointer — CHANGELOG owns that story.
+- Items that are trigger-gated / deferred / "revisit if noticed" belong in the **🅿️ Parking lot** section at the bottom, not in active sections. New follow-ups you append this step: ask "does this have a near-term action, or a trigger?" and file accordingly.
+- Size guard: active portion (above the Parking lot) over ~150 lines, or whole file over ~250 lines → trim as part of this step and mention it in the step-6 wrap line.
+
 **Then append** things discovered today that didn't ship and aren't already tracked. Use the existing bucket structure. Also add:
 - Pre-existing test failures noticed during pre-flight if not already tracked.
 - Living-doc updates that need human judgment rather than an inline guess.
@@ -133,6 +138,10 @@ click-through; presenting it as settled nearly shipped a fix that wouldn't have 
 
 ## Decisions waiting on the user
 - [Decision] — options the user has been presented with.
+
+## Flip after deploy
+(Skip section if the shipped version is already deployed or no fb reports were closed.)
+- fb:<full-id>, fb:<full-id> — fixed in vX.Y.Z; PATCH resolved once that version is confirmed live.
 
 ## Suggested first move
 2–3 sentences, phrased as a question when a choice is involved.

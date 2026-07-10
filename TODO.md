@@ -1,305 +1,145 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 9, 2026
-**Status:** Beta — live in production; **v3.0.100 pending deploy** (v3.0.98 deployed 2026-07-07, verified via the live bundle's embedded version/commit strings)
+**Last Updated:** July 10, 2026
+**Status:** Beta — live in production; **v3.0.100 deployed 2026-07-10** (commit `8929371`, confirmed by maintainer)
 **Current Version:** 3.0.100
 
 ---
 
-## 📌 **IMPORTANT: Documentation Rule**
+## 📌 Documentation rule — the slimness contract (tightened 2026-07-10)
 
-**✅ Completed tasks** → Move to `CHANGELOG.md` (and delete from this file — don't just check them off).
-**📋 Active/Pending tasks** → Keep here
-**🎯 Goals/Priorities** → Keep here
-
-This file contains ONLY current and future work. For completed work, see CHANGELOG.md.
-
----
-
-## 📣 **Host-to-player messaging (2026-07-08, scoped follow-up)**
-*Companion to the foreign-game text alert + Admin Tools spectator "👁️ Spectate" button (shipped 2026-07-08): the alert tells you a game started, spectate lets you watch it live via the read-only TV view. Still missing: a way to say something INTO a game you're watching. Good fit for the remote-classroom use case too (a teacher spectating a game running on a student's device could nudge them the same way).*
-- [ ] **Design + build a host-message broadcast.** No such channel exists today — needs a new mechanism to push a short message into a running game's UI (e.g. a WebSocket message type alongside the existing `state_update`/`version_update` types in `server/websocket.js`, broadcast to a game's room) and a way for players to see it (a small banner/toast in `GameLayout`/`TVDisplay`, dismissible, doesn't block play). Needs its own design pass: who can send (admin only, or also a teacher spectating their own classroom's game?), is it free text or presets, does it interrupt or just appear, does it log to the Chronicle. Not started. (PRD added 2026-07-03; Phases 1–2 shipped v3.0.95; `/challenge` reworked v3.0.96)
-*Full spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx). Landing page (`/challenge`), all reminder options, email/text via SMTP, campaign-source tracking — see CHANGELOG v3.0.95/v3.0.96. v3.0.96 added the phone/big-screen split, the unified pick-how-then-when flow with true email/text scheduling, and the screenshot carousel. Still deliberately out of scope: tester tiers, Discord, referrals, rewards, leaderboards, community portal, AI feedback scoring, CRM.*
-- [ ] **Live-verify `/challenge` on the user's iPhone 16** — v3.0.97 is deployed, but the phone view, "Phone alert" → Add-to-Home-Screen flow, carousel, and the "Play anyway" warning have only been seen in the headless preview, not a real phone.
-- [ ] **Finish the screenshot carousel** — 7 shots captured (setup, opening board, glossary, two action modals, a term popup, teacher edit-spaces). Still wanted (drop numbered PNGs into `src/playtest/tour/`): **mid-game with revealed nodes**, **won game**, **lost game** (all reachable via the state-injection recipe in CLAUDE.md TACTICAL "Capturing a transient modal"/"Live verification by cheating state"), and a **money-deducted modal**. Also: re-shoot `01-player-setup` from production (local shot shows "localhost only" on the QR), and swap `12-a-word-explained.png` (rough AI-draft label). Regenerate reachable ones with `node scripts/capture-game-screenshot.js`.
-- [ ] **Real mobile-preview mini-puzzle** — "Quick preview" currently routes to the same real game as "Play Now" (a deliberate placebo A/B test on button framing). A genuine 30–60s phone-playable demo puzzle is design work, not engineering — scope separately once there's a clear idea of what to show.
-- [ ] **Demo video** — 30–45s video showing multiplayer/TV/phone-controller/puzzle-solving. **Script + storyboard drafted 2026-07-05 (session 2, in chat)** — still needs actual footage before the "Watch demo" button goes live. Wire the button to the file once it exists.
-- [ ] **Phase 3 — optimize using real funnel data** once traffic exists. Success metrics: return rate, play completion, feedback rate (primary); avg play time, campaign performance, device distribution (secondary). `GET /api/admin/playtest-stats` already aggregates the funnel events by event type + campaign source.
-- [ ] **Print the QR codes** — 5 campaign-tagged PNGs already generated in `Mockups/qr-codes/` (no logo overlay yet; PRD asks for one, add in image software before printing).
----
-
-## 🔎 **Follow-ups from the v3.0.100 session** (2026-07-09)
-- [ ] **6x duplicate `subscribeToAutoActions` firing.** Diagnostic logging during the approval-revoke fix showed every auto-action event firing 6 times instead of once — reproducible even on a freshly-started browser session (ruled out dev-reload accumulation as the cause). Currently harmless: every existing handler on this event bus is idempotent, so 6 identical notify()/enqueue() calls just redo the same thing. But a future non-idempotent handler (anything that increments a counter, appends to a list, etc.) would silently misbehave 6x per action. Candidates to check when investigating: React 18 StrictMode double-invoke (explains 2x, not 6x), GameLayout or a wrapping component mounting multiple times simultaneously (solo view vs. multi-panel grid vs. TV mode, even if only one is CSS-visible), or `stateService.subscribeToAutoActions`'s unsubscribe not actually detaching on effect cleanup. Also noticed in the same diagnostic: `effectiveViewPlayerId` reads as stale/null inside that same effect's closure — currently harmless (the actual notify() calls use `event.playerId` from the payload, not the closure variable) but a footgun for future code added to that effect. Spawned as a background task this session (task_bb6cec79), not yet investigated.
-- [ ] **"Move button disappeared after submitting a bug report"** (fb:1782843327269-bf8bf19a, v3.0.90) — still open, couldn't verify either way this session. The teleport-based state-injection test harness can't reproduce it: it bypasses the client-computed `availableActionTypes`/`movementChoiceUnlocked` fields that gate the Move UI (see CLAUDE.md TACTICAL "State-injection teleport testing can't exercise client-computed-then-persisted UI-gating fields," 2026-07-09), so a teleported player never has the Move button in the right state to test the interaction. Needs either a real multi-step playthrough (reach a movement-choice space genuinely, then file a bug report while it's showing) or a live user confirmation that it still reproduces on v3.0.100+.
+- **✅ Completed** → move to `CHANGELOG.md` and **delete** from here (don't just check off).
+- **Section preambles: ONE pointer line max** (e.g. "history: CHANGELOG v3.0.91–98"). Never re-narrate shipped work here — that's CHANGELOG's job. (2026-07-10: preamble recaps had regrown this file to 306 lines / ~26K tokens, past the read cap.)
+- **Trigger-gated / deferred / "revisit if noticed" items** live in the 🅿️ Parking lot at the bottom, not in active sections.
+- **Size guard:** active portion (above the Parking lot) > ~150 lines, or whole file > ~250 → trim during `/koniec` step 4.
 
 ---
 
-## 🆕 **New-panel playtest — triaged 2026-07-01** (v3.0.90 QA batch)
-*Source: `/api/public/feedback/open`, 63 open → 48 new candidates (13 already tracked; 2 already-shipped awaiting dashboard flip: 222cd521, 1990c71e). Essentially one structured QA pass on the opt-in new panel — 30 reports from the 2026-06-30 v3.0.90 session + earlier un-triaged new-panel reports. Clusters below are sprint-shaped; standalone bugs are called out. Full staging: `.claude/feedback-staged.md`.*
+## 🔎 Active — bugs & investigations
 
-### 🔗 Money / fee legibility (remaining after v3.0.92)
-*Shipped v3.0.91: the reconcile bug (fb:f0bdd78a), the money runway cue (fb:0aae9865), the `MONEY change of 0` error. Shipped v3.0.92 (see CHANGELOG): the bankruptcy loss screen, the "$X deficit" cue, the end-turn this-turn cost line (fb:06f7da3b / b53864af), the contractor agreed price (fb:40caa223) + full price/schedule redesign (`contractorTerms.ts`, signing = mandatory bill). Decisions recorded: loans don't bankrupt (repayment post-scope), low cash OK. Remaining:*
-- [ ] **This-turn cost line attribution nuance** — days landed by the previous turn's movement roll can attribute to the current turn's line (arrival ordering). Honest total, blurred attribution; revisit only if playtesters notice.
-- [ ] **✓ done-trace outcome tooltip is desktop-hover only** — if players ask for it on touch, revisit with a tap-to-expand trace.
+- [ ] **6x duplicate `subscribeToAutoActions` firing.** Every auto-action event fires 6× instead of once, even on a fresh browser session. Harmless today (all handlers idempotent) but a future counter/append handler would silently misbehave. Candidates: StrictMode double-invoke (explains 2×, not 6×), multiple simultaneous GameLayout mounts (solo/grid/TV, even CSS-hidden), unsubscribe not detaching on effect cleanup. Also noted: `effectiveViewPlayerId` reads stale/null in that effect's closure — harmless now (handlers use `event.playerId`), footgun later. (Background task `task_bb6cec79`, 2026-07-09.)
+- [ ] **"Move button disappeared after submitting a bug report"** (fb:1782843327269-bf8bf19a, v3.0.90) — teleport harness can't repro (bypasses client-computed `availableActionTypes`/`movementChoiceUnlocked`; see CLAUDE.md TACTICAL 2026-07-09). Needs a real playthrough to a movement-choice space + filing a report there, or live confirmation it still reproduces on v3.0.100+.
+- [ ] **DiceResultModal (outcome modal) restyle to the V2 design language.** Was deferred until the new panel became default — it has been since v3.0.97, so this is now unblocked. Shared live-turn modal (holds the v3.0.71 backdrop-grace fix) — restyle in place, carefully. Design: [player-panel-redesign.md](docs/design/player-panel-redesign.md) §5/§10.1.
+- [ ] **Before→after outcome modal ([OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx)) — confirm live once**, then judge the "Gained:" double-listing polish question (effect-row + ledger line may read noisy; if so show only lost/swapped). v3.0.99 audit + passing test say it works; just hasn't been watched in a real card-gain/loss moment.
 
-### 🔗 Modal content model (aligns with redesign §5 + the before→after modal)
-*Shipped v3.0.100 (2026-07-09): plan-examiner verdict + "make DOB/FDNY approval a bigger moment" turned out to be the same underlying gap, plus a deeper one underneath — see CHANGELOG v3.0.100 for the full chain (buried-text bug → auto-roll discarding its result entirely → the modal never opening in normal play). Both fb:feedback-1782848524918-7300c51d and fb:feedback-1782850541659-a542fad6 dashboard-flipped.*
-- ✅ *Already fixed in earlier versions — DASHBOARD FLIP STILL PENDING (no code):* fb:9c110d52 (Pays→Costs, [PlayerCardDetailV2.tsx:108](src/components/player/PlayerCardDetailV2.tsx#L108)) + fb:8d68ab14 (Activate only on E cards, [:78](src/components/player/PlayerCardDetailV2.tsx#L78)) — not found in the current open feed as of 2026-07-09, likely already resolved from a prior sweep. (Also still awaiting flip from v3.0.90 triage: 222cd521, 1990c71e.)
+## 📣 Active — host-to-player messaging (2026-07-08)
 
-### Standalone
-*Shipped v3.0.93–94 (2026-07-02): Chronicle turn-dividers (fb:1eff7156), glossary tablet-tap + iframe fallback (fb:baa01a70 — **confirm tap fix on a real tablet next playtest**), E013 audit + EffectFactory double time-effect fix (fb:c51f9f16). Shipped v3.0.97 (2026-07-06, panel-default flip + backlog re-triage — 16 items, see CHANGELOG for full detail): movement-gate hiding, End-Turn error swallowing, PM-voiced-space NPC mismatch, avatar consistency (audited, already fine), spectator join copy, and 9 already-fixed-but-gated reports closed by the default flip. Shipped v3.0.98 (2026-07-07): live-playtest bug batch (fundingAmount template, missing NPC portraits, effects-list collapse, player-order "rolodex"), Action+Outcome restoration (fb:f6e100b7), modal chrome + movement-collapse polish (fb:f036c7aa, fb:8edd02b4), 30-card Life Event narration rewrite (fb:794ff9d6), board discipline labels (fb:a9d3221a) + drag-overlap prevention (fb:c73c35ca). See CHANGELOG.*
+- [ ] **Design + build a host-message broadcast.** No channel exists to push a message into a running game (new WS message type in `server/websocket.js` + dismissible banner in `GameLayout`/`TVDisplay`). Needs its own design pass first: who can send, free text vs presets, interrupt vs appear, Chronicle logging. Also fits remote-classroom teacher use.
 
-### 🔗 Landing / presentation polish
-*NOTE: these two are about the GAME's own setup/landing screen (`PlayerSetup`), NOT the `/challenge` invite page — but v3.0.96 addressed the same asks on `/challenge` (screenshot carousel = representative graphic; phone view now warns "not recommended on a small screen"). Reassess whether the game-setup screen still needs them after the v3.0.96 approach is seen live.*
-- [ ] **Landing feels "naked" / lots of white space** — wants a more prominent title, a representative graphic (asks for a generation prompt), an optional jingle/sound, and subtle wavy motion on the player boxes. (Graphic idea now proven on `/challenge` via the screenshot carousel — could reuse.) <!-- fb:feedback-1782833475856-7dbc2fcc -->
-- [ ] **Scroll bars / sizing + phone warning** — page should resize to always fit the screen; on a phone, warn that the game is designed for a tablet minimum, best on a TV. (`/challenge` now does the phone warning; the game-setup screen still may want it.) <!-- fb:feedback-1782833653490-5470235b -->
+## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
----
+*Spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx)*
+- [ ] **Live-verify `/challenge` on the user's iPhone 16** — phone view, "Phone alert"→Add-to-Home-Screen, carousel, "Play anyway" warning only seen headless so far.
+- [ ] **Finish the screenshot carousel** — 7 shots done; still wanted in `src/playtest/tour/`: mid-game revealed nodes, won game, lost game, money-deducted modal (state-injection recipes in CLAUDE.md TACTICAL); re-shoot `01-player-setup` from production (QR shows localhost); swap `12-a-word-explained.png`. Regenerate via `node scripts/capture-game-screenshot.js`.
+- [ ] **Demo video** — 30–45s; script + storyboard drafted 2026-07-05 (in chat); needs footage, then wire the "Watch demo" button.
+- [ ] **Print the QR codes** — 5 PNGs in `Mockups/qr-codes/`; add logo overlay in image software first (PRD asks for one).
 
-## 🎛️ **Change-legibility / companion / time-feel UX** (2026-06-23)
-*Spec from the user's AI-research + Claude-chat merge, reviewed against the live code 2026-06-23. Engine/infra claims verified accurate (one emission point = `EffectEngineService`/`LogEffect`→`globalActionLog`; `emitAutoAction`/`subscribeToAutoActions` rails; `ResourceChangeEffect(TIME)` magnitude; REAL/TEMP via the `isCommitted` flag on every log entry; expeditor = E card; **NO float/critical-path model — confirmed absent, do not invent one**). The "spreadsheet" target = the **player-panel bottom tabs** ([ProjectLedger.tsx](src/components/player/sections/ProjectLedger.tsx) budget/actual/variance, [TimeSection.tsx](src/components/player/sections/TimeSection.tsx), [PlayerLogSection.tsx](src/components/player/sections/PlayerLogSection.tsx)) — NOT an imaginary data grid. The Log tab already renders `globalActionLog`, so the Chronicle is its upgrade. Must conform to the locked [player-panel-redesign.md](docs/design/player-panel-redesign.md) (teach-don't-dumb-down; one-screen no-scroll — but side panels / popup modals ARE allowed) and the NPC-speaker voice + glossary `TextWithTerms` rules.*
+## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; un-promoted v3.0.83–90 reports: [.claude/feedback-staged.md](.claude/feedback-staged.md))
 
-- [~] **P1 — Project Chronicle (event feed). FIRST SLICE SHIPPED v3.0.86 (2026-06-26, opt-in new panel).** The new panel now has a **"📜 History"** modal ([PlayerChronicleV2.tsx](src/components/player/PlayerChronicleV2.tsx)) — a committed-action timeline grouped by space, reusing the canonical pipeline (`getDisplayableLogEntries` → `isCommitted` + player-visible filter = REAL/TEMP-safe; `formatActionDescription`). **Still to build (the fuller P1):** inline **deltas** per entry, **click-an-entry-to-replay-its-highlight** on the relevant tab, a **TV-persistent** feed (not just an on-demand modal) via `NotificationService` selective subscription. *Acceptance (full): every committed work-change + expeditor add → exactly one feed entry with a delta, from the existing emission point.* (Also shipped alongside: **"📋 My numbers"** recall modal [PlayerNumbersV2.tsx](src/components/player/PlayerNumbersV2.tsx) — scope + work-packages-with-costs + money/time, fb:f028e262/cea108fb; and the **between-turns move popup**, fb:15499d9b. See CHANGELOG v3.0.86.)
-- [ ] **P2 — Tab legibility (the change-blindness fix).** On the Ledger/Time tabs: **inline deltas** (▲/▼ + cause) fed by `ResourceChangeEffect` payloads, **row flash** ~2–3s then settle, **NEW/CHANGED badge** ~10s, **desaturate unaffected rows** ~2s so the changed one pops. *Acceptance: a change is locatable in <2s without scanning; deltas visible without opening details.*
-- [ ] **P3 — Tiered work cards + diegetic vocabulary.** Tier-1 minor = silent → feed only (never pauses). Tier-2 = side card + soft cue + one-line plain-English impact. Tier-3 (Change Order / DOB Objection / Stop-Work) = a **permitting-document card** via `emitAutoAction` (same rail as `DiceResultModal`), skippable + logged, may pause ~1s. **Voiced through the NPC speaker + glossary `TextWithTerms`, NOT raw jargon pop-ups.** Each major card states the PM consequence in teaching terms. Expeditors stay **side-chip** (v3.0.81 phase chips); revisit "presence/avatar" later (parked below).
-- [ ] **P4 — Time feel.** Duration-mapped transitions keyed off `ResourceChangeEffect(TIME)` magnitude (e.g. `<7d→0.4s`, `<30d→1.5s`, `<90d→2.5s`, `>90d→3.5s`); cost/overhead **ticks down** on long jumps (drive from `ResourceService` magnitude) = **plain days-proportional burn** (no float model). "Meanwhile…" time-debt summary after long jumps. Time cue rides the **Time tab + board progress**, NOT a Gantt. **Expose magnitude as a clean signal** a future building-site view could subscribe to — hook only, do not wire.
-- [ ] **P5 — a11y + pedagogy pass.** Redundant coding everywhere (icon + shape + text; colorblind-safe; NO red/green as the sole helping/hindering signal; reduced-motion + muted parity). PM-consequence payloads on major cards. Session **debrief** built from the Chronicle's causal chain.
-- [ ] **FLAG — audio is greenfield.** No SFX system exists (only `SpeechService` = TTS). Every sound cue = net-new infra → optional polish, last; always paired with a visual equivalent (a11y rule).
-- [ ] **Polish (low): the between-turns move overlay is panel-scoped (v3.0.86).** [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx)'s "You moved from X→Y" overlay sits at z-index 60 inside the panel card, so when you arrive at a space that immediately throws a full-screen result/routing modal (z~1000) the modal covers it. Accepted for v1 (the modal is the more important info). If wanted later: either lift the overlay above the modal layer, or suppress it when an arrival modal is queued so the two don't compete.
+### Newly arrived (2026-07-03/05, staged 2026-07-10 — not yet triaged)
+- [ ] **Share button on pages where it makes sense** — "looking to get more players". <!-- fb:feedback-1783230681607-5e05dc1f -->
+- [ ] **Moves as the last possible act — revisit** — maintainer reconsidering earlier ruling. <!-- fb:feedback-1783082047004-3dcb3ba7 -->
+- [ ] **"How does this card work? is the plumbing built for it?"** — card unclear; v3.0.100 audited E009/E024 as correctly implemented, but this specific report was never claimed by id — confirm which card + whether copy needs teaching text. <!-- fb:feedback-1783081638577-ee534eb3 -->
+- [ ] **Owner seed money maybe shouldn't count as "funding raised"** — design question. <!-- fb:feedback-1783081115822-cac490a5 -->
+- [ ] **History uses game wording ("rolled")** — violates the no-game-language rule; sweep history/Chronicle strings. <!-- fb:feedback-1783080880242-bbbb4005 -->
+- [ ] **Both actions were to show costs/changes; only End Turn does** — cost/changes visibility gap. <!-- fb:feedback-1783080349985-a3dc215f -->
+- [ ] **Modals have two ways of closing — keep one.** <!-- fb:feedback-1783079995743-3cd24690 -->
+- [ ] **Two versions of same output, one old one new** — old/new panel output rendering side-by-side somewhere; new looks better. <!-- fb:feedback-1783079668156-5984e322 -->
 
-### New-view ledger ("My numbers") follow-ups (2026-06-29)
-*The new-view ledger shipped v3.0.89 (scope-by-trade, spent-vs-budget, funding gap, glossary-taught terms; shared [projectFinances.ts](src/utils/projectFinances.ts) helper). Maintainer feedback during review:*
-- [ ] **Progressive disclosure / accordion for the ledger — REMAINING areas.** First slice shipped v3.0.90: "Total scope" now collapses behind a drill-down (work packages hidden by default, tap to reveal), and each package taps into its own cost breakdown. Still un-collapsed: the "Where your money's going" budget-area block + the funding-gap line. If the one-screen rule starts fighting again as more rows land, give those the same accordion treatment. *(Dark mode + term-link contrast for the V2 modals shipped v3.0.93 — see CHANGELOG.)*
-- [~] **Before→after change-legible outcome modal — FIRST SLICE SHIPPED v3.0.91.** [OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx) renders the "what just happened" delta in the "My numbers" ledger language (cash/scope/time before→after) AND names the exact card gained/lost, gated to `ucPanelVersion==='new'` (classic keeps `BeforeAfterBlock`). Resolves fb:dc7652ec / 0001f5df / 0fc63fc1 / 3aad5f84. **Not yet live-verified** (needs a playthrough to a card-gain/loss event with the new panel on). **Possible polish:** gained cards show both as a tappable effect-list row AND a "Gained:" ledger line — if that reads noisy on screen, have OutcomeChangesV2 show only lost/swapped. Judge live.
+### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
+- [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
+- [ ] **Resize to always fit screen + phone warning** (`/challenge` has the warning; game-setup screen may still want it). <!-- fb:feedback-1782833653490-5470235b -->
 
-### Future enhancements (parked)
-- [ ] **Gantt / schedule "today-line" view** — too detailed for now, but if teachers add enough construction-section spaces it may become relevant. Revisit then (user call 2026-06-23).
-- [ ] **Expeditor "presence"** (co-located avatar / dashed causality link-line to the affected value) — the spec's "highest-value" idea, but it assumes a task-cell grid the data model doesn't have (expeditors are E-cards affecting *phases*, not entities pinned to tiles). Keep the side-chip for now; revisit after P1–P5 land, since expeditors are used heavily (user call 2026-06-23).
+### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
+- [~] **P1 remaining:** inline deltas per entry, click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. Acceptance: every committed work-change + expeditor add → exactly one feed entry with a delta, from the existing emission point. (P2–P5 parked below pending V2 reframe.)
 
----
+## 🚀 Active — infra / deploy / data
 
-## 🧩 **Player-panel redesign — remaining polish** (2026-06-16)
-*Phase 4a/4b card insertion (teacher-authored spaces) is **MERGED + DEPLOYED LIVE** (it shipped well before v3.0.87; engine code lives in `server/instanceStore.js` + `server/server.js`; design/audit trail in [TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md)). The `phase-4a-card-insertion` branch was a fully-merged leftover and has been deleted. **Corrected 2026-06-29** — earlier notes wrongly called this "built but unmerged, awaiting go/no-go" and cost a session chasing a ghost. What remains below is the opt-in player-panel redesign, which is genuinely still in progress:*
+- [ ] **One-time full live-vs-master audit of CLEAN files** — 5 diverged as of 2026-06-09 (only `pos_x`/`pos_y` are genuine live user-data); data-deploy gap itself is CLOSED (see memory `project_data_deploy_gap`).
+- [ ] **Post-deploy doc cleanup:** mark the CLAUDE.md "CSV data fixes do NOT reach the live server" recipe fully obsolete + update auto-memory `project_data_deploy_gap.md` (gap dead by construction).
+- [ ] **Dashboard UI: surface `version` + `gitCommit` on bug-report pages** (~15 min, display-only; repo `D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/`, extend `FeedbackReport.metadata` in feedback/page.tsx + detail view). Optional: gray-out stale-version reports, version filter.
+- [ ] **G160: show/hide individual board connectors + redirect per section** — Workstream 3 Phase B+ (global show/hide first; per-edge hide + waypoint redirect TBD per user approval; see BETA_PLAN_V3.md). <!-- fb:feedback-1778327469678-d27a73d0 -->
 
-- [~] **UI redesign — player panel + scoreboard (user + design team). DESIGN LOCKED 2026-06-22 → [docs/design/player-panel-redesign.md](docs/design/player-panel-redesign.md); BUILD STARTED behind a classic/new toggle.** The locked doc captures the north star (teach-don't-dumb-down), the 5-zone panel model, every maintainer ruling (purpose elevated, green-dot first-visit hints, icon stats, tiny conditional approval diodes, glossary via existing `TextWithTerms`→side panel + quick dark-mode override, reworded negotiate, detailed cards + before→after outcome modals), the **hard no-ghost-buttons-in-light-mode rule**, the old/new toggle requirement, and the design-package bias watch-list. **Foundation + PLAYABLE panel landed (typecheck clean, off by default; VERIFIED LIVE in a real game 2026-06-22):** [panelTheme.ts](src/components/player/panelTheme.ts) (light/dark + version hooks), [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx) (5 zones from real `Player`/space data; full manual-action/movement/dice/end-turn/negotiate wiring that **reuses** the classic handlers + `canEndTurn` rule — no logic drift), classic/new + light/dark toggle in [PlayerPanelWrapper.tsx](src/components/player/PlayerPanelWrapper.tsx), glossary dark-mode override in [DictionaryPanel.css](src/dictionary/components/DictionaryPanel.css) (gated on `html[data-uc-dark]`, set by the wrapper). Live verification drove real turns (manual + dice actions fire, result modals interoperate, counter→ready blue commit, green first-visit dot, player-language card counts, light/dark both readable) **and caught + fixed a dice-effect routing bug** (dice-type actions were sent to the manual handler; now routed to the dice handler like classic). **Increment progress (2026-06-23):** ✅ optional **E-card play from the influence zone** ([PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx) — playable Expeditors as Activate rows; gate+play via the canonical `cardService.canPlayCard`/`playCard` service rule, no drift). ✅ **detailed-card view** ([PlayerCardDetailV2.tsx](src/components/player/PlayerCardDetailV2.tsx) — §5 content model: type chip, key facts as icon rows, "why this matters" callout, Activate/Keep; reuses the proven ModalBase shell so the v3.0.71 backdrop-grace flash-close fix is intact; §10.1 document-variant seam; opened by tapping an expeditor's `ⓘ` name). +6 tests; typecheck+build clean; NOT yet live-verified (opt-in). Also folded the change-legibility UX layer into the lock doc as [§10](docs/design/player-panel-redesign.md). **⏸️ DEFERRED (user call 2026-06-23, option a): outcome-modal (before→after) restyle** — `DiceResultModal` is a SHARED, live-turn modal (triggered at `GameLayout` via AutoActionEvent, holds the flash-close fix), so it isn't toggle-isolated; restyle it in place ONCE the new panel is closer to default rather than risk the classic live experience now. ✅ **scoreboard ("who" screen)** built 2026-06-23 — design chosen by the user (phase-rail journey, soft positional standings, NOT a ranked race): [ScoreboardV2.tsx](src/components/player/ScoreboardV2.tsx) renders players as tokens on the permitting-lifecycle rail at their furthest-reached phase + a per-player status row (icon cash/days + approval diodes) mirroring the panel; light/dark, a11y redundant coding. Furthest-phase calc extracted to a shared pure helper [lifecycleProgress.ts](src/utils/lifecycleProgress.ts) (verbatim from ProjectProgress, so no drift) +7 tests. **WIRED INTO THE LIVE TV (v3.0.83, deployed `e4d956b`):** an opt-in **"📊 Standings"** button in the TV header ([TVDisplay.tsx](src/components/layout/TVDisplay.tsx)) toggles the scoreboard overlay (default hidden — live layout unchanged). Verified live in TV mode (button → overlay renders + positions correctly → close hides). **DONE:** [ProjectProgress.tsx](src/components/game/ProjectProgress.tsx) consolidated onto the shared helper (duplication killed, behavior-identical). **Next:** the deferred outcome-modal restyle (once the panel is closer to default) → later app-wide dark mode + glossary flat-style alignment. Vite serves /data from public/ so verify in the running app; new design is opt-in until confirmed feature-complete. (Original handoff package: `.claude/player-dashboard-variables.md` + `.claude/player-dashboard-context.md`; the referenced PDFs/screenshots folder are no longer on disk.) **Scope:** panel (PRIMARY) + scoreboard (shared-screen only) + board tweaks only; panel must fit one screen NO scroll on both surfaces; not a ranked race (soft positional standings).
-- ✅ *Audited 2026-07-09 (no code change) — Expeditor "read more" gap already closed by the panel redesign.* Original 2026-06-23 note said the fix (visibly-tappable glossary terms + a "read full story" disclosure) belonged in the eventual panel redesign, not a per-space data fix. Verified both landed: [TextWithTerms.tsx](src/dictionary/components/TextWithTerms.tsx)'s `.dictionary-term-link` class ([DictionaryPanel.css:474](src/dictionary/components/DictionaryPanel.css#L474)) has a solid underline + background tint + trailing "ⓘ" icon, and [PlayerPanelV2.tsx:645](src/components/player/PlayerPanelV2.tsx#L645) wraps the story text in it; the "▸ What to do & why" disclosure is the zone-3 full-story expansion. <!-- fb:feedback-1782228532845-c240a14c -->
-- [ ] **OPTIONAL (content, deferred): author real `effects_on_play` prose for the 74 E + 49 L cards.** Only worth doing if a one-line authored effect would add teaching value beyond the description + key facts already shown. Low priority — the detail view reads clean without it.
+## 📱 Active — external testing & release
 
----
+- [ ] **Recruit 3–5 external players** for a structured UAT pass (open since April — the `/challenge` funnel + QR codes above are the remaining enablers).
+- [ ] **Compile post-Beta feedback report** — decide if the `/api/feedback` flow + dashboard is enough or a triage cadence is needed.
+- [ ] **Bug-fix sprint after structured UAT** — placeholder.
 
-## 🚀 **Deploy infrastructure — teacher-layer gaps** (2026-06-13, HIGH)
-*v3.0.76 went live 2026-06-13. The deploy + verification exposed two real bugs in the deploy/migration plumbing. Full context in CLAUDE.md TACTICAL "Deploy: `deploy.sh` is not teacher-layer-aware" + auto-memory `project_deploy_method`. Recovery tool sits at `server/data/recover-board.mjs` on the live server (`/app/data/recover-board.mjs` in-container) — harmless, clean up.*
+## 🙋 Decisions waiting on the user
 
-- [ ] **Board layout decision (user)** — the maintainer's custom tile arrangement was lost ~June 12 (unrecoverable; confirmed absent from live CLEAN/SOURCE, classroom-1 config, pre-refresh backup, AND git). Current board = the stock grid (a real layout, committed in repo). **Decide:** keep the grid, or re-arrange once in the editor (drag-save now persists to classroom config) — only after `deploy.sh` is fixed so it survives.
-- [ ] **Cosmetic: deploy stamps commit "unknown" on compose builds** — Alpine build container has no `git`; `deploy.sh` passes the real commit via `--build-arg GIT_COMMIT=$(git rev-parse --short HEAD)` so the canonical path is fine, but a `docker compose` build shows `unknown` + breaks the "N behind" badge. Non-issue if always using deploy.sh.
+- [ ] **Board layout** — keep the stock grid, or re-arrange once in the editor (drag-save persists now). (Custom arrangement lost ~June 12, unrecoverable.)
+- [ ] **Bank/Investor/Lender character naming** — 6 spaces show phase-only labels; user is marinading. **Don't nudge.**
+- [ ] **Workstream 2 / v3.0.0 criterion** — snapshot Try Again was to *replace* REAL/TEMP entirely; they coexist. Tighten the criterion or do the replacement?
+- [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` blank** — compose warns on every `up`. Intentional? Ask before fixing.
 
----
-
-## 🚚 **Production data-deploy sync** (2026-06-09)
-*Discovered 2026-06-09 spot-checking fb:931a55de: CSV **data** fixes in `public/data` don't reach the live server on deploy — it preserves its own writable `CLEAN_FILES` (see `project_data_deploy_gap` memory). Audit (live vs master) found 5 stale CLEAN files; only `pos_x`/`pos_y` (board layout) are genuine live user-data — everything else is un-propagated fixes.*
-
-- [ ] **Broader implication:** any CSV *data* fix since the live volume was first initialized may also be stale-live. After the above, consider a one-time full live-vs-master audit of all CLEAN files (most already match — only these 5 diverged as of 2026-06-09).
+### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
+`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open.
 
 ---
 
-## 🔐 **Security follow-ups** (2026-06-12, v3.0.72 session)
-*The v3.0.72 hardening itself shipped (see CHANGELOG). These are the loose ends.*
-
-- [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` not set** — compose warns and defaults blank on every `docker compose up` (pre-existing, surfaced 2026-06-12). If the dashboard's AI features ever misbehave, this is why. Don't fix without asking the user whether it's intentional.
-
----
-
-## 🏫 **Teacher instance layer + space catalog** (design initiative, 2026-06-09 · **design approved 2026-06-12**)
-*Source: user, after the data-deploy gap surfaced. Design session held 2026-06-12 — the user reframed it as a **"deck of cards" model** (master stock deck refreshed by every deploy; each classroom holds only its own used/unused markers, positions, teacher copies, and detours; no merge step exists, so nothing can ever be lost). Full spec with all 6 maintainer decisions: [docs/core/TEACHER_LAYER_DESIGN.md](docs/core/TEACHER_LAYER_DESIGN.md).*
-
-- [ ] **Post-deploy doc cleanup**: once v3.0.74+ is live-verified, mark the CLAUDE.md "CSV data fixes do NOT reach the live server" recipe fully obsolete (header already flagged) and update auto-memory `project_data_deploy_gap.md` (gap dead by construction).
-
----
-
-## 💵 **Billing & usage reporting** (2026-06-22, LOW — later)
-*Source: user, 2026-06-22. Now that teachers + classrooms exist (Phase 3 live), we'll eventually need per-school monthly bills with rudimentary usage reports — phone-bill style. Not urgent; build after the teacher layer has real users. Conceptually depends on Phase 3 accounts/instances being live; otherwise a separate concern from the gameplay/architecture work in the Teacher layer section above.*
-
-- [ ] **Track per-user activity.** Capture, per teacher account: (a) **logins** — timestamp + session length; (b) **games played** — game-start events tied to the teacher's classroom, count + duration; (c) **spaces added** — teacher-authored insertions via Classroom Setup, count + which classroom. Persist alongside the existing account/instance stores; design the schema so a "school" = group of teacher accounts (new grouping concept — accounts today don't roll up).
-- [ ] **Monthly billing + per-school usage report.** Roll the tracked activity up into a per-school monthly statement: which teachers logged in, how many games they ran, how many spaces they authored. Phone-bill style — itemized line items + total. Output as a downloadable report (PDF/HTML) from an admin screen, on a monthly cadence.
-
----
-
-## 🧱 **Workstream 7 Follow-ups** (May 17, 2026)
-*Minor items deferred during Workstream 7 (Plan Approval Mechanic). Shipping v2.65.0–v2.65.4 was the scope; these are post-ship polish.*
-
-- [ ] **End-game penalty numbers (+30 days / +$50K) are pilot values** — locked from spec but not playtest-tuned. After 3-5 games where players actually trigger the missing-DOB end-game, tune `MISSING_DOB_PENALTY_DAYS` and `MISSING_DOB_PENALTY_FEE` constants in `src/services/ApprovalService.ts` if the penalty feels too harsh or too soft.
-- [ ] **First-game tutorial moment for approval mechanic** — first time a player rolls at DOB or FDNY, consider showing a one-time intro modal explaining the badges and what approval state means. Currently they discover by reading the banner ("✅ DOB Plan Examiner: approved. Take it to FDNY next.") but a dedicated intro might help non-DOB-savvy players. Tie to the broader onboarding question already in TODO (`fb:0aa9660c`).
-
----
-
-## 🎯 **Ghost win-rate tracking** (2026-06-04)
-*Source: user wish at /koniec — "would love to eventually get to a 90% success rate" with the random bot. Today the strict gate floor is ≥36 wins (recalibrated v3.0.37 after life events activated, baseline ~39/50). Pre-life-events the bot hit 45/50 (90%) because life events did nothing. Goal isn't to game the floor — it's to use win-rate + avgTurns together as a casual-play balance signal across versions.*
-
-- [ ] **Honest read of the "90%" target.** Random bot ≠ casual human. Use win-rate + avgTurns TOGETHER: wins↑ avgTurns→ = easier ✓; wins→ avgTurns↑ = grindier ✗; wins↓ avgTurns↑ = harder+slower ✗. Don't chase wins by making the economy artificially easier if avgTurns inflates — that's "more wins but each game drags." Real balance signal is "wins go up while avgTurns stays flat or shrinks."
-- [ ] **If pursuing 90% intentionally, the lever options are:** (a) easier economy (more starting money, gentler fees, more forgiving regulator dice — playtest-driven), (b) smarter ghost (different question — a smarter bot won't catch regressions a dumb bot would; tracked separately if pursued), (c) ship a tutorial / onboarding so casual players play closer to "smart bot" than "random bot." (c) is already in scope as the onboarding package (Top-3 #2). (a) is balance tuning; (b) is bot research — both deferred until win-rate history shows a sustained problem.
-- [ ] **Game length is the live signal now — watch against the ~40 min class-period budget.** Deterministic smart-bot run: avgTurns=149, 40/50 games "long" (>60 turns), 3 grind to the 300-turn cap. Bot turns ≠ human minutes (the bot plays aggressively/randomly, so it takes far more turns than a guided student), so this is NOT yet a red flag — user's call: comparable games (Monopoly/Catan/Wingspan) run 60+ min and a class period is ~40 min, so current length is acceptable. **Trigger to act:** when a *real* playtest game runs past ~40 min, start trimming individual mechanics / space requirements to chop time (this is the lever, not win-rate). Until then, just track avgTurns across versions via `.claude/ghost-history.jsonl`. The 3 deterministic losses (grind to 300 turns) are the worst-case length tail worth a look if length tuning starts.
-
----
-
-## 🔎 **Audit-Recovered Items** (April 30, 2026)
-*Source: documentation audit — items that were quietly mentioned in deleted/trimmed docs but never landed anywhere actionable. Captured here so they aren't lost again.*
-
-- [ ] **Turn Numbering System tests** — TESTING_GUIDE used to carry a 📋 PLANNED section with detailed test specs for `tests/services/TurnNumbering.test.ts` (game-round progression, turn-within-round cycling, global turn counter, multi-player rotation, log entry context, visibility filtering) plus `tests/components/GameLog.TurnHierarchy.test.tsx` and `tests/integration/TurnProgression.test.ts`. Spec was deleted from TESTING_GUIDE in the doc-trim pass — find it in git history (commit `3f8c14f`) if implementation gets picked up. Likely safe to drop entirely if turn-numbering UI hasn't surfaced bugs.
-- [ ] **Phase 6.4 (Workstream 6 sub-lift): NPC voice profile** — Lifting `extractPrefix` + `CHARACTER_MAP` + `CHARACTER_PROFILES` to a per-space `npc_voice_profile` data flag. Touches 6 callers (5 components + SpeechService) including pure-utility functions. Scoped out in v2.58.0 because educator-added spaces fall back to narrator voice (acceptable degradation). Probably never lifted unless an educator complains — flagging here so the deferral is explicit, not silent.
-
----
-
-## 🎯 **Current Priority: User Acceptance Testing**
-
-### **Backlog**
-- **Per-action confirmation modal — Two-Panel layout (POLISH phase, deferred)** — Redesign the per-action confirmation modal (the one that appears when you click "Draw W", "Pay Fee", etc.) to a two-panel layout: narrative on the left, mechanics on the right. Strongest separation of "why" vs "what". Reference mockup: [Mockups/story-mockup.html](Mockups/story-mockup.html) → Section 2 → Option C ("Two-Panel: Story | Mechanics"). User picked this over the mockup's recommended Option A (Tinted Blockquote). Caveats from mockup: cramped on phone — would need to stack vertically at narrow widths; narrative competes with mechanics for attention. Not blocking beta; tackle when polishing the modal system. (Section 1 of the mockup — landing-on-space accordion — was already shipped as v2.50.0, see Recently Completed below.)
-
-- Story authoring rollout (post-v2.50.0) — Infrastructure shipped in v2.50.0; authoring is creator-driven (voice is creative, not just a deterministic transformation of a doc — see `docs/core/AUTHORED_COPY_REVIEW.md` voice rule "Per-action narratives stay ambient/narrator-from-above. Not bound by this rule"). Two ways to author:
-  - **Live Data Editor** at `https://game.unravelcodes.com/admin` — fill in the `*_card_narrative` columns per (space, visit). Saves write through `processGameData` on the server and update CLEAN_FILES automatically.
-  - **JSON + script (offline)** — write a file like `scripts/narratives-<space>.json` with `[{space_name, visit_type, column, narrative}]` entries, then `node scripts/set-narrative.mjs scripts/narratives-<space>.json && node scripts/regen-clean-files.mjs`. See `scripts/set-narrative.mjs` header for full usage.
-
-  As of v2.60.0: 5 of ~75 card-effect rows have authored narratives (samples from v2.50.0 — OWNER-SCOPE-INITIATION/First/E, ARCH-FEE-REVIEW/First+Sub/L+E). Priority order from earlier triage: high-traffic REG/PM/ARCH/ENG first, then CON, then setup spaces. Legacy flat `Action`/`Outcome` blocks render wherever a space has no authored narrative on any effect, so rollout can be incremental with zero gameplay risk.
-
-- Voice rewrite merge — Pass 1 shipped v2.60.0 (May 2026). Spaces.csv text fields (Title/Event/Action/Outcome/end_turn_label/try_again_label), the 2 Negotiate flag flips (REG-DOB-FEE-REVIEW Subsequent → NO; ARCH-INITIATION Subsequent → YES), and the 2 Subsequent-row deletions (OWNER-SCOPE-INITIATION, OWNER-FUND-INITIATION) all merged. CLEAN_FILES regenerated.
-
-  **Pass 2 — ModalConfig.csv population (open).** The doc has `### Modals fired here` tables for ~50 spaces with `effect_action`/`modal_title`/`modal_description`/`modal_button_label`/`modal_summary` per modal. Blocked on a mapping pass: the doc uses human-readable labels (`"Take Owner's Money"`, `"Time: 1 day"`, `"e_card: Draw 3"`) whereas `ModalConfig.csv` keys by the engine's internal `effect_action` value (`add`, `draw_E`, etc., possibly with `dice_value`). Need to walk each space's `SPACE_EFFECTS.csv` rows, match doc-side modal entries to engine-side action keys, then generate ModalConfig rows. ~50 spaces × 2-3 modals each ≈ 100-150 rows. Worth scripting (see `scripts/merge-voice-rewrite.mjs` for the doc parser as a starting point).
-
-- Educational "Learn More" content per space — Hidden educational field per space, revealed via a Learn More icon. Explains why the step exists, why it matters, and historical/regulatory context (NYC-specific: real DOB code sections, ZR citations, Triangle Shirtwaist → FDNY history, 1916 zoning resolution backstory, etc.). Separate "field guide" instructional register from the in-character NPC voice — clicking Learn More gets a teacher, not a character. Constraints to lock before authoring: (a) one paragraph default (~200 words), max ~500 for spaces with rich history; (b) every fee/rate/code claim sourced to nyc.gov / ZR / NYC Admin Code; (c) footer disclaimer ("educational, not legal advice — verify current rules at nyc.gov"). Author a 2-space calibration sample (suggest REG-FDNY-PLAN-EXAM with the Triangle Shirtwaist hook + BANK-FUND-REVIEW for contrast) before scaling to all ~50 spaces. Separate workstream from the voice rewrite — do not block v2.51.0. Target version TBD — content authoring + reading UI; not blocked by engine-data separation work.
-
-- **Data storage format (CSV → JSON / per-space markdown)** — DEFERRED pending engine-data separation. Originally framed (in a lost prior chat) as "convert CSVs to per-space JSON to support educator editing and multi-tenant overrides." Re-analysis 2026-04-26 found that file format is mostly orthogonal to the actual needs — the blocker is engine-data separation (above), not file format. Once engine is fully data-driven, format choice becomes a question of editor ergonomics + multi-tenant override storage. Current bet: per-space markdown-with-frontmatter (mechanics in YAML frontmatter, prose body for narratives + Learn More) is the natural fit, but defer the decision until Phases 1–2 of engine separation reveal the full data shape. Do not migrate now.
-
-- **Multi-tenant catalog (educator licensing + contribution model)** — DEFERRED pending engine-data separation + format decision. The vision: schools license the game, edit data/spaces for their context, and contribute changes back to a shared catalog so other schools can adopt them. Implementation likely needs: (a) backend storage for tenant edits (database, not flat files), (b) auth + tenant identity, (c) override layer (tenant edits as patches over base content), (d) publish/curate workflow (auto-share or moderated catalog?), (e) editor UI tenant-scoping. None of this is file-format-driven — works with CSV or JSON or markdown. Real prerequisite is engine-data separation: educators must be able to edit *all* of a space's behavior via data before tenant overrides become meaningful.
-
-- **Editor UX redesign (POLISH phase, deferred)** — Current editors (SpaceEditor, ModalConfig expanders, DiceRollEditor, BoardLayoutEditor) work but are *crude and too complicated* for non-technical authors. The visual direction is captured in [Mockups/editor-mockup.html](Mockups/editor-mockup.html) — a three-mode tabbed editor that splits one space's data by **author intent**, not by underlying CSV shape: **📖 Story** (Title, Event, Action, Outcome, button labels) with a live player-preview pane on the right; **🔀 Flow** (read-only map of how this space connects to others — edit connections in Mechanics); **⚙️ Mechanics** (dice rolls, card effects, payments, movement destinations). Every field gets a plain-language label + inline hint ("Action — what the player needs to decide or do"), dirty-state indicators per mode, a "Reset to Baseline" undo, and friendly cross-references ("Need to change what this space does? Use Mechanics tab"). Live preview shows exactly what students will see. This is the umbrella redesign — the **Game Card editor** item below is the same spirit applied to the card decks, and would slot in as a 4th editor surface under the same UX. Don't refactor the data layer for this — purely a UI/UX pass over the existing editor components. Pre-req nudge: would benefit from the engine-data separation work being further along so the editor isn't fighting hardcoded engine assumptions.
-
-- **Game Card editor** — we have a Space editor ([SpaceEditor.tsx](src/components/editor/SpaceEditor.tsx)), per-action Modal editor (ModalConfig expanders inside SpaceEditor), Dice-roll editor ([DiceRollEditor.tsx](src/components/editor/DiceRollEditor.tsx)), and Board-layout editor ([BoardLayoutEditor.tsx](src/components/board/BoardLayoutEditor.tsx)) — but **no UI for the card decks**. `CARDS_EXPANDED.csv` (W/B/E/I/L) is hand-authored and edited directly, which is exactly how the v3.0.34 draw/discard column-swap + missing-type bugs shipped (12 cards drawing the wrong type). A card editor should: edit per-card fields by **labeled control, not raw column** (draw vs discard as separate pickers, card-type dropdown so "1 E" can't be typed as bare "1", tick_modifier as a +/− day stepper, conditional `card_mechanic` as a dropdown); **show the `cardTextMatchesColumns` integrity checks inline** so a description/behavior mismatch is caught at author time, not in a playthrough; round-trip through the same `_extraColumns` + multiline-aware CSV path the space editor uses ([csvExport.ts](src/components/editor/utils/csvExport.ts)) so unknown columns survive. Note `CARDS_EXPANDED.csv` is NOT pipeline-generated (no SOURCE→CLEAN step) — the editor writes it directly. Scope TBD; biggest win is closing the "author a card that lies about its effect" gap permanently.
-
-*For full history, see CHANGELOG.md*
-
----
-
-## 🐛 **Open Feedback (Dashboard May 2026)**
-
-*Source: `/api/feedback` endpoint, 40 unresolved as of May 15 PM. Below are the ones NOT already fixed in shipped code; the server-side `resolved` flag still needs to be flipped on resolved items (admin task — see Server-side housekeeping below).*
-
-### Session follow-ups (2026-05-28, not yet shipped)
-- [ ] **HTTP polling fallback while disconnected** — v3.0.24 relies on WebSocket reconnect + server's subscribe-pushes-state. If push reliability proves worse than expected in real play, add a low-frequency `GET /state` poll while `connectionState !== 'connected'` as a belt-and-suspenders catch-up. Only build if reconnect alone proves insufficient.
-- [ ] **Mandatory-phone-connect override for TV mode** — v3.0.25 hard-blocks Start until all phones join. For solo demos / testing the host may want a "Start without all phones" escape. Deferred per session decision (hard-block chosen); add if it gets in the way.
-- [ ] **Cross-device bug capture (TV pulls phone logs)** — already tracked under "Bug reporter improvements" below as Ship B. The v3.0.24 fix reduces (but doesn't eliminate) the "phone crashed, can't report" dead-end — a phone that fully crashes still can't push. Still worth doing.
-- [~] **Dashboard PATCH sweep** — **2026-05-28: flipped 7 already-fixed reports** (`58a2112b`, `dfdeaf1c`, `41e35769`, `97fa9c75`, `96317d74`, `cc345da9`, `3483b37b`) → dashboard 34→27. **Still to flip after their deploys confirm:** `fb:068a66f2` (fixed v3.0.33, needs two-device playtest first), `fb:c7312a0a` + `fb:f7312d82` (v3.0.24 phone-reconnect, verify on next multi-device game), and the v3.0.22–27 voice/board items if not already flipped (`adbc48b0`, `1aad6035`, `5dc01203`). **2026-06-29: flipped 5 more** (v3.0.87 Cluster B `31e5c4b8`, `76fa69c7`; v3.0.88 batch `44df6d5d`, `341475d7`, `f4d0e327`) → 37→32. Recipe (updated 2026-06-29): `PATCH https://game.unravelcodes.com/api/feedback/<id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required; **now token-gated** — the un-gated version returns 401; `<id>` is the full `feedback-<ts>-<hex>`).
-
-### Newly arrived (2026-05-27 — v3.0.19 playtest)
-*3 reports filed 2026-05-27 00:31–00:36 UTC, all against v3.0.19 (gitCommit `ccfb028`) — same first-playtest of the v3.0.19/v3.0.20 deploy. Items are independent in nature (voice / UI desync / browser-extension noise) so they ship as separate fixes.*
-
-- [~] **Phone crashed mid-game; couldn't grab phone console; TV console showed 4× Chrome extension async errors (likely noise)** — **Partially addressed v3.0.24.** The "won't reload / silent disconnect" half is the WebSocket-freeze root cause, now fixed (reconnect on `visibilitychange`). The TV-side errors are benign Chrome extension noise. The remaining open half is structural: a phone that *fully* crashes still can't file a report — that's the cross-device pull (Ship B in Bug reporter improvements). Verify the reconnect fix on next playtest, then this can close. <!-- fb:feedback-1779842188438-f7312d82 -->
-
-### Bug reporter improvements (2026-05-27, user-direct)
-*Not from the dashboard — flagged by user this session after the phone-crash report (`fb:f7312d82`) where the only device that could file a bug report was the device that died.*
-
-- [ ] **TV bug-report button can pull info from connected phones** — when a phone crashes, its bug button dies with it. Mitigation: each phone pushes its log-buffer to the host (TV) on every WS heartbeat. When the TV's bug button is pressed, the report bundles TV console + most recent buffer from each connected phone. Phone-side capture survives crash if it pushed before the crash. Architectural note: doesn't help against instant runtime death — heartbeat cadence is the floor on data loss. Suggested: heartbeat-piggyback every ~5s; capture the last ~50 entries per phone.
-
-### Player audit (G166 playtester, 5-12)
-*Design-level feedback, not bugs. Treat as a sprint or a workstream once a target audience decision is made.*
-- [~] **Onboarding for non-DOB-savvy players** — too many systems on first screen (expeditors, W cards, scope locking, Fit, money, time). Decision made: newcomer-friendly gradual reveal. **Phase A shipped v2.70.5** — existing 264-term dictionary made discoverable (solid blue underline + ⓘ marker + one-time onboarding toast). **Phase C deferred** — plain-English aliases for short labels (space tiles, button text). ~4 hr when revisited; needs user to write the alias strings. <!-- fb:feedback-1778583921001-0aa9660c -->
-- [~] **Jargon / single-letter card types** — Phase A (v2.70.5) made the existing dictionary more visible; Phase C (deferred) would add `display_label_plain` to GAME_CONFIG so tile/button code can swap "Prof Cert" → "Hire a Professional to Sign Off" when newcomer mode is on. See above. <!-- fb:feedback-1778584099671-8ad42b52 -->
-- [~] **Plain-English outcome after each action** — **Pass 1 shipped v3.0.44.** Captured live log via chrome-devtools MCP on deployed v3.0.43, found 6 cryptic strings still leaking engine IDs/programmer-speak. New `friendlySpaceName` + `friendlyCardName` helpers in [logFormatting.ts](src/utils/logFormatting.ts); 6 producers updated (TurnService, MovementService, EffectFactory, SpaceArrivalProcessor, CardEffectHandler ×2, FinancialEffectHandler). Raw IDs stay in `details` field for the future post-game viewer to search/filter on. The original "Fit+6 %Scope Initiation" pattern from the report is no longer reproducible in current code — the buttons (DICE_BUTTON constants) and card-draw entries (getCardTypeName) were already humanized in earlier sweeps; this pass closes the remaining log-feed strings. **Two follow-on versions agreed:** v3.0.45 = expandable log rows (chevron toggles raw detail); v3.0.46+ = end-screen export prompt + post-game viewer with search & filter. Both tracked as separate entries below. <!-- fb:feedback-1778583987830-91738221 -->
-- [ ] **Expeditor mechanic — pick instead of "hire 3"** — Game-design suggestion: let player pick among expeditors with tradeoffs (cheap/slow, fast/expensive, specialist/generalist). Bigger change; deferred. <!-- fb:feedback-1778584030168-f22035af -->
-
-### Workstream 3 Phase B+ (board editor)
-- [ ] **G160 / 5-9: show/hide individual connectors + redirect per section** — Admin asked for control over which edges render and how they route. (In progress: see Workstream 3 Phase B+ in BETA_PLAN_V3.md — global show/hide first; per-edge hide and waypoint redirect TBD per user approval.) <!-- fb:feedback-1778327469678-d27a73d0 -->
-
-### Phase 2 polish (deferred, low priority)
-- [ ] **Per-NPC rich sentence templates for dice summary** — v3.0.6 ships `"The Owner: You took on 2 work packages."` (attribution + standard verb phrase). User's wished phrasing is `"I'm wiring you funds — that buys two work packages."` (NPC speaks in first person about THEIR action, with PM as object). Would need per-NPC × per-effect-type sentence templates with count interpolation (~30-40 authored sentences). Authoring-heavy; revisit if the attribution form feels too thin in playtest.
-- [~] **Adopt `{fundingAmount}` token at other funding spaces — partial 2026-05-29.** Added to BANK-FUND-REVIEW Subsequent and INVESTOR-FUND-REVIEW Subsequent rows (in both SOURCE Spaces.csv and CLEAN SPACE_CONTENT.csv). Used running cumulative source total. **Skipped:** First-visit Event for these spaces (amount=0 at read time, would render empty); LEND-SCOPE-CHECK Subsequent (dialogue doesn't take an amount naturally). Outcome-column adoption would need `spaceOutcome` to also be run through `interpolateTemplate` ([ActionCenterPanel.tsx:302](src/components/player/ActionCenterPanel.tsx#L302) currently only interpolates `spaceStory`) — small follow-up if author wants Outcome to cite the amount.
-
-## 🖥️ **Dashboard UI follow-ups**
-
-- [ ] **Surface `version` + `gitCommit` on bug-report list/detail pages** — v2.70.2 stamped reports with deploy version (game side) and surfaces them at top-level on `/api/public/feedback/open` (already consumed by `/start` briefing). The dashboard at `dashboard.unravelcodes.com` (separate repo: `D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/`) doesn't yet render either field. ~15 min change: extend `FeedbackReport.metadata` interface in [feedback/page.tsx](D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/src/app/feedback/page.tsx) (and the `[id]/page.tsx` detail view), render a small `v2.70.2`-style badge per report. Optional: color-code against "current production version" so stale reports go gray. Optional+: filter dropdown for "show reports from version X or older". Data is already flowing; this is purely display.
-
----
-
-## 📱 **External Testing & Public Release**
-*Reframed April 30, 2026 — the prior "Phase 3B / Phase 5 NOT STARTED" framing was misleading because the game has been live at https://game.unravelcodes.com since December 2025. The items below are what's still genuinely open.*
-
-### Open
-- [ ] **Recruit 3–5 external players** for a structured UAT pass against v2.58.0 (now that Workstream 6 is closed). Prior internal/playtest UAT happened informally; this is the structured one.
-- [ ] **Compile post-Beta feedback report** — currently no rolling channel for player-reported issues other than the in-app feedback button. Decide if the existing `/api/feedback` flow is enough or if we need a triage cadence.
-- [ ] **Bug-fix sprint after structured UAT** — placeholder for whatever surfaces.
-
----
-
-## 🔬 **April 2026 Deficiency Review — Forward Plan**
-*Source: Consolidated review (Apr 16, 2026). Tier 1 shipped in v2.47.1. Tiers 2–5 remain.*
-
-### Tier 3 — DI graph cleanup (revised Apr 17, 2026)
-*Original framing was "split every service > 600 lines + eliminate all setter injection." Revised after an April 17 audit determined both targets were largely cosmetic. See `docs/core/BETA_PLAN_V3.md` Workstream 4 for the full rationale. **Do not resurrect the 600-line target.***
-- [ ] **Service decomposition — deferred pending concrete pain signal.** TurnService (2,076 lines), StateService (1,867), CardService (1,824), EffectEngineService (1,477), MovementService (1,078), PlayerSetup.tsx (1,126), GameLayout.tsx (1,022) are all large but stable. Do not split on size alone. Split only when (a) a specific method becomes painful to edit, (b) a bug hot-spot clusters in a specific region per `git blame`, or (c) AI context cost on a specific workflow becomes a documented problem.
-
-### Tier 4 — Type safety pass
-- [ ] **Bucket E — intentional / leave as-is (~15 sites).** `error: any` catch blocks (5× — idiomatic, TS lets you throw anything), `consoleCapture args: any[]` (matches native console signature), `EffectFactory.validateCard(card: any)` (type guard input is supposed to be loose), `(window as any).opera` (legacy browser check), `configCache as any[mode]` (dynamic index access), `ChoiceService reject: (reason: any)` (Promise reject standard), `StateTypes details?: Record<string, any>` open-bag metadata, `DataTypes.effectData: any` (deferred payload union), 2× `null as any` in TurnStateManager TEMP state clearing. **Documented as intentional. Not blocked on typecheck.**
-
-### Tier 5 — Remaining Beta workstreams (blocking v3.0.0 ship)
-- [ ] **Workstream 2 ship gap: snapshot Try Again must replace REAL/TEMP entirely** per BETA_PLAN_V3 success criterion. Currently REAL/TEMP coexists with `TurnCostLedger`; v3.0.0 criterion is technically unmet. Decide: tighten the criterion (current implementation is good enough), or do the replacement.
-
----
-
-## 🛠️ **Workflow & Deployment DX** (Backlog — STALLED)
-*Flagged April 30, 2026: these 5 items have sat un-picked since they were added. They're nice-to-have but nothing blocks them. Decision needed: pick up, drop, or accept as standing low-priority.*
-
-### Deployment Automation
-- [ ] **Webhook Deployment** — Set up a webhook receiver on Unraid to trigger `deploy.sh` via HTTP, enabling "push-to-deploy" from GitHub or local CLI.
-- [ ] **Persistence Protection** — Verify `deploy.sh` backup/restore logic for `game-data/` works correctly with Docker volumes.
-
-### Context Management
-- [ ] **GEMINI.md setup** — Create project-level `GEMINI.md` with explicit server paths (`/mnt/user/appdata/Game_alpha/`) and SSH commands to minimize research turns.
-
----
-
-## 🅿️ **Parking lot — revisit when triggered, not active work**
-
-*Real but deliberately deferred. Each item fires on a trigger noted inline; none is part of the active sprint. Kept here (not deleted) so nothing is lost.*
-
-- [ ] **Swap the terser minifier → native (Rolldown/Oxc or esbuild).** Build logs `[PLUGIN_TIMINGS] vite:terser` slow; native is faster + drops the terser dep. ⚠️ Bundle-affecting (tests run vs source), so verify via a deploy playtest; preserve [vite.config.ts:227](vite.config.ts) behaviors (keep `console.*`, drop `debugger`, strip `console.debug`). Low priority — build is ~8s; bundle with a planned deploy. (Merged the two duplicate terser/minifier notes 2026-06-28.)
-- [ ] **Known limitation — Q2 first-visit blind spot (low priority, maintainer accepted 2026-06-15).** `scope_changed_since_last_visit` compares scope to the *prior visit to this space*; on a FIRST FDNY-FEE-REVIEW visit there's no snapshot → defaults "no change". Benign in the normal flow (first fee-review visit immediately follows FDNY approval, nothing's changed yet) but could skip a needed FDNY review if a player got FDNY approval, changed scope, then reached fee review for the first time via an unusual loop. The sturdier fix is to snapshot scope at the moment FDNY approval is *granted* (an approval baseline, always present) instead of per-visit. Maintainer chose the simple per-visit version knowingly.
-- [ ] **Loan-repayment deadline + Temporary Certificate of Occupancy (maintainer idea, 2026-07-02 — "file under way later").** Bank/investor sets a time limit to start repayment; if the building isn't built (or under TCO) by then, the project fails at that point. Needs a TCO mechanic to work completely — a real expansion, not a tweak. Trigger: revisit if/when the game's scope extends past building-in-use.
-- [ ] **Environmental (no code bug): "play on Perplexity" load failure.** <!-- fb:feedback-1781190420890-5a155a1a --> Console showed `ERR_BLOCKED_BY_CLIENT` (ad-blocker / Perplexity in-app browser blocking a script) + `404 /api/games/G337/state` (stale/expired game id). Game wasn't broken — opened inside a resource-blocking embedded browser on an old link. **No fix required.** At most a friendlier "this game expired / open in a full browser" message — ties into the onboarding package already tracked (Top-3 #1). Flag-only.
-
-### Dependency major-version jumps (deferred 2026-05-29)
-*Captured during the post-v3.0.39 hygiene pass. `npm audit` returned 0 vulnerabilities. `npm update` ran the safe minor/patch bumps (1536/1536 still green, typecheck clean, push pending). These five need explicit review — major-version semver, may break tests/build silently.*
-- [ ] **TypeScript 5.9.3 → 6.0.3** — newly released major. Risky for a strict-typed codebase; expect a wave of stricter checks (function bivariance, narrowing changes). Suggest waiting 1-2 months for the ecosystem to settle, then attempting on a branch.
-- [ ] **Vite 7.3.3 → 8.0.14 + @vitejs/plugin-react 5.2.0 → 6.0.2** — together; plugin major usually paired with host major. Check breaking-change notes; check our `manualChunks` config still parses.
-- [ ] **ESLint 9.39.4 → 10.4.1 + @eslint/js 9.39.4 → 10.0.1** — flat-config era; we're already on flat config so the surface area may be small. Try after Vite/TS settle.
-- [ ] **jsdom 27.4.0 → 29.1.1** — could shake out test-side `location`/DOM behavior; would re-test our `forksFiles` jsdom workarounds.
-- [ ] **playwright 1.57.0 → 1.60.0** — minor under the version mask but the project is in active flux; do alongside any Playwright-driven test work.
-
----
-
-### 🧹 **Per-space hardcoding audit** (May 18, 2026)
-*Source: in-session grep for `player.currentSpace === '...'` and related shapes. Workstream 6 swept this pattern aggressively (10+ lifts, see receipts in `DataService.ts:92-185`, `TurnService.ts:398/789/931`, `MovementService.ts:122/341/352`, `CardService.ts:1205/1250`), but new instances escaped or crept back in. Ordered by urgency.*
-
-### Defensible domain constants (flag only, no immediate action)
-- [ ] **`ApprovalService.ts:37,41,45,51`** — `DOB_EXAM_SPACE`, `FDNY_EXAM_SPACE`, `DOB_AUDIT_SPACE`, `DOB_FINAL_REVIEW_SPACE`. These encode real-world regulator-role mappings. Named constants are reasonable; lifting would matter only if an educator wants a non-standard examiner layout.
-- [ ] **`ApprovalService.ts:64`** — `DOB_APPROVED_DESTINATIONS = ['REG-FDNY-FEE-REVIEW']`. Could be computed from MOVEMENT.csv when the DOB examiner space resolves.
-- [ ] **`ApprovalService.ts:71-74`** — `AUDIT_TRIGGERED_FROM = ['CON-INITIATION', 'REG-DOB-PLAN-EXAM', 'REG-DOB-AUDIT', 'PM-DECISION-CHECK']`. Could lift to a `triggers_dob_audit` bool column.
-
-### Not the failure mode (documentation, no action)
-- Dynamic comparisons (`player.currentSpace === n.id` in iterations) at `MovementService.ts:213`, `BoardV3.tsx:162,193`, `SpaceExplorerPanel.tsx:93,351,360`, `BoardCanvas.tsx:373` — legitimate.
-- `constants/characters.ts` + `SpeechService.ts:19,20` — speaker-identity / TTS voice profile map. Lift deferred as Phase 6.4 (see Audit-Recovered Items).
-- `utils/boardLayout.ts` — already slated for deletion in Workstream 3 Phase D.
-
----
-
-### 🧐 **External architecture audit** (2026-05-29)
-*Source: external AI audit run by user. Each claim verified against the actual code before listing. Items dropped: a "Multi-path Click-to-Move Bug" claim that was a false alarm (executeMovement is only called from `TurnService.endTurn` — gated behind End Turn, no auto-fire path), and the "PM_VOICED_SPACES / ApprovalService constants / SPECIAL_NAMES" cleanup items (PM_VOICED_SPACES is the project voice contract; ApprovalService string constants are fine — the hardcoded **behavior** is the real debt and already tracked above; SPECIAL_NAMES is a fallback path that CSV `display_label_override` already supersedes).*
-
-- [ ] **Unify TEMP/REAL state transactions with logging sessions into one turn-transaction model.** Structural debt surfaced by the Try Again log gap (closed symptomatically in v3.0.63 via `LoggingService.discardCurrentSession` mirroring `StateService.discardTempState`). Same shape as the movement-resolver debt above: two parallel systems (state TEMP/REAL + log exploration sessions) that both react to the same lifecycle events (turn start, Try Again, end turn), and any new rule has to be plumbed into BOTH or they drift. Today's symmetry is hand-coded — `tryAgainOnSpace` calls both `discardTempState` and `discardCurrentSession`; `startTurn` calls both `createTempStateFromReal` and `startNewExplorationSession`. The proper fix is one `TurnTransaction` boundary: begin/commit/discard at one call site, with state changes AND log entries bundled inside. Touches `StateService`, `LoggingService`, `TurnService`, and the integration test suite. Estimated 1–2 dedicated sessions. **DO NOT do casually — schedule alongside the movement-resolver merge above; both are the same architectural pattern and should probably be tackled together.**
-
-### Parallel-systems audit — additional candidates (2026-06-04)
-*Surfaced during the v3.0.63 retrospective ("any other place where we could combine similar situations?"). Each is the same shape as the two debts above: two systems answer the same conceptual question, hand-synchronized today, drift trap tomorrow. Investigate alongside the movement-resolver merge + state/log unify in the same architecture session — bundling lets us spot shared abstractions instead of three one-off fixes.*
-
-- [ ] **NotificationService.notify + LoggingService.info — two "something happened" channels.** Most game events fire both: a toast via `notify` and a log entry via `info`. Adding a new event means hooking both. Forget one → toast appears but no audit trail, or log entry but no player feedback. Bigger refactor (touches every event call site) but the underlying shape is one bus: "an event happened, route it to toast + log + analytics + …" Worth scoping but probably not in the same session as the others — more callers, more risk surface.
-- [ ] **`player.money` + `player.moneySources` denormalization.** Total tracked alongside source breakdown (`ownerFunding + bankLoans + investmentDeals + other`). Any code path that changes money has to update both. Pattern is slightly different from "parallel systems" — it's denormalized state — but the drift shape is identical (one updated, the other forgotten). Fix: make `money` a computed getter over `moneySources`, kill the stored field. Touches every money mutation. Probably the riskiest of this batch; do last or split into a separate session.
-- [ ] **Three effect pipelines (SpaceEffects / DiceEffects / CardEffects).** All CSV-driven, all flow through different services. Separated today for legit reasons (different triggers, different timing) but conceptually they're all "apply an effect to the game." Worth investigating whether the three handlers can sit behind one `EffectExecutor` interface with trigger-type metadata, vs. staying as three parallel implementations. Lower priority than the others — no observed bug yet, just shape worth examining.
-- [ ] **Mobile-tab-freeze TEMP-state-loss claim — needs a real repro.** External audit flagged this but the `visibilitychange` handler in [WebSocketSyncService.ts:114](src/services/WebSocketSyncService.ts#L114) already reconnects on resume ("THE phone-reliability fix"). What the audit specifically claims — that the conflict-resolution path silently discards mid-turn TEMP state when server version is ahead — is plausible but unverified. Don't act until a playtester reports an actual session where a phone-locked player came back to lost actions; then trace the reconcile path from there.
-
----
+## 🅿️ Parking lot — real but deferred; each fires on its inline trigger
+
+### Product / design (trigger noted per item)
+- [ ] **Real mobile-preview mini-puzzle** — genuine 30–60s phone demo is design work, not engineering; scope separately when there's a clear idea. ("Quick preview" currently routes to the real game as a deliberate A/B placebo.)
+- [ ] **Playtest-funnel Phase 3 (optimize on real data)** — trigger: traffic exists. `GET /api/admin/playtest-stats` already aggregates. Metrics: return rate, completion, feedback rate.
+- [ ] **This-turn cost line attribution nuance** (prev-turn movement days attribute to current turn) — trigger: playtesters notice.
+- [ ] **✓ done-trace tooltip is desktop-hover only** — trigger: players ask for it on touch.
+- [ ] **Ledger accordion for remaining areas** ("Where your money's going" + funding-gap line) — trigger: one-screen rule starts fighting again.
+- [ ] **Between-turns move overlay sits under full-screen modals** (panel-scoped z-60 vs modal z-1000) — accepted for v1; lift or suppress if wanted.
+- [ ] **Change-legibility P2–P5 + audio** — inline tab deltas/flash/badges (P2), tiered work cards + diegetic vocabulary (P3), time-feel duration-mapped transitions + days-proportional burn, NO float model (P4), a11y/pedagogy + debrief (P5), audio = greenfield (no SFX system; visual-equivalent rule). **Reframe against the V2 panel before building — the 2026-06-23 spec is written in classic-panel terms.** Full spec context: this file's git history (2026-06-23 entry) + [player-panel-redesign.md](docs/design/player-panel-redesign.md) §10.
+- [ ] **Expeditor "presence"** (avatar/causality link-line) — assumes a task-cell grid the data model doesn't have; revisit after P1–P5.
+- [ ] **Gantt / schedule today-line view** — trigger: teachers add enough construction-section spaces.
+- [ ] **Expeditor mechanic: pick with tradeoffs instead of "hire 3"** — bigger design change. <!-- fb:feedback-1778584030168-f22035af -->
+- [ ] **Onboarding Phase C: plain-English aliases** (`display_label_plain` in GAME_CONFIG for tiles/buttons) — needs user to write alias strings (~4 hr). Phases A shipped v2.70.5. <!-- fb:feedback-1778583921001-0aa9660c --> <!-- fb:feedback-1778584099671-8ad42b52 -->
+- [ ] **Log follow-ons:** expandable log rows (chevron → raw detail) + end-screen export + post-game viewer with search/filter — agreed as v3.0.45/46 concepts, never built.
+- [ ] **Per-NPC rich sentence templates for dice summary** (~30–40 authored sentences) — trigger: attribution form feels thin in playtest.
+- [ ] **`{fundingAmount}` token at remaining spots** — partial 2026-05-29 (BANK/INVESTOR Subsequent done; First-visit + LEND skipped deliberately). Outcome-column adoption needs `spaceOutcome` run through `interpolateTemplate`.
+- [ ] **First-game tutorial moment for the approval mechanic** — ties into the onboarding package.
+- [ ] **End-game penalty tuning** (`MISSING_DOB_PENALTY_*` in ApprovalService.ts) — trigger: 3–5 real games where players hit the penalty.
+- [ ] **OPTIONAL content: author `effects_on_play` prose for 74 E + 49 L cards** — only if a one-line authored effect adds teaching value.
+
+### Reliability / plumbing (trigger noted per item)
+- [ ] **HTTP polling fallback while disconnected** — trigger: WS reconnect proves insufficient in real play.
+- [ ] **"Start without all phones" override for TV mode** — trigger: the hard-block gets in the way of solo demos.
+- [ ] **TV bug-report button pulls phone log buffers** (heartbeat-piggyback ~5s, last ~50 entries/phone) — trigger: next phone-crash-can't-report incident.
+- [ ] **Mobile-tab-freeze TEMP-state-loss claim** — external audit theory, unverified; `visibilitychange` reconnect already exists. Trigger: a playtester actually reports lost actions after phone lock.
+- [ ] **Deploy stamps commit "unknown" on `docker compose` builds** (Alpine container lacks git) — non-issue while using deploy.sh.
+- [ ] **Webhook deployment** (push-to-deploy via HTTP receiver on Unraid) + **verify deploy.sh backup/restore of `game-data/`** — DX wishlist, stalled since April.
+- [ ] **GEMINI.md setup** — likely obsolete (Gemini-era note); drop unless the user still wants it.
+
+### Architecture / code health (bundle these in one dedicated session — same drift-trap shape)
+- [ ] **Unify TEMP/REAL state + logging sessions into one `TurnTransaction` boundary** — today `tryAgainOnSpace`/`startTurn` hand-call both systems in parallel; begin/commit/discard at one call site. Touches StateService, LoggingService, TurnService, integration tests. 1–2 sessions. **Do NOT do casually.**
+- [ ] **NotificationService.notify + LoggingService.info — one "something happened" bus** (toast + log + … routed from one emission). Many callers; scope separately from the above.
+- [ ] **`player.money` + `player.moneySources` denormalization** — make `money` a computed getter over sources. Riskiest; do last.
+- [ ] **Three effect pipelines (Space/Dice/Card)** behind one `EffectExecutor` interface — no observed bug; shape worth examining only.
+- [ ] **Service decomposition — only on concrete pain signal** (specific method painful to edit, git-blame bug hot-spot, documented AI-context cost). **Do not resurrect the 600-line target** (audited cosmetic, Apr 17).
+- [ ] **Type-safety Bucket E (~15 `any` sites) — intentional, leave as-is** (documented; not blocked on typecheck).
+- [ ] **Per-space hardcoding, defensible constants** (`ApprovalService.ts:37–74` DOB/FDNY space names, `DOB_APPROVED_DESTINATIONS`, `AUDIT_TRIGGERED_FROM`) — lift only if an educator wants a non-standard layout; could become CSV columns.
+- [ ] **Turn Numbering System tests** (spec in git history, commit `3f8c14f`) — likely drop unless turn-numbering UI surfaces bugs.
+- [ ] **Phase 6.4: lift NPC voice profile to per-space data flag** — educator-added spaces fall back to narrator voice (accepted); revisit if an educator complains.
+
+### Content / authoring workstreams (each is its own project; pointers only)
+- [ ] **Story authoring rollout** — 5 of ~75 card-effect rows authored; two paths: Live Data Editor at `/admin`, or JSON + `scripts/set-narrative.mjs` → `regen-clean-files.mjs`. Priority: high-traffic REG/PM/ARCH/ENG first.
+- [ ] **Voice rewrite Pass 2 — ModalConfig.csv population** (~100–150 rows) — blocked on mapping doc labels → engine `effect_action` keys; worth scripting (parser starting point: `scripts/merge-voice-rewrite.mjs`).
+- [ ] **Educational "Learn More" per space** — field-guide register, NYC-sourced (nyc.gov/ZR/Admin Code), 2-space calibration sample first (REG-FDNY-PLAN-EXAM + BANK-FUND-REVIEW).
+- [ ] **Per-action confirmation modal two-panel layout** — [Mockups/story-mockup.html](Mockups/story-mockup.html) §2 Option C; POLISH phase.
+- [ ] **Editor UX redesign** (Story/Flow/Mechanics tabbed editor, [Mockups/editor-mockup.html](Mockups/editor-mockup.html)) + **Game Card editor** (labeled controls over CARDS_EXPANDED.csv, inline `cardTextMatchesColumns` checks, `_extraColumns` round-trip) — UI pass only, benefits from engine-data separation being further along.
+- [ ] **Data storage format (CSV → JSON/markdown)** — decision deferred until engine-data separation reveals the data shape. Do not migrate now.
+- [ ] **Multi-tenant catalog (educator licensing/contribution)** — prerequisite is engine-data separation, not file format.
+- [ ] **Billing & usage reporting** (per-teacher activity tracking → per-school monthly statements) — build after the teacher layer has real users.
+
+### Balance / metrics (standing watch, not work)
+- [ ] **Ghost win-rate "90%" goal** — read win-rate + avgTurns TOGETHER (wins↑ turns→ = easier ✓; wins→ turns↑ = grindier ✗). Track via `.claude/ghost-history.jsonl`. Levers if pursued: easier economy / smarter bot / onboarding.
+- [ ] **Game length vs ~40-min class period** — trigger to act: a REAL playtest game runs past ~40 min → trim mechanics/space requirements (that's the lever, not win-rate). Bot avgTurns=149 is NOT a red flag (bots ≠ humans).
+
+### Known limitations / environmental (accepted, flag-only)
+- [ ] **Q2 first-visit blind spot** — `scope_changed_since_last_visit` has no snapshot on a first FDNY-FEE-REVIEW visit → defaults "no change"; maintainer accepted 2026-06-15. Sturdier fix if ever needed: snapshot scope at FDNY approval grant.
+- [ ] **Loan-repayment deadline + TCO mechanic** (maintainer idea 2026-07-02, "way later") — needs a TCO mechanic; real expansion.
+- [ ] **"Play on Perplexity" load failure** — embedded browser blocked scripts + expired game id; no code bug. At most a friendlier "game expired / open in a full browser" message. <!-- fb:feedback-1781190420890-5a155a1a -->
+- [ ] **Swap terser → native minifier (Rolldown/Oxc or esbuild)** — bundle-affecting, verify via deploy playtest; preserve vite.config.ts console behaviors. Build is ~8s, low priority.
+
+### Dependency major-version jumps (deferred 2026-05-29; audit clean, minors done)
+- [ ] TypeScript 5.9→6.0 (wait 1–2 months, branch attempt) · Vite 7→8 + plugin-react 5→6 (together; check `manualChunks`) · ESLint 9→10 (already flat-config, surface may be small) · jsdom 27→29 (re-test `forksFiles` workarounds) · playwright 1.57→1.60 (alongside Playwright test work).
+
+*For full history, see CHANGELOG.md. Un-promoted v3.0.83–90 feedback staging: [.claude/feedback-staged.md](.claude/feedback-staged.md).*
