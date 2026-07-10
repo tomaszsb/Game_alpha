@@ -203,8 +203,8 @@ describe('OutcomeChangesV2 render', () => {
     expect(screen.getByText('2 Expeditors')).toBeInTheDocument();
   });
 
-  it('falls back to showing the named gain when it is the ONLY change, so "What changed" still appears (fb:1783080349985 — parity with actions that have a resource delta)', () => {
-    render(
+  it('renders nothing when the only change is a named gain and no resource figure moved — it is fully covered by the effect-row chip above (fb:1783079668156-5984e322: "2 versions of same output", confirmed live via the dashboard screenshot — the chip and this ledger line repeated the same 3 card names back to back)', () => {
+    const { container } = render(
       <OutcomeChangesV2
         before={snap({ cardCountsByType: { W: 0, B: 0, E: 0, I: 0, L: 0 } })}
         after={snap({ cardCountsByType: { W: 0, B: 0, E: 1, I: 0, L: 0 } })}
@@ -215,8 +215,6 @@ describe('OutcomeChangesV2 render', () => {
         mode="light"
       />,
     );
-    expect(screen.getByTestId('outcome-changes-v2')).toBeInTheDocument();
-    expect(screen.getByText('Gained:')).toBeInTheDocument();
-    expect(screen.getByText('Zoning Expeditor')).toBeInTheDocument();
+    expect(container.firstChild).toBeNull();
   });
 });

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.108] - 2026-07-10
+
+### Correction: v3.0.107 misdiagnosed its own report — reverted, and the real bug (fb:5984e322) confirmed + fixed with the actual screenshot
+fb:feedback-1783080349985-a3dc215f was fixed blind (no screenshot pulled) as "asymmetric What-changed visibility between two turn actions." Fetching the report's actual screenshot today shows it's a **different** feature request entirely: the OWNER-SCOPE-INITIATION "Push back"/"Lock the scope" buttons don't preview their cost before the player presses them ("both were to show costs and changes. only end turn does. but it only shows time") — nothing to do with the outcome modal. Re-filed accurately in TODO.
+
+Meanwhile v3.0.107's actual code change — falling back to the unfiltered card-change list when a pure-gain action would otherwise show nothing — silently reintroduced the exact duplication [OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx) was built to prevent in v3.0.105. Pulling fb:feedback-1783079668156-5984e322's dashboard screenshot confirms it: "Hire 3 Expeditors" showing the same 3 card names as interactive chips in "What happened," then again as plain "Gained:" rows in "What changed" — precisely what the player photographed and reported ("2 versions of same output... new looks better but has less features"). Reverted the v3.0.107 fallback; `filterLedgerCardChanges` is back to unconditionally dropping named gains, matching the original, correctly-diagnosed fix. Lesson: don't fix a dashboard report without reading its screenshot first. (fixloop iteration, Sonnet 5)
+
 ## [3.0.107] - 2026-07-10
 
 ### "What changed" reappears for pure card-gain actions — fixed a regression from earlier today
