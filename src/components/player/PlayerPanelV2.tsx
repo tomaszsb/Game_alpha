@@ -54,6 +54,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   playerId,
   mode,
   onTryAgain,
+  playerNotification,
   onRollDice,
   onManualEffectResult,
   completedActions = { manualActions: {} },
@@ -689,6 +690,28 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               </div>
             )}
           </>
+        )}
+        {/* Ported from the classic panel (fb: playerNotification prop existed
+            on ActionCenterPanelProps/GameLayout all along — this panel never
+            rendered it, so every notificationService.notify() call (movement
+            errors, approval revokes, etc.) has been silently swallowed since
+            the new panel became default in v3.0.97, v3.0.99). */}
+        {playerNotification && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 6,
+            padding: '6px 10px',
+            background: p.warnSurf,
+            border: '1px solid #f59e0b',
+            borderRadius: 8,
+            fontSize: 12,
+            color: p.text,
+          }}>
+            <span aria-hidden>📢</span>
+            <span>{playerNotification}</span>
+          </div>
         )}
       </div>
 

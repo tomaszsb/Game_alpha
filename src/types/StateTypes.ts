@@ -1,4 +1,4 @@
-import { Player, ActiveCard, ActiveEffect, Loan, MoneySources, Expenditures, CostEntry, CostBreakdown, SpaceVisitRecord } from './DataTypes';
+import { Player, ActiveCard, ActiveEffect, Loan, MoneySources, Expenditures, CostEntry, CostBreakdown, SpaceVisitRecord, ApprovalStatus } from './DataTypes';
 import { Effect } from './EffectTypes';
 import { Choice } from './CommonTypes';
 import type { NpcAppearances } from '../constants/characters';
@@ -520,6 +520,15 @@ export interface TurnEffectResult {
    * duplicates every effect, which is what triggered this split.
    */
   visualSummary?: string;
+  /**
+   * Phase 7.5 originally folded this into visualSummary as trailing prose,
+   * but a plain <p> collapses the intended "\n\n" separator, so the verdict
+   * read as a continuation of the NPC's sentence rather than a distinct
+   * beat (fb:feedback-1782848524918-7300c51d — "no plan-examiner verdict
+   * shown", filed against exactly this). Split out so the modal can render
+   * it as its own color-coded banner instead of buried inline text.
+   */
+  approvalOutcome?: { text: string; kind: ApprovalStatus };
   hasChoices: boolean;
   canReRoll?: boolean; // True if player can re-roll dice this turn
   rollGroups?: RollGroupResult[]; // Per-group dice values when multiple roll groups exist

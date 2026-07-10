@@ -20,7 +20,8 @@ import {
   StateTransitionResult,
   CreateTempOptions,
   NegotiationState,
-  GameEndReason
+  GameEndReason,
+  TurnEffectResult
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances, NpcImageRole } from '../constants/characters';
@@ -44,7 +45,7 @@ export interface LifeEventEffectSummary {
 
 // Auto-action event type for modal notifications
 export interface AutoActionEvent {
-  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement' | 'routing_explanation';
+  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement' | 'routing_explanation' | 'auto_dice_roll' | 'approval_revoked';
   playerId: string;
   playerName: string;
   playerColor?: string; // Player's color for UI display
@@ -65,6 +66,22 @@ export interface AutoActionEvent {
   // Only populated for type === 'life_event'. The LifeEventModal renders these
   // under the card narrative so players see what changed (Kids A–E feedback).
   effectsSummary?: LifeEventEffectSummary[];
+  /**
+   * v3.0.99 — full result for type === 'seed_money' (TurnService.
+   * handleAutomaticFunding, owner funding granted directly, not via a drawn
+   * card) and type === 'auto_dice_roll' (the REGULATORY-phase auto-roll in
+   * TurnService.startTurn — DOB/FDNY plan exam, "the examiner decides").
+   * Both methods build a complete TurnEffectResult (before/after snapshot,
+   * effects list, and for auto_dice_roll the approvalOutcome banner) but
+   * fire from inside startTurn on every turn transition, including the
+   * internal endTurn → startTurn path with no React caller to capture a
+   * return value — this event is the only way either reaches the UI.
+   * GameLayout enqueues it straight into diceResultQueue so the player sees
+   * the same rich modal a manually-triggered roll gets — seed_money
+   * previously only had a 3s toast; auto_dice_roll previously had nothing
+   * at all beyond a badge quietly changing in the panel header.
+   */
+  turnEffectResult?: TurnEffectResult;
 }
 
 // Selective subscription for optimized re-renders

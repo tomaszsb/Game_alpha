@@ -309,6 +309,20 @@ export class CardService implements ICardService {
     // itself already rolls back via TEMP, so leaving the approval revoked while
     // un-drawing the scope change would be inconsistent).
     if (this.approvalService && cardType === 'W' && drawnCards.length > 0) {
+      // Silent otherwise — the badge in the panel header quietly flips to
+      // "not approved" with nothing else telling the player it happened
+      // (same shape as the plan-examiner/funding gaps fixed v3.0.99). Only
+      // notify when there was a real approval to lose — revoke() is a no-op
+      // 'none'→'none' most of the time (scope locked before DOB ever ran).
+      if (player.dobApprovalStatus === 'approved') {
+        this.stateService.emitAutoAction({
+          type: 'approval_revoked',
+          playerId: player.id,
+          playerName: player.name,
+          spaceName: player.currentSpace,
+          message: '⚠️ Your DOB approval is on hold — the scope just changed, so it needs a fresh look before you can move on.',
+        });
+      }
       this.stateService.updateTempState(playerId, this.approvalService.revoke('dob'));
     }
 
@@ -1214,6 +1228,27 @@ export class CardService implements ICardService {
     // the code changed underneath the prior approval. Idempotent if no prior
     // approval was active.
     if (this.approvalService && card.revokes_approval) {
+      // Silent otherwise — same gap as the W-card revoke above (v3.0.99):
+      // nothing told the player their approval just went stale, only a
+      // badge quietly flipping in the panel header. Re-fetch rather than
+      // reuse `player` — effects processed above (Step 2) may have already
+      // touched approval state on this same card play.
+      const freshPlayer = this.stateService.getPlayer(playerId) || player;
+      const revokesDob = card.revokes_approval === 'dob' || card.revokes_approval === 'both';
+      const revokesFdny = card.revokes_approval === 'fdny' || card.revokes_approval === 'both';
+      const hadDob = revokesDob && freshPlayer.dobApprovalStatus === 'approved';
+      const hadFdny = revokesFdny && freshPlayer.fdnyApprovalStatus === 'approved';
+      if (hadDob || hadFdny) {
+        const target = hadDob && hadFdny ? 'DOB and FDNY approval' : hadDob ? 'DOB approval' : 'FDNY approval';
+        this.stateService.emitAutoAction({
+          type: 'approval_revoked',
+          playerId: freshPlayer.id,
+          playerName: freshPlayer.name,
+          spaceName: freshPlayer.currentSpace,
+          cardName: card.card_name,
+          message: `⚠️ ${card.card_name}: your ${target} needs to be re-obtained.`,
+        });
+      }
       // Routes through TEMP so Try Again restores the prior approval — safe to
       // apply on the auto life-event path too (Kid A, 2026-05-29). The revoke
       // is pure state writes, no choices or recursion.

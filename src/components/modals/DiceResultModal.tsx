@@ -428,6 +428,35 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         </div>
       )}
 
+      {/* Approval verdict banner (Phase 7.5, split from Summary v3.0.99) — a
+          plan-examiner outcome used to be trailing prose inside the Summary
+          <p>, which collapsed the intended line break and read as a
+          continuation of the NPC's sentence rather than a distinct verdict
+          (fb:feedback-1782848524918-7300c51d). Its own color-coded block
+          makes DOB/FDNY approval read as the milestone it is. */}
+      {result.approvalOutcome && (() => {
+        const kindStyle = {
+          approved: { bg: colors.success.light, border: colors.success.main, text: colors.success.text },
+          'minor-objection': { bg: colors.warning.light, border: colors.warning.dark, text: colors.warning.text },
+          denied: { bg: colors.danger.light, border: colors.danger.main, text: colors.danger.text },
+          none: { bg: colors.secondary.light, border: colors.secondary.border, text: colors.secondary.dark },
+        }[result.approvalOutcome.kind];
+        return (
+          <div style={{
+            backgroundColor: kindStyle.bg,
+            border: `2px solid ${kindStyle.border}`,
+            borderRadius: theme.borderRadius.md,
+            padding: '12px 14px',
+            marginBottom: '16px',
+            fontSize: '15px',
+            fontWeight: 'bold',
+            color: kindStyle.text,
+          }}>
+            {result.approvalOutcome.text}
+          </div>
+        );
+      })()}
+
       {/* Effects — gated on displayableEffects (see comment above) so a
           routing-only roll never shows the header with an empty body. */}
       {displayableEffects.length > 0 ? (

@@ -16,7 +16,7 @@ import { getCardTypeName } from '../utils/cardTypeNames';
 import { describeCardAction } from './DiceService';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
-import { interpolateTemplate } from '../utils/templateInterpolation';
+import { interpolateTemplate, resolveFundingAmountToken } from '../utils/templateInterpolation';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { AutoActionEvent } from './StateService';
 
@@ -849,7 +849,22 @@ export class TurnService implements ITurnService {
       if (isDiceMovementSpace && isRegulatoryPhaseSpace) {
         // Small delay so player sees they arrived before dice rolls
         await new Promise(resolve => setTimeout(resolve, 500));
-        await this.rollDiceWithFeedback(player.id);
+        const autoRollResult = await this.rollDiceWithFeedback(player.id);
+        // Same reason as the seed_money event below: this fires from inside
+        // startTurn on every turn transition (including the internal
+        // endTurn → startTurn path with no React caller), so the rich
+        // result — DOB/FDNY approval verdict banner included — was silently
+        // discarded here with nothing shown to the player beyond a badge
+        // quietly changing in the panel header (v3.0.99).
+        this.stateService.emitAutoAction({
+          type: 'auto_dice_roll',
+          playerId: player.id,
+          playerName: player.name,
+          diceValue: autoRollResult.diceValue,
+          spaceName: player.currentSpace,
+          message: autoRollResult.summary,
+          turnEffectResult: autoRollResult
+        });
       }
 
     } catch (error) {
@@ -1624,10 +1639,16 @@ export class TurnService implements ITurnService {
 
     // Pull NPC narrative for the modal's visual Summary block. Keeps the
     // visible text focused on story flavor; the auto-recap stays in
-    // `summary` for TTS only.
-    const visualSummary = this.dataService.getSpaceContent(
+    // `summary` for TTS only. {fundingAmount} resolution (v3.0.99):
+    // BANK-FUND-REVIEW/INVESTOR-FUND-REVIEW Subsequent stories quote the
+    // prior funding amount inline — without this the modal showed the raw
+    // "{fundingAmount}" token instead of the dollar figure.
+    const rawVisualSummary = this.dataService.getSpaceContent(
       currentPlayer.currentSpace, currentPlayer.visitType
-    )?.story || undefined;
+    )?.story;
+    const visualSummary = rawVisualSummary
+      ? resolveFundingAmountToken(rawVisualSummary, updatedPlayer || currentPlayer, this.dataService.getFundingSource(currentPlayer.currentSpace))
+      : undefined;
 
     return {
       diceValue: 0, // No dice roll for manual effects
@@ -2157,10 +2178,22 @@ export class TurnService implements ITurnService {
       const afterPlayerForSnapshot = updatedPlayer || currentPlayer;
       const afterScope = this.gameRulesService.calculateProjectScope(playerId);
       const afterSnapshot = buildResourceSnapshot(afterPlayerForSnapshot, afterScope);
-      const visualSummary = this.dataService.getSpaceContent(
+      // {fundingAmount} token — the story quotes the actual dollar figure in
+      // NPC dialogue. ActionCenterPanel/PlayerPanelV2 already resolve it for
+      // the on-panel story text (v3.0.98), but this modal path built
+      // visualSummary straight from the raw story, so the modal showed the
+      // literal "{fundingAmount}" placeholder instead of the number.
+      // addMoney() above already landed in moneySources.ownerFunding, so the
+      // shared resolver (also used by triggerManualEffectWithFeedback and
+      // DiceRollProcessor for the other funding spaces) reads the same fresh
+      // total rather than re-deriving it from roundedSeedMoney locally.
+      const rawStory = this.dataService.getSpaceContent(
         currentPlayer.currentSpace, currentPlayer.visitType
-      )?.story || undefined;
-      return {
+      )?.story;
+      const visualSummary = rawStory
+        ? resolveFundingAmountToken(rawStory, afterPlayerForSnapshot, this.dataService.getFundingSource(currentPlayer.currentSpace))
+        : undefined;
+      const result: TurnEffectResult = {
         diceValue: 0, // No actual dice roll
         spaceName: currentPlayer.currentSpace,
         effects: effects,
@@ -2178,6 +2211,24 @@ export class TurnService implements ITurnService {
         before: beforeSnapshot,
         after: afterSnapshot
       };
+
+      // This fires from inside startTurn on every turn transition — including
+      // the internal endTurn → startTurn path, which has no React caller to
+      // capture the return value above. The auto-action event is the only
+      // way this reaches GameLayout so it can show the real modal instead of
+      // just the 3s toast below (fb: money buried mid-sentence in the NPC
+      // dialogue, never confirmed as a distinct number).
+      this.stateService.emitAutoAction({
+        type: 'seed_money',
+        playerId: currentPlayer.id,
+        playerName: currentPlayer.name,
+        moneyAmount: roundedSeedMoney,
+        spaceName: currentPlayer.currentSpace,
+        message: fundingDescription,
+        turnEffectResult: result
+      });
+
+      return result;
 
     } catch (error) {
       console.error(`❌ Error in automatic funding:`, error);

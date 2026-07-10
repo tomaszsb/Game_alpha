@@ -270,6 +270,13 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Unified notification system - driven by NotificationService
   const [buttonFeedback, setButtonFeedback] = useState<{ [actionType: string]: string }>({});
   const [playerNotifications, setPlayerNotifications] = useState<{ [playerId: string]: string }>({});
+  // Separate from playerNotifications above (v3.0.99): that slot is shared
+  // with every notificationService.notify() call, including the generic
+  // dice-roll-completion toast — which fires moments after an approval
+  // revoke triggered by the SAME roll (e.g. a W-card draw) and silently
+  // overwrites it before a player could ever read it. Its own channel can't
+  // lose that race.
+  const [approvalRevokeNotice, setApprovalRevokeNotice] = useState<{ [playerId: string]: string }>({});
 
   // Smart layout adaptation - track view mode for mobile players
   // Use prop if provided, otherwise check URL params
@@ -386,6 +393,36 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           NotificationUtils.createErrorNotification('movement', event.message || 'Movement could not be resolved', event.playerName),
           { playerId: event.playerId, playerName: event.playerName, actionType: 'movement_error' }
         );
+        return;
+      }
+      if (event.type === 'approval_revoked') {
+        // Scope changes (W-card draws) and revokes_approval-flagged life
+        // events (L003/L020) can silently invalidate a prior DOB/FDNY
+        // approval — before this, the only sign was the badge in the panel
+        // header quietly flipping, with nothing calling out that it just
+        // happened (v3.0.99). Its own state slot, not notificationService —
+        // see the approvalRevokeNotice declaration for why.
+        setApprovalRevokeNotice((prev) => ({ ...prev, [event.playerId]: event.message }));
+        setTimeout(() => {
+          setApprovalRevokeNotice((prev) => {
+            if (prev[event.playerId] !== event.message) return prev; // a newer notice replaced it
+            const next = { ...prev };
+            delete next[event.playerId];
+            return next;
+          });
+        }, 5000);
+        return;
+      }
+      if ((event.type === 'seed_money' || event.type === 'auto_dice_roll') && event.turnEffectResult) {
+        // Owner seed money (TurnService.handleAutomaticFunding) and the
+        // REGULATORY-phase auto-roll (DOB/FDNY plan exam — "the examiner
+        // decides") both fire from inside startTurn on every turn
+        // transition — including the internal endTurn → startTurn path,
+        // which has no React caller to enqueue a result itself. This event
+        // is the only way either reaches the modal queue; without it the
+        // player got no confirmation at all beyond a badge quietly changing
+        // in the panel header (v3.0.99).
+        diceResultQueue.enqueue(event.turnEffectResult);
         return;
       }
       if (event.type === 'routing_explanation' && event.toSpace && event.message) {
@@ -668,6 +705,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         notificationService.clearAllNotifications();
         setButtonFeedback({});
         setPlayerNotifications({});
+        setApprovalRevokeNotice({});
       }
 
       // Update completed actions from game state
@@ -1048,7 +1086,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 gameServices={gameServices}
                 playerId={effectiveViewPlayerId}
                 onTryAgain={handleTryAgain}
-                playerNotification={playerNotifications[effectiveViewPlayerId]}
+                playerNotification={approvalRevokeNotice[effectiveViewPlayerId] || playerNotifications[effectiveViewPlayerId]}
                 onRollDice={handleRollDice}
                 onAutomaticFunding={handleAutomaticFunding}
                 onManualEffectResult={(result) => {
@@ -1159,7 +1197,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                           gameServices={gameServices}
                           playerId={player.id}
                           onTryAgain={handleTryAgain}
-                          playerNotification={playerNotifications[player.id]}
+                          playerNotification={approvalRevokeNotice[player.id] || playerNotifications[player.id]}
                           onRollDice={handleRollDice}
                           onAutomaticFunding={handleAutomaticFunding}
                           onManualEffectResult={(result) => {

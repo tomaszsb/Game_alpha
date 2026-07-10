@@ -5,11 +5,13 @@ import { IDataService, IStateService, IGameRulesService, IDiceService, IChoiceSe
 import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
 import { DiceResultEffect, TurnEffectResult, Player, GameState } from '../types/StateTypes';
+import { ApprovalStatus } from '../types/DataTypes';
 import { formatDiceRollFeedback } from '../utils/buttonFormatting';
 import { describeCardAction } from './DiceService';
 import { Effect } from '../types/EffectTypes';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { shortName } from '../utils/boardCommon';
+import { resolveFundingAmountToken } from '../utils/templateInterpolation';
 import { DOB_FINAL_REVIEW_SPACE, DOB_AUDIT_SPACE } from './ApprovalService';
 
 /**
@@ -44,10 +46,12 @@ export type ProcessDiceRollEffectsCallback = (
 export class DiceRollProcessor {
   private processDiceRollEffectsCallback?: ProcessDiceRollEffectsCallback;
   private lastRollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }>;
-  // Phase 7.5 — transient narration line set by handleDiceBasedMovement when an
+  // Phase 7.5 — transient narration set by handleDiceBasedMovement when an
   // approval outcome fires. Read by buildTurnEffectResult and cleared at the
-  // top of every rollDiceWithFeedback / rerollDice call.
-  private lastApprovalNarration?: string;
+  // top of every rollDiceWithFeedback / rerollDice call. `kind` drives the
+  // modal banner's color/icon; gate-bounce (not a real approval status) is
+  // treated as 'minor-objection' since it's a redirect, not a hard denial.
+  private lastApprovalOutcome?: { text: string; kind: ApprovalStatus };
 
   constructor(
     private dataService: IDataService,
@@ -134,7 +138,7 @@ export class DiceRollProcessor {
     // Roll dice
     const diceRoll = this.rollDice();
     this.lastRollGroups = undefined;
-    this.lastApprovalNarration = undefined;
+    this.lastApprovalOutcome = undefined;
     debugLog(`🎲 ROLL_DICE_FEEDBACK: Dice roll result: ${diceRoll}`);
 
     // Process effects and track changes
@@ -200,7 +204,7 @@ export class DiceRollProcessor {
 
     // Roll new dice
     const newDiceRoll = this.rollDice();
-    this.lastApprovalNarration = undefined;
+    this.lastApprovalOutcome = undefined;
 
     // Process effects for new dice roll
     const effects: DiceResultEffect[] = [];
@@ -245,22 +249,27 @@ export class DiceRollProcessor {
 
     // Story prose for the modal's visual Summary block. The full assembled
     // `summary` (storyText + tone + recap) remains for TTS via getTtsText.
-    const baseStory = this.dataService.getSpaceContent(
+    // {fundingAmount} resolution (v3.0.99): BANK-FUND-REVIEW/INVESTOR-FUND-
+    // REVIEW Subsequent stories quote the prior funding amount inline —
+    // without this the modal showed the raw "{fundingAmount}" token.
+    const rawBaseStory = this.dataService.getSpaceContent(
       currentPlayer.currentSpace, currentPlayer.visitType
-    )?.story || undefined;
-    // Phase 7.5 — append the approval-outcome banner when one fired this roll.
-    // Joined with a blank line so the NPC story stays on top and the outcome
-    // status reads as a separate beat below it.
-    const visualSummary = this.lastApprovalNarration
-      ? (baseStory ? `${baseStory}\n\n${this.lastApprovalNarration}` : this.lastApprovalNarration)
-      : baseStory;
+    )?.story;
+    const baseStory = rawBaseStory
+      ? resolveFundingAmountToken(rawBaseStory, afterPlayerForSnapshot, this.dataService.getFundingSource(currentPlayer.currentSpace))
+      : undefined;
 
     return {
       diceValue,
       spaceName: currentPlayer.currentSpace,
       effects,
       summary,
-      visualSummary,
+      visualSummary: baseStory,
+      // Phase 7.5 originally concatenated this into visualSummary as trailing
+      // prose; split out (v3.0.99) so the modal can render it as its own
+      // color-coded banner instead of buried inline text — see
+      // TurnEffectResult.approvalOutcome for why.
+      approvalOutcome: this.lastApprovalOutcome,
       hasChoices,
       canReRoll,
       projectTime: {
@@ -475,12 +484,15 @@ export class DiceRollProcessor {
         // updatePlayer if no active TEMP (e.g. between turns).
         this.stateService.updateTempState(playerId, update);
         debugLog(`📋 Approval outcome at ${currentPlayer.currentSpace} (${currentPlayer.visitType}, roll ${diceRoll}): ${outcome.approval} → ${outcome.kind}`);
-        // Phase 7.5 — record NPC-voiced narration for the modal Summary block.
-        this.lastApprovalNarration = this.approvalService.narrateOutcome(
-          outcome,
-          currentPlayer.currentSpace,
-          currentPlayer.visitType
-        );
+        // Phase 7.5 — record NPC-voiced narration for the modal banner.
+        this.lastApprovalOutcome = {
+          text: this.approvalService.narrateOutcome(
+            outcome,
+            currentPlayer.currentSpace,
+            currentPlayer.visitType
+          ),
+          kind: outcome.kind,
+        };
       }
     }
 
@@ -502,8 +514,10 @@ export class DiceRollProcessor {
         });
         this.stateService.setPlayerMoveIntent(playerId, gate.routeTo);
         debugLog(`🛂 Final-review gate failed at ${DOB_FINAL_REVIEW_SPACE} (missing=${gate.missing}) → routing to ${gate.routeTo}`);
-        // Phase 7.5 — gate-bounce narration for the modal Summary.
-        this.lastApprovalNarration = `🛂 DOB clerk: ${gate.reason}`;
+        // Phase 7.5 — gate-bounce narration for the modal banner. Not a real
+        // approval status change (the player was bounced, not denied), so
+        // 'minor-objection' gives the amber "go fix this" treatment.
+        this.lastApprovalOutcome = { text: `🛂 DOB clerk: ${gate.reason}`, kind: 'minor-objection' };
         if (this.notificationService) {
           this.notificationService.notify(
             {
@@ -561,7 +575,10 @@ export class DiceRollProcessor {
         singleDest !== DOB_AUDIT_SPACE
       ) {
         this.stateService.updateTempState(playerId, this.approvalService.grantProfCertApproval());
-        this.lastApprovalNarration = '🧾 Your professional certification is accepted — DOB approval granted.';
+        this.lastApprovalOutcome = {
+          text: '🧾 Your professional certification is accepted — DOB approval granted.',
+          kind: 'approved',
+        };
         debugLog(`📋 Prof Cert pass at ${currentPlayer.currentSpace} (roll ${diceRoll}) → DOB approval granted`);
       }
 
