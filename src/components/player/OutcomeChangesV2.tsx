@@ -183,6 +183,22 @@ export function buildCardChangesFromSnapshot(
   return changes;
 }
 
+/**
+ * Drop named card GAINS from the ledger — they're already shown as an
+ * interactive "tap for details" chip in the modal's "What happened" effects
+ * list (DiceResultModal's renderEffect), directly above this block, so
+ * repeating the name here is duplication, not reinforcement. Confirmed live
+ * 2026-07-10: hiring 3 Expeditors listed the same 3 names twice in one
+ * modal, back to back. Generic/unnamed gains (no cardIds on the effect
+ * payload — e.g. the deck ran dry mid-draw) get no chip up there, so their
+ * count stays the only place the player sees it. Losses/swaps keep both —
+ * the effect row names what's changing hands, this ledger confirms it left
+ * the player's count, which reads as confirmation rather than noise.
+ */
+export function filterLedgerCardChanges(changes: CardChange[]): CardChange[] {
+  return changes.filter((c) => !(c.action === 'gained' && c.name !== null));
+}
+
 interface OutcomeChangesV2Props {
   before: ResourceSnapshot | undefined;
   after: ResourceSnapshot | undefined;
@@ -228,7 +244,9 @@ export function OutcomeChangesV2({
     cardChanges = buildCardChangesFromSnapshot(before, after);
   }
 
-  if (resourceRows.length === 0 && cardChanges.length === 0) return null;
+  const ledgerCardChanges = filterLedgerCardChanges(cardChanges);
+
+  if (resourceRows.length === 0 && ledgerCardChanges.length === 0) return null;
 
   const sectionLabel: React.CSSProperties = {
     fontSize: 10,
@@ -287,7 +305,7 @@ export function OutcomeChangesV2({
       {/* Named resource/expeditor changes — the "which one?" the players asked
           for. Redundant coding: a +/−/↔ symbol AND the verb word, never colour
           alone (a11y; and the light-mode no-ghost rule keeps text dark). */}
-      {cardChanges.map((c, i) => {
+      {ledgerCardChanges.map((c, i) => {
         const meta = ACTION_META[c.action];
         const tag = cardTypeTag(c);
         return (

@@ -14,6 +14,7 @@ import {
   buildResourceRows,
   buildCardChanges,
   buildCardChangesFromSnapshot,
+  filterLedgerCardChanges,
   OutcomeChangesV2,
   type ResolveCard,
 } from '../../src/components/player/OutcomeChangesV2';
@@ -124,6 +125,22 @@ describe('buildCardChangesFromSnapshot (legacy fallback)', () => {
   });
 });
 
+describe('filterLedgerCardChanges', () => {
+  it('drops named gains but keeps unnamed gains and all losses/swaps', () => {
+    const changes = [
+      { action: 'gained' as const, type: 'W', name: 'Water Mains', count: 1 },
+      { action: 'gained' as const, type: 'E', name: null, count: 2 },
+      { action: 'lost' as const, type: 'E', name: 'Zoning Expeditor', count: 1 },
+      { action: 'swapped' as const, type: 'I', name: 'Bond', count: 1 },
+    ];
+    expect(filterLedgerCardChanges(changes)).toEqual([
+      { action: 'gained', type: 'E', name: null, count: 2 },
+      { action: 'lost', type: 'E', name: 'Zoning Expeditor', count: 1 },
+      { action: 'swapped', type: 'I', name: 'Bond', count: 1 },
+    ]);
+  });
+});
+
 describe('OutcomeChangesV2 render', () => {
   it('renders nothing when both snapshots are absent', () => {
     const { container } = render(
@@ -149,5 +166,55 @@ describe('OutcomeChangesV2 render', () => {
     expect(screen.getByText('−$40K')).toBeInTheDocument();
     expect(screen.getByText('Lost:')).toBeInTheDocument();
     expect(screen.getByText('Zoning Expeditor')).toBeInTheDocument();
+  });
+
+  it('does not repeat a named gained card in the ledger (already named by the effect-row chip above it)', () => {
+    render(
+      <OutcomeChangesV2
+        before={snap({ money: 120000, cardCountsByType: { W: 0, B: 0, E: 0, I: 0, L: 0 } })}
+        after={snap({ money: 80000, cardCountsByType: { W: 1, B: 0, E: 0, I: 0, L: 0 } })}
+        effects={[
+          { type: 'cards', description: 'drew one', cardAction: 'draw', cardCount: 1, cardType: 'W', cardIds: ['W1'] },
+        ]}
+        resolveCard={resolveCard}
+        mode="light"
+      />,
+    );
+    // The resource delta still shows...
+    expect(screen.getByText('Cash on hand')).toBeInTheDocument();
+    // ...but the named gain does not get a second "Gained:" ledger line.
+    expect(screen.queryByText('Gained:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Water Mains')).not.toBeInTheDocument();
+  });
+
+  it('still shows a generic (unnamed) gained count in the ledger — it has no effect-row chip to duplicate', () => {
+    render(
+      <OutcomeChangesV2
+        before={snap({ money: 120000 })}
+        after={snap({ money: 80000 })}
+        effects={[
+          { type: 'cards', description: 'drew two', cardAction: 'draw', cardCount: 2, cardType: 'E', cardIds: [] },
+        ]}
+        resolveCard={resolveCard}
+        mode="light"
+      />,
+    );
+    expect(screen.getByText('Gained:')).toBeInTheDocument();
+    expect(screen.getByText('2 Expeditors')).toBeInTheDocument();
+  });
+
+  it('renders nothing when the only change is a named gain and no resource figure moved (fully covered by the effect row above)', () => {
+    const { container } = render(
+      <OutcomeChangesV2
+        before={snap({ cardCountsByType: { W: 0, B: 0, E: 0, I: 0, L: 0 } })}
+        after={snap({ cardCountsByType: { W: 0, B: 0, E: 1, I: 0, L: 0 } })}
+        effects={[
+          { type: 'cards', description: 'hired one', cardAction: 'draw', cardCount: 1, cardType: 'E', cardIds: ['E1'] },
+        ]}
+        resolveCard={resolveCard}
+        mode="light"
+      />,
+    );
+    expect(container.firstChild).toBeNull();
   });
 });

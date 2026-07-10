@@ -2,7 +2,7 @@
 
 **Last Updated:** July 10, 2026
 **Status:** Beta — live in production; **v3.0.100 deployed 2026-07-10** (commit `8929371`, confirmed by maintainer)
-**Current Version:** 3.0.104 (not yet deployed)
+**Current Version:** 3.0.105 (not yet deployed)
 
 ---
 
@@ -18,7 +18,6 @@
 ## 🔎 Active — bugs & investigations
 
 - [ ] **"Move button disappeared after submitting a bug report"** (fb:1782843327269-bf8bf19a, v3.0.90) — teleport harness can't repro (bypasses client-computed `availableActionTypes`/`movementChoiceUnlocked`; see CLAUDE.md TACTICAL 2026-07-09). Needs a real playthrough to a movement-choice space + filing a report there, or live confirmation it still reproduces on v3.0.100+.
-- [ ] **Before→after outcome modal ([OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx)) — confirm live once**, then judge the "Gained:" double-listing polish question (effect-row + ledger line may read noisy; if so show only lost/swapped). v3.0.99 audit + passing test say it works; just hasn't been watched in a real card-gain/loss moment.
 
 ## 📣 Active — host-to-player messaging (2026-07-08)
 

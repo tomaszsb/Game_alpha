@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.105] - 2026-07-10
+
+### Before→after outcome modal: "Gained:" no longer double-lists named cards
+Confirmed live (previously only code-audited, v3.0.99): hiring 3 Expeditors listed the same 3 card names twice in one modal — once as interactive chips in "What happened," then again verbatim as "Gained:" lines in "What changed" directly below. [OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx) now drops named-gain rows from the ledger (`filterLedgerCardChanges`) since they're already shown as chips above; unnamed/generic gains (e.g. deck ran dry mid-draw, no chip exists) still show, and losses/swaps are untouched — those read as confirmation ("it left your count"), not duplication. A turn whose only change is a named gain now renders no "What changed" box at all instead of a near-empty repeat. (fixloop iteration, Sonnet 5)
+
 ## [3.0.104] - 2026-07-10
 
 ### Movement-failure toast dropped "dice roll" wording
