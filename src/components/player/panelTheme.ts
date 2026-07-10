@@ -26,6 +26,10 @@ export interface PanelPalette {
   /** Soft alert surface + border for "needs attention" rows (e.g. Still to raise). */
   badSurf: string;
   badBorder: string;
+  /** Soft positive surface + border — the approved/success counterpart to badSurf/badBorder
+   *  (e.g. an approval verdict banner). */
+  goodSurf: string;
+  goodBorder: string;
   /** Soft warning surface for "not yet / hold on" hints. */
   warnSurf: string;
 }
@@ -44,6 +48,8 @@ export const panelPalettes: Record<PanelMode, PanelPalette> = {
     bad: '#c0392b',
     badSurf: '#fdecea',
     badBorder: '#f5c6cb',
+    goodSurf: '#d4edda',
+    goodBorder: '#c3e6cb',
     warnSurf: '#fff7ed',
   },
   dark: {
@@ -59,6 +65,8 @@ export const panelPalettes: Record<PanelMode, PanelPalette> = {
     bad: '#f87171',
     badSurf: 'rgba(248, 113, 113, 0.14)',
     badBorder: 'rgba(248, 113, 113, 0.4)',
+    goodSurf: 'rgba(74, 222, 128, 0.14)',
+    goodBorder: 'rgba(74, 222, 128, 0.4)',
     warnSurf: 'rgba(245, 158, 11, 0.14)',
   },
 };

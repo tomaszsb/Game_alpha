@@ -1,7 +1,7 @@
 // src/components/modals/DiceResultModal.tsx
 
 import React, { useState } from 'react';
-import { ModalBase, modalButtonStyles } from './shared/ModalBase';
+import { ModalBase } from './shared/ModalBase';
 import { PlayerCardDetailV2 } from '../player/PlayerCardDetailV2';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { colors, theme } from '../../styles/theme';
@@ -15,7 +15,7 @@ import { shouldShake, getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
 import { BeforeAfterBlock } from './shared/BeforeAfterBlock';
 import { OutcomeChangesV2 } from '../player/OutcomeChangesV2';
-import { getStoredPanelVersion, getStoredPanelMode } from '../player/panelTheme';
+import { getStoredPanelVersion, getStoredPanelMode, panelPalettes, PanelMode } from '../player/panelTheme';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 
@@ -57,6 +57,13 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   // BeforeAfterBlock. Read the flags once at render — this modal is short-lived.
   const isNewView = getStoredPanelVersion() === 'new';
   const panelMode = getStoredPanelMode();
+  // The modal's own chrome (Summary, approval banner, Effects rows, footer
+  // buttons) always renders in the V2 token language — mirrors how the
+  // nested PlayerCardDetailV2 below already resolves its mode (light for
+  // classic, the panel's mode for new view). Classic keeps its untouched
+  // BeforeAfterBlock; only this shell + the parts unique to this file move.
+  const shellMode: PanelMode = isNewView ? panelMode : 'light';
+  const p = panelPalettes[shellMode];
 
   // Look up space content early (needed for data-driven shake/TTS config)
   const spaceContent = result?.spaceName
@@ -193,11 +200,14 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         style={{
           display: 'flex',
           alignItems: 'flex-start',
-          marginBottom: '8px',
-          paddingLeft: '8px'
+          gap: '10px',
+          background: p.surf,
+          borderRadius: 8,
+          padding: '8px 10px',
+          marginBottom: '6px',
         }}
       >
-        <span style={{ fontSize: '18px', marginRight: '10px', flexShrink: 0 }}>{icon}</span>
+        <span aria-hidden style={{ fontSize: '18px', flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1 }}>
           {/* Suppress the bold colored value when the BeforeAfterBlock table
               below will show the same delta — see hasSnapshot/isDuplicatedByTable
@@ -209,15 +219,15 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
             </span>
           )}
           <span style={{
-            color: colors.text.secondary,
-            fontSize: '14px',
+            color: p.muted,
+            fontSize: '13px',
             marginLeft: !isDuplicatedByTable && formattedValue ? '6px' : '0',
           }}>
             {effect.description}
           </span>
           {/* Display each card on its own line with type icon and colors */}
           {cardDetails.length > 0 && (
-            <div style={{ marginTop: '6px', marginLeft: '4px' }}>
+            <div style={{ marginTop: '6px' }}>
               {cardDetails.map((card, cardIndex) => {
                 const cardColors = getCardTypeColors(card.type);
                 return (
@@ -236,7 +246,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
                       padding: '4px 8px',
                       marginBottom: '4px',
                       backgroundColor: cardColors.bg,
-                      borderRadius: theme.borderRadius.sm,
+                      borderRadius: 8,
                       border: `1px solid ${cardColors.border}`,
                     }}
                   >
@@ -318,24 +328,54 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   const displayableEffects = result.effects.filter(e => e.type !== 'choice');
   const hasPendingChoice = result.effects.some(e => e.type === 'choice');
 
+  // Footer buttons follow the panel's mode directly (mirrors the accent/
+  // border-strong buttons in PlayerCardDetailV2 / PlayerNumbersV2) instead of
+  // the shared, mode-fixed modalButtonStyles — those stay light-only, which
+  // would leave a stray light button sitting in a dark-mode body. Light-button
+  // rule (redesign §4): visible dark border + text before hover, always.
+  const primaryBtnStyle: React.CSSProperties = {
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#fff',
+    backgroundColor: p.accent,
+    border: `1px solid ${p.accent}`,
+    borderRadius: 9,
+    cursor: 'pointer',
+    minHeight: '44px',
+    minWidth: '80px',
+  };
+  const secondaryBtnStyle: React.CSSProperties = {
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: 500,
+    color: p.text,
+    backgroundColor: p.surf,
+    border: `1px solid ${p.borderStrong}`,
+    borderRadius: 9,
+    cursor: 'pointer',
+    minHeight: '44px',
+    minWidth: '80px',
+  };
+
   const footer = (
     <>
       {result.hasChoices && onConfirm ? (
         <>
           <button
-            style={modalButtonStyles.secondary}
+            style={secondaryBtnStyle}
             onClick={onClose}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.secondary.bg;
+              e.currentTarget.style.backgroundColor = p.surf2;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = colors.secondary.light;
+              e.currentTarget.style.backgroundColor = p.surf;
             }}
           >
             Review
           </button>
           <button
-            style={modalButtonStyles.primary}
+            style={primaryBtnStyle}
             onClick={handleConfirm}
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = '0.9';
@@ -350,7 +390,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         </>
       ) : (
         <button
-          style={modalButtonStyles.primary}
+          style={primaryBtnStyle}
           onClick={handleConfirm}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = '0.9';
@@ -379,6 +419,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       testId="dice-result-modal"
       shake={hasNegativeEffect}
       speechControls={speechControls}
+      mode={shellMode}
     >
       {/* Voice rule (no game language): the old "🎲 Result: N" subtitle surfaced
           the raw die number — removed. The outcome is told by the Summary +
@@ -403,25 +444,27 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       {/* Summary */}
       {summaryText && (
         <div style={{
-          backgroundColor: colors.primary.light,
-          border: `2px solid ${colors.primary.main}`,
-          borderRadius: theme.borderRadius.md,
+          background: p.surf,
+          borderLeft: `3px solid ${p.accent}`,
+          borderRadius: 8,
           padding: '12px 14px',
-          marginBottom: '16px'
+          marginBottom: '14px',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
         }}>
-          <h4 style={{
-            fontSize: '15px',
-            fontWeight: 'bold',
-            color: colors.primary.text,
-            margin: 0,
-            marginBottom: '4px'
+          <p style={{
+            fontSize: 10,
+            letterSpacing: '0.05em',
+            color: p.muted,
+            textTransform: 'uppercase',
+            margin: '0 0 6px',
           }}>
             {theme.emoji.info} Summary:
-          </h4>
+          </p>
           <p style={{
             margin: 0,
-            color: colors.primary.text,
-            fontSize: '14px'
+            color: p.text,
+            fontSize: '14px',
+            lineHeight: 1.5,
           }}>
             {summaryText}
           </p>
@@ -435,21 +478,25 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           (fb:feedback-1782848524918-7300c51d). Its own color-coded block
           makes DOB/FDNY approval read as the milestone it is. */}
       {result.approvalOutcome && (() => {
+        // Mode-safe V2 tokens, keeping the three-state (+ neutral) semantics:
+        // green = approved, amber = minor objection, red = denied, gray = none.
+        // Amber reuses the same literal accent PlayerCardDetailV2's "not yet"
+        // hint uses with p.warnSurf — there's no separate warn-text token yet.
         const kindStyle = {
-          approved: { bg: colors.success.light, border: colors.success.main, text: colors.success.text },
-          'minor-objection': { bg: colors.warning.light, border: colors.warning.dark, text: colors.warning.text },
-          denied: { bg: colors.danger.light, border: colors.danger.main, text: colors.danger.text },
-          none: { bg: colors.secondary.light, border: colors.secondary.border, text: colors.secondary.dark },
+          approved: { bg: p.goodSurf, border: p.goodBorder, text: p.good },
+          'minor-objection': { bg: p.warnSurf, border: '#f59e0b', text: p.text },
+          denied: { bg: p.badSurf, border: p.badBorder, text: p.bad },
+          none: { bg: p.surf2, border: p.border, text: p.text },
         }[result.approvalOutcome.kind];
         return (
           <div style={{
-            backgroundColor: kindStyle.bg,
-            border: `2px solid ${kindStyle.border}`,
-            borderRadius: theme.borderRadius.md,
+            background: kindStyle.bg,
+            border: `1px solid ${kindStyle.border}`,
+            borderRadius: 8,
             padding: '12px 14px',
-            marginBottom: '16px',
-            fontSize: '15px',
-            fontWeight: 'bold',
+            marginBottom: '14px',
+            fontSize: '14px',
+            fontWeight: 700,
             color: kindStyle.text,
           }}>
             {result.approvalOutcome.text}
@@ -461,18 +508,16 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           routing-only roll never shows the header with an empty body. */}
       {displayableEffects.length > 0 ? (
         <>
-          <h3 style={{
-            fontSize: '16px',
-            fontWeight: 'bold',
-            color: colors.text.primary,
-            marginTop: 0,
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
+          <p style={{
+            fontSize: 10,
+            letterSpacing: '0.05em',
+            color: p.muted,
+            textTransform: 'uppercase',
+            margin: '0 0 8px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}>
             {theme.emoji.effects} What happened:
-          </h3>
+          </p>
 
           {displayableEffects.map((effect, index) => renderEffect(effect, index))}
         </>
@@ -484,8 +529,8 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
         // above; the destinations live in the panel picker (fb:6ec5c01f).
         <div style={{
           textAlign: 'center',
-          color: colors.text.secondary,
-          fontSize: '15px',
+          color: p.muted,
+          fontSize: '14px',
           padding: '16px'
         }}>
           {isDiceRoll
@@ -495,11 +540,11 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       ) : (
         <div style={{
           textAlign: 'center',
-          color: colors.text.secondary,
-          fontSize: '16px',
+          color: p.muted,
+          fontSize: '15px',
           padding: '20px'
         }}>
-          <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>😐</span>
+          <span aria-hidden style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>😐</span>
           Nothing changed this time
         </div>
       )}
@@ -528,12 +573,12 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       {/* Phase 4: Optional footer summary from ModalConfig.modal_summary */}
       {overrideFooterSummary && (
         <div style={{
-          marginTop: '16px',
+          marginTop: '14px',
           padding: '10px 12px',
-          backgroundColor: colors.secondary.light,
-          borderRadius: theme.borderRadius.sm,
-          color: colors.text.primary,
-          fontSize: '14px',
+          background: p.surf2,
+          borderRadius: 8,
+          color: p.text,
+          fontSize: '13px',
           fontStyle: 'italic'
         }}>
           {overrideFooterSummary}
@@ -551,7 +596,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       card={detailCardId ? dataService.getCardById(detailCardId) ?? null : null}
       playerId={currentPlayerId || ''}
       gameServices={gameServices}
-      mode={isNewView ? panelMode : 'light'}
+      mode={shellMode}
     />
     </>
   );

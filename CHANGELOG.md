@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.102] - 2026-07-10
+
+### DiceResultModal restyled to the V2 design language
+The shared live-turn outcome modal still wore the classic panel's styling, which read as foreign next to the V2 panel that's been the default since v3.0.97. Restyled in place (no fork): the modal shell now resolves light/dark from the panel's own mode toggle in new view (classic stays light, matching how the nested card-detail modal already behaved), and the Summary callout, approval-outcome banner, effect rows, and footer buttons all use the shared `panelPalettes` tokens — including new `goodSurf`/`goodBorder` entries in [panelTheme.ts](src/components/player/panelTheme.ts), the "approved" green counterpart to the existing alert-red pair. Footer buttons got mode-aware styles because the shared `modalButtonStyles` are light-only and would have left a stray light button in a dark body. No copy, props, queueing, or close-flow changes; the v3.0.71 backdrop-grace behavior was re-verified live (immediate backdrop click stays open during the 500ms grace, later click closes). All four approval-banner states checked legible in both palettes. (fixloop iteration, Sonnet 5)
+
 ## [3.0.101] - 2026-07-10
 
 ### "6× duplicate subscribeToAutoActions" investigated — the multiplier was measurement noise; a real dead subscription removed
