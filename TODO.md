@@ -36,7 +36,7 @@
 - [ ] **Moves as the last possible act — revisit** — maintainer reconsidering earlier ruling. <!-- fb:feedback-1783082047004-3dcb3ba7 -->
 - [ ] **"How does this card work? is the plumbing built for it?"** — card unclear; v3.0.100 audited E009/E024 as correctly implemented, but this specific report was never claimed by id — confirm which card + whether copy needs teaching text. <!-- fb:feedback-1783081638577-ee534eb3 -->
 - [ ] **Owner seed money maybe shouldn't count as "funding raised"** — design question. <!-- fb:feedback-1783081115822-cac490a5 -->
-- [ ] **Two versions of same output, one old one new** — old/new panel output rendering side-by-side somewhere; new looks better. <!-- fb:feedback-1783079668156-5984e322 -->
+- [ ] **Two versions of same output, one old one new** — old/new panel output rendering side-by-side somewhere; new looks better. **2026-07-10 investigation: ruled out every classic/V2 fork point** (panel wrapper, outcome modal, history/log views, toast/notification banners) — all are clean single-branch gates, no simultaneous double-render found in code. Needs the original dashboard screenshot to pin down which screen; couldn't pull it from this session. <!-- fb:feedback-1783079668156-5984e322 -->
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
