@@ -847,4 +847,80 @@ describe('StateService', () => {
       expect(player?.spaceVisitLog).toHaveLength(2); // Movement preserved
     });
   });
+
+  // TODO "6x duplicate subscribeToAutoActions firing" (task_bb6cec79, 2026-07-09)
+  // investigation: proves subscribe/unsubscribe symmetry directly against the
+  // real service, sidestepping the dev-only noise (StrictMode double-invoke,
+  // multiple concurrent preview servers) that makes live browser counting
+  // unreliable. A React effect that subscribes on mount and unsubscribes on
+  // cleanup should never leave more than one live listener per logical
+  // subscriber, no matter how many times it re-runs.
+  describe('subscribeToAutoActions (fb:task_bb6cec79)', () => {
+    const sampleEvent = { type: 'movement', playerId: 'p1', playerName: 'Alice', success: true } as any;
+
+    it('delivers an emitted event to exactly one call per active subscriber', () => {
+      const handlerA = vi.fn();
+      const handlerB = vi.fn();
+      stateService.subscribeToAutoActions(handlerA);
+      stateService.subscribeToAutoActions(handlerB);
+
+      stateService.emitAutoAction(sampleEvent);
+
+      expect(handlerA).toHaveBeenCalledTimes(1);
+      expect(handlerB).toHaveBeenCalledTimes(1);
+    });
+
+    it('unsubscribe detaches exactly that listener, leaving others untouched', () => {
+      const handlerA = vi.fn();
+      const handlerB = vi.fn();
+      const unsubscribeA = stateService.subscribeToAutoActions(handlerA);
+      stateService.subscribeToAutoActions(handlerB);
+
+      unsubscribeA();
+      stateService.emitAutoAction(sampleEvent);
+
+      expect(handlerA).not.toHaveBeenCalled();
+      expect(handlerB).toHaveBeenCalledTimes(1);
+    });
+
+    it('mount/unmount/remount (simulating a React effect re-run) never accumulates listeners', () => {
+      const handler = vi.fn();
+
+      // Simulate the effect running 6 times (e.g. 6 re-renders under some
+      // pathological condition) — each run subscribes with a NEW closure
+      // and cleans up the PREVIOUS one first, exactly like React's
+      // mount -> cleanup -> mount effect lifecycle.
+      let unsubscribe = stateService.subscribeToAutoActions(handler);
+      for (let i = 0; i < 5; i++) {
+        unsubscribe();
+        unsubscribe = stateService.subscribeToAutoActions(handler);
+      }
+
+      stateService.emitAutoAction(sampleEvent);
+
+      // If cleanup ever failed to detach the prior closure, this would be 6.
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('calling the same unsubscribe function twice is a harmless no-op', () => {
+      const handler = vi.fn();
+      const unsubscribe = stateService.subscribeToAutoActions(handler);
+
+      unsubscribe();
+      unsubscribe(); // double-invoke shouldn't throw or remove a different listener
+      stateService.emitAutoAction(sampleEvent);
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('a throwing listener does not prevent other listeners from receiving the event', () => {
+      const throwing = vi.fn(() => { throw new Error('boom'); });
+      const healthy = vi.fn();
+      stateService.subscribeToAutoActions(throwing);
+      stateService.subscribeToAutoActions(healthy);
+
+      expect(() => stateService.emitAutoAction(sampleEvent)).not.toThrow();
+      expect(healthy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

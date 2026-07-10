@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
 import { Choice } from '../../types/CommonTypes';
-import { AutoActionEvent } from '../../services/StateService';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { FinancesSection } from './sections/FinancesSection';
 import { TimeSection } from './sections/TimeSection';
@@ -234,14 +233,9 @@ export const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({
     return unsubscribe;
   }, [gameServices, playerId]);
 
-  // Subscribe to auto-action events (non-movement events like dice rolls, effects)
-  useEffect(() => {
-    const unsubscribe = gameServices.stateService.subscribeToAutoActions((event: AutoActionEvent) => {
-      // Movement transitions are handled by the state-based subscription above
-      // This subscription is kept for other auto-action event types
-    });
-    return () => { unsubscribe(); };
-  }, [gameServices.stateService, playerId]);
+  // No subscribeToAutoActions here — movement transitions are handled by the
+  // state-based subscription above, and no other auto-action event type is
+  // wired to this panel.
 
   // Get player data
   const player = gameServices.stateService.getPlayer(playerId);

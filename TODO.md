@@ -2,7 +2,7 @@
 
 **Last Updated:** July 10, 2026
 **Status:** Beta — live in production; **v3.0.100 deployed 2026-07-10** (commit `8929371`, confirmed by maintainer)
-**Current Version:** 3.0.100
+**Current Version:** 3.0.101 (not yet deployed)
 
 ---
 
@@ -17,7 +17,6 @@
 
 ## 🔎 Active — bugs & investigations
 
-- [ ] **6x duplicate `subscribeToAutoActions` firing.** Every auto-action event fires 6× instead of once, even on a fresh browser session. Harmless today (all handlers idempotent) but a future counter/append handler would silently misbehave. Candidates: StrictMode double-invoke (explains 2×, not 6×), multiple simultaneous GameLayout mounts (solo/grid/TV, even CSS-hidden), unsubscribe not detaching on effect cleanup. Also noted: `effectiveViewPlayerId` reads stale/null in that effect's closure — harmless now (handlers use `event.playerId`), footgun later. (Background task `task_bb6cec79`, 2026-07-09.)
 - [ ] **"Move button disappeared after submitting a bug report"** (fb:1782843327269-bf8bf19a, v3.0.90) — teleport harness can't repro (bypasses client-computed `availableActionTypes`/`movementChoiceUnlocked`; see CLAUDE.md TACTICAL 2026-07-09). Needs a real playthrough to a movement-choice space + filing a report there, or live confirmation it still reproduces on v3.0.100+.
 - [ ] **DiceResultModal (outcome modal) restyle to the V2 design language.** Was deferred until the new panel became default — it has been since v3.0.97, so this is now unblocked. Shared live-turn modal (holds the v3.0.71 backdrop-grace fix) — restyle in place, carefully. Design: [player-panel-redesign.md](docs/design/player-panel-redesign.md) §5/§10.1.
 - [ ] **Before→after outcome modal ([OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx)) — confirm live once**, then judge the "Gained:" double-listing polish question (effect-row + ledger line may read noisy; if so show only lost/swapped). v3.0.99 audit + passing test say it works; just hasn't been watched in a real card-gain/loss moment.

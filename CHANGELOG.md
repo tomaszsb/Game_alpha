@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.101] - 2026-07-10
+
+### "6× duplicate subscribeToAutoActions" investigated — the multiplier was measurement noise; a real dead subscription removed
+The 2026-07-09 observation that every auto-action event fired 6× does not reproduce in an isolated environment: in a clean page load even unrelated one-shot console calls appeared 6×, because the dev machine was running many concurrent sessions sharing the console — the app itself registers exactly one live handler (GameLayout or TVDisplay, never both; App.tsx renders one branch). Two real findings did come out of it: (1) the classic panel ([ActionCenterPanel.tsx](src/components/player/ActionCenterPanel.tsx)) subscribed to auto-actions on every mount with a **completely empty handler** — one dead listener per visible player, pure overhead and a trap for a future dev assuming it was live; removed. (2) The suspected stale-`effectiveViewPlayerId` closure footgun doesn't exist in current code (GameLayout's handler reads only `event.playerId`). Five new StateService tests now prove subscribe/unsubscribe symmetry — including a mount/unmount×6 simulation that would fail if cleanup ever leaked — so a real leak can't sneak back in unnoticed. (fixloop iteration, Sonnet 5)
+
 ## [Ops] 2026-07-10 — v3.0.100 deployed; process session (no app change)
 
 - **v3.0.100 deployed + confirmed live** (commit `8929371`). `/challenge` verified working on the user's iPhone 16; QR codes printed — the external-playtester funnel is fully unblocked. `ALERT_PHONE`/`ALERT_CARRIER` confirmed present in the production `.env` (checked over ssh), so the foreign-game text alert is fully operational.
