@@ -23,6 +23,8 @@ npm test                # full vitest, backgrounded — takes ~10-12 min, NOT hu
                         # Only treat it as actually hung past ~15 min.)
 ```
 
+**Zero-game-source sessions (added 2026-07-10):** if the session touched NO game source (`src/`, `server/`, `public/data/`, `tests/`) — only docs, skill files, TODO, or standalone `scripts/` that nothing imports — run typecheck + build only and skip the full suite. There are no code changes to ripple. State the skip explicitly in NEXT_SESSION + the wrap line, citing the last green baseline. Any `src/`/`server/`/data change, however small, still gets the full suite.
+
 The point of the full suite is catching cross-file ripples a session author wouldn't predict. Start it backgrounded early (step 1, before the memory/docs work below) so the ~10-12 min runtime overlaps with everything else in this skill — check back at the end rather than blocking on it. If it genuinely hasn't returned by ~15 min, fall back to the targeted sweep: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant surfaces.
 
 **Capture for downstream:**

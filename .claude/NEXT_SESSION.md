@@ -1,28 +1,29 @@
-# Next session starter — written 2026-07-09 by /koniec
+# Next session starter — written 2026-07-10 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.100 — **pending deploy** (pushed to origin/master, not yet deployed).
-- **Branch:** master, clean (wrap-up commit pending — see step 5c of this run).
-- **Last shipped:** One bug report ("nothing showed me the plan examiner verdict") unraveled into 6 real fixes via root-cause chasing: a buried-text bug, the real cause underneath it (REGULATORY-phase dice auto-rolls with no button and discarded its result), a `{fundingAmount}` token leak generalized to all three funding spaces, a silent DOB/FDNY approval-revoke path, and the big one — `PlayerPanelV2` (default panel since v3.0.97) never rendered the `playerNotification` prop, so every toast notification app-wide has been invisible for weeks. Also fixed a foreign-game-alert false-positive on every deploy restart, and reserved "approve" language for DOB/FDNY only. 14 dashboard reports closed. Full detail in CHANGELOG v3.0.100.
-- **Test suite:** typecheck + build clean. Full suite (backgrounded, ~10.6 min — ghost-bot simulations run 50 games each): **2340/2341 passing, 1 skipped**, matching the pre-session baseline exactly.
+- **Version:** v3.0.100 — **deployed 2026-07-10** (commit `8929371`), no drift.
+- **Branch:** master, clean (wrap-up commit pending — step 5c of this run).
+- **Last shipped:** process session, no app change — v3.0.100 deployed + verified, 20 dashboard reports flipped (53→33 open), TODO slimmed 306→152, **autonomous fix loop built and calibrated** (`/loop /fixloop`), session SSH key to unraid installed, `/challenge` iPhone-verified + QR codes printed. Detail: CHANGELOG [Ops] 2026-07-10.
+- **Test suite:** typecheck + build clean. Full suite not run (zero game-source changes this session); baseline 2340/2341 passing, 1 skipped (2026-07-09).
 
 ## Top 3 open items
-1. **6x duplicate `subscribeToAutoActions` firing** — every auto-action event fires 6 times instead of once, confirmed even on a fresh browser session. Currently harmless (handlers are idempotent) but worth root-causing before a non-idempotent one is added. Spawned as background task `task_bb6cec79` this session; see TODO.md for investigation candidates (StrictMode double-invoke, duplicate GameLayout mounts, unsubscribe not detaching).
-2. **Host-to-player messaging** — no channel exists to send a message into a live game. Needs its own design pass first: who can send, free text vs. presets, does it interrupt play.
-3. **Bank/Investor/Lender have no character entry** — 6 board spaces still show phase-only labels. User is explicitly marinading on whether to invent names/colors — don't nudge, wait for them to bring it back up.
-
-## Test failures to address
-(None — pre-flight is fully green.)
+1. **Launch the fix loop** — fresh session on **Sonnet 5**, auto-accept edits, type `/loop /fixloop`. Calibrated: Monday 7am reset, 19% used at day 5 (cap 71.25%) as of 2026-07-10. It picks one bug per iteration, routes the cheapest capable model, verifies, commits, pushes.
+2. **6x duplicate `subscribeToAutoActions` firing** — every auto-action event fires 6× instead of once (fresh-session reproducible). Harmless today (idempotent handlers); investigation candidates in TODO. Good Opus/Fable escalation target for the loop.
+3. **8 newly-staged dashboard reports** (July 3–5, mostly v3.0.93) in TODO "Newly arrived" — untriaged; the loop's natural food.
 
 ## Decisions waiting on the user
-- **Bank/Investor/Lender character naming** (see item 3) — parked at the user's request, no urgency.
+- Board layout (stock grid vs re-arrange); Bank/Investor/Lender naming (**don't nudge**); Workstream 2 v3.0.0 criterion; `ANTHROPIC_API_KEY` blank in dictionary-scraper stack.
+
+## Flip after deploy
+(None pending — 2026-07-10 sweep flipped all fixed-and-deployed ids. Fix-loop fixes queue in `.claude/fixloop/flip-queue.txt` for after the next deploy.)
 
 ## Suggested first move
-Deploy v3.0.100 (`bash deploy.sh` from a Windows terminal) — it's pushed to origin but not yet live. After that, ask which of items 1–2 to tackle, since neither was prioritized this session.
+Launch the fix loop (item 1). If working manually instead, pick from the 8 newly-staged reports or the 6x-subscription investigation.
 
 ## Suggested model for next session
-**Sonnet 5.** This session was almost entirely root-cause debugging (chasing one report through 5 layers, tracing a race condition via diagnostic logging) — exactly Sonnet's strength, and item 1 (the 6x subscription investigation) is the same shape of work. Nothing in the top-3 needs Opus-level architectural judgment or a long unsupervised run.
+**Sonnet 5** — the loop orchestrator should be cheap (its own tokens count against the budget); heavy reasoning is dispatched per-task via the Agent tool.
 
 ## Reminders
-- Deploy runs from a **Windows terminal**, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-- New CLAUDE.md TACTICAL entries this session worth knowing before doing more live-verification work: state-injection teleport testing can't exercise client-computed-then-persisted UI-gating fields (`requiredActions`, `availableActionTypes`, `movementChoiceUnlocked`) — a real playthrough is required to test anything gated by those. Also: a prop can type-check on a shared Props interface while one panel implementation silently never renders it (how the `playerNotification` gap was found) — worth the same audit if the two panels are ever suspected to have drifted again.
+- Deploy runs from a Windows terminal: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"` — user-run only. `ssh unraid` is now passwordless from session shells (use `-o BatchMode=yes`).
+- If the user used Claude on phone/work machine, re-anchor the budget meter: `/fixloop calibrate <pct>` with the official /usage number.
+- After the next deploy: flip the ids in `.claude/fixloop/flip-queue.txt` (recipe in TODO.md).

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-10 — v3.0.100 deployed; process session (no app change)
+
+- **v3.0.100 deployed + confirmed live** (commit `8929371`). `/challenge` verified working on the user's iPhone 16; QR codes printed — the external-playtester funnel is fully unblocked. `ALERT_PHONE`/`ALERT_CARRIER` confirmed present in the production `.env` (checked over ssh), so the foreign-game text alert is fully operational.
+- **Dashboard: 20 fixed-and-deployed reports flipped resolved (53→33 open).** Each verified against an explicit CHANGELOG/TODO citation before flipping; one lookalike (fb:ee534eb3, "is the plumbing built for this card?") had no citation and stays open, staged in TODO for triage.
+- **TODO.md slimmed 306→152 lines, zero open items lost.** Section-preamble history recaps removed (CHANGELOG owns that story), trigger-gated items consolidated into a Parking lot. The slimness contract is now enforced at every `/koniec` (one-pointer-line preambles, ~150-active-line size guard), and a flip-after-deploy loop was added to `/start`+`/koniec` so resolved reports stop lingering as "open" (they had inflated the backlog by ~60%).
+- **Autonomous fix loop built** (`/loop /fixloop`): [scripts/fixloop-usage.mjs](scripts/fixloop-usage.mjs) sums cost-weighted token usage from all local Claude transcripts against the plan's weekly quota (reset Monday 7am, calibrated to the official /usage %); [.claude/commands/fixloop.md](.claude/commands/fixloop.md) runs one budget-gated iteration per firing — pick ONE eligible TODO bug, route Sonnet 5 by default / Opus 4.8 for ambiguity (≥5 pts headroom) / Fable 5 for hardest reasoning (≥12 pts), verify typecheck+build+tests, commit+push, queue fb ids for post-deploy flips. Daily caps are sevenths of the weekly budget (14.25%→100%), so the loop paces itself across the week and sleeps at the cap. Midweek recalibration: `/fixloop calibrate <pct>` (covers phone/work-machine usage invisible to local receipts).
+- **Session SSH key installed** — passwordless `ssh unraid` now works from Claude Code shells (dedicated `~/.ssh/id_ed25519_unraid`, `IdentitiesOnly`); deploys remain user-run by rule.
+
 ## [3.0.100] - 2026-07-09
 
 **Chased one bug report ("nothing showed me the plan examiner verdict") and it kept unraveling: a text-collapse bug, a dice-roll auto-fired with the result thrown away, a stale template token, a silent approval-revoke, and — the big one — the entire toast-notification system has been invisible on the default player panel since v3.0.97. Also fixed a deploy-restart false alarm on the new foreign-game text alert and reserved "approve" language for DOB/FDNY.**

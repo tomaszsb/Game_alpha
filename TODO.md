@@ -29,10 +29,8 @@
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
 *Spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx)*
-- [ ] **Live-verify `/challenge` on the user's iPhone 16** — phone view, "Phone alert"→Add-to-Home-Screen, carousel, "Play anyway" warning only seen headless so far.
 - [ ] **Finish the screenshot carousel** — 7 shots done; still wanted in `src/playtest/tour/`: mid-game revealed nodes, won game, lost game, money-deducted modal (state-injection recipes in CLAUDE.md TACTICAL); re-shoot `01-player-setup` from production (QR shows localhost); swap `12-a-word-explained.png`. Regenerate via `node scripts/capture-game-screenshot.js`.
 - [ ] **Demo video** — 30–45s; script + storyboard drafted 2026-07-05 (in chat); needs footage, then wire the "Watch demo" button.
-- [ ] **Print the QR codes** — 5 PNGs in `Mockups/qr-codes/`; add logo overlay in image software first (PRD asks for one).
 
 ## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; un-promoted v3.0.83–90 reports: [.claude/feedback-staged.md](.claude/feedback-staged.md))
 
