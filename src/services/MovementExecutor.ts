@@ -98,7 +98,7 @@ export class MovementExecutor {
             fromSpace: player.currentSpace,
             toSpace: undefined,
             success: false,
-            message: `⚠️ Movement failed: no destination found for dice roll ${diceRoll} at ${player.currentSpace}. Please contact support or reload.`
+            message: `⚠️ Movement failed: couldn't determine where to move from ${player.currentSpace}. Please contact support or reload.`
           });
           return { moved: false, fromSpace: player.currentSpace, toSpace: null, reason: 'none' };
         }

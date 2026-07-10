@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.104] - 2026-07-10
+
+### Movement-failure toast dropped "dice roll" wording
+Follow-up to the v3.0.103 history sweep, which was scoped to log entries and skipped toasts: [MovementExecutor.ts](src/services/MovementExecutor.ts)'s no-destination-found failure toast said "no destination found for dice roll N" — game language reaching the player via `notificationService`. Now reads "couldn't determine where to move from <space>", matching the sibling no-valid-destinations error already clean. Internal-only `console.error` diagnostics (never player-visible) left untouched. (fixloop iteration, Sonnet 5)
+
 ## [3.0.103] - 2026-07-10
 
 ### History no longer speaks board-game ("rolled") — no-game-language sweep of the log/Chronicle strings
