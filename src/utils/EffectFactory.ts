@@ -429,12 +429,14 @@ export class EffectFactory {
       effects.push(...effectsFromDiceEffect);
     });
 
-    // Log effect for dice roll
+    // Log effect for dice roll. Voice rule (no game language): no "rolled" /
+    // no raw die number — frame it as the real-world outcome coming back,
+    // matching TurnService's "Outcome determined" phrasing (fb:1783080880242).
     const friendly = spaceFriendlyName || spaceName;
     effects.push({
       effectType: 'LOG',
       payload: {
-        message: `${playerName || playerId} rolled ${diceResult} at ${friendly}`,
+        message: `${playerName || playerId}'s outcome came back at ${friendly}`,
         level: 'INFO',
         source: diceSource,
         action: 'dice_roll'

@@ -158,7 +158,9 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
       if (feeAmount === null) {
         // Dice-based fee - requires dice roll context
         debugLog(`    Dice-based fee - requires dice roll context, skipping calculation`);
-        this.loggingService.info(`Fee deduction pending: ${payload.feeDescription} (dice roll required)`, {
+        // Voice rule (no game language): no "dice roll" in the player-visible
+        // description — the amount is simply awaiting the outcome.
+        this.loggingService.info(`Fee deduction pending: ${payload.feeDescription} (awaiting outcome)`, {
           playerId: payload.playerId,
           action: 'fee_pending',
           source: payload.source || context.source

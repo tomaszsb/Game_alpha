@@ -1213,7 +1213,7 @@ describe('EffectEngineService', () => {
       expect(result.success).toBe(true);
       expect(mockResourceService.spendMoney).not.toHaveBeenCalled();
       expect(mockLoggingService.info).toHaveBeenCalledWith(
-        expect.stringContaining('dice roll required'),
+        expect.stringContaining('awaiting outcome'),
         expect.any(Object)
       );
     });

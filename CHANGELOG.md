@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.103] - 2026-07-10
+
+### History no longer speaks board-game ("rolled") — no-game-language sweep of the log/Chronicle strings
+Direct report fb:feedback-1783080880242-bbbb4005: the game history showed "Player rolled 4 at …", violating the house rule that players see real-world permitting language, never mechanics. Swept every player-visible history emission: both dice-roll log sites ([EffectFactory.ts](src/utils/EffectFactory.ts), [SpaceArrivalProcessor.ts](src/services/SpaceArrivalProcessor.ts)) now say "…'s outcome came back at <space>"; the pending-fee line says "(awaiting outcome)" instead of "(dice roll required)"; and two [CardService.ts](src/services/CardService.ts) entries were reworded — deck reshuffle ("Ran low on new Work Packages — recycled earlier ones back into the pool") and the pre-selected starting-hand draw, which had been leaking raw type letters and "card(s)" instead of the friendly names the live-play draw path already used. Deliberately left alone after tracing consumers: classic-only card-play log strings (legacy CardModal path — don't polish, per the migrate-to-V2 rule), several never-rendered internal `reason`/`detailed` fields, and admin/debug surfaces. One real gap found and queued in TODO: the movement-failure **toast** still says "dice roll" (toasts were out of this sweep's scope). CSVs were clean — no regeneration needed. Live-verified in a real game: log shows the new wording, no game language in any generated entry. (fixloop iteration, Sonnet 5)
+
 ## [3.0.102] - 2026-07-10
 
 ### DiceResultModal restyled to the V2 design language

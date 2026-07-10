@@ -104,8 +104,11 @@ export class SpaceArrivalProcessor {
         // Log the dice roll. fb:91738221 — drop the leading 🎲 (the
         // actionLogFormatting layer prepends it for dice_roll entries, was
         // causing "🎲 🎲" double-emoji), and use the friendly space name.
+        // Voice rule (no game language): no "rolled" / no raw die number in
+        // the player-visible description — frame it as the outcome coming
+        // back, matching TurnService's "Outcome determined" (fb:1783080880242).
         const friendlyForLog = friendlySpaceName(this.dataService, spaceName);
-        this.loggingService.info(`${currentPlayer.name} rolled ${diceRoll} at ${friendlyForLog}`, {
+        this.loggingService.info(`${currentPlayer.name}'s outcome came back at ${friendlyForLog}`, {
           playerId: currentPlayer.id,
           playerName: currentPlayer.name,
           action: 'dice_roll',

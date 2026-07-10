@@ -5,6 +5,8 @@ import { Card, CardType } from '../types/DataTypes';
 import { Effect } from '../types/EffectTypes';
 import { ErrorNotifications } from '../utils/ErrorNotifications';
 import { parseCardDrawFormat } from '../utils/parseUtils';
+import { getCardTypeName } from '../utils/cardTypeNames';
+import { friendlyCardList } from '../utils/logFormatting';
 
 // NYC DOB work types that count as "groundwork" — i.e. the project disturbs
 // soil (digging, foundations, ground-disturbing teardowns). Used to gate
@@ -163,8 +165,10 @@ export class CardService implements ICardService {
           });
         }
 
-        // Log card draw to action history
-        this.loggingService.info(`Drew ${preSelectedOfType.length} ${cardType} card(s) (pre-selected): ${preSelectedOfType.join(', ')}`, {
+        // Log card draw to action history. Voice rule (no game language): use
+        // the real-world type label and card names, never the raw type letter
+        // or the word "card(s)" — matches CardEffectHandler.logCardDraw.
+        this.loggingService.info(`Drew ${preSelectedOfType.length} ${getCardTypeName(cardType, preSelectedOfType.length)}: ${friendlyCardList(this.dataService, preSelectedOfType)}`, {
           playerId: player.id,
           action: 'card_draw',
           cardType,
@@ -210,8 +214,10 @@ export class CardService implements ICardService {
         availableDeck = this.shuffleArray([...discardPile]);
         discardPile = [];
 
-        // Log deck reshuffle to action history
-        this.loggingService.info(`Deck for ${cardType} cards was empty. Discard pile reshuffled.`, {
+        // Log deck reshuffle to action history. Voice rule (no game language):
+        // no "Deck"/"Discard pile" — frame it as recycling the real-world
+        // item type, not board-game mechanics.
+        this.loggingService.info(`Ran low on new ${getCardTypeName(cardType, 2)} — recycled earlier ones back into the pool.`, {
           playerId: player.id,
           cardType: cardType,
           reshuffledCount: availableDeck.length,
