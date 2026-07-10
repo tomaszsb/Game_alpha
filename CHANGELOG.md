@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.106] - 2026-07-10
+
+### CardDetailsModal — removed the redundant "Close" button
+fb:feedback-1783079995743-3cd24690: "modals have two ways of closing — keep one." [CardDetailsModal.tsx](src/components/modals/CardDetailsModal.tsx)'s footer had a plain "Close" button doing the exact same thing as `ModalBase`'s header X — same handler, no side effect, pure duplication. The project already has this convention settled: `PlayerCardDetailV2` was fixed the same way under an earlier report (fb:feedback-1782839742726-f036c7aa) — only real actions (here: Transfer, View Intelligence) get a footer button; the header X is the one close path. This classic-panel counterpart had never received the equivalent fix. `DiscardPileModal` has the identical pattern but is classic-only-reachable, left alone per the migrate-to-V2 rule. (fixloop iteration, Sonnet 5)
+
 ## [3.0.105] - 2026-07-10
 
 ### Before→after outcome modal: "Gained:" no longer double-lists named cards

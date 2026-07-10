@@ -112,7 +112,11 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
   const cardColors = getCardTypeColors(cardType || '');
   const cardEmoji = getCardTypeEmoji(cardType || '');
 
-  // Footer content
+  // Footer content — only real actions get a footer button (Transfer,
+  // View Intelligence). The modal's own X is the one close path; a plain
+  // "Close" button here just duplicated it (fb:feedback-1783079995743-3cd24690,
+  // "modals have two ways of closing — keep one"). Same convention already
+  // established for PlayerCardDetailV2 (fb:feedback-1782839742726-f036c7aa).
   const footer = (
     <>
       {canTransferCard() && !showTransferUI && (
@@ -141,18 +145,6 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
         }}
       >
         📖 View Intelligence
-      </button>
-      <button
-        onClick={onClose}
-        style={modalButtonStyles.secondary}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = colors.secondary.bg;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = colors.secondary.light;
-        }}
-      >
-        Close
       </button>
     </>
   );
