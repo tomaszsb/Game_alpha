@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.107] - 2026-07-10
+
+### "What changed" reappears for pure card-gain actions — fixed a regression from earlier today
+fb:feedback-1783080349985-a3dc215f: "both actions were to show costs/changes; only [Get Work Packages] does." Root cause was today's own v3.0.105 fix (commit `92b8c11`) — dropping named card gains from the ledger to stop double-listing them against the effect-row chips above also emptied the *entire* "What changed" block for any action whose only change is a card gain (e.g. "Hire 3 Expeditors" — no money/scope/time delta), while actions with a resource delta (e.g. "Get Work Packages" moving Project Scope) kept showing it. [OutcomeChangesV2.tsx](src/components/player/OutcomeChangesV2.tsx) now falls back to the unfiltered card-change list only when filtering would leave nothing else to show — restoring parity without reverting the original dedup (still applies whenever a resource row or other card change is present). Live-verified both actions now show consistent "What changed" output. (fixloop iteration, Sonnet 5)
+
 ## [3.0.106] - 2026-07-10
 
 ### CardDetailsModal — removed the redundant "Close" button

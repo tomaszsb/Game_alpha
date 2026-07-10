@@ -203,8 +203,8 @@ describe('OutcomeChangesV2 render', () => {
     expect(screen.getByText('2 Expeditors')).toBeInTheDocument();
   });
 
-  it('renders nothing when the only change is a named gain and no resource figure moved (fully covered by the effect row above)', () => {
-    const { container } = render(
+  it('falls back to showing the named gain when it is the ONLY change, so "What changed" still appears (fb:1783080349985 — parity with actions that have a resource delta)', () => {
+    render(
       <OutcomeChangesV2
         before={snap({ cardCountsByType: { W: 0, B: 0, E: 0, I: 0, L: 0 } })}
         after={snap({ cardCountsByType: { W: 0, B: 0, E: 1, I: 0, L: 0 } })}
@@ -215,6 +215,8 @@ describe('OutcomeChangesV2 render', () => {
         mode="light"
       />,
     );
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByTestId('outcome-changes-v2')).toBeInTheDocument();
+    expect(screen.getByText('Gained:')).toBeInTheDocument();
+    expect(screen.getByText('Zoning Expeditor')).toBeInTheDocument();
   });
 });

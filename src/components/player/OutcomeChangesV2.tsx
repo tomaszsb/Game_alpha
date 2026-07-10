@@ -244,7 +244,21 @@ export function OutcomeChangesV2({
     cardChanges = buildCardChangesFromSnapshot(before, after);
   }
 
-  const ledgerCardChanges = filterLedgerCardChanges(cardChanges);
+  const filteredCardChanges = filterLedgerCardChanges(cardChanges);
+  // Don't let the "don't repeat what the effect row above already named"
+  // filter leave this whole section blank. A pure card-gain action (e.g.
+  // "Hire 3 Expeditors" — no money/scope/time delta) has nothing else to
+  // show once its only change is filtered out, so the "What changed" block
+  // silently disappears while actions with a resource delta (e.g. "Get Work
+  // Packages", which moves Project scope) keep showing it — an inconsistency
+  // players noticed (fb:1783080349985 — "both actions were to show
+  // costs/changes; only [one] does"). When filtering would empty the ledger
+  // AND there's no resource row either, fall back to the unfiltered list so
+  // every action that actually changed something shows a "What changed"
+  // block, matching the ones that have a numeric delta.
+  const ledgerCardChanges = (resourceRows.length === 0 && filteredCardChanges.length === 0 && cardChanges.length > 0)
+    ? cardChanges
+    : filteredCardChanges;
 
   if (resourceRows.length === 0 && ledgerCardChanges.length === 0) return null;
 
