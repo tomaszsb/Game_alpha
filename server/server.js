@@ -415,6 +415,16 @@ function isPrivateOrLoopbackIP(ip) {
 // CONFIG.HOME_IP (if set) always wins over this.
 let detectedHomeIP = '';
 
+// True once detectHomeIP() has resolved at least once (success or all
+// providers exhausted) since this process started. detectHomeIP() is
+// fired-and-forgotten at startup rather than awaited (so it doesn't delay
+// the server accepting traffic), which means there's a real window — every
+// restart — between "server is listening" and "outbound geo-IP lookup
+// resolved". Without this flag, isHomeIP() would fail toward alerting for
+// that whole window, and the visit most likely to land in it is the
+// maintainer's own "did the deploy work?" check right after a restart.
+let homeIPDetectionSettled = false;
+
 const IP_ECHO_SERVICES = [
   'https://api.ipify.org',
   'https://ifconfig.me/ip',
@@ -434,6 +444,7 @@ async function detectHomeIP() {
       if (text && text.length <= 45 && /^[0-9a-fA-F:.]+$/.test(text)) {
         detectedHomeIP = text;
         console.log(`🏠 Auto-detected home IP: ${detectedHomeIP} (via ${url})`);
+        homeIPDetectionSettled = true;
         return;
       }
     } catch (err) {
@@ -441,6 +452,7 @@ async function detectHomeIP() {
     }
   }
   console.warn('⚠️ Could not auto-detect home IP from any provider. Foreign-game alerts will fire for every non-private IP until this succeeds (or set HOME_IP manually).');
+  homeIPDetectionSettled = true;
 }
 
 if (!CONFIG.HOME_IP) {
@@ -452,14 +464,17 @@ if (!CONFIG.HOME_IP) {
  * True if the given IP should be treated as "home" for the foreign-game
  * alert: a private/loopback address (see isPrivateOrLoopbackIP), or a
  * match against CONFIG.HOME_IP (manual override) or the auto-detected
- * public IP. If neither is known yet, every public IP counts as foreign —
- * fails toward alerting you rather than silently missing games.
+ * public IP. If neither is known yet AND detection has had a chance to
+ * complete at least once, every public IP counts as foreign — fails toward
+ * alerting you rather than silently missing games. But while the very first
+ * detection is still in flight (the startup race described above), assume
+ * home instead — otherwise every restart guarantees a false alarm.
  */
 function isHomeIP(ip) {
   const normalized = normalizeIP(ip);
   if (isPrivateOrLoopbackIP(normalized)) return true;
   const homeIP = CONFIG.HOME_IP || detectedHomeIP;
-  if (!homeIP) return false;
+  if (!homeIP) return !homeIPDetectionSettled;
   return normalized === normalizeIP(homeIP);
 }
 
