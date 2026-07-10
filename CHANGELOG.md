@@ -36,7 +36,7 @@ A direct report: "approve" was being used for architect/engineer/contractor sign
 - **"Move button disappeared after submitting a bug report"** (fb:bf8bf19a) — couldn't cleanly reproduce with the teleport-based test harness, which bypasses the natural action-counting flow the bug likely depends on. Left open rather than forcing a shaky fix.
 
 ### Checks
-Typecheck + build clean. 172+ tests passing across the touched services/components in targeted runs during the session; full suite result in this session's koniec sweep.
+Typecheck + build clean. Full suite: 2340/2341 passing, 1 skipped — matching the pre-session baseline exactly, no regressions.
 
 ## [3.0.99] - 2026-07-08
 

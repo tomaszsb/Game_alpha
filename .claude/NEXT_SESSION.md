@@ -4,7 +4,7 @@
 - **Version:** v3.0.100 — **pending deploy** (pushed to origin/master, not yet deployed).
 - **Branch:** master, clean (wrap-up commit pending — see step 5c of this run).
 - **Last shipped:** One bug report ("nothing showed me the plan examiner verdict") unraveled into 6 real fixes via root-cause chasing: a buried-text bug, the real cause underneath it (REGULATORY-phase dice auto-rolls with no button and discarded its result), a `{fundingAmount}` token leak generalized to all three funding spaces, a silent DOB/FDNY approval-revoke path, and the big one — `PlayerPanelV2` (default panel since v3.0.97) never rendered the `playerNotification` prop, so every toast notification app-wide has been invisible for weeks. Also fixed a foreign-game-alert false-positive on every deploy restart, and reserved "approve" language for DOB/FDNY only. 14 dashboard reports closed. Full detail in CHANGELOG v3.0.100.
-- **Test suite:** typecheck + build clean. Full `npm test` hung on Windows (known issue). Targeted fallback (`tests/components/ tests/utils/ tests/services/`) — **108 files, 1807 tests, all passing**.
+- **Test suite:** typecheck + build clean. Full suite (backgrounded, ~10.6 min — ghost-bot simulations run 50 games each): **2340/2341 passing, 1 skipped**, matching the pre-session baseline exactly.
 
 ## Top 3 open items
 1. **6x duplicate `subscribeToAutoActions` firing** — every auto-action event fires 6 times instead of once, confirmed even on a fresh browser session. Currently harmless (handlers are idempotent) but worth root-causing before a non-idempotent one is added. Spawned as background task `task_bb6cec79` this session; see TODO.md for investigation candidates (StrictMode double-invoke, duplicate GameLayout mounts, unsubscribe not detaching).

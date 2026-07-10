@@ -9,12 +9,21 @@ End-of-session wrap-up for Unravel Codes. Tight loop — don't add ceremony.
 ```
 npm run typecheck
 npm run build
-npm test                # full vitest. Hangs on Windows per CLAUDE.md memory —
-                        # run in background, fall back to a targeted sweep if it
-                        # doesn't return within ~3 min.
+npm test                # full vitest, backgrounded — takes ~10-12 min, NOT hung.
+                        # 3 ghost-bot simulation tests each run 50 full games
+                        # and take 460-500s apiece; that's most of the runtime.
+                        # (2026-07-10 correction: an earlier version of this
+                        # skill said "hangs on Windows... fall back if it
+                        # doesn't return within ~3 min" — that was wrong. A
+                        # session that gave up at 4 min and fell back to a
+                        # targeted sweep missed that the backgrounded run
+                        # finished clean at 636s, and had already written
+                        # "full suite hung" into PROJECT_STATUS.md/
+                        # NEXT_SESSION.md before the correction was caught.
+                        # Only treat it as actually hung past ~15 min.)
 ```
 
-The point of the full suite is catching cross-file ripples a session author wouldn't predict. If Windows-hang forces the targeted fallback, run the same set the koniec sweep historically uses: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant surfaces.
+The point of the full suite is catching cross-file ripples a session author wouldn't predict. Start it backgrounded early (step 1, before the memory/docs work below) so the ~10-12 min runtime overlaps with everything else in this skill — check back at the end rather than blocking on it. If it genuinely hasn't returned by ~15 min, fall back to the targeted sweep: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant surfaces.
 
 **Capture for downstream:**
 - Total tests, total failures, new failures vs pre-existing.
