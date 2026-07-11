@@ -22,6 +22,7 @@ import { BugReportsPanel } from '../editor/BugReportsPanel';
 import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectionModal';
 import { debugLog } from '../../utils/debugLog';
 import { useGitHubSyncStatus } from './useGitHubSyncStatus';
+import { ShareGameButton } from './ShareGameButton';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -695,6 +696,7 @@ export function PlayerSetup({
               <span style={styles.gameCodeValue}>{getCurrentGameId()}</span>
             </div>
           )}
+          {getCurrentGameId() && <ShareGameButton />}
           {/* Gear icon — opens the right-column drawer (Join by Code, Game
               Settings, Admin Tools). Visible in both PC and TV mode in
               v3.0.16+; the mode toggle only forks the in-game UI, not the

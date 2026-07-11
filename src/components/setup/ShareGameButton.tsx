@@ -1,0 +1,96 @@
+// src/components/setup/ShareGameButton.tsx
+//
+// "Share" button for the game-setup screen header, next to the Game Code
+// badge. Filed as fb:feedback-1783230681607-5e05dc1f ("looking to get more
+// players" / "add share button to pages where it makes sense") from a
+// screenshot of exactly this screen.
+//
+// Reuses the navigator.share -> clipboard-fallback pattern already proven
+// in the /challenge playtester funnel (src/playtest/PlaytesterLandingPage.tsx
+// ShareButton), but shares the real join link for THIS game instead of the
+// generic marketing URL. The join link is built with the same getServerURL()
+// helper PlayerList.tsx uses for per-player QR codes — same format
+// (<origin>?g=<gameId>&token=<token>) — just without a player param, so
+// anyone who opens it lands on this setup screen and can add themselves.
+
+import React, { useState } from 'react';
+import { colors } from '../../styles/theme';
+import { getServerURL } from '../../utils/networkDetection';
+
+function ShareIcon(): JSX.Element {
+  // The universally recognized "share" glyph (three linked nodes) — matches
+  // ShareIcon in PlaytesterLandingPage.tsx.
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  );
+}
+
+export function ShareGameButton(): JSX.Element | null {
+  const [copied, setCopied] = useState(false);
+  const joinUrl = getServerURL();
+
+  // getServerURL() falls back to just the origin when there's no game in
+  // the URL yet. PlayerSetup only mounts once a game has been auto-created
+  // (see App.tsx), so this is just a defensive guard, not the normal path.
+  if (!joinUrl.includes('?g=')) return null;
+
+  const handleShare = async (): Promise<void> => {
+    const shareData = {
+      title: 'Unravel Codes',
+      text: 'Join my Unravel Codes game:',
+      url: joinUrl,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        /* user cancelled the share sheet */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <button
+        type="button"
+        onClick={() => { void handleShare(); }}
+        aria-label="Share game link"
+        title="Share a link so others can join this game"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          background: 'rgba(255,255,255,0.85)',
+          color: colors.text.secondary,
+          border: `1px solid ${colors.secondary.border}`,
+          borderRadius: 8,
+          padding: '0.5rem 0.75rem',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        <ShareIcon /> Share
+      </button>
+      {copied && (
+        <span style={{ fontSize: '0.7rem', color: 'white', marginTop: '0.2rem' }}>
+          Copied!
+        </span>
+      )}
+    </div>
+  );
+}

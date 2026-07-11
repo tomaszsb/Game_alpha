@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.109] - 2026-07-10
+
+### Share button on the game-setup screen
+fb:feedback-1783230681607-5e05dc1f: "looking to get more players" / "add share button to pages where it makes sense" — the report's own screenshot showed the game-setup screen (PC/TV toggle, "0/4 players added," Game Code badge), so that's the scoped target rather than guessing at every screen. New [ShareGameButton.tsx](src/components/setup/ShareGameButton.tsx) sits next to the Game Code badge in [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx): `navigator.share()` on mobile, clipboard-copy-with-"Copied!"-confirmation fallback on desktop — the same pattern already proven on the `/challenge` playtester funnel, reused rather than duplicated. Shares the real per-game join link (`getServerURL()`, the same helper `PlayerList.tsx` uses for player QR codes), not a generic marketing URL. (fixloop iteration, Sonnet 5)
+
 ## [3.0.108] - 2026-07-10
 
 ### Correction: v3.0.107 misdiagnosed its own report — reverted, and the real bug (fb:5984e322) confirmed + fixed with the actual screenshot

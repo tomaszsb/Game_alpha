@@ -2,7 +2,7 @@
 
 **Last Updated:** July 10, 2026
 **Status:** Beta — live in production; **v3.0.100 deployed 2026-07-10** (commit `8929371`, confirmed by maintainer)
-**Current Version:** 3.0.108 (not yet deployed)
+**Current Version:** 3.0.109 (not yet deployed)
 
 ---
 
@@ -32,7 +32,6 @@
 ## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; un-promoted v3.0.83–90 reports: [.claude/feedback-staged.md](.claude/feedback-staged.md))
 
 ### Newly arrived (2026-07-03/05, staged 2026-07-10 — not yet triaged)
-- [ ] **Share button on pages where it makes sense** — "looking to get more players". <!-- fb:feedback-1783230681607-5e05dc1f -->
 - [ ] **Moves as the last possible act — revisit** — maintainer reconsidering earlier ruling. <!-- fb:feedback-1783082047004-3dcb3ba7 -->
 - [ ] **Owner seed money maybe shouldn't count as "funding raised"** — design question. <!-- fb:feedback-1783081115822-cac490a5 -->
 - [ ] **Push-back/Lock-the-scope buttons don't preview cost before pressing** — "both were to show costs and changes. only end turn does. but it only shows time." Player wants a richer per-button preview: 2-column layout (label left, cost right), 5 rows (L/W/E/$/time in iconography), showing exactly what pressing that button will change. Design question (specific UI layout requested) more than a bug — the OWNER-SCOPE-INITIATION "Push back"/"Lock the scope" buttons today show only a terse cost hint ("costs 🕐 + 💰"). Misdiagnosed once (2026-07-10, see CHANGELOG v3.0.108 correction) as the outcome-modal double-listing bug — it is NOT that; pulled the actual dashboard screenshot to confirm. <!-- fb:feedback-1783080349985-a3dc215f -->
