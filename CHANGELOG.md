@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.111] - 2026-07-11
+
+### "Funding raised" no longer counts the owner's own seed money
+fb:feedback-1783081115822-cac490a5: "owner seed money should not count as funding raised" — the maintainer decided "Funding raised" should mean only outside money (bank loans + investor deals + other), not the owner's own starting capital, which isn't "raised" from anyone. [projectFinances.ts](src/utils/projectFinances.ts)'s `fundingRaised` now excludes `ownerFunding`; a new `totalCapital` field (owner + fundingRaised) keeps the "Still to raise" gap and the panel's "running low" cash warning measuring against every real dollar the player has ever had, not just the narrower display figure — otherwise an entirely owner-funded player would falsely show a $0 "funding raised" pool for those thresholds and the low-cash warning would silently stop firing. [PlayerPanelV2.tsx](src/components/player/PlayerPanelV2.tsx)'s warning threshold switched from `fundingRaised` to `totalCapital` accordingly. Verified via 2 new targeted unit tests plus the full existing suite (46/46 passing); live browser verification was blocked by an unrelated environment issue (a dice-result modal wouldn't dismiss via click/pointer-events/Escape even on a fresh reload with zero prior HMR) — flagged rather than skipped silently.
+
 ## [Ops] 2026-07-10 — maintainer triage: 2 reports closed, host-broadcast scope narrowed
 
 - **fb:feedback-1782843327269-bf8bf19a ("Move button disappeared")** — maintainer confirmed: the move button hiding in that case was already correct by-design behavior, changed in an earlier session. No bug. Flipped resolved.

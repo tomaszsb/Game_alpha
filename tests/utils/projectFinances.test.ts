@@ -58,6 +58,31 @@ describe('computeProjectFinances', () => {
     expect(fin.fundingGap).toBe(0);
   });
 
+  it('excludes owner seed money from fundingRaised but includes it in totalCapital (fb:1783081115822-cac490a5 — "seed money isn\'t raised")', () => {
+    const fin = computeProjectFinances(
+      makePlayer({
+        hand: ['W1', 'W2'],
+        moneySources: { ownerFunding: 100000, bankLoans: 50000, investmentDeals: 25000, other: 0 },
+      }),
+      getCardById,
+    );
+    expect(fin.fundingRaised).toBe(75000); // bank + investor only, no owner seed money
+    expect(fin.totalCapital).toBe(175000); // owner + fundingRaised
+    // fundingGap is measured against every dollar available, not just outside
+    // funding: commitments 200.25k − totalCapital 175k = 25.25k still short.
+    expect(fin.commitments).toBe(200250);
+    expect(fin.fundingGap).toBe(25250);
+  });
+
+  it('fundingRaised is 0 when the project is entirely owner-funded, but totalCapital still reflects it', () => {
+    const fin = computeProjectFinances(
+      makePlayer({ hand: ['W1'], moneySources: { ownerFunding: 999999, bankLoans: 0, investmentDeals: 0, other: 0 } }),
+      getCardById,
+    );
+    expect(fin.fundingRaised).toBe(0);
+    expect(fin.totalCapital).toBe(999999);
+  });
+
   it('tracks contingency used only when an area overruns its budget', () => {
     const fin = computeProjectFinances(
       makePlayer({ hand: ['W1', 'W2'], expenditures: { design: 35000, fees: 1000, construction: 0 } }),

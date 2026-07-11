@@ -401,7 +401,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const moneyCue: { color: string; word?: string } =
     player.money < 0
       ? { color: '#dc2626', word: 'in the red' }
-      : fin.fundingRaised > 0 && player.money < fin.fundingRaised * 0.2
+      : fin.totalCapital > 0 && player.money < fin.totalCapital * 0.2
         ? { color: '#d97706', word: 'running low' }
         : fin.fundingGap > 0
           ? { color: '#d97706', word: `${FormatUtils.formatMoney(fin.fundingGap)} deficit` }

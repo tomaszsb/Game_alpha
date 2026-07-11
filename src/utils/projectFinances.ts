@@ -79,8 +79,16 @@ export interface ProjectFinances {
   construction: ProjectArea;
   /** Contingency buffer: how much overrun has eaten into it. */
   contingency: { budget: number; used: number };
-  /** Money raised across all sources. */
+  /** Outside money only — bank loans + investor deals + other. Excludes the
+   *  owner's own seed money, which isn't "raised" from anyone (design
+   *  decision 2026-07-10, fb:feedback-1783081115822-cac490a5). This is what
+   *  the "Funding raised" ledger line displays. */
   fundingRaised: number;
+  /** Every dollar the player has ever had access to — owner seed money PLUS
+   *  fundingRaised. This is the real number for "can they cover the
+   *  project," so fundingGap and the low-cash warning threshold use THIS,
+   *  not the narrower display-only fundingRaised above. */
+  totalCapital: number;
   /** Cash on hand right now. */
   cash: number;
   /** Total spent across all areas. */
@@ -89,7 +97,8 @@ export interface ProjectFinances {
   days: number;
   /** Scope + budgeted uses the player is on the hook for. */
   commitments: number;
-  /** commitments − fundingRaised, floored at 0 (the old "deficit"). */
+  /** commitments − totalCapital, floored at 0 (the old "deficit") — measured
+   *  against every dollar available, not just outside funding. */
   fundingGap: number;
 }
 
@@ -161,11 +170,11 @@ export function computeProjectFinances(
   const contingencyUsed =
     Math.max(0, designSpent - designBudget) + Math.max(0, regulatorySpent - regulatoryBudget);
 
-  const fundingRaised =
-    num(ms.ownerFunding) + num(ms.bankLoans) + num(ms.investmentDeals) + num(ms.other);
+  const fundingRaised = num(ms.bankLoans) + num(ms.investmentDeals) + num(ms.other);
+  const totalCapital = num(ms.ownerFunding) + fundingRaised;
   const spent = designSpent + regulatorySpent + constructionSpent;
   const commitments = scopeTotal + designBudget + regulatoryBudget + contingencyBudget;
-  const fundingGap = Math.max(0, commitments - fundingRaised);
+  const fundingGap = Math.max(0, commitments - totalCapital);
 
   return {
     scopeTotal,
@@ -176,6 +185,7 @@ export function computeProjectFinances(
     construction: { budget: constructionBudget, spent: constructionSpent },
     contingency: { budget: contingencyBudget, used: contingencyUsed },
     fundingRaised,
+    totalCapital,
     cash: num(player.money),
     spent,
     days: num(player.timeSpent),
