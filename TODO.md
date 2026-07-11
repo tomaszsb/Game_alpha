@@ -2,7 +2,7 @@
 
 **Last Updated:** July 10, 2026
 **Status:** Beta — live in production; **v3.0.100 deployed 2026-07-10** (commit `8929371`, confirmed by maintainer)
-**Current Version:** 3.0.109 (not yet deployed)
+**Current Version:** 3.0.110 (not yet deployed)
 
 ---
 
@@ -38,7 +38,6 @@
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
-- [ ] **Resize to always fit screen + phone warning** (`/challenge` has the warning; game-setup screen may still want it). <!-- fb:feedback-1782833653490-5470235b -->
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
 - [~] **P1 remaining:** inline deltas per entry, click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. Acceptance: every committed work-change + expeditor add → exactly one feed entry with a delta, from the existing emission point. (P2–P5 parked below pending V2 reframe.)

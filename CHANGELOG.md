@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.110] - 2026-07-10
+
+### Game-setup screen: killed the dead white space, dropped the forced scrollbar, added a phone-size warning
+fb:feedback-1782833653490-5470235b: "wondering why there are scroll bars? there is not much stuff here — it should resize to always fit the screen... if someone opens this up on a phone there should be a warning." Two real bugs plus a feature request in [PlayerSetup.tsx](src/components/setup/PlayerSetup.tsx):
+- **Dead space:** `main`'s default flex `alignItems: stretch` forced the white setup card to always fill the full viewport height between header and footer, even with 0–2 players and ~475px of actual content — the remaining ~300px rendered as blank white card. Switched to `alignItems: flex-start` so the panel hugs its content, with `maxHeight: 100%` on the panel/settings column so tall content (TV mode, 4 players) still clamps and scrolls internally instead of overflowing.
+- **Forced scrollbar:** the player-list wrapper had `overflow: scroll` unconditionally (a deliberate TV-remote accommodation from fb:fc65c217, since a remote can't hover to reveal an `auto` scrollbar) — but that meant PC mode always showed a scrollbar even with nothing to scroll, which is literally what the player asked about. Now `scroll` only in TV mode, `auto` in PC mode.
+- **Phone warning:** new [PhoneScreenWarning.tsx](src/components/setup/PhoneScreenWarning.tsx), a non-blocking banner reusing `isPhoneScreen()` — the same physical-screen-size check already proven on the `/challenge` playtester funnel — telling players the game works best on a tablet or TV. Only shown on the host/setup view, not the per-player TV-mode phone controller (which is meant to run on a phone). (fixloop iteration, Sonnet 5)
+
 ## [3.0.109] - 2026-07-10
 
 ### Share button on the game-setup screen

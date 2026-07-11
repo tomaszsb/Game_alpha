@@ -23,6 +23,7 @@ import { EducationalCardSelectionModal } from '../modals/EducationalCardSelectio
 import { debugLog } from '../../utils/debugLog';
 import { useGitHubSyncStatus } from './useGitHubSyncStatus';
 import { ShareGameButton } from './ShareGameButton';
+import { PhoneScreenWarning } from './PhoneScreenWarning';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -734,6 +735,11 @@ export function PlayerSetup({
       <main style={styles.main}>
         {/* Center column: Player edit cards */}
         <div style={styles.panel}>
+          {/* Phone-size warning — informational, non-blocking. Only on this
+              host/setup view; the viewPlayerId branch above is the per-player
+              TV-mode controller view, which is *meant* to run on a phone. */}
+          <PhoneScreenWarning />
+
           {/* PC/TV mode toggle — always visible in v3.0.16+. The mode
               choice only forks the in-game UI (TVDisplay vs GameLayout);
               the setup screen is identical either way. The ?mode= URL
@@ -825,7 +831,16 @@ export function PlayerSetup({
             {validation.getPlayerCountSummary()}
           </p>
 
-          <div style={styles.playerListWrapper}>
+          {/* Scrollbar is forced always-visible ('scroll') only in TV mode —
+              fb:fc65c217, a TV remote can't hover to reveal an 'auto'
+              scrollbar. In PC mode 'auto' avoids showing a scrollbar/gutter
+              when there's nothing to scroll (fb:feedback-1782833653490-5470235b
+              — "why are there scroll bars? there is not much stuff here"). */}
+          <div style={{
+            ...styles.playerListWrapper,
+            overflow: selectedMode === 'tv' ? 'scroll' : 'auto',
+            scrollbarGutter: selectedMode === 'tv' ? 'stable' : 'auto',
+          }}>
             <PlayerList
               players={players}
               onUpdatePlayer={handleUpdatePlayer}
@@ -1582,6 +1597,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     flex: 1,
     display: 'flex',
     flexDirection: 'row',
+    // fb:feedback-1782833653490-5470235b — default alignItems ('stretch')
+    // forced the white panel card to always fill the entire remaining
+    // viewport height, leaving a big empty gap below short content (e.g. 1-2
+    // players). 'flex-start' lets the panel/settingsColumn size to their own
+    // content instead; `maxHeight: '100%'` on each (below) still caps them so
+    // tall content (TV mode, 4 players) is clamped and scrolls internally
+    // rather than overflowing past the footer.
+    alignItems: 'flex-start',
     gap: 'clamp(0.75rem, 2vw, 1.5rem)',
     padding: '0 clamp(1rem, 3vw, 2rem) clamp(0.5rem, 1vh, 1rem)',
     minHeight: 0,
@@ -1609,6 +1632,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     // kicks in. The Start Game block scrolls out of view at the bottom and the
     // user sees no scrollbar. v3.0.18 — fb:ffdddd29.
     minHeight: 0,
+    // Caps growth at `main`'s available height now that `main.alignItems` is
+    // 'flex-start' (panel hugs its own content instead of always stretching
+    // full-height — fb:feedback-1782833653490-5470235b). When content is
+    // short the panel is just as tall as it needs to be; when content is
+    // tall (TV mode, 4 players) this clamp makes panel's height definite
+    // again so the flex:1 + minHeight:0 wrapper above still scrolls
+    // internally instead of overflowing past the footer.
+    maxHeight: '100%',
     // Panel itself no longer needs overflow:auto since the inner wrapper now
     // properly scrolls. Keep `hidden` so the rounded-corners + boxShadow stay
     // clean if anything inside misbehaves.
@@ -1623,6 +1654,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
     display: 'flex',
     flexDirection: 'column',
+    // Same reasoning as `panel.maxHeight` above — with `main.alignItems:
+    // 'flex-start'` this column no longer auto-stretches, so cap it to
+    // `main`'s available height and let its own overflow:auto scroll
+    // internally when its content (Admin Tools etc.) is tall.
+    maxHeight: '100%',
     overflow: 'auto',
     minWidth: 0,
   },
