@@ -17,11 +17,11 @@
 
 ## 🔎 Active — bugs & investigations
 
-- [ ] **"Move button disappeared after submitting a bug report"** (fb:1782843327269-bf8bf19a, v3.0.90) — teleport harness can't repro (bypasses client-computed `availableActionTypes`/`movementChoiceUnlocked`; see CLAUDE.md TACTICAL 2026-07-09). Needs a real playthrough to a movement-choice space + filing a report there, or live confirmation it still reproduces on v3.0.100+.
+*(none open)*
 
-## 📣 Active — host-to-player messaging (2026-07-08)
+## 📣 Active — deploy-update warning (2026-07-10, scope narrowed from "host broadcast")
 
-- [ ] **Design + build a host-message broadcast.** No channel exists to push a message into a running game (new WS message type in `server/websocket.js` + dismissible banner in `GameLayout`/`TVDisplay`). Needs its own design pass first: who can send, free text vs presets, interrupt vs appear, Chronicle logging. Also fits remote-classroom teacher use.
+- [ ] **Deploy countdown banner.** NOT a general host-message feature — scope is specifically: when the maintainer deploys a new version, give players in active games a 30-second countdown banner before the server restarts, e.g. "This game is in beta — we make frequent updates. We're pushing a new one now. You can rejoin in about 5 minutes using game code XXXXXX." Needs: a way for `deploy.sh` (or the server on boot) to broadcast a WS message to all active game sessions before/during restart, a dismissible countdown banner in `GameLayout`/`TVDisplay` that shows it, and the actual game code so players can rejoin. No free-text/preset-message authoring needed — this is a fixed, single-purpose notice, not a chat feature.
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
@@ -32,8 +32,7 @@
 ## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; un-promoted v3.0.83–90 reports: [.claude/feedback-staged.md](.claude/feedback-staged.md))
 
 ### Newly arrived (2026-07-03/05, staged 2026-07-10 — not yet triaged)
-- [ ] **Moves as the last possible act — revisit** — maintainer reconsidering earlier ruling. <!-- fb:feedback-1783082047004-3dcb3ba7 -->
-- [ ] **Owner seed money maybe shouldn't count as "funding raised"** — design question. <!-- fb:feedback-1783081115822-cac490a5 -->
+- [ ] **Owner seed money maybe shouldn't count as "funding raised"** — design question, explained to maintainer 2026-07-10, decision pending. <!-- fb:feedback-1783081115822-cac490a5 -->
 - [ ] **Push-back/Lock-the-scope buttons don't preview cost before pressing** — "both were to show costs and changes. only end turn does. but it only shows time." Player wants a richer per-button preview: 2-column layout (label left, cost right), 5 rows (L/W/E/$/time in iconography), showing exactly what pressing that button will change. Design question (specific UI layout requested) more than a bug — the OWNER-SCOPE-INITIATION "Push back"/"Lock the scope" buttons today show only a terse cost hint ("costs 🕐 + 💰"). Misdiagnosed once (2026-07-10, see CHANGELOG v3.0.108 correction) as the outcome-modal double-listing bug — it is NOT that; pulled the actual dashboard screenshot to confirm. <!-- fb:feedback-1783080349985-a3dc215f -->
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)

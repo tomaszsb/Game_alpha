@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-10 — maintainer triage: 2 reports closed, host-broadcast scope narrowed
+
+- **fb:feedback-1782843327269-bf8bf19a ("Move button disappeared")** — maintainer confirmed: the move button hiding in that case was already correct by-design behavior, changed in an earlier session. No bug. Flipped resolved.
+- **fb:feedback-1783082047004-3dcb3ba7 ("Moves as the last possible act — revisit")** — maintainer confirmed already resolved. Flipped resolved.
+- **Host-message broadcast** re-scoped per maintainer: not a general free-text chat feature. It's specifically a 30-second countdown banner shown to players when the maintainer deploys a new version ("beta, frequent updates, rejoin in ~5 min via game code X"), triggered by the deploy process itself. TODO updated to the narrower, buildable scope.
+
 ## [Ops] 2026-07-10 — live-vs-master CLEAN files audit closed
 
 Ran the one-time audit TODO had open since 2026-06-09: fetched the 5 live CLEAN_FILES that diverged back then (CARDS_EXPANDED, LOGIC_QUESTIONS, SPACE_CONTENT, SPACE_EFFECTS, GAME_CONFIG) and diffed against the repo. CARDS_EXPANDED, LOGIC_QUESTIONS, SPACE_CONTENT, SPACE_EFFECTS are now byte-identical to live. GAME_CONFIG differs *only* in `pos_x`/`pos_y` (quote-aware CSV diff, all 28 rows checked column-by-column) — confirmed to be the live hand-arranged board layout, exactly the one genuine-live-data carve-out the data-deploy gap closure (v3.0.77) always expected. No drift, no action needed; audit closed clean.
