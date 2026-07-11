@@ -45,7 +45,6 @@
 ## 🚀 Active — infra / deploy / data
 
 - [ ] **One-time full live-vs-master audit of CLEAN files** — 5 diverged as of 2026-06-09 (only `pos_x`/`pos_y` are genuine live user-data); data-deploy gap itself is CLOSED (see memory `project_data_deploy_gap`).
-- [ ] **Post-deploy doc cleanup:** mark the CLAUDE.md "CSV data fixes do NOT reach the live server" recipe fully obsolete + update auto-memory `project_data_deploy_gap.md` (gap dead by construction).
 - [ ] **Dashboard UI: surface `version` + `gitCommit` on bug-report pages** (~15 min, display-only; repo `D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/`, extend `FeedbackReport.metadata` in feedback/page.tsx + detail view). Optional: gray-out stale-version reports, version filter.
 - [ ] **G160: show/hide individual board connectors + redirect per section** — Workstream 3 Phase B+ (global show/hide first; per-edge hide + waypoint redirect TBD per user approval; see BETA_PLAN_V3.md). <!-- fb:feedback-1778327469678-d27a73d0 -->
 
