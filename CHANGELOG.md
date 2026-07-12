@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.113] - 2026-07-12
+
+### Missing-DOB end-game penalty made reachable — it lived only in dead code
+2026-07-11 blind code review, item 2: the missing-DOB end-game penalty (Workstream 7 Phase 7.4 — a backstop that charges extra days/fees if a player somehow reaches FINISH without DOB sign-off) was written entirely inside `TurnService.endTurn()` — a method nothing in the UI has called since `endTurnWithMovement` became the live end-turn path. The penalty, its `gameState.endGamePenalty` write, and `EndGameModal`'s penalty banner were all unreachable. Ported the penalty logic (compute → apply time/money → set `endGamePenalty` → log) into `endTurnWithMovement`'s existing win check, in the same place it already calls `stateService.endGame()`. Deleted `endTurn()` entirely, along with its now-dead `checkTurnLimit` codepath (already removed from `GameRulesService` in v3.0.112) — nothing else called it. Verified via 217 targeted tests across `TurnService`, `GameRulesService`, `ApprovalService`, and the E2E suites that previously called the deleted method (updated to call `endTurnWithMovement` instead), plus clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.112] - 2026-07-11
 
 ### Frozen turn counter fixed — duration cards now actually expire; no-turn-limit ruling applied

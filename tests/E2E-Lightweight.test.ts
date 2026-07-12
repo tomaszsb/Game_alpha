@@ -81,7 +81,7 @@ describe('E2E Scenarios - Lightweight Performance Tests', () => {
       
       // Simulate turn sequence
       const diceResult = await mockServices.turnService.rollDice!('player1');
-      const turnResult = await mockServices.turnService.endTurn!('player1');
+      const turnResult = await mockServices.turnService.endTurnWithMovement!();
       
       expect(diceResult.success).toBe(true);
       expect(turnResult.success).toBe(true);
@@ -147,7 +147,7 @@ describe('E2E Scenarios - Lightweight Performance Tests', () => {
       await mockServices.playerActionService.playCard!('player1', 'E001');
       await mockServices.turnService.rollDice!('player1');
       await mockServices.resourceService.addMoney!('player1', 100, 'test');
-      await mockServices.turnService.endTurn!('player1');
+      await mockServices.turnService.endTurnWithMovement!();
       
       const duration = performance.now() - start;
       

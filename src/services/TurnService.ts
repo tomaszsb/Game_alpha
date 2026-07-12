@@ -417,8 +417,43 @@ export class TurnService implements ITurnService {
       const hasWon = await this.gameRulesService.checkWinCondition(gameState.currentPlayerId);
       if (hasWon) {
         // Player has won - end the game
-        this.stateService.endGame(gameState.currentPlayerId);
-        return { nextPlayerId: gameState.currentPlayerId }; // Winner remains current player
+        const winnerId = gameState.currentPlayerId;
+
+        // Workstream 7 Phase 7.4 — end-game penalty when the winner reached
+        // FINISH without DOB sign-off. Backstop for the Stage-1 gate at
+        // REG-DOB-FINAL-REVIEW (should never normally fire, but safe-guards
+        // legacy save states and any future direct-routes-to-FINISH path).
+        if (this.approvalService) {
+          const winnerPlayer = this.stateService.getPlayer(winnerId);
+          if (winnerPlayer) {
+            const penalty = this.approvalService.computeEndGamePenalty(winnerPlayer);
+            if (penalty) {
+              this.stateService.updatePlayer({
+                id: winnerId,
+                timeSpent: penalty.newTimeSpent,
+                money: penalty.newMoney,
+              });
+              this.stateService.updateGameState({
+                endGamePenalty: {
+                  dobMissing: true,
+                  days: penalty.days,
+                  fee: penalty.fee,
+                  playerId: winnerId,
+                },
+              });
+              this.loggingService.info(`End-game penalty applied: missing DOB sign-off (+${penalty.days} days, +$${penalty.fee.toLocaleString()} fee).`, {
+                playerId: winnerId,
+                playerName: winnerPlayer.name,
+                action: 'end_game_penalty',
+                penaltyDays: penalty.days,
+                penaltyFee: penalty.fee,
+              });
+            }
+          }
+        }
+
+        this.stateService.endGame(winnerId);
+        return { nextPlayerId: winnerId }; // Winner remains current player
       }
 
       step = 'commit_turn_transaction';
@@ -452,87 +487,6 @@ export class TurnService implements ITurnService {
       }
       throw error;
     }
-  }
-
-  async endTurn(): Promise<{ nextPlayerId: string }> {
-    const gameState = this.stateService.getGameState();
-    
-    // Validation: Game must be in PLAY phase
-    if (gameState.gamePhase !== 'PLAY') {
-      throw new Error('Cannot end turn outside of PLAY phase');
-    }
-
-    // Validation: Must have a current player
-    if (!gameState.currentPlayerId) {
-      throw new Error('No current player to end turn for');
-    }
-
-    // Check for game end conditions (win — there is no turn limit; see
-    // maintainer ruling 2026-07-11) before ending turn
-    const endConditions = await this.gameRulesService.checkGameEndConditions(gameState.currentPlayerId);
-    if (endConditions.shouldEnd) {
-      let winnerId: string | null = null;
-
-      if (endConditions.reason === 'win' && endConditions.winnerId) {
-        // Player won by reaching ending space
-        winnerId = endConditions.winnerId;
-        // Log game end victory
-        this.loggingService.info('Won the game by reaching the ending space!', {
-          playerId: winnerId,
-          playerName: this.stateService.getPlayer(winnerId)?.name || 'Unknown',
-          action: 'gameEnd',
-          winCondition: 'space_victory',
-          finalSpace: this.stateService.getPlayer(winnerId)?.currentSpace
-        });
-      }
-
-      // Workstream 7 Phase 7.4 — end-game penalty when the winner reached
-      // FINISH without DOB sign-off. Backstop for the Stage-1 gate at
-      // REG-DOB-FINAL-REVIEW (should never normally fire, but safe-guards
-      // legacy save states and any future direct-routes-to-FINISH path).
-      const finalWinnerId = winnerId || gameState.currentPlayerId;
-      if (this.approvalService && endConditions.reason === 'win') {
-        const winnerPlayer = this.stateService.getPlayer(finalWinnerId);
-        if (winnerPlayer) {
-          const penalty = this.approvalService.computeEndGamePenalty(winnerPlayer);
-          if (penalty) {
-            this.stateService.updatePlayer({
-              id: finalWinnerId,
-              timeSpent: penalty.newTimeSpent,
-              money: penalty.newMoney,
-            });
-            this.stateService.updateGameState({
-              endGamePenalty: {
-                dobMissing: true,
-                days: penalty.days,
-                fee: penalty.fee,
-                playerId: finalWinnerId,
-              },
-            });
-            this.loggingService.info(`End-game penalty applied: missing DOB sign-off (+${penalty.days} days, +$${penalty.fee.toLocaleString()} fee).`, {
-              playerId: finalWinnerId,
-              playerName: winnerPlayer.name,
-              action: 'end_game_penalty',
-              penaltyDays: penalty.days,
-              penaltyFee: penalty.fee,
-            });
-          }
-        }
-      }
-
-      // End the game with the determined winner
-      this.stateService.endGame(finalWinnerId);
-      return { nextPlayerId: finalWinnerId };
-    }
-
-    // COMMIT the turn transaction before advancing. Mirrors
-    // endTurnWithMovement so the legacy path can't commit the log session
-    // while leaving TEMP state uncommitted. Safe when no TEMP state exists
-    // (commitTempToReal no-ops with a debugWarn).
-    this.commitTurnTransaction(gameState.currentPlayerId);
-
-    // Use the common nextPlayer method
-    return await this.nextPlayer();
   }
 
   /**

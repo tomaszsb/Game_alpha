@@ -362,7 +362,6 @@ export const createMockChoiceService = (): any => ({
 export const createMockTurnService = (): any => ({
   // Turn management methods
   takeTurn: vi.fn(),
-  endTurn: vi.fn().mockResolvedValue(undefined),
   rollDice: vi.fn(),
 
   // Separate dice and movement methods

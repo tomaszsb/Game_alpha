@@ -384,7 +384,6 @@ export interface ISpaceEffectService {
 export interface ITurnService {
   // Turn management methods
   takeTurn(playerId: string): Promise<TurnResult>;
-  endTurn(): Promise<{ nextPlayerId: string }>;
   rollDice(): number;
   
   // Separate dice and movement methods

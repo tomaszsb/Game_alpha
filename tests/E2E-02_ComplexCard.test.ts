@@ -173,7 +173,7 @@ describe('E2E-02: Complex Card Test', () => {
     
     // 2. Test TypeScript contracts
     expect(typeof playerActionService.playCard).toBe('function');
-    expect(typeof turnService.endTurn).toBe('function');
+    expect(typeof turnService.endTurnWithMovement).toBe('function');
     expect(typeof cardService.drawCards).toBe('function');
     
     // 3. Test TargetingService integration

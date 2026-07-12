@@ -354,14 +354,25 @@ describe('TurnService', () => {
     mockEffectEngineService.processActiveEffectsForAllPlayers.mockResolvedValue();
   });
 
-  describe('endTurn', () => {
+  // v3.0.113: TurnService.endTurn() was dead code (only endTurnWithMovement
+  // is called by the live UI) and was deleted; its missing-DOB end-game
+  // penalty was ported into endTurnWithMovement's check_win step. These
+  // tests used to call endTurn() as a shortcut that skipped movement/action
+  // validation and fell through straight to the shared turn-rotation logic
+  // in the private nextPlayer() method. nextPlayer() itself is unchanged and
+  // is still exercised by endTurnWithMovement, so the rotation-behavior
+  // tests below now call it directly (cast to `any` — it's private).
+  // The two early-validation tests (phase / current player) now go through
+  // the public endTurnWithMovement(), which still throws the same messages
+  // before reaching any movement logic.
+  describe('nextPlayer (turn rotation, exercised via endTurn removal)', () => {
     it('should advance from first player to second player', async () => {
       // Arrange - player1 is current player
       const gameState = { ...mockGameState, currentPlayerId: 'player1' };
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act
-      const result = await turnService.endTurn();
+      const result = await (turnService as any).nextPlayer();
 
       // Assert
       expect(result.nextPlayerId).toBe('player2');
@@ -376,7 +387,7 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act
-      const result = await turnService.endTurn();
+      const result = await (turnService as any).nextPlayer();
 
       // Assert
       expect(result.nextPlayerId).toBe('player3');
@@ -389,7 +400,7 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act
-      const result = await turnService.endTurn();
+      const result = await (turnService as any).nextPlayer();
 
       // Assert
       expect(result.nextPlayerId).toBe('player1');
@@ -406,7 +417,7 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(twoPlayerState);
 
       // Act
-      const result = await turnService.endTurn();
+      const result = await (turnService as any).nextPlayer();
 
       // Assert
       expect(result.nextPlayerId).toBe('player2');
@@ -423,7 +434,7 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(singlePlayerState);
 
       // Act
-      const result = await turnService.endTurn();
+      const result = await (turnService as any).nextPlayer();
 
       // Assert
       expect(result.nextPlayerId).toBe('player1');
@@ -436,9 +447,9 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act & Assert
-      await expect(turnService.endTurn())
+      await expect(turnService.endTurnWithMovement())
         .rejects.toThrow('Cannot end turn outside of PLAY phase');
-      
+
       expect(mockStateService.setCurrentPlayer).not.toHaveBeenCalled();
     });
 
@@ -448,9 +459,9 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act & Assert
-      await expect(turnService.endTurn())
+      await expect(turnService.endTurnWithMovement())
         .rejects.toThrow('No current player to end turn for');
-      
+
       expect(mockStateService.setCurrentPlayer).not.toHaveBeenCalled();
     });
 
@@ -460,9 +471,9 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act & Assert
-      await expect(turnService.endTurn())
+      await expect((turnService as any).nextPlayer())
         .rejects.toThrow('No players in the game');
-      
+
       expect(mockStateService.setCurrentPlayer).not.toHaveBeenCalled();
     });
 
@@ -472,35 +483,35 @@ describe('TurnService', () => {
       mockStateService.getGameState.mockReturnValue(gameState);
 
       // Act & Assert
-      await expect(turnService.endTurn())
+      await expect((turnService as any).nextPlayer())
         .rejects.toThrow('Current player not found in player list');
-      
+
       expect(mockStateService.setCurrentPlayer).not.toHaveBeenCalled();
     });
 
     it('should call state service methods in correct order', async () => {
       // Arrange
       const callOrder: string[] = [];
-      
+
       mockStateService.setCurrentPlayer.mockImplementation(() => {
         callOrder.push('setCurrentPlayer');
         return mockGameState;
       });
-      
+
       mockStateService.advanceTurn.mockImplementation(() => {
         callOrder.push('advanceTurn');
         return mockGameState;
       });
-      
+
       mockStateService.clearPlayerHasMoved.mockImplementation(() => {
         callOrder.push('clearPlayerHasMoved');
         return mockGameState;
       });
 
       // Act
-      await turnService.endTurn();
+      await (turnService as any).nextPlayer();
 
-      // Assert - advanceTurn is called BEFORE setCurrentPlayer (see TurnService.ts line 410-413)
+      // Assert - advanceTurn is called BEFORE setCurrentPlayer (see TurnTransitionHandler.advanceToNextPlayer)
       expect(callOrder).toEqual(['advanceTurn', 'setCurrentPlayer', 'clearPlayerHasMoved']);
     });
 
@@ -511,7 +522,7 @@ describe('TurnService', () => {
       });
 
       // Act & Assert
-      await expect(turnService.endTurn())
+      await expect((turnService as any).nextPlayer())
         .rejects.toThrow('State service error');
     });
   });

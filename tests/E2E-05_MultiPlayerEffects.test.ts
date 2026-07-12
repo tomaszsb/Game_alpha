@@ -272,9 +272,13 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
         expect(l002Effect!.remainingDuration).toBe(3);
       }
       
-      // Simulate turn progression and verify effect duration decreases
-      await turnService.endTurn(); // Turn 2
-      await turnService.endTurn(); // Turn 3
+      // Simulate turn progression and verify effect duration decreases.
+      // v3.0.113: TurnService.endTurn() was dead code and was deleted; use
+      // the live endTurnWithMovement() path instead (force=true skips the
+      // required-actions gate, skipAutoMove=true skips movement — this test
+      // only cares about turn advancement, not where players end up).
+      await turnService.endTurnWithMovement(true, true); // Turn 2
+      await turnService.endTurnWithMovement(true, true); // Turn 3
       
       // Check effects after 2 turns (should have 1 turn remaining)
       for (const playerId of players) {
@@ -286,7 +290,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       }
       
       // Complete the final turn - effects should be removed
-      await turnService.endTurn(); // Turn 4
+      await turnService.endTurnWithMovement(true, true); // Turn 4
       
       for (const playerId of players) {
         const player = stateService.getPlayer(playerId)!;
