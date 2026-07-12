@@ -19,5 +19,7 @@
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
 1. **Deploy v3.0.116–120** — fully verified, nothing blocking.
-2. **Push-back/Lock-the-scope buttons don't preview cost before pressing** — real feature work (needs a dry-run cost preview for dice-based actions) + a specific UI layout the player requested. fb:feedback-1783080349985-a3dc215f.
-3. **New starting scenario: cash-strapped homeowner facing a Notice of Violation** — direct player comment logged 2026-07-12; needs a maintainer scope decision (new preset vs. different starting money vs. new narrative branch) before any engineering.
+2. **Push-back/Lock-the-scope buttons: build the cost preview** — spec locked 2026-07-12 (hover-per-button, 5-row breakdown; confirmed the two buttons genuinely cost different amounts). Ready to build, no decision pending. fb:feedback-1783080349985-a3dc215f.
+3. **CSV-portability lift** (ApprovalService.ts + characters.ts + theme.ts) — new item scoped 2026-07-12, ~half a day; blocks the maintainer's long-term content-only reskin goal.
+
+*(2026-07-12 follow-up session: resolved 4 of the 5 "Decisions waiting on the user" — Workstream 2 criterion, dictionary-scraper AI-glossary labeling, the push-back button spec, and the homeowner-scenario direction — via a maintainer interview. Full detail in TODO.md commit `03e1cb7`. Homeowner scenario is decided (build a distinct violation mechanic) but still needs its own design pass before engineering.)*
