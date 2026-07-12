@@ -154,6 +154,28 @@ describe('StateService', () => {
       expect(newState.players[0].name).toBe('Alice');
     });
 
+    it('should not assign a duplicate shortId after removing a player and adding a new one', () => {
+      // Regression test: generateShortPlayerId used to derive the next number
+      // from players.length alone, which reused a still-in-use number once a
+      // player was removed from the middle of the list.
+      stateService.addPlayer('Alice');                  // P1
+      const state2 = stateService.addPlayer('Bob');     // P2
+      stateService.addPlayer('Charlie');                // P3
+      const bobId = state2.players[1].id;
+
+      stateService.removePlayer(bobId); // remaining: Alice (P1), Charlie (P3)
+
+      const finalState = stateService.addPlayer('Dana');
+
+      const shortIds = finalState.players.map(p => p.shortId);
+      const uniqueShortIds = new Set(shortIds);
+
+      expect(uniqueShortIds.size).toBe(shortIds.length); // no duplicates
+      expect(finalState.players.find(p => p.name === 'Alice')!.shortId).toBe('P1');
+      expect(finalState.players.find(p => p.name === 'Charlie')!.shortId).toBe('P3');
+      expect(finalState.players.find(p => p.name === 'Dana')!.shortId).toBe('P2'); // fills the gap
+    });
+
     it('should update currentPlayerId when removing current player', () => {
       stateService.addPlayer('Alice');
       const addedState = stateService.addPlayer('Bob');

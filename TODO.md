@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.116 (not yet deployed — v3.0.116 pending)
+**Current Version:** 3.0.117 (not yet deployed — v3.0.116–117 pending)
 
 ---
 
@@ -18,7 +18,6 @@
 ## 🔎 Active — bugs & investigations
 
 ### From 2026-07-11 blind code review (read the engine cold, no docs)
-- [ ] **Duplicate `shortId` after removing a player during setup.** `generateShortPlayerId` = players.length+1 ([StateService.ts:1676](src/services/StateService.ts:1676)): add P1–P3, remove P2, add again → two P3s.
 - [ ] **Color/avatar conflict resolver can hand two players the same replacement** — reassigned values never enter the used-set ([StateService.ts:1733](src/services/StateService.ts:1733)).
 - [ ] **`canEndTurn` movement-intent guard is a no-op.** `player.moveIntent !== undefined` is true even when moveIntent is null/cleared ([GameRulesService.ts:498](src/services/GameRulesService.ts:498)) — the "only if a destination is picked" exception always passes; only the requiredActions math backstops it.
 - [ ] **Timed life events: tick on the holder's OWN turn only (maintainer ruling 2026-07-11, Option B).** Today each player's copy of a duration effect fires + counts down at EVERY turn end, anyone's ([EffectEngineService.ts:1521](src/services/EffectEngineService.ts:1521)) — a "3-turn" event burns out in under one table round with 4 players, and the "N more turns to go" notice overpromises. Change: in `processActiveEffectsForAllPlayers`, apply/decrement only the CURRENT player's effects (i.e., "3 turns" = 3 of *your* turns; event length no longer depends on player count; total damage unchanged at ticks × days). Affects L002/L004/L018/L020/L022/L030/L034/L047/L048 (all Global day-ticks). Keep L004's phase-gate pause behavior. Implementation note: the countdown mutates live state in place ([EffectEngineService.ts:1411](src/services/EffectEngineService.ts:1411)) — fix that while in there.

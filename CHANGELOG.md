@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.117] - 2026-07-12
+
+### Removing and re-adding a player during setup no longer mints a duplicate ID
+2026-07-11 blind code review, item 6: `StateService.generateShortPlayerId` derived the next `Pn` id purely from `players.length + 1` — add P1–P3, remove P2, add a new player, and the length-based math (2 remaining + 1) reissued `P3`, colliding with the P3 already on the table. Fixed by collecting the set of `shortId`s currently in use and returning the lowest unused `Pn`, the same "what's actually taken" principle `getNextAvailableColor` already uses for player colors. New regression test covers the exact repro (add 3, remove the middle one, add again, assert no duplicate and the gap fills correctly). Verified via the full suite (2353/2355, 2 pre-existing timing flakes in unrelated single-player E2E tests, confirmed non-regressions by re-running against pre-fix `master`) plus clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.116] - 2026-07-12
 
 ### 5% investment fee no longer silently skipped when a player can't afford it

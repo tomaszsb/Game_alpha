@@ -1,7 +1,7 @@
 {
   "resetDay": "monday",
   "resetHour": 7,
-  "weeklyBudgetUsd": 1407.2,
+  "weeklyBudgetUsd": 1398.33,
   "dailyCapsPct": [
     14.25,
     28.57,
@@ -16,6 +16,6 @@
     "opus": 5,
     "fable": 12
   },
-  "calibratedAt": "2026-07-12T05:24:23.998Z",
-  "calibratedPct": 54
+  "calibratedAt": "2026-07-12T05:46:37.107Z",
+  "calibratedPct": 55
 }

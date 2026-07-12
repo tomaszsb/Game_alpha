@@ -1672,8 +1672,18 @@ export class StateService implements IStateService {
   }
 
   private generateShortPlayerId(): string {
-    // Generate short player ID based on current player count (P1, P2, P3, etc.)
-    const playerNumber = this.currentState.players.length + 1;
+    // Generate the lowest-numbered short ID (P1, P2, P3, etc.) not already in use.
+    // Deriving this from players.length alone breaks once a player is removed
+    // mid-setup, since a later add would reuse a number still held by a
+    // remaining player (e.g. add P1-P3, remove P2, add again -> length-based
+    // logic would mint a second P3). Instead, find the lowest unused N.
+    const usedShortIds = new Set(
+      this.currentState.players.map(p => p.shortId).filter(Boolean)
+    );
+    let playerNumber = 1;
+    while (usedShortIds.has(`P${playerNumber}`)) {
+      playerNumber++;
+    }
     return `P${playerNumber}`;
   }
 
