@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.118] - 2026-07-12
+
+### Color/avatar conflict resolver could hand two players the same replacement
+2026-07-11 blind code review, item 7: `StateService.resolveConflicts` reassigns a fresh color/avatar when it finds one already taken, but never added the reassigned value to its own `usedColors`/`usedAvatars` tracking sets — so a second conflicting player in the same pass could get handed the exact same "first available" replacement, defeating the whole point of the resolver. Fixed by recording the assigned value (from either the normal `find` path or the wrap-around fallback) into the used-set immediately. `resolveConflicts` has exactly one call site today (`updatePlayer`, which only ever touches one field at a time), so the double-collision this fixes is a latent defense-in-depth gap rather than something reproducible in today's UI — but it was still silently broken and is now correct for any future caller (e.g. a multiplayer sync/import path) that hands it a batch with pre-existing duplicates. Two new regression tests hand-traced against the old code confirm they would have failed pre-fix. Verified via the full suite (2358 tests, 0 failures) plus clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.117] - 2026-07-12
 
 ### Removing and re-adding a player during setup no longer mints a duplicate ID

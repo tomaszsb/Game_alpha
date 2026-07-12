@@ -1760,7 +1760,9 @@ export class StateService implements IStateService {
       if (player.color && usedColors.has(player.color)) {
         // Find next available color
         const availableColor = availableColors.find(color => !usedColors.has(color));
-        result[i] = { ...player, color: availableColor || availableColors[i % availableColors.length] };
+        const assignedColor = availableColor || availableColors[i % availableColors.length];
+        result[i] = { ...player, color: assignedColor };
+        usedColors.add(assignedColor);
       } else if (player.color) {
         usedColors.add(player.color);
       }
@@ -1769,7 +1771,9 @@ export class StateService implements IStateService {
       if (player.avatar && usedAvatars.has(player.avatar)) {
         // Find next available avatar
         const availableAvatar = availableAvatars.find(avatar => !usedAvatars.has(avatar));
-        result[i] = { ...result[i], avatar: availableAvatar || availableAvatars[i % availableAvatars.length] };
+        const assignedAvatar = availableAvatar || availableAvatars[i % availableAvatars.length];
+        result[i] = { ...result[i], avatar: assignedAvatar };
+        usedAvatars.add(assignedAvatar);
       } else if (player.avatar) {
         usedAvatars.add(player.avatar);
       }

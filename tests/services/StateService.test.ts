@@ -2,6 +2,8 @@ import { StateService } from '../../src/services/StateService';
 import { IDataService } from '../../src/types/ServiceContracts';
 import { GameState, Player, GamePhase } from '../../src/types/StateTypes';
 import { createMockDataService } from '../mocks/mockServices';
+import { createTestPlayer } from '../fixtures/testData';
+import { colors } from '../../src/styles/theme';
 import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('StateService', () => {
@@ -247,6 +249,60 @@ describe('StateService', () => {
       expect(players1).not.toBe(players2);
       expect(players1).toEqual(players2);
       expect(players1).toHaveLength(2);
+    });
+  });
+
+  describe('Conflict Resolution (color/avatar)', () => {
+    // Regression coverage for: reassigned colors/avatars were never added to the
+    // used-set inside resolveConflicts(), so when more than one player conflicted
+    // in the same call, every conflicting player after the first could be handed
+    // the exact same "first available" replacement, defeating the resolver.
+    it('assigns every player a unique color and avatar when three players share the same starting values', () => {
+      const sharedColor = colors.game.player1;
+      const sharedAvatar = '👤';
+
+      const conflictingPlayers: Player[] = [
+        createTestPlayer({ id: 'p1', name: 'P1', color: sharedColor, avatar: sharedAvatar }),
+        createTestPlayer({ id: 'p2', name: 'P2', color: sharedColor, avatar: sharedAvatar }),
+        createTestPlayer({ id: 'p3', name: 'P3', color: sharedColor, avatar: sharedAvatar })
+      ];
+
+      // resolveConflicts is private; invoke it directly to exercise the exact
+      // multi-conflict-in-one-call scenario described in the bug report.
+      const resolved: Player[] = (stateService as any).resolveConflicts(conflictingPlayers);
+
+      const resolvedColors = resolved.map(p => p.color);
+      const resolvedAvatars = resolved.map(p => p.avatar);
+
+      expect(new Set(resolvedColors).size).toBe(3);
+      expect(new Set(resolvedAvatars).size).toBe(3);
+
+      // The first player has no prior conflict to resolve, so it keeps its value.
+      expect(resolved[0].color).toBe(sharedColor);
+      expect(resolved[0].avatar).toBe(sharedAvatar);
+    });
+
+    it('assigns unique fallback colors/avatars even when every configured option is already taken', () => {
+      // 9 players but only 8 colors/avatars are defined, forcing the
+      // `i % length` fallback branch for at least one player. That fallback
+      // assignment must also be tracked as used so two fallback players don't collide.
+      const sharedColor = colors.game.player1;
+      const sharedAvatar = '👤';
+
+      const conflictingPlayers: Player[] = Array.from({ length: 9 }, (_, i) =>
+        createTestPlayer({ id: `p${i}`, name: `P${i}`, color: sharedColor, avatar: sharedAvatar })
+      );
+
+      const resolved: Player[] = (stateService as any).resolveConflicts(conflictingPlayers);
+
+      // Only 8 distinct colors/avatars exist, so with 9 players at least one
+      // collision with an earlier player is mathematically unavoidable. What
+      // matters for this bug is that reassigned values are tracked, so no two
+      // players *within the reassigned set* duplicate each other's pick.
+      const resolvedColors = resolved.map(p => p.color);
+      const resolvedAvatars = resolved.map(p => p.avatar);
+      expect(new Set(resolvedColors).size).toBeGreaterThanOrEqual(8);
+      expect(new Set(resolvedAvatars).size).toBeGreaterThanOrEqual(8);
     });
   });
 
