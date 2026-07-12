@@ -134,7 +134,7 @@ export interface IResourceService {
   takeOutLoan(playerId: string, amount: number, interestRate: number): boolean;
 
   // Cost tracking
-  recordCost(playerId: string, category: import('./DataTypes').ExpenseCategory, amount: number, description: string, source: string): boolean;
+  recordCost(playerId: string, category: import('./DataTypes').ExpenseCategory, amount: number, description: string, source: string, allowNegative?: boolean): boolean;
 }
 
 // Phase 1 Services
@@ -644,6 +644,14 @@ export interface IEffectEngineService {
   // Validation methods
   validateEffect(effect: Effect, context: EffectContext): boolean;
   validateEffects(effects: Effect[], context: EffectContext): boolean;
+
+  /**
+   * Passthrough to the shared FinancialEffectHandler.checkBankruptcy rule, so
+   * callers that only hold an IEffectEngineService reference (e.g. TurnService)
+   * can trigger the same mandatory-bill bankruptcy check without a direct
+   * dependency on FinancialEffectHandler. No-ops if no handler is wired.
+   */
+  checkBankruptcy(playerId: string): void;
 }
 
 export interface ITargetingService {

@@ -1208,7 +1208,14 @@ export class TurnService implements ITurnService {
     const feeAmount = Math.floor((newInvestment * 5) / 100);
 
     if (feeAmount > 0) {
-      this.resourceService.recordCost(playerId, 'investmentFee', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding');
+      // Mandatory fee — the player didn't opt into it, it's an automatic
+      // consequence of drawing investment funding. Same "charge into the red"
+      // rule as design/regulatory fees and the contractor signing charge
+      // (allowNegative), so it can't be silently skipped when unaffordable.
+      this.resourceService.recordCost(playerId, 'investmentFee', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding', true);
+      // Share the single bankruptcy rule (FinancialEffectHandler.checkBankruptcy)
+      // via EffectEngineService's passthrough rather than growing a new copy.
+      this.effectEngineService?.checkBankruptcy(playerId);
     }
 
     // Step 6: Mark dice as rolled

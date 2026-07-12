@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.116] - 2026-07-12
+
+### 5% investment fee no longer silently skipped when a player can't afford it
+2026-07-11 blind code review, item 5: `TurnService.applyInvestmentFunding` charged the automatic 5% fee on newly-drawn investment money via `ResourceService.recordCost`, which refused (deducted nothing, no error surfaced) whenever the fee exceeded the player's cash — inconsistent with the v3.0.91 "mandatory bills charge into the red" rule already applied to design/regulatory fees and the contractor signing charge. Added an `allowNegative` parameter to `recordCost` (mirroring `spendMoney`'s existing pattern) and set it for this call, so the fee now charges in full even if it drives cash negative. Wired the same bankruptcy consequence the other mandatory bills get — reusing the single shared `FinancialEffectHandler.checkBankruptcy` rule via a new one-line passthrough on `EffectEngineService` (which `TurnService` already optionally holds), rather than duplicating the bankruptcy check or adding a new cross-service dependency. Verified via the full suite (2354 tests) plus clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.115] - 2026-07-12
 
 ### Replaced cards no longer vanish from the game — they wait in the discard pile

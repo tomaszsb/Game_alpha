@@ -131,7 +131,11 @@ export class ResourceService implements IResourceService {
     category: import('../types/DataTypes').ExpenseCategory,
     amount: number,
     description: string,
-    source: string
+    source: string,
+    // `allowNegative` = a MANDATORY bill (see spendMoney above for the full
+    // rationale). Default false preserves the refuse-if-unaffordable guard
+    // for any future discretionary caller of recordCost.
+    allowNegative = false
   ): boolean {
     if (amount <= 0) {
       const error = ErrorNotifications.resourceOperationFailed('record', 'cost', `Invalid amount: ${amount}`);
@@ -145,7 +149,7 @@ export class ResourceService implements IResourceService {
       throw new Error(error.detailed);
     }
 
-    if (!this.canAfford(playerId, amount)) {
+    if (!allowNegative && !this.canAfford(playerId, amount)) {
       const error = ErrorNotifications.insufficientFunds(amount, player.money);
       debugWarn(error.medium);
       return false;

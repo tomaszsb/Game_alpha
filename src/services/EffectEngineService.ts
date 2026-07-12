@@ -135,6 +135,16 @@ export class EffectEngineService implements IEffectEngineService {
   }
 
   /**
+   * Passthrough to FinancialEffectHandler.checkBankruptcy — lets TurnService
+   * (which doesn't hold FinancialEffectHandler directly) share the one
+   * mandatory-bill bankruptcy rule instead of duplicating it. No-ops if no
+   * financialEffectHandler is wired (e.g. some test setups).
+   */
+  public checkBankruptcy(playerId: string): void {
+    this.financialEffectHandler?.checkBankruptcy(playerId);
+  }
+
+  /**
    * Assert that critical setter-injected dependencies are initialized.
    * Some services (notificationService, dataService) are optional and handled with null checks.
    * TurnService is required for specific effect types.
