@@ -181,7 +181,6 @@ describe('PlayerActionService', () => {
     mockMovementService.movePlayer.mockReturnValue(mockGameState);
     
     // Setup default TurnService mock implementations - all synchronous returns
-    mockTurnService.endTurn.mockResolvedValue({ nextPlayerId: 'player2' });
     mockTurnService.canPlayerTakeTurn.mockReturnValue(true);
     mockTurnService.getCurrentPlayerTurn.mockReturnValue('player1');
     mockTurnService.rollDiceAndProcessEffects.mockResolvedValue({ diceRoll: 3 });
@@ -622,7 +621,7 @@ describe('PlayerActionService', () => {
   // end the turn — still a meaningful behavior pin for playCard.
 
   describe('playCard interactions with turn lifecycle', () => {
-    it('should not call endTurn automatically after card play', async () => {
+    it('should not call endTurnWithMovement automatically after card play', async () => {
       // Arrange
       mockDataService.getCardById.mockReturnValue(mockCard);
       mockGameRulesService.canPlayCard.mockReturnValue(true);
@@ -632,8 +631,8 @@ describe('PlayerActionService', () => {
       // Act
       await playerActionService.playCard('player1', 'W001');
 
-      // Assert - endTurn should NOT be called automatically
-      expect(mockTurnService.endTurn).not.toHaveBeenCalled();
+      // Assert - endTurnWithMovement (the live end-turn path) should NOT be called automatically
+      expect(mockTurnService.endTurnWithMovement).not.toHaveBeenCalled();
     });
   });
 });

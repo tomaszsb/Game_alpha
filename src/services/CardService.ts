@@ -634,19 +634,10 @@ export class CardService implements ICardService {
       }
       
       // Step 5: Handle card activation based on duration
-      if (card.duration) {
-        const numericDuration = typeof card.duration === 'string' ? parseInt(card.duration, 10) : card.duration;
-        if (numericDuration > 0) {
-          // Card has duration - move to activeCards
-          this.activateCard(playerId, cardId, numericDuration);
-        } else {
-          // Card has immediate effect - move to discarded
-          this.moveCardToDiscarded(playerId, cardId);
-        }
-      } else {
-        // Card has immediate effect - move to discarded
-        this.moveCardToDiscarded(playerId, cardId);
-      }
+      // (delegates to finalizePlayedCard so hand-play and PLAY_CARD-effect
+      // paths share one duration lifecycle keyed off duration_count — see
+      // finalizePlayedCard for the parsing logic)
+      this.finalizePlayedCard(playerId, cardId);
       
       
       // Log card play to action history

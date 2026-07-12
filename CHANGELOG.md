@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.114] - 2026-07-12
+
+### Hand-played duration cards now actually activate instead of discarding immediately
+2026-07-11 blind code review, item 3: `CardService.playCard`'s duration check parsed the wrong CSV column — `card.duration` is a word ('Turns'/'Permanent'), and `parseInt('Turns', 10)` is `NaN`, so every hand-played card with a duration silently fell through to immediate discard instead of activating with a countdown. The `PLAY_CARD` effect-engine path (`finalizePlayedCard`) already parsed the correct numeric column, `duration_count`, so cards played through the classic modal's dice/effect path worked while cards played directly from a player's hand didn't — affecting the 9 `duration=Turns` Life Event cards. Fix: `playCard`'s Step 5 now delegates to `finalizePlayedCard` instead of duplicating the duration decision, so both play paths share one lifecycle keyed off `duration_count`. Also fixed a stale test mock left over from v3.0.113's `endTurn()` deletion (`tests/services/PlayerActionService.test.ts` still referenced the removed method) — caught by a full-suite run that the previous iteration's targeted-test pass had missed. Verified via the full suite (2353 tests) plus a clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.113] - 2026-07-12
 
 ### Missing-DOB end-game penalty made reachable — it lived only in dead code
