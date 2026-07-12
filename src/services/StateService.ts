@@ -454,10 +454,9 @@ export class StateService implements IStateService {
 
     // Handle case where no current player is set (for backwards compatibility)
     if (!currentPlayerId || numPlayers === 0) {
-      // Just increment the legacy turn counter and global count
+      // Just increment the global turn count
       const newState: GameState = {
         ...this.currentState,
-        turn: this.currentState.turn + 1,
         globalTurnCount: this.currentState.globalTurnCount + 1,
       };
       this.currentState = newState;
@@ -1558,7 +1557,6 @@ export class StateService implements IStateService {
       players: [],
       currentPlayerId: null,
       gamePhase: 'SETUP',
-      turn: 0, // Deprecated but kept for backwards compatibility
       // New turn tracking system
       gameRound: 1, // Start at round 1
       turnWithinRound: 1, // Start at turn 1 within the round

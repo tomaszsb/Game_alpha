@@ -215,6 +215,6 @@ describe('E2E-02: Complex Card Test', () => {
     // Verify the architecture supports the expected game state patterns
     expect(finalGameState.players).toHaveLength(3);
     expect(finalGameState.currentPlayerId).toBeDefined();
-    expect(finalGameState.turn).toBeGreaterThanOrEqual(0);
+    expect(finalGameState.globalTurnCount).toBeGreaterThanOrEqual(0);
   });
 });

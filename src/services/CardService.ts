@@ -752,7 +752,7 @@ export class CardService implements ICardService {
     }
 
     const gameState = this.stateService.getGameState();
-    const expirationTurn = gameState.turn + duration;
+    const expirationTurn = gameState.globalTurnCount + duration;
 
     // Remove card from available cards
     this.removeCard(playerId, cardId);
@@ -914,7 +914,7 @@ export class CardService implements ICardService {
   // Public method called at end of each turn to handle card expirations
   endOfTurn(): void {
     const gameState = this.stateService.getGameState();
-    const currentTurn = gameState.turn;
+    const currentTurn = gameState.globalTurnCount;
 
     // Processing card expirations
 

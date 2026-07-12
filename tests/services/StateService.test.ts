@@ -39,7 +39,7 @@ describe('StateService', () => {
       expect(initialState.players).toEqual([]);
       expect(initialState.currentPlayerId).toBeNull();
       expect(initialState.gamePhase).toBe('SETUP');
-      expect(initialState.turn).toBe(0);
+      expect(initialState.globalTurnCount).toBe(0);
       expect(initialState.gameStartTime).toBeUndefined();
       expect(initialState.gameEndTime).toBeUndefined();
       expect(initialState.winner).toBeUndefined();
@@ -267,10 +267,10 @@ describe('StateService', () => {
     });
 
     it('should advance turn successfully', () => {
-      const initialTurn = stateService.getGameState().turn;
+      const initialTurn = stateService.getGameState().globalTurnCount;
       const newState = stateService.advanceTurn();
-      
-      expect(newState.turn).toBe(initialTurn + 1);
+
+      expect(newState.globalTurnCount).toBe(initialTurn + 1);
     });
 
     it('should move to next player', () => {
@@ -361,7 +361,7 @@ describe('StateService', () => {
       expect(newState.players).toEqual([]);
       expect(newState.currentPlayerId).toBeNull();
       expect(newState.gamePhase).toBe('SETUP');
-      expect(newState.turn).toBe(0);
+      expect(newState.globalTurnCount).toBe(0);
     });
 
     it('should start game successfully', () => {
@@ -416,7 +416,7 @@ describe('StateService', () => {
       expect(newState.players).toEqual([]);
       expect(newState.currentPlayerId).toBeNull();
       expect(newState.gamePhase).toBe('SETUP');
-      expect(newState.turn).toBe(0);
+      expect(newState.globalTurnCount).toBe(0);
     });
   });
 

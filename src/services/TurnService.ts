@@ -467,11 +467,12 @@ export class TurnService implements ITurnService {
       throw new Error('No current player to end turn for');
     }
 
-    // Check for game end conditions (win or turn limit) before ending turn
+    // Check for game end conditions (win — there is no turn limit; see
+    // maintainer ruling 2026-07-11) before ending turn
     const endConditions = await this.gameRulesService.checkGameEndConditions(gameState.currentPlayerId);
     if (endConditions.shouldEnd) {
       let winnerId: string | null = null;
-      
+
       if (endConditions.reason === 'win' && endConditions.winnerId) {
         // Player won by reaching ending space
         winnerId = endConditions.winnerId;
@@ -483,19 +484,8 @@ export class TurnService implements ITurnService {
           winCondition: 'space_victory',
           finalSpace: this.stateService.getPlayer(winnerId)?.currentSpace
         });
-      } else if (endConditions.reason === 'turn_limit') {
-        // Game ended due to turn limit - determine winner by score
-        winnerId = this.gameRulesService.determineWinner();
-        // Log game end by turn limit
-        this.loggingService.info(`Game ended: Turn limit reached. Winner determined by score.`, {
-          playerId: winnerId || gameState.currentPlayerId,
-          playerName: this.stateService.getPlayer(winnerId || gameState.currentPlayerId)?.name || 'Unknown',
-          action: 'gameEnd',
-          winCondition: 'turn_limit',
-          finalTurn: gameState.globalTurnCount
-        });
       }
-      
+
       // Workstream 7 Phase 7.4 — end-game penalty when the winner reached
       // FINISH without DOB sign-off. Backstop for the Stage-1 gate at
       // REG-DOB-FINAL-REVIEW (should never normally fire, but safe-guards

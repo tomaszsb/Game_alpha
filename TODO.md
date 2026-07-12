@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 11, 2026
-**Status:** Beta — live in production; **v3.0.108 deployed 2026-07-10** (commit `aa11433`, confirmed by maintainer)
-**Current Version:** 3.0.111 (not yet deployed — v3.0.109–111 pending)
+**Status:** Beta — live in production; **v3.0.111 deployed 2026-07-11** (commit `52864ad`, confirmed by maintainer)
+**Current Version:** 3.0.112 (not yet deployed — v3.0.112 pending)
 
 ---
 
@@ -18,8 +18,7 @@
 ## 🔎 Active — bugs & investigations
 
 ### From 2026-07-11 blind code review (read the engine cold, no docs)
-- [ ] **Frozen legacy `turn` counter breaks card expiry + turn records.** `StateService.advanceTurn` only increments the deprecated `turn` field in its no-current-player fallback branch ([StateService.ts:451](src/services/StateService.ts:451)) — in normal play it stays 0 forever. Casualties: (a) **duration cards never leave the "active" list** — `CardService.activateCard`/`endOfTurn` compare `expirationTurn = 0 + duration` against `turn = 0` ([CardService.ts:755](src/services/CardService.ts:755), [917](src/services/CardService.ts:917)); EventsSection shows "Expires turn N" forever and stale actives stay E024 targets + keep counting in scope; (b) wrong turn numbers recorded at [MovementService.ts:329](src/services/MovementService.ts:329), [EffectEngineService.ts:1338](src/services/EffectEngineService.ts:1338), [ResourceService.ts:557](src/services/ResourceService.ts:557). Fix direction: point all readers at `globalTurnCount`, then delete `turn`. **Maintainer ruling 2026-07-11: there is NO turn limit** — delete `checkTurnLimit` + the turn-limit branch of `checkGameEndConditions` ([GameRulesService.ts:420–478](src/services/GameRulesService.ts:420)) rather than fixing them.
-- [ ] **Dead `endTurn()` still holds the missing-DOB end-game penalty.** Nothing calls `TurnService.endTurn` (UI only calls `endTurnWithMovement`), but it's the ONLY place that applies the missing-DOB end-game penalty ([TurnService.ts:457–546](src/services/TurnService.ts:457)) — the penalty backstop + `EndGameModal`'s penalty banner are unreachable. Move the penalty block into `endTurnWithMovement`'s win check, then delete `endTurn` (its turn-limit check dies with it per the no-turn-limit ruling above).
+- [ ] **Dead `endTurn()` still holds the missing-DOB end-game penalty.** Nothing calls `TurnService.endTurn` (UI only calls `endTurnWithMovement`), but it's the ONLY place that applies the missing-DOB end-game penalty ([TurnService.ts:457–546](src/services/TurnService.ts:457)) — the penalty backstop + `EndGameModal`'s penalty banner are unreachable. Move the penalty block into `endTurnWithMovement`'s win check, then delete `endTurn` (its turn-limit branch was already removed in v3.0.112 per the no-turn-limit ruling).
 - [ ] **Two disagreeing duration-card lifecycles.** `playCard` parses the word column `duration` ('Turns'/'Permanent') with parseInt → NaN → every hand-played card is discarded immediately ([CardService.ts:637](src/services/CardService.ts:637)); `finalizePlayedCard` correctly parses `duration_count` ([CardService.ts:1087](src/services/CardService.ts:1087)). Affects the 9 `duration=Turns` L cards if hand-played. Unify on `duration_count`.
 - [ ] **Replaced cards leak out of the game.** `replaceCard` removes the old card via `removeCard`, which never adds it to any discard pile ([CardService.ts:452](src/services/CardService.ts:452)) — every expeditor "replace" ([CardEffectService.ts:236](src/services/CardEffectService.ts:236)) permanently shrinks the card pool. **Fix per maintainer rule 2026-07-11:** the old card must land in the discard pile and WAIT there — used-up cards only return when the whole deck is used up (drawCards' reshuffle-on-empty already implements the waiting part; the bug is that replaced cards never reach the pile).
 - [ ] **5% investment fee silently skipped when unaffordable.** `applyInvestmentFunding` charges the fee via `recordCost`, which refuses without funds ([ResourceService.ts:148](src/services/ResourceService.ts:148)) — inconsistent with the v3.0.91 "mandatory bills charge into the red" rule (contractor/design fees use allowNegative).

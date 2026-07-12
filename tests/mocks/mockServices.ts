@@ -240,7 +240,6 @@ export const createMockGameRulesService = (): any => ({
   // Scoring methods
   calculatePlayerScore: vi.fn(),
   determineWinner: vi.fn(),
-  checkTurnLimit: vi.fn(),
   checkGameEndConditions: vi.fn()
 });
 

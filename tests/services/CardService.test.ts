@@ -40,7 +40,7 @@ describe('CardService - Enhanced Coverage', () => {
     players: [mockPlayer],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
-    turn: 3,
+    globalTurnCount: 3,
     hasPlayerMovedThisTurn: false,
     hasPlayerRolledDice: false,
     awaitingChoice: null,

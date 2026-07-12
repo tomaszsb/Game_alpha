@@ -37,7 +37,6 @@ describe('SpaceEffectService', () => {
     players: players.length > 0 ? players : [createMockPlayer()],
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
-    turn: 1,
     globalTurnCount: 1,
     hasPlayerMovedThisTurn: false,
     hasPlayerRolledDice: false,

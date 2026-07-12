@@ -326,7 +326,7 @@ export class MovementService implements IMovementService {
 
     // Update spaceVisitLog: close previous space entry and add new one
     const gameState = this.stateService.getGameState();
-    const currentTurn = gameState.turn || 1;
+    const currentTurn = gameState.globalTurnCount || 1;
     const currentTime = player.timeSpent || 0;
 
     // Get existing spaceVisitLog or create empty array

@@ -244,7 +244,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
   private trackDesignExpenditure(playerId: string, player: Player, actualAmount: number, payload: ResourceChangePayload): void {
     const feeAmount = Math.abs(actualAmount);
     const gameState = this.stateService.getGameState();
-    const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
+    const currentTurn = gameState.globalTurnCount || 0;
 
     const updateData: Partial<Player> = {};
 

@@ -303,7 +303,7 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     const gameState = stateService.getGameState();
 
     // The turn counter exists and is a number
-    expect(typeof gameState.turn).toBe('number');
+    expect(typeof gameState.globalTurnCount).toBe('number');
 
     // Game is still in PLAY phase (not ended prematurely)
     expect(gameState.gamePhase).toBe('PLAY');

@@ -41,7 +41,6 @@ describe('GameRulesService', () => {
       players: [mockPlayer],
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',
-      turn: 1,
       activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
@@ -892,56 +891,8 @@ describe('GameRulesService', () => {
   });
 
   describe('Enhanced Win Conditions', () => {
-    describe('checkTurnLimit', () => {
-      it('should return true when turn limit is reached', () => {
-        // Arrange
-        const gameStateAtLimit = { ...mockGameState, turn: 50 };
-        mockStateService.getGameState.mockReturnValue(gameStateAtLimit);
-
-        // Act
-        const result = gameRulesService.checkTurnLimit(50);
-
-        // Assert
-        expect(result).toBe(true);
-      });
-
-      it('should return true when turn exceeds limit', () => {
-        // Arrange
-        const gameStateBeyondLimit = { ...mockGameState, turn: 55 };
-        mockStateService.getGameState.mockReturnValue(gameStateBeyondLimit);
-
-        // Act
-        const result = gameRulesService.checkTurnLimit(50);
-
-        // Assert
-        expect(result).toBe(true);
-      });
-
-      it('should return false when turn is below limit', () => {
-        // Arrange
-        const gameStateBelowLimit = { ...mockGameState, turn: 30 };
-        mockStateService.getGameState.mockReturnValue(gameStateBelowLimit);
-
-        // Act
-        const result = gameRulesService.checkTurnLimit(50);
-
-        // Assert
-        expect(result).toBe(false);
-      });
-
-      it('should use default turn limit of 50', () => {
-        // Arrange
-        const gameStateAtDefaultLimit = { ...mockGameState, turn: 50 };
-        mockStateService.getGameState.mockReturnValue(gameStateAtDefaultLimit);
-
-        // Act
-        const result = gameRulesService.checkTurnLimit();
-
-        // Assert
-        expect(result).toBe(true);
-      });
-    });
-
+    // checkTurnLimit and the turn_limit branch of checkGameEndConditions were
+    // removed per maintainer ruling (2026-07-11): there is no turn limit.
     describe('checkGameEndConditions', () => {
       it('should return win condition when player reaches ending space', async () => {
         // Arrange
@@ -958,41 +909,15 @@ describe('GameRulesService', () => {
 
         mockStateService.getPlayer.mockReturnValue(mockPlayer);
         mockDataService.getGameConfigBySpace.mockReturnValue(endingSpaceConfig);
-        mockStateService.getGameState.mockReturnValue({ ...mockGameState, turn: 10 });
+        mockStateService.getGameState.mockReturnValue(mockGameState);
 
         // Act
-        const result = await gameRulesService.checkGameEndConditions('player1', 50);
+        const result = await gameRulesService.checkGameEndConditions('player1');
 
         // Assert
         expect(result.shouldEnd).toBe(true);
         expect(result.reason).toBe('win');
         expect(result.winnerId).toBe('player1');
-      });
-
-      it('should return turn limit condition when limit is reached', async () => {
-        // Arrange
-        const nonEndingSpaceConfig: GameConfig = {
-          space_name: 'REGULAR-SPACE',
-          phase: 'play',
-          is_starting_space: false,
-          is_ending_space: false,
-          path_type: 'linear',
-          min_players: 1,
-          max_players: 4,
-          requires_dice_roll: true
-        };
-
-        mockStateService.getPlayer.mockReturnValue(mockPlayer);
-        mockDataService.getGameConfigBySpace.mockReturnValue(nonEndingSpaceConfig);
-        mockStateService.getGameState.mockReturnValue({ ...mockGameState, turn: 50 });
-
-        // Act
-        const result = await gameRulesService.checkGameEndConditions('player1', 50);
-
-        // Assert
-        expect(result.shouldEnd).toBe(true);
-        expect(result.reason).toBe('turn_limit');
-        expect(result.winnerId).toBeUndefined();
       });
 
       it('should return no end condition when game should continue', async () => {
@@ -1010,41 +935,15 @@ describe('GameRulesService', () => {
 
         mockStateService.getPlayer.mockReturnValue(mockPlayer);
         mockDataService.getGameConfigBySpace.mockReturnValue(nonEndingSpaceConfig);
-        mockStateService.getGameState.mockReturnValue({ ...mockGameState, turn: 25 });
+        mockStateService.getGameState.mockReturnValue(mockGameState);
 
         // Act
-        const result = await gameRulesService.checkGameEndConditions('player1', 50);
+        const result = await gameRulesService.checkGameEndConditions('player1');
 
         // Assert
         expect(result.shouldEnd).toBe(false);
         expect(result.reason).toBeNull();
         expect(result.winnerId).toBeUndefined();
-      });
-
-      it('should prioritize win condition over turn limit', async () => {
-        // Arrange - Player wins on the exact turn limit
-        const endingSpaceConfig: GameConfig = {
-          space_name: 'ENDING-SPACE',
-          phase: 'play',
-          is_starting_space: false,
-          is_ending_space: true,
-          path_type: 'linear',
-          min_players: 1,
-          max_players: 4,
-          requires_dice_roll: true
-        };
-
-        mockStateService.getPlayer.mockReturnValue(mockPlayer);
-        mockDataService.getGameConfigBySpace.mockReturnValue(endingSpaceConfig);
-        mockStateService.getGameState.mockReturnValue({ ...mockGameState, turn: 50 });
-
-        // Act
-        const result = await gameRulesService.checkGameEndConditions('player1', 50);
-
-        // Assert
-        expect(result.shouldEnd).toBe(true);
-        expect(result.reason).toBe('win');
-        expect(result.winnerId).toBe('player1');
       });
     });
   });

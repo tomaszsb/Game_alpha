@@ -274,7 +274,6 @@ export interface GameState {
   players: Player[];
   currentPlayerId: string | null;
   gamePhase: GamePhase;
-  turn: number; // Deprecated but kept for backwards compatibility
   // New turn tracking system
   gameRound: number; // Current game round (1, 2, 3...)
   turnWithinRound: number; // Current turn within round (1-4 for 4 players)

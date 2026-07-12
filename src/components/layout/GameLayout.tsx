@@ -695,11 +695,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
       // Track turn changes for notification clearing
       const previousTurn = turnNumber;
-      setTurnNumber(gameState.turn);
+      setTurnNumber(gameState.globalTurnCount);
 
       // Clear completed actions when current player changes OR turn advances
       const playerChanged = previousPlayerId && previousPlayerId !== gameState.currentPlayerId;
-      const turnChanged = previousTurn !== gameState.turn;
+      const turnChanged = previousTurn !== gameState.globalTurnCount;
 
       if (playerChanged || turnChanged) {
         notificationService.clearAllNotifications();
@@ -718,7 +718,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setPlayers(currentState.players);
     setCurrentPlayerId(currentState.currentPlayerId);
     setActiveModal(currentState.activeModal?.type || null);
-    setTurnNumber(currentState.turn);
+    setTurnNumber(currentState.globalTurnCount);
     setGameStateCompletedActions(currentState.completedActions);
 
     return () => {

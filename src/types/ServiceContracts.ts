@@ -610,10 +610,9 @@ export interface IGameRulesService {
   determineWinner(): string | null;
   
   // Enhanced win condition methods
-  checkTurnLimit(turnLimit?: number): boolean;
-  checkGameEndConditions(playerId: string, turnLimit?: number): Promise<{
+  checkGameEndConditions(playerId: string): Promise<{
     shouldEnd: boolean;
-    reason: 'win' | 'turn_limit' | null;
+    reason: 'win' | null;
     winnerId?: string;
   }>;
   canEndTurn(playerId: string): boolean;

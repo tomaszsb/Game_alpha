@@ -156,7 +156,6 @@ describe('EffectEngineService', () => {
       evaluateCondition: vi.fn().mockReturnValue(true),
       calculatePlayerScore: vi.fn(),
       determineWinner: vi.fn(),
-      checkTurnLimit: vi.fn(),
       checkGameEndConditions: vi.fn()
     };
 
@@ -655,7 +654,7 @@ describe('EffectEngineService', () => {
       mockStateService.getPlayer.mockReturnValue(mockPlayer);
 
       // Mock game state for turn tracking
-      mockStateService.getGameState.mockReturnValue({ turn: 5, players: [] });
+      mockStateService.getGameState.mockReturnValue({ globalTurnCount: 5, players: [] });
 
       // Mock targeting service for multi-player effects
       mockTargetingService.resolveTargets.mockResolvedValue(['player1', 'player2']);
@@ -849,7 +848,7 @@ describe('EffectEngineService', () => {
 
       mockStateService.getGameState.mockReturnValue({
         players: players,
-        turn: 5
+        globalTurnCount: 5
       });
 
       // v3.0.40: applyActiveEffects now calls getPlayer multiple times per
@@ -924,7 +923,7 @@ describe('EffectEngineService', () => {
         activeEffects: []
       };
       mockStateService.getPlayer.mockReturnValue(mockPlayer);
-      mockStateService.getGameState.mockReturnValue({ turn: 8 });
+      mockStateService.getGameState.mockReturnValue({ globalTurnCount: 8 });
 
       const effect: Effect = {
         effectType: 'RESOURCE_CHANGE',
@@ -1381,7 +1380,7 @@ describe('EffectEngineService', () => {
 
       mockGameRulesService.calculateTotalWorkCost = vi.fn().mockReturnValue(1_000_000);
       mockResourceService.spendMoney.mockReturnValue(true);
-      mockStateService.getGameState.mockReturnValue({ globalTurnCount: 4, turn: 4, players: [] });
+      mockStateService.getGameState.mockReturnValue({ globalTurnCount: 4, players: [] });
 
       const effect: Effect = {
         effectType: 'CONTRACTOR_UPDATE',

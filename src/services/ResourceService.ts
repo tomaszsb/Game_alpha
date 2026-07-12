@@ -554,7 +554,7 @@ export class ResourceService implements IResourceService {
         id: loanId,
         principal: amount,
         interestRate: interestRate,
-        startTurn: gameState.turn
+        startTurn: gameState.globalTurnCount || 1
       };
 
       // Add loan to player's loans array

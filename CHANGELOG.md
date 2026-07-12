@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.112] - 2026-07-11
+
+### Frozen turn counter fixed — duration cards now actually expire; no-turn-limit ruling applied
+2026-07-11 blind code review, item 1: `StateService.advanceTurn` only incremented the deprecated `turn` field in its no-current-player fallback branch — in normal play `turn` stayed 0 forever, while the correct counter (`globalTurnCount`) was already incrementing every turn unnoticed. Casualties of the frozen field: duration cards compared `expirationTurn` (`0 + duration`) against `turn` (always `0`) and so never left the "active" list — EventsSection showed "Expires turn N" forever, and stale actives stayed E024 targets and kept counting in scope math ([CardService.ts](src/services/CardService.ts) `activateCard`/`endOfTurn`); wrong turn numbers were also being recorded into space-visit logs, effect start-turns, and loan records ([MovementService.ts](src/services/MovementService.ts), [EffectEngineService.ts](src/services/EffectEngineService.ts), [ResourceService.ts](src/services/ResourceService.ts), [FinancialEffectHandler.ts](src/services/FinancialEffectHandler.ts)). Every reader now points at `globalTurnCount`; the dead `turn` field is deleted from `GameState` entirely ([StateTypes.ts](src/types/StateTypes.ts)).
+
+Folded in per the maintainer's same-day ruling that **there is no turn limit**: deleted `GameRulesService.checkTurnLimit()` and the turn-limit branch of `checkGameEndConditions` (one of the frozen-`turn` readers), plus the now-dead turn-limit branch in `TurnService.endTurn()`. `GameLayout.tsx`'s turn-change notification-clearing logic, which was silently never firing, now tracks `globalTurnCount` too. Verified via 387 targeted tests across the touched services plus a full-suite run (2350/2353 passing; the 2 failures are pre-existing timing flakes unrelated to turn logic, both green in isolation) and clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.111] - 2026-07-11
 
 ### "Funding raised" no longer counts the owner's own seed money

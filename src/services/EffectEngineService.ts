@@ -441,7 +441,7 @@ export class EffectEngineService implements IEffectEngineService {
                       // write here would be clobbered when the turn commits. Design
                       // fees use this same path (trackDesignExpenditure).
                       const gameState = this.stateService.getGameState();
-                      const currentTurn = gameState.globalTurnCount || gameState.turn || 0;
+                      const currentTurn = gameState.globalTurnCount || 0;
                       const currentConstruction = refreshed.expenditures?.construction || 0;
                       const costHistory = [...(refreshed.costHistory || [])];
                       costHistory.push({
@@ -1335,7 +1335,7 @@ export class EffectEngineService implements IEffectEngineService {
       sourceCardId: sourceCardId,
       effectData: effect,
       remainingDuration: duration,
-      startTurn: gameState.turn,
+      startTurn: gameState.globalTurnCount,
       effectType: effect.effectType,
       description: `Effect from ${sourceCardId} (${duration} turns remaining)`
     };

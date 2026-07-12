@@ -118,7 +118,6 @@ const mockGameRulesService: any = {
   evaluateCondition: vi.fn().mockReturnValue(true),
   calculatePlayerScore: vi.fn(),
   determineWinner: vi.fn(),
-  checkTurnLimit: vi.fn(),
   checkGameEndConditions: vi.fn(),
 };
 
@@ -269,7 +268,6 @@ describe('TurnService', () => {
     players: mockPlayers,
     currentPlayerId: 'player1',
     gamePhase: 'PLAY',
-    turn: 1,
     // Simplified turn tracking system
     globalTurnCount: 1,
     // Track individual player turn counts for statistics

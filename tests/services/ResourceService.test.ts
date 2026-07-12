@@ -371,7 +371,7 @@ describe('ResourceService', () => {
 
   describe('Loan Operations', () => {
     const mockGameState: any = {
-      turn: 10,
+      globalTurnCount: 10,
       players: [mockPlayer],
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',
@@ -517,7 +517,6 @@ describe('ResourceService', () => {
     };
 
     const mockGameStateWithTurn: any = {
-      turn: 15,
       globalTurnCount: 15,
       players: [playerWithFinances],
       currentPlayerId: 'player1',

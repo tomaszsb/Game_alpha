@@ -413,35 +413,14 @@ export class GameRulesService implements IGameRulesService {
   }
 
   /**
-   * Check if the game should end due to turn limit being reached
-   * @param turnLimit - Maximum number of turns before game ends (default 50)
-   * @returns true if the turn limit has been reached
-   */
-  checkTurnLimit(turnLimit: number = 50): boolean {
-    try {
-      const gameState = this.stateService.getGameState();
-      const currentTurn = gameState.turn || 0;
-      
-      if (currentTurn >= turnLimit) {
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error checking turn limit:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Check if the game should end for any reason (win condition or turn limit)
+   * Check if the game should end for any reason (currently: win condition only —
+   * there is no turn limit; see maintainer ruling 2026-07-11)
    * @param playerId - The ID of the player to check for win condition
-   * @param turnLimit - Maximum number of turns before game ends (default 50)
    * @returns Object indicating if game should end and why
    */
-  async checkGameEndConditions(playerId: string, turnLimit: number = 50): Promise<{
+  async checkGameEndConditions(playerId: string): Promise<{
     shouldEnd: boolean;
-    reason: 'win' | 'turn_limit' | null;
+    reason: 'win' | null;
     winnerId?: string;
   }> {
     try {
@@ -452,15 +431,6 @@ export class GameRulesService implements IGameRulesService {
           shouldEnd: true,
           reason: 'win',
           winnerId: playerId
-        };
-      }
-
-      // Check if turn limit reached
-      const turnLimitReached = this.checkTurnLimit(turnLimit);
-      if (turnLimitReached) {
-        return {
-          shouldEnd: true,
-          reason: 'turn_limit'
         };
       }
 
