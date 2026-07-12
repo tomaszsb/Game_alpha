@@ -2,6 +2,14 @@
 
 ---
 
+## v3.0.112–120 — Life events now actually last as long as they say, and a real fee stopped disappearing (July 11–12, 2026)
+
+- **A "3 more turns" life event now genuinely means 3 of your own turns.** Before, an ongoing event like a strike or a code update was ticking down on *everyone's* turn, not just the affected player's — so with 4 people at the table, it could vanish in under one lap around instead of lasting as long as it said. It now counts down only on your own turns, the way the notice always implied.
+- **Cards with a lasting effect actually take hold now.** Playing certain Life Event cards from your hand used to silently discard them instead of activating their effect — you'd play the card and nothing would happen. Fixed.
+- **The 5% investment review fee no longer quietly disappears when you're short on cash.** It used to get skipped without any notice if you couldn't afford it in the moment; now it charges like every other mandatory fee, even if that means going into the red.
+- **If you win without DOB sign-off, the missing-paperwork penalty now actually applies** — it was wired up correctly but sitting behind dead code that nothing ever called.
+- **A handful of smaller under-the-hood fixes**: replaced cards go back into the pile instead of vanishing from the game for good, a rare setup glitch that could give two players the same player number or the same color/avatar is fixed, and an End Turn guard that was supposed to block leaving a move unfinished now actually does.
+
 ## v3.0.101–108 — A round of small cleanups: no more double-listed cards, no more board-game talk in your history (July 10, 2026)
 
 - **Hiring Expeditors used to list the same names twice.** After hiring 3 Expeditors, the pop-up showed their names once as tappable cards, then again right below in a plain list — same 3 names, back to back. Now it shows them once.
