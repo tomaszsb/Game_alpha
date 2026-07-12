@@ -468,9 +468,21 @@ export class CardService implements ICardService {
 
     // Get old card details before removal
     const oldCard = this.dataService.getCardById(oldCardId);
-    
-    // Remove the old card and add a new one
-    this.removeCard(playerId, oldCardId);
+
+    // Discard the old card (lands in the discard pile so it waits there for
+    // reshuffling, per maintainer ruling 2026-07-11) and draw a replacement.
+    // Note: removeCard() would strip the card from hand/activeCards without
+    // ever placing it in a discard pile — a permanent leak from the card pool.
+    const discarded = this.discardCards(
+      playerId,
+      [oldCardId],
+      'manual_effect',
+      `Manual action: Replace ${newCardType} card - removing old card`
+    );
+    if (!discarded) {
+      const error = ErrorNotifications.cardDiscardFailed(oldCardId, `Failed to discard card during replacement`);
+      throw new Error(error.detailed);
+    }
     const drawnCards = this.drawCards(playerId, newCardType, 1);
     
     // Log card replacement to action history

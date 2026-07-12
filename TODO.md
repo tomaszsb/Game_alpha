@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.111 deployed 2026-07-11** (commit `52864ad`, confirmed by maintainer)
-**Current Version:** 3.0.114 (not yet deployed — v3.0.112–114 pending)
+**Current Version:** 3.0.115 (not yet deployed — v3.0.112–115 pending)
 
 ---
 
@@ -18,7 +18,6 @@
 ## 🔎 Active — bugs & investigations
 
 ### From 2026-07-11 blind code review (read the engine cold, no docs)
-- [ ] **Replaced cards leak out of the game.** `replaceCard` removes the old card via `removeCard`, which never adds it to any discard pile ([CardService.ts:452](src/services/CardService.ts:452)) — every expeditor "replace" ([CardEffectService.ts:236](src/services/CardEffectService.ts:236)) permanently shrinks the card pool. **Fix per maintainer rule 2026-07-11:** the old card must land in the discard pile and WAIT there — used-up cards only return when the whole deck is used up (drawCards' reshuffle-on-empty already implements the waiting part; the bug is that replaced cards never reach the pile).
 - [ ] **5% investment fee silently skipped when unaffordable.** `applyInvestmentFunding` charges the fee via `recordCost`, which refuses without funds ([ResourceService.ts:148](src/services/ResourceService.ts:148)) — inconsistent with the v3.0.91 "mandatory bills charge into the red" rule (contractor/design fees use allowNegative).
 - [ ] **Duplicate `shortId` after removing a player during setup.** `generateShortPlayerId` = players.length+1 ([StateService.ts:1676](src/services/StateService.ts:1676)): add P1–P3, remove P2, add again → two P3s.
 - [ ] **Color/avatar conflict resolver can hand two players the same replacement** — reassigned values never enter the used-set ([StateService.ts:1733](src/services/StateService.ts:1733)).

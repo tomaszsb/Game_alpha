@@ -379,6 +379,53 @@ describe('CardService - Enhanced Coverage', () => {
     });
   });
 
+  describe('Card Replacement System', () => {
+    it('discards the old card into the discard pile (not the leaky removeCard) and draws a replacement', () => {
+      const player: any = {
+        ...mockPlayer,
+        hand: ['W_active_001'],
+        activeCards: []
+      };
+      mockStateService.getPlayer.mockReturnValue(player);
+
+      const discardSpy = vi.spyOn(cardService, 'discardCards');
+      const drawSpy = vi.spyOn(cardService, 'drawCards');
+      const removeSpy = vi.spyOn(cardService, 'removeCard');
+
+      cardService.replaceCard('player1', 'W_active_001', 'W');
+
+      // Regression guard: the old card must be routed through discardCards,
+      // not the leaky removeCard (which never adds it to a discard pile).
+      expect(discardSpy).toHaveBeenCalledWith(
+        'player1',
+        ['W_active_001'],
+        expect.any(String),
+        expect.any(String)
+      );
+      expect(removeSpy).not.toHaveBeenCalled();
+
+      // The old card must actually land in the W discard pile, not vanish
+      // from the card pool.
+      expect(mockStateService.updateGameState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          discardPiles: expect.objectContaining({
+            W: ['W_active_001']
+          })
+        })
+      );
+
+      // A replacement W card must have been drawn afterward.
+      expect(drawSpy).toHaveBeenCalledWith('player1', 'W', 1);
+    });
+
+    it('throws instead of silently dropping the card if discarding fails unexpectedly', () => {
+      mockStateService.getPlayer.mockReturnValue(mockPlayer);
+      vi.spyOn(cardService, 'discardCards').mockReturnValueOnce(false);
+
+      expect(() => cardService.replaceCard('player1', 'W_active_001', 'W')).toThrow();
+    });
+  });
+
   describe('Card Type Detection', () => {
     it('should extract card type from card ID via DataService', () => {
       const cardType = cardService.getCardType('W_test_123');

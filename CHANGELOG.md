@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.115] - 2026-07-12
+
+### Replaced cards no longer vanish from the game — they wait in the discard pile
+2026-07-11 blind code review, item 4: `CardService.replaceCard` (fired when a player replaces one of several same-type cards, e.g. an expeditor "replace" mechanic) discarded the old card via `removeCard` — a method that strips a card from `hand`/`activeCards` but never adds it to any discard pile. Every card replaced this way permanently shrank the card pool instead of waiting to be reshuffled back in once its deck runs dry. Per the maintainer's 2026-07-11 ruling, `replaceCard` now uses the same `discardCards` method the sibling "replace all, no choice needed" code path already used correctly ([CardEffectService.ts](src/services/CardEffectService.ts)) — it covers hand + `activeCards` removal like `removeCard` did, plus the missing step of appending the card to the correct discard pile (per-player in `SAME_START` mode, shared in Battle Royale). `removeCard`'s other two call sites (activating a duration card, transferring a card to another player) are genuine relocations, not discards, and are untouched. New test coverage confirms a replaced card lands in `discardPiles`, not `removeCard`. Verified via the full suite (2354 tests) plus clean typecheck + build. (fixloop iteration, Sonnet 5)
+
 ## [3.0.114] - 2026-07-12
 
 ### Hand-played duration cards now actually activate instead of discarding immediately
