@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.120 (not yet deployed — v3.0.116–120 pending)
+**Current Version:** 3.0.121 (not yet deployed — v3.0.116–121 pending)
 
 ---
 
@@ -32,7 +32,7 @@
 ## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; un-promoted v3.0.83–90 reports: [.claude/feedback-staged.md](.claude/feedback-staged.md))
 
 ### Newly arrived (2026-07-03/05, staged 2026-07-10 — not yet triaged)
-- [ ] **Push-back/Lock-the-scope buttons: build the cost preview (spec locked 2026-07-12, ready to build).** Hover-triggered per-button breakdown: 2-column layout (label left, cost right) × 5 rows (Labor/Work/Expediting/Money/Time, iconography), showing exactly what pressing THAT button changes — hover "Lock the scope" shows its numbers, hover "Push back" shows its (different) numbers. Confirmed via code the two buttons genuinely cost different things, not just cosmetic: "Lock the scope" pays the space's base cost once (draw 3 E contacts, roll W cards, 1 day); "Push back" (the Try Again mechanic) costs an *extra* day on top of anything already spent this turn, keeps committed money, but reverts card draws for a re-roll next turn. Replaces the current vague "costs 🕐 + 💰" hint. Originally misdiagnosed once (2026-07-10, see CHANGELOG v3.0.108 correction) as the outcome-modal double-listing bug — it is NOT that. <!-- fb:feedback-1783080349985-a3dc215f -->
+*(cost-preview item shipped v3.0.121, see CHANGELOG)*
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->

@@ -20,6 +20,7 @@ import { interpolateTemplate, resolveFundingAmountToken } from '../utils/templat
 import { friendlySpaceName } from '../utils/logFormatting';
 import { AutoActionEvent } from './StateService';
 import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
+import { calculateSpaceTimeAddTotal } from '../utils/costPreview';
 
 export class TurnService implements ITurnService {
   private readonly dataService: IDataService;
@@ -1701,11 +1702,12 @@ export class TurnService implements ITurnService {
         };
       }
 
-      // 4. Calculate the time penalty from space effects
+      // 4. Calculate the time penalty from space effects. Shared with the
+      // PlayerPanelV2 cost-preview toggle (src/utils/costPreview.ts) so the
+      // preview can never drift from what pressing this button actually
+      // does — see calculateSpaceTimeAddTotal.
       const spaceEffects = this.dataService.getSpaceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
-      const timePenalty = spaceEffects
-        .filter(effect => effect.effect_type === 'time' && effect.effect_action === 'add')
-        .reduce((total, effect) => total + Number(effect.effect_value || 0), 0);
+      const timePenalty = calculateSpaceTimeAddTotal(spaceEffects);
 
 
       // 5. Log the Try Again action. Must precede discardCurrentSession so

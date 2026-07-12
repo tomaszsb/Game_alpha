@@ -22,6 +22,8 @@ import { collapsePairedDiceActions, shouldShowMovementDiceButton } from './pendi
 import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2 } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
+import { TurnCostToggle } from './TurnCostToggle';
+import { getEndTurnCostPreview, getTryAgainCostPreview } from '../../utils/costPreview';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { computeProjectFinances } from '../../utils/projectFinances';
@@ -303,6 +305,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   if (turnDaysAdded > 0) turnCostParts.push(`🕐 +${turnDaysAdded} day${turnDaysAdded === 1 ? '' : 's'}`);
   if (turnMoneySpent > 0) turnCostParts.push(`💰 −${FormatUtils.formatMoney(turnMoneySpent)}`);
   const turnCostLine = isMyTurn && turnCostParts.length > 0 ? `this turn: ${turnCostParts.join(' · ')}` : null;
+
+  // Cost-preview rows for the footer's End Turn / Try Again toggle
+  // (fb:feedback-1783080349985-a3dc215f) — reuses the same classification
+  // logic the data layer already computes; this component only renders it.
+  // See src/utils/costPreview.ts for why the two differ (End Turn = the
+  // space's declared SPACE_EFFECTS.csv cost; Try Again = the real
+  // TurnCostLedger spend plus categories relabeled "will be re-drawn").
+  const endTurnCostRows = getEndTurnCostPreview(gameServices, player.currentSpace, player.visitType, playerId);
+  const tryAgainCostRows = getTryAgainCostPreview(gameServices, playerId);
 
   // --- handlers (same service calls as the classic panel) ------------------
   const handleManualEffect = async (effectKey: string) => {
@@ -1037,7 +1048,6 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
               }}
             >
               {content.try_again_label || 'Negotiate again'}
-              <small style={{ display: 'block', fontSize: 9, color: p.muted }}>costs 🕐 + 💰</small>
             </button>
           )}
           <button
@@ -1083,6 +1093,15 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             )}
           </button>
         </div>
+        {isMyTurn && content && content.can_negotiate && onTryAgain && (
+          <TurnCostToggle
+            mode={mode}
+            endTurnLabel={content.end_turn_label || 'End turn'}
+            tryAgainLabel={content.try_again_label || 'Negotiate again'}
+            endTurnRows={endTurnCostRows}
+            tryAgainRows={tryAgainCostRows}
+          />
+        )}
       </div>
 
       {/* "Recall my numbers" reference — scope, work packages, money, time. */}

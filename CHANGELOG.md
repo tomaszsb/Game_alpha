@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.121] - 2026-07-12
+
+### Push-back / Lock-the-scope buttons now show what each one actually costs
+Dashboard report fb:feedback-1783080349985-a3dc215f: the Try Again button's hint was a static "costs 🕐 + 💰" on every space, telling players nothing about what THIS space's two choices (End Turn vs Try Again — CSV labels vary per space, e.g. "Lock the scope"/"Push back", "Take the check"/"Push for more") actually change. Confirmed via code they genuinely cost different things: End Turn pays the space's declared `SPACE_EFFECTS.csv` cost once (card draws, dice-driven amounts, fees); Try Again keeps any money already committed this turn (not refunded) but discards card draws for a re-roll next turn, plus an extra day. Built a shared cost-classification layer (`src/utils/costPreview.ts`) that reads the real data (`SPACE_EFFECTS.csv` via `DataService`, `TurnCostLedger` via `StateService.getTurnOutflow`) into a 5-row breakdown (Labor/Work/Expediting/Money/Time), reusing the exact same time-penalty calculation `TurnService.tryAgainOnSpace` already uses so the preview can never drift from what pressing the button actually does. First pass rendered this as a hover popover in the classic `ActionCenterPanel` — reverted after maintainer feedback: hover doesn't work on phones (this game is played primarily on phones) and the classic panel is being phased out project-wide, so it shouldn't receive new feature polish. Rebuilt as `TurnCostToggle`, a tap-based 2-position segmented control in `PlayerPanelV2`'s footer (the actual default panel) — tabs are the space's own button labels, tapping swaps which breakdown shows below. Verified via typecheck, build, and the full targeted test sweep (`ActionCenterPanel`, `PlayerPanelV2`, `TurnService`, `TryAgainVisitType`, `StateService-tryAgainApprovals`, `tryAgainSemantics`, `E2E-04_SpaceTryAgain` — 87/87) plus live browser verification at both desktop and mobile (375×812) widths. (fixloop iteration, Sonnet 5)
+
 ## [3.0.120] - 2026-07-12
 
 ### Timed life events now tick on the holder's own turn only, not everyone's — plus a deeper TEMP/REAL bug this fix exposed
