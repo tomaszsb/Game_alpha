@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 12, 2026
-**Status:** Beta — live in production; **v3.0.111 deployed 2026-07-11** (commit `52864ad`, confirmed by maintainer)
-**Current Version:** 3.0.115 (not yet deployed — v3.0.112–115 pending)
+**Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
+**Current Version:** 3.0.115 (deployed)
 
 ---
 
@@ -65,7 +65,7 @@
 - [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` blank** — compose warns on every `up`. Intentional? Ask before fixing.
 
 ### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
-`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 3 more queued in `.claude/fixloop/flip-queue.txt`, pending next deploy (v3.0.109–111 not yet live).
+`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. `flip-queue.txt` now empty.
 
 ---
 
