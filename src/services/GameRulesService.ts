@@ -466,7 +466,7 @@ export class GameRulesService implements IGameRulesService {
     if (awaitingChoice) {
       const isMovementWithIntent =
         awaitingChoice.type === 'MOVEMENT' &&
-        player.moveIntent !== undefined;
+        !!player.moveIntent;
       if (!isMovementWithIntent) {
         return false;
       }

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.119] - 2026-07-12
+
+### canEndTurn's "only if a destination is picked" movement guard was a no-op
+2026-07-11 blind code review, item 8: `GameRulesService.canEndTurn` checked `player.moveIntent !== undefined` to decide whether a player facing an awaiting MOVEMENT choice had actually picked a destination — but `moveIntent` is explicitly cleared to `null` (not `undefined`) by `StateService.clearTurnActions`/`clearPlayerMoveIntent`, so the check was always true once a MOVEMENT choice existed. The intended "block End Turn until a destination is picked" exception never fired; only the separate `requiredActions` math was backstopping it. Fixed to a truthy check (`!!player.moveIntent`), which also correctly blocks the never-set (`undefined`) case. 6 new tests cover null/undefined/set moveIntent, non-MOVEMENT choices, and the required-actions interaction. Verified via the full suite (70/70 in `GameRulesService.test.ts`). (fixloop iteration, Sonnet 5)
+
 ## [3.0.118] - 2026-07-12
 
 ### Color/avatar conflict resolver could hand two players the same replacement

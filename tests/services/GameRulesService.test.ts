@@ -594,6 +594,110 @@ describe('GameRulesService', () => {
     });
   });
 
+  // TODO.md bug (2026-07-11 blind review): `player.moveIntent !== undefined` was
+  // always true once a MOVEMENT choice existed, because moveIntent is explicitly
+  // cleared to `null` (not left `undefined`) by StateService.clearTurnActions /
+  // clearPlayerMoveIntent. That made the "only if a destination is picked"
+  // exception a no-op. Fixed to a truthy check (`!!player.moveIntent`).
+  describe('canEndTurn (MOVEMENT moveIntent guard)', () => {
+    const movementChoice = {
+      id: 'choice1',
+      playerId: 'player1',
+      type: 'MOVEMENT' as const,
+      prompt: 'Pick a destination',
+      options: [{ id: 'DEST-A', label: 'Destination A' }],
+    };
+
+    it('returns false when a MOVEMENT choice is awaiting and moveIntent is null (no destination picked)', () => {
+      const playerNoIntent = { ...mockPlayer, moveIntent: null };
+      const gameStateAwaiting = {
+        ...mockGameState,
+        players: [playerNoIntent],
+        awaitingChoice: movementChoice,
+        requiredActions: 1,
+        completedActionCount: 1, // required actions satisfied; guard alone must block
+      };
+      mockStateService.getGameState.mockReturnValue(gameStateAwaiting);
+      mockStateService.getPlayer.mockReturnValue(playerNoIntent);
+
+      expect(gameRulesService.canEndTurn('player1')).toBe(false);
+    });
+
+    it('returns false when a MOVEMENT choice is awaiting and moveIntent was never set (undefined)', () => {
+      const playerUndefinedIntent = { ...mockPlayer };
+      delete (playerUndefinedIntent as any).moveIntent;
+      const gameStateAwaiting = {
+        ...mockGameState,
+        players: [playerUndefinedIntent],
+        awaitingChoice: movementChoice,
+        requiredActions: 1,
+        completedActionCount: 1,
+      };
+      mockStateService.getGameState.mockReturnValue(gameStateAwaiting);
+      mockStateService.getPlayer.mockReturnValue(playerUndefinedIntent);
+
+      expect(gameRulesService.canEndTurn('player1')).toBe(false);
+    });
+
+    it('returns true when a MOVEMENT choice is awaiting and moveIntent holds a real destination (required actions satisfied)', () => {
+      const playerWithIntent = { ...mockPlayer, moveIntent: 'DEST-A' };
+      const gameStateAwaiting = {
+        ...mockGameState,
+        players: [playerWithIntent],
+        awaitingChoice: movementChoice,
+        requiredActions: 1,
+        completedActionCount: 1,
+      };
+      mockStateService.getGameState.mockReturnValue(gameStateAwaiting);
+      mockStateService.getPlayer.mockReturnValue(playerWithIntent);
+
+      expect(gameRulesService.canEndTurn('player1')).toBe(true);
+    });
+
+    it('returns false when a MOVEMENT choice is awaiting, moveIntent is set, but required actions are not yet complete', () => {
+      const playerWithIntent = { ...mockPlayer, moveIntent: 'DEST-A' };
+      const gameStateAwaiting = {
+        ...mockGameState,
+        players: [playerWithIntent],
+        awaitingChoice: movementChoice,
+        requiredActions: 2,
+        completedActionCount: 1,
+      };
+      mockStateService.getGameState.mockReturnValue(gameStateAwaiting);
+      mockStateService.getPlayer.mockReturnValue(playerWithIntent);
+
+      expect(gameRulesService.canEndTurn('player1')).toBe(false);
+    });
+
+    it('returns false for a non-MOVEMENT awaiting choice even when moveIntent holds a destination', () => {
+      const playerWithIntent = { ...mockPlayer, moveIntent: 'DEST-A' };
+      const gameStateAwaiting = {
+        ...mockGameState,
+        players: [playerWithIntent],
+        awaitingChoice: { ...movementChoice, type: 'GENERAL' as const },
+        requiredActions: 1,
+        completedActionCount: 1,
+      };
+      mockStateService.getGameState.mockReturnValue(gameStateAwaiting);
+      mockStateService.getPlayer.mockReturnValue(playerWithIntent);
+
+      expect(gameRulesService.canEndTurn('player1')).toBe(false);
+    });
+
+    it('returns true when there is no awaiting choice and required actions are complete', () => {
+      const gameStateNoChoice = {
+        ...mockGameState,
+        awaitingChoice: null,
+        requiredActions: 1,
+        completedActionCount: 1,
+      };
+      mockStateService.getGameState.mockReturnValue(gameStateNoChoice);
+      mockStateService.getPlayer.mockReturnValue(mockPlayer);
+
+      expect(gameRulesService.canEndTurn('player1')).toBe(true);
+    });
+  });
+
   describe('edge cases and private method coverage', () => {
     it('should handle dice movement with no dice outcome', () => {
       const mockMovement: Movement = {
