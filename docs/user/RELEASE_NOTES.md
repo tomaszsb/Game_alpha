@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.101–108 — A round of small cleanups: no more double-listed cards, no more board-game talk in your history (July 10, 2026)
+
+- **Hiring Expeditors used to list the same names twice.** After hiring 3 Expeditors, the pop-up showed their names once as tappable cards, then again right below in a plain list — same 3 names, back to back. Now it shows them once.
+- **Your history stopped saying "rolled."** A few entries in your game log used to say things like "Player rolled 4" — replaced with plain language about what actually happened (an outcome coming back, a fee awaiting a result), matching the rest of the game's voice.
+- **The outcome pop-up now matches the redesigned panel's look**, including dark mode — it used to look like a leftover from the old classic panel.
+- **A closed card detail no longer shows two "Close" buttons that did the same thing.**
+
 ## v3.0.100 — The plan examiner's verdict actually shows up now, and so does everything else that was quietly going nowhere (July 9, 2026)
 
 - **You'll actually see what the DOB and FDNY examiners decide.** Rolling at plan exam used to happen automatically with no popup at all — approved, sent back for revisions, denied, none of it showed up anywhere except a small badge that changed without explanation. Now it pops up in a clear box: green for approved, amber for a minor objection, red for denied.

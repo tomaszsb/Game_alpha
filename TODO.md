@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 10, 2026
-**Status:** Beta — live in production; **v3.0.100 deployed 2026-07-10** (commit `8929371`, confirmed by maintainer)
-**Current Version:** 3.0.111 (not yet deployed)
+**Last Updated:** July 11, 2026
+**Status:** Beta — live in production; **v3.0.108 deployed 2026-07-10** (commit `aa11433`, confirmed by maintainer)
+**Current Version:** 3.0.111 (not yet deployed — v3.0.109–111 pending)
 
 ---
 
@@ -17,7 +17,17 @@
 
 ## 🔎 Active — bugs & investigations
 
-*(none open)*
+### From 2026-07-11 blind code review (read the engine cold, no docs)
+- [ ] **Frozen legacy `turn` counter silently disables 3 mechanics.** `StateService.advanceTurn` only increments the deprecated `turn` field in its no-current-player fallback branch ([StateService.ts:451](src/services/StateService.ts:451)) — in normal play it stays 0 forever. Casualties: (a) **duration cards never leave the "active" list** — `CardService.activateCard`/`endOfTurn` compare `expirationTurn = 0 + duration` against `turn = 0` ([CardService.ts:755](src/services/CardService.ts:755), [917](src/services/CardService.ts:917)); EventsSection shows "Expires turn N" forever and stale actives stay E024 targets + keep counting in scope; (b) **turn-limit game end never fires** — `GameRulesService.checkTurnLimit` reads `turn` ([GameRulesService.ts:423](src/services/GameRulesService.ts:423)); (c) wrong turn numbers recorded at [MovementService.ts:329](src/services/MovementService.ts:329), [EffectEngineService.ts:1338](src/services/EffectEngineService.ts:1338), [ResourceService.ts:557](src/services/ResourceService.ts:557). Fix direction: point all readers at `globalTurnCount`, then delete `turn`.
+- [ ] **Dead `endTurn()` still holds live business rules.** Nothing calls `TurnService.endTurn` (UI only calls `endTurnWithMovement`), but it's the ONLY place that checks turn-limit end AND applies the missing-DOB end-game penalty ([TurnService.ts:457–546](src/services/TurnService.ts:457)). So the penalty backstop + `EndGameModal`'s penalty banner are unreachable. Move the end-conditions block into `endTurnWithMovement`'s win check, then delete `endTurn`.
+- [ ] **Two disagreeing duration-card lifecycles.** `playCard` parses the word column `duration` ('Turns'/'Permanent') with parseInt → NaN → every hand-played card is discarded immediately ([CardService.ts:637](src/services/CardService.ts:637)); `finalizePlayedCard` correctly parses `duration_count` ([CardService.ts:1087](src/services/CardService.ts:1087)). Affects the 9 `duration=Turns` L cards if hand-played. Unify on `duration_count`.
+- [ ] **Replaced cards leak out of the game.** `replaceCard` removes the old card via `removeCard`, which never adds it to any discard pile ([CardService.ts:452](src/services/CardService.ts:452)) — every expeditor "replace" ([CardEffectService.ts:236](src/services/CardEffectService.ts:236)) permanently shrinks the card pool (reshuffle can't recover it).
+- [ ] **5% investment fee silently skipped when unaffordable.** `applyInvestmentFunding` charges the fee via `recordCost`, which refuses without funds ([ResourceService.ts:148](src/services/ResourceService.ts:148)) — inconsistent with the v3.0.91 "mandatory bills charge into the red" rule (contractor/design fees use allowNegative).
+- [ ] **Duplicate `shortId` after removing a player during setup.** `generateShortPlayerId` = players.length+1 ([StateService.ts:1676](src/services/StateService.ts:1676)): add P1–P3, remove P2, add again → two P3s.
+- [ ] **Color/avatar conflict resolver can hand two players the same replacement** — reassigned values never enter the used-set ([StateService.ts:1733](src/services/StateService.ts:1733)).
+- [ ] **`canEndTurn` movement-intent guard is a no-op.** `player.moveIntent !== undefined` is true even when moveIntent is null/cleared ([GameRulesService.ts:498](src/services/GameRulesService.ts:498)) — the "only if a destination is picked" exception always passes; only the requiredActions math backstops it.
+- [ ] **Confirm duration-tick semantics + in-place mutation.** Active effects decrement on EVERY player's turn end ([EffectEngineService.ts:1521](src/services/EffectEngineService.ts:1521)) — in a 4-player game a "3-turn" card can expire before its holder plays again. Confirm that's intended. Also `remainingDuration -= 1` mutates the live state object directly ([EffectEngineService.ts:1411](src/services/EffectEngineService.ts:1411)) — only safe today because the array is replaced right after.
+- [ ] **Dice + seed-money logic bypasses/duplicates.** Raw `Math.random` dice at [TurnService.ts:1239](src/services/TurnService.ts:1239) + [SpaceArrivalProcessor.ts:101](src/services/SpaceArrivalProcessor.ts:101) instead of DiceService; owner seed-money formula duplicated at [TurnService.ts:2117](src/services/TurnService.ts:2117) vs [EffectEngineService.ts:303](src/services/EffectEngineService.ts:303) (drift risk).
 
 ## 📣 Active — deploy-update warning (2026-07-10, scope narrowed from "host broadcast")
 
@@ -59,7 +69,7 @@
 - [ ] **dictionary-scraper stack: `ANTHROPIC_API_KEY` blank** — compose warns on every `up`. Intentional? Ask before fixing.
 
 ### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
-`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open.
+`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 3 more queued in `.claude/fixloop/flip-queue.txt`, pending next deploy (v3.0.109–111 not yet live).
 
 ---
 
@@ -94,6 +104,10 @@
 - [ ] **GEMINI.md setup** — likely obsolete (Gemini-era note); drop unless the user still wants it.
 
 ### Architecture / code health (bundle these in one dedicated session — same drift-trap shape)
+- [ ] **DataService lookups are all linear scans** (`getCardById`, `getGameConfigBySpace`, `getMovement`, … [DataService.ts:123–1079](src/services/DataService.ts:123)) — called per-hand-card in hot loops (scope calc, condition checks, action counting on every state change). Build keyed Maps once at load. (2026-07-11 review)
+- [ ] **Notification storm + full-state subscriptions.** `updateActionCounts` notifies AND most callers notify again → double listener sweeps per action ([StateService.ts:719–744](src/services/StateService.ts:719) etc.); `setPlayerCompletedManualAction`/`nextPlayer` rely on `updateActionCounts`'s notify, which can early-return WITHOUT notifying (no current player / data not loaded). Meanwhile ~15 components use full-state `subscribe()` (PlayerPanelV2/ScoreboardV2 force-rerender on every change) though `subscribeWithSelector` exists. One perf/cleanliness bundle. (2026-07-11 review)
+- [ ] **`getGameState()`'s "deep copies" claim is false** — only `players`+`hand` are copied; `activeCards`/`activeEffects`/`loans`/`moneySources`/decks are shared references ([StateService.ts:284](src/services/StateService.ts:284)), and `getGameStateDeepCopy` is the same function. [EffectEngineService.ts:1411](src/services/EffectEngineService.ts:1411) already mutates through it. Deep-clone or rename + enforce no-mutation. (2026-07-11 review)
+- [ ] **Dead-code sweep (~350 lines):** `TurnService.endTurn` (after the end-conditions move above), `GameRulesService.canDrawCard` (never called; also wrong in SAME_START mode — checks only shared decks), 5 legacy `apply*CardEffect` methods + `requiresPlayerTurn` ([CardService.ts:1748–1972](src/services/CardService.ts:1748) — contains wrong-if-ever-revived behavior like random-card-type draws), and empty `if/else` husks left from stripped console.logs (StateService.ts:344/357/672, GameRulesService.checkWinCondition, CardService.applyLifeEventsCardEffect). (2026-07-11 review)
 - [ ] **Unify TEMP/REAL state + logging sessions into one `TurnTransaction` boundary** — today `tryAgainOnSpace`/`startTurn` hand-call both systems in parallel; begin/commit/discard at one call site. Touches StateService, LoggingService, TurnService, integration tests. 1–2 sessions. **Do NOT do casually.**
 - [ ] **NotificationService.notify + LoggingService.info — one "something happened" bus** (toast + log + … routed from one emission). Many callers; scope separately from the above.
 - [ ] **`player.money` + `player.moneySources` denormalization** — make `money` a computed getter over sources. Riskiest; do last.
