@@ -249,54 +249,101 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       expect(gameState.discardPiles.L).toContain('L003');
     });
 
-    it('should handle duration-based All Players effects with L002 Economic Downturn', async () => {
+    it('should handle duration-based All Players effects with L002 Economic Downturn, ticking each holder only on their OWN turn', async () => {
       // L002: "All permit and inspection times increase by 2 days for the next 3 turns."
       // Target: "All Players", Duration: "Turns", Duration Count: "3"
-      
+      //
+      // v3.0.119 (maintainer ruling 2026-07-11, Option B): a duration effect
+      // ticks/decrements only on the HOLDER's own turn ending, not on every
+      // turn-end in the game. "3 turns" means 3 of *your* turns — so with 3
+      // players, each player's copy of L002 now takes a full 3 ROUNDS (9
+      // total turn-ends) to expire, not 3 turn-ends total like the old bug.
+      // Total ticks per holder (3) and total damage (3 x per-tick amount)
+      // are unchanged — only the wall-clock/turn-order spread changes.
+
       // Give Alice the L002 card
-      stateService.updatePlayer({ 
-        id: aliceId, 
-        hand: ['L002'] 
+      stateService.updatePlayer({
+        id: aliceId,
+        hand: ['L002']
       });
-      
+
       // Alice plays L002 card
       await playerActionService.playCard(aliceId, 'L002');
-      
+
       // Verify: All players have active effects with 3-turn duration
       const players = [aliceId, bobId, charlieId];
       for (const playerId of players) {
         const player = stateService.getPlayer(playerId)!;
         const l002Effect = player.activeEffects.find(effect => effect.sourceCardId === 'L002');
-        
+
         expect(l002Effect).toBeDefined();
         expect(l002Effect!.remainingDuration).toBe(3);
       }
-      
-      // Simulate turn progression and verify effect duration decreases.
+
+      const getRemaining = (playerId: string) =>
+        stateService.getPlayer(playerId)!.activeEffects.find(e => e.sourceCardId === 'L002')?.remainingDuration;
+
+      // Turn order is Alice -> Bob -> Charlie -> Alice -> ... (player array
+      // order). Alice already played L002 during her turn 1; the game is
+      // still on turn 1, current player Alice.
+      //
       // v3.0.113: TurnService.endTurn() was dead code and was deleted; use
       // the live endTurnWithMovement() path instead (force=true skips the
       // required-actions gate, skipAutoMove=true skips movement — this test
       // only cares about turn advancement, not where players end up).
-      await turnService.endTurnWithMovement(true, true); // Turn 2
-      await turnService.endTurnWithMovement(true, true); // Turn 3
-      
-      // Check effects after 2 turns (should have 1 turn remaining)
+
+      // End Alice's own turn (turn 1 -> 2). Only ALICE's effect should tick;
+      // Bob's and Charlie's effects belong to turns that haven't ended yet.
+      await turnService.endTurnWithMovement(true, true);
+      expect(getRemaining(aliceId)).toBe(2);
+      expect(getRemaining(bobId)).toBe(3);
+      expect(getRemaining(charlieId)).toBe(3);
+
+      // End Bob's turn (turn 2 -> 3) and Charlie's turn (turn 3 -> 4) — two
+      // OTHER players' turns ending. Alice's own effect must stay UNCHANGED
+      // since it only decrements on Alice's own turn end.
+      await turnService.endTurnWithMovement(true, true); // Bob's turn ends
+      expect(getRemaining(aliceId)).toBe(2); // unchanged — not Alice's turn
+      expect(getRemaining(bobId)).toBe(2);   // Bob's own turn ticked his copy
+
+      await turnService.endTurnWithMovement(true, true); // Charlie's turn ends
+      expect(getRemaining(aliceId)).toBe(2);   // still unchanged
+      expect(getRemaining(charlieId)).toBe(2); // Charlie's own turn ticked his copy
+
+      // One full round complete (3 turn-ends, one per player) — every
+      // player's copy has now ticked exactly once, matching the old
+      // per-round cadence but for the correct reason (each holder's OWN
+      // turn), not "any turn-end anywhere."
       for (const playerId of players) {
-        const player = stateService.getPlayer(playerId)!;
-        const l002Effect = player.activeEffects.find(effect => effect.sourceCardId === 'L002');
-        
-        expect(l002Effect).toBeDefined();
-        expect(l002Effect!.remainingDuration).toBe(1);
+        expect(getRemaining(playerId)).toBe(2);
       }
-      
-      // Complete the final turn - effects should be removed
-      await turnService.endTurnWithMovement(true, true); // Turn 4
-      
+
+      // Second round (turns 4, 5, 6): Alice, Bob, Charlie each tick again.
+      await turnService.endTurnWithMovement(true, true); // Alice's 2nd turn ends
+      await turnService.endTurnWithMovement(true, true); // Bob's 2nd turn ends
+      await turnService.endTurnWithMovement(true, true); // Charlie's 2nd turn ends
+      for (const playerId of players) {
+        expect(getRemaining(playerId)).toBe(1);
+      }
+
+      // Third round (turns 7, 8, 9): each holder's final tick expires their
+      // own copy of the effect. With the old bug this expired after just 3
+      // turn-ends total (1 round); correctly it now takes 9 (3 rounds).
+      await turnService.endTurnWithMovement(true, true); // Alice's 3rd turn ends
+      expect(getRemaining(aliceId)).toBeUndefined();
+      expect(getRemaining(bobId)).toBe(1); // Bob's copy hasn't ticked a 3rd time yet
+
+      await turnService.endTurnWithMovement(true, true); // Bob's 3rd turn ends
+      expect(getRemaining(bobId)).toBeUndefined();
+      expect(getRemaining(charlieId)).toBe(1); // Charlie's copy hasn't ticked a 3rd time yet
+
+      await turnService.endTurnWithMovement(true, true); // Charlie's 3rd turn ends
+      expect(getRemaining(charlieId)).toBeUndefined();
+
       for (const playerId of players) {
         const player = stateService.getPlayer(playerId)!;
         const l002Effect = player.activeEffects.find(effect => effect.sourceCardId === 'L002');
-        
-        expect(l002Effect).toBeUndefined(); // Effect should be expired
+        expect(l002Effect).toBeUndefined(); // Effect should be expired for everyone
       }
     });
   });

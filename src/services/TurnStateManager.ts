@@ -389,6 +389,37 @@ export class TurnStateManager {
   }
 
   /**
+   * Keep realStates[playerId] in sync with a fallback write that just landed
+   * directly on the live player object (StateService.updateTempState's
+   * "no active TEMP" branch — used e.g. by
+   * EffectEngineService.applyActiveEffects when ticking a duration effect
+   * outside the effect holder's own turn). No-ops if no REAL snapshot exists
+   * yet for this player (nothing to desync — their next turn's
+   * createTempStateFromReal will capture fresh live data anyway).
+   *
+   * Deliberately NOT applyToRealState: that method special-cases timeSpent
+   * as an ADDITIVE delta (correct for its one caller, the Try Again penalty
+   * flow), but callers of updateTempState pass timeSpent as an absolute
+   * value — reusing applyToRealState here would double-count it into
+   * realStates on every fallback write. This is a plain field-for-field
+   * merge instead, same semantics as StateService.updatePlayer.
+   */
+  public syncRealStateIfPresent(playerId: string, changes: Partial<MutablePlayerState>): void {
+    const existingReal = this.turnStateModel.realStates[playerId];
+    if (!existingReal) return;
+
+    const updatedState: MutablePlayerState = { ...this.cloneMutableState(existingReal.state), ...changes };
+
+    this.turnStateModel = {
+      ...this.turnStateModel,
+      realStates: {
+        ...this.turnStateModel.realStates,
+        [playerId]: { ...existingReal, state: updatedState }
+      }
+    };
+  }
+
+  /**
    * Get the effective player state (reads from TEMP during turn, REAL otherwise).
    * This is the state that should be used for UI rendering and effect calculations.
    */

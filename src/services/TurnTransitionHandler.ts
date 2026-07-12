@@ -65,7 +65,7 @@ export class TurnTransitionHandler {
    *
    * Orchestrates the full turn-end sequence:
    * - STEP 1: Card expirations (calls cardService.endOfTurn())
-   * - STEP 2: Active effects processing (calls effectEngineService.processActiveEffectsForAllPlayers())
+   * - STEP 2: Active effects processing (calls effectEngineService.processActiveEffectsForCurrentPlayer())
    * - STEP 3: Reset re-roll flags for current player
    * - STEP 4: Log turn end
    * - STEP 4.5: Quick start finalization (calls callback, since finalizeQuickStartHand stays in TurnService)
@@ -87,10 +87,12 @@ export class TurnTransitionHandler {
     // Result: Card active for turns 5, 6, 7 = 3 turns ✅
     this.cardService.endOfTurn();
 
-    // STEP 2: Process active effects for all players at turn end
-    // This happens at end of current turn (before turn counter advances)
+    // STEP 2: Process active effects for the player whose turn is ending.
+    // v3.0.119 — a duration effect now ticks only on the holder's own turn,
+    // not every player's turn (this happens at end of current turn, before
+    // the turn counter advances).
     if (this.effectEngineService) {
-      await this.effectEngineService.processActiveEffectsForAllPlayers();
+      await this.effectEngineService.processActiveEffectsForCurrentPlayer(currentPlayerId);
     }
 
     // STEP 3: Reset re-roll flags for current player ending their turn

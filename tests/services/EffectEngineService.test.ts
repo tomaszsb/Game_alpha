@@ -797,8 +797,10 @@ describe('EffectEngineService', () => {
       );
     });
 
-    it('should process active effects for all players', async () => {
-      // Arrange - Create multiple players with active effects
+    it('should process active effects only for the current (turn-ending) player, not every player', async () => {
+      // v3.0.119 — maintainer ruling 2026-07-11 Option B: a duration effect
+      // ticks only on the holder's own turn. Arrange two players with active
+      // effects and process only player1's turn ending.
       const players = [
         {
           id: 'player1',
@@ -862,15 +864,51 @@ describe('EffectEngineService', () => {
       mockResourceService.spendTime.mockReturnValue(true);
       mockResourceService.addTime.mockReturnValue(true);
 
-      // Act - Process active effects for all players
-      await effectEngineService.processActiveEffectsForAllPlayers();
+      // Act - Process active effects for player1's turn ending only
+      await effectEngineService.processActiveEffectsForCurrentPlayer('player1');
 
-      // Assert - Verify effects were processed for both players
+      // Assert - player1's effect fired; player2's did NOT (their turn hasn't ended)
       expect(mockResourceService.spendTime).toHaveBeenCalledWith('player1', 2, 'active:L022', 'Economic Boom - faster construction');
-      expect(mockResourceService.addTime).toHaveBeenCalledWith('player2', 2, 'active:L020', 'Building Code Update - slower inspections');
+      expect(mockResourceService.addTime).not.toHaveBeenCalledWith('player2', 2, 'active:L020', 'Building Code Update - slower inspections');
 
-      // Verify both players were updated via TEMP state
-      expect(mockStateService.updateTempState).toHaveBeenCalledTimes(2);
+      // Only player1 was updated via TEMP state
+      expect(mockStateService.updateTempState).toHaveBeenCalledTimes(1);
+      expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', expect.anything());
+    });
+
+    it('does not mutate the live activeEffect object in place while decrementing duration', async () => {
+      // v3.0.119 — remainingDuration used to be decremented via
+      // `activeEffect.remainingDuration -= 1`, mutating the object referenced
+      // directly by player.activeEffects (StateService doesn't deep-copy it).
+      // Guard against a regression by asserting the original object handed
+      // into state is untouched after processing.
+      const originalEffect = {
+        effectId: 'L022_effect_1',
+        sourceCardId: 'L022',
+        effectData: {
+          effectType: 'RESOURCE_CHANGE',
+          payload: {
+            playerId: 'player1',
+            resource: 'TIME',
+            amount: -2,
+            source: 'L022',
+            reason: 'Economic Boom - faster construction'
+          }
+        },
+        remainingDuration: 3,
+        startTurn: 2,
+        effectType: 'RESOURCE_CHANGE',
+        description: 'Effect from L022 (3 turns remaining)'
+      };
+      const player = { id: 'player1', name: 'Player 1', activeEffects: [originalEffect] };
+
+      mockStateService.getGameState.mockReturnValue({ players: [player], globalTurnCount: 5 });
+      mockStateService.getPlayer.mockReturnValue(player);
+      mockResourceService.spendTime.mockReturnValue(true);
+
+      await effectEngineService.processActiveEffectsForCurrentPlayer('player1');
+
+      expect(originalEffect.remainingDuration).toBe(3);
     });
 
     it('should handle effects with no duration immediately', async () => {

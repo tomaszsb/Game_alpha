@@ -19,6 +19,7 @@ import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { interpolateTemplate, resolveFundingAmountToken } from '../utils/templateInterpolation';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { AutoActionEvent } from './StateService';
+import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
 
 export class TurnService implements ITurnService {
   private readonly dataService: IDataService;
@@ -77,7 +78,8 @@ export class TurnService implements ITurnService {
       loggingService,
       gameRulesService,
       effectEngineService,
-      notificationService
+      notificationService,
+      this.diceService
     );
     // Create DiceRollProcessor for dice roll processing with feedback
     this.diceRollProcessor = new DiceRollProcessor(
@@ -1180,7 +1182,7 @@ export class TurnService implements ITurnService {
 
 
     // Step 1: Roll dice
-    const diceRoll = Math.floor(Math.random() * 6) + 1;
+    const diceRoll = this.rollDice();
 
     // Step 2: Apply time based on dice roll
     const diceEffects = this.dataService.getDiceEffects(space, visitType);
@@ -2063,13 +2065,11 @@ export class TurnService implements ITurnService {
       projectScope: projectScope
     });
 
-    // Calculate owner seed money: projectScope * random(0.8 to 1.2)
-    // This represents the owner's personal investment into the project
-    const seedMoneyMultiplier = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
-    const ownerSeedMoney = Math.round(projectScope * seedMoneyMultiplier);
-
-    // Round to nearest $10,000 for cleaner numbers
-    const roundedSeedMoney = Math.round(ownerSeedMoney / 10000) * 10000;
+    // Calculate owner seed money: projectScope * random(0.8 to 1.2), rounded
+    // to the nearest $10,000. Shared with EffectEngineService's
+    // OWNER_SEED_MONEY effect path via calculateOwnerSeedMoney so both
+    // funding flows can't drift apart.
+    const { multiplier: seedMoneyMultiplier, amount: roundedSeedMoney } = calculateOwnerSeedMoney(projectScope);
 
 
     try {

@@ -1,7 +1,7 @@
 // src/services/SpaceArrivalProcessor.ts
 // Extracted from TurnService - handles space arrival effect processing
 
-import { IDataService, IStateService, ICardService, ILoggingService, IEffectEngineService, IGameRulesService } from '../types/ServiceContracts';
+import { IDataService, IStateService, ICardService, ILoggingService, IEffectEngineService, IGameRulesService, IDiceService } from '../types/ServiceContracts';
 import { debugLog, debugWarn } from '../utils/debugLog';
 import { INotificationService } from './NotificationService';
 import { Player } from '../types/StateTypes';
@@ -11,6 +11,7 @@ import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { friendlySpaceName } from '../utils/logFormatting';
 import { AutoActionEvent, LifeEventEffectSummary } from './StateService';
 import { snapshotPlayerForLifeEvent, diffLifeEventSnapshot } from '../utils/lifeEventReceipts';
+import { DiceService } from './DiceService';
 
 /**
  * SpaceArrivalProcessor handles the processing of space effects when a player arrives at a space.
@@ -31,7 +32,8 @@ export class SpaceArrivalProcessor {
     private loggingService: ILoggingService,
     private gameRulesService: IGameRulesService,
     private effectEngineService?: IEffectEngineService,
-    private notificationService?: INotificationService
+    private notificationService?: INotificationService,
+    private diceService: IDiceService = new DiceService()
   ) {}
 
   /**
@@ -98,7 +100,7 @@ export class SpaceArrivalProcessor {
       let diceRoll: number | undefined;
       if (needsDiceRoll) {
         // Roll dice once for this space - used for all dice-dependent condition evaluations
-        diceRoll = Math.floor(Math.random() * 6) + 1;
+        diceRoll = this.diceService.rollDice();
         debugLog(`🎲 Rolled ${diceRoll} for condition evaluation at ${spaceName}`);
 
         // Log the dice roll. fb:91738221 — drop the leading 🎲 (the

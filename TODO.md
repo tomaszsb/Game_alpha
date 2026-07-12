@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.119 (not yet deployed — v3.0.116–119 pending)
+**Current Version:** 3.0.120 (not yet deployed — v3.0.116–120 pending)
 
 ---
 
@@ -17,9 +17,7 @@
 
 ## 🔎 Active — bugs & investigations
 
-### From 2026-07-11 blind code review (read the engine cold, no docs)
-- [ ] **Timed life events: tick on the holder's OWN turn only (maintainer ruling 2026-07-11, Option B).** Today each player's copy of a duration effect fires + counts down at EVERY turn end, anyone's ([EffectEngineService.ts:1531](src/services/EffectEngineService.ts:1531), called unconditionally from [TurnTransitionHandler.ts:93](src/services/TurnTransitionHandler.ts:93) regardless of whose turn ended) — a "3-turn" event burns out in under one table round with 4 players, and the "N more turns to go" notice overpromises. Change: in `processActiveEffectsForAllPlayers`, apply/decrement only the CURRENT player's effects (i.e., "3 turns" = 3 of *your* turns; event length no longer depends on player count; total damage unchanged at ticks × days). Affects L002/L004/L018/L020/L022/L030/L034/L047/L048 (all Global day-ticks). Keep L004's phase-gate pause behavior. Implementation note: the countdown mutates live state in place ([EffectEngineService.ts:1421](src/services/EffectEngineService.ts:1421), `activeEffect.remainingDuration -= 1` mutates the object referenced directly off `player.activeEffects`) — fix that while in there. (line numbers refreshed 2026-07-12)
-- [ ] **Dice + seed-money logic bypasses/duplicates.** Raw `Math.random` dice at [TurnService.ts:1183](src/services/TurnService.ts:1183) + [SpaceArrivalProcessor.ts:101](src/services/SpaceArrivalProcessor.ts:101) instead of DiceService; owner seed-money formula duplicated at [TurnService.ts:2068](src/services/TurnService.ts:2068) vs [EffectEngineService.ts:313](src/services/EffectEngineService.ts:313) (drift risk). (line numbers refreshed 2026-07-12)
+*2026-07-11 blind code review: all 10 items fixed — history in CHANGELOG v3.0.112–120.*
 
 ## 📣 Active — deploy-update warning (2026-07-10, scope narrowed from "host broadcast")
 

@@ -82,7 +82,7 @@ describe('CardCountNaN Regression Tests', () => {
       effectEngineService: {
         processEffects: vi.fn(),
         processEffect: vi.fn(),
-        processActiveEffectsForAllPlayers: vi.fn(),
+        processActiveEffectsForCurrentPlayer: vi.fn(),
         validateEffect: vi.fn(),
         validateEffects: vi.fn(),
       },

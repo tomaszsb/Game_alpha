@@ -144,7 +144,7 @@ const mockCardService: any = {
   effectEngineService: {
     processEffects: vi.fn(),
     processEffect: vi.fn(),
-    processActiveEffectsForAllPlayers: vi.fn(),
+    processActiveEffectsForCurrentPlayer: vi.fn(),
     validateEffect: vi.fn(),
     validateEffects: vi.fn(),
   } as any,
@@ -186,7 +186,7 @@ const mockNegotiationService = {
 const mockEffectEngineService: any = {
   processEffects: vi.fn(),
   processEffect: vi.fn(),
-  processActiveEffectsForAllPlayers: vi.fn(),
+  processActiveEffectsForCurrentPlayer: vi.fn(),
   validateEffect: vi.fn(),
   validateEffects: vi.fn(),
 };
@@ -351,7 +351,7 @@ describe('TurnService', () => {
     });
     
     // Setup default for active effects processing
-    mockEffectEngineService.processActiveEffectsForAllPlayers.mockResolvedValue();
+    mockEffectEngineService.processActiveEffectsForCurrentPlayer.mockResolvedValue();
   });
 
   // v3.0.113: TurnService.endTurn() was dead code (only endTurnWithMovement

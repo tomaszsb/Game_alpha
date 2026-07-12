@@ -636,7 +636,7 @@ export interface IEffectEngineService {
   // Core processing methods
   processEffects(effects: Effect[], context: EffectContext): Promise<BatchEffectResult>;
   processEffect(effect: Effect, context: EffectContext): Promise<EffectResult>;
-  processActiveEffectsForAllPlayers(): Promise<void>;
+  processActiveEffectsForCurrentPlayer(currentPlayerId: string): Promise<void>;
 
   // Card-specific processing with targeting support
   processCardEffects(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult>;

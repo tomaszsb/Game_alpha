@@ -120,7 +120,7 @@ describe('CardService - Enhanced Coverage', () => {
       }),
       applyActiveEffects: vi.fn().mockResolvedValue(undefined),
       addActiveEffect: vi.fn(),
-      processActiveEffectsForAllPlayers: vi.fn().mockResolvedValue(undefined),
+      processActiveEffectsForCurrentPlayer: vi.fn().mockResolvedValue(undefined),
       validateEffect: vi.fn().mockReturnValue(true),
       validateEffects: vi.fn().mockReturnValue(true)
     };

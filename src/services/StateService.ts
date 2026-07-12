@@ -1530,8 +1530,22 @@ export class StateService implements IStateService {
     if (result.updatedState) {
       this.updatePlayer({ id: playerId, ...changes });
     } else if (!this.turnStateManager.hasActiveTempState(playerId)) {
-      // No TEMP state - fall back to updating main player state
+      // No TEMP state - fall back to updating main player state directly.
+      // Also fold the same changes into turnStateModel.realStates[playerId]
+      // (if a snapshot already exists there) so the cached REAL state
+      // createTempStateFromReal reads on this player's NEXT turn doesn't go
+      // stale — without this, a change applied here (e.g.
+      // EffectEngineService.applyActiveEffects ticking another player's
+      // duration effect outside their own turn) only reached the live
+      // player object, and createTempStateFromReal's preference for the
+      // cached realStates snapshot silently reverted it on that player's
+      // next turn (v3.0.120 per-holder-turn tick fix surfaced this: a
+      // duration effect surviving to a second turn would revert to its
+      // pre-first-tick value).
       this.updatePlayer({ id: playerId, ...changes });
+      this.syncTurnStateToManager();
+      this.turnStateManager.syncRealStateIfPresent(playerId, changes);
+      this.syncTurnStateFromManager();
     }
 
     return result;

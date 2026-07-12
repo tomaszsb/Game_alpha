@@ -19,6 +19,7 @@ import {
 import { Card } from '../types/DataTypes';
 import { debugWarn } from '../utils/debugLog';
 import { computeContractorTerms } from '../utils/contractorTerms';
+import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
 import {
   Effect,
   EffectContext,
@@ -70,7 +71,7 @@ export interface IEffectEngineService {
   processEffectsWithDuration(effects: Effect[], context: EffectContext, cardData?: Card): Promise<BatchEffectResult>;
   applyActiveEffects(playerId: string): Promise<void>;
   addActiveEffect(playerId: string, effect: Effect, sourceCardId: string, duration: number): void;
-  processActiveEffectsForAllPlayers(): Promise<void>;
+  processActiveEffectsForCurrentPlayer(currentPlayerId: string): Promise<void>;
   
   // Validation methods
   validateEffect(effect: Effect, context: EffectContext): boolean;
@@ -309,10 +310,11 @@ export class EffectEngineService implements IEffectEngineService {
             // Get project scope from GameRulesService
             const projectScope = this.gameRulesService.calculateProjectScope(payload.playerId);
 
-            // Calculate seed money: 80-120% of project scope, rounded to nearest $10,000
-            const seedMoneyMultiplier = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
-            const rawSeedMoney = Math.round(projectScope * seedMoneyMultiplier);
-            const ownerSeedMoney = Math.round(rawSeedMoney / 10000) * 10000;
+            // Calculate seed money: 80-120% of project scope, rounded to
+            // nearest $10,000. Shared with TurnService.handleAutomaticFunding's
+            // direct-arrival path via calculateOwnerSeedMoney so both funding
+            // flows can't drift apart.
+            const { multiplier: seedMoneyMultiplier, amount: ownerSeedMoney } = calculateOwnerSeedMoney(projectScope);
 
 
             // Add money with 'owner' source type
@@ -1417,8 +1419,12 @@ export class EffectEngineService implements IEffectEngineService {
           triggerEvent: 'ACTIVE_EFFECT'
         });
 
-        // Decrement duration
-        activeEffect.remainingDuration -= 1;
+        // Decrement duration into a new value — do NOT mutate activeEffect
+        // in place. player.activeEffects is a shared reference into live
+        // state (StateService doesn't deep-copy it), so mutating the object
+        // here would corrupt state before updateTempState below ever
+        // commits it (v3.0.119 fix).
+        const newRemainingDuration = activeEffect.remainingDuration - 1;
 
         // v3.0.40 — recurring-effect surfacing. Look up the source card so
         // the notification + log entry name the cause, not the cryptic
@@ -1429,16 +1435,16 @@ export class EffectEngineService implements IEffectEngineService {
           sourceCardId: activeEffect.sourceCardId,
           moneyBefore,
           timeBefore,
-          turnsLeftAfterThis: activeEffect.remainingDuration,
+          turnsLeftAfterThis: newRemainingDuration,
         });
 
         // Keep effect if it still has duration remaining
-        if (activeEffect.remainingDuration > 0) {
+        if (newRemainingDuration > 0) {
           remainingEffects.push({
             ...activeEffect,
-            description: `Effect from ${activeEffect.sourceCardId} (${activeEffect.remainingDuration} turns remaining)`
+            remainingDuration: newRemainingDuration,
+            description: `Effect from ${activeEffect.sourceCardId} (${newRemainingDuration} turns remaining)`
           });
-        } else {
         }
       } catch (error) {
         console.error(`   Error applying active effect ${activeEffect.effectId}:`, error);
@@ -1526,17 +1532,14 @@ export class EffectEngineService implements IEffectEngineService {
   }
 
   /**
-   * Process active effects for all players (called at turn transitions)
+   * Process active effects for the player whose turn just ended (called at
+   * turn transitions). v3.0.119 — previously ticked EVERY player's active
+   * effects at EVERY turn end (maintainer ruling 2026-07-11, Option B), so a
+   * "3-turn" event burned out in under one table round with 4 players. A
+   * "3 turns" duration now means 3 of the holder's OWN turns.
    */
-  async processActiveEffectsForAllPlayers(): Promise<void> {
-    
-    const gameState = this.stateService.getGameState();
-    const players = gameState.players;
-
-    for (const player of players) {
-      await this.applyActiveEffects(player.id);
-    }
-
+  async processActiveEffectsForCurrentPlayer(currentPlayerId: string): Promise<void> {
+    await this.applyActiveEffects(currentPlayerId);
   }
 
   /**
