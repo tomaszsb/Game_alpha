@@ -97,6 +97,15 @@ export function PlayerSetup({
   });
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
+  // "Which player are you?" picker (fb:feedback-1783819148816-bb72760f,
+  // fb:feedback-1783819238489-aaae63c0). Set once join-info comes back with
+  // a non-empty roster; cleared on Cancel or once a choice navigates away.
+  const [joinPicker, setJoinPicker] = useState<{
+    gameId: string;
+    token: string;
+    instanceId?: string;
+    players: { id: string; shortId?: string; name: string; color?: string; avatar?: string }[];
+  } | null>(null);
   // Settings drawer: the right-column "game setup window" only appears when
   // the gear icon (top-right of header) is clicked. PC/TV toggle and Start
   // Game live in the main column so common actions stay one click away.
@@ -332,9 +341,43 @@ export function PlayerSetup({
   // screen forever.
 
   /**
+   * Build the join URL and navigate (full reload so AppContent picks up the
+   * new gameId/playerId on mount). Shared by direct-join and the "which
+   * player are you?" picker below — `playerShortId` omitted means the
+   * shared/spectator view, same as today's behavior.
+   */
+  const navigateToGame = (gameId: string, token: string, instanceId?: string, playerShortId?: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('g', gameId);
+    if (token) url.searchParams.set('token', token);
+    // Carry the game's classroom so its board loads (Phase 3c); the default
+    // classroom needs no param (plain /data).
+    if (instanceId && instanceId !== 'classroom-1') url.searchParams.set('i', instanceId);
+    else url.searchParams.delete('i');
+    // Mirrors the QR-code join flow's ?p= short id so the picked player
+    // lands on their own actionable panel instead of the shared view.
+    if (playerShortId) url.searchParams.set('p', playerShortId);
+    else url.searchParams.delete('p');
+    if (selectedMode === 'tv') {
+      url.searchParams.set('mode', 'tv');
+    } else {
+      url.searchParams.delete('mode');
+    }
+    window.location.href = url.toString();
+  };
+
+  /**
    * Join an existing game by typed code. Mirrors the retired GameLobby's
    * handleJoinGame — fetches the target game's token, then navigates with a
    * full reload so AppContent picks up the new gameId on mount.
+   *
+   * fb:feedback-1783819148816-bb72760f / fb:feedback-1783819238489-aaae63c0:
+   * a rejoining player who lost their personal QR link had no way to get
+   * back to their own actionable panel — "Join by Code" always landed in
+   * the shared/spectator view. If join-info comes back with players to
+   * choose from, show a picker instead of navigating immediately. A fresh
+   * game with no players yet (or a player missing a shortId) falls straight
+   * through to the old direct-navigate behavior.
    */
   const handleJoinByCode = async () => {
     setJoinError('');
@@ -359,20 +402,26 @@ export function PlayerSetup({
         setJoinError(`Couldn't reach game ${normalized} right now (server returned ${response.status}). Try again in a moment.`);
         return;
       }
-      const data: { token: string; instanceId?: string } = await response.json();
-      const url = new URL(window.location.href);
-      url.searchParams.set('g', normalized);
-      if (data.token) url.searchParams.set('token', data.token);
-      // Carry the game's classroom so its board loads (Phase 3c); the default
-      // classroom needs no param (plain /data).
-      if (data.instanceId && data.instanceId !== 'classroom-1') url.searchParams.set('i', data.instanceId);
-      else url.searchParams.delete('i');
-      if (selectedMode === 'tv') {
-        url.searchParams.set('mode', 'tv');
-      } else {
-        url.searchParams.delete('mode');
+      const data: {
+        token: string;
+        instanceId?: string;
+        gamePhase?: string;
+        playerCount?: number;
+        players?: { id: string; shortId?: string; name: string; color?: string; avatar?: string }[];
+      } = await response.json();
+
+      const pickablePlayers = (data.players || []).filter(p => p.shortId && p.name?.trim());
+      if (pickablePlayers.length > 0) {
+        setJoinPicker({
+          gameId: normalized,
+          token: data.token,
+          instanceId: data.instanceId,
+          players: pickablePlayers,
+        });
+        return;
       }
-      window.location.href = url.toString();
+
+      navigateToGame(normalized, data.token, data.instanceId);
     } catch (err) {
       // A real network failure (offline, DNS, CORS) throws something like
       // "Failed to fetch" — technical and alarming to a non-technical
@@ -380,6 +429,18 @@ export function PlayerSetup({
       console.error('Join by code failed:', err);
       setJoinError('Could not connect to the server. Check your connection and try again.');
     }
+  };
+
+  /** Picker choice: a specific player → their own actionable panel. */
+  const handlePickPlayer = (shortId: string) => {
+    if (!joinPicker) return;
+    navigateToGame(joinPicker.gameId, joinPicker.token, joinPicker.instanceId, shortId);
+  };
+
+  /** Picker choice: spectate — identical to today's no-picker behavior. */
+  const handleJoinAsSpectator = () => {
+    if (!joinPicker) return;
+    navigateToGame(joinPicker.gameId, joinPicker.token, joinPicker.instanceId);
   };
 
   const handleClearGame = async (gameId: string) => {
@@ -949,57 +1010,141 @@ export function PlayerSetup({
 
             {/* Join an existing game by code. Navigates with a full reload
                 so AppContent picks up the new gameId in the URL the same
-                way the retired GameLobby did. */}
+                way the retired GameLobby did. When the game already has
+                players, a "which player are you?" picker (joinPicker)
+                replaces the code entry until a choice is made or cancelled. */}
             <div style={{ marginTop: '0.85rem' }}>
               <label style={styles.label}>Join existing game</label>
-              <p style={{ fontSize: '0.72rem', color: colors.text.secondary, margin: '0 0 0.4rem' }}>
-                Anyone with the code can join — no login needed. This is also how to watch a game in progress without playing.
-              </p>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <input
-                  type="text"
-                  placeholder="e.g., G7"
-                  value={joinCode}
-                  onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(''); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleJoinByCode(); }}
-                  style={{
-                    flex: 1,
-                    padding: '0.5rem 0.6rem',
-                    border: `1px solid ${joinError ? '#dc3545' : colors.secondary.border}`,
-                    borderRadius: 6,
-                    fontSize: '0.9rem',
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                  }}
-                  maxLength={10}
-                  autoComplete="off"
-                  name="gamecode"
-                  data-lpignore="true"
-                  data-1p-ignore
-                />
-                <button
-                  type="button"
-                  onClick={handleJoinByCode}
-                  style={{
-                    padding: '0.5rem 0.85rem',
-                    background: colors.primary.main,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                  }}
-                  title="Joining will navigate away from this empty game."
-                >
-                  Join
-                </button>
-              </div>
-              {joinError && (
-                <p style={{ fontSize: '0.75rem', color: '#dc3545', margin: '0.35rem 0 0' }}>
-                  {joinError}
-                </p>
+              {joinPicker ? (
+                <div>
+                  <p style={{ fontSize: '0.72rem', color: colors.text.secondary, margin: '0 0 0.5rem' }}>
+                    Game {joinPicker.gameId} already has players. Which one are you?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {joinPicker.players.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handlePickPlayer(p.shortId!)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.5rem 0.65rem',
+                          background: 'white',
+                          border: `2px solid ${p.color || colors.secondary.border}`,
+                          borderRadius: 8,
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          color: colors.text.primary,
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: '50%',
+                            background: p.color || colors.secondary.main,
+                            flexShrink: 0,
+                            display: 'inline-block',
+                          }}
+                        />
+                        {p.avatar && <span style={{ fontSize: '1.1rem' }}>{p.avatar}</span>}
+                        <span>{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleJoinAsSpectator}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem 0.65rem',
+                        background: colors.secondary.main,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                      }}
+                      title="Watch the game without controlling a player."
+                    >
+                      👁️ Just watching
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setJoinPicker(null)}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        background: 'transparent',
+                        color: colors.text.secondary,
+                        border: `1px solid ${colors.secondary.border}`,
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: '0.72rem', color: colors.text.secondary, margin: '0 0 0.4rem' }}>
+                    Anyone with the code can join — no login needed. This is also how to watch a game in progress without playing.
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <input
+                      type="text"
+                      placeholder="e.g., G7"
+                      value={joinCode}
+                      onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(''); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleJoinByCode(); }}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem 0.6rem',
+                        border: `1px solid ${joinError ? '#dc3545' : colors.secondary.border}`,
+                        borderRadius: 6,
+                        fontSize: '0.9rem',
+                        fontFamily: 'monospace',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                      }}
+                      maxLength={10}
+                      autoComplete="off"
+                      name="gamecode"
+                      data-lpignore="true"
+                      data-1p-ignore
+                    />
+                    <button
+                      type="button"
+                      onClick={handleJoinByCode}
+                      style={{
+                        padding: '0.5rem 0.85rem',
+                        background: colors.primary.main,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                      }}
+                      title="Joining will navigate away from this empty game."
+                    >
+                      Join
+                    </button>
+                  </div>
+                  {joinError && (
+                    <p style={{ fontSize: '0.75rem', color: '#dc3545', margin: '0.35rem 0 0' }}>
+                      {joinError}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>

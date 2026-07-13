@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.122] - 2026-07-12
+
+### "Join by Code" can now claim your own player seat instead of only spectating
+Two dashboard reports filed 2026-07-12: fb:feedback-1783819148816-bb72760f ("whoever is the first person to rejoin assumes player one... how can we simplify the process so there is no confusion?") and fb:feedback-1783819238489-aaae63c0 ("how do we make it easy for multiple people at different computers play the same game?"). Traced to a real gap, not the assumption either report made: each player's own actionable panel is only reachable via a personal `?p=P1`-style link (handed out via QR at setup); `handleJoinByCode` in `PlayerSetup.tsx` never set that param, so anyone falling back to "Join by Code" — after a crash, on a new device, or without a saved link — landed in the shared spectator view with no way to act as themselves, not actually auto-assigned to any slot. `GET /api/games/:gameId/join-info` didn't even return player names to pick from. Extended that endpoint with a minimal roster (id/shortId/name/color/avatar — no money/hand/history, consistent with the route's existing open-by-design trust model already documented above it) and added a "Which player are you?" picker to the Join-by-Code flow: pick a name to land on that player's own panel (sets the same `?p=` short id the QR flow uses), or "Just watching" to spectate exactly as before. A fresh game with no players yet falls straight through to the old direct-navigate behavior, unchanged. Verified via typecheck, build, the full server-auth + multi-device test suites, and a live two-tab join test (screenshot capture failed on an unrelated environment/tooling issue; behavior confirmed via accessibility tree, network, and console checks instead). (fixloop iteration, Sonnet 5)
+
 ## [3.0.121] - 2026-07-12
 
 ### Push-back / Lock-the-scope buttons now show what each one actually costs

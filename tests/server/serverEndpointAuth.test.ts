@@ -218,6 +218,18 @@ describe('server.js endpoint auth wiring', () => {
     expect(head).toContain('instanceId: game.instanceId || DEFAULT_INSTANCE_ID');
   });
 
+  it('GET /api/games/:gameId/join-info returns a minimal player roster for the "which player are you?" picker', () => {
+    // fb:feedback-1783819148816-bb72760f / fb:feedback-1783819238489-aaae63c0
+    // — the client needs id/shortId/name/color/avatar to build a rejoin
+    // picker, but nothing else (no money/hand/history) since this route
+    // stays open by design.
+    const head = handlerHead('get', '/api/games/:gameId/join-info', 1500);
+    expect(head).toContain('players: (game.state?.players || []).map(p => ({');
+    expect(head).toContain('shortId: p.shortId');
+    expect(head).not.toContain('money: p.money');
+    expect(head).not.toContain('hand: p.hand');
+  });
+
   // ===== Phase 3 polish: teacher self-service create + delete =====
 
   it('POST /api/instances lets a logged-in teacher create a room they own (not admin-gated)', () => {

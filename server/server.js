@@ -1634,6 +1634,14 @@ app.delete('/api/games/:gameId', (req, res) => {
  * with the normal authed state-load flow. State writes still require the
  * token in headers, so this endpoint doesn't loosen modify-state security
  * — only restores read-state-on-join usability.
+ *
+ * `players` (added for fb:feedback-1783819148816-bb72760f /
+ * fb:feedback-1783819238489-aaae63c0) is the same open-by-design trust
+ * model: anyone with the code can already read full player state via
+ * GET /api/gamestate, so a display-only roster here (name/color/avatar,
+ * no money/hand/history) leaks nothing new. It exists so "Join by Code"
+ * can offer a "which player are you?" picker instead of dropping a
+ * rejoining player into the spectator view with no way to act.
  */
 app.get('/api/games/:gameId/join-info', (req, res) => {
   const { gameId } = req.params;
@@ -1656,6 +1664,16 @@ app.get('/api/games/:gameId/join-info', (req, res) => {
     instanceId: game.instanceId || DEFAULT_INSTANCE_ID,
     gamePhase: game.state?.gamePhase || 'SETUP',
     playerCount: game.state?.players?.length || 0,
+    // Lightweight roster for the client's "which player are you?" picker.
+    // Deliberately minimal — id/shortId to build the ?p= URL, name/color/
+    // avatar to render the picker. Never the full Player object.
+    players: (game.state?.players || []).map(p => ({
+      id: p.id,
+      shortId: p.shortId,
+      name: p.name,
+      color: p.color,
+      avatar: p.avatar,
+    })),
   });
 });
 

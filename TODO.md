@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.121 (not yet deployed — v3.0.116–121 pending)
+**Current Version:** 3.0.122 (not yet deployed — v3.0.116–122 pending)
 
 ---
 
@@ -33,6 +33,9 @@
 
 ### Newly arrived (2026-07-03/05, staged 2026-07-10 — not yet triaged)
 *(cost-preview item shipped v3.0.121, see CHANGELOG)*
+
+### Newly arrived (2026-07-12, staged same day)
+*(join-by-code player picker shipped v3.0.122, see CHANGELOG — closes fb:bb72760f and fb:aaae63c0)*
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
