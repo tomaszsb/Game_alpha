@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.127] - 2026-07-13
+
+### NPC speaker badge no longer shows as a stray light box in dark-mode modals
+Dashboard report fb:feedback-1783924131895-ffec84f4: "there are some items in dark mode that still have a light mode color." Its screenshot showed the `DiceResultModal` ("Let's talk about my fee") correctly dark-themed everywhere except the NPC speaker badge sitting above the Summary box, which rendered as a stranded light-colored chip. `CharacterBadge` (shared by `DiceResultModal`, `ChoiceModal`, `CardModal`) hardcoded the static light-only `colors.secondary.bg`/`colors.text.primary`/`colors.text.secondary` instead of the dark-aware `panelPalettes` tokens `DiceResultModal`'s own Summary/Effects blocks already use. `NarrativeBlock` (also shared by all three modals, rendered right after the badge) had the identical hardcoded-light bug — it didn't show in this particular screenshot only because the triggering action's narrative lookup happened to come back empty, but would hit the same bug the next time a genuine card-draw narrative fires in dark mode. Added an optional `mode?: PanelMode` prop (default `'light'`) to both components and swapped the hardcoded colors for `panelPalettes[mode]` equivalents; only `DiceResultModal`'s two call sites now pass `mode={shellMode}` — `ChoiceModal`/`CardModal` have no dark-mode awareness at all and don't pass the prop, so they render exactly as before. Verified via typecheck, build, the full modals suite (118/118), and live browser confirmation via computed styles (badge background matched the Summary box's dark surface exactly, both sitting on the modal's dark shell — no light box). (fixloop iteration, Sonnet 5)
+
 ## [3.0.126] - 2026-07-13
 
 ### Cost-preview toggle no longer shows a stale "Varies" after the dice roll already resolved

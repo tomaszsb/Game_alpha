@@ -5,17 +5,28 @@ import React from 'react';
 import { colors, theme } from '../../../styles/theme';
 import { getNpcCharacterInfo } from '../../../constants/characters';
 import { TextWithTerms, useDictionaryPanel } from '../../../dictionary';
+import { panelPalettes, PanelMode } from '../../player/panelTheme';
 
 interface NarrativeBlockProps {
   text: string;
   spaceName?: string;
   portraitSrc?: string | null;
+  /**
+   * Light/dark token set. Defaults to 'light' — ChoiceModal/CardModal have no
+   * dark-mode awareness at all and don't pass this, so they keep rendering
+   * exactly as before. Only mode-aware callers (DiceResultModal) pass the
+   * shell's actual mode (fb:feedback-1783924131895-ffec84f4 — same stray
+   * light-box-in-dark-modal bug as CharacterBadge).
+   */
+  mode?: PanelMode;
 }
 
-export function NarrativeBlock({ text, spaceName, portraitSrc }: NarrativeBlockProps): JSX.Element | null {
+export function NarrativeBlock({ text, spaceName, portraitSrc, mode = 'light' }: NarrativeBlockProps): JSX.Element | null {
   const { openWithTerm } = useDictionaryPanel();
 
   if (!text) return null;
+
+  const p = panelPalettes[mode];
 
   // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC portrait/name
   // when the narration is the PM's own first-person thought.
@@ -25,12 +36,12 @@ export function NarrativeBlock({ text, spaceName, portraitSrc }: NarrativeBlockP
   return (
     <div style={{
       margin: '0 0 16px 0',
-      color: colors.text.secondary,
+      color: p.muted,
       fontSize: '14px',
       lineHeight: '1.6',
       fontStyle: 'italic',
       padding: '12px',
-      backgroundColor: colors.background.secondary,
+      backgroundColor: p.surf,
       borderRadius: theme.borderRadius.sm,
       borderLeft: `3px solid ${borderColor}`,
     }}>

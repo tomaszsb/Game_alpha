@@ -72,4 +72,22 @@ describe('CharacterBadge', () => {
     render(<CharacterBadge spaceName="OWNER-FUND-INITIATION" />);
     expect(screen.getByText('👔')).toBeInTheDocument();
   });
+
+  // fb:feedback-1783924131895-ffec84f4 — the badge was hardcoded to the
+  // light-only `colors` tokens, so it showed as a stray light box inside an
+  // otherwise dark-themed DiceResultModal. Confirms the default (no `mode`
+  // prop, e.g. ChoiceModal/CardModal call sites) still renders the light
+  // surface, and `mode="dark"` (DiceResultModal in dark mode) switches to
+  // the dark panel surface instead.
+  it('should default to the light-mode surface when no mode prop is passed', () => {
+    const { container } = render(<CharacterBadge spaceName="OWNER-FUND-INITIATION" />);
+    const badge = container.firstChild as HTMLElement;
+    expect(badge.style.backgroundColor).toBe('rgb(241, 244, 248)'); // panelPalettes.light.surf
+  });
+
+  it('should use the dark panel surface when mode="dark" is passed', () => {
+    const { container } = render(<CharacterBadge spaceName="OWNER-FUND-INITIATION" mode="dark" />);
+    const badge = container.firstChild as HTMLElement;
+    expect(badge.style.backgroundColor).toBe('rgb(30, 41, 59)'); // panelPalettes.dark.surf
+  });
 });

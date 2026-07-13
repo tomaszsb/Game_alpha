@@ -426,7 +426,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           effects below, never by the die value. */}
 
       {/* Character Badge */}
-      {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} />}
+      {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} mode={shellMode} />}
 
       {/* Per-action narrative (from SPACE_EFFECTS narrative column) */}
       {(() => {
@@ -438,7 +438,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           result.spaceName, 'First', `draw_${cardEffect.cardType}`
         );
         if (!narrative) return null;
-        return <NarrativeBlock text={narrative} spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} />;
+        return <NarrativeBlock text={narrative} spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} mode={shellMode} />;
       })()}
 
       {/* Summary */}
