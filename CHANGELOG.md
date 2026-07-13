@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.124] - 2026-07-13
+
+### Owner alert email now fires on game start, not on every homepage visit
+Dashboard report fb:feedback-1783919163453-a98951ab: "right now i get notice when someone just comes to the website. I only want to get notified when someone presses the start game button. and if possible i would like to know the names they entered." Traced to two stacked bugs: (1) the foreign-game alert email in `POST /api/games` fired on every `CREATE_GAME` event, which happens just from loading the homepage — this repo's single-screen setup auto-creates a backend game before a visitor does anything. (2) The intended fix point was dead: `POST /api/games/:gameId/state` already detected the real SETUP→PLAY transition and already computed player names, but compared against `state.gamePhase === 'PLAYING'` — a value that has never once matched, since every real gamePhase in this codebase is `'PLAY'` (confirmed across ~50 test-file references). Moved the alert send from `CREATE_GAME` to the (now-fixed) `GAME_STARTED` block, same `foreignGameAlertsEnabled`/`isHomeIP` gating, message now reads `Game <id> started with players: <names> (IP <ip>, <device>)`. Verified via typecheck, build, the full server suite (255/255, 3 new tests pinning both the removed and added call sites), and a live control-flow check with mail intentionally unconfigured (confirmed the alert call site is reached and a mail failure doesn't break the state-push response, without sending a real email). (fixloop iteration, Sonnet 5)
+
 ## [3.0.123] - 2026-07-13
 
 ### Join-by-Code picker now warns before taking over a currently-connected player

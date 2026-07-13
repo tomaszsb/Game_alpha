@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.123 (not yet deployed — v3.0.116–123 pending)
+**Current Version:** 3.0.124 (not yet deployed — v3.0.116–124 pending)
 
 ---
 
@@ -36,6 +36,9 @@
 
 ### Newly arrived (2026-07-12, staged same day)
 *(join-by-code player picker shipped v3.0.122, see CHANGELOG — closes fb:bb72760f and fb:aaae63c0)*
+
+### Newly arrived (2026-07-13, staged same day)
+*(owner alert fix shipped v3.0.124, see CHANGELOG — closes fb:a98951ab)*
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
@@ -87,6 +90,7 @@
 - [ ] **Expeditor "presence"** (avatar/causality link-line) — assumes a task-cell grid the data model doesn't have; revisit after P1–P5.
 - [ ] **Gantt / schedule today-line view** — trigger: teachers add enough construction-section spaces.
 - [ ] **Expeditor mechanic: pick with tradeoffs instead of "hire 3"** — bigger design change. <!-- fb:feedback-1778584030168-f22035af -->
+- [ ] **Async/decoupled turn order option** — maintainer's own idea (2026-07-13), explicitly "fun thing to think about for the future," not a request: an optional game-settings mode where players move independently instead of the current coordinated loop, so nobody waits on others — motivated by both faster casual play and eventually repurposing the engine for a D&D-style game where players go off on separate quests. Maintainer already flagged the open question themselves: shared-card/shared-time mechanics assume a synchronized turn order, so this needs real design work before engineering, not just a settings flag. Trigger: revisit alongside the CSV-portability/reskin goal above, since they're related but distinct (that one is data hardcoding, this is turn-structure). <!-- fb:feedback-1783919654407-1df093dd -->
 - [ ] **Onboarding Phase C: plain-English aliases** (`display_label_plain` in GAME_CONFIG for tiles/buttons) — needs user to write alias strings (~4 hr). Phases A shipped v2.70.5. <!-- fb:feedback-1778583921001-0aa9660c --> <!-- fb:feedback-1778584099671-8ad42b52 -->
 - [ ] **Log follow-ons:** expandable log rows (chevron → raw detail) + end-screen export + post-game viewer with search/filter — agreed as v3.0.45/46 concepts, never built.
 - [ ] **Per-NPC rich sentence templates for dice summary** (~30–40 authored sentences) — trigger: attribution form feels thin in playtest.
@@ -103,8 +107,10 @@
 - [ ] **Deploy stamps commit "unknown" on `docker compose` builds** (Alpine container lacks git) — non-issue while using deploy.sh.
 - [ ] **Webhook deployment** (push-to-deploy via HTTP receiver on Unraid) + **verify deploy.sh backup/restore of `game-data/`** — DX wishlist, stalled since April.
 - [ ] **GEMINI.md setup** — likely obsolete (Gemini-era note); drop unless the user still wants it.
+- [ ] **Dice-result modal won't dismiss in the browser test harness** (~20 min investigation). A `DiceResultModal` that won't close via click / pointer-events / Escape even on a fresh reload with zero prior HMR has blocked *live* verification twice (v3.0.111, v3.0.122), forcing "verified via accessibility tree instead of screenshot" caveats. Not a game bug — a tooling/automation obstacle degrading our ability to prove fixes live. Root-cause the modal-dismiss-in-automation path (backdrop-grace timing? pointer-events layering? focus trap?). (2026-07-13 CHANGELOG review)
 
 ### Architecture / code health (bundle these in one dedicated session — same drift-trap shape)
+- [ ] **Classic→V2 panel parity sweep (proactive, do-once).** The migrate-to-V2 rule is *reactive* ("don't polish classic") — it never audited what classic still does that `PlayerPanelV2` doesn't. That gap shipped a batch of "invisible for weeks" bugs when V2 became default at v3.0.97: swallowed toasts (v3.0.100), missing NPC portraits + `{fundingAmount}` fix (v3.0.98), expeditor phase-gate hint (v3.0.99), cost preview (v3.0.121). Sweep once: grep the classic panel (`ActionCenterPanel.tsx` + siblings) for every `notify`/`getNpcCharacterInfo`/token resolver/phase-gate/render branch and confirm each has a V2 equivalent, so the trickle stops instead of arriving one report at a time. (2026-07-13 CHANGELOG review)
 - [ ] **DataService lookups are all linear scans** (`getCardById`, `getGameConfigBySpace`, `getMovement`, … [DataService.ts:123–1079](src/services/DataService.ts:123)) — called per-hand-card in hot loops (scope calc, condition checks, action counting on every state change). Build keyed Maps once at load. (2026-07-11 review)
 - [ ] **Notification storm + full-state subscriptions.** `updateActionCounts` notifies AND most callers notify again → double listener sweeps per action ([StateService.ts:719–744](src/services/StateService.ts:719) etc.); `setPlayerCompletedManualAction`/`nextPlayer` rely on `updateActionCounts`'s notify, which can early-return WITHOUT notifying (no current player / data not loaded). Meanwhile ~15 components use full-state `subscribe()` (PlayerPanelV2/ScoreboardV2 force-rerender on every change) though `subscribeWithSelector` exists. One perf/cleanliness bundle. (2026-07-11 review)
 - [ ] **`getGameState()`'s "deep copies" claim is false** — only `players`+`hand` are copied; `activeCards`/`activeEffects`/`loans`/`moneySources`/decks are shared references ([StateService.ts:284](src/services/StateService.ts:284)), and `getGameStateDeepCopy` is the same function. [EffectEngineService.ts:1411](src/services/EffectEngineService.ts:1411) already mutates through it. Deep-clone or rename + enforce no-mutation. (2026-07-11 review)

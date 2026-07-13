@@ -1585,15 +1585,7 @@ app.post('/api/games', async (req, res) => {
     lastActivity: now
   });
 
-  const logEntry = logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
-
-  if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
-    try {
-      await sendOwnerAlert(`New game ${gameId} started from IP ${logEntry.ip} (${logEntry.device})`);
-    } catch (err) {
-      console.warn('⚠️ Could not send foreign-game alert:', err.message);
-    }
-  }
+  logVisitor(req, 'CREATE_GAME', { gameId, instanceId: requestedInstanceId });
 
   isDirty = true;
   saveGames();
@@ -1760,12 +1752,21 @@ app.post('/api/games/:gameId/state', async (req, res) => {
   }
 
   // Detect game start
-  if (game.state?.gamePhase === 'SETUP' && state.gamePhase === 'PLAYING') {
-    logVisitor(req, 'GAME_STARTED', {
+  if (game.state?.gamePhase === 'SETUP' && state.gamePhase === 'PLAY') {
+    const playerNames = state.players?.map(p => p.name).join(', ');
+    const logEntry = logVisitor(req, 'GAME_STARTED', {
       gameId,
       playerCount: newPlayerCount,
-      playerNames: state.players?.map(p => p.name).join(', ')
+      playerNames
     });
+
+    if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
+      try {
+        await sendOwnerAlert(`Game ${gameId} started with players: ${playerNames} (IP ${logEntry.ip}, ${logEntry.device})`);
+      } catch (err) {
+        console.warn('⚠️ Could not send foreign-game alert:', err.message);
+      }
+    }
   }
 
   // Version conflict detection and rejection (Dec 29, 2025 fix)

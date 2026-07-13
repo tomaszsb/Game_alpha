@@ -285,4 +285,33 @@ describe('server.js endpoint auth wiring', () => {
     expect(body).toContain('/^[a-z0-9][a-z0-9-]*$/.test(id)');
     expect(body).toContain('instanceStatic(id)');
   });
+
+  // ===== Owner alert: fires on game start, not on page load (fb:feedback-1783919163453-a98951ab) =====
+
+  it('POST /api/games (CREATE_GAME) no longer sends an owner alert — that fired on every homepage visit, not real play', () => {
+    const head = handlerHead('post', '/api/games', 2600);
+    expect(head).toContain("logVisitor(req, 'CREATE_GAME'");
+    expect(head).not.toContain('sendOwnerAlert(');
+    expect(head).not.toContain('foreignGameAlertsEnabled');
+  });
+
+  it('POST /api/games/:gameId/state detects the real SETUP->PLAY transition (not the never-true "PLAYING")', () => {
+    const start = source.indexOf("app.post('/api/games/:gameId/state'");
+    expect(start, "route POST /api/games/:gameId/state not found in server.js").toBeGreaterThan(-1);
+    const body = source.slice(start, start + 2200);
+    // Every gamePhase value in this codebase is 'PLAY' — 'PLAYING' never matched.
+    expect(body).toContain("game.state?.gamePhase === 'SETUP' && state.gamePhase === 'PLAY'");
+    expect(body).not.toContain("state.gamePhase === 'PLAYING'");
+    expect(body).toContain("logVisitor(req, 'GAME_STARTED'");
+  });
+
+  it('GAME_STARTED sends the owner alert (gated on foreignGameAlertsEnabled + !isHomeIP) with player names', () => {
+    const start = source.indexOf("app.post('/api/games/:gameId/state'");
+    const body = source.slice(start, start + 2200);
+    expect(body).toContain('settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)');
+    expect(body).toContain('sendOwnerAlert(');
+    expect(body).toContain('players: ${playerNames}');
+    // Mail failure is swallowed so it can never break the state-push response.
+    expect(body).toContain("console.warn('⚠️ Could not send foreign-game alert:', err.message)");
+  });
 });
