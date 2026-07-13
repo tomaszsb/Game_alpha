@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.123] - 2026-07-13
+
+### Join-by-Code picker now warns before taking over a currently-connected player
+Follow-up to v3.0.122's rejoin picker: nothing stopped someone from picking a player who was actively connected and playing on another device, silently booting them off their own seat. The presence-tracking data already existed server-side (`server/websocket.js`'s `clients` Map records `{gameId, playerId}` per WebSocket) but the client never actually sent its `playerId` when opening the connection, so it was always empty in practice. Threaded an optional `playerId` through the full connect chain (`App.tsx`'s WS-connect effect resolves the current player from the URL the same way the sibling device-detection effect already does → `StateService.connectWebSocket` → `ServerSyncService.connectWebSocket` → `WebSocketSyncService.connect`, which already accepted the param but nothing called it). Added `getConnectedPlayerIds(gameId)` to `websocket.js` and a `connected` field on each roster entry `join-info` returns. The picker now shows an "already connected" indicator and, on picking a connected player, a confirmation dialog ("<name> is currently connected on another device. Taking over may disrupt their game — continue anyway?") before proceeding — a warning, not a hard block, since a crashed tab's connection can linger as a false positive and a hard block would risk locking a player out of their own seat. Verified via typecheck, build, the full server+services test suite (1108/1108), and a live two-tab test confirming the connected/not-connected cases both behave correctly in both directions. (fixloop iteration, Sonnet 5)
+
 ## [3.0.122] - 2026-07-12
 
 ### "Join by Code" can now claim your own player seat instead of only spectating

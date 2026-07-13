@@ -1955,9 +1955,13 @@ export class StateService implements IStateService {
   /**
    * Connect WebSocket for real-time state updates
    * Call this after initial state load to enable real-time sync
+   * @param playerId - Optional full player id (Player.id, not shortId) for
+   *   this device, so the server can track per-player presence (used by the
+   *   "which player are you?" picker's takeover warning). Omit for
+   *   spectator/TV connections.
    */
-  connectWebSocket(): void {
-    this.serverSyncService.connectWebSocket();
+  connectWebSocket(playerId?: string): void {
+    this.serverSyncService.connectWebSocket(playerId);
   }
 
   /**

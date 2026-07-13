@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.122 (not yet deployed — v3.0.116–122 pending)
+**Current Version:** 3.0.123 (not yet deployed — v3.0.116–123 pending)
 
 ---
 

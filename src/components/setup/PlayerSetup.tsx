@@ -104,7 +104,7 @@ export function PlayerSetup({
     gameId: string;
     token: string;
     instanceId?: string;
-    players: { id: string; shortId?: string; name: string; color?: string; avatar?: string }[];
+    players: { id: string; shortId?: string; name: string; color?: string; avatar?: string; connected?: boolean }[];
   } | null>(null);
   // Settings drawer: the right-column "game setup window" only appears when
   // the gear icon (top-right of header) is clicked. PC/TV toggle and Start
@@ -407,7 +407,7 @@ export function PlayerSetup({
         instanceId?: string;
         gamePhase?: string;
         playerCount?: number;
-        players?: { id: string; shortId?: string; name: string; color?: string; avatar?: string }[];
+        players?: { id: string; shortId?: string; name: string; color?: string; avatar?: string; connected?: boolean }[];
       } = await response.json();
 
       const pickablePlayers = (data.players || []).filter(p => p.shortId && p.name?.trim());
@@ -431,10 +431,27 @@ export function PlayerSetup({
     }
   };
 
-  /** Picker choice: a specific player → their own actionable panel. */
-  const handlePickPlayer = (shortId: string) => {
+  /**
+   * Picker choice: a specific player → their own actionable panel.
+   *
+   * Takeover warning (fb takeover-warning follow-up, 2026-07-12/13): if the
+   * picked player already has a live WebSocket connection elsewhere (another
+   * device actively playing as them), confirm before navigating — otherwise
+   * this silently boots them off their own seat. Not a hard block: accepting
+   * still proceeds, since a stale/zombie connection from a crashed tab is a
+   * common false positive and we don't want to lock a player out of their
+   * own seat.
+   */
+  const handlePickPlayer = (player: { shortId?: string; name: string; connected?: boolean }) => {
     if (!joinPicker) return;
-    navigateToGame(joinPicker.gameId, joinPicker.token, joinPicker.instanceId, shortId);
+    if (!player.shortId) return;
+    if (player.connected) {
+      const confirmed = window.confirm(
+        `${player.name} is currently connected on another device. Taking over may disrupt their game — continue anyway?`
+      );
+      if (!confirmed) return;
+    }
+    navigateToGame(joinPicker.gameId, joinPicker.token, joinPicker.instanceId, player.shortId);
   };
 
   /** Picker choice: spectate — identical to today's no-picker behavior. */
@@ -1025,7 +1042,8 @@ export function PlayerSetup({
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => handlePickPlayer(p.shortId!)}
+                        onClick={() => handlePickPlayer(p)}
+                        title={p.connected ? `${p.name} is currently connected on another device` : undefined}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1054,6 +1072,31 @@ export function PlayerSetup({
                         />
                         {p.avatar && <span style={{ fontSize: '1.1rem' }}>{p.avatar}</span>}
                         <span>{p.name}</span>
+                        {p.connected && (
+                          <span
+                            style={{
+                              marginLeft: 'auto',
+                              fontSize: '0.65rem',
+                              fontWeight: 600,
+                              color: colors.text.secondary,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                background: colors.success.text,
+                                display: 'inline-block',
+                              }}
+                            />
+                            already connected
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>

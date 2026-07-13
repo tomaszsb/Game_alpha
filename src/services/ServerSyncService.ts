@@ -60,8 +60,11 @@ export class ServerSyncService {
   /**
    * Connect to WebSocket for real-time state updates
    * Call this after initial state load to enable real-time sync
+   * @param playerId - Optional full player id for this device; threaded
+   *   through to WebSocketSyncService.connect() so the server can track
+   *   per-player presence (see server/websocket.js getConnectedPlayerIds).
    */
-  public connectWebSocket(): void {
+  public connectWebSocket(playerId?: string): void {
     if (!this.initializeServerUrl()) {
       return;
     }
@@ -94,7 +97,7 @@ export class ServerSyncService {
     this.webSocketUnsubscribers.push(connUnsubscribe);
 
     // Connect
-    wsService.connect(this.serverUrl, gameId);
+    wsService.connect(this.serverUrl, gameId, playerId);
   }
 
   /**

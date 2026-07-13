@@ -12,7 +12,7 @@ import { createServer } from 'http';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { initializeWebSocket, broadcastStateUpdate, getRoomStats, validateStateSchema } from './websocket.js';
+import { initializeWebSocket, broadcastStateUpdate, getRoomStats, validateStateSchema, getConnectedPlayerIds } from './websocket.js';
 import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import {
@@ -1642,6 +1642,12 @@ app.delete('/api/games/:gameId', (req, res) => {
  * no money/hand/history) leaks nothing new. It exists so "Join by Code"
  * can offer a "which player are you?" picker instead of dropping a
  * rejoining player into the spectator view with no way to act.
+ *
+ * `connected` (added for the takeover-warning follow-up, 2026-07-12/13):
+ * whether that player currently holds a live WebSocket connection to this
+ * game. Lets the picker warn before silently taking over a seat someone
+ * else is actively playing on another device — a presence hint, not a
+ * lock, so picking a connected player still works after a confirmation.
  */
 app.get('/api/games/:gameId/join-info', (req, res) => {
   const { gameId } = req.params;
@@ -1656,6 +1662,7 @@ app.get('/api/games/:gameId/join-info', (req, res) => {
     console.log(`🔑 Auto-generated token for legacy game ${gameId} on join-info`);
   }
   logVisitor(req, 'JOIN_INFO', { gameId });
+  const connectedPlayerIds = getConnectedPlayerIds(gameId);
   res.json({
     gameId,
     token: game.token,
@@ -1666,13 +1673,15 @@ app.get('/api/games/:gameId/join-info', (req, res) => {
     playerCount: game.state?.players?.length || 0,
     // Lightweight roster for the client's "which player are you?" picker.
     // Deliberately minimal — id/shortId to build the ?p= URL, name/color/
-    // avatar to render the picker. Never the full Player object.
+    // avatar to render the picker, connected for the takeover warning.
+    // Never the full Player object.
     players: (game.state?.players || []).map(p => ({
       id: p.id,
       shortId: p.shortId,
       name: p.name,
       color: p.color,
       avatar: p.avatar,
+      connected: connectedPlayerIds.has(p.id),
     })),
   });
 });

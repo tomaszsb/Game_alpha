@@ -372,3 +372,23 @@ export function getRoomStats() {
     rooms: stats
   };
 }
+
+/**
+ * Get the set of playerIds currently holding a live WebSocket connection to
+ * a game. Used by the "which player are you?" rejoin picker (join-info
+ * route in server.js) to warn before silently taking over a seat someone
+ * else is actively playing on another device — presence, not auth: a
+ * player can still be picked, this just surfaces that they're connected
+ * elsewhere first.
+ * @param {string} gameId
+ * @returns {Set<string>} playerIds subscribed to gameId right now
+ */
+export function getConnectedPlayerIds(gameId) {
+  const connected = new Set();
+  clients.forEach((info) => {
+    if (info.gameId === gameId && info.playerId) {
+      connected.add(info.playerId);
+    }
+  });
+  return connected;
+}

@@ -214,7 +214,7 @@ describe('server.js endpoint auth wiring', () => {
   });
 
   it('GET /api/games/:gameId/join-info returns the game\'s classroom id', () => {
-    const head = handlerHead('get', '/api/games/:gameId/join-info', 800);
+    const head = handlerHead('get', '/api/games/:gameId/join-info', 900);
     expect(head).toContain('instanceId: game.instanceId || DEFAULT_INSTANCE_ID');
   });
 
@@ -228,6 +228,15 @@ describe('server.js endpoint auth wiring', () => {
     expect(head).toContain('shortId: p.shortId');
     expect(head).not.toContain('money: p.money');
     expect(head).not.toContain('hand: p.hand');
+  });
+
+  it('GET /api/games/:gameId/join-info flags players with a live WebSocket connection', () => {
+    // Takeover-warning follow-up (2026-07-12/13): the picker needs to know
+    // if the player being picked is already connected elsewhere, computed
+    // from the WS server's own connection tracking (not stored on Player).
+    const head = handlerHead('get', '/api/games/:gameId/join-info', 1500);
+    expect(head).toContain('getConnectedPlayerIds(gameId)');
+    expect(head).toContain('connected: connectedPlayerIds.has(p.id)');
   });
 
   // ===== Phase 3 polish: teacher self-service create + delete =====

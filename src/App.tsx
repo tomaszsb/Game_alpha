@@ -142,9 +142,23 @@ function AppContent(): JSX.Element {
     const gameId = getCurrentGameId();
     if (!gameId) return;
 
+    // Resolve which player this device is (same lookup as the device-detection
+    // effect below) so the connection carries a playerId — the server uses it
+    // to track per-player presence for the "which player are you?" picker's
+    // takeover warning. Spectator/TV connections resolve to no player, which
+    // is fine: connect() just omits playerId from the WS URL.
+    const urlParams = new URLSearchParams(window.location.search);
+    const shortId = urlParams.get('p');
+    const fullPlayerId = urlParams.get('playerId');
+    const player = shortId
+      ? gameState?.players?.find(p => p.shortId === shortId)
+      : fullPlayerId
+        ? gameState?.players?.find(p => p.id === fullPlayerId)
+        : undefined;
+
     // Connect WebSocket for real-time updates
     // ServerSyncService handles state updates via its WebSocket callback
-    stateService.connectWebSocket();
+    stateService.connectWebSocket(player?.id);
 
     // Cleanup on unmount
     return () => {

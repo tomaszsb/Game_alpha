@@ -331,7 +331,7 @@ export interface IStateService {
   replaceState(newState: GameState, serverVersion?: number): void;
 
   // WebSocket synchronization methods
-  connectWebSocket(): void;
+  connectWebSocket(playerId?: string): void;
   disconnectWebSocket(): void;
   isWebSocketConnected(): boolean;
 
