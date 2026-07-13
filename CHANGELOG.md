@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.126] - 2026-07-13
+
+### Cost-preview toggle no longer shows a stale "Varies" after the dice roll already resolved
+Dashboard report fb:feedback-1783922070233-49395e17, filed against this session's own v3.0.121 feature: "summary report does not seem to update. i just pressed get work packages and got 3 but summary report still says varies?" `getEndTurnCostPreview` (`src/utils/costPreview.ts`) read straight from `SPACE_EFFECTS.csv`'s static per-visit-type rows and always rendered dice-driven amounts as the literal word "Varies" — correct before the roll, but the CSV row doesn't disappear once the player actually triggers that action, so the preview kept showing "Varies" for something that had already happened and was no longer a remaining cost of pressing End Turn. `PlayerPanelV2.tsx` already tracked exactly this for its own pending-actions button list; extracted that matching logic into a shared `isManualEffectCompleted()` helper (removing the duplication from `PlayerPanelV2.tsx` in the process) and threaded `completedActions` into `getEndTurnCostPreview`, which now skips already-completed manual effects entirely. `getTryAgainCostPreview` deliberately does NOT get the same treatment — Try Again rolls TEMP state back to REAL regardless of whether a draw already resolved, so "will be re-drawn next turn" stays accurate even for a completed action. Verified via typecheck, build, and the full component/utils suite (550 tests across the two areas, including 2 new tests covering the before/after-roll cases). (fixloop iteration, Sonnet 5 — landed by the orchestrator after the implementing agent hit an API session limit mid-verification; the code and tests it left were complete and correct)
+
 ## [3.0.125] - 2026-07-13
 
 ### Deploy countdown banner — players get a heads-up before the server restarts

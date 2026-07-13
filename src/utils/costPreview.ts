@@ -40,6 +40,39 @@ export interface CostPreviewRow {
   value: string;
 }
 
+/** Same shape as PlayerPanelV2Props.completedActions / GameState.completedActions
+ * — not re-imported from either (both are inline object types, not a named
+ * export) but structurally identical, so any real completedActions value from
+ * either source satisfies this. */
+export interface CompletedActions {
+  diceRoll?: string;
+  manualActions: { [effectType: string]: string };
+}
+
+/**
+ * Whether a manual-trigger SpaceEffect has already been resolved this turn.
+ * Mirrors the completed-action matching PlayerPanelV2 uses for its own
+ * pending-actions button list (see the `mapped` derivation there) — kept here
+ * as the single source so the two views can never disagree about what's
+ * already done. Only meaningful for `trigger_type === 'manual'` effects;
+ * auto-trigger effects (e.g. a space's flat time cost) always apply and have
+ * no "completed" state of their own.
+ */
+export function isManualEffectCompleted(effect: SpaceEffect, completedActions: CompletedActions): boolean {
+  if (effect.effect_type === 'dice') {
+    return completedActions.diceRoll !== undefined;
+  }
+  const effectKey = effect.effect_action ? `${effect.effect_type}:${effect.effect_action}` : effect.effect_type;
+  const completedKeys = Object.keys(completedActions.manualActions);
+  return completedKeys.some(
+    (key) =>
+      key === effectKey ||
+      (!!effect.effect_action && key === effect.effect_action) ||
+      key.toLowerCase() === effectKey.toLowerCase() ||
+      (!!effect.effect_action && key.toLowerCase() === effect.effect_action.toLowerCase()),
+  );
+}
+
 const ROW_META: Record<CostPreviewRowKey, { icon: string; label: string }> = {
   // 🏗️ matches ProjectLedger's "Contractor" category icon — Labor covers the
   // contractor Quality/Multiplier roll (CON-INITIATION), the closest thing
@@ -207,7 +240,8 @@ export function getEndTurnCostPreview(
   gameServices: IServiceContainer,
   spaceName: string,
   visitType: VisitType,
-  playerId: string
+  playerId: string,
+  completedActions: CompletedActions = { manualActions: {} }
 ): CostPreviewRow[] {
   const effects = gameServices.dataService.getSpaceEffects(spaceName, visitType) || [];
   const buckets: Partial<Record<CostPreviewRowKey, string[]>> = {};
@@ -218,6 +252,15 @@ export function getEndTurnCostPreview(
   }
 
   for (const effect of effects) {
+    // An already-completed manual action (e.g. the player already pressed
+    // "Get Work Packages" and it resolved to 3 cards) is no longer a
+    // remaining cost of pressing End Turn — the CSV row is a static
+    // per-visit declaration, not a per-turn one, so without this check it
+    // would keep showing "Varies" for something that already happened
+    // (fb:feedback-1783922070233-49395e17).
+    if (effect.trigger_type === 'manual' && isManualEffectCompleted(effect, completedActions)) {
+      continue;
+    }
     if (effect.effect_type === 'cards') {
       const result = classifyCardEffect(effect);
       if (result) pushFragment(buckets, result.bucket, result.fragment);
@@ -271,6 +314,13 @@ export function getTryAgainCostPreview(
     });
   }
 
+  // Deliberately NOT threading completedActions through here (unlike the End
+  // Turn preview above) — Try Again rolls TEMP state back to REAL
+  // (TurnService.tryAgainOnSpace), which discards card draws AND dice
+  // outcomes from this attempt regardless of whether they already resolved.
+  // So even an already-completed Work/Expediting/Labor action is genuinely
+  // "will be re-drawn next turn" — filtering it out here would hide a row
+  // that's still an accurate consequence of pressing this button.
   const baseCost = getEndTurnCostPreview(gameServices, player.currentSpace, player.visitType, playerId);
   for (const row of baseCost) {
     if (row.key === 'work' || row.key === 'expediting' || row.key === 'labor') {

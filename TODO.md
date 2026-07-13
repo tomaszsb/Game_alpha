@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.125 (not yet deployed — v3.0.116–125 pending)
+**Current Version:** 3.0.126 (not yet deployed — v3.0.116–126 pending)
 
 ---
 
@@ -36,6 +36,10 @@
 ### Newly arrived (2026-07-13, staged same day)
 *(owner alert fix shipped v3.0.124, see CHANGELOG — closes fb:a98951ab)*
 
+### Newly arrived (2026-07-13 later batch — cost-preview toggle feedback)
+*(stale-"Varies" bug shipped v3.0.126, see CHANGELOG — closes fb:49395e17)*
+- [ ] **Try Again button vs. cost-preview toggle look inconsistent + interaction idea.** <!-- fb:feedback-1783922410258-f453b1f3 --> "The try again button is different size than try again slider and colors change on one but not other. Can we change so that pressing short will slide but long press will act as button? We sould add a small growing line to show the button working." A real visual-consistency gap between the actual Try Again button and the `TurnCostToggle` tab, plus a proposed interaction redesign (short tap = switch preview, long-press = commit, with a fill/progress indicator) that would merge two currently-separate controls into one. Needs a design decision before building — long-press-to-commit changes core interaction semantics, not just styling. Flagging for maintainer input, not auto-building.
+
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
 
@@ -47,6 +51,7 @@
 - [ ] **Dashboard UI: surface `version` + `gitCommit` on bug-report pages** (~15 min, display-only; repo `D:/Unravel/dictionary-scraper/dashboard/frontend/dashboard-ui/`, extend `FeedbackReport.metadata` in feedback/page.tsx + detail view). Optional: gray-out stale-version reports, version filter.
 - [ ] **G160: show/hide individual board connectors + redirect per section** — Workstream 3 Phase B+ (global show/hide first; per-edge hide + waypoint redirect TBD per user approval; see BETA_PLAN_V3.md). <!-- fb:feedback-1778327469678-d27a73d0 -->
 - [ ] **dictionary-scraper: label AI-generated glossary entries (decision 2026-07-12).** Audited 2026-07-12: no real dictionary/glossary is actually scraped anywhere in the pipeline — it pulls unread Gmail newsletters and asks Claude to invent term definitions from scratch. ~75% of the 252-entry `GLOSSARY.csv` is tagged "AI Generated" with no source URL. Maintainer decision: keep the AI-writing step, but mark those entries as such wherever the glossary is shown (the pipeline already tags provenance in the CSV `source` column — this is a display-layer change, not a pipeline change). Needs: the in-game dictionary popup + `dashboard-ui` (if it lists terms) to surface the tag. Repo: `D:/Unravel/dictionary-scraper`.
+- [ ] **⏸️ Glossary auto-sync is BLOCKED on Anthropic credits (built + deployed 2026-07-13).** A nightly robot in the scraper backend (`dashboard/backend/glossary_autosync.py`, committed `452e76c`) discovers construction words in the game's CSVs that have no glossary entry, AI-drafts definitions, and stages them as `Purgatory` rows in the dashboard review queue for one-tap approval. Live on Unraid and verified end-to-end EXCEPT drafting returns "credit balance too low" — **add credits at console.anthropic.com → Plans & Billing** and it self-runs (nightly, or `POST /api/glossary/autosync` with `X-Sync-Token: $FEEDBACK_TOKEN`). Also fixed a status-leak bug: `get_live_glossary` was serving ~17 unapproved/duplicate rows (incl. a literal "term" row) to players. Details: memory [[project_glossary_autosync]]. NOTE: this auto-sync feeds the same AI-labeling concern as the item above — auto-drafted entries are tagged `source=game_auto | AI Generated`.
 
 ## 🎨 Active — CSV-portability (maintainer's reskin goal, scoped 2026-07-12)
 

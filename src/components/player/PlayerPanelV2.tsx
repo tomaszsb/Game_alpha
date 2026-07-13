@@ -23,7 +23,7 @@ import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2 } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCostToggle } from './TurnCostToggle';
-import { getEndTurnCostPreview, getTryAgainCostPreview } from '../../utils/costPreview';
+import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
 import { computeProjectFinances } from '../../utils/projectFinances';
@@ -213,17 +213,7 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   const mapped = manualEffects.map((effect) => {
     const effectKey = effect.effect_action ? `${effect.effect_type}:${effect.effect_action}` : effect.effect_type;
     const isDiceEffect = effect.effect_type === 'dice';
-    const isDiceCompleted = completedActions.diceRoll !== undefined;
-    const completedKeys = Object.keys(completedActions.manualActions);
-    const isCompleted = isDiceEffect
-      ? isDiceCompleted
-      : completedKeys.some(
-          (key) =>
-            key === effectKey ||
-            (effect.effect_action && key === effect.effect_action) ||
-            key.toLowerCase() === effectKey.toLowerCase() ||
-            (effect.effect_action && key.toLowerCase() === effect.effect_action.toLowerCase()),
-        );
+    const isCompleted = isManualEffectCompleted(effect, completedActions);
     const formatted = formatManualEffectButton(effect);
     return {
       effectKey,
@@ -312,7 +302,9 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // See src/utils/costPreview.ts for why the two differ (End Turn = the
   // space's declared SPACE_EFFECTS.csv cost; Try Again = the real
   // TurnCostLedger spend plus categories relabeled "will be re-drawn").
-  const endTurnCostRows = getEndTurnCostPreview(gameServices, player.currentSpace, player.visitType, playerId);
+  const endTurnCostRows = getEndTurnCostPreview(gameServices, player.currentSpace, player.visitType, playerId, completedActions);
+  // getTryAgainCostPreview intentionally does NOT take completedActions — see
+  // the comment at its call to getEndTurnCostPreview in costPreview.ts for why.
   const tryAgainCostRows = getTryAgainCostPreview(gameServices, playerId);
 
   // --- handlers (same service calls as the classic panel) ------------------

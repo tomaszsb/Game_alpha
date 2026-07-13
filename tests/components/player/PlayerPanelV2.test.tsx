@@ -663,3 +663,74 @@ describe('PlayerPanelV2 — this-turn cost line on the commit spine (fb:06f7da3b
     expect(line.textContent).toMatch(/\+50 days/);
   });
 });
+
+describe('PlayerPanelV2 — End Turn cost preview drops already-completed actions (fb:feedback-1783922070233-49395e17)', () => {
+  let services: ReturnType<typeof createAllMockServices>;
+
+  const player: any = {
+    id: 'player1', name: 'Test Player', currentSpace: 'OWNER-SCOPE-INITIATION',
+    visitType: 'First', money: 100000, timeSpent: 5, color: '#007bff',
+    hand: [], activeCards: [], activeEffects: [], loans: [],
+    dobApprovalStatus: 'none', fdnyApprovalStatus: 'none', moneySources: {}, moveIntent: null,
+  };
+
+  // Same shape as OWNER-SCOPE-INITIATION's real dice row: rolling determines
+  // how many Work Packages the player gets. Unknowable ahead of the roll, so
+  // the preview reads "Varies" — UNLESS the player already rolled it this
+  // turn, in which case it's no longer a remaining cost of pressing End Turn.
+  const diceEffect: any = {
+    space: 'OWNER-SCOPE-INITIATION', visit_type: 'First', effect_type: 'dice',
+    effect_action: 'dice_outcome', effect_value: 'W Cards', condition: '',
+    trigger_type: 'manual', description: 'Roll for W Cards',
+  };
+
+  const renderPanel = (completedActions: { diceRoll?: string; manualActions: Record<string, string> }) => {
+    services = createAllMockServices();
+    services.stateService.getPlayer.mockReturnValue(player);
+    services.stateService.getGameState.mockReturnValue({
+      players: [player], currentPlayerId: 'player1', gamePhase: 'PLAY',
+      hasPlayerRolledDice: false, movementChoiceUnlocked: true, awaitingChoice: null,
+      requiredActions: 1, completedActionCount: 0,
+      completedActions: { diceRoll: undefined, manualActions: {} },
+    });
+    services.stateService.subscribe.mockReturnValue(() => {});
+    services.dataService.getSpaceContent.mockReturnValue({
+      title: 'Scope Initiation', story: '', can_negotiate: true,
+      end_turn_label: 'End turn', try_again_label: 'Negotiate again',
+    });
+    services.dataService.getGameConfigBySpace.mockReturnValue({ phase: 'DESIGN' });
+    services.dataService.getSpaceEffects.mockReturnValue([diceEffect]);
+    services.dataService.getMovement.mockReturnValue(undefined);
+    services.turnService.filterSpaceEffectsByCondition.mockReturnValue([diceEffect]);
+    services.gameRulesService.canEndTurn.mockReturnValue(false);
+    services.cardService.canPlayCard.mockReturnValue(false);
+    services.dataService.getCardById.mockReturnValue(null);
+    return render(
+      <DictionaryProvider>
+        <PlayerPanelV2
+          gameServices={services as any}
+          playerId="player1"
+          mode="light"
+          onTryAgain={vi.fn()}
+          completedActions={completedActions as any}
+        />
+      </DictionaryProvider>,
+    );
+  };
+
+  afterEach(() => cleanup());
+
+  it('shows "Varies" for the Work row before the dice roll happens', () => {
+    renderPanel({ diceRoll: undefined, manualActions: {} });
+    // End Turn is the default (first-shown) tab of the toggle.
+    expect(screen.getByText('Varies')).toBeInTheDocument();
+  });
+
+  it('drops the Work row from the End Turn preview once the roll already resolved this turn', () => {
+    renderPanel({ diceRoll: '3', manualActions: {} });
+    expect(screen.queryByText('Varies')).not.toBeInTheDocument();
+    // The mock space declares nothing else, so with the dice row excluded the
+    // preview correctly falls back to its empty state instead of a stale row.
+    expect(screen.getByText('Nothing to report')).toBeInTheDocument();
+  });
+});
