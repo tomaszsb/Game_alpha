@@ -12,7 +12,7 @@ import { createServer } from 'http';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { initializeWebSocket, broadcastStateUpdate, getRoomStats, validateStateSchema, getConnectedPlayerIds } from './websocket.js';
+import { initializeWebSocket, broadcastStateUpdate, broadcastToAllRooms, getRoomStats, validateStateSchema, getConnectedPlayerIds } from './websocket.js';
 import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import {
@@ -2487,13 +2487,32 @@ cleanupExpiredGames();
 const server = startServer(DEFAULT_PORT);
 
 // Graceful shutdown
+// Deploy-update warning (TODO "📣 Active — deploy-update warning"): before
+// tearing the process down, tell every connected client their game is about
+// to restart so they aren't left staring at a dead connection with no
+// explanation. Each room gets its OWN game code baked into the message (a
+// game's join code IS its gameId — see the join-info route above), so
+// broadcastToAllRooms takes a per-room message builder rather than one
+// shared payload. The countdown itself is CLIENT-SIDE once it receives this
+// one message — the server does not wait out any countdown; it only pauses
+// briefly below to let the broadcast actually reach clients before the
+// process exits. Docker's SIGTERM→SIGKILL grace period is short (~10s
+// default, see deploy.sh's `docker stop`), so this stays well under it.
+const SHUTDOWN_NOTICE_FLUSH_MS = 300;
+
 function shutdown() {
   console.log('🛑 Shutting down...');
-  saveGames();
-  server.close(() => {
-    console.log('✅ Server shut down');
-    process.exit(0);
-  });
+  broadcastToAllRooms((gameId) => ({
+    type: 'server_shutdown_notice',
+    gameId,
+  }));
+  setTimeout(() => {
+    saveGames();
+    server.close(() => {
+      console.log('✅ Server shut down');
+      process.exit(0);
+    });
+  }, SHUTDOWN_NOTICE_FLUSH_MS);
 }
 
 process.on('SIGINT', shutdown);

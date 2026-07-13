@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.125] - 2026-07-13
+
+### Deploy countdown banner — players get a heads-up before the server restarts
+TODO "📣 Active — deploy-update warning" (scope narrowed 2026-07-10): when the maintainer deploys, `server.js`'s existing `shutdown()` (already wired to SIGINT/SIGTERM — Docker's `docker stop` sends SIGTERM before killing the container) now broadcasts a `server_shutdown_notice` to every active game room just before tearing the process down, via a new `broadcastToAllRooms()` in `websocket.js` that bakes each room's own game code into its message (a game's join code IS its `gameId`). A brief 300ms flush delay lets the broadcast actually reach clients before `saveGames()`/`server.close()`/`process.exit(0)` — well under Docker's ~10s SIGTERM grace period; the countdown itself is client-side, the server doesn't wait one out. New `ShutdownNotice` component (self-subscribing, one drop-in covers both `GameLayout` and `TVDisplay`) shows a dismissible banner: "This game is in beta — we're pushing an update now. If you get disconnected, rejoin with game code X" — no promised countdown number, since exact restart timing isn't predictable client-side. Safe to point at the game code now that the join-by-code picker (v3.0.122/123) makes rejoining unambiguous. Verified via typecheck, build, the full server suite (263/263, including a new real-`ws`-client integration test proving room isolation and correct per-room game codes) and a live end-to-end check: a real SIGTERM didn't reach Node's handler on this Windows dev environment (a known signal-emulation gap), so verification used a temporary debug-gated route to invoke the real `shutdown()` directly, confirmed the banner rendered live in the browser with the dismiss button before the connection dropped, then fully removed the temporary route (confirmed via `grep` before landing). (fixloop iteration, Sonnet 5)
+
 ## [3.0.124] - 2026-07-13
 
 ### Owner alert email now fires on game start, not on every homepage visit

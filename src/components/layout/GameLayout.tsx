@@ -37,6 +37,7 @@ import { useModalQueue } from '../../hooks/useModalQueue';
 import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { ShutdownNotice } from '../common/ShutdownNotice';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -1043,6 +1044,10 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
         gridTemplateColumns: hidePanelColumn ? '1fr' : undefined
       }}
     >
+      {/* Deploy-update warning — fixed-position, self-subscribing, so one
+          instance covers both the mobile and desktop branches below. */}
+      <ShutdownNotice />
+
       {/* Mobile View Mode - Show only player panel */}
       {effectiveViewPlayerId && gamePhase === 'PLAY' && (
         <div

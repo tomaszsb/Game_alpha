@@ -10,7 +10,7 @@ import { debugLog, debugWarn } from '../utils/debugLog';
  * Message types from server
  */
 interface ServerMessage {
-  type: 'state_update' | 'version_update' | 'error' | 'pong';
+  type: 'state_update' | 'version_update' | 'error' | 'pong' | 'server_shutdown_notice';
   gameId?: string;
   payload?: {
     state?: GameState;
@@ -51,6 +51,13 @@ export type StateUpdateCallback = (state: GameState, version: number) => void;
 export type ConnectionCallback = (state: ConnectionState) => void;
 
 /**
+ * Callback for the server's deploy-update shutdown notice. gameId is the
+ * room's own join code (a game's code IS its gameId), so subscribers can
+ * show "rejoin with code X" directly, without a separate lookup.
+ */
+export type ShutdownNoticeCallback = (gameId: string) => void;
+
+/**
  * WebSocketSyncService handles real-time game state synchronization via WebSocket.
  *
  * Features:
@@ -79,6 +86,7 @@ export class WebSocketSyncService {
   // Callbacks
   private stateUpdateCallbacks: StateUpdateCallback[] = [];
   private connectionCallbacks: ConnectionCallback[] = [];
+  private shutdownNoticeCallbacks: ShutdownNoticeCallback[] = [];
 
   // Track last known version for conflict detection
   private lastKnownVersion = 0;
@@ -373,6 +381,24 @@ export class WebSocketSyncService {
   }
 
   /**
+   * Register callback for the server's deploy-update shutdown notice
+   * (`server_shutdown_notice`) — broadcast once per room, room-by-room,
+   * from server.js's shutdown() just before it starts tearing the process
+   * down. Not called immediately with a "current" value (unlike
+   * onConnectionChange) since there's no persistent shutdown state to
+   * replay — this only fires on the one-shot broadcast.
+   */
+  onShutdownNotice(callback: ShutdownNoticeCallback): () => void {
+    this.shutdownNoticeCallbacks.push(callback);
+    return () => {
+      const index = this.shutdownNoticeCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.shutdownNoticeCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
    * Get last known server version
    */
   getLastKnownVersion(): number {
@@ -416,6 +442,14 @@ export class WebSocketSyncService {
       case 'pong':
         this.lastPongTime = message.timestamp || Date.now();
         break;
+
+      case 'server_shutdown_notice': {
+        const noticeGameId = message.gameId || this.gameId;
+        if (noticeGameId) {
+          this.shutdownNoticeCallbacks.forEach(cb => cb(noticeGameId));
+        }
+        break;
+      }
 
       case 'error':
         console.error('WebSocket server error:', message.payload?.message);

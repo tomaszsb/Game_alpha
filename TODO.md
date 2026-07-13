@@ -2,7 +2,7 @@
 
 **Last Updated:** July 12, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.124 (not yet deployed — v3.0.116–124 pending)
+**Current Version:** 3.0.125 (not yet deployed — v3.0.116–125 pending)
 
 ---
 
@@ -18,10 +18,6 @@
 ## 🔎 Active — bugs & investigations
 
 *2026-07-11 blind code review: all 10 items fixed — history in CHANGELOG v3.0.112–120.*
-
-## 📣 Active — deploy-update warning (2026-07-10, scope narrowed from "host broadcast")
-
-- [ ] **Deploy countdown banner.** NOT a general host-message feature — scope is specifically: when the maintainer deploys a new version, give players in active games a 30-second countdown banner before the server restarts, e.g. "This game is in beta — we make frequent updates. We're pushing a new one now. You can rejoin in about 5 minutes using game code XXXXXX." Needs: a way for `deploy.sh` (or the server on boot) to broadcast a WS message to all active game sessions before/during restart, a dismissible countdown banner in `GameLayout`/`TVDisplay` that shows it, and the actual game code so players can rejoin. No free-text/preset-message authoring needed — this is a fixed, single-purpose notice, not a chat feature.
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 

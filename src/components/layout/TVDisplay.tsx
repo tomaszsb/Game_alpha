@@ -15,6 +15,7 @@ import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { ShutdownNotice } from '../common/ShutdownNotice';
 
 interface TVDisplayProps {
   /** Callback when setup should start (optional - for showing setup on TV) */
@@ -124,6 +125,9 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
       gridTemplateColumns: showSidebar ? '1fr auto 220px' : '1fr auto',
       gridTemplateRows: 'auto 1fr auto',
     }}>
+      {/* Deploy-update warning — fixed-position, self-subscribing. */}
+      <ShutdownNotice />
+
       {/* Header with game info. fb:608bb670 — during PLAY the header is a two-
           line blue band: top line = logo + phone-controller indicator, bottom
           line = the player strip (moved off its own white row into the blue

@@ -332,6 +332,22 @@ export function broadcastToRoom(gameId, message, excludeWs = null) {
 }
 
 /**
+ * Broadcast a message to every active game room. Used for the deploy-update
+ * shutdown notice (TODO "📣 Active — deploy-update warning"): server.js's
+ * shutdown() calls this just before it tears the process down so connected
+ * players get a heads-up. Takes a function of gameId -> message rather than
+ * one shared message object because each room needs its OWN game code baked
+ * in — a game's join code IS its gameId (see server.js's join-info route),
+ * so there's no separate lookup to do.
+ * @param {(gameId: string) => object} buildMessage - returns the message for a given room
+ */
+export function broadcastToAllRooms(buildMessage) {
+  rooms.forEach((_clients, gameId) => {
+    broadcastToRoom(gameId, buildMessage(gameId));
+  });
+}
+
+/**
  * Broadcast state update to all clients in a game room
  * Called from server.js after successful HTTP POST
  */
