@@ -1,27 +1,36 @@
 # Next session starter — written 2026-07-13 by /koniec
 
 ## State at handoff
-- **Version:** v3.0.126 built (a concurrent fixloop shipped v3.0.121–126 during/around this session). Last maintainer-confirmed deploy was v3.0.115; **v3.0.116–126 likely pending deploy** (confirm against live before assuming).
-- **Branch:** master, clean (only `.claude/settings.local.json` left, local config). A concurrent fixloop session committed its own work (through v3.0.126); this /koniec committed only its two docs files on top.
-- **Last shipped (this session):** no game version — glossary auto-sync in the sibling **dictionary-scraper** repo (commit `452e76c`, pushed) + 19 construction terms now live in-game.
-- **Test suite:** typecheck clean. Full suite NOT re-run — zero game-source this session (glossary work was in the scraper repo). Baseline 2368/2369 (1 skip), from v3.0.120.
-- **Build/typecheck:** typecheck clean; build skipped to avoid colliding with the concurrent fixloop.
+- **Version:** v3.0.126 built and pushed. Last maintainer-confirmed deploy was v3.0.115 (2026-07-12); **v3.0.116–126 pending deploy** (12 versions stacked — confirm against live before assuming anything newer than 115 is out).
+- **Branch:** master, clean after this session's wrap-up commit.
+- **Last shipped:** v3.0.121–126 via an autonomous `/loop /fixloop` session (~6 hours). Cost-preview toggle for Push back / Lock the scope (first attempt landed in the deprecated classic panel with hover — redirected mid-build to a tap-based toggle in `PlayerPanelV2`), a Join-by-Code "which player are you?" picker so a crashed/rejoining player can reclaim their seat instead of landing in spectator view, a takeover-warning confirmation for claiming an actively-connected player, the owner-alert email moved from firing on mere homepage visits to firing on real game start (which also surfaced a dead `gamePhase === 'PLAYING'` comparison that had never once matched), a deploy-countdown banner, and a fix for the cost-preview toggle's own stale-"Varies" bug. Ran concurrently with a separate session doing glossary auto-sync work in the sibling `dictionary-scraper` repo — see that session's own CLAUDE.md entry and commit `e0a05ac`.
+- **Test suite:** **2382/2384 passing, 1 skipped, 1 failure** (all 5 ghost simulation gates green — strict/smart-bot/negotiate-coverage/coverage/authoredInsertion, 0 hard failures). The 1 failure (`E2E-AllPaths.test.ts`, a `setupGame()` timeout) is confirmed pre-existing resource-contention flakiness, not a regression — 3 separate runs this session each timed out on a *different* sub-test within that file, and this machine had multiple concurrent dev servers + a second Claude Code session running throughout. Tracked in TODO.md Parking lot.
+- **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **⏸️ Glossary auto-sync is blocked on Anthropic credits** — the nightly robot is built + deployed + verified end-to-end EXCEPT drafting 400s on "credit balance too low." Add credits at console.anthropic.com → Plans & Billing and it self-runs (or `POST /api/glossary/autosync` with `X-Sync-Token: $FEEDBACK_TOKEN`). Detail: memory `project_glossary_autosync` + CLAUDE.md TACTICAL.
-2. **Try Again button vs. cost-preview toggle look inconsistent** (fb:f453b1f3) — needs a design decision (short-tap=switch / long-press=commit merge idea). The related stale-"Varies" bug already shipped as v3.0.126. Context in TODO.md.
-3. **Deploy v3.0.116–126**, then dashboard PATCH sweep for any fb reports closed in that range.
+1. **Deploy v3.0.116–126**, then run the dashboard PATCH sweep — 5 reports queued in `.claude/fixloop/flip-queue.txt` (fb:a3dc215f, fb:bb72760f, fb:aaae63c0, fb:a98951ab, fb:49395e17), all fixed in this range.
+2. **⏸️ Glossary auto-sync is blocked on Anthropic credits** (concurrent session, 2026-07-13) — the nightly robot is built + deployed + verified end-to-end except drafting 400s on "credit balance too low." Add credits at console.anthropic.com → Plans & Billing, then it self-runs (or `POST /api/glossary/autosync` with `X-Sync-Token: $FEEDBACK_TOKEN`). Detail: memory `project_glossary_autosync` + CLAUDE.md TACTICAL.
+3. **Try Again button vs. cost-preview toggle look inconsistent + interaction idea** (fb:f453b1f3) — real visual gap plus a proposed short-tap=switch/long-press=commit redesign that would merge two currently-separate controls. Needs a design decision before building — not auto-built this session on purpose.
+
+## Test failures to address
+- `tests/E2E-AllPaths.test.ts > (varies)` — `setupGame()` timeout (30–60s) under full-suite load. Non-deterministic (3 different sub-tests failed across 3 runs today) — resource contention, not a code bug. See TODO.md Parking lot "Reliability / plumbing" for the trigger to actually fix it (raise `testTimeout`, or investigate why `setupGame()` is slow under load).
 
 ## Decisions waiting on the user
-- **Try Again button vs. cost-preview toggle** (fb:f453b1f3) — proposed short-tap=switch / long-press=commit interaction merge; needs a design call before building.
+- **Try Again button vs. cost-preview toggle** (fb:f453b1f3) — short-tap=switch / long-press=commit interaction merge; needs a design call before building.
 - **Board layout** / **Bank/Investor/Lender naming** — standing, don't nudge.
+- **Homeowner starting scenario** — direction decided (distinct violation mechanic), still needs a design pass on the mechanic itself before engineering.
+
+## Flip after deploy
+- fb:a3dc215f, fb:bb72760f, fb:aaae63c0, fb:a98951ab, fb:49395e17 — fixed in v3.0.121–126; PATCH resolved once that version range is confirmed live (recipe in TODO.md).
 
 ## Suggested first move
-Simplest high-value move: activate the glossary auto-sync — add Anthropic credits at console.anthropic.com, then `POST /api/glossary/autosync` (or wait for the nightly run) and confirm it stages the ~6 pending terms into the dashboard review queue. Otherwise, deploy the pending v3.0.116–126 batch.
+Deploy v3.0.116–126 first — nothing blocking it, and it closes 5 dashboard reports for free once confirmed. After that: activate the glossary auto-sync (quick, just needs credits) or pick up the Try Again/cost-preview design question — your call, both are independent of each other.
 
 ## Suggested model for next session
-Sonnet 5 — the open items are normal feature/bug work (glossary activation is config + one trigger; cost-preview is a scoped fix).
+**Sonnet 5** — deploy is a human action, and the remaining items (glossary credit activation, cost-preview design follow-up once decided) are normal scoped work, not architecturally ambiguous.
 
 ## Reminders
-- Deploy command runs from Windows terminal, not WSL.
-- Glossary edits go to the scraper's `master_glossary/GLOSSARY.csv`, NOT this repo's `public/data` copy (fallback only). See CLAUDE.md TACTICAL.
+- Deploy command runs from Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- **Budget-meter recalibration:** this session's fixloop meter drifted to 55% calibrated-stale while real usage was 82% (checked against the official `/usage` screen) — recalibrated mid-session, weekly budget adjusted 1398.33 → 1183.05. Recalibrate promptly whenever the user reports a mismatch; drift compounds fast on long sessions with agents running elsewhere.
+- If touching `server/*.js`, remember it's plain Node with no type checking — a string-literal comparison against a stale value (like this session's `'PLAYING'` vs `'PLAY'`) will never error, just silently never fire. Grep the real value across `src/` before trusting any comparison there. See CLAUDE.md TACTICAL.
+- If you suspect another Claude Code session is open on this same checkout, that's a known, documented scenario — see CLAUDE.md TACTICAL "Two interactive Claude Code sessions sharing one working tree."

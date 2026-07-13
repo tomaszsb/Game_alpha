@@ -5,21 +5,21 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** July 12, 2026
+**Last Updated:** July 13, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.0.120** — **3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer); **v3.0.116–120 built, not yet deployed.**
+**Current Version:** **3.0.126** — **3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer); **v3.0.116–126 built and pushed, not yet confirmed deployed.**
 
 ## Current sprint
-**2026-07-11/12 — closed the entire 10-item blind code review batch via `/loop /fixloop`.** Highlights: the frozen legacy `turn` counter (duration cards never expired, wrong turn numbers recorded), the dead `endTurn()` DOB penalty made reachable, duration-card lifecycle unified on `duration_count`, replaced cards now land in the discard pile instead of vanishing, the 5% investment fee now charges into the red like other mandatory bills, two player-setup uniqueness bugs, the `canEndTurn` movement-intent no-op, and timed life events now correctly tick only on the holder's own turn instead of everyone's. That last fix surfaced a genuine pre-existing TEMP/REAL staleness bug (a cached snapshot going stale via a fallback write path) — a broad first fix attempt passed every test except the ghost `smart-bot` gate, which caught a real soft-lock regression; corrected with a much narrower write-side fix (see CLAUDE.md TACTICAL). Also flipped 3 dashboard reports queued from the prior session once v3.0.115's deploy was confirmed, and logged a direct player comment requesting a new starting scenario (cash-strapped homeowner facing a Notice of Violation) as a decision item. Detail in CHANGELOG.
+**2026-07-12/13 — autonomous `/loop /fixloop` session, 6 versions shipped.** Built the cost-preview toggle for the Push back / Lock the scope buttons (spec locked the prior session) — first attempt landed in the deprecated classic panel with a hover interaction, redirected mid-build to a tap-based toggle in `PlayerPanelV2` since the game is played primarily on phones. Polling the live dashboard-feedback API each iteration (not just at session start) surfaced 4 new reports that reshaped scope in real time: Join-by-Code got a "which player are you?" picker so a crashed/rejoining player can reclaim their seat instead of landing in spectator view, then a takeover-warning follow-up so claiming an actively-connected player requires confirmation; the maintainer's owner-alert email was moved from firing on mere homepage visits to firing on actual game start, which also surfaced a dead `gamePhase === 'PLAYING'` comparison that meant the intended detector had silently never fired; the deploy-countdown banner shipped once rejoin was no longer ambiguous; and the cost-preview toggle's own stale-"Varies"-after-roll-resolves bug was fixed. Full detail in CHANGELOG v3.0.121–126, two new CLAUDE.md TACTICAL entries.
 
 ## Health
-- **Tests:** typecheck ✅ clean, build ✅ clean, full suite **2368/2369 passing, 1 skipped, 0 failures** (607s), including all 5 ghost simulation gates (strict/smart-bot/negotiate-coverage/coverage/authoredInsertion, 50 games each).
+- **Tests:** typecheck ✅ clean, build ✅ clean, full suite **2382/2384 passing, 1 skipped, 1 failure** (728s), all 5 ghost simulation gates green. The 1 failure is confirmed pre-existing resource-contention flakiness in `E2E-AllPaths.test.ts` (a different sub-test times out on each run), not a regression — see TODO.md Parking lot.
 - **Lint:** ~386 pre-existing errors (DEF-4, long-standing).
-- **Deploy:** live = v3.0.115. v3.0.116–120 built and pushed, awaiting the next `deploy.sh` run.
+- **Deploy:** live = v3.0.115 (last maintainer-confirmed). v3.0.116–126 built and pushed, awaiting the next `deploy.sh` run and confirmation.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Deploy v3.0.116–120** — fully verified, nothing blocking.
-2. **Push-back/Lock-the-scope buttons: build the cost preview** — spec locked 2026-07-12 (hover-per-button, 5-row breakdown; confirmed the two buttons genuinely cost different amounts). Ready to build, no decision pending. fb:feedback-1783080349985-a3dc215f.
-3. **CSV-portability lift** (ApprovalService.ts + characters.ts + theme.ts) — new item scoped 2026-07-12, ~half a day; blocks the maintainer's long-term content-only reskin goal.
+1. **Deploy v3.0.116–126**, then run the dashboard PATCH sweep for reports closed in that range (`.claude/fixloop/flip-queue.txt` has the list).
+2. **Try Again button vs. cost-preview toggle look inconsistent + interaction idea** — maintainer proposed short-tap=switch/long-press=commit; needs a design decision before building (fb:f453b1f3).
+3. **CSV-portability lift** (ApprovalService.ts + characters.ts + theme.ts) — scoped 2026-07-12, ~half a day; blocks the maintainer's long-term content-only reskin goal. Not touched this session.
 
-*(2026-07-12 follow-up session: resolved 4 of the 5 "Decisions waiting on the user" — Workstream 2 criterion, dictionary-scraper AI-glossary labeling, the push-back button spec, and the homeowner-scenario direction — via a maintainer interview. Full detail in TODO.md commit `03e1cb7`. Homeowner scenario is decided (build a distinct violation mechanic) but still needs its own design pass before engineering.)*
+*(2026-07-13: budget-meter recalibrated mid-session from 55% → 82% against the maintainer's official `/usage` reading — local receipts had drifted significantly behind reality on a long session with multiple concurrent agents running elsewhere. Weekly budget adjusted 1398.33 → 1183.05 accordingly.)*

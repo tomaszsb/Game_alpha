@@ -2,6 +2,13 @@
 
 ---
 
+## v3.0.121–126 — Rejoining is no longer a guessing game, and buttons tell you their price before you press them (July 12–13, 2026)
+
+- **The Push back / Lock the scope buttons now show what they actually cost before you press them.** A small toggle between the buttons breaks down labor, work, expediting, money, and time for whichever one you tap — no more guessing what each choice does to your project.
+- **Lost your spot after a crash? "Join by Code" now lets you pick your own name back.** Before, typing the game code just dropped you into a watch-only view with no way back to your own turn. Now it shows who's already in the game and lets you claim your seat — with a heads-up if someone else is still actively playing as that name on another device, so you don't accidentally boot them out mid-game.
+- **A heads-up before the game restarts for an update.** If you're mid-game when a new version goes live, you'll now see a dismissible banner with your game code so you know exactly how to get back in.
+- **The cost-preview toggle stopped showing "Varies" after you'd already rolled.** Once an action actually resolves this turn, it drops off the preview instead of hanging around with a stale guess.
+
 ## v3.0.112–120 — Life events now actually last as long as they say, and a real fee stopped disappearing (July 11–12, 2026)
 
 - **A "3 more turns" life event now genuinely means 3 of your own turns.** Before, an ongoing event like a strike or a code update was ticking down on *everyone's* turn, not just the affected player's — so with 4 people at the table, it could vanish in under one lap around instead of lasting as long as it said. It now counts down only on your own turns, the way the notice always implied.

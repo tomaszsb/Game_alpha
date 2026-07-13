@@ -1,6 +1,6 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 12, 2026
+**Last Updated:** July 13, 2026
 **Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
 **Current Version:** 3.0.126 (not yet deployed — v3.0.116–126 pending)
 
@@ -74,7 +74,7 @@
 - **dictionary-scraper `ANTHROPIC_API_KEY`** — RESOLVED, see the Active infra item above (keep the AI-writing step + label it, not remove the key).
 
 ### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
-`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. `flip-queue.txt` now empty.
+`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. 2026-07-13: 5 more queued in `.claude/fixloop/flip-queue.txt` (fb:a3dc215f, fb:bb72760f, fb:aaae63c0, fb:a98951ab, fb:49395e17) — fixed in v3.0.121–126, flip once that range's deploy is confirmed.
 
 ---
 
@@ -109,6 +109,7 @@
 - [ ] **Webhook deployment** (push-to-deploy via HTTP receiver on Unraid) + **verify deploy.sh backup/restore of `game-data/`** — DX wishlist, stalled since April.
 - [ ] **GEMINI.md setup** — likely obsolete (Gemini-era note); drop unless the user still wants it.
 - [ ] **Dice-result modal won't dismiss in the browser test harness** (~20 min investigation). A `DiceResultModal` that won't close via click / pointer-events / Escape even on a fresh reload with zero prior HMR has blocked *live* verification twice (v3.0.111, v3.0.122), forcing "verified via accessibility tree instead of screenshot" caveats. Not a game bug — a tooling/automation obstacle degrading our ability to prove fixes live. Root-cause the modal-dismiss-in-automation path (backdrop-grace timing? pointer-events layering? focus trap?). (2026-07-13 CHANGELOG review)
+- [ ] **`tests/E2E-AllPaths.test.ts` intermittently times out under full-suite load** — a *different* sub-test (30–60s timeout on `setupGame()`) fails on each run: 3 separate runs on 2026-07-13 each timed out on a different path (`PM → CHEAT-BYPASS`, `REG-DOB-TYPE-SELECT → REG-DOB-PLAN-EXAM`, `ENG-SCOPE → PM-DECISION-CHECK`). Confirmed non-deterministic (not a code bug in any one path) — almost certainly resource contention from multiple concurrent dev servers/Claude sessions sharing this machine during heavy fixloop sessions. Trigger: recurs on a quiet machine with nothing else running, or blocks a `/koniec` pre-flight often enough to be annoying — then worth raising this file's `testTimeout` or investigating why `setupGame()` is slow enough to bump into it at all under load.
 
 ### Architecture / code health (bundle these in one dedicated session — same drift-trap shape)
 - [ ] **Classic→V2 panel parity sweep (proactive, do-once).** The migrate-to-V2 rule is *reactive* ("don't polish classic") — it never audited what classic still does that `PlayerPanelV2` doesn't. That gap shipped a batch of "invisible for weeks" bugs when V2 became default at v3.0.97: swallowed toasts (v3.0.100), missing NPC portraits + `{fundingAmount}` fix (v3.0.98), expeditor phase-gate hint (v3.0.99), cost preview (v3.0.121). Sweep once: grep the classic panel (`ActionCenterPanel.tsx` + siblings) for every `notify`/`getNpcCharacterInfo`/token resolver/phase-gate/render branch and confirm each has a V2 equivalent, so the trickle stops instead of arriving one report at a time. (2026-07-13 CHANGELOG review)
