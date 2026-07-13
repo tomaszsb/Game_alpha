@@ -48,8 +48,8 @@ export const TurnCostToggle: React.FC<TurnCostToggleProps> = ({
   const tabStyle = (active: boolean): React.CSSProperties => ({
     flex: 1,
     border: 'none',
-    padding: '5px 6px',
-    fontSize: 10,
+    padding: '6px 6px',
+    fontSize: 11,
     fontWeight: 600,
     cursor: 'pointer',
     lineHeight: 1.25,
@@ -62,12 +62,17 @@ export const TurnCostToggle: React.FC<TurnCostToggleProps> = ({
 
   return (
     <div style={{ marginTop: 6 }}>
+      {/* Caption reframes this strip as a COMPARE tool, not a second row of
+          action buttons — the confusion the reporter hit (fb:f453b1f3). */}
+      <div style={{ fontSize: 9.5, color: p.muted, marginBottom: 3 }}>
+        Compare what each costs
+      </div>
       <div
         role="tablist"
         aria-label="Cost preview"
         style={{
           display: 'flex',
-          borderRadius: 8,
+          borderRadius: 11,
           overflow: 'hidden',
           border: `1px solid ${p.borderStrong}`,
           background: p.surf,

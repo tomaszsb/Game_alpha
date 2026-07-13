@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.128] - 2026-07-13
+
+### End Turn / Try Again footer — A/B experiment for the "press-and-hold to commit" idea
+Dashboard report fb:feedback-1783922410258-f453b1f3: "The try again button is different size than try again slider and colors change on one but not other. Can we change so that pressing short will slide but long press will act as button? We should add a small growing line to show the button working." Two things in one report — a real visual-consistency gap, plus a proposed interaction redesign that merges the two currently-separate footer controls (the real Try Again button and the tap-to-compare `TurnCostToggle` cost slider) into one. Rather than pick a winner, both ship side by side gated on the panel's existing light/dark toggle (`usePanelMode`, localStorage-persisted, user-flippable) so the maintainer can compare them live:
+
+- **Light mode → Option A (tidied status quo):** keeps the separate Try Again button + End Turn button + preview slider, but resolves the reported confusion — added a "Compare what each costs" caption so the slider reads as a comparison tool rather than a mismatched second row of buttons, matched its border-radius to the real buttons (8→11), and bumped tab text (10→11) to reduce the size mismatch.
+- **Dark mode → Option B (the reporter's idea):** a new `TurnCommitControl` — one segmented control where a SHORT TAP switches which cost preview is shown and a PRESS-AND-HOLD (~650ms) commits that side, with a growing progress line that fills during the hold and snaps back on early release. Because End Turn / Try Again are the most consequential taps in the game, the hold is deliberately deliberate: releasing before the bar fills only switches the preview (never commits); the End side won't hold-commit when the turn isn't endable (shows the "N actions left" hint instead); no double-commit; a "Tap to compare · press & hold to confirm" caption for discoverability; and a keyboard fallback (Space = compare, Enter = commit) since long-press is pointer-only.
+
+Nothing was removed — the merge is a single `mode === 'dark'` branch in `PlayerPanelV2`'s footer; flipping to light restores the exact prior behavior. Both variants read from the same `getEndTurnCostPreview`/`getTryAgainCostPreview` data, so the numbers can't diverge — only the interaction differs. Verified via typecheck, build, 8 new deterministic (fake-timer) tests pinning tap-vs-hold, release/pointer-leave cancel, the not-actionable guard, keyboard fallback, and no-double-commit, plus the full player-component suite (186/186, including PlayerPanelV2's 26 light-mode-path tests). Live in-browser drive of the exact dark-mode negotiate state was deferred (a concurrent session holds the dev server on this checkout); the wiring is a mode conditional and the interaction logic is unit-proven.
+
 ## [3.0.127] - 2026-07-13
 
 ### NPC speaker badge no longer shows as a stray light box in dark-mode modals

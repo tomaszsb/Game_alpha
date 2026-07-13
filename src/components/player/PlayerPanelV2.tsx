@@ -23,6 +23,7 @@ import { PlayerCardDetailV2 } from './PlayerCardDetailV2';
 import { PlayerNumbersV2 } from './PlayerNumbersV2';
 import { PlayerChronicleV2 } from './PlayerChronicleV2';
 import { TurnCostToggle } from './TurnCostToggle';
+import { TurnCommitControl } from './TurnCommitControl';
 import { getEndTurnCostPreview, getTryAgainCostPreview, isManualEffectCompleted } from '../../utils/costPreview';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeName, getCardEffectSummary } from '../../utils/cardTypeNames';
@@ -1021,78 +1022,100 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
             {endTurnError}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 8 }}>
-          {isMyTurn && content && content.can_negotiate && onTryAgain && (
-            <button
-              onClick={() => onTryAgain(playerId)}
-              style={{
-                flex: '0 0 auto',
-                border: `1px solid ${p.borderStrong}`,
-                background: p.surf,
-                color: p.text,
-                borderRadius: 11,
-                padding: '8px 11px',
-                fontSize: 11,
-                fontWeight: 500,
-                cursor: 'pointer',
-                lineHeight: 1.2,
-                textAlign: 'left',
-              }}
-            >
-              {content.try_again_label || 'Negotiate again'}
-            </button>
-          )}
-          <button
-            onClick={commit.onClick}
-            disabled={!commit.ready}
-            style={{
-              flex: 1,
-              border: 'none',
-              borderRadius: 11,
-              padding: 13,
-              fontSize: 15,
-              fontWeight: 500,
-              color: commit.ready ? '#fff' : p.muted,
-              background: commit.ready ? p.accent : p.surf2,
-              cursor: commit.ready ? 'pointer' : 'default',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 2,
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {showGreenDot && (
-                <span
-                  style={{ width: 9, height: 9, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,.3)' }}
-                />
-              )}
-              {commit.label}
-            </span>
-            {turnCostLine && (
-              <small
-                data-testid="turn-cost-line"
-                style={{
-                  display: 'block',
-                  fontSize: 9,
-                  fontWeight: 400,
-                  color: commit.ready ? 'rgba(255,255,255,.85)' : p.muted,
-                }}
-              >
-                {turnCostLine}
-              </small>
-            )}
-          </button>
-        </div>
-        {isMyTurn && content && content.can_negotiate && onTryAgain && (
-          <TurnCostToggle
+        {/* A/B experiment (fb:f453b1f3): in the End Turn / Try Again decision,
+            DARK mode gets the merged press-and-hold control (Option B); LIGHT
+            mode keeps the separate buttons + compare slider (Option A). Every
+            other state (dice roll, waiting, not-yet-endable) falls through to
+            the normal commit spine below. */}
+        {mode === 'dark' && isMyTurn && content && content.can_negotiate && onTryAgain ? (
+          <TurnCommitControl
             mode={mode}
-            endTurnLabel={content.end_turn_label || 'End turn'}
             tryAgainLabel={content.try_again_label || 'Negotiate again'}
+            endLabel={commit.label}
+            endActionable={commit.ready}
             endTurnRows={endTurnCostRows}
             tryAgainRows={tryAgainCostRows}
+            onCommitEnd={commit.onClick}
+            onCommitTryAgain={() => onTryAgain(playerId)}
+            endCostLine={turnCostLine ?? undefined}
+            showGreenDot={showGreenDot}
           />
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {isMyTurn && content && content.can_negotiate && onTryAgain && (
+                <button
+                  onClick={() => onTryAgain(playerId)}
+                  style={{
+                    flex: '0 0 auto',
+                    border: `1px solid ${p.borderStrong}`,
+                    background: p.surf,
+                    color: p.text,
+                    borderRadius: 11,
+                    padding: '8px 11px',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    lineHeight: 1.2,
+                    textAlign: 'left',
+                  }}
+                >
+                  {content.try_again_label || 'Negotiate again'}
+                </button>
+              )}
+              <button
+                onClick={commit.onClick}
+                disabled={!commit.ready}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  borderRadius: 11,
+                  padding: 13,
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: commit.ready ? '#fff' : p.muted,
+                  background: commit.ready ? p.accent : p.surf2,
+                  cursor: commit.ready ? 'pointer' : 'default',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {showGreenDot && (
+                    <span
+                      style={{ width: 9, height: 9, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 0 3px rgba(52,211,153,.3)' }}
+                    />
+                  )}
+                  {commit.label}
+                </span>
+                {turnCostLine && (
+                  <small
+                    data-testid="turn-cost-line"
+                    style={{
+                      display: 'block',
+                      fontSize: 9,
+                      fontWeight: 400,
+                      color: commit.ready ? 'rgba(255,255,255,.85)' : p.muted,
+                    }}
+                  >
+                    {turnCostLine}
+                  </small>
+                )}
+              </button>
+            </div>
+            {isMyTurn && content && content.can_negotiate && onTryAgain && (
+              <TurnCostToggle
+                mode={mode}
+                endTurnLabel={content.end_turn_label || 'End turn'}
+                tryAgainLabel={content.try_again_label || 'Negotiate again'}
+                endTurnRows={endTurnCostRows}
+                tryAgainRows={tryAgainCostRows}
+              />
+            )}
+          </>
         )}
       </div>
 
