@@ -69,7 +69,6 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const p = panelPalettes[mode];
   const [selected, setSelected] = useState<Side>('end');
   const [pressing, setPressing] = useState<Side | null>(null);
-  const [committed, setCommitted] = useState(false);
   const timerRef = useRef<number | null>(null);
   const firedRef = useRef(false);
 
@@ -92,7 +91,6 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const fire = useCallback(
     (side: Side) => {
       firedRef.current = true;
-      setCommitted(true);
       if (side === 'end') onCommitEnd?.();
       else onCommitTryAgain();
     },
@@ -101,7 +99,6 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
 
   const startHold = useCallback(
     (side: Side) => {
-      if (committed) return;
       // Selecting on press-down means the preview immediately matches what a
       // completed hold will commit — no surprise.
       setSelected(side);
@@ -114,7 +111,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         fire(side);
       }, HOLD_MS);
     },
-    [committed, actionableFor, clearTimer, fire],
+    [actionableFor, clearTimer, fire],
   );
 
   const endHold = useCallback(
@@ -135,10 +132,10 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         setSelected(side); // Space = compare
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (!committed && actionableFor(side)) fire(side); // Enter = commit
+        if (actionableFor(side)) fire(side); // Enter = commit
       }
     },
-    [committed, actionableFor, fire],
+    [actionableFor, fire],
   );
 
   const sideStyle = (side: Side): React.CSSProperties => {
@@ -177,7 +174,6 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
           ? `${label} — tap to compare, press and hold to confirm`
           : label
       }
-      disabled={committed}
       onPointerDown={() => startHold(side)}
       onPointerUp={() => endHold(side)}
       onPointerLeave={() => endHold(side)}

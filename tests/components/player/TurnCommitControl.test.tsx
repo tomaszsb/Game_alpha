@@ -133,17 +133,34 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
     expect(onCommitEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('does not double-commit once committed', () => {
+  it('a single continuous hold fires exactly once', () => {
     const { endBtn, onCommitEnd } = setup();
     act(() => {
       fireEvent.pointerDown(endBtn);
       vi.advanceTimersByTime(700);
-    });
-    // A second attempt after commit is ignored (buttons disabled).
-    act(() => {
-      fireEvent.pointerDown(endBtn);
+      // Still holding well past the threshold — the one-shot timer must not
+      // re-fire, and the eventual release must not fire again.
       vi.advanceTimersByTime(700);
+      fireEvent.pointerUp(endBtn);
     });
     expect(onCommitEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays usable after a commit — Try Again can fire again (no permanent lock)', () => {
+    // Regression guard: a permanent post-commit lock would strand a player who
+    // re-negotiates (Try Again keeps it their turn) or whose End Turn failed a
+    // gate. The control must accept a fresh gesture after committing.
+    const { tryBtn, onCommitTryAgain } = setup();
+    act(() => {
+      fireEvent.pointerDown(tryBtn);
+      vi.advanceTimersByTime(700);
+      fireEvent.pointerUp(tryBtn);
+    });
+    act(() => {
+      fireEvent.pointerDown(tryBtn);
+      vi.advanceTimersByTime(700);
+      fireEvent.pointerUp(tryBtn);
+    });
+    expect(onCommitTryAgain).toHaveBeenCalledTimes(2);
   });
 });

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.129] - 2026-07-13
+
+### Fix: dark-mode merged commit control no longer locks up after the first action
+Follow-up to v3.0.128, caught on re-review before deploy. `TurnCommitControl` set a `committed` flag on first commit and used it to permanently `disable` both sides — intended as double-commit protection, but it stranded the player in two real cases: (1) **Try Again keeps it your turn** and leaves the control mounted, so after one Try Again the whole control went dead and you couldn't act again; (2) a **failed End Turn** (e.g. a scope-gate rejection) surfaces its error and it's still your turn — but the control was already locked, so you couldn't retry. The existing light-mode button has no such lock, and a single press-and-hold already can't double-fire (one-shot timer + `firedRef` guard), so the flag was both a regression and inconsistent. Removed the permanent lock entirely; same-gesture double-fire protection is unchanged. Reworked the corresponding test from asserting a permanent lock to asserting the opposite (a single hold fires exactly once, and the control accepts a fresh gesture after committing). Verified via typecheck, build, and the control's suite (9/9).
+
 ## [3.0.128] - 2026-07-13
 
 ### End Turn / Try Again footer — A/B experiment for the "press-and-hold to commit" idea
