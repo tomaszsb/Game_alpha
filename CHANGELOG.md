@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.136] - 2026-07-14
+
+### Setup screen: a discoverable (but not yet built) "Remote" play mode placeholder
+Maintainer request: a third option alongside PC ("shared screen") and TV ("shared screen + phone controllers") for players in genuinely separate locations — both existing modes still assume one physical hub device everyone can see. The underlying plumbing for a true no-shared-screen remote mode isn't built, so per the maintainer's explicit instruction this ships as a visible, discoverable placeholder rather than a real feature: a third "🌐 Remote" button in the "How are you playing?" row, styled distinctly (dashed border, dimmed) so it doesn't look like a working option, with a tooltip explaining the intent and a tap-to-confirm "Coming soon!" (mirroring the existing `ComingSoonButton` pattern from the `/challenge` landing page) so touch users get a reaction instead of a silent dead button. Does not touch `selectedMode` state — verified live that clicking it leaves the real PC/TV selection completely unaffected. Verified via typecheck, build, and a live browser session (button renders, tap reveals "Coming soon!", PC's `aria-pressed` stays `true` throughout).
+
 ## [3.0.135] - 2026-07-14
 
 ### TV-mode setup screen: legibility scale-up + a real fix for keyboard/remote scrolling

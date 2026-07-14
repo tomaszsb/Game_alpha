@@ -141,6 +141,15 @@ export function PlayerSetup({
     e.preventDefault();
   };
 
+  // "Remote" mode placeholder (maintainer request 2026-07-14): a third
+  // option for players in genuinely separate locations, distinct from PC
+  // (shared screen) and TV (shared screen + phone controllers) — both of
+  // today's modes still assume one physical hub device. Not built yet, so
+  // this is a visible-but-inert button; tapping it just confirms "coming
+  // soon" instead of a silent no-op, mirroring the same pattern already
+  // used for /challenge's "Watch demo" button (ComingSoonButton).
+  const [remoteModeTapped, setRemoteModeTapped] = useState(false);
+
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
   // "Which player are you?" picker (fb:feedback-1783819148816-bb72760f,
@@ -988,6 +997,35 @@ export function PlayerSetup({
                 📺 TV
                 <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
                   Phones + TV
+                </div>
+              </button>
+              {/* Remote — placeholder, not built yet (see remoteModeTapped
+                  above). Visually grouped with PC/TV so players discover the
+                  intent even before it works; a real click still gets a
+                  reaction, not a silent dead button. */}
+              <button
+                type="button"
+                onClick={() => setRemoteModeTapped(true)}
+                aria-disabled="true"
+                style={{
+                  flex: 1,
+                  padding: '0.7rem 0.9rem',
+                  borderRadius: 8,
+                  border: `2px dashed ${colors.secondary.border}`,
+                  background: '#fafafa',
+                  color: colors.text.secondary,
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                  opacity: 0.65,
+                }}
+                title="Play with everyone in a different location — no shared screen needed. Coming soon."
+              >
+                🌐 Remote
+                <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.85, marginTop: 2 }}>
+                  {remoteModeTapped ? 'Coming soon!' : 'Different places'}
                 </div>
               </button>
             </div>
