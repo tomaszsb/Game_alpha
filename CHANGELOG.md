@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.135] - 2026-07-14
+
+### TV-mode setup screen: legibility scale-up + a real fix for keyboard/remote scrolling
+Two fresh dashboard reports (v3.0.130, filed ~13 min apart, almost certainly the same tester): fb:feedback-1783998607682-3f9f2831 ("Too low resolution on TV") and fb:feedback-1783997840419-e121c34e ("Can't go back up — these have to fit on a screen, this TV is 4k but resolution is crap"). Both trace to real, fixable gaps in `PlayerSetup.tsx`'s TV mode:
+
+1. **No distance-appropriate scaling.** Every size on this screen is `clamp(rem, vh/vw, rem)`, tuned for a laptop viewed ~50cm away — nothing scales up for a 4K TV viewed from a couch, where the same CSS pixel sizes read tiny despite the TV's high pixel density. Applied a "10-foot UI" `zoom: 1.3` in TV mode, using the standard compensation pattern (pre-shrinking the container's own declared `width`/`height` by the inverse factor so the zoomed box renders back at the real viewport size, avoiding overflow) — safe here specifically because TV mode is already confirmed Chromium-only (Tizen/webOS/Android TV/Fire TV/Chromecast, per the existing `isSmartTV()` gate).
+2. **The real "can't go back up" bug.** A prior fix (fb:fc65c217) made the player-list scrollbar always-visible in TV mode since a TV remote can't hover to reveal an `auto` one — but that only solved *discovering* there's more content, not *reaching* it: a TV remote has no wheel/hover/touch, and the scrollable div was never focusable, so arrow-key/D-pad presses did nothing. Made the wrapper focusable (`tabIndex`, auto-focused on entering TV mode) and added an explicit keydown handler for Arrow Up/Down, Page Up/Down, Home, and End that scrolls it directly (not relying on each smart-TV browser engine's own focused-div arrow-scroll behavior, which isn't consistent across embedded Chromium variants).
+
+Verified via typecheck, build, and a live browser session at two simulated TV resolutions (1920×1080, 1280×720): confirmed the zoom math is exact (container pre-shrunk to 1477×831 renders back to exactly 1920×1080, zero overflow — `scrollWidth === clientWidth`), confirmed the title's actual on-screen size is ~1.3× bigger in TV mode via `getBoundingClientRect()` (43px → 55px) since `getComputedStyle().fontSize` doesn't reflect zoom's rendering-time scale, and confirmed the keyboard scroll fix end-to-end at a real overflow state (4 players, 642px content in a 140px wrapper): ArrowDown/PageDown/End all move forward correctly, and — the reported symptom specifically — ArrowUp and Home both correctly scroll back to the top. This is a best-effort code-level fix, not confirmed on real TV hardware (no smart TV available in this environment); the underlying mechanisms (CSS zoom compensation, explicit scroll-key handling) are standard and the math/behavior is verified exactly as implemented, but real-device confirmation would close this out with certainty.
+
 ## [3.0.134] - 2026-07-14
 
 ### Classic player panel removed; TurnCommitControl unified across light and dark mode

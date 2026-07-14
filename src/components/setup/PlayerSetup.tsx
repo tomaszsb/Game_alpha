@@ -1,6 +1,6 @@
 // src/components/setup/PlayerSetup.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { colors } from '../../styles/theme';
 import { PlayerForm } from './PlayerForm';
 import { PlayerList } from './PlayerList';
@@ -30,6 +30,23 @@ interface PlayerSetupProps {
   /** When set, show a simplified mobile view for this player only */
   viewPlayerId?: string;
 }
+
+/**
+ * "10-foot UI" legibility scale for TV mode (fb:feedback-1783998607682-3f9f2831
+ * / fb:feedback-1783997840419-e121c34e — "Too low resolution on TV" / "this TV
+ * is 4k but resolution is crap"). This screen's sizing is entirely
+ * clamp(rem, vh/vw, rem) — tuned for a laptop viewed ~50cm away, not a TV
+ * across a room. A 4K TV has plenty of PIXELS but the same CSS pixel sizes
+ * read tiny at couch distance. `zoom` scales the whole rendered box (fonts,
+ * padding, QR codes) uniformly without needing to touch every clamp() value —
+ * safe here specifically because TV mode is already confirmed Chromium-only
+ * (Tizen/webOS/Android TV/Fire TV/Chromecast, see isSmartTV()). Zoom also
+ * scales the box's OWN declared width/height, so those are pre-shrunk by the
+ * inverse factor (see styles.container's TV override) to land back at the
+ * real 100vw/100dvh — the standard compensation pattern for using `zoom` as a
+ * uniform scale on a viewport-sized element.
+ */
+const TV_MODE_ZOOM = 1.3;
 
 /**
  * PlayerSetup is the main container component that orchestrates player management
@@ -95,6 +112,35 @@ export function PlayerSetup({
     if (urlMode === 'pc') return 'pc';
     return isSmartTV() ? 'tv' : 'pc';
   });
+
+  // TV-remote scroll (fb:feedback-1783997840419-e121c34e — "Can't go back up
+  // ... this TV is 4k but resolution is crap"). fb:fc65c217 already forced
+  // the scrollbar always-visible in TV mode so the user can SEE there's more
+  // content, but a TV remote has no wheel/hover/touch — there was never an
+  // actual way to move it. Focusing this container + handling the D-pad's
+  // arrow/page keys directly (native focused-div arrow-scroll isn't reliable
+  // across smart-TV browser engines) makes the visible scrollbar usable.
+  const playerListScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedMode === 'tv') playerListScrollRef.current?.focus();
+  }, [selectedMode]);
+  const handlePlayerListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const el = playerListScrollRef.current;
+    if (!el) return;
+    const line = 60; // px per Up/Down press — a bit more than one card row's worth
+    const page = el.clientHeight * 0.85;
+    switch (e.key) {
+      case 'ArrowDown': el.scrollBy({ top: line }); break;
+      case 'ArrowUp': el.scrollBy({ top: -line }); break;
+      case 'PageDown': el.scrollBy({ top: page }); break;
+      case 'PageUp': el.scrollBy({ top: -page }); break;
+      case 'Home': el.scrollTo({ top: 0 }); break;
+      case 'End': el.scrollTo({ top: el.scrollHeight }); break;
+      default: return; // let anything else (Tab, Enter on a child, etc.) pass through
+    }
+    e.preventDefault();
+  };
+
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState('');
   // "Which player are you?" picker (fb:feedback-1783819148816-bb72760f,
@@ -748,9 +794,21 @@ export function PlayerSetup({
   }
 
   return (
-    <div className="us-setup-fullheight" style={styles.container}>
+    <div
+      className="us-setup-fullheight"
+      style={{
+        ...styles.container,
+        ...(selectedMode === 'tv'
+          ? {
+              zoom: TV_MODE_ZOOM,
+              width: `${100 / TV_MODE_ZOOM}vw`,
+            }
+          : {}),
+      }}
+    >
       <style>{`
         .us-setup-fullheight { height: 100vh; height: 100dvh; }
+        ${selectedMode === 'tv' ? `.us-setup-fullheight { height: ${100 / TV_MODE_ZOOM}vh; height: ${100 / TV_MODE_ZOOM}dvh; }` : ''}
         /* Landing-header hero treatment (fb:7dbc2fcc, "feels naked") — the
            brand mark (yarn ball unraveling into the "NYC Codes" book) gets a
            soft breathing glow and a gentle wobble instead of sitting there
@@ -957,11 +1015,17 @@ export function PlayerSetup({
               scrollbar. In PC mode 'auto' avoids showing a scrollbar/gutter
               when there's nothing to scroll (fb:feedback-1782833653490-5470235b
               — "why are there scroll bars? there is not much stuff here"). */}
-          <div style={{
-            ...styles.playerListWrapper,
-            overflow: selectedMode === 'tv' ? 'scroll' : 'auto',
-            scrollbarGutter: selectedMode === 'tv' ? 'stable' : 'auto',
-          }}>
+          <div
+            ref={playerListScrollRef}
+            tabIndex={selectedMode === 'tv' ? 0 : undefined}
+            onKeyDown={selectedMode === 'tv' ? handlePlayerListKeyDown : undefined}
+            aria-label={selectedMode === 'tv' ? 'Player list — use the arrow/page keys to scroll' : undefined}
+            style={{
+              ...styles.playerListWrapper,
+              overflow: selectedMode === 'tv' ? 'scroll' : 'auto',
+              scrollbarGutter: selectedMode === 'tv' ? 'stable' : 'auto',
+            }}
+          >
             <PlayerList
               players={players}
               onUpdatePlayer={handleUpdatePlayer}
