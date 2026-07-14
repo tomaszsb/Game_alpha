@@ -28,7 +28,7 @@
 // hover/click overlays for space details. Phase D wires drag-save to
 // the editor's existing /api/sources POST endpoint.
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -42,6 +42,8 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   useReactFlow,
+  getNodesBounds,
+  getViewportForBounds,
   type Node,
   type Edge,
   type NodeProps,
@@ -60,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -318,6 +320,15 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
 
 const nodeTypes = { boardNode: BoardNode };
 
+// PC-mode camera behavior (maintainer-forwarded review, 2026-07-14) — space-
+// size-aware initial zoom + per-device persisted viewport. The pure logic
+// (fingerprinting, localStorage read/write) lives in boardCommon.ts
+// (boardFingerprint/readSavedViewport/writeSavedViewport/TARGET_MIN_TILE_PX/
+// TARGET_MAX_TILE_PX) so it's unit-testable without rendering React Flow;
+// see the two effects below (near the TV-mode centerOnCurrent effect) for
+// how they're wired up, and boardCommon.ts's own comment block for the
+// full rationale.
+
 // A* pathfinding edge that routes around node bounding boxes instead of
 // cutting through them. Registered here (not inline) so React Flow doesn't
 // re-create the map every render. See Workstream 3 / Phase C in
@@ -389,6 +400,11 @@ function BoardCanvasInner({
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const { getViewport, setViewport, fitView } = useReactFlow();
+  // Measures the actual rendered container — needed to compute a tile-size-
+  // aware viewport ourselves (see boardFingerprint / getViewportForBounds
+  // usage below), since that has to match the real pixel dimensions React
+  // Flow itself is filling, not an assumed size.
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [validMoves, setValidMoves] = useState<string[]>([]);
   // Required/completed action counters for the current player's turn. Driven
   // by the same stateService subscribe loop as validMoves so the on-tile chip
@@ -706,6 +722,53 @@ function BoardCanvasInner({
     return () => window.clearTimeout(timer);
   }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView]);
 
+  // PC-mode initial camera: restore this device's saved viewport for this
+  // exact board layout, or fall back to a tile-size-aware fit (see the
+  // TARGET_MIN_TILE_PX/TARGET_MAX_TILE_PX block above BoardNode's nodeTypes
+  // for the full rationale). Skipped for TV mode (has its own auto-focus
+  // above) and the editor (needs the plain full-board fitView from the
+  // `fitView` prop to place tiles). Small delay for the same reason the TV
+  // effect uses one — let the `fitView` prop's initial paint land first.
+  useEffect(() => {
+    if (centerOnCurrent || isAdmin) return;
+    if (initialNodes.length === 0) return;
+    const timer = window.setTimeout(() => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const { width, height } = wrapper.getBoundingClientRect();
+      if (width === 0 || height === 0) return; // not laid out yet — skip rather than guess
+
+      const bounds = getNodesBounds(initialNodes);
+      const fingerprint = boardFingerprint(initialNodes.length, bounds);
+      const saved = readSavedViewport(fingerprint);
+      if (saved) {
+        setViewport(saved, { duration: 0 });
+        return;
+      }
+
+      const minZoom = TARGET_MIN_TILE_PX / BOARD_TILE_COMPACT.w;
+      const maxZoom = TARGET_MAX_TILE_PX / BOARD_TILE_COMPACT.w;
+      const viewport = getViewportForBounds(bounds, width, height, minZoom, maxZoom, 0.1);
+      setViewport(viewport, { duration: 0 });
+      writeSavedViewport(fingerprint, viewport);
+    }, 100);
+    return () => window.clearTimeout(timer);
+    // initialNodes is a stable useMemo keyed on dataService, so this only
+    // re-runs on a genuine board-layout change, not on every player/turn
+    // update (those only touch nodes[i].data, never initialNodes itself).
+  }, [centerOnCurrent, isAdmin, initialNodes, setViewport]);
+
+  // Persist the player's own subsequent pans/zooms (idea 6 above — "remember
+  // the chosen zoom for that device"). Same PC-mode-only scoping as the
+  // effect above; TV mode's per-turn auto-focus would otherwise repeatedly
+  // overwrite this with its own transient camera moves.
+  const handleMoveEnd = useCallback(() => {
+    if (centerOnCurrent || isAdmin) return;
+    if (initialNodes.length === 0) return;
+    const fingerprint = boardFingerprint(initialNodes.length, getNodesBounds(initialNodes));
+    writeSavedViewport(fingerprint, getViewport());
+  }, [centerOnCurrent, isAdmin, initialNodes, getViewport]);
+
   // fb:feedback-1782842971898-c73c35ca — "board node overlaps a tile, want a
   // way to force nodes not to overlap." Live during drag (not just on drop),
   // check the dragged tile's ACTUAL rendered box (React Flow's `.measured` —
@@ -768,7 +831,7 @@ function BoardCanvasInner({
   }, [isAdmin, onPositionSaved]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div ref={wrapperRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
       {saveStatus && (
         <div
           role="status"
@@ -811,6 +874,7 @@ function BoardCanvasInner({
         onNodeDragStop={onNodeDragStop}
         onEdgeClick={onEdgeClick}
         onPaneClick={handlePaneClick}
+        onMoveEnd={handleMoveEnd}
         nodesDraggable={isAdmin}
         nodesConnectable={false}
         // elementsSelectable={true} always — React Flow's selection plumbing

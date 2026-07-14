@@ -390,3 +390,72 @@ export function uniqueDiceDestinations(
   const rolls = [outcome.roll_1, outcome.roll_2, outcome.roll_3, outcome.roll_4, outcome.roll_5, outcome.roll_6];
   return Array.from(new Set(rolls.filter((d): d is string => !!d && d.trim().length > 0)));
 }
+
+// ===================================================================
+// PC-mode camera memory (maintainer-forwarded review, 2026-07-14) —
+// BoardCanvas.tsx uses these for its own two behaviors:
+//   1. Space-size-based initial zoom instead of "fit everything": pick the
+//      zoom that keeps a tile's on-screen size within
+//      [TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX] via getViewportForBounds
+//      (the same function React Flow's own `fitView` uses internally, just
+//      given tile-legibility-derived min/max zoom instead of generic ones).
+//   2. Remember the chosen zoom/pan per device (localStorage), keyed by a
+//      cheap fingerprint of the board's own layout (node count + bounding
+//      box) so a saved viewport is never blindly applied to a differently-
+//      shaped board — a mismatch just falls through to a fresh fit.
+// Pure/localStorage-only logic lives here (not in BoardCanvas.tsx) so it's
+// unit-testable without rendering the React Flow component — same reasoning
+// as computeTileVisualState/resolveTileOverlap above.
+// ===================================================================
+
+export const TARGET_MIN_TILE_PX = 80;
+export const TARGET_MAX_TILE_PX = 200;
+export const BOARD_VIEWPORT_STORAGE_KEY = 'ucBoardViewport';
+
+/** Minimal shape needed from a React Flow node bounds computation —
+ *  avoids a hard dependency on @xyflow/react's Node type here. */
+export interface BoardBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface BoardViewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/** Cheap fingerprint of a board's layout: node count + bounding box, rounded
+ *  to whole pixels. Stable across renders (a saved viewport should still
+ *  apply after a page reload); changes the instant the board's actual shape
+ *  does (a different classroom layout, or a future board with more spaces),
+ *  which is exactly when a saved viewport should NOT be reused. */
+export function boardFingerprint(nodeCount: number, bounds: BoardBounds): string {
+  return `${nodeCount}:${Math.round(bounds.x)}:${Math.round(bounds.y)}:${Math.round(bounds.width)}:${Math.round(bounds.height)}`;
+}
+
+/** Reads a saved viewport for this exact board fingerprint, or null if
+ *  there's none, it's for a different board, or storage is unavailable/corrupt. */
+export function readSavedViewport(fingerprint: string): BoardViewport | null {
+  try {
+    const raw = localStorage.getItem(BOARD_VIEWPORT_STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as { fingerprint?: string; viewport?: BoardViewport };
+    if (saved?.fingerprint === fingerprint && saved.viewport) return saved.viewport;
+  } catch {
+    /* localStorage unavailable or corrupt — treat as no saved viewport */
+  }
+  return null;
+}
+
+/** Persists a viewport for this board fingerprint. Silently no-ops if
+ *  localStorage is unavailable — the memory just won't persist this session. */
+export function writeSavedViewport(fingerprint: string, viewport: BoardViewport): void {
+  try {
+    localStorage.setItem(BOARD_VIEWPORT_STORAGE_KEY, JSON.stringify({ fingerprint, viewport }));
+  } catch {
+    /* localStorage unavailable — ignore */
+  }
+}

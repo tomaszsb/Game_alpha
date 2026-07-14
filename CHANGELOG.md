@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.137] - 2026-07-14
+
+### Board camera (PC mode): space-size-aware initial zoom + per-device viewport memory
+Follow-up to a maintainer-forwarded review of "house standard" board-scaling practices for fixed-layout board games. Audited `BoardCanvas.tsx` (the live board, confirmed via `GameLayout.tsx` — the `BoardV3`-vs-`BoardCanvas` toggle comments in that file are stale history from the v3.0.0 retirement) against the review's 6 points + one bonus idea: viewport measurement, HUD-margin fitting, and centering were already handled (mostly by React Flow's own `fitView` default, not deliberate design); zoom/pan controls already existed. Two were genuinely missing:
+
+1. **No distance-appropriate initial zoom.** `fitView` just scaled the whole board to fit the container — full stop. A board with many spaces spread wide could shrink tiles (authored at a fixed `BOARD_TILE_COMPACT` 150×60px) well below legible size with nothing stopping it; the only floor was `minZoom={0.2}`, a blunt safety rail unconnected to actual tile legibility.
+2. **No remembered zoom per device.** Every mount ran a fresh `fitView`; nothing persisted a player's chosen camera position.
+
+Implemented both, scoped to PC-mode gameplay only (`!centerOnCurrent && !isAdmin` — TV mode's own deliberate per-turn auto-focus in `TVDisplay.tsx`, and the Board Layout Editor's need for the plain full-board view to place tiles, are both untouched):
+
+- **Space-size-based zoom** via `getViewportForBounds` (the exact function React Flow's own `fitView` uses internally) called directly with custom `minZoom`/`maxZoom` derived from a target tile size of 80–200 logical px (`TARGET_MIN_TILE_PX`/`TARGET_MAX_TILE_PX` in `boardCommon.ts`) instead of the library's generic bounds — picks the largest zoom that keeps tiles legible, showing as much of the board as fits within that constraint (may mean panning is needed to see the rest, which is the intended tradeoff).
+- **Per-device viewport memory** via `localStorage`, keyed by a fingerprint of the board's own layout (node count + bounding box, in `boardCommon.ts`) so a saved viewport is never blindly reused on a differently-shaped board (a different classroom's custom layout, or a future board with more spaces) — a fingerprint mismatch just falls through to a fresh size-aware fit.
+
+The pure logic (`boardFingerprint`/`readSavedViewport`/`writeSavedViewport`/the two target constants) lives in `boardCommon.ts`, not inline in the component, matching this file's existing pattern of extracting board logic there for unit-testability without rendering React Flow (same reasoning as `computeTileVisualState`/`resolveTileOverlap`).
+
+Verified via typecheck, build, 11 new tests (`boardCommon.cameraMemory.test.ts` — fingerprint stability/sensitivity, save/restore round-trip, cross-board mismatch rejection, corrupt-JSON and localStorage-failure resilience) plus the existing 15 `BoardCanvas.test.ts` tests (unaffected — they cover unrelated pure helpers), and an extensive live browser session: confirmed the zoom floor engages exactly at `80/150 = 0.5333...` on a small viewport, the ceiling exactly at `200/150 = 1.3333...` on a very large one (both exact-match, not coincidental natural fits — proven by deliberately testing at sizes where the naive "fit everything" zoom would fall outside the range), and confirmed a manually-zoomed viewport (1.6×) survives a full page reload by reading React Flow's own `.react-flow__viewport` transform directly (not just trusting `localStorage`'s content) — it matched exactly. Also confirmed via `TVDisplay.tsx`/`GameLayout.tsx` prop wiring that TV mode and the Board Layout Editor are correctly untouched.
+
 ## [3.0.136] - 2026-07-14
 
 ### Setup screen: a discoverable (but not yet built) "Remote" play mode placeholder
