@@ -39,8 +39,8 @@
 ### Newly arrived (2026-07-13 later batch — cost-preview toggle feedback)
 *(stale-"Varies" bug shipped v3.0.126, see CHANGELOG — closes fb:49395e17; A/B experiment shipped v3.0.128/129, maintainer picked the dark-mode press-and-hold control as winner and requested 3 tweaks, shipped v3.0.131 — see CHANGELOG — closes fb:f453b1f3)*
 
-### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
-- [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->
+### Landing / presentation (game-setup screen, NOT `/challenge`)
+*(hero header — prominent title, brand-mark graphic, subtle motion — shipped v3.0.133, see CHANGELOG; closes fb:7dbc2fcc except the optional jingle, parked below under "audio = greenfield" since no SFX system exists yet)*
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
 - [~] **P1 remaining:** inline deltas per entry, click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. Acceptance: every committed work-change + expeditor add → exactly one feed entry with a delta, from the existing emission point. (P2–P5 parked below pending V2 reframe.)

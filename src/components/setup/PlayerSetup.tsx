@@ -590,13 +590,31 @@ export function PlayerSetup({
 
     return (
       <div className="us-setup-fullheight" style={styles.container}>
-        <style>{`.us-setup-fullheight { height: 100vh; height: 100dvh; }`}</style>
+        <style>{`
+          .us-setup-fullheight { height: 100vh; height: 100dvh; }
+          .us-hero-logo-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+          .us-hero-glow {
+            position: absolute; inset: -28%; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 72%);
+            filter: blur(5px); pointer-events: none;
+            animation: usHeroGlow 4.5s ease-in-out infinite;
+          }
+          .us-hero-logo-img { position: relative; transform-origin: 50% 82%; animation: usHeroWobble 6.5s ease-in-out infinite; }
+          @keyframes usHeroGlow { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } }
+          @keyframes usHeroWobble { 0%, 100% { transform: rotate(-3.5deg); } 50% { transform: rotate(3.5deg); } }
+          @media (prefers-reduced-motion: reduce) {
+            .us-hero-glow, .us-hero-logo-img { animation: none; }
+          }
+        `}</style>
         <div style={styles.background} />
 
         {/* Header */}
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            <img src="/images/logo.png" alt="Unravel Codes" style={styles.logo} />
+            <div className="us-hero-logo-wrap">
+              <div className="us-hero-glow" aria-hidden="true" />
+              <img src="/images/logo.png" alt="Unravel Codes" className="us-hero-logo-img" style={styles.logo} />
+            </div>
             <div>
               <h1 style={styles.title}>Unravel Codes: The Game</h1>
               <p style={styles.subtitle}>Setting up your player</p>
@@ -731,18 +749,43 @@ export function PlayerSetup({
 
   return (
     <div className="us-setup-fullheight" style={styles.container}>
-      <style>{`.us-setup-fullheight { height: 100vh; height: 100dvh; }`}</style>
+      <style>{`
+        .us-setup-fullheight { height: 100vh; height: 100dvh; }
+        /* Landing-header hero treatment (fb:7dbc2fcc, "feels naked") — the
+           brand mark (yarn ball unraveling into the "NYC Codes" book) gets a
+           soft breathing glow and a gentle wobble instead of sitting there
+           static and small. Kept subtle: this is a functional setup screen,
+           not a marketing page, so motion must not distract from Add Player /
+           Start Game. Respects prefers-reduced-motion. */
+        .us-hero-logo-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .us-hero-glow {
+          position: absolute; inset: -28%; border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 72%);
+          filter: blur(5px); pointer-events: none;
+          animation: usHeroGlow 4.5s ease-in-out infinite;
+        }
+        .us-hero-logo-img { position: relative; transform-origin: 50% 82%; animation: usHeroWobble 6.5s ease-in-out infinite; }
+        @keyframes usHeroGlow { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } }
+        @keyframes usHeroWobble { 0%, 100% { transform: rotate(-3.5deg); } 50% { transform: rotate(3.5deg); } }
+        @media (prefers-reduced-motion: reduce) {
+          .us-hero-glow, .us-hero-logo-img { animation: none; }
+        }
+      `}</style>
       {/* Background gradient */}
       <div style={styles.background} />
 
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <img
-            src="/images/logo.png"
-            alt="Unravel Codes"
-            style={styles.logo}
-          />
+          <div className="us-hero-logo-wrap">
+            <div className="us-hero-glow" aria-hidden="true" />
+            <img
+              src="/images/logo.png"
+              alt="Unravel Codes"
+              className="us-hero-logo-img"
+              style={styles.logo}
+            />
+          </div>
           <div>
             <h1 style={styles.title}>Unravel Codes: The Game</h1>
             <p style={styles.subtitle}>Navigate from project initiation to completion!</p>
@@ -1730,14 +1773,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: 'clamp(0.5rem, 1.5vw, 1rem)',
   },
   logo: {
-    width: 'clamp(40px, 6vh, 70px)',
+    // Enlarged from clamp(40px, 6vh, 70px) — fb:7dbc2fcc ("feels naked") —
+    // paired with the glow/wobble treatment above the header (search
+    // us-hero-logo-wrap) so the existing brand mark reads as a proper hero
+    // element instead of a small static icon.
+    width: 'clamp(56px, 9vh, 96px)',
     height: 'auto',
   },
   title: {
     color: 'white',
-    fontSize: 'clamp(1rem, 2.5vh, 1.75rem)',
+    fontSize: 'clamp(1.15rem, 3vh, 2rem)',
     margin: 0,
     fontWeight: 'bold',
+    letterSpacing: '0.01em',
     textShadow: '0 2px 4px rgba(0,0,0,0.2)',
   },
   subtitle: {

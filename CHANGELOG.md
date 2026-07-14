@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.133] - 2026-07-14
+
+### Setup screen's header gets a hero treatment — "feels naked" fix
+Dashboard report fb:feedback-1782833475856-7dbc2fcc: "wants prominent title, representative graphic (carousel idea now proven on /challenge — could reuse), optional jingle, subtle motion." The setup screen's header (`PlayerSetup.tsx`) had shrunk to a small static logo + plain text over the years of feature accretion, with nothing distinguishing it as the game's front door. Rather than import the `/challenge` page's full screenshot carousel — sized for a dedicated marketing page, and this is a functional screen the maintainer has specifically kept compact (fixing unnecessary scrollbars, wasted vertical space) — gave the EXISTING brand mark (a yarn ball unraveling into an "NYC Codes" book, already the app's icon/logo) a proper hero treatment instead: enlarged (`clamp(40px,6vh,70px)` → `clamp(56px,9vh,96px)`), a soft breathing glow behind it (radial-gradient, 4.5s ease-in-out), and a gentle wobble (±3.5°, 6.5s ease-in-out — thematically apt for a "loose thread," not just decoration) — both respecting `prefers-reduced-motion`. Title bumped (`clamp(1rem,2.5vh,1.75rem)` → `clamp(1.15rem,3vh,2rem)`) with slight letter-spacing. Applied to both the main setup header and the per-player mobile "waiting" header for consistency. The "optional jingle" is NOT addressed — this game has no audio/SFX system at all (greenfield; see TODO Parking lot) — a genuine capability gap, not a taste call. Verified via typecheck, build, and a live browser session (no dedicated test suite exists for this file — the change is decorative markup/CSS only, no new logic or props): confirmed via computed styles that both animations are actually running (`usHeroGlow`/`usHeroWobble`), the logo rendered at the new larger width, the title picked up the new font-size, and — importantly — the header's extra height did NOT introduce a new scrollbar (`scrollHeight === clientHeight`, matching the maintainer's prior scroll-discipline fixes for this screen).
+
 ## [3.0.132] - 2026-07-14
 
 ### Dark-mode commit control — comic-bubble preview, sliding tail, and a fixed-height fix for the button "jump"
