@@ -1,14 +1,18 @@
-// Panel theme + version toggles for the player-panel redesign.
+// Panel theme (light/dark) for the player panel.
 //
-// Scoped to the new panel for now (see docs/design/player-panel-redesign.md §4):
-// the rest of the app stays light until a later app-wide dark-mode pass.
-// Light/dark palettes are built from the slate scale already in styles/theme.ts
-// so they stay consistent with the existing design tokens.
+// Scoped to the player panel for now (see docs/design/player-panel-redesign.md
+// §4): the rest of the board/app stays light until a later app-wide dark-mode
+// pass (tracked in TODO.md). Light/dark palettes are built from the slate
+// scale already in styles/theme.ts so they stay consistent with the existing
+// design tokens.
+//
+// The classic ↔ new panel version toggle (PanelVersion/usePanelVersion) was
+// removed 2026-07-14 along with the classic ActionCenterPanel itself —
+// PlayerPanelV2 is now the only panel.
 
 import { useCallback, useState } from 'react';
 
 export type PanelMode = 'light' | 'dark';
-export type PanelVersion = 'classic' | 'new';
 
 export interface PanelPalette {
   bg: string;
@@ -72,7 +76,6 @@ export const panelPalettes: Record<PanelMode, PanelPalette> = {
 };
 
 const MODE_KEY = 'ucPanelMode';
-const VERSION_KEY = 'ucPanelVersion';
 
 function readStored(key: string, fallback: string): string {
   try {
@@ -91,21 +94,15 @@ function writeStored(key: string, value: string): void {
 }
 
 /**
- * Non-hook reader for the persisted panel version. The new-view outcome modal
- * (DiceResultModal) is a SHARED, short-lived modal rendered outside the panel
- * tree, so it can't use the `usePanelVersion` hook cleanly — it reads the flag
- * once at render instead. Mirrors the hook's fallback ('new').
+ * Non-hook reader for the persisted panel light/dark mode. DiceResultModal is
+ * a SHARED, short-lived modal rendered outside the panel tree, so it can't use
+ * the `usePanelMode` hook cleanly — it reads the flag once at render instead.
  */
-export function getStoredPanelVersion(): PanelVersion {
-  return readStored(VERSION_KEY, 'new') === 'classic' ? 'classic' : 'new';
-}
-
-/** Non-hook reader for the persisted panel light/dark mode (see above). */
 export function getStoredPanelMode(): PanelMode {
   return readStored(MODE_KEY, 'light') === 'dark' ? 'dark' : 'light';
 }
 
-/** Light/dark for the new panel. Persisted in localStorage. */
+/** Light/dark for the player panel. Persisted in localStorage. */
 export function usePanelMode(): [PanelMode, () => void] {
   const [mode, setMode] = useState<PanelMode>(() =>
     readStored(MODE_KEY, 'light') === 'dark' ? 'dark' : 'light',
@@ -118,23 +115,4 @@ export function usePanelMode(): [PanelMode, () => void] {
     });
   }, []);
   return [mode, toggle];
-}
-
-/**
- * Classic ↔ new panel switch (see docs/design §7). Defaults to 'new' — the
- * redesign is now the primary experience; the maintainer flips back to
- * 'classic' only to compare against the old behavior.
- */
-export function usePanelVersion(): [PanelVersion, () => void] {
-  const [version, setVersion] = useState<PanelVersion>(() =>
-    readStored(VERSION_KEY, 'new') === 'classic' ? 'classic' : 'new',
-  );
-  const toggle = useCallback(() => {
-    setVersion((v) => {
-      const next: PanelVersion = v === 'classic' ? 'new' : 'classic';
-      writeStored(VERSION_KEY, next);
-      return next;
-    });
-  }, []);
-  return [version, toggle];
 }

@@ -87,9 +87,11 @@ Five zones, top → bottom. Emphasis is **phase-adaptive** (the panel shows diff
 
 ---
 
-## 7. Old / new toggle (build requirement)
+## 7. Old / new toggle (build requirement) — RESOLVED 2026-07-14
 
 The new panel ships **behind a toggle** (old ↔ new) so the maintainer can flip between them and **verify no information was lost** before committing to the new one. Keep the toggle until we're 100% sure all info is included. Likely a setting/dev flag read at the panel mount point (`PlayerPanelWrapper` / `GameLayout`), selecting old `ActionCenterPanel` vs. new component.
+
+**Closed out 2026-07-14:** the maintainer confirmed the redesign was complete and asked for the classic panel to be removed entirely. `ActionCenterPanel` (+ its exclusive sections/CSS/tests) and the toggle itself (`PanelVersion`/`usePanelVersion`) were deleted; `PlayerPanelV2` is now the only panel. See CHANGELOG.
 
 ---
 

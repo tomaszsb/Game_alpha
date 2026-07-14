@@ -13,7 +13,7 @@
 //   Movement / info / choice → null (no clear match — modal speaks for itself)
 
 import type { DiceResultEffect } from '../types/StateTypes';
-import type { ReferenceTab } from '../components/player/ActionCenterPanel';
+import type { ReferenceTab } from '../components/player/panelTypes';
 
 export function pickRelatedTab(
   effects: DiceResultEffect[] | undefined

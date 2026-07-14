@@ -1,8 +1,8 @@
-// OutcomeChangesV2 — the new-view "what just happened" before→after block.
-//
-// Gated to the opt-in new panel (DiceResultModal reads ucPanelVersion). The
-// shared classic BeforeAfterBlock stays untouched. This mirrors the "My numbers"
-// ledger (PlayerNumbersV2) so a change reads in the SAME visual language the
+// OutcomeChangesV2 — DiceResultModal's "what just happened" before→after
+// block (the classic panel's separate BeforeAfterBlock was removed 2026-07-14
+// along with the classic panel itself — this is the only one now). Mirrors
+// the "My numbers" ledger (PlayerNumbersV2) so a change reads in the SAME
+// visual language the
 // player recalls their figures in (fb:dc7652ec — "before/after should look like
 // my numbers"). It also names the SPECIFIC resource/expeditor gained or lost
 // from the effect payload, instead of a bare count delta, so the player can see

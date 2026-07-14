@@ -13,9 +13,8 @@ import { useNpcPortrait } from '../../hooks/useNpcPortrait';
 import { CharacterBadge } from './shared/CharacterBadge';
 import { shouldShake, getTtsText } from '../../utils/modalConfig';
 import { NarrativeBlock } from './shared/NarrativeBlock';
-import { BeforeAfterBlock } from './shared/BeforeAfterBlock';
 import { OutcomeChangesV2 } from '../player/OutcomeChangesV2';
-import { getStoredPanelVersion, getStoredPanelMode, panelPalettes, PanelMode } from '../player/panelTheme';
+import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 
@@ -51,19 +50,12 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
   const currentPlayerId = gameServices.stateService.getGameState().currentPlayerId;
 
-  // The outcome modal is SHARED between classic + new panels. In the new view we
-  // render the "My numbers"-styled OutcomeChangesV2 (before→after that reads like
-  // the ledger + names the exact card gained/lost); classic keeps the untouched
-  // BeforeAfterBlock. Read the flags once at render — this modal is short-lived.
-  const isNewView = getStoredPanelVersion() === 'new';
+  // Read once at render — this modal is short-lived. (Classic panel's
+  // BeforeAfterBlock branch was removed 2026-07-14 along with the classic
+  // panel itself; this always renders the "My numbers"-styled
+  // OutcomeChangesV2 now — see the render below.)
   const panelMode = getStoredPanelMode();
-  // The modal's own chrome (Summary, approval banner, Effects rows, footer
-  // buttons) always renders in the V2 token language — mirrors how the
-  // nested PlayerCardDetailV2 below already resolves its mode (light for
-  // classic, the panel's mode for new view). Classic keeps its untouched
-  // BeforeAfterBlock; only this shell + the parts unique to this file move.
-  const shellMode: PanelMode = isNewView ? panelMode : 'light';
-  const p = panelPalettes[shellMode];
+  const p = panelPalettes[panelMode];
 
   // Look up space content early (needed for data-driven shake/TTS config)
   const spaceContent = result?.spaceName
@@ -124,8 +116,8 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
   // Visit-indicator part 2 (2026-05-29, fb:0cdd59ba) — "results 2x once
   // in red and once in green". Root cause: each money/time/card-count
   // effect renders a bold colored value AND the same delta appears in the
-  // BeforeAfterBlock table below. Two visual representations of one fact.
-  // When the snapshot is present (so BeforeAfterBlock will render), the
+  // OutcomeChangesV2 table below. Two visual representations of one fact.
+  // When the snapshot is present (so the table will render), the
   // Effects row drops the bold colored value and shows only the icon +
   // description + any card-identity chips. The numeric delta lives in one
   // place (the table). Without snapshots (legacy / partial results), keep
@@ -149,7 +141,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
     }
 
     // Whether this effect's numeric delta is already covered by the
-    // BeforeAfterBlock table — i.e. money / time / card count. Movement,
+    // OutcomeChangesV2 table — i.e. money / time / card count. Movement,
     // qualitative_outcome, etc. are NOT in the table and always show their
     // formatted value here.
     const isDuplicatedByTable = hasSnapshot && (
@@ -209,7 +201,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       >
         <span aria-hidden style={{ fontSize: '18px', flexShrink: 0 }}>{icon}</span>
         <div style={{ flex: 1 }}>
-          {/* Suppress the bold colored value when the BeforeAfterBlock table
+          {/* Suppress the bold colored value when the OutcomeChangesV2 table
               below will show the same delta — see hasSnapshot/isDuplicatedByTable
               comment above. Movement and qualitative_outcome still surface their
               value here because the table doesn't cover them. */}
@@ -419,14 +411,14 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       testId="dice-result-modal"
       shake={hasNegativeEffect}
       speechControls={speechControls}
-      mode={shellMode}
+      mode={panelMode}
     >
       {/* Voice rule (no game language): the old "🎲 Result: N" subtitle surfaced
           the raw die number — removed. The outcome is told by the Summary +
           effects below, never by the die value. */}
 
       {/* Character Badge */}
-      {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} mode={shellMode} />}
+      {result.spaceName && <CharacterBadge spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} mode={panelMode} />}
 
       {/* Per-action narrative (from SPACE_EFFECTS narrative column) */}
       {(() => {
@@ -438,7 +430,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
           result.spaceName, 'First', `draw_${cardEffect.cardType}`
         );
         if (!narrative) return null;
-        return <NarrativeBlock text={narrative} spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} mode={shellMode} />;
+        return <NarrativeBlock text={narrative} spaceName={result.spaceName} portraitSrc={getPortraitForSpace(result.spaceName)} mode={panelMode} />;
       })()}
 
       {/* Summary */}
@@ -551,24 +543,19 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
 
       {/* Before / after snapshot — the exact resource deltas (money, scope,
        * time, hand) so playtesters don't dismiss the modal and hunt through
-       * tabs. New view: the "My numbers"-styled OutcomeChangesV2 that also names
-       * the specific card gained/lost (fb:dc7652ec / 0001f5df / 0fc63fc1 /
-       * 3aad5f84). Classic: the original block, untouched. Both render nothing
-       * if no field changed. */}
-      {isNewView ? (
-        <OutcomeChangesV2
-          before={result.before}
-          after={result.after}
-          effects={result.effects}
-          mode={panelMode}
-          resolveCard={(id) => {
-            const c = dataService.getCardById(id);
-            return c ? { name: c.card_name, type: c.card_type } : null;
-          }}
-        />
-      ) : (
-        <BeforeAfterBlock before={result.before} after={result.after} effects={result.effects} />
-      )}
+       * tabs. The "My numbers"-styled OutcomeChangesV2 also names the specific
+       * card gained/lost (fb:dc7652ec / 0001f5df / 0fc63fc1 / 3aad5f84).
+       * Renders nothing if no field changed. */}
+      <OutcomeChangesV2
+        before={result.before}
+        after={result.after}
+        effects={result.effects}
+        mode={panelMode}
+        resolveCard={(id) => {
+          const c = dataService.getCardById(id);
+          return c ? { name: c.card_name, type: c.card_type } : null;
+        }}
+      />
 
       {/* Phase 4: Optional footer summary from ModalConfig.modal_summary */}
       {overrideFooterSummary && (
@@ -596,7 +583,7 @@ export function DiceResultModal({ isOpen, result, onClose, onConfirm, onExitComp
       card={detailCardId ? dataService.getCardById(detailCardId) ?? null : null}
       playerId={currentPlayerId || ''}
       gameServices={gameServices}
-      mode={shellMode}
+      mode={panelMode}
     />
     </>
   );

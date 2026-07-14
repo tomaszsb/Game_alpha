@@ -1,6 +1,11 @@
 import React from 'react';
 import { SpaceRow, DiceRollRow } from './types/EditorTypes';
-import '../player/ActionCenterPanel.css';
+// Was '../player/ActionCenterPanel.css' — moved here 2026-07-14 when the
+// classic ActionCenterPanel component was removed. This preview intentionally
+// renders with the classic panel's exact `action-center__*` class names (it
+// mirrors what the classic panel used to look like in-game); only the CSS
+// survives, kept as this file's own stylesheet since it's the last consumer.
+import './PlayerPreviewPanel.css';
 
 interface PlayerPreviewPanelProps {
   currentSpace: SpaceRow | null;

@@ -143,6 +143,19 @@ const mockBCard: any = {
   phase_restriction: 'Any'
 };
 
+/**
+ * Commits a TurnCommitControl tab via a real press-and-hold. Since v3.0.128
+ * (unified across light/dark 2026-07-14), the merged End Turn / Try Again
+ * control requires holding past its ~650ms threshold to commit — a plain
+ * click only switches which side's cost preview is shown. 700ms real time
+ * clears that threshold with margin; this file doesn't use fake timers.
+ */
+const pressAndHoldToCommit = async (tab: HTMLElement): Promise<void> => {
+  fireEvent.pointerDown(tab);
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  fireEvent.pointerUp(tab);
+};
+
 describe('E2E-01: Happy Path with New UI', () => {
 
   beforeAll(async () => {
@@ -266,18 +279,20 @@ describe('E2E-01: Happy Path with New UI', () => {
     // UI Interaction 2: Execute Manual Action: roll for work packages
     fireEvent.click(rollForWCardsButton);
 
-    // Wait for end-turn to become enabled. The label is CSV-driven:
+    // Wait for end-turn to become ready. The label is CSV-driven:
     // OWNER-SCOPE-INITIATION/First → "Lock the scope". Async find, not a bare
-    // getByRole — the button's accessible name only flips from "N actions
-    // left" to "Lock the scope" once both manual effects above finish
-    // resolving (triggerManualEffectWithFeedback is async in both panels).
-    const endTurnButton = await screen.findByRole('button', { name: /Lock the scope/i }, { timeout: 5000 });
-    await waitFor(() => {
-        expect(endTurnButton).toBeEnabled();
-    }, { timeout: 3000 });
+    // getByRole — the tab's accessible name only flips from "N actions left"
+    // to "Lock the scope" once both manual effects above finish resolving
+    // (triggerManualEffectWithFeedback is async), and PlayerPanelV2 only sets
+    // that label once `commit.ready`/`endActionable` is already true (same
+    // branch), so matching the label IS the readiness check — TurnCommitControl
+    // renders this as role="tab" (not a native <button>), so it's never
+    // natively disabled; there's nothing separate to wait on beyond the label.
+    const endTurnTab = await screen.findByRole('tab', { name: /Lock the scope/i }, { timeout: 5000 });
 
-    // UI Interaction 3: Click end-turn to trigger movement
-    fireEvent.click(endTurnButton);
+    // UI Interaction 3: press-and-hold end-turn to trigger movement (a plain
+    // click no longer commits — see pressAndHoldToCommit above).
+    await pressAndHoldToCommit(endTurnTab);
 
     // Wait for movement to complete and dismiss overlay if it appears
     await waitFor(() => {
@@ -292,18 +307,23 @@ describe('E2E-01: Happy Path with New UI', () => {
       expect(gameServices.stateService.getPlayer(actualPlayerId)?.currentSpace).toBe('OWNER-FUND-INITIATION');
     }, { timeout: 5000 });
 
-    // OWNER-FUND-INITIATION/First → "Take the check"
-    await waitFor(() => {
-      const etButton = screen.getByRole('button', { name: /Take the check/i });
-      expect(etButton).toBeEnabled();
-    }, { timeout: 5000 });
+    // OWNER-FUND-INITIATION/First → "Take the check". Same reasoning as
+    // above: matching the label on the tab IS the readiness check.
+    const takeCheckTab = await screen.findByRole('tab', { name: /Take the check/i }, { timeout: 5000 });
 
-    // Click end-turn to finish Alice's Turn 1
-    fireEvent.click(screen.getByRole('button', { name: /Take the check/i }));
+    // Press-and-hold to finish Alice's second End Turn action (see
+    // pressAndHoldToCommit above).
+    await pressAndHoldToCommit(takeCheckTab);
 
+    // globalTurnCount increments once per completed End Turn action
+    // (StateService.advanceTurn — see TurnService.ts's own "globalTurnCount:
+    // 7 → 8" doc comment), with no per-space exemption. Two separate End Turn
+    // presses (Lock the scope, then Take the check) correctly produce 2, not
+    // 1 — confirmed via a live check (turnCount was already 1 right after the
+    // FIRST press alone). The original `toBe(1)` here predates this file's
+    // press-and-hold conversion and never actually held for the right reason.
     await waitFor(() => {
-      // Alice's turn 1 has ended, global turn count should be 1
-      expect(gameServices.stateService.getGameState().globalTurnCount).toBe(1);
+      expect(gameServices.stateService.getGameState().globalTurnCount).toBe(2);
     }, { timeout: 5000 });
 
     // Cleanup

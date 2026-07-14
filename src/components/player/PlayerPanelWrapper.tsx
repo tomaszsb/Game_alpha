@@ -1,17 +1,17 @@
 // src/components/player/PlayerPanelWrapper.tsx
 //
-// Wrapper that renders the player panel for all screen sizes. Hosts the
-// classic ↔ new design toggle (see docs/design/player-panel-redesign.md §7):
-// 'new' (default) renders the redesigned PlayerPanelV2 with its own
-// light/dark switch; 'classic' renders the legacy ActionCenterPanel. The
-// toggle now exists to compare against the old behavior, not to gate rollout.
+// Wrapper that renders the player panel for all screen sizes. PlayerPanelV2
+// is now the only panel (the classic ActionCenterPanel + its classic/new
+// toggle were removed 2026-07-14 — see docs/design/player-panel-redesign.md
+// §7 for the redesign history). This wrapper's remaining job is owning the
+// light/dark mode toggle and syncing the global dictionary panel's theme to it.
 
 import React, { useEffect } from 'react';
-import { ActionCenterPanel, ActionCenterPanelProps } from './ActionCenterPanel';
 import { PlayerPanelV2 } from './PlayerPanelV2';
-import { usePanelMode, usePanelVersion } from './panelTheme';
+import { PlayerPanelProps } from './panelTypes';
+import { usePanelMode } from './panelTheme';
 
-export interface PlayerPanelWrapperProps extends ActionCenterPanelProps {
+export interface PlayerPanelWrapperProps extends PlayerPanelProps {
   /** Force mobile view regardless of screen size (for testing) */
   forceMobile?: boolean;
 
@@ -33,20 +33,18 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   tabRequest,
   ...rest
 }) => {
-  const [version, toggleVersion] = usePanelVersion();
   const [mode, toggleMode] = usePanelMode();
 
-  // Tell the (global) dictionary side panel to go dark when the new panel is
-  // in dark mode — see docs/design §6 (the dictionary module already runs on
+  // Tell the (global) dictionary side panel to go dark when the panel is in
+  // dark mode — see docs/design §6 (the dictionary module already runs on
   // CSS variables, so this is just a variable override gated on this attribute).
   useEffect(() => {
-    const dark = version === 'new' && mode === 'dark';
     try {
-      document.documentElement.setAttribute('data-uc-dark', dark ? 'true' : 'false');
+      document.documentElement.setAttribute('data-uc-dark', mode === 'dark' ? 'true' : 'false');
     } catch {
       /* SSR / no document — ignore */
     }
-  }, [version, mode]);
+  }, [mode]);
 
   const toggleBtn: React.CSSProperties = {
     border: '1px solid #8d9bb0',
@@ -61,42 +59,23 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   return (
     <div className="player-panel-wrapper" style={{ position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '4px 6px' }}>
-        <button style={toggleBtn} onClick={toggleVersion} title="Switch between the classic and redesigned panel">
-          {version === 'classic' ? 'Try new design' : 'Back to classic'}
+        <button style={toggleBtn} onClick={toggleMode} title="Light / dark mode">
+          {mode === 'light' ? 'Dark' : 'Light'}
         </button>
-        {version === 'new' && (
-          <button style={toggleBtn} onClick={toggleMode} title="Light / dark mode">
-            {mode === 'light' ? 'Dark' : 'Light'}
-          </button>
-        )}
       </div>
 
-      {version === 'new' ? (
-        <PlayerPanelV2
-          gameServices={gameServices}
-          playerId={playerId}
-          mode={mode}
-          onTryAgain={onTryAgain}
-          playerNotification={playerNotification}
-          onRollDice={onRollDice}
-          onAutomaticFunding={onAutomaticFunding}
-          onManualEffectResult={onManualEffectResult}
-          completedActions={completedActions}
-          tabRequest={tabRequest}
-        />
-      ) : (
-        <ActionCenterPanel
-          gameServices={gameServices}
-          playerId={playerId}
-          onTryAgain={onTryAgain}
-          playerNotification={playerNotification}
-          onRollDice={onRollDice}
-          onAutomaticFunding={onAutomaticFunding}
-          onManualEffectResult={onManualEffectResult}
-          completedActions={completedActions}
-          tabRequest={tabRequest}
-        />
-      )}
+      <PlayerPanelV2
+        gameServices={gameServices}
+        playerId={playerId}
+        mode={mode}
+        onTryAgain={onTryAgain}
+        playerNotification={playerNotification}
+        onRollDice={onRollDice}
+        onAutomaticFunding={onAutomaticFunding}
+        onManualEffectResult={onManualEffectResult}
+        completedActions={completedActions}
+        tabRequest={tabRequest}
+      />
     </div>
   );
 };

@@ -181,7 +181,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   // Playtest reports 2026-05-15: feedback-1778864436652-7692dba5 (money
   // changes invisible), feedback-1778864258379-5ce94e05 (scope changes
   // invisible) — both asking for "at a glance" feedback.
-  const [tabRequest, setTabRequest] = useState<import('../player/ActionCenterPanel').TabRequest | null>(null);
+  const [tabRequest, setTabRequest] = useState<import('../player/panelTypes').TabRequest | null>(null);
   // When the result modal opens, derive the matching tab and broadcast a
   // one-shot tabRequest. ActionCenterPanel consumes it (scoped by playerId
   // so opponents' panels don't jump). Skips if currentPlayerId is null

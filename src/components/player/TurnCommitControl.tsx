@@ -1,19 +1,17 @@
-// TurnCommitControl — EXPERIMENTAL merged End Turn / Try Again control.
+// TurnCommitControl — the merged End Turn / Try Again control (PlayerPanelV2's
+// footer, both light and dark mode).
 //
-// This is the "Option B" half of an A/B test requested by the maintainer
-// (dashboard report fb:feedback-1783922410258-f453b1f3). A player found the two
-// separate footer controls confusing — the real Try Again button and the
-// tap-to-compare cost-preview slider looked different and lived apart. Their
-// proposed fix: merge them into ONE control where a SHORT TAP just switches
-// which cost preview you're looking at, and a LONG PRESS actually commits that
-// choice, with a growing progress line so you can see the hold "working".
-//
-// A/B gating (see PlayerPanelV2 footer): this merged control renders ONLY in
-// DARK mode. LIGHT mode keeps the original separate button + `TurnCostToggle`
-// slider (the safer "Option A" design, visually tidied). Both share the same
-// cost-preview data (`getEndTurnCostPreview` / `getTryAgainCostPreview`) so the
-// numbers can never diverge — only the interaction differs. Nothing was removed;
-// flip the panel to light to get the old behavior back.
+// Originated as the "Option B" half of an A/B test (dashboard report
+// fb:feedback-1783922410258-f453b1f3). A player found the two separate footer
+// controls confusing — the real Try Again button and the tap-to-compare
+// cost-preview slider looked different and lived apart. Their proposed fix:
+// merge them into ONE control where a SHORT TAP just switches which cost
+// preview you're looking at, and a LONG PRESS actually commits that choice,
+// with a progress indicator so you can see the hold "working". The maintainer
+// playtested this against the separate-buttons design (light mode) and dark
+// mode (this control) and picked this as the clear winner (2026-07-14), so
+// it's now unconditional — see PlayerPanelV2's footer. The retired
+// separate-buttons design (`TurnCostToggle`) was deleted the same day.
 //
 // Interaction notes:
 //   • Long-press-to-commit is deliberately deliberate — these are the most

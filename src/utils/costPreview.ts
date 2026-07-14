@@ -1,7 +1,7 @@
 /**
  * Cost-preview breakdowns for the two turn-control buttons in PlayerPanelV2's
  * footer (End Turn / Try Again — CSV labels vary per space, e.g. "Lock the
- * scope" / "Push back"), rendered via the tap-based TurnCostToggle. See TODO
+ * scope" / "Push back"), rendered via `TurnCommitControl`. See TODO
  * fb:feedback-1783080349985-a3dc215f.
  *
  * Two entry points:

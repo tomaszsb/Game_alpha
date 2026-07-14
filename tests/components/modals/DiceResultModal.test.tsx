@@ -432,22 +432,11 @@ describe('DiceResultModal', () => {
   });
 
   // Visit-indicator part 2 (2026-05-29, fb:0cdd59ba) — "results 2x once in
-  // red and once in green". When the BeforeAfterBlock snapshot is present,
-  // the numeric value should NOT also render in the Effects-Applied row
-  // (the table below already shows the delta). Movement and qualitative
+  // red and once in green". When the OutcomeChangesV2 snapshot table is
+  // present, the numeric value should NOT also render in the Effects-Applied
+  // row (the table below already shows the delta). Movement and qualitative
   // effects always render their value because the table doesn't cover them.
   describe('duplicate-render suppression when snapshot is present', () => {
-    // This block specifically exercises the classic BeforeAfterBlock render
-    // path (vs. the new panel's OutcomeChangesV2) — pin it explicitly rather
-    // than relying on whatever `ucPanelVersion` happens to default to (the
-    // app-wide default flipped to 'new' 2026-07-06; see panelTheme.ts).
-    beforeEach(() => {
-      localStorage.setItem('ucPanelVersion', 'classic');
-    });
-    afterEach(() => {
-      localStorage.removeItem('ucPanelVersion');
-    });
-
     const snapshotResult: DiceRollResult = {
       diceValue: 4,
       spaceName: 'TEST-SPACE',
@@ -473,7 +462,7 @@ describe('DiceResultModal', () => {
       },
     };
 
-    it('suppresses Effects-row bold value when BeforeAfterBlock will render it', () => {
+    it('suppresses Effects-row bold value when OutcomeChangesV2 will render it', () => {
       render(
         <DictionaryProvider><GameContext.Provider value={mockServices}>
           <DiceResultModal isOpen={true} result={snapshotResult} onClose={mockOnClose} />
@@ -484,19 +473,18 @@ describe('DiceResultModal', () => {
       expect(screen.getByText('Funding received')).toBeInTheDocument();
       expect(screen.getByText('Project delayed')).toBeInTheDocument();
 
-      // The +$50,000 / -3 days values appear only once each (in the
-      // BeforeAfterBlock table), not twice. The table delta column uses
-      // the unicode minus '−' (U+2212), the Effects formatter uses ASCII
-      // '-' — so a duplicate Effects render would surface a second '-3 days'.
-      const allMoneyMatches = screen.queryAllByText(/\+?\$50,000/);
-      // BeforeAfterBlock renders: $0 (before), $50,000 (after), +$50,000 (delta)
-      // No Effects-row value. Total appearances of "$50,000" = 2 (after + delta).
-      expect(allMoneyMatches.length).toBe(2);
+      // Money: OutcomeChangesV2 renders "$0" (before), "$50K" (after), "+$50K"
+      // (delta — same compact FormatUtils.formatMoney the suppressed Effects-
+      // row would have used). A duplicate Effects-row render would add a
+      // SECOND "+$50K" — there must be exactly one.
+      expect(screen.getAllByText('+$50K')).toHaveLength(1);
 
-      // Time: BeforeAfterBlock renders "5 days" → "2 days" + "−3 days" delta.
-      // Effects-row should NOT render an ASCII "-3 days".
-      const dashMinusDays = screen.queryAllByText(/^-3 days$/);
-      expect(dashMinusDays.length).toBe(0);
+      // Time: OutcomeChangesV2 renders "5 days" → "2 days" with a "−3 days"
+      // delta using the UNICODE minus (U+2212, see OutcomeChangesV2's
+      // `signed()` helper). The Effects-row formatter uses an ASCII hyphen —
+      // so a duplicate Effects-row render would surface a second, distinct
+      // "-3 days" (ASCII) that must NOT be present.
+      expect(screen.queryByText('-3 days')).not.toBeInTheDocument();
     });
 
     it('still renders the value when snapshot is absent (legacy / partial)', () => {

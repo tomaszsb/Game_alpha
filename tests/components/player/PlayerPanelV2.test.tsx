@@ -726,11 +726,13 @@ describe('PlayerPanelV2 — End Turn cost preview drops already-completed action
     expect(screen.getByText('Varies')).toBeInTheDocument();
   });
 
-  it('drops the Work row from the End Turn preview once the roll already resolved this turn', () => {
+  it('drops the Work row\'s "Varies" value once the roll already resolved this turn', () => {
     renderPanel({ diceRoll: '3', manualActions: {} });
     expect(screen.queryByText('Varies')).not.toBeInTheDocument();
-    // The mock space declares nothing else, so with the dice row excluded the
-    // preview correctly falls back to its empty state instead of a stale row.
-    expect(screen.getByText('Nothing to report')).toBeInTheDocument();
+    // TurnCommitControl always shows all 5 categories (toFullRowSet) — the
+    // Work row itself stays, just with the placeholder value now that the
+    // mock space (which declares nothing else) no longer populates it.
+    expect(screen.getByText('Work')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 });
