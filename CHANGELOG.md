@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.130] - 2026-07-13
+
+### Fix: a blocked analytics script no longer shows "Failed to Load Application" to VPN / ad-blocker users
+Reported live (Filip, Firefox + VPN, 2026-07-13) with a full console: the game rendered "Failed to Load Application — There was an error loading Unravel Codes" on a perfectly healthy deploy. Root cause was in `index.html`'s global load-error handler: it treated a load failure of ANY `<script>` element as fatal — hiding `#root` and showing the fallback. Cloudflare auto-injects its Web Analytics beacon (`static.cloudflareinsights.com/beacon.min.js`) into every page, and a VPN, ad blocker, or content filter can block or alter that request — which produces exactly the CORS + Subresource-Integrity (SRI hash mismatch) failures seen in the reporter's console. That third-party script has nothing to do with the game working, but its `error` event was tripping the fatal fallback, so the whole game read as broken for any privacy-tool user (potentially a large silent cohort: privacy-conscious players, schools/offices with content filters). Narrowed the fatal path to failures of the app's OWN entry/chunk scripts only — a same-origin `<script>` whose `src` starts with `location.origin + '/'`. Everything else (the Cloudflare beacon, any cross-origin script, and now also same-origin non-script assets like images/CSS) is logged and ignored, never fatal. Runtime-error handling (target === window) is unchanged. Verified via a Node simulation of the exact predicate across six cases (Cloudflare beacon → non-fatal; own bundle → still fatal; dev `main.tsx` → fatal; runtime error → non-fatal; same-origin image 404 → non-fatal; cross-origin pixel → non-fatal) plus a clean build with the handler confirmed present in `dist/index.html`. Cannot repro the VPN interception in the in-app (Chromium) browser directly, so the fix is proven by the predicate simulation rather than a live VPN drive.
+
 ## [3.0.129] - 2026-07-13
 
 ### Fix: dark-mode merged commit control no longer locks up after the first action

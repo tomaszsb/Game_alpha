@@ -99,9 +99,26 @@
         // Runtime errors and benign browser warnings (e.g. "ResizeObserver loop completed with undelivered notifications")
         // are logged but must NOT hide the app — they were previously knocking the user into the fallback UI.
         window.addEventListener('error', function(e) {
-            var isResourceLoadError = e.target && e.target !== window && e.target.tagName;
+            var target = e.target;
+            var isResourceLoadError = target && target !== window && target.tagName;
             if (!isResourceLoadError) {
                 console.error('Runtime error (not blocking app):', e.message || e);
+                return;
+            }
+            // ONLY a failure of the app's own entry/chunk scripts (same-origin) is
+            // fatal. Third-party scripts must never take the game down — most
+            // notably Cloudflare's auto-injected analytics beacon
+            // (static.cloudflareinsights.com/beacon.min.js), which a VPN, ad
+            // blocker, or content filter can block or alter, producing a CORS /
+            // SRI-integrity failure. That fired the fallback and made a perfectly
+            // healthy game read as "Failed to Load Application" for any privacy-
+            // tool user (fb: Filip / Firefox+VPN report, 2026-07-13). Failures of
+            // other same-origin assets (images, CSS) are logged, not fatal either.
+            var src = target.src || '';
+            var isOwnScript = target.tagName === 'SCRIPT'
+                && src.indexOf(window.location.origin + '/') === 0;
+            if (!isOwnScript) {
+                console.error('Non-critical resource failed to load (not blocking app):', src || target.tagName);
                 return;
             }
             console.error('Application loading error:', e);
