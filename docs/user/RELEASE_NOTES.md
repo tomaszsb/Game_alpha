@@ -2,6 +2,14 @@
 
 ---
 
+## v3.0.128–137 — Press and hold to confirm, a friendlier setup screen, and a board that zooms itself sensibly (July 13–14, 2026)
+
+- **End Turn and Try Again are now one control: tap to compare, press and hold to confirm.** After testing it side by side with the old separate buttons, press-and-hold won — so it's now how every player sees it, not just a dark-mode experiment. Tap either side to see what it costs (labor, work, expediting, money, time — always all five, so the layout doesn't jump around depending on the space); hold down the one you want for about half a second to actually commit to it. The cost preview now pops up above the buttons instead of under your own thumb, and a small outline sweeps around the button as your hold registers so you can see it "catching."
+- **The setup screen has some life to it now.** The title and logo got a proper hero treatment instead of sitting small and static — the yarn-ball-and-book mark now has a gentle glow and a little wobble.
+- **Playing on a TV should look and feel less cramped.** Text and buttons are bigger to read from the couch instead of up close, and — the bigger fix — you can now actually scroll the player list with your TV remote. Before, the scrollbar just sat there with no way to move it.
+- **A "🌐 Remote" option now shows on the setup screen** for players in different locations, marked "coming soon" — it's not built yet, but it's on the way.
+- **The board picks a smarter starting zoom, and remembers where you left it.** Instead of always shrinking everything to fit, it keeps each space at a readable size (panning if the whole board doesn't fit at once) and now remembers your last zoom/position on that device instead of resetting every time you reload.
+
 ## v3.0.121–126 — Rejoining is no longer a guessing game, and buttons tell you their price before you press them (July 12–13, 2026)
 
 - **The Push back / Lock the scope buttons now show what they actually cost before you press them.** A small toggle between the buttons breaks down labor, work, expediting, money, and time for whichever one you tap — no more guessing what each choice does to your project.
