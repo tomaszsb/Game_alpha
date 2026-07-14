@@ -38,6 +38,20 @@
 //      under the thumb) to an outline that sweeps around the button's full
 //      perimeter — parts of it stay visible past the fingertip regardless of
 //      exactly where the player is pressing.
+//
+// Second playtest follow-up (2026-07-14, same day/thread) — three more:
+//   1. "The buttons seem to jump" — traced to the optional `endCostLine` row,
+//      which only rendered on the End side, so the box was one line taller
+//      there than on Try Again. Now always reserved (fixed min-height,
+//      content only on the End side) so the box is the same height both ways.
+//   2. "Show which button the data came from" — the preview is now a comic-
+//      bubble OVERLAY (absolutely positioned above the tablist, doesn't push
+//      the buttons) with a triangular tail that slides to sit under whichever
+//      side is selected — a swipe-like motion plus a clear "this bubble is
+//      about THAT button" anchor.
+//   3. "Bubble shouldn't always be there" — it's now hidden by default and
+//      pops up for BUBBLE_MS on any tap/hold-start/keyboard-compare, then
+//      fades back out. A fresh interaction resets the countdown.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { panelPalettes, PanelMode } from './panelTheme';
@@ -46,6 +60,10 @@ import { CostPreviewRow, toFullRowSet } from '../../utils/costPreview';
 /** How long (ms) the player must hold before a side commits. Long enough that a
  *  stray tap can't trigger it, short enough not to feel stuck. */
 const HOLD_MS = 650;
+
+/** How long (ms) the comic-bubble preview stays up after a tap before it
+ *  fades back out on its own. */
+const BUBBLE_MS = 3000;
 
 export interface TurnCommitControlProps {
   mode: PanelMode;
@@ -83,7 +101,9 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const p = panelPalettes[mode];
   const [selected, setSelected] = useState<Side>('end');
   const [pressing, setPressing] = useState<Side | null>(null);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const bubbleTimerRef = useRef<number | null>(null);
   const firedRef = useRef(false);
 
   const rows = toFullRowSet(selected === 'end' ? endTurnRows : tryAgainRows);
@@ -99,8 +119,26 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
     }
   }, []);
 
-  // Clean up any pending hold timer on unmount.
-  useEffect(() => () => clearTimer(), [clearTimer]);
+  // Reveal the comic-bubble preview and (re)start its BUBBLE_MS auto-hide —
+  // any fresh tap/hold-start/keyboard-compare resets the countdown, so the
+  // bubble stays up as long as the player keeps interacting.
+  const revealBubble = useCallback(() => {
+    setBubbleVisible(true);
+    if (bubbleTimerRef.current !== null) window.clearTimeout(bubbleTimerRef.current);
+    bubbleTimerRef.current = window.setTimeout(() => {
+      setBubbleVisible(false);
+      bubbleTimerRef.current = null;
+    }, BUBBLE_MS);
+  }, []);
+
+  // Clean up any pending timers on unmount.
+  useEffect(
+    () => () => {
+      clearTimer();
+      if (bubbleTimerRef.current !== null) window.clearTimeout(bubbleTimerRef.current);
+    },
+    [clearTimer],
+  );
 
   const fire = useCallback(
     (side: Side) => {
@@ -116,6 +154,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       // Selecting on press-down means the preview immediately matches what a
       // completed hold will commit — no surprise.
       setSelected(side);
+      revealBubble();
       if (!actionableFor(side)) return; // not holdable — press acts as a tap only
       firedRef.current = false;
       setPressing(side);
@@ -125,7 +164,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         fire(side);
       }, HOLD_MS);
     },
-    [actionableFor, clearTimer, fire],
+    [actionableFor, clearTimer, fire, revealBubble],
   );
 
   const endHold = useCallback(
@@ -144,12 +183,13 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       if (e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
         setSelected(side); // Space = compare
+        revealBubble();
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (actionableFor(side)) fire(side); // Enter = commit
       }
     },
-    [actionableFor, fire],
+    [actionableFor, fire, revealBubble],
   );
 
   const sideStyle = (side: Side): React.CSSProperties => {
@@ -238,41 +278,120 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
     </button>
   );
 
+  // Tail (and bubble) horizontal anchor: centered over whichever tab is
+  // selected — the two tabs are equal-width flex children, so their centers
+  // sit at 25% (tryAgain, left) and 75% (end, right) of the control's width.
+  // Transitioning `left` makes the tail visibly slide over when the
+  // selection switches, doubling as the "swipe from that direction" cue.
+  const tailLeftPct = selected === 'end' ? 75 : 25;
+
   return (
-    <div style={{ marginTop: 4 }}>
-      {/* Cost preview — ABOVE the buttons (see 2026-07-14 note at top of file):
-          the player's thumb covers the buttons while holding, so the info that
-          changes needs to live somewhere the thumb isn't. All 5 categories
-          always render (toFullRowSet) so only the value column moves. */}
-      <div style={{ background: p.surf2, borderRadius: 8, padding: '4px 8px' }}>
-        {rows.map((row) => (
+    <div style={{ marginTop: 4, position: 'relative' }}>
+      {/* Comic-bubble cost preview — an OVERLAY (doesn't push the buttons;
+          fixes the "buttons jump" report) that only appears for BUBBLE_MS
+          after a tap/hold-start, then fades out on its own. A triangular
+          tail slides to sit under whichever button is currently selected, so
+          it's visually clear which button the numbers "came from". */}
+      <div
+        aria-hidden={!bubbleVisible}
+        data-testid="commit-preview-bubble"
+        data-visible={bubbleVisible}
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: '100%',
+          marginBottom: 9,
+          opacity: bubbleVisible ? 1 : 0,
+          transform: bubbleVisible ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.98)',
+          transition: 'opacity 180ms ease, transform 180ms ease',
+          pointerEvents: 'none',
+          zIndex: 20,
+        }}
+      >
+        <div
+          style={{
+            background: p.surf2,
+            border: `1px solid ${p.borderStrong}`,
+            borderRadius: 10,
+            padding: '5px 9px',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
+          }}
+        >
+          {rows.map((row) => (
+            <div
+              key={row.key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                fontSize: 10,
+                padding: '1px 0',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: p.muted }}>
+                <span aria-hidden="true">{row.icon}</span>
+                {row.label}
+              </span>
+              <span style={{ fontWeight: 600, color: p.text }}>{row.value}</span>
+            </div>
+          ))}
+          {/* Fixed-height reserved line regardless of side — previously only
+              rendered on the End side, which made the bubble one line taller
+              there than on Try Again ("the buttons seem to jump... extra
+              line in one of the boxes"). Always present now; empty/invisible
+              on the Try Again side so height never differs between sides. */}
           <div
-            key={row.key}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              fontSize: 10,
-              padding: '1px 0',
+              fontSize: 9,
+              color: p.muted,
+              textAlign: 'center',
+              marginTop: 2,
+              minHeight: 11,
+              visibility: selected === 'end' && endCostLine ? 'visible' : 'hidden',
             }}
+            data-testid="commit-preview-costline"
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: p.muted }}>
-              <span aria-hidden="true">{row.icon}</span>
-              {row.label}
-            </span>
-            <span style={{ fontWeight: 600, color: p.text }}>{row.value}</span>
+            {selected === 'end' && endCostLine ? endCostLine : ' '}
           </div>
-        ))}
-        {selected === 'end' && endCostLine && (
-          <div style={{ fontSize: 9, color: p.muted, textAlign: 'center', marginTop: 2 }}>
-            {endCostLine}
-          </div>
-        )}
+        </div>
+        {/* Tail: two stacked CSS triangles (a 1px-larger one in the border
+            color underneath) fake a bordered speech-bubble pointer. */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: -9,
+            left: `${tailLeftPct}%`,
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '9px solid transparent',
+            borderRight: '9px solid transparent',
+            borderTop: `9px solid ${p.borderStrong}`,
+            transition: 'left 180ms ease',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: -8,
+            left: `${tailLeftPct}%`,
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: `8px solid ${p.surf2}`,
+            transition: 'left 180ms ease',
+          }}
+        />
       </div>
 
       {/* Gesture hint so the novel long-press is discoverable. */}
-      <div style={{ fontSize: 9.5, color: p.muted, textAlign: 'center', margin: '3px 0' }}>
+      <div style={{ fontSize: 9.5, color: p.muted, textAlign: 'center', margin: '0 0 3px' }}>
         Tap to compare · press &amp; hold to confirm
       </div>
 

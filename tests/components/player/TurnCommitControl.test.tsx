@@ -176,4 +176,88 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
     });
     expect(onCommitTryAgain).toHaveBeenCalledTimes(2);
   });
+
+  describe('comic-bubble preview (2026-07-14 second playtest follow-up)', () => {
+    it('is hidden until the first tap, then appears', () => {
+      const { tryBtn } = setup();
+      const bubble = screen.getByTestId('commit-preview-bubble');
+      expect(bubble).toHaveAttribute('aria-hidden', 'true');
+      expect(bubble).toHaveAttribute('data-visible', 'false');
+
+      act(() => {
+        fireEvent.pointerDown(tryBtn);
+        vi.advanceTimersByTime(50);
+        fireEvent.pointerUp(tryBtn);
+      });
+
+      expect(bubble).toHaveAttribute('aria-hidden', 'false');
+      expect(bubble).toHaveAttribute('data-visible', 'true');
+    });
+
+    it('fades back out on its own after BUBBLE_MS (3000ms)', () => {
+      const { tryBtn } = setup();
+      const bubble = screen.getByTestId('commit-preview-bubble');
+
+      act(() => {
+        fireEvent.pointerDown(tryBtn);
+        vi.advanceTimersByTime(50);
+        fireEvent.pointerUp(tryBtn);
+      });
+      expect(bubble).toHaveAttribute('data-visible', 'true');
+
+      act(() => vi.advanceTimersByTime(2900)); // still under 3000ms total
+      expect(bubble).toHaveAttribute('data-visible', 'true');
+
+      act(() => vi.advanceTimersByTime(200)); // now past 3000ms
+      expect(bubble).toHaveAttribute('data-visible', 'false');
+    });
+
+    it('a fresh tap resets the 3-second countdown instead of hiding early', () => {
+      const { tryBtn, endBtn } = setup();
+      const bubble = screen.getByTestId('commit-preview-bubble');
+
+      act(() => {
+        fireEvent.pointerDown(tryBtn);
+        vi.advanceTimersByTime(50);
+        fireEvent.pointerUp(tryBtn);
+      });
+
+      // 2s later — still visible — tap the OTHER side, which should restart
+      // the countdown rather than let the original 3s timer fire mid-flight.
+      act(() => vi.advanceTimersByTime(2000));
+      expect(bubble).toHaveAttribute('data-visible', 'true');
+      act(() => {
+        fireEvent.pointerDown(endBtn);
+        vi.advanceTimersByTime(50);
+        fireEvent.pointerUp(endBtn);
+      });
+
+      // 2s after the SECOND tap (4s after the first) — would already be
+      // hidden under the old timer, must still be visible under the new one.
+      act(() => vi.advanceTimersByTime(2000));
+      expect(bubble).toHaveAttribute('data-visible', 'true');
+
+      act(() => vi.advanceTimersByTime(1100)); // now past the reset 3s window
+      expect(bubble).toHaveAttribute('data-visible', 'false');
+    });
+  });
+
+  describe('fixed-height cost line (2026-07-14 "buttons jump" report)', () => {
+    it('reserves the same space whether or not the End-side cost line has text', () => {
+      const { tryBtn } = setup({ endCostLine: 'this turn: 🕐 +1 day' });
+      // Default side is End — line visible with real text.
+      const line = screen.getByTestId('commit-preview-costline');
+      expect(line).toHaveTextContent('this turn: 🕐 +1 day');
+      expect(line).toHaveStyle({ visibility: 'visible' });
+
+      // Switch to Try Again — line stays in the DOM (same reserved height),
+      // just visually hidden, so the box height never changes between sides.
+      act(() => {
+        fireEvent.pointerDown(tryBtn);
+        vi.advanceTimersByTime(50);
+        fireEvent.pointerUp(tryBtn);
+      });
+      expect(line).toHaveStyle({ visibility: 'hidden' });
+    });
+  });
 });
