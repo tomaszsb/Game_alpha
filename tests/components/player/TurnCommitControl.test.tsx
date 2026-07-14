@@ -52,11 +52,24 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
     cleanup();
   });
 
-  it('defaults to the End preview and switches on a short tap of Try Again', () => {
+  it('always shows all 5 categories, with a placeholder for the ones this space has none of', () => {
+    // Regression guard (2026-07-14 playtest follow-up): rows must never
+    // appear/disappear between spaces — only the value column changes.
+    setup();
+    for (const label of ['Labor', 'Work', 'Expediting', 'Money', 'Time']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    // End side is selected by default: Money has a real value, Time (not in
+    // endRows) falls back to the placeholder.
+    expect(screen.getByText('$500')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('defaults to the End preview and switches values (not rows) on a short tap of Try Again', () => {
     const { tryBtn, onCommitEnd, onCommitTryAgain } = setup();
-    // Default: End rows shown.
-    expect(screen.getByText('Money')).toBeInTheDocument();
-    expect(screen.queryByText('Time')).not.toBeInTheDocument();
+    // Default: End side's real value is shown; Try Again's is the placeholder.
+    expect(screen.getByText('$500')).toBeInTheDocument();
+    expect(screen.queryByText('+1 day')).not.toBeInTheDocument();
 
     // Short tap: down then up well under HOLD_MS.
     act(() => {
@@ -65,9 +78,9 @@ describe('TurnCommitControl (dark-mode merged control)', () => {
       fireEvent.pointerUp(tryBtn);
     });
 
-    // Preview switched, nothing committed.
-    expect(screen.getByText('Time')).toBeInTheDocument();
-    expect(screen.queryByText('Money')).not.toBeInTheDocument();
+    // Preview switched, nothing committed — same 5 labels, different values.
+    expect(screen.getByText('+1 day')).toBeInTheDocument();
+    expect(screen.queryByText('$500')).not.toBeInTheDocument();
     expect(onCommitEnd).not.toHaveBeenCalled();
     expect(onCommitTryAgain).not.toHaveBeenCalled();
   });

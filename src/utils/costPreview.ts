@@ -232,6 +232,24 @@ function bucketsToRows(buckets: Partial<Record<CostPreviewRowKey, string[]>>): C
 }
 
 /**
+ * Expands a populated-only row list (the default from getEndTurnCostPreview /
+ * getTryAgainCostPreview) into all 5 categories in fixed order, filling any
+ * missing one with `emptyValue`. For `TurnCommitControl` (dark-mode A/B
+ * variant, fb:f453b1f3 follow-up): the player asked for all 5 rows to always
+ * show so only the VALUE column changes between spaces, rather than rows
+ * appearing/disappearing. Kept as a separate helper (not a change to the two
+ * exported preview functions) so the light-mode `TurnCostToggle` keeps its
+ * original populated-only + "Nothing to report" behavior untouched.
+ */
+export function toFullRowSet(rows: CostPreviewRow[], emptyValue: string = '—'): CostPreviewRow[] {
+  return ROW_ORDER.map((key) => {
+    const existing = rows.find((r) => r.key === key);
+    if (existing) return existing;
+    return { key, icon: ROW_META[key].icon, label: ROW_META[key].label, value: emptyValue };
+  });
+}
+
+/**
  * "Lock the scope" / End Turn preview — the space's own declared cost for
  * this visit, read straight from SPACE_EFFECTS.csv (via DataService, already
  * loaded). Paid once, kept.

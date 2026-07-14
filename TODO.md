@@ -37,8 +37,7 @@
 *(owner alert fix shipped v3.0.124, see CHANGELOG — closes fb:a98951ab)*
 
 ### Newly arrived (2026-07-13 later batch — cost-preview toggle feedback)
-*(stale-"Varies" bug shipped v3.0.126, see CHANGELOG — closes fb:49395e17)*
-- [ ] **Try Again button vs. cost-preview toggle look inconsistent + interaction idea.** <!-- fb:feedback-1783922410258-f453b1f3 --> "The try again button is different size than try again slider and colors change on one but not other. Can we change so that pressing short will slide but long press will act as button? We sould add a small growing line to show the button working." A real visual-consistency gap between the actual Try Again button and the `TurnCostToggle` tab, plus a proposed interaction redesign (short tap = switch preview, long-press = commit, with a fill/progress indicator) that would merge two currently-separate controls into one. Needs a design decision before building — long-press-to-commit changes core interaction semantics, not just styling. Flagging for maintainer input, not auto-building.
+*(stale-"Varies" bug shipped v3.0.126, see CHANGELOG — closes fb:49395e17; A/B experiment shipped v3.0.128/129, maintainer picked the dark-mode press-and-hold control as winner and requested 3 tweaks, shipped v3.0.131 — see CHANGELOG — closes fb:f453b1f3)*
 
 ### Landing / presentation (game-setup screen, NOT `/challenge` — reassess after v3.0.96 approach is seen live)
 - [ ] **Landing feels "naked"** — wants prominent title, representative graphic (carousel idea now proven on `/challenge` — could reuse), optional jingle, subtle motion. <!-- fb:feedback-1782833475856-7dbc2fcc -->

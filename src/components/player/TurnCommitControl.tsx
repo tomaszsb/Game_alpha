@@ -24,10 +24,24 @@
 //     switches the focused side's preview, Enter commits it.
 //   • The End side is only holdable when the turn is actually endable; otherwise
 //     it shows the "N actions left" hint and ignores holds.
+//
+// Maintainer playtest follow-up (2026-07-14, same fb:f453b1f3 thread) after
+// picking this as the winning variant over Option A — three tweaks:
+//   1. The preview now renders ABOVE the buttons, not below. The player's own
+//      thumb sits on the button while holding it, so a preview below the
+//      buttons was hidden by the exact finger that's changing it.
+//   2. All 5 categories (Labor/Work/Expediting/Money/Time) always render —
+//      via `toFullRowSet` — so only the VALUE column changes between spaces,
+//      not which rows exist. Tightened padding/font to compensate for the
+//      fixed 5-row height.
+//   3. The hold-progress indicator moved from a thin bottom bar (also hidden
+//      under the thumb) to an outline that sweeps around the button's full
+//      perimeter — parts of it stay visible past the fingertip regardless of
+//      exactly where the player is pressing.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { panelPalettes, PanelMode } from './panelTheme';
-import { CostPreviewRow } from '../../utils/costPreview';
+import { CostPreviewRow, toFullRowSet } from '../../utils/costPreview';
 
 /** How long (ms) the player must hold before a side commits. Long enough that a
  *  stray tap can't trigger it, short enough not to feel stuck. */
@@ -72,7 +86,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
   const timerRef = useRef<number | null>(null);
   const firedRef = useRef(false);
 
-  const rows = selected === 'end' ? endTurnRows : tryAgainRows;
+  const rows = toFullRowSet(selected === 'end' ? endTurnRows : tryAgainRows);
   const actionableFor = useCallback(
     (side: Side) => (side === 'end' ? endActionable : true),
     [endActionable],
@@ -182,7 +196,7 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       onContextMenu={(e) => e.preventDefault()}
       style={sideStyle(side)}
     >
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         {withDot && showGreenDot && (
           <span
             aria-hidden="true"
@@ -191,25 +205,77 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
         )}
         {label}
       </span>
-      {/* Growing progress line — fills over HOLD_MS while held, snaps back on release. */}
-      <span
+      {/* Hold-progress indicator: sweeps around the button's OUTLINE (not a
+          bottom bar) so it stays visible past the player's own thumb, which
+          covers whatever's directly under where they're pressing. */}
+      <svg
         aria-hidden="true"
-        style={{
-          position: 'absolute',
-          left: 0,
-          bottom: 0,
-          height: 3,
-          width: pressing === side ? '100%' : '0%',
-          background: selected === side ? '#fff' : p.accent,
-          transition:
-            pressing === side ? `width ${HOLD_MS}ms linear` : 'width 140ms ease-out',
-        }}
-      />
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+      >
+        <rect
+          x="1.5"
+          y="1.5"
+          width="97"
+          height="97"
+          fill="none"
+          stroke={selected === side ? '#fff' : p.accent}
+          strokeWidth={3}
+          vectorEffect="non-scaling-stroke"
+          pathLength={100}
+          strokeDasharray={100}
+          strokeDashoffset={pressing === side ? 0 : 100}
+          style={{
+            opacity: pressing === side ? 1 : 0,
+            transition:
+              pressing === side
+                ? `stroke-dashoffset ${HOLD_MS}ms linear, opacity 60ms ease-out`
+                : 'opacity 140ms ease-out',
+          }}
+        />
+      </svg>
     </button>
   );
 
   return (
     <div style={{ marginTop: 4 }}>
+      {/* Cost preview — ABOVE the buttons (see 2026-07-14 note at top of file):
+          the player's thumb covers the buttons while holding, so the info that
+          changes needs to live somewhere the thumb isn't. All 5 categories
+          always render (toFullRowSet) so only the value column moves. */}
+      <div style={{ background: p.surf2, borderRadius: 8, padding: '4px 8px' }}>
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              fontSize: 10,
+              padding: '1px 0',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: p.muted }}>
+              <span aria-hidden="true">{row.icon}</span>
+              {row.label}
+            </span>
+            <span style={{ fontWeight: 600, color: p.text }}>{row.value}</span>
+          </div>
+        ))}
+        {selected === 'end' && endCostLine && (
+          <div style={{ fontSize: 9, color: p.muted, textAlign: 'center', marginTop: 2 }}>
+            {endCostLine}
+          </div>
+        )}
+      </div>
+
+      {/* Gesture hint so the novel long-press is discoverable. */}
+      <div style={{ fontSize: 9.5, color: p.muted, textAlign: 'center', margin: '3px 0' }}>
+        Tap to compare · press &amp; hold to confirm
+      </div>
+
       <div
         role="tablist"
         aria-label="Choose and confirm your move"
@@ -223,45 +289,6 @@ export const TurnCommitControl: React.FC<TurnCommitControlProps> = ({
       >
         {renderSide('tryAgain', tryAgainLabel, false)}
         {renderSide('end', endLabel, true)}
-      </div>
-
-      {/* Gesture hint so the novel long-press is discoverable. */}
-      <div style={{ fontSize: 9.5, color: p.muted, textAlign: 'center', marginTop: 3 }}>
-        Tap to compare · press &amp; hold to confirm
-      </div>
-
-      {/* Cost preview for the selected side (same rows as the light-mode slider). */}
-      <div style={{ background: p.surf2, borderRadius: 8, padding: '5px 8px', marginTop: 4 }}>
-        {rows.length === 0 ? (
-          <div style={{ fontSize: 10, color: p.muted, textAlign: 'center', padding: '1px 0' }}>
-            Nothing to report
-          </div>
-        ) : (
-          rows.map((row) => (
-            <div
-              key={row.key}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-                fontSize: 10.5,
-                padding: '1.5px 0',
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: p.muted }}>
-                <span aria-hidden="true">{row.icon}</span>
-                {row.label}
-              </span>
-              <span style={{ fontWeight: 600, color: p.text }}>{row.value}</span>
-            </div>
-          ))
-        )}
-        {selected === 'end' && endCostLine && (
-          <div style={{ fontSize: 9, color: p.muted, textAlign: 'center', marginTop: 2 }}>
-            {endCostLine}
-          </div>
-        )}
       </div>
     </div>
   );
