@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 14, 2026
-**Status:** Beta — live in production; **v3.0.115 deployed 2026-07-12** (commit `b46cb30`, confirmed by maintainer)
-**Current Version:** 3.0.137 (not yet deployed — v3.0.116–137 pending)
+**Status:** Beta — live in production; **v3.0.137 deployed 2026-07-14** (commit `c6e516c`, confirmed by maintainer)
+**Current Version:** 3.0.137 (deployed, confirmed live)
 
 ---
 
@@ -79,7 +79,7 @@
 - **dictionary-scraper `ANTHROPIC_API_KEY`** — RESOLVED, see the Active infra item above (keep the AI-writing step + label it, not remove the key).
 
 ### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
-`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. 2026-07-13: 6 more flipped after v3.0.121–127 deploy confirmed → 26 open (2 new reports arrived same window). 2026-07-14: 2 more queued in `.claude/fixloop/flip-queue.txt` (fb:f453b1f3, fb:7dbc2fcc) — fixed in v3.0.128–133, flip once the v3.0.116–137 range's deploy is confirmed. (The two TV-mode reports fb:3f9f2831/fb:e121c34e are deliberately NOT queued — best-effort fix shipped v3.0.135 but unconfirmed on real TV hardware, see the Newly-arrived section above.)
+`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. 2026-07-13: 6 more flipped after v3.0.121–127 deploy confirmed → 26 open (2 new reports arrived same window). 2026-07-14: v3.0.116–137 deploy confirmed (`c6e516c`) — 2 more flipped (fb:f453b1f3, fb:7dbc2fcc) → 28 open (new reports arrived in the interim). The two TV-mode reports fb:3f9f2831/fb:e121c34e are deliberately still NOT flipped — best-effort fix shipped v3.0.135 but unconfirmed on real TV hardware, see the Newly-arrived section above.
 
 ---
 
