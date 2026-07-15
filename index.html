@@ -37,11 +37,24 @@
         /* Loading indicator */
         .loading {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             font-size: 18px;
             color: #666;
+            text-align: center;
+            padding: 20px;
+            gap: 16px;
+            box-sizing: border-box;
+        }
+
+        .loading-tip {
+            display: none;
+            font-size: 14px;
+            color: #888;
+            max-width: 420px;
+            line-height: 1.5;
         }
 
         /* Error fallback */
@@ -78,7 +91,18 @@
 <body>
     <div id="root">
         <div class="loading">
-            Loading Unravel Codes...
+            <div>Loading Unravel Codes...</div>
+            <!-- Hidden by default; revealed by the timeout check below if
+                 loading is still stuck after 10s. Some TV browsers hang
+                 indefinitely trying to run this game rather than throwing a
+                 script error the fallback below could catch — confirmed
+                 live 2026-07-15 on a real TV stuck on this exact screen,
+                 with no console access on-device to see why. -->
+            <div id="loading-tip" class="loading-tip">
+                Taking longer than 10 seconds? Some TV browsers can't run this game well.
+                Try installing a different browser on your TV — <strong>TV Bro</strong> is
+                one that's known to work — from your TV's app store, then open this page there.
+            </div>
         </div>
     </div>
 
@@ -126,14 +150,20 @@
             document.getElementById('error-fallback').style.display = 'flex';
         }, true);
 
-        // Check if React loaded properly after a timeout
+        // Check if React loaded properly after a timeout. Some TV browsers
+        // hang indefinitely trying to load the JS bundle rather than firing
+        // a script error the handler above could catch — the visible tip
+        // (see #loading-tip in the loading screen markup) is the only way
+        // those users find out anything's wrong, since there's no console
+        // to check on a TV.
         setTimeout(() => {
             const root = document.getElementById('root');
+            const tip = document.getElementById('loading-tip');
             if (root && root.innerHTML.includes('Loading Unravel Codes...')) {
                 console.warn('React application may have failed to load');
-                // Don't show error immediately, React might be slow to load
+                if (tip) tip.style.display = 'block';
             }
-        }, 5000);
+        }, 10000);
     </script>
 </body>
 </html>

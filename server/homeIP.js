@@ -72,8 +72,8 @@ export function ipv6Prefix64(ip) {
  * server's own IPv6 address would treat every device in the house except
  * the server itself as "foreign" — confirmed live 2026-07-15: the
  * maintainer's own PC, starting a game from home, got flagged foreign with
- * a real Comcast/Xfinity-range IPv6 address that simply wasn't the
- * server's own.
+ * a real Verizon-range IPv6 address (confirmed via ARIN RDAP lookup) that
+ * simply wasn't the server's own.
  *
  * If neither a home IP nor an IPv6 prefix is known yet AND detection has
  * had a chance to complete at least once, every public IP counts as
