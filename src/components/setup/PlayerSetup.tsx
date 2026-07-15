@@ -841,8 +841,17 @@ export function PlayerSetup({
       {/* Background gradient */}
       <div style={styles.background} />
 
-      {/* Header */}
-      <header style={styles.header}>
+      {/* Header — the vh-based hero header sizing below (title/subtitle/logo)
+          is deliberately overridden with fixed, non-vh values in TV mode.
+          `vh` always measures the real screen, not the shrunk box the TV
+          zoom trick pre-shrinks the container to, so in TV mode this chrome
+          was quietly eating a bigger share of the (already-shrunk) box than
+          on PC — squeezing the player tiles below it down to nothing.
+          fb: TV real-hardware feedback, 2026-07-15. */}
+      <header style={{
+        ...styles.header,
+        ...(selectedMode === 'tv' ? { padding: '0.2rem clamp(1rem, 3vw, 2rem)' } : {}),
+      }}>
         <div style={styles.headerLeft}>
           <div className="us-hero-logo-wrap">
             <div className="us-hero-glow" aria-hidden="true" />
@@ -850,12 +859,20 @@ export function PlayerSetup({
               src="/images/logo.png"
               alt="Unravel Codes"
               className="us-hero-logo-img"
-              style={styles.logo}
+              style={{
+                ...styles.logo,
+                ...(selectedMode === 'tv' ? { width: '36px' } : {}),
+              }}
             />
           </div>
           <div>
-            <h1 style={styles.title}>Unravel Codes: The Game</h1>
-            <p style={styles.subtitle}>Navigate from project initiation to completion!</p>
+            <h1 style={{
+              ...styles.title,
+              ...(selectedMode === 'tv' ? { fontSize: '1.1rem' } : {}),
+            }}>Unravel Codes: The Game</h1>
+            {selectedMode !== 'tv' && (
+              <p style={styles.subtitle}>Navigate from project initiation to completion!</p>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -920,9 +937,15 @@ export function PlayerSetup({
           now render inline per-player inside PlayerList (hideQR=false)
           since the main panel has plenty of room with the right drawer
           collapsed by default. */}
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        ...(selectedMode === 'tv' ? { padding: '0 clamp(1rem, 3vw, 2rem) 0.35rem' } : {}),
+      }}>
         {/* Center column: Player edit cards */}
-        <div style={styles.panel}>
+        <div style={{
+          ...styles.panel,
+          ...(selectedMode === 'tv' ? { padding: '0.6rem 0.85rem' } : {}),
+        }}>
           {/* Phone-size warning — informational, non-blocking. Only on this
               host/setup view; the viewPlayerId branch above is the per-player
               TV-mode controller view, which is *meant* to run on a phone. */}
@@ -935,9 +958,15 @@ export function PlayerSetup({
           {/* PC/TV toggle — enlarged in v3.0.25 (fb: setup-screen visibility).
               Big segmented control with a heading so it can't be missed; the
               two options carry a one-line description of what each means. */}
+          {/* TV mode: this box's own sizing was already fixed-rem (not
+              vh-based, so it wasn't part of the vh/zoom mismatch), but it's
+              still a sizable chunk of a screen that must fit 4 player tiles
+              with zero scrolling — tightened for TV specifically so the
+              player list below gets the room. fb: TV real-hardware
+              feedback, 2026-07-15. */}
           <div style={{
-            marginBottom: '1rem',
-            padding: '0.75rem 0.85rem',
+            marginBottom: selectedMode === 'tv' ? '0.3rem' : '1rem',
+            padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.75rem 0.85rem',
             background: '#f8f9fa',
             borderRadius: 10,
             border: `2px solid ${colors.secondary.border}`,
@@ -946,7 +975,7 @@ export function PlayerSetup({
               fontSize: '0.85rem',
               fontWeight: 700,
               color: colors.text.primary,
-              marginBottom: '0.6rem',
+              marginBottom: selectedMode === 'tv' ? '0.25rem' : '0.6rem',
             }}>
               How are you playing?
             </div>
@@ -957,7 +986,7 @@ export function PlayerSetup({
                 aria-pressed={selectedMode === 'pc'}
                 style={{
                   flex: 1,
-                  padding: '0.7rem 0.9rem',
+                  padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
                   borderRadius: 8,
                   border: `2px solid ${selectedMode === 'pc' ? colors.primary.main : colors.secondary.border}`,
                   background: selectedMode === 'pc' ? colors.primary.main : 'white',
@@ -981,7 +1010,7 @@ export function PlayerSetup({
                 aria-pressed={selectedMode === 'tv'}
                 style={{
                   flex: 1,
-                  padding: '0.7rem 0.9rem',
+                  padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
                   borderRadius: 8,
                   border: `2px solid ${selectedMode === 'tv' ? '#9c27b0' : colors.secondary.border}`,
                   background: selectedMode === 'tv' ? '#9c27b0' : 'white',
@@ -1009,7 +1038,7 @@ export function PlayerSetup({
                 aria-disabled="true"
                 style={{
                   flex: 1,
-                  padding: '0.7rem 0.9rem',
+                  padding: selectedMode === 'tv' ? '0.3rem 0.6rem' : '0.7rem 0.9rem',
                   borderRadius: 8,
                   border: `2px dashed ${colors.secondary.border}`,
                   background: '#fafafa',
@@ -1029,24 +1058,38 @@ export function PlayerSetup({
                 </div>
               </button>
             </div>
-            {selectedMode === 'tv' && (
-              <div style={{
-                fontSize: '0.74rem',
-                color: colors.text.secondary,
-                marginTop: '0.55rem',
-              }}>
-                Every player joins from their phone by scanning their QR code below — the game won't start until all have connected.
-              </div>
-            )}
+            {/* The general "every player joins from their phone" instruction
+                was dropped from TV mode — vertical room is scarce on TV, and
+                each tile's own "⚠ Required: scan to join" label already says
+                the same thing per-player. Removed 2026-07-15 to help fit 4
+                tiles on lower-resolution TV browsers without scrolling. */}
           </div>
 
-          <h3 style={styles.sectionTitle}>
-            👥 Players
-          </h3>
-
-          <p style={styles.playerCount}>
-            {validation.getPlayerCountSummary()}
-          </p>
+          {/* TV mode: "👥 Players" heading + the count summary merged into
+              one compact line (instead of styles.sectionTitle's vh-based
+              heading + styles.playerCount's own vh-based paragraph below
+              it) — same information, one line of screen instead of two,
+              so 4 player tiles fit without scrolling. fb: TV real-hardware
+              feedback, 2026-07-15. */}
+          {selectedMode === 'tv' ? (
+            <p style={{
+              color: colors.success.text,
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              margin: '0 0 0.35rem 0',
+            }}>
+              👥 Players — {validation.getPlayerCountSummary()}
+            </p>
+          ) : (
+            <>
+              <h3 style={styles.sectionTitle}>
+                👥 Players
+              </h3>
+              <p style={styles.playerCount}>
+                {validation.getPlayerCountSummary()}
+              </p>
+            </>
+          )}
 
           {/* Scrollbar is forced always-visible ('scroll') only in TV mode —
               fb:fc65c217, a TV remote can't hover to reveal an 'auto'
@@ -1060,6 +1103,7 @@ export function PlayerSetup({
             aria-label={selectedMode === 'tv' ? 'Player list — use the arrow/page keys to scroll' : undefined}
             style={{
               ...styles.playerListWrapper,
+              ...(selectedMode === 'tv' ? { marginBottom: '0.35rem' } : {}),
               overflow: selectedMode === 'tv' ? 'scroll' : 'auto',
               scrollbarGutter: selectedMode === 'tv' ? 'stable' : 'auto',
             }}
@@ -1072,6 +1116,7 @@ export function PlayerSetup({
               canRemovePlayer={validation.canRemovePlayer}
               hideQR={false}
               qrRequired={selectedMode === 'tv'}
+              compact={selectedMode === 'tv'}
             />
           </div>
 

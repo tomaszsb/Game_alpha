@@ -19,6 +19,14 @@ interface PlayerListProps {
   /** When true (TV mode), scanning the QR is mandatory — wording + styling
       reflect that the game can't start until the player joins. v3.0.25. */
   qrRequired?: boolean;
+  /** When true (TV mode), cards render at a smaller footprint — smaller QR,
+      avatar, and color swatches, tighter padding — so 4 tiles have a real
+      shot at fitting on lower-resolution TV browser viewports without
+      scrolling. QR is shrunk (100px -> 76px), not removed — still well
+      within a comfortably phone-scannable size at the close range players
+      hold a phone to a TV screen to join. fb: TV real-hardware feedback,
+      2026-07-15. */
+  compact?: boolean;
 }
 
 /**
@@ -32,7 +40,8 @@ export function PlayerList({
   onCycleAvatar,
   canRemovePlayer,
   hideQR = false,
-  qrRequired = false
+  qrRequired = false,
+  compact = false
 }: PlayerListProps): JSX.Element {
 
   /**
@@ -60,11 +69,12 @@ export function PlayerList({
   /**
    * Render color picker for a player
    */
-  const renderColorPicker = (player: Player) => {
+  const renderColorPicker = (player: Player, compactPicker: boolean) => {
+    const swatchSize = compactPicker ? 22 : 30;
     return (
       <div style={{
         display: 'flex',
-        gap: '0.5rem',
+        gap: compactPicker ? '0.35rem' : '0.5rem',
         flexWrap: 'wrap'
       }}>
         {AVAILABLE_COLORS.map((colorOption: ColorOption) => {
@@ -74,8 +84,8 @@ export function PlayerList({
               key={colorOption.color}
               onClick={() => onUpdatePlayer(player.id, 'color', colorOption.color)}
               style={{
-                width: '30px',
-                height: '30px',
+                width: `${swatchSize}px`,
+                height: `${swatchSize}px`,
                 borderRadius: '50%',
                 backgroundColor: colorOption.color,
                 border: isSelected ? `3px solid ${colors.success.text}` : `2px solid ${colors.secondary.light}`,
@@ -107,6 +117,9 @@ export function PlayerList({
     const playerURL = getServerURL(player.id, player.shortId);
     const networkInfo = getNetworkInfo();
 
+    const qrSize = compact ? 76 : 100;
+    const avatarSize = compact ? 30 : 40;
+
     return (
       <div
         key={player.id}
@@ -114,14 +127,14 @@ export function PlayerList({
           background: colors.secondary.bg,
           border: `3px solid ${player.color}`,
           borderRadius: '12px',
-          padding: '1rem 1.25rem',
+          padding: compact ? '0.5rem 0.75rem' : '1rem 1.25rem',
           display: 'flex',
           // flexWrap lets the QR section drop below the avatar/name/colors
           // section on narrow viewports (e.g. phone hosting PC-mode setup)
           // instead of overflowing horizontally past the card edge.
           // <!-- fb:feedback-1779566484383-02bb1588 -->
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: compact ? '0.6rem' : '1rem',
           alignItems: 'center',
           transition: 'all 0.3s ease',
           animation: 'slideInFromLeft 0.5s ease-out'
@@ -131,27 +144,29 @@ export function PlayerList({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
-          // flex basis 360px gives the avatar+name+remove cluster a real
-          // minimum width so the QR section's `marginLeft: auto` can't
-          // crush the name input down to nothing on TV-width cards. When
-          // the card is narrower than ~500px, flex-wrap kicks in and the
-          // QR section drops to a new row below — cleanly. v3.0.16.
-          flex: '1 1 360px',
+          gap: compact ? '0.5rem' : '0.75rem',
+          // flex basis gives the avatar+name+remove cluster a real minimum
+          // width so the QR section's `marginLeft: auto` can't crush the
+          // name input down to nothing on TV-width cards. When the card is
+          // narrower than the basis + QR width, flex-wrap kicks in and the
+          // QR section drops to a new row below — cleanly. v3.0.16. The
+          // grid's own column-width floor (see the grid below) is what
+          // actually keeps cards wide enough to avoid that in practice.
+          flex: compact ? '1 1 260px' : '1 1 360px',
           minWidth: 0
         }}>
           {/* Avatar */}
           <div style={{ textAlign: 'center', flexShrink: 0 }}>
             <div
               style={{
-                fontSize: '2rem',
+                fontSize: compact ? '1.5rem' : '2rem',
                 cursor: 'pointer',
                 userSelect: 'none'
               }}
               onClick={() => onCycleAvatar(player.id)}
               title="Click to change avatar"
             >
-              <PlayerAvatar avatar={player.avatar} color={player.color} size={40} />
+              <PlayerAvatar avatar={player.avatar} color={player.color} size={avatarSize} />
             </div>
           </div>
 
@@ -159,7 +174,7 @@ export function PlayerList({
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.5rem'
+            gap: compact ? '0.35rem' : '0.5rem'
           }}>
             <input
               type="text"
@@ -168,24 +183,26 @@ export function PlayerList({
               onChange={(e) => onUpdatePlayer(player.id, 'name', e.target.value)}
               maxLength={20}
               style={{
-                padding: '0.5rem 0.75rem',
+                padding: compact ? '0.35rem 0.55rem' : '0.5rem 0.75rem',
                 border: `2px solid ${colors.secondary.light}`,
                 borderRadius: '8px',
-                fontSize: '1rem',
+                fontSize: compact ? '0.85rem' : '1rem',
                 fontWeight: 'bold',
                 transition: 'border-color 0.3s ease',
                 // 100% so the input shrinks on phone-width viewports; maxWidth
                 // caps it at the color-picker row width below (8 swatches ×
-                // 30px + 7 × 8px gap = 296px) so wide-screen visual alignment
-                // is preserved. <!-- fb:feedback-1779566484383-02bb1588 -->
+                // swatch size + 7 × gap) so wide-screen visual alignment is
+                // preserved. <!-- fb:feedback-1779566484383-02bb1588 -->
                 width: '100%',
-                maxWidth: `${AVAILABLE_COLORS.length * 30 + (AVAILABLE_COLORS.length - 1) * 8}px`,
+                maxWidth: compact
+                  ? `${AVAILABLE_COLORS.length * 22 + (AVAILABLE_COLORS.length - 1) * 5.6}px`
+                  : `${AVAILABLE_COLORS.length * 30 + (AVAILABLE_COLORS.length - 1) * 8}px`,
                 boxSizing: 'border-box'
               }}
               onFocus={(e) => handleInputFocus(e, player.color || '')}
               onBlur={handleInputBlur}
             />
-            {renderColorPicker(player)}
+            {renderColorPicker(player, compact)}
           </div>
 
           {/* Remove button */}
@@ -197,9 +214,9 @@ export function PlayerList({
                 color: 'white',
                 border: 'none',
                 borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                fontSize: '1.2rem',
+                width: compact ? '24px' : '32px',
+                height: compact ? '24px' : '32px',
+                fontSize: compact ? '1rem' : '1.2rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -260,18 +277,18 @@ export function PlayerList({
                 }}>
                   <QRCodeSVG
                     value={playerURL}
-                    size={100}
+                    size={qrSize}
                     level="M"
                     includeMargin={false}
                     fgColor={player.color || colors.primary.main}
-                    style={{ width: '100%', height: 'auto', maxWidth: '100px' }}
+                    style={{ width: '100%', height: 'auto', maxWidth: `${qrSize}px` }}
                   />
                 </div>
                 <div style={{
-                  fontSize: '0.65rem',
+                  fontSize: compact ? '0.6rem' : '0.65rem',
                   color: qrRequired ? colors.danger.text : colors.secondary.main,
                   fontWeight: qrRequired ? 700 : 400,
-                  marginTop: '0.25rem',
+                  marginTop: compact ? '0.15rem' : '0.25rem',
                   fontStyle: qrRequired ? 'normal' : 'italic'
                 }}>
                   {qrRequired ? '⚠ Required: scan to join' : 'Optional: scan for personal screen'}
@@ -303,20 +320,25 @@ export function PlayerList({
     );
   }
 
+  // Column-width floor must stay comfortably above a card's own side-by-side
+  // minimum (name/avatar block + QR block + gap), or the QR silently wraps
+  // below the name/avatar INSIDE the card, nearly doubling its height. v3.0.15
+  // used a flat 280px floor; the side effect on TV was that auto-fit packed
+  // 4-5 narrow cards per row and the QR overlapped the name input. v3.0.16
+  // raised it to 360px, which stopped the overlap but was still narrower
+  // than the true side-by-side minimum (~500px non-compact) — confirmed
+  // 2026-07-15 via a real-hardware TV bug report: at 1920px-wide, auto-fit
+  // packed 3 narrow (447px) columns, each too tight, and cards nearly
+  // doubled in height. Compact (TV) cards need less: smaller QR/avatar/
+  // padding bring the true minimum down to ~380px.
+  // <!-- fb:feedback-1779566484383-02bb1588, TV real-hardware feedback 2026-07-15 -->
+  const columnFloor = compact ? 380 : 520;
+
   return (
     <div style={{
       display: 'grid',
-      // Grid floor uses `min(100%, 360px)` so phones (container narrower
-      // than 360) drop cleanly into a single full-width column without
-      // horizontal overflow, while TVs (container wider than 360) get a
-      // 360px floor — wide enough for the QR section to sit inline next
-      // to the name input. v3.0.15 used a flat 280px floor; the side
-      // effect on TV was that the auto-fit packed 4-5 narrow cards per
-      // row and the QR overlapped the name input. v3.0.16 restored a
-      // 360px floor at TV widths while keeping the phone collapse.
-      // <!-- fb:feedback-1779566484383-02bb1588 -->
-      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
-      gap: '1rem'
+      gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${columnFloor}px), 1fr))`,
+      gap: compact ? '0.6rem' : '1rem'
     }}>
       {players.map(player => renderPlayerCard(player))}
     </div>
