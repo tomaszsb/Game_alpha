@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.142] - 2026-07-15
+
+### Fix: TV player tiles now fit at the TV's actual (much smaller) real resolution
+Third round on the same thread: the maintainer confirmed scrolling on a TV remote is genuinely painful and asked to push further rather than accept it as a fallback for the real device's 960×540 logical resolution (see v3.0.138/v3.0.140's CHANGELOG entries) — smaller than either size those were verified against. The v3.0.138 "compact" tiles (140px each) got nowhere close at that size: 4 of them needed ~590px of vertical room against ~144px actually available, a 4x shortfall simple padding trims couldn't close.
+
+Redesigned the TV-mode tile in `PlayerList.tsx` around what's actually essential at this size:
+
+- **Dropped the always-visible 8-swatch color picker for a single tap-to-cycle color dot** — same interaction pattern the avatar already uses (`onCycleAvatar`). Tapping the dot cycles to the next color not already taken by another player (the player's own current color stays in the cycle so it's never a dead end). This was the single biggest space cost: it turned a 2-line-tall tile (name row + picker row) into a genuine 1-line tile (avatar + name + dot, all inline) — removing an entire row, not just shrinking one.
+- **QR shrunk further, 76px → 44px.** Still comfortably within phone-scanning range at the close distance players hold a phone to a TV to join, but a real trade-off worth naming: this is smaller than any QR this app has shipped before.
+- **Dropped the "Required: scan to join" text label in compact mode entirely** (not just shortened) — compact only ever renders in TV mode, where scanning is always required (never "optional"), so the wording never had a second case to distinguish, and the surrounding TV-mode context (the mode toggle, "Phones + TV" copy) already implies "scan this" without spending a text line's height per tile.
+- **Column-width floor dropped 380px → 300px** (the minimum width auto-fit will pack a column into) to match the leaner tile's real side-by-side minimum (~280px) — lets 2 columns fit even at 960×540's shrunk local width, halving 4 tiles from a 4-row stack down to 2 rows.
+
+Verified via typecheck, a clean production build, and live DOM measurement (comparing actual content height against visible area with exactly 4 players) at three TV-plausible viewports: the real reported 960×540 (now fits with a real margin, up from a ~450px shortfall), plus 1280×720 and 1920×1080 (both still fit, and now even more comfortably — 1920×1080 fits all 4 tiles in a single row). Also verified the new tap-to-cycle color dot correctly skips colors already taken by other players (clicking a Blue dot with Green/Red/Orange taken lands on Purple, not the next color in raw list order), and confirmed PC-mode tiles (which don't use `compact`) are pixel-identical to before — this redesign is TV-mode only.
+
 ## [3.0.141] - 2026-07-15
 
 ### Feature: visible hint on the loading screen for TV browsers that get stuck
