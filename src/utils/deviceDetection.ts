@@ -8,6 +8,13 @@ export type DeviceType = 'mobile' | 'desktop';
  * @returns 'mobile' or 'desktop'
  */
 export function detectDeviceType(): DeviceType {
+  // Smart TVs must never come back 'mobile' — confirmed live 2026-07-15 on
+  // a Hisense (Android-based, VIDAA-class) TV whose UA is "Android 11;
+  // SmartTV 4K FFM...": the mobile regex below matches bare "Android" and
+  // has no way to tell an Android TV from an Android phone. Check the more
+  // specific TV heuristic first so those UAs don't fall through to it.
+  if (isSmartTV()) return 'desktop';
+
   // Check user agent string for mobile devices
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
   const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
@@ -36,9 +43,19 @@ export function detectDeviceType(): DeviceType {
  * phone (would look like a phone). Both clear a ~600px short-side bar; real
  * phones (~360–430px short side) don't. Result: phone → reminder view;
  * tablet / laptop / desktop / TV → play view.
+ *
+ * Smart TVs are excluded up front rather than relying on the 600px bar to
+ * clear them — confirmed live 2026-07-15 on a Hisense (Android-based,
+ * VIDAA-class) TV that reported an unusually small logical screen
+ * (960x540, short side 540px), well under the bar. That TV showed this
+ * exact "works best on a bigger screen" warning to someone already playing
+ * on their actual living-room TV, in TV mode. A device isSmartTV() can
+ * positively identify is never a phone, however small its self-reported
+ * viewport is, so it should short-circuit before the size check.
  */
 export function isPhoneScreen(): boolean {
   if (typeof window === 'undefined' || !window.screen) return false;
+  if (isSmartTV()) return false;
   const shortSide = Math.min(window.screen.width, window.screen.height);
   return shortSide > 0 && shortSide < 600;
 }

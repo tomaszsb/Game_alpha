@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.140] - 2026-07-15
+
+### Fix: real Hisense TV misdetected as a phone (two device-detection bugs)
+Real-hardware follow-up on the v3.0.138 TV layout fix: the maintainer tested live on the actual TV (a Hisense, Android-based/VIDAA-class) and filed two reports at v3.0.138, both with `screenSize: "960x540"` and UA `"...Android 11; SmartTV 4K FFM..."` in the metadata — the ground truth this session's earlier simulated-viewport testing (1920×1080, 1280×720) couldn't reach. Screenshots showed the setup screen's "This game works best on a bigger screen — a tablet at minimum, ideally a TV" phone-size warning banner rendering at the top of the screen, on the TV itself, in TV mode — both confusing (prompting "why is TV detected as phone") and costly (eating space that's already scarce at 960×540).
+
+Two real bugs in `deviceDetection.ts`, both from the same root cause — Android-based Smart TVs share enough UA/screen characteristics with actual phones that phone-oriented heuristics can misfire on them:
+
+1. **`isPhoneScreen()`** measures the physical screen's short side and treats anything under 600px as a phone — this specific TV self-reports an unusually small logical screen (960×540, short side 540 < 600), so the bar fired on an actual TV mid-game. Fixed by checking `isSmartTV()` first and returning `false` immediately for anything positively identified as a TV, regardless of its self-reported size.
+2. **`detectDeviceType()`** matches bare `Android` in the user-agent to classify a connecting player's device as `'mobile'` — true for phones, but this TV's UA also contains "Android 11" (many Android-based Smart TV/set-top browsers do), so it would have been misclassified as `'mobile'` wherever `detectDeviceType()` runs (per-player device-type detection on joining via a QR-scanned link). Fixed the same way: check `isSmartTV()` first, return `'desktop'` for any recognized TV before falling through to the phone regex.
+
+Verified via 6 new unit tests in `tests/utils/deviceDetection.test.ts` using the exact real UA and screen size from the bug reports (plus regression cases confirming real phones/iPhones/tablets are unaffected), the full existing `deviceDetection.test.ts` suite (17/17), typecheck, and a clean production build.
+
+**Not yet resolved:** the same two reports' other complaint — "still can not see all four players" — is a harder, separate problem. The real TV's logical viewport (960×540) is significantly smaller than either size this session verified the v3.0.138 layout fix against (1920×1080 and 1280×720 both passed with zero scrolling); at 960×540, even with the phone-warning banner now removed, the four player tiles still substantially exceed the available space. Left open pending a product decision on how far to compact the tiles for this very-small-viewport tier (see CHANGELOG follow-up / TODO).
+
 ## [3.0.139] - 2026-07-15
 
 ### Fix: foreign-game text alert false-fired for the maintainer's own PC (IPv6 home-network bug)
