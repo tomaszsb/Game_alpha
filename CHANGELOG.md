@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.139] - 2026-07-15
+
+### Fix: foreign-game text alert false-fired for the maintainer's own PC (IPv6 home-network bug)
+Reported live: starting a game from a PC on the home network triggered the foreign-game text alert anyway, with an IPv6 address (`2600:4041:...`) the maintainer didn't recognize as their own. Root cause in `server.js`'s `isHomeIP()`: the server auto-detects its own public IP via `api.ipify.org`, which is IPv4-only, and then compared every visitor's IP against that single IPv4 value with an exact string match. Residential IPv6 has no NAT — unlike IPv4, where a whole household shares one public address, every device on an IPv6-capable home network gets its own distinct global address within a prefix the ISP delegates to the router. So when the maintainer's own PC reached the site over IPv6 (routers prefer IPv6 when the ISP offers it — confirmed Comcast/Xfinity-range here), it could never match the server's IPv4-detected "home" address, and got flagged as a foreign visitor — even though it's the same house.
+
+Fixed by tracking home-network identity separately per address family: IPv4 continues to use exact match (unchanged), but IPv6 clients are now compared by their `/64` network prefix (the portion the ISP actually delegates to the household router) rather than the full address, so any device sharing that prefix — the maintainer's PC, phone, a player's tablet — correctly resolves as home regardless of its own distinct suffix. Added a second auto-detection pass using IPv6-only echo hostnames (`ipv6.icanhazip.com`, `api64.ipify.org` — chosen because they have no `A` record, so the OS can't silently substitute IPv4 and defeat the point) alongside the existing IPv4 detection; if the server genuinely has no IPv6 route, this fails gracefully and IPv6 clients fall back to the same safe "unsettled/unknown" handling the IPv4 path already had.
+
+The pure decision logic (`normalizeIP`/`isPrivateOrLoopbackIP`/`expandIPv6`/`ipv6Prefix64`/`isHomeIP`) was extracted from inline `server.js` code into a new `server/homeIP.js` module — `server.js` auto-listens on import and can't be unit-tested directly (matching this repo's existing `authGuards.js`/`websocket.js` pattern), so this makes the logic genuinely testable rather than only pattern-matched as source text. `isHomeIP()` takes detection state as plain arguments instead of closing over module-level mutable variables, making it a pure function. `server.js` now just wires the real async-detected state into it at call time.
+
+Verified via 25 new unit tests in `tests/server/homeIP.test.ts` (`expandIPv6` compression edge cases — leading/middle/trailing `::`, short-hextet padding, IPv4/garbage rejection; `ipv6Prefix64` same-prefix-different-suffix equivalence, the actual scenario that was broken; `isHomeIP` covering private/loopback passthrough, IPv4 exact-match + override + unsettled-detection fallback, and the IPv6 prefix-match bug fix itself plus its override/unsettled/wrong-network/cross-family-no-fallback cases), the full existing `tests/server/` suite (288/288, including the 53-test `serverEndpointAuth.test.ts` wiring fingerprint — confirms the extraction didn't disturb anything), and a Node syntax check on both files.
+
 ## [3.0.138] - 2026-07-15
 
 ### Fix: TV setup screen — 4 player tiles now fit on screen without scrolling

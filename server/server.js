@@ -15,6 +15,7 @@ import path from 'path';
 import { initializeWebSocket, broadcastStateUpdate, broadcastToAllRooms, getRoomStats, validateStateSchema, getConnectedPlayerIds } from './websocket.js';
 import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
+import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import {
   DEFAULT_INSTANCE_ID,
   createInstance,
@@ -393,42 +394,39 @@ function getClientIP(req) {
     || 'unknown';
 }
 
-const normalizeIP = (s) => (typeof s === 'string' ? s.replace(/^::ffff:/i, '') : s);
-
-/**
- * True for loopback and RFC1918 private-range addresses. Covers the case
- * where a device on the same LAN as the server visits it through the
- * public domain and the home router's NAT hairpin/loopback rewrites the
- * source IP to something private (e.g. its own LAN gateway address)
- * instead of preserving a real public IP — that traffic should still
- * count as "home" even though it won't match the detected public IP.
- */
-function isPrivateOrLoopbackIP(ip) {
-  const normalized = normalizeIP(ip);
-  if (!normalized) return false;
-  if (normalized === '::1' || normalized === 'localhost') return true;
-  return /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(normalized);
-}
-
-// Auto-detected public IP of the machine running this server, refreshed
+// Auto-detected public IP(s) of the machine running this server, refreshed
 // periodically so an ISP-reassigned home IP doesn't need a manual update.
-// CONFIG.HOME_IP (if set) always wins over this.
+// CONFIG.HOME_IP (if set) always wins over these. Tracked separately per
+// address family — see isHomeIP()'s comment for why IPv4 uses exact match
+// but IPv6 uses prefix match.
 let detectedHomeIP = '';
+let detectedHomeIPv6 = '';
 
-// True once detectHomeIP() has resolved at least once (success or all
-// providers exhausted) since this process started. detectHomeIP() is
-// fired-and-forgotten at startup rather than awaited (so it doesn't delay
-// the server accepting traffic), which means there's a real window — every
-// restart — between "server is listening" and "outbound geo-IP lookup
-// resolved". Without this flag, isHomeIP() would fail toward alerting for
-// that whole window, and the visit most likely to land in it is the
-// maintainer's own "did the deploy work?" check right after a restart.
+// True once each detection has resolved at least once (success or all
+// providers exhausted) since this process started. Both detectHomeIP() and
+// detectHomeIPv6() are fired-and-forgotten at startup rather than awaited
+// (so they don't delay the server accepting traffic), which means there's a
+// real window — every restart — between "server is listening" and
+// "outbound geo-IP lookup resolved". Without these flags, isHomeIP() would
+// fail toward alerting for that whole window, and the visit most likely to
+// land in it is the maintainer's own "did the deploy work?" check right
+// after a restart.
 let homeIPDetectionSettled = false;
+let homeIPv6DetectionSettled = false;
 
 const IP_ECHO_SERVICES = [
   'https://api.ipify.org',
   'https://ifconfig.me/ip',
   'https://icanhazip.com',
+];
+
+// IPv6-only hostnames (no A record) so the OS can't silently fall back to
+// IPv4 and hand us the wrong family — if the server truly has no IPv6
+// route, these simply fail/timeout and detectedHomeIPv6 stays blank, which
+// isHomeIP() treats the same safe way plain detection failure already is.
+const IPV6_ECHO_SERVICES = [
+  'https://ipv6.icanhazip.com',
+  'https://api64.ipify.org',
 ];
 
 async function detectHomeIP() {
@@ -455,27 +453,56 @@ async function detectHomeIP() {
   homeIPDetectionSettled = true;
 }
 
+async function detectHomeIPv6() {
+  for (const url of IPV6_ECHO_SERVICES) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!response.ok) continue;
+      const text = (await response.text()).trim();
+      if (ipv6Prefix64(text)) {
+        detectedHomeIPv6 = text;
+        console.log(`🏠 Auto-detected home IPv6: ${detectedHomeIPv6} (via ${url})`);
+        homeIPv6DetectionSettled = true;
+        return;
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not detect home IPv6 via ${url}: ${err.message}`);
+    }
+  }
+  // Not a warning-worthy failure on its own — plenty of home networks/ISPs
+  // genuinely have no IPv6 — isHomeIP() falls back to the IPv4-only
+  // comparison for any IPv6 client in that case.
+  console.log('ℹ️ No IPv6 home address detected (server may not have IPv6 connectivity). IPv6 players will be compared against the IPv4 home IP only.');
+  homeIPv6DetectionSettled = true;
+}
+
 if (!CONFIG.HOME_IP) {
   detectHomeIP();
+  detectHomeIPv6();
   setInterval(detectHomeIP, 24 * 60 * 60 * 1000); // re-check daily in case the ISP reassigns it
+  setInterval(detectHomeIPv6, 24 * 60 * 60 * 1000);
 }
 
 /**
  * True if the given IP should be treated as "home" for the foreign-game
- * alert: a private/loopback address (see isPrivateOrLoopbackIP), or a
- * match against CONFIG.HOME_IP (manual override) or the auto-detected
- * public IP. If neither is known yet AND detection has had a chance to
- * complete at least once, every public IP counts as foreign — fails toward
- * alerting you rather than silently missing games. But while the very first
- * detection is still in flight (the startup race described above), assume
- * home instead — otherwise every restart guarantees a false alarm.
+ * alert. Thin wrapper around the pure isHomeIP() in homeIP.js — this
+ * function just supplies the current mutable detection state (which can't
+ * live in the pure module, since server.js can't be imported directly in
+ * tests but needs real async detection at runtime). See homeIP.js for the
+ * actual decision logic and why IPv6 is compared by /64 prefix rather than
+ * exact address.
  */
 function isHomeIP(ip) {
-  const normalized = normalizeIP(ip);
-  if (isPrivateOrLoopbackIP(normalized)) return true;
-  const homeIP = CONFIG.HOME_IP || detectedHomeIP;
-  if (!homeIP) return !homeIPDetectionSettled;
-  return normalized === normalizeIP(homeIP);
+  return isHomeIPPure(ip, {
+    homeIPOverride: CONFIG.HOME_IP,
+    detectedHomeIPv4: detectedHomeIP,
+    detectedHomeIPv6,
+    homeIPDetectionSettled,
+    homeIPv6DetectionSettled,
+  });
 }
 
 /**
