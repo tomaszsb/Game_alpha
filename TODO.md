@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 14, 2026
-**Status:** Beta — live in production; **v3.0.137 deployed 2026-07-14** (commit `c6e516c`, confirmed by maintainer)
-**Current Version:** 3.0.137 (deployed, confirmed live)
+**Last Updated:** July 15, 2026
+**Status:** Beta — live in production; **v3.0.141 deployed** (commit `8b5bf45`, confirmed by maintainer); **v3.0.142 shipped, pending deploy**
+**Current Version:** 3.0.142 (pending deploy)
 
 ---
 
@@ -43,7 +43,7 @@
 *(hero header — prominent title, brand-mark graphic, subtle motion — shipped v3.0.133, see CHANGELOG; closes fb:7dbc2fcc except the optional jingle, parked below under "audio = greenfield" since no SFX system exists yet)*
 
 ### Newly arrived (2026-07-14, staged same day)
-- [~] **TV setup screen doesn't fit / "resolution is crap" on a 4K TV** <!-- fb:feedback-1783998607682-3f9f2831 --> <!-- fb:feedback-1783997840419-e121c34e --> — best-effort code fix shipped v3.0.135 (10-foot-UI zoom scale + real keyboard/remote scroll handling, see CHANGELOG for the exact math/verification). Not confirmed on real TV hardware (none available here) — leave open until the reporter (or another TV session) confirms it actually reads better and the D-pad can scroll back up. Flip fb:3f9f2831/fb:e121c34e once confirmed.
+*(TV setup screen fit/legibility — shipped v3.0.135, then the maintainer's real-hardware testing 2026-07-15 surfaced it needed real fixes on top: v3.0.138 (vh/zoom + grid-packing bugs), v3.0.140 (Android-TV-as-phone misdetection), v3.0.142 (tile redesign for the TV's actual 960x540 resolution) — see CHANGELOG. Closes fb:3f9f2831/fb:e121c34e once v3.0.142 is confirmed deployed; see NEXT_SESSION.md "Flip after deploy" for the full fb-id list including two more reports from the same session.)*
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
 - [~] **P1 remaining:** inline deltas per entry, click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. Acceptance: every committed work-change + expeditor add → exactly one feed entry with a delta, from the existing emission point. (P2–P5 parked below pending V2 reframe.)
@@ -79,7 +79,7 @@
 - **dictionary-scraper `ANTHROPIC_API_KEY`** — RESOLVED, see the Active infra item above (keep the AI-writing step + label it, not remove the key).
 
 ### Dashboard PATCH recipe (for flips after a deploy is confirmed live)
-`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. 2026-07-13: 6 more flipped after v3.0.121–127 deploy confirmed → 26 open (2 new reports arrived same window). 2026-07-14: v3.0.116–137 deploy confirmed (`c6e516c`) — 2 more flipped (fb:f453b1f3, fb:7dbc2fcc) → 28 open (new reports arrived in the interim). The two TV-mode reports fb:3f9f2831/fb:e121c34e are deliberately still NOT flipped — best-effort fix shipped v3.0.135 but unconfirmed on real TV hardware, see the Newly-arrived section above.
+`PATCH https://game.unravelcodes.com/api/feedback/<full-id>.json?token=<FEEDBACK_TOKEN>` body `{"resolved":true}` (`.json` suffix required, token-gated). 2026-07-10: 20 fixed-and-deployed reports flipped, 53→33 open. 2026-07-10/11: 5 more flipped (fixloop closures + 2 maintainer-confirmed-already-resolved) → 27 open. 2026-07-12: 3 more flipped after v3.0.115 deploy confirmed (`b46cb30`) → 24 open. 2026-07-13: 6 more flipped after v3.0.121–127 deploy confirmed → 26 open (2 new reports arrived same window). 2026-07-14: v3.0.116–137 deploy confirmed (`c6e516c`) — 2 more flipped (fb:f453b1f3, fb:7dbc2fcc) → 28 open (new reports arrived in the interim). 2026-07-15: v3.0.141 confirmed deployed (`8b5bf45`) but v3.0.142 (the fix that actually closes the TV-fit thread) is NOT yet deployed — 4 reports pending flip once it is: fb:3f9f2831, fb:e121c34e (original "resolution is crap"/"can't go back up"), plus two filed same day from the same real TV, fb:dca292b8 ("TV detected as phone") and fb:28512320 ("still can not see all four players"). Full detail: NEXT_SESSION.md "Flip after deploy".
 
 ---
 

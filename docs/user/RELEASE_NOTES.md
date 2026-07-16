@@ -2,6 +2,12 @@
 
 ---
 
+## v3.0.138–142 — TV setup finally fits without scrolling, and a couple of TV mix-ups fixed (July 15, 2026)
+
+- **All 4 players now fit on the TV setup screen without scrolling — even on smaller or older smart TVs.** Testing on a real TV found that last session's "make it bigger for the couch" fix had actually made things worse, cramming even less onto the screen. Redesigned the player tiles from the ground up: the row of 8 color circles is now a single dot you tap to cycle through colors (the same idea as tapping your avatar to change it), which freed up enough room to show everyone at once.
+- **The "this works better on a bigger screen" warning no longer shows up while you're already using a TV.** A couple of smart TVs were tripping that same message meant for phones, right in the middle of TV setup.
+- **If the game gets stuck loading on your TV for more than 10 seconds, it now tells you what to try.** Some TV browsers just hang instead of showing an error — you'll now see a suggestion to try a different browser app on your TV.
+
 ## v3.0.128–137 — Press and hold to confirm, a friendlier setup screen, and a board that zooms itself sensibly (July 13–14, 2026)
 
 - **End Turn and Try Again are now one control: tap to compare, press and hold to confirm.** After testing it side by side with the old separate buttons, press-and-hold won — so it's now how every player sees it, not just a dark-mode experiment. Tap either side to see what it costs (labor, work, expediting, money, time — always all five, so the layout doesn't jump around depending on the space); hold down the one you want for about half a second to actually commit to it. The cost preview now pops up above the buttons instead of under your own thumb, and a small outline sweeps around the button as your hold registers so you can see it "catching."
