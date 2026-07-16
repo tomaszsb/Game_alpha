@@ -1020,7 +1020,17 @@
       "Bash(echo \"TEST_EXIT_CODE=$?\")",
       "Bash(node \"C:/Users/tomas/AppData/Local/Temp/claude/D--Unravel-Current-Game-Game-Alpha/c50ec110-5796-4d50-b086-f9cd24b92b34/scratchpad/add_approval_role_column.js\")",
       "Bash(node \"C:/Users/tomas/AppData/Local/Temp/claude/D--Unravel-Current-Game-Game-Alpha/c50ec110-5796-4d50-b086-f9cd24b92b34/scratchpad/add_npc_speaker_column.js\")",
-      "Bash(node \"C:/Users/tomas/AppData/Local/Temp/claude/D--Unravel-Current-Game-Game-Alpha/c50ec110-5796-4d50-b086-f9cd24b92b34/scratchpad/add_worktype_flags.js\")"
+      "Bash(node \"C:/Users/tomas/AppData/Local/Temp/claude/D--Unravel-Current-Game-Game-Alpha/c50ec110-5796-4d50-b086-f9cd24b92b34/scratchpad/add_worktype_flags.js\")",
+      "Bash(ssh -o BatchMode=yes unraid \"docker inspect game_alpha --format '{{json .Mounts}}'\")",
+      "Bash(ssh -o BatchMode=yes unraid \"ls -la /mnt/user/appdata/Game_alpha/server/data/ | head -20; echo ---; ls -la /mnt/user/appdata/Game_alpha/server/data/*.json /mnt/user/appdata/Game_alpha/server/data/*.log 2>/dev/null\")",
+      "Bash(scp -o BatchMode=yes unraid:/mnt/user/appdata/Game_alpha/server/data/games.json /c/Users/tomas/AppData/Local/Temp/claude/D--Unravel-Current-Game-Game-Alpha/a0df8321-323a-46af-a3aa-fafcfb292288/scratchpad/games.json)",
+      "Bash(ssh -o BatchMode=yes unraid \"grep '2026-07-16' /mnt/user/appdata/Game_alpha/server/data/visitors.log\")",
+      "Read(//c/Users/tomas/AppData/Local/Temp/claude/D--Unravel-Current-Game-Game-Alpha/a0df8321-323a-46af-a3aa-fafcfb292288/scratchpad/**)",
+      "Bash(grep -v \"TurnService.ts$\")",
+      "Bash(grep -v \"TurnTransitionHandler.ts$\")",
+      "Bash(ssh -o BatchMode=yes unraid \"grep -i 'HOME_IP\\\\|ALERT' /mnt/user/appdata/Game_alpha/.env 2>/dev/null | sed 's/WEBHOOK.*/WEBHOOK=\\(redacted\\)/'\")",
+      "Bash(ssh -o BatchMode=yes unraid \"grep -c 'PLAYTEST' /mnt/user/appdata/Game_alpha/server/data/visitors.log; grep 'REMINDER_SELECTED\\\\|SHARE_CLICK\\\\|REMIND_ME\\\\|SCHEDULE_PUSH\\\\|BOOKMARK' /mnt/user/appdata/Game_alpha/server/data/visitors.log | tail -40\")",
+      "Bash(ssh -o BatchMode=yes unraid \"grep -o '\\\\\"campaignSource\\\\\":\\\\\"[^\\\\\"]*\\\\\"' /mnt/user/appdata/Game_alpha/server/data/visitors.log | sort | uniq -c; echo '--- fb-tagged events \\(first 10\\) ---'; grep '\\\\\"campaignSource\\\\\":\\\\\"fb\\\\\"' /mnt/user/appdata/Game_alpha/server/data/visitors.log | head -10 | cut -c1-160\")"
     ],
     "deny": [],
     "ask": []

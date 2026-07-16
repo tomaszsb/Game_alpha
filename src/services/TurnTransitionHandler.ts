@@ -6,12 +6,6 @@ import { INotificationService } from './NotificationService';
 import { Player } from '../types/StateTypes';
 
 /**
- * Callback type for finalizing quick start hand at end of P1's first turn.
- * This stays in TurnService because it accesses too many TurnService internals.
- */
-export type FinalizeQuickStartHandCallback = () => void;
-
-/**
  * TurnTransitionHandler handles the turn-end sequence and player advancement.
  *
  * This includes:
@@ -19,7 +13,7 @@ export type FinalizeQuickStartHandCallback = () => void;
  * - Active effects processing for all players
  * - Re-roll flag resets
  * - Turn-end logging
- * - Quick start finalization (via callback)
+ * - Quick start finalization
  * - Determining next player with skip-turn logic
  * - Advancing turn counter and setting current player
  * - Resetting turn flags
@@ -28,8 +22,6 @@ export type FinalizeQuickStartHandCallback = () => void;
  * Extracted from TurnService for better separation of concerns.
  */
 export class TurnTransitionHandler {
-  private finalizeQuickStartHandCallback?: FinalizeQuickStartHandCallback;
-
   constructor(
     private stateService: IStateService,
     private cardService: ICardService,
@@ -53,14 +45,6 @@ export class TurnTransitionHandler {
   }
 
   /**
-   * Set the callback for finalizing quick start hand.
-   * This is needed because the actual finalization logic is in TurnService.
-   */
-  public setFinalizeQuickStartHandCallback(callback: FinalizeQuickStartHandCallback): void {
-    this.finalizeQuickStartHandCallback = callback;
-  }
-
-  /**
    * Process end-of-turn effects for the current player.
    *
    * Orchestrates the full turn-end sequence:
@@ -68,7 +52,7 @@ export class TurnTransitionHandler {
    * - STEP 2: Active effects processing (calls effectEngineService.processActiveEffectsForCurrentPlayer())
    * - STEP 3: Reset re-roll flags for current player
    * - STEP 4: Log turn end
-   * - STEP 4.5: Quick start finalization (calls callback, since finalizeQuickStartHand stays in TurnService)
+   * - STEP 4.5: Quick start finalization
    *
    * @param currentPlayerId - The ID of the player whose turn is ending
    */
@@ -123,10 +107,93 @@ export class TurnTransitionHandler {
     // STEP 4.5: Quick Start mode - finalize starting hand after P1's first turn
     // This distributes P1's captured card draws to all other players
     if (gameState.isCapturingStartingHand && currentPlayerIndex === 0) {
-      if (this.finalizeQuickStartHandCallback) {
-        this.finalizeQuickStartHandCallback();
+      this.finalizeQuickStartHand();
+    }
+  }
+
+  /**
+   * Finalize Quick Start mode by distributing P1's captured cards to all players.
+   * Called at the end of P1's first turn in Quick Start mode.
+   *
+   * This method:
+   * 1. Gets the captured starting hand from P1's turn
+   * 2. Copies those cards to all other players' hands
+   * 3. Removes the starting cards from each player's per-player deck
+   * 4. Clears the isCapturingStartingHand flag
+   *
+   * (Moved here from TurnService 2026-07-16 — it only ever needed
+   * stateService + loggingService, both of which live here; the old
+   * "accesses TurnService internals" callback justification was stale.)
+   */
+  private finalizeQuickStartHand(): void {
+    const gameState = this.stateService.getGameState();
+
+    if (!gameState.isCapturingStartingHand) {
+      return; // Not in Quick Start capture mode
+    }
+
+    const startingHand = gameState.startingHand || [];
+    if (startingHand.length === 0) {
+      this.stateService.updateGameState({ isCapturingStartingHand: false });
+      return;
+    }
+
+    const allPlayers = gameState.players;
+    const playerDecks = gameState.playerDecks ? { ...gameState.playerDecks } : {};
+
+    // P1 already has the cards in their hand (captured during their turn)
+    // Now distribute to all other players
+    for (let i = 1; i < allPlayers.length; i++) {
+      const player = allPlayers[i];
+
+      // Add starting cards to player's hand
+      const currentHand = player.hand || [];
+      const updatedHand = [...currentHand, ...startingHand];
+
+      this.stateService.updatePlayer({
+        id: player.id,
+        hand: updatedHand
+      });
+
+      // Remove starting cards from this player's deck
+      if (playerDecks[player.id]) {
+        for (const cardId of startingHand) {
+          const cardType = this.getCardTypeFromId(cardId);
+          if (cardType && playerDecks[player.id][cardType]) {
+            const deck = playerDecks[player.id][cardType];
+            const cardIndex = deck.indexOf(cardId);
+            if (cardIndex !== -1) {
+              deck.splice(cardIndex, 1);
+            }
+          }
+        }
       }
     }
+
+    // Update game state with modified decks and clear capturing flag
+    this.stateService.updateGameState({
+      playerDecks,
+      isCapturingStartingHand: false
+    });
+
+    // Log the completion
+    this.loggingService.info(`Quick Start: Starting hand distributed to all players`, {
+      startingHand,
+      playerCount: allPlayers.length,
+      action: 'quick_start_finalized'
+    });
+  }
+
+  /**
+   * Helper to get card type from card ID for Quick Start mode.
+   */
+  private getCardTypeFromId(cardId: string): 'W' | 'B' | 'E' | 'L' | 'I' | null {
+    if (!cardId) return null;
+    const firstChar = cardId.charAt(0).toUpperCase();
+    if (['W', 'B', 'E', 'L', 'I'].includes(firstChar)) {
+      return firstChar as 'W' | 'B' | 'E' | 'L' | 'I';
+    }
+    return null;
   }
 
   /**

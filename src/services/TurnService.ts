@@ -7,19 +7,13 @@ import { SpaceArrivalProcessor } from './SpaceArrivalProcessor';
 import { DiceRollProcessor } from './DiceRollProcessor';
 import { TurnTransitionHandler } from './TurnTransitionHandler';
 import { MovementExecutor } from './MovementExecutor';
-import { GameState, Player, DiceResultEffect, TurnEffectResult, CreateTempOptions, MutablePlayerState } from '../types/StateTypes';
-import { DiceEffect, SpaceEffect, Movement, CardType, VisitType } from '../types/DataTypes';
-import { EffectFactory } from '../utils/EffectFactory';
-import { EffectContext, Effect } from '../types/EffectTypes';
-import { formatManualEffectButton, formatDiceRollFeedback, formatActionFeedback } from '../utils/buttonFormatting';
+import { TurnEffectsOrchestrator } from './TurnEffectsOrchestrator';
+import { ManualActionProcessor } from './ManualActionProcessor';
+import { GameState, Player, TurnEffectResult, CreateTempOptions, MutablePlayerState } from '../types/StateTypes';
+import { SpaceEffect, VisitType } from '../types/DataTypes';
+import { Effect } from '../types/EffectTypes';
 import { getCardTypeName } from '../utils/cardTypeNames';
-import { describeCardAction } from './DiceService';
-import { buildResourceSnapshot } from '../utils/resourceSnapshot';
-import { ConditionEvaluator } from '../utils/ConditionEvaluator';
-import { interpolateTemplate, resolveFundingAmountToken } from '../utils/templateInterpolation';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { AutoActionEvent } from './StateService';
-import { calculateOwnerSeedMoney } from '../utils/ownerSeedMoney';
 import { calculateSpaceTimeAddTotal } from '../utils/costPreview';
 
 export class TurnService implements ITurnService {
@@ -34,11 +28,12 @@ export class TurnService implements ITurnService {
   private readonly choiceService: IChoiceService;
   private readonly diceService: IDiceService;
   private readonly spaceEffectService: ISpaceEffectService;
-  private readonly conditionEvaluator: ConditionEvaluator;
   private readonly spaceArrivalProcessor: SpaceArrivalProcessor;
   private readonly diceRollProcessor: DiceRollProcessor;
   private readonly movementExecutor: MovementExecutor;
   private readonly turnTransitionHandler: TurnTransitionHandler;
+  private readonly turnEffectsOrchestrator: TurnEffectsOrchestrator;
+  private readonly manualActionProcessor: ManualActionProcessor;
   private readonly notificationService?: INotificationService;
   private effectEngineService?: IEffectEngineService;
   private readonly cardEffectService?: ICardEffectService;
@@ -69,8 +64,6 @@ export class TurnService implements ITurnService {
       this.diceService,
       dataService
     );
-    // Create ConditionEvaluator with GameRulesService for scope conditions
-    this.conditionEvaluator = new ConditionEvaluator(gameRulesService);
     // Create SpaceArrivalProcessor for space arrival effect processing
     this.spaceArrivalProcessor = new SpaceArrivalProcessor(
       dataService,
@@ -93,9 +86,34 @@ export class TurnService implements ITurnService {
       notificationService,
       approvalService
     );
+    // Create TurnEffectsOrchestrator — converts space/dice CSV rows into
+    // Effect objects and runs them through the EffectEngine (extracted 2026-07-16)
+    this.turnEffectsOrchestrator = new TurnEffectsOrchestrator(
+      dataService,
+      stateService,
+      this.diceService,
+      this.spaceArrivalProcessor,
+      effectEngineService
+    );
+    // Create ManualActionProcessor — manual action buttons + automatic
+    // owner-seed-money funding, with modal feedback (extracted 2026-07-16)
+    this.manualActionProcessor = new ManualActionProcessor(
+      dataService,
+      stateService,
+      gameRulesService,
+      cardService,
+      resourceService,
+      movementService,
+      this.spaceEffectService,
+      this.diceService,
+      loggingService,
+      notificationService,
+      effectEngineService,
+      cardEffectService
+    );
     // Set the callback for processing dice roll effects (needed for circular dependency)
     this.diceRollProcessor.setProcessDiceRollEffectsCallback(
-      (playerId, diceRoll) => this.processDiceRollEffects(playerId, diceRoll)
+      (playerId, diceRoll) => this.turnEffectsOrchestrator.processDiceRollEffects(playerId, diceRoll)
     );
     // Create MovementExecutor for movement execution during end-of-turn.
     // Phase 2.1 audit (2026-06-04): MovementExecutor no longer needs
@@ -116,10 +134,6 @@ export class TurnService implements ITurnService {
       effectEngineService,
       notificationService
     );
-    // Set the callback for finalizing quick start hand (needed because it accesses TurnService internals)
-    this.turnTransitionHandler.setFinalizeQuickStartHandCallback(
-      () => this.finalizeQuickStartHand()
-    );
   }
 
   /**
@@ -129,6 +143,8 @@ export class TurnService implements ITurnService {
     this.effectEngineService = effectEngineService;
     this.spaceArrivalProcessor.setEffectEngineService(effectEngineService);
     this.turnTransitionHandler.setEffectEngineService(effectEngineService);
+    this.turnEffectsOrchestrator.setEffectEngineService(effectEngineService);
+    this.manualActionProcessor.setEffectEngineService(effectEngineService);
   }
 
   /**
@@ -578,90 +594,6 @@ export class TurnService implements ITurnService {
     return { nextPlayerId };
   }
 
-  /**
-   * Finalize Quick Start mode by distributing P1's captured cards to all players.
-   * Called at the end of P1's first turn in Quick Start mode.
-   *
-   * This method:
-   * 1. Gets the captured starting hand from P1's turn
-   * 2. Copies those cards to all other players' hands
-   * 3. Removes the starting cards from each player's per-player deck
-   * 4. Clears the isCapturingStartingHand flag
-   */
-  private finalizeQuickStartHand(): void {
-    const gameState = this.stateService.getGameState();
-
-    if (!gameState.isCapturingStartingHand) {
-      return; // Not in Quick Start capture mode
-    }
-
-    const startingHand = gameState.startingHand || [];
-    if (startingHand.length === 0) {
-      this.stateService.updateGameState({ isCapturingStartingHand: false });
-      return;
-    }
-
-
-    const allPlayers = gameState.players;
-    const playerDecks = gameState.playerDecks ? { ...gameState.playerDecks } : {};
-
-    // P1 already has the cards in their hand (captured during their turn)
-    // Now distribute to all other players
-    for (let i = 1; i < allPlayers.length; i++) {
-      const player = allPlayers[i];
-
-      // Add starting cards to player's hand
-      const currentHand = player.hand || [];
-      const updatedHand = [...currentHand, ...startingHand];
-
-      this.stateService.updatePlayer({
-        id: player.id,
-        hand: updatedHand
-      });
-
-
-      // Remove starting cards from this player's deck
-      if (playerDecks[player.id]) {
-        for (const cardId of startingHand) {
-          const cardType = this.getCardTypeFromId(cardId);
-          if (cardType && playerDecks[player.id][cardType]) {
-            const deck = playerDecks[player.id][cardType];
-            const cardIndex = deck.indexOf(cardId);
-            if (cardIndex !== -1) {
-              deck.splice(cardIndex, 1);
-            }
-          }
-        }
-      }
-    }
-
-    // Update game state with modified decks and clear capturing flag
-    this.stateService.updateGameState({
-      playerDecks,
-      isCapturingStartingHand: false
-    });
-
-    // Log the completion
-    this.loggingService.info(`Quick Start: Starting hand distributed to all players`, {
-      startingHand,
-      playerCount: allPlayers.length,
-      action: 'quick_start_finalized'
-    });
-
-  }
-
-  /**
-   * Helper to get card type from card ID for Quick Start mode.
-   */
-  private getCardTypeFromId(cardId: string): 'W' | 'B' | 'E' | 'L' | 'I' | null {
-    if (!cardId) return null;
-    const firstChar = cardId.charAt(0).toUpperCase();
-    if (['W', 'B', 'E', 'L', 'I'].includes(firstChar)) {
-      return firstChar as 'W' | 'B' | 'E' | 'L' | 'I';
-    }
-    return null;
-  }
-
   // ==========================================================================
   // Turn transaction boundary (Phase 2.2)
   //
@@ -842,16 +774,6 @@ export class TurnService implements ITurnService {
     await this.movementService.handleMovementChoices(playerId);
   }
 
-  /**
-   * Restores movement choice if the current space requires one - delegates to MovementService
-   * Used after completing manual effects that clear the choice state
-   *
-   * @private
-   */
-  private async restoreMovementChoiceIfNeeded(playerId: string): Promise<void> {
-    await this.movementService.restoreMovementChoiceIfNeeded(playerId);
-  }
-
   rollDice(): number {
     return this.diceService.rollDice();
   }
@@ -883,744 +805,36 @@ export class TurnService implements ITurnService {
     return gameState.currentPlayerId;
   }
 
+  /**
+   * Process space + dice effects for the current space (space entry)
+   * Delegates to TurnEffectsOrchestrator
+   */
   async processTurnEffects(playerId: string, diceRoll: number): Promise<GameState> {
-    const currentPlayer = this.stateService.getPlayer(playerId);
-    if (!currentPlayer) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    try {
-      // Get space effect data from DataService
-      const spaceEffectsData = this.dataService.getSpaceEffects(
-        currentPlayer.currentSpace, 
-        currentPlayer.visitType
-      );
-      
-      // Filter space effects based on conditions (e.g., scope_le_4M, scope_gt_4M)
-      const conditionFilteredEffects = this.filterSpaceEffectsByCondition(spaceEffectsData, currentPlayer);
-
-      // Filter out manual effects and time effects - manual effects are triggered by buttons, time effects on leaving space
-      const filteredSpaceEffects = conditionFilteredEffects.filter(effect =>
-        effect.trigger_type !== 'manual' && effect.effect_type !== 'time'
-      );
-      
-      // Get dice effect data from DataService  
-      const diceEffectsData = this.dataService.getDiceEffects(
-        currentPlayer.currentSpace, 
-        currentPlayer.visitType
-      );
-      
-      // Get space configuration for action processing
-      const spaceConfig = this.dataService.getGameConfigBySpace(currentPlayer.currentSpace);
-      
-      // Generate all effects from space entry using EffectFactory
-      const friendlySpace = friendlySpaceName(this.dataService, currentPlayer.currentSpace);
-      const spaceEffects = EffectFactory.createEffectsFromSpaceEntry(
-        filteredSpaceEffects,
-        playerId,
-        currentPlayer.currentSpace,
-        currentPlayer.visitType,
-        spaceConfig || undefined,
-        currentPlayer.name,
-        false,
-        friendlySpace
-      );
-
-      // Generate all effects from dice roll using EffectFactory
-      const diceEffects = EffectFactory.createEffectsFromDiceRoll(
-        diceEffectsData,
-        playerId,
-        currentPlayer.currentSpace,
-        diceRoll,
-        currentPlayer.name,
-        friendlySpace
-      );
-      
-      // Add user messaging when funding is auto-applied (paired with shouldAutoApplyFunding).
-      // Workstream 6 #3: lifted from `=== 'OWNER-FUND-INITIATION'`.
-      if (this.dataService.shouldAutoApplyFunding(currentPlayer.currentSpace)) {
-        spaceEffects.push({
-          effectType: 'LOG',
-          payload: {
-            message: `Reviewing project scope for funding level...`,
-            level: 'INFO',
-            source: `space:${currentPlayer.currentSpace}:${currentPlayer.visitType}`,
-            action: 'space_effect'
-          }
-        });
-      }
-
-      // Combine all effects for unified processing
-      const allEffects = [...spaceEffects, ...diceEffects];
-      
-      
-      if (allEffects.length > 0) {
-        if (!this.effectEngineService) {
-          console.error(`❌ EffectEngineService not available - cannot process ${allEffects.length} effects`);
-          throw new Error('EffectEngineService not initialized - effects cannot be processed');
-        }
-        
-        // Create effect processing context
-        const effectContext: EffectContext = {
-          source: 'turn_effects:space_entry',
-          playerId: playerId,
-          triggerEvent: 'SPACE_ENTRY',
-          metadata: {
-            spaceName: currentPlayer.currentSpace,
-            visitType: currentPlayer.visitType,
-            diceRoll: diceRoll,
-            playerName: currentPlayer.name
-          }
-        };
-        
-        // Process all effects through the unified Effect Engine
-        const processingResult = await this.effectEngineService.processEffects(allEffects, effectContext);
-        
-        if (!processingResult.success) {
-          console.error(`❌ Failed to process some space/dice effects: ${processingResult.errors.join(', ')}`);
-          // Log errors but don't throw - some effects may have succeeded
-        } else {
-        }
-      } else {
-      }
-      
-      return this.stateService.getGameState();
-      
-    } catch (error) {
-      console.error(`❌ Error processing turn effects:`, error);
-      throw new Error(`Failed to process turn effects: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    return this.turnEffectsOrchestrator.processTurnEffects(playerId, diceRoll);
   }
 
   /**
    * Process ONLY dice effects (not space effects) for a dice roll
-   * Returns the effects that were generated for feedback purposes and the processing results
+   * Delegates to TurnEffectsOrchestrator
    */
   async processDiceRollEffects(playerId: string, diceRoll: number): Promise<{ gameState: GameState, generatedEffects: Effect[], effectResults?: import('../types/EffectTypes').BatchEffectResult, rollGroups?: Array<{ rollGroup: string; diceValue: number; effectCount: number }> }> {
-    const currentPlayer = this.stateService.getPlayer(playerId);
-    if (!currentPlayer) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-
-    try {
-      // Get ONLY dice effect data from DataService
-      const diceEffectsData = this.dataService.getDiceEffects(
-        currentPlayer.currentSpace,
-        currentPlayer.visitType
-      );
-
-      if (diceEffectsData.length === 0) {
-        return { gameState: this.stateService.getGameState(), generatedEffects: [], effectResults: undefined };
-      }
-
-      // Group dice effects by roll_group. Empty/undefined roll_group all share one roll.
-      const groups = new Map<string, typeof diceEffectsData>();
-      for (const effect of diceEffectsData) {
-        const key = effect.roll_group || '';
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(effect);
-      }
-
-      // Roll separately for each group. The first/default group uses the passed-in diceRoll.
-      const allDiceEffects: Effect[] = [];
-      const rollGroupResults: Array<{ rollGroup: string; diceValue: number; effectCount: number }> = [];
-      let isFirstGroup = true;
-
-      for (const [groupKey, groupEffects] of groups) {
-        const groupDiceRoll = isFirstGroup ? diceRoll : this.diceRollProcessor.rollDice();
-        isFirstGroup = false;
-
-        const effects = EffectFactory.createEffectsFromDiceRoll(
-          groupEffects,
-          playerId,
-          currentPlayer.currentSpace,
-          groupDiceRoll,
-          currentPlayer.name,
-          friendlySpaceName(this.dataService, currentPlayer.currentSpace)
-        );
-        allDiceEffects.push(...effects);
-        rollGroupResults.push({ rollGroup: groupKey, diceValue: groupDiceRoll, effectCount: effects.length });
-      }
-
-      if (allDiceEffects.length > 0) {
-        if (!this.effectEngineService) {
-          console.error(`❌ EffectEngineService not available - cannot process ${allDiceEffects.length} dice effects`);
-          throw new Error('EffectEngineService not initialized - dice effects cannot be processed');
-        }
-
-        // Create effect processing context for dice effects only
-        const effectContext: EffectContext = {
-          source: 'dice_roll',
-          playerId: playerId,
-          triggerEvent: 'DICE_ROLL',
-          metadata: {
-            spaceName: currentPlayer.currentSpace,
-            visitType: currentPlayer.visitType,
-            diceRoll: diceRoll,
-            playerName: currentPlayer.name
-          }
-        };
-
-        // Process ALL dice effects through the Effect Engine
-        const processingResult = await this.effectEngineService.processEffects(allDiceEffects, effectContext);
-
-        if (!processingResult.success) {
-          console.error(`❌ Failed to process some dice effects: ${processingResult.errors.join(', ')}`);
-        }
-
-        // Only include rollGroups when there are multiple groups
-        const rollGroups = rollGroupResults.length > 1 ? rollGroupResults : undefined;
-        return { gameState: this.stateService.getGameState(), generatedEffects: allDiceEffects, effectResults: processingResult, rollGroups };
-      }
-
-      return { gameState: this.stateService.getGameState(), generatedEffects: allDiceEffects, effectResults: undefined };
-    } catch (error) {
-      console.error(`❌ Error processing dice effects for ${currentPlayer.name}:`, error);
-      throw error;
-    }
-  }
-
-  private async applySpaceEffect(
-    playerId: string,
-    effect: SpaceEffect,
-    currentState: GameState
-  ): Promise<GameState> {
-    // Apply effect based on type
-    switch (effect.effect_type) {
-      case 'cards':
-        return await this.applySpaceCardEffect(playerId, effect, effect.effect_type);
-
-      case 'money':
-        return this.applySpaceMoneyEffect(playerId, effect);
-      
-      case 'time':
-        return this.applySpaceTimeEffect(playerId, effect);
-      
-      default:
-        debugWarn(`Unknown space effect type: ${effect.effect_type}`);
-        return currentState;
-    }
-  }
-
-  // v3.0.42: deleted 5 private wrappers + 1 helper that were never called
-  // (applyDiceEffect / applyCardEffect / applyMoneyEffect / applyTimeEffect /
-  // applyQualityEffect / getDiceRollEffect). The dice/quality/multiplier
-  // pipeline was migrated to EffectEngineService's CONTRACTOR_UPDATE handler
-  // in v2.65.9; these passthroughs to SpaceEffectService outlived it.
-
-  private async applySpaceCardEffect(playerId: string, effect: SpaceEffect, effectType: string): Promise<GameState> {
-
-    // Delegate to CardEffectService if available
-    if (this.cardEffectService) {
-      const result = await this.cardEffectService.executeCardEffect(playerId, effect, effectType);
-
-      // Determine if action was actually completed (not skipped)
-      // For replace/return/give actions, user can skip - only mark complete if cards were affected
-      // For draw actions, they always succeed
-      // EXCEPTION: If action is IMPOSSIBLE (not just skipped), auto-complete it
-      const action = effect.effect_action.toLowerCase();
-      const isSkippableAction = action.startsWith('replace_') || action.startsWith('return_') || action.startsWith('give_');
-
-      // Check if action was impossible (not just skipped by user)
-      // Messages like "Cannot give card to self", "No E cards to give", etc. indicate impossibility
-      const isImpossibleAction = result.message && (
-        result.message.startsWith('Cannot') ||
-        result.message.startsWith('No ') ||
-        result.message.includes('not found')
-      );
-
-      const wasActuallyCompleted = !isSkippableAction || result.cardsAffected.length > 0 || isImpossibleAction;
-
-      if (wasActuallyCompleted) {
-        // Mark action as complete using compound key and effect_action
-        // DO NOT mark by base type (e.g., 'cards') as it causes multiple same-type effects to all appear completed
-        const { text: buttonText } = formatManualEffectButton(effect);
-        this.stateService.setPlayerCompletedManualAction(effectType, buttonText);
-
-        // Also mark by effect_action for matching
-        if (effect.effect_action) {
-          this.stateService.setPlayerCompletedManualAction(effect.effect_action, buttonText);
-        }
-
-        if (isImpossibleAction) {
-        }
-      } else {
-        // Reached only when the action is skippable, affected no cards, and
-        // isn't impossible — i.e. the player declined an optional action. That's
-        // expected, not an error; log at debug level so it doesn't inflate the
-        // error count captured into bug reports.
-        debugWarn(`[ManualAction] skippable action declined (not marked complete): effectType=${effectType}, action=${action}, cardsAffected=${result.cardsAffected.length}, message=${result.message}, isSkippable=${isSkippableAction}, isImpossible=${isImpossibleAction}.`);
-      }
-
-      // Restore movement choice if needed
-      await this.restoreMovementChoiceIfNeeded(playerId);
-
-      return this.stateService.getGameState();
-    }
-
-    // CardEffectService is required - it should always be injected via setCardEffectService
-    throw new Error('CardEffectService not initialized. Ensure setCardEffectService is called during service setup.');
-  }
-
-  private applySpaceMoneyEffect(playerId: string, effect: SpaceEffect): GameState {
-    return this.spaceEffectService.applySpaceMoneyEffect(playerId, effect);
-  }
-
-  /**
-   * Apply investment funding - rolls dice, draws I card, applies time, and charges 5% fee
-   */
-  private async applyInvestmentFunding(playerId: string, effect: SpaceEffect): Promise<GameState> {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    const space = player.currentSpace;
-    const visitType = player.visitType;
-    const source = `space:${space}`;
-    const reason = effect.description || 'Investment funding';
-
-
-    // Step 1: Roll dice
-    const diceRoll = this.rollDice();
-
-    // Step 2: Apply time based on dice roll
-    const diceEffects = this.dataService.getDiceEffects(space, visitType);
-    const timeEffect = diceEffects.find(e => e.effect_type === 'time');
-    if (timeEffect) {
-      const diceRollEffectValue = this.getDiceRollEffectValue(timeEffect, diceRoll);
-      const days = parseInt(diceRollEffectValue);
-      if (!isNaN(days) && days > 0) {
-        this.resourceService.addTime(playerId, days, source, `Investment review: ${days} days`);
-      }
-    }
-
-    // Step 3: Capture investment before drawing card
-    const investmentBefore = player.moneySources?.investmentDeals || 0;
-
-    // Step 4: Draw and apply I card
-    await this.cardService.drawAndApplyCard(playerId, 'I', source, reason);
-
-    // Step 5: Calculate and charge 5% fee on NEW investment only
-    const updatedPlayer = this.stateService.getPlayer(playerId);
-    if (!updatedPlayer) return this.stateService.getGameState();
-
-    const investmentAfter = updatedPlayer.moneySources?.investmentDeals || 0;
-    const newInvestment = investmentAfter - investmentBefore;
-    const feeAmount = Math.floor((newInvestment * 5) / 100);
-
-    if (feeAmount > 0) {
-      // Mandatory fee — the player didn't opt into it, it's an automatic
-      // consequence of drawing investment funding. Same "charge into the red"
-      // rule as design/regulatory fees and the contractor signing charge
-      // (allowNegative), so it can't be silently skipped when unaffordable.
-      this.resourceService.recordCost(playerId, 'investmentFee', feeAmount, `5% investment fee on $${newInvestment.toLocaleString()}`, 'handleAutomaticFunding', true);
-      // Share the single bankruptcy rule (FinancialEffectHandler.checkBankruptcy)
-      // via EffectEngineService's passthrough rather than growing a new copy.
-      this.effectEngineService?.checkBankruptcy(playerId);
-    }
-
-    // Step 6: Mark dice as rolled
-    this.stateService.setPlayerHasRolledDice();
-
-    return this.stateService.getGameState();
-  }
-
-  private applySpaceTimeEffect(playerId: string, effect: SpaceEffect): GameState {
-    return this.spaceEffectService.applySpaceTimeEffect(playerId, effect);
-  }
-
-  private getTargetPlayer(currentPlayerId: string, condition: string): Player | null {
-    return this.spaceEffectService.getTargetPlayer(currentPlayerId, condition);
-  }
-
-  private parseNumericValue(effect: string): number {
-    return this.diceService.parseNumericValue(effect);
-  }
-
-  /**
-   * Get the dice roll effect value for a specific roll
-   */
-  private getDiceRollEffectValue(diceEffect: DiceEffect, diceRoll: number): string {
-    return this.diceService.getDiceRollEffectValue(diceEffect, diceRoll);
+    return this.turnEffectsOrchestrator.processDiceRollEffects(playerId, diceRoll);
   }
 
   /**
    * Trigger a manual space effect for the current player
+   * Delegates to ManualActionProcessor
    */
   async triggerManualEffect(playerId: string, effectType: string): Promise<GameState> {
-
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    // Parse effectType - might be compound like "cards:draw_b" or simple like "money"
-    const [baseType, action] = effectType.includes(':') ? effectType.split(':') : [effectType, null];
-
-    // Get manual effects for current space and visit type
-    const spaceEffects = this.dataService.getSpaceEffects(player.currentSpace, player.visitType);
-
-    const manualEffect = spaceEffects.find(effect => {
-      const typeMatches = effect.trigger_type === 'manual' && effect.effect_type === baseType;
-      // If action specified (e.g., "draw_b"), must match; otherwise just type match
-      const actionMatches = !action || effect.effect_action === action;
-      return typeMatches && actionMatches;
-    });
-
-    if (!manualEffect) {
-      throw new Error(`No manual ${effectType} effect found for ${player.currentSpace} (${player.visitType})`);
-    }
-
-
-    // Evaluate condition before applying manual effect
-    const conditionMet = this.evaluateEffectCondition(playerId, manualEffect.condition);
-    if (!conditionMet) {
-      throw new Error(`Manual ${effectType} effect condition not met: ${manualEffect.condition}`);
-    }
-
-
-    // Apply the effect based on type
-    let newState = this.stateService.getGameState();
-
-
-    if (baseType === 'cards') {
-      newState = await this.applySpaceCardEffect(playerId, manualEffect, effectType);
-    } else if (baseType === 'money') {
-      // Special handling for get_investment_funding action
-      if (manualEffect.effect_action === 'get_investment_funding') {
-        newState = await this.applyInvestmentFunding(playerId, manualEffect);
-      } else {
-        newState = this.applySpaceMoneyEffect(playerId, manualEffect);
-      }
-    } else if (baseType === 'time') {
-      newState = this.applySpaceTimeEffect(playerId, manualEffect);
-    } else if (baseType === 'turn') {
-      // Handle turn effects (like "end_turn") - these are special and don't need processing here
-      // Turn effects are handled by the UI component calling onEndTurn
-    } else {
-      debugWarn(`⚠️ Unknown manual effect type: ${baseType}`);
-    }
-
-    // Mark action as complete for non-card effects (money, time)
-    // Card effects handle this inside applySpaceCardEffect (before restoreMovementChoiceIfNeeded)
-    if (baseType !== 'cards') {
-      const { text: buttonText } = formatManualEffectButton(manualEffect);
-      // Store compound key (e.g., 'money:add_money') for precise matching
-      const compoundKey = manualEffect.effect_action ? `${baseType}:${manualEffect.effect_action}` : baseType;
-      this.stateService.setPlayerCompletedManualAction(compoundKey, buttonText);
-      // Also store effect_action for fallback matching
-      if (manualEffect.effect_action) {
-        this.stateService.setPlayerCompletedManualAction(manualEffect.effect_action, buttonText);
-      }
-    }
-
-    return this.stateService.getGameState();
+    return this.manualActionProcessor.triggerManualEffect(playerId, effectType);
   }
 
   /**
    * Trigger manual effect with modal feedback - similar to rollDiceWithFeedback
+   * Delegates to ManualActionProcessor
    */
   async triggerManualEffectWithFeedback(playerId: string, effectType: string): Promise<TurnEffectResult> {
-
-    const currentPlayer = this.stateService.getPlayer(playerId);
-    if (!currentPlayer) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    const beforeState = this.stateService.getGameState();
-    const beforePlayer = beforeState.players.find(p => p.id === playerId)!;
-    // Capture project scope BEFORE applying the effect — calculateProjectScope
-    // reads live state, so it must be called now to get the true "before".
-    const beforeScope = this.gameRulesService.calculateProjectScope(playerId);
-    const beforeSnapshot = buildResourceSnapshot(beforePlayer, beforeScope);
-
-    // Trigger the manual effect
-    await this.triggerManualEffect(playerId, effectType);
-
-    const afterState = this.stateService.getGameState();
-    const afterPlayer = afterState.players.find(p => p.id === playerId)!;
-    const afterScope = this.gameRulesService.calculateProjectScope(playerId);
-    const afterSnapshot = buildResourceSnapshot(afterPlayer, afterScope);
-
-    // Parse effectType - might be compound like "cards:draw_b" or simple like "money"
-    const [baseType, action] = effectType.includes(':') ? effectType.split(':') : [effectType, null];
-
-    // Check if this was a skippable action that was NOT completed (user pressed cancel/skip)
-    // Also check if it was an impossible action (auto-completed, no modal needed)
-    const isSkippableAction = action && (action.startsWith('replace_') || action.startsWith('return_') || action.startsWith('give_'));
-    if (isSkippableAction) {
-      const compoundKey = `${baseType}:${action}`;
-      const manualActions = afterState.completedActions?.manualActions || {};
-      const wasCompleted = manualActions[compoundKey] !== undefined || manualActions[action] !== undefined;
-
-      // Check if no cards were actually affected (either skipped or impossible)
-      const beforeHand = beforePlayer.hand || [];
-      const afterHand = afterPlayer.hand || [];
-      const handChanged = beforeHand.length !== afterHand.length ||
-                         beforeHand.some(id => !afterHand.includes(id)) ||
-                         afterHand.some(id => !beforeHand.includes(id));
-
-      if (!wasCompleted) {
-        // Expected skippable-decline path (player backed out of an optional
-        // action). Debug-level, not error — keeps it out of bug-report error counts.
-        debugWarn(`[ManualAction] skippable action declined: effectType=${effectType}, action=${action}, space=${currentPlayer.currentSpace}, handBefore=${beforeHand.length}, handAfter=${afterHand.length}, handChanged=${beforeHand.length !== afterHand.length || beforeHand.some(id => !afterHand.includes(id))}.`);
-        // Return empty effects so no modal is shown (user already knows they skipped)
-        return {
-          diceValue: 0,
-          spaceName: currentPlayer.currentSpace,
-          effects: [],
-          summary: '',
-          hasChoices: false,
-          projectTime: {
-            actionDays: 0,
-            totalDays: afterPlayer.timeSpent,
-            estimatedDays: this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id).estimatedDays,
-            progressPercent: 0,
-            uniqueWorkTypes: 0
-          },
-          before: beforeSnapshot,
-          after: afterSnapshot
-        };
-      } else if (!handChanged) {
-        // Action was marked complete but no cards changed - was impossible (e.g., no opponents)
-        return {
-          diceValue: 0,
-          spaceName: currentPlayer.currentSpace,
-          effects: [],
-          summary: '',
-          hasChoices: false,
-          projectTime: {
-            actionDays: 0,
-            totalDays: afterPlayer.timeSpent,
-            estimatedDays: this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id).estimatedDays,
-            progressPercent: 0,
-            uniqueWorkTypes: 0
-          },
-          before: beforeSnapshot,
-          after: afterSnapshot
-        };
-      }
-    }
-
-    // Get the effect details for feedback
-    const spaceEffects = this.dataService.getSpaceEffects(currentPlayer.currentSpace, currentPlayer.visitType);
-    const manualEffect = spaceEffects.find(effect => {
-      const typeMatches = effect.trigger_type === 'manual' && effect.effect_type === baseType;
-      // If action specified (e.g., "draw_b"), must match; otherwise just type match
-      const actionMatches = !action || effect.effect_action === action;
-      return typeMatches && actionMatches;
-    });
-
-    if (!manualEffect) {
-      throw new Error(`No manual ${effectType} effect found for ${currentPlayer.currentSpace}`);
-    }
-
-    // Build modal config from SPACE_EFFECTS data (if customized)
-    const effectModalConfig = (manualEffect.modal_title || manualEffect.modal_description || manualEffect.modal_button_label || manualEffect.modal_summary)
-      ? {
-          title: manualEffect.modal_title || undefined,
-          description: manualEffect.modal_description || undefined,
-          buttonLabel: manualEffect.modal_button_label || undefined,
-          summary: manualEffect.modal_summary || undefined,
-        }
-      : undefined;
-
-    // Create effect description for modal
-    const effects: DiceResultEffect[] = [];
-
-    if (baseType === 'cards') {
-      const cardType = manualEffect.effect_action.replace('draw_', '').replace('replace_', '').replace('give_', '').replace('return_', '').toUpperCase();
-      const isReplaceAction = manualEffect.effect_action.startsWith('replace_');
-      const isGiveAction = manualEffect.effect_action.startsWith('give_');
-      const isReturnAction = manualEffect.effect_action.startsWith('return_');
-
-      // Determine which cards were drawn by comparing before/after hands
-      const beforeHand = beforePlayer.hand || [];
-      const afterHand = afterPlayer.hand || [];
-      const drawnCardIds = afterHand.filter(cardId => !beforeHand.includes(cardId));
-
-      // Parse effect_value - extract number from strings like "Draw 1" or just use numeric value
-      let count: number;
-      if (typeof manualEffect.effect_value === 'string') {
-        // Extract digits from string (e.g., "Draw 1" -> 1)
-        const match = manualEffect.effect_value.match(/\d+/);
-        count = match ? parseInt(match[0], 10) : drawnCardIds.length;
-      } else if (typeof manualEffect.effect_value === 'number') {
-        count = manualEffect.effect_value;
-      } else {
-        // Fallback to actual drawn count if effect_value is undefined or invalid
-        count = drawnCardIds.length;
-      }
-
-      // Determine action verb based on effect type; description is rendered
-      // via describeCardAction so real-life voice stays in one place.
-      const cardAction: 'draw' | 'remove' | 'replace' | 'give' | 'return' = isReplaceAction
-        ? 'replace'
-        : isGiveAction
-          ? 'give'
-          : isReturnAction
-            ? 'return'
-            : 'draw';
-      const actionDescription = describeCardAction(cardAction, cardType, count);
-
-      effects.push({
-        type: 'cards',
-        description: actionDescription,
-        cardType: cardType,
-        cardCount: count,
-        cardAction: cardAction,
-        cardIds: drawnCardIds,
-        modalConfig: effectModalConfig
-      });
-    } else if (baseType === 'money') {
-      const action = manualEffect.effect_action;
-
-      // Special handling for investment funding
-      if (action === 'get_investment_funding') {
-        const moneyChange = afterPlayer.money - beforePlayer.money;
-        const timeChange = afterPlayer.timeSpent - beforePlayer.timeSpent;
-
-        const investmentBefore = beforePlayer.moneySources?.investmentDeals || 0;
-        const investmentAfter = afterPlayer.moneySources?.investmentDeals || 0;
-        const investmentGained = investmentAfter - investmentBefore;
-        const feeCharged = investmentGained - moneyChange;
-
-        // Add investment to effects
-        if (investmentGained > 0) {
-          effects.push({
-            type: 'money',
-            description: `Investment received: $${investmentGained.toLocaleString()}`,
-            value: investmentGained
-          });
-        }
-
-        // Add fee to effects
-        if (feeCharged > 0) {
-          effects.push({
-            type: 'money',
-            description: `Investment fee: 5% ($${feeCharged.toLocaleString()})`,
-            value: -feeCharged
-          });
-        }
-
-        // Add time to effects
-        if (timeChange > 0) {
-          effects.push({
-            type: 'time',
-            description: `Investment review time: ${timeChange} days`,
-            value: timeChange
-          });
-        }
-      } else {
-        // Standard money effect handling
-        const amount = manualEffect.effect_value;
-        const moneyChange = afterPlayer.money - beforePlayer.money;
-        effects.push({
-          type: 'money',
-          description: `Money ${action === 'add' ? 'gained' : 'spent'}: $${Math.abs(moneyChange)}`,
-          value: moneyChange,
-          modalConfig: effectModalConfig
-        });
-      }
-    } else if (baseType === 'time') {
-      const action = manualEffect.effect_action; // 'add' or 'subtract'
-      const amount = manualEffect.effect_value;
-      const timeChange = afterPlayer.timeSpent - beforePlayer.timeSpent;
-      effects.push({
-        type: 'time',
-        description: `Time ${action === 'add' ? 'spent' : 'saved'}: ${Math.abs(timeChange)} days`,
-        value: timeChange,
-        modalConfig: effectModalConfig
-      });
-    }
-
-    // Apply template interpolation to modal config descriptions
-    const templateContext: Record<string, string | number> = {
-      spaceName: currentPlayer.currentSpace,
-      playerName: currentPlayer.name,
-    };
-    for (const effect of effects) {
-      if (effect.cardType) templateContext.cardType = effect.cardType;
-      if (effect.cardCount !== undefined) templateContext.count = effect.cardCount;
-      if (effect.value !== undefined) templateContext.amount = Math.abs(effect.value);
-      if (effect.modalConfig?.description) {
-        effect.description = interpolateTemplate(effect.modalConfig.description, templateContext);
-      }
-    }
-
-    // Use custom summary template if provided, otherwise join effect descriptions
-    const customSummary = effectModalConfig?.summary
-      ? interpolateTemplate(effectModalConfig.summary, templateContext)
-      : null;
-    const summary = customSummary || effects.map(e => e.description).join(', ');
-
-    // Log manual action to action history
-    this.loggingService.info(summary, {
-      playerId: currentPlayer.id,
-      playerName: currentPlayer.name,
-      action: 'manual_action',
-      effectType: effectType
-    });
-
-    // Send Manual Effect notification
-    if (this.notificationService) {
-      this.notificationService.notify(
-        {
-          short: 'Action Complete',
-          medium: `✅ ${summary}`,
-          detailed: `${currentPlayer.name} completed manual action: ${summary}`
-        },
-        {
-          playerId: currentPlayer.id,
-          playerName: currentPlayer.name,
-          actionType: 'manualEffect',
-          notificationDuration: 3000
-        }
-      );
-    }
-
-    // Calculate project time info for the modal
-    const timeEffect = effects.find(e => e.type === 'time');
-    const actionDays = timeEffect?.value || 0;
-    const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
-    const updatedPlayer = this.stateService.getPlayer(currentPlayer.id);
-    const totalDays = updatedPlayer?.timeSpent || currentPlayer.timeSpent;
-    const progressPercent = projectLengthInfo.estimatedDays > 0
-      ? (totalDays / projectLengthInfo.estimatedDays) * 100
-      : 0;
-
-    // Pull NPC narrative for the modal's visual Summary block. Keeps the
-    // visible text focused on story flavor; the auto-recap stays in
-    // `summary` for TTS only. {fundingAmount} resolution (v3.0.99):
-    // BANK-FUND-REVIEW/INVESTOR-FUND-REVIEW Subsequent stories quote the
-    // prior funding amount inline — without this the modal showed the raw
-    // "{fundingAmount}" token instead of the dollar figure.
-    const rawVisualSummary = this.dataService.getSpaceContent(
-      currentPlayer.currentSpace, currentPlayer.visitType
-    )?.story;
-    const visualSummary = rawVisualSummary
-      ? resolveFundingAmountToken(rawVisualSummary, updatedPlayer || currentPlayer, this.dataService.getFundingSource(currentPlayer.currentSpace))
-      : undefined;
-
-    return {
-      diceValue: 0, // No dice roll for manual effects
-      spaceName: currentPlayer.currentSpace,
-      effects,
-      summary,
-      visualSummary,
-      hasChoices: false,
-      projectTime: {
-        actionDays,
-        totalDays,
-        estimatedDays: projectLengthInfo.estimatedDays,
-        progressPercent,
-        uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
-      },
-      before: beforeSnapshot,
-      after: afterSnapshot
-    };
+    return this.manualActionProcessor.triggerManualEffectWithFeedback(playerId, effectType);
   }
 
   /**
@@ -1842,42 +1056,6 @@ export class TurnService implements ITurnService {
   }
 
   /**
-   * Process turn effects while tracking changes for feedback
-   * Delegates to DiceRollProcessor
-   */
-  private async processTurnEffectsWithTracking(playerId: string, diceRoll: number, effects: DiceResultEffect[]): Promise<void> {
-    await this.diceRollProcessor.processTurnEffectsWithTracking(playerId, diceRoll, effects);
-  }
-
-  /**
-   * Generate an explanatory message when dice outcome sends player back to a review/exam space
-   * Delegates to DiceRollProcessor
-   */
-  private getReviewLoopExplanation(fromSpace: string, toSpace: string): string | null {
-    return this.diceRollProcessor.getReviewLoopExplanation(fromSpace, toSpace);
-  }
-
-  /**
-   * Generate a human-readable summary of the effects
-   * Delegates to DiceRollProcessor
-   */
-  private generateEffectSummary(effects: DiceResultEffect[], diceValue: number): string {
-    return this.diceRollProcessor.generateEffectSummary(effects, diceValue);
-  }
-
-  /**
-   * Evaluate whether an effect condition is met
-   */
-  private evaluateEffectCondition(playerId: string, condition: string | undefined, diceRoll?: number): boolean {
-    const player = this.stateService.getPlayer(playerId);
-    if (!player) {
-      debugWarn(`Player ${playerId} not found for condition evaluation`);
-      return false;
-    }
-    return this.conditionEvaluator.evaluate(player, condition, diceRoll);
-  }
-
-  /**
    * Process space effects for a player after movement (for arrival effects)
    * Delegates to SpaceArrivalProcessor for the actual processing.
    */
@@ -1916,70 +1094,10 @@ export class TurnService implements ITurnService {
    * Process time effects for a player when leaving a space
    * Time effects represent the time spent working on activities at that space
    * and should be applied when the player finishes their work and leaves
+   * Delegates to TurnEffectsOrchestrator
    */
   private async processLeavingSpaceEffects(playerId: string, spaceName: string, visitType: VisitType): Promise<void> {
-    const currentPlayer = this.stateService.getPlayer(playerId);
-    if (!currentPlayer) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-
-    try {
-      // Get space effect data from DataService for the current space
-      const spaceEffectsData = this.dataService.getSpaceEffects(spaceName, visitType);
-
-      // Filter space effects based on conditions and only get time effects
-      const conditionFilteredEffects = this.filterSpaceEffectsByCondition(spaceEffectsData, currentPlayer);
-      const timeEffects = conditionFilteredEffects.filter(effect =>
-        effect.effect_type === 'time' && effect.trigger_type !== 'manual'
-      );
-
-      if (timeEffects.length === 0) {
-        return;
-      }
-
-
-      // Generate effects from leaving space using EffectFactory
-      const leavingEffects = EffectFactory.createEffectsFromSpaceEntry(
-        timeEffects,
-        playerId,
-        spaceName,
-        visitType,
-        undefined,
-        currentPlayer?.name,
-        false,
-        friendlySpaceName(this.dataService, spaceName)
-      );
-
-      if (leavingEffects.length === 0) {
-        return;
-      }
-
-      // Create effect context for leaving space
-      const effectContext = {
-        source: 'space_leaving',
-        playerId,
-        triggerEvent: 'SPACE_EXIT' as const,
-        metadata: {
-          spaceName,
-          visitType,
-          playerName: currentPlayer.name
-        }
-      };
-
-      // Process effects using EffectEngine
-      if (this.effectEngineService) {
-        const result = await this.effectEngineService.processEffects(leavingEffects, effectContext);
-        if (result.success) {
-        } else {
-          debugWarn(`⚠️ Some time effects failed for leaving ${spaceName}:`, result.errors);
-        }
-      } else {
-        debugWarn(`⚠️ EffectEngineService not available - skipping time effects for leaving ${spaceName}`);
-      }
-    } catch (error) {
-      console.error(`❌ Error processing leaving space time effects for ${spaceName}:`, error);
-    }
+    await this.turnEffectsOrchestrator.processLeavingSpaceEffects(playerId, spaceName, visitType);
   }
 
   /**
@@ -2032,160 +1150,10 @@ export class TurnService implements ITurnService {
   }
 
   /**
-   * Handle automatic funding for OWNER-FUND-INITIATION space
-   * Calculates owner seed money as projectScope * random(0.8 to 1.2)
-   * Owner seed money is separate from bank loans (B cards) and investor funding (I cards)
+   * Handle automatic funding for auto_apply_funding=Yes spaces (owner seed money)
+   * Delegates to ManualActionProcessor
    */
   async handleAutomaticFunding(playerId: string): Promise<TurnEffectResult> {
-
-    const currentPlayer = this.stateService.getPlayer(playerId);
-    if (!currentPlayer) {
-      throw new Error(`Player ${playerId} not found`);
-    }
-
-    // Workstream 6 #3: defensive guard inside handleAutomaticFunding —
-    // caller (line ~755) already gates on shouldAutoApplyFunding, but if
-    // anything calls this directly, fail loudly rather than silently distribute funding.
-    if (!this.dataService.shouldAutoApplyFunding(currentPlayer.currentSpace)) {
-      throw new Error(`Player is not on an auto-funding space (current: ${currentPlayer.currentSpace})`);
-    }
-
-    // Calculate project scope from W cards (single source of truth)
-    const projectScope = this.gameRulesService.calculateProjectScope(playerId);
-    // Snapshot the player's resource state BEFORE any funding changes so the
-    // result modal can render a before/after row. projectScope is already
-    // computed above; reuse it. afterSnapshot is captured at return time below.
-    const beforeSnapshot = buildResourceSnapshot(currentPlayer, projectScope);
-
-    if (projectScope === 0) {
-      console.error(`🚨 SCOPE BUG: Player ${currentPlayer.name} (${playerId}) at OWNER-FUND-INITIATION with 0 project scope. Hand: [${currentPlayer.hand.join(', ')}], W cards: ${currentPlayer.hand.filter(c => c.startsWith('W')).length}, activeCards: ${(currentPlayer.activeCards || []).length}`);
-    }
-
-    // Store project scope on player (permanent record)
-    this.stateService.updatePlayer({
-      id: playerId,
-      projectScope: projectScope
-    });
-
-    // Calculate owner seed money: projectScope * random(0.8 to 1.2), rounded
-    // to the nearest $10,000. Shared with EffectEngineService's
-    // OWNER_SEED_MONEY effect path via calculateOwnerSeedMoney so both
-    // funding flows can't drift apart.
-    const { multiplier: seedMoneyMultiplier, amount: roundedSeedMoney } = calculateOwnerSeedMoney(projectScope);
-
-
-    try {
-      // Add owner seed money directly to player's funds
-      // This is tracked separately from bank loans and investor deals
-      this.resourceService.addMoney(
-        playerId,
-        roundedSeedMoney,
-        'owner_seed_money',
-        `Owner's personal seed money investment`,
-        'owner'  // Tracks in moneySources.ownerFunding
-      );
-
-      // Mark that player has "rolled dice" to continue turn flow
-      this.stateService.setPlayerHasRolledDice();
-
-      const fundingDescription = `Owner invested $${roundedSeedMoney.toLocaleString()} as seed money (${(seedMoneyMultiplier * 100).toFixed(0)}% of project scope)`;
-
-      // Create effect description for modal feedback
-      const effects: DiceResultEffect[] = [{
-        type: 'money',
-        value: roundedSeedMoney,
-        description: `🏠 Owner Seed Money: $${roundedSeedMoney.toLocaleString()}`,
-        cardType: undefined,
-        cardIds: []
-      }];
-
-      // Generate detailed feedback message for non-dice action and store it in state
-      const feedbackMessage = formatActionFeedback(effects);
-      this.stateService.setDiceRollCompletion(feedbackMessage);
-
-      // Send Owner Seed Money notification
-      if (this.notificationService) {
-        this.notificationService.notify(
-          {
-            short: 'Seed Money',
-            medium: `💰 Owner invested $${roundedSeedMoney.toLocaleString()}`,
-            detailed: `${currentPlayer.name} invested personal seed money: $${roundedSeedMoney.toLocaleString()}`
-          },
-          {
-            playerId: currentPlayer.id,
-            playerName: currentPlayer.name,
-            actionType: 'automaticFunding',
-            notificationDuration: 3000
-          }
-        );
-      }
-
-      // Calculate project time info for the modal
-      const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
-      const updatedPlayer = this.stateService.getPlayer(currentPlayer.id);
-      const totalDays = updatedPlayer?.timeSpent || currentPlayer.timeSpent;
-      const progressPercent = projectLengthInfo.estimatedDays > 0
-        ? (totalDays / projectLengthInfo.estimatedDays) * 100
-        : 0;
-
-      const afterPlayerForSnapshot = updatedPlayer || currentPlayer;
-      const afterScope = this.gameRulesService.calculateProjectScope(playerId);
-      const afterSnapshot = buildResourceSnapshot(afterPlayerForSnapshot, afterScope);
-      // {fundingAmount} token — the story quotes the actual dollar figure in
-      // NPC dialogue. ActionCenterPanel/PlayerPanelV2 already resolve it for
-      // the on-panel story text (v3.0.98), but this modal path built
-      // visualSummary straight from the raw story, so the modal showed the
-      // literal "{fundingAmount}" placeholder instead of the number.
-      // addMoney() above already landed in moneySources.ownerFunding, so the
-      // shared resolver (also used by triggerManualEffectWithFeedback and
-      // DiceRollProcessor for the other funding spaces) reads the same fresh
-      // total rather than re-deriving it from roundedSeedMoney locally.
-      const rawStory = this.dataService.getSpaceContent(
-        currentPlayer.currentSpace, currentPlayer.visitType
-      )?.story;
-      const visualSummary = rawStory
-        ? resolveFundingAmountToken(rawStory, afterPlayerForSnapshot, this.dataService.getFundingSource(currentPlayer.currentSpace))
-        : undefined;
-      const result: TurnEffectResult = {
-        diceValue: 0, // No actual dice roll
-        spaceName: currentPlayer.currentSpace,
-        effects: effects,
-        summary: fundingDescription,
-        visualSummary,
-        hasChoices: false,
-        canReRoll: false,
-        projectTime: {
-          actionDays: 0, // Funding doesn't take time at this space
-          totalDays,
-          estimatedDays: projectLengthInfo.estimatedDays,
-          progressPercent,
-          uniqueWorkTypes: projectLengthInfo.uniqueWorkTypes.length
-        },
-        before: beforeSnapshot,
-        after: afterSnapshot
-      };
-
-      // This fires from inside startTurn on every turn transition — including
-      // the internal endTurn → startTurn path, which has no React caller to
-      // capture the return value above. The auto-action event is the only
-      // way this reaches GameLayout so it can show the real modal instead of
-      // just the 3s toast below (fb: money buried mid-sentence in the NPC
-      // dialogue, never confirmed as a distinct number).
-      this.stateService.emitAutoAction({
-        type: 'seed_money',
-        playerId: currentPlayer.id,
-        playerName: currentPlayer.name,
-        moneyAmount: roundedSeedMoney,
-        spaceName: currentPlayer.currentSpace,
-        message: fundingDescription,
-        turnEffectResult: result
-      });
-
-      return result;
-
-    } catch (error) {
-      console.error(`❌ Error in automatic funding:`, error);
-      throw new Error(`Failed to process automatic funding: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    return this.manualActionProcessor.handleAutomaticFunding(playerId);
   }
 }

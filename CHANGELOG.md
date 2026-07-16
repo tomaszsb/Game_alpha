@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.1] - 2026-07-16
+
+### Refactor: TurnService split — 2,191 → 1,159 lines, behavior-preserving (continuation of the earlier SpaceArrivalProcessor/DiceRollProcessor/MovementExecutor/TurnTransitionHandler extraction)
+Second "hard item" of the session, picked because three future directions the maintainer has named (async/decoupled turn order, the Remote play mode, a D&D-style engine reskin) all live in turn-flow territory, and every change there currently risks the whole tangle. TurnService now reads as what it should be — the turn lifecycle (startTurn → actions → endTurnWithMovement → nextPlayer) plus the turn-transaction boundary (begin/commit/discard, Try Again) — with the remaining fat moved to two new focused modules and one existing one:
+
+- **New `TurnEffectsOrchestrator.ts` (297 lines)** — converts a space's CSV effect rows into Effect objects and runs them through the EffectEngine: `processTurnEffects` (space entry), `processDiceRollEffects` (dice, incl. roll-group handling), `processLeavingSpaceEffects` (space exit). `DiceRollProcessor`'s circular-dependency callback now points here directly.
+- **New `ManualActionProcessor.ts` (696 lines)** — everything behind a manual action button press (draw/replace/give/return cards, money, time, investment funding with its 5% fee + bankruptcy check) plus automatic owner-seed-money funding, including all before/after resource snapshots and modal-feedback assembly (`triggerManualEffect`, `triggerManualEffectWithFeedback`, `handleAutomaticFunding`).
+- **`TurnTransitionHandler` absorbed `finalizeQuickStartHand`** — the callback wiring claimed the logic "accesses too many TurnService internals"; it actually only used stateService + loggingService, both of which TurnTransitionHandler already had. Callback deleted.
+- **~10 dead private methods deleted** (`applySpaceEffect`, `getTargetPlayer`, `parseNumericValue`, `getDiceRollEffectValue`, `processTurnEffectsWithTracking`, `getReviewLoopExplanation`, `generateEffectSummary`, and the now-orphaned delegate wrappers) — zero callers, confirmed by grep before removal.
+
+The `ITurnService` contract and every public method signature are unchanged; extracted bodies moved verbatim except for dependency plumbing (direct `diceService`/`spaceEffectService`/`movementService` calls replacing TurnService's private pass-through wrappers). Verified: typecheck, production build, and the FULL suite — 2374/2375 passed, 0 failures, all 5 ghost gates green including both 50-game strict runs — a cleaner run than the same day's pre-refactor baseline (which had 2 environmental flakes).
+
 ## [3.1.0] - 2026-07-16
 
 ### Feature: CSV-portability lift — the 5 hardcoded real-world blockers are gone (minor bump: new data-schema capability, fully backward-compatible)
