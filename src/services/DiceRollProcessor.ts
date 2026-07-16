@@ -12,7 +12,7 @@ import { Effect } from '../types/EffectTypes';
 import { buildResourceSnapshot } from '../utils/resourceSnapshot';
 import { shortName } from '../utils/boardCommon';
 import { resolveFundingAmountToken } from '../utils/templateInterpolation';
-import { DOB_FINAL_REVIEW_SPACE, DOB_AUDIT_SPACE } from './ApprovalService';
+import { DOB_AUDIT_SPACE } from './ApprovalService';
 
 /**
  * Interface for dice roll effects processing result
@@ -502,7 +502,7 @@ export class DiceRollProcessor {
     // the dice destination with a forced route back to the missing examiner.
     // The dice value the player rolled is discarded — they didn't get to "roll
     // for paperwork" because they failed the prior-approval check.
-    if (this.approvalService && currentPlayer.currentSpace === DOB_FINAL_REVIEW_SPACE) {
+    if (this.approvalService && this.dataService.hasFinalReviewGate(currentPlayer.currentSpace)) {
       const gate = this.approvalService.checkFinalReviewGate(currentPlayer);
       if (!gate.passed && gate.routeTo) {
         const destContent = this.dataService.getSpaceContent(gate.routeTo, 'First');
@@ -513,7 +513,7 @@ export class DiceRollProcessor {
           destination: gate.routeTo,
         });
         this.stateService.setPlayerMoveIntent(playerId, gate.routeTo);
-        debugLog(`🛂 Final-review gate failed at ${DOB_FINAL_REVIEW_SPACE} (missing=${gate.missing}) → routing to ${gate.routeTo}`);
+        debugLog(`🛂 Final-review gate failed at ${currentPlayer.currentSpace} (missing=${gate.missing}) → routing to ${gate.routeTo}`);
         // Phase 7.5 — gate-bounce narration for the modal banner. Not a real
         // approval status change (the player was bounced, not denied), so
         // 'minor-objection' gives the amber "go fix this" treatment.

@@ -170,7 +170,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
 
       if (feeAmount > 0) {
         return this.applyFeeDeduction(payload, player, feeAmount, totalLoanAmount, context);
-      } else if (totalLoanAmount === 0 && payload.feeType === 'LOAN_PERCENTAGE') {
+      } else if (totalLoanAmount === 0 && (payload.feeType === 'LOAN_PERCENTAGE' || payload.feeType === 'LOAN_TIERED')) {
         // No loan means no fee to pay
         debugLog(`    ℹ️  No loan amount - fee does not apply`);
         this.loggingService.info(`Fee not applicable: No loan to charge against`, {
@@ -445,27 +445,28 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
   private calculateFeeAmount(payload: FeeDeductionPayload, totalLoanAmount: number, context: EffectContext): number | null {
     let feeAmount = 0;
 
-    if (payload.feeType === 'LOAN_PERCENTAGE' && totalLoanAmount > 0) {
-      const feeDesc = payload.feeDescription.toLowerCase();
-
-      // Check for tiered fee structure
-      if (feeDesc.includes('1.4m') || feeDesc.includes('2.75m')) {
-        if (totalLoanAmount <= 1400000) {
-          feeAmount = Math.round(totalLoanAmount * 0.01);
-        } else if (totalLoanAmount <= 2750000) {
-          feeAmount = Math.round(totalLoanAmount * 0.02);
-        } else {
-          feeAmount = Math.round(totalLoanAmount * 0.03);
-        }
-        debugLog(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+    if (payload.feeType === 'LOAN_TIERED' && totalLoanAmount > 0) {
+      // 2026-07-16: CSV-portability lift — was detected by sniffing the fee
+      // flavor text for "1.4m"/"2.75m", which silently broke if that text
+      // was ever reworded. Now a dedicated CSV fee_type (BANK-FUND-REVIEW in
+      // SPACE_EFFECTS.csv), so the tiered structure fires regardless of how
+      // the description is phrased. Tier thresholds/rates themselves are
+      // still fixed game-balance constants, not CSV data.
+      if (totalLoanAmount <= 1400000) {
+        feeAmount = Math.round(totalLoanAmount * 0.01);
+      } else if (totalLoanAmount <= 2750000) {
+        feeAmount = Math.round(totalLoanAmount * 0.02);
       } else {
-        // Check for fixed percentage
-        const percentValue = extractPercentage(feeDesc);
-        if (percentValue !== null) {
-          const percent = percentValue / 100;
-          feeAmount = Math.round(totalLoanAmount * percent);
-          debugLog(`    ${percentValue}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
-        }
+        feeAmount = Math.round(totalLoanAmount * 0.03);
+      }
+      debugLog(`    Tiered fee: $${feeAmount} (loan: $${totalLoanAmount})`);
+    } else if (payload.feeType === 'LOAN_PERCENTAGE' && totalLoanAmount > 0) {
+      const feeDesc = payload.feeDescription.toLowerCase();
+      const percentValue = extractPercentage(feeDesc);
+      if (percentValue !== null) {
+        const percent = percentValue / 100;
+        feeAmount = Math.round(totalLoanAmount * percent);
+        debugLog(`    ${percentValue}% fee: $${feeAmount} (loan: $${totalLoanAmount})`);
       }
     } else if (payload.feeType === 'SCOPE_PERCENTAGE') {
       // "N% of scope" — a one-time fee on the player's project size. Used by

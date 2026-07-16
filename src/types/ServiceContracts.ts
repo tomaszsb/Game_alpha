@@ -146,6 +146,11 @@ export interface IDataService {
   isResumeHub(spaceName: string): boolean;
   isPointOfNoReturn(spaceName: string): boolean;
   hasFinalReviewGate(spaceName: string): boolean;
+  // 2026-07-16: CSV-portability lift (replaces hardcoded DOB_EXAM_SPACE/
+  // FDNY_EXAM_SPACE/DOB_AUDIT_SPACE literals in ApprovalService).
+  getSpaceForApprovalRole(role: 'dob_exam' | 'fdny_exam' | 'dob_audit'): string | null;
+  getNpcSpeakerAssignments(): Array<{ spaceName: string; npcSpeaker: string }>;
+  getCardTypeLabels(): import('./DataTypes').CardTypeLabel[];
   getMinWCardsToLeave(spaceName: string): number;
   getFeeCalculationMethod(spaceName: string): 'flat' | 'percentage_of_scope';
   getFeeLabel(spaceName: string): string;

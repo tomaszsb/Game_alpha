@@ -32,23 +32,48 @@ export interface ApprovalOutcome {
 }
 
 /**
- * Spaces that grant DOB approval on successful roll.
+ * Space that grants DOB approval on successful roll. Default for the stock
+ * DOB-permitting game; a reskin CSV can move this role to a differently-named
+ * space via `approval_role=dob_exam` in GAME_CONFIG — see
+ * `configureApprovalSpaces` below, called once at app startup.
  */
-export const DOB_EXAM_SPACE = 'REG-DOB-PLAN-EXAM';
+export let DOB_EXAM_SPACE = 'REG-DOB-PLAN-EXAM';
 /**
- * Spaces that grant FDNY approval on successful roll.
+ * Space that grants FDNY approval on successful roll. Reskin hook: CSV
+ * `approval_role=fdny_exam` — see `configureApprovalSpaces`.
  */
-export const FDNY_EXAM_SPACE = 'REG-FDNY-PLAN-EXAM';
+export let FDNY_EXAM_SPACE = 'REG-FDNY-PLAN-EXAM';
 /**
  * Audit space — adverse rolls revoke DOB approval (route back to plan exam).
+ * Reskin hook: CSV `approval_role=dob_audit` — see `configureApprovalSpaces`.
  */
-export const DOB_AUDIT_SPACE = 'REG-DOB-AUDIT';
+export let DOB_AUDIT_SPACE = 'REG-DOB-AUDIT';
 /**
  * DOB clerk's final review (Phase 7.4). Two-stage:
  *   Stage 1 — logic gate on DOB + FDNY approval. Missing approvals bounce.
  *   Stage 2 — existing dice (other paperwork: insurance, structural, energy).
+ * Kept for narration/logging only — the actual gate check is already
+ * CSV-driven via `DataService.hasFinalReviewGate` (see DiceRollProcessor),
+ * so this constant doesn't need a reskin hook of its own.
  */
 export const DOB_FINAL_REVIEW_SPACE = 'REG-DOB-FINAL-REVIEW';
+
+/**
+ * 2026-07-16: CSV-portability lift — reskin hook for the DOB/FDNY approval-gate
+ * roles. Call once at app startup (after GAME_CONFIG loads) so a reskin CSV can
+ * assign the exam/audit roles to differently-named spaces without touching this
+ * file. Any role left unclaimed in CSV (null) keeps today's default — this only
+ * overrides roles the CSV actually assigns via `approval_role`.
+ */
+export function configureApprovalSpaces(overrides: {
+  dobExam?: string | null;
+  fdnyExam?: string | null;
+  dobAudit?: string | null;
+}): void {
+  if (overrides.dobExam) DOB_EXAM_SPACE = overrides.dobExam;
+  if (overrides.fdnyExam) FDNY_EXAM_SPACE = overrides.fdnyExam;
+  if (overrides.dobAudit) DOB_AUDIT_SPACE = overrides.dobAudit;
+}
 
 /**
  * Phase 7.4 — end-game penalty applied when FINISH is reached without DOB

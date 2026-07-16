@@ -194,7 +194,7 @@ export type Effect =
       effectType: 'FEE_DEDUCTION';
       payload: {
         playerId: string;
-        feeType: 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+        feeType: 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED' | 'LOAN_TIERED';
         feeDescription: string; // e.g., "1% for loan of up to $1.4M..."
         source?: string;
         reason?: string;

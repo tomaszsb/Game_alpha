@@ -204,7 +204,7 @@ function classifyFeeEffect(
     return amount > 0 ? `-${FormatUtils.formatMoney(amount, { compact: false })}` : `${pct}% of your project scope`;
   }
 
-  if (feeType === 'LOAN_PERCENTAGE') {
+  if (feeType === 'LOAN_PERCENTAGE' || feeType === 'LOAN_TIERED') {
     const percents = Array.from(desc.matchAll(/(\d+(?:\.\d+)?)%/g)).map(m => parseFloat(m[1]));
     if (percents.length > 1) return `Up to ${Math.max(...percents)}% of your loan`;
     if (percents.length === 1) return `${percents[0]}% of your loan`;

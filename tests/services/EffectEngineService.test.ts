@@ -1058,7 +1058,7 @@ describe('EffectEngineService', () => {
         effectType: 'FEE_DEDUCTION',
         payload: {
           playerId: 'player1',
-          feeType: 'LOAN_PERCENTAGE',
+          feeType: 'LOAN_TIERED',
           feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
           source: 'space:BANK-FUND-REVIEW',
           reason: 'Bank fund review fee'
@@ -1103,7 +1103,7 @@ describe('EffectEngineService', () => {
         effectType: 'FEE_DEDUCTION',
         payload: {
           playerId: 'player1',
-          feeType: 'LOAN_PERCENTAGE',
+          feeType: 'LOAN_TIERED',
           feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
           source: 'space:BANK-FUND-REVIEW',
           reason: 'Bank fund review fee'
@@ -1261,7 +1261,7 @@ describe('EffectEngineService', () => {
         effectType: 'FEE_DEDUCTION',
         payload: {
           playerId: 'player1',
-          feeType: 'LOAN_PERCENTAGE',
+          feeType: 'LOAN_TIERED',
           feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
           source: 'space:BANK-FUND-REVIEW',
           reason: 'Bank fund review fee'
@@ -1306,7 +1306,7 @@ describe('EffectEngineService', () => {
         effectType: 'FEE_DEDUCTION',
         payload: {
           playerId: 'player1',
-          feeType: 'LOAN_PERCENTAGE',
+          feeType: 'LOAN_TIERED',
           feeDescription: '1% for loan of up to $1.4M or 2% for loan between $1.5M and 2.75M or 3% above 2.75M',
           source: 'space:BANK-FUND-REVIEW',
           reason: 'Bank fund review fee'

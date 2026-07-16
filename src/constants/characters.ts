@@ -54,8 +54,39 @@ export const CHARACTER_MAP: Record<string, CharacterInfo> = {
   CON:        { emoji: '\u{1F3D7}\uFE0F', name: 'The Contractor',   phase: 'Construction', color: '#4CAF50', imageRoles: ['contractor', 'inspector'] },
 };
 
+/**
+ * 2026-07-16: CSV-portability lift — reskin hook. Populated once at app
+ * startup (see `configureNpcSpeakers`) from GAME_CONFIG's `npc_speaker`
+ * column, keyed by exact space_name. A space present here skips the prefix
+ * heuristic below entirely — this is how a reskin CSV can assign the right
+ * NPC to a space whose name doesn't follow the OWNER-/ARCH-/ENG-/REG-DOB-/
+ * REG-FDNY-/CON- convention.
+ */
+const SPACE_NPC_OVERRIDES = new Map<string, string>();
+
+/**
+ * 2026-07-16: CSV-portability lift. Call once at app startup (after
+ * GAME_CONFIG loads) with every space carrying a non-empty `npc_speaker`.
+ * A value of 'PM' adds the space to PM_VOICED_SPACES; any other value that
+ * matches a CHARACTER_MAP key overrides extractPrefix for that exact space.
+ * Unrecognized values are ignored (a reskin CSV without this column is a
+ * no-op — today's hardcoded defaults stand).
+ */
+export function configureNpcSpeakers(assignments: Array<{ spaceName: string; npcSpeaker: string }>): void {
+  for (const { spaceName, npcSpeaker } of assignments) {
+    if (!npcSpeaker) continue;
+    if (npcSpeaker === 'PM') {
+      PM_VOICED_SPACES.add(spaceName);
+    } else if (npcSpeaker in CHARACTER_MAP) {
+      SPACE_NPC_OVERRIDES.set(spaceName, npcSpeaker);
+    }
+  }
+}
+
 /** Extract space-name prefix (e.g. "OWNER" from "OWNER-SCOPE-INITIATION") */
 export function extractPrefix(spaceName: string): string {
+  const override = SPACE_NPC_OVERRIDES.get(spaceName);
+  if (override) return override;
   if (spaceName.startsWith('REG-DOB'))  return 'REG-DOB';
   if (spaceName.startsWith('REG-FDNY')) return 'REG-FDNY';
   const idx = spaceName.indexOf('-');
@@ -70,7 +101,9 @@ export function extractPrefix(spaceName: string): string {
 // a real NPC entry (ARCH-INITIATION → "The Architect", ENG-INITIATION →
 // "The Engineer", REG-DOB-TYPE-SELECT → "DOB Examiner") showed that NPC's
 // name/portrait next to first-person "I" text — read as "the boxes are
-// confused" (fb:7065e8df, "the owner says words are I").
+// confused" (fb:7065e8df, "the owner says words are I"). These same 5 are
+// also mirrored in GAME_CONFIG's `npc_speaker=PM` column (2026-07-16); this
+// hardcoded default keeps working standalone for a CSV that omits the column.
 export const PM_VOICED_SPACES = new Set<string>([
   'PM-DECISION-CHECK',
   'CHEAT-BYPASS',

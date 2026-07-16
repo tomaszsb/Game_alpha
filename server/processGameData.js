@@ -302,6 +302,18 @@ function processGameConfig(spacesCsv) {
     // approvals. Replaces hardcoded `=== DOB_FINAL_REVIEW_SPACE` in MovementService.
     // Empty / missing / non-Yes values default to 'No'.
     const hasFinalReviewGate = (row.has_final_review_gate || '').trim() === 'Yes';
+    // 2026-07-16: CSV-portability lift — approval_role enum ('dob_exam' /
+    // 'fdny_exam' / 'dob_audit' / ''). Flags which space plays the DOB/FDNY
+    // exam or audit role, so ApprovalService.configureApprovalSpaces can move
+    // those roles off the hardcoded REG-DOB-*/REG-FDNY-* defaults for a reskin.
+    const rawApprovalRole = (row.approval_role || '').trim();
+    const approvalRole = (rawApprovalRole === 'dob_exam' || rawApprovalRole === 'fdny_exam' || rawApprovalRole === 'dob_audit')
+      ? rawApprovalRole
+      : '';
+    // 2026-07-16: CSV-portability lift — npc_speaker override (characters.ts
+    // configureNpcSpeakers). 'PM' or a CHARACTER_MAP key; empty for spaces
+    // that keep the legacy prefix-heuristic default.
+    const npcSpeaker = (row.npc_speaker || '').trim();
 
     configs[spaceName] = {
       space_name: spaceName,
@@ -326,7 +338,9 @@ function processGameConfig(spacesCsv) {
       pos_x: String(posX),
       pos_y: String(posY),
       funding_source: fundingSource,
-      has_final_review_gate: hasFinalReviewGate ? 'Yes' : 'No'
+      has_final_review_gate: hasFinalReviewGate ? 'Yes' : 'No',
+      approval_role: approvalRole,
+      npc_speaker: npcSpeaker
     };
   }
 
@@ -340,7 +354,9 @@ function processGameConfig(spacesCsv) {
     'display_label_override', 'review_loop_message',
     'pos_x', 'pos_y',
     'funding_source',
-    'has_final_review_gate'
+    'has_final_review_gate',
+    'approval_role',
+    'npc_speaker'
   ];
 
   return toCsv(Object.values(configs), fieldnames);

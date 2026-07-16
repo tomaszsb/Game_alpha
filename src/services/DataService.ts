@@ -12,7 +12,8 @@ import {
   CardType,
   ModalConfigOverrides,
   LogicQuestion,
-  PathChoiceRule
+  PathChoiceRule,
+  CardTypeLabel
 } from '../types/DataTypes';
 import { getDataBasePath } from '../utils/dataInstance';
 
@@ -35,6 +36,8 @@ export class DataService implements IDataService {
   // Workstream 6 #4: cross-space path-choice exclusion rules. Keyed lookups go
   // through getPathChoiceExclusions().
   private pathChoiceRules: PathChoiceRule[] = [];
+  // 2026-07-16: CSV-portability lift — reskin hook for card-type display labels.
+  private cardTypeLabels: CardTypeLabel[] = [];
   private loaded = false;
   private loadingPromise: Promise<void> | null = null;
 
@@ -59,7 +62,8 @@ export class DataService implements IDataService {
           this.loadCards(),
           this.loadModalConfigs(),
           this.loadLogicQuestions(),
-          this.loadPathChoiceRules()
+          this.loadPathChoiceRules(),
+          this.loadCardTypeLabels()
         ]);
 
         this.buildSpaces();
@@ -109,7 +113,8 @@ export class DataService implements IDataService {
       this.loadCards(),
       this.loadModalConfigs(),
       this.loadLogicQuestions(),
-      this.loadPathChoiceRules()
+      this.loadPathChoiceRules(),
+      this.loadCardTypeLabels()
     ]);
     this.buildSpaces();
   }
@@ -154,6 +159,30 @@ export class DataService implements IDataService {
    */
   hasFinalReviewGate(spaceName: string): boolean {
     return this.getGameConfigBySpace(spaceName)?.has_final_review_gate === true;
+  }
+
+  /**
+   * 2026-07-16: CSV-portability lift. Returns the space_name flagged
+   * `approval_role=<role>` in Spaces.csv, or null if no space claims that
+   * role. A reskin CSV can move the DOB/FDNY exam and audit roles to
+   * differently-named spaces this way; ApprovalService.configureApprovalSpaces
+   * reads this at app startup. Replaces hardcoded `DOB_EXAM_SPACE`/
+   * `FDNY_EXAM_SPACE`/`DOB_AUDIT_SPACE` literals in ApprovalService.
+   */
+  getSpaceForApprovalRole(role: 'dob_exam' | 'fdny_exam' | 'dob_audit'): string | null {
+    return this.gameConfigs.find(config => config.approval_role === role)?.space_name ?? null;
+  }
+
+  /**
+   * 2026-07-16: CSV-portability lift. Every space with a non-empty
+   * `npc_speaker` in Spaces.csv, as (spaceName, npcSpeaker) pairs.
+   * characters.ts's `configureNpcSpeakers` reads this at app startup to
+   * override its hardcoded PM_VOICED_SPACES / prefix-heuristic defaults.
+   */
+  getNpcSpeakerAssignments(): Array<{ spaceName: string; npcSpeaker: string }> {
+    return this.gameConfigs
+      .filter(config => !!config.npc_speaker)
+      .map(config => ({ spaceName: config.space_name, npcSpeaker: config.npc_speaker! }));
   }
 
   /**
@@ -611,6 +640,48 @@ export class DataService implements IDataService {
     }
   }
 
+  /**
+   * 2026-07-16: CSV-portability lift — load CARD_TYPES.csv. Optional — a
+   * missing file simply leaves the array empty, and cardTypeNames.ts falls
+   * back to its hardcoded theme.ts label defaults.
+   */
+  private async loadCardTypeLabels(): Promise<void> {
+    try {
+      const response = await fetch(getDataBasePath() + '/CLEAN_FILES/CARD_TYPES.csv?_=' + Date.now());
+      if (!response.ok) {
+        this.cardTypeLabels = [];
+        return;
+      }
+      const csvText = await response.text();
+      this.cardTypeLabels = this.parseCardTypeLabelsCsv(csvText);
+    } catch {
+      this.cardTypeLabels = [];
+    }
+  }
+
+  private parseCardTypeLabelsCsv(csvText: string): CardTypeLabel[] {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+    return lines.slice(1)
+      .map(line => {
+        const values = this.parseCsvLine(line);
+        return {
+          card_type: (values[0] || '').trim(),
+          label: (values[1] || '').trim()
+        };
+      })
+      .filter(r => r.card_type && r.label);
+  }
+
+  /**
+   * 2026-07-16: CSV-portability lift. Every card-type label defined in
+   * CARD_TYPES.csv. cardTypeNames.ts's `configureCardTypeLabels` reads this
+   * at app startup to override its hardcoded theme.ts defaults.
+   */
+  getCardTypeLabels(): CardTypeLabel[] {
+    return [...this.cardTypeLabels];
+  }
+
   private parsePathChoiceRulesCsv(csvText: string): PathChoiceRule[] {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
@@ -686,6 +757,17 @@ export class DataService implements IDataService {
       // 2026-06-02: Workstream 7 Phase 7.4 — Stage-1 gate flag. Older CLEAN_FILES
       // without this column produce undefined → falsy at the use site.
       const hasFinalReviewGate = values[22] === 'Yes';
+      // 2026-07-16: CSV-portability lift — approval_role enum. Older CLEAN_FILES
+      // without this column produce '' (no space claims a role, ApprovalService
+      // keeps its built-in defaults).
+      const rawApprovalRole = (values[23] ?? '').trim();
+      const approvalRole: 'dob_exam' | 'fdny_exam' | 'dob_audit' | '' =
+        rawApprovalRole === 'dob_exam' || rawApprovalRole === 'fdny_exam' || rawApprovalRole === 'dob_audit'
+          ? rawApprovalRole
+          : '';
+      // 2026-07-16: CSV-portability lift — npc_speaker override. Empty for
+      // spaces that keep the legacy prefix-heuristic default.
+      const npcSpeaker = (values[24] ?? '').trim();
 
       return {
         space_name: values[0],
@@ -720,7 +802,11 @@ export class DataService implements IDataService {
         // 2026-05-18 audit: funding-source data flag.
         funding_source: fundingSource,
         // 2026-06-02: Workstream 7 Phase 7.4 Stage-1 gate flag.
-        has_final_review_gate: hasFinalReviewGate
+        has_final_review_gate: hasFinalReviewGate,
+        // 2026-07-16: CSV-portability lift — approval-gate role.
+        approval_role: approvalRole,
+        // 2026-07-16: CSV-portability lift — NPC-speaker override.
+        npc_speaker: npcSpeaker
       };
     });
   }
@@ -788,7 +874,7 @@ export class DataService implements IDataService {
 
       // Add fee_type if it exists (column 8)
       if (values[8] && values[8].trim()) {
-        spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+        spaceEffect.fee_type = values[8].trim() as 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED' | 'LOAN_TIERED';
       }
 
       // Add narrative if it exists (column 9)
@@ -1037,6 +1123,12 @@ export class DataService implements IDataService {
 
         // v3.0.17 — global-scope phase filter. Empty/missing → unrestricted.
         affected_phase: values[31] || undefined,
+
+        // 2026-07-16: CSV-portability lift — per-W-card category flags
+        // (replaces hardcoded work-type-name allowlists in CardService).
+        is_groundwork: values[32] === 'Yes',
+        requires_utility_hookup: values[33] === 'Yes',
+        is_high_profile: values[34] === 'Yes',
       };
     });
   }

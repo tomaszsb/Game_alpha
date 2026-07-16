@@ -14,6 +14,9 @@ import { DictionaryProvider, DictionaryPanel, useDictionaryPanel } from './dicti
 import { getTooltipService } from './services/TooltipService';
 import { getPreviewParams, clearPreviewParams } from './utils/dictionaryBridge';
 import { FeedbackButton } from './components/feedback/FeedbackButton';
+import { configureApprovalSpaces } from './services/ApprovalService';
+import { configureNpcSpeakers } from './constants/characters';
+import { configureCardTypeLabels } from './utils/cardTypeNames';
 import { VersionBadge } from './components/common/VersionBadge';
 import { debugWarn } from './utils/debugLog';
 
@@ -111,6 +114,21 @@ function AppContent(): JSX.Element {
           dataService.loadData(),
           getTooltipService().loadTooltips()
         ]);
+
+        // 2026-07-16: CSV-portability lift — let a reskin CSV reassign the
+        // DOB/FDNY approval-gate roles (see ApprovalService.configureApprovalSpaces).
+        // Must run after loadData() resolves; a no-op for the stock game, where
+        // no space claims these roles and the built-in defaults stand.
+        configureApprovalSpaces({
+          dobExam: dataService.getSpaceForApprovalRole('dob_exam'),
+          fdnyExam: dataService.getSpaceForApprovalRole('fdny_exam'),
+          dobAudit: dataService.getSpaceForApprovalRole('dob_audit'),
+        });
+        // Same reskin hook for which NPC "speaks" at each space (see
+        // ApprovalService.configureApprovalSpaces above for the pattern).
+        configureNpcSpeakers(dataService.getNpcSpeakerAssignments());
+        // Same reskin hook for card-type display labels ("Work Package" etc).
+        configureCardTypeLabels(dataService.getCardTypeLabels());
 
         // Try to load state from server first (multi-device sync)
         await stateService.loadStateFromServer();

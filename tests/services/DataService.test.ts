@@ -88,12 +88,14 @@ describe('DataService', () => {
 
   it('should fetch and parse all CSV files correctly', async () => {
     await dataService.loadData();
-    // 9 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv added in v2.57.0)
-    // + 1 SOURCE_FILES/ModalConfig.csv = 10 fetches.
-    expect(global.fetch).toHaveBeenCalledTimes(10);
+    // 10 CLEAN_FILES CSVs (incl. LOGIC_QUESTIONS.csv + PATH_CHOICE_RULES.csv added in
+    // v2.57.0, CARD_TYPES.csv added 2026-07-16 for the CSV-portability lift)
+    // + 1 SOURCE_FILES/ModalConfig.csv = 11 fetches.
+    expect(global.fetch).toHaveBeenCalledTimes(11);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARDS_EXPANDED\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/SOURCE_FILES\/ModalConfig\.csv/));
     expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/PATH_CHOICE_RULES\.csv/));
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/\/data\/CLEAN_FILES\/CARD_TYPES\.csv/));
     expect(dataService.isLoaded()).toBe(true);
   });
 

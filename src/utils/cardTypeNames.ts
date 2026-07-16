@@ -1,13 +1,34 @@
 import { colors } from '../styles/theme';
-import { Card } from '../types/DataTypes';
+import { Card, CardTypeLabel } from '../types/DataTypes';
 
 /**
- * Single source of truth for player-facing card-type names. Reads from
- * theme.cardTypes[type].label and applies simple 's' pluralization. Voice
- * rule: never surface the letter codes (W/B/E/L/I) or the word "card".
+ * 2026-07-16: CSV-portability lift — reskin hook. Populated once at app
+ * startup from CARD_TYPES.csv (see `configureCardTypeLabels`). A card type
+ * present here overrides theme.ts's hardcoded label; colors/emoji stay in
+ * theme.ts unchanged (those aren't real-world jargon, no reskin need there).
+ */
+const CARD_TYPE_LABEL_OVERRIDES = new Map<string, string>();
+
+/**
+ * Call once at app startup (after GAME_CONFIG/CARD_TYPES load) to let a
+ * reskin CSV replace theme.ts's hardcoded card-type labels ("Work Package",
+ * "Bank Loan", etc.) without touching code. A CSV without CARD_TYPES.csv is
+ * a no-op — today's theme.ts defaults stand.
+ */
+export function configureCardTypeLabels(labels: CardTypeLabel[]): void {
+  for (const { card_type, label } of labels) {
+    if (card_type && label) CARD_TYPE_LABEL_OVERRIDES.set(card_type, label);
+  }
+}
+
+/**
+ * Single source of truth for player-facing card-type names. Reads the CSV
+ * override first, falling back to theme.cardTypes[type].label, and applies
+ * simple 's' pluralization. Voice rule: never surface the letter codes
+ * (W/B/E/L/I) or the word "card".
  */
 export function getCardTypeName(type: string, count: number = 1): string {
-  const label = colors.game.cardTypes[type]?.label ?? type;
+  const label = CARD_TYPE_LABEL_OVERRIDES.get(type) ?? colors.game.cardTypes[type]?.label ?? type;
   return count === 1 ? label : `${label}s`;
 }
 

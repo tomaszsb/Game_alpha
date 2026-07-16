@@ -998,8 +998,9 @@ describe('CardService - Enhanced Coverage', () => {
 
     // L012 "Soil Contamination" — card_mechanic='work_type_conditional'. The +4
     // days only applies if the player's project involves groundwork, i.e. they
-    // hold a W card whose work type is ground-disturbing (Foundation, Earth Work,
-    // Earthwork Only, Support of Excavation, New Building, or a Demolition). <!-- fb:feedback-1779810408636-776e3ba7 -->
+    // hold a W card flagged `is_groundwork` in CARDS_EXPANDED.csv (2026-07-16:
+    // moved off a hardcoded work-type-name allowlist for CSV portability).
+    // <!-- fb:feedback-1779810408636-776e3ba7 -->
     const L012_CARD = {
       card_id: 'L012',
       card_name: 'Soil Contamination',
@@ -1015,7 +1016,7 @@ describe('CardService - Enhanced Coverage', () => {
       mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_ground'] });
       mockDataService.getCardById.mockImplementation((cardId: string) => {
         if (cardId === 'L012') return L012_CARD;
-        if (cardId === 'W_ground') return { card_id: 'W_ground', card_name: 'Mat Foundation', card_type: 'W', work_type_restriction: 'Foundation', description: '' };
+        if (cardId === 'W_ground') return { card_id: 'W_ground', card_name: 'Mat Foundation', card_type: 'W', work_type_restriction: 'Foundation', is_groundwork: true, description: '' };
         return undefined;
       });
 
@@ -1031,7 +1032,7 @@ describe('CardService - Enhanced Coverage', () => {
       mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_plumb'] });
       mockDataService.getCardById.mockImplementation((cardId: string) => {
         if (cardId === 'L012') return L012_CARD;
-        if (cardId === 'W_plumb') return { card_id: 'W_plumb', card_name: 'Sprinkler Upgrade', card_type: 'W', work_type_restriction: 'Plumbing', description: '' };
+        if (cardId === 'W_plumb') return { card_id: 'W_plumb', card_name: 'Sprinkler Upgrade', card_type: 'W', work_type_restriction: 'Plumbing', is_groundwork: false, description: '' };
         return undefined;
       });
 
@@ -1048,9 +1049,10 @@ describe('CardService - Enhanced Coverage', () => {
 
     // L029 "Utility Delay" — card_mechanic='utility_conditional'. The +3 days
     // only applies if the player's project requires utility hookups, i.e. they
-    // hold a W card whose work type is one of: Electrical, Plumbing, Mechanical
-    // Systems, Boiler Equipment, Fuel Burning, Fuel Storage. Author design call
-    // 2026-05-30: core utilities only — fire/water and elevator excluded.
+    // hold a W card flagged `requires_utility_hookup` in CARDS_EXPANDED.csv
+    // (2026-07-16: moved off a hardcoded work-type-name allowlist). Author
+    // design call 2026-05-30: core utilities only — fire/water and elevator
+    // excluded.
     const L029_CARD = {
       card_id: 'L029',
       card_name: 'Utility Delay',
@@ -1066,7 +1068,7 @@ describe('CardService - Enhanced Coverage', () => {
       mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_elec'] });
       mockDataService.getCardById.mockImplementation((cardId: string) => {
         if (cardId === 'L029') return L029_CARD;
-        if (cardId === 'W_elec') return { card_id: 'W_elec', card_name: 'Service Upgrade', card_type: 'W', work_type_restriction: 'Electrical', description: '' };
+        if (cardId === 'W_elec') return { card_id: 'W_elec', card_name: 'Service Upgrade', card_type: 'W', work_type_restriction: 'Electrical', requires_utility_hookup: true, description: '' };
         return undefined;
       });
 
@@ -1082,7 +1084,7 @@ describe('CardService - Enhanced Coverage', () => {
       mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_gc'] });
       mockDataService.getCardById.mockImplementation((cardId: string) => {
         if (cardId === 'L029') return L029_CARD;
-        if (cardId === 'W_gc') return { card_id: 'W_gc', card_name: 'Lobby Renovation', card_type: 'W', work_type_restriction: 'General Construction', description: '' };
+        if (cardId === 'W_gc') return { card_id: 'W_gc', card_name: 'Lobby Renovation', card_type: 'W', work_type_restriction: 'General Construction', requires_utility_hookup: false, description: '' };
         return undefined;
       });
 
@@ -1156,9 +1158,10 @@ describe('CardService - Enhanced Coverage', () => {
     });
 
     // L044 "State Funding" — card_mechanic='high_profile_conditional'. The
-    // −4 days only applies if the player holds a W card whose work type is
-    // 'New Building', 'Full Demolition', 'Place of Assembly', or 'Marquees'.
-    // Author design call 2026-05-30: "Big-impact work types."
+    // −4 days only applies if the player holds a W card flagged
+    // `is_high_profile` in CARDS_EXPANDED.csv (2026-07-16: moved off a
+    // hardcoded work-type-name allowlist). Author design call 2026-05-30:
+    // "Big-impact work types."
     const L044_CARD = {
       card_id: 'L044',
       card_name: 'State Funding',
@@ -1174,7 +1177,7 @@ describe('CardService - Enhanced Coverage', () => {
       mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_nb'] });
       mockDataService.getCardById.mockImplementation((cardId: string) => {
         if (cardId === 'L044') return L044_CARD;
-        if (cardId === 'W_nb') return { card_id: 'W_nb', card_type: 'W', work_type_restriction: 'New Building' };
+        if (cardId === 'W_nb') return { card_id: 'W_nb', card_type: 'W', work_type_restriction: 'New Building', is_high_profile: true };
         return undefined;
       });
 
@@ -1190,7 +1193,7 @@ describe('CardService - Enhanced Coverage', () => {
       mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_gc'] });
       mockDataService.getCardById.mockImplementation((cardId: string) => {
         if (cardId === 'L044') return L044_CARD;
-        if (cardId === 'W_gc') return { card_id: 'W_gc', card_type: 'W', work_type_restriction: 'General Construction' };
+        if (cardId === 'W_gc') return { card_id: 'W_gc', card_type: 'W', work_type_restriction: 'General Construction', is_high_profile: false };
         return undefined;
       });
 

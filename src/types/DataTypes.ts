@@ -38,6 +38,20 @@ export interface GameConfig {
   // this space and collapses valid moves to [routeTo] when approvals are missing.
   // Replaces hardcoded `=== DOB_FINAL_REVIEW_SPACE` in MovementService.
   has_final_review_gate?: boolean;
+  // 2026-07-16: CSV-portability lift. Flags which space plays the DOB/FDNY
+  // exam or audit role in ApprovalService's approval-gate logic. Empty for
+  // every space except the three that carry it. Replaces hardcoded
+  // `=== DOB_EXAM_SPACE` / `FDNY_EXAM_SPACE` / `DOB_AUDIT_SPACE` literal
+  // comparisons — a reskin CSV can move these roles to differently-named
+  // spaces via ApprovalService.configureApprovalSpaces() without code changes.
+  approval_role?: 'dob_exam' | 'fdny_exam' | 'dob_audit' | '';
+  // 2026-07-16: CSV-portability lift. Assigns which NPC "speaks" at this space —
+  // either a CHARACTER_MAP key (src/constants/characters.ts) or the 'PM'
+  // sentinel (PM-voiced, no NPC). Empty for spaces that rely on the legacy
+  // space-name-prefix heuristic (the default for the stock DOB-permitting
+  // game). Replaces hardcoded space-name entries in characters.ts's
+  // PM_VOICED_SPACES / extractPrefix.
+  npc_speaker?: string;
   action?: string;  // Dynamic action keywords like 'GOTO_JAIL', 'PAY_TAX', 'AUCTION'
   game_phase?: string;
   space_order?: number;
@@ -57,6 +71,19 @@ export interface PathChoiceRule {
   memory_key: string;
   chosen_value: string;
   excluded_destination: string;
+}
+
+/**
+ * 2026-07-16: CSV-portability lift. Player-facing display name for a card
+ * type letter (W/B/E/L/I), loaded from CARD_TYPES.csv. Optional — a missing
+ * file leaves this empty and cardTypeNames.ts falls back to its hardcoded
+ * theme.ts defaults (today's DOB-permitting labels). Colors/emoji stay in
+ * theme.ts; only the text label moves to CSV, since that's the part that
+ * names the mechanic in real-world jargon a reskin needs to replace.
+ */
+export interface CardTypeLabel {
+  card_type: string;
+  label: string;
 }
 
 export interface Movement {
@@ -147,7 +174,10 @@ export interface SpaceEffect {
   condition: string;
   description: string;
   trigger_type?: 'manual' | 'auto';
-  fee_type?: 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED';
+  // 2026-07-16: CSV-portability lift — LOAN_TIERED added, replacing text-
+  // sniffing ("1.4m"/"2.75m" substring checks in FinancialEffectHandler)
+  // that broke if the fee flavor text was ever reworded.
+  fee_type?: 'LOAN_PERCENTAGE' | 'SCOPE_PERCENTAGE' | 'FIXED' | 'DICE_BASED' | 'LOAN_TIERED';
   narrative?: string;
   modal_title?: string;
   modal_description?: string;
@@ -382,6 +412,14 @@ export interface Card {
   cost?: number;
   phase_restriction?: string;
   work_type_restriction?: string;  // Work type (Plumbing, Electrical, Mechanical Systems, etc.)
+  // 2026-07-16: CSV-portability lift. Per-W-card category flags, replacing
+  // hardcoded GROUNDWORK_WORK_TYPES/UTILITY_WORK_TYPES/HIGH_PROFILE_WORK_TYPES
+  // trade-name allowlists in CardService — those gated L012/L029/L044 by
+  // matching work_type_restriction against a fixed set of real NYC trade
+  // names, which would silently stop matching if a reskin renames work types.
+  is_groundwork?: boolean;            // gates L012 "Soil Contamination"
+  requires_utility_hookup?: boolean;  // gates L029 "Utility Delay"
+  is_high_profile?: boolean;          // gates L044 "State Funding"
   is_transferable?: boolean;  // Whether this card can be transferred to another player
 
   // Expanded card mechanics from code2026

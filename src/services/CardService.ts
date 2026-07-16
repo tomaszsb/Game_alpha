@@ -8,46 +8,6 @@ import { parseCardDrawFormat } from '../utils/parseUtils';
 import { getCardTypeName } from '../utils/cardTypeNames';
 import { friendlyCardList } from '../utils/logFormatting';
 
-// NYC DOB work types that count as "groundwork" — i.e. the project disturbs
-// soil (digging, foundations, ground-disturbing teardowns). Used to gate
-// work_type_conditional cards like L012 "Soil Contamination" (+4 days only if
-// the player's project involves groundwork). A project "involves groundwork"
-// when the player holds a W (work-package) card of one of these work types.
-const GROUNDWORK_WORK_TYPES = new Set<string>([
-  'Foundation',
-  'Earth Work',
-  'Earthwork Only',
-  'Support of Excavation',
-  'New Building',
-  'Full Demolition',
-  'Demolition & Removal',
-]);
-
-// Work types that require outside-utility hookups (Con Ed / National Grid /
-// DEP coordination). Used to gate utility_conditional cards like L029 "Utility
-// Delay" (+3 days only if the player's project requires utility hookups). Core
-// utilities only — fire/water systems and Solar/Elevator deliberately excluded
-// per author design call 2026-05-30.
-const UTILITY_WORK_TYPES = new Set<string>([
-  'Electrical',
-  'Plumbing',
-  'Mechanical Systems',
-  'Boiler Equipment',
-  'Fuel Burning',
-  'Fuel Storage',
-]);
-
-// Work types that mark a project as "high-profile" — large, visible, public-
-// facing builds that attract press coverage and political attention. Used to
-// gate high_profile_conditional cards like L044 "State Funding" (−4 days only
-// if the player's project is high-profile). Author design call 2026-05-30.
-const HIGH_PROFILE_WORK_TYPES = new Set<string>([
-  'New Building',
-  'Full Demolition',
-  'Place of Assembly',
-  'Marquees',
-]);
-
 export class CardService implements ICardService {
   private readonly dataService: IDataService;
   private readonly stateService: IStateService;
@@ -1279,9 +1239,7 @@ export class CardService implements ICardService {
     if (!player) return false;
     return (player.hand ?? []).some(cardId => {
       const c = this.dataService.getCardById(cardId);
-      return c?.card_type === 'W'
-        && !!c.work_type_restriction
-        && GROUNDWORK_WORK_TYPES.has(c.work_type_restriction);
+      return c?.card_type === 'W' && c.is_groundwork === true;
     });
   }
 
@@ -1295,9 +1253,7 @@ export class CardService implements ICardService {
     if (!player) return false;
     return (player.hand ?? []).some(cardId => {
       const c = this.dataService.getCardById(cardId);
-      return c?.card_type === 'W'
-        && !!c.work_type_restriction
-        && UTILITY_WORK_TYPES.has(c.work_type_restriction);
+      return c?.card_type === 'W' && c.requires_utility_hookup === true;
     });
   }
 
@@ -1368,9 +1324,7 @@ export class CardService implements ICardService {
     if (!player) return false;
     return (player.hand ?? []).some(cardId => {
       const c = this.dataService.getCardById(cardId);
-      return c?.card_type === 'W'
-        && !!c.work_type_restriction
-        && HIGH_PROFILE_WORK_TYPES.has(c.work_type_restriction);
+      return c?.card_type === 'W' && c.is_high_profile === true;
     });
   }
 
@@ -1937,28 +1891,25 @@ export class CardService implements ICardService {
       throw new Error(`Player ${playerId} not found`);
     }
 
-    // Determine investor payout: prefer structured investor_payout column, fall back to card_name parsing
+    // Determine investor payout from the structured investor_payout column.
+    // 2026-07-16: CSV-portability lift — removed a "legacy fallback" that
+    // guessed the payout by matching card_name against real-world jargon
+    // ("angel investor", "venture capital", "crowdfunding"), which would
+    // silently misfire on any reskinned or teacher-authored card name. Every
+    // current I-card already sets investor_payout, so that fallback never
+    // actually fired; a missing value now gets one plain fixed default
+    // instead of a name-sniffing guess.
     let moneyGain = 0;
 
     if (card.investor_payout != null) {
-      // Structured column: negative value = percentage formula (e.g., -20 = 20% of money + 10000)
+      // Negative value = percentage formula (e.g., -20 = 20% of money + 10000)
       if (card.investor_payout < 0) {
         moneyGain = Math.floor(player.money * Math.abs(card.investor_payout) / 100) + 10000;
       } else {
         moneyGain = card.investor_payout;
       }
     } else {
-      // Legacy fallback: parse card name
-      const cardName = card.card_name.toLowerCase();
-      if (cardName.includes('angel investor')) {
-        moneyGain = 50000;
-      } else if (cardName.includes('venture capital')) {
-        moneyGain = 200000;
-      } else if (cardName.includes('crowdfunding')) {
-        moneyGain = Math.floor(player.money * 0.2) + 10000;
-      } else {
-        moneyGain = 25000;
-      }
+      moneyGain = 25000;
     }
     
     if (moneyGain > 0) {
