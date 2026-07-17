@@ -113,8 +113,8 @@ export const createMockStateService = (): any => ({
   // Subscription methods
   subscribe: vi.fn().mockReturnValue(vi.fn()),
   subscribeWithSelector: vi.fn().mockReturnValue(vi.fn()),
-  subscribeToAutoActions: vi.fn().mockReturnValue(vi.fn()),
-  emitAutoAction: vi.fn(),
+  subscribeToGameEvents: vi.fn().mockReturnValue(vi.fn()),
+  emitGameEvent: vi.fn(),
   
   // Player management methods
   addPlayer: vi.fn(),

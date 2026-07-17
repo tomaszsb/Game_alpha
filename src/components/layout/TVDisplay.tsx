@@ -70,9 +70,9 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
     return unsubscribe;
   }, [stateService]);
 
-  // Subscribe to auto-action events for dramatic reveals
+  // Subscribe to game events for dramatic reveals
   useEffect(() => {
-    const unsubscribe = stateService.subscribeToAutoActions((event) => {
+    const unsubscribe = stateService.subscribeToGameEvents((event) => {
       // Show overlay for significant events
       if (event.type === 'dice_conditional_card' || event.type === 'life_event' || event.type === 'movement' || event.type === 'routing_explanation') {
         setLastAction(event.message);

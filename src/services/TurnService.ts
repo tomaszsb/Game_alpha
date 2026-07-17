@@ -672,7 +672,7 @@ export class TurnService implements ITurnService {
         // result — DOB/FDNY approval verdict banner included — was silently
         // discarded here with nothing shown to the player beyond a badge
         // quietly changing in the panel header (v3.0.99).
-        this.stateService.emitAutoAction({
+        this.stateService.emitGameEvent({
           type: 'auto_dice_roll',
           playerId: player.id,
           playerName: player.name,

@@ -679,30 +679,27 @@ const projectScope = gameRulesService.calculateProjectScope(playerId);
 
 This eliminates redundant calculations during turn transitions where the same value might be requested 50+ times by different components and services.
 
-### Auto-Action Event System (December 2025)
+### Game Event Bus (December 2025; typed union since domain-event stage 2, July 2026)
 
-For automatic actions that require UI feedback (dice-conditional L card draws, etc.), StateService provides an event system:
+For automatic actions that require UI feedback (dice-conditional L card draws, movement, etc.), StateService provides a typed event bus. This started as a single flat `AutoActionEvent` interface with ~15 optional fields shared across all 8 event types; [docs/design/domain-events.md](../design/domain-events.md) stage 2 promoted it to a discriminated union (`src/types/GameEvents.ts`) dispatched through a dedicated `GameEventBus` (`src/services/GameEventBus.ts`) — each event name now only carries the fields it actually uses:
 
 ```typescript
-// StateService exports AutoActionEvent interface
-interface AutoActionEvent {
-  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement';
+// src/types/GameEvents.ts — one variant of the GameEvent union
+interface MovementEvent {
+  type: 'movement';
   playerId: string;
   playerName: string;
   playerColor?: string;      // For movement overlay theming
-  diceValue?: number;
-  requiredRoll?: number;
-  cardType?: string;
-  cardName?: string;
-  success: boolean;
   spaceName: string;
-  fromSpace?: string;        // For movement events
-  toSpace?: string;          // For movement events
+  fromSpace?: string;
+  toSpace?: string;
+  success: boolean;
   message: string;
 }
+// GameEvent = MovementEvent | LifeEventEvent | SeedMoneyEvent | ... (8 variants total)
 
-// TurnService emits events when automatic actions occur
-stateService.emitAutoAction({
+// Services emit events when automatic actions occur
+stateService.emitGameEvent({
   type: 'life_event',
   playerId: player.id,
   playerName: player.name,
@@ -717,7 +714,7 @@ stateService.emitAutoAction({
 
 // GameLayout subscribes to show modal notifications
 useEffect(() => {
-  const unsubscribe = stateService.subscribeToAutoActions((event) => {
+  const unsubscribe = stateService.subscribeToGameEvents((event) => {
     // Convert to TurnEffectResult and show DiceResultModal
     setDiceResult(convertToTurnEffectResult(event));
     setIsDiceResultModalOpen(true);

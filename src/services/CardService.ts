@@ -281,7 +281,7 @@ export class CardService implements ICardService {
       // notify when there was a real approval to lose — revoke() is a no-op
       // 'none'→'none' most of the time (scope locked before DOB ever ran).
       if (player.dobApprovalStatus === 'approved') {
-        this.stateService.emitAutoAction({
+        this.stateService.emitGameEvent({
           type: 'approval_revoked',
           playerId: player.id,
           playerName: player.name,
@@ -1209,7 +1209,7 @@ export class CardService implements ICardService {
       const hadFdny = revokesFdny && freshPlayer.fdnyApprovalStatus === 'approved';
       if (hadDob || hadFdny) {
         const target = hadDob && hadFdny ? 'DOB and FDNY approval' : hadDob ? 'DOB approval' : 'FDNY approval';
-        this.stateService.emitAutoAction({
+        this.stateService.emitGameEvent({
           type: 'approval_revoked',
           playerId: freshPlayer.id,
           playerName: freshPlayer.name,

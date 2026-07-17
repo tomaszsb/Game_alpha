@@ -20,69 +20,21 @@ import {
   StateTransitionResult,
   CreateTempOptions,
   NegotiationState,
-  GameEndReason,
-  TurnEffectResult
+  GameEndReason
 } from '../types/StateTypes';
 import { colors } from '../styles/theme';
 import { ALL_IMAGE_ROLES, ALL_ETHNICITIES, ALL_GENDERS, NpcAppearance, NpcAppearances, NpcImageRole } from '../constants/characters';
 import { Choice } from '../types/CommonTypes';
 import { TurnStateManager } from './TurnStateManager';
 import { ServerSyncService, StateProvider } from './ServerSyncService';
+import { GameEvent } from '../types/GameEvents';
+import { GameEventBus } from './GameEventBus';
 
-// Player-facing receipt of a single thing an L-card just did. Computed by
-// diffing player state before/after applyCardEffects, then surfaced to the
-// LifeEventModal as an "Effects applied" block. Voice rule: copy is rendered
-// by the modal in PM voice, so these labels stay value-only (e.g. "+$5,000",
-// "DOB approval revoked", "lost 2 cards"). v3.0.40 — playtest signal: Kids
-// A–E worked but were invisible to the player.
-export interface LifeEventEffectSummary {
-  kind: 'money' | 'time' | 'approval_revoke' | 'card_gained' | 'card_lost' | 'duration_start' | 'competing_reveal' | 'leader_reveal';
-  /** Signed numeric delta for money/time, or count for cards/turns. */
-  amount?: number;
-  /** Display label rendered next to the icon (PM voice — see LifeEventModal). */
-  label: string;
-}
-
-// Auto-action event type for modal notifications
-export interface AutoActionEvent {
-  type: 'dice_conditional_card' | 'seed_money' | 'automatic_funding' | 'life_event' | 'movement' | 'routing_explanation' | 'auto_dice_roll' | 'approval_revoked';
-  playerId: string;
-  playerName: string;
-  playerColor?: string; // Player's color for UI display
-  diceValue?: number;
-  requiredRoll?: number;
-  cardType?: string;
-  cardName?: string;
-  cardId?: string;
-  moneyAmount?: number;
-  amount?: number; // Alternative to moneyAmount for seed money events
-  success?: boolean; // Whether the action triggered (e.g., dice matched)
-  spaceName: string;
-  message: string;
-  // Movement-specific fields
-  fromSpace?: string;
-  toSpace?: string;
-  // v3.0.40: ordered list of receipts for an auto-applied life event card.
-  // Only populated for type === 'life_event'. The LifeEventModal renders these
-  // under the card narrative so players see what changed (Kids A–E feedback).
-  effectsSummary?: LifeEventEffectSummary[];
-  /**
-   * v3.0.99 — full result for type === 'seed_money' (TurnService.
-   * handleAutomaticFunding, owner funding granted directly, not via a drawn
-   * card) and type === 'auto_dice_roll' (the REGULATORY-phase auto-roll in
-   * TurnService.startTurn — DOB/FDNY plan exam, "the examiner decides").
-   * Both methods build a complete TurnEffectResult (before/after snapshot,
-   * effects list, and for auto_dice_roll the approvalOutcome banner) but
-   * fire from inside startTurn on every turn transition, including the
-   * internal endTurn → startTurn path with no React caller to capture a
-   * return value — this event is the only way either reaches the UI.
-   * GameLayout enqueues it straight into diceResultQueue so the player sees
-   * the same rich modal a manually-triggered roll gets — seed_money
-   * previously only had a 3s toast; auto_dice_roll previously had nothing
-   * at all beyond a badge quietly changing in the panel header.
-   */
-  turnEffectResult?: TurnEffectResult;
-}
+// Domain-event stage 2 (docs/design/domain-events.md): LifeEventEffectSummary
+// and the former AutoActionEvent now live in types/GameEvents.ts as the typed
+// GameEvent union. Re-exported here so existing `from '../services/StateService'`
+// imports keep working.
+export type { LifeEventEffectSummary, GameEvent } from '../types/GameEvents';
 
 // Selective subscription for optimized re-renders
 interface SelectiveListener<T> {
@@ -101,8 +53,9 @@ export class StateService implements IStateService {
   // Selective listeners - only notified when their selected value changes
   private selectiveListeners: Array<SelectiveListener<unknown>> = [];
 
-  // Auto-action event listeners for modal notifications
-  private autoActionListeners: Array<(event: AutoActionEvent) => void> = [];
+  // Domain-event stage 2: typed GameEvent bus, replacing the old flat
+  // AutoActionEvent listener array (see types/GameEvents.ts).
+  private gameEventBus = new GameEventBus();
 
   // Server synchronization service (extracted Jan 2026)
   private serverSyncService: ServerSyncService;
@@ -217,32 +170,18 @@ export class StateService implements IStateService {
   }
 
   /**
-   * Subscribe to auto-action events (dice rolls for L cards, seed money, etc.)
-   * These events trigger modal notifications in the UI
+   * Subscribe to typed game events (dice rolls for L cards, seed money,
+   * movement, etc.) — GameLayout/TVDisplay's modal & overlay router.
    */
-  subscribeToAutoActions(callback: (event: AutoActionEvent) => void): () => void {
-    this.autoActionListeners.push(callback);
-
-    // Return unsubscribe function
-    return () => {
-      const index = this.autoActionListeners.indexOf(callback);
-      if (index > -1) {
-        this.autoActionListeners.splice(index, 1);
-      }
-    };
+  subscribeToGameEvents(callback: (event: GameEvent) => void): () => void {
+    return this.gameEventBus.subscribe(callback);
   }
 
   /**
-   * Emit an auto-action event to trigger modal notifications
+   * Emit a typed game event to the bus (see types/GameEvents.ts).
    */
-  emitAutoAction(event: AutoActionEvent): void {
-    this.autoActionListeners.forEach(callback => {
-      try {
-        callback(event);
-      } catch (error) {
-        console.error('Error in auto-action listener:', error);
-      }
-    });
+  emitGameEvent(event: GameEvent): void {
+    this.gameEventBus.emit(event);
   }
 
   private notifyListeners(options: { skipSync?: boolean } = {}): void {

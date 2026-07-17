@@ -9,7 +9,7 @@ import { SpaceEffect, CardType, VisitType } from '../types/DataTypes';
 import { EffectFactory } from '../utils/EffectFactory';
 import { ConditionEvaluator } from '../utils/ConditionEvaluator';
 import { friendlySpaceName } from '../utils/logFormatting';
-import { AutoActionEvent, LifeEventEffectSummary } from './StateService';
+import { GameEvent, LifeEventEffectSummary } from '../types/GameEvents';
 import { snapshotPlayerForLifeEvent, diffLifeEventSnapshot } from '../utils/lifeEventReceipts';
 import { DiceService } from './DiceService';
 
@@ -296,8 +296,8 @@ export class SpaceArrivalProcessor {
           }
         }
 
-        // Emit auto-action event for modal display
-        const autoActionEvent: AutoActionEvent = {
+        // Emit game event for modal display
+        const gameEvent: GameEvent = {
           type: cardType === 'L' ? 'life_event' : 'dice_conditional_card',
           playerId: currentPlayer.id,
           playerName: currentPlayer.name,
@@ -311,7 +311,7 @@ export class SpaceArrivalProcessor {
           message: cardType === 'L' ? `Life event: ${cardName}` : `Received: ${cardName}`,
           effectsSummary: effectsSummary.length > 0 ? effectsSummary : undefined,
         };
-        this.stateService.emitAutoAction(autoActionEvent);
+        this.stateService.emitGameEvent(gameEvent);
 
         // Show notification for banner
         if (this.notificationService) {

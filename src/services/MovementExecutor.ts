@@ -72,9 +72,9 @@ export class MovementExecutor {
         const destination = validForRoll[0] ?? null;
 
         if (destination) {
-          // Movement logged via emitAutoAction below
+          // Movement logged via emitGameEvent below
           // Emit movement event BEFORE the move so UI can show transition overlay
-          this.stateService.emitAutoAction({
+          this.stateService.emitGameEvent({
             type: 'movement',
             playerId: player.id,
             playerName: player.name,
@@ -89,7 +89,7 @@ export class MovementExecutor {
           return { moved: true, fromSpace: player.currentSpace, toSpace: destination, reason: 'dice' };
         } else {
           console.error(`[MovementExecutor] STUCK: No destination for dice roll ${diceRoll} at ${player.currentSpace} (${player.visitType}). Player ${player.name} cannot move.`);
-          this.stateService.emitAutoAction({
+          this.stateService.emitGameEvent({
             type: 'movement',
             playerId: player.id,
             playerName: player.name,
@@ -129,7 +129,7 @@ export class MovementExecutor {
 
         if (toSpace) {
           // Emit movement event BEFORE the move so UI can show transition overlay
-          this.stateService.emitAutoAction({
+          this.stateService.emitGameEvent({
             type: 'movement',
             playerId: player.id,
             playerName: player.name,
@@ -161,7 +161,7 @@ export class MovementExecutor {
         if (validMoves.length === 1) {
           // Only one move available - perform automatic movement
           // Emit movement event BEFORE the move so UI can show transition overlay
-          this.stateService.emitAutoAction({
+          this.stateService.emitGameEvent({
             type: 'movement',
             playerId: player.id,
             playerName: player.name,
@@ -177,7 +177,7 @@ export class MovementExecutor {
         }
         if (validMoves.length === 0) {
           console.error(`[MovementExecutor] STUCK: No valid moves and no moveIntent at ${player.currentSpace} (${player.visitType}). Player ${player.name} cannot move. validMoves=[], lastDiceRoll=${JSON.stringify(player.lastDiceRoll)}`);
-          this.stateService.emitAutoAction({
+          this.stateService.emitGameEvent({
             type: 'movement',
             playerId: player.id,
             playerName: player.name,

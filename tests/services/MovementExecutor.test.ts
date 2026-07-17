@@ -70,7 +70,7 @@ describe('MovementExecutor', () => {
       });
       expect(mockMovementService.getValidMoves).toHaveBeenCalledWith('p1', { diceRoll: 3 });
       expect(mockMovementService.movePlayer).toHaveBeenCalledWith('p1', 'SPACE-B');
-      expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'movement', toSpace: 'SPACE-B' })
       );
     });
@@ -213,7 +213,7 @@ describe('MovementExecutor', () => {
 
       await executor.executeMovement(player, makeGameState(), false);
 
-      expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'movement',
           playerId: 'p1',
@@ -354,7 +354,7 @@ describe('MovementExecutor', () => {
       mockMovementService.getValidMoves.mockReturnValue(['SPACE-DEST']);
 
       const callOrder: string[] = [];
-      mockStateService.emitAutoAction.mockImplementation(() => { callOrder.push('emit'); });
+      mockStateService.emitGameEvent.mockImplementation(() => { callOrder.push('emit'); });
       mockMovementService.movePlayer.mockImplementation(async () => { callOrder.push('move'); });
 
       await executor.executeMovement(player, makeGameState(), false);
@@ -368,7 +368,7 @@ describe('MovementExecutor', () => {
       mockMovementService.getValidMoves.mockReturnValue(['SPACE-AUTO']);
 
       const callOrder: string[] = [];
-      mockStateService.emitAutoAction.mockImplementation(() => { callOrder.push('emit'); });
+      mockStateService.emitGameEvent.mockImplementation(() => { callOrder.push('emit'); });
       mockMovementService.movePlayer.mockImplementation(async () => { callOrder.push('move'); });
 
       await executor.executeMovement(player, makeGameState(), false);

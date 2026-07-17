@@ -92,8 +92,8 @@ describe('CardEffectHandler.handleCardDraw — Life Event effect application', (
 
       await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
 
-      expect(mockStateService.emitAutoAction).toHaveBeenCalled();
-      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      expect(mockStateService.emitGameEvent).toHaveBeenCalled();
+      const event = mockStateService.emitGameEvent.mock.calls[0][0];
       expect(event.type).toBe('life_event');
       expect(event.effectsSummary).toBeDefined();
       const moneyReceipt = event.effectsSummary.find((e: any) => e.kind === 'money');
@@ -115,7 +115,7 @@ describe('CardEffectHandler.handleCardDraw — Life Event effect application', (
 
       await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
 
-      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      const event = mockStateService.emitGameEvent.mock.calls[0][0];
       const revoke = event.effectsSummary.find((e: any) => e.kind === 'approval_revoke');
       expect(revoke).toBeDefined();
       expect(revoke.label).toMatch(/DOB approval revoked/);
@@ -130,7 +130,7 @@ describe('CardEffectHandler.handleCardDraw — Life Event effect application', (
 
       await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
 
-      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      const event = mockStateService.emitGameEvent.mock.calls[0][0];
       const dur = event.effectsSummary.find((e: any) => e.kind === 'duration_start');
       expect(dur).toBeDefined();
       expect(dur.label).toMatch(/keep affecting you/i);
@@ -145,7 +145,7 @@ describe('CardEffectHandler.handleCardDraw — Life Event effect application', (
 
       await handler.handleCardDraw(drawEffect('L'), { source: 'space_arrival', playerId: 'player1' } as any);
 
-      const event = mockStateService.emitAutoAction.mock.calls[0][0];
+      const event = mockStateService.emitGameEvent.mock.calls[0][0];
       // Hand went up by 1 (the L card itself) — that's subtracted in the diff,
       // so handDelta is 0 and the summary stays empty.
       expect(event.effectsSummary).toEqual([]);

@@ -91,9 +91,9 @@ const mockStateService: any = {
   updateGameState: vi.fn(),
   isInitialized: vi.fn().mockReturnValue(true),
   markAsInitialized: vi.fn(),
-  // Auto-action event methods for modal notifications
-  subscribeToAutoActions: vi.fn(),
-  emitAutoAction: vi.fn(),
+  // Typed game-event bus methods for modal notifications
+  subscribeToGameEvents: vi.fn(),
+  emitGameEvent: vi.fn(),
   // REAL/TEMP State Model Methods
   createTempStateFromReal: vi.fn().mockReturnValue({ success: true }),
   commitTempToReal: vi.fn().mockReturnValue({ success: true }),
@@ -1074,11 +1074,11 @@ describe('TurnService', () => {
       try {
         // The actual dice-conditional logic is in processSpaceEffectsAfterMovement
         // which is a private method. We test the public interface indirectly
-        // by checking that emitAutoAction was called with the right data
+        // by checking that emitGameEvent was called with the right data
 
         // For this test, we verify the mock setup is correct
-        expect(mockStateService.emitAutoAction).toBeDefined();
-        expect(typeof mockStateService.emitAutoAction).toBe('function');
+        expect(mockStateService.emitGameEvent).toBeDefined();
+        expect(typeof mockStateService.emitGameEvent).toBe('function');
       } finally {
         Math.random = originalRandom;
       }
@@ -1099,8 +1099,8 @@ describe('TurnService', () => {
       // - Dice roll of 3 when needing 1 should NOT draw a card
       // - No modal should be shown (life events are surprises)
 
-      // Verify that the emitAutoAction mock is set up correctly
-      expect(mockStateService.emitAutoAction).not.toHaveBeenCalled();
+      // Verify that the emitGameEvent mock is set up correctly
+      expect(mockStateService.emitGameEvent).not.toHaveBeenCalled();
     });
 
     it('should correctly identify dice-conditional effects by parsing effect_value', () => {

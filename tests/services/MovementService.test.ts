@@ -1628,7 +1628,7 @@ describe('MovementService', () => {
         autoQ('dob_approved', 'DEST-CLEARED', 'DEST-BACK', { yes_reason: 'You already have DOB approval.' }),
         { ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW', dobApprovalStatus: 'approved' }
       );
-      expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'routing_explanation',
           toSpace: 'DEST-CLEARED',
@@ -1659,7 +1659,7 @@ describe('MovementService', () => {
       });
       movementService.handleLogicMovement('player1');
       await new Promise((r) => setImmediate(r));
-      expect(mockStateService.emitAutoAction).toHaveBeenCalledWith(
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'routing_explanation',
           toSpace: 'DEST-YES',
@@ -1672,7 +1672,7 @@ describe('MovementService', () => {
       await runAuto(autoQ('dob_approved', 'DEST-CLEARED', 'DEST-BACK'), {
         ...mockPlayer, currentSpace: 'REG-FDNY-FEE-REVIEW', dobApprovalStatus: 'approved',
       });
-      const routingEmits = (mockStateService.emitAutoAction.mock.calls as any[][])
+      const routingEmits = (mockStateService.emitGameEvent.mock.calls as any[][])
         .filter(([e]) => e?.type === 'routing_explanation');
       expect(routingEmits).toHaveLength(0);
     });

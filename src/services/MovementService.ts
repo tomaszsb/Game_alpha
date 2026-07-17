@@ -1102,7 +1102,7 @@ export class MovementService implements IMovementService {
     if (!reasons.length) return;
     const player = this.stateService.getPlayer(playerId);
     if (!player) return;
-    this.stateService.emitAutoAction({
+    this.stateService.emitGameEvent({
       type: 'routing_explanation',
       playerId,
       playerName: player.name,

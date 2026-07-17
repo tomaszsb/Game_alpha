@@ -255,9 +255,9 @@ export interface IStateService {
     equalityFn?: (a: T, b: T) => boolean
   ): () => void;
 
-  // Auto-action event methods for modal notifications
-  subscribeToAutoActions(callback: (event: import('../services/StateService').AutoActionEvent) => void): () => void;
-  emitAutoAction(event: import('../services/StateService').AutoActionEvent): void;
+  // Typed game-event bus (domain-event stage 2 — see docs/design/domain-events.md)
+  subscribeToGameEvents(callback: (event: import('./GameEvents').GameEvent) => void): () => void;
+  emitGameEvent(event: import('./GameEvents').GameEvent): void;
 
   // Player management methods
   addPlayer(name: string): GameState;

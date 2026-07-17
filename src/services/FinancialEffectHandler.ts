@@ -298,7 +298,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
 
       debugLog(`💀 GAME OVER: Design fees exceeded 20% cap (${designFeeRatio.toFixed(1)}% = ${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()}) during ${currentPhase} phase`);
 
-      this.stateService.emitAutoAction({
+      this.stateService.emitGameEvent({
         type: 'life_event',
         playerId: playerId,
         playerName: updatedPlayer.name,
@@ -381,7 +381,7 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     if (updatedPlayer && updatedPlayer.money < 0) {
       debugLog(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
 
-      this.stateService.emitAutoAction({
+      this.stateService.emitGameEvent({
         type: 'life_event',
         playerId: playerId,
         playerName: updatedPlayer.name,

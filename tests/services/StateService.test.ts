@@ -932,17 +932,19 @@ describe('StateService', () => {
   // multiple concurrent preview servers) that makes live browser counting
   // unreliable. A React effect that subscribes on mount and unsubscribes on
   // cleanup should never leave more than one live listener per logical
-  // subscriber, no matter how many times it re-runs.
-  describe('subscribeToAutoActions (fb:task_bb6cec79)', () => {
+  // subscriber, no matter how many times it re-runs. Renamed from
+  // subscribeToAutoActions/emitAutoAction in domain-event stage 2 — same bus,
+  // now backed by GameEventBus instead of a flat listener array.
+  describe('subscribeToGameEvents (fb:task_bb6cec79)', () => {
     const sampleEvent = { type: 'movement', playerId: 'p1', playerName: 'Alice', success: true } as any;
 
     it('delivers an emitted event to exactly one call per active subscriber', () => {
       const handlerA = vi.fn();
       const handlerB = vi.fn();
-      stateService.subscribeToAutoActions(handlerA);
-      stateService.subscribeToAutoActions(handlerB);
+      stateService.subscribeToGameEvents(handlerA);
+      stateService.subscribeToGameEvents(handlerB);
 
-      stateService.emitAutoAction(sampleEvent);
+      stateService.emitGameEvent(sampleEvent);
 
       expect(handlerA).toHaveBeenCalledTimes(1);
       expect(handlerB).toHaveBeenCalledTimes(1);
@@ -951,11 +953,11 @@ describe('StateService', () => {
     it('unsubscribe detaches exactly that listener, leaving others untouched', () => {
       const handlerA = vi.fn();
       const handlerB = vi.fn();
-      const unsubscribeA = stateService.subscribeToAutoActions(handlerA);
-      stateService.subscribeToAutoActions(handlerB);
+      const unsubscribeA = stateService.subscribeToGameEvents(handlerA);
+      stateService.subscribeToGameEvents(handlerB);
 
       unsubscribeA();
-      stateService.emitAutoAction(sampleEvent);
+      stateService.emitGameEvent(sampleEvent);
 
       expect(handlerA).not.toHaveBeenCalled();
       expect(handlerB).toHaveBeenCalledTimes(1);
@@ -968,13 +970,13 @@ describe('StateService', () => {
       // pathological condition) — each run subscribes with a NEW closure
       // and cleans up the PREVIOUS one first, exactly like React's
       // mount -> cleanup -> mount effect lifecycle.
-      let unsubscribe = stateService.subscribeToAutoActions(handler);
+      let unsubscribe = stateService.subscribeToGameEvents(handler);
       for (let i = 0; i < 5; i++) {
         unsubscribe();
-        unsubscribe = stateService.subscribeToAutoActions(handler);
+        unsubscribe = stateService.subscribeToGameEvents(handler);
       }
 
-      stateService.emitAutoAction(sampleEvent);
+      stateService.emitGameEvent(sampleEvent);
 
       // If cleanup ever failed to detach the prior closure, this would be 6.
       expect(handler).toHaveBeenCalledTimes(1);
@@ -982,11 +984,11 @@ describe('StateService', () => {
 
     it('calling the same unsubscribe function twice is a harmless no-op', () => {
       const handler = vi.fn();
-      const unsubscribe = stateService.subscribeToAutoActions(handler);
+      const unsubscribe = stateService.subscribeToGameEvents(handler);
 
       unsubscribe();
       unsubscribe(); // double-invoke shouldn't throw or remove a different listener
-      stateService.emitAutoAction(sampleEvent);
+      stateService.emitGameEvent(sampleEvent);
 
       expect(handler).not.toHaveBeenCalled();
     });
@@ -994,10 +996,10 @@ describe('StateService', () => {
     it('a throwing listener does not prevent other listeners from receiving the event', () => {
       const throwing = vi.fn(() => { throw new Error('boom'); });
       const healthy = vi.fn();
-      stateService.subscribeToAutoActions(throwing);
-      stateService.subscribeToAutoActions(healthy);
+      stateService.subscribeToGameEvents(throwing);
+      stateService.subscribeToGameEvents(healthy);
 
-      expect(() => stateService.emitAutoAction(sampleEvent)).not.toThrow();
+      expect(() => stateService.emitGameEvent(sampleEvent)).not.toThrow();
       expect(healthy).toHaveBeenCalledTimes(1);
     });
   });

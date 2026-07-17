@@ -339,7 +339,7 @@ export class EffectEngineService implements IEffectEngineService {
             // Emit auto-action event for notification
             const player = this.stateService.getPlayer(payload.playerId);
             if (player) {
-              this.stateService.emitAutoAction({
+              this.stateService.emitGameEvent({
                 type: 'seed_money',
                 playerId: payload.playerId,
                 playerName: player.name,

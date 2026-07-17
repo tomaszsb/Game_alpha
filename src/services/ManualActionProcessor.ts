@@ -553,7 +553,7 @@ export class ManualActionProcessor {
       // way this reaches GameLayout so it can show the real modal instead of
       // just the 3s toast below (fb: money buried mid-sentence in the NPC
       // dialogue, never confirmed as a distinct number).
-      this.stateService.emitAutoAction({
+      this.stateService.emitGameEvent({
         type: 'seed_money',
         playerId: currentPlayer.id,
         playerName: currentPlayer.name,

@@ -51,7 +51,7 @@ function makeServices(opts: {
       if (data?.expenditures) liveExpenditures = { ...liveExpenditures, ...data.expenditures };
       return { success: true } as any;
     }),
-    emitAutoAction: vi.fn(),
+    emitGameEvent: vi.fn(),
     endGame: vi.fn(),
     // trackDesignExpenditure reads gameState for turn-number cost-history entries.
     getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
@@ -126,7 +126,7 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     // No winner + a reason, so EndGameModal can render the loss screen
     // (post-deploy playtest: loss endings left a blank page).
     expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'design_fee_cap', playerId: 'p1' });
-    expect(stateService.emitAutoAction).toHaveBeenCalledWith(
+    expect(stateService.emitGameEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         success: false,
         message: expect.stringContaining('GAME OVER'),
@@ -194,7 +194,7 @@ describe('FinancialEffectHandler — SCOPE_PERCENTAGE authored fee (4b slice 4)'
     const stateService = {
       getPlayer: vi.fn(() => player),
       updateTempState: vi.fn(),
-      emitAutoAction: vi.fn(),
+      emitGameEvent: vi.fn(),
       endGame: vi.fn(),
       getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
     } as unknown as IStateService;
@@ -242,7 +242,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
     const stateService = {
       getPlayer: vi.fn(() => player),
       updateTempState: vi.fn(),
-      emitAutoAction: vi.fn(),
+      emitGameEvent: vi.fn(),
       endGame: vi.fn(),
       getGameState: vi.fn(() => ({ globalTurnCount: 1, turn: 1 } as any)),
     } as unknown as IStateService;
@@ -274,7 +274,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
     handler.handleResourceChange(bill(-2000), ctx);
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
     expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'bankruptcy', playerId: 'p1' });
-    expect(stateService.emitAutoAction).toHaveBeenCalledWith(
+    expect(stateService.emitGameEvent).toHaveBeenCalledWith(
       expect.objectContaining({ success: false, message: expect.stringContaining('BANKRUPTCY') }),
     );
   });

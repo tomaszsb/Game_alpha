@@ -372,9 +372,9 @@ export class CardEffectHandler implements ICardEffectHandler {
       }
     );
 
-    // Emit auto-action event to trigger modal in UI
+    // Emit game event to trigger modal in UI
     const cardDetail = cardDetails[0];
-    this.stateService.emitAutoAction({
+    this.stateService.emitGameEvent({
       type: 'life_event',
       playerId,
       playerName: player.name,
@@ -420,8 +420,8 @@ export class CardEffectHandler implements ICardEffectHandler {
       ? `🏠 Owner Seed Money: ${cardName} (${fundingType} funding approved)`
       : `💰 ${fundingType} Funding: ${cardName} (+$${fundingAmount.toLocaleString()})`;
 
-    // Emit auto-action event for funding modal
-    this.stateService.emitAutoAction({
+    // Emit game event for funding modal
+    this.stateService.emitGameEvent({
       type: eventType,
       playerId: payload.playerId,
       playerName: fundingPlayer?.name || 'Unknown',

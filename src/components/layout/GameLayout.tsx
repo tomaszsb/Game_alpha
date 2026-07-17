@@ -27,7 +27,7 @@ import { pickRelatedTab } from '../../utils/relatedTab';
 import { NotificationUtils } from '../../utils/NotificationUtils';
 import { GamePhase, Player, TurnEffectResult } from '../../types/StateTypes';
 import { Card } from '../../types/DataTypes';
-import { AutoActionEvent } from '../../services/StateService';
+import { GameEvent } from '../../types/GameEvents';
 import { haptics, primeAudio } from '../../utils/haptics';
 import { getWebSocketService, ConnectionState } from '../../services/WebSocketSyncService';
 import { pushNotifications } from '../../utils/pushNotifications';
@@ -385,9 +385,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     );
   }, [notificationService]);
 
-  // Subscribe to auto-action events — show modals for life events
+  // Subscribe to game events — show modals for life events
   useEffect(() => {
-    const unsubscribe = stateService.subscribeToAutoActions((event: AutoActionEvent) => {
+    const unsubscribe = stateService.subscribeToGameEvents((event: GameEvent) => {
       // Movement failure — surface error to player
       if (event.type === 'movement' && event.success === false) {
         notificationService.notify(

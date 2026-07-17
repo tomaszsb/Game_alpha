@@ -73,8 +73,8 @@ describe('SpaceArrivalProcessor — life-event leader/competing reveals (fb:f3f8
     await (processor as any).processDiceConditionalCardEffects(effects, player, 'ARCH-INITIATION', 1, true);
 
     expect(cardService.buildLeaderReveal).toHaveBeenCalledWith('player1', -4);
-    expect(stateService.emitAutoAction).toHaveBeenCalledTimes(1);
-    const event = stateService.emitAutoAction.mock.calls[0][0];
+    expect(stateService.emitGameEvent).toHaveBeenCalledTimes(1);
+    const event = stateService.emitGameEvent.mock.calls[0][0];
     expect(event.effectsSummary).toContainEqual({
       kind: 'leader_reveal',
       label: 'Bob is the leader (CONSTRUCTION) — saves 4 days',
@@ -101,7 +101,7 @@ describe('SpaceArrivalProcessor — life-event leader/competing reveals (fb:f3f8
     await (processor as any).processDiceConditionalCardEffects(effects, player, 'ARCH-INITIATION', 2, true);
 
     expect(cardService.buildCompetingWorktypeReveal).toHaveBeenCalledWith('player1');
-    const event = stateService.emitAutoAction.mock.calls[0][0];
+    const event = stateService.emitGameEvent.mock.calls[0][0];
     expect(event.effectsSummary).toContainEqual({
       kind: 'competing_reveal',
       label: 'You and Bob both work Plumbing',
