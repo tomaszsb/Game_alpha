@@ -21,6 +21,7 @@ import { StateService } from '../src/services/StateService';
 import { TurnService } from '../src/services/TurnService';
 import { CardService } from '../src/services/CardService';
 import { LoggingService } from '../src/services/LoggingService';
+import { LogWriter } from '../src/services/LogWriter';
 import { PlayerActionService } from '../src/services/PlayerActionService';
 import { MovementService } from '../src/services/MovementService';
 import { GameRulesService } from '../src/services/GameRulesService';
@@ -83,6 +84,7 @@ describe('E2E-02: Complex Card Test', () => {
     dataService = new NodeDataService();
     stateService = new StateService(dataService);
     const loggingService = new LoggingService(stateService);
+    new LogWriter(stateService, loggingService);
     resourceService = new ResourceService(stateService);
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);

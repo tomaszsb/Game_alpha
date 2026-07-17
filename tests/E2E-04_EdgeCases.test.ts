@@ -23,6 +23,7 @@ import { StateService } from '../src/services/StateService';
 import { TurnService } from '../src/services/TurnService';
 import { CardService } from '../src/services/CardService';
 import { LoggingService } from '../src/services/LoggingService';
+import { LogWriter } from '../src/services/LogWriter';
 import { PlayerActionService } from '../src/services/PlayerActionService';
 import { MovementService } from '../src/services/MovementService';
 import { GameRulesService } from '../src/services/GameRulesService';
@@ -90,6 +91,7 @@ async function initializeServices(): Promise<void> {
 
   const stateService = new StateService(dataService);
   const loggingService = new LoggingService(stateService);
+  new LogWriter(stateService, loggingService);
     const resourceService = new ResourceService(stateService);
   const choiceService = new ChoiceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);

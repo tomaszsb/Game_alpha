@@ -91,17 +91,22 @@ export class TurnTransitionHandler {
       });
     }
 
-    // STEP 4: Log turn end for current player
+    // STEP 4: Emit turn_committed for the current player.
     // TIMING NOTE: Uses globalTurnCount + 1 to match turn_start numbering
     // Why +1? Turn hasn't advanced yet (still N-1), but we want to log "Turn N ended"
     // to match "Turn N started" from the beginning of this turn.
     // This is intentional and ensures turn start/end logs have matching numbers.
-    this.loggingService.info(`Turn ${gameState.globalTurnCount + 1} ended`, {
+    // Domain-event stage 3: LogWriter + ToastWriter both react to this one
+    // emission (replaces the former separate loggingService.info here +
+    // notificationService.notify in advanceToNextPlayer below — verified
+    // both read the same completed-turn number, just via different
+    // variables at different points in the sequence).
+    this.stateService.emitGameEvent({
+      type: 'turn_committed',
       playerId: currentPlayer.id,
       playerName: currentPlayer.name,
-      action: 'turn_end',
       turn: gameState.globalTurnCount + 1,
-      space: currentPlayer.currentSpace
+      spaceName: currentPlayer.currentSpace,
     });
 
     // STEP 4.5: Quick Start mode - finalize starting hand after P1's first turn
@@ -263,24 +268,10 @@ export class TurnTransitionHandler {
     this.stateService.clearTurnActions();
     this.stateService.clearPlayerMoveIntent(nextPlayer.id);
 
-    // Send End Turn notification for the previous player AFTER all state changes are complete
-    if (this.notificationService) {
-      const prevGameState = this.stateService.getGameState();
-      const turnNumber = prevGameState.globalTurnCount; // Previous turn that just ended
-      this.notificationService.notify(
-        {
-          short: 'Turn Ended',
-          medium: `🏁 Turn ${turnNumber} ended`,
-          detailed: `${currentPlayer.name} ended Turn ${turnNumber} at ${currentPlayer.currentSpace}`
-        },
-        {
-          playerId: currentPlayer.id,
-          playerName: currentPlayer.name,
-          actionType: 'endTurn',
-          notificationDuration: 3000
-        }
-      );
-    }
+    // Domain-event stage 3: the "Turn Ended" toast is now derived by
+    // ToastWriter from the emitGameEvent('turn_committed') call in
+    // processEndOfTurn above — the standalone notify() that used to live
+    // here is gone.
 
     return nextPlayer.id;
   }

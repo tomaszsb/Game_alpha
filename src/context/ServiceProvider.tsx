@@ -23,6 +23,8 @@ import { CardEffectService } from '../services/CardEffectService';
 import { FinancialEffectHandler } from '../services/FinancialEffectHandler';
 import { CardEffectHandler } from '../services/CardEffectHandler';
 import { ApprovalService } from '../services/ApprovalService';
+import { LogWriter } from '../services/LogWriter';
+import { ToastWriter } from '../services/ToastWriter';
 
 interface ServiceProviderProps {
   children: ReactNode;
@@ -42,6 +44,10 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   const dataService = new DataService();
   const stateService = new StateService(dataService);
   const loggingService = new LoggingService(stateService);
+  // Domain-event stage 3: always-on GameEvent bus subscribers. Pure
+  // listeners — not added to IServiceContainer since nothing calls them
+  // directly, they just need their constructor's subscription to fire.
+  const logWriter = new LogWriter(stateService, loggingService);
   const resourceService = new ResourceService(stateService);
   const choiceService = new ChoiceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);
@@ -56,6 +62,7 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
 
   // Create NotificationService early for TurnService dependency
   const notificationService = new NotificationService(stateService, loggingService);
+  const toastWriter = new ToastWriter(stateService, notificationService);
 
   // Build the two effect handlers up-front so they can be passed into EffectEngineService's constructor.
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);

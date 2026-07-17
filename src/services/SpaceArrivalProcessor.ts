@@ -103,19 +103,23 @@ export class SpaceArrivalProcessor {
         diceRoll = this.diceService.rollDice();
         debugLog(`🎲 Rolled ${diceRoll} for condition evaluation at ${spaceName}`);
 
-        // Log the dice roll. fb:91738221 — drop the leading 🎲 (the
-        // actionLogFormatting layer prepends it for dice_roll entries, was
-        // causing "🎲 🎲" double-emoji), and use the friendly space name.
+        // Domain-event stage 3: LogWriter reacts to this (arrival-triggered
+        // piggyback roll — the other DiceRolled emitter is TurnService's
+        // manual Roll Dice button path). fb:91738221 — drop the leading 🎲
+        // (the actionLogFormatting layer prepends it for dice_roll entries,
+        // was causing "🎲 🎲" double-emoji), and use the friendly space name.
         // Voice rule (no game language): no "rolled" / no raw die number in
         // the player-visible description — frame it as the outcome coming
         // back, matching TurnService's "Outcome determined" (fb:1783080880242).
         const friendlyForLog = friendlySpaceName(this.dataService, spaceName);
-        this.loggingService.info(`${currentPlayer.name}'s outcome came back at ${friendlyForLog}`, {
+        this.stateService.emitGameEvent({
+          type: 'dice_rolled',
           playerId: currentPlayer.id,
           playerName: currentPlayer.name,
-          action: 'dice_roll',
+          spaceName: spaceName,
           diceValue: diceRoll,
-          spaceName: spaceName
+          trigger: 'arrival',
+          logMessage: `${currentPlayer.name}'s outcome came back at ${friendlyForLog}`,
         });
       }
 
@@ -312,26 +316,9 @@ export class SpaceArrivalProcessor {
           effectsSummary: effectsSummary.length > 0 ? effectsSummary : undefined,
         };
         this.stateService.emitGameEvent(gameEvent);
-
-        // Show notification for banner
-        if (this.notificationService) {
-          this.notificationService.notify(
-            {
-              // Voice rule (no game language): describe what happened, not the roll.
-              short: cardType === 'L' ? '📰' : '✓',
-              medium: cardType === 'L' ? `📰 Life event: ${cardName}` : `Received: ${cardName}`,
-              detailed: cardType === 'L'
-                ? `${currentPlayer.name} hit a life event: ${cardName}`
-                : `${currentPlayer.name} received: ${cardName}`
-            },
-            {
-              playerId: currentPlayer.id,
-              playerName: currentPlayer.name,
-              actionType: 'dice_conditional_card',
-              notificationDuration: 5000
-            }
-          );
-        }
+        // Domain-event stage 3: the notification banner is now derived by
+        // ToastWriter from the emitGameEvent call above — the standalone
+        // notify() that used to live here is gone.
       } catch (error) {
         console.error(`Failed to draw ${cardType} card on dice conditional effect:`, error);
       }

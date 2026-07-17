@@ -348,30 +348,16 @@ export class ManualActionProcessor {
       : null;
     const summary = customSummary || effects.map(e => e.description).join(', ');
 
-    // Log manual action to action history
-    this.loggingService.info(summary, {
+    // Domain-event stage 3: LogWriter + ToastWriter both react to this one
+    // emission (replaces the former separate loggingService.info +
+    // notificationService.notify calls).
+    this.stateService.emitGameEvent({
+      type: 'manual_action_completed',
       playerId: currentPlayer.id,
       playerName: currentPlayer.name,
-      action: 'manual_action',
-      effectType: effectType
+      effectType: effectType,
+      summary,
     });
-
-    // Send Manual Effect notification
-    if (this.notificationService) {
-      this.notificationService.notify(
-        {
-          short: 'Action Complete',
-          medium: `✅ ${summary}`,
-          detailed: `${currentPlayer.name} completed manual action: ${summary}`
-        },
-        {
-          playerId: currentPlayer.id,
-          playerName: currentPlayer.name,
-          actionType: 'manualEffect',
-          notificationDuration: 3000
-        }
-      );
-    }
 
     // Calculate project time info for the modal
     const timeEffect = effects.find(e => e.type === 'time');
@@ -485,22 +471,11 @@ export class ManualActionProcessor {
       const feedbackMessage = formatActionFeedback(effects);
       this.stateService.setDiceRollCompletion(feedbackMessage);
 
-      // Send Owner Seed Money notification
-      if (this.notificationService) {
-        this.notificationService.notify(
-          {
-            short: 'Seed Money',
-            medium: `💰 Owner invested $${roundedSeedMoney.toLocaleString()}`,
-            detailed: `${currentPlayer.name} invested personal seed money: $${roundedSeedMoney.toLocaleString()}`
-          },
-          {
-            playerId: currentPlayer.id,
-            playerName: currentPlayer.name,
-            actionType: 'automaticFunding',
-            notificationDuration: 3000
-          }
-        );
-      }
+      // Domain-event stage 3: the "Seed Money" toast is now derived by
+      // ToastWriter from the emitGameEvent('seed_money') call below (it
+      // checks turnEffectResult to distinguish this emission from
+      // EffectEngineService's OWNER_SEED_MONEY card-effect path, which never
+      // had a toast) — the standalone notify() that used to live here is gone.
 
       // Calculate project time info for the modal
       const projectLengthInfo = this.gameRulesService.calculateEstimatedProjectLength(currentPlayer.id);
@@ -549,10 +524,10 @@ export class ManualActionProcessor {
 
       // This fires from inside startTurn on every turn transition — including
       // the internal endTurn → startTurn path, which has no React caller to
-      // capture the return value above. The auto-action event is the only
-      // way this reaches GameLayout so it can show the real modal instead of
-      // just the 3s toast below (fb: money buried mid-sentence in the NPC
-      // dialogue, never confirmed as a distinct number).
+      // capture the return value above. This event is the only way this
+      // reaches GameLayout so it can show the real modal (fb: money buried
+      // mid-sentence in the NPC dialogue, never confirmed as a distinct
+      // number) — ToastWriter also reacts to it for the toast (see above).
       this.stateService.emitGameEvent({
         type: 'seed_money',
         playerId: currentPlayer.id,

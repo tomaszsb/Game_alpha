@@ -30,6 +30,8 @@ import { CardEffectService } from '../../src/services/CardEffectService';
 import { CardEffectHandler } from '../../src/services/CardEffectHandler';
 import { FinancialEffectHandler } from '../../src/services/FinancialEffectHandler';
 import { ApprovalService } from '../../src/services/ApprovalService';
+import { LogWriter } from '../../src/services/LogWriter';
+import { ToastWriter } from '../../src/services/ToastWriter';
 
 class NodeDataService extends DataService {
   private readonly cleanFilesDir: string;
@@ -79,6 +81,10 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
 
   const stateService = new StateService(dataService);
   const loggingService = new LoggingService(stateService);
+  // Domain-event stage 3: mirrors ServiceProvider.tsx's always-on GameEvent
+  // bus subscribers, so headless turn flows produce the same log/toast
+  // output real play does.
+  new LogWriter(stateService, loggingService);
   const resourceService = new ResourceService(stateService);
   const gameRulesService = new GameRulesService(dataService, stateService);
   stateService.setGameRulesService(gameRulesService);
@@ -90,6 +96,7 @@ export async function bootstrapHeadlessServices(cleanFilesDir?: string): Promise
   const cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService, choiceService, approvalService);
   const movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService, approvalService);
   const notificationService = new NotificationService(stateService, loggingService);
+  new ToastWriter(stateService, notificationService);
   const targetingService = new TargetingService(stateService, choiceService);
   const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingService, dataService, notificationService);
   const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingService, dataService, notificationService);

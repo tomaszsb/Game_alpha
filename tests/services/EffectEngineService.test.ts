@@ -116,7 +116,8 @@ describe('EffectEngineService', () => {
       setGameState: vi.fn(),
       updateGameState: vi.fn(),
       selectDestination: vi.fn(),
-      updateTempState: vi.fn().mockReturnValue({ success: true })
+      updateTempState: vi.fn().mockReturnValue({ success: true }),
+      emitGameEvent: vi.fn(),
     };
 
     mockMovementService = {
@@ -1575,6 +1576,7 @@ describe('EffectEngineService.applyActiveEffects — recurring-effect surfacing 
       getPlayer: vi.fn(),
       updateTempState: vi.fn(),
       getGameState: vi.fn().mockReturnValue({ players: [beforePlayer] }),
+      emitGameEvent: vi.fn(),
     };
 
     // First getPlayer call inside applyActiveEffects loads the player (returns
@@ -1605,34 +1607,36 @@ describe('EffectEngineService.applyActiveEffects — recurring-effect surfacing 
     (service as any).processEffect = vi.fn().mockResolvedValue({ success: true, effectType: 'RESOURCE_CHANGE' });
   });
 
-  it('emits a notification naming the source card and the delta', async () => {
+  // Domain-event stage 3: surfaceRecurringEffect now emits ONE
+  // 'recurring_card_effect_applied' GameEvent instead of separately calling
+  // notificationService.notify + loggingService.info — LogWriter/ToastWriter
+  // (unit-tested independently) derive the toast/log entry from it.
+  it('emits a recurring_card_effect_applied event naming the source card and the delta', async () => {
     await service.applyActiveEffects('p1');
 
-    expect(mockNotificationService.notify).toHaveBeenCalled();
-    const [content, options] = mockNotificationService.notify.mock.calls[0];
-    expect(content.medium).toMatch(/Sick Kid/);
-    expect(content.medium).toMatch(/-\$2,000/);
-    expect(options.actionType).toBe('life_event_recurring');
+    expect(mockStateService.emitGameEvent).toHaveBeenCalled();
+    const [event] = mockStateService.emitGameEvent.mock.calls[0];
+    expect(event.type).toBe('recurring_card_effect_applied');
+    expect(event.headline).toMatch(/Sick Kid/);
+    expect(event.headline).toMatch(/-\$2,000/);
   });
 
-  it('writes a log entry that ties the resource change back to the card', async () => {
+  it('carries the fields LogWriter needs to tie the resource change back to the card', async () => {
     await service.applyActiveEffects('p1');
 
-    expect(mockLoggingService.info).toHaveBeenCalled();
-    const [message, payload] = mockLoggingService.info.mock.calls[0];
-    expect(message).toMatch(/Sick Kid/);
-    expect(message).toMatch(/-\$2,000/);
-    expect(payload.action).toBe('life_event_recurring');
-    expect(payload.sourceCardId).toBe('L002');
-    expect(payload.moneyDelta).toBe(-2000);
+    const [event] = mockStateService.emitGameEvent.mock.calls[0];
+    expect(event.headline).toMatch(/Sick Kid/);
+    expect(event.headline).toMatch(/-\$2,000/);
+    expect(event.sourceCardId).toBe('L002');
+    expect(event.moneyDelta).toBe(-2000);
   });
 
   it('says "more turns to go" when remainingDuration > 0 after decrement', async () => {
     // remainingDuration starts at 3, decrements to 2 → "2 more turns to go".
     await service.applyActiveEffects('p1');
 
-    const [content] = mockNotificationService.notify.mock.calls[0];
-    expect(content.medium).toMatch(/2 more turns to go/);
+    const [event] = mockStateService.emitGameEvent.mock.calls[0];
+    expect(event.headline).toMatch(/2 more turns to go/);
   });
 
   it('says "last one" when this re-fire was the final turn', async () => {
@@ -1641,8 +1645,8 @@ describe('EffectEngineService.applyActiveEffects — recurring-effect surfacing 
 
     await service.applyActiveEffects('p1');
 
-    const [content] = mockNotificationService.notify.mock.calls[0];
-    expect(content.medium).toMatch(/last one/i);
+    const [event] = mockStateService.emitGameEvent.mock.calls[0];
+    expect(event.headline).toMatch(/last one/i);
   });
 
   it('skips the surface helper entirely when there is no money/time delta', async () => {
@@ -1656,8 +1660,7 @@ describe('EffectEngineService.applyActiveEffects — recurring-effect surfacing 
 
     await service.applyActiveEffects('p1');
 
-    expect(mockNotificationService.notify).not.toHaveBeenCalled();
-    expect(mockLoggingService.info).not.toHaveBeenCalled();
+    expect(mockStateService.emitGameEvent).not.toHaveBeenCalled();
   });
 });
 
@@ -1703,6 +1706,7 @@ describe('EffectEngineService.applyActiveEffects — Kid C apply-time phase gate
       getPlayer: vi.fn(),
       updateTempState: vi.fn(),
       getGameState: vi.fn(),
+      emitGameEvent: vi.fn(),
     };
 
     service = new EffectEngineService(

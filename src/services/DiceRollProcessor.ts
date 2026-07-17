@@ -518,20 +518,21 @@ export class DiceRollProcessor {
         // approval status change (the player was bounced, not denied), so
         // 'minor-objection' gives the amber "go fix this" treatment.
         this.lastApprovalOutcome = { text: `🛂 DOB clerk: ${gate.reason}`, kind: 'minor-objection' };
-        if (this.notificationService) {
-          this.notificationService.notify(
-            {
-              short: `→ ${destTitle}`,
-              medium: `📋 ${gate.reason}`,
-              detailed: `${currentPlayer.name}: ${gate.reason}`,
-            },
-            {
-              playerId,
-              playerName: currentPlayer.name,
-              actionType: 'final_review_gate_bounce',
-            }
-          );
-        }
+        // Domain-event stage 3: ToastWriter reacts to this emission (no
+        // log-channel case for routed_back_to_review — see stage-3 scope note).
+        this.stateService.emitGameEvent({
+          type: 'routed_back_to_review',
+          playerId,
+          playerName: currentPlayer.name,
+          spaceName: currentPlayer.currentSpace,
+          toSpace: gate.routeTo,
+          toSpaceTitle: destTitle,
+          // FinalReviewGateResult.reason is optional in its type but every
+          // passed:false branch in checkFinalReviewGate sets it; fallback
+          // only guards a type it's never actually seen at runtime.
+          reason: gate.reason || `Sent back to ${destTitle}`,
+          kind: 'gate_bounce',
+        });
         return; // Skip Stage-2 dice resolution entirely.
       }
     }
@@ -584,19 +585,17 @@ export class DiceRollProcessor {
 
       // Show explanation if player is being sent back to a review/exam space
       const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, singleDest);
-      if (loopExplanation && this.notificationService) {
-        this.notificationService.notify(
-          {
-            short: `→ ${destTitle}`,
-            medium: `📋 ${loopExplanation}`,
-            detailed: `${currentPlayer.name} is being directed to ${destTitle}. ${loopExplanation}`
-          },
-          {
-            playerId: playerId,
-            playerName: currentPlayer.name,
-            actionType: 'review_loop_explanation'
-          }
-        );
+      if (loopExplanation) {
+        this.stateService.emitGameEvent({
+          type: 'routed_back_to_review',
+          playerId,
+          playerName: currentPlayer.name,
+          spaceName: currentPlayer.currentSpace,
+          toSpace: singleDest,
+          toSpaceTitle: destTitle,
+          reason: loopExplanation,
+          kind: 'single_destination',
+        });
       }
     } else if (destinations.length > 1) {
       // Multiple destinations - present choice
@@ -626,20 +625,18 @@ export class DiceRollProcessor {
           this.stateService.setPlayerMoveIntent(playerId, selectedDestination);
 
           const loopExplanation = this.getReviewLoopExplanation(currentPlayer.currentSpace, selectedDestination);
-          if (loopExplanation && this.notificationService) {
+          if (loopExplanation) {
             const destContent = this.dataService.getSpaceContent(selectedDestination, 'First');
-            this.notificationService.notify(
-              {
-                short: `→ ${destContent?.title || selectedDestination}`,
-                medium: `📋 ${loopExplanation}`,
-                detailed: `${currentPlayer.name} chose ${destContent?.title || selectedDestination}. ${loopExplanation}`
-              },
-              {
-                playerId: playerId,
-                playerName: currentPlayer.name,
-                actionType: 'review_loop_explanation'
-              }
-            );
+            this.stateService.emitGameEvent({
+              type: 'routed_back_to_review',
+              playerId,
+              playerName: currentPlayer.name,
+              spaceName: currentPlayer.currentSpace,
+              toSpace: selectedDestination,
+              toSpaceTitle: destContent?.title || selectedDestination,
+              reason: loopExplanation,
+              kind: 'chosen_destination',
+            });
           }
         })
         .catch(() => {

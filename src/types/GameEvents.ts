@@ -142,6 +142,77 @@ export interface ApprovalRevokedEvent {
   cardName?: string;
 }
 
+// --- Domain-event stage 3 (docs/design/domain-events.md) ---
+// Collapses 9 moments that used to fire from 2-3 separate hand-written
+// loggingService.info/notificationService.notify call sites into one
+// emission each, consumed by LogWriter/ToastWriter (src/services/).
+
+export interface TurnCommittedEvent {
+  type: 'turn_committed';
+  playerId: string;
+  playerName: string;
+  turn: number;
+  spaceName: string;
+}
+
+export interface TurnDiscardedEvent {
+  type: 'turn_discarded';
+  playerId: string;
+  playerName: string;
+  spaceName: string;
+  timePenalty: number;
+  tryAgainCount: number;
+}
+
+export interface DiceRolledEvent {
+  type: 'dice_rolled';
+  playerId: string;
+  playerName: string;
+  spaceName: string;
+  diceValue: number;
+  /** manual = "Roll Dice" button; arrival = space-arrival condition-eval piggyback. */
+  trigger: 'manual' | 'arrival';
+  /** Pre-composed by the emitter so LogWriter doesn't need a dataService dependency. */
+  logMessage: string;
+}
+
+export interface RoutedBackToReviewEvent {
+  // A distinct discriminant from 'routing_explanation' on purpose — that type
+  // already drives the "why am I here" modal (GameLayout's pendingRouting);
+  // these three toast-only sites must not also trigger that modal.
+  type: 'routed_back_to_review';
+  playerId: string;
+  playerName: string;
+  spaceName: string;
+  toSpace: string;
+  toSpaceTitle: string;
+  reason: string;
+  kind: 'gate_bounce' | 'single_destination' | 'chosen_destination';
+}
+
+export interface ManualActionCompletedEvent {
+  type: 'manual_action_completed';
+  playerId: string;
+  playerName: string;
+  effectType: string;
+  summary: string;
+}
+
+export interface RecurringCardEffectAppliedEvent {
+  type: 'recurring_card_effect_applied';
+  playerId: string;
+  playerName: string;
+  sourceCardId: string;
+  cardName: string;
+  moneyDelta: number;
+  timeDelta: number;
+  turnsLeftAfterThis: number;
+  /** Shared verbatim by today's log AND notify — genuinely one fact, not two prose variants. */
+  headline: string;
+  delta: string;
+  tail: string;
+}
+
 export type GameEvent =
   | DiceConditionalCardEvent
   | LifeEventEvent
@@ -150,4 +221,10 @@ export type GameEvent =
   | MovementEvent
   | RoutingExplanationEvent
   | AutoDiceRollEvent
-  | ApprovalRevokedEvent;
+  | ApprovalRevokedEvent
+  | TurnCommittedEvent
+  | TurnDiscardedEvent
+  | DiceRolledEvent
+  | RoutedBackToReviewEvent
+  | ManualActionCompletedEvent
+  | RecurringCardEffectAppliedEvent;

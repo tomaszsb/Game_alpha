@@ -1504,30 +1504,21 @@ export class EffectEngineService implements IEffectEngineService {
 
     const headline = `🔁 ${cardName} still affecting you: ${delta}${tail}`;
 
-    if (this.notificationService) {
-      this.notificationService.notify(
-        {
-          short: 'Ongoing event',
-          medium: headline,
-          detailed: `Recurring life event from ${cardName}: ${delta}${tail}.`,
-        },
-        {
-          playerId: args.playerId,
-          playerName: playerAfter.name,
-          actionType: 'life_event_recurring',
-          notificationDuration: 5000,
-        }
-      );
-    }
-
-    this.loggingService.info(headline, {
+    // Domain-event stage 3: LogWriter + ToastWriter both react to this one
+    // emission (replaces the former separate notificationService.notify +
+    // loggingService.info calls).
+    this.stateService.emitGameEvent({
+      type: 'recurring_card_effect_applied',
       playerId: args.playerId,
       playerName: playerAfter.name,
-      action: 'life_event_recurring',
       sourceCardId: args.sourceCardId,
+      cardName,
       moneyDelta,
       timeDelta,
       turnsLeftAfterThis: turnsLeft,
+      headline,
+      delta,
+      tail,
     });
   }
 

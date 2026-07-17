@@ -6,6 +6,7 @@ import { TurnService } from '../../src/services/TurnService';
 import { DataService } from '../../src/services/DataService';
 import { StateService } from '../../src/services/StateService';
 import { LoggingService } from '../../src/services/LoggingService';
+import { LogWriter } from '../../src/services/LogWriter';
 import { NegotiationService } from '../../src/services/NegotiationService';
 import { GameRulesService } from '../../src/services/GameRulesService';
 import { CardService } from '../../src/services/CardService';
@@ -64,6 +65,7 @@ describe('TurnService.tryAgainOnSpace', () => {
     } as any;
 
     loggingService = new LoggingService(stateService);
+    new LogWriter(stateService, loggingService);
     const resourceService = {} as any;
     const cardService = {} as any;
     const choiceService = {} as any;

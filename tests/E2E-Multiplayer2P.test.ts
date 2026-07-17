@@ -14,6 +14,7 @@ import { StateService } from '../src/services/StateService';
 import { DataService } from '../src/services/DataService';
 import { CardService } from '../src/services/CardService';
 import { LoggingService } from '../src/services/LoggingService';
+import { LogWriter } from '../src/services/LogWriter';
 import { ChoiceService } from '../src/services/ChoiceService';
 import { EffectEngineService } from '../src/services/EffectEngineService';
 import { GameRulesService } from '../src/services/GameRulesService';
@@ -61,6 +62,7 @@ describe('E2E: 2-Player Multiplayer Game', () => {
     await dataService.loadData();
     stateService = new StateService(dataService);
     const loggingService = new LoggingService(stateService);
+    new LogWriter(stateService, loggingService);
     const resourceService = new ResourceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
     stateService.setGameRulesService(gameRulesService);

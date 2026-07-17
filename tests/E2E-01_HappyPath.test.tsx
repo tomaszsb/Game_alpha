@@ -6,6 +6,7 @@ import { StateService } from '../src/services/StateService';
 import { DataService } from '../src/services/DataService';
 import { CardService } from '../src/services/CardService';
 import { LoggingService } from '../src/services/LoggingService';
+import { LogWriter } from '../src/services/LogWriter';
 import { ChoiceService } from '../src/services/ChoiceService';
 import { EffectEngineService } from '../src/services/EffectEngineService';
 import { GameRulesService } from '../src/services/GameRulesService';
@@ -164,6 +165,7 @@ describe('E2E-01: Happy Path with New UI', () => {
 
     globalStateService = new StateService(globalDataService);
     globalLoggingService = new LoggingService(globalStateService);
+    new LogWriter(globalStateService, globalLoggingService);
     globalResourceService = new ResourceService(globalStateService);
     globalGameRulesService = new GameRulesService(globalDataService, globalStateService);
     globalStateService.setGameRulesService(globalGameRulesService);

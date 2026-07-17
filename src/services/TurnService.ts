@@ -267,13 +267,17 @@ export class TurnService implements ITurnService {
         }
       });
 
-      // Log dice roll to action history
-      this.loggingService.info(`Outcome determined`, {
+      // Domain-event stage 3: LogWriter reacts to this (manual Roll Dice
+      // button path — the other DiceRolled emitter is SpaceArrivalProcessor's
+      // arrival-triggered piggyback roll, a genuinely different trigger).
+      this.stateService.emitGameEvent({
+        type: 'dice_rolled',
         playerId: currentPlayer.id,
         playerName: currentPlayer.name,
-        action: 'dice_roll',
-        roll: diceRoll,
-        space: currentPlayer.currentSpace
+        spaceName: currentPlayer.currentSpace,
+        diceValue: diceRoll,
+        trigger: 'manual',
+        logMessage: 'Outcome determined',
       });
 
       // Process turn effects based on dice roll (but NO movement)
@@ -861,18 +865,22 @@ export class TurnService implements ITurnService {
       const timePenalty = calculateSpaceTimeAddTotal(spaceEffects);
 
 
-      // 5. Log the Try Again action. Must precede discardCurrentSession so
-      // this entry inherits the current session ID (it survives the discard
-      // because isCommitted=true; the discard only removes uncommitted
-      // entries from the current session).
-      this.loggingService.info(`Used Try Again: ${timePenalty} day penalty applied`, {
+      // 5. Emit turn_discarded — LogWriter's write must precede
+      // discardCurrentSession so its entry inherits the current session ID
+      // (it survives the discard because LogWriter forces isCommitted=true;
+      // the discard only removes uncommitted entries from the current
+      // session). ToastWriter also reacts to this same emission slightly
+      // earlier than the old standalone notify did (before, not after, the
+      // ledger reconciliation + discard below) — harmless, since none of
+      // that is visible to the player.
+      const tryAgainCount = this.stateService.getTryAgainCount(playerId) + 1;
+      this.stateService.emitGameEvent({
+        type: 'turn_discarded',
         playerId: playerId,
         playerName: currentPlayer.name,
-        action: 'try_again',
         spaceName: currentPlayer.currentSpace,
         timePenalty: timePenalty,
-        tryAgainCount: this.stateService.getTryAgainCount(playerId) + 1,
-        isCommitted: true
+        tryAgainCount: tryAgainCount,
       });
 
       // 6. Cancel any pending choice (e.g., card replacement modal) so the
@@ -928,22 +936,9 @@ export class TurnService implements ITurnService {
       // 8. Prepare success message
       const successMessage = `${currentPlayer.name} used Try Again: ${timePenalty} day${timePenalty !== 1 ? 's' : ''} penalty applied.`;
 
-      // 9. Send Try Again notification
-      if (this.notificationService) {
-        this.notificationService.notify(
-          {
-            short: 'Try Again Used',
-            medium: `🔄 Try Again: ${timePenalty} day penalty`,
-            detailed: successMessage
-          },
-          {
-            playerId: currentPlayer.id,
-            playerName: currentPlayer.name,
-            actionType: 'tryAgain',
-            notificationDuration: 3000
-          }
-        );
-      }
+      // 9. The "Try Again Used" toast is now derived by ToastWriter from the
+      // emitGameEvent('turn_discarded') call in step 5 above — the
+      // standalone notify() that used to live here is gone.
 
       // 10. Return success - turn will advance, player retries next round
       return {

@@ -10,6 +10,7 @@ import { ResourceService } from '../src/services/ResourceService';
 import { TurnService } from '../src/services/TurnService';
 import { PlayerActionService } from '../src/services/PlayerActionService';
 import { NegotiationService } from '../src/services/NegotiationService';
+import { LogWriter } from '../src/services/LogWriter';
 import { ITurnService } from '../src/types/ServiceContracts';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -68,6 +69,7 @@ describe('E2E-03: Complex Space Features Test', () => {
     dataService = new NodeDataService();
     stateService = new StateService(dataService);
     const loggingService = new LoggingService(stateService);
+    new LogWriter(stateService, loggingService);
     resourceService = new ResourceService(stateService);
     choiceService = new ChoiceService(stateService);
     gameRulesService = new GameRulesService(dataService, stateService);
