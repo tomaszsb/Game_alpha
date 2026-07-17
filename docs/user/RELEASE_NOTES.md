@@ -2,6 +2,13 @@
 
 ---
 
+## v3.1.2–3.1.3 — The TV setup screen finally tells players why they're stuck, and the board camera stopped lurching (July 16, 2026)
+
+- **On TV mode, the setup screen now tells you exactly who it's waiting on.** Real players hit this: the Start button just sat there greyed out with no explanation, because the only hint was a tooltip — invisible if you don't have a mouse to hover with, which nobody does on a TV. Now there's a clear message right on screen naming which players still need to scan their QR code, and the Start button itself says "Waiting for phones…" instead of just looking broken.
+- **The board camera no longer zooms in and out every time someone moves.** On a TV, the camera follows the current player automatically — but it used to also re-guess the zoom level on every single move, so the view lurched larger or smaller depending on how spread out that space's options happened to be. It now picks a sensible zoom once and just glides sideways to follow the action after that, keeping whatever zoom you're on (including if you zoom in or out yourself).
+- **Your chosen zoom actually sticks now.** A "remember where I left the camera" feature from a couple weeks back turned out to have never really worked — it silently reset to the default view every time the page reloaded. Fixed.
+- **The TV player tile now shows a few color choices side-by-side**, not just one dot to tap through. Your current color plus three other available ones are all visible at once — tap any of them to switch instantly.
+
 ## v3.0.138–142 — TV setup finally fits without scrolling, and a couple of TV mix-ups fixed (July 15, 2026)
 
 - **All 4 players now fit on the TV setup screen without scrolling — even on smaller or older smart TVs.** Testing on a real TV found that last session's "make it bigger for the couch" fix had actually made things worse, cramming even less onto the screen. Redesigned the player tiles from the ground up: the row of 8 color circles is now a single dot you tap to cycle through colors (the same idea as tapping your avatar to change it), which freed up enough room to show everyone at once.
