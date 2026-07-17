@@ -357,11 +357,6 @@ export interface IStateService {
   getRealPlayerState(playerId: string): import('./StateTypes').MutablePlayerState | null;
 }
 
-export interface TurnResult {
-  newState: GameState;
-  diceRoll: number;
-}
-
 import { DiceResultEffect } from './StateTypes';
 
 /**
@@ -388,7 +383,6 @@ export interface ISpaceEffectService {
 
 export interface ITurnService {
   // Turn management methods
-  takeTurn(playerId: string): Promise<TurnResult>;
   rollDice(): number;
   
   // Separate dice and movement methods

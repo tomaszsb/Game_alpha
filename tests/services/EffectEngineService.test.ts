@@ -131,7 +131,6 @@ describe('EffectEngineService', () => {
       getCurrentPlayerTurn: vi.fn(),
       nextPlayer: vi.fn(),
       endTurn: vi.fn(),
-      takeTurn: vi.fn(),
       rollDiceAndProcessEffects: vi.fn(),
       endTurnWithMovement: vi.fn(),
       setEffectEngineService: vi.fn(),

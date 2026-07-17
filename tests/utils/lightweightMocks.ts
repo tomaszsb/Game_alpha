@@ -120,7 +120,6 @@ export const createLightweightResourceService = () => ({
 
 // Lightweight TurnService mock - only essential methods
 export const createLightweightTurnService = () => ({
-  takeTurn: mockFn(async (playerId: string) => Promise.resolve({ success: true })),
   rollDice: mockFn(async (playerId: string) => Promise.resolve({ diceRoll: 3, success: true })),
   // v3.0.113: endTurn() was dead code and was removed from ITurnService —
   // endTurnWithMovement() is the only live end-turn path.

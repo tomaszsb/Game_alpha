@@ -1,4 +1,4 @@
-import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, TurnResult, INotificationService, IApprovalService } from '../types/ServiceContracts';
+import { ITurnService, IDataService, IStateService, IGameRulesService, ICardService, IResourceService, IEffectEngineService, IMovementService, ILoggingService, IChoiceService, IDiceService, ISpaceEffectService, ICardEffectService, INotificationService, IApprovalService } from '../types/ServiceContracts';
 import { debugWarn } from '../utils/debugLog';
 import { NegotiationService } from './NegotiationService';
 import { DiceService } from './DiceService';
@@ -224,69 +224,6 @@ export class TurnService implements ITurnService {
   public canEndTurn(playerId: string): boolean {
     // Delegate to GameRulesService to avoid duplicate logic
     return this.gameRulesService.canEndTurn(playerId);
-  }
-
-  async takeTurn(playerId: string): Promise<TurnResult> {
-    // Ensure all setter-injected dependencies are ready
-    this.assertDependenciesReady();
-
-    // Turn start is logged in nextPlayer() method
-
-    try {
-      // Validation: Check if it's the player's turn
-      if (!this.canPlayerTakeTurn(playerId)) {
-        throw new Error(`It is not player ${playerId}'s turn`);
-      }
-
-      // Check if player has already moved this turn
-      const gameState = this.stateService.getGameState();
-      // State validation check
-      if (gameState.hasPlayerMovedThisTurn) {
-        debugWarn(`🎮 TurnService.takeTurn - Player ${playerId} has already moved, clearing flag and continuing (AI turn recovery)`);
-        this.stateService.clearPlayerHasMoved();
-      }
-
-      // Get current player data
-      const currentPlayer = this.stateService.getPlayer(playerId);
-      if (!currentPlayer) {
-        throw new Error(`Player ${playerId} not found`);
-      }
-
-      // Player position logged in turn start/end
-
-      // Roll dice
-      const diceRoll = this.rollDice();
-      
-      // Log dice roll to action history
-      this.loggingService.info(`Outcome determined`, {
-        playerId: currentPlayer.id,
-        playerName: currentPlayer.name,
-        action: 'dice_roll',
-        roll: diceRoll,
-        space: currentPlayer.currentSpace
-      });
-
-      // Process turn effects based on dice roll
-      await this.processTurnEffects(playerId, diceRoll);
-
-      // Process leaving space effects BEFORE movement (time spent on current space)
-      await this.processLeavingSpaceEffects(currentPlayer.id, currentPlayer.currentSpace, currentPlayer.visitType);
-
-      // Note: Movement now happens in endTurnWithMovement()
-      // This allows proper separation of intent (set during turn) from action (executed at turn end)
-      const newGameState = this.stateService.getGameState();
-
-      // Mark that the player has completed their action
-      this.stateService.setPlayerHasMoved();
-
-      return {
-        newState: newGameState,
-        diceRoll: diceRoll
-      };
-    } catch (error) {
-      console.error(`🎮 TurnService.takeTurn - Error during turn:`, error);
-      throw error;
-    }
   }
 
   /**
