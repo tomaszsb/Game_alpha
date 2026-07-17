@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.5] - 2026-07-17
+
+### Design: domain event architecture — design pass done, execution contract committed
+The TODO parking-lot item ("needs a real design pass before any engineering", from the 2026-07-14 external review) got its dedicated session. Output is [docs/design/domain-events.md](docs/design/domain-events.md): a catalog of ~20 named game moments (TurnStarted, MovementCompleted, ApprovalOutcomeDetermined, PlayerBankrupt, …) grounded in a verified audit of every current announcement call site, a 5-stage implementation plan (each stage independently shippable), open questions flagged for explicit decisions, and do-not rules. Key research findings baked into the design: (1) `AutoActionEvent`/`emitAutoAction` in StateService is already the prototype — 8 event types with `GameLayout.tsx` acting as a de facto event router — so the work is promotion-to-first-class, not invention; (2) 9 of ~18 game moments are announced twice today (hand-written log call + hand-written toast call with re-derived wording) — collapsing those is the main near-term payoff; (3) `subscribeWithSelector` was built and never adopted by a single caller — the lesson (recorded as a do-not rule) is that the bus must replace old paths in the same commit, never sit beside them as an optional migration.
+
+### Refactor: dead `TurnService.takeTurn()` deleted (stage 1 of the plan)
+Zero callers repo-wide; it duplicated the dice-roll path `rollDiceAndProcessEffects()` actually uses in production, including one of the three duplicate "Outcome determined" announcement sites (so stage 3's DiceRolled migration now has only two real call sites). Removed with it: the `TurnResult` interface (takeTurn was its only user), its `ITurnService` contract entry, and three never-invoked test-mock stubs. Behavior-inert by construction. Verified: typecheck, production build, TurnService + EffectEngineService test files 70/70, plus the full suite at wrap-up.
+
 ## [3.1.4] - 2026-07-17
 
 ### Refactor: PlayerSetup.tsx split — 2,166 → 673 lines, behavior-preserving
