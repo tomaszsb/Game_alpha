@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(node scripts/fixloop-usage.mjs)",
+      "Bash(node --check:*)",
+      "mcp__Claude_Browser__javascript_tool",
+      "mcp__playwright__browser_snapshot",
+      "mcp__Claude_Browser__navigate",
+      "mcp__memory__search_nodes",
+      "mcp__Claude_Browser__read_page",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__evaluate_script",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_evaluate",
+      "mcp__Claude_Browser__resize_window",
+      "mcp__playwright__browser_navigate",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+      "mcp__playwright__browser_resize"
+    ]
+  }
+}
