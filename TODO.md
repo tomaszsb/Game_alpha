@@ -19,6 +19,8 @@
 
 *2026-07-11 blind code review: all 10 items fixed — history in CHANGELOG v3.0.112–120.*
 
+- [ ] **Find out why plain `npm test` hangs and fix the root cause** (flagged 2026-07-17). We've worked around it since at least early 2026 by always running `./tests/scripts/run-tests-batch-fixed.sh` instead — the workaround is documented in memory/CLAUDE.md but the underlying hang was never diagnosed. `vitest.config.dev.ts` splits test files across two pools (`vmThreads` for most, `forks` for anything that mocks `window.location`) — that split is the most likely place to start looking. Worth fixing because any future session (human or the fixloop autonomous loop) that doesn't know the workaround will get stuck on the plain command.
+
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
 *Spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx)*
