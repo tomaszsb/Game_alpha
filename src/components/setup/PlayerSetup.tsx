@@ -1120,6 +1120,30 @@ export function PlayerSetup({
             />
           </div>
 
+          {/* TV mode: the start blocker must be VISIBLE, not a hover
+              tooltip — real players stood at the TV complaining they
+              couldn't start, because nothing on screen said their phones
+              hadn't scanned in yet (maintainer report 2026-07-16). Lists
+              the actual stragglers by name; aria-live so it's announced
+              as phones connect. */}
+          {selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0 && (
+            <div
+              aria-live="polite"
+              style={{
+                background: colors.warning.bg,
+                border: `2px solid ${colors.warning.main}`,
+                borderRadius: '10px',
+                padding: '0.5rem 0.9rem',
+                marginBottom: '0.4rem',
+                fontSize: '1.05rem',
+                fontWeight: 'bold',
+                color: colors.warning.text,
+              }}
+            >
+              📱 Waiting for {validation.waitingOnPhoneNames.join(', ')} to scan their QR code — the game starts once every phone is in.
+            </div>
+          )}
+
           {/* Add Player + Start Game side-by-side at the bottom. Both stay
               visible whether or not the settings drawer is open, and in
               both PC and TV mode (v3.0.16 unified the setup screen). Start
@@ -1154,8 +1178,11 @@ export function PlayerSetup({
                 color: 'white',
                 border: 'none',
                 borderRadius: '10px',
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
+                // TV mode: bigger tap/read target — this button is read from
+                // a couch, and while phones are missing it doubles as the
+                // status line (same maintainer report as the banner above).
+                padding: selectedMode === 'tv' ? '0.9rem 1.9rem' : '0.75rem 1.5rem',
+                fontSize: selectedMode === 'tv' ? '1.2rem' : '1rem',
                 fontWeight: 'bold',
                 cursor: (isStarting || !validation.validateGameStart().isValid) ? 'not-allowed' : 'pointer',
                 boxShadow: '0 4px 12px rgba(44, 85, 48, 0.4)',
@@ -1167,7 +1194,11 @@ export function PlayerSetup({
                 ? validation.validateGameStart().errorMessage || 'Add at least one player to start.'
                 : undefined}
             >
-              {isStarting ? '⏳ Starting…' : '🚀 Start Game'}
+              {isStarting
+                ? '⏳ Starting…'
+                : (selectedMode === 'tv' && validation.waitingOnPhoneNames.length > 0)
+                  ? '📱 Waiting for phones…'
+                  : '🚀 Start Game'}
             </button>
           </div>
         </div>

@@ -200,6 +200,17 @@ export function usePlayerValidation(
   };
 
   /**
+   * TV mode: names of valid players whose phone hasn't joined yet (no
+   * 'mobile' deviceType). Empty when phones aren't required or everyone's
+   * in. Same predicate as validateGameStart's phone gate — kept here so the
+   * visible "waiting for X to scan" banner (fb: real players never saw the
+   * tooltip-only reason) can't drift from what actually blocks the start.
+   */
+  const waitingOnPhoneNames: string[] = requirePhones
+    ? players.filter(p => p.name.trim() && p.deviceType !== 'mobile').map(p => p.name.trim())
+    : [];
+
+  /**
    * Get the next available color for a new player
    */
   const getNextAvailableColor = (): string | null => {
@@ -255,7 +266,8 @@ export function usePlayerValidation(
     validateAvatarChoice,
     validateAddPlayer,
     validateGameStart,
-    
+    waitingOnPhoneNames,
+
     // State queries
     canAddPlayer,
     canRemovePlayer,

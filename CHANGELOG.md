@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.3] - 2026-07-16
+
+### Fix: TV setup now SAYS who it's waiting on before the game can start
+Maintainer report from real TV-mode play: players never got the memo that they had to scan their tile's QR code before the game could start — one kept complaining he "couldn't start the game" while the screen gave no visible reason. The reason existed all along, but only as a hover tooltip on the disabled Start button (`title` attribute) — invisible on a TV, where nobody has a mouse to hover with.
+
+Three changes in `PlayerSetup.tsx` / `usePlayerValidation.ts`, TV mode only:
+- **A visible amber banner above the Start row** naming the actual stragglers: "📱 Waiting for ‹names› to scan their QR code — the game starts once every phone is in." Wired to a new `waitingOnPhoneNames` list computed in the validation hook with the exact same predicate as the start gate itself (`deviceType !== 'mobile'`), so the banner can never disagree with what's actually blocking the start. `aria-live` so screen readers announce phones connecting.
+- **The Start button doubles as the status while blocked** — reads "📱 Waiting for phones…" instead of a mute greyed-out "🚀 Start Game".
+- **Bigger button in TV mode** (1.2rem text, larger padding) — it's read from a couch.
+
+Verified live via DOM inspection: banner lists all 4 unconnected players and the button shows the waiting label with 4 players added in TV mode; at the real TV's 960×540 the setup screen still fits exactly (content 540px = viewport 540px, all 4 tiles + banner on screen, no scrolling — the flexible player-list area absorbs the banner's height). PC mode is untouched (banner and sizing are both gated on `selectedMode === 'tv'`). Environment note: this session's embedded browser registers as a desktop, so the banner-clears-on-connect transition couldn't be watched live here — it's the same `deviceType === 'mobile'` flip the existing start gate (working in the maintainer's real TV sessions) already runs on.
+
 ## [3.1.2] - 2026-07-16
 
 ### Fix: TV camera no longer changes zoom every time a player moves (fb:2b5b9f2a)
