@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 
@@ -399,12 +399,16 @@ function BoardCanvasInner({
   centerOnCurrent = false,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
-  const { getViewport, setViewport, fitView } = useReactFlow();
+  const { getViewport, setViewport, fitView, setCenter } = useReactFlow();
   // Measures the actual rendered container — needed to compute a tile-size-
   // aware viewport ourselves (see boardFingerprint / getViewportForBounds
   // usage below), since that has to match the real pixel dimensions React
   // Flow itself is filling, not an assumed size.
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // False until the PC-mode restore effect has applied this device's saved
+  // (or freshly computed) viewport — gates handleMoveEnd's persistence so
+  // mount-time programmatic fits can't clobber the remembered zoom.
+  const cameraReadyRef = useRef(false);
   const [validMoves, setValidMoves] = useState<string[]>([]);
   // Required/completed action counters for the current player's turn. Driven
   // by the same stateService subscribe loop as validMoves so the on-tile chip
@@ -690,23 +694,52 @@ function BoardCanvasInner({
     }));
   }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts]);
 
-  // TV mode auto-focus: pan + zoom so the current player's tile and all
-  // their valid-move neighbors fill the viewport. Runs whenever the current
-  // player or valid-moves set changes, with a small delay so React Flow's
-  // initial fitView (the whole board) lands first and our focus replaces it.
-  // Skipped if isAdmin (editor needs the full overview) or in PC mode
-  // (player drives the camera themselves).
+  // TV mode auto-focus. Two-phase since fb:2b5b9f2a ("when I moved from one
+  // space to another the zoom level changes — it should not"):
+  //   - FIRST focus of the session: fitView on the current tile + its
+  //     valid-move neighbors, establishing a sensible zoom (unchanged from
+  //     the original behavior).
+  //   - EVERY LATER focus change: pan-only. The camera glides to center the
+  //     same focus set at whatever zoom is already active (including any
+  //     manual zoom the viewer chose meanwhile) — a steady board-game camera
+  //     instead of re-fitting, whose zoom swung wildly turn to turn because
+  //     it was derived from how spread out each space's destinations happen
+  //     to be.
+  // Runs whenever the current player or valid-moves set changes, with a
+  // small delay so React Flow's initial fitView (the whole board) lands
+  // first and our focus replaces it. Skipped if isAdmin (editor needs the
+  // full overview) or in PC mode (player drives the camera themselves).
   // <!-- fb:feedback-1779569130947-9c075c16 -->
+  // <!-- fb:feedback-1784158520583-2b5b9f2a -->
   const currentPlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
   const focusSpace = currentPlayer?.currentSpace;
+  const hasAutoFocusedRef = useRef(false);
   useEffect(() => {
     if (!centerOnCurrent || isAdmin || !focusSpace) return;
     const focusIds = [focusSpace, ...validMoves];
-    // Resolve to actual rendered nodes; skip if any are missing (positions
-    // not yet loaded). 350ms duration is the React Flow default-ish feel —
-    // long enough to read as a deliberate camera move, short enough to not
-    // miss the next turn change.
+    // 350ms duration is the React Flow default-ish feel — long enough to
+    // read as a deliberate camera move, short enough to not miss the next
+    // turn change.
     const timer = window.setTimeout(() => {
+      // Pan-only follow once an initial framing exists. "Exists" is read
+      // from the camera itself (any non-default viewport — a landed fit OR
+      // a manual zoom/pan by the viewer) rather than from fitView's promise,
+      // which never settles in environments that throttle animation frames.
+      // Until the camera has actually moved off the untouched default, keep
+      // retrying the full fit — self-healing when the very first fit lands
+      // before nodes are measured and silently does nothing.
+      const v = getViewport();
+      const cameraTouched = hasAutoFocusedRef.current && !(v.x === 0 && v.y === 0 && v.zoom === 1);
+      if (cameraTouched) {
+        // Center the focus set's bounding box at the current zoom.
+        // Positions come from initialNodes (the stable CSV layout);
+        // computeFocusCenter (boardCommon) holds the pure math so it's
+        // unit-testable without rendering React Flow.
+        const center = computeFocusCenter(initialNodes, focusIds);
+        if (!center) return;
+        setCenter(center.x, center.y, { zoom: v.zoom, duration: 350 });
+        return;
+      }
       try {
         fitView({
           nodes: focusIds.map(id => ({ id })),
@@ -714,13 +747,14 @@ function BoardCanvasInner({
           duration: 350,
           maxZoom: 1.5,
         });
+        hasAutoFocusedRef.current = true;
       } catch {
         // fitView throws if a node id doesn't exist; safe to swallow because
         // the next render's setNodes will trigger this effect again.
       }
     }, 100);
     return () => window.clearTimeout(timer);
-  }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView]);
+  }, [centerOnCurrent, isAdmin, focusSpace, validMoves, fitView, setCenter, getViewport, initialNodes]);
 
   // PC-mode initial camera: restore this device's saved viewport for this
   // exact board layout, or fall back to a tile-size-aware fit (see the
@@ -743,6 +777,7 @@ function BoardCanvasInner({
       const saved = readSavedViewport(fingerprint);
       if (saved) {
         setViewport(saved, { duration: 0 });
+        cameraReadyRef.current = true;
         return;
       }
 
@@ -751,6 +786,7 @@ function BoardCanvasInner({
       const viewport = getViewportForBounds(bounds, width, height, minZoom, maxZoom, 0.1);
       setViewport(viewport, { duration: 0 });
       writeSavedViewport(fingerprint, viewport);
+      cameraReadyRef.current = true;
     }, 100);
     return () => window.clearTimeout(timer);
     // initialNodes is a stable useMemo keyed on dataService, so this only
@@ -762,7 +798,19 @@ function BoardCanvasInner({
   // the chosen zoom for that device"). Same PC-mode-only scoping as the
   // effect above; TV mode's per-turn auto-focus would otherwise repeatedly
   // overwrite this with its own transient camera moves.
+  //
+  // Nothing persists until the restore effect above has applied this
+  // device's saved viewport (cameraReadyRef). Without this gate, React
+  // Flow's own mount-time `fitView` prop fired onMoveEnd and overwrote the
+  // device's saved zoom with the plain full-board fit before the restore
+  // effect could read it — so the remembered zoom never actually survived
+  // a reload, and the camera silently reset on every mount. A readiness
+  // flag rather than an event-is-null check because the on-board +/- zoom
+  // buttons are ALSO programmatic (null event) moves, and those must keep
+  // persisting. fb:2b5b9f2a (same "zoom keeps changing on its own" thread
+  // as the TV pan-only fix above).
   const handleMoveEnd = useCallback(() => {
+    if (!cameraReadyRef.current) return; // mount-time programmatic fit — not a user choice
     if (centerOnCurrent || isAdmin) return;
     if (initialNodes.length === 0) return;
     const fingerprint = boardFingerprint(initialNodes.length, getNodesBounds(initialNodes));

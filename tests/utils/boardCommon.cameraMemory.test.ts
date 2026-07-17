@@ -97,3 +97,44 @@ describe('tile-size zoom targets', () => {
     expect(maxZoom).toBeGreaterThan(1);
   });
 });
+
+// fb:2b5b9f2a — TV auto-focus is pan-only after the first fit; the pan
+// target comes from computeFocusCenter (BoardCanvas passes it to setCenter
+// at the current zoom, so the zoom can no longer swing turn to turn).
+import { computeFocusCenter, BOARD_TILE_COMPACT } from '../../src/utils/boardCommon';
+
+describe('computeFocusCenter (TV pan-only follow)', () => {
+  const nodes = [
+    { id: 'A', position: { x: 0, y: 0 } },
+    { id: 'B', position: { x: 300, y: 400 } },
+    { id: 'C', position: { x: -200, y: 100 } },
+  ];
+  const halfW = BOARD_TILE_COMPACT.w / 2;
+  const halfH = BOARD_TILE_COMPACT.h / 2;
+
+  it('centers a single focus tile on its middle, not its top-left corner', () => {
+    expect(computeFocusCenter(nodes, ['A'])).toEqual({ x: halfW, y: halfH });
+  });
+
+  it('centers the bounding box of the whole focus set', () => {
+    // A (0,0) and B (300,400): bbox of tile centers spans halfW..300+halfW,
+    // halfH..400+halfH → center is the midpoint of each axis.
+    expect(computeFocusCenter(nodes, ['A', 'B'])).toEqual({
+      x: (halfW + 300 + halfW) / 2,
+      y: (halfH + 400 + halfH) / 2,
+    });
+  });
+
+  it('ignores focus ids that do not resolve to a node', () => {
+    expect(computeFocusCenter(nodes, ['A', 'GHOST'])).toEqual({ x: halfW, y: halfH });
+  });
+
+  it('returns null when nothing resolves (camera stays put)', () => {
+    expect(computeFocusCenter(nodes, ['GHOST'])).toBeNull();
+    expect(computeFocusCenter([], ['A'])).toBeNull();
+  });
+
+  it('respects explicit tile dimensions', () => {
+    expect(computeFocusCenter(nodes, ['A'], 100, 40)).toEqual({ x: 50, y: 20 });
+  });
+});

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.2] - 2026-07-16
+
+### Fix: TV camera no longer changes zoom every time a player moves (fb:2b5b9f2a)
+Reported from the maintainer's real-TV session at v3.0.142: "when I moved from one space to another the zoom level changes — it should not." Root cause: TV mode's per-turn auto-focus (`BoardCanvas.tsx`) re-ran a full `fitView` on the current tile + its valid-move neighbors on every turn change, and since the zoom that fit computes depends on how spread out each space's destinations happen to be, the camera lurched in and out turn to turn. Now two-phase: the FIRST focus still fits (establishing a sensible framing), and every later focus change is pan-only — the camera glides to center the same focus set at whatever zoom is already active, including any manual zoom the viewer chose meanwhile. The pan-target math lives in `boardCommon.ts` (`computeFocusCenter`, 5 new unit tests) per this file's pure-logic-extraction pattern. The "has the initial framing happened" check reads the camera itself (any non-default viewport) rather than trusting `fitView`'s returned promise — discovered during verification that the promise never settles in environments that throttle animation frames, which would have permanently disabled the pan-only mode there; the camera-based check self-heals instead (keeps retrying the fit until one visibly lands, then pans forever after).
+
+### Fix: PC-mode camera memory actually survives a reload now (same fb:2b5b9f2a thread)
+Found while tracing the same report: React Flow fires `onMoveEnd` for PROGRAMMATIC camera moves too, so the mount-time full-board `fitView` prop overwrote the device's saved zoom in localStorage before the v3.0.137 restore effect could read it — the "remember my zoom per device" feature never actually survived a reload, silently re-fitting every mount. Persistence is now gated on a readiness flag set only after the restore effect has applied the saved (or freshly computed) viewport. Deliberately NOT an event-is-null check: the on-board +/- zoom buttons are also "programmatic" (null event) moves and must keep persisting. Verified live end-to-end in the browser: fresh game → size-aware fit (zoom 0.578) → simulated user wheel-zoom (0.952, saved) → full page reload + new board mount → camera restored at exactly 0.952 with storage intact (previously clobbered back to the full-board fit on every mount).
+
+### Feature: TV player tile shows 3 direct-pick color dots next to the current one (fb:daf6b7fc)
+Same-session follow-up to v3.0.142's tap-to-cycle color dot: "there is room for three or four colors." The compact (TV) tile now shows the current color (20px, still tap-to-cycle through everything) plus up to 3 other not-taken colors as small (14px) one-tap direct picks. Verified live at the real TV's 960×540 with 4 players: all 4 tiles still fit with zero scrolling in the 2-column pack (the dots add ~64px to a row vs ~360px column width), all 12 direct-pick dots render, tapping one switches immediately and the row re-derives (picked color becomes current; former current joins the pick list).
+
+Note on verification limits: the TV pan-only camera couldn't be end-to-end observed in this session's embedded browser — it throttles animation frames, so NO animated camera move (old or new code) ever completes there; the fitView promise also never settles, which is exactly what motivated the self-healing camera-based gate above. Unit tests + live branch instrumentation in the real TVDisplay cover the logic; the physical TV remains the ground-truth check after deploy.
+
 ## [3.1.1] - 2026-07-16
 
 ### Refactor: TurnService split — 2,191 → 1,159 lines, behavior-preserving (continuation of the earlier SpaceArrivalProcessor/DiceRollProcessor/MovementExecutor/TurnTransitionHandler extraction)

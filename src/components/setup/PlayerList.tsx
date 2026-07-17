@@ -222,21 +222,51 @@ export function PlayerList({
                 onFocus={(e) => handleInputFocus(e, player.color || '')}
                 onBlur={handleInputBlur}
               />
-              <button
-                onClick={() => cycleColor(player)}
-                title={`Color: ${AVAILABLE_COLORS.find(c => c.color === player.color)?.name || player.color} — tap to change`}
-                aria-label={`Change color, currently ${AVAILABLE_COLORS.find(c => c.color === player.color)?.name || player.color}`}
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  backgroundColor: player.color,
-                  border: `2px solid ${colors.secondary.light}`,
-                  cursor: 'pointer',
-                  padding: 0,
-                  flexShrink: 0
-                }}
-              />
+              {/* fb:daf6b7fc — "there is room for three or four colors": the
+                  current color dot (tap to cycle through everything) plus up
+                  to 3 other still-available colors as direct one-tap picks.
+                  Sized to add ~64px to the tile row, which still fits the
+                  2-column pack at the real TV's 960x540 (~360px columns vs
+                  ~344px content). */}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+                <button
+                  onClick={() => cycleColor(player)}
+                  title={`Color: ${AVAILABLE_COLORS.find(c => c.color === player.color)?.name || player.color} — tap to change`}
+                  aria-label={`Change color, currently ${AVAILABLE_COLORS.find(c => c.color === player.color)?.name || player.color}`}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: player.color,
+                    border: `2px solid ${colors.success.text}`,
+                    cursor: 'pointer',
+                    padding: 0,
+                    flexShrink: 0
+                  }}
+                />
+                {AVAILABLE_COLORS
+                  .filter(c => c.color !== player.color && !players.some(p => p.id !== player.id && p.color === c.color))
+                  .slice(0, 3)
+                  .map(c => (
+                    <button
+                      key={c.color}
+                      onClick={() => onUpdatePlayer(player.id, 'color', c.color)}
+                      title={`Switch to ${c.name}`}
+                      aria-label={`Select ${c.name} color`}
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        backgroundColor: c.color,
+                        border: `1px solid ${colors.secondary.light}`,
+                        cursor: 'pointer',
+                        padding: 0,
+                        flexShrink: 0,
+                        opacity: 0.85
+                      }}
+                    />
+                  ))}
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

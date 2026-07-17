@@ -459,3 +459,30 @@ export function writeSavedViewport(fingerprint: string, viewport: BoardViewport)
     /* localStorage unavailable — ignore */
   }
 }
+
+/** Pan-only camera target for TV auto-focus (fb:2b5b9f2a — "zoom should not
+ *  change when I move"). Returns the center of the bounding box around the
+ *  focus set's TILE CENTERS (position is a tile's top-left corner, so half a
+ *  compact tile is added), or null when none of the focus ids resolve to a
+ *  node. Pure so the follow-camera math is unit-testable without rendering
+ *  React Flow; BoardCanvas passes the result to setCenter() at the current
+ *  zoom instead of re-running fitView (whose recomputed zoom swung wildly
+ *  turn to turn depending on how spread out each space's destinations are). */
+export function computeFocusCenter(
+  nodes: Array<{ id: string; position: { x: number; y: number } }>,
+  focusIds: string[],
+  tileW: number = BOARD_TILE_COMPACT.w,
+  tileH: number = BOARD_TILE_COMPACT.h
+): { x: number; y: number } | null {
+  const wanted = new Set(focusIds);
+  const pts = nodes
+    .filter(n => wanted.has(n.id))
+    .map(n => ({ x: n.position.x + tileW / 2, y: n.position.y + tileH / 2 }));
+  if (pts.length === 0) return null;
+  const xs = pts.map(p => p.x);
+  const ys = pts.map(p => p.y);
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2,
+  };
+}
