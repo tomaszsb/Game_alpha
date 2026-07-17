@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 16, 2026
-**Status:** Beta — live in production; **v3.1.3 deployed** (commit `c4471b3`, confirmed by maintainer)
-**Current Version:** 3.1.3 (deployed)
+**Last Updated:** July 17, 2026
+**Status:** Beta — live in production; **v3.1.4 deployed** (commit `695aef0`, confirmed live via bundle version check)
+**Current Version:** 3.1.4 (deployed)
 
 ---
 
@@ -127,7 +127,6 @@
 - [ ] **NotificationService.notify + LoggingService.info — one "something happened" bus** (toast + log + … routed from one emission). Many callers; scope separately from the above. *(Independently flagged 2026-07-14 by an external review of the CHANGELOG, which counted toast/modal/banner/approval-banner/shutdown-banner as feeling like several notification systems — same direction as this item, though "several small bespoke inline notifications with no shared pattern" is more accurate than "six systems"; a modal, a persistent banner, and a toast are legitimately different UI patterns for different urgency levels, so full unification may not even be the right end state — worth deciding when actually scoped, not assumed.)*
 - [ ] **`player.money` + `player.moneySources` denormalization** — make `money` a computed getter over sources. Riskiest; do last.
 - [ ] **Three effect pipelines (Space/Dice/Card)** behind one `EffectExecutor` interface — no observed bug; shape worth examining only.
-- [ ] **`PlayerSetup.tsx` is a 2090-line monolith** (confirmed 2026-07-14) — TV scaling, hero header animation, phone-size warning, share button, join-by-code + picker, the Remote placeholder, QR display, admin tools (Data Editor, Board Layout Editor, Classroom Setup/Admin), teacher login, and player CRUD all live in one component. Functions more like a multi-step workflow (choose platform → configure players → join devices → start) than a single page. Worth decomposing into sub-components/a real flow once touched again for something substantial — not a quick extraction, the file has grown organically across many unrelated features.
 - [ ] **Domain event architecture — the most interesting idea from the 2026-07-14 external review, needs a real design pass before any engineering.** `StateService.subscribe()` already provides an ad-hoc pub/sub foundation (confirmed: called throughout the codebase — PlayerPanelV2, BoardCanvas, etc. all react to state changes this way already), so the game is arguably already halfway toward "domain events" without formally naming them. The proposal: discrete typed events (TurnCommitted, MovementCompleted, ApprovalGranted, FundingReceived, CardActivated, PlayerBankrupt, …) that History/UI/Notifications/Networking/Analytics all subscribe to independently, instead of `TurnService` directly driving each concern. Related to but bigger than the two items above (EffectExecutor unification, notification bus) — this would be the architecture those could eventually sit on top of. Genuinely valuable long-term direction if the D&D-reskin goal is real, but this is a rewrite of how the engine communicates, not a refactor — needs its own design session, not a pickup-and-go TODO item.
 - [ ] **Service decomposition — only on concrete pain signal** (specific method painful to edit, git-blame bug hot-spot, documented AI-context cost). **Do not resurrect the 600-line target** (audited cosmetic, Apr 17).
 - [ ] **Type-safety Bucket E (~15 `any` sites) — intentional, leave as-is** (documented; not blocked on typecheck).

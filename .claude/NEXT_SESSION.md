@@ -1,29 +1,28 @@
 # Next session starter — written 2026-07-17 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.3 **shipped, deployed, confirmed live by maintainer** (commit `c4471b3`).
-- **Branch:** master, clean (only pre-existing session-state files uncommitted — `.claude/fixloop/*`, `.claude/settings.local.json` — not part of this session's work).
-- **Last shipped:** two planned architecture items, then a reactive TV bug-fixing tail. CSV-portability lift (v3.1.0) closed all 5 real-world-hardcoding blockers from the 2026-07-12 audit (approval-gate space roles, NPC-speaker mapping, card-type labels, work-scope card flags, tiered-loan-fee detection) — all CSV-driven now, current-game behavior verified identical. TurnService split (v3.1.1) dropped from 2191 to 1159 lines via two new extracted modules (`TurnEffectsOrchestrator`, `ManualActionProcessor`), `ITurnService` contract unchanged. Then two fresh dashboard reports arrived from the maintainer's own TV playtest same session: the TV camera re-zoomed on every player move (now fits once, pans-only after — v3.1.2), plus a newly-found bug where PC-mode's "remember my zoom" had never actually worked (fixed same version); also added 3 direct-pick color dots to the TV tile. A live-playtest report ("why won't it start") led to v3.1.3: a visible banner + relabeled Start button naming which players still need to scan their QR code. Full detail in CHANGELOG v3.1.0–3.1.3.
-- **Test suite:** **2378/2380 passing, 1 skipped, 1 known-flaky failure** (622s, all 5 ghost gates green). The 1 failure is `E2E-AllPaths.test.ts`'s pre-existing intermittent timeout under full-suite load (tracked in TODO.md parking lot since 2026-07-13) — confirmed passing in isolation this same session, not a new regression.
+- **Version:** v3.1.4 **shipped, deployed, confirmed live** (commit `695aef0`, verified via the live JS bundle's embedded version string).
+- **Branch:** master, clean (only pre-existing `.claude/settings.local.json` uncommitted — not part of this session's work).
+- **Last shipped:** `PlayerSetup.tsx` decomposition — closed the architecture parking-lot item flagged in the prior two sessions' handoffs. 2166 lines → a 673-line orchestrator plus 8 new focused files (`PlayerSetup.styles.ts`, `PlayerMobileView.tsx`, `useAdminAuth.ts`, `AdminGameManager.tsx`, `ModeToggle.tsx`, `JoinByCodePanel.tsx`, `GameSettingsPanel.tsx`, `AdminToolsPanel.tsx`), following the `setup/` folder's existing one-concern-per-file convention. Planned via `EnterPlanMode` + a `Plan` subagent design review before touching code; each of the 9 extraction steps was checked with typecheck + build + a live browser click-through (admin login/lock, the 5s game-list poll starting/stopping on mount/unmount, PC/TV/Remote toggling, join-by-code both with and without an existing roster, modal wiring, a full Start Game click into the live PLAY phase). Full detail in CHANGELOG v3.1.4.
+- **Test suite:** **2375/2380 passing, 1 skipped, 4 failures — all confirmed non-regressions** (746s). 3 are the pre-existing `E2E-AllPaths.test.ts` intermittent timeout under load (different random sub-test failed on re-run in isolation — tracked in TODO.md's parking lot since 2026-07-13); the 4th (`gameLogic.test.ts` performance benchmark) passed cleanly alone. Neither file has any connection to this session's changes.
 - **Build/typecheck:** clean.
-- **Dashboard:** both reports from this session's TV work flipped resolved (fb:2b5b9f2a, fb:daf6b7fc) once v3.1.0–3.1.3 deploy was confirmed → 27 open. Not otherwise swept (no monthly trigger, not `/start full`).
+- **Dashboard:** not swept this session (no `fb:` reports were involved — this was a proactive architecture task, not a bug fix).
 
 ## Top 3 open items
-1. **Real-TV confirmation of the camera fix.** This session's embedded Browser-pane preview can't play animated camera transitions at all (throttles animation frames — React Flow's `fitView()` promise never settles there; see CLAUDE.md TACTICAL). The pan-only TV camera behavior was verified via unit tests + live state instrumentation, never a watched animation. A glance on the maintainer's real TV (zoom should stay put between moves now) is the honest final check — not blocking, just unverified live.
-2. **Architecture parking lot, all trigger-gated** — PlayerSetup.tsx (~2100 lines, touched directly again this session for the QR-waiting banner) worth decomposing; a domain-event architecture remains the most interesting long-term direction but needs a dedicated design pass first. TurnService is off this list now — split completed v3.1.1.
-3. **Nothing else blocking.** Pick from the parking lot, or from TODO.md's other Active sections (playtester acquisition screenshot carousel/demo video, dark/light mode coverage beyond PlayerPanelV2, dashboard `version`/`gitCommit` display).
+1. **Real-TV confirmation of the v3.1.2 camera fix** — still outstanding from two sessions ago; this repo's embedded browser can't play animated camera transitions at all (throttles animation frames), so it was verified via unit tests + state instrumentation, not a watched animation. A glance on the maintainer's real TV (zoom should stay put between moves) is the honest final check — not blocking, just unverified live.
+2. **Domain event architecture** — the most interesting long-term direction (per the 2026-07-14 external review), needs a dedicated design pass before any engineering. Full framing in TODO.md's Architecture/code-health parking lot.
+3. **Nothing else blocking.** Pick from TODO.md's other Active sections (playtester acquisition screenshot carousel/demo video, dark/light mode coverage beyond `PlayerPanelV2`, dashboard `version`/`gitCommit` display) or the parking lot.
 
 ## Decisions waiting on the user
 - **Board layout** / **Bank/Investor/Lender naming** — standing, don't nudge.
 - **Homeowner starting scenario** — direction decided, needs a design pass on the mechanic itself.
 
 ## Suggested first move
-Nothing is blocking. Either open with a quick real-TV check of the camera fix (2 minutes, closes out item 1 above), or pick a fresh item — the async/decoupled turn order idea is now unblocked by the CSV-portability lift shipping, if that's of interest.
+Nothing is blocking. Either open with the 2-minute real-TV camera check (closes out item 1), or pick a fresh item from TODO.md's Active sections — the domain-event architecture idea is the biggest available direction if a dedicated design session is wanted.
 
 ## Suggested model for next session
 **Sonnet 5** — normal scoped work; nothing in the top-3 is architecturally ambiguous enough to need Opus.
 
 ## Reminders
 - Deploy command runs from Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-- This session's embedded browser cannot verify animated transitions (camera pans/zooms, CSS-duration moves) — don't spend time trying; read final state instead and flag animation-dependent fixes as needing a real-device check. See CLAUDE.md TACTICAL ("embedded browser throttles animation frames").
-- If touching TV-mode UI again: don't assume 1920×1080 is a safe floor. A real TV reported 960×540 last week. Design/test down to that size when it matters.
+- If doing live browser verification of a multi-step edit again: this session found the embedded Browser pane's `read_console_messages` replays stale errors from earlier failed-HMR states across navigations — trust `get_page_text`/`read_page` over the console log. Also, local admin-unlock testing (`sessionStorage.setItem('admin_authenticated','true')`) surfaces `BoardToggle`, a fixed-position admin widget that overlaps the setup screen's gear icon — click by DOM query, not screen coordinate, when admin UI is showing. Both now in CLAUDE.md TACTICAL.
