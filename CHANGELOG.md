@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.4] - 2026-07-17
+
+### Refactor: PlayerSetup.tsx split — 2,166 → 673 lines, behavior-preserving
+The setup screen kept getting touched for small changes (most recently the TV "waiting for phones" banner in v3.1.3) despite mixing eight unrelated concerns in one file — player add/remove/edit, the PC/TV/Remote toggle, join-by-code with its "which player are you?" picker, admin/teacher login, the admin Game Manager (live games list + foreign-alert switch), game settings, a separate mobile per-player view, and ~250 lines of plain style data. Split into 8 new files under `src/components/setup/`, following the same one-concern-per-file convention already used by `PlayerForm.tsx`/`PlayerList.tsx`/`usePlayerValidation.ts`:
+
+- **`PlayerSetup.styles.ts`** — the styles object, moved verbatim.
+- **`PlayerMobileView.tsx`** — the `viewPlayerId` per-player mobile view (avatar/name/color card + "waiting for host").
+- **`useAdminAuth.ts`** — admin/teacher login state + `handleLogin`/`handleLock`.
+- **`AdminGameManager.tsx`** — live games list (join/spectate/clear) + foreign-alert toggle. Only ever mounted while admin is unlocked, so its polling effects now run unconditionally on mount/unmount instead of gating on an `isAdminUnlocked` flag internally — a deliberate, behavior-equivalent simplification (verified: polling starts on mount, stops within one interval of unmount).
+- **`ModeToggle.tsx`** — the PC/TV/Remote segmented control (Remote's "coming soon" tap-state is now local to this component).
+- **`JoinByCodePanel.tsx`** — join-by-code + the takeover-warning "which player are you?" picker.
+- **`GameSettingsPanel.tsx`** — win condition + Same Starting Point/Educational starting-hand settings.
+- **`AdminToolsPanel.tsx`** — composes the teacher-panel-vs-unlocked-toolbar-vs-login-prompt branching; the 6 admin/card-selection modals stay rendered unconditionally in `PlayerSetup.tsx` root (only their trigger callbacks moved), since nesting them in a drawer-hosted panel would silently unmount an open modal if the drawer closed.
+
+`PlayerSetup.tsx` itself is now a 673-line orchestrator: top-level state, the header/main layout, and wiring. No dedicated tests exist for this component (confirmed only one consumer, `GameLayout.tsx`, with an unchanged 2-prop contract), so verification was typecheck + production build after every extraction step, plus a full manual click-through in the browser: add/remove player, PC/TV/Remote toggle, join-by-code both with and without an existing roster (picker, "already connected" confirm, "Just watching"), gear-icon drawer open/close + Escape key, admin login + all 5 admin-tool modals + Active Games list, Game Settings + card-selection modal, the mobile per-player view (including the "Player not found" fallback), and a full Start Game click that transitioned into the live PLAY phase. Full suite: 2375/2380 passed — the 4 failures (3 intermittent `E2E-AllPaths.test.ts` timeouts, already tracked in TODO.md's parking lot since 2026-07-13, plus one performance-benchmark miss that passed cleanly when re-run in isolation) are both unrelated to this file and confirmed non-regressions.
+
 ## [3.1.3] - 2026-07-16
 
 ### Fix: TV setup now SAYS who it's waiting on before the game can start
