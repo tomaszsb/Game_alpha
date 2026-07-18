@@ -1675,7 +1675,12 @@ describe('CardService - Enhanced Coverage', () => {
   // on L003 / L020. Safe now because chunk 3 routes the revoke through TEMP.
   describe('Kid A — approval-revoke on auto-drawn life events', () => {
     it('L003 "New Safety Regulations" revokes DOB approval on the auto-draw path', async () => {
-      const approvalSpy = vi.fn().mockReturnValue({ dobApprovalStatus: 'none', dobApprovedDestinations: [] });
+      // Domain-event stage 4: revoke() now takes (player, target, context)
+      // and returns {update, event} — CardService just forwards both halves.
+      const approvalSpy = vi.fn().mockReturnValue({
+        update: { dobApprovalStatus: 'none', dobApprovedDestinations: [] },
+        event: { type: 'approval_revoked', playerId: 'player1', playerName: 'Player', spaceName: 'X', message: 'x' },
+      });
       const approvalService: any = { revoke: approvalSpy };
       const localCardService = new CardService(
         mockDataService,
@@ -1698,11 +1703,18 @@ describe('CardService - Enhanced Coverage', () => {
 
       await localCardService.applyCardEffects('player1', 'L003', { onlyResourceEffects: true });
 
-      expect(approvalSpy).toHaveBeenCalledWith('dob');
+      expect(approvalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'player1' }),
+        'dob',
+        expect.objectContaining({ reason: 'card_effect', cardName: 'New Safety Regulations' })
+      );
       expect(mockStateService.updateTempState).toHaveBeenCalledWith('player1', {
         dobApprovalStatus: 'none',
         dobApprovedDestinations: [],
       });
+      expect(mockStateService.emitGameEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'approval_revoked' })
+      );
     });
 
     it('Kid B — L005 "Positive Press" applies its free E-card draw on the auto path', async () => {

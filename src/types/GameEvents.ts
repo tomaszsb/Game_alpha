@@ -5,6 +5,7 @@
 // against every emitter call site), but now only exposes the fields that
 // type actually carries instead of ~15 optional fields shared by all 8.
 import { TurnEffectResult } from './StateTypes';
+import { ApprovalStatus } from './DataTypes';
 
 // Player-facing receipt of a single thing an L-card just did. Computed by
 // diffing player state before/after applyCardEffects, then surfaced to the
@@ -213,6 +214,119 @@ export interface RecurringCardEffectAppliedEvent {
   tail: string;
 }
 
+// --- Domain-event stage 4 (docs/design/domain-events.md) ---
+// Moves emitter ownership: ApprovalService/FinancialEffectHandler/CardService
+// now own deciding whether/what to announce, instead of a caller re-deriving
+// that logic on the callee's behalf.
+
+export interface ApprovalOutcomeDeterminedEvent {
+  type: 'approval_outcome_determined';
+  playerId: string;
+  playerName: string;
+  spaceName: string;
+  approval: 'dob' | 'fdny';
+  kind: ApprovalStatus;
+  source: 'examiner_roll' | 'prof_cert_self_certify';
+  /** narrateOutcome()'s text, or the Prof-Cert grant text — never re-derived by the caller. */
+  message: string;
+}
+
+// ONE type with a reason discriminant for all 3 stateService.endGame() call
+// sites (win/bankruptcy/design_fee_cap) — they funnel to the same consumer
+// (EndGameModal) and are one logical moment ("game over, here's why") with
+// 3 flavors, not 3 unrelated moments.
+export interface GameEndedEvent {
+  type: 'game_ended';
+  reason: 'win' | 'bankruptcy' | 'design_fee_cap';
+  playerId: string;
+  playerName: string;
+  spaceName: string;
+  message: string;
+}
+
+// --- Card lifecycle (CardService) ---
+
+export interface CardDrawnEvent {
+  type: 'card_drawn';
+  playerId: string;
+  cardType: string;
+  count: number;
+  cards: string[];
+  source: string;
+  message: string;
+}
+
+export interface DeckReshuffledEvent {
+  type: 'deck_reshuffled';
+  playerId: string;
+  cardType: string;
+  message: string;
+}
+
+export interface CardReplacedEvent {
+  type: 'card_replaced';
+  playerId: string;
+  oldCardId: string;
+  newCardId: string | null;
+  newCardType: string;
+  message: string;
+}
+
+export interface CardPlayedEvent {
+  type: 'card_played';
+  playerId: string;
+  cardId: string;
+  cardName: string;
+  /** True when this same play also activated the card (duration_count > 0). */
+  activated: boolean;
+  durationTurns?: number;
+}
+
+export interface CardActivatedEvent {
+  type: 'card_activated';
+  playerId: string;
+  cardId: string;
+  cardName?: string;
+  durationTurns: number;
+}
+
+export interface CardTransferredEvent {
+  type: 'card_transferred';
+  sourcePlayerId: string;
+  targetPlayerId: string;
+  cardId: string;
+  cardName?: string;
+  message: string;
+}
+
+export interface CardExpiredEvent {
+  type: 'card_expired';
+  playerId: string;
+  cardId: string;
+  cardName?: string;
+  message: string;
+}
+
+export interface CardDiscardedEvent {
+  type: 'card_discarded';
+  playerId: string;
+  cardIds: string[];
+  message: string;
+}
+
+// Shared type for 2 distinct mechanics (Return-to-Sender / Favor-Called-In) —
+// same consumer, same resolved/no-target shape, a `mechanic` discriminant
+// is enough to keep them distinguishable.
+export interface CardEffectTargetResolvedEvent {
+  type: 'card_effect_target_resolved';
+  playerId: string;
+  mechanic: 'return_to_sender' | 'favor_called_in';
+  resolved: boolean;
+  targetPlayerName?: string;
+  cardName?: string;
+  message: string;
+}
+
 export type GameEvent =
   | DiceConditionalCardEvent
   | LifeEventEvent
@@ -227,4 +341,15 @@ export type GameEvent =
   | DiceRolledEvent
   | RoutedBackToReviewEvent
   | ManualActionCompletedEvent
-  | RecurringCardEffectAppliedEvent;
+  | RecurringCardEffectAppliedEvent
+  | ApprovalOutcomeDeterminedEvent
+  | GameEndedEvent
+  | CardDrawnEvent
+  | DeckReshuffledEvent
+  | CardReplacedEvent
+  | CardPlayedEvent
+  | CardActivatedEvent
+  | CardTransferredEvent
+  | CardExpiredEvent
+  | CardDiscardedEvent
+  | CardEffectTargetResolvedEvent;

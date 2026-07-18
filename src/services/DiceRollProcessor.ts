@@ -485,14 +485,25 @@ export class DiceRollProcessor {
         this.stateService.updateTempState(playerId, update);
         debugLog(`📋 Approval outcome at ${currentPlayer.currentSpace} (${currentPlayer.visitType}, roll ${diceRoll}): ${outcome.approval} → ${outcome.kind}`);
         // Phase 7.5 — record NPC-voiced narration for the modal banner.
-        this.lastApprovalOutcome = {
-          text: this.approvalService.narrateOutcome(
-            outcome,
-            currentPlayer.currentSpace,
-            currentPlayer.visitType
-          ),
+        const narration = this.approvalService.narrateOutcome(
+          outcome,
+          currentPlayer.currentSpace,
+          currentPlayer.visitType
+        );
+        this.lastApprovalOutcome = { text: narration, kind: outcome.kind };
+        // Domain-event stage 4: per the maintainer's log-coverage decision,
+        // this previously reached only the modal banner above — never the
+        // permanent log.
+        this.stateService.emitGameEvent({
+          type: 'approval_outcome_determined',
+          playerId,
+          playerName: currentPlayer.name,
+          spaceName: currentPlayer.currentSpace,
+          approval: outcome.approval,
           kind: outcome.kind,
-        };
+          source: 'examiner_roll',
+          message: narration,
+        });
       }
     }
 
@@ -575,11 +586,12 @@ export class DiceRollProcessor {
         currentPlayer.currentSpace !== DOB_AUDIT_SPACE &&
         singleDest !== DOB_AUDIT_SPACE
       ) {
-        this.stateService.updateTempState(playerId, this.approvalService.grantProfCertApproval());
-        this.lastApprovalOutcome = {
-          text: '🧾 Your professional certification is accepted — DOB approval granted.',
-          kind: 'approved',
-        };
+        // Domain-event stage 4: grantProfCertApproval() now owns the
+        // announcement text too, instead of it being hardcoded here.
+        const profCertResult = this.approvalService.grantProfCertApproval(playerId, currentPlayer);
+        this.stateService.updateTempState(playerId, profCertResult.update);
+        this.lastApprovalOutcome = { text: profCertResult.event.message, kind: 'approved' };
+        this.stateService.emitGameEvent(profCertResult.event);
         debugLog(`📋 Prof Cert pass at ${currentPlayer.currentSpace} (roll ${diceRoll}) → DOB approval granted`);
       }
 

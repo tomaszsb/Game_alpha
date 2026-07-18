@@ -437,8 +437,8 @@ export interface ICardService {
   
   // Turn-based card lifecycle methods
   endOfTurn(): void;
-  activateCard(playerId: string, cardId: string, duration: number): void;
-  finalizePlayedCard(playerId: string, cardId: string): void;
+  activateCard(playerId: string, cardId: string, duration: number, suppressEvent?: boolean): void;
+  finalizePlayedCard(playerId: string, cardId: string, options?: { suppressActivationEvent?: boolean }): { activated: boolean; durationTurns?: number };
   discardPlayedCard(playerId: string, cardId: string): void;
   
   // Card transfer methods with source tracking

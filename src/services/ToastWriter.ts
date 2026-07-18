@@ -105,6 +105,21 @@ export class ToastWriter {
         );
         break;
 
+      case 'game_ended':
+        // Replaces the old 'life_event' repurposing — that case reads
+        // cardType/cardName (which bankruptcy/design_fee_cap never set),
+        // so it silently rendered "Received: undefined" instead of
+        // event.message. This case consumes message verbatim instead.
+        this.notificationService.notify(
+          {
+            short: event.reason === 'win' ? 'Victory!' : 'Game Over',
+            medium: event.message,
+            detailed: event.message,
+          },
+          { playerId: event.playerId, playerName: event.playerName, actionType: 'game_ended' }
+        );
+        break;
+
       case 'life_event':
       case 'dice_conditional_card':
         this.notificationService.notify(

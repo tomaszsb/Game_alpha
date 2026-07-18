@@ -125,17 +125,18 @@ export class CardService implements ICardService {
           });
         }
 
-        // Log card draw to action history. Voice rule (no game language): use
-        // the real-world type label and card names, never the raw type letter
-        // or the word "card(s)" — matches CardEffectHandler.logCardDraw.
-        this.loggingService.info(`Drew ${preSelectedOfType.length} ${getCardTypeName(cardType, preSelectedOfType.length)}: ${friendlyCardList(this.dataService, preSelectedOfType)}`, {
+        // Domain-event stage 4: LogWriter reacts to this (voice rule — no
+        // game language: use the real-world type label and card names, never
+        // the raw type letter or the word "card(s)" — matches
+        // CardEffectHandler.logCardDraw).
+        this.stateService.emitGameEvent({
+          type: 'card_drawn',
           playerId: player.id,
-          action: 'card_draw',
           cardType,
           count: preSelectedOfType.length,
           cards: preSelectedOfType,
           source: source || 'educational_mode',
-          reason: reason || 'Pre-selected starting cards'
+          message: `Drew ${preSelectedOfType.length} ${getCardTypeName(cardType, preSelectedOfType.length)}: ${friendlyCardList(this.dataService, preSelectedOfType)}`,
         });
 
         return preSelectedOfType;
@@ -174,14 +175,14 @@ export class CardService implements ICardService {
         availableDeck = this.shuffleArray([...discardPile]);
         discardPile = [];
 
-        // Log deck reshuffle to action history. Voice rule (no game language):
-        // no "Deck"/"Discard pile" — frame it as recycling the real-world
-        // item type, not board-game mechanics.
-        this.loggingService.info(`Ran low on new ${getCardTypeName(cardType, 2)} — recycled earlier ones back into the pool.`, {
+        // Domain-event stage 4: LogWriter reacts to this. Voice rule (no
+        // game language): no "Deck"/"Discard pile" — frame it as recycling
+        // the real-world item type, not board-game mechanics.
+        this.stateService.emitGameEvent({
+          type: 'deck_reshuffled',
           playerId: player.id,
           cardType: cardType,
-          reshuffledCount: availableDeck.length,
-          action: 'deck_reshuffle'
+          message: `Ran low on new ${getCardTypeName(cardType, 2)} — recycled earlier ones back into the pool.`,
         });
       }
 
@@ -275,21 +276,15 @@ export class CardService implements ICardService {
     // itself already rolls back via TEMP, so leaving the approval revoked while
     // un-drawing the scope change would be inconsistent).
     if (this.approvalService && cardType === 'W' && drawnCards.length > 0) {
-      // Silent otherwise — the badge in the panel header quietly flips to
-      // "not approved" with nothing else telling the player it happened
-      // (same shape as the plan-examiner/funding gaps fixed v3.0.99). Only
-      // notify when there was a real approval to lose — revoke() is a no-op
-      // 'none'→'none' most of the time (scope locked before DOB ever ran).
-      if (player.dobApprovalStatus === 'approved') {
-        this.stateService.emitGameEvent({
-          type: 'approval_revoked',
-          playerId: player.id,
-          playerName: player.name,
-          spaceName: player.currentSpace,
-          message: '⚠️ Your DOB approval is on hold — the scope just changed, so it needs a fresh look before you can move on.',
-        });
-      }
-      this.stateService.updateTempState(playerId, this.approvalService.revoke('dob'));
+      // Domain-event stage 4: revoke() now owns the "was there something to
+      // lose" gating check + message text (was duplicated here and at the
+      // CSV revokes_approval site below) — this caller just forwards.
+      const revokeResult = this.approvalService.revoke(player, 'dob', {
+        spaceName: player.currentSpace,
+        reason: 'scope_change',
+      });
+      if (revokeResult.event) this.stateService.emitGameEvent(revokeResult.event);
+      this.stateService.updateTempState(playerId, revokeResult.update);
     }
 
     return drawnCards;
@@ -445,16 +440,20 @@ export class CardService implements ICardService {
     }
     const drawnCards = this.drawCards(playerId, newCardType, 1);
     
-    // Log card replacement to action history
+    // Domain-event stage 4: LogWriter reacts to this. Note: replaceCard()'s
+    // internal discardCards() call above also logs its own generic
+    // "Discarded 1 card" entry — a pre-existing "2 log lines for 1 action"
+    // quirk, left as-is this stage (not silently merged).
     const newCardId = drawnCards.length > 0 ? drawnCards[0] : null;
     const newCard = newCardId ? this.dataService.getCardById(newCardId) : null;
-    
-    this.loggingService.info(`Replaced "${oldCard?.card_name}" with "${newCard?.card_name}".`, {
+
+    this.stateService.emitGameEvent({
+      type: 'card_replaced',
       playerId: playerId,
       oldCardId: oldCardId,
       newCardId: newCardId,
       newCardType: newCardType,
-      action: 'card_discard'
+      message: `Replaced "${oldCard?.card_name}" with "${newCard?.card_name}".`,
     });
 
     return this.stateService.getGameState();
@@ -608,20 +607,21 @@ export class CardService implements ICardService {
       // Step 5: Handle card activation based on duration
       // (delegates to finalizePlayedCard so hand-play and PLAY_CARD-effect
       // paths share one duration lifecycle keyed off duration_count — see
-      // finalizePlayedCard for the parsing logic)
-      this.finalizePlayedCard(playerId, cardId);
-      
-      
-      // Log card play to action history
+      // finalizePlayedCard for the parsing logic). suppressActivationEvent
+      // so this flow emits ONE merged card_played event below instead of
+      // a separate standalone card_activated for the same player action.
+      const finalizeResult = this.finalizePlayedCard(playerId, cardId, { suppressActivationEvent: true });
+
+      // Domain-event stage 4: LogWriter reacts to this.
       const player = this.stateService.getPlayer(playerId);
       if (player) {
-        this.loggingService.info(`Played ${card.card_name || cardId}`, {
+        this.stateService.emitGameEvent({
+          type: 'card_played',
           playerId: playerId,
           cardId: cardId,
-          cardName: card.card_name,
-          cardType: card.card_type,
-          cost: card.cost || 0,
-          action: 'card_play'
+          cardName: card.card_name || cardId,
+          activated: finalizeResult.activated,
+          durationTurns: finalizeResult.durationTurns,
         });
       }
       
@@ -706,8 +706,14 @@ export class CardService implements ICardService {
   }
 
 
-  // Public method to activate a card with duration-based effects
-  public activateCard(playerId: string, cardId: string, duration: number): void {
+  // Public method to activate a card with duration-based effects.
+  // suppressEvent: domain-event stage 4 — set by finalizePlayedCard when
+  // called from playCard()'s single-action flow, so that flow emits ONE
+  // merged card_played (activated:true) event instead of two events for
+  // one player action. Every OTHER caller (CardEffectHandler's standalone
+  // CARD_ACTIVATION effect handler, etc.) leaves this unset and gets the
+  // standalone card_activated event exactly as before.
+  public activateCard(playerId: string, cardId: string, duration: number, suppressEvent?: boolean): void {
     const player = this.stateService.getPlayer(playerId);
     if (!player) {
       const error = ErrorNotifications.invalidState(`Player ${playerId} not found`);
@@ -734,15 +740,16 @@ export class CardService implements ICardService {
       activeCards: updatedActiveCards
     });
 
-    // Log card activation to action history
-    const card = this.dataService.getCardById(cardId);
-    this.loggingService.info(`Activated "${card?.card_name}" for ${duration} turns.`, {
-      playerId: playerId,
-      cardId: cardId,
-      duration: duration,
-      expirationTurn: expirationTurn,
-      action: 'card_activate'
-    });
+    if (!suppressEvent) {
+      const card = this.dataService.getCardById(cardId);
+      this.stateService.emitGameEvent({
+        type: 'card_activated',
+        playerId: playerId,
+        cardId: cardId,
+        cardName: card?.card_name,
+        durationTurns: duration,
+      });
+    }
   }
 
   // Card transfer method
@@ -800,18 +807,15 @@ export class CardService implements ICardService {
       
       // Transfer success logged to action history below
       
-      // Log card transfer to action history
+      // Domain-event stage 4: LogWriter reacts to this.
       const card = this.dataService.getCardById(cardId);
-      this.loggingService.info(`Transferred ${card?.card_name || cardId} to ${targetPlayer.name}`, {
-        playerId: sourcePlayerId,
+      this.stateService.emitGameEvent({
+        type: 'card_transferred',
+        sourcePlayerId: sourcePlayerId,
+        targetPlayerId: targetPlayerId,
         cardId: cardId,
         cardName: card?.card_name,
-        cardType: cardType,
-        sourcePlayer: sourcePlayer.name,
-        action: 'card_transfer',
-        targetPlayer: targetPlayer.name,
-        sourcePlayerId: sourcePlayerId,
-        targetPlayerId: targetPlayerId
+        message: `Transferred ${card?.card_name || cardId} to ${targetPlayer.name}`,
       });
       
       return this.stateService.getGameState();
@@ -896,12 +900,14 @@ export class CardService implements ICardService {
       if (expiredCards.length > 0) {
         // Move expired cards to discarded collection and log each expiration
         for (const expiredCardId of expiredCards) {
-          // Log card expiration to action history
+          // Domain-event stage 4: LogWriter reacts to this.
           const card = this.dataService.getCardById(expiredCardId);
-          this.loggingService.info(`"${card?.card_name}" expired.`, {
+          this.stateService.emitGameEvent({
+            type: 'card_expired',
             playerId: player.id,
             cardId: expiredCardId,
-            action: 'card_expire'
+            cardName: card?.card_name,
+            message: `"${card?.card_name}" expired.`,
           });
           
           this.moveExpiredCardToDiscarded(player.id, expiredCardId);
@@ -1037,24 +1043,35 @@ export class CardService implements ICardService {
    * Public method to finalize a played card's lifecycle
    * Determines if card should be activated (has duration) or discarded (immediate effect)
    * Used by EffectEngine for PLAY_CARD effects
+   *
+   * options.suppressActivationEvent: domain-event stage 4 — playCard()'s
+   * single-action flow passes this so it can emit ONE merged card_played
+   * event (with activated/durationTurns folded in) instead of a separate
+   * standalone card_activated. Every other caller leaves it unset.
    */
-  public finalizePlayedCard(playerId: string, cardId: string): void {
+  public finalizePlayedCard(
+    playerId: string,
+    cardId: string,
+    options?: { suppressActivationEvent?: boolean }
+  ): { activated: boolean; durationTurns?: number } {
 
     const card = this.dataService.getCardById(cardId);
     if (!card) {
       const error = ErrorNotifications.invalidState(`Card ${cardId} not found in database`);
       throw new Error(error.detailed);
     }
-    
+
     // Check if card has duration
-    const duration = card.duration_count && parseInt(card.duration_count, 10) > 0 
-      ? parseInt(card.duration_count, 10) 
+    const duration = card.duration_count && parseInt(card.duration_count, 10) > 0
+      ? parseInt(card.duration_count, 10)
       : 0;
 
     if (duration > 0) {
-      this.activateCard(playerId, cardId, duration);
+      this.activateCard(playerId, cardId, duration, options?.suppressActivationEvent);
+      return { activated: true, durationTurns: duration };
     } else {
       this.discardPlayedCard(playerId, cardId);
+      return { activated: false };
     }
   }
 
@@ -1197,31 +1214,21 @@ export class CardService implements ICardService {
     // the code changed underneath the prior approval. Idempotent if no prior
     // approval was active.
     if (this.approvalService && card.revokes_approval) {
-      // Silent otherwise — same gap as the W-card revoke above (v3.0.99):
-      // nothing told the player their approval just went stale, only a
-      // badge quietly flipping in the panel header. Re-fetch rather than
-      // reuse `player` — effects processed above (Step 2) may have already
-      // touched approval state on this same card play.
+      // Re-fetch rather than reuse `player` — effects processed above
+      // (Step 2) may have already touched approval state on this same
+      // card play. Domain-event stage 4: revoke() now owns the gating
+      // check + message text (see the W-card revoke site above).
       const freshPlayer = this.stateService.getPlayer(playerId) || player;
-      const revokesDob = card.revokes_approval === 'dob' || card.revokes_approval === 'both';
-      const revokesFdny = card.revokes_approval === 'fdny' || card.revokes_approval === 'both';
-      const hadDob = revokesDob && freshPlayer.dobApprovalStatus === 'approved';
-      const hadFdny = revokesFdny && freshPlayer.fdnyApprovalStatus === 'approved';
-      if (hadDob || hadFdny) {
-        const target = hadDob && hadFdny ? 'DOB and FDNY approval' : hadDob ? 'DOB approval' : 'FDNY approval';
-        this.stateService.emitGameEvent({
-          type: 'approval_revoked',
-          playerId: freshPlayer.id,
-          playerName: freshPlayer.name,
-          spaceName: freshPlayer.currentSpace,
-          cardName: card.card_name,
-          message: `⚠️ ${card.card_name}: your ${target} needs to be re-obtained.`,
-        });
-      }
+      const revokeResult = this.approvalService.revoke(freshPlayer, card.revokes_approval, {
+        spaceName: freshPlayer.currentSpace,
+        cardName: card.card_name,
+        reason: 'card_effect',
+      });
+      if (revokeResult.event) this.stateService.emitGameEvent(revokeResult.event);
       // Routes through TEMP so Try Again restores the prior approval — safe to
       // apply on the auto life-event path too (Kid A, 2026-05-29). The revoke
       // is pure state writes, no choices or recursion.
-      this.stateService.updateTempState(playerId, this.approvalService.revoke(card.revokes_approval));
+      this.stateService.updateTempState(playerId, revokeResult.update);
     }
 
     // Legacy card type logging for debugging
@@ -2035,18 +2042,12 @@ export class CardService implements ICardService {
         .map(([type, cards]) => `${cards.length}x${type}`)
         .join(', ');
 
-      const sourceInfo = source || 'manual';
-      const reasonInfo = reason || `Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`;
-
-
-      // Log card discard to action history
-      this.loggingService.info(`Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`, {
+      // Domain-event stage 4: LogWriter reacts to this.
+      this.stateService.emitGameEvent({
+        type: 'card_discarded',
         playerId: playerId,
         cardIds: cardIds,
-        cardsByType: cardsByType,
-        source: sourceInfo,
-        reason: reasonInfo,
-        action: 'card_discard'
+        message: `Discarded ${cardIds.length} card${cardIds.length > 1 ? 's' : ''}`,
       });
 
       return true;
@@ -2093,9 +2094,13 @@ export class CardService implements ICardService {
     }
 
     if (activeECards.length === 0) {
-      this.loggingService.info(`${card.card_name} played but no active E cards to target`, {
+      this.stateService.emitGameEvent({
+        type: 'card_effect_target_resolved',
         playerId: playerId,
-        action: 'card_no_target'
+        mechanic: 'return_to_sender',
+        resolved: false,
+        cardName: card.card_name,
+        message: `${card.card_name} played but no active E cards to target`,
       });
       return;
     }
@@ -2157,14 +2162,16 @@ export class CardService implements ICardService {
     });
 
 
-    // Log the action
+    // Domain-event stage 4: LogWriter reacts to this.
     const currentPlayer = allPlayers.find(p => p.id === playerId);
-    this.loggingService.info(`${currentPlayer?.name || 'Player'} returned ${selectedCard.cardName} to ${owner.name}'s hand`, {
+    this.stateService.emitGameEvent({
+      type: 'card_effect_target_resolved',
       playerId: playerId,
-      targetPlayerId: owner.id,
-      cardId: selectedCard.cardId,
+      mechanic: 'return_to_sender',
+      resolved: true,
+      targetPlayerName: owner.name,
       cardName: selectedCard.cardName,
-      action: 'card_return_to_hand'
+      message: `${currentPlayer?.name || 'Player'} returned ${selectedCard.cardName} to ${owner.name}'s hand`,
     });
   }
 
@@ -2185,9 +2192,13 @@ export class CardService implements ICardService {
     if (opponents.length === 0) {
       // Still apply benefit to self in single player (spendTime reduces time spent)
       this.resourceService.spendTime(playerId, 2, `card:${card.card_id}`, `${card.card_name}: -2 days`);
-      this.loggingService.info(`${card.card_name} played - no opponents, self benefit only`, {
+      this.stateService.emitGameEvent({
+        type: 'card_effect_target_resolved',
         playerId: playerId,
-        action: 'card_no_target'
+        mechanic: 'favor_called_in',
+        resolved: false,
+        cardName: card.card_name,
+        message: `${card.card_name} played - no opponents, self benefit only`,
       });
       return;
     }
@@ -2245,11 +2256,15 @@ export class CardService implements ICardService {
     );
 
 
-    // Log the action
-    this.loggingService.info(`${currentPlayer?.name} called in a favor: ${selectedOpponent.name} slowed down`, {
+    // Domain-event stage 4: LogWriter reacts to this.
+    this.stateService.emitGameEvent({
+      type: 'card_effect_target_resolved',
       playerId: playerId,
-      targetPlayerId: selectedOpponent.id,
-      action: 'favor_called_in'
+      mechanic: 'favor_called_in',
+      resolved: true,
+      targetPlayerName: selectedOpponent.name,
+      cardName: card.card_name,
+      message: `${currentPlayer?.name} called in a favor: ${selectedOpponent.name} slowed down`,
     });
   }
 }

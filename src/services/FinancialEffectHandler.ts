@@ -298,15 +298,20 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
 
       debugLog(`💀 GAME OVER: Design fees exceeded 20% cap (${designFeeRatio.toFixed(1)}% = ${totalDesignFees.toLocaleString()} / ${playerScope.toLocaleString()}) during ${currentPhase} phase`);
 
+      // Domain-event stage 4: emit-after-commit (was emitted before endGame,
+      // a minor pre-existing inversion, fixed here). Replaces the old
+      // 'life_event' repurposing — ToastWriter's life_event case reads
+      // cardType/cardName, which this emission never set, so the toast
+      // silently rendered "Received: undefined" instead of this message.
+      this.stateService.endGame(undefined, { type: 'design_fee_cap', playerId });
       this.stateService.emitGameEvent({
-        type: 'life_event',
+        type: 'game_ended',
+        reason: 'design_fee_cap',
         playerId: playerId,
         playerName: updatedPlayer.name,
-        success: false,
         spaceName: updatedPlayer.currentSpace,
-        message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`
+        message: `⛔ GAME OVER: Design fees exceeded 20% of project scope!`,
       });
-      this.stateService.endGame(undefined, { type: 'design_fee_cap', playerId });
     }
   }
 
@@ -381,16 +386,17 @@ export class FinancialEffectHandler implements IFinancialEffectHandler {
     if (updatedPlayer && updatedPlayer.money < 0) {
       debugLog(`⛔ BANKRUPTCY: ${updatedPlayer.name} has run out of money! Money: $${updatedPlayer.money.toLocaleString()}`);
 
+      // Domain-event stage 4: emit-after-commit + the real GameEnded type
+      // (see checkDesignFeeCap's identical fix above for the full rationale).
+      this.stateService.endGame(undefined, { type: 'bankruptcy', playerId });
       this.stateService.emitGameEvent({
-        type: 'life_event',
+        type: 'game_ended',
+        reason: 'bankruptcy',
         playerId: playerId,
         playerName: updatedPlayer.name,
-        success: false,
         spaceName: updatedPlayer.currentSpace,
-        message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`
+        message: `💸 BANKRUPTCY: ${updatedPlayer.name} has run out of money and cannot continue the project!`,
       });
-
-      this.stateService.endGame(undefined, { type: 'bankruptcy', playerId });
     }
   }
 

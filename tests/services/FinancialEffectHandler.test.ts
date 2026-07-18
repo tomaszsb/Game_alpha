@@ -128,7 +128,8 @@ describe('FinancialEffectHandler — 20% design fee cap is strict-any-phase (v2.
     expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'design_fee_cap', playerId: 'p1' });
     expect(stateService.emitGameEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        success: false,
+        type: 'game_ended',
+        reason: 'design_fee_cap',
         message: expect.stringContaining('GAME OVER'),
       })
     );
@@ -275,7 +276,7 @@ describe('FinancialEffectHandler — mandatory bills can bankrupt (fb:f0bdd78a /
     expect(stateService.endGame).toHaveBeenCalledTimes(1);
     expect(stateService.endGame).toHaveBeenCalledWith(undefined, { type: 'bankruptcy', playerId: 'p1' });
     expect(stateService.emitGameEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ success: false, message: expect.stringContaining('BANKRUPTCY') }),
+      expect.objectContaining({ type: 'game_ended', reason: 'bankruptcy', message: expect.stringContaining('BANKRUPTCY') }),
     );
   });
 

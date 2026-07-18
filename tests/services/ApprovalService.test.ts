@@ -206,11 +206,19 @@ describe('ApprovalService', () => {
     });
 
     it('grantProfCertApproval: grants DOB approval like passing the plan exam (fb:f1bc011b)', () => {
-      const update = service.grantProfCertApproval();
+      const player = makePlayer({ currentSpace: 'REG-DOB-PROF-CERT' });
+      const { update, event } = service.grantProfCertApproval('p1', player);
       expect(update.dobApprovalStatus).toBe('approved');
       expect(update.dobApprovedDestinations).toEqual(['REG-FDNY-FEE-REVIEW']);
       // DOB-only — never touches FDNY state.
       expect(update.fdnyApprovalStatus).toBeUndefined();
+      // Domain-event stage 4: also returns the announcement, owned here
+      // rather than hardcoded by the caller (DiceRollProcessor).
+      expect(event.type).toBe('approval_outcome_determined');
+      expect(event.source).toBe('prof_cert_self_certify');
+      expect(event.approval).toBe('dob');
+      expect(event.kind).toBe('approved');
+      expect(event.message).toMatch(/professional certification/i);
     });
 
     it('on denied: clears stored destinations', () => {
@@ -221,8 +229,11 @@ describe('ApprovalService', () => {
   });
 
   describe('revoke', () => {
+    const context = { spaceName: 'PM-DECISION-CHECK', reason: 'scope_change' as const };
+
     it("'dob' clears DOB status to 'none' and empties dobApprovedDestinations", () => {
-      const update = service.revoke('dob');
+      const player = makePlayer({ dobApprovalStatus: 'approved' });
+      const { update } = service.revoke(player, 'dob', context);
       expect(update.dobApprovalStatus).toBe('none');
       expect(update.dobApprovedDestinations).toEqual([]);
       expect(update.fdnyApprovalStatus).toBeUndefined();
@@ -230,7 +241,8 @@ describe('ApprovalService', () => {
     });
 
     it("'fdny' clears FDNY only", () => {
-      const update = service.revoke('fdny');
+      const player = makePlayer({ fdnyApprovalStatus: 'approved' });
+      const { update } = service.revoke(player, 'fdny', context);
       expect(update.fdnyApprovalStatus).toBe('none');
       expect(update.fdnyApprovedDestinations).toEqual([]);
       expect(update.dobApprovalStatus).toBeUndefined();
@@ -238,11 +250,37 @@ describe('ApprovalService', () => {
     });
 
     it("'both' clears DOB and FDNY together", () => {
-      const update = service.revoke('both');
+      const player = makePlayer({ dobApprovalStatus: 'approved', fdnyApprovalStatus: 'approved' });
+      const { update } = service.revoke(player, 'both', context);
       expect(update.dobApprovalStatus).toBe('none');
       expect(update.dobApprovedDestinations).toEqual([]);
       expect(update.fdnyApprovalStatus).toBe('none');
       expect(update.fdnyApprovedDestinations).toEqual([]);
+    });
+
+    // Domain-event stage 4: revoke() now owns the "was there something to
+    // lose" gating check and the announcement message — new coverage below.
+    it('returns event:null when the target had nothing approved to revoke (idempotent no-op)', () => {
+      const player = makePlayer(); // no approvals set
+      const { update, event } = service.revoke(player, 'dob', context);
+      expect(update.dobApprovalStatus).toBe('none'); // still safe to apply
+      expect(event).toBeNull();
+    });
+
+    it('scope_change reason produces the "scope just changed" message', () => {
+      const player = makePlayer({ dobApprovalStatus: 'approved' });
+      const { event } = service.revoke(player, 'dob', { spaceName: 'PM-DECISION-CHECK', reason: 'scope_change' });
+      expect(event?.type).toBe('approval_revoked');
+      expect(event?.message).toMatch(/scope just changed/i);
+    });
+
+    it('card_effect reason names the card and combines "DOB and FDNY approval" when both were lost', () => {
+      const player = makePlayer({ dobApprovalStatus: 'approved', fdnyApprovalStatus: 'approved' });
+      const { event } = service.revoke(player, 'both', {
+        spaceName: 'PM-DECISION-CHECK', cardName: 'New Safety Regulations', reason: 'card_effect',
+      });
+      expect(event?.message).toContain('New Safety Regulations');
+      expect(event?.message).toContain('DOB and FDNY approval');
     });
   });
 

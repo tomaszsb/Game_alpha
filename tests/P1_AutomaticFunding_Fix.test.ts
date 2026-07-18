@@ -41,7 +41,7 @@ describe('P1-CRITICAL: Automatic Funding Card Bug Fix', () => {
     } as any;
     
     // Mock finalizePlayedCard to avoid complex game state setup in tests
-    vi.spyOn(cardService, 'finalizePlayedCard').mockImplementation(() => {});
+    vi.spyOn(cardService, 'finalizePlayedCard').mockImplementation(() => ({ activated: false }));
 
     // Setup basic player state
     mockStateService.getPlayer.mockReturnValue({

@@ -73,8 +73,11 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   // Subscribe to game events for dramatic reveals
   useEffect(() => {
     const unsubscribe = stateService.subscribeToGameEvents((event) => {
-      // Show overlay for significant events
-      if (event.type === 'dice_conditional_card' || event.type === 'life_event' || event.type === 'movement' || event.type === 'routing_explanation') {
+      // Show overlay for significant events. 'game_ended' replaces the old
+      // 'life_event' repurposing for bankruptcy/design-fee-cap/win — kept
+      // in this same OR-chain so the TV overlay (which already worked
+      // correctly for those via 'life_event') doesn't regress.
+      if (event.type === 'dice_conditional_card' || event.type === 'life_event' || event.type === 'movement' || event.type === 'routing_explanation' || event.type === 'game_ended') {
         setLastAction(event.message);
         setShowActionOverlay(true);
 

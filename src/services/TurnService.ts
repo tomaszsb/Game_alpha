@@ -378,41 +378,50 @@ export class TurnService implements ITurnService {
       if (hasWon) {
         // Player has won - end the game
         const winnerId = gameState.currentPlayerId;
+        const winnerPlayer = this.stateService.getPlayer(winnerId);
 
         // Workstream 7 Phase 7.4 — end-game penalty when the winner reached
         // FINISH without DOB sign-off. Backstop for the Stage-1 gate at
         // REG-DOB-FINAL-REVIEW (should never normally fire, but safe-guards
         // legacy save states and any future direct-routes-to-FINISH path).
-        if (this.approvalService) {
-          const winnerPlayer = this.stateService.getPlayer(winnerId);
-          if (winnerPlayer) {
-            const penalty = this.approvalService.computeEndGamePenalty(winnerPlayer);
-            if (penalty) {
-              this.stateService.updatePlayer({
-                id: winnerId,
-                timeSpent: penalty.newTimeSpent,
-                money: penalty.newMoney,
-              });
-              this.stateService.updateGameState({
-                endGamePenalty: {
-                  dobMissing: true,
-                  days: penalty.days,
-                  fee: penalty.fee,
-                  playerId: winnerId,
-                },
-              });
-              this.loggingService.info(`End-game penalty applied: missing DOB sign-off (+${penalty.days} days, +$${penalty.fee.toLocaleString()} fee).`, {
+        if (this.approvalService && winnerPlayer) {
+          const penalty = this.approvalService.computeEndGamePenalty(winnerPlayer);
+          if (penalty) {
+            this.stateService.updatePlayer({
+              id: winnerId,
+              timeSpent: penalty.newTimeSpent,
+              money: penalty.newMoney,
+            });
+            this.stateService.updateGameState({
+              endGamePenalty: {
+                dobMissing: true,
+                days: penalty.days,
+                fee: penalty.fee,
                 playerId: winnerId,
-                playerName: winnerPlayer.name,
-                action: 'end_game_penalty',
-                penaltyDays: penalty.days,
-                penaltyFee: penalty.fee,
-              });
-            }
+              },
+            });
+            this.loggingService.info(`End-game penalty applied: missing DOB sign-off (+${penalty.days} days, +$${penalty.fee.toLocaleString()} fee).`, {
+              playerId: winnerId,
+              playerName: winnerPlayer.name,
+              action: 'end_game_penalty',
+              penaltyDays: penalty.days,
+              penaltyFee: penalty.fee,
+            });
           }
         }
 
+        // Domain-event stage 4: the WIN ending previously had zero
+        // announcement anywhere outside EndGameModal — no log, no toast,
+        // no GameEvent. LogWriter/ToastWriter both react to this now.
         this.stateService.endGame(winnerId);
+        this.stateService.emitGameEvent({
+          type: 'game_ended',
+          reason: 'win',
+          playerId: winnerId,
+          playerName: winnerPlayer?.name ?? 'A player',
+          spaceName: winnerPlayer?.currentSpace ?? '',
+          message: `🏆 ${winnerPlayer?.name ?? 'A player'} reached the finish line and won the game!`,
+        });
         return { nextPlayerId: winnerId }; // Winner remains current player
       }
 

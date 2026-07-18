@@ -154,4 +154,47 @@ describe('ToastWriter', () => {
 
     expect(notificationService.notify).not.toHaveBeenCalled();
   });
+
+  // --- Domain-event stage 4: game_ended replaces the broken 'life_event'
+  // repurposing — that case read cardType/cardName (never set by
+  // bankruptcy/design_fee_cap/win), so it silently rendered
+  // "Received: undefined" instead of the crafted message. ---
+
+  it('game_ended (win) notifies "Victory!" using event.message verbatim', () => {
+    const { handleEvent, notificationService } = createToastWriter();
+    handleEvent({ type: 'game_ended', reason: 'win', playerId: 'p1', playerName: 'Alice', spaceName: 'FINISH', message: '🏆 Alice reached the finish line and won the game!' });
+
+    expect(notificationService.notify).toHaveBeenCalledWith(
+      { short: 'Victory!', medium: '🏆 Alice reached the finish line and won the game!', detailed: '🏆 Alice reached the finish line and won the game!' },
+      { playerId: 'p1', playerName: 'Alice', actionType: 'game_ended' }
+    );
+  });
+
+  it('game_ended (bankruptcy) notifies "Game Over" using event.message verbatim (the bug this fixes)', () => {
+    const { handleEvent, notificationService } = createToastWriter();
+    handleEvent({ type: 'game_ended', reason: 'bankruptcy', playerId: 'p1', playerName: 'Alice', spaceName: 'X', message: '💸 BANKRUPTCY: Alice has run out of money and cannot continue the project!' });
+
+    const [content] = notificationService.notify.mock.calls[0];
+    expect(content.short).toBe('Game Over');
+    expect(content.medium).toBe('💸 BANKRUPTCY: Alice has run out of money and cannot continue the project!');
+    expect(content.medium).not.toContain('undefined');
+  });
+
+  it('game_ended (design_fee_cap) notifies "Game Over" using event.message verbatim', () => {
+    const { handleEvent, notificationService } = createToastWriter();
+    handleEvent({ type: 'game_ended', reason: 'design_fee_cap', playerId: 'p1', playerName: 'Alice', spaceName: 'X', message: '⛔ GAME OVER: Design fees exceeded 20% of project scope!' });
+
+    const [content] = notificationService.notify.mock.calls[0];
+    expect(content.short).toBe('Game Over');
+    expect(content.medium).toBe('⛔ GAME OVER: Design fees exceeded 20% of project scope!');
+  });
+
+  it('does not notify for CardService lifecycle events (log-only, no companion toasts today)', () => {
+    const { handleEvent, notificationService } = createToastWriter();
+    handleEvent({ type: 'card_drawn', playerId: 'p1', cardType: 'W', count: 1, cards: ['W001'], source: 'x', message: 'x' });
+    handleEvent({ type: 'card_played', playerId: 'p1', cardId: 'W001', cardName: 'x', activated: false });
+    handleEvent({ type: 'card_activated', playerId: 'p1', cardId: 'W001', cardName: 'x', durationTurns: 3 });
+
+    expect(notificationService.notify).not.toHaveBeenCalled();
+  });
 });

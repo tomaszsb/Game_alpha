@@ -9,6 +9,7 @@
 
 import { ApprovalStatus, Player, VisitType } from '../types/DataTypes';
 import { PlayerUpdateData } from '../types/StateTypes';
+import { ApprovalRevokedEvent, ApprovalOutcomeDeterminedEvent } from '../types/GameEvents';
 
 /**
  * Which approval is being affected by an outcome.
@@ -118,6 +119,24 @@ export interface FinalReviewGateResult {
   reason?: string;
 }
 
+// Domain-event stage 4: revoke() now owns the "was there something to
+// revoke" gating check and the announcement message — the caller no longer
+// re-derives either. `event` is null when the revoke was a genuine no-op
+// (nothing was actually 'approved' for the target), so the caller emits
+// nothing.
+export interface RevokeResult {
+  update: PlayerUpdateData;
+  event: ApprovalRevokedEvent | null;
+}
+
+// Domain-event stage 4: grantProfCertApproval() now owns its own
+// announcement text too, instead of the caller (DiceRollProcessor)
+// hardcoding it inline.
+export interface ProfCertGrantResult {
+  update: PlayerUpdateData;
+  event: ApprovalOutcomeDeterminedEvent;
+}
+
 export interface IApprovalService {
   /**
    * Translate a dice roll at a regulated examiner space into an approval outcome.
@@ -135,19 +154,30 @@ export interface IApprovalService {
    * the plan exam (next stop FDNY). The caller invokes this ONLY on a "pass"
    * roll (one routing the player onward, not into the DOB audit); an audited
    * filing isn't approved until the audit clears. fb:f1bc011b.
+   *
+   * Domain-event stage 4: also returns the announcement event (message
+   * owned here, not hardcoded by the caller).
    */
-  grantProfCertApproval(): PlayerUpdateData;
+  grantProfCertApproval(playerId: string, player: Player): ProfCertGrantResult;
 
   /**
    * Build a PlayerUpdateData that revokes the specified approval(s) to 'none'
    * and clears their stored destinations. Used for non-dice revoke triggers:
    * scope changes (W-card adds), L-card narrative triggers, etc.
    *
-   * If the player has no active approval for the target, the returned update
-   * is still safe to apply (idempotent — sets status to 'none' and empties the
-   * destinations array even if already so).
+   * The returned update is always safe to apply (idempotent — sets status to
+   * 'none' and empties the destinations array even if already so).
+   *
+   * Domain-event stage 4: also decides + builds the `approval_revoked`
+   * announcement (the "was there something to revoke" gating check and the
+   * message text used to live in the caller, duplicated across 2 call
+   * sites) — `event` is null when the target had nothing 'approved' to lose.
    */
-  revoke(target: RevokeTarget): PlayerUpdateData;
+  revoke(
+    player: Player,
+    target: RevokeTarget,
+    context: { spaceName: string; cardName?: string; reason: 'scope_change' | 'card_effect' }
+  ): RevokeResult;
 
   /**
    * REG-DOB-FINAL-REVIEW Stage-1 gate (Phase 7.4). Verify that BOTH DOB and
@@ -217,13 +247,33 @@ export class ApprovalService implements IApprovalService {
     return update;
   }
 
-  grantProfCertApproval(): PlayerUpdateData {
+  grantProfCertApproval(playerId: string, player: Player): ProfCertGrantResult {
     // Same approval an examiner 'approved' DOB outcome produces — the player
     // self-certified successfully, so the next stop is FDNY.
-    return this.applyOutcome({ approval: 'dob', kind: 'approved', destinations: DOB_APPROVED_DESTINATIONS });
+    const update = this.applyOutcome({ approval: 'dob', kind: 'approved', destinations: DOB_APPROVED_DESTINATIONS });
+    return {
+      update,
+      event: {
+        type: 'approval_outcome_determined',
+        playerId,
+        playerName: player.name,
+        spaceName: player.currentSpace,
+        approval: 'dob',
+        kind: 'approved',
+        source: 'prof_cert_self_certify',
+        message: '🧾 Your professional certification is accepted — DOB approval granted.',
+      },
+    };
   }
 
-  revoke(target: RevokeTarget): PlayerUpdateData {
+  revoke(
+    player: Player,
+    target: RevokeTarget,
+    context: { spaceName: string; cardName?: string; reason: 'scope_change' | 'card_effect' }
+  ): RevokeResult {
+    const hadDob = (target === 'dob' || target === 'both') && player.dobApprovalStatus === 'approved';
+    const hadFdny = (target === 'fdny' || target === 'both') && player.fdnyApprovalStatus === 'approved';
+
     const update: PlayerUpdateData = {};
     if (target === 'dob' || target === 'both') {
       update.dobApprovalStatus = 'none';
@@ -233,7 +283,27 @@ export class ApprovalService implements IApprovalService {
       update.fdnyApprovalStatus = 'none';
       update.fdnyApprovedDestinations = [];
     }
-    return update;
+
+    if (!hadDob && !hadFdny) {
+      return { update, event: null };
+    }
+
+    const revokedLabel = hadDob && hadFdny ? 'DOB and FDNY approval' : hadDob ? 'DOB approval' : 'FDNY approval';
+    const message = context.reason === 'scope_change'
+      ? '⚠️ Your DOB approval is on hold — the scope just changed, so it needs a fresh look before you can move on.'
+      : `⚠️ ${context.cardName}: your ${revokedLabel} needs to be re-obtained.`;
+
+    return {
+      update,
+      event: {
+        type: 'approval_revoked',
+        playerId: player.id,
+        playerName: player.name,
+        spaceName: context.spaceName,
+        cardName: context.cardName,
+        message,
+      },
+    };
   }
 
   getApprovedDestinations(player: Player): string[] {

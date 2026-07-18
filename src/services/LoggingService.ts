@@ -147,7 +147,7 @@ export class LoggingService implements ILoggingService {
   private determineActionType(level: LogLevel, payload: LogPayload, message: string): ActionLogEntry['type'] {
     // Priority 1: Explicit 'action' from the payload is always trusted first.
     if (payload.action) {
-      const validTypes: string[] = ['space_entry', 'space_effect', 'time_effect', 'dice_roll', 'card_draw', 'resource_change', 'manual_action', 'turn_start', 'turn_end', 'card_play', 'card_transfer', 'card_discard', 'player_movement', 'card_activate', 'card_expire', 'deck_reshuffle', 'game_start', 'game_end', 'error_event', 'choice_made', 'negotiation_resolved', 'system_log'];
+      const validTypes: string[] = ['space_entry', 'space_effect', 'time_effect', 'dice_roll', 'card_draw', 'resource_change', 'manual_action', 'turn_start', 'turn_end', 'card_play', 'card_transfer', 'card_discard', 'player_movement', 'card_activate', 'card_expire', 'deck_reshuffle', 'game_start', 'game_end', 'error_event', 'choice_made', 'negotiation_resolved', 'system_log', 'approval_revoked', 'approval_outcome_determined', 'routed_back_to_review'];
       if (validTypes.includes(payload.action)) {
         return payload.action as ActionLogEntry['type'];
       }
