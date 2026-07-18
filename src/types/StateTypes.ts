@@ -257,11 +257,6 @@ export interface NegotiationResult {
   newState?: GameState;
 }
 
-export interface ActiveModal {
-  type: 'CARD';
-  cardId: string;
-}
-
 // Why the game ended when there is no winner. `bankruptcy` = a mandatory
 // bill drove cash below zero; `design_fee_cap` = design fees passed 20% of
 // project scope. Both are set by FinancialEffectHandler.
@@ -280,7 +275,6 @@ export interface GameState {
   globalTurnCount: number; // Total turns taken across all players (1, 2, 3, 4, 5, 6...)
   // Track individual player turn counts for statistics
   playerTurnCounts: { [playerId: string]: number }; // How many turns each player has taken total
-  activeModal: ActiveModal | null;
   awaitingChoice: Choice | null;
   hasPlayerMovedThisTurn: boolean;
   hasPlayerRolledDice: boolean;

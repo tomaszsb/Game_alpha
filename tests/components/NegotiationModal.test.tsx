@@ -108,7 +108,6 @@ describe('NegotiationModal', () => {
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',
       turn: 1,
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,

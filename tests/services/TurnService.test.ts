@@ -76,8 +76,6 @@ const mockStateService: any = {
   clearTurnActions: vi.fn(),
   setPlayerMoveIntent: vi.fn(),
   clearPlayerMoveIntent: vi.fn(),
-  showCardModal: vi.fn(),
-  dismissModal: vi.fn(),
   createPlayerSnapshot: vi.fn(),
   restorePlayerSnapshot: vi.fn(),
   validatePlayerAction: vi.fn(),
@@ -272,7 +270,6 @@ describe('TurnService', () => {
     globalTurnCount: 1,
     // Track individual player turn counts for statistics
     playerTurnCounts: { 'player1': 1, 'player2': 0, 'player3': 0 },
-    activeModal: null,
     awaitingChoice: null,
     hasPlayerMovedThisTurn: false,
     hasPlayerRolledDice: false,

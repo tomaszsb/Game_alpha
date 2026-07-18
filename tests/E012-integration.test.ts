@@ -175,7 +175,6 @@ describe('E012 Card - Choice of Effects Integration', () => {
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',
       turn: 1,
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,

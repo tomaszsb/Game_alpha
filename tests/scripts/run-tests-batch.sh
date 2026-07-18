@@ -50,7 +50,6 @@ run_batch "game-logic" \
 run_batch "advanced-services" \
     "tests/services/TurnService.test.ts" \
     "tests/services/EffectEngineService.test.ts" \
-    "tests/services/PlayerActionService.test.ts"
 
 # Batch 4: Support Services
 run_batch "support-services" \
@@ -97,7 +96,6 @@ run_batch "core-components" \
     "tests/components/TurnControlsWithActions.test.tsx"
 
 run_batch "modal-components" \
-    "tests/components/modals/CardActions.test.tsx" \
     "tests/components/modals/DiceResultModal.test.tsx" \
     "tests/components/modals/EndGameModal.test.tsx"
 

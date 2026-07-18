@@ -10,7 +10,6 @@ import {
   DiscardPiles,
   PlayerUpdateData,
   PlayerCards,
-  ActiveModal,
   ActionLogEntry,
   // REAL/TEMP State Model Types
   MutablePlayerState,
@@ -939,32 +938,6 @@ export class StateService implements IStateService {
     return { ...this.currentState };
   }
 
-  // Modal management methods
-  showCardModal(cardId: string): GameState {
-    const newState: GameState = {
-      ...this.currentState,
-      activeModal: {
-        type: 'CARD',
-        cardId
-      }
-    };
-
-    this.currentState = newState;
-    this.notifyListeners();
-    return { ...newState };
-  }
-
-  dismissModal(): GameState {
-    const newState: GameState = {
-      ...this.currentState,
-      activeModal: null
-    };
-
-    this.currentState = newState;
-    this.notifyListeners();
-    return { ...newState };
-  }
-
   // Action tracking methods
   updateActionCounts(): void {
     if (!this.currentState.currentPlayerId) return;
@@ -1516,7 +1489,6 @@ export class StateService implements IStateService {
       globalTurnCount: 0,
       // Track individual player turn counts for statistics
       playerTurnCounts: {},
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,

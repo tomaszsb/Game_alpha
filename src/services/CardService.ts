@@ -1129,11 +1129,18 @@ export class CardService implements ICardService {
     // produced one effect per player (scope=Global, no duration), the engine's
     // processEffectsWithTargeting would re-fan via the cardData.target rule,
     // turning N effects × N players into N² applications per player. Override
-    // the target to 'Self' on the auto path for this case so the engine takes
-    // its fast-path (apply effects as-is, no re-targeting). Duration cards
-    // still need 'All Players' so the duration loop fans the single emitted
-    // effect across players (Kid C).
-    if (options?.onlyResourceEffects && card.scope && card.scope.toLowerCase() === 'global') {
+    // the target to 'Self' for this case so the engine takes its fast-path
+    // (apply effects as-is, no re-targeting). Duration cards still need
+    // 'All Players' so the duration loop fans the single emitted effect
+    // across players (Kid C).
+    // v3.1.10 — guard extended to ALL paths (previously gated on
+    // options.onlyResourceEffects, i.e. only the auto life-event draw).
+    // parseCardIntoEffects fans out global no-duration cards identically on
+    // every path, so the manual playCard path carried the same N×N re-fan
+    // (unreachable from the V2 UI, which hand-plays E cards only, but real
+    // at the service-API level — a 3-player L003 discarded up to 3 E cards
+    // per player instead of 1).
+    if (card.scope && card.scope.toLowerCase() === 'global') {
       const hasDurationKidE = card.duration === 'Turns'
         && !!card.duration_count
         && parseInt(card.duration_count, 10) > 0;

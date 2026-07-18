@@ -25,7 +25,6 @@ import {
   ICardService, 
   IResourceService,
   ITurnService,
-  IPlayerActionService,
   IEffectEngineService
 } from '../../src/types/ServiceContracts';
 
@@ -132,23 +131,6 @@ export const createLightweightTurnService = () => ({
     Promise.resolve({ diceRoll: 3, success: true, message: 'Rolled 3' }))
 });
 
-// Lightweight PlayerActionService mock - only essential methods
-export const createLightweightPlayerActionService = (cardService?: any) => ({
-  playCard: mockFn(async (playerId: string, cardId: string) => {
-    // Call the cardService.playCard if provided to simulate real behavior
-    if (cardService && cardService.playCard) {
-      await cardService.playCard(playerId, cardId);
-    }
-    return Promise.resolve({ success: true, message: 'Card played successfully' });
-  }),
-
-  rollDice: mockFn(async (playerId: string) =>
-    Promise.resolve({ success: true, diceRoll: 3 })),
-
-  endTurn: mockFn(async (playerId: string) =>
-    Promise.resolve({ success: true, message: 'Turn ended' }))
-});
-
 // Lightweight EffectEngineService mock - only essential methods
 export const createLightweightEffectEngineService = () => ({
   processEffects: mockFn(async (effects: unknown[], _targetPlayerId: string, _triggerEvent: string, _source: string) =>
@@ -185,7 +167,6 @@ export const createLightweightMockServices = () => {
     cardService,
     resourceService: createLightweightResourceService(),
     turnService: createLightweightTurnService(),
-    playerActionService: createLightweightPlayerActionService(cardService),
     effectEngineService: createLightweightEffectEngineService()
   };
 };

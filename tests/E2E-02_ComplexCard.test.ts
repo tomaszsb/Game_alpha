@@ -22,7 +22,6 @@ import { TurnService } from '../src/services/TurnService';
 import { CardService } from '../src/services/CardService';
 import { LoggingService } from '../src/services/LoggingService';
 import { LogWriter } from '../src/services/LogWriter';
-import { PlayerActionService } from '../src/services/PlayerActionService';
 import { MovementService } from '../src/services/MovementService';
 import { GameRulesService } from '../src/services/GameRulesService';
 import { ResourceService } from '../src/services/ResourceService';
@@ -75,7 +74,6 @@ describe('E2E-02: Complex Card Test', () => {
   let movementService: MovementService;
   let resourceService: ResourceService;
   let turnService: TurnService;
-  let playerActionService: PlayerActionService;
   let negotiationService: NegotiationService;
   let targetingService: TargetingService;
 
@@ -101,7 +99,6 @@ describe('E2E-02: Complex Card Test', () => {
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
 
-    playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
 
     // Load game data
     await dataService.loadData();
@@ -174,7 +171,7 @@ describe('E2E-02: Complex Card Test', () => {
     expect(targetingService).toBeDefined();
     
     // 2. Test TypeScript contracts
-    expect(typeof playerActionService.playCard).toBe('function');
+    expect(typeof cardService.playCard).toBe('function');
     expect(typeof turnService.endTurnWithMovement).toBe('function');
     expect(typeof cardService.drawCards).toBe('function');
     

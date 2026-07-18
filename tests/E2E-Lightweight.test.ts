@@ -37,8 +37,8 @@ describe('E2E Scenarios - Lightweight Performance Tests', () => {
         message: 'Card played successfully'
       });
 
-      // Simulate player action service workflow
-      const result = await mockServices.playerActionService.playCard!('player1', 'L003');
+      // Simulate the live card-play workflow
+      const result = await mockServices.cardService.playCard!('player1', 'L003');
       
       expect(result.success).toBe(true);
       expect(mockServices.cardService.playCard).toHaveBeenCalledWith('player1', 'L003');
@@ -144,7 +144,7 @@ describe('E2E Scenarios - Lightweight Performance Tests', () => {
       mockServices.stateService.getPlayer!.mockReturnValue(player);
       
       // Multiple operations
-      await mockServices.playerActionService.playCard!('player1', 'E001');
+      await mockServices.cardService.playCard!('player1', 'E001');
       await mockServices.turnService.rollDice!('player1');
       await mockServices.resourceService.addMoney!('player1', 100, 'test');
       await mockServices.turnService.endTurnWithMovement!();

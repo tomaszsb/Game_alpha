@@ -263,8 +263,9 @@ export class GameRulesService implements IGameRulesService {
         // phases above or "Any". Returning the stage name (instead of null)
         // means a phase-restricted expeditor won't match and is correctly
         // blocked until its work phase, matching the classic panel's
-        // long-standing local gate (CardsSection / ActionCenterPanel: "Can only
-        // be activated during X phase"). "Any" cards are never gated by the
+        // long-standing local gate (the since-deleted CardsSection /
+        // ActionCenterPanel: "Can only be activated during X phase").
+        // "Any" cards are never gated by the
         // caller, so they still play in every stage. Only a space with NO phase
         // at all (guarded above) falls through to the permissive null.
         return spaceConfig.phase.toUpperCase();

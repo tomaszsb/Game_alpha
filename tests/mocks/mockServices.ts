@@ -23,8 +23,7 @@ import {
   INegotiationService,
   IEffectEngineService,
   IChoiceService,
-  ITurnService,
-  IPlayerActionService
+  ITurnService
 } from '../../src/types/ServiceContracts';
 
 import { ILoggingService } from '../../src/types/ServiceContracts';
@@ -155,9 +154,6 @@ export const createMockStateService = (): any => ({
   setPlayerMoveIntent: vi.fn(),
   clearPlayerMoveIntent: vi.fn(),
 
-  // Modal management methods
-  showCardModal: vi.fn(),
-  dismissModal: vi.fn(),
   
   // Snapshot management methods
   createPlayerSnapshot: vi.fn(),
@@ -394,14 +390,6 @@ export const createMockTurnService = (): any => ({
   handleAutomaticFunding: vi.fn()
 });
 
-// Convenience function to create all mocks at once
-export const createMockPlayerActionService = (): any => ({
-  // Methods for handling player commands and orchestrating actions
-  playCard: vi.fn(),
-  rollDice: vi.fn(),
-  endTurn: vi.fn()
-});
-
 export const createMockLoggingService = (): any => ({
   // Logging methods
   info: vi.fn(),
@@ -438,6 +426,5 @@ export const createAllMockServices = () => ({
   effectEngineService: createMockEffectEngineService(),
   choiceService: createMockChoiceService(),
   turnService: createMockTurnService(),
-  playerActionService: createMockPlayerActionService(),
   notificationService: createMockNotificationService()
 });

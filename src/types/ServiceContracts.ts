@@ -302,10 +302,6 @@ export interface IStateService {
   setPlayerMoveIntent(playerId: string, destination: string | null): GameState;
   clearPlayerMoveIntent(playerId: string): GameState;
 
-  // Modal management methods
-  showCardModal(cardId: string): GameState;
-  dismissModal(): GameState;
-  
   // Snapshot management methods
   createPlayerSnapshot(playerId: string): GameState;
   restorePlayerSnapshot(playerId: string): GameState;
@@ -505,18 +501,6 @@ export interface ICardEffectHandler {
   handlePlayCard(effect: Effect, context: EffectContext): Promise<EffectResult>;
 }
 
-export interface IPlayerActionService {
-  // Methods for handling player commands and orchestrating actions.
-  // Phase 2.1 audit (2026-06-04): `rollDice` and `endTurn` removed — they were
-  // a legacy monolithic dice-and-move pattern superseded by the split:
-  // DiceRollProcessor.rollDiceWithFeedback (roll + effects + UI feedback) and
-  // MovementExecutor.executeMovement (deferred end-turn move). The live UI in
-  // GameLayout/ActionCenterPanel calls turnService.rollDiceWithFeedback and
-  // turnService.endTurnWithMovement directly.
-  playCard(playerId: string, cardId: string): Promise<void>;
-}
-
-
 /**
  * Options for narrowing the canonical valid-moves resolver to a specific
  * scenario. Phase 2.1 audit (2026-06-04) — when the caller already knows the
@@ -694,7 +678,6 @@ export interface IServiceContainer {
   notificationService: INotificationService;
   turnService: ITurnService;
   cardService: ICardService;
-  playerActionService: IPlayerActionService;
   movementService: IMovementService;
   gameRulesService: IGameRulesService;
   resourceService: IResourceService;

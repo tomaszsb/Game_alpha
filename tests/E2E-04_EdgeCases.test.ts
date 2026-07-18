@@ -24,7 +24,6 @@ import { TurnService } from '../src/services/TurnService';
 import { CardService } from '../src/services/CardService';
 import { LoggingService } from '../src/services/LoggingService';
 import { LogWriter } from '../src/services/LogWriter';
-import { PlayerActionService } from '../src/services/PlayerActionService';
 import { MovementService } from '../src/services/MovementService';
 import { GameRulesService } from '../src/services/GameRulesService';
 import { ResourceService } from '../src/services/ResourceService';
@@ -107,8 +106,6 @@ async function initializeServices(): Promise<void> {
   turnService.setEffectEngineService(effectEngineService);
   effectEngineService.setTurnService(turnService);
 
-  const playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
-
   services = {
     dataService,
     stateService,
@@ -119,7 +116,6 @@ async function initializeServices(): Promise<void> {
     movementService,
     turnService,
     effectEngineService,
-    playerActionService,
     negotiationService
   };
 
@@ -172,7 +168,7 @@ async function testInsufficientFunds(): Promise<TestResult> {
     console.log('   Attempting to play expensive card...');
     
     try {
-      await services.playerActionService.playCard(player.id, expensiveCard.card_id);
+      await services.cardService.playCard(player.id, expensiveCard.card_id);
       
       // If we get here, the test failed - should have thrown an error
       return {

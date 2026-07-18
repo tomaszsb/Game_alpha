@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.10] - 2026-07-18
+
+### Fix: extend the Kid E fan-out guard to the manual playCard path (latent N×N)
+Executes the follow-up flagged in v3.1.9. For a Global-scope, no-duration card (L003 "all players discard 1 Expeditor, +3 days"), `parseCardIntoEffects` already emits one effect per player — and `EffectEngineService.processCardEffects` then re-fanned each of those via the card's `target='All Players'` rule, N effects × N targets = N² applications (a 3-player game discarded up to 3 E cards per player instead of 1, reproduced in-test). The v3.0.39 "Kid E" guard — `applyCardEffects` overriding `target` to `'Self'` so the engine takes its no-re-fan fast path — only ran when `options.onlyResourceEffects` was set, i.e. the auto life-event draw path.
+
+**Fix: the guard now runs on every path** (one condition change in `CardService.applyCardEffects`). This is correct path-independently because the parser's fan-out is the same function on every path; the guard's own `hasDuration` check still exempts duration cards (L002), whose single emitted effect genuinely needs `'All Players'` for the engine's duration fan — pinned by E2E-05's existing L002 test. The alternative (rejecting non-E manual plays at the service layer) was deliberately NOT taken: whether non-E cards should ever be hand-playable is the open fb:66bb0bda design call, and a service-level type gate would have silently decided it. Today the bug was unreachable from the V2 UI (manual play is E-cards-only and E cards are Self-targeted) — this closes the service-API-level hole.
+
+New regression test in `E2E-05_MultiPlayerEffects.test.ts` (red-green verified: fails against the old gate, passes with the fix): manual `cardService.playCard` of L003 in a 3-player game → exactly one E-card discard per player, L003 itself discarded (unlike the auto-draw path, where it stays in hand as a record), and per-player time delta of 0 or 3 — never the 6/9 the N×N produced.
+
+Verified: typecheck clean, production build clean, CardService (63) + CardEffectHandler (9, incl. the Kid E auto-path pins) + E2E-05 (5, incl. L002 duration) all green, full suite at wrap-up.
+
+## [3.1.9] - 2026-07-18
+
+### Refactor: delete the orphaned classic-panel dead-code cluster (CardModal / CardsSection / PlayerActionService)
+Executes the cleanup audited 2026-07-17 (TODO parking lot): the modal/section pair the v3.0.128-137 classic-panel removal left behind. `StateService.showCardModal` — the only thing that ever opened `CardModal` — had zero callers anywhere in `src/`, so the entire chain hanging off it was unreachable.
+
+**Deleted (the audited five, plus what the deletion audit surfaced at the boundary):** `CardModal.tsx`, `CardActions.tsx`, `CardsSection.tsx`+`.css`, the whole `PlayerActionService` class (`playCard` was its last remaining method after the 2026-06-04 sweep; its only caller was the dead `CardActions`), `StateService.showCardModal` — **and** `CardContent.tsx` (only `CardModal` imported it), `dismissModal` (only `CardModal` called it), the `ActiveModal` type + `GameState.activeModal` field (only ever set by `showCardModal`; removing it also killed `GameLayout`'s always-null local mirror state and its always-false `isAnyModalOpen` term), `IPlayerActionService` + the `IServiceContainer` registry entry + the `ServiceProvider` instantiation, and `shouldShake`'s card-type branch (`CardModal` was its only caller — `DiceResultModal`'s effects branch is untouched). `expeditorPhase.tsx` stays: `CardReplacementModal` really uses its `PhaseChip`. Old saved games carrying `activeModal: null` in `server/data/games.json` are unaffected (inert extra JSON key, nothing validates it).
+
+**Two known-but-unreachable bugs died with the code, unfixed by design:** the "Permanent-duration card throws `Card not found in player hand` mid-discard" bug documented in the TODO item, and v3.1.8's flagged possible double-activate in `PlayerActionService.playCard()` (that follow-up investigation is now moot — the method no longer exists).
+
+**Test migration — the E2E suites that used `PlayerActionService.playCard` as their card-play driver now drive the LIVE paths instead:** `E2E-04_EdgeCases` (insufficient-funds) and `E2E-02`'s contract check now go through `cardService.playCard`; `E2E-05_MultiPlayerEffects`' two L003 forced-discard tests now go through `cardService.applyCardEffects(..., { onlyResourceEffects: true })` — the actual production path for Life Events (they auto-apply on draw via `CardEffectHandler`; the V2 UI's manual play is E-cards-only, so the old manually-play-an-L-card scenario no longer exists in the product), with the ghost bot's `autoPickForcedDiscards` flag for headless forced-discard picks and a corrected assertion (the drawn L card stays in hand as a record — the old dead path discarded it). Deleted outright: `PlayerActionService.test.ts`, `CardsSection.test.tsx`, `CardActions.test.tsx` (tests of deleted code), the `modalConfig` card-type shake tests, and the PlayerActionService mocks in `mockServices.ts`/`lightweightMocks.ts`.
+
+**Flagged, not fixed (new finding from the migration):** manually playing a Global-scope, *no-duration* card through `cardService.playCard` double-fans its effects — `parseCardIntoEffects` emits one effect per player AND `processCardEffects` re-fans each via the card's `All Players` target, so a 3-player L003 discarded up to 3 E cards per player instead of 1 (reproduced in-test). The Kid E fan-out guard (v3.0.39) only covers the `onlyResourceEffects` auto path. Unreachable from the V2 UI (manual play is E-only, and E cards are Self-targeted), but real at the service-API level — spun off as its own follow-up task.
+
+Verified: typecheck clean, production build clean, full suite run at wrap-up (see below), targeted reruns green on every touched test file (`E2E-01/02/03/04×2/05/Lightweight/FullGame`, `modalConfig`, `CharacterBadge`, `NarrativeBlock`, `EffectEngineService`, `TurnService` — 124+ tests). Also re-verified v3.1.8's stage-4 claims at session start before touching anything: 172/172 across its five test files, `game_ended` wiring present in all three consumers.
+
 ## [3.1.8] - 2026-07-17
 
 ### Refactor: domain-event stage 4 — move emitter ownership + fix a real bankruptcy/game-over toast bug

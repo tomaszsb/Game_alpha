@@ -51,7 +51,6 @@ describe('ChoiceModal', () => {
       currentPlayerId: 'player1',
       gamePhase: 'PLAY' as GamePhase,
       turn: 1,
-      activeModal: null,
       awaitingChoice: {
         id: 'card-choice-456',
         type: 'CARD_EFFECT',

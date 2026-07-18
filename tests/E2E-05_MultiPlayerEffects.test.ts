@@ -33,7 +33,6 @@ import { ResourceService } from '../src/services/ResourceService';
 import { TurnService } from '../src/services/TurnService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { TargetingService } from '../src/services/TargetingService';
-import { PlayerActionService } from '../src/services/PlayerActionService';
 import { FinancialEffectHandler } from '../src/services/FinancialEffectHandler';
 import { CardEffectHandler } from '../src/services/CardEffectHandler';
 import { CardEffectService } from '../src/services/CardEffectService';
@@ -93,7 +92,6 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
   let effectEngineService: EffectEngineService;
   let turnService: TurnService;
   let negotiationService: NegotiationService;
-  let playerActionService: PlayerActionService;
   
   // Player ID variables for proper service calls
   let aliceId: string, bobId: string, charlieId: string;
@@ -127,6 +125,11 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     const loggingServiceRef = new LoggingService(stateService);
     const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingServiceRef);
     const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingServiceRef);
+    // Headless bypass for forced-discard choice modals (L003/L048) — same flag
+    // the ghost bot sets (tests/ghost/bootstrapServices.ts). Needed since these
+    // tests now drive the live cardService.playCard path, whose CARD_DISCARD
+    // fan-out otherwise awaits a per-player pick modal and times out headless.
+    cardEffectHandler.autoPickForcedDiscards = true;
 
     // Create final EffectEngineService with complete dependencies
     effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, undefined, undefined, financialEffectHandler, cardEffectHandler);
@@ -135,9 +138,6 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     turnService.setEffectEngineService(effectEngineService);
     cardService.setEffectEngineService(effectEngineService);
 
-    // Create PlayerActionService
-    playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
-    
     // Initialize 3 players for comprehensive multi-player testing
     stateService.addPlayer('Alice');
     stateService.addPlayer('Bob');
@@ -187,7 +187,6 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     effectEngineService = null as any;
     turnService = null as any;
     negotiationService = null as any;
-    playerActionService = null as any;
 
     // Clear player ID references
     aliceId = null as any;
@@ -228,27 +227,72 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
         charlie: charlieInitialECards 
       });
       
-      // Alice plays L003 card
-      await playerActionService.playCard(aliceId, 'L003');
-      
+      // Apply L003 the way production does. Life Events are never played
+      // manually (the V2 UI's play-from-hand action is E-cards-only) — they
+      // auto-apply on draw via CardEffectHandler, which calls
+      // applyCardEffects(..., { onlyResourceEffects: true }). That path carries
+      // the Kid E fan-out guard, so each player discards exactly once.
+      // (The old test drove the deleted PlayerActionService manual-play path.)
+      await cardService.applyCardEffects(aliceId, 'L003', { onlyResourceEffects: true });
+
       // Verify: All players should have lost 1 E card
       const aliceFinalECards = stateService.getPlayer(aliceId)!.hand.filter(card => card.startsWith('E')).length || 0;
       const bobFinalECards = stateService.getPlayer(bobId)!.hand.filter(card => card.startsWith('E')).length || 0;
       const charlieFinalECards = stateService.getPlayer(charlieId)!.hand.filter(card => card.startsWith('E')).length || 0;
-      
-      console.log('📊 Final E card counts:', { 
-        alice: aliceFinalECards, 
-        bob: bobFinalECards, 
-        charlie: charlieFinalECards 
+
+      console.log('📊 Final E card counts:', {
+        alice: aliceFinalECards,
+        bob: bobFinalECards,
+        charlie: charlieFinalECards
       });
-      
+
       expect(aliceFinalECards).toBe(Math.max(0, aliceInitialECards - 1));
-      expect(bobFinalECards).toBe(Math.max(0, bobInitialECards - 1));  
+      expect(bobFinalECards).toBe(Math.max(0, bobInitialECards - 1));
       expect(charlieFinalECards).toBe(Math.max(0, charlieInitialECards - 1));
-      
-      // Verify: L003 card should be in the gameState discarded pile
-      const gameState = stateService.getGameState();
-      expect(gameState.discardPiles.L).toContain('L003');
+
+      // Verify: L003 stays in Alice's hand as a record — the auto life-event
+      // path deliberately does NOT discard the drawn L card (see
+      // CardEffectHandler's draw handler: "Card stays in hand as a record").
+      expect(stateService.getPlayer(aliceId)!.hand).toContain('L003');
+    });
+
+    it('manual playCard of a global no-duration card applies each effect exactly once per player (N×N fan-out regression, v3.1.10)', async () => {
+      // Regression pin for the Kid E guard extension. Before v3.1.10 the
+      // guard (CardService.applyCardEffects overriding target to 'Self' when
+      // the parser has already fanned a Global no-duration card out per
+      // player) only ran on the onlyResourceEffects auto path. The manual
+      // cardService.playCard path re-fanned the already-fanned effects via
+      // the card's target='All Players' rule — N effects × N targets — so a
+      // 3-player L003 discarded up to 3 E cards per player instead of 1.
+      // Unreachable from the V2 UI (manual play is E-cards-only) but real at
+      // the service-API level.
+      stateService.updatePlayer({ id: aliceId, hand: ['E001', 'E002', 'L003'], currentSpace: 'CON-INITIATION' });
+      stateService.updatePlayer({ id: bobId, hand: ['E003', 'E004'] });
+      stateService.updatePlayer({ id: charlieId, hand: ['E005'] });
+
+      const timeBefore = Object.fromEntries([aliceId, bobId, charlieId].map(id =>
+        [id, stateService.getPlayer(id)!.timeSpent ?? 0]));
+
+      await cardService.playCard(aliceId, 'L003');
+
+      // Exactly ONE discard per player — the N×N bug drained every E card.
+      const eCards = (id: string) => stateService.getPlayer(id)!.hand.filter(c => c.startsWith('E')).length;
+      expect(eCards(aliceId)).toBe(1);   // 2 - 1
+      expect(eCards(bobId)).toBe(1);     // 2 - 1
+      expect(eCards(charlieId)).toBe(0); // 1 - 1
+
+      // Played manually, L003 IS discarded (finalizePlayedCard), unlike the
+      // auto-draw path where it stays in hand as a record.
+      expect(stateService.getPlayer(aliceId)!.hand).not.toContain('L003');
+      expect(stateService.getGameState().discardPiles.L).toContain('L003');
+
+      // L003's +3-days tick is phase-filtered (affected_phase), so depending
+      // on where each player stands the delta is 0 or 3 — never 6/9, which is
+      // what the N×N re-fan produced.
+      for (const id of [aliceId, bobId, charlieId]) {
+        const delta = (stateService.getPlayer(id)!.timeSpent ?? 0) - timeBefore[id];
+        expect([0, 3]).toContain(delta);
+      }
     });
 
     it('should handle duration-based All Players effects with L002 Economic Downturn, ticking each holder only on their OWN turn', async () => {
@@ -270,7 +314,7 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       });
 
       // Alice plays L002 card
-      await playerActionService.playCard(aliceId, 'L002');
+      await cardService.playCard(aliceId, 'L002');
 
       // Verify: All players have active effects with 3-turn duration
       const players = [aliceId, bobId, charlieId];
@@ -414,8 +458,9 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       const initialBobECards = stateService.getPlayer(bobId)!.hand.filter(card => card.startsWith('E')).length || 0;
       const initialCharlieECards = stateService.getPlayer(charlieId)!.hand.filter(card => card.startsWith('E')).length || 0;
       
-      // Play the multi-player card
-      await playerActionService.playCard(aliceId, 'L003');
+      // Apply the multi-player card via the production auto life-event path
+      // (see the L003 test above — manual L-card play doesn't exist in the UI)
+      await cardService.applyCardEffects(aliceId, 'L003', { onlyResourceEffects: true });
       
       // Verify all players were affected
       const finalAliceECards = stateService.getPlayer(aliceId)!.hand.filter(card => card.startsWith('E')).length || 0;

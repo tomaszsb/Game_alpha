@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { colors } from '../../styles/theme';
-import { CardModal } from '../modals/CardModal';
 import { CardDetailsModal } from '../modals/CardDetailsModal';
 import { ChoiceModal } from '../modals/ChoiceModal';
 import { DiceResultModal } from '../modals/DiceResultModal';
@@ -61,7 +60,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     effectEngineService,
     loggingService,
     negotiationService,
-    playerActionService,
     gameRulesService,
     resourceService
   } = useGameContext();
@@ -78,7 +76,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     effectEngineService,
     loggingService,
     negotiationService,
-    playerActionService,
     gameRulesService,
     resourceService
   };
@@ -153,7 +150,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [shouldAutoShowMovementPath, setShouldAutoShowMovementPath] = useState<boolean>(false);
   const [isSpaceExplorerVisible, setIsSpaceExplorerVisible] = useState<boolean>(false);
   const [previewSpaceId, setPreviewSpaceId] = useState<string | null>(null);
-  const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isGameLogVisible, setIsGameLogVisible] = useState<boolean>(false);
   // Life event queue — set when a `life_event` AutoAction fires; opens its own
   // dedicated modal once the regular dice modal closes (or immediately if none
@@ -692,7 +688,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       setGamePhase(gameState.gamePhase);
       setPlayers(gameState.players);
       setCurrentPlayerId(gameState.currentPlayerId);
-      setActiveModal(gameState.activeModal?.type || null);
 
       // Track turn changes for notification clearing
       const previousTurn = turnNumber;
@@ -718,7 +713,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setGamePhase(currentState.gamePhase);
     setPlayers(currentState.players);
     setCurrentPlayerId(currentState.currentPlayerId);
-    setActiveModal(currentState.activeModal?.type || null);
     setTurnNumber(currentState.globalTurnCount);
     setGameStateCompletedActions(currentState.completedActions);
 
@@ -972,10 +966,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
   // Helper function to check if any modal is open
   const isAnyModalOpen = () => {
-    return isRulesModalOpen || 
-           isNegotiationModalOpen || 
-           isCardDetailsModalOpen || 
-           activeModal !== null;
+    return isRulesModalOpen ||
+           isNegotiationModalOpen ||
+           isCardDetailsModalOpen;
   };
 
   // fb:6e1e8ac4 — one-time tap gate for phone players (TV mode). Renders
@@ -1304,8 +1297,6 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       )}
       
 
-      {/* CardModal - always rendered, visibility controlled by state */}
-      <CardModal />
       
       {/* ChoiceModal - always rendered, visibility controlled by state.
           v3.0.17: passes effectiveViewPlayerId so non-target players' phones

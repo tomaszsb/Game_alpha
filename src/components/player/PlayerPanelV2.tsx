@@ -196,8 +196,8 @@ export const PlayerPanelV2: React.FC<PlayerPanelV2Props> = ({
   // The gate AND the play both go through the canonical SERVICE rule
   // (`gameRulesService.canPlayCard` via cardService) — the same rule the engine
   // enforces. We deliberately do NOT re-derive playability here (the classic
-  // CardsSection keeps its own component-local copy; forking it again is exactly
-  // the parallel-systems drift CLAUDE.md warns about).
+  // CardsSection kept its own component-local copy until it was deleted; forking
+  // it again is exactly the parallel-systems drift CLAUDE.md warns about).
   const expeditorCards = player.hand
     .map((id) => ({ id, card: gameServices.dataService.getCardById(id) }))
     .filter((x): x is { id: string; card: NonNullable<typeof x.card> } =>

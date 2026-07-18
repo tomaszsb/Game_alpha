@@ -55,15 +55,6 @@ describe('modalConfig', () => {
       expect(shouldShake('negative', { effects: [] })).toBe(false);
     });
 
-    it('should return true for "negative" with L-card type (CardModal)', () => {
-      expect(shouldShake('negative', { cardType: 'L' })).toBe(true);
-    });
-
-    it('should return false for "negative" with non-L card type', () => {
-      expect(shouldShake('negative', { cardType: 'W' })).toBe(false);
-      expect(shouldShake('negative', { cardType: 'B' })).toBe(false);
-    });
-
     it('should return false for unknown shakeOn value', () => {
       expect(shouldShake('unknown')).toBe(false);
     });

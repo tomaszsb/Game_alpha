@@ -48,7 +48,6 @@ describe('Transactional Logging Architecture', () => {
       globalTurnCount: 1,
       // Track individual player turn counts for statistics
       playerTurnCounts: { player1: 1 },
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,

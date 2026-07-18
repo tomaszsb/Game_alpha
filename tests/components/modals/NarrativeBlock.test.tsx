@@ -14,7 +14,7 @@ describe('NarrativeBlock', () => {
   // tokens, so it would show as a stray light box the next time a dice/action
   // result with a genuine draw narrative fires in dark mode (same bug as
   // CharacterBadge). Confirms the default (no `mode` prop, e.g. ChoiceModal/
-  // CardModal call sites) still renders the light surface, and `mode="dark"`
+  // ChoiceModal call site) still renders the light surface, and `mode="dark"`
   // (DiceResultModal in dark mode) switches to the dark panel surface instead.
   it('should default to the light-mode surface when no mode prop is passed', () => {
     render(<NarrativeBlock text="A narrative passage." spaceName="OWNER-FUND-INITIATION" />);

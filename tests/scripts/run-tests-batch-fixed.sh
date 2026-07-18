@@ -50,7 +50,6 @@ run_batch "game-logic" \
 run_batch "advanced-services" \
     "tests/services/TurnService.test.ts" \
     "tests/services/EffectEngineService.test.ts" \
-    "tests/services/PlayerActionService.test.ts"
 
 # Batch 4: Support Services
 run_batch "support-services" \
@@ -115,7 +114,6 @@ run_batch "game-components-2" \
 
 # Batch 14: Component Tests - Modal Components (Group 1)
 run_batch "modal-components-1" \
-    "tests/components/modals/CardActions.test.tsx" \
     "tests/components/modals/DiceResultModal.test.tsx" \
     "tests/components/modals/EndGameModal.test.tsx"
 
@@ -139,7 +137,6 @@ run_batch "player-components-1" \
 
 # Batch 18: Component Tests - Player Panel (Group 2)
 run_batch "player-components-2" \
-    "tests/components/player/CardsSection.test.tsx" \
     "tests/components/player/FinancesSection.test.tsx" \
     "tests/components/player/TimeSection.test.tsx"
 

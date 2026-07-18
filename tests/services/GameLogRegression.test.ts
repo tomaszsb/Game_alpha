@@ -82,7 +82,6 @@ describe('Game Log Architecture Regression Tests', () => {
       // Simplified turn tracking system (CRITICAL FOR REGRESSION TESTS)
       globalTurnCount: 3,
       playerTurnCounts: { player1: 2, player2: 1 },
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,
@@ -442,7 +441,6 @@ describe('Game Log Integration Flow', () => {
       turn: 1,
       globalTurnCount: 1,
       playerTurnCounts: { player1: 1 },
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,

@@ -14,16 +14,13 @@ import { DiceResultEffect } from '../types/StateTypes';
  */
 export function shouldShake(
   shakeOn: string | undefined,
-  context?: { effects?: DiceResultEffect[]; cardType?: string }
+  context?: { effects?: DiceResultEffect[] }
 ): boolean {
   if (!shakeOn) return false;
 
   if (shakeOn === 'always') return true;
 
   if (shakeOn === 'negative') {
-    // Check card type (for CardModal)
-    if (context?.cardType === 'L') return true;
-
     // Check effects (for DiceResultModal)
     if (context?.effects) {
       return context.effects.some(effect => {

@@ -10,7 +10,6 @@ import { GameRulesService } from '../src/services/GameRulesService';
 import { MovementService } from '../src/services/MovementService';
 import { ResourceService } from '../src/services/ResourceService';
 import { TurnService } from '../src/services/TurnService';
-import { PlayerActionService } from '../src/services/PlayerActionService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { ITurnService } from '../src/types/ServiceContracts';
 import { readFileSync } from 'fs';

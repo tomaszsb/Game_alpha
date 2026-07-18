@@ -341,7 +341,6 @@ describe('E066 Card - Re-roll Mechanics Integration', () => {
       turn: 1,
       globalTurnCount: 1,
       playerTurnCounts: { player1: 1 },
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: true,

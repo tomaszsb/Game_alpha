@@ -84,7 +84,6 @@ const setupGameE2E = async (initialPlayerName: string = 'Alice') => {
     negotiationService: globalNegotiationService,
     loggingService: globalLoggingService,
     notificationService: globalNotificationService,
-    playerActionService: {} as any,
   };
 
   globalStateService.resetGame();

@@ -74,15 +74,18 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   // "nothing to activate"). TYPE eligibility is gated here, mirroring
   // PlayerPanelV2's E-only `playableExpeditors` filter; TIMING/phase/affordability
   // stays in the shared `canPlayCard` rule (no logic re-derived in the component).
-  // NOTE: the shared rule itself still returns true for non-E types, so the classic
-  // CardModal shows the same stray Activate — tightening that rule is a design call
-  // (bundled with fb:66bb0bda), deliberately left to the maintainer.
+  // NOTE: the shared rule itself still returns true for non-E types — BY
+  // DECISION (maintainer, 2026-07-18, closing the fb:66bb0bda design call):
+  // the rule stays type-agnostic for reskin flexibility and future card
+  // functionality. This component-level E-only gate is the presentation
+  // layer's job; if a second hand-playable card family ever appears, the
+  // gate moves into card data (see TODO.md "Resolved 2026-07-18").
   const canPlay = card.card_type === 'E' && gameServices.cardService.canPlayCard(playerId, card.card_id);
 
   // When an Expeditor is held but not currently playable AND it carries a phase
   // restriction, explain the wait instead of silently offering no action —
   // mirrors the classic panel's "Can only be activated during X phase"
-  // (CardsSection). Presentation only; the gate itself stays in canPlayCard. We
+  // (the since-deleted CardsSection). Presentation only; the gate itself stays in canPlayCard. We
   // don't re-derive WHY it's blocked, but an expeditor with a phase restriction
   // is overwhelmingly blocked by phase, and the phase is a real requirement
   // either way (it's shown as a Key Fact too).

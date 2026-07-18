@@ -11,8 +11,8 @@ interface CharacterBadgeProps {
   /** Optional portrait image URL. When provided, replaces the emoji with a circular portrait. */
   portraitSrc?: string | null;
   /**
-   * Light/dark token set. Defaults to 'light' — ChoiceModal/CardModal have no
-   * dark-mode awareness at all and don't pass this, so they keep rendering
+   * Light/dark token set. Defaults to 'light' — ChoiceModal has no
+   * dark-mode awareness at all and doesn't pass this, so it keeps rendering
    * exactly as before. Only mode-aware callers (DiceResultModal) pass the
    * shell's actual mode (fb:feedback-1783924131895-ffec84f4 — this badge was
    * hardcoded light and showed as a stray light box in a dark modal).

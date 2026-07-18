@@ -70,7 +70,6 @@ describe('EndGameModal', () => {
       hasPlayerRolledDice: false,
       awaitingChoice: null,
       isGameOver: false,
-      activeModal: null,
       requiredActions: 1,
       completedActions: 0,
       availableActionTypes: [],

@@ -10,7 +10,6 @@ import { StateService } from '../services/StateService';
 import { LoggingService } from '../services/LoggingService';
 import { TurnService } from '../services/TurnService';
 import { CardService } from '../services/CardService';
-import { PlayerActionService } from '../services/PlayerActionService';
 import { MovementService } from '../services/MovementService';
 import { GameRulesService } from '../services/GameRulesService';
 import { ResourceService } from '../services/ResourceService';
@@ -88,8 +87,6 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
   turnService.setEffectEngineService(effectEngineService);
   cardService.setEffectEngineService(effectEngineService);
 
-  const playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
-
   const services: IServiceContainer = {
     dataService,
     stateService,
@@ -97,7 +94,6 @@ export const ServiceProvider = ({ children }: ServiceProviderProps): JSX.Element
     notificationService,
     turnService,
     cardService,
-    playerActionService,
     movementService,
     gameRulesService,
     resourceService,

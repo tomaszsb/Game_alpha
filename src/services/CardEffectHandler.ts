@@ -313,7 +313,9 @@ export class CardEffectHandler implements ICardEffectHandler {
     try {
 
       // Auto-play cards (e.g., OWNER-FUND-INITIATION) need their effects applied here.
-      // Manual card plays already had effects processed by PlayerActionService before reaching this point.
+      // Auto-play is the only remaining PLAY_CARD producer — manual plays go through
+      // CardService.playCard, which applies effects and finalizes directly (the old
+      // PlayerActionService manual path was deleted with the classic-panel dead code).
       if (payload.source?.startsWith('auto_play:')) {
         await this.cardService.applyCardEffects(payload.playerId, payload.cardId);
       }

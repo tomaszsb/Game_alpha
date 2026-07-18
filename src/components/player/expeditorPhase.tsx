@@ -10,8 +10,8 @@ import { PHASE_COLORS } from '../../utils/boardCommon';
  * chip matches the tile/phase-bar palette (note E cards spell it
  * REGULATORY_REVIEW where the palette key is REGULATORY).
  *
- * Extracted from CardsSection so the hand list and the replacement picker share
- * one chip (no parallel copy to drift).
+ * Originally extracted from the classic panel's CardsSection (since deleted);
+ * now used by CardReplacementModal's replace/return/give picker.
  */
 const NEUTRAL_PHASE = { border: '#9e9e9e', text: '#616161' };
 const EXPEDITOR_PHASES: Record<string, { label: string; colorKey: string; order: number }> = {

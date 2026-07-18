@@ -8,7 +8,6 @@ import { GameRulesService } from '../src/services/GameRulesService';
 import { MovementService } from '../src/services/MovementService';
 import { ResourceService } from '../src/services/ResourceService';
 import { TurnService } from '../src/services/TurnService';
-import { PlayerActionService } from '../src/services/PlayerActionService';
 import { NegotiationService } from '../src/services/NegotiationService';
 import { LogWriter } from '../src/services/LogWriter';
 import { ITurnService } from '../src/types/ServiceContracts';
@@ -61,7 +60,6 @@ describe('E2E-03: Complex Space Features Test', () => {
   let movementService: MovementService;
   let resourceService: ResourceService;
   let turnService: TurnService;
-  let playerActionService: PlayerActionService;
   let negotiationService: NegotiationService;
 
   beforeAll(async () => {
@@ -85,7 +83,6 @@ describe('E2E-03: Complex Space Features Test', () => {
     turnService.setEffectEngineService(effectEngineService);
     effectEngineService.setTurnService(turnService);
 
-    playerActionService = new PlayerActionService(dataService, stateService, gameRulesService, movementService, turnService, effectEngineService, loggingService);
 
     // Load game data
     await dataService.loadData();

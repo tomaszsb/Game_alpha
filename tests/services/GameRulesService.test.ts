@@ -41,7 +41,6 @@ describe('GameRulesService', () => {
       players: [mockPlayer],
       currentPlayerId: 'player1',
       gamePhase: 'PLAY',
-      activeModal: null,
       awaitingChoice: null,
       hasPlayerMovedThisTurn: false,
       hasPlayerRolledDice: false,

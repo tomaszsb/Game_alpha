@@ -12,8 +12,8 @@ interface NarrativeBlockProps {
   spaceName?: string;
   portraitSrc?: string | null;
   /**
-   * Light/dark token set. Defaults to 'light' — ChoiceModal/CardModal have no
-   * dark-mode awareness at all and don't pass this, so they keep rendering
+   * Light/dark token set. Defaults to 'light' — ChoiceModal has no
+   * dark-mode awareness at all and doesn't pass this, so it keeps rendering
    * exactly as before. Only mode-aware callers (DiceResultModal) pass the
    * shell's actual mode (fb:feedback-1783924131895-ffec84f4 — same stray
    * light-box-in-dark-modal bug as CharacterBadge).
