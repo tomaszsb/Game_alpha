@@ -1,6 +1,6 @@
 # Player Panel Redesign — Locked Design Spec
 
-**Status:** Design locked 2026-06-22. Implementation pending (behind an old/new toggle).
+**Status:** ✅ COMPLETE — design locked 2026-06-22; shipped as `PlayerPanelV2` (default since v3.0.97); classic panel + toggle removed 2026-07-14 (see §7 and CHANGELOG v3.0.128–137). **Archived 2026-07-18.** §10's change-legibility follow-on (P2–P5) remains parked in TODO.
 **Owner:** maintainer (creator) · drafted with AI Lead Programmer.
 **Source design package:** 17-doc "Design Discovery & Requirements Package v1.0" (in `E:\Downloads`, the design team's brief — see "Design package assessment" below). This spec is *our* design decisions, informed by that brief but not a copy of it.
 

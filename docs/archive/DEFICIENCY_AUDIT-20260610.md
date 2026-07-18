@@ -4,6 +4,8 @@
 **Audited version:** 3.0.70 (package.json)
 **Scope:** Static audit of the codebase + build/test/lint/dependency health. This document lists deficiencies only — no fixes were applied.
 
+> **Archived 2026-07-18** after a doc-vs-code sweep. Final disposition: DEF-1/2/5/6 resolved 2026-06-12 (noted inline); DEF-7 resolved (README rebuilt as a thin pointer; TODO/CLAUDE headers now maintained by `/koniec`); DEF-12 resolved v3.1.11 (ghost gates split out of `npm test`, ~99s now); DEF-3 mostly moot (the flagged panel sections were deleted with the classic panel v3.0.128–137) **except `DataEditor.tsx`, still open**; DEF-4/9/10/11 verified still open 2026-07-18 (lint still 386 errors; still 164 raw `console.*`; no `engines` pin; full-game E2E still skipped) — all open leftovers now tracked as one bundle in TODO.md (Architecture / code health). DEF-8/13 are accepted policy (TODO Bucket E / service-decomposition trigger).
+
 ---
 
 ## How to read this

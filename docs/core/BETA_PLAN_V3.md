@@ -1,6 +1,6 @@
 # Unravel Codes — Beta (v3.0) Plan
 
-**Status:** Draft — awaiting execution
+**Status:** Executed — v3.0.0 shipped 2026-05-23; all workstreams closed. One remaining W3 (Living Map) follow-on — per-section connector show/hide + redirect — is tracked in TODO ("G160"). Success-criteria section updated 2026-07-18.
 **Started from:** v2.39.5
 **Repo:** Same repo (`tomaszsb/Game_alpha` → rename to `Game_beta` as part of Workstream 0)
 **Philosophy:** Targeted surgical refactor, not a rewrite. Keep working code; replace the 5 specific subsystems that cause the most pain.
@@ -40,6 +40,8 @@ The Alpha is 95% working. Thousands of fixes, edge cases, and school-floor lesso
 ---
 
 ### Workstream 2 — Snapshot-based "Try Again"
+
+**Status: ✅ CLOSED 2026-07-12 (criterion rewritten; full replacement declined).** Shipped as per-turn `TurnCostLedger` + logging sessions layered ON TOP of REAL/TEMP (v2.40.0), not the replacement sketched below. Maintainer decision 2026-07-12 after audit: zero bugs traced to the overlap in the ledger's lifetime; the ledger tracks 3 narrow fields vs. REAL/TEMP's ~18-field / 83-call-site scope, so a full replacement would relocate complexity, not remove it. Full replacement is parked in TODO with an explicit trigger (Try Again needing to preserve a 4th type of "sticky outflow"). Original deliverable text below preserved for history.
 
 **Problem:** The current REAL/TEMP dual-state model in TurnService is complex, hard to reason about, and the user reports it's "not 100% there." Because we can't test every space, silent bugs are likely.
 
@@ -417,9 +419,9 @@ Status as of v2.58.0 (April 30, 2026):
 - [x] **Two known genuine cycles documented in ARCHITECTURE.md as intentional with assertion guards.** Shipped v2.48.0; see ARCHITECTURE.md → "Circular Dependency Resolution".
 - [x] **All existing vitest suites still green.** 23 batches green at v2.58.0; `npm run typecheck` 0 errors.
 - [~] **Ghost Player regression gate in place.** Original criterion ("1,000 games in CI, zero failures, in under 30s") was rephrased during Workstream 1 to **50 random games per CI run, zero exceptions/invariant violations, ≥90% wins, all `GAME_CONFIG.csv` spaces visited**. Actual baseline: 96% wins, ~110 avg turns. The 1,000-game number was aspirational; 50 is the proven gate.
-- [~] **Snapshot Try Again** — partially shipped. v2.40.0 added per-turn `TurnCostLedger` semantics on top of REAL/TEMP rather than replacing it. Decision needed (see TODO Tier 5): tighten criterion to current implementation, or do the full replacement.
+- [x] **Try Again is safe and self-contained** — criterion rewritten 2026-07-12/18 to match what shipped (maintainer decision, TODO "Resolved 2026-07-12"): per-turn `TurnCostLedger` + logging sessions layered on top of REAL/TEMP (v2.40.0), instead of the originally-scoped full snapshot replacement. Audited: zero bugs traced to the REAL/TEMP overlap in the ledger's lifetime. Full replacement parked in TODO with an explicit trigger (a 4th sticky-outflow type).
 - [x] **Board reads positions from CSV** (Workstream 3 — Living Map). Shipped across v2.62.0–v2.69.5. `Spaces.csv` has `pos_x`/`pos_y` columns; `BoardCanvas` renders from them via `dataService.getPosition()`. Drag-to-save (v2.66.0) persists admin edits through `/api/admin/save-source-files`, with v2.69.4 fixing a `DataService` cache that was making positions appear to revert on editor reopen. v2.68.0 added a standalone `BoardLayoutEditor` so layout can be edited from the lobby without a running game. v2.69.5 fixed an `@xyflow/react` panOnDrag interaction that was breaking hover/click during gameplay. Phase D BoardV3 retirement (delete ~1,664 lines of `BoardV3.tsx`/`boardLayout.ts` + 721 test lines) still deferred pending a few playtests on the v2.69.x flow.
 - [x] **Dictionary terms auto-populate from dictionary-scraper at startup** (Workstream 5). Shipped v2.67.0 (2026-05-20). The infrastructure (`loadTerms` API-first, `TextWithTerms` regex with aliases, `DictionaryContext` re-render on async load) had been in place since v2.30-ish but was gated by a same-origin guard added when the scraper's CORS allowlist didn't include `game.unravelcodes.com`. v2.67.0 removed the guard and added the game origin to the scraper allowlist; live terms now load on every game start. CSV fallback (`public/data/CLEAN_FILES/GLOSSARY.csv`) refreshed from API snapshot and remains the offline-resilience path.
-- [ ] **Version tag `v3.0.0` pushed** — now gated only on BoardV3 retirement (small mechanical change, ~30–60 min) once v2.69.x drag-save persistence + gameplay hover/click are confirmed stable across 3+ playtests.
+- [x] **Version tag `v3.0.0` pushed** — shipped 2026-05-23 (commit `f13a325`, "retire BoardV3, ship v3.0.0" — Workstream 3 Phase D landed in the same commit).
 
-**v3.0.0 readiness:** 5 of 8 met (+ WS3 W5 W6 W7 + cycles + vitest gate), 2 partial (Snapshot Try Again, Ghost gate sized down), 0 not started. The remaining gate is BoardV3 retirement and the W2 Try Again criterion decision. See [TODO.md Tier 5](../../TODO.md) for the active backlog.
+**v3.0.0 readiness:** SHIPPED 2026-05-23. All criteria closed — 6 met as written, 2 consciously resized with maintainer sign-off (Ghost gate at its proven 50-game form; Try Again criterion rewritten 2026-07-12 to the shipped `TurnCostLedger` design). See [TODO.md](../../TODO.md) for the active backlog.

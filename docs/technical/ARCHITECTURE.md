@@ -680,7 +680,7 @@ This eliminates redundant calculations during turn transitions where the same va
 
 ### Game Event Bus (December 2025; typed union since domain-event stage 2, July 2026)
 
-For automatic actions that require UI feedback (dice-conditional L card draws, movement, etc.), StateService provides a typed event bus. This started as a single flat `AutoActionEvent` interface with ~15 optional fields shared across all 8 event types; [docs/design/domain-events.md](../design/domain-events.md) stage 2 promoted it to a discriminated union (`src/types/GameEvents.ts`) dispatched through a dedicated `GameEventBus` (`src/services/GameEventBus.ts`) — each event name now only carries the fields it actually uses:
+For automatic actions that require UI feedback (dice-conditional L card draws, movement, etc.), StateService provides a typed event bus. This started as a single flat `AutoActionEvent` interface with ~15 optional fields shared across all 8 event types; [docs/archive/domain-events-20260717.md](../archive/domain-events-20260717.md) stage 2 promoted it to a discriminated union (`src/types/GameEvents.ts`) dispatched through a dedicated `GameEventBus` (`src/services/GameEventBus.ts`) — each event name now only carries the fields it actually uses:
 
 ```typescript
 // src/types/GameEvents.ts — one variant of the GameEvent union

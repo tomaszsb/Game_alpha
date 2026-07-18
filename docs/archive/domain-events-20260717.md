@@ -1,6 +1,6 @@
 # Domain Event Architecture — Design
 
-**Status:** Approved direction, staged plan agreed 2026-07-17. Not yet started.
+**Status:** ✅ COMPLETE — all four planned stages shipped 2026-07-17 (CHANGELOG v3.1.5–v3.1.8: stage 1 dead-code cleanup, stage 2 typed `GameEvent` bus replacing `AutoActionEvent`, stage 3 LogWriter/ToastWriter dual-channel collapse, stage 4 emitter-ownership moves). Stage 5 (migrating blanket `stateService.subscribe()` UI consumers) was explicitly optional-on-measured-need and stays covered by TODO's "Notification storm + full-state subscriptions" item. **Archived 2026-07-18.** ARCHITECTURE.md now documents the shipped bus.
 **Origin:** 2026-07-14 external review; TODO.md Architecture parking-lot item; design session 2026-07-17 (research findings verified against code that day).
 **Relationship to other TODO items:** the "NotificationService.notify + LoggingService.info one-bus" item and the "EffectExecutor unification" item would both sit ON TOP of this — do not scope them separately while this is in flight.
 

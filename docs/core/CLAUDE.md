@@ -175,7 +175,7 @@ ssh unraid "docker restart game_alpha"
 **Quick Reference:**
 - **Root:** README.md, TODO.md, CHANGELOG.md
 - **docs/core/:** CLAUDE.md, BETA_PLAN_V3.md, PROJECT_STATUS.md, PRODUCT_CHARTER.md, AUTHORED_COPY_REVIEW.md, narratives-draft.md
-- **docs/technical/:** ARCHITECTURE.md, API_REFERENCE.md, TESTING_GUIDE.md, CODE_STYLE.md, TURN_FLOW_DIAGRAM.mmd, how-the-board-is-drawn.md, how-the-prototypes-draw-the-board.md
+- **docs/technical/:** ARCHITECTURE.md, API_REFERENCE.md, TESTING_GUIDE.md, CODE_STYLE.md, TURN_FLOW_DIAGRAM.mmd, how-the-board-is-drawn.md
 - **docs/user/:** USER_MANUAL.md, RELEASE_NOTES.md, bug_report.docx
 - **docs/archive/:** Historical milestones only (read-only)
 

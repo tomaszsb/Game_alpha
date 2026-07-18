@@ -1,5 +1,7 @@
 # How the Prototype Files Draw the Board
 
+> **Archived 2026-07-18:** this explains the prototype HTML files that live in this same folder (`svg_arrows_prototype.html`, `dynamic_path_mockup.html`). The production board's explainer is [docs/technical/how-the-board-is-drawn.md](../../technical/how-the-board-is-drawn.md).
+
 We built two prototype files to experiment with different ways of drawing the board. Both use SVG arrows (drawn lines with arrowheads) instead of the CSS rectangles used in the production game. Here's how each one works.
 
 ---

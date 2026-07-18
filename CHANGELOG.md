@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Docs] - 2026-07-18
+
+### Docs sweep: every .md/mockup checked against code — 4 completed docs archived, open leftovers promoted to TODO
+Full audit of every non-living `.md` and mockup document against the current codebase (maintainer request). No code changes.
+
+**Archived (verified complete, stamped with final status before moving):**
+- `docs/design/domain-events.md` → `docs/archive/domain-events-20260717.md` — all 4 planned stages shipped 2026-07-17 (v3.1.5–8); its status header still said "Not yet started." Stage 5 was optional-on-measured-need and stays covered by TODO's full-state-subscriptions item. ARCHITECTURE.md link updated.
+- `docs/design/player-panel-redesign.md` → `docs/archive/player-panel-redesign-20260714.md` — shipped as `PlayerPanelV2`; classic panel + toggle deleted 2026-07-14. TODO's §10 link updated.
+- `docs/technical/DEFICIENCY_AUDIT.md` → `docs/archive/DEFICIENCY_AUDIT-20260610.md` — re-verified every item against today's code: DEF-1/2/5/6/7/12 resolved; DEF-3 mostly moot (flagged files died with the classic panel) except `DataEditor.tsx`; DEF-4 (lint still 386 errors), DEF-9 (still exactly 164 raw `console.*`), DEF-10 (no `engines` pin), DEF-11 (full-game E2E still skipped) still open → all bundled into one new TODO item (Architecture / code health).
+- `docs/technical/how-the-prototypes-draw-the-board.md` → `docs/archive/prototypes/` — documents the prototype HTMLs already archived in that folder. CLAUDE.md doc listing updated.
+
+**BETA_PLAN_V3.md brought up to reality (stays, still referenced by TODO's G160):** stale "Draft — awaiting execution" header replaced; the Workstream-2 "Snapshot Try Again" success criterion rewritten to match what shipped (`TurnCostLedger` layered on REAL/TEMP; full replacement declined + parked with trigger) — this was the outstanding ~10-min follow-up from the 2026-07-12 maintainer interview, now closed; v3.0.0-tag criterion marked shipped (commit `f13a325`, which also retired BoardV3).
+
+**Incomplete docs now explicitly wired into TODO:** `narratives-draft.md` holds a full never-merged narrative draft for most spaces (verified: only the 5 v2.50.0 rows are in SPACE_EFFECTS.csv) — the story-authoring TODO item now points at it, with two pre-merge caveats (needs a voice-rule pass — it pre-dates the "Roll"-ban — and format adaptation to the shipped single-`narrative`-column schema); `AUTHORED_COPY_REVIEW.md` Pass 1 verified merged, Pass 2 (ModalConfig) TODO item now names the doc as its source.
+
+**Kept in place (living or actively referenced):** TEACHER_LAYER_DESIGN.md (spec for the shipped teacher layer), how-the-board-is-drawn.md, MANUAL_FUNDING_TESTS.md, `Mockups/editor-mockup.html` + `story-mockup.html` (both referenced by active TODO parking items). Also confirmed en route: the deploy.sh instances-wipe bug flagged in CLAUDE.md 2026-06-13 is fixed (per-classroom config now survives deploys per deploy.sh's own header), and README's thin-pointer rebuild closes DEF-7.
+
+Verified: full suite 2357/2358 (1 pre-existing skip — the very E2E-FullGame skip DEF-11 tracks), 98s.
+
 ## [3.1.16] - 2026-07-18
 
 ### Fix: real card_draw formatting bug found + inline scope deltas added (Project Chronicle P1, first piece)
