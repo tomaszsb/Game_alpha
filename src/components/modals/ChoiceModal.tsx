@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ModalBase, modalButtonStyles } from './shared/ModalBase';
-import { colors, theme } from '../../styles/theme';
+import { theme } from '../../styles/theme';
 import { useGameContext } from '../../context/GameContext';
 import { Choice } from '../../types/CommonTypes';
 import { NotificationUtils } from '../../utils/NotificationUtils';
@@ -18,6 +18,7 @@ import { NarrativeBlock } from './shared/NarrativeBlock';
 import { debugLog } from '../../utils/debugLog';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
 import { VisitType } from '../../types/DataTypes';
+import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 
 export interface ChoiceModalProps {
   // v3.0.17 — set in TV-mode-with-phones (each phone passes its player ID).
@@ -62,6 +63,15 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
   }, [stateService, awaitingChoice?.id]);
 
   const { getPortraitForSpace } = useNpcPortrait();
+
+  // Light/dark shell, mirroring DiceResultModal (fb:feedback-1783924131895-ffec84f4).
+  // ChoiceModal is mounted in GameLayout as a sibling of PlayerPanelWrapper (the
+  // component that owns the `usePanelMode` hook + toggle button), not inside its
+  // tree, so it can't consume that hook directly. It reads the same persisted
+  // flag PlayerPanelWrapper writes to localStorage instead — same non-hook
+  // reader DiceResultModal already uses for the same reason.
+  const panelMode = getStoredPanelMode();
+  const p = panelPalettes[panelMode];
 
   const isCardChoiceType = awaitingChoice?.type === 'CARD_REPLACEMENT' || awaitingChoice?.type === 'CARD_SELECTION' || awaitingChoice?.type === 'CARD_GIVE';
 
@@ -229,9 +239,14 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
     ? 'The clerk needs an answer before routing your application.'
     : undefined;
 
+  // Button background follows the panel accent (mirrors DiceResultModal's
+  // primaryBtnStyle) instead of the shared, mode-fixed modalButtonStyles —
+  // those stay light-only, which would leave a stray light button sitting in
+  // a dark-mode body. Hover swaps to opacity (not a hardcoded darker blue) so
+  // it stays correct in both modes without a second dark-mode color.
   const choiceButtonStyle: React.CSSProperties = {
     ...modalButtonStyles.primary,
-    backgroundColor: colors.primary.main,
+    backgroundColor: p.accent,
     width: '100%',
     textAlign: 'left',
     display: 'flex',
@@ -248,9 +263,10 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
       maxWidth="500px"
       testId="choice-modal"
       speechControls={speechControls}
+      mode={panelMode}
     >
       {/* Character Badge */}
-      {currentSpace && <CharacterBadge spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />}
+      {currentSpace && <CharacterBadge spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} mode={panelMode} />}
 
       {/* Per-action narrative (if available for the choice's source effect) */}
       {currentSpace && awaitingChoice?.metadata?.effectAction && (() => {
@@ -258,18 +274,18 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
           currentSpace, currentVisitType, awaitingChoice.metadata.effectAction as string
         );
         if (!narrative) return null;
-        return <NarrativeBlock text={narrative} spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} />;
+        return <NarrativeBlock text={narrative} spaceName={currentSpace} portraitSrc={getPortraitForSpace(currentSpace)} mode={panelMode} />;
       })()}
 
       {/* Prompt */}
       {awaitingChoice && (
         <p style={{
           margin: '0 0 20px 0',
-          color: colors.text.secondary,
+          color: p.muted,
           fontSize: '16px',
           textAlign: 'center',
         }}>
-          <strong>{currentPlayerName}:</strong> {awaitingChoice.prompt}
+          <strong style={{ color: p.text }}>{currentPlayerName}:</strong> {awaitingChoice.prompt}
         </p>
       )}
 
@@ -289,11 +305,11 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
                 onClick={() => handleChoiceClick(option.id)}
                 style={choiceButtonStyle}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.primary.dark;
+                  e.currentTarget.style.opacity = '0.9';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.primary.main;
+                  e.currentTarget.style.opacity = '1';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
@@ -308,14 +324,14 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
       <div style={{
         marginTop: '20px',
         padding: '15px',
-        backgroundColor: colors.secondary.bg,
+        backgroundColor: p.surf,
         borderRadius: theme.borderRadius.md,
-        border: `1px solid ${colors.secondary.border}`
+        border: `1px solid ${p.border}`
       }}>
         <p style={{
           margin: '0',
           fontSize: '14px',
-          color: colors.secondary.main,
+          color: p.muted,
           textAlign: 'center'
         }}>
           {theme.emoji.info} {customDescription || logicDescription || 'Make your selection to continue.'}

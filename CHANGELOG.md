@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.12] - 2026-07-18
+
+### Fix: ChoiceModal now respects light/dark mode (dark-mode coverage, slice 1)
+First slice of the dark/light mode coverage audit (TODO, maintainer request 2026-07-14). `ChoiceModal` was confirmed dark-unaware in the v3.0.127 CHANGELOG entry (only `DiceResultModal` got that stage's fix) — its shell, prompt text, choice buttons, and help-text box all used hardcoded light colors regardless of the toggle.
+
+**Fix mirrors the existing `DiceResultModal` pattern exactly, no new theming mechanism.** `ChoiceModal` is mounted in `GameLayout` as a sibling of `PlayerPanelWrapper` (which owns the `usePanelMode` hook), not inside its tree, so it can't consume the hook directly — it reads the same persisted flag via `getStoredPanelMode()` and looks up `panelPalettes[mode]` (`src/components/player/panelTheme.ts`), same as `DiceResultModal` already does for the identical structural reason. Threads `mode={panelMode}` into `ModalBase`, `CharacterBadge`, and `NarrativeBlock` (both already carry an optional `mode` prop from the 2026-07-13 fix, defaulting to `'light'` for backward compat elsewhere). Choice buttons now use `panelPalettes[mode].accent` instead of a hardcoded `colors.primary.main`, with hover swapped to an opacity change instead of a second hardcoded dark-blue — correct in both modes without adding a color.
+
+Verified live in the browser (mounted `ChoiceModal` with the same mock `GameContext` shape the unit test uses, since reaching it via real gameplay requires a multi-turn `LOGIC_QUESTION` choice): light mode matched `panelPalettes.light` exactly (bg `#ffffff`, help box `#f1f4f8`/`#d7dde6`, muted text `#566076`); toggled dark and every value matched `panelPalettes.dark` exactly (bg `#0f172a`, header `#1e293b`, title `#f1f5f9`, help box `#1e293b`/`#334155`, muted text `#a3b3c7`), buttons stayed on-brand blue with white text in both.
+
+**Deferred, explicitly out of scope this slice:** the board (ReactFlow spaces/edges/labels) and `TVDisplay` remain light-only — the larger, riskier remaining pieces of the TODO item. `CardReplacementModal` (a sibling branch inside the same file, used for `CARD_REPLACEMENT`/`CARD_SELECTION`/`CARD_GIVE`) is also still light-only — not named in the original TODO item, but a natural next target since it's one hop from this change.
+
+Verified: typecheck clean, production build clean, targeted tests green (`ChoiceModal` 7, `CharacterBadge` 12, `NarrativeBlock` 2, `ModalBase` 7, `DiceResultModal` 23 — 51/51, re-run independently by the orchestrator).
+
 ## [3.1.11] - 2026-07-18
 
 ### Fix: plain `npm test` "hang" root-caused — it was the 20–30-minute ghost gates, now split out
