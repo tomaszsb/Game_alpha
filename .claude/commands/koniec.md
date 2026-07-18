@@ -9,23 +9,17 @@ End-of-session wrap-up for Unravel Codes. Tight loop — don't add ceremony.
 ```
 npm run typecheck
 npm run build
-npm test                # full vitest, backgrounded — takes ~10-12 min, NOT hung.
-                        # 3 ghost-bot simulation tests each run 50 full games
-                        # and take 460-500s apiece; that's most of the runtime.
-                        # (2026-07-10 correction: an earlier version of this
-                        # skill said "hangs on Windows... fall back if it
-                        # doesn't return within ~3 min" — that was wrong. A
-                        # session that gave up at 4 min and fell back to a
-                        # targeted sweep missed that the backgrounded run
-                        # finished clean at 636s, and had already written
-                        # "full suite hung" into PROJECT_STATUS.md/
-                        # NEXT_SESSION.md before the correction was caught.
-                        # Only treat it as actually hung past ~15 min.)
+npm test                # fast vitest, backgrounded — ~100s as of v3.1.11.
+npm run test:ghost       # ghost regression gates, backgrounded separately — ~10-12 min.
 ```
 
-**Zero-game-source sessions (added 2026-07-10):** if the session touched NO game source (`src/`, `server/`, `public/data/`, `tests/`) — only docs, skill files, TODO, or standalone `scripts/` that nothing imports — run typecheck + build only and skip the full suite. There are no code changes to ripple. State the skip explicitly in NEXT_SESSION + the wrap line, citing the last green baseline. Any `src/`/`server/`/data change, however small, still gets the full suite.
+**(2026-07-18 correction, v3.1.11):** `npm test` and `npm run test:ghost` used to be the same run — the 3 ghost-bot simulation tests (each 50 full games, 460-500s apiece) were silently included in `npm test`'s config, which is what made the full suite take ~10-12 min and look like it might be hung. v3.1.11 split them into a dedicated `vitest.config.ghost.ts` + `npm run test:ghost` script. **Both commands now need to run for full Golden-Rule coverage** — `npm test` alone (the fast one) is NOT the same "full suite" this file used to mean. Start both backgrounded early (step 1) so their runtime overlaps with the memory/docs work below; `npm test` will likely finish before you're done with step 2, `test:ghost` may still be running until near the end. Only treat `test:ghost` as actually hung past ~15 min (same reasoning as the old note below, just now scoped to the slow command only).
 
-The point of the full suite is catching cross-file ripples a session author wouldn't predict. Start it backgrounded early (step 1, before the memory/docs work below) so the ~10-12 min runtime overlaps with everything else in this skill — check back at the end rather than blocking on it. If it genuinely hasn't returned by ~15 min, fall back to the targeted sweep: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant surfaces.
+*(Historical, 2026-07-10 correction, kept for context: an earlier version of this skill said the combined suite "hangs on Windows... fall back if it doesn't return within ~3 min" — that was wrong. A session that gave up at 4 min and fell back to a targeted sweep missed that the backgrounded run finished clean at 636s, and had already written "full suite hung" into PROJECT_STATUS.md/NEXT_SESSION.md before the correction was caught.)*
+
+**Zero-game-source sessions (added 2026-07-10):** if the session touched NO game source (`src/`, `server/`, `public/data/`, `tests/`) — only docs, skill files, TODO, or standalone `scripts/` that nothing imports — run typecheck + build only and skip both test commands. There are no code changes to ripple. State the skip explicitly in NEXT_SESSION + the wrap line, citing the last green baseline. Any `src/`/`server/`/data change, however small, still gets both.
+
+The point of the full suite (both commands together) is catching cross-file ripples a session author wouldn't predict. If `test:ghost` genuinely hasn't returned by ~15 min, fall back to the targeted sweep: `tests/components/ tests/utils/ tests/services/` — that catches ~90% of the relevant non-ghost surfaces (the fast `npm test` already covers this in the common case; the fallback is only for when even that hangs).
 
 **Capture for downstream:**
 - Total tests, total failures, new failures vs pre-existing.

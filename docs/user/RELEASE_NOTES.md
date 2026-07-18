@@ -2,6 +2,11 @@
 
 ---
 
+## v3.1.12–3.1.16 — Dark mode now covers cards and the board, and your history tab shows real numbers (July 18, 2026)
+
+- **Dark mode now covers a lot more of the game.** If you've switched your panel to dark mode, the card popups (replacing a card, viewing card details, choosing between options) and the game board itself now follow along instead of staying stuck in bright white. Colors that mean something — like which phase a space belongs to, or whether a move is available — stay the same in both modes on purpose, so they're never confusing.
+- **Your "What's happened" history now shows real dollar amounts, not just counts.** Getting a Work Package used to just say "Got 1 Work Package" — now it also shows how much that added to your project's scope, like "Got 1 Work Package (+$450,000)." Along the way we found and fixed a bug where this kind of detail had never actually been showing up for anyone — a formatting mix-up meant certain draws always fell back to a plainer message instead of the nicer one.
+
 ## v3.1.2–3.1.3 — The TV setup screen finally tells players why they're stuck, and the board camera stopped lurching (July 16, 2026)
 
 - **On TV mode, the setup screen now tells you exactly who it's waiting on.** Real players hit this: the Start button just sat there greyed out with no explanation, because the only hint was a tooltip — invisible if you don't have a mouse to hover with, which nobody does on a TV. Now there's a clear message right on screen naming which players still need to scan their QR code, and the Start button itself says "Waiting for phones…" instead of just looking broken.
