@@ -65,6 +65,17 @@ import { Player } from '../../types/DataTypes';
 import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
+// Dark/light mode coverage (TODO.md) — BoardCanvas is mounted in GameLayout
+// as a SIBLING of PlayerPanelWrapper (same PLAY-phase render, same screen,
+// same player who owns the dark-mode toggle in their own panel), so unlike
+// a top-level route it has a real reachable mode signal. It's still outside
+// PlayerPanelWrapper's React tree, so — same as the modals fixed in v3.1.12-14
+// (ChoiceModal, CardReplacementModal, CardDetailsModal) — it reads the
+// persisted flag directly instead of the usePanelMode hook. Only plain
+// chrome (canvas fill, tile surface, generic body text) tracks the palette;
+// phase/validity/status/player-identity colors are deliberately left fixed —
+// see the theming block inside BoardNode below.
+import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
 
 // ===================================================================
 // Custom node — preserves the look of BoardV3 tiles
@@ -103,12 +114,26 @@ interface BoardNodeData {
    *  Wired by BoardLayoutEditor so admins can see how much room each tile
    *  needs in game when placing it. Off in normal gameplay. fb:97fa9c75. */
   showBuffer?: boolean;
+  /** Dark/light mode for CHROME-only tile styling (surface fill, generic
+   *  title/story text, buffer-ghost outline). Phase border/text, validity
+   *  green, and the action-counter chip stay fixed regardless of mode —
+   *  they're game-state signals, not decoration. Dark-mode coverage,
+   *  TODO.md. */
+  mode?: PanelMode;
   [key: string]: unknown;   // satisfy React Flow's Record<string, unknown> constraint
 }
 
 function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
   const phaseColors = PHASE_COLORS[data.phase] || { border: '#adb5bd', text: '#495057' };
   const borderColor = data.isValidMove ? '#10b981' : phaseColors.border;
+  // Dark-mode coverage — CHROME only (tile surface fill + generic text).
+  // Phase border/text above and everything validity/status/identity-colored
+  // stays a fixed hex regardless of mode; see the field doc on
+  // BoardNodeData.mode. Ternary-against-original (not a uniform palette
+  // swap) so light mode renders pixel-identical to before — same approach
+  // ModalBase uses for its own light/dark container background.
+  const isDark = data.mode === 'dark';
+  const dp = panelPalettes.dark;
 
   const isHovered = data.hoveredSpace === data.spaceName;
   // fb:97fa9c75 — five-step size hierarchy lives in computeTileVisualState
@@ -167,7 +192,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
         width,
         minHeight,
         borderRadius: 8,
-        background: '#fff',
+        background: isDark ? dp.surf : '#fff',
         border: `${borderWidth}px solid ${borderColor}`,
         padding: '8px 10px',
         fontFamily: 'system-ui, sans-serif',
@@ -208,9 +233,9 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
               action: data.actionDescription,
               npcName: data.npcName,
             }),
-            border: '1.5px dashed #adb5bd',
+            border: isDark ? `1.5px dashed ${dp.border}` : '1.5px dashed #adb5bd',
             borderRadius: 10,
-            background: 'rgba(173,181,189,0.06)',
+            background: isDark ? 'rgba(51,65,85,0.16)' : 'rgba(173,181,189,0.06)',
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -238,7 +263,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       <div style={{
         fontSize: isBig ? 14 : 12,
         fontWeight: 700,
-        color: '#212529',
+        color: isDark ? dp.text : '#212529',
         marginTop: 2,
         lineHeight: 1.2,
       }}>
@@ -248,7 +273,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       {/* Story snippet. Truncated on hover/valid-move tiles; shown in full on
           the current tile and any click-expanded tile (showsFullText). */}
       {isBig && data.story && (
-        <div style={{ fontSize: 11, color: '#495057', marginTop: 6, lineHeight: 1.35 }}>
+        <div style={{ fontSize: 11, color: isDark ? dp.muted : '#495057', marginTop: 6, lineHeight: 1.35 }}>
           {data.npcName && <strong style={{ color: phaseColors.text }}>{data.npcName}: </strong>}
           {showsFullText ? data.story : truncate(data.story, storyMax)}
         </div>
@@ -257,8 +282,8 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       {/* Action description — shown in full on the current tile and click-
           expanded tiles (showsFullText). Hidden on smaller sizes. */}
       {showsFullText && data.actionDescription && (
-        <div style={{ fontSize: 10, color: '#6c757d', marginTop: 6, fontStyle: 'italic' }}>
-          <strong style={{ fontStyle: 'normal', color: '#495057' }}>Next: </strong>
+        <div style={{ fontSize: 10, color: isDark ? dp.muted : '#6c757d', marginTop: 6, fontStyle: 'italic' }}>
+          <strong style={{ fontStyle: 'normal', color: isDark ? dp.text : '#495057' }}>Next: </strong>
           {data.actionDescription}
         </div>
       )}
@@ -400,6 +425,15 @@ function BoardCanvasInner({
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const { getViewport, setViewport, fitView, setCenter } = useReactFlow();
+  // Dark/light mode for board CHROME only (canvas fill, tile surface, generic
+  // text — see BoardNode). BoardCanvas is a sibling of PlayerPanelWrapper in
+  // GameLayout, not a descendant, so it can't use the usePanelMode hook —
+  // same non-hook localStorage read the modals (ChoiceModal,
+  // CardReplacementModal, CardDetailsModal) already use. Re-read on every
+  // render rather than cached in a ref/effect: this component re-renders
+  // often (hover, stateService subscribe below), so the value catches up to
+  // a toggle flipped elsewhere without needing new cross-component plumbing.
+  const mode: PanelMode = getStoredPanelMode();
   // Measures the actual rendered container — needed to compute a tile-size-
   // aware viewport ourselves (see boardFingerprint / getViewportForBounds
   // usage below), since that has to match the real pixel dimensions React
@@ -689,10 +723,14 @@ function BoardCanvasInner({
           // a pure function of `data`. <!-- fb:feedback-1779568815545-44221318 -->
           actionsRequired: actionCounts.required,
           actionsCompleted: actionCounts.completed,
+          // Dark-mode coverage (chrome only — see BoardNode). `mode` in the
+          // dep array below is what makes a toggle flipped elsewhere actually
+          // reach the tiles on this component's next re-render.
+          mode,
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode]);
 
   // TV mode auto-focus. Two-phase since fb:2b5b9f2a ("when I moved from one
   // space to another the zoom level changes — it should not"):
@@ -946,7 +984,7 @@ function BoardCanvasInner({
         minZoom={0.2}
         maxZoom={2}
       >
-        <Background color="#e9ecef" gap={20} />
+        <Background color={mode === 'dark' ? panelPalettes.dark.bg : '#e9ecef'} gap={20} />
         <Controls showInteractive={false}>
           {/* Pan buttons — arrow indicates direction the camera moves.
               Required for gameplay where left-click drag is disabled (v2.69.5). */}

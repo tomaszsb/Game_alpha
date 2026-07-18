@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.15] - 2026-07-18
+
+### Fix: BoardCanvas tile/canvas chrome respects light/dark mode (dark-mode coverage, board slice)
+Continues the dark/light mode coverage effort past the three modal slices (v3.1.12–14). Unlike `TVDisplay` — audited the same day and correctly rejected as out-of-pattern (top-level route, no toggle ever reaches the shared TV device) — `BoardCanvas` is mounted in `GameLayout` as a sibling of `PlayerPanelWrapper`, on the same screen as the player's own dark-mode toggle, so it has a real reachable mode signal and a real reason to respect it.
+
+**The board mixes plain chrome with heavy game-state semantics, so this is a narrower fix than the modals — deliberately.** `BoardCanvas` uses ~28 hardcoded hex colors, but most are semantic: `PHASE_COLORS` per-phase borders/text, move-validity green, edge/arrow styling (valid-move vs. path-taken vs. admin), the action-progress chip, the three-way save-status banner, and per-player identity token colors. Changing any of those would break their meaning as game-state indicators, not just their look — so **only genuine chrome was themed**: the ReactFlow canvas background fill, the tile surface fill, the tile title/story/action-description text, and the buffer-ghost admin outline. Phase/validity/status/identity colors are untouched, same "deliberately preserve fixed-tint" principle the three modal slices already established for card-type colors and semantic buttons.
+
+Reads the same non-hook `getStoredPanelMode()` (from `panelTheme.ts`) the three modals use, re-read on every render (the component already re-renders frequently on hover/state changes, so a toggle flipped elsewhere catches up without new cross-component plumbing) and threaded through node data as `mode`, added to the existing per-render node-update effect's dependency array so tiles pick it up.
+
+Verified live in the browser against a real PLAY-phase game: toggling the panel's dark/light control flipped tile surfaces, canvas background, and generic text instantly, while every phase-colored border/label (OWNER blue, FUNDING orange, ARCHITECT/DESIGN purple, ENGINEER green) and the action-counter chip stayed exactly as before in both modes.
+
+**Deferred, out of scope this slice:** ReactFlow's own `Controls`/`MiniMap` chrome (comes from an imported stylesheet, not inline hex — would need a CSS override, not a hex swap) and `TVDisplay` (needs a maintainer decision, not a code fix — see TODO.md).
+
+Verified: typecheck clean, production build clean, `BoardCanvas.test.ts` 15/15 (re-run independently by the orchestrator).
+
 ## [3.1.14] - 2026-07-18
 
 ### Fix: CardDetailsModal now respects light/dark mode (dark-mode coverage, slice 3)
