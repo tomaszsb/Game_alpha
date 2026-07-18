@@ -108,7 +108,7 @@ npm run server
 # Build for production
 npm run build
 
-# Run all tests (may hang - use batches instead)
+# Run all tests (~2 min; ghost regression bot excluded, run separately — see below)
 npm test
 ```
 

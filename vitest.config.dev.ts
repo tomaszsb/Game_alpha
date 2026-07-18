@@ -14,6 +14,13 @@ import path from 'path';
 // slowest-first order within each group. If a starvation flake ever recurs
 // despite this, the next lever is a generous per-test timeout on the affected
 // E2E game-loop test — not lowering the ghost gate.
+//
+// Currently dormant (2026-07-18): tests/ghost/** is now excluded from this
+// config entirely (see the `exclude` array below), so `isGhost` never
+// matches and this sorts identically to BaseSequencer. Left in place —
+// harmless no-op — in case tests/ghost/** is ever folded back into this
+// config's `include`, at which point the starvation fix above is needed
+// again.
 class GhostLastSequencer extends BaseSequencer {
   async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
     const sorted = await super.sort(files);
@@ -37,6 +44,28 @@ export default defineConfig({
       'tests/**/*.lightweight.test.ts',  // Exclude Jest-specific optimized tests
       'tests/**/*.optimized.test.ts',    // Exclude Jest-specific optimized tests
       'tests/debug-*.test.ts',           // Exclude debug files
+      // `npm test` hang root cause (2026-07-18): tests/ghost/ contains 4
+      // regression gates (coverage, ghostPlayerStrict, ghostPlayerNegotiateCoverage,
+      // ghostPlayerSmartBot) each running 50 full game simulations. Their own
+      // `it()` timeouts are 1,200,000-1,800,000ms (20-30 min) — deliberately
+      // calibrated that high because a passing run genuinely takes that long
+      // (see in-file comments: "50 games... need ~15-20 min", "sibling
+      // negotiate-coverage run takes ~17 min"). vitest.config.dev.ts's own
+      // header calls this "SPEED and fast feedback loops", but its broad
+      // `tests/**/*.test.ts` include was quietly pulling in these ~20-30-min
+      // gates too — so plain `npm test` was never actually deadlocked, it was
+      // correctly running a 20-30+ minute job that looked identical to a hang
+      // to anyone who (reasonably) didn't wait that long. The project's own
+      // trusted workaround (tests/scripts/run-tests-batch-fixed.sh) has never
+      // included tests/ghost/ — it runs an explicit whitelist of files — so
+      // this exclude just makes the default `npm test` match that convention.
+      // Run the gate explicitly with `npm run test:ghost` (see
+      // vitest.config.ghost.ts) — kept as a separate config file rather than
+      // an env-var toggle here because `npm run` always shells out via
+      // cmd.exe on Windows regardless of the invoking shell, so an inline
+      // `VAR=1 vitest ...` script (the pattern test:debug/test:verbose already
+      // use) silently fails outside a POSIX shell.
+      'tests/ghost/**',
       'node_modules/**',
       'dist/**'
     ],

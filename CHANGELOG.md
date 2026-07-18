@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.11] - 2026-07-18
+
+### Fix: plain `npm test` "hang" root-caused — it was the 20–30-minute ghost gates, now split out
+Closes the TODO investigation flagged 2026-07-17. The plain command was never deadlocked: `vitest.config.dev.ts` (what `npm test` runs) pulls in `tests/**/*.test.ts`, which silently included the 4 ghost regression gates (`coverage`, `ghostPlayerStrict`, `ghostPlayerNegotiateCoverage`, `ghostPlayerSmartBot`) — each playing 50 full game simulations with deliberately calibrated 20–30-minute `it()` timeouts (their own in-file comments say "50 games... need ~15-20 min"). So a "fast feedback" run was correctly executing a 20–30+ minute job, indistinguishable from a hang to anyone who reasonably didn't wait that long. The TODO's own hint (the `vmThreads`/`forks` pool split) was a red herring — that split lives in `vitest.config.ts` (coverage/verbose/debug configs), not the dev config `npm test` uses. Reproduced directly: a single ghost file under the dev config sits at near-zero CPU with no progress through bounded 120s/400s runs — consistent with multi-minute-per-game simulation, not deadlock.
+
+**Fix:** `tests/ghost/**` is excluded from `vitest.config.dev.ts` (matching `run-tests-batch-fixed.sh`, whose explicit file whitelist has never included ghost), and the gate gets its own dedicated `vitest.config.ghost.ts` + `npm run test:ghost` script. A separate config file was chosen over an env-var toggle deliberately: `npm run` always shells through `cmd.exe` on Windows regardless of the invoking shell, so inline `VAR=1 vitest ...` scripts (the pattern `test:debug`/`test:verbose` already use — same latent bug) silently fail there; `--config` has no shell dependency, verified from both Git Bash and PowerShell. The `GhostLastSequencer` starvation fix in the dev config is left in place as a documented no-op in case ghost is ever folded back in.
+
+**Count bookkeeping:** plain `npm test` now totals 2355 (2354 passed + 1 pre-existing skip); the previous full-suite baseline of 2388 = these 2355 + the 33 ghost cases, which still run and pass via `npm run test:ghost` (~15–20 min, by design). Docs updated to match: `TESTING_GUIDE.md` pre-commit ritual now points gameplay-affecting changes at `test:ghost`, and the "may hang" warnings in `TESTING_GUIDE.md`/`docs/core/CLAUDE.md` are replaced with the real explanation — a future `npm test` that doesn't return in a couple of minutes is a *new* regression, not the old known issue.
+
+Verified: plain `npm test` completes in 98.7s (2354/2355, orchestrator re-ran independently of the implementing agent; even the known `E2E-AllPaths` flake passed), typecheck 0 errors, production build clean, `run-tests-batch-fixed.sh` still 23/23 green, `test:ghost` file-targeting confirmed from both shells.
+
 ## [3.1.10] - 2026-07-18
 
 ### Fix: extend the Kid E fan-out guard to the manual playCard path (latent N×N)

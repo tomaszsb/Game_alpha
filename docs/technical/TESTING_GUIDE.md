@@ -14,8 +14,8 @@
 ./tests/scripts/run-tests-batch-fixed.sh   # 23 batches, must all be green
 npm run typecheck                          # 0 errors required
 
-# Plus the regression bot for any change that could affect gameplay:
-npm test tests/ghost/ghostPlayer*.test.ts   # strict + negotiate-coverage + smart-bot + loop-detection
+# Plus the regression bot for any change that could affect gameplay (~15-20 min):
+npm run test:ghost -- tests/ghost/ghostPlayer*.test.ts   # strict + negotiate-coverage + smart-bot + loop-detection
 ```
 
 ### If ANY test fails:
@@ -55,16 +55,27 @@ The project uses Vitest. All Jest references in this doc are historical — the 
 ### **Essential Commands**
 ```bash
 ./tests/scripts/run-tests-batch-fixed.sh   # ✅ The recommended way to run everything
+npm test                                   # Full fast suite (~2 min) — ghost excluded, see below
 npm test tests/services/                   # Test service layer only
 npm test tests/components/                 # Test components only
 npm test tests/E2E                         # E2E scenarios
-npm test tests/ghost/                      # Headless regression bot
+npm run test:ghost                         # Headless regression bot (~15-20 min, separate config)
 npm run test:watch                         # Real-time testing for development
 ```
 
-### ⚠️ `npm test` (running everything in one process) may hang
+### `npm test` and the ghost regression bot are separate on purpose
 
-This is a known limitation: module-level mock isolation issues can cause the full `npm test` invocation to hang indefinitely. **Always use the batch script** (`run-tests-batch-fixed.sh`) which runs the suite in 23 segmented batches. This is the workflow used by every commit since early 2026.
+`tests/ghost/` holds 4 gates that each play 50 full games and are deliberately
+calibrated to take ~15-20 minutes (their own `it()` timeouts are 20-30 min —
+see the comments in `tests/ghost/ghostPlayerStrict.test.ts`). Plain `npm test`
+(`vitest.config.dev.ts`) used to include them via its broad
+`tests/**/*.test.ts` glob, so a "fast feedback" run silently became a
+20-30-minute one — indistinguishable from a hang to anyone who reasonably
+didn't wait that long (root-caused 2026-07-18). `tests/ghost/**` is now
+excluded from `vitest.config.dev.ts`; run it explicitly with
+`npm run test:ghost` (its own config, `vitest.config.ghost.ts`) instead. This
+matches what `run-tests-batch-fixed.sh` already did — it has never included
+`tests/ghost/`.
 
 ## 📊 Test Count
 
@@ -210,7 +221,7 @@ npm test -- --reporter=verbose  # Vitest verbose reporter
 ## 🚨 Common Issues & Solutions
 
 ### **Test Hanging on full `npm test`**
-- Known limitation — module-level mock isolation issues. Use the batch script instead.
+- Should no longer happen — `tests/ghost/`'s 15-20-min gates are excluded from `vitest.config.dev.ts` (2026-07-18 fix; see "npm test and the ghost regression bot are separate on purpose" above). If `npm test` still doesn't return in a couple minutes, that's a new regression, not the old known issue — use the batch script to bisect.
 - For individual files, hangs usually mean unmocked async operations or missing handler setters in test setup (see `tests/ghost/bootstrapServices.ts` for the canonical service-wiring pattern).
 
 ### **Mock Not Working**
@@ -230,7 +241,7 @@ const mockFn = jest.fn(); // This will fail
 ## Test Architecture Notes
 
 - **Vitest** (not Jest) — use `vi.fn()` not `jest.fn()`.
-- **Batch execution required** — see warning above; full `npm test` may hang.
+- **Batch execution recommended for the pre-commit gate** — see `run-tests-batch-fixed.sh` above. Plain `npm test` is fine on its own now (~2 min, ghost excluded); the batch script's value is per-batch isolation, not working around a hang.
 - **Native TypeScript** — no compile step needed.
 - **Real-time feedback** — `npm run test:watch` for TDD.
 
@@ -302,7 +313,7 @@ The following scenarios must be tested to ensure production stability:
 
 Run both variants:
 ```bash
-npm test tests/ghost/
+npm run test:ghost
 ```
 
 If Ghost Player fails after a change, the action log captured in the test output is reproducible — the seed is logged, replay is deterministic.

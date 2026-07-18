@@ -1,6 +1,6 @@
 {
   "name": "unravel-codes",
-  "version": "3.1.10",
+  "version": "3.1.11",
   "type": "module",
   "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
@@ -29,6 +29,7 @@
     "test:e2e": "vitest run --config vitest.config.dev.ts tests/E2E-",
     "test:uat": "vitest run --config vitest.config.dev.ts tests/uat/",
     "test:isolated": "vitest run --config vitest.config.dev.ts tests/isolated/",
+    "test:ghost": "vitest run --config vitest.config.ghost.ts",
     "test:performance": "./scripts/test-performance.sh",
     "test:all": "npm run test:isolated && npm run test:e2e && npm run test:components",
     "test:safe": "echo '🧪 Running tests in safe batches...' && npm run test:isolated && echo '✅ Isolated tests complete' && npm test tests/E2E-05_MultiPlayerEffects.test.ts && echo '✅ E2E-05 complete' && npm test tests/components/game/CardPortfolioDashboard.test.tsx && echo '✅ CardPortfolio complete'",
