@@ -10,6 +10,7 @@ import { CardDetailsModal } from './CardDetailsModal';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { PhaseChip } from '../player/expeditorPhase';
 import { CARD_REPLACE } from '../../constants/uiStrings';
+import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 import '../common/CardDisplay.css';
 
 type CardSelectionMode = 'replace' | 'return' | 'give';
@@ -44,6 +45,13 @@ export function CardReplacementModal({
   const { dataService, stateService, cardService } = useGameContext();
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
+
+  // Light/dark shell, mirroring ChoiceModal/DiceResultModal (dark/light mode
+  // coverage slice 2, TODO.md 2026-07-14). CardReplacementModal is rendered by
+  // ChoiceModal outside PlayerPanelWrapper's tree, so it can't consume the
+  // `usePanelMode` hook directly — it reads the same persisted flag instead.
+  const panelMode = getStoredPanelMode();
+  const p = panelPalettes[panelMode];
 
   // Replacement card type is always the same as the current type (or newCardType if specified)
   const replacementCardType = newCardType || cardType;
@@ -124,21 +132,32 @@ export function CardReplacementModal({
   };
   const texts = modeConfig[mode];
 
+  // Secondary (Return) button follows the panel mode directly (mirrors
+  // DiceResultModal's secondaryBtnStyle) instead of the shared, mode-fixed
+  // modalButtonStyles — those stay light-only, which would leave a stray
+  // light button sitting in a dark-mode body.
+  const secondaryBtnStyle: React.CSSProperties = {
+    ...modalButtonStyles.secondary,
+    color: p.text,
+    backgroundColor: p.surf,
+    border: `1px solid ${p.borderStrong}`,
+  };
+
   // Footer content
   const footer = (
     <>
-      <div style={{ fontSize: '14px', color: colors.text.secondary }}>
+      <div style={{ fontSize: '14px', color: p.muted }}>
         {CARD_REPLACE.counter(selectedCardIds.length, maxReplacements)}
       </div>
       <div style={{ display: 'flex', gap: '12px' }}>
         <button
-          style={modalButtonStyles.secondary}
+          style={secondaryBtnStyle}
           onClick={handleCancel}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = colors.secondary.bg;
+            e.currentTarget.style.backgroundColor = p.surf2;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = colors.secondary.light;
+            e.currentTarget.style.backgroundColor = p.surf;
           }}
           title="Return to the main game panel - you can come back to complete this action"
         >
@@ -181,10 +200,11 @@ export function CardReplacementModal({
       headerBorderColor={currentCardColors.primary}
       footer={footer}
       testId="card-replacement-modal"
+      mode={panelMode}
     >
       {/* Instruction */}
       <p style={{
-        color: colors.text.secondary,
+        color: p.muted,
         margin: 0,
         marginBottom: '16px',
         fontSize: '16px'
@@ -216,7 +236,7 @@ export function CardReplacementModal({
         <div style={{
           textAlign: 'center',
           padding: '40px',
-          color: colors.text.secondary
+          color: p.muted
         }}>
           <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>{theme.emoji.cards}</span>
           <p style={{ fontSize: '18px', margin: 0 }}>
@@ -294,7 +314,7 @@ export function CardReplacementModal({
             onClose={() => setDetailCardId(null)}
             card={getCardDetails(detailCardId)}
             currentPlayer={player}
-            otherPlayers={stateService.getGameState().players.filter(p => p.id !== player?.id)}
+            otherPlayers={stateService.getGameState().players.filter(other => other.id !== player?.id)}
             cardService={cardService}
           />
         </div>

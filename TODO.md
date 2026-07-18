@@ -49,7 +49,7 @@
 - [~] **P1 remaining:** inline deltas per entry, click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. Acceptance: every committed work-change + expeditor add → exactly one feed entry with a delta, from the existing emission point. (P2–P5 parked below pending V2 reframe.)
 
 ### Dark/light mode coverage (maintainer request 2026-07-14, after classic panel removal + TurnCommitControl unification)
-- [ ] **Extend dark/light mode to the rest of the board.** `PlayerPanelV2` + `TurnCommitControl` + `DiceResultModal` (v3.0.127) + `ChoiceModal` (v3.1.12, slice 1) now respect the toggle. Still light-only: the board itself (ReactFlow spaces/edges/labels), `TVDisplay`, and `CardReplacementModal` (a sibling branch inside `ChoiceModal.tsx`, one hop from the v3.1.12 change — natural next slice). `CardModal`, the other dark-unaware modal, was deleted as dead code in v3.1.9.
+- [ ] **Extend dark/light mode to the rest of the board.** `PlayerPanelV2` + `TurnCommitControl` + `DiceResultModal` (v3.0.127) + `ChoiceModal` (v3.1.12) + `CardReplacementModal` (v3.1.13) now respect the toggle. Still light-only: the board itself (ReactFlow spaces/edges/labels), `TVDisplay`, and `CardDetailsModal` (opened from `CardReplacementModal` — separate, larger nested modal, natural next slice). `CardModal`, the other dark-unaware modal, was deleted as dead code in v3.1.9.
 
 ## 🚀 Active — infra / deploy / data
 

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.13] - 2026-07-18
+
+### Fix: CardReplacementModal now respects light/dark mode (dark-mode coverage, slice 2)
+Second slice of the dark/light mode coverage effort (slice 1 was `ChoiceModal`, v3.1.12). `CardReplacementModal` — used for `CARD_REPLACEMENT`/`CARD_SELECTION`/`CARD_GIVE` choice types — was still light-only.
+
+**Same pattern as slice 1, no new theming mechanism.** Reads `getStoredPanelMode()` + `panelPalettes[mode]` (can't use the `usePanelMode` hook directly — this modal is rendered by `ChoiceModal` outside `PlayerPanelWrapper`'s tree), threads `mode={panelMode}` into `ModalBase`, and swaps the footer counter, instruction text, empty-state text, and the "Return to Main Panel" button (built a `secondaryBtnStyle` following `DiceResultModal`'s established construction pattern) from hardcoded `colors.text.secondary`/`colors.secondary.*` to `panelPalettes` values. Deliberately left unchanged, matching precedent from the two already-fixed modals: the card-type-tinted header and "new card type" notification box (pastel background + dark text is an intentional fixed-contrast surface, same rule `ModalBase` already documents for its own header) and the Confirm/Replace button (fixed semantic success-green, readable on any background).
+
+Verified live via a throwaway Vite harness mounting the real component (deleted before finishing, never committed): dark mode matched `panelPalettes.dark` exactly (body `#0f172a`, muted text `#a3b3c7`, Return button `#1e293b`/`#f1f5f9`/`#52627a`); light mode matched `panelPalettes.light` exactly (body `#ffffff`, muted text `#566076`, Return button `#f1f4f8`/`#1a202c`/`#8d9bb0`). The tinted header/notification stayed correctly light-toned with dark text in both modes, as designed.
+
+**Deferred, still out of scope:** the board, `TVDisplay`, and `CardDetailsModal` (a separate, larger, entirely light-only nested modal opened from this one — not a "direct theming dependency" like the shared `CharacterBadge`/`NarrativeBlock`/`ModalBase`, would need its own slice).
+
+Verified: typecheck clean, production build clean, targeted tests green (`CardReplacementModal` 17, `ChoiceModal` 7, `ModalBase` 7 — 31/31, re-run independently by the orchestrator).
+
 ## [3.1.12] - 2026-07-18
 
 ### Fix: ChoiceModal now respects light/dark mode (dark-mode coverage, slice 1)
