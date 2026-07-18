@@ -46,15 +46,14 @@ Game Alpha is built on a **service-oriented architecture** with strict dependenc
 
 ### Service Overview
 
-All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors as of v2.65.4). 29 service files in `src/services/` (ApprovalService added v2.65.0).
+All services are fully typed and comply with TypeScript strict mode (`npm run typecheck` returns 0 errors as of v2.65.4). 28 service files in `src/services/` (ApprovalService added v2.65.0; PlayerActionService deleted v3.1.9 — it was the classic panel's card-play orchestrator, dead since the v3.0.128-137 panel removal; the live play path is `CardService.playCard`).
 
 ```typescript
 // Core Services (in IServiceContainer)
 DataService            // CSV data loading and caching; engine-data lookups (Workstream 6 flags)
 StateService           // Immutable game state management; REAL/TEMP turn lifecycle
 TurnService            // Turn progression and win conditions
-CardService            // Card operations and deck management
-PlayerActionService    // Command orchestration
+CardService            // Card operations and deck management (incl. playCard — the one manual play path)
 MovementService        // Space transitions, pathfinding, path-choice memory + cross-space rules
 GameRulesService       // Validation and win conditions; condition evaluator
 EffectEngineService    // Unified effect processing (delegates to handlers)

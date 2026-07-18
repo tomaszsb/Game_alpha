@@ -1,31 +1,32 @@
-# Next session starter — written 2026-07-18 by /koniec (deploy confirmed after wrap-up)
+# Next session starter — written 2026-07-18 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.8 — **deployed, confirmed live** 2026-07-18 (bundle hash `index-CyJDO-6t.js` matches the local v3.1.8 build exactly).
-- **Branch:** master, clean.
-- **Last shipped:** domain-event stage 4 (final planned stage) — moved emitter ownership into `ApprovalService`/`FinancialEffectHandler`/`CardService`; fixed a real bug where bankruptcy/design-fee-cap losses rendered a toast literally saying "Received: undefined"; gave the WIN ending its first-ever toast/log/TV announcement. v3.1.5–v3.1.8 all shipped in this one deploy.
-- **Test suite:** 2427/2429 passing, 1 pre-existing skip, 1 failure (`E2E-AllPaths.test.ts` — documented pre-existing scheduling flake, confirmed non-regression via 2 isolated reruns).
+- **Version:** v3.1.10 — committed + pushed, **pending deploy** (live is v3.1.8).
+- **Branch:** master, clean (only `.claude/settings.local.json` local config uncommitted).
+- **Last shipped:** v3.1.9 deleted the orphaned classic-panel dead-code cluster (−2,839 lines: CardModal/CardActions/CardContent/CardsSection/PlayerActionService/showCardModal + `GameState.activeModal`); v3.1.10 fixed the latent N×N card-effect fan-out on manual `playCard` the test migration uncovered (Kid E guard extended to all paths, red-green regression test). Maintainer closed the fb:66bb0bda design call: `canPlayCard` stays type-agnostic (reskin + future card functionality; see TODO "Resolved 2026-07-18").
+- **Test suite:** 2386/2388 — 1 pre-existing skip, 1 failure = the documented `E2E-AllPaths.test.ts` scheduling flake (passes 10/10 in isolation).
 - **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Delete the orphaned dead-code cluster** — `CardModal.tsx`, `CardActions.tsx`, `CardsSection.tsx`+`.css`, `PlayerActionService.playCard()`, `StateService.showCardModal()`. Audited 2026-07-17: `showCardModal` (the only trigger for `CardModal`) has zero callers anywhere in `src/` — leftover from the v3.0.128-137 classic-panel removal. Contains a real but unreachable bug (see TODO.md); safe, cheap cleanup, ready to execute.
-2. **Real-TV confirmation of the v3.1.2 camera fix** — still outstanding. The embedded browser here can't play animated camera transitions at all (see CLAUDE.md TACTICAL), so this needs an actual glance on the maintainer's TV, not more automated testing.
-3. **Dark/light mode coverage beyond `PlayerPanelV2`** — the board itself and at least `ChoiceModal`/`CardModal` still render light-only regardless of the toggle (maintainer request 2026-07-14, TODO.md has the scoped audit questions).
+1. **Deploy v3.1.9 + v3.1.10** — pushed and ready; hand the maintainer the deploy command (`ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`, from a Windows terminal). Confirm the live bundle version after.
+2. **Real-TV confirmation of the v3.1.2 camera fix** — still outstanding; the embedded browser can't play animated camera transitions (CLAUDE.md TACTICAL), needs a 2-minute glance at the physical TV.
+3. **Dark/light mode coverage beyond `PlayerPanelV2`** — board, `TVDisplay`, `ChoiceModal` still light-only. Scope shrank in v3.1.9: `CardModal` (the other dark-unaware modal) was deleted as dead code.
 
 ## Test failures to address
-- `tests/E2E-AllPaths.test.ts > REG-FDNY-FEE-REVIEW Branches > Path: REG-FDNY → PM-DECISION-CHECK (back to planning)` — 60s timeout on `setupGame()`. Pre-existing documented flake (TODO.md), confirmed non-deterministic (fails on a different sub-test each run under full-suite load, passes clean in isolation). Not a regression.
+- `tests/E2E-AllPaths.test.ts` — 90s timeout under full-suite load only; documented pre-existing scheduling flake (TODO parking lot), passes clean in isolation. Not a regression.
 
 ## Decisions waiting on the user
-- **Board layout** — keep the stock grid, or re-arrange in the editor (drag-save persists now).
-- **Bank/Investor/Lender character naming** — user is marinading. Don't nudge.
-- **Homeowner starting scenario / distinct violation mechanic** — needs its own design pass before engineering (starting-space swap itself is cheap, the mechanic isn't designed yet).
+- **Board layout** — keep the stock grid, or re-arrange in the editor (drag-save persists).
+- **Bank/Investor/Lender character naming** — marinading. **Don't nudge.**
+- **Homeowner starting scenario / violation mechanic** — needs its own design pass before engineering.
+- (fb:66bb0bda is CLOSED as of this session — no longer pending.)
 
 ## Suggested first move
-No deploy is pending, so pick up whichever top item fits the time available: the dead-code cleanup is a clean, self-contained, low-risk task with zero open questions; the real-TV check just needs 2 minutes with the physical TV.
+Hand over the deploy command for v3.1.9+v3.1.10 first — everything is pushed and verified. Then the real-TV camera check (item 2) can piggyback on the same TV session that verifies the new deploy.
 
 ## Suggested model for next session
-Sonnet 5 — the top items are routine (a well-audited dead-code deletion, a manual TV check, a scoped dark-mode audit) with no architecturally ambiguous judgment calls needed.
+Sonnet 5 — the top items are a deploy handoff, a manual TV check, and a scoped dark-mode audit; nothing architecturally ambiguous.
 
 ## Reminders
 - Deploy command runs from a Windows terminal, not WSL.
-- Everything through v3.1.8 is now live — no undeployed backlog going into next session.
+- If a D&D reskin conversation continues: the load-bearing question is whether the five card families (W/B/E/L/I) keep their *behaviors* under the new theme — see PROJECT_STATUS + the 2026-07-18 session memory entity.
