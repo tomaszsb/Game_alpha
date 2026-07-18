@@ -516,16 +516,34 @@ export class CardEffectHandler implements ICardEffectHandler {
     // "Expeditors", etc.) — never "Work card" / "X cards". fb:7a99da1a/004dc390.
     const friendlyName = getCardTypeName(cardType, count);
 
+    // Chronicle inline-delta (TODO P1 — Project Chronicle): a Work Package
+    // draw changes the player's project scope by the sum of each drawn
+    // card's `cost` field — the same field GameRulesService.calculateProjectScope
+    // sums for the player's running total. Computed here, at this draw's
+    // existing log emission point (dataService is already used one line
+    // below for friendlyCardList), so formatActionDescription can render
+    // the delta without needing a service dependency of its own.
+    const details: Record<string, any> = {
+      playerId,
+      action: 'card_draw',
+      cardType,
+      count,
+      cards: drawnCards,
+      visibility: 'player'
+    };
+    if (cardType === 'W' && this.dataService) {
+      const scopeDelta = drawnCards.reduce((sum, cardId) => {
+        const card = this.dataService!.getCardById(cardId);
+        return sum + (card?.cost || 0);
+      }, 0);
+      if (scopeDelta > 0) {
+        details.scopeDelta = scopeDelta;
+      }
+    }
+
     this.loggingService.info(
       `Drew ${count} ${friendlyName}: ${friendlyCardList(this.dataService, drawnCards)}`,
-      {
-        playerId,
-        action: 'card_draw',
-        cardType,
-        count,
-        cards: drawnCards,
-        visibility: 'player'
-      }
+      details
     );
   }
 }

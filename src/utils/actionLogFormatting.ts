@@ -8,15 +8,30 @@ export const formatActionDescription = (entry: ActionLogEntry): string => {
       return `🎯 ${entry.description}`;
 
     case 'card_draw': {
-      if (entry.details?.cardType && entry.details?.cardCount) {
+      // Note: the emission points (CardEffectHandler.logCardDraw,
+      // LogWriter's 'card_drawn' case) write the count under `count`, not
+      // `cardCount` — `cardCount` belongs to the unrelated DiceResultEffect
+      // shape. Read `count` (falling back to the legacy/test key) so this
+      // branch actually fires instead of silently falling through to the
+      // raw description below.
+      const cardCount = entry.details?.count ?? entry.details?.cardCount;
+      if (entry.details?.cardType && cardCount) {
         const typeNames: Record<string, string> = { W: 'Work Package', B: 'Bank Loan', E: 'Expeditor', L: 'Life Event', I: 'Investment' };
         // Voice rule (no game language): no 🎴 playing-card icon — use the
         // real-world per-type icon that matches the rest of the UI.
         const typeIcons: Record<string, string> = { W: '🏗️', B: '🏦', E: '⚡', L: '📰', I: '💰' };
         const name = typeNames[entry.details.cardType] || entry.details.cardType;
         const icon = typeIcons[entry.details.cardType] || '📄';
-        const count = entry.details.cardCount;
-        return `${icon} Got ${count} ${name}${count > 1 ? 's' : ''}`;
+        let text = `${icon} Got ${cardCount} ${name}${cardCount > 1 ? 's' : ''}`;
+        // Inline delta (TODO P1 — Project Chronicle): a Work Package draw's
+        // count alone doesn't say how much it moved the needle — a $50k
+        // scope and a $500k scope both read as "Got 1 Work Package". Append
+        // the actual project-scope change when the emission point captured
+        // it (details.scopeDelta — sum of the drawn cards' `cost` field).
+        if (entry.details.cardType === 'W' && typeof entry.details.scopeDelta === 'number' && entry.details.scopeDelta > 0) {
+          text += ` (+$${entry.details.scopeDelta.toLocaleString()})`;
+        }
+        return text;
       }
       return entry.description;
     }

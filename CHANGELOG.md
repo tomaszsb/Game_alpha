@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.16] - 2026-07-18
+
+### Fix: real card_draw formatting bug found + inline scope deltas added (Project Chronicle P1, first piece)
+Scoped to just the "inline deltas per entry" acceptance criterion from TODO's Project Chronicle P1 item (work-change + expeditor-add entries); click-entry-to-replay-highlight and the TV-persistent feed remain separate, larger follow-ons.
+
+**Found and fixed a real pre-existing bug, not previously known:** `actionLogFormatting.ts`'s `card_draw` case checked `entry.details?.cardCount`, but both real emission points (`CardEffectHandler.logCardDraw`, and `LogWriter`'s `card_drawn` translation) write the field as `count` — `cardCount` belongs to the unrelated `DiceResultEffect` shape used by the dice-outcome modal. Net effect: the icon-formatted "Got N Work Packages" / "Got N Expeditors" branch **never fired in production** — real entries always fell through to the raw sentence ("Drew 1 Expeditor: Card Name"). The existing tests missed it because their fixtures used the wrong field name too. Fixed by reading `count` (with a fallback to the legacy key for safety).
+
+**Inline scope delta added for Work Package draws.** A count alone doesn't say how much a draw moved the needle — a $50k and a $500k Work Package both read as "Got 1 Work Package." Now appends `(+$X)` using the sum of the drawn cards' `cost` field (the same field `GameRulesService.calculateProjectScope` sums), computed at the two real draw-logging call sites: `CardEffectHandler.logCardDraw` (the effect-engine `CARD_DRAW` path) and `ManualActionProcessor.triggerManualEffectWithFeedback`'s cards branch (the manual "Get Work Packages" button path — a structurally separate logging path from the first, confirmed via live playtest showing different icons: 🏗️ vs ✋). Expeditor draws needed no new plumbing — their count was always present in the description text; the only gap was the formatting bug above.
+
+`formatActionDescription` is shared by the classic Log tab, `PostGameLogViewer`, and the new `PlayerChronicleV2` "What's happened" modal by design (so they can't drift) — this fix and the new delta suffix apply identically everywhere.
+
+Verified: typecheck clean, production build clean, targeted tests green (`actionLogFormatting` 27 incl. 3 new cases using the real `count` field shape, `PlayerChronicleV2` 7, `CardEffectHandler` 9, `LogWriter` 27, `E2E-05` 5 — all re-run independently by the orchestrator), full suite 2356/2358 (1 pre-existing skip, 1 documented `E2E-AllPaths.test.ts` scheduling flake, not a regression). Live-verified via real playtest at OWNER-SCOPE-INITIATION: classic Log tab shows `🏗️ Got 2 Work Packages (+$6,000,000)` and `🏗️ Got 3 Work Packages (+$2,100,000)`.
+
 ## [3.1.15] - 2026-07-18
 
 ### Fix: BoardCanvas tile/canvas chrome respects light/dark mode (dark-mode coverage, board slice)

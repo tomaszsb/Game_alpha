@@ -360,6 +360,76 @@ describe('actionLogFormatting', () => {
       const result = formatActionDescription(entry);
       expect(result).toBe('Drew cards');
     });
+
+    // TODO P1 (Project Chronicle) — inline deltas. The real emission points
+    // (CardEffectHandler.logCardDraw, LogWriter's 'card_drawn' case) write
+    // the count under `count`, not `cardCount` (that key belongs to the
+    // unrelated DiceResultEffect shape) — these two cases use the actual
+    // runtime field names so a regression back to the old cardCount-only
+    // check would be caught here.
+    it('should format an expeditor-add card_draw entry using the real `count` field (no delta beyond count)', () => {
+      const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
+        id: 'test23',
+        type: 'card_draw',
+        timestamp: new Date(),
+        playerId: 'player1',
+        playerName: 'Alice',
+        description: 'Drew 1 Expeditor: Fast-Track Review',
+        details: {
+          cardType: 'E',
+          count: 1,
+          cards: ['E001'],
+          source: 'space_effect'
+        }
+      };
+
+      const result = formatActionDescription(entry);
+      expect(result).toBe('⚡ Got 1 Expeditor');
+    });
+
+    it('should append the project-scope delta to a work-change card_draw entry when the emission point captured it', () => {
+      const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
+        id: 'test24',
+        type: 'card_draw',
+        timestamp: new Date(),
+        playerId: 'player1',
+        playerName: 'Alice',
+        description: 'Drew 1 Work Package: Plumbing Rough-In',
+        details: {
+          cardType: 'W',
+          count: 1,
+          cards: ['W042'],
+          source: 'space_effect',
+          scopeDelta: 450000
+        }
+      };
+
+      const result = formatActionDescription(entry);
+      expect(result).toBe('🏗️ Got 1 Work Package (+$450,000)');
+    });
+
+    it('should omit the scope-delta suffix for a work-change entry when no scopeDelta was captured', () => {
+      const entry: ActionLogEntry = {
+        ...BASE_ENTRY,
+        id: 'test25',
+        type: 'card_draw',
+        timestamp: new Date(),
+        playerId: 'player1',
+        playerName: 'Alice',
+        description: 'Drew 1 Work Package: Plumbing Rough-In',
+        details: {
+          cardType: 'W',
+          count: 1,
+          cards: ['W042'],
+          source: 'space_effect'
+        }
+      };
+
+      const result = formatActionDescription(entry);
+      expect(result).toBe('🏗️ Got 1 Work Package');
+    });
   });
 
   describe('getLogTypeLabel', () => {

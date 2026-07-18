@@ -257,7 +257,21 @@ export class ManualActionProcessor {
           : isReturnAction
             ? 'return'
             : 'draw';
-      const actionDescription = describeCardAction(cardAction, cardType, count);
+      let actionDescription = describeCardAction(cardAction, cardType, count);
+
+      // Chronicle inline-delta (TODO P1 — Project Chronicle): this manual
+      // "Get Work Packages"-style button draws W cards without going
+      // through CardEffectHandler's CARD_DRAW path (see CardEffectService.
+      // handleDrawCards), so it never reaches logCardDraw's scope-delta
+      // computation. beforeScope/afterScope are already computed above for
+      // the outcome-modal snapshot — reuse them rather than re-deriving the
+      // delta from card costs a second time.
+      if (cardType === 'W' && cardAction === 'draw') {
+        const scopeDelta = afterScope - beforeScope;
+        if (scopeDelta > 0) {
+          actionDescription += ` (+$${scopeDelta.toLocaleString()})`;
+        }
+      }
 
       effects.push({
         type: 'cards',
