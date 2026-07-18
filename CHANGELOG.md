@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.14] - 2026-07-18
+
+### Fix: CardDetailsModal now respects light/dark mode (dark-mode coverage, slice 3)
+Third slice of the dark/light mode coverage effort (slice 1: `ChoiceModal`, v3.1.12; slice 2: `CardReplacementModal`, v3.1.13). `CardDetailsModal` — opened from `CardReplacementModal` — was still light-only.
+
+**Same pattern as slices 1–2, no new theming mechanism.** Reads `getStoredPanelMode()` + `panelPalettes[mode]` (can't use `usePanelMode` — opened outside `PlayerPanelWrapper`'s tree), threads `mode={panelMode}` into both `ModalBase` render paths (the loading state and the main render), and swaps the loading text, card-ID monospace text, "Description"/"Effects" section headings, description body, and the "View Intelligence" footer button (a local `secondaryBtnStyle` following `CardReplacementModal`'s established construction) from hardcoded `colors.*` to `panelPalettes` values.
+
+**Deliberately left unchanged (fixed-tint / fixed-semantic, same convention as slices 1–2):** the card-type header, the Effects/Cost/Duration/Phase-Restriction pastel notification boxes, the warning-tint Transfer UI panel and its contents (including the danger-red "Transfer Card" confirm button), and the success-green Transfer toggle button — all fixed-contrast surfaces that don't need to track page mode.
+
+Verified live via a throwaway harness (deleted before finishing, never committed): light mode matched `panelPalettes.light` (muted `#566076`, text `#1a202c`, button `surf #f1f4f8`/`borderStrong #8d9bb0`); dark mode matched `panelPalettes.dark` (muted `#a3b3c7`, text `#f1f5f9`, button `surf #1e293b`/`borderStrong #52627a`), modal background `#0f172a`. The fixed-tint boxes stayed pixel-identical across both modes as intended.
+
+**Deferred, still out of scope:** the board and `TVDisplay` remain light-only — the two remaining, larger pieces of the original TODO item. All three modals reachable from the card-play flow (`ChoiceModal`, `CardReplacementModal`, `CardDetailsModal`) are now dark-mode-aware.
+
+Verified: typecheck clean, production build clean, targeted tests green (`CardDetailsModal` 6, `CardReplacementModal` 17, `ModalBase` 7 — 30/30, re-run independently by the orchestrator).
+
 ## [3.1.13] - 2026-07-18
 
 ### Fix: CardReplacementModal now respects light/dark mode (dark-mode coverage, slice 2)

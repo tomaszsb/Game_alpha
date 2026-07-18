@@ -14,6 +14,7 @@ import { openInDictionary } from '../../utils/dictionaryBridge';
 import { CARD_DETAILS } from '../../constants/uiStrings';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { getCardDisplayTitle } from '../../utils/cardTypeNames';
+import { getStoredPanelMode, panelPalettes } from '../player/panelTheme';
 
 interface CardDetailsModalProps {
   isOpen: boolean;
@@ -34,6 +35,14 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
   const { openWithTerm } = useDictionaryPanel();
   const [showTransferUI, setShowTransferUI] = useState(false);
   const [selectedTargetPlayer, setSelectedTargetPlayer] = useState<string>('');
+
+  // Light/dark shell, mirroring CardReplacementModal (dark/light mode coverage
+  // slice 3, TODO.md 2026-07-14). CardDetailsModal is opened from
+  // CardReplacementModal outside PlayerPanelWrapper's tree, so it can't
+  // consume the `usePanelMode` hook directly — it reads the same persisted
+  // flag instead.
+  const panelMode = getStoredPanelMode();
+  const p = panelPalettes[panelMode];
 
   // Check if current player owns this card and it's transferable
   const canTransferCard = (): boolean => {
@@ -95,11 +104,12 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
         emoji={theme.emoji.cards}
         maxWidth="600px"
         testId="card-details-modal"
+        mode={panelMode}
       >
         <div style={{
           padding: '40px',
           textAlign: 'center',
-          color: colors.secondary.main
+          color: p.muted
         }}>
           Loading details...
         </div>
@@ -111,6 +121,19 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
   const cardType = cardService.getCardType(card.card_id);
   const cardColors = getCardTypeColors(cardType || '');
   const cardEmoji = getCardTypeEmoji(cardType || '');
+
+  // Secondary (View Intelligence) button follows the panel mode directly
+  // (mirrors CardReplacementModal's secondaryBtnStyle) instead of the shared,
+  // mode-fixed modalButtonStyles — those stay light-only, which would leave a
+  // stray light button sitting in a dark-mode footer. The Transfer toggle
+  // below keeps modalButtonStyles.primary (fixed success-green) unchanged —
+  // same convention as CardReplacementModal's Confirm button.
+  const secondaryBtnStyle: React.CSSProperties = {
+    ...modalButtonStyles.secondary,
+    color: p.text,
+    backgroundColor: p.surf,
+    border: `1px solid ${p.borderStrong}`,
+  };
 
   // Footer content — only real actions get a footer button (Transfer,
   // View Intelligence). The modal's own X is the one close path; a plain
@@ -135,13 +158,13 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
       )}
       <button
         onClick={() => openInDictionary('card', card.card_id)}
-        style={modalButtonStyles.secondary}
+        style={secondaryBtnStyle}
         title="Open in Dictionary Dashboard"
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = colors.secondary.bg;
+          e.currentTarget.style.backgroundColor = p.surf2;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = colors.secondary.light;
+          e.currentTarget.style.backgroundColor = p.surf;
         }}
       >
         📖 View Intelligence
@@ -160,6 +183,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
       headerBorderColor={cardColors.primary}
       footer={footer}
       testId="card-details-modal"
+      mode={panelMode}
     >
       {/* Card Type Badge and ID */}
       <div style={{
@@ -181,7 +205,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
         </span>
         <span style={{
           fontSize: '0.75rem',
-          color: colors.secondary.main,
+          color: p.muted,
           fontFamily: 'monospace'
         }}>
           {card.card_id}
@@ -193,7 +217,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
         <h3 style={{
           fontSize: '1rem',
           fontWeight: 'bold',
-          color: colors.secondary.dark,
+          color: p.muted,
           marginBottom: '8px',
           textTransform: 'uppercase',
           letterSpacing: '0.5px'
@@ -202,7 +226,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
         </h3>
         <p style={{
           fontSize: '0.95rem',
-          color: colors.text.primary,
+          color: p.text,
           lineHeight: '1.5',
           margin: 0
         }}>
@@ -219,7 +243,7 @@ export function CardDetailsModal({ isOpen, onClose, card, currentPlayer, otherPl
           <h3 style={{
             fontSize: '1rem',
             fontWeight: 'bold',
-            color: colors.secondary.dark,
+            color: p.muted,
             marginBottom: '8px',
             textTransform: 'uppercase',
             letterSpacing: '0.5px'
