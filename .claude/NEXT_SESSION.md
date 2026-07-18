@@ -1,16 +1,16 @@
-# Next session starter — written 2026-07-17 by /koniec
+# Next session starter — written 2026-07-18 by /koniec (deploy confirmed after wrap-up)
 
 ## State at handoff
-- **Version:** v3.1.8 (committed + pushed, **pending deploy**). Live = v3.1.4.
-- **Branch:** master, clean (nothing uncommitted after this wrap-up).
-- **Last shipped:** domain-event stage 4 (final planned stage) — moved emitter ownership into `ApprovalService`/`FinancialEffectHandler`/`CardService`; fixed a real bug where bankruptcy/design-fee-cap losses rendered a toast literally saying "Received: undefined"; gave the WIN ending its first-ever toast/log/TV announcement.
+- **Version:** v3.1.8 — **deployed, confirmed live** 2026-07-18 (bundle hash `index-CyJDO-6t.js` matches the local v3.1.8 build exactly).
+- **Branch:** master, clean.
+- **Last shipped:** domain-event stage 4 (final planned stage) — moved emitter ownership into `ApprovalService`/`FinancialEffectHandler`/`CardService`; fixed a real bug where bankruptcy/design-fee-cap losses rendered a toast literally saying "Received: undefined"; gave the WIN ending its first-ever toast/log/TV announcement. v3.1.5–v3.1.8 all shipped in this one deploy.
 - **Test suite:** 2427/2429 passing, 1 pre-existing skip, 1 failure (`E2E-AllPaths.test.ts` — documented pre-existing scheduling flake, confirmed non-regression via 2 isolated reruns).
 - **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Deploy v3.1.5–v3.1.8** — 4 versions sitting committed/pushed, undeployed. No urgency, but the bankruptcy/win-toast bug fix (v3.1.8) is worth getting live. Hand the user: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-2. **Delete the orphaned dead-code cluster** — `CardModal.tsx`, `CardActions.tsx`, `CardsSection.tsx`+`.css`, `PlayerActionService.playCard()`, `StateService.showCardModal()`. Audited this session: `showCardModal` (the only trigger for `CardModal`) has zero callers anywhere in `src/` — leftover from the v3.0.128-137 classic-panel removal. Contains a real but unreachable bug (see TODO.md); safe, cheap cleanup.
-3. **Real-TV confirmation of the v3.1.2 camera fix** — still outstanding. The embedded browser here can't play animated camera transitions at all (see CLAUDE.md TACTICAL), so this needs an actual glance on the maintainer's TV, not more automated testing.
+1. **Delete the orphaned dead-code cluster** — `CardModal.tsx`, `CardActions.tsx`, `CardsSection.tsx`+`.css`, `PlayerActionService.playCard()`, `StateService.showCardModal()`. Audited 2026-07-17: `showCardModal` (the only trigger for `CardModal`) has zero callers anywhere in `src/` — leftover from the v3.0.128-137 classic-panel removal. Contains a real but unreachable bug (see TODO.md); safe, cheap cleanup, ready to execute.
+2. **Real-TV confirmation of the v3.1.2 camera fix** — still outstanding. The embedded browser here can't play animated camera transitions at all (see CLAUDE.md TACTICAL), so this needs an actual glance on the maintainer's TV, not more automated testing.
+3. **Dark/light mode coverage beyond `PlayerPanelV2`** — the board itself and at least `ChoiceModal`/`CardModal` still render light-only regardless of the toggle (maintainer request 2026-07-14, TODO.md has the scoped audit questions).
 
 ## Test failures to address
 - `tests/E2E-AllPaths.test.ts > REG-FDNY-FEE-REVIEW Branches > Path: REG-FDNY → PM-DECISION-CHECK (back to planning)` — 60s timeout on `setupGame()`. Pre-existing documented flake (TODO.md), confirmed non-deterministic (fails on a different sub-test each run under full-suite load, passes clean in isolation). Not a regression.
@@ -21,11 +21,11 @@
 - **Homeowner starting scenario / distinct violation mechanic** — needs its own design pass before engineering (starting-space swap itself is cheap, the mechanic isn't designed yet).
 
 ## Suggested first move
-Ask whether to deploy v3.1.5–v3.1.8 now (bundles 4 versions of internal refactor + the bankruptcy/win-toast bug fix, all currently invisible to players) before starting new work — it's been sitting pending for a full session's worth of stacked changes. If deploy isn't wanted yet, the dead-code cleanup (item 2 above) is a clean, low-risk next task with zero open questions.
+No deploy is pending, so pick up whichever top item fits the time available: the dead-code cleanup is a clean, self-contained, low-risk task with zero open questions; the real-TV check just needs 2 minutes with the physical TV.
 
 ## Suggested model for next session
-Sonnet 5 — the top items are routine (deploy handoff, a well-audited dead-code deletion, a manual TV check) with no architecturally ambiguous judgment calls needed.
+Sonnet 5 — the top items are routine (a well-audited dead-code deletion, a manual TV check, a scoped dark-mode audit) with no architecturally ambiguous judgment calls needed.
 
 ## Reminders
 - Deploy command runs from a Windows terminal, not WSL.
-- 4 versions (v3.1.5–v3.1.8) are bundled pending deploy — after deploying, confirm the live bundle's version string reads 3.1.8, not a stale intermediate.
+- Everything through v3.1.8 is now live — no undeployed backlog going into next session.

@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 17, 2026
-**Status:** Beta — live in production; **v3.1.4 deployed** (commit `695aef0`, confirmed live via bundle version check)
-**Current Version:** 3.1.4 (deployed)
+**Last Updated:** July 18, 2026
+**Status:** Beta — live in production; **v3.1.8 deployed** (commit `15cba01`, confirmed live via bundle hash match — `index-CyJDO-6t.js`)
+**Current Version:** 3.1.8 (deployed)
 
 ---
 
