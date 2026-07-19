@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
 import { getBackendURL } from '../../utils/networkDetection';
+import { isPhoneScreen } from '../../utils/deviceDetection';
 import { styles } from './PlayerSetup.styles';
 
 interface JoinPickerPlayer {
@@ -32,6 +33,11 @@ interface JoinByCodePanelProps {
  * replaces the code entry so a rejoining player who lost their personal QR
  * link can get back to their own actionable panel instead of always landing
  * in the shared/spectator view.
+ *
+ * That personal-panel behavior is phone-only (fb:3a5280d8): this whole panel
+ * lives on the PC/TV setup screen, so a maintainer picking a player on an
+ * actual PC or TV still gets the full board and shared view, not the
+ * stripped phone panel. See navigateToGame's isPhoneScreen() check below.
  */
 export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Element {
   const [joinCode, setJoinCode] = useState('');
@@ -53,8 +59,20 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
     if (instanceId && instanceId !== 'classroom-1') url.searchParams.set('i', instanceId);
     else url.searchParams.delete('i');
     // Mirrors the QR-code join flow's ?p= short id so the picked player
-    // lands on their own actionable panel instead of the shared view.
-    if (playerShortId) url.searchParams.set('p', playerShortId);
+    // lands on their own actionable panel instead of the shared view —
+    // but only when this device's physical screen is actually phone-sized
+    // (fb:3a5280d8: picking a player on a PC/TV set ?p= unconditionally,
+    // which GameLayout reads as "show the phone-only stripped panel,"
+    // wiping out the board and all other chrome on a desktop screen).
+    // This component only ever renders on the PC/TV setup screen
+    // (selectedMode is 'pc' | 'tv', never 'phone'), so selectedMode can't
+    // tell a maintainer's desktop apart from a player who lost their QR
+    // link and is rejoining from their actual phone — both default to
+    // 'pc'. isPhoneScreen() (already used one component up by
+    // PhoneScreenWarning) measures the real screen, not the mode toggle,
+    // so a genuine phone still gets its personal panel and a PC/TV keeps
+    // the full board.
+    if (playerShortId && isPhoneScreen()) url.searchParams.set('p', playerShortId);
     else url.searchParams.delete('p');
     if (selectedMode === 'tv') {
       url.searchParams.set('mode', 'tv');
@@ -139,11 +157,16 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
    * still proceeds, since a stale/zombie connection from a crashed tab is a
    * common false positive and we don't want to lock a player out of their
    * own seat.
+   *
+   * Only relevant on an actual phone screen: that's the only case where
+   * navigateToGame below assumes the player's ?p= identity (see its
+   * isPhoneScreen() gate, fb:3a5280d8). On PC/TV, picking a player doesn't
+   * take over their WebSocket connection, so there's nothing to warn about.
    */
   const handlePickPlayer = (player: { shortId?: string; name: string; connected?: boolean }) => {
     if (!joinPicker) return;
     if (!player.shortId) return;
-    if (player.connected) {
+    if (player.connected && isPhoneScreen()) {
       const confirmed = window.confirm(
         `${player.name} is currently connected on another device. Taking over may disrupt their game — continue anyway?`
       );

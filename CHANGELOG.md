@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.17] - 2026-07-18
+
+### Fix: picking a player on PC/TV no longer strips down to the phone-only view (fixloop, fb:3a5280d8)
+Dashboard report: rejoining a game and picking "Player 1" from the "which player are you?" picker on a PC left the maintainer with just a bare player panel — no board, no other players, none of the normal desktop chrome. Expected: PC/TV should always keep the full shared board; only an actual phone should get the personal single-player view.
+
+**Root cause:** `JoinByCodePanel`'s player picker (`handlePickPlayer` → `navigateToGame`) set the `?p=<shortId>` URL param unconditionally whenever a player was chosen. `GameLayout` treats any valid `?p=` as "show the phone-only stripped panel" with no regard for device type — the exact mechanism QR codes rely on when a phone scans one. Picking a player from this panel therefore always triggered the phone experience, even from an actual desktop or TV.
+
+Considered gating on the panel's `selectedMode` prop (`'pc' | 'tv'`) first, but that's a dead end: this panel lives on the shared PC/TV setup screen, which a phone rejoining after losing its QR link *also* reaches — `selectedMode` defaults to `'pc'` in both cases and can't tell a maintainer's desktop apart from a player's actual phone. Fixed by gating on `isPhoneScreen()` (`src/utils/deviceDetection.ts`, already used one component up by `PhoneScreenWarning`) instead, which measures the real physical screen rather than the mode toggle. Also gated the "taking over another connection" confirm dialog the same way, since it's only meaningful when we're about to assume the player's live WebSocket identity — which now only happens on an actual phone.
+
+The real QR-scan-by-phone flow doesn't go through `JoinByCodePanel` at all, so it's untouched — `getAppScreen.ts` and `GameLayout.tsx` needed no changes.
+
+Verified: typecheck clean, production build clean, new `tests/components/setup/JoinByCodePanel.test.tsx` (4 cases: no `?p=` on desktop-sized pick, no `?p=` on TV-sized pick, `?p=` still set on phone-sized pick, spectator never sets `?p=`) + `deviceDetection.test.ts` (17) + `playerPanelVisibility.test.ts` (9), all green. Live-verified in the browser: picking a player at a 1280×720 desktop viewport now lands on the full board with both player panels and all chrome (no `p=` in the URL); a direct `?p=` phone-simulated URL at 375×812 still correctly shows the stripped single-player panel — no regression to the real QR-scan flow.
+
 ## [Docs] - 2026-07-18
 
 ### Docs sweep: every .md/mockup checked against code — 4 completed docs archived, open leftovers promoted to TODO
