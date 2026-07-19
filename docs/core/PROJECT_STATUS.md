@@ -5,19 +5,19 @@
 > [docs/user/RELEASE_NOTES.md](../user/RELEASE_NOTES.md). `/koniec` **replaces** this
 > snapshot each session, it does not append.
 
-**Last Updated:** July 18, 2026
+**Last Updated:** July 19, 2026
 **Current Phase:** Beta — live in production
-**Current Version:** **3.1.16** — **deployed + confirmed live 2026-07-18** (header shows `v3.1.16 · 9095413`, built from HEAD, zero behind). The batch shipped: v3.1.11 fixed the `npm test` "hang" (test-infra only); v3.1.12–15 cover dark/light mode for all three card-play modals + BoardCanvas chrome; v3.1.16 adds Chronicle inline deltas + fixes a real card_draw formatting bug. Same day: full docs-vs-code sweep (4 docs archived), 6 stranded worktrees removed, `settings.local.json` untracked (root-cause fix).
+**Current Version:** **3.1.20** — committed + pushed, **pending deploy** (live is still v3.1.16). Four real bug fixes: PC blank-view-after-restart (v3.1.17), a private card-replacement picker leaking to the shared/host screen (v3.1.18), a color picker that silently reassigned your color instead of showing it was taken (v3.1.19), and a Share button pushed off-screen on phones + missing entirely from the per-player mobile view (v3.1.20).
 
 ## Current sprint
-**2026-07-18 (continued) — dark-mode coverage sweep + a real formatting bug found along the way.** An autonomous `/loop /fixloop` session picked up after the v3.1.10 handoff. Root-caused the `npm test` "hang" (v3.1.11) — the ghost regression gates were silently in the fast config, not a deadlock. Then three modal dark-mode slices (`ChoiceModal`, `CardReplacementModal`, `CardDetailsModal`, v3.1.12–14), each copying the `DiceResultModal` pattern exactly. Audited `TVDisplay` and correctly declined to force the pattern onto it — it's a top-level route with no toggle ever reaching the shared TV device, a maintainer decision not a code fix. `BoardCanvas` (v3.1.15) got a narrower, more careful slice: only genuine chrome (canvas fill, tile surface, text) themed, phase/validity/status colors deliberately left alone since they're game-state signals. Final iteration (v3.1.16) scoped TODO's Project Chronicle P1 down to just "inline deltas per entry" and found the delta feature had a bug blocking it entirely — the card_draw formatter read the wrong field name (`cardCount` vs the real `count`), so the nicely-formatted log line had never fired in production.
+**2026-07-19 — dashboard reconciliation + 4 real fixes.** User noticed the dashboard showed many open reports from May/June despite recent fix work; investigation found `TODO.md` had drifted badly from the live dashboard. Root cause: a 2026-07-01 feedback-staging draft (48 candidates) was never applied, and separately, 17 of the reports still showing "open" had actually already been fixed in v3.0.91/v3.0.97 (2026-07-01/06) but never flipped resolved. Reconciled all 22 open-but-untracked reports into TODO.md, then worked through them: 17 turned out already-fixed (flipped resolved on the dashboard, user-approved), 4 were real bugs (fixed and shipped this session), 1 remains genuinely unactionable (a one-word report with no repro). Fixed the root cause in the `/start` skill itself: step 4d now cross-checks CHANGELOG.md before proposing a report as "new work," so an already-fixed-but-unflipped report routes to a flip proposal instead of redrafting it as a TODO item.
 
 ## Health
-- **Tests:** typecheck ✅ clean, build ✅ clean, full suite **2356/2358 passing, 1 skipped, 1 failure** — the 1 failure is `E2E-AllPaths.test.ts`'s pre-existing documented scheduling flake (passes in isolation). `/koniec` pre-flight full-suite result below (see wrap line).
+- **Tests:** typecheck ✅ clean, build ✅ clean, fast suite **2376/2377 passing, 1 pre-existing skip** (`/koniec` pre-flight, see wrap line for ghost-gate result).
 - **Lint:** ~386 pre-existing errors (DEF-4, long-standing).
-- **Deploy:** live = **v3.1.16** (`9095413`), confirmed 2026-07-18.
+- **Deploy:** live = **v3.1.16** (`9095413`); v3.1.17–3.1.20 pushed to master, not yet deployed.
 
 ## Top open items (full list in TODO.md + .claude/NEXT_SESSION.md)
-1. **Real-TV checks** — the v3.1.2 camera fix confirmation + a quick look at the new dark-mode slices, now that v3.1.16 is live on the physical TV.
-2. **TVDisplay dark mode — needs a maintainer decision**, not a code fix (audited 2026-07-18): does a shared, across-the-room TV screen even want a dark toggle, and who would operate it?
-3. **Story authoring** — ~90 never-merged narratives sit in `narratives-draft.md` (found in the 2026-07-18 docs sweep); needs a voice-rule pass before merge.
+1. **Deploy v3.1.20** — closes 4 real dashboard reports once live (flip queue in `.claude/fixloop/flip-queue.txt`).
+2. **Real-TV checks** — the v3.1.2 camera fix confirmation + a look at the dark-mode slices, still outstanding from before this session.
+3. **TVDisplay dark mode — needs a maintainer decision**, not a code fix: does a shared, across-the-room TV screen even want a dark toggle, and who would operate it?

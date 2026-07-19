@@ -88,7 +88,8 @@ Response shape: `{ reports: [{ id, createdAt, whatDoing, whatWrong, contact, ver
 Read `TODO.md`. For each fetched report:
 
 - **Already tracked:** report's id appears anywhere in `TODO.md` → skip. ⚠️ **Match BOTH marker forms** — TODO mixes them: the full id `fb:feedback-<ts>-<hex>` AND the short hex suffix `fb:<hex>`. A report `feedback-1778583921001-0aa9660c` is tracked if EITHER `fb:feedback-1778583921001-0aa9660c` OR `fb:0aa9660c` appears. Grepping only one form (e.g. the short 8-char) silently misses every entry written in the other form → proposes already-tracked items as "new candidates." This burned a full reconciliation on 2026-06-09. Extract the trailing hex from each fetched id and check both.
-- **New candidate:** draft a bullet in the existing style:
+- **Already fixed, just never flipped:** ⚠️ **before drafting a "new candidate," also grep `CHANGELOG.md` for the fb id (both marker forms above).** The dashboard's `resolved` flag is not reliable on its own — a fix can ship, get confirmed deployed, and still sit "open" on the live API for weeks because nobody ran the PATCH flip. (2026-07-18: a 2026-07-01 staging file had drafted 17 reports as new work; live reconciliation found 16 of them were already fixed in v3.0.91/v3.0.97, over a week *before* that draft was even written — this step would have caught it instantly instead of nearly triggering redundant fix work.) If the id shows up in CHANGELOG but not TODO.md: don't draft a TODO bullet — list it under a **"Already fixed — needs a flip"** line in the proposal instead, citing the version/CHANGELOG entry, so the user can approve a batch PATCH (recipe in TODO.md "Dashboard PATCH recipe") rather than review it as if it were unstarted work.
+- **New candidate** (checked TODO.md AND CHANGELOG.md, found in neither): draft a bullet in the existing style:
 
 ```
 - [ ] **<short title from whatWrong>** — <one-line context from whatDoing>. <!-- fb:<id> -->
@@ -119,10 +120,14 @@ The cluster names itself from the shared tokens. Suggest a sprint label only whe
 Compact summary:
 
 ```
-Dashboard feedback: N unresolved · M already tracked · K new candidate(s)
+Dashboard feedback: N unresolved · M already tracked · F already fixed (needs flip) · K new candidate(s)
 ```
 
-If K=0: `> No new feedback since last sweep.` then step 5.
+If K=0 and F=0: `> No new feedback since last sweep.` then step 5.
+
+If F>0, list those fb ids with their CHANGELOG version first, and ask separately:
+
+> **PATCH these F already-fixed reports resolved? (yes / no)**
 
 If K>0, list each new candidate with the proposed bullet line, target bucket, and any 🔗 hints (both top-3 and cluster). Print any cluster blocks above the candidate list so the sprint suggestion lands first.
 

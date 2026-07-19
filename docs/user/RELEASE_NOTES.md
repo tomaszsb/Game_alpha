@@ -2,6 +2,13 @@
 
 ---
 
+## v3.1.17–3.1.20 — Picking a player on PC no longer hides the board, and a few phone/setup rough edges smoothed out (July 19, 2026)
+
+- **Restarting after a crash and picking your player no longer strips the screen down to just your own panel.** On a PC or TV, choosing "which player are you?" from the rejoin picker used to switch that device into the same stripped-down view a phone gets — no board, nothing else visible. Now the PC/TV keeps showing the full shared game; only an actual phone gets the personal view.
+- **A private card-swap picker no longer shows up on the shared screen.** Replacing an expeditor is supposed to be private — but if you were doing it on your own phone, the exact same picker (showing your hand) was also popping up on a separate shared PC/TV screen anyone in the room could see. Fixed.
+- **The color picker now clearly shows which colors are already taken.** Before, clicking a color someone else had just silently swapped you to a different one with no explanation. Taken colors are now dimmed and unclickable, with a tooltip naming whose color it is.
+- **The Share button is reachable on phones now, and it's also on your own phone's join screen.** On a narrow screen, the Share button (and the settings gear next to it) used to get pushed completely off the edge — present, just invisible. Also added an "Invite a Friend" button to the screen you see after joining on your own phone, so you can send the game link to someone else without switching devices.
+
 ## v3.1.12–3.1.16 — Dark mode now covers cards and the board, and your history tab shows real numbers (July 18, 2026)
 
 - **Dark mode now covers a lot more of the game.** If you've switched your panel to dark mode, the card popups (replacing a card, viewing card details, choosing between options) and the game board itself now follow along instead of staying stuck in bright white. Colors that mean something — like which phase a space belongs to, or whether a move is available — stay the same in both modes on purpose, so they're never confusing.
