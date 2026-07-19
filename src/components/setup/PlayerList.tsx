@@ -103,24 +103,39 @@ export function PlayerList({
       }}>
         {AVAILABLE_COLORS.map((colorOption: ColorOption) => {
           const isSelected = player.color === colorOption.color;
+          // fb:d6bbcb00 — a color already claimed by another player used to
+          // render as a fully clickable, opaque swatch with no sign it was
+          // taken. Clicking it didn't fail loudly either: StateService's
+          // resolveConflicts() silently reassigns a duplicate color back to
+          // whatever's next available, so the click just appeared to do
+          // nothing. Now taken swatches are dimmed, non-interactive, and
+          // name whose color it is — same "who has this" info the compact
+          // (TV) picker already surfaces, just shown instead of hidden.
+          const takenBy = players.find(p => p.id !== player.id && p.color === colorOption.color);
+          const isTaken = !!takenBy;
           return (
             <button
               key={colorOption.color}
-              onClick={() => onUpdatePlayer(player.id, 'color', colorOption.color)}
+              onClick={() => {
+                if (isTaken) return;
+                onUpdatePlayer(player.id, 'color', colorOption.color);
+              }}
+              disabled={isTaken}
               style={{
                 width: `${swatchSize}px`,
                 height: `${swatchSize}px`,
                 borderRadius: '50%',
                 backgroundColor: colorOption.color,
                 border: isSelected ? `3px solid ${colors.success.text}` : `2px solid ${colors.secondary.light}`,
-                cursor: 'pointer',
+                cursor: isTaken ? 'not-allowed' : 'pointer',
+                opacity: isTaken ? 0.35 : 1,
                 transition: 'all 0.3s ease',
                 transform: isSelected ? 'scale(1.2)' : 'scale(1)'
               }}
-              title={colorOption.name}
-              aria-label={`Select ${colorOption.name} color`}
+              title={isTaken ? `Taken by ${takenBy.name || 'another player'}` : colorOption.name}
+              aria-label={isTaken ? `${colorOption.name} color, taken by ${takenBy.name || 'another player'}` : `Select ${colorOption.name} color`}
               onMouseEnter={(e) => {
-                if (!isSelected) {
+                if (!isSelected && !isTaken) {
                   e.currentTarget.style.transform = 'scale(1.1)';
                 }
               }}

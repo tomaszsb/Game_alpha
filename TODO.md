@@ -52,8 +52,8 @@
 ### Newly arrived (2026-07-13 to 2026-07-17, staged 2026-07-18)
 *(restart-after-crash blank-PC-view bug shipped v3.1.17, see CHANGELOG — closes fb:3a5280d8 once deployed)*
 *(expeditor-replacement privacy leak shipped v3.1.18, see CHANGELOG — closes fb:44751a06 once deployed)*
+*(PC color picker taken-color UX shipped v3.1.19, see CHANGELOG — closes fb:d6bbcb00 once deployed)*
 - [ ] **Can't add player** — report has no detail ("Q"), needs repro first. <!-- fb:75101be7 -->
-- [ ] **Color picker: taken colors (blue) not clearly marked unavailable.** <!-- fb:d6bbcb00 -->
 - [ ] **Share icon not visible on phone.** <!-- fb:2c848b47 -->
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)

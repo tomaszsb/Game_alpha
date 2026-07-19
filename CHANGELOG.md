@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.19] - 2026-07-18
+
+### Fix: PC color picker now marks taken colors instead of silently reassigning you (fixloop, fb:d6bbcb00)
+Dashboard report: a player trying to pick blue during setup found it "not very pronounced" that blue was already taken by another player.
+
+**The real bug was worse than a missing visual cue.** `renderColorPicker()` (the 8-swatch PC picker in `PlayerList.tsx`) had no taken-color awareness at all — every swatch was fully opaque and clickable. Clicking a color someone else already had didn't fail visibly either: `StateService.resolveConflicts()` runs on every player update and silently reassigns a *duplicate* color back to whatever's next available — so the click just looked like it did nothing, with zero explanation. (Found in passing: `usePlayerValidation.ts` already has a `validateColorChoice()` helper that would surface a proper "taken by" error, but it's never called anywhere — left as-is since this fix doesn't need it, noted for later.)
+
+Matched the pattern the compact/TV-mode color picker already established (it filters taken colors out of its direct-pick list): taken swatches in the PC picker now render dimmed (`opacity: 0.35`), non-interactive (`disabled`, `cursor: not-allowed`, no hover scale), with `title`/`aria-label` naming whose color it is ("Taken by Player 1"). Clicking one is now a guarded no-op that never reaches the silent-reassignment path.
+
+Verified: typecheck clean, production build clean, new `tests/components/setup/PlayerList.test.tsx` (5 tests: taken-swatch disabled + labeled, click-on-taken is a no-op, click-on-available still works, own current color never shows as taken, a color re-enables once its holder switches away) — all pass, no regressions in sibling setup tests. Live-verified in the browser: Player 2 clicking Player 1's blue now shows a dimmed, disabled swatch with the correct tooltip and does nothing on click; picking an actually-available color still works and updates the picker's live "taken" state for both players correctly.
+
 ## [3.1.18] - 2026-07-18
 
 ### Fix: private card-replacement picker no longer leaks to the shared/PC screen (fixloop, fb:44751a06)
