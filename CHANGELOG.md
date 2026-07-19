@@ -21,6 +21,9 @@ Full audit of every non-living `.md` and mockup document against the current cod
 
 Verified: full suite 2357/2358 (1 pre-existing skip — the very E2E-FullGame skip DEF-11 tracks), 98s.
 
+### Repo hygiene (same day, follow-on): stale worktrees removed, settings.local.json untracked, GitHub pruned
+The docs-sweep search waded through 6 copies of every doc — stranded agent worktrees under `.claude/worktrees/` from past sessions (May–July). All 6 verified safe (zero unique commits vs master, no dirty files beyond `.claude/settings.local.json`, none touched in >24h) and removed via restore-then-plain `git worktree remove` + `git branch -d` (never `--force`/`-D`); their 6 local branches deleted. **Root cause fixed (`e2ddc65`): `.claude/settings.local.json` untracked** — it was in `.gitignore` (line 33) but tracking overrides ignore, so every session's permission grants showed as a phantom uncommitted change AND every agent worktree counted as "changed," which is exactly why worktree isolation's auto-clean never fired. The fix was found sitting unmerged on a stray GitHub branch (`claude/code-reuse-strategy-01muw0`, left by a 2026-07-17 agent session); applied to master and the superseded branch deleted — GitHub is now master-only. `/start` (step 3) + `/koniec` (step 5b) now carry the stale-worktree sweep as a standing routine (canonical copy in koniec, start references it — no drift), commit `68f50b6`. Heads-up: the next server `git pull` will delete the server's copy of settings.local.json — harmless, it's Claude-Code-only config and `.dockerignore` already excluded `.claude/` from the image.
+
 ## [3.1.16] - 2026-07-18
 
 ### Fix: real card_draw formatting bug found + inline scope deltas added (Project Chronicle P1, first piece)
