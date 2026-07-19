@@ -25,7 +25,7 @@
 - [ ] **Finish the screenshot carousel** — 7 shots done; still wanted in `src/playtest/tour/`: mid-game revealed nodes, won game, lost game, money-deducted modal (state-injection recipes in CLAUDE.md TACTICAL); re-shoot `01-player-setup` from production (QR shows localhost); swap `12-a-word-explained.png`. Regenerate via `node scripts/capture-game-screenshot.js`.
 - [ ] **Demo video** — 30–45s; script + storyboard drafted 2026-07-05 (in chat); needs footage, then wire the "Watch demo" button.
 
-## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; un-promoted v3.0.83–90 reports: [.claude/feedback-staged.md](.claude/feedback-staged.md))
+## 🆕 Active — new-panel feedback (triage history: CHANGELOG v3.0.91–100; 2026-07-01 backlog recovered + reconciled 2026-07-18, full record: [.claude/feedback-staged.md](.claude/feedback-staged.md))
 
 ### Newly arrived (2026-07-03/05, staged 2026-07-10 — not yet triaged)
 *(cost-preview item shipped v3.0.121, see CHANGELOG)*
@@ -44,6 +44,41 @@
 
 ### Newly arrived (2026-07-14, staged same day)
 *(TV setup screen fit/legibility — shipped v3.0.135, then the maintainer's real-hardware testing 2026-07-15 surfaced it needed real fixes on top: v3.0.138 (vh/zoom + grid-packing bugs), v3.0.140 (Android-TV-as-phone misdetection), v3.0.142 (tile redesign for the TV's actual 960x540 resolution) — see CHANGELOG. Closes fb:3f9f2831/fb:e121c34e once v3.0.142 is confirmed deployed; see NEXT_SESSION.md "Flip after deploy" for the full fb-id list including two more reports from the same session.)*
+
+### Newly arrived (recovered 2026-07-18 — drafted 2026-07-01, never applied; see .claude/feedback-staged.md for full reconciliation)
+
+#### 🔗 Action-button / end-turn UX (6 reports, June 23 + 30 sessions)
+- [ ] **BUG: all actions look done but End Turn does nothing.** <!-- fb:e0694a57 -->
+- [ ] **End-turn action count off by one** — says "2 actions" when only one exists. <!-- fb:65160c0c -->
+- [ ] **Action buttons look too alike** — need visual differentiation for movement / expeditors / work packages. <!-- fb:40cc3674 -->
+- [ ] **First-visit green dot hint missing** on active buttons. <!-- fb:e84e4d11 -->
+- [ ] **No confirmation trace after pressing a button** — it vanishes with nothing left to confirm the choice. <!-- fb:d2070ed1 -->
+- [ ] **BUG: buttons disappeared after zooming the board**, can't make a move. <!-- fb:45cb8b0c -->
+
+#### 🔗 Expeditor modal clarity (3 reports)
+- [ ] **Color the day delta** — red when it adds days, green when it saves days. <!-- fb:39fd9f04 -->
+- [ ] **Activate button should state the effect** (e.g. "−4 days / −$X") instead of a bare "Activate". <!-- fb:17cc481c -->
+- [ ] **Can't see expeditor details before choosing** — the 3-expeditor modal shows names but taps don't open details. <!-- fb:0c523a17 -->
+
+#### 🔗 Modal content/labels (5 reports)
+- [ ] **Type dropdown shows raw CSV-looking names** in the completion modal. <!-- fb:69fe31a4 -->
+- [ ] **Outcome modal has no "next steps"** — should show which work packages were added/removed. <!-- fb:7441e00b -->
+- [ ] **Modal title should be the trade** (plumbing/HVAC/GC/antenna), not the full repeated description. <!-- fb:995028c7 -->
+- [ ] **Owner's narration and summary box read as confused/swapped.** <!-- fb:7065e8df -->
+- [ ] **Work list items show no details** — make each clickable. <!-- fb:b413cc2e -->
+
+#### 🔗 Life-event & Daily Permit story (2 reports)
+- [ ] **Used-up life events still clickable** — only the current multi-turn one should be reviewable. <!-- fb:78e20a61 -->
+- [ ] **Daily Permit "Expeditor Award" bonus is opaque** — how is it determined, which player got it. <!-- fb:f3f89f0d -->
+
+- [ ] **Spectator join fails for non-admins** — "game number unavailable" unless logged in as admin; blocks remote classroom spectating. <!-- fb:7bede788 -->
+
+### Newly arrived (2026-07-13 to 2026-07-17, staged 2026-07-18)
+- [ ] **BUG: restart-after-crash on PC shows a blank screen** (no board) — console: "Permissions check failed". <!-- fb:3a5280d8 -->
+- [ ] **Can't add player** — report has no detail ("Q"), needs repro first. <!-- fb:75101be7 -->
+- [ ] **Expeditor-replacement chooser is visible on the shared/TV screen** when played from a phone — private info leak. <!-- fb:44751a06 -->
+- [ ] **Color picker: taken colors (blue) not clearly marked unavailable.** <!-- fb:d6bbcb00 -->
+- [ ] **Share icon not visible on phone.** <!-- fb:2c848b47 -->
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
 - [~] **P1 remaining:** click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. (Inline deltas per entry — work-change scope $ + expeditor-add count — shipped v3.1.16, which also fixed a real pre-existing bug: the icon-formatted card_draw branch never fired in production due to a field-name mismatch.) (P2–P5 parked below pending V2 reframe.)
