@@ -271,4 +271,68 @@ describe('ChoiceModal', () => {
       'option2'
     );
   });
+
+  // fb:44751a06 — a card-replacement/selection/give choice shows the acting
+  // player's exact hand contents (private). A shared/host view (viewerId
+  // undefined) must not leak that picker when the acting player has their
+  // own phone (deviceType 'mobile') to answer on — but must still show it
+  // there for a pass-and-play player with no separate device.
+  describe('card-choice privacy gating', () => {
+    const buildCardChoiceState = (playerDeviceType: 'mobile' | 'desktop' | undefined) => ({
+      ...mockGameState,
+      players: [{ ...mockPlayer, deviceType: playerDeviceType }],
+      awaitingChoice: {
+        id: 'card-replace-1',
+        type: 'CARD_REPLACEMENT',
+        playerId: 'player1',
+        prompt: 'Choose a card to replace',
+        options: [{ id: 'E001', label: 'Expeditor Card' }],
+        metadata: { replaceCount: 1 },
+      } as any,
+    });
+
+    const renderWithState = (state: any, viewerId?: string) => {
+      mockServices.stateService.subscribe.mockImplementation((callback: any) => {
+        callback(state);
+        return vi.fn();
+      });
+      mockServices.stateService.getGameState.mockReturnValue(state);
+      render(
+        <GameContext.Provider value={mockServices}>
+          <ChoiceModal viewerId={viewerId} />
+        </GameContext.Provider>
+      );
+    };
+
+    it('suppresses the card picker on a shared/host view (no viewerId) when the acting player has their own phone', () => {
+      renderWithState(buildCardChoiceState('mobile'));
+
+      expect(screen.queryByTestId('card-replacement-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('choice-modal')).not.toBeInTheDocument();
+    });
+
+    it('still shows the card picker on a shared view when the acting player has no separate device (pass-and-play)', () => {
+      renderWithState(buildCardChoiceState(undefined));
+
+      expect(screen.getByTestId('card-replacement-modal')).toBeInTheDocument();
+    });
+
+    it('still shows the card picker on a shared view when the acting player is a desktop-only participant', () => {
+      renderWithState(buildCardChoiceState('desktop'));
+
+      expect(screen.getByTestId('card-replacement-modal')).toBeInTheDocument();
+    });
+
+    it('still shows the card picker on the acting player\'s own phone (viewerId matches)', () => {
+      renderWithState(buildCardChoiceState('mobile'), 'player1');
+
+      expect(screen.getByTestId('card-replacement-modal')).toBeInTheDocument();
+    });
+
+    it('suppresses the card picker on a different player\'s phone (pre-existing L003/L048 fan-out gate)', () => {
+      renderWithState(buildCardChoiceState('mobile'), 'someOtherPlayerId');
+
+      expect(screen.queryByTestId('card-replacement-modal')).not.toBeInTheDocument();
+    });
+  });
 });

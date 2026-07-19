@@ -26,7 +26,10 @@ export interface ChoiceModalProps {
   // suppresses the interactive modal and shows a brief "Waiting for X to
   // choose" status banner instead — so only the targeted player's device
   // can resolve the choice. PC mode + TV host leave this undefined and see
-  // the modal as before.
+  // the modal as before. See isCardChoiceOnSharedViewWithOwnDevice below
+  // for the separate gate that keeps THIS (viewerId-undefined) view from
+  // leaking a private card-hand choice when the acting player has their
+  // own phone (fb:44751a06).
   viewerId?: string;
 }
 
@@ -154,15 +157,31 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
   const isOtherPlayerChoice =
     !!viewerId && !!awaitingChoice && awaitingChoice.playerId !== viewerId;
 
+  // fb:44751a06 — card-choice types (CARD_REPLACEMENT/CARD_SELECTION/
+  // CARD_GIVE) show the acting player's exact hand contents, which is
+  // private information. isOtherPlayerChoice above only protects OTHER
+  // phones from a choice that isn't theirs — it never fires on a shared/
+  // host view (viewerId undefined: a separate PC browser tab acting as the
+  // group's shared board, or the TV host route), so that view kept showing
+  // the private card picker for whoever's turn it was, even when that
+  // player had their own phone open to the same choice. Suppress it there
+  // — but ONLY when the acting player has an independent device to answer
+  // on instead (deviceType 'mobile', set once they connect via their own
+  // ?p= link). Pass-and-play players with no separate device (deviceType
+  // undefined or 'desktop') have no other screen to use, so this shared
+  // view must keep showing it for them or that mode becomes unplayable.
+  const awaitingPlayer = awaitingChoice
+    ? stateService.getGameState().players.find(p => p.id === awaitingChoice.playerId)
+    : undefined;
+  const isCardChoiceOnSharedViewWithOwnDevice =
+    isCardChoiceType && !viewerId && awaitingPlayer?.deviceType === 'mobile';
+
   // Card choice types get their own modal (separate AnimatePresence lifecycle)
-  if (awaitingChoice && isCardChoiceType && !isOtherPlayerChoice) {
+  if (awaitingChoice && isCardChoiceType && !isOtherPlayerChoice && !isCardChoiceOnSharedViewWithOwnDevice) {
     const cardType = awaitingChoice.options[0]?.id?.charAt(0) as CardType || 'E';
     const mode = awaitingChoice.type === 'CARD_REPLACEMENT' ? 'replace'
       : awaitingChoice.type === 'CARD_SELECTION' ? 'return'
       : 'give';
-
-    const gameState = stateService.getGameState();
-    const player = gameState.players.find(p => p.id === awaitingChoice.playerId);
 
     const maxReplacements = (awaitingChoice.metadata?.replaceCount as number) || 1;
     const newCardType = awaitingChoice.type === 'CARD_REPLACEMENT'
@@ -173,7 +192,7 @@ export function ChoiceModal({ viewerId }: ChoiceModalProps = {}): JSX.Element {
     return (
       <CardReplacementModal
         isOpen={true}
-        player={player || null}
+        player={awaitingPlayer || null}
         cardType={cardType}
         maxReplacements={maxReplacements}
         newCardType={newCardType}

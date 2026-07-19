@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.18] - 2026-07-18
+
+### Fix: private card-replacement picker no longer leaks to the shared/PC screen (fixloop, fb:44751a06)
+Dashboard report: a player replacing an expeditor on their own phone found the same card picker — showing the exact contents of their hand — also open on a separate shared/PC screen anyone in the room could see.
+
+**Root cause:** `ChoiceModal.tsx` already had a viewer gate (`isOtherPlayerChoice`, v3.0.17) that stops a choice from appearing on *other players'* phones, but it only fires when `viewerId` is set — i.e. on a device that joined via its own `?p=` link. A shared/host view (a separate PC browser tab with no `?p=`, or the TV route) always has `viewerId` undefined, so it was never covered by that gate and kept rendering the card-hand picker for whoever's turn it was, private or not. (Confirmed `TVDisplay.tsx` doesn't render `ChoiceModal` at all — the reported "large screen" is an ordinary shared PC tab running `GameLayout`, not `?mode=tv`.)
+
+**Fix, not a blanket suppression:** the game also has a pass-and-play PC mode with no separate phone at all, where the shared screen *is* the acting player's only device — hiding the picker there would make that mode unplayable. Added a second gate, `isCardChoiceOnSharedViewWithOwnDevice`, that only suppresses a card-choice type (`CARD_REPLACEMENT`/`CARD_SELECTION`/`CARD_GIVE`) on a viewerId-undefined view when the acting player's `deviceType` is `'mobile'` — i.e. they have an independent device to answer on instead. A pass-and-play player (`deviceType` undefined/`'desktop'`) still sees the picker on the shared screen exactly as before.
+
+Verified: typecheck clean, production build clean, `ChoiceModal.test.tsx` extended with 5 new cases (suppressed-with-own-phone, shown-pass-and-play, shown-desktop-only, shown-on-own-phone, suppressed-on-other-player's-phone) — 12/12 pass. Live-verified in the browser across all three scenarios: a phone-connected player's shared PC tab now shows nothing during their private card choice; their own phone still shows the picker correctly; a pass-and-play player with no separate device still gets the picker on the shared screen (no regression). Full suite 2397/2399 (2 pre-existing `E2E-AllPaths.test.ts` timeout flakes under full-suite load, confirmed unrelated by isolating the file both with and without this change).
+
 ## [3.1.17] - 2026-07-18
 
 ### Fix: picking a player on PC/TV no longer strips down to the phone-only view (fixloop, fb:3a5280d8)

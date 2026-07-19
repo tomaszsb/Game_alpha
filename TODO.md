@@ -51,8 +51,8 @@
 
 ### Newly arrived (2026-07-13 to 2026-07-17, staged 2026-07-18)
 *(restart-after-crash blank-PC-view bug shipped v3.1.17, see CHANGELOG — closes fb:3a5280d8 once deployed)*
+*(expeditor-replacement privacy leak shipped v3.1.18, see CHANGELOG — closes fb:44751a06 once deployed)*
 - [ ] **Can't add player** — report has no detail ("Q"), needs repro first. <!-- fb:75101be7 -->
-- [ ] **Expeditor-replacement chooser is visible on the shared/TV screen** when played from a phone — private info leak. <!-- fb:44751a06 -->
 - [ ] **Color picker: taken colors (blue) not clearly marked unavailable.** <!-- fb:d6bbcb00 -->
 - [ ] **Share icon not visible on phone.** <!-- fb:2c848b47 -->
 
