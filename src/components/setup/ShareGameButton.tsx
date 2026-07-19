@@ -12,12 +12,18 @@
 // helper PlayerList.tsx uses for per-player QR codes — same format
 // (<origin>?g=<gameId>&token=<token>) — just without a player param, so
 // anyone who opens it lands on this setup screen and can add themselves.
+//
+// The share mechanism (useShareGameLink) and glyph (ShareIcon) are exported
+// so other screens can offer the same "invite someone" action with their own
+// styling instead of forking the navigator.share/clipboard logic. See
+// PlayerMobileView.tsx, which reuses both for its own per-player invite
+// button — fb:2c848b47 ("Share icon" / "Not seen on phone").
 
 import React, { useState } from 'react';
 import { colors } from '../../styles/theme';
 import { getServerURL } from '../../utils/networkDetection';
 
-function ShareIcon(): JSX.Element {
+export function ShareIcon(): JSX.Element {
   // The universally recognized "share" glyph (three linked nodes) — matches
   // ShareIcon in PlaytesterLandingPage.tsx.
   return (
@@ -31,43 +37,69 @@ function ShareIcon(): JSX.Element {
   );
 }
 
-export function ShareGameButton(): JSX.Element | null {
+interface UseShareGameLinkResult {
+  /** Join link for this game, built the same way as PlayerList.tsx's QR codes. */
+  joinUrl: string;
+  /** True once getServerURL() has resolved a real game (has a ?g= param). */
+  hasGame: boolean;
+  /** True for ~2s after a clipboard-fallback copy, to show "Copied!" feedback. */
+  copied: boolean;
+  /** Opens the native share sheet, falling back to clipboard-copy. */
+  handleShare: () => void;
+}
+
+/**
+ * Shared navigator.share -> clipboard-fallback logic for inviting someone to
+ * the current game. Both ShareGameButton (PC/TV setup header) and
+ * PlayerMobileView (per-player phone screen) use this so the actual share
+ * mechanism only lives in one place; each renders its own styled trigger.
+ */
+export function useShareGameLink(): UseShareGameLinkResult {
   const [copied, setCopied] = useState(false);
   const joinUrl = getServerURL();
-
   // getServerURL() falls back to just the origin when there's no game in
-  // the URL yet. PlayerSetup only mounts once a game has been auto-created
+  // the URL yet. Both callers only mount once a game has been auto-created
   // (see App.tsx), so this is just a defensive guard, not the normal path.
-  if (!joinUrl.includes('?g=')) return null;
+  const hasGame = joinUrl.includes('?g=');
 
-  const handleShare = async (): Promise<void> => {
-    const shareData = {
-      title: 'Unravel Codes',
-      text: 'Join my Unravel Codes game:',
-      url: joinUrl,
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        /* user cancelled the share sheet */
+  const handleShare = (): void => {
+    void (async () => {
+      const shareData = {
+        title: 'Unravel Codes',
+        text: 'Join my Unravel Codes game:',
+        url: joinUrl,
+      };
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+        } catch {
+          /* user cancelled the share sheet */
+        }
+        return;
       }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(joinUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard unavailable */
-    }
+      try {
+        await navigator.clipboard.writeText(joinUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        /* clipboard unavailable */
+      }
+    })();
   };
+
+  return { joinUrl, hasGame, copied, handleShare };
+}
+
+export function ShareGameButton(): JSX.Element | null {
+  const { hasGame, copied, handleShare } = useShareGameLink();
+
+  if (!hasGame) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <button
         type="button"
-        onClick={() => { void handleShare(); }}
+        onClick={handleShare}
         aria-label="Share game link"
         title="Share a link so others can join this game"
         style={{

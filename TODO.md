@@ -53,8 +53,8 @@
 *(restart-after-crash blank-PC-view bug shipped v3.1.17, see CHANGELOG — closes fb:3a5280d8 once deployed)*
 *(expeditor-replacement privacy leak shipped v3.1.18, see CHANGELOG — closes fb:44751a06 once deployed)*
 *(PC color picker taken-color UX shipped v3.1.19, see CHANGELOG — closes fb:d6bbcb00 once deployed)*
+*(Share button phone-width overflow + missing per-player invite button shipped v3.1.20, see CHANGELOG — closes fb:2c848b47 once deployed)*
 - [ ] **Can't add player** — report has no detail ("Q"), needs repro first. <!-- fb:75101be7 -->
-- [ ] **Share icon not visible on phone.** <!-- fb:2c848b47 -->
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
 - [~] **P1 remaining:** click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. (Inline deltas per entry — work-change scope $ + expeditor-add count — shipped v3.1.16, which also fixed a real pre-existing bug: the icon-formatted card_draw branch never fired in production due to a field-name mismatch.) (P2–P5 parked below pending V2 reframe.)

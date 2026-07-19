@@ -7,6 +7,7 @@ import { Player } from '../../types/StateTypes';
 import { getCurrentGameId } from '../../utils/networkDetection';
 import { GitHubSyncStatus } from './useGitHubSyncStatus';
 import { styles } from './PlayerSetup.styles';
+import { ShareIcon, useShareGameLink } from './ShareGameButton';
 
 interface PlayerMobileViewProps {
   /** The player this device is controlling, or undefined if not found yet. */
@@ -32,6 +33,13 @@ export function PlayerMobileView({
   appCommit,
   syncStatus,
 }: PlayerMobileViewProps): JSX.Element {
+  // Same invite mechanism as the host/PC screen's ShareGameButton (navigator.share
+  // -> clipboard fallback) — called unconditionally so hook order stays stable
+  // even on the "player not found" early return below. fb:2c848b47 ("Share
+  // icon" / "Not seen on phone") — this screen previously had no way at all
+  // for a player to invite someone else from their own phone.
+  const { hasGame, copied, handleShare } = useShareGameLink();
+
   if (!player) {
     return (
       <div style={styles.container}>
@@ -75,7 +83,7 @@ export function PlayerMobileView({
             <p style={styles.subtitle}>Setting up your player</p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '0.75rem' }}>
           {appSemver && (
             <div
               style={styles.versionInfo}
@@ -181,6 +189,43 @@ export function PlayerMobileView({
             </div>
           </div>
         </div>
+
+        {/* Invite a friend — same navigator.share/clipboard-fallback mechanism
+            as the host screen's Share button (see ShareGameButton.tsx), sized
+            for a thumb tap and styled to match this screen's white-card look
+            instead of the PC header's small translucent pill. */}
+        {hasGame && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Invite a friend to this game"
+              title="Share a link so others can join this game"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                background: 'rgba(255,255,255,0.9)',
+                color: colors.text.secondary,
+                border: 'none',
+                borderRadius: '999px',
+                padding: '0.7rem 1.5rem',
+                fontSize: '1rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
+              }}
+            >
+              <ShareIcon /> Invite a Friend
+            </button>
+            {copied && (
+              <span style={{ fontSize: '0.8rem', color: 'white', fontWeight: 600 }}>
+                Copied!
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Waiting message */}
         <div style={{

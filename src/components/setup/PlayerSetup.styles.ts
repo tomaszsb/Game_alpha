@@ -32,6 +32,16 @@ export const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    // flexWrap lets the right-hand badge/button cluster (version, classroom,
+    // game code, Share, settings gear) drop to its own row instead of
+    // overflowing past the edge of the screen. On phone-width viewports
+    // (~375px) the un-wrapped row was wider than the viewport itself, and
+    // because the container clips with overflow:hidden, the Share button
+    // and settings gear were rendered fully off-screen — present in the DOM
+    // but literally impossible to see or tap. No effect at PC/TV widths,
+    // where the row already fits on one line. fb:2c848b47.
+    flexWrap: 'wrap' as const,
+    rowGap: '0.4rem',
     padding: 'clamp(0.5rem, 1.5vh, 1rem) clamp(1rem, 3vw, 2rem)',
     flexShrink: 0,
   },

@@ -359,7 +359,7 @@ export function PlayerSetup({
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '0.75rem' }}>
           {appSemver && (
             <div
               style={styles.versionInfo}

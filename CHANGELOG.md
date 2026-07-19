@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.20] - 2026-07-18
+
+### Fix: Share button reachable on phone, and added to the per-player mobile screen (fixloop, fb:2c848b47)
+Dashboard report was just two fragments — "Share icon" / "Not seen on phone?" — thin enough that it needed real investigation rather than a guess. Both of the two plausible explanations turned out to be true, distinct bugs.
+
+**The existing Share button was present but unreachable at phone width.** The setup screen's header row (version/classroom/game-code badges + Share button + settings gear) doesn't wrap — at a 375px phone viewport, measured bounding rects put the Share button and gear icon entirely outside the visible viewport (`left: 410–496`, `left: 508–546` against a 375px-wide screen), clipped by the container's `overflow: hidden`. Present in the DOM and accessibility tree (so it "looked fine" on a quick check) but never visible or tappable. Fixed with `flexWrap: 'wrap'` on the shared header style (`PlayerSetup.styles.ts`) plus a matching wrap on the header's right-side badge row — badges now drop to a second row on narrow screens instead of running off-screen. No effect at PC/TV widths, where everything already fit on one line.
+
+**The per-player mobile view (`PlayerMobileView.tsx`, shown to a phone that already joined via its own `?p=` link) had no share affordance at all** — a player already in the game, on their own phone, had no way to invite anyone else. Added an "Invite a Friend" button there, styled to that screen's mobile-card look rather than reusing the PC header's small pill button as-is. To avoid forking the share logic, extracted `useShareGameLink()` out of `ShareGameButton.tsx` (the `navigator.share` → clipboard-fallback mechanism + the `joinUrl`/`copied` state) so both surfaces share one implementation; `ShareGameButton`'s own behavior is unchanged. Confirmed the generated join link is generic (game + token only) — `getServerURL()` only adds a player param when one is explicitly passed as an argument, which neither caller does, so a device's own `?p=` identity is never leaked into a link it hands to someone else. Also fixed an adjacent, previously-unnoticed overflow on `PlayerMobileView`'s own small header (2 badges, 23px over budget at 375px) — same root cause, same fix.
+
+Verified: typecheck clean, production build clean, new `tests/components/setup/PlayerMobileView.test.tsx` (5 tests, including an explicit assertion that the shared link never carries the current device's own player id) + the existing `ShareGameButton.test.tsx` (4, confirming the refactor didn't change its behavior) — full `tests/components/setup/` directory 21/21 pass. Live-verified in the browser at a 375×812 viewport: before/after bounding-rect checks confirmed the Share button and gear icon moved from fully off-screen to fully in-viewport, and the new "Invite a Friend" button renders correctly on the per-player screen.
+
 ## [3.1.19] - 2026-07-18
 
 ### Fix: PC color picker now marks taken colors instead of silently reassigning you (fixloop, fb:d6bbcb00)
