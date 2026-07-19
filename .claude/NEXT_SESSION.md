@@ -1,16 +1,16 @@
 # Next session starter — written 2026-07-18 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.16 — **pending deploy** (last confirmed-live is v3.1.10; v3.1.11–16 queued).
+- **Version:** v3.1.16 — **deployed + confirmed live 2026-07-18** (`v3.1.16 · 9095413`, built from HEAD).
 - **Branch:** master, truly clean — the eternal phantom `settings.local.json` "modified" is gone (file untracked in `e2ddc65`).
 - **Last shipped:** third block of 2026-07-18 was docs/repo hygiene, no code: every .md/mockup audited against code (4 completed docs archived, open leftovers promoted to TODO, BETA_PLAN criteria closed), 6 stranded agent worktrees + branches removed with the root cause fixed (settings.local.json untracked), GitHub pruned to master-only, `/start`+`/koniec` now carry the worktree sweep.
 - **Test suite:** skipped this block per zero-game-source rule — baseline is today's runs: fast suite 2357/2358 (1 pre-existing skip, 98s, 19:35) + ghost gates green (smart-bot 50/50 deterministic, 0 hard failures, 20:22).
 - **Build/typecheck:** clean (re-run this block, both green).
 
 ## Top 3 open items
-1. **Deploy v3.1.10 → v3.1.16** — six versions queued. Command in Reminders.
+1. **Real-TV checks** — v3.1.16 is live: confirm the v3.1.2 camera feel (zoom stays put between moves) and eyeball the new dark-mode slices, one trip to the TV.
 2. **TVDisplay dark mode — needs your call, not a code fix.** Shared across-the-room TV screen: does it even want a dark toggle, and who operates it? (Board chrome itself was themed in v3.1.15; TVDisplay is the deliberate holdout.)
-3. **Real-TV confirmation of the v3.1.2 camera fix** — 2-minute glance at the physical TV; can double as the deploy sanity check once v3.1.16 is live.
+3. **Story authoring** — ~90 never-merged narratives in `narratives-draft.md` (docs-sweep find); needs a voice-rule pass + format adaptation before merge (see TODO "Story authoring rollout").
 
 ## Decisions waiting on the user
 - **Board layout** — keep stock grid, or re-arrange in the editor (drag-save persists).
@@ -19,7 +19,7 @@
 - **TVDisplay dark mode** — see top item 2.
 
 ## Suggested first move
-Deploy is still the highest-value step — six versions including a production bug fix (card-draw log formatter) have sat committed all day. After it's confirmed live, the TV camera check (item 3) closes two loops in one trip to the living room.
+Deploy done (v3.1.16 confirmed live 2026-07-18). The TV camera check (item 1) is the natural next step — 2 minutes at the physical TV closes the last open verification from v3.1.2 and sanity-checks the freshly deployed dark-mode work in one trip.
 
 ## Suggested model for next session
 Sonnet 5 — deploy handoff, a design question, and a manual TV check; nothing architecturally ambiguous.
