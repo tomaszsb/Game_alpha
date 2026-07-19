@@ -46,8 +46,7 @@
 *(TV setup screen fit/legibility — shipped v3.0.135, then the maintainer's real-hardware testing 2026-07-15 surfaced it needed real fixes on top: v3.0.138 (vh/zoom + grid-packing bugs), v3.0.140 (Android-TV-as-phone misdetection), v3.0.142 (tile redesign for the TV's actual 960x540 resolution) — see CHANGELOG. Closes fb:3f9f2831/fb:e121c34e once v3.0.142 is confirmed deployed; see NEXT_SESSION.md "Flip after deploy" for the full fb-id list including two more reports from the same session.)*
 
 ### Newly arrived (recovered 2026-07-18 — drafted 2026-07-01, never applied; see .claude/feedback-staged.md for full reconciliation)
-*(16 of the 17 recovered items turned out to already be fixed in v3.0.91/v3.0.97, 2026-07-01/06 — the dashboard reports were just never flipped to resolved. Flip queued/pending, see .claude/fixloop/flip-queue.txt. Only one genuine gap remained:)*
-- [ ] **Outcome modal has no "next steps"** — should show which work packages were added/removed. <!-- fb:7441e00b -->
+*(All 17 recovered items turned out to already be fixed in v3.0.91/v3.0.97, 2026-07-01/06 — the dashboard reports were just never flipped to resolved. fb:7441e00b, the last one, was verified live 2026-07-18: OutcomeChangesV2, shipped v3.0.91, already shows named work-package gain/loss on both the dice and manual-action paths. Flip queued/pending, see .claude/fixloop/flip-queue.txt.)*
 
 ### Newly arrived (2026-07-13 to 2026-07-17, staged 2026-07-18)
 *(restart-after-crash blank-PC-view bug shipped v3.1.17, see CHANGELOG — closes fb:3a5280d8 once deployed)*
