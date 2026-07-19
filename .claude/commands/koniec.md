@@ -164,7 +164,7 @@ If yes → **fix it directly** in `.claude/commands/start.md` / `.claude/command
 
 If nothing surfaced (most sessions) → **skip silently.** Do NOT invent a "change" to satisfy the step — the bar is "a real flaw bit me this session," not "polish for its own sake."
 
-## 5b. Auto-sweep `.claude/tmp/` if it's accumulated
+## 5b. Auto-sweep `.claude/tmp/` + stale agent worktrees
 
 `.claude/tmp/` is gitignored — by convention it's scratch (feedback screenshots, debug artifacts, one-off scripts). Auto-clean when either threshold trips. Nothing tracked lives here, so a delete can't lose anything that mattered.
 
@@ -182,6 +182,17 @@ fi
 ```
 
 Mention the cleanup in step 6's wrap line if it fired. Otherwise silent — no need to report a no-op.
+
+**Stale agent worktrees (added 2026-07-18 — this is the canonical routine; `/start` step 3 references it):** past agent sessions leave full repo copies under `.claude/worktrees/` (worktree isolation auto-cleans only when *unchanged* — a modified `.claude/settings.local.json` alone is enough to strand one forever). Stranded copies inflate every repo-wide file search several-fold (the 2026-07-18 docs sweep waded through 6 copies of every doc) and eat disk. Sweep:
+
+1. `git worktree list` — only the main checkout listed? Done, silent.
+2. For each extra worktree, it's removable ONLY if ALL three gates hold:
+   - **Merged:** `git log --oneline master..<its-branch> | wc -l` returns 0 (for a detached-HEAD worktree, use its commit hash in place of the branch).
+   - **No real work:** `git -C <wt> status --porcelain` shows nothing except `.claude/settings.local.json`. Any other dirty/untracked file → HOLD.
+   - **Cold:** the worktree dir and its settings file mtimes are >24h old. A fresh one may belong to a live concurrent session — real multi-session collisions are documented in CLAUDE.md TACTICAL; a worktree spawned *this* session stays until a later sweep finds it cold.
+3. Removal recipe — **restore-then-remove, never `--force`:** `git -C <wt> restore .claude/settings.local.json`, then plain `git worktree remove <wt>`. If the plain remove still refuses, HOLD and report — git sees something the gates missed. (A batched `--force` removal also trips the Bash permission classifier; the restore-then-plain path is both safer and unblocked — learned 2026-07-18.)
+4. Delete the leftover branch with `git branch -d` (never `-D` — `-d`'s refusal on unmerged commits is the built-in backstop), then `git worktree prune`.
+5. Report: `🧹 removed N stale worktree(s) + branches` in the step-6 wrap line if it fired; one line per HOLD with the reason (unique commits / real dirty files / touched <24h). No-op → silent.
 
 ## 5c. Commit the wrap-up — don't leave docs dirty
 

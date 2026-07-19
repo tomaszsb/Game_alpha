@@ -28,6 +28,7 @@ Do not search the memory graph for this — the ship log lives in CHANGELOG. The
 Single message, parallel tool calls so the user sees them fast:
 
 - `git status --short` — flag uncommitted changes
+- `git worktree list` — extras beyond the main checkout? If yes, run the stale-worktree sweep exactly as written in `/koniec` step 5b (three safety gates: merged into master, no dirty files beyond `.claude/settings.local.json`, cold >24h; restore-then-plain-remove, `git branch -d`). Report one line: `🧹 removed N stale agent worktree(s)` and/or `⚠️ held: <name> (<reason>)`. Only the main checkout (the common case) → stay silent. (Added 2026-07-18: 6 stranded copies had been inflating every repo search since May.)
 - `Read package.json` lines 1–10 — pick up the version
 - Match the version against the starter prompt's "pending deploy" claim
 - **Flip-after-deploy (added 2026-07-10):** if the starter prompt has a "Flip after deploy" list AND the pending version is now confirmed live (user says so, or the live bundle shows it), PATCH those fb ids resolved (recipe in TODO.md "Dashboard PATCH recipe") and report the new open count. This is what keeps the dashboard's open list honest — fixed-but-unflipped reports had piled up to ~20 of 53 "open" by 2026-07-10.
