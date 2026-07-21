@@ -135,8 +135,8 @@ export function exportLogToPrintableHtml(entries: ActionLogEntry[], meta: Export
       return `
         <tr>
           <td>${ts}</td>
-          <td>${e.playerName}</td>
-          <td>T${e.globalTurnNumber}</td>
+          <td>${escapeHtml(e.playerName)}</td>
+          <td>T${escapeHtml(String(e.globalTurnNumber))}</td>
           <td>${e.type}</td>
           <td>${escapeHtml(e.description || '')}</td>
           <td><code>${escapeHtml(d)}</code></td>
@@ -148,7 +148,7 @@ export function exportLogToPrintableHtml(entries: ActionLogEntry[], meta: Export
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Unravel Codes — Game ${meta.gameId} Log</title>
+  <title>Unravel Codes — Game ${escapeHtml(meta.gameId)} Log</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; color: #333; }
     h1 { color: #1565c0; }
@@ -168,7 +168,7 @@ export function exportLogToPrintableHtml(entries: ActionLogEntry[], meta: Export
 <body>
   <h1>Unravel Codes — Game Log</h1>
   <div class="meta">
-    <div><strong>Game:</strong> ${meta.gameId}</div>
+    <div><strong>Game:</strong> ${escapeHtml(meta.gameId)}</div>
     <div><strong>Scope:</strong> ${escapeHtml(meta.scopeLabel)}</div>
     <div><strong>Exported:</strong> ${formatTimestampReadable(meta.exportedAt)}</div>
     <div><strong>App version:</strong> ${escapeHtml(meta.appVersion)}</div>

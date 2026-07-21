@@ -118,6 +118,26 @@ describe('logExport', () => {
       ], meta);
       expect(html).toContain('Pressed &lt;Play&gt; &amp; it failed');
     });
+
+    // SECURITY (HIGH, 2026-07-21 audit): playerName is player-chosen and was
+    // interpolated raw into document.write'd HTML — a name like this payload
+    // executed as script for anyone who opened the exported log.
+    it('escapes an XSS payload in playerName instead of executing it', () => {
+      const html = exportLogToPrintableHtml([
+        makeEntry({ playerName: '<img src=x onerror="alert(1)">' }),
+      ], meta);
+      expect(html).not.toContain('<img src=x onerror="alert(1)">');
+      expect(html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+    });
+
+    it('escapes HTML in gameId', () => {
+      const html = exportLogToPrintableHtml(
+        [makeEntry()],
+        { ...meta, gameId: '<script>alert(1)</script>' },
+      );
+      expect(html).not.toContain('<script>alert(1)</script>');
+      expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    });
   });
 
   describe('buildExportFilename', () => {
