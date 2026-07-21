@@ -351,8 +351,15 @@ if (fs.existsSync(distPath)) {
   app.use('/data/i/:instanceId', (req, res, next) => {
     if (!instanceLayerActive) return res.status(404).end();
     const id = req.params.instanceId;
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return res.status(400).end();
-    if (!fs.existsSync(resolvedDir(instancesRoot, id))) return res.status(404).end();
+    // resolvedDir validates id (SECURITY: path traversal, 2026-07-21 audit)
+    // and throws on anything outside the classroom-id shape.
+    let dir;
+    try {
+      dir = resolvedDir(instancesRoot, id);
+    } catch {
+      return res.status(400).end();
+    }
+    if (!fs.existsSync(dir)) return res.status(404).end();
     return instanceStatic(id)(req, res, next);
   });
 
@@ -1023,7 +1030,12 @@ app.delete('/api/instances/:id', (req, res) => {
   if (id === DEFAULT_INSTANCE_ID) {
     return res.status(400).json({ success: false, error: 'The default classroom cannot be deleted' });
   }
-  const config = loadInstance(instancesRoot, id);
+  let config;
+  try {
+    config = loadInstance(instancesRoot, id);
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
   if (!config) return res.status(404).json({ success: false, error: 'No such classroom' });
   const access = checkInstanceWriteAccess(config, {
     adminPassword: req.headers['x-admin-password'],

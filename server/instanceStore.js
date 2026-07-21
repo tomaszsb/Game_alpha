@@ -18,6 +18,23 @@ const CONFIG_FILE = 'config.json';
 
 export const DEFAULT_INSTANCE_ID = 'classroom-1';
 
+// SECURITY (HIGH, 2026-07-21 audit): every instance id that reaches a
+// filesystem path must pass through here first. createInstance already
+// enforced this at creation time, but loadInstance/deleteInstance/resolvedDir
+// built paths straight from the id with no check — an id like "../../foo"
+// walked the resulting path.join() outside instancesRoot entirely, so any
+// route that forwarded req.params.id (most of /api/instances/:id) could read
+// or (via deleteInstance's recursive rmSync) destroy arbitrary directories.
+// Centralizing the check in instanceDir (and routing configPath through it)
+// closes every caller at once instead of relying on each route to remember.
+const INSTANCE_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+
+export function assertValidInstanceId(id) {
+  if (typeof id !== 'string' || !INSTANCE_ID_PATTERN.test(id)) {
+    throw new Error(`Invalid instance id: "${id}" (lowercase letters, digits, hyphens)`);
+  }
+}
+
 /**
  * @typedef {Object} SlotConfig
  * @property {boolean} [used]
@@ -39,6 +56,7 @@ export const DEFAULT_INSTANCE_ID = 'classroom-1';
  */
 
 export function instanceDir(instancesRoot, id) {
+  assertValidInstanceId(id);
   return path.join(instancesRoot, id);
 }
 
@@ -51,7 +69,7 @@ export function listInstanceIds(instancesRoot) {
 }
 
 export function configPath(instancesRoot, id) {
-  return path.join(instancesRoot, id, CONFIG_FILE);
+  return path.join(instanceDir(instancesRoot, id), CONFIG_FILE);
 }
 
 // Spec INVARIANT "atomicity end to end" req 1: the config is one file,

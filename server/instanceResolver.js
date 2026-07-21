@@ -20,6 +20,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { processGameData, parseCsvLine, parseCsvWithHeaders, toCsv } from './processGameData.js';
 import { validateConfig, inactiveSpaces } from './instanceValidation.js';
+import { assertValidInstanceId } from './instanceStore.js';
 
 const STAMP_FILE = 'bake-stamp.json';
 const SPACES_CSV = 'Spaces.csv';
@@ -416,6 +417,7 @@ function copyDirFiles(srcDir, dstDir) {
 }
 
 export function resolvedDir(instancesRoot, id) {
+  assertValidInstanceId(id);
   return path.join(instancesRoot, id, 'resolved');
 }
 
