@@ -47,7 +47,24 @@ interface PlayerSetupProps {
  * real 100vw/100dvh — the standard compensation pattern for using `zoom` as a
  * uniform scale on a viewport-sized element.
  */
-const TV_MODE_ZOOM = 1.3;
+/**
+ * The 1.3x zoom above was tuned for TVs that report a large logical
+ * resolution (e.g. a 4K TV whose browser reports ~3840px wide) with tiny
+ * text at couch distance — see the comment block above. But not every TV
+ * reports a large logical resolution: some (e.g. a Hisense confirmed live
+ * 2026-07-15, see isPhoneScreen() in deviceDetection.ts, and a TCL reported
+ * by a user 2026-07-22 at 960x540) report an already-small logical screen.
+ * Applying the same flat 1.3x to those magnifies an already-small canvas,
+ * making it look coarser rather than crisper (fb:feedback-1784733214858-
+ * 6c05e9d3 and siblings, "vacation TV" bug reports). Gate the zoom on
+ * `window.screen.width` — consistent with how isPhoneScreen() keys off
+ * `window.screen` rather than `innerWidth` for TV-related size decisions —
+ * so small-logical-resolution TVs render unmagnified.
+ */
+export function getTvModeZoom(): number {
+  if (typeof window === 'undefined' || !window.screen || !window.screen.width) return 1;
+  return window.screen.width < 1280 ? 1 : 1.3;
+}
 
 /**
  * PlayerSetup is the main container component that orchestrates player management
@@ -286,6 +303,8 @@ export function PlayerSetup({
     );
   }
 
+  const tvModeZoom = selectedMode === 'tv' ? getTvModeZoom() : 1;
+
   return (
     <div
       className="us-setup-fullheight"
@@ -293,15 +312,15 @@ export function PlayerSetup({
         ...styles.container,
         ...(selectedMode === 'tv'
           ? {
-              zoom: TV_MODE_ZOOM,
-              width: `${100 / TV_MODE_ZOOM}vw`,
+              zoom: tvModeZoom,
+              width: `${100 / tvModeZoom}vw`,
             }
           : {}),
       }}
     >
       <style>{`
         .us-setup-fullheight { height: 100vh; height: 100dvh; }
-        ${selectedMode === 'tv' ? `.us-setup-fullheight { height: ${100 / TV_MODE_ZOOM}vh; height: ${100 / TV_MODE_ZOOM}dvh; }` : ''}
+        ${selectedMode === 'tv' ? `.us-setup-fullheight { height: ${100 / tvModeZoom}vh; height: ${100 / tvModeZoom}dvh; }` : ''}
         /* Landing-header hero treatment (fb:7dbc2fcc, "feels naked") — the
            brand mark (yarn ball unraveling into the "NYC Codes" book) gets a
            soft breathing glow and a gentle wobble instead of sitting there
