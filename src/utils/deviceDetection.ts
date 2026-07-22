@@ -79,7 +79,12 @@ export function isPhoneScreen(): boolean {
 export function isSmartTV(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || (navigator as { vendor?: string }).vendor || '';
-  return /SmartTV|Smart-TV|SMART-TV|Tizen|Web0S|NetCast|HbbTV|GoogleTV|Google TV|Android\s?TV|AFT[A-Z]|CrKey|BRAVIA|AppleTV|tvOS|Roku|VIDAA|PhilipsTV|DTV/i.test(ua);
+  // Smart[\s-]?TV covers "SmartTV", "Smart-TV", and "Smart TV" (space) —
+  // widened 2026-07-22 after a TCL Android TV UA ("...Smart TV Pro
+  // Build/UTT2.250416.001...") used a space where the regex only expected
+  // a hyphen or nothing, so it fell through to the mobile regex and got
+  // misclassified as a phone (same failure shape as the 2026-07-15 Hisense fix).
+  return /Smart[\s-]?TV|Tizen|Web0S|NetCast|HbbTV|GoogleTV|Google TV|Android\s?TV|AFT[A-Z]|CrKey|BRAVIA|AppleTV|tvOS|Roku|VIDAA|PhilipsTV|DTV/i.test(ua);
 }
 
 /**
