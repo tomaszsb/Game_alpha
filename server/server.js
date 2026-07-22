@@ -703,11 +703,32 @@ function touchGame(gameId) {
 
 // ===== GAME UTILITIES =====
 
+// Unambiguous alphabet for human-typed codes - no 0/O, 1/I/L (easily confused
+// when read aloud or handwritten on a whiteboard).
+const GAME_ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+const GAME_ID_SEGMENT_LEN = 4;
+const GAME_ID_MAX_ATTEMPTS = 50;
+
+/**
+ * Generate a cryptographically random, human-typeable game ID (e.g. G-A7F9-K3PX).
+ * Old sequential IDs (G1, G7, ...) from before this change remain valid for
+ * games already in storage - this only affects newly created games. Random
+ * IDs are what make the join-info code-is-the-secret model (see the route's
+ * doc comment) safe: sequential IDs were enumerable, these aren't.
+ */
 function generateGameId() {
-  const id = `G${nextGameNumber}`;
-  nextGameNumber++;
-  isDirty = true;
-  return id;
+  for (let attempt = 0; attempt < GAME_ID_MAX_ATTEMPTS; attempt++) {
+    let code = '';
+    for (let i = 0; i < GAME_ID_SEGMENT_LEN * 2; i++) {
+      code += GAME_ID_ALPHABET[crypto.randomInt(GAME_ID_ALPHABET.length)];
+    }
+    const id = `G-${code.slice(0, GAME_ID_SEGMENT_LEN)}-${code.slice(GAME_ID_SEGMENT_LEN)}`;
+    if (!games.has(id)) {
+      isDirty = true;
+      return id;
+    }
+  }
+  throw new Error(`Failed to generate a unique game ID after ${GAME_ID_MAX_ATTEMPTS} attempts`);
 }
 
 /**
@@ -1680,7 +1701,32 @@ app.delete('/api/games/:gameId', (req, res) => {
  * else is actively playing on another device — a presence hint, not a
  * lock, so picking a connected player still works after a confirmation.
  */
+// Defense-in-depth alongside random game IDs (see generateGameId): even a
+// large ID space should be throttled against brute-force guessing. Keyed on
+// IP alone (not IP+gameId) so an attacker can't dodge the limit by cycling
+// through many candidate codes from one address.
+const joinInfoAttempts = new Map(); // IP -> { count, resetAt }
+const JOIN_INFO_RATE_LIMIT = { maxAttempts: 30, windowMs: 60 * 1000 }; // 30 per minute
+
+function checkJoinInfoRateLimit(req, res) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = joinInfoAttempts.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= JOIN_INFO_RATE_LIMIT.maxAttempts) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      res.status(429).json({ error: `Too many attempts. Retry after ${retryAfter}s` });
+      return false;
+    }
+    entry.count++;
+  } else {
+    joinInfoAttempts.set(ip, { count: 1, resetAt: now + JOIN_INFO_RATE_LIMIT.windowMs });
+  }
+  return true;
+}
+
 app.get('/api/games/:gameId/join-info', (req, res) => {
+  if (!checkJoinInfoRateLimit(req, res)) return;
   const { gameId } = req.params;
   const game = games.get(gameId);
   if (!game) {

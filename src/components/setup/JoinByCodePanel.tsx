@@ -306,7 +306,7 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               <input
                 type="text"
-                placeholder="e.g., G7"
+                placeholder="e.g., G-A7F9-K3PX"
                 value={joinCode}
                 onChange={(e) => { setJoinCode(e.target.value.toUpperCase()); setJoinError(''); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleJoinByCode(); }}
@@ -320,7 +320,7 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
                   letterSpacing: '0.05em',
                   textTransform: 'uppercase',
                 }}
-                maxLength={10}
+                maxLength={12}
                 autoComplete="off"
                 name="gamecode"
                 data-lpignore="true"

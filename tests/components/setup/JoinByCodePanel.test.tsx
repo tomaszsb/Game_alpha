@@ -68,7 +68,7 @@ describe('JoinByCodePanel', () => {
     fetchMock.mockResolvedValue(jsonResponse(JOIN_INFO_WITH_PLAYERS));
     render(<JoinByCodePanel selectedMode={mode} />);
 
-    fireEvent.change(screen.getByPlaceholderText('e.g., G7'), { target: { value: 'G418' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g., G-A7F9-K3PX'), { target: { value: 'G418' } });
     fireEvent.click(screen.getByRole('button', { name: 'Join' }));
 
     expect(await screen.findByText(/Which one are you/i)).toBeInTheDocument();
