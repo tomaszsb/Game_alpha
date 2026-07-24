@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.25] - 2026-07-24
+
+### Fix: board tile showed literal `{fundingAmount}` instead of the dollar amount (fixloop)
+Playwright playtest finding (HIGH): the sidebar and the funding modal both showed the real dollar figure on OWNER-FUND-INITIATION, but the board tile itself showed the literal text `{fundingAmount}`. Reproduced in two separate playtest games, so not a race condition.
+
+**Root cause:** `BoardCanvas.tsx` built each tile's `story` field once from the raw `SPACE_CONTENT.csv` narrative and rendered it directly — it never called into `templateInterpolation.ts` at all, unlike every other surface that quotes the same narrative text (the sidebar and the dice/action modals both already call `resolveFundingAmountToken()`).
+
+**Fix:** added a `displayStory` field to `BoardNodeData`, resolved via the same `resolveFundingAmountToken()` helper the sidebar/modals use, recomputed in the node-data effect that already reruns on every `players`/`currentPlayerId` change. `story` itself is kept as the untouched raw template — resolving `{fundingAmount}` to `''` before funds are granted must not permanently erase the token before the player is later actually funded, so `displayStory` is always re-derived from the pristine source rather than overwritten in place.
+
+Verified: typecheck clean, production build clean, new `resolveFundingAmountToken` test block in `templateInterpolation.test.ts` (7 tests, including an idempotency test documenting why the raw template must never be overwritten) + existing `BoardCanvas.test.ts` (15) all green. Live-verified in the browser: the OWNER-FUND-INITIATION tile correctly renders the resolved (empty, pre-funding) text instead of the literal `{fundingAmount}` token, confirming the interpolation path is wired up and firing on the real render.
+
 ## [3.1.24] - 2026-07-24
 
 ### Fix: version badge's "⚠ behind" warning was a false positive

@@ -65,6 +65,7 @@ import { Player } from '../../types/DataTypes';
 import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
+import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
 // Dark/light mode coverage (TODO.md) — BoardCanvas is mounted in GameLayout
 // as a SIBLING of PlayerPanelWrapper (same PLAY-phase render, same screen,
 // same player who owns the dark-mode toggle in their own panel), so unlike
@@ -95,8 +96,19 @@ interface BoardNodeData {
   // <!-- fb:feedback-1779568815545-44221318 -->
   actionsCompleted?: number;
   actionsRequired?: number;
-  // Story content (only used when expanded/hovered)
+  // Story content (only used when expanded/hovered). `story` is the RAW
+  // First-visit narrative from SPACE_CONTENT.csv, exactly as authored —
+  // it is never mutated after the initial node build so `displayStory`
+  // (below) can always re-derive from a pristine template. Rendering
+  // must use `displayStory`, not `story`, directly.
   story?: string;
+  // {fundingAmount}-resolved version of `story`, recomputed on every
+  // players/currentPlayerId change (see the recompute useEffect below) via
+  // the same resolveFundingAmountToken() the sidebar (PlayerPanelV2) and
+  // the dice/action modals already use — this is what fb (playtest,
+  // HIGH) reported missing: the board tile rendered `story` directly and
+  // so never substituted {fundingAmount}, unlike those other two surfaces.
+  displayStory?: string;
   actionDescription?: string;
   npcName?: string;
   // Discipline label — phase color alone can't tell an Architect tile from an
@@ -229,7 +241,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
             width: BOARD_TILE_MAX_INGRID.w,
             height: estimateTileMaxIngridHeight({
               title: data.title,
-              story: data.story,
+              story: data.displayStory ?? data.story,
               action: data.actionDescription,
               npcName: data.npcName,
             }),
@@ -271,11 +283,17 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       </div>
 
       {/* Story snippet. Truncated on hover/valid-move tiles; shown in full on
-          the current tile and any click-expanded tile (showsFullText). */}
-      {isBig && data.story && (
+          the current tile and any click-expanded tile (showsFullText).
+          displayStory is the {fundingAmount}-resolved text (falls back to the
+          raw template for the one frame before the recompute effect first
+          runs) — see BoardNodeData.displayStory. */}
+      {isBig && (data.displayStory ?? data.story) && (
         <div style={{ fontSize: 11, color: isDark ? dp.muted : '#495057', marginTop: 6, lineHeight: 1.35 }}>
           {data.npcName && <strong style={{ color: phaseColors.text }}>{data.npcName}: </strong>}
-          {showsFullText ? data.story : truncate(data.story, storyMax)}
+          {(() => {
+            const text = (data.displayStory ?? data.story)!;
+            return showsFullText ? text : truncate(text, storyMax);
+          })()}
         </div>
       )}
 
@@ -701,9 +719,29 @@ function BoardCanvasInner({
   // callbacks have to be injected here so each node's `.data` can reach them
   // (custom node components only receive `data`, not closures from the parent).
   useEffect(() => {
+    // Playtest bug (HIGH, fb Playwright report) — the board tile for
+    // OWNER-FUND-INITIATION rendered the literal "{fundingAmount}" while the
+    // sidebar (PlayerPanelV2) and the dice/action modals both showed the
+    // real dollar figure. Root cause: this component built each node's
+    // `story` once (raw, from SPACE_CONTENT.csv) in the initialNodes useMemo
+    // above and rendered it directly — it never called into
+    // templateInterpolation.ts at all, unlike every other surface that
+    // quotes the same story text. Resolve it here, in the one place that
+    // already recomputes per-player-state fields on every players/
+    // currentPlayerId change, using the SAME resolveFundingAmountToken()
+    // helper the sidebar/modals use (no parallel templating logic).
+    // `n.data.story` is intentionally never overwritten (see its doc
+    // comment) so this always re-derives from the pristine template —
+    // otherwise a first resolve to "" (no funds yet) would permanently
+    // erase the {fundingAmount} token before the player is later funded.
+    const activePlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
     setNodes(prev => prev.map(n => {
       const playersHere = players.filter(p => p.currentSpace === n.id);
       const isCurrent = !!currentPlayerId && playersHere.some(p => p.id === currentPlayerId);
+      const fundingSource = dataService.getFundingSource(n.id);
+      const displayStory = n.data.story
+        ? resolveFundingAmountToken(n.data.story, activePlayer || {}, fundingSource)
+        : n.data.story;
       return {
         ...n,
         data: {
@@ -727,10 +765,11 @@ function BoardCanvasInner({
           // dep array below is what makes a toggle flipped elsewhere actually
           // reach the tiles on this component's next re-render.
           mode,
+          displayStory,
         },
       };
     }));
-  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode]);
+  }, [players, validMoves, currentPlayerId, hoveredSpace, expandedSpace, isAdmin, showBuffer, handleNodeHover, handleNodeClick, actionCounts, mode, dataService]);
 
   // TV mode auto-focus. Two-phase since fb:2b5b9f2a ("when I moved from one
   // space to another the zoom level changes — it should not"):
