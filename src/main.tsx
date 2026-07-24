@@ -6,6 +6,7 @@ import { installConsoleCapture } from './utils/consoleCapture';
 import { App } from './App';
 import { PlaytesterLandingPage } from './playtest/PlaytesterLandingPage';
 import { capturePwaInstallPrompt } from './playtest/pwaInstall';
+import { AdminStatsPage } from './pages/AdminStatsPage';
 
 // Install console capture early so we catch errors during init
 installConsoleCapture();
@@ -40,6 +41,8 @@ function main(): void {
   const path = window.location.pathname.replace(/\/$/, '');
   if (path === '/challenge') {
     root.render(<PlaytesterLandingPage />);
+  } else if (path === '/admin/stats') {
+    root.render(<AdminStatsPage />);
   } else {
     root.render(<App />);
   }
