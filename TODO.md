@@ -19,6 +19,62 @@
 
 *2026-07-11 blind code review: all 10 items fixed — history in CHANGELOG v3.0.112–120. `npm test` "hang" root-caused + fixed v3.1.11.*
 
+## 🐛 **v3.1.20 playtest findings** (2026-07-21, MIXED priority)
+
+*Source: Playwright playtest of game.unravelcodes.com — G508 played solo, G509 played as two players in shared-screen mode. Reproductions noted per item.*
+
+### HIGH — needs fix
+- [ ] **Fix unreplaced `{fundingAmount}` on OWNER-FUND-INITIATION board copy** — sidebar and modal render the dollar value correctly; board shows the literal template string. Reproduced both games. Likely Phase-4 card-insertion regression.
+- [ ] **Dedupe `⚡ entered PM Check (first visit)` log entry** — fires twice per turn with two different timestamps.
+- [ ] **Fix log event-order inversion** — `🎯 outcome came back` line appears before the `⚡ entered space` line for the same turn.
+
+### MEDIUM — should fix
+- [ ] **Unify press-and-hold commit implementations** — some widgets accept a synthetic pointerdown/pointerup, others only respond to real double-click / Enter-with-focus. Likely two implementations of the same pattern; consolidate.
+- [ ] **Fix player-name persistence on setup screen** — both players remained "Player 1" / "Player 2" throughout despite typed names. Retest with manual typing to confirm it isn't a JS-input-only failure.
+- [ ] **Make "High-Profile Client" life event copy player-count-aware** — shows multiplayer wording ("pushing everyone else back a step…") when fired in a single-player game.
+- [ ] **Reconcile funding-gap numbers on same screen** — top-bar pill says `$110K gap` (of $750K), sidebar says `$391.3K deficit` (of $1M). Different denominators, no labeling — reads as contradiction.
+- [ ] **Pick one definition of "Funding raised"** — currently includes Owner contribution on some surfaces, excludes it on others.
+
+### LOW — polish
+- [ ] **Reconcile "Glossary" button vs. "Dictionary" modal title** — pick one word.
+- [ ] **Reconcile "📋 Rules" button vs. "📖 Game Rules" modal title** — pick one emoji + word.
+- [ ] **Reconcile PM Check space naming across surfaces** — `OWNER PM Check` on board, `📍 PM Check` in sidebar, `📍 PM-DECISION-CHECK` in location pill.
+- [ ] **Reconcile phase name** — header uses `REGULATORY`, ability restrictions use `REGULATORY_REVIEW`.
+- [ ] **Fix grammar: `1 visits` → `1 visit`** in Game Log.
+- [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
+- [ ] **Add narrative flavor text to second PM-DECISION-CHECK Move-option** — currently an empty em-dash slot.
+- [ ] **Refresh board space narrative on re-entry** — still shows first-visit copy after player re-enters.
+- [ ] **Add missing space in cost-strip: `1 action leftthis turn`** — should be `1 action left this turn`.
+- [ ] **Rewrite Bulk Discount detail card "what this is"** — currently describes the trigger condition, not the effect.
+- [ ] **Fix first-page-load 404** — `GET /api/games/{id}/state` returns 404 then recovers; game inits cleanly but red shows in console.
+- [ ] **Hide off-screen `#error-fallback` from a11y tree** — picked up as a heading in snapshot. Add `aria-hidden="true"` or move out of DOM until needed.
+
+### QUIRKS — design decision needed (not necessarily bugs)
+- [ ] **Decide: Negative expeditors in "Hire 3 Expeditors" initial draw** — e.g. "Regulatory Slowdown" +2 days can appear in the starting three. If intentional, the UI should signal that some cards in hand are curses.
+- [ ] **Decide: Owner seed money range** — varied 4× across observed games ($460K / $640K / $1,630,000). Range intentional?
+- [ ] **Decide: Work-package quantity randomization** — same action gave 1 pack ($750K) in solo, 2 packs ($1,480K) in multiplayer. Intentional?
+- [ ] **Decide: Opponent-status visibility in shared-screen multiplayer** — no standings view today. Is opaque-opponents the intended play pattern?
+
+## 🔒 **Security audit follow-ups** (2026-07-21, MIXED priority)
+
+*Source: security audit of the repo, 2026-07-21. The CRITICAL findings (join-info token leak, XSS via player name, path-traversal on classroom `:id` routes) were fixed the same day — see CHANGELOG v3.1.21 — and are not duplicated here. The audit's INFORMATIONAL and clean-audit items (CSRF n/a since no cookies, no SQL injection surface, scrypt password hashing, secrets not in shipped bundle, etc.) confirmed working correctly and need no action.*
+
+### HIGH — external action (not a code fix)
+- [ ] **Rotate the PixelLab.ai API key** — committed in `02d7117` (`generate_female_sprites.sh`), deleted in `711899e`. File is gone from the working tree but the key is still readable via `git show 02d7117:generate_female_sprites.sh` by anyone with repo read access. Rotate immediately at pixellab.ai. Separately consider purging history with `git filter-repo` (more invasive — decide separately).
+
+### MEDIUM — should fix
+- [ ] **Route admin save/reset endpoints through `checkAdminRateLimit`** — `POST /api/admin/save-source-files` ([server.js:817](server.js:817)) and `POST /api/admin/reset-to-baseline` ([server.js:897](server.js:897)) currently do inline password checks with no lockout, making them brute-forceable against the admin password.
+- [ ] **Add a rate limiter to `POST /api/accounts/login`** — no explicit lockout today; scrypt cost helps but doesn't stop a sustained attack.
+- [ ] **Cap the foreign-IP SMS alert send path** — add a per-hour cap at [server.js:~1790-1796](server.js:1790); kill switch works but there's no dedup or throttle, so a burst of qualifying game starts can spam the developer's phone via the carrier gateway.
+- [ ] **Run `npm audit fix`** (no `--force`) to resolve two HIGH-severity dev-only advisories: `brace-expansion` (transitive via eslint/glob) and `shell-quote` (transitive via concurrently). Both dev-only, never shipped.
+
+### LOW — polish
+- [ ] **Set Express `app.set('trust proxy', N)`** matching the actual reverse-proxy hop count in front of the Node process, so `req.ip` and the `X-Forwarded-For` handling in `getClientIP()` ([server.js:389-395](server.js:389)) can't be spoofed by direct callers. Confirm actual topology on Unraid before picking N.
+- [ ] **Add `Content-Security-Policy`, `Strict-Transport-Security`, and `Permissions-Policy` headers** alongside the existing security headers at [server.js:122-128](server.js:122).
+- [ ] **Add `app.disable('x-powered-by')`** — one-liner, removes the framework-fingerprint header.
+- [ ] **Consolidate the three admin routes' inline password-check logic** into the shared `requireAdmin` helper from `authGuards.js` — [server.js:800-812](server.js:800), [server.js:824-831](server.js:824), [server.js:904-911](server.js:904). Functionally equivalent today, but the duplication is why the rate-limiter gap in MEDIUM above was overlookable — consolidate for maintainability.
+- [ ] **Run `npm audit fix` for the low-severity `body-parser` advisory** (via Express) at the same time as the two MEDIUM audit fixes above.
+
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
 *Spec: [Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx](Mockups/Unravel_Codes_Playtester_Acquisition_PRD_v4_Lean.docx)*

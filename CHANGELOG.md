@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.23] - 2026-07-24
+
+### Feature: /admin/stats visitor dashboard
+New bookmarkable `/admin/stats` route (own React root from `main.tsx`, same pattern as `/challenge`, so visiting the URL never triggers `App.tsx`'s auto-create-a-new-game behavior) reusing the existing sessionStorage admin-password flow — already-unlocked admins skip straight to the dashboard, a fresh bookmark visit gets a password prompt. Wired into the unlocked Admin Tools panel as a "📊 Site Stats" button next to Bug Reports, opening in a new tab.
+
+Aggregation lives in a new, unit-tested module (`server/visitorStats.js`, 17 tests) behind `GET /api/admin/stats/summary`, following the `authGuards.js`/`homeIP.js` pattern; `server.js` streams `visitors.log` line-by-line (never buffers the whole ~6MB file) with a 45s mtime-invalidated cache. Two non-obvious calls made in the aggregation: `LIST_GAMES` (over 90% of the raw log, but the maintainer's own `AdminGameManager` panel polling an admin-only endpoint, not visitor traffic) is excluded unconditionally so it doesn't drown every other aggregate; and since `visitors.log` has no referrer or country/geo field today, the dashboard's sources/geography sections say so honestly instead of faking a breakdown. Bot detection (scanner UAs, same-IP rapid-fire bursts, `?src=` enumeration) defaults to excluding flagged traffic from real counts, with an `includeBots` override. IPs are redacted to a /24-ish prefix by default; `?full=true` (still admin-gated) returns real addresses.
+
+Dashboard (`StatsDashboard.tsx`, new `recharts` dependency) covers a KPI row with trend arrows, a traffic-over-time chart with a games-created overlay, a sources bar chart, device/browser/form-factor split, home-vs-foreign traffic, a filterable recent-activity feed with expandable rows, and CSV export. Auto-refreshes every 60s while the tab is visible.
+
+Verified: new `visitorStats.test.ts` (17 tests) passing.
+
+## [3.1.22] - 2026-07-22
+
+### Fix: TV compatibility — Smart TV misdetection, over-zoomed setup screen, and a missing compatible-browser callout (vacation-TV bug reports)
+Three dashboard reports the same day, all from the same player's TCL Android TV during a trip, traced to two related bugs plus one follow-up addition.
+
+**Bug 1 — Smart TV misdetection.** `isSmartTV()` matched `"SmartTV"` and `"Smart-TV"` but not `"Smart TV"` (space-separated); this TCL's UA contained `"Smart TV Pro"`, so it fell through to the generic Android-mobile regex and was classified as a phone. That triggered the phone-screen warning banner and broke the TV-mode player-setup layout, which assumes the banner never renders on a real TV. Widened the pattern to `Smart[\s-]?TV` so all three variants (none/hyphen/space) match — same fix shape as the 2026-07-15 Hisense TV bug (CHANGELOG v3.0.140).
+
+**Bug 2 — over-zoomed setup screen on small-logical-resolution TVs.** The setup screen applied a flat 1.3x zoom to every TV, meant to fix tiny text on large-logical-resolution TVs (e.g. a 4K TV reporting ~3840px wide). That backfired on this TCL, which reports a *small* logical resolution (960x540) — magnifying an already-small canvas made it coarser, not crisper. Zoom is now gated on `window.screen.width < 1280` (no zoom below that, 1.3x at/above it, preserving the original large-TV fix), consistent with how `isPhoneScreen()` already keys off `window.screen` for TV-related size decisions.
+
+**Follow-up:** added "Browsehere" — the browser this TCL was actually running — to the loading-hang tip in `index.html` that suggests known-working TV browsers when the app fails to load within 10 seconds, alongside the already-listed TV Bro.
+
+Closes feedback-1784733214858-6c05e9d3, feedback-1784733530410-0dcb1053, feedback-1784733698622-48d9125d.
+
+Verified: new `deviceDetection.test.ts` cases (14) + new `PlayerSetup.test.ts` cases (42) passing.
+
+## [3.1.21] - 2026-07-21
+
+### Security: path traversal, log-export XSS, and game-ID enumeration fixes (repo security audit)
+Three fixes from a repo security audit the same day (the audit's informational/clean-audit findings — CSRF n/a, no SQL injection surface, scrypt password hashing, secrets not in shipped bundle — confirmed working correctly, no action needed; remaining MEDIUM/LOW hardening items and one external action, rotating a committed-then-deleted PixelLab.ai API key, tracked in TODO.md).
+
+**HIGH — path traversal in classroom instance id handling.** `instanceStore.js`'s `instanceDir`/`configPath` and `instanceResolver.js`'s `resolvedDir` built filesystem paths straight from a classroom id with no validation. `createInstance` validated ids at creation time, but every other consumer of an id coming off the wire (`loadInstance`, `deleteInstance`, `resolvedDir`, and every `server.js` route under `/api/instances/:id` and `/data/i/:instanceId`) skipped that check — an id like `"../../foo"` walked the resulting `path.join()` outside `instancesRoot`. Worst case, `deleteInstance`'s recursive `fs.rmSync()` could destroy an arbitrary directory the process has access to; `loadInstance`/`resolvedDir` could read or serve files outside the classroom sandbox. Fixed with a single `assertValidInstanceId()` (same `[a-z0-9][a-z0-9-]*` pattern the `/data/i/:instanceId` route already enforced) routed through `instanceDir`, so every caller of `configPath`/`instanceDir`/`resolvedDir` gets the guard for free.
+
+**HIGH — unescaped player name/gameId in printable log export.** `exportLogToPrintableHtml()` interpolated `e.playerName` raw into an HTML string handed to `document.write()`; neighboring fields were already run through `escapeHtml()`, but player names — freely chosen by whoever joins a game — were not. A name like `<img src=x onerror="alert(1)">` would execute as script for anyone who exported and opened that game's printable log. Fixed by escaping `playerName` and, as defense-in-depth, `gameId` and `globalTurnNumber` too.
+
+**CRITICAL — sequential game IDs enabled enumeration.** Game IDs were sequential (`G1`, `G2`, `G3`...). The join-info endpoint (added May 2026 for "Join by Code") deliberately hands out a game's access token to anyone who presents its ID — the ID is meant to be the join secret. Sequential IDs broke that model: anyone could enumerate every game on the server by walking the counter. Fixed the actual root cause: `generateGameId()` now produces cryptographically random 8-character codes (`crypto.randomInt`) from a 31-character unambiguous alphabet (no `0`/`O`/`1`/`I`/`L`), formatted as `G-XXXX-XXXX` (~40 bits of entropy), collision-checked with a 50-attempt retry cap. Old sequential IDs already in storage are untouched and keep working. Added IP-keyed rate limiting to `/api/games/:gameId/join-info` (30 req/min) as defense-in-depth.
+
+Verified: new path-traversal guard tested against `"../foo"`, `"../../etc"`, `"foo/../../bar"`, `"CAPS"`, and `""` (all rejected, valid ids unaffected); `logExport.test.ts` +2 (XSS-payload playerName and gameId both render as inert text); `JoinByCodePanel.test.ts` updated for the new 11-character join-code format.
+
 ## [3.1.20] - 2026-07-18
 
 ### Fix: Share button reachable on phone, and added to the per-player mobile screen (fixloop, fb:2c848b47)
