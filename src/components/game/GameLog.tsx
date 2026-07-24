@@ -237,7 +237,7 @@ export function GameLog(): JSX.Element {
         fontSize: '14px',
         color: colors.text.secondary
       }}>
-        📜 Game Log ({actionLog.length} entries, {spaceGroups.length} visits)
+        📜 Game Log ({actionLog.length} {actionLog.length === 1 ? 'entry' : 'entries'}, {spaceGroups.length} {spaceGroups.length === 1 ? 'visit' : 'visits'})
       </div>
 
       {/* Scrollable content */}
@@ -294,7 +294,7 @@ export function GameLog(): JSX.Element {
                       fontWeight: 'normal',
                       color: colors.secondary.dark
                     }}>
-                      {space.playerTurns.length} visits
+                      {space.playerTurns.length} {space.playerTurns.length === 1 ? 'visit' : 'visits'}
                     </span>
                   </div>
 

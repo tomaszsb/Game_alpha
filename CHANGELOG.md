@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.29] - 2026-07-24
+
+### Fix: "1 visits" / "1 entries" grammar in Game Log (fixloop)
+Playwright playtest finding (LOW): the Game Log header ("N entries, M visits") and the per-space visit-count badge both hardcoded the plural, so a single entry or visit read "1 entries" / "1 visits" instead of "1 entry" / "1 visit".
+
+Fixed both in `src/components/game/GameLog.tsx` with the same inline `count === 1 ? singular : plural` pattern already used throughout this codebase (`PlayerPanelV2.tsx`, `EffectEngineService.ts`, `costPreview.ts`, etc.) rather than introducing a new shared pluralize helper for two call sites.
+
+Verified: typecheck clean, production build clean. New `tests/components/game/GameLog.test.tsx` (3 tests: singular header/badge with one entry, plural entries + singular visit with two same-space turns, plural both with two different-space turns).
+
 ## [Ops] 2026-07-24 — fixed stale test assertion in serverEndpointAuth.test.ts (fixloop, no app change)
 `per-instance board serving validates the id (no path traversal)` was failing on master — found while investigating an unrelated fixloop item. The test asserted the route body contained the literal string `/^[a-z0-9][a-z0-9-]*$/.test(id)`, but the v3.1.21 security fix (path traversal) had moved that regex out of the route body and into `assertValidInstanceId()` in `server/instanceStore.js`, called indirectly via `resolvedDir()`. The real validation was never broken — only the test's string-matching assertion had gone stale when the code was refactored.
 

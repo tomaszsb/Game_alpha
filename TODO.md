@@ -34,7 +34,6 @@
 - [ ] **Reconcile "📋 Rules" button vs. "📖 Game Rules" modal title** — pick one emoji + word.
 - [ ] **Reconcile PM Check space naming across surfaces** — `OWNER PM Check` on board, `📍 PM Check` in sidebar, `📍 PM-DECISION-CHECK` in location pill.
 - [ ] **Reconcile phase name** — header uses `REGULATORY`, ability restrictions use `REGULATORY_REVIEW`.
-- [ ] **Fix grammar: `1 visits` → `1 visit`** in Game Log.
 - [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
 - [ ] **Add narrative flavor text to second PM-DECISION-CHECK Move-option** — currently an empty em-dash slot.
 - [ ] **Refresh board space narrative on re-entry** — still shows first-visit copy after player re-enters.
