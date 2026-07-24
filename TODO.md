@@ -23,9 +23,6 @@
 
 *Source: Playwright playtest of game.unravelcodes.com — G508 played solo, G509 played as two players in shared-screen mode. Reproductions noted per item.*
 
-### HIGH — needs fix
-- [ ] **Fix log event-order inversion** — `🎯 outcome came back` line appears before the `⚡ entered space` line for the same turn.
-
 ### MEDIUM — should fix
 - [ ] **Unify press-and-hold commit implementations** — some widgets accept a synthetic pointerdown/pointerup, others only respond to real double-click / Enter-with-focus. Likely two implementations of the same pattern; consolidate.
 - [ ] **Fix player-name persistence on setup screen** — both players remained "Player 1" / "Player 2" throughout despite typed names. Retest with manual typing to confirm it isn't a JS-input-only failure.

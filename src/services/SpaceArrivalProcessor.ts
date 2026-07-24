@@ -98,6 +98,19 @@ export class SpaceArrivalProcessor {
       const needsDiceRoll = ConditionEvaluator.anyEffectNeedsDiceRoll(spaceEffectsData);
 
       let diceRoll: number | undefined;
+      // Ordering fix: the "entered <space>" LOG effect built further below
+      // (via EffectFactory.createEffectsFromSpaceEntry) must land in the
+      // permanent log BEFORE this dice roll's own "outcome came back" line —
+      // chronologically the player has already arrived by the time the game
+      // checks any dice-dependent conditions for that arrival, and the roll
+      // only happens because of the arrival, not the other way around. The
+      // roll VALUE is still needed immediately below to filter conditions
+      // (e.g. dice_roll_3), so only the LOG WRITE (the emitGameEvent call) is
+      // deferred — captured here in a closure and invoked once we know
+      // whether/when the "entered" log has been written (see call sites
+      // below, right after the arrival effects are processed or once we've
+      // determined there are none this arrival).
+      let emitDiceRolledLog: (() => void) | undefined;
       if (needsDiceRoll) {
         // Roll dice once for this space - used for all dice-dependent condition evaluations
         diceRoll = this.diceService.rollDice();
@@ -112,15 +125,18 @@ export class SpaceArrivalProcessor {
         // the player-visible description — frame it as the outcome coming
         // back, matching TurnService's "Outcome determined" (fb:1783080880242).
         const friendlyForLog = friendlySpaceName(this.dataService, spaceName);
-        this.stateService.emitGameEvent({
-          type: 'dice_rolled',
-          playerId: currentPlayer.id,
-          playerName: currentPlayer.name,
-          spaceName: spaceName,
-          diceValue: diceRoll,
-          trigger: 'arrival',
-          logMessage: `${currentPlayer.name}'s outcome came back at ${friendlyForLog}`,
-        });
+        const rolledValue = diceRoll;
+        emitDiceRolledLog = () => {
+          this.stateService.emitGameEvent({
+            type: 'dice_rolled',
+            playerId: currentPlayer.id,
+            playerName: currentPlayer.name,
+            spaceName: spaceName,
+            diceValue: rolledValue,
+            trigger: 'arrival',
+            logMessage: `${currentPlayer.name}'s outcome came back at ${friendlyForLog}`,
+          });
+        };
       }
 
       // Filter space effects based on conditions (e.g., scope_le_4M, dice_roll_3)
@@ -147,6 +163,9 @@ export class SpaceArrivalProcessor {
 
       if (filteredSpaceEffects.length === 0) {
         debugLog(`ℹ️ No automatic space effects for arrival at ${spaceName}`);
+        // No "entered" LOG effect will be written this arrival (nothing to
+        // build it from) — safe to log the dice roll's outcome now.
+        emitDiceRolledLog?.();
         return;
       }
 
@@ -164,6 +183,9 @@ export class SpaceArrivalProcessor {
 
       if (spaceEffects.length === 0) {
         debugLog(`ℹ️ No processed space effects for arrival at ${spaceName}`);
+        // Same as above — no "entered" LOG effect survived, so there's
+        // nothing the dice roll's outcome needs to follow.
+        emitDiceRolledLog?.();
         return;
       }
 
@@ -181,7 +203,10 @@ export class SpaceArrivalProcessor {
         }
       };
 
-      // Process effects using EffectEngine
+      // Process effects using EffectEngine — this is what actually writes the
+      // "entered <space> (<visit>)" log line (the LOG effect that
+      // EffectFactory.createEffectsFromSpaceEntry puts first in spaceEffects),
+      // so the dice roll's own log write below correctly comes after it.
       if (this.effectEngineService) {
         const result = await this.effectEngineService.processEffects(spaceEffects, effectContext);
         if (result.success) {
@@ -192,6 +217,10 @@ export class SpaceArrivalProcessor {
       } else {
         debugWarn(`⚠️ EffectEngineService not available - skipping space arrival effects for ${spaceName}`);
       }
+
+      // Now that the "entered" line (if any) has been written above, log the
+      // dice roll's own outcome.
+      emitDiceRolledLog?.();
     } catch (error) {
       console.error(`❌ Error processing space arrival effects for ${spaceName}:`, error);
     }

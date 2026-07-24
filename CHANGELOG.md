@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.27] - 2026-07-24
+
+### Fix: "outcome came back" log line appeared before "entered space" for the same arrival (fixloop)
+Playwright playtest finding (HIGH): landing on a space with a dice-dependent condition (e.g. PM-DECISION-CHECK) logged `🎯 outcome came back at <space>` *before* `⚡ entered <space> (<visit>)` — backwards, since the dice roll for condition evaluation only happens because the player already arrived.
+
+**Root cause:** `SpaceArrivalProcessor.processSpaceEffectsAfterMovement` rolled the arrival dice and immediately called `stateService.emitGameEvent({type: 'dice_rolled', ...})` — which writes to the log synchronously via `LogWriter` — near the top of the method. The `"entered <space>"` LOG effect isn't built until later (via `EffectFactory.createEffectsFromSpaceEntry`) and isn't actually written until `effectEngineService.processEffects` is awaited, further down still. So on any arrival needing a dice roll, "outcome came back" beat "entered" into the log by construction, every time.
+
+**Fix:** the dice roll's *value* is still computed immediately (needed right away to filter dice-dependent conditions), but the log *write* (the `emitGameEvent` call) is now deferred via a closure, invoked only after the "entered" LOG effect has actually been processed — or, on the no-automatic-effects early-return paths, once it's clear no "entered" log will be written this arrival at all.
+
+Verified: typecheck clean, production build clean. New `tests/regression/SpaceEntryLogOrder.test.ts` drives the real pipeline end-to-end and asserts "entered" lands at a lower log index than "outcome came back". `tests/services/` + `tests/regression/` (45 files, 914 tests) all pass, including the prior iteration's `SpaceEntryLogDedup.test.ts` (confirms this fix doesn't reintroduce that duplicate).
+
 ## [3.1.26] - 2026-07-24
 
 ### Fix: "entered PM Check (first visit)" log line duplicated with two timestamps (fixloop)
