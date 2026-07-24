@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.28] - 2026-07-24
+
+### Fix: "High-Profile Client" life event no longer references other players in solo games (fixloop)
+Playwright playtest finding (MEDIUM): the L021 "High-Profile Client" card's description — "...pushing everyone else back a step... all other players' current filing time increases by 1 day" — rendered verbatim in a solo (1-player) game, where there's no one else to push back.
+
+**Investigation finding (not fixed here, needs a maintainer call — see TODO):** that "+1 day to other players" clause was never mechanically implemented at all, in solo OR multiplayer. The card's only wired effect is `tick_modifier: -4` on `target: Self` — no CSV column or effect-handler code applies anything to other players. It's flavor text describing a mechanic that doesn't exist yet.
+
+**Fix (display text only, no mechanic added):** added `getCardDescriptionForPlayerCount()` to `templateInterpolation.ts` — a small hand-authored override map keyed by `card_id`, consulted only when `playerCount === 1`, returning a trimmed solo-safe variant ("Your client's name opens doors — the permit office bumps your filing to the front of the line. The current filing time is reduced by 4 days.") that keeps the same voice and reuses the same approved sentence structure. Every other card, and this card in a 2+ player game, renders unchanged. Wired into both places this card's description is shown: `LifeEventModal` (the event popup, via a new optional `playerCount` prop from `GameLayout`) and `PlayerCardDetailV2` (the permanent card stays in a player's hand and can be reviewed later from the Life Events chip).
+
+Verified: typecheck clean, production build clean. New tests: `templateInterpolation.test.ts` (+7), `LifeEventModal.test.tsx` (+4), `PlayerCardDetailV2.test.tsx` (+4) — 64 tests across the three files, all green, no regressions in adjacent suites. Live-verified the real CSV + real component render the trimmed text at `playerCount=1` and the untouched original at `playerCount=2`, and confirmed a real 1-player session reports `players.length === 1` end-to-end; did not force an actual live draw of this specific card (1-in-6 dice-gated among ~49 L cards, no debug hook to force a card id).
+
 ## [3.1.27] - 2026-07-24
 
 ### Fix: "outcome came back" log line appeared before "entered space" for the same arrival (fixloop)

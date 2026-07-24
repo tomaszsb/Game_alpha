@@ -231,4 +231,100 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     expect(screen.getByText('Pays')).toBeInTheDocument();
     expect(screen.getByText('$5,000')).toBeInTheDocument();
   });
+
+  // A drawn L021 stays in the player's hand as a record and is "still tappable
+  // to review what happened" (PlayerPanelV2's grayed Life Events chip), so this
+  // view is a second place — besides LifeEventModal's initial popup — where the
+  // 2026-07-24 playtest finding applies: L021's authored description says
+  // "...pushing everyone else back a step; all other players' current filing
+  // time increases by 1 day," which is nonsensical with no one else playing.
+  describe('solo-safe description override (L021 "High-Profile Client")', () => {
+    const highProfileClient: any = {
+      card_id: 'L021',
+      card_type: 'L',
+      card_name: 'High-Profile Client',
+      description:
+        "Your client's name opens doors — the permit office bumps your filing to the front of the line, " +
+        "pushing everyone else back a step. The current filing time is reduced by 4 days; all other players' " +
+        'current filing time increases by 1 day.',
+      effects_on_play: 'Apply Card',
+      tick_modifier: '-4',
+    };
+
+    it('shows the trimmed solo-safe text when there is exactly 1 player', () => {
+      services.stateService.getAllPlayers.mockReturnValue([{ id: 'player1', name: 'Player 1' }]);
+      render(
+        <DictionaryProvider>
+          <PlayerCardDetailV2
+            isOpen
+            onClose={vi.fn()}
+            card={highProfileClient}
+            playerId="player1"
+            gameServices={services as any}
+            mode="light"
+          />
+        </DictionaryProvider>,
+      );
+      expect(screen.getByText(/bumps your filing to the front of the line\./)).toBeInTheDocument();
+      expect(screen.queryByText(/everyone else/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/other players/i)).not.toBeInTheDocument();
+    });
+
+    it('shows the original full text unchanged with 2+ players', () => {
+      services.stateService.getAllPlayers.mockReturnValue([
+        { id: 'player1', name: 'Player 1' },
+        { id: 'player2', name: 'Player 2' },
+      ]);
+      render(
+        <DictionaryProvider>
+          <PlayerCardDetailV2
+            isOpen
+            onClose={vi.fn()}
+            card={highProfileClient}
+            playerId="player1"
+            gameServices={services as any}
+            mode="light"
+          />
+        </DictionaryProvider>,
+      );
+      expect(screen.getByText(/pushing everyone else back a step/)).toBeInTheDocument();
+    });
+
+    it('defaults to the full text when getAllPlayers is unmocked (legacy/undefined return)', () => {
+      // services.stateService.getAllPlayers is a bare vi.fn() with no
+      // mockReturnValue here — pins the defensive "treat as multiplayer"
+      // fallback so this component change can't break other tests/callers
+      // that don't stub getAllPlayers.
+      render(
+        <DictionaryProvider>
+          <PlayerCardDetailV2
+            isOpen
+            onClose={vi.fn()}
+            card={highProfileClient}
+            playerId="player1"
+            gameServices={services as any}
+            mode="light"
+          />
+        </DictionaryProvider>,
+      );
+      expect(screen.getByText(/pushing everyone else back a step/)).toBeInTheDocument();
+    });
+
+    it('renders another L card\'s description untouched even solo (no override for it)', () => {
+      services.stateService.getAllPlayers.mockReturnValue([{ id: 'player1', name: 'Player 1' }]);
+      render(
+        <DictionaryProvider>
+          <PlayerCardDetailV2
+            isOpen
+            onClose={vi.fn()}
+            card={{ card_id: 'L012', card_type: 'L', card_name: 'Grant Awarded', description: 'A surprise grant lands.', money_effect: '5000' }}
+            playerId="player1"
+            gameServices={services as any}
+            mode="light"
+          />
+        </DictionaryProvider>,
+      );
+      expect(screen.getByText('A surprise grant lands.')).toBeInTheDocument();
+    });
+  });
 });

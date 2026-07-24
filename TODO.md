@@ -26,7 +26,7 @@
 ### MEDIUM — should fix
 - [ ] **Unify press-and-hold commit implementations** — some widgets accept a synthetic pointerdown/pointerup, others only respond to real double-click / Enter-with-focus. Likely two implementations of the same pattern; consolidate.
 - [ ] **Fix player-name persistence on setup screen** — both players remained "Player 1" / "Player 2" throughout despite typed names. Retest with manual typing to confirm it isn't a JS-input-only failure.
-- [ ] **Make "High-Profile Client" life event copy player-count-aware** — shows multiplayer wording ("pushing everyone else back a step…") when fired in a single-player game.
+- [ ] **Decide: implement "High-Profile Client" (L021) other-players effect, or rewrite its copy for good** — fixloop (v3.1.28) found the card's "all other players' current filing time increases by 1 day" clause was never mechanically implemented (no CSV column or effect-handler code touches other players; only `tick_modifier: -4` on Self is real), in solo OR multiplayer. The solo-specific nonsense text is already trimmed via a display-only override; this item is the deeper question — build the missing +1-day-to-others mechanic (game-balance call), or permanently rewrite the card to only describe what it actually does.
 - [ ] **Reconcile funding-gap numbers on same screen** — top-bar pill says `$110K gap` (of $750K), sidebar says `$391.3K deficit` (of $1M). Different denominators, no labeling — reads as contradiction.
 - [ ] **Pick one definition of "Funding raised"** — currently includes Owner contribution on some surfaces, excludes it on others.
 

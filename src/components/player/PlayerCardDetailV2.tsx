@@ -24,6 +24,7 @@ import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { ModalBase } from '../modals/shared/ModalBase';
 import { getCardTypeColors } from '../common/CardTypeBadge';
 import { getCardDisplayTitle, getCardEffectSummary } from '../../utils/cardTypeNames';
+import { getCardDescriptionForPlayerCount } from '../../utils/templateInterpolation';
 import { panelPalettes, PanelMode } from './panelTheme';
 
 type CardVariant = 'portfolio' | 'document';
@@ -64,6 +65,19 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   if (!card) return null;
 
   const player = gameServices.stateService.getPlayer(playerId);
+  // L021 "High-Profile Client" reads "...pushing everyone else back a step;
+  // all other players' current filing time increases by 1 day" — nonsensical
+  // in a 1-player game (2026-07-24 playtest finding). This is the same
+  // solo-safe trim LifeEventModal applies when the card first fires; a player
+  // can reach this card again afterward via the hand's Life Events chip
+  // ("still tappable to review what happened" — PlayerPanelV2), so it needs
+  // the same treatment here.
+  // Defensive default (2 = "treat as multiplayer / show full text") for callers
+  // — including existing tests — whose stateService mock doesn't stub
+  // getAllPlayers, mirroring LifeEventModal's playerCount default.
+  const allPlayers = gameServices.stateService.getAllPlayers();
+  const playerCount = Array.isArray(allPlayers) && allPlayers.length > 0 ? allPlayers.length : 2;
+  const description = getCardDescriptionForPlayerCount(card, playerCount);
   const meta = CARD_TYPE_META[card.card_type] || { label: card.card_type, emoji: '📄', teaches: '' };
   const typeColors = getCardTypeColors(card.card_type || '');
   // Only Expeditors (E) are "activated" from this view. The influence zone offers
@@ -103,7 +117,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
   // clean until/unless real effect prose is authored. W/B/I cards are authored
   // and unaffected.
   const effects = (card.effects_on_play || '').trim();
-  const showEffects = effects !== '' && !/^apply card$/i.test(effects) && effects !== (card.description || '').trim();
+  const showEffects = effects !== '' && !/^apply card$/i.test(effects) && effects !== (description || '').trim();
 
   // Key facts — only rendered when the card actually carries them. A `valueColor`
   // tints the value where there's a clear good/bad axis (light-mode safe reds/
@@ -292,7 +306,7 @@ export const PlayerCardDetailV2: React.FC<PlayerCardDetailV2Props> = ({
         <div style={{ marginBottom: 16 }}>
           <p style={sectionLabel}>What this is</p>
           <div style={{ fontSize: 13, lineHeight: 1.55 }}>
-            <TextWithTerms text={card.description || 'No description available.'} onTermClick={(term) => openWithTerm(term.id)} />
+            <TextWithTerms text={description || 'No description available.'} onTermClick={(term) => openWithTerm(term.id)} />
           </div>
         </div>
 

@@ -1319,6 +1319,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       <LifeEventModal
         isOpen={isLifeEventModalOpen}
         data={pendingLifeEvent}
+        playerCount={players.length}
         onClose={() => {
           setIsLifeEventModalOpen(false);
           setPendingLifeEvent(null);

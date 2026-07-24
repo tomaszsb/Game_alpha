@@ -39,3 +39,43 @@ export function resolveFundingAmountToken(
   const fundingAmount = fundingSourceAmount > 0 ? `$${fundingSourceAmount.toLocaleString()}` : '';
   return interpolateTemplate(story, { fundingAmount });
 }
+
+/**
+ * Solo-safe replacement text for cards whose AUTHORED description references
+ * "other players" in a way that reads as nonsensical in a 1-player game.
+ * Keyed by card_id. This is deliberately a small, hand-authored lookup — NOT
+ * a general CSV-schema mechanism — for known-bad copy caught in playtesting
+ * (playtest finding, 2026-07-24: L021 "High-Profile Client" says "pushing
+ * everyone else back a step... all other players' current filing time
+ * increases by 1 day" verbatim in solo games, where there is no one else).
+ *
+ * Note: that "+1 day to other players" clause is flavor text only — it was
+ * never mechanically implemented (no structured CSV column or effect-handler
+ * code applies it, in solo OR multiplayer). This override only trims the
+ * DISPLAY text; it does not add or remove any mechanic.
+ *
+ * Add an entry here only for a card actually confirmed to show
+ * multiplayer-only language in solo play — don't pre-emptively rewrite every
+ * L-card description "just in case."
+ */
+const SOLO_SAFE_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  L021: "Your client's name opens doors — the permit office bumps your filing to the front of the line. The current filing time is reduced by 4 days.",
+};
+
+/**
+ * Returns the description to display for a card, swapping in a solo-safe
+ * variant when the game has exactly one player AND this card has a known
+ * multiplayer-only clause (see SOLO_SAFE_DESCRIPTION_OVERRIDES). Every other
+ * case — 2+ players, or a card with no override — returns `card.description`
+ * untouched.
+ */
+export function getCardDescriptionForPlayerCount(
+  card: { card_id?: string; description?: string },
+  playerCount: number
+): string | undefined {
+  if (playerCount === 1) {
+    const override = card.card_id ? SOLO_SAFE_DESCRIPTION_OVERRIDES[card.card_id] : undefined;
+    if (override !== undefined) return override;
+  }
+  return card.description;
+}

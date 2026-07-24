@@ -21,6 +21,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { colors } from '../../styles/theme';
 import { Card } from '../../types/DataTypes';
 import type { LifeEventEffectSummary } from '../../services/StateService';
+import { getCardDescriptionForPlayerCount } from '../../utils/templateInterpolation';
 
 export interface LifeEventModalData {
   card: Card;
@@ -45,6 +46,14 @@ interface LifeEventModalProps {
   isOpen: boolean;
   data: LifeEventModalData | null;
   onClose: () => void;
+  /**
+   * Number of players in the current game. Used to trim known multiplayer-only
+   * clauses out of a card's description in solo play (e.g. L021 "High-Profile
+   * Client" — see getCardDescriptionForPlayerCount). Defaults to 2 (treated as
+   * multiplayer / full text) so legacy callers that don't pass it render exactly
+   * as before.
+   */
+  playerCount?: number;
 }
 
 // --- Newspaper palette (local — these are deliberately not theme tokens; the
@@ -120,7 +129,7 @@ function toneKicker(tone: NewsTone): string {
  *     never the card's "roll a die" instructions.
  *   - Shake only on a genuine setback; good/neutral bulletins arrive calmly.
  */
-export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): JSX.Element | null {
+export function LifeEventModal({ isOpen, data, onClose, playerCount = 2 }: LifeEventModalProps): JSX.Element | null {
   // Render closed ModalBase when data is missing so AnimatePresence can play
   // the exit animation (same pattern as DiceResultModal).
   if (!data) {
@@ -135,6 +144,9 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
   const hasEffects = !!(effectsSummary && effectsSummary.length > 0);
   const tone = computeNewsTone(effectsSummary);
   const accent = toneAccent(tone);
+  // Solo-safe trim of known multiplayer-only clauses (e.g. L021's "all other
+  // players' filing time increases" — nonsensical with no one else playing).
+  const description = getCardDescriptionForPlayerCount(card, playerCount);
 
   return (
     <ModalBase
@@ -225,7 +237,7 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
         </h3>
 
         {/* Article body — the narrative, set as a justified news column */}
-        {card.description && (
+        {description && (
           <p
             style={{
               margin: 0,
@@ -238,7 +250,7 @@ export function LifeEventModal({ isOpen, data, onClose }: LifeEventModalProps): 
             }}
             data-testid="life-event-modal-card-description"
           >
-            {card.description}
+            {description}
           </p>
         )}
 

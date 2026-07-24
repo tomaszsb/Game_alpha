@@ -226,6 +226,82 @@ describe('LifeEventModal', () => {
     expect(screen.getByTestId('life-event-effect-time')).toHaveTextContent(/no change this time/i);
   });
 
+  // --- Solo-safe description override (2026-07-24 playtest finding, MEDIUM) ---
+  // L021 "High-Profile Client" says "...pushing everyone else back a step;
+  // all other players' current filing time increases by 1 day" — nonsensical
+  // in a 1-player game, where there is no one else. LifeEventModal takes a
+  // playerCount prop and swaps in a trimmed variant via
+  // getCardDescriptionForPlayerCount (src/utils/templateInterpolation.ts) for
+  // just this known card, only when playerCount === 1.
+
+  const highProfileClientCard: Card = {
+    card_id: 'L021',
+    card_name: 'High-Profile Client',
+    card_type: 'L',
+    description:
+      "Your client's name opens doors — the permit office bumps your filing to the front of the line, " +
+      "pushing everyone else back a step. The current filing time is reduced by 4 days; all other players' " +
+      'current filing time increases by 1 day.',
+  };
+
+  it('shows the trimmed solo-safe text for L021 in a 1-player game', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{ card: highProfileClientCard }}
+        playerCount={1}
+        onClose={mockOnClose}
+      />,
+    );
+    const body = screen.getByTestId('life-event-modal-card-description');
+    expect(body).toHaveTextContent(
+      "Your client's name opens doors — the permit office bumps your filing to the front of the line. " +
+      'The current filing time is reduced by 4 days.',
+    );
+    expect(body).not.toHaveTextContent(/other player/i);
+    expect(body).not.toHaveTextContent(/everyone else/i);
+  });
+
+  it('shows the original full L021 text unchanged in a multiplayer (2+) game', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{ card: highProfileClientCard }}
+        playerCount={2}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-modal-card-description')).toHaveTextContent(
+      highProfileClientCard.description!,
+    );
+  });
+
+  it('defaults to the full L021 text when playerCount is not passed (legacy caller)', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={{ card: highProfileClientCard }}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-modal-card-description')).toHaveTextContent(
+      highProfileClientCard.description!,
+    );
+  });
+
+  it('renders another L card\'s description untouched even in a solo game (no override for it)', () => {
+    render(
+      <LifeEventModal
+        isOpen={true}
+        data={mockData} // L001 "Lawsuit Filed" — no override entry
+        playerCount={1}
+        onClose={mockOnClose}
+      />,
+    );
+    expect(screen.getByTestId('life-event-modal-card-description'))
+      .toHaveTextContent('A neighbor filed a complaint and the project stalls.');
+  });
+
   it('voice rule: the receipts block uses "The bottom line" — no engine jargon', () => {
     render(
       <LifeEventModal

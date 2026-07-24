@@ -4,7 +4,11 @@
 // silently change escape rules.
 
 import { describe, it, expect } from 'vitest';
-import { interpolateTemplate, resolveFundingAmountToken } from '../../src/utils/templateInterpolation';
+import {
+  interpolateTemplate,
+  resolveFundingAmountToken,
+  getCardDescriptionForPlayerCount,
+} from '../../src/utils/templateInterpolation';
 
 describe('interpolateTemplate', () => {
   it('replaces a single token with its string value', () => {
@@ -116,5 +120,57 @@ describe('resolveFundingAmountToken', () => {
     const once = resolveFundingAmountToken(OWNER_STORY, player, 'owner');
     const twice = resolveFundingAmountToken(once, player, 'owner');
     expect(twice).toBe(once);
+  });
+});
+
+// getCardDescriptionForPlayerCount — solo-safe trim for L021 "High-Profile
+// Client", whose authored description says "...pushing everyone else back a
+// step; all other players' current filing time increases by 1 day." That
+// reads as nonsensical in a 1-player game (2026-07-24 playtest finding, MEDIUM).
+// The override is a small hand-authored lookup (SOLO_SAFE_DESCRIPTION_OVERRIDES),
+// not a general CSV-schema mechanism — these tests pin its narrow contract.
+describe('getCardDescriptionForPlayerCount', () => {
+  const highProfileClient = {
+    card_id: 'L021',
+    description:
+      "Your client's name opens doors — the permit office bumps your filing to the front of the line, " +
+      "pushing everyone else back a step. The current filing time is reduced by 4 days; all other players' " +
+      'current filing time increases by 1 day.',
+  };
+
+  it('returns the trimmed solo-safe text for L021 in a 1-player game', () => {
+    expect(getCardDescriptionForPlayerCount(highProfileClient, 1)).toBe(
+      "Your client's name opens doors — the permit office bumps your filing to the front of the line. " +
+      'The current filing time is reduced by 4 days.',
+    );
+  });
+
+  it('does not mention other players in the solo-safe L021 text', () => {
+    const result = getCardDescriptionForPlayerCount(highProfileClient, 1) || '';
+    expect(result).not.toMatch(/other player/i);
+    expect(result).not.toMatch(/everyone else/i);
+  });
+
+  it('returns the original full description for L021 in a 2-player game (unchanged)', () => {
+    expect(getCardDescriptionForPlayerCount(highProfileClient, 2)).toBe(highProfileClient.description);
+  });
+
+  it('returns the original full description for L021 in a 4-player game (unchanged)', () => {
+    expect(getCardDescriptionForPlayerCount(highProfileClient, 4)).toBe(highProfileClient.description);
+  });
+
+  it('returns a card\'s normal description untouched when it has no override, even solo', () => {
+    const otherCard = { card_id: 'L001', description: 'A neighbor filed a complaint and the project stalls.' };
+    expect(getCardDescriptionForPlayerCount(otherCard, 1)).toBe(otherCard.description);
+  });
+
+  it('returns a card\'s normal description untouched when it has no card_id', () => {
+    const noIdCard = { description: 'Some flavor text.' } as { card_id?: string; description?: string };
+    expect(getCardDescriptionForPlayerCount(noIdCard, 1)).toBe('Some flavor text.');
+  });
+
+  it('passes through an undefined description unchanged (no override, no crash)', () => {
+    const noDescCard = { card_id: 'L099' } as { card_id?: string; description?: string };
+    expect(getCardDescriptionForPlayerCount(noDescCard, 1)).toBeUndefined();
   });
 });
