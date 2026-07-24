@@ -68,7 +68,6 @@
 - [ ] **Add `app.disable('x-powered-by')`** — one-liner, removes the framework-fingerprint header.
 - [ ] **Consolidate the three admin routes' inline password-check logic** into the shared `requireAdmin` helper from `authGuards.js` — [server.js:800-812](server.js:800), [server.js:824-831](server.js:824), [server.js:904-911](server.js:904). Functionally equivalent today, but the duplication is why the rate-limiter gap in MEDIUM above was overlookable — consolidate for maintainability.
 - [ ] **Run `npm audit fix` for the low-severity `body-parser` advisory** (via Express) at the same time as the two MEDIUM audit fixes above.
-- [ ] **Fix stale test assertion in `tests/server/serverEndpointAuth.test.ts`** — found failing on master 2026-07-24 (unrelated fixloop investigation): "per-instance board serving validates the id (no path traversal)" asserts an exact regex string (`/^[a-z0-9][a-z0-9-]*$/.test(id)`) that no longer appears verbatim in `server.js` — the v3.1.21 security fix (path traversal, [CHANGELOG](CHANGELOG.md)) refactored that check into `assertValidInstanceId()`/`resolvedDir()`. The real validation still works; only the test's string-matching assertion is stale.
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 

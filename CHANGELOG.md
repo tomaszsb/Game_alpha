@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-24 — fixed stale test assertion in serverEndpointAuth.test.ts (fixloop, no app change)
+`per-instance board serving validates the id (no path traversal)` was failing on master — found while investigating an unrelated fixloop item. The test asserted the route body contained the literal string `/^[a-z0-9][a-z0-9-]*$/.test(id)`, but the v3.1.21 security fix (path traversal) had moved that regex out of the route body and into `assertValidInstanceId()` in `server/instanceStore.js`, called indirectly via `resolvedDir()`. The real validation was never broken — only the test's string-matching assertion had gone stale when the code was refactored.
+
+Updated the test to assert the route body calls `resolvedDir(instancesRoot, id)` and returns 400 on failure (matching the actual refactored code), plus a separate assertion that the strict id pattern itself still lives in `instanceStore.js`.
+
+Verified: typecheck clean, `tests/server/serverEndpointAuth.test.ts` 53/53 passing (was 1 failing).
+
 ## [Ops] 2026-07-24 — player-name persistence investigated, confirmed test-harness artifact (fixloop, no app change)
 Playwright playtest finding (MEDIUM): "both players remained 'Player 1' / 'Player 2' throughout despite typed names." The TODO note itself flagged doubt ("retest with manual typing to confirm it isn't a JS-input-only failure").
 

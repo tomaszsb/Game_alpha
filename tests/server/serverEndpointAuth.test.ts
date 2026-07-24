@@ -280,10 +280,23 @@ describe('server.js endpoint auth wiring', () => {
     const needle = "app.use('/data/i/:instanceId'";
     const start = source.indexOf(needle);
     expect(start, '/data/i/:instanceId route not found').toBeGreaterThan(-1);
-    const body = source.slice(start, start + 500);
-    // Strict id pattern blocks '.'/'/' so a crafted id can't escape the dir.
-    expect(body).toContain('/^[a-z0-9][a-z0-9-]*$/.test(id)');
+    const body = source.slice(start, start + 650);
+    // 2026-07-21 security audit (path traversal) moved id validation out of
+    // this route body and into resolvedDir() -> assertValidInstanceId()
+    // (server/instanceStore.js), so every caller gets the guard for free.
+    // Pin that this route still goes through it (400 on invalid id) and
+    // still serves via instanceStatic(id) once validated.
+    expect(body).toContain('resolvedDir(instancesRoot, id)');
+    expect(body).toContain('res.status(400).end()');
     expect(body).toContain('instanceStatic(id)');
+
+    // The strict id pattern itself (blocks '.'/'/' so a crafted id can't
+    // escape the instances dir) now lives in instanceStore.js.
+    const instanceStoreSource = fs.readFileSync(
+      path.resolve(__dirname, '../../server/instanceStore.js'),
+      'utf8'
+    );
+    expect(instanceStoreSource).toContain('/^[a-z0-9][a-z0-9-]*$/');
   });
 
   // ===== Owner alert: fires on game start, not on page load (fb:feedback-1783919163453-a98951ab) =====
