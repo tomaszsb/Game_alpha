@@ -12,10 +12,12 @@ import { createServer } from 'http';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import readline from 'readline';
 import { initializeWebSocket, broadcastStateUpdate, broadcastToAllRooms, getRoomStats, validateStateSchema, getConnectedPlayerIds } from './websocket.js';
 import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
+import { parseLogLine, aggregateVisitorStats } from './visitorStats.js';
 import {
   DEFAULT_INSTANCE_ID,
   createInstance,
@@ -2469,6 +2471,70 @@ app.get('/api/admin/playtest-stats', (req, res) => {
   }
 });
 
+// ===== ADMIN STATS DASHBOARD =====
+// GET /api/admin/stats/summary backs the /admin/stats page (client route in
+// App.tsx). Aggregation logic lives in visitorStats.js (pure, unit-tested);
+// this just streams the log file line-by-line (never loads the whole ~6MB
+// file into one string) and caches the parsed entries for a short window so
+// repeated dashboard reloads/auto-refreshes don't re-parse the growing log
+// on every request. Cache is invalidated the moment the file's mtime/size
+// changes, so it never serves stale data for longer than the TTL.
+let visitorLogCache = { mtimeMs: 0, size: 0, entries: null, loadedAt: 0 };
+const VISITOR_LOG_CACHE_TTL_MS = 45 * 1000;
+
+async function getVisitorLogEntries() {
+  if (!fs.existsSync(CONFIG.LOG_FILE)) return [];
+  const stat = fs.statSync(CONFIG.LOG_FILE);
+  const isFresh = visitorLogCache.entries
+    && visitorLogCache.mtimeMs === stat.mtimeMs
+    && visitorLogCache.size === stat.size
+    && (Date.now() - visitorLogCache.loadedAt) < VISITOR_LOG_CACHE_TTL_MS;
+  if (isFresh) return visitorLogCache.entries;
+
+  const entries = [];
+  await new Promise((resolve, reject) => {
+    const rl = readline.createInterface({
+      input: fs.createReadStream(CONFIG.LOG_FILE, { encoding: 'utf8' }),
+      crlfDelay: Infinity,
+    });
+    rl.on('line', (line) => {
+      const parsed = parseLogLine(line);
+      if (parsed) entries.push(parsed);
+    });
+    rl.on('close', resolve);
+    rl.on('error', reject);
+  });
+
+  visitorLogCache = { mtimeMs: stat.mtimeMs, size: stat.size, entries, loadedAt: Date.now() };
+  return entries;
+}
+
+const STATS_WINDOWS = new Set(['24h', '7d', '30d', 'all']);
+
+// Admin-gated like /api/admin/playtest-stats -- exposes IPs (redacted to a
+// /24-ish prefix by default; ?full=true for the real addresses, still behind
+// the same admin password).
+app.get('/api/admin/stats/summary', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const entries = await getVisitorLogEntries();
+    const window = STATS_WINDOWS.has(req.query.window) ? req.query.window : '30d';
+    const includeBots = req.query.includeBots === 'true';
+    const full = req.query.full === 'true';
+    const filters = {
+      source: typeof req.query.source === 'string' ? req.query.source : undefined,
+      action: typeof req.query.action === 'string' ? req.query.action : undefined,
+      search: typeof req.query.search === 'string' ? req.query.search : undefined,
+      country: typeof req.query.country === 'string' ? req.query.country : undefined,
+    };
+    const result = aggregateVisitorStats(entries, { window, includeBots, full, filters, isHomeIP });
+    res.json(result);
+  } catch (err) {
+    console.error('Failed to compute visitor stats:', err.message);
+    res.status(500).json({ error: 'Failed to compute visitor stats' });
+  }
+});
+
 // ===== SPA FALLBACK & ERROR HANDLERS =====
 // For non-API routes, serve index.html (SPA client-side routing)
 app.use((req, res, next) => {
@@ -2497,7 +2563,8 @@ app.use((req, res, next) => {
         'POST /api/playtest/remind-me',
         'GET /api/playtest/push-public-key',
         'POST /api/playtest/schedule-push',
-        'GET /api/admin/playtest-stats'
+        'GET /api/admin/playtest-stats',
+        'GET /api/admin/stats/summary'
       ]
     });
   }
