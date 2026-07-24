@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.24] - 2026-07-24
+
+### Fix: version badge's "⚠ behind" warning was a false positive
+Found while checking whether v3.1.21–23 were actually deployed: the live setup screen's version badge permanently showed "⚠ behind" even though the build hash matched `origin/master` exactly.
+
+**Root cause:** `useGitHubSyncStatus.ts` compared a hardcoded 7-character slice of GitHub's commit sha against `__APP_VERSION__` (`git rev-parse --short HEAD`, baked in at build time). Git widens its short-hash length once 7 hex digits become ambiguous in a growing repo — the production build's hash had grown to 8 characters, so `latestCommit === currentCommit` compared a 7-char string to an 8-char string and could never be true, regardless of whether the build was actually in sync.
+
+Fixed by comparing the full GitHub sha against `__APP_VERSION__` with `startsWith` instead of truncating both sides to a fixed length — correct regardless of how long the local short hash is. The 7-char slice is kept only for the human-readable `latestCommit` display.
+
+Verified: typecheck clean; new `tests/hooks/useGitHubSyncStatus.test.ts` (4 tests, including the exact 8-char-vs-7-char mismatch that caused the false positive) + sibling `PlayerSetup.test.ts` and `VersionBadge.test.tsx` all pass. Live-verified in the browser: badge now renders `v3.1.24 · <hash>` with no "behind" warning when the build matches master.
+
 ## [3.1.23] - 2026-07-24
 
 ### Feature: /admin/stats visitor dashboard

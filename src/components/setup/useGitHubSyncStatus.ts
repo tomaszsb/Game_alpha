@@ -35,7 +35,8 @@ export function useGitHubSyncStatus(): GitHubSyncStatus {
         }
 
         const data = await response.json();
-        const latestCommit = String(data.sha || '').substring(0, 7);
+        const latestCommitFull = String(data.sha || '');
+        const latestCommit = latestCommitFull.substring(0, 7);
         const currentCommit = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '';
 
         if (!currentCommit || currentCommit === 'unknown') {
@@ -43,7 +44,12 @@ export function useGitHubSyncStatus(): GitHubSyncStatus {
           return;
         }
 
-        if (latestCommit === currentCommit) {
+        // __APP_VERSION__ is `git rev-parse --short HEAD`, whose length varies with
+        // repo size (7 chars today, but git widens it once 7 hex digits become
+        // ambiguous) — comparing against a hardcoded 7-char slice of the GitHub sha
+        // broke as soon as the build hash grew past 7 chars, showing "behind" even
+        // when in sync. startsWith is correct regardless of currentCommit's length.
+        if (latestCommitFull.startsWith(currentCommit)) {
           if (!cancelled) setSyncStatus({ status: 'in-sync', latestCommit });
           return;
         }
