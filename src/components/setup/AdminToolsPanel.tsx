@@ -195,6 +195,26 @@ export function AdminToolsPanel({
             </button>
             <button
               type="button"
+              onClick={() => window.open('/admin/stats', '_blank', 'noopener')}
+              style={{
+                padding: '0.6rem 1rem',
+                backgroundColor: colors.secondary.main,
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+              title="Bookmarkable dashboard: visits, sources, devices, and recent activity from the visitor log."
+            >
+              📊 Site Stats
+            </button>
+            <button
+              type="button"
               onClick={handleLock}
               style={{
                 padding: '0.4rem 0.75rem',
