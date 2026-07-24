@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-24 — "1 action leftthis turn" investigated, confirmed test-harness artifact (fixloop, no app change)
+Playwright playtest finding (LOW): `"1 action leftthis turn"` — cost-strip text missing a space, expected `"1 action left this turn"`.
+
+Traced it to `PlayerPanelV2.tsx`'s plain-button commit fallback (used when a space offers no negotiate option): `commit.label` ("1 action left") and `turnCostLine` ("this turn: 🕐 +50 days · 💰 −$28K") render in two sibling elements (`<span>` then `<small data-testid="turn-cost-line">`) inside a `display:flex; flex-direction:column` button — genuinely separate rows on screen, never touching.
+
+**Verdict: test-harness artifact, not a real visual bug.** `element.textContent` concatenates every descendant text node with zero separator, completely ignoring the CSS column layout — so a Playwright script reading raw `textContent` reproduces the exact reported string even though no player ever sees it that way. Also checked the other candidate render path (`TurnCommitControl.tsx`'s comic-bubble overlay, used when negotiate *is* available) and positively ruled it out — its DOM order doesn't reproduce the reported string at all.
+
+No production code changed. Added a test to `tests/components/player/PlayerPanelV2.test.tsx` that reproduces the raw-`textContent` concatenation (proving why the report happened) while confirming the real DOM keeps the two texts in distinct, separately-laid-out sibling elements.
+
+Verified: typecheck clean, production build clean, `PlayerPanelV2.test.tsx` 27/27 green (26 pre-existing + 1 new).
+
 ## [3.1.29] - 2026-07-24
 
 ### Fix: "1 visits" / "1 entries" grammar in Game Log (fixloop)

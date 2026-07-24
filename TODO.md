@@ -37,7 +37,6 @@
 - [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
 - [ ] **Add narrative flavor text to second PM-DECISION-CHECK Move-option** — currently an empty em-dash slot.
 - [ ] **Refresh board space narrative on re-entry** — still shows first-visit copy after player re-enters.
-- [ ] **Add missing space in cost-strip: `1 action leftthis turn`** — should be `1 action left this turn`.
 - [ ] **Rewrite Bulk Discount detail card "what this is"** — currently describes the trigger condition, not the effect.
 - [ ] **Fix first-page-load 404** — `GET /api/games/{id}/state` returns 404 then recovers; game inits cleanly but red shows in console.
 - [ ] **Hide off-screen `#error-fallback` from a11y tree** — picked up as a heading in snapshot. Add `aria-hidden="true"` or move out of DOM until needed.

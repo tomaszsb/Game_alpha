@@ -662,6 +662,52 @@ describe('PlayerPanelV2 — this-turn cost line on the commit spine (fb:06f7da3b
     const line = screen.getByTestId('turn-cost-line');
     expect(line.textContent).toMatch(/\+50 days/);
   });
+
+  // TODO.md LOW item: 'Add missing space in cost-strip: "1 action leftthis
+  // turn"'. Investigated 2026-07-24. This fixture (moneySpent: 28000,
+  // turnStartTime: 5, no can_negotiate/onTryAgain) is the exact scenario
+  // that produces both texts together: the plain-button fallback (used
+  // whenever there's no negotiate option) renders commit.label ("1 action
+  // left", from requiredActions:1/completedActionCount:0 with canEndTurn
+  // false) in a <span>, and turnCostLine ("this turn: ...") in a sibling
+  // <small data-testid="turn-cost-line"> — see PlayerPanelV2.tsx ~1046-1087.
+  // Verdict: this is a test-observation artifact, not a real visual bug.
+  // `.textContent` walks the DOM and concatenates every descendant text
+  // node with ZERO separator, ignoring CSS entirely — so a Playwright/DOM
+  // script reading raw textContent reproduces the reported string exactly.
+  // A real player never sees it that way: the button is `display:flex;
+  // flex-direction:column` with a gap, so the label and cost line are two
+  // separate rows, one below the other. No code change is warranted; the
+  // proof is this test.
+  it('TODO cost-strip "1 action leftthis turn": raw textContent concatenation is a DOM-read artifact, not a real merged line', () => {
+    renderPanel({ moneySpent: 28000, turnStartTime: 5 }); // same fixture as the first test above
+
+    const costLine = screen.getByTestId('turn-cost-line');
+    const button = costLine.closest('button') as HTMLButtonElement;
+    expect(button).not.toBeNull();
+
+    // Sanity: this really is the reported pairing — "1 action left" shown
+    // together with "this turn: ..." in the same commit control.
+    expect(button.textContent).toMatch(/^1 action left/);
+
+    // This is what reading raw `.textContent` sees: the TODO's exact string,
+    // because textContent ignores block/flex layout and just concatenates
+    // text nodes in DOM order with no separator.
+    expect(button.textContent).toContain('1 action leftthis turn:');
+
+    // But the real DOM keeps them as two distinct elements...
+    const labelSpan = button.querySelector('span');
+    expect(labelSpan).not.toBeNull();
+    expect(labelSpan).not.toBe(costLine);
+    expect(labelSpan?.contains(costLine)).toBe(false);
+    expect(costLine.contains(labelSpan)).toBe(false);
+
+    // ...laid out as separate rows (column direction, not a single inline
+    // run), which is what actually renders in a browser: line 1 "1 action
+    // left", line 2 "this turn: ...", never touching.
+    expect(button.style.display).toBe('flex');
+    expect(button.style.flexDirection).toBe('column');
+  });
 });
 
 describe('PlayerPanelV2 — End Turn cost preview drops already-completed actions (fb:feedback-1783922070233-49395e17)', () => {
