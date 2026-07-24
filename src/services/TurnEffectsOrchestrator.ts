@@ -253,7 +253,19 @@ export class TurnEffectsOrchestrator {
         return;
       }
 
-      // Generate effects from leaving space using EffectFactory
+      // Generate effects from leaving space using EffectFactory.
+      // skipLogging: true — this call only ever carries 'time' effects for the
+      // space the player is LEAVING (see the filter above). The "entered X
+      // (visit)" LOG effect that createEffectsFromSpaceEntry pushes when
+      // skipLogging is false was already emitted once for this exact
+      // space+visit by SpaceArrivalProcessor at turn start (arrival). Letting
+      // it fire again here duplicated that log line with a second, later
+      // timestamp (fb: "⚡ entered PM Check (first visit)" appearing twice)
+      // every time the space had an auto time effect — and the message was
+      // wrong either way, since the player is leaving, not entering. The
+      // actual time-spent effect (e.g. "Spend 5 days") still logs on its own
+      // via FinancialEffectHandler when the RESOURCE_CHANGE effect below is
+      // processed, so suppressing this LOG effect loses nothing.
       const leavingEffects = EffectFactory.createEffectsFromSpaceEntry(
         timeEffects,
         playerId,
@@ -261,7 +273,7 @@ export class TurnEffectsOrchestrator {
         visitType,
         undefined,
         currentPlayer?.name,
-        false,
+        true,
         friendlySpaceName(this.dataService, spaceName)
       );
 

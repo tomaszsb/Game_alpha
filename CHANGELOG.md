@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.26] - 2026-07-24
+
+### Fix: "entered PM Check (first visit)" log line duplicated with two timestamps (fixloop)
+Playwright playtest finding (HIGH): landing on PM-DECISION-CHECK produced the `⚡ entered PM Check (first visit)` log line twice, with two different timestamps, instead of once.
+
+**Root cause:** two independent call sites both invoke `EffectFactory.createEffectsFromSpaceEntry()` — which unconditionally pushes an "entered `<space>` (`<visit>`)" LOG effect unless its `skipLogging` argument is true — for the same arrival. `SpaceArrivalProcessor.processSpaceEffectsAfterMovement` (run once from `TurnService.startTurn()`, the real arrival event) correctly logs it. But `TurnEffectsOrchestrator.processLeavingSpaceEffects` — run from `TurnService.endTurnWithMovement()` *before* movement, to apply a space's auto `'time'` effects (e.g. PM-DECISION-CHECK's "Spend 5 days") for the space the player is about to *leave* — reused the same factory call with `skipLogging` hardcoded to `false`, so it unconditionally re-emitted an "entered" line (with the wrong verb, since the player is leaving) every time the space had an auto time effect, which PM-DECISION-CHECK always does.
+
+**Fix:** `processLeavingSpaceEffects` now passes `skipLogging: true`. The legitimate "time spent" effect still logs its own independent line via `FinancialEffectHandler` (`action: 'time_effect'`), so nothing is lost.
+
+Verified: typecheck clean, production build clean. New `tests/regression/SpaceEntryLogDedup.test.ts` drives the real `TurnService` → `SpaceArrivalProcessor` → `TurnEffectsOrchestrator` → `EffectFactory` → `LoggingService` pipeline end-to-end (not a hand-built log array) — confirmed as a real repro by temporarily reverting the fix and watching it fail with the exact duplicate text. `tests/services/` (39 files, 890 tests), `tests/regression/` + `tests/integration/` (7 files, 37 tests), and the broader `tests/utils/`/ghost slice (35 files, 564 tests) all pass with no regressions.
+
 ## [3.1.25] - 2026-07-24
 
 ### Fix: board tile showed literal `{fundingAmount}` instead of the dollar amount (fixloop)

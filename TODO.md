@@ -24,7 +24,6 @@
 *Source: Playwright playtest of game.unravelcodes.com — G508 played solo, G509 played as two players in shared-screen mode. Reproductions noted per item.*
 
 ### HIGH — needs fix
-- [ ] **Dedupe `⚡ entered PM Check (first visit)` log entry** — fires twice per turn with two different timestamps.
 - [ ] **Fix log event-order inversion** — `🎯 outcome came back` line appears before the `⚡ entered space` line for the same turn.
 
 ### MEDIUM — should fix
