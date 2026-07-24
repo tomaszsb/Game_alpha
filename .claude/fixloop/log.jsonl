@@ -44,3 +44,4 @@
 {"ts":"2026-07-24T21:14:51Z","item":"Fix unreplaced {fundingAmount} on OWNER-FUND-INITIATION board copy","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":1.73,"commit":"33d69d8"}
 {"ts":"2026-07-24T21:37:02Z","item":"Dedupe entered PM Check (first visit) log entry","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":2.11,"commit":"15a69df"}
 {"ts":"2026-07-24T21:52:27Z","item":"Fix log event-order inversion (outcome came back before entered space)","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":2.3,"commit":"1644839"}
+{"ts":"2026-07-24T22:13:39Z","item":"Make High-Profile Client life event copy player-count-aware","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":2.61,"commit":"d485f09"}
