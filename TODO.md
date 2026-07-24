@@ -25,7 +25,6 @@
 
 ### MEDIUM — should fix
 - [ ] **Unify press-and-hold commit implementations** — some widgets accept a synthetic pointerdown/pointerup, others only respond to real double-click / Enter-with-focus. Likely two implementations of the same pattern; consolidate.
-- [ ] **Fix player-name persistence on setup screen** — both players remained "Player 1" / "Player 2" throughout despite typed names. Retest with manual typing to confirm it isn't a JS-input-only failure.
 - [ ] **Decide: implement "High-Profile Client" (L021) other-players effect, or rewrite its copy for good** — fixloop (v3.1.28) found the card's "all other players' current filing time increases by 1 day" clause was never mechanically implemented (no CSV column or effect-handler code touches other players; only `tick_modifier: -4` on Self is real), in solo OR multiplayer. The solo-specific nonsense text is already trimmed via a display-only override; this item is the deeper question — build the missing +1-day-to-others mechanic (game-balance call), or permanently rewrite the card to only describe what it actually does.
 - [ ] **Reconcile funding-gap numbers on same screen** — top-bar pill says `$110K gap` (of $750K), sidebar says `$391.3K deficit` (of $1M). Different denominators, no labeling — reads as contradiction.
 - [ ] **Pick one definition of "Funding raised"** — currently includes Owner contribution on some surfaces, excludes it on others.
@@ -69,6 +68,7 @@
 - [ ] **Add `app.disable('x-powered-by')`** — one-liner, removes the framework-fingerprint header.
 - [ ] **Consolidate the three admin routes' inline password-check logic** into the shared `requireAdmin` helper from `authGuards.js` — [server.js:800-812](server.js:800), [server.js:824-831](server.js:824), [server.js:904-911](server.js:904). Functionally equivalent today, but the duplication is why the rate-limiter gap in MEDIUM above was overlookable — consolidate for maintainability.
 - [ ] **Run `npm audit fix` for the low-severity `body-parser` advisory** (via Express) at the same time as the two MEDIUM audit fixes above.
+- [ ] **Fix stale test assertion in `tests/server/serverEndpointAuth.test.ts`** — found failing on master 2026-07-24 (unrelated fixloop investigation): "per-instance board serving validates the id (no path traversal)" asserts an exact regex string (`/^[a-z0-9][a-z0-9-]*$/.test(id)`) that no longer appears verbatim in `server.js` — the v3.1.21 security fix (path traversal, [CHANGELOG](CHANGELOG.md)) refactored that check into `assertValidInstanceId()`/`resolvedDir()`. The real validation still works; only the test's string-matching assertion is stale.
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 

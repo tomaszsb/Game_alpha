@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-24 — player-name persistence investigated, confirmed test-harness artifact (fixloop, no app change)
+Playwright playtest finding (MEDIUM): "both players remained 'Player 1' / 'Player 2' throughout despite typed names." The TODO note itself flagged doubt ("retest with manual typing to confirm it isn't a JS-input-only failure").
+
+Traced the full path — `PlayerList.tsx`'s name `<input>` (both compact and expanded variants) is a standard React-controlled input, `PlayerSetup.tsx`'s `handleUpdatePlayer` calls `stateService.updatePlayer()` synchronously with no debounce, and `StateService.updatePlayer`/`subscribe`/`notifyListeners` have no id-mismatch, debounce, or default-name-regeneration path that could revert an edited name (the only `` `Player ${n}` `` default-name generation in the codebase is used solely when *adding* a new player, never reapplied to an existing one). Nothing in the real code path can silently revert a typed name.
+
+**Verdict: test-harness artifact, not a real bug.** A raw DOM `element.value = 'Alice'` assignment (what a browser-automation script does when it sets a property directly instead of typing or dispatching a native event) bypasses React's synthetic event system entirely — `onChange` (and therefore `StateService.updatePlayer`) never fires — which reproduces the reported symptom exactly.
+
+No production code changed. Added `tests/components/setup/PlayerList.test.tsx` (+5 tests) wiring `PlayerList` to a real `StateService` instance (not mocked) to prove: a typed name persists for both players independently, survives an unrelated subsequent update, works in the compact/TV variant too, and — as a negative control — a raw `.value =` assignment with no dispatched event never reaches `onChange`. Verified non-vacuous by temporarily breaking `StateService.updatePlayer`'s name handling and confirming the new tests correctly failed, then reverting.
+
+Verified: typecheck clean, production build clean, new tests 10/10 (5 new + 5 pre-existing) green.
+
 ## [3.1.28] - 2026-07-24
 
 ### Fix: "High-Profile Client" life event no longer references other players in solo games (fixloop)
