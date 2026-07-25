@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.33] - 2026-07-25
+
+### Fix: "📋 Rules" toolbar button vs. "📖 Game Rules" modal title reconciled to one label (fixloop)
+Playtest finding (LOW): the toolbar buttons that open the rules panel (`ProjectProgress.tsx`, `TVDisplay.tsx`) say "📋 Rules", but the modal itself (`RulesModal.tsx`, via `ModalBase`) titled itself "📖 Game Rules" — different emoji, different word.
+
+**Fix:** same convention as the Glossary/Dictionary reconciliation in v3.1.32 — kept the shorter, toolbar-facing wording as the source of truth and changed the modal to match: `RulesModal.tsx` now passes `title="Rules"`, and `theme.emoji.rules` (its one call site) changed from `📖` to `📋`. Modal body content untouched — this was a chrome-label fix only, not a copy pass.
+
+Verified: typecheck clean, production build clean, `ProjectProgress.test.tsx` 9/9 green (no test asserted on the old "Game Rules" text, so nothing else needed updating). Live-verified in the browser: the modal now opens showing "📋 Rules", matching the toolbar button exactly.
+
 ## [3.1.32] - 2026-07-25
 
 ### Fix: "Glossary" toolbar button vs. "Dictionary" panel title reconciled to one word (fixloop)

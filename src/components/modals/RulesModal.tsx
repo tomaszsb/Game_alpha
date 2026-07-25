@@ -66,7 +66,7 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps): JSX.Element | 
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title="Game Rules"
+      title="Rules"
       emoji={theme.emoji.rules}
       maxWidth="800px"
       footer={footer}

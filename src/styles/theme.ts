@@ -363,7 +363,7 @@ export const theme = {
     movement: '🚶',
     celebration: '🎉',
     trophy: '🏆',
-    rules: '📖',
+    rules: '📋',
     negotiation: '🤝',
     target: '🎯',
     story: '📖',
