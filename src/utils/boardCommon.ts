@@ -127,6 +127,33 @@ export function formatVisitBadge(
   return visitNumber >= 2 ? `↩ Visit #${visitNumber}` : '↩ Return visit';
 }
 
+/**
+ * fb — Playwright playtest, LOW: "a board tile's hover/expand narrative
+ * still shows the First-visit copy even after a player has re-entered that
+ * space." BoardCanvas renders the whole SHARED board, but visit history is
+ * per-player, so "has this space been visited" needs a "whose perspective"
+ * answer. Uses the same convention the component already applies to
+ * isCurrent/displayStory (funding-token resolution): the CURRENT
+ * (active-turn) player, i.e. whichever Player matches currentPlayerId.
+ *
+ * Returns 'First' when there's no active player (spectator/TV mode with no
+ * currentPlayerId — matches the initial-node default so nothing crashes or
+ * looks broken) or the active player hasn't visited this space yet;
+ * 'Subsequent' once they have. Feeds directly into
+ * dataService.getSpaceContent(spaceName, visitType) so the hover/expand
+ * narrative can be refreshed on re-entry instead of staying frozen to the
+ * First-visit copy baked into the initial node build.
+ *
+ * Pure so the visit-type resolution is unit-testable without rendering
+ * React Flow — same reasoning as computeTileVisualState/resolveTileOverlap.
+ */
+export function resolveTileVisitType(
+  activePlayer: { visitedSpaces?: string[] } | undefined,
+  spaceName: string,
+): 'First' | 'Subsequent' {
+  return activePlayer?.visitedSpaces?.includes(spaceName) ? 'Subsequent' : 'First';
+}
+
 // fb:97fa9c75 — five-step size hierarchy so players see where they are and
 // where they can go without needing to mouse-hover. The classic three-step
 // machine (compact / hover / expanded) only used borders to distinguish

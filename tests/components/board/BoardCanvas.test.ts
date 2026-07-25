@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeTileVisualState, resolveTileOverlap } from '../../../src/utils/boardCommon';
+import { computeTileVisualState, resolveTileOverlap, resolveTileVisitType } from '../../../src/utils/boardCommon';
 
 describe('computeTileVisualState — tile size state machine', () => {
 
@@ -136,5 +136,31 @@ describe('resolveTileOverlap — drag collision (fb:feedback-1782842971898-c73c3
     // A big 240x130 "current" tile dragged near a compact 150x60 sibling.
     const push = resolveTileOverlap(box(100, 0, 240, 130), box(0, 0, 150, 60));
     expect(push).not.toBeNull();
+  });
+});
+
+describe('resolveTileVisitType — hover/expand narrative refresh on re-entry (Playwright playtest, LOW)', () => {
+  it('space not yet visited by the active player → First', () => {
+    const activePlayer = { visitedSpaces: ['OWNER-SCOPE-INITIATION'] };
+    expect(resolveTileVisitType(activePlayer, 'ARCH-INITIATION')).toBe('First');
+  });
+
+  it('space already visited by the active player → Subsequent', () => {
+    const activePlayer = { visitedSpaces: ['OWNER-SCOPE-INITIATION', 'ARCH-INITIATION'] };
+    expect(resolveTileVisitType(activePlayer, 'ARCH-INITIATION')).toBe('Subsequent');
+  });
+
+  it('no active player (spectator/TV mode, currentPlayerId unset) → First, does not throw', () => {
+    expect(resolveTileVisitType(undefined, 'ARCH-INITIATION')).toBe('First');
+  });
+
+  it('active player with no visitedSpaces field → First, does not throw', () => {
+    expect(resolveTileVisitType({}, 'ARCH-INITIATION')).toBe('First');
+  });
+
+  it('is per-space: visiting one space does not mark a different space as visited', () => {
+    const activePlayer = { visitedSpaces: ['ARCH-INITIATION'] };
+    expect(resolveTileVisitType(activePlayer, 'ARCH-INITIATION')).toBe('Subsequent');
+    expect(resolveTileVisitType(activePlayer, 'ENG-INITIATION')).toBe('First');
   });
 });

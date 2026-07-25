@@ -36,7 +36,6 @@
 - [ ] **Rename `REGULATORY_REVIEW` → `REGULATORY` for consistency (cosmetic only, not a bug)** — fixloop investigated 2026-07-24 (see CHANGELOG): `GameRulesService.getCurrentActivityPhase()` already bridges the two names correctly; every Expeditor card's phase gate works today. A real rename touches ~30 CARDS_EXPANDED.csv rows (regenerate CLEAN_FILES) + `GameRulesService.ts` + 5 other files referencing `REGULATORY_REVIEW` — real regression risk for a cosmetic win, so do it carefully with full verification, not as a quick pass.
 - [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
 - [ ] **Add narrative flavor text to second PM-DECISION-CHECK Move-option** — currently an empty em-dash slot.
-- [ ] **Refresh board space narrative on re-entry** — still shows first-visit copy after player re-enters.
 - [ ] **Rewrite Bulk Discount detail card "what this is"** — currently describes the trigger condition, not the effect.
 
 ### QUIRKS — design decision needed (not necessarily bugs)

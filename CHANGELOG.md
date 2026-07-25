@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.31] - 2026-07-25
+
+### Fix: board tile narrative stayed frozen on First-visit copy after a player re-entered a space (fixloop)
+Playwright playtest finding (LOW): a board tile's hover/expand narrative kept showing First-visit copy even after the relevant player had visited that space before.
+
+**Root cause:** `BoardCanvas.tsx`'s `initialNodes` build fetched each tile's `story`/`actionDescription` once via `dataService.getSpaceContent(spaceName, 'First')` — hardcoded to `'First'`, never re-evaluated. A comment right above it claimed "we refresh those in the dynamic useEffect below," but grepping the whole file confirmed that refresh was never actually implemented — the only `getSpaceContent` call in the file was the one hardcoded First-visit fetch.
+
+**The "whose visit history" question:** `BoardCanvas` renders the shared board, but visit history is inherently per-player. Resolved by matching the component's existing convention (already used for `isCurrent` and the `{fundingAmount}` token resolve): the CURRENT (active-turn) player, via `currentPlayerId`. Backed by `MovementService.ts`'s own `hasPlayerVisitedSpace()` helper, which is the codebase's one established "has this player visited X" check and also operates per-player.
+
+**Fix:** new `resolveTileVisitType(activePlayer, spaceName)` in `boardCommon.ts` (checks `activePlayer.visitedSpaces.includes(spaceName)`, defaults to `'First'` with no active player so spectator/TV mode never crashes). The existing per-render node-data recompute effect now re-fetches `getSpaceContent(spaceName, resolvedVisitType)` for every tile and refreshes both `displayStory` (layered under the existing funding-token resolution, falling back to the pristine First-visit story if no Subsequent row is authored) and `actionDescription` (which had the identical staleness bug, fixed the same way).
+
+Verified: typecheck clean, production build clean. New `resolveTileVisitType` test block (5 tests: not-yet-visited, already-visited, no active player, active player with no `visitedSpaces`, per-space isolation) — `BoardCanvas.test.ts` 20/20 green. Live-verified the starting tile's First-visit copy renders correctly with no regression; confirmed via `SPACE_CONTENT.csv` that a real revisit-capable space (PM-DECISION-CHECK) has genuinely different First vs. Subsequent copy authored, so the fix is meaningful in actual play — did not play deep enough into a full game session to screenshot a live re-entry, so the unit test covering the resolver logic is the primary verification.
+
 ## [Ops] 2026-07-24 — REGULATORY / REGULATORY_REVIEW phase-name mismatch investigated, confirmed intentional and working correctly (fixloop, no app change)
 Playtest finding (LOW): "header uses `REGULATORY`, ability restrictions use `REGULATORY_REVIEW`."
 

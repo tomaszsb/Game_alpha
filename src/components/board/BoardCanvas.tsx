@@ -62,7 +62,7 @@ import type { SmartEdgeOptions } from '@jalez/react-flow-smart-edge';
 
 import { useGameContext } from '../../context/GameContext';
 import { Player } from '../../types/DataTypes';
-import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
+import { PHASE_COLORS, shortName, truncate, computeTileVisualState, computeVisibleEdgeIds, BOARD_TILE_COMPACT, BOARD_TILE_MAX_INGRID, estimateTileMaxIngridHeight, uniqueDiceDestinations, resolveTileOverlap, boardFingerprint, readSavedViewport, writeSavedViewport, computeFocusCenter, resolveTileVisitType, TARGET_MIN_TILE_PX, TARGET_MAX_TILE_PX } from '../../utils/boardCommon';
 import { getNpcCharacterInfo } from '../../constants/characters';
 import { saveBoardPosition } from './saveBoardPosition';
 import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
@@ -102,13 +102,26 @@ interface BoardNodeData {
   // (below) can always re-derive from a pristine template. Rendering
   // must use `displayStory`, not `story`, directly.
   story?: string;
-  // {fundingAmount}-resolved version of `story`, recomputed on every
-  // players/currentPlayerId change (see the recompute useEffect below) via
-  // the same resolveFundingAmountToken() the sidebar (PlayerPanelV2) and
-  // the dice/action modals already use — this is what fb (playtest,
-  // HIGH) reported missing: the board tile rendered `story` directly and
-  // so never substituted {fundingAmount}, unlike those other two surfaces.
+  // Display-ready version of the narrative, recomputed on every players/
+  // currentPlayerId change (see the recompute useEffect below):
+  //  1. Visit-type refresh (fb, Playwright playtest, LOW) — re-fetches
+  //     SPACE_CONTENT.csv via dataService.getSpaceContent(spaceName,
+  //     resolveTileVisitType(...)) so a tile shows Subsequent-visit copy
+  //     once the CURRENT (active-turn) player has visited it before,
+  //     instead of staying frozen on the First-visit text baked into the
+  //     initial node build.
+  //  2. {fundingAmount}-resolved via the same resolveFundingAmountToken()
+  //     the sidebar (PlayerPanelV2) and the dice/action modals already
+  //     use — this is what fb (playtest, HIGH) reported missing: the
+  //     board tile rendered `story` directly and so never substituted
+  //     {fundingAmount}, unlike those other two surfaces.
+  // Falls back to the pristine `story` (First-visit) if a Subsequent row
+  // isn't authored for that space, so nothing goes blank.
   displayStory?: string;
+  // "Next:" line. Same visit-type refresh as displayStory (both come from
+  // the same SPACE_CONTENT.csv row) — recomputed in the useEffect below,
+  // overwritten in place each run since it has no funding-token
+  // substitution and so no pristine-template requirement.
   actionDescription?: string;
   npcName?: string;
   // Discipline label — phase color alone can't tell an Architect tile from an
@@ -568,9 +581,12 @@ function BoardCanvasInner({
     const nodes: Node<BoardNodeData>[] = configs.map(cfg => {
       const pos = dataService.getPosition(cfg.space_name) || { x: 0, y: 0 };
       const titleOverride = cfg.display_label_override || '';
-      // First-visit content for the hover/expand cards. Subsequent-visit
-      // content is preferred when the current viewer has visited; we
-      // refresh those in the dynamic useEffect below.
+      // First-visit content for the hover/expand cards, used as the pristine
+      // `story` template and as the fallback before the recompute effect's
+      // first run. Subsequent-visit content is preferred once the current
+      // (active-turn) player has visited — refreshed into `displayStory`/
+      // `actionDescription` by the dynamic useEffect below via
+      // resolveTileVisitType().
       const content = dataService.getSpaceContent(cfg.space_name, 'First');
       // PM-voiced spaces (fb:7065e8df) resolve to undefined — no NPC name
       // prefix on the hover card when the story is the PM's own first-person
@@ -734,14 +750,34 @@ function BoardCanvasInner({
     // comment) so this always re-derives from the pristine template —
     // otherwise a first resolve to "" (no funds yet) would permanently
     // erase the {fundingAmount} token before the player is later funded.
+    //
+    // fb (Playwright playtest, LOW) — "a board tile's hover/expand narrative
+    // still shows the First-visit copy even after a player has re-entered
+    // that space." initialNodes hardcoded 'First' when building `story`/
+    // `actionDescription` and nothing ever re-fetched them, despite a
+    // comment here claiming otherwise. BoardCanvas renders the whole SHARED
+    // board while visit history is per-player, so "visited" needs a "whose
+    // perspective" answer — resolveTileVisitType() uses the same
+    // currentPlayerId-based active-player convention as `isCurrent` and the
+    // funding-token resolve just above (see its doc comment in
+    // boardCommon.ts). No parallel data-fetching: same
+    // dataService.getSpaceContent() call the initial First-visit build uses,
+    // just with the resolved visit type.
     const activePlayer = currentPlayerId ? players.find(p => p.id === currentPlayerId) : undefined;
     setNodes(prev => prev.map(n => {
       const playersHere = players.filter(p => p.currentSpace === n.id);
       const isCurrent = !!currentPlayerId && playersHere.some(p => p.id === currentPlayerId);
       const fundingSource = dataService.getFundingSource(n.id);
-      const displayStory = n.data.story
-        ? resolveFundingAmountToken(n.data.story, activePlayer || {}, fundingSource)
-        : n.data.story;
+      const visitType = resolveTileVisitType(activePlayer, n.id);
+      const content = dataService.getSpaceContent(n.id, visitType);
+      // Fall back to the pristine First-visit `story`/`actionDescription`
+      // (from initialNodes) when Subsequent isn't authored for this space,
+      // so the tile never goes blank.
+      const baseStory = content?.story ?? n.data.story;
+      const actionDescription = content?.action_description ?? n.data.actionDescription;
+      const displayStory = baseStory
+        ? resolveFundingAmountToken(baseStory, activePlayer || {}, fundingSource)
+        : baseStory;
       return {
         ...n,
         data: {
@@ -756,6 +792,7 @@ function BoardCanvasInner({
           showBuffer,
           onHover: handleNodeHover,
           onClick: handleNodeClick,
+          actionDescription,
           // Action counter only rendered on the current tile; we still inject
           // the values on every node so the chip's render condition can stay
           // a pure function of `data`. <!-- fb:feedback-1779568815545-44221318 -->
