@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-25 — "PM-DECISION-CHECK second Move-option" investigated, confirmed no slot exists (fixloop, no app change)
+
+Playtest finding (LOW): "Add narrative flavor text to second PM-DECISION-CHECK Move-option — currently an empty em-dash slot."
+
+Traced the "em-dash slot" to `docs/core/AUTHORED_COPY_REVIEW.md`'s "QUICK BUTTON-LABEL SCAN" table, which lists `PM-DECISION-CHECK First/Sub | End Turn → **Move forward/Commit to the new plan** | —`. Checked whether the "—" is a missing-content gap or a structural non-option by cross-referencing every other "—" row in that same table against `SPACE_CONTENT.csv`'s `can_negotiate` column: CHEAT-BYPASS (both visits), ARCH-INITIATION First, ENG-INITIATION First, LEND-SCOPE-CHECK/BANK-FUND-REVIEW/INVESTOR-FUND-REVIEW Subsequent, and PM-DECISION-CHECK (both visits) **all** have `can_negotiate=NO` — a clean, consistent pattern across all 7 "—" rows in the table.
+
+**Conclusion:** the em-dash is the doc's systematic marker for "this space has no second action button" (the row for FINISH makes this explicit: `try_again_label | End Turn | *(not rendered — Negotiate=NO)*`), not an authoring gap waiting to be filled. PM-DECISION-CHECK is a genuine single-path decision space — there is no second Move-option to write flavor text for. No content change made.
+
 ## [Ops] 2026-07-25 — "Bulk Discount" card investigated: description is incomplete AND the card has no implemented effect (fixloop, no app change)
 
 Playtest finding (LOW, filed as a copy nit): "Rewrite Bulk Discount detail card 'what this is' — currently describes the trigger condition, not the effect."
