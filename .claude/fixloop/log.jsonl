@@ -61,3 +61,4 @@
 {"ts":"2026-07-25T15:02:10Z","item":"Add narrative flavor text to second PM-DECISION-CHECK Move-option","fbId":null,"model":"sonnet","outcome":"skipped","note":"investigated, confirmed no second move-option slot exists - all 7 em-dash rows in the button-label table are can_negotiate=NO by design, not missing content","usedPctAfter":null,"commit":"862abfb"}
 {"ts":"2026-07-25T15:10:06Z","item":"Route admin save/reset endpoints through checkAdminRateLimit","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":null,"commit":"2ecf268"}
 {"ts":"2026-07-25T15:16:26Z","item":"Add a rate limiter to POST /api/accounts/login","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":null,"commit":"e079fbb"}
+{"ts":"2026-07-25T15:23:18Z","item":"Cap the foreign-IP SMS alert send path","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":null,"commit":"e476038"}
