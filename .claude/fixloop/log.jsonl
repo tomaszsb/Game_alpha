@@ -51,3 +51,4 @@
 {"ts":"2026-07-24T23:00:23Z","item":"Add missing space in cost-strip: 1 action leftthis turn","fbId":null,"model":"claude-sonnet-5","outcome":"skipped","usedPctAfter":3.31,"commit":"a2214fd","note":"verified test-harness artifact, not a real bug"}
 {"ts":"2026-07-25T01:18:10Z","item":"Hide off-screen #error-fallback from a11y tree","fbId":null,"model":"orchestrator-direct","outcome":"fixed","usedPctAfter":3.64,"commit":"555de8c"}
 {"ts":"2026-07-25T04:26:13Z","item":"Fix first-page-load 404 on /api/games/{id}/state","fbId":null,"model":"claude-sonnet-5","outcome":"skipped","usedPctAfter":3.98,"commit":"5144cd5","note":"confirmed correct-by-design, not a bug"}
+{"ts":"2026-07-25T04:29:50Z","item":"Reconcile phase name REGULATORY vs REGULATORY_REVIEW","fbId":null,"model":"orchestrator-direct","outcome":"skipped","usedPctAfter":46.03,"commit":"a1582f1","note":"confirmed intentional, working correctly; real rename scoped out for later"}
