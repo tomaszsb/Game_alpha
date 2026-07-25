@@ -57,7 +57,7 @@ export function DictionaryHint(): JSX.Element | null {
   return (
     <div
       role="dialog"
-      aria-label="Dictionary tip"
+      aria-label="Glossary tip"
       onClick={dismiss}
       style={{
         position: 'fixed',

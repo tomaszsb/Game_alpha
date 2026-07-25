@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.32] - 2026-07-25
+
+### Fix: "Glossary" toolbar button vs. "Dictionary" panel title reconciled to one word (fixloop)
+Playtest finding (LOW): the toolbar button that opens the game's term-lookup panel says "Glossary" (📖 icon, both compact and full toolbar layouts in `ProjectProgress.tsx`), but the panel itself said "Dictionary" everywhere a player could see it — heading, close-button aria-label, loading/error text, and the iframe's `title` attribute.
+
+**Fix:** standardized on "Glossary" (the word players already see first, on the button) and updated every player/screen-reader-visible string in `DictionaryPanel.tsx` and `DictionaryHint.tsx` to match, plus two more callers that also said "Open in Dictionary Dashboard" (`CardDetailsModal.tsx`, `SpaceExplorerPanel.tsx`) — those buttons open the same panel, so leaving them out would have just relocated the inconsistency. Left the internal `src/dictionary/` module name, component names (`DictionaryPanel`, `DictionaryContext`, `useDictionary`, etc.), types, CSS classes, and dev-only log lines untouched — renaming those is a much larger, higher-risk sweep across ~22 files for a purely cosmetic win, out of scope for this polish item.
+
+Verified: typecheck clean, production build clean, full dictionary test suite (`tests/dictionary/*`, `tests/utils/dictionaryBridge*.test.ts`) 44/44 green (one test's title-attribute assertion updated to match the new copy). Live-verified in the browser: the panel's heading renders "Glossary" and its close button's `aria-label` is "Close glossary".
+
 ## [Ops] 2026-07-25 — "press-and-hold commit implementations" investigated, confirmed no duplicate exists (fixloop, no app change)
 
 Playwright playtest finding (MEDIUM): "some widgets accept a synthetic pointerdown/pointerup, others only respond to real double-click / Enter-with-focus. Likely two implementations of the same pattern; consolidate."

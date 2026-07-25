@@ -402,7 +402,7 @@ export function SpaceExplorerPanel({
                     color: colors.primary.text,
                     fontWeight: 'bold'
                   }}
-                  title="Open in Dictionary Dashboard"
+                  title="Open in Glossary Dashboard"
                 >
                   📖 Intelligence
                 </button>

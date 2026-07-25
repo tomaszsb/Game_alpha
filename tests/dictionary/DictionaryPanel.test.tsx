@@ -58,7 +58,7 @@ describe('DictionaryPanel — embedded iframe timeout fallback (fb:baa01a70)', (
 
     // Embedded mode first: loading state + iframe (jsdom never fires its load).
     expect(screen.getByText(/Loading intelligence from dashboard/i)).toBeInTheDocument();
-    expect(screen.getByTitle('Dictionary Content')).toBeInTheDocument();
+    expect(screen.getByTitle('Glossary Content')).toBeInTheDocument();
 
     // Past the timeout: the local definition renders instead of the loader.
     await act(async () => {
@@ -66,7 +66,7 @@ describe('DictionaryPanel — embedded iframe timeout fallback (fb:baa01a70)', (
     });
 
     expect(screen.queryByText(/Loading intelligence from dashboard/i)).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Dictionary Content')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Glossary Content')).not.toBeInTheDocument();
     expect(screen.getByText('Underwriting')).toBeInTheDocument();
     // The simple definition renders (the technical one is hidden by the
     // default remote config's show_technical_def: false — deliberate).

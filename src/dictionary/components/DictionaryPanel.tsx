@@ -200,12 +200,12 @@ export function DictionaryPanel({
                 ← Back
               </button>
             ) : (
-              <h2 className="dictionary-header__title">Dictionary</h2>
+              <h2 className="dictionary-header__title">Glossary</h2>
             )}
             <button
               className="dictionary-header__close-button"
               onClick={onClose}
-              aria-label="Close dictionary"
+              aria-label="Close glossary"
             >
               ✕
             </button>
@@ -277,7 +277,7 @@ export function DictionaryPanel({
                   border: 'none',
                   display: isIframeLoading ? 'none' : 'block'
                 }}
-                title="Dictionary Content"
+                title="Glossary Content"
                 onLoad={() => {
                   if (embedTimerRef.current) clearTimeout(embedTimerRef.current);
                   setIsIframeLoading(false);
@@ -295,13 +295,13 @@ export function DictionaryPanel({
           {/* Local Dictionary Mode - shows locally loaded terms */}
           {!effectiveEmbedded && isLoading && (
             <div className="dictionary-loading">
-              Loading dictionary...
+              Loading glossary...
             </div>
           )}
 
           {!effectiveEmbedded && error && (
             <div className="dictionary-error">
-              Error loading dictionary: {error}
+              Error loading glossary: {error}
             </div>
           )}
 
