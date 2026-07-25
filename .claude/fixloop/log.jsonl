@@ -55,3 +55,4 @@
 {"ts":"2026-07-25T04:46:47Z","item":"Refresh board space narrative on re-entry","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":49.06,"commit":"b420d43"}
 {"ts":"2026-07-25T13:35:01Z","item":"Unify press-and-hold commit implementations","fbId":null,"model":"sonnet","outcome":"skipped","note":"investigated, confirmed no duplicate exists (false positive) - Ops changelog entry, no code change","usedPctAfter":39.01}
 {"ts":"2026-07-25T13:45:59Z","item":"Reconcile Glossary button vs Dictionary modal title","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":null,"commit":"fd6f7c5"}
+{"ts":"2026-07-25T14:37:17Z","item":"Reconcile Rules button vs Game Rules modal title","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":null,"commit":"032da00"}
