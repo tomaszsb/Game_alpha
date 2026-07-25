@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 25, 2026
-**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.34 pushed, pending deploy.
-**Current Version:** 3.1.34 (pushed, not yet deployed)
+**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.35 pushed, pending deploy.
+**Current Version:** 3.1.35 (pushed, not yet deployed)
 
 ---
 
@@ -47,7 +47,6 @@
 - [ ] **Rotate the PixelLab.ai API key** — committed in `02d7117` (`generate_female_sprites.sh`), deleted in `711899e`. File is gone from the working tree but the key is still readable via `git show 02d7117:generate_female_sprites.sh` by anyone with repo read access. Rotate immediately at pixellab.ai. Separately consider purging history with `git filter-repo` (more invasive — decide separately).
 
 ### MEDIUM — should fix
-- [ ] **Route admin save/reset endpoints through `checkAdminRateLimit`** — `POST /api/admin/save-source-files` ([server.js:817](server.js:817)) and `POST /api/admin/reset-to-baseline` ([server.js:897](server.js:897)) currently do inline password checks with no lockout, making them brute-forceable against the admin password.
 - [ ] **Add a rate limiter to `POST /api/accounts/login`** — no explicit lockout today; scrypt cost helps but doesn't stop a sustained attack.
 - [ ] **Cap the foreign-IP SMS alert send path** — add a per-hour cap at [server.js:~1790-1796](server.js:1790); kill switch works but there's no dedup or throttle, so a burst of qualifying game starts can spam the developer's phone via the carrier gateway.
 - [ ] **Run `npm audit fix`** (no `--force`) to resolve two HIGH-severity dev-only advisories: `brace-expansion` (transitive via eslint/glob) and `shell-quote` (transitive via concurrently). Both dev-only, never shipped.

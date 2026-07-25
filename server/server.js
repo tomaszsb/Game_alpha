@@ -845,6 +845,7 @@ app.post('/api/admin/verify', (req, res) => {
 // ===== ADMIN: SAVE SOURCE FILES & REGENERATE =====
 
 app.post('/api/admin/save-source-files', (req, res) => {
+  if (!checkAdminRateLimit(req, res)) return;
   const { password, spacesCSV, diceRollCSV, modalConfigCSV } = req.body;
 
   // Verify admin password
@@ -925,6 +926,7 @@ app.post('/api/admin/save-source-files', (req, res) => {
 // ===== ADMIN: RESET TO BASELINE =====
 
 app.post('/api/admin/reset-to-baseline', (req, res) => {
+  if (!checkAdminRateLimit(req, res)) return;
   const { password } = req.body;
 
   // Verify admin password

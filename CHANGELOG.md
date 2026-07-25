@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.35] - 2026-07-25
+
+### Fix: admin content-save/reset endpoints had no lockout against a brute-forced admin password (fixloop, security audit follow-up)
+Security audit finding (MEDIUM, 2026-07-21): `POST /api/admin/save-source-files` and `POST /api/admin/reset-to-baseline` do their own inline password check (SHA-256 hash + `crypto.timingSafeEqual`) — same as every other admin route — but unlike `POST /api/admin/verify`, neither called `checkAdminRateLimit` first, so an attacker could hammer the password on these two routes with no lockout at all.
+
+**Fix:** added `if (!checkAdminRateLimit(req, res)) return;` as the first statement in both handlers, identical to the existing `/api/admin/verify` pattern (5 attempts / 15 min per IP). New wiring-fingerprint test pins in `tests/server/serverEndpointAuth.test.ts` (this file statically greps `server.js` handler bodies rather than booting the server — see the file's own header comment) so a future refactor can't silently drop the guard again.
+
+Verified: typecheck clean, production build clean, full `tests/server/` suite 307/307 green (2 new tests + no regressions).
+
 ## [Ops] 2026-07-25 — "PM-DECISION-CHECK second Move-option" investigated, confirmed no slot exists (fixloop, no app change)
 
 Playtest finding (LOW): "Add narrative flavor text to second PM-DECISION-CHECK Move-option — currently an empty em-dash slot."
