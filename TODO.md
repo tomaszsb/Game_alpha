@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 25, 2026
-**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.40 pushed, pending deploy.
-**Current Version:** 3.1.40 (pushed, not yet deployed)
+**Status:** Beta — live in production; **v3.1.40 deployed + confirmed live** 2026-07-25 (bundle content-verified + `package.json` inside the running container both read 3.1.40; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
+**Current Version:** 3.1.40 (deployed)
 
 ---
 
@@ -148,6 +148,7 @@
 - [ ] **"Start without all phones" override for TV mode** — trigger: the hard-block gets in the way of solo demos.
 - [ ] **TV bug-report button pulls phone log buffers** (heartbeat-piggyback ~5s, last ~50 entries/phone) — trigger: next phone-crash-can't-report incident.
 - [ ] **Mobile-tab-freeze TEMP-state-loss claim** — external audit theory, unverified; `visibilitychange` reconnect already exists. Trigger: a playtester actually reports lost actions after phone lock.
+- [ ] **`/health`'s `version` field always reads "dev" in production, even via `deploy.sh`** (found 2026-07-25 verifying the v3.1.40 deploy) — `server.js`'s `/health` handler reads `process.env.VITE_GIT_COMMIT` at REQUEST time, but the Dockerfile only sets that env var for the `RUN npm run build` step (baking the real commit into the CLIENT bundle); it's never set in the running container's own environment, so the server-side check always falls through to its `'dev'` default. Not a deploy-correctness bug — the client bundle's embedded version is correct and is the actual source of truth (verify via `curl .../assets/index-*.js | grep '"X.Y.Z"'`, not `/health`) — but `/health` itself is currently a useless place to check "what's deployed." Fix (if ever prioritized): add `ENV VITE_GIT_COMMIT=${GIT_COMMIT}` to the Dockerfile's runtime stage, not just the build stage. Related to, but more specific than, the existing "docker compose builds show 'unknown'" note below (that's about a different build path producing a different wrong value).
 - [ ] **Deploy stamps commit "unknown" on `docker compose` builds** (Alpine container lacks git) — non-issue while using deploy.sh.
 - [ ] **Webhook deployment** (push-to-deploy via HTTP receiver on Unraid) + **verify deploy.sh backup/restore of `game-data/`** — DX wishlist, stalled since April.
 - [ ] **`.claude/feedback-staged.md` is gitignored, which is likely why a 2026-07-01 draft (48 candidates) sat forgotten for 2+ weeks** — nothing tracks it, so there's no diff/history to notice it went stale (found + reconciled 2026-07-19, see CHANGELOG). The `/start` skill fix (CHANGELOG cross-check before drafting "new" candidates) prevents the worst symptom, but the file itself staying invisible to git is still a standing risk. Trigger: this kind of silent-drift recurs, or the file's PII-risk (raw player feedback text) is judged acceptable to commit.

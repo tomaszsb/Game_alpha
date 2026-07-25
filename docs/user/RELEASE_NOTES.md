@@ -2,6 +2,12 @@
 
 ---
 
+## v3.1.32–3.1.40 — A few naming mix-ups cleaned up, and some behind-the-scenes hardening (July 25, 2026)
+
+- **Your current location now always shows a real name, not a raw code.** In a couple of spots — the badge at the top of the screen, and the small name-tag shown for other players when several of you share one screen — landing on certain spaces could show something like "PM-DECISION-CHECK" instead of the plain name ("PM Check"). Fixed in both places.
+- **The Glossary and Rules buttons now match what opens when you tap them.** The Glossary button used to open something titled "Dictionary"; the Rules button opened something titled "Game Rules." Small mismatch, now consistent both ways.
+- Also: a batch of behind-the-scenes account-security hardening (login attempts, admin tools, and an alert path are now all rate-limited against abuse) — nothing you'll notice day-to-day, but worth a mention for anyone curious what's under the hood.
+
 ## v3.1.17–3.1.20 — Picking a player on PC no longer hides the board, and a few phone/setup rough edges smoothed out (July 19, 2026)
 
 - **Restarting after a crash and picking your player no longer strips the screen down to just your own panel.** On a PC or TV, choosing "which player are you?" from the rejoin picker used to switch that device into the same stripped-down view a phone gets — no board, nothing else visible. Now the PC/TV keeps showing the full shared game; only an actual phone gets the personal view.
