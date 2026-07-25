@@ -25,6 +25,7 @@
 
 ### MEDIUM — should fix
 - [ ] **Decide: implement "High-Profile Client" (L021) other-players effect, or rewrite its copy for good** — fixloop (v3.1.28) found the card's "all other players' current filing time increases by 1 day" clause was never mechanically implemented (no CSV column or effect-handler code touches other players; only `tick_modifier: -4` on Self is real), in solo OR multiplayer. The solo-specific nonsense text is already trimmed via a display-only override; this item is the deeper question — build the missing +1-day-to-others mechanic (game-balance call), or permanently rewrite the card to only describe what it actually does.
+- [ ] **Decide: implement "Bulk Discount" (E040) effect, or rewrite its copy for good** — fixloop investigated 2026-07-25 (started as a LOW "rewrite the description" item, see CHANGELOG [Ops]): the card's description ("If 3+ permits are filed this turn") cuts off with no outcome ever stated, AND the card has zero implemented mechanical effect (`tick_modifier=0`, `money_effect` empty, no code references it anywhere) — same shape as the High-Profile Client item above. Build the actual "3+ permits filed this turn → discount" mechanic (game-balance call: money discount? time discount?), or rewrite the card to honestly describe a real, smaller effect.
 - [ ] **Reconcile funding-gap numbers on same screen** — top-bar pill says `$110K gap` (of $750K), sidebar says `$391.3K deficit` (of $1M). Different denominators, no labeling — reads as contradiction.
 - [ ] **Pick one definition of "Funding raised"** — currently includes Owner contribution on some surfaces, excludes it on others.
 
@@ -32,7 +33,6 @@
 - [ ] **Rename `REGULATORY_REVIEW` → `REGULATORY` for consistency (cosmetic only, not a bug)** — fixloop investigated 2026-07-24 (see CHANGELOG): `GameRulesService.getCurrentActivityPhase()` already bridges the two names correctly; every Expeditor card's phase gate works today. A real rename touches ~30 CARDS_EXPANDED.csv rows (regenerate CLEAN_FILES) + `GameRulesService.ts` + 5 other files referencing `REGULATORY_REVIEW` — real regression risk for a cosmetic win, so do it carefully with full verification, not as a quick pass.
 - [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
 - [ ] **Add narrative flavor text to second PM-DECISION-CHECK Move-option** — currently an empty em-dash slot.
-- [ ] **Rewrite Bulk Discount detail card "what this is"** — currently describes the trigger condition, not the effect.
 
 ### QUIRKS — design decision needed (not necessarily bugs)
 - [ ] **Decide: Negative expeditors in "Hire 3 Expeditors" initial draw** — e.g. "Regulatory Slowdown" +2 days can appear in the starting three. If intentional, the UI should signal that some cards in hand are curses.

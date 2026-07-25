@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-25 — "Bulk Discount" card investigated: description is incomplete AND the card has no implemented effect (fixloop, no app change)
+
+Playtest finding (LOW, filed as a copy nit): "Rewrite Bulk Discount detail card 'what this is' — currently describes the trigger condition, not the effect."
+
+Investigated expecting a simple copy tweak; found something bigger. Card E040 "Bulk Discount"'s `description` column (`CARDS_EXPANDED.csv`) reads: *"If 3+ permits are filed this turn"* — the sentence cuts off after the condition clause with no outcome ever stated, unlike sibling cards (e.g. E036 "Press Release": *"If the current client is high-profile reduce the filing time by 3 days."* — condition AND effect both stated in one sentence). That alone would be a simple sentence-completion fix.
+
+But checking what effect to describe: **the card has zero implemented mechanical effect.** `tick_modifier=0`, `money_effect` empty, `card_mechanic` empty, `effects_on_play="Apply Card"` (the generic placeholder that suppresses the UI's "What it does" section for ~123 E/L cards without authored effect prose — a known, accepted pattern, see TODO.md parking lot). No code anywhere (`CardService.ts`, `EffectEngineService.ts`, or elsewhere) references "Bulk Discount" or `E040` by name. `getCardEffectSummary()` (`src/utils/cardTypeNames.ts:71-93`), which drives the Activate button's effect preview, returns `null` for this card — a player sees "Activate" with no preview at all, then nothing observably happens.
+
+**This is the same shape as the L021 "High-Profile Client" finding from v3.1.28** (also fixloop, also this playtest batch): copy promises a mechanic (here: a real bulk-filing discount) that was never wired into the engine. Rewriting the description to state a specific outcome without building it would just create a second instance of that exact bug; writing an honest "this currently does nothing" description isn't a copy fix, it's surfacing a design gap. Reclassified from a LOW copy nit to a MEDIUM decision item — see TODO.md.
+
+No production code changed.
+
 ## [3.1.34] - 2026-07-25
 
 ### Fix: PM Check space (and every hyphenated space) showed its raw internal id, not its friendly name, in two surfaces (fixloop)
