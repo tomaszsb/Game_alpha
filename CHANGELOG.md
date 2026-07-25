@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-24 — first-page-load 404 investigated, confirmed correct-by-design (fixloop, no app change)
+Playwright playtest finding (LOW): `GET /api/games/{id}/state` returns 404 on first load, "then recovers."
+
+Live-reproduced end-to-end (real Express server on 3001 + Vite on 3000, fresh load with no `?g=` param). Traced the full sequence: `App.tsx` POSTs `/api/games` to create a new game (200), full-page-reloads to the new `?g=<gameId>` URL (documented, deliberate — avoids the legacy single-game endpoint picking up a stale PLAY-phase game), then `ServerSyncService.loadFromServer()` fetches `/api/games/<gameId>/state`. At that exact point the game record exists and its token validates, but no state has ever been POSTed for it yet — `server.js`'s handler correctly returns 404 (`"No game state available"`, a distinct code path from "game not found"). Captured the exact response body live. This is not a race or an id mismatch; it's the server correctly reporting "this game exists but has no state yet."
+
+Confirmed already benign: `ServerSyncService.loadFromServer()` treats a 404 here as an expected, non-error return value (`debugLog`, never `console.error`), and `debugLog` itself is a production no-op unless `?debug=true`. The DevTools Network panel's red 404 row a Playwright trace picks up is accurate (a 404 genuinely occurred) but was never surfaced to the console or the player. Verified the "recovers" behavior directly: adding a player POSTs the first real state (200), and a subsequent GET returns 200.
+
+No production code changed. Verified: typecheck clean, production build clean, `tests/server/` (15 files, 305 tests) all pass.
+
 ## [3.1.30] - 2026-07-24
 
 ### Fix: hide `#error-fallback` from a11y snapshot tools by removing it from the DOM until it's actually needed (fixloop)
