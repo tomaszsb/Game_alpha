@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.34] - 2026-07-25
+
+### Fix: PM Check space (and every hyphenated space) showed its raw internal id, not its friendly name, in two surfaces (fixloop)
+Playtest finding (LOW): "`OWNER PM Check` on board, `📍 PM Check` in sidebar, `📍 PM-DECISION-CHECK` in location pill" — read as three inconsistent names for the same space.
+
+Investigated all three surfaces. The board tile's "OWNER" + "PM Check" is actually two separate, deliberately-designed stacked labels (a phase/discipline tag above the title, `BoardCanvas.tsx:279-296`, documented back to fb:feedback-1782657383215-a9d3221a) — not a naming bug. The `PlayerPanelV2` sidebar already resolves the friendly `display_label_override` correctly.
+
+**The real bug:** two other spots rendered the raw CSV `space_name` key directly, with no resolution at all:
+- `GameLayout.tsx:1188` — the collapsed mini-bar shown for non-current players in multi-local-panel ("shared screen") mode.
+- `ProjectProgress.tsx:569` — the current-player's own top-bar location badge, which was doubly wrong: alongside the raw id it appended `getSpaceContent().title`, which isn't a display name at all but the space's narrative flavor line (e.g. "I pick a direction"), so the badge read `📍 PM-DECISION-CHECK — I pick a direction` instead of `📍 PM Check`.
+
+**Fix:** both now call the existing `friendlySpaceName(dataService, spaceName)` helper (`src/utils/logFormatting.ts`, already used elsewhere in `GameLayout.tsx`) — `getDisplayLabelOverride()` falling back to `shortName()`. No new lookup logic. Also had to add a `getDisplayLabelOverride` mock to `tests/components/game/ProjectProgress.test.tsx`'s `IDataService` mock (it was cast `as unknown as IDataService` and didn't implement every method — the new code path exposed the gap, caught by the test run before landing).
+
+Verified: typecheck clean, production build clean, `ProjectProgress.test.tsx` 9/9 green. Live-verified in the browser with a 2-local-player game: both fixed surfaces correctly resolved a hyphenated raw id (`OWNER-SCOPE-INITIATION`) to its friendly name ("Scope Initiation") in both the top-bar badge and the collapsed mini-bar.
+
 ## [3.1.33] - 2026-07-25
 
 ### Fix: "📋 Rules" toolbar button vs. "📖 Game Rules" modal title reconciled to one label (fixloop)

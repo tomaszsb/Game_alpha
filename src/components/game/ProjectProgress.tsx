@@ -10,6 +10,7 @@ import { FormatUtils } from '../../utils/FormatUtils';
 import { designFeeIndicator, timelineIndicator } from '../../utils/progressIndicators';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { friendlySpaceName } from '../../utils/logFormatting';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -566,7 +567,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
               }}
               title={spaceTitle}
             >
-              📍 {currentPlayer.currentSpace}
+              📍 {friendlySpaceName(dataService, currentPlayer.currentSpace)}
               {spaceTitle && <span style={{ fontWeight: 'normal', fontSize: '0.55rem' }}> — {spaceTitle}</span>}
             </div>
           );

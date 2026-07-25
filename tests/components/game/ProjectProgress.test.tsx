@@ -71,6 +71,7 @@ describe('ProjectProgress', () => {
         story: 'Test story content',
         hint: 'Test hint'
       })),
+      getDisplayLabelOverride: vi.fn(() => ''),
     } as unknown as IDataService;
 
     mockGameRulesService = {

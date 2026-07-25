@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 25, 2026
-**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.33 pushed, pending deploy.
-**Current Version:** 3.1.33 (pushed, not yet deployed)
+**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.34 pushed, pending deploy.
+**Current Version:** 3.1.34 (pushed, not yet deployed)
 
 ---
 
@@ -29,7 +29,6 @@
 - [ ] **Pick one definition of "Funding raised"** — currently includes Owner contribution on some surfaces, excludes it on others.
 
 ### LOW — polish
-- [ ] **Reconcile PM Check space naming across surfaces** — `OWNER PM Check` on board, `📍 PM Check` in sidebar, `📍 PM-DECISION-CHECK` in location pill.
 - [ ] **Rename `REGULATORY_REVIEW` → `REGULATORY` for consistency (cosmetic only, not a bug)** — fixloop investigated 2026-07-24 (see CHANGELOG): `GameRulesService.getCurrentActivityPhase()` already bridges the two names correctly; every Expeditor card's phase gate works today. A real rename touches ~30 CARDS_EXPANDED.csv rows (regenerate CLEAN_FILES) + `GameRulesService.ts` + 5 other files referencing `REGULATORY_REVIEW` — real regression risk for a cosmetic win, so do it carefully with full verification, not as a quick pass.
 - [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
 - [ ] **Add narrative flavor text to second PM-DECISION-CHECK Move-option** — currently an empty em-dash slot.

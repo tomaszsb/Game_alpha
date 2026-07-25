@@ -1185,7 +1185,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                         }}>
                           <PlayerAvatar avatar={player.avatar} color={player.color} size={24} title={player.name} />
                           <span style={{ fontWeight: 'bold', color: '#343a40' }}>{player.name}</span>
-                          <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>📍 {player.currentSpace}</span>
+                          <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>📍 {friendlySpaceName(dataService, player.currentSpace)}</span>
                         </div>
                       );
                     }
