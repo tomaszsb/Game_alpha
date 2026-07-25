@@ -824,6 +824,25 @@ function createRateLimiter(maxAttempts, windowMs) {
 const checkAdminRateLimit = createRateLimiter(5, 15 * 60 * 1000); // 5 per 15 min
 const checkLoginRateLimit = createRateLimiter(5, 15 * 60 * 1000); // 5 per 15 min
 
+// ===== FOREIGN-GAME ALERT THROTTLE =====
+// A global cap, not per-IP: the kill switch (settings.foreignGameAlertsEnabled)
+// is all-or-nothing, but with it on, a burst of qualifying game starts —
+// same visitor retrying, or several different ones — must not spam the
+// developer's phone via the carrier-gateway SMS path. No dedup needed
+// beyond a simple count; the alert body already includes gameId/IP for
+// context on whichever ones do get through.
+const ALERT_CAP = { maxPerHour: 5, windowMs: 60 * 60 * 1000 };
+let alertWindow = { count: 0, resetAt: 0 };
+function canSendForeignGameAlert() {
+  const now = Date.now();
+  if (now >= alertWindow.resetAt) {
+    alertWindow = { count: 0, resetAt: now + ALERT_CAP.windowMs };
+  }
+  if (alertWindow.count >= ALERT_CAP.maxPerHour) return false;
+  alertWindow.count++;
+  return true;
+}
+
 // ===== ADMIN AUTHENTICATION =====
 
 app.post('/api/admin/verify', (req, res) => {
@@ -1858,10 +1877,14 @@ app.post('/api/games/:gameId/state', async (req, res) => {
     });
 
     if (settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)) {
-      try {
-        await sendOwnerAlert(`Game ${gameId} started with players: ${playerNames} (IP ${logEntry.ip}, ${logEntry.device})`);
-      } catch (err) {
-        console.warn('⚠️ Could not send foreign-game alert:', err.message);
+      if (canSendForeignGameAlert()) {
+        try {
+          await sendOwnerAlert(`Game ${gameId} started with players: ${playerNames} (IP ${logEntry.ip}, ${logEntry.device})`);
+        } catch (err) {
+          console.warn('⚠️ Could not send foreign-game alert:', err.message);
+        }
+      } else {
+        console.warn('⚠️ Foreign-game alert suppressed: hourly cap reached');
       }
     }
   }

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.37] - 2026-07-25
+
+### Fix: foreign-game SMS alert had no volume cap — a burst of game starts could spam the developer's phone (fixloop, security audit follow-up)
+Security audit finding (MEDIUM, 2026-07-21): the foreign-IP text alert's kill switch (`settings.foreignGameAlertsEnabled`) is all-or-nothing — with it on, every qualifying game start sent an SMS via the carrier-gateway email path with no dedup or throttle at all, so a burst of starts (same visitor retrying, or several different ones) could spam the developer's phone.
+
+**Fix:** added `canSendForeignGameAlert()` — a simple global hourly cap (5/hour, `ALERT_CAP.maxPerHour`), separate from the existing per-IP `checkAdminRateLimit`/`checkLoginRateLimit` (this one caps total alert *volume* regardless of source, not one IP's request rate). Gated inside the existing kill-switch + foreign-IP check, so the kill switch still fully suppresses alerts when off; the cap only kicks in on top of that. A suppressed alert logs a console warning instead of silently vanishing.
+
+Verified: typecheck clean, production build clean, full `tests/server/` suite 310/310 green (2 new wiring-fingerprint tests + no regressions; one pre-existing test's fixed-length source-slice window needed widening by 200 chars to still reach the unchanged `console.warn` line past the newly-added guard).
+
 ## [3.1.36] - 2026-07-25
 
 ### Fix: teacher login had no rate limit — sustained password guessing was unthrottled (fixloop, security audit follow-up)

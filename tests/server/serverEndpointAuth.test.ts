@@ -336,11 +336,28 @@ describe('server.js endpoint auth wiring', () => {
 
   it('GAME_STARTED sends the owner alert (gated on foreignGameAlertsEnabled + !isHomeIP) with player names', () => {
     const start = source.indexOf("app.post('/api/games/:gameId/state'");
-    const body = source.slice(start, start + 2200);
+    const body = source.slice(start, start + 2400);
     expect(body).toContain('settings.foreignGameAlertsEnabled && !isHomeIP(logEntry.ip)');
     expect(body).toContain('sendOwnerAlert(');
     expect(body).toContain('players: ${playerNames}');
     // Mail failure is swallowed so it can never break the state-push response.
     expect(body).toContain("console.warn('⚠️ Could not send foreign-game alert:', err.message)");
+  });
+
+  it('GAME_STARTED owner alert is capped, not just kill-switched — a burst can\'t spam the carrier gateway', () => {
+    const start = source.indexOf("app.post('/api/games/:gameId/state'");
+    const body = source.slice(start, start + 2400);
+    // The alert call must be gated behind the hourly cap, inside the
+    // existing kill-switch + foreign-IP check — not a separate bypass path.
+    expect(body).toContain('canSendForeignGameAlert()');
+    expect(body.indexOf('canSendForeignGameAlert()')).toBeLessThan(body.indexOf('sendOwnerAlert('));
+  });
+
+  it('canSendForeignGameAlert enforces a real hourly cap (maxPerHour), not an unlimited passthrough', () => {
+    const start = source.indexOf('function canSendForeignGameAlert');
+    expect(start, 'canSendForeignGameAlert not found in server.js').toBeGreaterThan(-1);
+    const body = source.slice(start, start + 400);
+    expect(body).toContain('alertWindow.count >= ALERT_CAP.maxPerHour');
+    expect(source).toMatch(/ALERT_CAP\s*=\s*\{\s*maxPerHour:\s*\d+/);
   });
 });
