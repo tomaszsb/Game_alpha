@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-25 — "press-and-hold commit implementations" investigated, confirmed no duplicate exists (fixloop, no app change)
+
+Playwright playtest finding (MEDIUM): "some widgets accept a synthetic pointerdown/pointerup, others only respond to real double-click / Enter-with-focus. Likely two implementations of the same pattern; consolidate."
+
+Checked every commit/confirm-style control in the app: `TurnCommitControl.tsx` (the merged End Turn / Try Again footer) is the ONLY press-and-hold widget in the codebase (`onPointerDown`/`onPointerUp`/`onPointerLeave`/`onPointerCancel` + `onKeyDown` Space/Enter fallback). Every other confirm/select/accept action — across all modals (`ChoiceModal`, `CardDetailsModal`, `CardReplacementModal`, `DiceResultModal`, `NegotiationModal`, `EducationalCardSelectionModal`, `LifeEventModal`, `EndGameModal`, `RoutingExplanationModal`, `DiscardPileModal`), the admin Data Editor's Save/Reset, and `FeedbackButton`'s Submit — is a plain `onClick`. `FeedbackButton`'s own `onPointerDown`/`onPointerUp` pair is unrelated drag-to-reposition logic for the floating button, not a second commit pattern. Zero `dblclick`/`onDoubleClick`/`event.detail`/`event.isTrusted` gating exists anywhere in `src/`.
+
+**Conclusion:** the TODO's premise — "two implementations of the same pattern" — doesn't hold up against the code; there's exactly one hold-to-commit control, nothing to consolidate. Likely explanation (unverified, no original repro survives): a Playwright session dispatched synthetic pointer events expecting hold-to-commit everywhere, found ordinary buttons didn't behave that way, and had to use a real double-click or Enter-with-focus to drive them in-browser instead — a testing-technique mismatch against `TurnCommitControl` being the sole exception, not a duplicated production pattern.
+
+No production code changed.
+
 ## [3.1.31] - 2026-07-25
 
 ### Fix: board tile narrative stayed frozen on First-visit copy after a player re-entered a space (fixloop)

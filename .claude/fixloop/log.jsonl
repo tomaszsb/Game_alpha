@@ -53,3 +53,4 @@
 {"ts":"2026-07-25T04:26:13Z","item":"Fix first-page-load 404 on /api/games/{id}/state","fbId":null,"model":"claude-sonnet-5","outcome":"skipped","usedPctAfter":3.98,"commit":"5144cd5","note":"confirmed correct-by-design, not a bug"}
 {"ts":"2026-07-25T04:29:50Z","item":"Reconcile phase name REGULATORY vs REGULATORY_REVIEW","fbId":null,"model":"orchestrator-direct","outcome":"skipped","usedPctAfter":46.03,"commit":"a1582f1","note":"confirmed intentional, working correctly; real rename scoped out for later"}
 {"ts":"2026-07-25T04:46:47Z","item":"Refresh board space narrative on re-entry","fbId":null,"model":"claude-sonnet-5","outcome":"fixed","usedPctAfter":49.06,"commit":"b420d43"}
+{"ts":"2026-07-25T13:35:01Z","item":"Unify press-and-hold commit implementations","fbId":null,"model":"sonnet","outcome":"skipped","note":"investigated, confirmed no duplicate exists (false positive) - Ops changelog entry, no code change","usedPctAfter":39.01}
