@@ -23,8 +23,7 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
     const backendURL = getBackendURL();
     const response = await fetch(`${backendURL}/api/admin/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
     });
 
     if (response.ok) {

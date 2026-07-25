@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.40] - 2026-07-25
+
+### Fix: consolidate the three admin routes' inline password checks onto the shared `requireAdmin` helper (fixloop, security audit follow-up)
+Security audit finding (LOW, 2026-07-21): `/api/admin/verify`, `/api/admin/save-source-files`, and `/api/admin/reset-to-baseline` each duplicated the same inline SHA-256-hash + `timingSafeEqual` password check instead of using the shared `requireAdmin` helper — the exact duplication that made the rate-limiter gap fixed in v3.1.35 overlookable in the first place.
+
+**The non-obvious part:** `requireAdmin` reads the password from an `x-admin-password` header, but all three routes' clients were sending it in the JSON body — so this wasn't a pure server-side swap. Updated all three client call sites (`src/utils/adminAuth.ts`'s `verifyAdminPassword`, `DataEditor.tsx`'s save and reset handlers) to send the password as a header instead, keeping any other real payload (`spacesCSV`/`diceRollCSV`/`modalConfigCSV`) in the body. Each server route keeps its own `checkAdminRateLimit(req, res)` call (unchanged — `requireAdmin` itself doesn't rate-limit) and its own distinct `logVisitor` event name on auth failure (`ADMIN_AUTH_FAILED`/`SAVE_SOURCE_FILES_AUTH_FAILED`/`RESET_BASELINE_AUTH_FAILED`), just routed through the shared check instead of a copy-pasted one. The old explicit "password required" 400 pre-check was removed in favor of `requireAdmin`'s own 401 — safe since neither client branches on the specific status/message, and `requireAdmin` additionally fails closed (503) if `ADMIN_PASSWORD_HASH` is ever unset, which the old inline code did not (it would have thrown).
+
+Verified: typecheck clean, production build clean, `tests/server/` + `DataEditor.test.tsx` 340/340 green (updated wiring-fingerprint test to assert both `checkAdminRateLimit` and `requireAdmin` on all three routes). Live-verified via curl against a local server: all three routes correctly 401 with no/wrong `x-admin-password` header and pass with the correct one; a body-only (old-style) password is now correctly ignored.
+
 ## [3.1.39] - 2026-07-25
 
 ### Fix: remove the `X-Powered-By: Express` framework-fingerprint header (fixloop, security audit follow-up)

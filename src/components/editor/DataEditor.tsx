@@ -254,8 +254,8 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
 
       const response = await fetch(`${backendURL}/api/admin/save-source-files`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, spacesCSV, diceRollCSV, modalConfigCSV })
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+        body: JSON.stringify({ spacesCSV, diceRollCSV, modalConfigCSV })
       });
 
       const data = await response.json();
@@ -344,8 +344,7 @@ export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
       const backendURL = getBackendURL();
       const response = await fetch(`${backendURL}/api/admin/reset-to-baseline`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
       });
 
       const data = await response.json();

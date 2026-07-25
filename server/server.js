@@ -848,45 +848,23 @@ function canSendForeignGameAlert() {
 
 app.post('/api/admin/verify', (req, res) => {
   if (!checkAdminRateLimit(req, res)) return;
-  const { password } = req.body;
-  if (!password) {
-    return res.status(400).json({ success: false, error: 'Password required' });
-  }
-
-  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
-  const expectedHash = CONFIG.ADMIN_PASSWORD_HASH;
-
-  // Timing-safe comparison to prevent timing attacks
-  const match = inputHash.length === expectedHash.length &&
-    crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(expectedHash));
-
-  if (match) {
-    logVisitor(req, 'ADMIN_AUTH_SUCCESS');
-    res.json({ success: true });
-  } else {
+  if (!requireAdmin(req, res)) {
     logVisitor(req, 'ADMIN_AUTH_FAILED');
-    res.status(401).json({ success: false, error: 'Invalid password' });
+    return;
   }
+  logVisitor(req, 'ADMIN_AUTH_SUCCESS');
+  res.json({ success: true });
 });
 
 // ===== ADMIN: SAVE SOURCE FILES & REGENERATE =====
 
 app.post('/api/admin/save-source-files', (req, res) => {
   if (!checkAdminRateLimit(req, res)) return;
-  const { password, spacesCSV, diceRollCSV, modalConfigCSV } = req.body;
-
-  // Verify admin password
-  if (!password) {
-    return res.status(400).json({ success: false, error: 'Password required' });
-  }
-  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
-  const expectedHash = CONFIG.ADMIN_PASSWORD_HASH;
-  const match = inputHash.length === expectedHash.length &&
-    crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(expectedHash));
-  if (!match) {
+  if (!requireAdmin(req, res)) {
     logVisitor(req, 'SAVE_SOURCE_FILES_AUTH_FAILED');
-    return res.status(401).json({ success: false, error: 'Invalid password' });
+    return;
   }
+  const { spacesCSV, diceRollCSV, modalConfigCSV } = req.body;
 
   if (!spacesCSV || !diceRollCSV) {
     return res.status(400).json({ success: false, error: 'spacesCSV and diceRollCSV are required' });
@@ -954,19 +932,9 @@ app.post('/api/admin/save-source-files', (req, res) => {
 
 app.post('/api/admin/reset-to-baseline', (req, res) => {
   if (!checkAdminRateLimit(req, res)) return;
-  const { password } = req.body;
-
-  // Verify admin password
-  if (!password) {
-    return res.status(400).json({ success: false, error: 'Password required' });
-  }
-  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
-  const expectedHash = CONFIG.ADMIN_PASSWORD_HASH;
-  const match = inputHash.length === expectedHash.length &&
-    crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(expectedHash));
-  if (!match) {
+  if (!requireAdmin(req, res)) {
     logVisitor(req, 'RESET_BASELINE_AUTH_FAILED');
-    return res.status(401).json({ success: false, error: 'Invalid password' });
+    return;
   }
 
   try {

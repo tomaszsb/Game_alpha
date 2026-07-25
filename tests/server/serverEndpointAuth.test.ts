@@ -35,13 +35,17 @@ describe('server.js endpoint auth wiring', () => {
   });
 
   it.each([
+    ['post', '/api/admin/verify'],
     ['post', '/api/admin/save-source-files'],
     ['post', '/api/admin/reset-to-baseline'],
   ])('%s %s is rate-limited against brute-forcing the admin password', (method, route) => {
-    // These two do their own inline password check (not the shared
-    // requireAdmin helper) and had no lockout at all — checkAdminRateLimit
-    // must run before that inline check does any work.
+    // These three previously had their own inline password checks (duplicated
+    // SHA-256 + timingSafeEqual) rather than the shared requireAdmin helper;
+    // consolidated onto requireAdmin, but each keeps its own rate limiter —
+    // requireAdmin itself does not rate-limit, so checkAdminRateLimit must
+    // still run before it (as the first statement in the handler).
     expect(handlerHead(method, route)).toContain('checkAdminRateLimit(req, res)');
+    expect(handlerHead(method, route)).toContain('requireAdmin(req, res)');
   });
 
   it.each([
