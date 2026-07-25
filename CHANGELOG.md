@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.38] - 2026-07-25
+
+### Fix: `npm audit fix` for dev-only advisories (fixloop, security audit follow-up)
+Security audit finding (MEDIUM, 2026-07-21): two dev-only HIGH-severity advisories (`brace-expansion`, `shell-quote`), plus a LOW `body-parser` one bundled in per the audit's own note. Re-running `npm audit` today also turned up a third HIGH advisory (`postcss`, path-traversal in sourcemap auto-loading) that must have landed since the 2026-07-21 audit — folded into the same pass since it's the same "safe, no-force" fix.
+
+**Ran `npm audit fix` (no `--force`)** — resolved `body-parser`, `postcss`, `shell-quote`, and the top-level `brace-expansion` advisory. `package.json` itself unchanged (only transitive versions moved in the lockfile). One `brace-expansion` advisory remains, nested inside eslint's own dependency tree — `npm audit fix --force` would resolve it but only by force-upgrading to `eslint@10.8.0`, a breaking major-version jump already tracked separately in TODO's "Dependency major-version jumps" list. Left alone here: eslint is dev/lint-only, never shipped in the runtime bundle, so this is zero production risk and belongs with the other deferred major-version bumps, not a quick audit-fix pass.
+
+Verified: typecheck clean, production build clean (CSS bundle sizes unchanged post-postcss-bump). Full fast suite 2449/2452 (1 pre-existing skip, 2 `E2E-AllPaths.test.ts` timeouts under full-suite load — confirmed non-regression, both pass cleanly in isolation, same documented resource-contention flake as CLAUDE.md's existing TACTICAL entry).
+
 ## [3.1.37] - 2026-07-25
 
 ### Fix: foreign-game SMS alert had no volume cap — a burst of game starts could spam the developer's phone (fixloop, security audit follow-up)

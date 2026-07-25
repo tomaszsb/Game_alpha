@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 25, 2026
-**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.37 pushed, pending deploy.
-**Current Version:** 3.1.37 (pushed, not yet deployed)
+**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.38 pushed, pending deploy.
+**Current Version:** 3.1.38 (pushed, not yet deployed)
 
 ---
 
@@ -46,15 +46,11 @@
 ### HIGH — external action (not a code fix)
 - [ ] **Rotate the PixelLab.ai API key** — committed in `02d7117` (`generate_female_sprites.sh`), deleted in `711899e`. File is gone from the working tree but the key is still readable via `git show 02d7117:generate_female_sprites.sh` by anyone with repo read access. Rotate immediately at pixellab.ai. Separately consider purging history with `git filter-repo` (more invasive — decide separately).
 
-### MEDIUM — should fix
-- [ ] **Run `npm audit fix`** (no `--force`) to resolve two HIGH-severity dev-only advisories: `brace-expansion` (transitive via eslint/glob) and `shell-quote` (transitive via concurrently). Both dev-only, never shipped.
-
 ### LOW — polish
 - [ ] **Set Express `app.set('trust proxy', N)`** matching the actual reverse-proxy hop count in front of the Node process, so `req.ip` and the `X-Forwarded-For` handling in `getClientIP()` ([server.js:389-395](server.js:389)) can't be spoofed by direct callers. Confirm actual topology on Unraid before picking N.
 - [ ] **Add `Content-Security-Policy`, `Strict-Transport-Security`, and `Permissions-Policy` headers** alongside the existing security headers at [server.js:122-128](server.js:122).
 - [ ] **Add `app.disable('x-powered-by')`** — one-liner, removes the framework-fingerprint header.
-- [ ] **Consolidate the three admin routes' inline password-check logic** into the shared `requireAdmin` helper from `authGuards.js` — [server.js:800-812](server.js:800), [server.js:824-831](server.js:824), [server.js:904-911](server.js:904). Functionally equivalent today, but the duplication is why the rate-limiter gap in MEDIUM above was overlookable — consolidate for maintainability.
-- [ ] **Run `npm audit fix` for the low-severity `body-parser` advisory** (via Express) at the same time as the two MEDIUM audit fixes above.
+- [ ] **Consolidate the three admin routes' inline password-check logic** into the shared `requireAdmin` helper from `authGuards.js` — `/api/admin/verify`, `/api/admin/save-source-files`, `/api/admin/reset-to-baseline` ([server.js](server.js), inline `crypto.createHash('sha256')` checks around lines 845, 855, 962 as of v3.1.35's rate-limit fix — line numbers drift, search for the pattern). Functionally equivalent today, but the duplication is why the rate-limiter gap (fixed v3.1.35) was overlookable — consolidate for maintainability.
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)
 
