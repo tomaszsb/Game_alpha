@@ -360,4 +360,14 @@ describe('server.js endpoint auth wiring', () => {
     expect(body).toContain('alertWindow.count >= ALERT_CAP.maxPerHour');
     expect(source).toMatch(/ALERT_CAP\s*=\s*\{\s*maxPerHour:\s*\d+/);
   });
+
+  it('the X-Powered-By framework-fingerprint header is disabled', () => {
+    // Must be set right after the Express app is constructed, before any
+    // route registration — express only omits the header on responses if
+    // this runs before the app starts handling requests.
+    const start = source.indexOf('const app = express()');
+    expect(start).toBeGreaterThan(-1);
+    const body = source.slice(start, start + 150);
+    expect(body).toContain("app.disable('x-powered-by')");
+  });
 });

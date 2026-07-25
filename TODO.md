@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 25, 2026
-**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.38 pushed, pending deploy.
-**Current Version:** 3.1.38 (pushed, not yet deployed)
+**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.39 pushed, pending deploy.
+**Current Version:** 3.1.39 (pushed, not yet deployed)
 
 ---
 
@@ -48,8 +48,7 @@
 
 ### LOW — polish
 - [ ] **Set Express `app.set('trust proxy', N)`** matching the actual reverse-proxy hop count in front of the Node process, so `req.ip` and the `X-Forwarded-For` handling in `getClientIP()` ([server.js:389-395](server.js:389)) can't be spoofed by direct callers. Confirm actual topology on Unraid before picking N.
-- [ ] **Add `Content-Security-Policy`, `Strict-Transport-Security`, and `Permissions-Policy` headers** alongside the existing security headers at [server.js:122-128](server.js:122).
-- [ ] **Add `app.disable('x-powered-by')`** — one-liner, removes the framework-fingerprint header.
+- [ ] **Add `Content-Security-Policy`, `Strict-Transport-Security`, and `Permissions-Policy` headers** alongside the existing security headers at [server.js:122-128](server.js:122). Fixloop deliberately deferred this 2026-07-25 (see CHANGELOG v3.1.39): real regression risk our test suite can't catch (jsdom doesn't enforce CSP at all), and this app leans on inline `style={{...}}` everywhere plus a live cross-origin iframe (dictionary panel, `dashboard.unravelcodes.com`) — a too-strict `style-src`/`frame-src` would silently break the live site. Needs a full survey of every external/inline resource the app loads + live-browser verification, not a quick pass.
 - [ ] **Consolidate the three admin routes' inline password-check logic** into the shared `requireAdmin` helper from `authGuards.js` — `/api/admin/verify`, `/api/admin/save-source-files`, `/api/admin/reset-to-baseline` ([server.js](server.js), inline `crypto.createHash('sha256')` checks around lines 845, 855, 962 as of v3.1.35's rate-limit fix — line numbers drift, search for the pattern). Functionally equivalent today, but the duplication is why the rate-limiter gap (fixed v3.1.35) was overlookable — consolidate for maintainability.
 
 ## 📱 Active — playtester acquisition (PRD phases 1–2 shipped; history: CHANGELOG v3.0.95–97)

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.39] - 2026-07-25
+
+### Fix: remove the `X-Powered-By: Express` framework-fingerprint header (fixloop, security audit follow-up)
+Security audit finding (LOW, 2026-07-21): a one-liner, `app.disable('x-powered-by')`, removes Express's default framework-fingerprint response header — one less signal handed to anyone probing the server topology.
+
+Added right after the Express app is constructed (must run before any route registration). Live-verified via a local server + `curl -I`: the header is genuinely absent from the response now (previously not present at all in the codebase, confirmed via grep before adding).
+
+Deliberately **did not** bundle in the CSP/HSTS/Permissions-Policy headers item from the same LOW list this session — that one carries real regression risk this app's test suite is structurally blind to: jsdom (what all our automated tests run in) doesn't enforce CSP at all, and this app relies on inline `style={{...}}` throughout its React components plus a live cross-origin iframe embed (the dictionary panel, from `dashboard.unravelcodes.com`) — a too-strict `style-src`/`frame-src` would silently break the live site with zero test coverage catching it. Left for a session with room to survey every external/inline resource the app actually loads and verify live in a real browser, not a quick pass.
+
+Verified: typecheck clean, production build clean, full `tests/server/` suite 311/311 green (1 new test + no regressions).
+
 ## [3.1.38] - 2026-07-25
 
 ### Fix: `npm audit fix` for dev-only advisories (fixloop, security audit follow-up)

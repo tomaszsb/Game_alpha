@@ -71,6 +71,7 @@ import {
 } from './reminderScheduler.js';
 
 const app = express();
+app.disable('x-powered-by'); // removes the Express framework-fingerprint header
 const DEFAULT_PORT = 3001;
 
 // ===== CONFIGURATION =====
