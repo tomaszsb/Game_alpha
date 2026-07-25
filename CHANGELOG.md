@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.36] - 2026-07-25
+
+### Fix: teacher login had no rate limit — sustained password guessing was unthrottled (fixloop, security audit follow-up)
+Security audit finding (MEDIUM, 2026-07-21): `POST /api/accounts/login` had no lockout at all; scrypt's cost factor slows a single guess but doesn't stop a sustained automated attack across many attempts.
+
+**Fix:** refactored the existing admin-only `checkAdminRateLimit` into a small `createRateLimiter(maxAttempts, windowMs)` factory (same counting logic, just parameterized) and instantiated a **second, independent** limiter (`checkLoginRateLimit`, same 5/15-min budget) for the login route. Deliberately separate buckets, not a shared one — a school's shared public IP would otherwise let one teacher's mistyped password throttle every other teacher's login, or cross-contaminate with unrelated admin-password attempts from the same IP. New wiring-fingerprint test pin in `tests/server/serverEndpointAuth.test.ts`.
+
+Verified: typecheck clean, production build clean, full `tests/server/` suite 308/308 green (1 new test + no regressions).
+
 ## [3.1.35] - 2026-07-25
 
 ### Fix: admin content-save/reset endpoints had no lockout against a brute-forced admin password (fixloop, security audit follow-up)

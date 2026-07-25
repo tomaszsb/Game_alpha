@@ -796,26 +796,33 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ===== ADMIN RATE LIMITING =====
-const adminAttempts = new Map(); // IP -> { count, resetAt }
-const RATE_LIMIT = { maxAttempts: 5, windowMs: 15 * 60 * 1000 }; // 5 per 15 min
-
-function checkAdminRateLimit(req, res) {
-  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-  const now = Date.now();
-  const entry = adminAttempts.get(ip);
-  if (entry && now < entry.resetAt) {
-    if (entry.count >= RATE_LIMIT.maxAttempts) {
-      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-      res.status(429).json({ success: false, error: `Too many attempts. Retry after ${retryAfter}s` });
-      return false;
+// ===== RATE LIMITING =====
+// Factory so unrelated auth surfaces (admin password, teacher login) get
+// independent per-IP buckets — a school's shared public IP shouldn't let
+// one teacher's mistyped login throttle everyone else's admin access, or
+// vice versa.
+function createRateLimiter(maxAttempts, windowMs) {
+  const attempts = new Map(); // IP -> { count, resetAt }
+  return function checkRateLimit(req, res) {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const entry = attempts.get(ip);
+    if (entry && now < entry.resetAt) {
+      if (entry.count >= maxAttempts) {
+        const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+        res.status(429).json({ success: false, error: `Too many attempts. Retry after ${retryAfter}s` });
+        return false;
+      }
+      entry.count++;
+    } else {
+      attempts.set(ip, { count: 1, resetAt: now + windowMs });
     }
-    entry.count++;
-  } else {
-    adminAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT.windowMs });
-  }
-  return true;
+    return true;
+  };
 }
+
+const checkAdminRateLimit = createRateLimiter(5, 15 * 60 * 1000); // 5 per 15 min
+const checkLoginRateLimit = createRateLimiter(5, 15 * 60 * 1000); // 5 per 15 min
 
 // ===== ADMIN AUTHENTICATION =====
 
@@ -1402,6 +1409,7 @@ app.post('/api/instances/:id/positions', (req, res) => {
 
 // Teacher login: username + password → opaque session token + public account.
 app.post('/api/accounts/login', (req, res) => {
+  if (!checkLoginRateLimit(req, res)) return;
   const { username, password } = req.body || {};
   if (!username || !password) {
     return res.status(400).json({ success: false, error: 'username and password are required' });

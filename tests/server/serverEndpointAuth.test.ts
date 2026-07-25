@@ -174,6 +174,12 @@ describe('server.js endpoint auth wiring', () => {
     expect(head).toContain('removeAccountFromAllInstances(instancesRoot, req.params.id)');
   });
 
+  it('POST /api/accounts/login is rate-limited against brute-forcing a teacher account password', () => {
+    // Own bucket (checkLoginRateLimit), separate from the admin-password
+    // limiter — a shared school IP shouldn't cross-throttle the two.
+    expect(handlerHead('post', '/api/accounts/login')).toContain('checkLoginRateLimit(req, res)');
+  });
+
   it.each([
     ['post', '/api/accounts/login'],   // authenticating — open by necessity
     ['post', '/api/accounts/logout'],  // revokes the presented session, idempotent
