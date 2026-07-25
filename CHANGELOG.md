@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-24 — REGULATORY / REGULATORY_REVIEW phase-name mismatch investigated, confirmed intentional and working correctly (fixloop, no app change)
+Playtest finding (LOW): "header uses `REGULATORY`, ability restrictions use `REGULATORY_REVIEW`."
+
+Confirmed real — `GAME_CONFIG.csv` (drives the phase header/board display) uses `REGULATORY` exclusively; `CARDS_EXPANDED.csv` uses `REGULATORY_REVIEW` as the `phase_restriction` value on every one of the ~30 "E" (Expeditor) cards. But this is **not a bug**: `GameRulesService.getCurrentActivityPhase()` ([GameRulesService.ts:249-272](src/services/GameRulesService.ts:249)) explicitly maps the space's `REGULATORY` phase to `'REGULATORY_REVIEW'` before comparing against a card's `phase_restriction` — a deliberate, commented bridge between the two naming conventions, not an accidental mismatch. Every Expeditor card's phase gating already works correctly today.
+
+Downgraded from "reconcile" to a documented, scoped cleanup: actually unifying the naming would mean editing the `phase_restriction` column on all ~30 E-card rows (`public/data/SOURCE_FILES` → regenerate `CLEAN_FILES` via `processGameData.js`), removing the now-redundant `REGULATORY` → `REGULATORY_REVIEW` special case in `GameRulesService.ts`, and checking the other 5 files that reference `REGULATORY_REVIEW` (`CardService.ts`, `expeditorPhase.tsx`, `TurnService.ts`, `boardCommon.ts`, `EditorTypes.ts`) for consistency. Real regression risk if done incompletely (could silently break phase-gating for every Expeditor card) for a purely cosmetic win — left as a deliberate, careful task for a session with room to fully verify it, not attempted here.
+
+No production code changed.
+
 ## [Ops] 2026-07-24 — first-page-load 404 investigated, confirmed correct-by-design (fixloop, no app change)
 Playwright playtest finding (LOW): `GET /api/games/{id}/state` returns 404 on first load, "then recovers."
 
