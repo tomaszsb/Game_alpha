@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-25 — ESLint 9→10 upgrade attempted, confirmed hard-blocked on `eslint-plugin-react` (no app change)
+
+Deploy log surfaced the 6 remaining HIGH-severity `brace-expansion` advisories (all nested inside eslint's own dependency tree, left deliberately un-forced in v3.1.38). Attempted the real fix per standing policy (real tested upgrades, not silenced audit warnings): `npm audit fix --force`.
+
+It installs cleanly (eslint 9.39.2 → 10.8.0) but **crashes every lint run**: `TypeError: context.getSourceCode is not a function` inside `eslint-plugin-react`'s `react/display-name` rule — an API ESLint 10 removed that the plugin still calls internally. Confirmed via `npm view eslint-plugin-react peerDependencies` this isn't a stale-lockfile fluke: even the plugin's own latest release (7.37.5) declares support only up to `eslint@^9.7` — it has never shipped ESLint 10 compatibility at all. `--force` just silently overrode that peer-dependency conflict instead of resolving it.
+
+**Reverted.** `package.json`/`package-lock.json` back to eslint `^9.39.2` / `eslint-plugin-react` `^7.32.0`; `npm run lint` confirmed back to its previous (already-tracked, pre-existing) 386-ish error baseline rather than a hard crash. The 6 remaining advisories stay accepted risk — dev/lint-only, never shipped in the runtime bundle — until `eslint-plugin-react` actually releases ESLint 10 support upstream. TODO's "Dependency major-version jumps" list updated to reflect this is a hard blocker, not a "try it, surface may be small" item.
+
+No production code changed; `typecheck`/`build` reconfirmed clean post-revert.
+
 ## [3.1.40] - 2026-07-25
 
 ### Fix: consolidate the three admin routes' inline password checks onto the shared `requireAdmin` helper (fixloop, security audit follow-up)

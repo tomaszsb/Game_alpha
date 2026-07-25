@@ -194,6 +194,7 @@
 - [ ] **Swap terser → native minifier (Rolldown/Oxc or esbuild)** — bundle-affecting, verify via deploy playtest; preserve vite.config.ts console behaviors. Build is ~8s, low priority.
 
 ### Dependency major-version jumps (deferred 2026-05-29; audit clean, minors done)
-- [ ] TypeScript 5.9→6.0 (wait 1–2 months, branch attempt) · Vite 7→8 + plugin-react 5→6 (together; check `manualChunks`) · ESLint 9→10 (already flat-config, surface may be small) · jsdom 27→29 (re-test `forksFiles` workarounds) · playwright 1.57→1.60 (alongside Playwright test work).
+- [ ] TypeScript 5.9→6.0 (wait 1–2 months, branch attempt) · jsdom 27→29 (re-test `forksFiles` workarounds) · playwright 1.57→1.60 (alongside Playwright test work).
+- [ ] **ESLint 9→10 is BLOCKED on `eslint-plugin-react`, not just untried.** Attempted 2026-07-25 (`npm audit fix --force`, to close the last remaining `brace-expansion` advisory): confirmed via the npm registry that `eslint-plugin-react` has never released ESLint 10 support at all — even its latest (7.37.5) declares `peerDependencies: { eslint: "^3 || ... || ^9.7" }`. Forcing the combo anyway installs cleanly but crashes every lint run (`TypeError: context.getSourceCode is not a function` — an API ESLint 10 removed that the plugin still calls). Reverted. Re-attempt only after `eslint-plugin-react` ships real 10.x support (check `npm view eslint-plugin-react peerDependencies` first) — until then this is a hard blocker, not a "surface may be small" wait-and-see.
 
 *For full history, see CHANGELOG.md. Un-promoted v3.0.83–90 feedback staging: [.claude/feedback-staged.md](.claude/feedback-staged.md).*
