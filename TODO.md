@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 19, 2026
-**Status:** Beta — live in production; **v3.1.20 deployed + confirmed live** (commit `47c88a7`, confirmed via bundle header)
-**Current Version:** 3.1.20 (deployed)
+**Last Updated:** July 25, 2026
+**Status:** Beta — live in production; **v3.1.29 deployed + confirmed live** (commit `1c2130a`, confirmed via bundle header). v3.1.31 pushed, pending deploy.
+**Current Version:** 3.1.31 (pushed, not yet deployed)
 
 ---
 
@@ -167,7 +167,7 @@
 - [ ] **`.claude/feedback-staged.md` is gitignored, which is likely why a 2026-07-01 draft (48 candidates) sat forgotten for 2+ weeks** — nothing tracks it, so there's no diff/history to notice it went stale (found + reconciled 2026-07-19, see CHANGELOG). The `/start` skill fix (CHANGELOG cross-check before drafting "new" candidates) prevents the worst symptom, but the file itself staying invisible to git is still a standing risk. Trigger: this kind of silent-drift recurs, or the file's PII-risk (raw player feedback text) is judged acceptable to commit.
 - [ ] **GEMINI.md setup** — likely obsolete (Gemini-era note); drop unless the user still wants it.
 - [ ] **Dice-result modal won't dismiss in the browser test harness** (~20 min investigation). A `DiceResultModal` that won't close via click / pointer-events / Escape even on a fresh reload with zero prior HMR has blocked *live* verification twice (v3.0.111, v3.0.122), forcing "verified via accessibility tree instead of screenshot" caveats. Not a game bug — a tooling/automation obstacle degrading our ability to prove fixes live. Root-cause the modal-dismiss-in-automation path (backdrop-grace timing? pointer-events layering? focus trap?). (2026-07-13 CHANGELOG review)
-- [ ] **`tests/E2E-AllPaths.test.ts` intermittently times out under full-suite load** — a *different* sub-test (30–60s timeout on `setupGame()`) fails on each run: 3 separate runs on 2026-07-13 each timed out on a different path (`PM → CHEAT-BYPASS`, `REG-DOB-TYPE-SELECT → REG-DOB-PLAN-EXAM`, `ENG-SCOPE → PM-DECISION-CHECK`). Confirmed non-deterministic (not a code bug in any one path) — almost certainly resource contention from multiple concurrent dev servers/Claude sessions sharing this machine during heavy fixloop sessions. Trigger: recurs on a quiet machine with nothing else running, or blocks a `/koniec` pre-flight often enough to be annoying — then worth raising this file's `testTimeout` or investigating why `setupGame()` is slow enough to bump into it at all under load.
+- [ ] **`tests/E2E-AllPaths.test.ts` intermittently times out under full-suite load** — a *different* sub-test (30–60s timeout on `setupGame()`) fails on each run: 3 separate runs on 2026-07-13 each timed out on a different path (`PM → CHEAT-BYPASS`, `REG-DOB-TYPE-SELECT → REG-DOB-PLAN-EXAM`, `ENG-SCOPE → PM-DECISION-CHECK`). Confirmed non-deterministic (not a code bug in any one path) — almost certainly resource contention from multiple concurrent dev servers/Claude sessions sharing this machine during heavy fixloop sessions. Trigger: recurs on a quiet machine with nothing else running, or blocks a `/koniec` pre-flight often enough to be annoying — then worth raising this file's `testTimeout` or investigating why `setupGame()` is slow enough to bump into it at all under load. **Same pattern also seen in `tests/E2E-Multiplayer2P.test.ts`** (2026-07-24/25: a 30s timeout on `'should track different positions as players progress'`, confirmed passes cleanly in isolation both times) — not a separate issue, same full-suite-contention root cause.
 
 ### Architecture / code health (bundle these in one dedicated session — same drift-trap shape)
 - [~] ~~Classic→V2 panel parity sweep~~ — MOOT 2026-07-14: the classic `ActionCenterPanel` this item was auditing against was deleted the same day (see CHANGELOG), along with its exclusive sections/CSS/tests. There's no more classic panel to have a parity gap against.

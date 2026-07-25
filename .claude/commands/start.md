@@ -32,6 +32,7 @@ Single message, parallel tool calls so the user sees them fast:
 - `Read package.json` lines 1–10 — pick up the version
 - Match the version against the starter prompt's "pending deploy" claim
 - **Flip-after-deploy (added 2026-07-10):** if the starter prompt has a "Flip after deploy" list AND the pending version is now confirmed live (user says so, or the live bundle shows it), PATCH those fb ids resolved (recipe in TODO.md "Dashboard PATCH recipe") and report the new open count. This is what keeps the dashboard's open list honest — fixed-but-unflipped reports had piled up to ~20 of 53 "open" by 2026-07-10.
+- **Skipped-`/koniec` gap check (added 2026-07-25):** `git log -1 --format=%ad --date=short` vs. the `written YYYY-MM-DD` date cached from `NEXT_SESSION.md` line 1 (step 1). Most recent commit dated **after** that → a session shipped real work and never ran `/koniec`, so `NEXT_SESSION.md`/`CHANGELOG.md`/`package.json` version can all be stale relative to `git log`. Flag it (`⚠️ N commits since the last /koniec handoff (YYYY-MM-DD) — CHANGELOG may be behind git log`) and suggest a quick `git log --oneline <handoff-commit>..HEAD` reconciliation before trusting the recap in step 2. (2026-07-24/25: 9 undocumented commits — including 3 security fixes — sat on master a full handoff cycle before this was caught by hand; this check would have surfaced it in one command instead of a multi-step manual audit.)
 
 Report each as a one-liner:
 
