@@ -39,7 +39,6 @@
 - [ ] **Refresh board space narrative on re-entry** — still shows first-visit copy after player re-enters.
 - [ ] **Rewrite Bulk Discount detail card "what this is"** — currently describes the trigger condition, not the effect.
 - [ ] **Fix first-page-load 404** — `GET /api/games/{id}/state` returns 404 then recovers; game inits cleanly but red shows in console.
-- [ ] **Hide off-screen `#error-fallback` from a11y tree** — picked up as a heading in snapshot. Add `aria-hidden="true"` or move out of DOM until needed.
 
 ### QUIRKS — design decision needed (not necessarily bugs)
 - [ ] **Decide: Negative expeditors in "Hire 3 Expeditors" initial draw** — e.g. "Regulatory Slowdown" +2 days can appear in the starting three. If intentional, the UI should signal that some cards in hand are curses.

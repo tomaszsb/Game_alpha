@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.30] - 2026-07-24
+
+### Fix: hide `#error-fallback` from a11y snapshot tools by removing it from the DOM until it's actually needed (fixloop)
+Playtest finding (LOW): "Failed to Load Application" was picked up as a heading in an accessibility-tree snapshot even on a page that loaded perfectly fine.
+
+**First attempt (insufficient, kept for the record):** added `aria-hidden="true"` to the static `display:none` fallback div, clearing it in the JS handler that reveals the fallback on a real failure. Live-verified this browser session's own snapshot tool *still* surfaced the heading even with both `display:none` and `aria-hidden="true"` correctly set — proving at least one real accessibility-snapshot mechanism doesn't fully resolve computed style/ARIA state before walking the DOM. An element that's merely hidden isn't safe from every tool; only an element that isn't there at all is.
+
+**Actual fix:** removed the `#error-fallback` markup from `index.html` entirely. The `window.addEventListener('error', ...)` handler now injects the fallback markup via `insertAdjacentHTML` only at the moment a genuine same-origin script load failure occurs — it's absent from the DOM on every normal page load.
+
+Verified: typecheck clean, production build clean. Live-verified in the browser: on a normal load, `document.getElementById('error-fallback')` is `null` and the accessibility snapshot no longer lists the heading at all; a simulated same-origin script failure still correctly injects the fallback (`display:flex`, full content, `#root` hidden) exactly as before — no regression to the real failure-recovery path.
+
 ## [Ops] 2026-07-24 — "1 action leftthis turn" investigated, confirmed test-harness artifact (fixloop, no app change)
 Playwright playtest finding (LOW): `"1 action leftthis turn"` — cost-strip text missing a space, expected `"1 action left this turn"`.
 

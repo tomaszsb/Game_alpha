@@ -106,14 +106,6 @@
         </div>
     </div>
 
-    <!-- Error fallback (will be hidden when React loads) -->
-    <div id="error-fallback" class="error" style="display: none;">
-        <h1>Failed to Load Application</h1>
-        <p>There was an error loading Unravel Codes.</p>
-        <p>Please check the console for more details.</p>
-        <button onclick="window.location.reload()">Reload Page</button>
-    </div>
-
     <!-- Load the React application -->
     <script type="module" src="src/main.tsx"></script>
 
@@ -147,7 +139,21 @@
             }
             console.error('Application loading error:', e);
             document.getElementById('root').style.display = 'none';
-            document.getElementById('error-fallback').style.display = 'flex';
+            // The fallback markup is injected here, on genuine failure only —
+            // not present in the DOM at all otherwise. It used to sit in the
+            // initial HTML as display:none (plus aria-hidden as a later,
+            // insufficient patch): some automated accessibility-tree
+            // snapshots don't fully resolve computed style/ARIA state and
+            // were picking up "Failed to Load Application" as a heading even
+            // while the app loaded perfectly fine (TODO.md). An element that
+            // was never in the DOM can't be picked up by anything.
+            document.body.insertAdjacentHTML('beforeend',
+                '<div id="error-fallback" class="error">' +
+                '<h1>Failed to Load Application</h1>' +
+                '<p>There was an error loading Unravel Codes.</p>' +
+                '<p>Please check the console for more details.</p>' +
+                '<button onclick="window.location.reload()">Reload Page</button>' +
+                '</div>');
         }, true);
 
         // Check if React loaded properly after a timeout. Some TV browsers
