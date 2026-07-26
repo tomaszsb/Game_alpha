@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-26 — actually fixed `npm audit`'s 6 high-severity findings (supersedes the re-verification below)
+
+The scheduled task below (same day, earlier run) re-confirmed the vulnerabilities but only retried the known dead end (`npm audit fix --force`, which forces ESLint to a major version `eslint-plugin-react` doesn't support). Went one step further: the actual chain is `eslint` + `eslint-plugin-react` → nested `minimatch@3.1.5` → vulnerable `brace-expansion`. Since `minimatch@10.2.5` (already used elsewhere in this project's tree by `@typescript-eslint`) pulls in an already-patched `brace-expansion`, added a package.json `"overrides"` entry forcing `minimatch` to `^10.2.5` project-wide — no change to `eslint`'s own major version, so `eslint-plugin-react`'s lack of ESLint-10 support never comes into play.
+
+Verified before committing: `npm audit` → 0 vulnerabilities (was 6 high). `npm run lint` output byte-for-byte identical to the pre-fix baseline (407 problems, all pre-existing and unrelated — no crash). `npm run build`, `npm run typecheck`, and the full test suite all match baseline behavior. Pushed to branch `fix/npm-audit-vulnerabilities` for review rather than merging directly to `master`.
+
+The separate ESLint 9→10 major-version upgrade (a different, bigger jump than this override) remains genuinely blocked on `eslint-plugin-react` publishing ESLint-10 support — see TODO.md.
+
 ## [Ops] 2026-07-26 — re-verified `npm audit`'s 6 high-severity findings are the same blocked ESLint chain (no code change)
 
 Scheduled task triggered by the same `npm audit` warning recurring in a Docker build log (`npm ci` → "6 high severity vulnerabilities"). Investigated fresh rather than assuming it was still the known issue: `npm audit` shows all 6 are one dependency chain — `eslint`, `eslint-plugin-react`, and their nested `@eslint/config-array`/`@eslint/eslintrc` → old `minimatch` → old `brace-expansion` (DoS via unbounded expansion). Confirmed via `npm ls --omit=dev` that none of the flagged packages appear in the production dependency tree at all — `eslint`/`eslint-plugin-react`/`eslint-plugin-react-hooks` are `devDependencies`, lint-time only, never shipped.
