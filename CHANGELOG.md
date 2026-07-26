@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.43] - 2026-07-25
+
+### Fix: client IP detection trusted a spoofable header; rate limiters weren't per-visitor at all (maintainer interview follow-up)
+While interviewing the maintainer to resolve the open decision backlog, the "confirm topology before setting `trust proxy`" TODO item turned into a real investigation: DNS confirms `game.unravelcodes.com` resolves to Cloudflare IPs, and the Unraid Nginx Proxy Manager config confirms traffic actually runs Cloudflare → NPM (`proxy_add_x_forwarded_for`) → this container — 2 real reverse-proxy hops, not the "not sure" the maintainer expected going in.
+
+Two separate problems, both root-caused to the missing `trust proxy` setting:
+1. **`getClientIP()` (`server.js`) took the leftmost, client-suppliable entry of `X-Forwarded-For`** instead of Cloudflare's own `CF-Connecting-IP` header (which Cloudflare's edge always overwrites with the true connecting IP — un-spoofable by design). This feeds visitor logging, the home/foreign-IP alert, and the geography stats.
+2. **The admin/login rate limiters (`createRateLimiter`, v3.1.35/36) key on `req.ip` directly**, which without `app.set('trust proxy', N)` falls back to the immediate TCP peer — i.e. NPM's own address — for every single visitor. In production this meant every distinct visitor collapsed into ONE shared rate-limit bucket: the limiters were never actually per-visitor, just a single global counter for all traffic through the reverse proxy.
+
+**Fix:** `app.set('trust proxy', 2)` (trusts exactly the NPM + Cloudflare hops); `getClientIP()` now checks `cf-connecting-ip` first, falling back to the old `x-forwarded-for`/`x-real-ip`/socket chain for non-Cloudflare access (local dev, direct LAN).
+
+Verified: typecheck clean, production build clean, full `tests/server/` suite 316/316 green (no test exercises real HTTP header handling here — the wiring-fingerprint tests grep source text, unaffected by either change). Live-verified against a local server: a request with a spoofed `X-Forwarded-For: 6.6.6.6, ...` and a real-looking `CF-Connecting-IP: 203.0.113.42` logs `203.0.113.42`, not `6.6.6.6` — confirming the fix actually changes runtime behavior, not just intent.
+
 ## [3.1.42] - 2026-07-25
 
 ### Rename: `REGULATORY_REVIEW` → `REGULATORY` for consistency (fixloop, cosmetic — not a bug fix)

@@ -2,7 +2,7 @@
 
 **Last Updated:** July 25, 2026 — maintainer interview resolved most of the decision backlog (see CHANGELOG for the "reconcile decision backlog" entry); several items below moved from "decide" to "build."
 **Status:** Beta — live in production; **v3.1.40 deployed + confirmed live** 2026-07-25 (bundle content-verified + `package.json` inside the running container both read 3.1.40; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
-**Current Version:** 3.1.42 (committed, pending deploy)
+**Current Version:** 3.1.43 (committed, pending deploy)
 
 ---
 
@@ -45,9 +45,6 @@
 
 ### HIGH — external action (not a code fix)
 - [ ] **Rotate the PixelLab.ai API key** — committed in `02d7117` (`generate_female_sprites.sh`), deleted in `711899e`. File is gone from the working tree but the key is still readable via `git show 02d7117:generate_female_sprites.sh` by anyone with repo read access. Rotate immediately at pixellab.ai. Separately consider purging history with `git filter-repo` (more invasive — decide separately).
-
-### MEDIUM — real spoofing gap found during 2026-07-25 maintainer interview
-- [ ] **`getClientIP()` ([server.js:400-405](server.js:400)) trusts a spoofable header today, not just a missing `trust proxy` setting.** Confirmed via DNS (`game.unravelcodes.com` resolves to Cloudflare IPs) + Unraid docker/NPM config inspection: traffic runs Cloudflare → Nginx Proxy Manager (`192.168.86.57:3080`, NPM's own Let's Encrypt cert, `proxy_add_x_forwarded_for`) → the game container — 2 real reverse-proxy hops. But `getClientIP()` doesn't use Express's `req.ip`/`trust proxy` mechanism at all — it manually takes `x-forwarded-for.split(',')[0]`, the LEFTMOST entry, which is the client-supplied/spoofable end of the chain, not the Cloudflare-verified end. **Fix:** prefer the `cf-connecting-ip` header first (Cloudflare always overwrites this to the true connecting IP, un-spoofable by design), falling back to the existing `x-forwarded-for`/`x-real-ip`/socket logic only for non-Cloudflare access (local dev, direct LAN). Also set `app.set('trust proxy', 2)` for anything using Express's own `req.ip`. This feeds rate limiting (v3.1.35/36) and the home/foreign-IP alert — both currently bypassable by a crafted header.
 
 ### LOW — polish
 - [ ] **Add `Content-Security-Policy`, `Strict-Transport-Security`, and `Permissions-Policy` headers** alongside the existing security headers at [server.js:122-128](server.js:122). Fixloop deliberately deferred this 2026-07-25 (see CHANGELOG v3.1.39): real regression risk our test suite can't catch (jsdom doesn't enforce CSP at all), and this app leans on inline `style={{...}}` everywhere plus a live cross-origin iframe (dictionary panel, `dashboard.unravelcodes.com`) — a too-strict `style-src`/`frame-src` would silently break the live site. Needs a full survey of every external/inline resource the app loads + live-browser verification, not a quick pass.

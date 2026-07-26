@@ -73,6 +73,15 @@ import {
 
 const app = express();
 app.disable('x-powered-by'); // removes the Express framework-fingerprint header
+// Production traffic runs Cloudflare -> Nginx Proxy Manager -> this container
+// (verified 2026-07-25: DNS resolves to Cloudflare IPs; NPM's proxy_host config
+// forwards to this container with proxy_add_x_forwarded_for). Without this,
+// Express's own req.ip falls back to the immediate TCP peer -- NPM's address --
+// so every visitor behind the same reverse proxy collapses into one identity
+// for anything reading req.ip directly (e.g. the admin/login rate limiters),
+// and rate-limiting stops being per-visitor. `2` trusts exactly those two
+// hops and no more.
+app.set('trust proxy', 2);
 const DEFAULT_PORT = 3001;
 
 // ===== CONFIGURATION =====
@@ -395,10 +404,16 @@ let isDirty = false; // Track if games need saving
 // ===== LOGGING UTILITIES =====
 
 /**
- * Get client IP address from request
+ * Get client IP address from request. `cf-connecting-ip` is checked first:
+ * Cloudflare's edge always overwrites this header with the actual connecting
+ * IP it saw, so it can't be spoofed by a crafted request -- unlike
+ * `x-forwarded-for`, whose leftmost (client-supplied) entry a visitor can set
+ * to anything. Falls back to the older header/socket chain for traffic that
+ * doesn't come through Cloudflare (local dev, direct LAN access).
  */
 function getClientIP(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+  return req.headers['cf-connecting-ip']
+    || req.headers['x-forwarded-for']?.split(',')[0]?.trim()
     || req.headers['x-real-ip']
     || req.connection?.remoteAddress
     || req.socket?.remoteAddress
