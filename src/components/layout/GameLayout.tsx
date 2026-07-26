@@ -1403,9 +1403,9 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
 
       <PlayerDebug />
 
-      {/* Workstream 3 Phase B testing toggle — admin-only, top-right.
-          BoardToggle internally gates rendering on isAdminAuthenticated()
-          so normal players never see it. Will be removed in Phase D/E. */}
+      {/* Board controls, top-right. BoardToggle gates all of this to
+          admin or a logged-in teacher — not regular players (G160,
+          2026-07-26). Edit mode is admin-only even within that. */}
       <BoardToggle
         editMode={boardEditMode}
         onEditModeChange={setBoardEditMode}

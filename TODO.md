@@ -2,7 +2,7 @@
 
 **Last Updated:** July 25, 2026 — maintainer interview resolved most of the decision backlog (see CHANGELOG for the "reconcile decision backlog" entry); several items below moved from "decide" to "build."
 **Status:** Beta — live in production; **v3.1.40 deployed + confirmed live** 2026-07-25 (bundle content-verified + `package.json` inside the running container both read 3.1.40; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
-**Current Version:** 3.1.47 (committed, pending deploy)
+**Current Version:** 3.1.49 (committed; v3.1.48 deploy was in progress as of this write-up — not yet confirmed live)
 
 ---
 
@@ -87,7 +87,7 @@
 
 ## 🚀 Active — infra / deploy / data
 
-- [ ] **G160: build a global show/hide toggle for board connectors first** — maintainer confirmed 2026-07-25 the goal is decluttering (too many lines/arrows on screen), not fixing wrong paths. Build the simple global toggle (hide all connector lines, tiles stay) before the more complex per-edge hide + waypoint redirect (Workstream 3 Phase B+, still TBD — see BETA_PLAN_V3.md). <!-- fb:feedback-1778327469678-d27a73d0 -->
+- [ ] **G160 remaining: per-edge hide + waypoint redirect** — the global show/hide toggle (v3.1.49) and per-edge click-to-hide were both already built; still open is a more complex per-edge waypoint redirect for genuinely wrong/confusing auto-routed paths, TBD per user approval — see BETA_PLAN_V3.md. <!-- fb:feedback-1778327469678-d27a73d0 -->
 - [ ] **dictionary-scraper: label AI-generated glossary entries (decision 2026-07-12).** Audited 2026-07-12: no real dictionary/glossary is actually scraped anywhere in the pipeline — it pulls unread Gmail newsletters and asks Claude to invent term definitions from scratch. ~75% of the 252-entry `GLOSSARY.csv` is tagged "AI Generated" with no source URL. Maintainer decision: keep the AI-writing step, but mark those entries as such wherever the glossary is shown (the pipeline already tags provenance in the CSV `source` column — this is a display-layer change, not a pipeline change). Needs: the in-game dictionary popup + `dashboard-ui` (if it lists terms) to surface the tag. Repo: `D:/Unravel/dictionary-scraper`.
 - [ ] **⏸️ Glossary auto-sync is BLOCKED on Anthropic credits (built + deployed 2026-07-13).** A nightly robot in the scraper backend (`dashboard/backend/glossary_autosync.py`, committed `452e76c`) discovers construction words in the game's CSVs that have no glossary entry, AI-drafts definitions, and stages them as `Purgatory` rows in the dashboard review queue for one-tap approval. Live on Unraid and verified end-to-end EXCEPT drafting returns "credit balance too low" — **add credits at console.anthropic.com → Plans & Billing** and it self-runs (nightly, or `POST /api/glossary/autosync` with `X-Sync-Token: $FEEDBACK_TOKEN`). Also fixed a status-leak bug: `get_live_glossary` was serving ~17 unapproved/duplicate rows (incl. a literal "term" row) to players. Details: memory [[project_glossary_autosync]]. NOTE: this auto-sync feeds the same AI-labeling concern as the item above — auto-drafted entries are tagged `source=game_auto | AI Generated`.
 

@@ -1,27 +1,34 @@
 // src/components/board/BoardToggle.tsx
 //
-// Admin-only floating control strip in the top-right corner of the
-// gameplay board. Originally (Workstream 3 Phase B) this had Old/New
-// buttons that flipped between BoardV3 and BoardCanvas; v3.0.0 retired
-// BoardV3, so the impl flip is gone and only the BoardCanvas-specific
-// controls remain (in-game edit toggle, edge visibility, hidden-edge
-// restore).
+// Floating control strip in the top-right corner of the gameplay board.
+// Originally (Workstream 3 Phase B) this had Old/New buttons that flipped
+// between BoardV3 and BoardCanvas; v3.0.0 retired BoardV3, so the impl flip
+// is gone and only the BoardCanvas-specific controls remain (in-game edit
+// toggle, edge visibility, hidden-edge restore).
 //
-// Visible to admin only (via isAdminAuthenticated). Regular players
-// don't see the dev controls.
+// 2026-07-26 (G160): the "Edges on/off" declutter control was fully gated
+// behind isAdminAuthenticated(), so even the maintainer playing a normal
+// (non-admin) session had no way to reach it. Corrected to also open it up
+// to a logged-in teacher (the person actually running a classroom instance)
+// — NOT to regular players/students. In shared-screen mode a whole group
+// looks at one device, so this was never a "personal" per-player preference
+// to begin with; it's a presentation control for whoever is running the
+// game. Edit mode (dragging tiles) stays admin-only — that's a real
+// classroom-config change, a stricter bar than just decluttering the view.
 
 import React from 'react';
 import { isAdminAuthenticated } from '../../utils/adminAuth';
+import { isTeacherLoggedIn } from '../../utils/teacherAuth';
 
 interface BoardToggleProps {
   editMode: boolean;
   onEditModeChange: (v: boolean) => void;
-  /** When false, BoardCanvas hides all edges. Lets admin focus on
-   *  arranging tiles without the visual noise of auto-routed arrows. */
+  /** When false, BoardCanvas hides all edges. Admin or a logged-in teacher
+   *  only — not regular players. */
   edgesVisible: boolean;
   onEdgesVisibleChange: (v: boolean) => void;
-  /** Number of edges manually hidden (per-edge hide). 0 = none hidden.
-   *  Shown as a small badge so admin remembers there are hidden edges. */
+  /** Number of edges manually hidden (per-edge hide, admin-edit-mode only).
+   *  0 = none hidden. Shown as a small badge so it's not forgotten. */
   hiddenEdgeCount?: number;
   /** Restore all per-edge hides. */
   onClearHiddenEdges?: () => void;
@@ -35,9 +42,13 @@ export function BoardToggle({
   hiddenEdgeCount = 0,
   onClearHiddenEdges,
 }: BoardToggleProps) {
-  // Gate behind admin auth so normal players never see the dev toggle.
-  // Re-check on each render so unlocking via /admin shows it immediately.
-  if (!isAdminAuthenticated()) return null;
+  // Re-check on each render so unlocking via /admin or a teacher login shows
+  // the right controls immediately, no remount needed.
+  const isAdmin = isAdminAuthenticated();
+  const isTeacher = isTeacherLoggedIn();
+  // Nobody but admin/teacher gets any board control here — a regular player
+  // (or a teacher who isn't logged in this browser) sees nothing at all.
+  if (!isAdmin && !isTeacher) return null;
 
   const buttonStyle: React.CSSProperties = {
     padding: '6px 12px',
@@ -78,14 +89,16 @@ export function BoardToggle({
       onMouseDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <button
-        type="button"
-        style={editMode ? activeStyle : buttonStyle}
-        onClick={() => onEditModeChange(!editMode)}
-        title="Drag tiles to reposition. Saves to the classroom config (survives updates)."
-      >
-        ✏️ Edit {editMode ? 'on' : 'off'}
-      </button>
+      {isAdmin && (
+        <button
+          type="button"
+          style={editMode ? activeStyle : buttonStyle}
+          onClick={() => onEditModeChange(!editMode)}
+          title="Drag tiles to reposition. Saves to the classroom config (survives updates)."
+        >
+          ✏️ Edit {editMode ? 'on' : 'off'}
+        </button>
+      )}
       <button
         type="button"
         style={edgesVisible ? activeStyle : buttonStyle}

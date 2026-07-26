@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.49] - 2026-07-26
+
+### Fix: G160's "global connector show/hide" was already built, just fully locked behind the admin password
+Maintainer wanted a way to declutter the board (too many auto-routed connector lines) for regular play. Investigation found the entire mechanism already existed and worked correctly — `BoardCanvas`'s `edgesVisible` prop, `GameLayout`'s `boardEdgesVisible` state (persisted per-browser in localStorage), and a real "🔗 Edges on/off" button in `BoardToggle.tsx` — but the whole `BoardToggle` component returned `null` unless `isAdminAuthenticated()`, so nobody without the admin master password could ever reach it, including the maintainer playing a normal (non-admin) session. Per-edge click-to-hide (with a "restore" badge) was also already built, gated the same way.
+
+**First pass exposed this to every player** (reasoning: it's a per-browser localStorage preference, doesn't affect anyone else's view) — maintainer corrected this: in shared-screen mode a whole group looks at one device, so this was never truly "personal," and a regular player/student shouldn't get a board-display control at all. **Corrected:** `BoardToggle` now also opens up to a logged-in teacher (`isTeacherLoggedIn()`, the per-classroom account system, separate from the admin master password) — nobody else. "Edit mode" (dragging tiles, a real classroom-config change) stays admin-only even within that; a teacher sees only the edges toggle.
+
+Verified: typecheck clean, production build clean. New `tests/components/board/BoardToggle.test.tsx` (5 tests, all passing): a regular player sees zero board controls at all, a logged-in teacher sees Edges on/off but not Edit mode, an admin sees both, and the toggle click actually flips the value. Full fast suite otherwise unaffected (2467-2469 passing across several runs; the one intermittent miss each time was the already-documented `E2E-AllPaths.test.ts` resource-contention flake — unrelated to this change, which touches only board-control UI gating). Live-verified in a real browser: as a regular player, zero board-control buttons render; after setting a teacher session, the Edges button appears (no Edit button); clicking it actually removes every rendered `.react-flow__edge` from the DOM and persists the choice, clicking again restores them.
+
 ## [3.1.48] - 2026-07-26
 
 ### Fix: current player's board tile showed a hardcoded light-mode action chip in dark mode
