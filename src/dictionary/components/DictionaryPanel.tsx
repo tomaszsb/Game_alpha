@@ -11,6 +11,7 @@ import { useDictionary } from '../hooks/useDictionary';
 import { TermCard } from './TermCard';
 import { TextWithTerms } from './TextWithTerms';
 import { fetchRemoteConfig, ServiceVisibility } from '../utils/remoteConfig';
+import { isAiGenerated } from '../data/terms';
 import './DictionaryPanel.css';
 
 // Import theme if available (for game integration)
@@ -314,7 +315,11 @@ export function DictionaryPanel({
                 </span>
               </div>
 
-              {selectedTerm.needsReview && (
+              {isAiGenerated(selectedTerm) ? (
+                <div className="dictionary-term-detail__draft-notice">
+                  AI-generated definition — not yet human-reviewed
+                </div>
+              ) : selectedTerm.needsReview && (
                 <div className="dictionary-term-detail__draft-notice">
                   Draft - This definition needs review
                 </div>

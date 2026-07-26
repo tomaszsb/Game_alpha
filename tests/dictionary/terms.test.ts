@@ -15,7 +15,8 @@ import {
   searchTerms,
   getTermsByCategory,
   getCategories,
-  clearCache
+  clearCache,
+  isAiGenerated
 } from '../../src/dictionary/data/terms';
 
 // Mock fetch globally
@@ -120,7 +121,7 @@ describe('Dictionary Terms Module', () => {
       expect(acris.definitionSimple).toBe('Online property records database');
     });
 
-    it('should normalize source field to iqarius/game enum', async () => {
+    it('should preserve the raw source provenance string (not collapse it)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(apiTerms)
@@ -128,10 +129,23 @@ describe('Dictionary Terms Module', () => {
 
       const terms = await loadTerms();
 
-      // "iqarius | AI Generated" → 'iqarius'
-      expect(terms[0].source).toBe('iqarius');
-      // "game" → 'game'
+      // The AI Generated suffix must survive normalization — collapsing it
+      // to a bare 'iqarius'/'game' enum was the bug that made it impossible
+      // for the UI to ever detect AI-generated entries in production.
+      expect(terms[0].source).toBe('iqarius | AI Generated');
       expect(terms[1].source).toBe('game');
+    });
+
+    it('should default a missing/empty API source to "game"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          { id: 'no-source', term: 'No Source', definition: 'test', source: null, aliases: [], relatedTerms: [] }
+        ])
+      });
+
+      const terms = await loadTerms();
+      expect(terms[0].source).toBe('game');
     });
 
     it('should preserve arrays from API response', async () => {
@@ -415,6 +429,20 @@ describe('Dictionary Terms Module', () => {
       expect(categories).toContain('Agencies');
       expect(categories).toContain('Construction');
       expect(categories).toHaveLength(2);
+    });
+  });
+
+  describe('isAiGenerated()', () => {
+    it('returns true when source carries the "AI Generated" provenance tag', () => {
+      expect(isAiGenerated({ source: 'iqarius | AI Generated' })).toBe(true);
+      expect(isAiGenerated({ source: 'auto-collected | AI Generated' })).toBe(true);
+      expect(isAiGenerated({ source: 'game | AI Generated' })).toBe(true);
+    });
+
+    it('returns false for sources without the tag', () => {
+      expect(isAiGenerated({ source: 'game' })).toBe(false);
+      expect(isAiGenerated({ source: 'iqarius_excel' })).toBe(false);
+      expect(isAiGenerated({ source: '' })).toBe(false);
     });
   });
 

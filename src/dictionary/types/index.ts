@@ -33,8 +33,16 @@ export interface GlossaryTerm {
   /** Category for grouping terms (e.g., "Professionals", "Agencies", "Construction") */
   category: TermCategory;
 
-  /** Where this term's definition came from */
-  source: 'iqarius' | 'game';
+  /**
+   * Where this term's definition came from. Real values are compound
+   * provenance strings from the scraper pipeline's CSV `source` column
+   * (e.g. "iqarius_excel | AI Generated", "game | AI Generated",
+   * "auto-collected", "iqarius") — not a clean enum. Use `isAiGenerated()`
+   * (src/dictionary/data/terms.ts) to check AI provenance rather than
+   * comparing this field directly, except for the legacy `'iqarius'` /
+   * `'game'` display check in DictionaryPanel's "Source:" line.
+   */
+  source: string;
 
   /** True if definition is AI-generated and needs human review */
   needsReview: boolean;

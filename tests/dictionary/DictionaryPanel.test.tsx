@@ -73,3 +73,58 @@ describe('DictionaryPanel — embedded iframe timeout fallback (fb:baa01a70)', (
     expect(container.textContent).toContain('How the bank decides your loan');
   });
 });
+
+describe('DictionaryPanel — AI-generated provenance notice', () => {
+  beforeEach(() => {
+    clearCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('shows the AI-generated notice (not the generic Draft notice) for AI-tagged terms', async () => {
+    const aiCsv = [
+      'id,term,definition_technical,definition_simple,instructions,category,source,needs_review,aliases,related_terms,image_url,video_url,source_url,instagram_link',
+      'acris,ACRIS,Automated City Register Information System,Online property records database,,Agencies,iqarius | AI Generated,true,,,,,,'
+    ].join('\n');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new Error('not json')),
+      text: () => Promise.resolve(aiCsv),
+    }));
+
+    render(
+      <DictionaryProvider>
+        <DictionaryPanel isOpen onClose={vi.fn()} initialTermId="acris" />
+      </DictionaryProvider>
+    );
+
+    expect(await screen.findByText('AI-generated definition — not yet human-reviewed')).toBeInTheDocument();
+    expect(screen.queryByText('Draft - This definition needs review')).not.toBeInTheDocument();
+  });
+
+  it('still shows the generic Draft notice for non-AI draft terms (needsReview without the AI tag)', async () => {
+    const draftCsv = [
+      'id,term,definition_technical,definition_simple,instructions,category,source,needs_review,aliases,related_terms,image_url,video_url,source_url,instagram_link',
+      'stub-term,Stub Term,A human-authored stub awaiting review.,Simple def.,,Construction,game,true,,,,,,'
+    ].join('\n');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new Error('not json')),
+      text: () => Promise.resolve(draftCsv),
+    }));
+
+    render(
+      <DictionaryProvider>
+        <DictionaryPanel isOpen onClose={vi.fn()} initialTermId="stub-term" />
+      </DictionaryProvider>
+    );
+
+    expect(await screen.findByText('Draft - This definition needs review')).toBeInTheDocument();
+    expect(screen.queryByText('AI-generated definition — not yet human-reviewed')).not.toBeInTheDocument();
+  });
+});

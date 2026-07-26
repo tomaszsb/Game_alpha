@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.53] - 2026-07-26
+
+### Build: label AI-generated glossary entries in the in-game dictionary (fixloop, maintainer decision 2026-07-12)
+Maintainer decision (TODO.md, 2026-07-12): keep the AI-writing step in the dictionary-scraper pipeline (a separate repo), but mark AI-authored definitions as such wherever the glossary is shown — the pipeline already tags provenance in the CSV `source` column (e.g. `"iqarius_excel | AI Generated"`), so this only needed a display-layer change here, not a pipeline change.
+
+**Root cause found while implementing:** the live game's primary data path (`terms.ts`'s `normalizeApiTerm()`, used for the dashboard-API fetch that's the actual production source — the CSV fallback only loads if the API is unreachable) was silently destroying the AI tag: `source: (raw.source === 'game' ? 'game' : 'iqarius')` collapsed every non-exact-`'game'` value down to the literal string `'iqarius'`, discarding the `"| AI Generated"` suffix before any UI code could ever see it. Confirmed via a full CSV cross-reference: 145 of 249 glossary rows carry the AI-Generated tag, and it's a strict subset of the existing `needsReview` flag (which also covers 34 unrelated human-authored draft stubs) — so `needsReview` alone can't stand in for it without mislabeling those 34.
+
+**Fix:** widened `GlossaryTerm.source` from the too-narrow `'iqarius' | 'game'` union to `string` (real values are compound provenance strings, not a clean enum), fixed `normalizeApiTerm` to preserve the raw string instead of collapsing it, and added an `isAiGenerated()` helper (`term.source.includes('AI Generated')`). Wired into both places that already show a generic "Draft" badge for `needsReview` terms — `TermCard.tsx` (term-list badge) and `DictionaryPanel.tsx` (detail-view notice) — AI-generated terms now show "AI Generated" / "AI-generated definition — not yet human-reviewed" instead of the generic Draft label; genuinely human-drafted (non-AI) terms still show "Draft" exactly as before. No new CSS — reused the existing warning-yellow badge/notice styling.
+
+Verified: typecheck clean, production build clean, targeted `terms.test.ts` + `DictionaryPanel.test.tsx` 36/36 (includes new coverage for `isAiGenerated()` and the badge/notice either-or rendering, plus a rewritten test that had been asserting the buggy collapsing behavior as correct).
+
 ## [3.1.52] - 2026-07-26
 
 ### Fix: "Press Release" (E036) missing high-profile time-discount effect (fixloop)

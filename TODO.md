@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 26, 2026 — v3.1.41–v3.1.52 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
-**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52 built same day, not yet deployed.
-**Current Version:** 3.1.52 (pending deploy)
+**Last Updated:** July 26, 2026 — v3.1.41–v3.1.53 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
+**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52–v3.1.53 built same day, not yet deployed.
+**Current Version:** 3.1.53 (pending deploy)
 
 ---
 
@@ -78,7 +78,7 @@
 ## 🚀 Active — infra / deploy / data
 
 - [ ] **G160 remaining: per-edge hide + waypoint redirect** — the global show/hide toggle (v3.1.49) and per-edge click-to-hide were both already built; still open is a more complex per-edge waypoint redirect for genuinely wrong/confusing auto-routed paths, TBD per user approval — see BETA_PLAN_V3.md. <!-- fb:feedback-1778327469678-d27a73d0 -->
-- [ ] **dictionary-scraper: label AI-generated glossary entries (decision 2026-07-12).** Audited 2026-07-12: no real dictionary/glossary is actually scraped anywhere in the pipeline — it pulls unread Gmail newsletters and asks Claude to invent term definitions from scratch. ~75% of the 252-entry `GLOSSARY.csv` is tagged "AI Generated" with no source URL. Maintainer decision: keep the AI-writing step, but mark those entries as such wherever the glossary is shown (the pipeline already tags provenance in the CSV `source` column — this is a display-layer change, not a pipeline change). Needs: the in-game dictionary popup + `dashboard-ui` (if it lists terms) to surface the tag. Repo: `D:/Unravel/dictionary-scraper`.
+- [ ] **dictionary-scraper: `dashboard-ui` AI-generated labeling (if it lists terms)** — the in-game dictionary popup half of this shipped 2026-07-26 (see CHANGELOG v3.1.53: `isAiGenerated()` + badge/notice in `TermCard.tsx`/`DictionaryPanel.tsx`). Remaining: check whether `dashboard-ui` (separate repo: `D:/Unravel/dictionary-scraper`) has its own glossary listing that also needs the same tag surfaced.
 - [ ] **⏸️ Glossary auto-sync is BLOCKED on Anthropic credits (built + deployed 2026-07-13).** A nightly robot in the scraper backend (`dashboard/backend/glossary_autosync.py`, committed `452e76c`) discovers construction words in the game's CSVs that have no glossary entry, AI-drafts definitions, and stages them as `Purgatory` rows in the dashboard review queue for one-tap approval. Live on Unraid and verified end-to-end EXCEPT drafting returns "credit balance too low" — **add credits at console.anthropic.com → Plans & Billing** and it self-runs (nightly, or `POST /api/glossary/autosync` with `X-Sync-Token: $FEEDBACK_TOKEN`). Also fixed a status-leak bug: `get_live_glossary` was serving ~17 unapproved/duplicate rows (incl. a literal "term" row) to players. Details: memory [[project_glossary_autosync]]. NOTE: this auto-sync feeds the same AI-labeling concern as the item above — auto-drafted entries are tagged `source=game_auto | AI Generated`.
 
 ## 📱 Active — external testing & release

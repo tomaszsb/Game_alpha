@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { TermCardProps } from '../types';
+import { isAiGenerated } from '../data/terms';
 import './DictionaryPanel.css';
 
 export function TermCard({
@@ -45,7 +46,9 @@ export function TermCard({
       <div className="term-card__header">
         <span className="term-card__title">
           {term.term}
-          {term.needsReview && (
+          {isAiGenerated(term) ? (
+            <span className="term-card__draft-indicator">AI Generated</span>
+          ) : term.needsReview && (
             <span className="term-card__draft-indicator">Draft</span>
           )}
         </span>
