@@ -68,3 +68,4 @@
 {"ts":"2026-07-26T00:29:37Z","item":"Add Player silently failed after removing non-last player","fbId":"75101be7","model":"sonnet","outcome":"fixed","usedPctAfter":67.11,"commit":"0b89b07"}
 {"ts":"2026-07-26T00:50:58Z","item":"Rename REGULATORY_REVIEW to REGULATORY (consistency, cosmetic)","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":69.05,"commit":"847af60"}
 {"ts":"2026-07-26T19:34:00Z","item":"Wire E036 Press Release high_profile_conditional gate","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":67.41,"commit":"fef5e2a"}
+{"ts":"2026-07-26T19:52:00Z","item":"Label AI-generated glossary entries in dictionary popup","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":68.09,"commit":"57ca2f8"}
