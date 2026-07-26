@@ -1214,6 +1214,20 @@ export class CardService implements ICardService {
       }
     }
 
+    // L021 "High-Profile Client" (2026-07-26) — second, independent effect.
+    // `other_players_tick_modifier` (see DataTypes.ts) carries a delta that
+    // applies to every OTHER player, separate from the card's own
+    // tick_modifier (which just applied -4 to `playerId` above, unaffected
+    // by this block). Deliberately data-driven rather than an `if (card_id
+    // === 'L021')` special case, so any future card authored with the same
+    // "self gets X, everyone else gets Y" shape can reuse this column
+    // without new code — but today L021 is the only card with a non-empty
+    // value here (see investigation notes, 2026-07-26: no other card in
+    // CARDS_EXPANDED.csv needed this).
+    if (card.other_players_tick_modifier && card.other_players_tick_modifier !== '0') {
+      await this.applyOtherPlayersTickModifier(playerId, card);
+    }
+
     // Workstream 7 Phase 7.3 — data-driven approval revocation.
     // L cards (and any others) with `revokes_approval` set in CARDS_EXPANDED.csv
     // invalidate the specified approval(s). Examples: L003 "New Safety Regulations"
@@ -2180,6 +2194,69 @@ export class CardService implements ICardService {
       cardName: selectedCard.cardName,
       message: `${currentPlayer?.name || 'Player'} returned ${selectedCard.cardName} to ${owner.name}'s hand`,
     });
+  }
+
+  /**
+   * Applies `other_players_tick_modifier` (see DataTypes.ts) to every player
+   * OTHER than the one who just played the card. Added for L021 "High-Profile
+   * Client" (2026-07-26): the card's authored description promises TWO
+   * effects — the playing player's filing time drops by 4 days (already
+   * handled by the ordinary tick_modifier column/pipeline, applied just
+   * before this method is called) AND every other player's filing time rises
+   * by 1 day (this method).
+   *
+   * Deliberately NOT folded into the ordinary target-rule pipeline
+   * (TargetingService / processEffectsWithTargeting / EFFECT_GROUP_TARGETED):
+   * those all clone ONE effect payload across every resolved target, so they
+   * have no way to give the source player a different magnitude (-4) than
+   * everyone else (+1) from a single card row. Instead this builds one
+   * RESOURCE_CHANGE effect per other player — mirroring the existing
+   * "Immediate-fire global cards" fan-out in parseCardIntoEffects above (same
+   * shape: one effect per target player.id) — and runs them through the
+   * ordinary processEffects batch path (shared context whose playerId stays
+   * the ACTING player, exactly as that fan-out does), so the time change gets
+   * identical logging/notification behavior to any other card's time effect.
+   *
+   * Solo-safe: filters out the acting player first. With zero other players
+   * the effects array is empty and processEffects no-ops successfully — no
+   * special-casing needed for solo play.
+   */
+  private async applyOtherPlayersTickModifier(playerId: string, card: Card): Promise<void> {
+    const timeAmount = parseInt(card.other_players_tick_modifier ?? '0', 10);
+    if (isNaN(timeAmount) || timeAmount === 0) {
+      return;
+    }
+
+    const gameState = this.stateService.getGameState();
+    const otherPlayers = gameState.players.filter(p => p.id !== playerId);
+    if (otherPlayers.length === 0) {
+      return;
+    }
+
+    const cardSource = `card:${card.card_id}`;
+    const reason = `${card.card_name}: ${timeAmount > 0 ? '+' : ''}${timeAmount} day${Math.abs(timeAmount) === 1 ? '' : 's'} (another player filed ahead of you)`;
+
+    const otherPlayerEffects: Effect[] = otherPlayers.map(other => ({
+      effectType: 'RESOURCE_CHANGE',
+      payload: {
+        playerId: other.id,
+        resource: 'TIME',
+        amount: timeAmount,
+        source: cardSource,
+        reason,
+      },
+    }));
+
+    const context = {
+      source: cardSource,
+      playerId: playerId,
+      triggerEvent: 'CARD_PLAY' as const,
+    };
+
+    const result = await this.effectEngineService.processEffects(otherPlayerEffects, context);
+    if (!result.success) {
+      console.error(`❌ Failed to apply other_players_tick_modifier for ${card.card_id}: ${result.errors.join(', ')}`);
+    }
   }
 
   /**

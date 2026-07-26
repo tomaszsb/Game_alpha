@@ -49,10 +49,14 @@ export function resolveFundingAmountToken(
  * everyone else back a step... all other players' current filing time
  * increases by 1 day" verbatim in solo games, where there is no one else).
  *
- * Note: that "+1 day to other players" clause is flavor text only — it was
- * never mechanically implemented (no structured CSV column or effect-handler
- * code applies it, in solo OR multiplayer). This override only trims the
- * DISPLAY text; it does not add or remove any mechanic.
+ * Update (2026-07-26): the "+1 day to other players" clause is now
+ * mechanically implemented in multiplayer (see CardService.
+ * applyOtherPlayersTickModifier / DataTypes.ts other_players_tick_modifier).
+ * In solo play it correctly still does nothing — the mechanic targets "every
+ * other player," which is an empty set when you're the only one — so this
+ * override remains necessary and correct: it ONLY trims the DISPLAY text to
+ * match what solo players actually experience; the mechanic itself already
+ * naturally no-ops with zero other players and needs no solo-specific code.
  *
  * Add an entry here only for a card actually confirmed to show
  * multiplayer-only language in solo play — don't pre-emptively rewrite every

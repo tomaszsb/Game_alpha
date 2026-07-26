@@ -394,6 +394,52 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
     });
   });
 
+  describe('L021 "High-Profile Client" — asymmetric self/other effect (2026-07-26 fix)', () => {
+    it('reduces the playing player by 4 days and every OTHER player by (increases) 1 day', async () => {
+      // L021: "The current filing time is reduced by 4 days; all other
+      // players' current filing time increases by 1 day." tick_modifier=-4
+      // already worked (self); other_players_tick_modifier=1 is the fix
+      // under test — every other player's timeSpent should go UP by 1.
+      // Alice needs pre-existing timeSpent for the -4 to be observable —
+      // ResourceService clamps timeSpent at a floor of 0 (Math.max(0, ...)),
+      // and a fresh test player starts at 0.
+      stateService.updatePlayer({ id: aliceId, hand: ['L021'], timeSpent: 10 });
+
+      const before = Object.fromEntries([aliceId, bobId, charlieId].map(id =>
+        [id, stateService.getPlayer(id)!.timeSpent ?? 0]));
+
+      await cardService.playCard(aliceId, 'L021');
+
+      const after = Object.fromEntries([aliceId, bobId, charlieId].map(id =>
+        [id, stateService.getPlayer(id)!.timeSpent ?? 0]));
+
+      expect(after[aliceId] - before[aliceId]).toBe(-4);   // acting player: -4 days
+      expect(after[bobId] - before[bobId]).toBe(1);        // other player: +1 day
+      expect(after[charlieId] - before[charlieId]).toBe(1); // other player: +1 day
+
+      // Played manually, L021 is discarded (finalizePlayedCard) like any
+      // other Immediate/no-duration card.
+      expect(stateService.getPlayer(aliceId)!.hand).not.toContain('L021');
+    });
+
+    it('does not touch other players when a DIFFERENT card with no other_players_tick_modifier is played', async () => {
+      // Regression guard: this mechanic must stay scoped to cards that
+      // actually set the column (L021 today) and not leak onto ordinary
+      // self-only tick_modifier cards. L001 "Neighborly Complaints" is a
+      // plain target=Self/scope=Single/+3-day card with no other-player
+      // column set — a clean negative control.
+      stateService.updatePlayer({ id: aliceId, hand: ['L001'], currentSpace: 'CON-INITIATION' });
+
+      const bobBefore = stateService.getPlayer(bobId)!.timeSpent ?? 0;
+      const charlieBefore = stateService.getPlayer(charlieId)!.timeSpent ?? 0;
+
+      await cardService.playCard(aliceId, 'L001');
+
+      expect(stateService.getPlayer(bobId)!.timeSpent ?? 0).toBe(bobBefore);
+      expect(stateService.getPlayer(charlieId)!.timeSpent ?? 0).toBe(charlieBefore);
+    });
+  });
+
   describe('Basic Targeting Verification', () => {
     it('should verify targeting service is integrated properly', async () => {
       // Simple test to verify the targeting system is working
@@ -472,5 +518,100 @@ describe('E2E-05: Multi-Player Interactive Effects', () => {
       expect(finalBobECards).toBe(Math.max(0, initialBobECards - 1));
       expect(finalCharlieECards).toBe(Math.max(0, initialCharlieECards - 1));
     });
+  });
+});
+
+describe('E2E-05b: L021 "High-Profile Client" in solo play (2026-07-26 fix)', () => {
+  // Separate top-level suite with its own single-player game, since the
+  // main E2E-05 suite above always seeds 3 players. Confirms the new
+  // other_players_tick_modifier mechanic doesn't error with zero other
+  // players — it should simply have no targets, matching the existing
+  // solo-safe DISPLAY override in templateInterpolation.ts (that override
+  // only trims the shown text; this test confirms the MECHANIC side is
+  // equally safe without needing any solo-specific code of its own).
+  let dataService: IDataService;
+  let stateService: IStateService;
+  let resourceService: ResourceService;
+  let choiceService: ChoiceService;
+  let gameRulesService: GameRulesService;
+  let cardService: CardService;
+  let movementService: MovementService;
+  let targetingService: TargetingService;
+  let effectEngineService: EffectEngineService;
+  let turnService: TurnService;
+  let negotiationService: NegotiationService;
+  let soloId: string;
+
+  class NodeDataServiceSolo extends DataService {
+    async loadData(): Promise<void> {
+      if ((this as any).loaded) return;
+      const dataDir = join(process.cwd(), 'public', 'data', 'CLEAN_FILES');
+      const gameConfigCsv = readFileSync(join(dataDir, 'GAME_CONFIG.csv'), 'utf-8');
+      const movementCsv = readFileSync(join(dataDir, 'MOVEMENT.csv'), 'utf-8');
+      const diceOutcomesCsv = readFileSync(join(dataDir, 'DICE_OUTCOMES.csv'), 'utf-8');
+      const spaceEffectsCsv = readFileSync(join(dataDir, 'SPACE_EFFECTS.csv'), 'utf-8');
+      const diceEffectsCsv = readFileSync(join(dataDir, 'DICE_EFFECTS.csv'), 'utf-8');
+      const spaceContentsCsv = readFileSync(join(dataDir, 'SPACE_CONTENT.csv'), 'utf-8');
+      const cardsCsv = readFileSync(join(dataDir, 'CARDS_EXPANDED.csv'), 'utf-8');
+      (this as any).gameConfigs = (this as any).parseGameConfigCsv(gameConfigCsv);
+      (this as any).movements = (this as any).parseMovementCsv(movementCsv);
+      (this as any).diceOutcomes = (this as any).parseDiceOutcomesCsv(diceOutcomesCsv);
+      (this as any).spaceEffects = (this as any).parseSpaceEffectsCsv(spaceEffectsCsv);
+      (this as any).diceEffects = (this as any).parseDiceEffectsCsv(diceEffectsCsv);
+      (this as any).spaceContents = (this as any).parseSpaceContentCsv(spaceContentsCsv);
+      (this as any).cards = (this as any).parseCardsCsv(cardsCsv);
+      (this as any).buildSpaces();
+      (this as any).loaded = true;
+    }
+  }
+
+  beforeEach(async () => {
+    dataService = new NodeDataServiceSolo();
+    await dataService.loadData();
+
+    stateService = new StateService(dataService);
+    const loggingService = new LoggingService(stateService);
+    new LogWriter(stateService, loggingService);
+    resourceService = new ResourceService(stateService);
+    choiceService = new ChoiceService(stateService);
+    gameRulesService = new GameRulesService(dataService, stateService);
+    cardService = new CardService(dataService, stateService, resourceService, loggingService, gameRulesService);
+    movementService = new MovementService(dataService, stateService, choiceService, loggingService, gameRulesService);
+    targetingService = new TargetingService(stateService, choiceService);
+
+    const tempEffectEngine = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, undefined as any, undefined as any, targetingService, loggingService);
+    negotiationService = new NegotiationService(stateService, tempEffectEngine);
+    const cardEffectService = new CardEffectService(cardService, stateService, dataService, choiceService);
+    turnService = new TurnService(dataService, stateService, gameRulesService, cardService, resourceService, movementService, negotiationService, loggingService, choiceService, undefined, undefined, undefined, undefined, cardEffectService);
+
+    const loggingServiceRef = new LoggingService(stateService);
+    const financialEffectHandler = new FinancialEffectHandler(resourceService, stateService, gameRulesService, loggingServiceRef);
+    const cardEffectHandler = new CardEffectHandler(cardService, stateService, choiceService, loggingServiceRef);
+    cardEffectHandler.autoPickForcedDiscards = true;
+
+    effectEngineService = new EffectEngineService(resourceService, cardService, choiceService, stateService, movementService, turnService, gameRulesService, targetingService, loggingService, undefined, undefined, financialEffectHandler, cardEffectHandler);
+    turnService.setEffectEngineService(effectEngineService);
+    cardService.setEffectEngineService(effectEngineService);
+
+    // Solo game — exactly ONE player, no one else to target.
+    stateService.addPlayer('Solo');
+    stateService.startGame();
+    soloId = stateService.getGameState().players[0].id;
+  });
+
+  it('applies the self -4 with zero other players and does not error (no targets, not a crash)', async () => {
+    // Seed timeSpent so the -4 is observable — ResourceService floors
+    // timeSpent at 0 (Math.max(0, ...)) and a fresh player starts at 0.
+    stateService.updatePlayer({ id: soloId, hand: ['L021'], timeSpent: 10 });
+    const before = stateService.getPlayer(soloId)!.timeSpent ?? 0;
+
+    // No try/catch, no expect-wrapper: if applyOtherPlayersTickModifier ever
+    // threw on an empty other-players list, this await would reject and fail
+    // the test with that error, same as any other unhandled rejection.
+    await cardService.playCard(soloId, 'L021');
+
+    const after = stateService.getPlayer(soloId)!.timeSpent ?? 0;
+    expect(after - before).toBe(-4); // self benefit still applies
+    expect(stateService.getGameState().players.length).toBe(1); // sanity: truly solo
   });
 });

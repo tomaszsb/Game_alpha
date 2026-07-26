@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.45] - 2026-07-26
+
+### Build: "High-Profile Client" (L021)'s missing other-players effect (maintainer decision 2026-07-25)
+The card's authored description has always promised two effects: "the current filing time is reduced by 4 days; all other players' current filing time increases by 1 day." Only the first half (`tick_modifier: -4` on the acting player) was ever real. Maintainer decision: build the missing half, don't rewrite the copy.
+
+**Why not the existing multi-player targeting system:** `TargetingService`'s `'All Players-Self'` rule and `EffectEngineService`'s effect-cloning both apply the SAME effect payload to every resolved target — there was no way to give the acting player -4 while giving everyone else +1 from a single targeted call. A second, separate `ALL_OTHER_PLAYERS` targeting block in `EffectEngineService` turned out to be dead code for card plays (nothing wires it up from CSV cards). Rather than bend either system, added a new CSV column `other_players_tick_modifier` (`CARDS_EXPANDED.csv`, only L021 has a non-empty value) and `CardService.applyOtherPlayersTickModifier()`, which fires as a second, independent effect batch right after the card's own tick_modifier resolves — one `RESOURCE_CHANGE` per other player currently in the game. Solo-safe by construction: with zero other players the effect list is empty and the batch no-ops, so the existing solo-only display override in `templateInterpolation.ts` (which trims the "other players" sentence out of the shown text) still correctly matches what actually happens.
+
+Investigated whether any other card has the same unbuilt-effect shape (searched all `CARDS_EXPANDED.csv` descriptions for "other player"): found E034 "Approved Template" has a similar-looking gap, but it's optional/per-player-choice ("all other players **may** reduce...") rather than L021's mandatory fan-out, so it doesn't fit this column as-is — logged as a new TODO item rather than folded in here.
+
+Verified: typecheck clean, production build clean, full fast suite 2460/2461 (1 pre-existing skip; the only failure seen across two full-suite runs was the already-documented `E2E-AllPaths.test.ts` full-suite-contention flake, confirmed passing 10/10 in isolation — not a regression) — 4 new targeted regression tests added (`E2E-05_MultiPlayerEffects.test.ts`): the asymmetric -4/+1 split across 3 players, a negative control confirming an ordinary tick_modifier-only card doesn't leak onto other players, and a dedicated solo-play suite confirming the self effect still applies with zero errors when there's no one else to target. Live-verified via a real 2-player dev-server game: injected L021 into a player's hand, clicked the real in-game "Activate" button, confirmed via the server's own state API that the acting player's time dropped 4 days and the other player's rose 1 day, and the card was correctly discarded afterward.
+
 ## [3.1.44] - 2026-07-26
 
 ### Fix: "📜 Log" and "📜 History" shared one icon despite different scopes (maintainer interview follow-up)

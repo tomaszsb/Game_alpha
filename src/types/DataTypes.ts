@@ -438,6 +438,17 @@ export interface Card {
   money_effect?: string;
   tick_modifier?: string;
 
+  // 2026-07-26 — L021 "High-Profile Client". Some cards apply ONE time delta
+  // to the playing player (via tick_modifier) and a DIFFERENT delta to every
+  // OTHER player. tick_modifier alone can't express two different magnitudes
+  // in one row, so this column carries the other-players delta. CardService
+  // applies it as a second, independent effect — one RESOURCE_CHANGE per
+  // other player currently in the game — after the card's own tick_modifier
+  // effect resolves; it never re-targets or replaces that effect. Empty/
+  // undefined → no other-player effect (true for every card except L021
+  // today). See CardService.applyOtherPlayersTickModifier.
+  other_players_tick_modifier?: string;
+
   // Card interaction mechanics
   draw_cards?: string;
   discard_cards?: string;

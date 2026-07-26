@@ -1129,6 +1129,17 @@ export class DataService implements IDataService {
         is_groundwork: values[32] === 'Yes',
         requires_utility_hookup: values[33] === 'Yes',
         is_high_profile: values[34] === 'Yes',
+
+        // 2026-07-26 — L021 "High-Profile Client" fix. The card's authored
+        // description promises a SECOND, asymmetric effect ("all other
+        // players' current filing time increases by 1 day") that the main
+        // tick_modifier column can't express because tick_modifier already
+        // carries the self-only -4. This column carries the per-OTHER-player
+        // delta; CardService fires it as a second, independent effect (one
+        // RESOURCE_CHANGE per other player) after the card's own
+        // tick_modifier effect resolves. Empty/undefined → no other-player
+        // effect (the vast majority of cards).
+        other_players_tick_modifier: values[35] || undefined,
       };
     });
   }
