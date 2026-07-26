@@ -1,9 +1,12 @@
 {
   "name": "unravel-codes",
-  "version": "3.1.45",
+  "version": "3.1.46",
   "type": "module",
   "description": "Unravel Codes: The Game - Multi-player board game simulating NYC construction permitting",
   "main": "index.js",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "allowScripts": {
     "@swc/core": true,
     "esbuild": true,
@@ -85,7 +88,7 @@
     "@jalez/react-flow-smart-edge": "^4.0.0",
     "@xyflow/react": "^12.10.2",
     "framer-motion": "^12.29.0",
-    "geoip-lite": "^1.4.10",
+    "geoip-lite": "^2.0.3",
     "globals": "^17.0.0",
     "html2canvas": "^1.4.1",
     "nodemailer": "^9.0.3",

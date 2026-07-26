@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.46] - 2026-07-26
+
+### Fix: 10 new vulnerabilities (9 high, 1 moderate) from `geoip-lite`'s old dependency chain — Node 20→24 + geoip-lite 1.x→2.x
+The maintainer noticed the Docker build logs getting noisier (`npm ci` deprecation warnings for `rimraf@2.7.1`, `inflight@1.0.6`, `glob@7.2.3`, plus 10 new `npm audit` findings) after a same-day session added the Geography-stats feature, which pulled in `geoip-lite`. Traced it: `geoip-lite@1.4.10` (the latest 1.x release) ships `rimraf: "2.5.2 - 2.7.1"` and `ip-address: "5.8.9 - 5.9.4"` as real runtime dependencies — an ancient `rimraf` major (whose own `glob`/`brace-expansion` chain carries the DoS advisory) and a moderate XSS-vulnerable `ip-address`. Not the same ESLint-chain vulnerabilities already tracked/deferred (see v3.1.38/v3.1.43's history) — a genuinely new gap.
+
+**The real fix (`geoip-lite@2.0.3`) drops `rimraf` entirely and updates `ip-address` to `^10.2.0`** — but requires **Node.js >=24**, and this image ran `node:20-alpine`. Maintainer decision: do the real upgrade (Node + geoip-lite together), not a partial patch. Bumped `Dockerfile`'s base image to `node:24-alpine` (single-stage build, so this covers both the build and runtime environment), updated the pinned npm version from v11 to v12 (the v11 pin existed specifically because npm v12 needs Node >=22, which `node:20-alpine` didn't satisfy — Node 24 clears that easily), and added a `package.json` `engines` field (`node: ">=24.0.0"`) that was previously missing (closes a long-standing TODO/deficiency-audit item, DEF-10).
+
+**Verified:** `geoip.lookup(ip)?.country` (server.js's only call site) has an unchanged API in geoip-lite 2.x — confirmed against the published README before upgrading, no server-code changes needed beyond the dependency bump. `npm audit` post-upgrade: the 10 new vulnerabilities are gone entirely; only the 6 pre-existing, already-documented ESLint/`eslint-plugin-react` HIGH advisories remain (dev/lint-only, never shipped, blocked pending upstream `eslint-plugin-react` ESLint-10 support — unrelated to this fix). Typecheck clean, production build clean, full fast suite 2460/2461 (1 pre-existing skip; the only failure across two full-suite runs was the already-documented `E2E-AllPaths.test.ts` full-suite-contention flake — confirmed by re-running that file alone 3 times: clean 10/10 twice, one 30s timeout on a test name (`ENG-SCOPE → PM-DECISION-CHECK`) that matches the exact historical flake record from 2026-07-13, not a new regression). Live-verified `geoip-lite@2.0.3` actually works on this machine's Node 20 (a real lookup for `8.8.8.8` correctly returned `country: "US"`) and that the server still boots and serves `/health` cleanly with the new dependency installed.
+
+**Known gap:** this machine has no Docker and no Node 24 installed locally, so the actual Docker build + Node-24 runtime couldn't be fully exercised here — the real test is the next `bash deploy.sh`. Everything checkable without those tools (dependency resolution, API compatibility, typecheck, build, full test suite, and a direct on-disk functional check of the new geoip-lite version) came back clean.
+
 ## [3.1.45] - 2026-07-26
 
 ### Build: "High-Profile Client" (L021)'s missing other-players effect (maintainer decision 2026-07-25)

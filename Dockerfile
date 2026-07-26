@@ -2,7 +2,7 @@
 # Build: docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) -t game-alpha .
 # Run: docker run -p 3000:3000 -p 3001:3001 -v game-data:/app/data game-alpha
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Unraid Docker UI metadata — replaces the generic third-party cog with the
 # project logo and gives the container a clickable Web UI link. The icon is
@@ -22,15 +22,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Update npm to the latest v11.x. npm v11 (Oct 2025) added an install-script
+# Update npm to the latest v12.x. npm v11 (Oct 2025) added an install-script
 # allow-list as a supply-chain attack mitigation; trusted packages are listed
 # in the `allowScripts` field in package.json so postinstall scripts run
-# without warnings. Pinned to the v11 line (not `@latest`) because npm v12
-# raised its engine requirement to Node >=22, which this image (node:20-alpine)
-# doesn't satisfy — `@latest` broke the build the day npm 12.0.0 shipped
-# (2026-07-09). Bump this pin (and the base image, if wanted) deliberately,
-# not automatically.
-RUN npm install -g npm@11
+# without warnings. Was pinned to the v11 line while this image ran
+# node:20-alpine, because npm v12 requires Node >=22 (`@latest` broke the
+# build the day npm 12.0.0 shipped, 2026-07-09). 2026-07-26: base image
+# bumped to node:24-alpine (to satisfy geoip-lite 2.x's Node >=24
+# requirement — see package.json's `engines`), which comfortably clears
+# npm v12's floor too, so the pin moved up deliberately alongside it. Bump
+# this pin (and the base image, if wanted) deliberately, not automatically.
+RUN npm install -g npm@12
 
 # Install ALL dependencies (including build tools)
 # Skip Puppeteer browser download — not needed in production
