@@ -1322,6 +1322,73 @@ describe('CardService - Enhanced Coverage', () => {
       expect(reveal[2]).toEqual({ kind: 'competing_reveal', label: 'Dave: no current worktypes — no overlap' });
     });
 
+    // E040 "Bulk Discount" — card_mechanic='bulk_permit_conditional'. The −2
+    // days only applies when the player has gained 3+ Work Package cards
+    // since the start of THIS turn. Unlike the other conditional gates above
+    // (which check a static property of a held W card), this one reads the
+    // REAL/TEMP hand diff (stateService.getRealPlayerState vs getPlayer) —
+    // NOT stateService.getTurnOutflow().cardsConsumed, which only ever
+    // contains E cards (W cards are drawn straight to hand, never routed
+    // through playCard()). 2026-07-26 fix.
+    const E040_CARD = {
+      card_id: 'E040',
+      card_name: 'Bulk Discount',
+      card_type: 'E',
+      tick_modifier: '-2',
+      target: 'Self',
+      scope: 'Single',
+      card_mechanic: 'bulk_permit_conditional',
+      description: 'If 3 or more permits are filed this turn, reduce the current filing time by 2 days.'
+    };
+
+    it('should apply E040 -2 days when the player has gained 3+ Work Package cards this turn', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W101', 'W102', 'W103'] });
+      mockStateService.getRealPlayerState.mockReturnValue({ ...mockPlayer, hand: [] });
+      mockDataService.getCardById.mockImplementation((cardId: string) =>
+        cardId === 'E040' ? E040_CARD : undefined
+      );
+
+      cardService.applyCardEffects('player1', 'E040');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls[0][0]
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(1);
+      expect(timeEffects[0].payload.amount).toBe(-2);
+    });
+
+    it('should NOT apply E040 -2 days when the player has gained fewer than 3 Work Package cards this turn', () => {
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W101', 'W102'] });
+      mockStateService.getRealPlayerState.mockReturnValue({ ...mockPlayer, hand: [] });
+      mockDataService.getCardById.mockImplementation((cardId: string) =>
+        cardId === 'E040' ? E040_CARD : undefined
+      );
+
+      cardService.applyCardEffects('player1', 'E040');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls
+        .flatMap((c: any) => c[0] ?? [])
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(0);
+    });
+
+    it('should count E040 W cards gained THIS TURN only, not the total held (diff against REAL, not an absolute count)', () => {
+      // Player already held 2 W cards before this turn started, and picked up
+      // only 1 more this turn — total is 3, but the gate must look at the
+      // 1-card delta, not the 3-card total.
+      mockStateService.getPlayer.mockReturnValue({ ...mockPlayer, hand: ['W_old1', 'W_old2', 'W_new1'] });
+      mockStateService.getRealPlayerState.mockReturnValue({ ...mockPlayer, hand: ['W_old1', 'W_old2'] });
+      mockDataService.getCardById.mockImplementation((cardId: string) =>
+        cardId === 'E040' ? E040_CARD : undefined
+      );
+
+      cardService.applyCardEffects('player1', 'E040');
+
+      const timeEffects = mockEffectEngineService.processCardEffects.mock.calls
+        .flatMap((c: any) => c[0] ?? [])
+        .filter((e: any) => e.effectType === 'RESOURCE_CHANGE' && e.payload.resource === 'TIME');
+      expect(timeEffects).toHaveLength(0);
+    });
+
     it('should filter global tick_modifier by affected_phase=REGULATORY (L026/L030/L036/L047 shape)', () => {
       // L026 "All permit filing times decrease by 1 day this turn." with
       // affected_phase=REGULATORY should only tick down players currently on a

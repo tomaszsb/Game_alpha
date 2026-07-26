@@ -1106,7 +1106,7 @@ export class DataService implements IDataService {
         scope: values[20] || undefined,
 
         // Structured effect columns (optional, for eliminating text parsing)
-        card_mechanic: (values[22] === 'choice' || values[22] === 'dice_conditional' || values[22] === 'work_type_conditional' || values[22] === 'utility_conditional' || values[22] === 'competing_worktype_conditional' || values[22] === 'high_profile_conditional' || values[22] === 'leader_phase_conditional') ? values[22] as Card['card_mechanic'] : undefined,
+        card_mechanic: (values[22] === 'choice' || values[22] === 'dice_conditional' || values[22] === 'work_type_conditional' || values[22] === 'utility_conditional' || values[22] === 'competing_worktype_conditional' || values[22] === 'high_profile_conditional' || values[22] === 'leader_phase_conditional' || values[22] === 'bulk_permit_conditional') ? values[22] as Card['card_mechanic'] : undefined,
         dice_range_1_min: values[23] ? parseInt(values[23]) : undefined,
         dice_range_1_max: values[24] ? parseInt(values[24]) : undefined,
         dice_range_1_time: values[25] ? parseInt(values[25]) : undefined,

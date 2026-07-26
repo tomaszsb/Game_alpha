@@ -456,7 +456,9 @@ export interface Card {
   scope?: string;
 
   // Structured effect columns (replaces description/name regex parsing)
-  card_mechanic?: 'choice' | 'dice_conditional' | 'work_type_conditional' | 'utility_conditional' | 'competing_worktype_conditional' | 'high_profile_conditional' | 'leader_phase_conditional';
+  // 'bulk_permit_conditional' (2026-07-26, E040 "Bulk Discount") gates on
+  // 3+ Work Package cards gained this turn — see CardService.playerFiledBulkPermitsThisTurn.
+  card_mechanic?: 'choice' | 'dice_conditional' | 'work_type_conditional' | 'utility_conditional' | 'competing_worktype_conditional' | 'high_profile_conditional' | 'leader_phase_conditional' | 'bulk_permit_conditional';
   dice_range_1_min?: number;
   dice_range_1_max?: number;
   dice_range_1_time?: number;

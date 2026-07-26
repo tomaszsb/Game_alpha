@@ -1357,6 +1357,43 @@ export class CardService implements ICardService {
   }
 
   /**
+   * True when the player has gained 3+ Work Package cards since the start of
+   * this turn. Gates bulk_permit_conditional cards (E040 "Bulk Discount").
+   *
+   * "Permits filed" maps to W (Work Package) cards — they're the only card
+   * type representing scope a player files for approval (see
+   * GameRulesService.calculateProjectScope, which already defines a player's
+   * "work packages" as `hand.filter(id => id.startsWith('W'))`).
+   *
+   * This does NOT read stateService.getTurnOutflow(playerId).cardsConsumed —
+   * that ledger only ever contains E cards. W cards are never routed through
+   * CardService.playCard() (the only path that calls recordTurnOutflow with
+   * cardConsumed); they're added straight to hand via drawCards() when a
+   * player rolls dice or resolves a manual action, and the only "Play"
+   * button in the UI is gated `card.card_type === 'E'`
+   * (PlayerCardDetailV2.tsx, PlayerPanelV2.handlePlayExpeditor). Filtering
+   * cardsConsumed for a 'W' prefix would always be an empty array, so the
+   * gate would silently never fire.
+   *
+   * Instead this compares the live hand's W-card count against the
+   * turn-start REAL snapshot (stateService.getRealPlayerState) — REAL only
+   * updates at End Turn (TurnStateManager.commitTempToReal), so the diff is
+   * exactly "W cards gained since this turn started." This also naturally
+   * matches existing Try Again semantics: Try Again discards TEMP and
+   * rebuilds it from REAL, so a re-rolled draw correctly resets the count
+   * instead of double-counting a discarded outcome.
+   */
+  private playerFiledBulkPermitsThisTurn(playerId: string): boolean {
+    const player = this.stateService.getPlayer(playerId);
+    if (!player) return false;
+    const realState = this.stateService.getRealPlayerState(playerId);
+    if (!realState) return false; // no turn-start snapshot yet — nothing could have been filed
+    const currentWCount = (player.hand ?? []).filter(id => id.startsWith('W')).length;
+    const realWCount = (realState.hand ?? []).filter(id => id.startsWith('W')).length;
+    return (currentWCount - realWCount) >= 3;
+  }
+
+  /**
    * Returns the maximum phase index any space in the player's visit history
    * (including currentSpace) has reached, using the data-driven phase order.
    * −1 if no space matches. Used by L046 leader-resolution to find the player
@@ -1463,6 +1500,7 @@ export class CardService implements ICardService {
         : card.card_mechanic === 'competing_worktype_conditional' ? this.playerHasCompetingWorktype(playerId)
         : card.card_mechanic === 'high_profile_conditional' ? this.playerInvolvesHighProfile(playerId)
         : card.card_mechanic === 'leader_phase_conditional' ? true // leader always exists if any player exists
+        : card.card_mechanic === 'bulk_permit_conditional' ? this.playerFiledBulkPermitsThisTurn(playerId)
         : true;
       if (conditionMet && !isNaN(timeAmount) && timeAmount !== 0) {
         // Check if this is a Global scope card - affects all players

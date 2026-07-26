@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.47] - 2026-07-26
+
+### Build: "Bulk Discount" (E040)'s missing time-discount effect (maintainer decision 2026-07-25)
+Card description cut off mid-sentence ("If 3+ permits are filed this turn") with zero implemented effect (`tick_modifier=0`, empty `card_mechanic`). Maintainer decision: build a real TIME discount, not money.
+
+**"Permits filed" maps to W (Work Package) cards** — the only card type representing scope a player files for approval; `GameRulesService.calculateProjectScope()` already treats `hand.filter(id => id.startsWith('W'))` as a player's work packages. **The obvious counting approach was wrong and got caught before landing:** `StateService.getTurnOutflow(playerId).cardsConsumed` only ever contains cards played through `CardService.playCard()`, and the only in-game "Play" button is gated to `card_type === 'E'` — W cards are never routed through that ledger at all, they land in `hand` straight from a dice roll or manual action. Filtering that ledger for a `'W'` prefix would have compiled and type-checked while silently never firing — exactly the "looks implemented, isn't" shape this fix exists to close.
+
+**What actually works:** a new `playerFiledBulkPermitsThisTurn()` (`CardService.ts`) compares the live hand's W-card count against the turn-start REAL snapshot (`stateService.getRealPlayerState`) — REAL only updates at End Turn, so the difference is exactly "W cards gained since this turn started," and it naturally respects Try Again (a discarded re-roll correctly un-counts, same as every other per-turn tracked value). Wired as a new `bulk_permit_conditional` value in the existing conditional-gate pattern already used by `work_type_conditional`/`utility_conditional`/`high_profile_conditional` etc. (`CardService.ts`'s card-effect switch). Chose **-2 days** for the discount — the top of the existing free-discount tier (matching L036 "City Budget Surplus," also free/global/-2) without reaching into paid-discount territory (E038 "Surge Pricing," $3000/-3). Description completed to state condition and effect together, matching sibling cards' style, no mechanics language: *"If 3 or more permits are filed this turn, reduce the current filing time by 2 days."*
+
+**Three more gaps in the same neighborhood, found but deliberately not touched — logged in TODO instead:** E020 "Expeditor Training" and E037 "Expeditor Mentor" promise linear per-card scaling ("1 day for each Expeditor Card played") that's just a flat `-1` with no counting logic — different shape than E040's threshold gate, needs its own design. E036 "Press Release" has no gate wired despite L044 already implementing the identical `high_profile_conditional` idea (likely a quick fix, not a design question). E044 "Appeal Process" cuts off mid-sentence exactly like E040 did, same "build or rewrite" decision needed.
+
+Verified: typecheck clean, production build clean, targeted `CardService.test.ts` 66/66 (4 new: positive gate, negative gate, and regression guards), full fast suite same-or-better than baseline (one flaky full-suite-contention timeout hit a different file than usual — `E2E-Multiplayer2P.test.ts` this time, not `E2E-AllPaths.test.ts` — confirmed passing 10/10 alone, consistent with the already-documented "moves to a different victim under load" pattern, not a regression). Live-verified via a real dev-server game and the actual in-game Activate button: 3+ W cards gained this turn → time dropped 10d→8d with a "Time Saved: 2 days" notification; only 2 W cards gained → Activate consumed the card but applied no time change, confirming the gate correctly suppresses when the condition isn't met.
+
 ## [3.1.46] - 2026-07-26
 
 ### Fix: 10 new vulnerabilities (9 high, 1 moderate) from `geoip-lite`'s old dependency chain — Node 20→24 + geoip-lite 1.x→2.x
