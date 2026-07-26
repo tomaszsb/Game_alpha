@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 25, 2026 — maintainer interview resolved most of the decision backlog (see CHANGELOG for the "reconcile decision backlog" entry); several items below moved from "decide" to "build."
-**Status:** Beta — live in production; **v3.1.40 deployed + confirmed live** 2026-07-25 (bundle content-verified + `package.json` inside the running container both read 3.1.40; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
-**Current Version:** 3.1.51 (committed; v3.1.50 confirmed deployed and live 2026-07-26)
+**Last Updated:** July 26, 2026 — v3.1.41–v3.1.51 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
+**Status:** Beta — live in production; **v3.1.50 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.50"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
+**Current Version:** 3.1.51 (committed + pushed, not yet deployed)
 
 ---
 
@@ -27,12 +27,6 @@
 - [ ] **New: "Approved Template" (E034) has the same unbuilt-effect shape as L021 did** — found 2026-07-26 while building L021's fix (see CHANGELOG v3.1.45): description says "Reduce your current filing time by 2 days. All other players **may** reduce their current filing time by 1 day," but no code implements the other-players clause. Different shape than L021 (that one was mandatory for every other player; this one is optional/**per-player choice** — each other player individually decides whether to take the 1-day reduction), so it doesn't reuse L021's `other_players_tick_modifier` column as-is — needs its own choice-based mechanic (likely one `ChoiceService` prompt per other player, "take the 1-day reduction?"). Same "build it or rewrite the copy" decision as L021/E040 — not yet asked.
 - [ ] **New: "Expeditor Training" (E020) and "Expeditor Mentor" (E037) also promise unbuilt scaling** — found 2026-07-26 while building E040's fix (see CHANGELOG v3.1.47): both say "Reduce the current filing time by 1 day for EACH Expeditor Card played this turn," but `tick_modifier` is a flat `-1` with no per-count scaling logic anywhere. Different shape than E040 (linear scaling by count, not a 3+ threshold gate) — needs its own mechanic (likely a new `card_mechanic` that multiplies `tick_modifier` by however many E cards the turn's `TurnCostLedger.cardsConsumed` shows). Not yet asked which way the maintainer wants this one.
 - [ ] **New: "Press Release" (E036) and "Appeal Process" (E044) are the same zero-effect shape E040 was** — found 2026-07-26 alongside E040's fix: E036 ("If the current client is high-profile reduce the filing time by 3 days") has no `high_profile_conditional` gate wired despite L044 already using exactly that mechanic for the same idea — likely just needs the existing gate applied, not new design. E044 ("If your filing was previously rejected") cuts off mid-sentence with zero effect, same shape E040 was — needs the same "build it or rewrite the copy" decision.
-
-### QUIRKS — all resolved 2026-07-25 (maintainer interview), no code changes needed
-- [x] ~~Negative expeditors in "Hire 3 Expeditors" initial draw~~ — **Intentional, leave unflagged.** Expeditors sometimes make mistakes or work in gray areas that cost time/money — that's the narrative point, and the UI should NOT flag "this is a curse card" since players are meant to discover the consequence, not be warned in advance.
-- [x] ~~Owner seed money range varying 4×~~ — **Not a bug.** Investigated 2026-07-25: `src/utils/ownerSeedMoney.ts`'s 80-120%-of-scope formula is correctly implemented and shared between both funding paths (already fixed per the 2026-07-11 blind review). The dollar variance observed is just project scope itself varying that much between games — see next item, which the maintainer also confirmed is intentional.
-- [x] ~~Work-package quantity randomization~~ — **Intentional, leave as random.** Confirmed 2026-07-25: different starting scope each game is a deliberate part of variety, not a bug to tighten.
-- [x] ~~Opponent-status visibility in shared-screen multiplayer~~ — **Current summary-bar level is correct.** Confirmed 2026-07-25: no deeper opponent inspection (clicking into their hand/board) wanted — glance-level comparison via the top bar is sufficient.
 
 ## 🔒 **Security audit follow-ups** (2026-07-21, MIXED priority)
 
@@ -100,6 +94,10 @@
 
 ### Resolved 2026-07-25 (maintainer interview)
 - **Board layout** — maintainer confirmed the board they're playing on today looks right; nothing to fix. (The TODO note about a lost custom arrangement from ~June 12 turned out to be moot — current layout is acceptable as-is.)
+- **Negative expeditors in "Hire 3 Expeditors" initial draw** — intentional, leave unflagged. Expeditors sometimes make mistakes or work gray areas that cost time/money — the narrative point; players are meant to discover the consequence, not be warned in advance.
+- **Owner seed money range varying 4×** — not a bug. `src/utils/ownerSeedMoney.ts`'s 80–120%-of-scope formula is correct; the dollar variance is just project scope itself varying that much between games (see next item).
+- **Work-package quantity randomization** — intentional, leave as random. Different starting scope each game is deliberate variety, not a bug to tighten.
+- **Opponent-status visibility in shared-screen multiplayer** — current summary-bar level is correct; no deeper opponent inspection (clicking into their hand/board) wanted.
 
 ### Resolved 2026-07-18
 - **`canPlayCard` type-tightening (the fb:66bb0bda design call) — DECLINED: the rule stays type-agnostic.** Maintainer decision with two stated reasons: (1) **easier reskin** — a themed version (D&D discussed) would want hand-playable card families (potions/scrolls/henchmen), and baking "E-only" into the rulebook layer bakes today's permitting content into the engine; (2) **flexibility to add more card functionality** later without reopening a hardcoded gate. The V2 screens keep gating what's *offered* (E-only today, presentation-level); the service-level correctness hole that made the loose rule risky was closed in v3.1.10 (Kid E guard on all paths). **Recorded future direction, with trigger:** when a second hand-playable card family actually appears, move the gate into card data (a playable-from-hand flag in the card CSVs, same pattern as cost/duration/phase_restriction) so the rule asks the card, not the type — until then the component-level `card_type === 'E'` checks stand as-is.

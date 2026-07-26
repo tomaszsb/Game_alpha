@@ -1,35 +1,29 @@
-# Next session starter — written 2026-07-25 by /koniec
+# Next session starter — written 2026-07-26 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.40 — **deployed + confirmed live** 2026-07-25 (verified via live bundle content (`"3.1.40"`) + `package.json` inside the running container; `/health`'s own version field reads "dev" and is NOT a reliable check — see TODO Parking lot for why).
+- **Version:** v3.1.51 (committed + pushed) — **v3.1.50 confirmed deployed and live** 2026-07-26 (bundle-verified `"3.1.50"`); v3.1.51 not yet deployed.
 - **Branch:** master, clean.
-- **Last shipped:** 12 `/loop /fixloop` iterations closed out the entire 2026-07-21 playtest-findings batch and the security-audit MEDIUM tier. Real fixes: Glossary/Dictionary naming (v3.1.32), Rules/Game Rules naming (v3.1.33), two location badges resolved from raw internal space IDs to friendly names (v3.1.34, a real bug), admin-endpoint rate limiting (v3.1.35), teacher-login rate limiting (v3.1.36), a foreign-game SMS alert volume cap (v3.1.37), `npm audit fix` for dev-only advisories (v3.1.38), `X-Powered-By` header removed (v3.1.39), admin routes consolidated onto the shared `requireAdmin` helper — required updating 3 client fetch call sites too since it reads the password from a header not the body (v3.1.40). Investigated-and-closed-without-code-change: "press-and-hold duplicate implementation" (only one exists) and "PM-DECISION-CHECK missing flavor text" (the em-dash is a documented "no second option" marker). The "Bulk Discount" (E040) card TODO item was reclassified from a copy nit to a decision item — same shape as the earlier High-Profile Client finding, its description promises an effect with zero implementation behind it. Then, user-directed: attempted a real ESLint 9→10 upgrade to close the last 6 HIGH advisories, confirmed via the npm registry that `eslint-plugin-react` has no ESLint-10-compatible release at all (crashes lint outright), reverted and documented as a hard blocker in TODO + a new CLAUDE.md TACTICAL entry. User then ran the deploy themselves mid-`/koniec`.
-- **Test suite:** fast suite 2453/2454 (1 pre-existing skip, no flakes) + ghost gates 33/33 (10 files, 0 hard failures, 572.9s).
+- **Last shipped:** standings-view redesign + the funding-gap duplication bug fixed at its root (v3.1.51) — both the top-bar pill and each player's comparison chip now call the same `computeProjectFinances()` the sidebar ledger uses, confirmed live with real numbers (all three surfaces agreed on `$275K`, not just at $0).
+- **Test suite:** fast suite 2477/2478 (1 pre-existing skip, no failures, clean run) + ghost gates 33/33 (10 files, 0 hard failures, 573.6s) — no regressions from this session's game-logic changes.
 - **Build/typecheck:** clean.
 
 ## Top 3 open items
-1. **Real-TV checks + TVDisplay dark-mode decision** — still outstanding across multiple sessions now: confirm the v3.1.2 camera feel and dark-mode slices on a real TV, and decide whether the shared TV screen wants a dark toggle at all.
-2. **Two "build the mechanic or rewrite the copy honestly" decision calls** — High-Profile Client (L021) and Bulk Discount (E040) both have description text promising an effect that was never mechanically implemented.
-3. **Remaining backlog is now almost entirely maintainer-decision items** — funding-gap number reconciliation + "Funding raised" definition (needs a semantics call), the `REGULATORY_REVIEW` rename and CSP/HSTS headers (both flagged as needing careful full verification, not a quick pass), and the CSV-editor/lint dead-code cluster (real rules-of-hooks bug in `DataEditor.tsx`, missing `engines` pin, 164 raw `console.*` calls) which fixloop hasn't touched yet and could still grind on blind.
+1. **Homeowner violation mechanic — needs a real design conversation before any engineering.** Maintainer sketched the shape (civil penalties, owner records, an Affidavit of Correction process mirroring NYC DOB's real violation-resolution path) but confirmed it as advanced/multi-session work, not urgent. Needs: what triggers it, what the player does turn-by-turn, what unlocks after filing.
+2. **Four sibling card-effect gaps found this session while building L021/E040, none yet decided:** "Approved Template" (E034 — optional per-player choice, a different shape than L021's mandatory fan-out, needs its own `ChoiceService`-based mechanic); "Expeditor Training"/"Expeditor Mentor" (E020/E037 — promise linear per-count scaling, currently a flat `-1`, different shape than E040's threshold gate); "Press Release" (E036 — likely just needs the existing `high_profile_conditional` gate wired, not new design, since L044 already implements the identical idea); "Appeal Process" (E044 — same cut-off-mid-sentence, zero-effect shape E040 was).
+3. **CSP/HSTS/Permissions-Policy headers still deferred.** Real regression risk this app's jsdom-based test suite structurally can't catch (inline `style={{...}}` everywhere + a live cross-origin iframe). Needs a full inline-style/iframe survey + live-browser verification, not a quick pass.
 
 ## Decisions waiting on the user
-- **Board layout** — keep stock grid, or re-arrange in the editor (drag-save persists).
-- **Bank/Investor/Lender character naming** — marinading. **Don't nudge.**
-- **Homeowner violation mechanic** — needs its own design pass before engineering.
-- **TVDisplay dark mode** — see top item 2.
-- **High-Profile Client (L021)** — build the missing "+1 day to other players" mechanic, or permanently rewrite the card to only describe what it actually does.
-- **Bulk Discount (E040)** — same shape: build a real "3+ permits filed this turn" discount mechanic, or rewrite the card honestly (see CHANGELOG 2026-07-25 [Ops] entry).
-- **Two funding-number items** — reconcile the top-bar/sidebar funding-gap denominators, and pick one definition of "Funding raised" (currently inconsistent across surfaces).
+- **Bank/Investor/Lender character naming** — marinating. **Don't nudge.**
+- **Homeowner violation mechanic** — see top item 1.
 
 ## Suggested first move
-Nothing is blocked on a deploy this time — v3.1.40 is already live. Either let fixloop continue into the deficiency-audit cluster (the `DataEditor.tsx` hooks bug is a real, well-scoped fix), or spend time on the real-TV check that's been waiting the longest across sessions.
+Nothing is blocked on a deploy right now, though v3.1.51 is sitting one deploy behind live — worth running `bash deploy.sh` before diving into new work so `/start`'s bundle-verification has something current to check. After that, the natural next step is the Homeowner-mechanic design conversation (the only item left that isn't a quick build), or picking one of the 4 newly-found card-effect gaps to get a maintainer decision on — each is the same "build it or rewrite the copy" shape as L021/E040 were.
 
 ## Suggested model for next session
-Sonnet 5 — remaining fixloop-eligible work is scoped bug fixes; everything else needs your decision, not deeper architectural judgment. Budget headroom is 26.8% (day-6 cap 85.6%) as of this write-up — recalibrate against `/usage` again if it's been a few days or you've used Claude elsewhere.
+Sonnet 5 — the top-3 items are either a design conversation (needs the maintainer's judgment, not model horsepower) or scoped card-effect decisions/builds matching this session's established pattern.
 
 ## Reminders
-- Deploy from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-- The deploy's `git pull` will delete the server's copy of `.claude/settings.local.json` — expected and harmless.
-- `/health`'s `version` field is NOT a reliable deploy check (always reads "dev" in production — see TODO Parking lot, found 2026-07-25). To verify what's actually live: `curl .../assets/index-*.js | grep '"X.Y.Z"'` against the bundled package version, per CLAUDE.md's "Deploy verification — bundle hash trick."
-- Before any future `npm audit fix --force` on an eslint-nested advisory: `npm view eslint-plugin-react peerDependencies` first — it caps below ESLint 10 today, so the eslint major-version bump stays blocked until that plugin catches up (see CLAUDE.md TACTICAL, 2026-07-25).
-- Fixloop budget meter can drift from reality across a multi-device week — recalibrate with `node scripts/fixloop-usage.mjs --calibrate <official %>` (this session needed one correction: local said 54.8%, official was 39%).
+- Deploy command runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
+- v3.1.51 is pending deploy as of this write-up.
+- The `E2E-AllPaths.test.ts` flake surfaced repeatedly this session under sustained multi-hour load (a different test name failing almost every run) — this is the already-documented resource-contention pattern (TODO Parking lot, tracked since 2026-07-13), not a new issue. Don't re-investigate from scratch if seen again; just re-run the file alone to confirm it's not a regression.
+- This session did a live SSH investigation of the Unraid server (checked container status, logs, and cleaned up historical nested-directory debris — see CLAUDE.md TACTICAL) — passwordless `ssh unraid` access is confirmed working.

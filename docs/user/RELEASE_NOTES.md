@@ -2,6 +2,14 @@
 
 ---
 
+## v3.1.41–3.1.51 — Two cards now do what they say, the shared TV can go dark, and a "who's ahead" screen got a cleanup (July 26, 2026)
+
+- **"Add Player" no longer silently fails.** If you removed a player and then added a new one, the new player sometimes wouldn't appear at all — no error, just nothing happening. That's fixed.
+- **"High-Profile Client" and "Bulk Discount" now actually do what their cards say.** Both had a real effect described in their text that was never actually built. High-Profile Client now really does add a day to every other player's filing time when you play it. Bulk Discount now really does shave time off your filing when you've filed 3 or more permits in the same turn.
+- **The shared TV screen can now switch to dark mode, controlled from a teacher's device.** Since the TV itself has nothing to click, a teacher can now flip it between light and dark remotely from their own phone or computer.
+- **The "who's ahead" comparison view (the row of player cards above the board) got a cleanup.** Each player's card used to stack three separate progress bars with their own legends — now it's a tidy row of small labeled chips (still tap/hover for the full detail). Also fixed a real bug where two different screens could show two different numbers for the same player's funding gap — they now always agree.
+- **The Log and History buttons now have different icons**, so it's clearer which one you're tapping (Log = everyone's activity, History = just your own).
+
 ## v3.1.32–3.1.40 — A few naming mix-ups cleaned up, and some behind-the-scenes hardening (July 25, 2026)
 
 - **Your current location now always shows a real name, not a raw code.** In a couple of spots — the badge at the top of the screen, and the small name-tag shown for other players when several of you share one screen — landing on certain spaces could show something like "PM-DECISION-CHECK" instead of the plain name ("PM Check"). Fixed in both places.
