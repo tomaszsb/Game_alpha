@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-26 — re-verified `npm audit`'s 6 high-severity findings are the same blocked ESLint chain (no code change)
+
+Scheduled task triggered by the same `npm audit` warning recurring in a Docker build log (`npm ci` → "6 high severity vulnerabilities"). Investigated fresh rather than assuming it was still the known issue: `npm audit` shows all 6 are one dependency chain — `eslint`, `eslint-plugin-react`, and their nested `@eslint/config-array`/`@eslint/eslintrc` → old `minimatch` → old `brace-expansion` (DoS via unbounded expansion). Confirmed via `npm ls --omit=dev` that none of the flagged packages appear in the production dependency tree at all — `eslint`/`eslint-plugin-react`/`eslint-plugin-react-hooks` are `devDependencies`, lint-time only, never shipped.
+
+`npm audit fix` (no `--force`) is a no-op — npm has no non-breaking fix. Re-tested the forced path independently rather than trusting the existing TODO note: `npm audit fix --force` installs `eslint@10.8.0` + downgrades `eslint-plugin-react` to `7.22.0`, and `npm run lint` immediately crashes (`TypeError: context.getSourceCode is not a function`) — the exact failure already recorded in TODO.md from the 2026-07-25 attempt, because `eslint-plugin-react` (even its latest release, 7.37.5) has never shipped ESLint-10 support. Reverted the forced install back to the committed lockfile.
+
+**No changes applied** — same conclusion as yesterday, re-confirmed today: this is a hard upstream blocker, not a "try harder" gap. Verified the unmodified project is still fully healthy on the flagged dependencies: `npm run typecheck` clean, `npm run build` clean (normal Vite output), full `npm test` 2477/2478 passing (1 pre-existing skip, 0 failures, 0 flakes). TODO.md's existing ESLint 9→10 entry updated with today's re-verification instead of a duplicate entry.
+
 ## [3.1.51] - 2026-07-26
 
 ### Fix + redesign: top-bar player-comparison view ("the 4-5 bars") and the funding-gap duplication bug
