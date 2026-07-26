@@ -72,6 +72,11 @@ describe('ProjectProgress', () => {
         hint: 'Test hint'
       })),
       getDisplayLabelOverride: vi.fn(() => ''),
+      // computeProjectFinances (used by the 2026-07-26 funding-chip redesign)
+      // calls this for every card in a player's hand/activeCards; test
+      // players carry no cards, so it's never actually invoked, but a
+      // real IDataService always has it — keep the mock honest.
+      getCardById: vi.fn(() => undefined),
     } as unknown as IDataService;
 
     mockGameRulesService = {
@@ -197,8 +202,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Compact inline format: "📐 10.0%/20%"
-    expect(screen.getByText(/10\.0%\/20%/)).toBeInTheDocument();
+    // Compact chip format (redesigned 2026-07-26): "📐 10%"
+    expect(screen.getByText(/📐 10%/)).toBeInTheDocument();
   });
 
   it('should display project timeline for each player', () => {
@@ -226,8 +231,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Compact inline format: "⏱️ 50d / 110d est."
-    expect(screen.getByText(/50d \/ 110d est/)).toBeInTheDocument();
+    // Compact chip format (redesigned 2026-07-26): "⏱️ 50/110d"
+    expect(screen.getByText(/⏱️ 50\/110d/)).toBeInTheDocument();
   });
 
   it('should show timeline color based on progress percentage', () => {
@@ -255,8 +260,8 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // Compact format: "90d / 100d est."
-    expect(screen.getByText(/90d \/ 100d est/)).toBeInTheDocument();
+    // Compact chip format (redesigned 2026-07-26): "⏱️ 90/100d"
+    expect(screen.getByText(/⏱️ 90\/100d/)).toBeInTheDocument();
   });
 
   it('should not render the TV theme button when onToggleTVDarkMode is not provided', () => {

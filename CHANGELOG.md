@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.51] - 2026-07-26
+
+### Fix + redesign: top-bar player-comparison view ("the 4-5 bars") and the funding-gap duplication bug
+Maintainer confirmed this view (per-player progress/funding/design-fee/timeline bars in `ProjectProgress.tsx`, above the board) is real, shipped, and meant to be a competitive standings display — just poorly laid out and never properly designed, and carrying the funding-gap mismatch bug flagged earlier this session (top-bar pill and this per-player list each hand-rolled their own `scope - funded` math instead of using the canonical `computeProjectFinances()` that `PlayerNumbersV2`'s sidebar ledger already uses correctly).
+
+**The bug, fixed at the root:** both the current-player top-bar pill and each player's card in the comparison grid now call `computeProjectFinances()` — the same function, same values (`totalCapital`, `commitments`, `fundingGap`, `spent`) the sidebar ledger already uses. Live-verified the fix actually closes the gap: after giving a player $275K of unfunded scope, the comparison chip and the sidebar's "Still to raise" line both read the identical `$275K` — before this fix they could disagree, which was the entire complaint.
+
+**The redesign:** each player's card used to stack 3 full-width progress bars (funding, design-fee, timeline), each with its own inline legend, color markers, and tooltip — a lot of vertical chrome to compare one number across players. Condensed to a single row of 3 compact color-coded chips (💰 gap, 📐 design-fee %, ⏱️ days used/estimated) — same semantic colors, same full detail on hover, roughly a third of the vertical space per player, and a consistent single-line shape that's easier to scan down when comparing several players side by side. The progress bar/phase line above it is unchanged (it was already the clearest part of the card).
+
+Verified: typecheck clean, production build clean, `ProjectProgress.test.tsx` 11/11 (3 updated for the new compact chip text format, 1 new `getCardById` mock added for completeness since `computeProjectFinances` needs it). Full fast suite 2477/2478 (1 pre-existing skip, 0 failures — clean run, no flake this time). Live-verified in a real 3-player browser game: all three players' chips render consistently and legibly at the existing card width, and the funding-gap number match against the sidebar was confirmed with real numbers, not just at $0.
+
 ## [3.1.50] - 2026-07-26
 
 ### Build: TVDisplay dark mode, remote-controlled by admin/teacher only (maintainer decision 2026-07-25)

@@ -11,6 +11,7 @@ import { designFeeIndicator, timelineIndicator } from '../../utils/progressIndic
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { friendlySpaceName } from '../../utils/logFormatting';
+import { computeProjectFinances } from '../../utils/projectFinances';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -190,14 +191,18 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         {currentPlayer && (() => {
           const scope = playerProjectScopes[currentPlayer.id] || 0;
           if (scope === 0) return null;
-          const funded = (currentPlayer.moneySources?.ownerFunding || 0) + (currentPlayer.moneySources?.bankLoans || 0) + (currentPlayer.moneySources?.investmentDeals || 0);
-          const spent = (currentPlayer.expenditures?.design || 0) + (currentPlayer.expenditures?.fees || 0) + (currentPlayer.expenditures?.construction || 0);
-          const gap = scope - funded;
+          // Same canonical calc PlayerNumbersV2's sidebar ledger already uses
+          // (commitments = scope + design/regulatory/contingency budgets,
+          // totalCapital = every dollar the player has, owner seed money
+          // included) — this used to hand-roll its own scope-vs-outside-money
+          // math, which is why this pill and the sidebar could show different
+          // "gap" numbers for the same player (2026-07-26 fix).
+          const fin = computeProjectFinances(currentPlayer, (id) => dataService.getCardById(id));
           return (
             <span style={{ fontSize: '0.75rem', color: colors.secondary.dark }}>
-              💰 {FormatUtils.formatMoney(funded)}/{FormatUtils.formatMoney(scope)}
-              {spent > 0 && <span style={{ color: '#f44336' }}> (-{FormatUtils.formatMoney(spent)})</span>}
-              {gap > 0 && <span style={{ color: '#f44336', fontWeight: 'bold' }}> Gap {FormatUtils.formatMoney(gap)}</span>}
+              💰 {FormatUtils.formatMoney(fin.totalCapital)}/{FormatUtils.formatMoney(fin.commitments)}
+              {fin.spent > 0 && <span style={{ color: '#f44336' }}> (-{FormatUtils.formatMoney(fin.spent)})</span>}
+              {fin.fundingGap > 0 && <span style={{ color: '#f44336', fontWeight: 'bold' }}> Gap {FormatUtils.formatMoney(fin.fundingGap)}</span>}
             </span>
           );
         })()}
@@ -635,74 +640,50 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                   </div>
                   <span style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: '#888' }}>{playerProgress.phase}</span>
                 </div>
-                {/* Financial Overview — stacked funding vs scope bar */}
-                {projectScope > 0 && (() => {
-                  const owner = player.moneySources?.ownerFunding || 0;
-                  const bank = player.moneySources?.bankLoans || 0;
-                  const investor = player.moneySources?.investmentDeals || 0;
-                  const totalFunded = owner + bank + investor;
-                  const totalSpent = (player.expenditures?.design || 0) + (player.expenditures?.fees || 0) + (player.expenditures?.construction || 0);
-                  const fundingGap = projectScope - totalFunded;
-                  const pctOf = (v: number) => Math.min((v / projectScope) * 100, 100);
+                {/* Comparison stats row — redesigned 2026-07-26 (maintainer:
+                    "poorly laid out, needs a real design pass"). Was 3 stacked
+                    full-width bars, each with its own legend/markers — a lot
+                    of chrome to compare one number across players. Condensed
+                    to a single row of compact color-coded chips (same
+                    semantic colors, same full detail on hover) so scanning
+                    across player cards for "who's ahead on X" doesn't require
+                    reading 3x the vertical space per player. Funding now uses
+                    the canonical computeProjectFinances() (matches the
+                    sidebar ledger and the top-bar pill above) instead of a
+                    second, independently hand-rolled scope-vs-funded calc —
+                    that duplication was the actual source of the funding-gap
+                    mismatch bug, not a display choice. */}
+                {(() => {
+                  const fin = computeProjectFinances(player, (id) => dataService.getCardById(id));
+                  const fundingColor = fin.fundingGap > 0 ? '#f44336' : '#4caf50';
                   const fmt = (n: number) => FormatUtils.formatMoney(n);
+                  const fundingTooltip = fin.fundingGap > 0
+                    ? `Still to raise: ${fmt(fin.fundingGap)} (have ${fmt(fin.totalCapital)} of ${fmt(fin.commitments)} needed — scope plus design/regulatory/contingency budgets, spent ${fmt(fin.spent)} so far)`
+                    : `Fully funded: ${fmt(fin.totalCapital)} of ${fmt(fin.commitments)} needed`;
+
+                  const timeline = getPlayerTimeline(player);
+                  const timelineInd = timeline ? timelineIndicator(timeline.progressPercent) : null;
+
+                  const chipStyle = (color: string): React.CSSProperties => ({
+                    display: 'inline-flex', alignItems: 'center', gap: '2px',
+                    padding: '1px 5px', borderRadius: '9px', fontSize: '0.55rem', fontWeight: 'bold',
+                    color, background: `${color}18`, border: `1px solid ${color}40`,
+                    whiteSpace: 'nowrap',
+                  });
 
                   return (
-                    <div style={{ marginTop: '2px', fontSize: '0.55rem', color: '#666' }}>
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }} title={fundingGap > 0
-                        ? `Funding raised vs. project scope: ${fmt(totalFunded)} of ${fmt(projectScope)} — a ${fmt(fundingGap)} gap still to raise (red). Bar segments: green = Owner, blue = Bank, orange = Investor; striped overlay = already spent.`
-                        : `Funding raised vs. project scope: ${fmt(totalFunded)} of ${fmt(projectScope)} — fully funded (green). Bar segments: green = Owner, blue = Bank, orange = Investor; striped overlay = already spent.`}>
-                        <span style={{ whiteSpace: 'nowrap' }}>💰 <span style={{ color: fundingGap > 0 ? '#f44336' : '#4caf50', fontWeight: 'bold' }}>{fmt(totalFunded)}/{fmt(projectScope)}</span></span>
-                        {/* Stacked funding bar */}
-                        <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                          {/* Owner (green) */}
-                          <div style={{ position: 'absolute', left: 0, top: 0, width: `${pctOf(owner)}%`, height: '100%', backgroundColor: '#4caf50' }} title={`Owner: ${fmt(owner)}`} />
-                          {/* Bank (blue) */}
-                          <div style={{ position: 'absolute', left: `${pctOf(owner)}%`, top: 0, width: `${pctOf(bank)}%`, height: '100%', backgroundColor: '#2196f3' }} title={`Bank: ${fmt(bank)}`} />
-                          {/* Investor (orange) */}
-                          <div style={{ position: 'absolute', left: `${pctOf(owner + bank)}%`, top: 0, width: `${pctOf(investor)}%`, height: '100%', backgroundColor: '#ff9800' }} title={`Investor: ${fmt(investor)}`} />
-                          {/* Spent overlay (dark stripe from left) */}
-                          {totalSpent > 0 && (
-                            <div style={{
-                              position: 'absolute', left: 0, top: 0,
-                              width: `${pctOf(totalSpent)}%`, height: '100%',
-                              background: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px)',
-                            }} title={`Spent: ${fmt(totalSpent)}`} />
-                          )}
-                        </div>
-                        {/* Inline legend */}
-                        <span style={{ whiteSpace: 'nowrap', fontSize: '0.5rem', color: '#888' }}>
-                          <span style={{ color: '#4caf50' }}>■</span>O <span style={{ color: '#2196f3' }}>■</span>B <span style={{ color: '#ff9800' }}>■</span>I
-                          {totalSpent > 0 && <> ▓{fmt(totalSpent)}</>}
+                    <div style={{ marginTop: '3px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      <span style={chipStyle(fundingColor)} title={fundingTooltip}>
+                        💰 {fin.fundingGap > 0 ? `-${fmt(fin.fundingGap)}` : '✓'}
+                      </span>
+                      <span style={chipStyle(designFeeColor)} title={designFee.tooltip}>
+                        📐 {designFeeRatio.toFixed(0)}%
+                      </span>
+                      {timeline && timelineInd && (
+                        <span style={chipStyle(timelineInd.color)} title={timelineInd.tooltip}>
+                          ⏱️ {timeline.totalDays}/{timeline.estimatedDays}d
                         </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-                {/* Design Fee + Timeline — compact inline bars */}
-                <div style={{ marginTop: '2px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={designFee.tooltip}>
-                  <span style={{ whiteSpace: 'nowrap' }}>📐 <span style={{ color: designFeeColor, fontWeight: 'bold' }}>{designFeeRatio.toFixed(1)}%/20%</span></span>
-                  <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                    <div style={{ width: `${Math.min(designFeeRatio * 5, 100)}%`, height: '100%', backgroundColor: designFeeColor, borderRadius: '2px' }} />
-                  </div>
-                </div>
-                {(() => {
-                  const timeline = getPlayerTimeline(player);
-                  if (!timeline) return null;
-                  // fb:f8491e74 — color + hover tooltip from the shared helper.
-                  const timelineInd = timelineIndicator(timeline.progressPercent);
-                  const timelineColor = timelineInd.color;
-                  // Show contingency boundary on the bar (contingency is last 10% of estimated)
-                  const contingencyStart = timeline.estimatedDays > 0
-                    ? ((timeline.estimatedDays - timeline.contingencyDays) / timeline.estimatedDays) * 100
-                    : 90;
-                  return (
-                    <div style={{ marginTop: '1px', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.55rem', color: '#666' }} title={timelineInd.tooltip}>
-                      <span style={{ whiteSpace: 'nowrap' }}>⏱️ <span style={{ color: timelineColor, fontWeight: 'bold' }}>{timeline.totalDays}d / {timeline.estimatedDays}d est.</span></span>
-                      <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                        <div style={{ width: `${Math.min(timeline.progressPercent, 100)}%`, height: '100%', backgroundColor: timelineColor, borderRadius: '2px' }} />
-                        {/* Contingency boundary marker */}
-                        <div style={{ position: 'absolute', left: `${contingencyStart}%`, top: 0, width: '1px', height: '100%', backgroundColor: '#ff9800' }} title="Contingency (10%)" />
-                      </div>
+                      )}
                     </div>
                   );
                 })()}
