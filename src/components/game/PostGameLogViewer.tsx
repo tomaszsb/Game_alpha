@@ -150,7 +150,7 @@ export const PostGameLogViewer: React.FC<PostGameLogViewerProps> = ({ viewingPla
             cursor: 'pointer',
           }}
         >
-          📜 Review &amp; Export Game Log ({fullLog.length} entries)
+          🗒️ Review &amp; Export Game Log ({fullLog.length} entries)
         </button>
       </div>
     );
@@ -160,7 +160,7 @@ export const PostGameLogViewer: React.FC<PostGameLogViewerProps> = ({ viewingPla
     <div style={sectionStyle} data-testid="post-game-log-viewer">
       {/* Header row with collapse */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <h3 style={{ margin: 0, fontSize: '15px', color: colors.primary.dark }}>📜 Game Log</h3>
+        <h3 style={{ margin: 0, fontSize: '15px', color: colors.primary.dark }}>🗒️ Game Log</h3>
         <button
           type="button"
           onClick={() => setIsOpen(false)}

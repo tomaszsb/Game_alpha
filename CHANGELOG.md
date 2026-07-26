@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.44] - 2026-07-26
+
+### Fix: "📜 Log" and "📜 History" shared one icon despite different scopes (maintainer interview follow-up)
+Maintainer decision 2026-07-25: keep both the bottom-floating Game Log (all players) and the in-player-panel History (this player only) — they're correctly different scopes, not a duplicate to collapse. Investigation confirmed the scoping was already right: `GameLog.tsx` reads `gameState.globalActionLog` with no player filter (all players), while `PlayerChronicleV2.tsx` (behind the "📜 History" button in `PlayerPanelV2.tsx`) already calls `getDisplayableLogEntries(..., { playerId })` (this player only, via `logFiltering.ts`'s `playerId` filter). The only real problem was both surfaces using the identical 📜 emoji.
+
+**Changed:** gave the all-players surfaces (the toggleable Game Log panel in `ProjectProgress.tsx`/`GameLog.tsx`, and the post-game `PostGameLogViewer.tsx`, which shows the same all-players log after the game ends) a distinct 🗒️ icon. Left "📜 History" (the per-player one, `PlayerPanelV2.tsx`) unchanged. Considered 📰 first but that's already the established Life Event card icon (`LifeEventModal.tsx`, `PlayerCardDetailV2.tsx`) — picked 🗒️ instead to avoid colliding with an existing meaning.
+
+Verified: typecheck clean, production build clean, full `tests/components/game/` + `GameLogRegression.test.ts` + `logExport.test.ts` 58/58 green (3 assertions in `GameLog.test.tsx` updated for the new emoji). Live-verified in-browser: the top-bar toggle now shows 🗒️ Log distinct from the player panel's 📜 History; opening History shows only the current player's own turn-start entry, opening Log shows the aggregate all-players count — confirming the pre-existing scoping is intact.
+
 ## [3.1.43] - 2026-07-25
 
 ### Fix: client IP detection trusted a spoofable header; rate limiters weren't per-visitor at all (maintainer interview follow-up)

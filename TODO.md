@@ -2,7 +2,7 @@
 
 **Last Updated:** July 25, 2026 — maintainer interview resolved most of the decision backlog (see CHANGELOG for the "reconcile decision backlog" entry); several items below moved from "decide" to "build."
 **Status:** Beta — live in production; **v3.1.40 deployed + confirmed live** 2026-07-25 (bundle content-verified + `package.json` inside the running container both read 3.1.40; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
-**Current Version:** 3.1.43 (committed, pending deploy)
+**Current Version:** 3.1.44 (committed, pending deploy)
 
 ---
 
@@ -29,9 +29,6 @@
 - [ ] **Funding-gap duplication bug (not a design question)** — top-bar pill (`ProjectProgress.tsx` ~line 179-189, current-player summary) and the per-player list's funding bar (`ProjectProgress.tsx` ~line 605-621) each hand-roll their own `scope - funded` math instead of using the canonical `computeProjectFinances()` in [projectFinances.ts](src/utils/projectFinances.ts) that `PlayerNumbersV2.tsx`'s sidebar ledger already uses correctly. The two ad-hoc versions also differ from each other (one omits the "other" money source; both compare against raw `scopeTotal` instead of the fully-loaded `commitments` the canonical calc uses) — that's the real source of the $750K-vs-$1M mismatch, not an open definition question. **Fix: make both `ProjectProgress.tsx` call sites use `computeProjectFinances()`** instead of their own formulas. Do this as part of the standings-view rebuild below, since both live in the same component.
 - [ ] **Rebuild the top-bar player-comparison view (the "4-5 bars")** — maintainer confirmed 2026-07-25 this view already exists and is meant to be a competitive standings/comparison display (time spent, design % spent, total value, etc., compared across players) — it's real, shipped, and intentional, just poorly laid out and never properly designed. Needs a real design pass (not a quick patch) covering: which metrics matter for comparison, layout, and folding in the funding-gap fix above so the numbers agree with the sidebar.
 - [ ] **"Funding raised" definition — already decided, not open.** `projectFinances.ts`'s `fundingRaised` deliberately excludes owner seed money (fb:feedback-1783081115822-cac490a5, 2026-07-10) while `totalCapital`/`fundingGap` deliberately include it. The inconsistency users see is the same duplication bug above (ad-hoc surfaces not using the canonical calc) — no new decision needed, just point every surface at the shared function.
-
-### LOW — polish
-- [x] ~~Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)~~ — **RESOLVED 2026-07-25 (maintainer):** keep both, they're correctly different scopes — the in-player-panel Log should show only that player's own actions; the top-of-screen History should show all players. Verify current implementation actually enforces that split (no overlap), and give them visually distinct icons since they currently share one.
 
 ### QUIRKS — all resolved 2026-07-25 (maintainer interview), no code changes needed
 - [x] ~~Negative expeditors in "Hire 3 Expeditors" initial draw~~ — **Intentional, leave unflagged.** Expeditors sometimes make mistakes or work in gray areas that cost time/money — that's the narrative point, and the UI should NOT flag "this is a curse card" since players are meant to discover the consequence, not be warned in advance.

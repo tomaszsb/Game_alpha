@@ -240,7 +240,9 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                 cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
                 position: 'relative', ...activeGlow(isGameLogOpen)
               }}>
-                <span>📜</span>
+                {/* Distinct from PlayerPanelV2's "📜 History" (that one is
+                    this player only; this is every player's activity). */}
+                <span>🗒️</span>
                 <ActiveDot show={isGameLogOpen} />
               </button>
               {onOpenDisplaySettings && (
@@ -419,7 +421,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {[
             { onClick: onOpenRulesModal, icon: '📋', label: 'Rules', bg: colors.purple.main, active: isRulesOpen },
-            { onClick: onToggleGameLog, icon: '📜', label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
+            { onClick: onToggleGameLog, icon: '🗒️', label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
             ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: '👁️', label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
             ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: '📖', label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),
           ].map((btn, i) => (

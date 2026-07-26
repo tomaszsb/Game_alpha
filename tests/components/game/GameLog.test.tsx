@@ -58,7 +58,7 @@ describe('GameLog — singular/plural grammar', () => {
   it('shows "1 entry, 1 visit" (singular) with exactly one logged turn', () => {
     wrap([makeTurnStartEntry()]);
 
-    expect(screen.getByText('📜 Game Log (1 entry, 1 visit)')).toBeInTheDocument();
+    expect(screen.getByText('🗒️ Game Log (1 entry, 1 visit)')).toBeInTheDocument();
     expect(screen.getByText('1 visit')).toBeInTheDocument();
     expect(screen.queryByText(/1 entries/)).not.toBeInTheDocument();
     expect(screen.queryByText(/1 visits\b/)).not.toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('GameLog — singular/plural grammar', () => {
       makeTurnStartEntry({ id: 'entry-2', globalTurnNumber: 2, playerTurnNumber: 2 }),
     ]);
 
-    expect(screen.getByText('📜 Game Log (2 entries, 1 visit)')).toBeInTheDocument();
+    expect(screen.getByText('🗒️ Game Log (2 entries, 1 visit)')).toBeInTheDocument();
     expect(screen.getByText('2 visits')).toBeInTheDocument();
   });
 
@@ -90,6 +90,6 @@ describe('GameLog — singular/plural grammar', () => {
       }),
     ]);
 
-    expect(screen.getByText('📜 Game Log (2 entries, 2 visits)')).toBeInTheDocument();
+    expect(screen.getByText('🗒️ Game Log (2 entries, 2 visits)')).toBeInTheDocument();
   });
 });
