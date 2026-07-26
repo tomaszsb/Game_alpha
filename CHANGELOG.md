@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.54] - 2026-07-26
+
+### Fix: three more zero-effect/unbuilt card descriptions, resolved via maintainer interview
+Following E040/L021/E036's pattern of "card text promises more than the code does," three more cards flagged during the same 2026-07-21 playtest review were interviewed with the maintainer today rather than left as open design questions:
+
+- **"Expeditor Training" (E020) and "Expeditor Mentor" (E037)** promised "reduce the current filing time by 1 day for EACH Expeditor Card played this turn" (linear per-count scaling) but only ever applied a flat `-1`. Maintainer decision: keep the flat `-1`, rewrite the text to match — "Reduce the current filing time by 1 day." No new counting logic; this was a copy fix, not a mechanic gap.
+- **"Approved Template" (E034)** promised "-2 days for you, and all other players MAY take -1 day" (an optional per-player choice), but only the drawing player's `-2` ever worked. Maintainer decision: drop the other-players clause, keep the description to "Reduce your current filing time by 2 days."
+- **"Appeal Process" (E044)** was the most broken of the three — description cut off mid-sentence ("If your filing was previously rejected") with `tick_modifier=0`, no effect at all, and no existing game concept of a "rejected filing" to hook into. Maintainer decision: don't build a new rejection-tracking system; give it a simple finished effect in the same family as its REGULATORY siblings instead. New description: "File an appeal and win a faster review. Reduce your current filing time by 2 days." (`tick_modifier` 0 → -2, matching the magnitude of siblings like E010/E018.)
+
+All three are pure `CARDS_EXPANDED.csv` data edits (description + tick_modifier only where noted) — no code changes, no new mechanics.
+
+Verified: typecheck clean, production build clean, `cardTextMatchesColumns.test.ts` (the description/effect integrity gate) 11/11, full `CardService.test.ts` 66/66.
+
 ## [3.1.53] - 2026-07-26
 
 ### Build: label AI-generated glossary entries in the in-game dictionary (fixloop, maintainer decision 2026-07-12)

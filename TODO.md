@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 26, 2026 — v3.1.41–v3.1.53 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
-**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52–v3.1.53 built same day, not yet deployed.
-**Current Version:** 3.1.53 (pending deploy)
+**Last Updated:** July 26, 2026 — v3.1.41–v3.1.54 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
+**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52–v3.1.54 built same day, not yet deployed.
+**Current Version:** 3.1.54 (pending deploy)
 
 ---
 
@@ -21,12 +21,7 @@
 
 ## 🐛 **v3.1.20 playtest findings** (2026-07-21, MIXED priority)
 
-*Source: Playwright playtest of game.unravelcodes.com — G508 played solo, G509 played as two players in shared-screen mode. Reproductions noted per item.*
-
-### MEDIUM — should fix
-- [ ] **New: "Approved Template" (E034) has the same unbuilt-effect shape as L021 did** — found 2026-07-26 while building L021's fix (see CHANGELOG v3.1.45): description says "Reduce your current filing time by 2 days. All other players **may** reduce their current filing time by 1 day," but no code implements the other-players clause. Different shape than L021 (that one was mandatory for every other player; this one is optional/**per-player choice** — each other player individually decides whether to take the 1-day reduction), so it doesn't reuse L021's `other_players_tick_modifier` column as-is — needs its own choice-based mechanic (likely one `ChoiceService` prompt per other player, "take the 1-day reduction?"). Same "build it or rewrite the copy" decision as L021/E040 — not yet asked.
-- [ ] **New: "Expeditor Training" (E020) and "Expeditor Mentor" (E037) also promise unbuilt scaling** — found 2026-07-26 while building E040's fix (see CHANGELOG v3.1.47): both say "Reduce the current filing time by 1 day for EACH Expeditor Card played this turn," but `tick_modifier` is a flat `-1` with no per-count scaling logic anywhere. Different shape than E040 (linear scaling by count, not a 3+ threshold gate) — needs its own mechanic (likely a new `card_mechanic` that multiplies `tick_modifier` by however many E cards the turn's `TurnCostLedger.cardsConsumed` shows). Not yet asked which way the maintainer wants this one.
-- [ ] **New: "Appeal Process" (E044) is the same zero-effect shape E040 was** — found 2026-07-26 alongside E040's fix, description ("If your filing was previously rejected") cuts off mid-sentence with zero effect — needs the same "build it or rewrite the copy" decision. (Sibling item "Press Release" E036 fixed 2026-07-26, see CHANGELOG v3.1.52 — it just needed the existing `high_profile_conditional` gate applied, no new design.)
+*Source: Playwright playtest of game.unravelcodes.com — G508 played solo, G509 played as two players in shared-screen mode. Reproductions noted per item. All 6 card-effect gaps found during this playtest (E034, E036, E037, E020, E040, E044) resolved 2026-07-26 — see CHANGELOG v3.1.45–v3.1.54.*
 
 ## 🔒 **Security audit follow-ups** (2026-07-21, MIXED priority)
 
