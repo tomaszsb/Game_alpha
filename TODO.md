@@ -80,8 +80,7 @@
 *(All 17 recovered items turned out to already be fixed in v3.0.91/v3.0.97, 2026-07-01/06 — the dashboard reports were just never flipped to resolved. fb:7441e00b, the last one, was verified live 2026-07-18: OutcomeChangesV2, shipped v3.0.91, already shows named work-package gain/loss on both the dice and manual-action paths. Flip queued/pending, see .claude/fixloop/flip-queue.txt.)*
 
 ### Newly arrived (2026-07-13 to 2026-07-17, staged 2026-07-18)
-*(restart-after-crash blank-PC-view (v3.1.17), expeditor-replacement privacy leak (v3.1.18), PC color picker taken-color UX (v3.1.19), and Share button phone-width overflow + missing per-player invite button (v3.1.20) all shipped and confirmed deployed 2026-07-19 — closes fb:3a5280d8, fb:44751a06, fb:d6bbcb00, fb:2c848b47, all flipped resolved.)*
-- [ ] **Can't add player** — report has no detail ("Q"), needs repro first. <!-- fb:75101be7 -->
+*(restart-after-crash blank-PC-view (v3.1.17), expeditor-replacement privacy leak (v3.1.18), PC color picker taken-color UX (v3.1.19), and Share button phone-width overflow + missing per-player invite button (v3.1.20) all shipped and confirmed deployed 2026-07-19 — closes fb:3a5280d8, fb:44751a06, fb:d6bbcb00, fb:2c848b47, all flipped resolved. "Can't add player" — root-caused + fixed v3.1.41: default name generator reused a still-in-use "Player N" name after removing a non-last player — closes fb:75101be7, flip pending deploy.)*
 
 ### Change-legibility P1 — Project Chronicle (first slice shipped v3.0.86)
 - [~] **P1 remaining:** click-entry-to-replay-highlight, TV-persistent feed via `NotificationService` selective subscription. (Inline deltas per entry — work-change scope $ + expeditor-add count — shipped v3.1.16, which also fixed a real pre-existing bug: the icon-formatted card_draw branch never fired in production due to a field-name mismatch.) (P2–P5 parked below pending V2 reframe.)

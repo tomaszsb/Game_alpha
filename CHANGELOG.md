@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.41] - 2026-07-25
+
+### Fix: "Add Player" silently failed after removing a non-last player (fixloop, dashboard report)
+Dashboard report (fb:75101be7) said only "Can't add player" with no repro detail. Investigation found `PlayerSetup.tsx`'s `handleAddPlayer()` derived the new player's default name from the current player *count* (`` `Player ${players.length + 1}` ``), not from which names were actually free. Removing any player except the last one leaves that formula pointing at a name a remaining player already holds — e.g. add Player 1 and Player 2, remove Player 1, then Add Player computes `length(1) + 1 = 2` → "Player 2," already taken. `StateService.addPlayer()` correctly rejects the duplicate, but the only user-facing result was a bare `alert("Failed to add player: ...")`, which reads as "the button doesn't work."
+
+**Fix:** the name generator now walks up from `players.length + 1` until it finds a `Player N` not already in use, same pattern already established for player IDs in `StateService.generateShortPlayerId()` (which has its own regression note for the identical "remove from the middle, number gets reused" case).
+
+Verified: typecheck clean, production build clean, targeted suite (`PlayerSetup.test.ts` + `PlayerList.test.tsx` + `StateService.test.ts`) 82/82 green. Live-reproduced the bug in-browser (remove first of two players, Add Player fails with the exact console alert) and confirmed the fix resolves it (add succeeds, new player correctly named "Player 3").
+
 ## [Ops] 2026-07-25 — ESLint 9→10 upgrade attempted, confirmed hard-blocked on `eslint-plugin-react` (no app change)
 
 Deploy log surfaced the 6 remaining HIGH-severity `brace-expansion` advisories (all nested inside eslint's own dependency tree, left deliberately un-forced in v3.1.38). Attempted the real fix per standing policy (real tested upgrades, not silenced audit warnings): `npm audit fix --force`.

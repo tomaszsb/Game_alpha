@@ -190,7 +190,20 @@ export function PlayerSetup({
     }
 
     try {
-      const playerName = `Player ${players.length + 1}`;
+      // Find the lowest unused "Player N" name instead of players.length + 1.
+      // Deriving the default name from the current count breaks once a
+      // player is removed from the middle of the list: e.g. add Player 1 and
+      // Player 2, remove Player 1, then Add Player computes length(1) + 1 =
+      // "Player 2" again — already taken by the remaining player — and
+      // stateService.addPlayer throws "already exists", silently blocking
+      // the add (fb:75101be7, "Can't add player"). Same fix pattern already
+      // used for shortId generation, see StateService.generateShortPlayerId().
+      const usedNames = new Set(players.map(p => p.name));
+      let playerNumber = players.length + 1;
+      while (usedNames.has(`Player ${playerNumber}`)) {
+        playerNumber++;
+      }
+      const playerName = `Player ${playerNumber}`;
       stateService.addPlayer(playerName);
     } catch (error: any) {
       alert(`Failed to add player: ${error.message}`);
