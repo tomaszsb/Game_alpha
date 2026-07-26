@@ -193,11 +193,17 @@ describe('aggregateVisitorStats', () => {
     expect(result.homeVsForeign).toEqual({ home: 1, foreign: 2 });
   });
 
-  it('redacts IPs to a /24-ish prefix by default and returns full IPs only when full=true', () => {
+  it('redacts IPs to a /24-ish prefix by default and returns full IPs only when full=true, and tags isHome/country per row', () => {
     const entries = [at(1, { ip: '90.128.59.214' })].filter(Boolean);
+    const geoLookup = (ip: string) => (ip === '90.128.59.214' ? 'LV' : null);
 
-    const redacted = aggregateVisitorStats(entries, { now: NOW, window: '24h' });
+    const redacted = aggregateVisitorStats(entries, {
+      now: NOW, window: '24h', geoLookup, geoAvailable: true,
+      isHomeIP: (ip: string) => ip === '90.128.59.214',
+    });
     expect(redacted.recent[0].ip).toBe('90.128.59.xxx');
+    expect(redacted.recent[0].isHome).toBe(true);
+    expect(redacted.recent[0].country).toBe('LV');
 
     const fullIps = aggregateVisitorStats(entries, { now: NOW, window: '24h', full: true });
     expect(fullIps.recent[0].ip).toBe('90.128.59.214');
@@ -218,6 +224,62 @@ describe('aggregateVisitorStats', () => {
 
     const bySearch = aggregateVisitorStats(entries, { now: NOW, window: '24h', filters: { search: 'find-me' } });
     expect(bySearch.totals.inWindow).toBe(1);
+  });
+
+  it('filters by home/foreign origin', () => {
+    const entries = [
+      at(1, { ip: '192.168.1.5' }),
+      at(1, { ip: '8.8.8.8' }),
+    ].filter(Boolean);
+    const isHomeIP = (ip: string) => ip.startsWith('192.168.');
+
+    const home = aggregateVisitorStats(entries, { now: NOW, window: '24h', isHomeIP, filters: { origin: 'home' } });
+    expect(home.totals.inWindow).toBe(1);
+    expect(home.recent[0].ip).toBe('192.168.1.xxx');
+
+    const foreign = aggregateVisitorStats(entries, { now: NOW, window: '24h', isHomeIP, filters: { origin: 'foreign' } });
+    expect(foreign.totals.inWindow).toBe(1);
+    expect(foreign.recent[0].ip).toBe('8.8.8.xxx');
+  });
+
+  it('builds a country breakdown from the injected geoLookup when geoAvailable is true', () => {
+    const entries = [
+      at(1, { ip: '1.1.1.1' }),
+      at(1, { ip: '2.2.2.2' }),
+      at(1, { ip: '3.3.3.3' }),
+    ].filter(Boolean);
+    const geoLookup = (ip: string) => ({ '1.1.1.1': 'US', '2.2.2.2': 'US', '3.3.3.3': 'LV' } as Record<string, string>)[ip] || null;
+
+    const result = aggregateVisitorStats(entries, { now: NOW, window: '24h', geoLookup, geoAvailable: true });
+    expect(result.geography.available).toBe(true);
+    expect(result.geography.byCountry).toEqual([
+      { country: 'US', count: 2 },
+      { country: 'LV', count: 1 },
+    ]);
+    expect(result.geography.unknownCount).toBe(0);
+  });
+
+  it('filters by country when a filter is given', () => {
+    const entries = [
+      at(1, { ip: '1.1.1.1' }),
+      at(1, { ip: '2.2.2.2' }),
+    ].filter(Boolean);
+    const geoLookup = (ip: string) => (ip === '1.1.1.1' ? 'US' : 'LV');
+
+    const result = aggregateVisitorStats(entries, { now: NOW, window: '24h', geoLookup, geoAvailable: true, filters: { country: 'US' } });
+    expect(result.totals.inWindow).toBe(1);
+    expect(result.recent[0].country).toBe('US');
+  });
+
+  it('reports geography as unavailable when geoAvailable is false, regardless of geoLookup', () => {
+    const entries = [at(1, {})].filter(Boolean);
+    const result = aggregateVisitorStats(entries, { now: NOW, window: '24h' });
+    expect(result.geography).toEqual({
+      available: false,
+      byCountry: [],
+      unknownCount: 1,
+      note: expect.any(String),
+    });
   });
 
   it('returns an empty-but-valid shape for an empty log', () => {

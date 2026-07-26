@@ -10,10 +10,14 @@
 // breakdowns, a recent-activity feed, and bot-detection metadata.
 //
 // Known data gaps (visitors.log doesn't currently capture these fields —
-// see server.js logVisitor()): no referrer header, no country/geo, no
-// client screen size. The aggregates below work only with what's actually
-// logged: timestamp, ip, device, userAgent, action, gameId, campaignSource,
-// playerCount, and the admin/teacher auth success/fail actions.
+// see server.js logVisitor()): no referrer header, no client screen size.
+// Country/geo is NOT a gap — it's derived at aggregation time from the `ip`
+// field already in every log line, via the injected `geoLookup` option (see
+// server.js, which wires in the geoip-lite local database — no MaxMind
+// account, no per-request outbound calls). The aggregates below work with
+// what's actually logged: timestamp, ip, device, userAgent, action, gameId,
+// campaignSource, playerCount, and the admin/teacher auth success/fail
+// actions.
 
 // LIST_GAMES is emitted only by the admin-only GET /api/games endpoint (the
 // maintainer's own AdminGameManager panel polling), never by a visitor
@@ -171,8 +175,10 @@ function bucketKey(ts, hourly) {
  * @param {'24h'|'7d'|'30d'|'all'} [options.window]
  * @param {boolean} [options.includeBots] - include bot-flagged traffic in real counts
  * @param {boolean} [options.full] - return full IPs instead of redacted prefixes
- * @param {{source?: string, action?: string, search?: string}} [options.filters]
+ * @param {{source?: string, action?: string, search?: string, country?: string, origin?: 'home'|'foreign'}} [options.filters]
  * @param {(ip: string) => boolean} [options.isHomeIP]
+ * @param {(ip: string) => string|null} [options.geoLookup] - IP -> ISO country code, or null/undefined if unknown
+ * @param {boolean} [options.geoAvailable] - true once the local geo database loaded successfully
  */
 export function aggregateVisitorStats(rawEntries, options = {}) {
   const {
@@ -182,6 +188,8 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
     full = false,
     filters = {},
     isHomeIP = () => false,
+    geoLookup = () => null,
+    geoAvailable = false,
   } = options;
 
   const entries = (rawEntries || []).filter((e) => e && typeof e._ts === 'number');
@@ -232,9 +240,9 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
       (e.ip || '').toLowerCase().includes(q) || (e.gameId || '').toLowerCase().includes(q)
     );
   }
-  // filters.country: no-op today -- visitors.log carries no geo field (see
-  // module comment). Accepted here so the client can wire the dropdown up
-  // front without a breaking API change once geo data exists.
+  if (filters.origin === 'home') pool = pool.filter((e) => isHomeIP(e.ip));
+  else if (filters.origin === 'foreign') pool = pool.filter((e) => !isHomeIP(e.ip));
+  if (filters.country) pool = pool.filter((e) => (geoLookup(e.ip) || 'unknown') === filters.country);
 
   // ---- traffic over time (bucketed) + games-created overlay ----
   const hourly = window === '24h';
@@ -284,18 +292,33 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
     else foreignCount++;
   }
 
+  // ---- geography: country derived from `ip` via the injected geoLookup ----
+  const byCountryCounts = new Map();
+  let geoUnknownCount = 0;
+  for (const e of pool) {
+    const country = geoLookup(e.ip);
+    if (country) {
+      byCountryCounts.set(country, (byCountryCounts.get(country) || 0) + 1);
+    } else {
+      geoUnknownCount++;
+    }
+  }
+  const byCountry = Array.from(byCountryCounts.entries())
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count);
+
   // ---- recent activity feed (newest first) ----
   const recent = pool
     .slice()
     .sort((a, b) => b._ts - a._ts)
     .slice(0, 20)
-    .map((e) => redact(e, full));
+    .map((e) => redact(e, full, isHomeIP, geoLookup));
 
   // ---- CSV-export slice: the same filtered pool, oldest first ----
   const exportRows = pool
     .slice()
     .sort((a, b) => a._ts - b._ts)
-    .map((e) => redact(e, full));
+    .map((e) => redact(e, full, isHomeIP, geoLookup));
 
   return {
     generatedAt: new Date(now).toISOString(),
@@ -311,18 +334,22 @@ export function aggregateVisitorStats(rawEntries, options = {}) {
     traffic,
     sources: { tagged: sources, untagged: untaggedCount },
     devices: { byOS: toSorted(byOS), byBrowser: toSorted(byBrowser), byFormFactor: toSorted(byFormFactor) },
-    geography: { available: false, note: 'No country/geo field in visitors.log yet -- see follow-up in CHANGELOG/TODO.' },
+    geography: geoAvailable
+      ? { available: true, byCountry, unknownCount: geoUnknownCount }
+      : { available: false, byCountry: [], unknownCount: pool.length, note: 'Local geo database did not load -- see server startup logs.' },
     homeVsForeign: { home: homeCount, foreign: foreignCount },
     recent,
     exportRows,
   };
 }
 
-function redact(e, full) {
+function redact(e, full, isHomeIP, geoLookup) {
   const { _ts, _isBot, _isAdminNoise, ip, ...rest } = e;
   return {
     ...rest,
     ip: full ? ip : ipPrefix(ip),
     isBot: _isBot,
+    isHome: isHomeIP(ip),
+    country: geoLookup(ip) || null,
   };
 }

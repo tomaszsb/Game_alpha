@@ -85,6 +85,7 @@
     "@jalez/react-flow-smart-edge": "^4.0.0",
     "@xyflow/react": "^12.10.2",
     "framer-motion": "^12.29.0",
+    "geoip-lite": "^1.4.10",
     "globals": "^17.0.0",
     "html2canvas": "^1.4.1",
     "nodemailer": "^9.0.3",

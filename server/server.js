@@ -18,6 +18,7 @@ import { processGameData } from './processGameData.js';
 import { timingSafeEqualStr, checkAdminPassword, checkFeedbackAccess } from './authGuards.js';
 import { isHomeIP as isHomeIPPure, ipv6Prefix64 } from './homeIP.js';
 import { parseLogLine, aggregateVisitorStats } from './visitorStats.js';
+import geoip from 'geoip-lite';
 import {
   DEFAULT_INSTANCE_ID,
   createInstance,
@@ -2513,6 +2514,20 @@ async function getVisitorLogEntries() {
 
 const STATS_WINDOWS = new Set(['24h', '7d', '30d', 'all']);
 
+// Country lookup for the stats dashboard's Geography section. geoip-lite
+// bundles its own local IP-range database (no MaxMind account, no
+// per-request outbound calls) and loads it synchronously at import time, so
+// there's no async "is it ready yet" state to track -- if the import above
+// succeeded, geoLookup is live from the first request on.
+function geoLookup(ip) {
+  try {
+    return geoip.lookup(ip)?.country || null;
+  } catch {
+    return null;
+  }
+}
+const GEO_AVAILABLE = typeof geoip?.lookup === 'function';
+
 // Admin-gated like /api/admin/playtest-stats -- exposes IPs (redacted to a
 // /24-ish prefix by default; ?full=true for the real addresses, still behind
 // the same admin password).
@@ -2523,13 +2538,17 @@ app.get('/api/admin/stats/summary', async (req, res) => {
     const window = STATS_WINDOWS.has(req.query.window) ? req.query.window : '30d';
     const includeBots = req.query.includeBots === 'true';
     const full = req.query.full === 'true';
+    const origin = req.query.origin === 'home' || req.query.origin === 'foreign' ? req.query.origin : undefined;
     const filters = {
       source: typeof req.query.source === 'string' ? req.query.source : undefined,
       action: typeof req.query.action === 'string' ? req.query.action : undefined,
       search: typeof req.query.search === 'string' ? req.query.search : undefined,
       country: typeof req.query.country === 'string' ? req.query.country : undefined,
+      origin,
     };
-    const result = aggregateVisitorStats(entries, { window, includeBots, full, filters, isHomeIP });
+    const result = aggregateVisitorStats(entries, {
+      window, includeBots, full, filters, isHomeIP, geoLookup, geoAvailable: GEO_AVAILABLE,
+    });
     res.json(result);
   } catch (err) {
     console.error('Failed to compute visitor stats:', err.message);

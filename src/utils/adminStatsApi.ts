@@ -23,6 +23,11 @@ export interface NamedCount {
   count: number;
 }
 
+export interface CountryCount {
+  country: string;
+  count: number;
+}
+
 export interface RecentEntry {
   timestamp: string;
   ip: string;
@@ -33,6 +38,8 @@ export interface RecentEntry {
   campaignSource?: string;
   playerCount?: number;
   isBot: boolean;
+  isHome: boolean;
+  country: string | null;
   [key: string]: unknown;
 }
 
@@ -60,7 +67,7 @@ export interface StatsSummary {
   traffic: TrafficBucket[];
   sources: { tagged: SourceCount[]; untagged: number };
   devices: { byOS: NamedCount[]; byBrowser: NamedCount[]; byFormFactor: NamedCount[] };
-  geography: { available: boolean; note: string };
+  geography: { available: boolean; byCountry: CountryCount[]; unknownCount: number; note?: string };
   homeVsForeign: { home: number; foreign: number };
   recent: RecentEntry[];
   exportRows: RecentEntry[];
@@ -74,6 +81,7 @@ export interface StatsFilters {
   action?: string;
   search?: string;
   country?: string;
+  origin?: 'home' | 'foreign';
 }
 
 export interface AdminStatsApiDeps {
@@ -98,6 +106,7 @@ export async function fetchStatsSummary(filters: StatsFilters = {}, d: AdminStat
   if (filters.action) params.set('action', filters.action);
   if (filters.search) params.set('search', filters.search);
   if (filters.country) params.set('country', filters.country);
+  if (filters.origin) params.set('origin', filters.origin);
 
   const response = await fetchFn(`${getURL()}/api/admin/stats/summary?${params.toString()}`, {
     headers: { 'x-admin-password': password },
@@ -109,10 +118,12 @@ export async function fetchStatsSummary(filters: StatsFilters = {}, d: AdminStat
   return response.json();
 }
 
+const CSV_COLUMNS = ['timestamp', 'ip', 'country', 'isHome', 'device', 'action', 'gameId', 'campaignSource', 'playerCount', 'isBot'];
+
 /** Builds a CSV string from the filtered export rows returned by the summary endpoint. */
 export function toCsv(rows: RecentEntry[]): string {
-  if (rows.length === 0) return 'timestamp,ip,device,action,gameId,campaignSource,playerCount,isBot\n';
-  const columns = ['timestamp', 'ip', 'device', 'action', 'gameId', 'campaignSource', 'playerCount', 'isBot'];
+  if (rows.length === 0) return CSV_COLUMNS.join(',') + '\n';
+  const columns = CSV_COLUMNS;
   const escape = (v: unknown) => {
     const s = v === undefined || v === null ? '' : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;

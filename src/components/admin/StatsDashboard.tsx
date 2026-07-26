@@ -77,6 +77,7 @@ export function StatsDashboard(): JSX.Element {
   const [includeBots, setIncludeBots] = useState(false);
   const [actionFilter, setActionFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [originFilter, setOriginFilter] = useState<'' | 'home' | 'foreign'>('');
   const [search, setSearch] = useState('');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [secondsAgo, setSecondsAgo] = useState(0);
@@ -90,6 +91,7 @@ export function StatsDashboard(): JSX.Element {
         action: actionFilter || undefined,
         source: sourceFilter || undefined,
         search: search || undefined,
+        origin: originFilter || undefined,
       });
       setData(summary);
       setError(null);
@@ -99,7 +101,7 @@ export function StatsDashboard(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [window_, includeBots, actionFilter, sourceFilter, search]);
+  }, [window_, includeBots, actionFilter, sourceFilter, originFilter, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -188,6 +190,11 @@ export function StatsDashboard(): JSX.Element {
             {data.sources.tagged.map((s) => <option key={s.source} value={s.source}>{s.source}</option>)}
           </select>
         )}
+        <select value={originFilter} onChange={(e) => setOriginFilter(e.target.value as '' | 'home' | 'foreign')} style={inputStyle}>
+          <option value="">Home + foreign</option>
+          <option value="home">🏠 Home only</option>
+          <option value="foreign">🌍 Foreign only</option>
+        </select>
         <input
           type="text" placeholder="Search IP or game ID" value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -254,11 +261,35 @@ export function StatsDashboard(): JSX.Element {
         )}
       </Section>
 
-      {/* Geography (no data yet) */}
-      <Section title="Geography">
-        <div style={{ color: colors.text.tertiary, fontSize: '0.85rem' }}>
-          Not available yet — visitors.log doesn't capture a country/IP-geo field. Follow-up: add a local GeoLite2 lookup server-side.
-        </div>
+      {/* Geography */}
+      <Section
+        title="Geography"
+        footer={data.geography.available ? `${data.geography.unknownCount} visit(s) with no resolvable country (private/local IPs, etc).` : undefined}
+      >
+        {!data.geography.available ? (
+          <div style={{ color: colors.text.tertiary, fontSize: '0.85rem' }}>{data.geography.note}</div>
+        ) : data.geography.byCountry.length === 0 ? (
+          <div style={{ color: colors.text.tertiary, fontSize: '0.85rem' }}>No visits with a resolvable country in this window.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', maxWidth: 360 }}>
+              <thead>
+                <tr style={{ textAlign: 'left', borderBottom: `1px solid ${colors.border.primary}` }}>
+                  <th style={{ padding: '4px 6px' }}>Country</th>
+                  <th style={{ padding: '4px 6px' }}>Visits</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.geography.byCountry.map((c) => (
+                  <tr key={c.country} style={{ borderBottom: `1px solid ${colors.border.primary}` }}>
+                    <td style={{ padding: '4px 6px' }}>{c.country}</td>
+                    <td style={{ padding: '4px 6px' }}>{c.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
 
       {/* Devices */}
@@ -294,11 +325,29 @@ export function StatsDashboard(): JSX.Element {
       </Section>
 
       {/* Home vs foreign */}
-      <Section title="Home vs. foreign traffic">
-        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.95rem' }}>
-          <div>🏠 Home: <strong>{data.homeVsForeign.home}</strong></div>
-          <div>🌍 Foreign: <strong>{data.homeVsForeign.foreign}</strong></div>
-        </div>
+      <Section
+        title="Home vs. foreign traffic"
+        footer="Home = your own detected/configured HOME_IP (see the foreign-game text alert feature). Filter the table below to Home only / Foreign only to inspect individual visits."
+      >
+        {(() => {
+          const { home, foreign } = data.homeVsForeign;
+          const total = home + foreign;
+          const homePct = total === 0 ? 0 : Math.round((home / total) * 100);
+          return (
+            <>
+              <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.95rem', marginBottom: '0.6rem' }}>
+                <div>🏠 Home: <strong>{home}</strong> {total > 0 && <span style={{ color: colors.text.tertiary, fontSize: '0.8rem' }}>({homePct}%)</span>}</div>
+                <div>🌍 Foreign: <strong>{foreign}</strong> {total > 0 && <span style={{ color: colors.text.tertiary, fontSize: '0.8rem' }}>({100 - homePct}%)</span>}</div>
+              </div>
+              {total > 0 && (
+                <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', border: `1px solid ${colors.border.primary}` }}>
+                  <div style={{ width: `${homePct}%`, background: CHART_COLORS[1] }} title={`Home: ${home} (${homePct}%)`} />
+                  <div style={{ width: `${100 - homePct}%`, background: CHART_COLORS[3] }} title={`Foreign: ${foreign} (${100 - homePct}%)`} />
+                </div>
+              )}
+            </>
+          );
+        })()}
       </Section>
 
       {/* Recent activity */}
@@ -309,7 +358,9 @@ export function StatsDashboard(): JSX.Element {
               <tr style={{ textAlign: 'left', borderBottom: `1px solid ${colors.border.primary}` }}>
                 <th style={{ padding: '4px 6px' }}>Time</th>
                 <th style={{ padding: '4px 6px' }}>Action</th>
+                <th style={{ padding: '4px 6px' }}>Origin</th>
                 <th style={{ padding: '4px 6px' }}>IP prefix</th>
+                <th style={{ padding: '4px 6px' }}>Country</th>
                 <th style={{ padding: '4px 6px' }}>Device</th>
                 <th style={{ padding: '4px 6px' }}>Game</th>
               </tr>
@@ -323,13 +374,15 @@ export function StatsDashboard(): JSX.Element {
                   >
                     <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                     <td style={{ padding: '4px 6px' }}>{entry.action}{entry.isBot ? ' 🤖' : ''}</td>
+                    <td style={{ padding: '4px 6px' }} title={entry.isHome ? 'Home' : 'Foreign'}>{entry.isHome ? '🏠' : '🌍'}</td>
                     <td style={{ padding: '4px 6px' }}>{entry.ip}</td>
+                    <td style={{ padding: '4px 6px' }}>{entry.country || '—'}</td>
                     <td style={{ padding: '4px 6px' }}>{entry.device || '—'}</td>
                     <td style={{ padding: '4px 6px' }}>{entry.gameId || '—'}</td>
                   </tr>
                   {expandedRow === i && (
                     <tr>
-                      <td colSpan={5} style={{ padding: '6px', background: colors.background.secondary, fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                      <td colSpan={7} style={{ padding: '6px', background: colors.background.secondary, fontSize: '0.75rem', wordBreak: 'break-all' }}>
                         <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(entry, null, 2)}</pre>
                       </td>
                     </tr>
@@ -337,7 +390,7 @@ export function StatsDashboard(): JSX.Element {
                 </React.Fragment>
               ))}
               {data.recent.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: colors.text.tertiary }}>No activity in this window.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '1rem', textAlign: 'center', color: colors.text.tertiary }}>No activity in this window.</td></tr>
               )}
             </tbody>
           </table>
