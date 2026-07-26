@@ -717,6 +717,30 @@ export class StateService implements IStateService {
     return this.currentState;
   }
 
+  /**
+   * Set the shared TV-display dark/light theme (GameState.tvDarkMode).
+   *
+   * Unlike PlayerPanelV2's per-device dark-mode toggle (localStorage,
+   * intentionally NOT synced — each player's phone can differ), the TV
+   * display is ONE shared physical screen a whole group is looking at, so
+   * it needs ONE live-synced value. This goes through the exact same
+   * notify()/broadcast path as every other state mutation (setMoving,
+   * setGamePhase, etc.), so it reaches every connected client via the
+   * existing WebSocket state-push pipeline for free — no new message type
+   * or parallel sync mechanism. This method itself has no permission check
+   * (same as every other StateService setter); the UI-layer gate (admin or
+   * a logged-in teacher only — the TV is a group display, not a personal
+   * preference) lives in GameLayout's canControlTVDisplay.
+   */
+  setTVDarkMode(value: boolean): GameState {
+    this.currentState = {
+      ...this.currentState,
+      tvDarkMode: value
+    };
+    this.notifyListeners();
+    return { ...this.currentState };
+  }
+
   selectDestination(destination: string | null): GameState {
     this.currentState = {
       ...this.currentState,

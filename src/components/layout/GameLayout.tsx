@@ -37,6 +37,8 @@ import { DictionaryHint } from '../../dictionary';
 import { PlayerDebug } from '../debug/PlayerDebug';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { ShutdownNotice } from '../common/ShutdownNotice';
+import { isAdminAuthenticated } from '../../utils/adminAuth';
+import { isTeacherLoggedIn } from '../../utils/teacherAuth';
 
 interface GameLayoutProps {
   viewPlayerId?: string;
@@ -85,6 +87,18 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  // Shared TV theme (GameState.tvDarkMode) — tracked here so the remote-control
+  // button rendered in ProjectProgress's toolbar reflects the current synced
+  // value and can flip it via stateService.setTVDarkMode(). This device's own
+  // dark/light preference (PlayerPanelWrapper/usePanelMode) is unrelated and
+  // untouched by this.
+  const [tvDarkMode, setTvDarkMode] = useState<boolean>(false);
+  // The shared TV screen is a group display, not a personal preference — same
+  // reasoning as G160's board-edges toggle (2026-07-26 correction). Only an
+  // admin or a logged-in teacher gets the remote-control button; a regular
+  // player sees nothing (ProjectProgress hides it when these props are
+  // undefined). Re-checked on every render, same pattern as BoardToggle.
+  const canControlTVDisplay = isAdminAuthenticated() || isTeacherLoggedIn();
 
   // v3.0.0 — BoardV3 retired. Previously this section managed a boardImpl
   // toggle (v3 vs canvas) that lived in localStorage; now BoardCanvas is the
@@ -688,6 +702,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
       setGamePhase(gameState.gamePhase);
       setPlayers(gameState.players);
       setCurrentPlayerId(gameState.currentPlayerId);
+      setTvDarkMode(gameState.tvDarkMode ?? false);
 
       // Track turn changes for notification clearing
       const previousTurn = turnNumber;
@@ -715,6 +730,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
     setCurrentPlayerId(currentState.currentPlayerId);
     setTurnNumber(currentState.globalTurnCount);
     setGameStateCompletedActions(currentState.completedActions);
+    setTvDarkMode(currentState.tvDarkMode ?? false);
 
     return () => {
       unsubscribe();
@@ -1128,6 +1144,8 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 isDisplaySettingsOpen={isDisplaySettingsOpen}
                 onToggleGlossary={handleToggleGlossary}
                 isGlossaryOpen={isDictionaryOpen}
+                tvDarkMode={canControlTVDisplay ? tvDarkMode : undefined}
+                onToggleTVDarkMode={canControlTVDisplay ? () => stateService.setTVDarkMode(!tvDarkMode) : undefined}
               />
             </div>
           )}

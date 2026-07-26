@@ -359,6 +359,23 @@ export interface GameState {
   // Random visual appearance assigned to each NPC role at game start.
   // Optional so existing saved games load without migration.
   npcAppearances?: NpcAppearances;
+
+  // ============================================================
+  // TV Display shared theme (TV dark mode remote control)
+  // ============================================================
+  // Unlike PlayerPanelV2's per-device dark/light toggle (localStorage,
+  // deliberately NOT synced — each player's own phone can differ), the TV
+  // display is ONE shared physical screen a whole group looks at. This is
+  // the single, live-synced value that flips it for every device watching;
+  // it rides the existing state-broadcast pipeline (StateService.notify ->
+  // WebSocket state_push) the same way a dice roll or move does — no new
+  // sync mechanism. The remote-control UI (ProjectProgress's "TV theme"
+  // button) is only shown to admin/teacher, not regular players — see
+  // GameLayout's canControlTVDisplay — but that's a UI-layer gate, not
+  // enforced by this field or StateService.setTVDarkMode() itself. Optional
+  // + defaults to false/light so existing saved games and test fixtures
+  // load without migration.
+  tvDarkMode?: boolean;
 }
 
 export interface PlayerAction {

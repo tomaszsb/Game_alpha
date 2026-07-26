@@ -45,13 +45,25 @@ interface ProjectProgressProps {
   onToggleGlossary?: () => void;
   /** Whether the glossary panel is currently open. */
   isGlossaryOpen?: boolean;
+  /** Current shared TV-display theme (GameState.tvDarkMode). Unlike this
+   *  device's own dark/light preference, this is ONE value shared by every
+   *  connected device — flipping it here updates the TV for everyone. The
+   *  TV is a group display, not a personal preference (same reasoning as
+   *  G160's board-edges toggle), so the parent (GameLayout) only ever
+   *  passes this when the current device is admin or a logged-in teacher.
+   *  Omit to hide the button (regular players, TVDisplay's own compact
+   *  toolbar via hideButtons, etc.). */
+  tvDarkMode?: boolean;
+  /** Callback to flip the shared TV theme. Provided by the parent, which
+   *  owns the stateService.setTVDarkMode() call and the admin/teacher gate. */
+  onToggleTVDarkMode?: () => void;
 }
 
 /**
  * ProjectProgress component displays global project progress for all players.
  * Shows current phase, overall progress, and player positions in the project lifecycle.
  */
-export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen }: ProjectProgressProps): JSX.Element {
+export function ProjectProgress({ players, currentPlayerId, dataService, gameRulesService, onToggleGameLog, onOpenRulesModal, onOpenDisplaySettings, hideButtons, compact, collapsed, onToggleCollapsed, isRulesOpen, isGameLogOpen, isDisplaySettingsOpen, onToggleGlossary, isGlossaryOpen, tvDarkMode, onToggleTVDarkMode }: ProjectProgressProps): JSX.Element {
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   // Active indicator helpers
@@ -269,6 +281,21 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                   <ActiveDot show={isGlossaryOpen} />
                 </button>
               )}
+              {onToggleTVDarkMode && (
+                <button
+                  onClick={onToggleTVDarkMode}
+                  title="Switch the shared TV screen between light and dark"
+                  style={{
+                    padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                    backgroundColor: '#607d8b', color: colors.white,
+                    border: `2px solid ${colors.white}`, borderRadius: '8px',
+                    cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
+                    position: 'relative', ...activeGlow(tvDarkMode)
+                  }}>
+                  <span>🌗</span>
+                  <ActiveDot show={tvDarkMode} />
+                </button>
+              )}
               <button onClick={() => {
                 const url = new URL(window.location.href);
                 if (url.searchParams.get('mode') === 'tv') {
@@ -424,8 +451,13 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
             { onClick: onToggleGameLog, icon: '🗒️', label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
             ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: '👁️', label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
             ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: '📖', label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),
+            // Remote control for the shared TV screen's theme (GameState.tvDarkMode).
+            // Only rendered for admin/teacher (GameLayout gates the props); a
+            // regular player never sees this button. Harmless no-op if no TV
+            // is currently connected to this game.
+            ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: '🌗', label: 'TV theme', bg: '#607d8b', active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
           ].map((btn, i) => (
-            <button key={i} onClick={btn.onClick} style={{
+            <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
               padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',
               backgroundColor: btn.bg, color: colors.white,
               border: `1px solid ${colors.white}`, borderRadius: '6px',

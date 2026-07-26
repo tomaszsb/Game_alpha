@@ -463,6 +463,14 @@ interface BoardCanvasProps {
    *  where the player drives the camera themselves.
    *  <!-- fb:feedback-1779569130947-9c075c16 --> */
   centerOnCurrent?: boolean;
+  /** Explicit dark/light override for board CHROME styling. When omitted,
+   *  falls back to this device's own persisted PlayerPanelV2 preference
+   *  (getStoredPanelMode) — the existing PC-mode behavior, unchanged.
+   *  TVDisplay passes this explicitly, resolved from the shared, synced
+   *  GameState.tvDarkMode field (one value for the whole shared screen,
+   *  NOT this device's own localStorage — the TV has no local preference
+   *  of its own to read). */
+  mode?: PanelMode;
 }
 
 function BoardCanvasInner({
@@ -475,6 +483,7 @@ function BoardCanvasInner({
   onPositionSaved,
   showBuffer = false,
   centerOnCurrent = false,
+  mode: modeProp,
 }: BoardCanvasProps) {
   const { dataService, stateService, movementService } = useGameContext();
   const { getViewport, setViewport, fitView, setCenter } = useReactFlow();
@@ -486,7 +495,11 @@ function BoardCanvasInner({
   // render rather than cached in a ref/effect: this component re-renders
   // often (hover, stateService subscribe below), so the value catches up to
   // a toggle flipped elsewhere without needing new cross-component plumbing.
-  const mode: PanelMode = getStoredPanelMode();
+  // TV dark mode: when the caller (TVDisplay) passes `mode` explicitly —
+  // resolved from the shared, synced GameState.tvDarkMode — that wins over
+  // this device's own localStorage. PC mode (GameLayout) never passes it,
+  // so behavior there is unchanged.
+  const mode: PanelMode = modeProp ?? getStoredPanelMode();
   // Measures the actual rendered container — needed to compute a tile-size-
   // aware viewport ourselves (see boardFingerprint / getViewportForBounds
   // usage below), since that has to match the real pixel dimensions React

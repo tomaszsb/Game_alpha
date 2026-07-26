@@ -389,6 +389,67 @@ describe('StateService', () => {
     });
   });
 
+  describe('TV display shared theme (tvDarkMode)', () => {
+    // Unlike the per-device PlayerPanelV2 dark-mode toggle, tvDarkMode is
+    // GameState surface: ONE value the TV display and every connected
+    // player's remote-control button read/write, synced via the normal
+    // notify()/WebSocket broadcast path (same as every other state field).
+
+    it('defaults to undefined (treated as light/false) on a fresh game — no fixture migration needed', () => {
+      const initialState = stateService.getGameState();
+
+      expect(initialState.tvDarkMode).toBeUndefined();
+    });
+
+    it('setTVDarkMode(true) sets tvDarkMode on the returned state', () => {
+      const newState = stateService.setTVDarkMode(true);
+
+      expect(newState.tvDarkMode).toBe(true);
+    });
+
+    it('setTVDarkMode(false) after true toggles it back', () => {
+      stateService.setTVDarkMode(true);
+      const newState = stateService.setTVDarkMode(false);
+
+      expect(newState.tvDarkMode).toBe(false);
+    });
+
+    it('persists on getGameState() after setting (not just the returned snapshot)', () => {
+      stateService.setTVDarkMode(true);
+
+      expect(stateService.getGameState().tvDarkMode).toBe(true);
+    });
+
+    it('does not mutate a previously-taken state snapshot (immutability)', () => {
+      const before = stateService.getGameState();
+
+      stateService.setTVDarkMode(true);
+
+      expect(before.tvDarkMode).toBeUndefined();
+    });
+
+    it('notifies subscribers the same way every other state mutation does, so it reaches every connected client via the existing broadcast path', () => {
+      const listener = vi.fn();
+      stateService.subscribe(listener);
+
+      stateService.setTVDarkMode(true);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener.mock.calls[0][0].tvDarkMode).toBe(true);
+    });
+
+    it('leaves unrelated state (players, gamePhase) untouched', () => {
+      stateService.addPlayer('Alice');
+      stateService.setGamePhase('PLAY');
+
+      const before = stateService.getGameState();
+      const after = stateService.setTVDarkMode(true);
+
+      expect(after.gamePhase).toBe(before.gamePhase);
+      expect(after.players).toEqual(before.players);
+    });
+  });
+
   describe('setChoiceResolution relay (fb:068a66f2)', () => {
     const choice = {
       id: 'choice-abc',

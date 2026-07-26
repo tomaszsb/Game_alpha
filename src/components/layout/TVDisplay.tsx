@@ -38,6 +38,13 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
   const [gamePhase, setGamePhase] = useState<GamePhase>('SETUP');
   const [players, setPlayers] = useState<Player[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
+  // Shared TV theme (GameState.tvDarkMode) — unlike PlayerPanelV2's per-device
+  // dark-mode toggle, this is ONE value for the whole shared screen, flipped
+  // remotely from any connected player's own device (ProjectProgress's "TV
+  // theme" button) and pushed here live via the normal state-broadcast path
+  // (same pipeline as a dice roll or move). Defaults to light when absent so
+  // existing saved games don't need migration.
+  const [tvDarkMode, setTvDarkMode] = useState<boolean>(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [showActionOverlay, setShowActionOverlay] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
@@ -59,6 +66,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
       setGamePhase(gameState.gamePhase);
       setPlayers(gameState.players);
       setCurrentPlayerId(gameState.currentPlayerId);
+      setTvDarkMode(gameState.tvDarkMode ?? false);
     });
 
     // Initialize
@@ -66,9 +74,16 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
     setGamePhase(currentState.gamePhase);
     setPlayers(currentState.players);
     setCurrentPlayerId(currentState.currentPlayerId);
+    setTvDarkMode(currentState.tvDarkMode ?? false);
 
     return unsubscribe;
   }, [stateService]);
+
+  // Resolved PanelMode for the shared TV screen — passed to both ScoreboardV2
+  // and BoardCanvas so the whole TV chrome/board reflects the same synced
+  // value. 'light'/'dark' string literals match PanelMode without importing
+  // the type just for this.
+  const tvMode: 'light' | 'dark' = tvDarkMode ? 'dark' : 'light';
 
   // Subscribe to game events for dramatic reveals
   useEffect(() => {
@@ -335,6 +350,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
               isAdmin={false}
               edgesVisible={true}
               centerOnCurrent={true}
+              mode={tvMode}
             />
           ) : gamePhase === 'SETUP' ? (
             <div style={styles.setupMessage}>
@@ -537,7 +553,7 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             >
               ✕ Close
             </button>
-            <ScoreboardV2 gameServices={gameServices} mode="light" />
+            <ScoreboardV2 gameServices={gameServices} mode={tvMode} />
           </div>
         </div>
       )}

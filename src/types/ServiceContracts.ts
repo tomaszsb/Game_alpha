@@ -327,6 +327,11 @@ export interface IStateService {
   setGameState(newState: GameState): GameState;
   updateGameState(stateChanges: Partial<GameState>): GameState;
 
+  // TV display shared theme (see GameState.tvDarkMode) — one value synced
+  // live to every connected device via the normal notify/broadcast path,
+  // unlike PlayerPanelV2's per-device dark-mode toggle.
+  setTVDarkMode(value: boolean): GameState;
+
   // Server synchronization methods
   loadStateFromServer(): Promise<boolean>;
   replaceState(newState: GameState, serverVersion?: number): void;

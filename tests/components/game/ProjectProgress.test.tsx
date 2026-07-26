@@ -259,6 +259,44 @@ describe('ProjectProgress', () => {
     expect(screen.getByText(/90d \/ 100d est/)).toBeInTheDocument();
   });
 
+  it('should not render the TV theme button when onToggleTVDarkMode is not provided', () => {
+    render(
+      <ProjectProgress
+        players={mockPlayers}
+        currentPlayerId="player1"
+        dataService={mockDataService}
+        gameRulesService={mockGameRulesService}
+        onToggleGameLog={mockOnToggleGameLog}
+        onOpenRulesModal={mockOnOpenRulesModal}
+      />
+    );
+
+    expect(screen.queryByText('TV theme')).not.toBeInTheDocument();
+  });
+
+  it('should render the TV theme button and call onToggleTVDarkMode when clicked', () => {
+    const mockOnToggleTVDarkMode = vi.fn();
+
+    render(
+      <ProjectProgress
+        players={mockPlayers}
+        currentPlayerId="player1"
+        dataService={mockDataService}
+        gameRulesService={mockGameRulesService}
+        onToggleGameLog={mockOnToggleGameLog}
+        onOpenRulesModal={mockOnOpenRulesModal}
+        tvDarkMode={false}
+        onToggleTVDarkMode={mockOnToggleTVDarkMode}
+      />
+    );
+
+    const tvThemeButton = screen.getByText('TV theme');
+    expect(tvThemeButton).toBeInTheDocument();
+
+    fireEvent.click(tvThemeButton);
+    expect(mockOnToggleTVDarkMode).toHaveBeenCalledTimes(1);
+  });
+
   it('should display multiple players with individual timelines', () => {
     const twoPlayers: any[] = [
       {
