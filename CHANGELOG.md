@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Ops] 2026-07-26 — cleaned up 56-levels-deep nested CLEAN_FILES/SOURCE_FILES debris on the live server (no app change)
+Maintainer noticed local dev-server board positions didn't match the live site and asked whether something wasn't syncing. Investigation found no actual sync bug (live drag-saved board positions are stored in the writable `game-data/CLEAN_FILES/GAME_CONFIG.csv` layer by deliberate design — see v2.66.0 — specifically so they survive deploys without a git round-trip; the repo's `SOURCE_FILES/Spaces.csv` correctly stays at the stock default on both sides). But while checking, found `server/data/game-data/CLEAN_FILES/CLEAN_FILES/CLEAN_FILES/...` nested **56 levels deep** (15MB) and the same pattern in `SOURCE_FILES` 18 levels deep (868KB).
+
+Root cause was already diagnosed and fixed in v2.69.7 (2026-05-22): an old `deploy.sh` restored editor backups with `cp -a` *after* `docker run`, racing the server's own `initWritableData()` — if the server won the race and had already created `SOURCE_FILES/`, `cp -a` nested the restore one level deeper inside it instead of replacing it. Fixed by moving the restore before `docker run` (race eliminated), but nobody went back to clean up the debris that had already accumulated from every affected deploy before that fix shipped.
+
+Verified inert before removing: `copyStockSubdirs`, `backupSourceFiles`, `reset-to-baseline`, and `processGameData` (server.js) only ever touch direct files, never recurse into subdirectories, so nothing in the current codebase reads the nested copies. Confirmed the top-level `CLEAN_FILES`/`SOURCE_FILES` directories had complete, current file sets before deleting the first nested level of each (`CLEAN_FILES/CLEAN_FILES`, `SOURCE_FILES/SOURCE_FILES` — removing the first level takes every deeper level with it). Live-verified after cleanup: site responds 200, `/health` shows 8 active games unaffected, and the board's custom position data is unchanged. Reclaimed ~15.4MB.
+
 ## [3.1.47] - 2026-07-26
 
 ### Build: "Bulk Discount" (E040)'s missing time-discount effect (maintainer decision 2026-07-25)
