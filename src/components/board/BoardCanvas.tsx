@@ -344,7 +344,28 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
           actions without opening the side panel. Hidden when required=0
           (e.g. movement-only spaces) so the chip isn't noise.
           <!-- fb:feedback-1779568815545-44221318 --> */}
-      {data.isCurrent && typeof data.actionsRequired === 'number' && data.actionsRequired > 0 && (
+      {data.isCurrent && typeof data.actionsRequired === 'number' && data.actionsRequired > 0 && (() => {
+        const isDone = (data.actionsCompleted ?? 0) >= data.actionsRequired;
+        // This chip only ever appears on the current player's tile, which is
+        // always a "big" (currentBig/expanded) size — its colors were
+        // hardcoded light-mode-only (never gated on isDark), so on a dark
+        // tile it kept showing a light pastel badge. Reuses the panel's
+        // existing dark palette (dp.good/goodSurf/goodBorder for "done");
+        // there's no dedicated dark "warn" text/border token yet, so the
+        // not-done state reuses warnSurf's amber hue directly for text/border
+        // rather than inventing a new palette field for one chip.
+        const colors = isDone
+          ? {
+              color: isDark ? dp.good : '#065f46',
+              background: isDark ? dp.goodSurf : '#d1fae5',
+              border: isDark ? dp.goodBorder : '#10b981',
+            }
+          : {
+              color: isDark ? '#fbbf24' : '#7c2d12',
+              background: isDark ? dp.warnSurf : '#fed7aa',
+              border: isDark ? 'rgba(245, 158, 11, 0.4)' : '#fb923c',
+            };
+        return (
         <div
           aria-label={`${data.actionsCompleted ?? 0} of ${data.actionsRequired} actions completed`}
           style={{
@@ -357,19 +378,20 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
             fontWeight: 700,
             fontFamily: 'system-ui, sans-serif',
             lineHeight: 1.2,
-            color: (data.actionsCompleted ?? 0) >= data.actionsRequired ? '#065f46' : '#7c2d12',
-            background: (data.actionsCompleted ?? 0) >= data.actionsRequired ? '#d1fae5' : '#fed7aa',
-            border: `1px solid ${(data.actionsCompleted ?? 0) >= data.actionsRequired ? '#10b981' : '#fb923c'}`,
+            color: colors.color,
+            background: colors.background,
+            border: `1px solid ${colors.border}`,
             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
             pointerEvents: 'none',
             zIndex: 5,
           }}
         >
-          {(data.actionsCompleted ?? 0) >= data.actionsRequired
+          {isDone
             ? '✓ done'
             : `${data.actionsCompleted ?? 0}/${data.actionsRequired}`}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

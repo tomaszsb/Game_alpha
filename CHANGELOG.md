@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.48] - 2026-07-26
+
+### Fix: current player's board tile showed a hardcoded light-mode action chip in dark mode
+Maintainer noticed "some tiles have dark mode but larger ones do not." Traced to `BoardCanvas.tsx`'s action-progress chip ("0/2" / "✓ done") — it only ever renders on the current player's tile, which is always the biggest tile size (`currentBig`/`expanded`, per `computeTileVisualState`'s five-step hierarchy), and its colors were hardcoded light-pastel hex (`#fed7aa`/`#7c2d12` etc.) with no `isDark` branch at all, unlike every other piece of chrome on the tile.
+
+Added a dark-mode branch reusing the player panel's existing dark palette (`panelPalettes.dark`): `good`/`goodSurf`/`goodBorder` for the "done" state. No dedicated dark "warning" text/border token exists yet for the "not done" state, so it reuses the same amber hue already established by `warnSurf` rather than inventing a new palette field for one chip.
+
+Verified: typecheck clean, production build clean, `BoardCanvas.test.ts` 20/20, full fast suite 2463/2464 (1 pre-existing skip, no flakes this run). Live-verified in the browser: toggled dark mode on/off via the real UI control on a live game board, read the chip's actual computed CSS both ways — light mode renders pixel-identical to before (`#fed7aa` background, `#7c2d12` text), dark mode now shows the intended amber-on-dark treatment matching the rest of the tile's dark chrome.
+
 ## [Ops] 2026-07-26 — cleaned up 56-levels-deep nested CLEAN_FILES/SOURCE_FILES debris on the live server (no app change)
 Maintainer noticed local dev-server board positions didn't match the live site and asked whether something wasn't syncing. Investigation found no actual sync bug (live drag-saved board positions are stored in the writable `game-data/CLEAN_FILES/GAME_CONFIG.csv` layer by deliberate design — see v2.66.0 — specifically so they survive deploys without a git round-trip; the repo's `SOURCE_FILES/Spaces.csv` correctly stays at the stock default on both sides). But while checking, found `server/data/game-data/CLEAN_FILES/CLEAN_FILES/CLEAN_FILES/...` nested **56 levels deep** (15MB) and the same pattern in `SOURCE_FILES` 18 levels deep (868KB).
 
