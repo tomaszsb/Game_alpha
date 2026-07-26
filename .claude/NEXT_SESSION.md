@@ -1,7 +1,7 @@
 # Next session starter — written 2026-07-26 by /koniec
 
 ## State at handoff
-- **Version:** v3.1.51 (committed + pushed) — **v3.1.50 confirmed deployed and live** 2026-07-26 (bundle-verified `"3.1.50"`); v3.1.51 not yet deployed.
+- **Version:** v3.1.51 — **confirmed deployed and live** 2026-07-26 (bundle-verified `"3.1.51"`, container logs clean, 9 games loaded).
 - **Branch:** master, clean.
 - **Last shipped:** standings-view redesign + the funding-gap duplication bug fixed at its root (v3.1.51) — both the top-bar pill and each player's comparison chip now call the same `computeProjectFinances()` the sidebar ledger uses, confirmed live with real numbers (all three surfaces agreed on `$275K`, not just at $0).
 - **Test suite:** fast suite 2477/2478 (1 pre-existing skip, no failures, clean run) + ghost gates 33/33 (10 files, 0 hard failures, 573.6s) — no regressions from this session's game-logic changes.
@@ -17,13 +17,13 @@
 - **Homeowner violation mechanic** — see top item 1.
 
 ## Suggested first move
-Nothing is blocked on a deploy right now, though v3.1.51 is sitting one deploy behind live — worth running `bash deploy.sh` before diving into new work so `/start`'s bundle-verification has something current to check. After that, the natural next step is the Homeowner-mechanic design conversation (the only item left that isn't a quick build), or picking one of the 4 newly-found card-effect gaps to get a maintainer decision on — each is the same "build it or rewrite the copy" shape as L021/E040 were.
+Nothing is blocked on a deploy — v3.1.51 is already live. The natural next step is the Homeowner-mechanic design conversation (the only item left that isn't a quick build), or picking one of the 4 newly-found card-effect gaps to get a maintainer decision on — each is the same "build it or rewrite the copy" shape as L021/E040 were.
 
 ## Suggested model for next session
 Sonnet 5 — the top-3 items are either a design conversation (needs the maintainer's judgment, not model horsepower) or scoped card-effect decisions/builds matching this session's established pattern.
 
 ## Reminders
 - Deploy command runs from a Windows terminal, not WSL: `ssh unraid "cd /mnt/user/appdata/Game_alpha && bash deploy.sh"`.
-- v3.1.51 is pending deploy as of this write-up.
+- v3.1.51 confirmed deployed and live as of this write-up.
 - The `E2E-AllPaths.test.ts` flake surfaced repeatedly this session under sustained multi-hour load (a different test name failing almost every run) — this is the already-documented resource-contention pattern (TODO Parking lot, tracked since 2026-07-13), not a new issue. Don't re-investigate from scratch if seen again; just re-run the file alone to confirm it's not a regression.
 - This session did a live SSH investigation of the Unraid server (checked container status, logs, and cleaned up historical nested-directory debris — see CLAUDE.md TACTICAL) — passwordless `ssh unraid` access is confirmed working.

@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
 **Last Updated:** July 26, 2026 — v3.1.41–v3.1.51 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
-**Status:** Beta — live in production; **v3.1.50 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.50"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
-**Current Version:** 3.1.51 (committed + pushed, not yet deployed)
+**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot).
+**Current Version:** 3.1.51 (deployed)
 
 ---
 
