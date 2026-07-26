@@ -30,7 +30,6 @@
 - [ ] **Pick one definition of "Funding raised"** — currently includes Owner contribution on some surfaces, excludes it on others.
 
 ### LOW — polish
-- [ ] **Rename `REGULATORY_REVIEW` → `REGULATORY` for consistency (cosmetic only, not a bug)** — fixloop investigated 2026-07-24 (see CHANGELOG): `GameRulesService.getCurrentActivityPhase()` already bridges the two names correctly; every Expeditor card's phase gate works today. A real rename touches ~30 CARDS_EXPANDED.csv rows (regenerate CLEAN_FILES) + `GameRulesService.ts` + 5 other files referencing `REGULATORY_REVIEW` — real regression risk for a cosmetic win, so do it carefully with full verification, not as a quick pass.
 - [ ] **Decide: "📜 Log" (bottom-floating panel) vs. "📜 History" (modal)** — same icon, overlapping content; keep both or collapse.
 
 ### QUIRKS — design decision needed (not necessarily bugs)

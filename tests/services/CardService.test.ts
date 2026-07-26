@@ -486,7 +486,7 @@ describe('CardService - Enhanced Coverage', () => {
       card_name: 'Regulatory Card',
       card_type: 'E' as const,
       description: 'Test regulatory card',
-      phase_restriction: 'REGULATORY_REVIEW',
+      phase_restriction: 'REGULATORY',
       cost: 0
     };
 

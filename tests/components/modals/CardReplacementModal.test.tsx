@@ -410,7 +410,7 @@ describe('CardReplacementModal', () => {
     };
     const regRep: Card = {
       card_id: 'E2', card_name: 'Paper Pusher', card_type: 'E', cost: 3000,
-      description: 'Handles regulatory filings', phase_restriction: 'REGULATORY_REVIEW',
+      description: 'Handles regulatory filings', phase_restriction: 'REGULATORY',
     };
     (mockDataService.getCardById as Mock).mockImplementation((id: string) =>
       id === 'E1' ? fundingRep : id === 'E2' ? regRep : null);

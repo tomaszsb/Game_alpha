@@ -699,7 +699,7 @@ export class CardService implements ICardService {
       case 'FUNDING':
         return 'FUNDING';
       case 'REGULATORY':
-        return 'REGULATORY_REVIEW';
+        return 'REGULATORY';
       default:
         return null;
     }

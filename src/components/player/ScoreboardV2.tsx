@@ -33,7 +33,7 @@ function approvalMark(status: string | undefined): { mark: string; dot: string; 
   }
 }
 
-// 'REGULATORY_REVIEW' → 'Regulatory Review' (player-language phase labels).
+// 'REGULATORY' → 'Regulatory' (player-language phase labels).
 function prettyPhase(phase: string): string {
   if (!phase || phase === 'UNKNOWN') return 'Getting started';
   return phase

@@ -256,7 +256,7 @@ export class GameRulesService implements IGameRulesService {
       case 'FUNDING':
         return 'FUNDING';
       case 'REGULATORY':
-        return 'REGULATORY_REVIEW';
+        return 'REGULATORY';
       default:
         // SETUP / OWNER / END are real lifecycle stages, but no card is ever
         // restricted to them — every phase_restriction is one of the 4 work

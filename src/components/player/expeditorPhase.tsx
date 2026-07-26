@@ -7,8 +7,7 @@ import { PHASE_COLORS } from '../../utils/boardCommon';
  * each serves; this maps an E card's `phase_restriction` to a colored label + a
  * sort order so same-phase expeditors cluster and duplicates are easy to spot
  * when deciding which to let go. Colors reuse the board's PHASE_COLORS so the
- * chip matches the tile/phase-bar palette (note E cards spell it
- * REGULATORY_REVIEW where the palette key is REGULATORY).
+ * chip matches the tile/phase-bar palette.
  *
  * Originally extracted from the classic panel's CardsSection (since deleted);
  * now used by CardReplacementModal's replace/return/give picker.
@@ -17,7 +16,7 @@ const NEUTRAL_PHASE = { border: '#9e9e9e', text: '#616161' };
 const EXPEDITOR_PHASES: Record<string, { label: string; colorKey: string; order: number }> = {
   FUNDING: { label: 'Funding', colorKey: 'FUNDING', order: 1 },
   DESIGN: { label: 'Design', colorKey: 'DESIGN', order: 2 },
-  REGULATORY_REVIEW: { label: 'Regulatory', colorKey: 'REGULATORY', order: 3 },
+  REGULATORY: { label: 'Regulatory', colorKey: 'REGULATORY', order: 3 },
   CONSTRUCTION: { label: 'Construction', colorKey: 'CONSTRUCTION', order: 4 },
 };
 

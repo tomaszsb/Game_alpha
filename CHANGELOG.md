@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.42] - 2026-07-25
+
+### Rename: `REGULATORY_REVIEW` → `REGULATORY` for consistency (fixloop, cosmetic — not a bug fix)
+TODO item flagged 2026-07-24: `CARDS_EXPANDED.csv`'s `phase_restriction` column spelled the Regulatory activity phase as `REGULATORY_REVIEW`, while the game's internal lifecycle-phase enum (and every other phase name — `FUNDING`/`DESIGN`/`CONSTRUCTION`) uses the short form. `GameRulesService.getCurrentActivityPhase()` and `CardService`'s equivalent already bridged the two names correctly, so no card gate was ever actually broken — this was purely a naming inconsistency, done carefully given the blast radius (34 CSV rows + 2 duplicated bridge functions + a phase-label map + player-facing display text + 3 test files).
+
+**Changed:** all 34 `REGULATORY_REVIEW` values in `CARDS_EXPANDED.csv` → `REGULATORY`; both `CardService.ts` and `GameRulesService.ts`'s `case 'REGULATORY':` bridge now returns `'REGULATORY'` (identity mapping, kept explicit rather than removed, matching the pattern of the other phase cases); `expeditorPhase.tsx`'s `EXPEDITOR_PHASES` map key renamed to match; a stale explanatory comment about the old mismatch removed. One thing the investigation caught that the original TODO note didn't mention: a `PlayerCardDetailV2` phase-wait hint (`"Regulatory Review phase"`, built by title-casing the raw phase string) now reads `"Regulatory phase"` — a real player-facing text change, verified correct and consistent with every other phase's single-word hint.
+
+Verified: typecheck clean, production build clean, full suite 2457/2458 (1 pre-existing skip) — identical pass count before and after (`git stash` diffed). Live-verified in-browser: drew an Expeditor card with the renamed `phase_restriction` via "Hire 3 Expeditors," confirmed its phase gate and detail-view text both render correctly pre- and post-Regulatory-phase.
+
 ## [3.1.41] - 2026-07-25
 
 ### Fix: "Add Player" silently failed after removing a non-last player (fixloop, dashboard report)

@@ -26,7 +26,7 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     effects_on_play: 'Saves 2 days on the current filing.',
     money_effect: '-8000',
     tick_modifier: '-2',
-    phase_restriction: 'REGULATORY_REVIEW',
+    phase_restriction: 'REGULATORY',
     is_transferable: true,
   };
 
@@ -64,7 +64,7 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
     expect(screen.getByText('⚡ Expeditor')).toBeInTheDocument();      // type chip
     expect(screen.getByText('$8,000')).toBeInTheDocument();           // cost fact
     expect(screen.getByText('2 days')).toBeInTheDocument();           // time fact
-    expect(screen.getByText(/REGULATORY_REVIEW only/)).toBeInTheDocument(); // phase fact
+    expect(screen.getByText(/REGULATORY only/)).toBeInTheDocument(); // phase fact
     expect(screen.getByText(/Why this matters/i)).toBeInTheDocument(); // teaching callout
   });
 
@@ -147,14 +147,14 @@ describe('PlayerCardDetailV2 — detailed-card view (§5)', () => {
   });
 
   // The "not yet" phase hint explains the missing Activate (mirrors the classic
-  // panel's "Can only be activated during X phase"). E030 is REGULATORY_REVIEW-
-  // restricted, so the raw code prettifies to "Regulatory Review".
+  // panel's "Can only be activated during X phase"). E030 is REGULATORY-
+  // restricted, so the raw code prettifies to "Regulatory".
   it('shows a "not yet" phase hint when a phase-restricted expeditor is blocked', () => {
     services.cardService.canPlayCard.mockReturnValue(false);
     renderDetail();
     const hint = screen.getByTestId('phase-wait-hint');
     expect(hint).toHaveTextContent(/Not yet/i);
-    expect(hint).toHaveTextContent(/Regulatory Review phase/i);
+    expect(hint).toHaveTextContent(/Regulatory phase/i);
   });
 
   it('shows no phase hint once the expeditor is playable', () => {
