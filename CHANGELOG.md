@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.52] - 2026-07-26
+
+### Fix: "Press Release" (E036) missing high-profile time-discount effect (fixloop)
+Card description said "If the current client is high-profile reduce the filing time by 3 days" but had zero implemented effect (`tick_modifier=0`, empty `card_mechanic`) — the same zero-effect shape as E040/L021 before their fixes, flagged in TODO.md 2026-07-26 as a likely quick fix rather than a new design question, since L044 "State Funding" already implements the identical idea ("If the current project is high-profile, its filing time is reduced by 4 days" via `tick_modifier=-4` + `card_mechanic=high_profile_conditional`) and `CardService.playerInvolvesHighProfile()` already gates it correctly.
+
+Pure data fix, no code change: set E036's `tick_modifier` to `-3` (matching the description's "3 days") and `card_mechanic` to `high_profile_conditional`, reusing L044's existing mechanic as-is.
+
+Verified: typecheck clean, production build clean, targeted `CardService.test.ts` high_profile_conditional tests 2/2, `cardTextMatchesColumns.test.ts` (the integrity gate that would have caught this exact description/effect mismatch) 11/11.
+
 ## [Ops] 2026-07-26 — actually fixed `npm audit`'s 6 high-severity findings (supersedes the re-verification below)
 
 The scheduled task below (same day, earlier run) re-confirmed the vulnerabilities but only retried the known dead end (`npm audit fix --force`, which forces ESLint to a major version `eslint-plugin-react` doesn't support). Went one step further: the actual chain is `eslint` + `eslint-plugin-react` → nested `minimatch@3.1.5` → vulnerable `brace-expansion`. Since `minimatch@10.2.5` (already used elsewhere in this project's tree by `@typescript-eslint`) pulls in an already-patched `brace-expansion`, added a package.json `"overrides"` entry forcing `minimatch` to `^10.2.5` project-wide — no change to `eslint`'s own major version, so `eslint-plugin-react`'s lack of ESLint-10 support never comes into play.
