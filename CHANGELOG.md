@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.58] - 2026-07-26
+
+### Fix: yarn ball wasn't actually rendering — LogoTransform.tsx bug found while pulling live markup for review
+Caught while extracting the real DOM markup to update the maintainer-facing preview page: `LogoTransform.tsx`'s `ballBlocks()` and `ridges` (the pixel-grid yarn ball) were dropped straight into JSX as raw `Block[]` tuples — `[x, y, w, h, color]` arrays of numbers/strings — never mapped to actual `<rect>` elements the way `bookBlocks` correctly was a few lines below. React silently rendered the tuple contents as flattened text nodes instead (invisible inside an `<svg>`, since raw text outside a `<text>` element isn't drawn), so the yarn ball had never actually appeared on screen since it shipped in v3.1.57 — only the badge frame, thread, and book were ever visible. No console error, no type error (an array of arrays of primitives is a valid `ReactNode`), and none of this session's DOM-structure checks happened to assert on the ball's own `<rect>` count, so it went unnoticed until a literal `outerHTML` pull for an unrelated review task surfaced the garbled text content.
+
+Fixed with a small `renderBlocks()` helper shared by all three block arrays (ball, ridges, book) instead of three near-duplicate inline `.map()`s.
+
+Verified: typecheck clean, production build clean. Live-confirmed via the running dev server: the fixed logo renders 53 real `<rect>` elements (was 3 — badge, and the two elements that happen to also be typed correctly), pulled the exact live `outerHTML` to confirm the yarn ball's dithered shading bands are now actually painted.
+
 ## [3.1.57] - 2026-07-26
 
 ### Fix: gear icon read as a sun; rebuild avatars in a genuine pixel-art style for real differentiation

@@ -74,6 +74,12 @@ const bookBlocks: Block[] = [
 
 const THREAD_D = 'M17,20 C14,23 9,24 7,27 C5,30 8,32 11,31';
 
+function renderBlocks(blocks: Block[], keyPrefix: string): JSX.Element[] {
+  return blocks.map(([x, y, w, h, color], i) => (
+    <rect key={`${keyPrefix}${i}`} x={x} y={y} width={w} height={h} fill={color} />
+  ));
+}
+
 export function LogoTransform({ size = 64, className, style }: LogoTransformProps): JSX.Element {
   return (
     <svg
@@ -116,11 +122,9 @@ export function LogoTransform({ size = 64, className, style }: LogoTransformProp
         vectorEffect="non-scaling-stroke"
       />
 
-      {ballBlocks()}
-      {ridges}
-      {bookBlocks.map(([x, y, w, h, color], i) => (
-        <rect key={i} x={x} y={y} width={w} height={h} fill={color} />
-      ))}
+      {renderBlocks(ballBlocks(), 'ball')}
+      {renderBlocks(ridges, 'ridge')}
+      {renderBlocks(bookBlocks, 'book')}
     </svg>
   );
 }
