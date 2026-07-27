@@ -15,6 +15,11 @@ Deliberately left alone: the collapsed "mini bar" card for non-active players in
 
 Verified: typecheck clean, production build clean, `playerPanelVisibility.test.ts` (9) + `PlayerPanelV2.test.tsx` (27) = 36/36 passing with no assertion changes needed. Live-verified in a real 2-player game via computed DOM styles in both modes: outer container now `border: 0px none` / `background: transparent` / `borderRadius: 0px`, while the inner card keeps its own `1px solid #d7dde6` on `#ffffff` (light) and `1px solid #334155` on `#0f172a` (dark) at `borderRadius: 18px`. Closes feedback-1784463099950-101702ed.
 
+### Ops: glossary auto-sync finally deployed — nightly runs unblocked after ~11 days of silent failure
+Cross-repo, recorded here because TODO.md tracked it. The `dictionary-scraper` model fix (commit `0278955`, written 2026-07-26) had never been copied to Unraid, so every nightly glossary run since ~2026-07-16 was still dying on `claude-3-haiku-20240307` — a model Anthropic retired, returning 404. Note this was a *second* wall: the 2026-07-16 credit top-up genuinely fixed the earlier "credit balance too low" error, which masked the fact that a different failure was waiting behind it.
+
+Maintainer pushed `0278955` and deployed it 2026-07-27 (`scp` of `dashboard/backend/main.py` + `src/process.py` → `/mnt/user/appdata/dictionary-scraper/`, then `docker restart dictionary-scraper-backend`; the compose file was deliberately not touched, since the dashboard's compose has drifted from the repo for hardening reasons). Verified live inside the running container: `GLOSSARY_DRAFT_MODEL` now resolves to `claude-haiku-4-5-20251001`, backend restarted clean on uvicorn with no startup errors. The `dictionary-scraper-scheduler` container was intentionally left running — `main.py` is the active nightly path and lives in the backend; `src/process.py` was fixed for consistency only.
+
 ## [3.1.61] - 2026-07-27
 
 ### Build: player avatars extended to the board and TV scoreboard; remaining emoji swept for icon consistency (maintainer follow-up on v3.1.60)
