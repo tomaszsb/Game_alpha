@@ -12,6 +12,7 @@ import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
 import { PlayerAvatar } from '../common/PlayerAvatar';
 import { friendlySpaceName } from '../../utils/logFormatting';
 import { computeProjectFinances } from '../../utils/projectFinances';
+import { IconMoon, IconClipboard, IconNotepad, IconEye, IconBookOpen } from '../icons/SetupIcons';
 
 interface ProjectProgressProps {
   /** An array of Player objects participating in the game. */
@@ -297,7 +298,7 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
                     cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px',
                     position: 'relative', ...activeGlow(tvDarkMode)
                   }}>
-                  <span>🌗</span>
+                  <IconMoon size="0.85em" />
                   <ActiveDot show={tvDarkMode} />
                 </button>
               )}
@@ -452,15 +453,15 @@ export function ProjectProgress({ players, currentPlayerId, dataService, gameRul
         </div>
         {!hideButtons && <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {[
-            { onClick: onOpenRulesModal, icon: '📋', label: 'Rules', bg: colors.purple.main, active: isRulesOpen },
-            { onClick: onToggleGameLog, icon: '🗒️', label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
-            ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: '👁️', label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
-            ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: '📖', label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),
+            { onClick: onOpenRulesModal, icon: <IconClipboard size="1em" />, label: 'Rules', bg: colors.purple.main, active: isRulesOpen },
+            { onClick: onToggleGameLog, icon: <IconNotepad size="1em" />, label: 'Log', bg: colors.primary.main, active: isGameLogOpen },
+            ...(onOpenDisplaySettings ? [{ onClick: onOpenDisplaySettings, icon: <IconEye size="1em" />, label: 'View', bg: colors.success.main, active: isDisplaySettingsOpen }] : []),
+            ...(onToggleGlossary ? [{ onClick: onToggleGlossary, icon: <IconBookOpen size="1em" />, label: 'Glossary', bg: '#ff9800', active: isGlossaryOpen }] : []),
             // Remote control for the shared TV screen's theme (GameState.tvDarkMode).
             // Only rendered for admin/teacher (GameLayout gates the props); a
             // regular player never sees this button. Harmless no-op if no TV
             // is currently connected to this game.
-            ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: '🌗', label: 'TV theme', bg: '#607d8b', active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
+            ...(onToggleTVDarkMode ? [{ onClick: onToggleTVDarkMode, icon: <IconMoon size="1em" />, label: 'TV theme', bg: '#607d8b', active: tvDarkMode, title: 'Switch the shared TV screen between light and dark' }] : []),
           ].map((btn, i) => (
             <button key={i} onClick={btn.onClick} title={(btn as { title?: string }).title} style={{
               padding: '3px 6px', fontSize: '10px', fontWeight: 'bold',

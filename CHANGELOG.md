@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.57] - 2026-07-26
+
+### Fix: gear icon read as a sun; rebuild avatars in a genuine pixel-art style for real differentiation
+Maintainer feedback on v3.1.56: the avatars still "look too similar," the settings gear icon "looks like a sun and makes me think I can turn on dark mode," and the animated logo still "looks like svg." Three fixes:
+
+**Gear icon.** The previous version was a circle with 8 thin radiating lines — structurally a sun/asterisk shape, not a gear. Rebuilt as an actual ring with 8 square teeth (`SetupIcons.tsx`'s `IconGear`), the standard cog silhouette.
+
+**Dark/light toggle now has an icon at all.** The maintainer's "sun" confusion pointed at a real gap: the TV-theme dark/light toggle (`ProjectProgress.tsx`, admin/teacher-only remote control for `GameState.tvDarkMode`) was still rendering the raw 🌗 emoji — added `IconMoon` (a crescent, the standard convention for this control) and wired it in, along with the toolbar's 3 sibling emoji (📋 Rules → `IconClipboard`, 🗒️ Log → `IconNotepad`, 📖 Glossary → `IconBookOpen`; 👁️ View reused the existing `IconEye`) for consistency within the same button row.
+
+**Avatars rebuilt in genuine pixel-art style.** The v3.1.56 avatars (same silhouette + a small corner badge) read as too similar. Rebuilt `AvatarIcons.tsx` as flat-color, hard-edged sprites on a 16×16 grid (`shapeRendering="crispEdges"`, no gradients/anti-aliasing — real pixel-art technique, not just a "chunky" vector look) with a genuinely different silhouette per role (short hair / long hair / hard hat / beret) crossed with a bold, distinct solid clothing color per role (navy, plum, orange, teal, purple, maroon, etc.) and a bigger held accessory (briefcase, wrench, laptop, palette, book) instead of a tiny badge — every avatar now differs in silhouette AND color AND accessory, not just one small detail.
+
+**Logo rebuilt the same way.** `LogoTransform.tsx`'s ball and book are now built from the same flat-color pixel-grid technique — the yarn ball is hand-rasterized (per-row horizontal spans) with 3 dithered shade bands instead of a smooth gradient, and the badge frame simplified from a circle to a rounded square (a circle doesn't read cleanly at this grid resolution). Only the connecting thread still animates.
+
+**On PixelLab.ai specifically** (raised by the maintainer mid-session): confirmed via git history that a past session generated 72 real AI portraits for the game's NPC characters (`public/images/characters/`, wired into `src/constants/characters.ts`) using a hardcoded API key in a since-deleted script (`generate_female_sprites.sh`, commit `02d7117`) — the same key TODO.md already flags for rotation. Did not reuse that leaked key. If the maintainer wants real AI-generated pixel art for player avatars (rather than this hand-authored version), that needs a freshly rotated key — tracked separately, not part of this fix.
+
+Verified: typecheck clean, production build clean. Full regression across every touched file: 114 tests passing (`ProjectProgress`, `PlayerList`, `PlayerMobileView`, `JoinByCodePanel`, `PhoneScreenWarning`, `PlayerAvatar`, `SpaceExplorerPanel`, `NegotiationModal`, `VersionBadge`, dictionary panel/text-with-terms). One test (`ProjectProgress.test.tsx`'s "individual player progress" check) needed updating — it asserted on the raw `👤` emoji appearing in `textContent`, which is now correctly absent since that avatar renders as an SVG; rewrote it to locate the avatar by its existing `title` attribute and assert an `<svg>` renders inside it instead.
+
 ## [3.1.56] - 2026-07-26
 
 ### Fix: logo animation didn't match the actual logo; extend the icon set to player avatars (maintainer feedback on v3.1.55)

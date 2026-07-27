@@ -67,17 +67,64 @@ export function IconWarning(props: IconProps): JSX.Element {
   );
 }
 
-/** Replaces ⚙️ (settings gear button) */
+/** Replaces ⚙️ (settings gear button) — a ring with 8 square teeth, not
+ * thin radiating lines (an earlier version of this read as a sun/star). */
 export function IconGear(props: IconProps): JSX.Element {
+  const teeth = [0, 45, 90, 135, 180, 225, 270, 315];
   return (
     <Svg {...props}>
-      <circle cx="12" cy="12" r="3.1" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="3.2" fill="none" />
+      {teeth.map((deg) => (
+        <rect key={deg} x="10.6" y="1.6" width="2.8" height="3.4" rx="0.5" fill="currentColor" transform={`rotate(${deg} 12 12)`} />
+      ))}
+    </Svg>
+  );
+}
+
+/** Replaces 🌗 (light/dark theme toggle — a crescent moon, the standard
+ * convention for this control) */
+export function IconMoon(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
       <path
-        d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9L6.3 6.3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
+        d="M20.5 14.8A9 9 0 1 1 10.2 3.5 7 7 0 0 0 20.5 14.8Z"
+        fill="currentColor"
       />
+    </Svg>
+  );
+}
+
+/** Replaces 📋 (Rules button) */
+export function IconClipboard(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <rect x="5" y="4" width="14" height="17" rx="1.8" stroke="currentColor" strokeWidth="2" />
+      <rect x="9" y="2.5" width="6" height="3" rx="1" fill="currentColor" />
+      <line x1="7.5" y1="10" x2="16.5" y2="10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="7.5" y1="13.5" x2="16.5" y2="13.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="7.5" y1="17" x2="13" y2="17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Replaces 🗒️ (Log button) */
+export function IconNotepad(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <rect x="4.5" y="3" width="15" height="18" rx="1.6" stroke="currentColor" strokeWidth="2" />
+      <line x1="7.5" y1="8" x2="16.5" y2="8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="7.5" y1="11.5" x2="16.5" y2="11.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="7.5" y1="15" x2="13" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Replaces 📖 (Glossary button) */
+export function IconBookOpen(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <path d="M12 5.5c-1.8-1.4-4.4-2-7-2v14c2.6 0 5.2.6 7 2 1.8-1.4 4.4-2 7-2v-14c-2.6 0-5.2.6-7 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <line x1="12" y1="5.5" x2="12" y2="19.5" stroke="currentColor" strokeWidth="1.8" />
     </Svg>
   );
 }

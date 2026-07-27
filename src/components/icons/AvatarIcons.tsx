@@ -2,9 +2,12 @@
 //
 // Custom replacements for AVAILABLE_AVATARS (usePlayerValidation.ts) — the
 // same cross-platform emoji problem as SetupIcons.tsx, applied to player
-// avatars. A shared silhouette (round head + shoulders) with a hairstyle
-// silhouette (short/long) and a small role badge in the corner, so the 10
-// options read as a consistent set rather than 10 unrelated pictures.
+// avatars. Built as flat-color, hard-edged "pixel art" style sprites (a
+// small grid of rectangles, crisp edges, no gradients/anti-aliasing) rather
+// than thin-line icons — a first pass using a shared silhouette + a small
+// corner badge read as too similar at a glance; this version gives each
+// avatar its own hair/hat silhouette AND a bold, distinct clothing color,
+// plus a bigger held accessory instead of a tiny badge.
 //
 // player.avatar itself is UNCHANGED — still the raw emoji string from
 // AVAILABLE_AVATARS, still what's compared/validated/persisted everywhere.
@@ -19,127 +22,249 @@ export interface AvatarIconProps {
   className?: string;
 }
 
-function Base({
+type Block = [x: number, y: number, w: number, h: number, color: string];
+
+const GRID = 16;
+
+function Sprite({
   size = '1em',
   style,
   className,
-  children,
-}: AvatarIconProps & { children: React.ReactNode }): JSX.Element {
+  blocks,
+}: AvatarIconProps & { blocks: Block[] }): JSX.Element {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
-      fill="none"
+      viewBox={`0 0 ${GRID} ${GRID}`}
+      shapeRendering="crispEdges"
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style }}
-      className={className}
       aria-hidden="true"
     >
-      {children}
+      {blocks.map(([x, y, w, h, color], i) => (
+        <rect key={i} x={x} y={y} width={w} height={h} fill={color} />
+      ))}
     </svg>
   );
 }
 
-/** Head + shoulders, shared by every avatar. */
-const bust = (
-  <>
-    <circle cx="16" cy="13" r="6.4" fill="currentColor" />
-    <path d="M4 28c0-6.6 5.4-10.5 12-10.5S28 21.4 28 28" fill="currentColor" />
-  </>
-);
+// ---- Shared palette ----
+const SKIN = '#e3ac7a';
+const EYE = '#22201c';
 
-const hairShort = <path d="M9.8 12.2c0-4.2 2.8-6.8 6.2-6.8s6.2 2.6 6.2 6.8c0-2.6-2.5-4.2-6.2-4.2s-6.2 1.6-6.2 4.2Z" fill="currentColor" opacity="0.55" />;
-const hairLong = <path d="M9.2 12c0-4.3 2.9-6.9 6.8-6.9s6.8 2.6 6.8 6.9v6.6c0 .9-.7 1.5-1.4 1L20 17.8v-4.4c-1.1.9-2.5 1.4-4 1.4s-2.9-.5-4-1.4v4.6l-1.6 1.7c-.6.6-1.6.2-1.6-.6V12Z" fill="currentColor" opacity="0.55" />;
+// ---- Shared face block (same for everyone — differentiation comes from
+// hair silhouette, clothing color, and accessory, not facial detail) ----
+const face: Block[] = [
+  [5, 3, 6, 5, SKIN],   // face
+  [6, 6, 1, 1, EYE],    // left eye
+  [9, 6, 1, 1, EYE],    // right eye
+];
 
-/** No badge — the neutral default avatar. */
+// ---- Hair / headwear silhouettes ----
+function hairShort(color: string): Block[] {
+  return [
+    [4, 1, 8, 2, color],
+    [4, 3, 1, 3, color],
+    [11, 3, 1, 3, color],
+  ];
+}
+function hairLong(color: string): Block[] {
+  return [
+    [3, 1, 10, 2, color],
+    [3, 3, 2, 7, color],
+    [11, 3, 2, 7, color],
+  ];
+}
+function hardHat(shell: string, brim: string): Block[] {
+  return [
+    [3, 0, 10, 3, shell],
+    [2, 2, 12, 1, brim],
+  ];
+}
+function beret(color: string, puff: string): Block[] {
+  return [
+    [4, 0, 8, 2, color],
+    [10, -1, 2, 2, puff],
+  ];
+}
+
+// ---- Clothing (torso) blocks ----
+function torso(primary: string, accent?: Block): Block[] {
+  const base: Block[] = [[2, 9, 12, 6, primary]];
+  return accent ? [...base, accent] : base;
+}
+
+// ---- Individually composed sprites ----
+
+/** 👤 default — neutral, no hair color, no accessory */
 export function AvatarPerson(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairShort}</Base>;
-}
-
-/** Briefcase badge — business/owner roles. */
-function briefcaseBadge(cx: number, cy: number) {
   return (
-    <g transform={`translate(${cx - 4.2} ${cy - 3.4})`}>
-      <rect x="0" y="1.6" width="8.4" height="6" rx="1.1" fill="#fff" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M2.6 1.6v-.9c0-.7.6-1.2 1.2-1.2h1c.6 0 1.2.5 1.2 1.2v.9" stroke="currentColor" strokeWidth="1.1" fill="none" />
-    </g>
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairShort('#8a8a8a'),
+        ...face,
+        ...torso('#94a3b8'),
+      ]}
+    />
   );
 }
+
+/** 👨‍💼 business (male) — navy suit + red tie + briefcase */
 export function AvatarBusinessMale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairShort}{briefcaseBadge(24, 25)}</Base>;
+  return (
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairShort('#3b2a1a'),
+        ...face,
+        ...torso('#1e2a4a', [7, 9, 2, 6, '#c23b3b']),
+        [11, 11, 4, 4, '#8a5a2b'], // briefcase
+        [12, 11, 2, 1, '#3a2411'], // briefcase handle
+      ]}
+    />
+  );
 }
+
+/** 👩‍💼 business (female) — plum blazer + gold tie + briefcase */
 export function AvatarBusinessFemale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairLong}{briefcaseBadge(24, 25)}</Base>;
-}
-
-/** Wrench badge — technician/expeditor roles. */
-function wrenchBadge(cx: number, cy: number) {
   return (
-    <g transform={`translate(${cx - 4} ${cy - 4})`}>
-      <circle cx="4" cy="4" r="4.6" fill="#fff" stroke="currentColor" strokeWidth="1" />
-      <path d="M2 6.2L5.6 2.6a1.7 1.7 0 0 1 2.3 2.3L4.3 8.4a1.2 1.2 0 0 1-1.9-.2L1 6.9a1 1 0 0 1 1-.7Z" fill="currentColor" />
-    </g>
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairLong('#3b2a1a'),
+        ...face,
+        ...torso('#5b2a5e', [7, 9, 2, 6, '#d9a441']),
+        [11, 11, 4, 4, '#8a5a2b'],
+        [12, 11, 2, 1, '#3a2411'],
+      ]}
+    />
   );
 }
+
+/** 👨‍🔧 technician (male) — hard hat + hi-vis orange overalls + wrench */
 export function AvatarTechMale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairShort}{wrenchBadge(24, 25)}</Base>;
-}
-export function AvatarTechFemale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairLong}{wrenchBadge(24, 25)}</Base>;
-}
-
-/** Laptop badge — developer/data roles. */
-function laptopBadge(cx: number, cy: number) {
   return (
-    <g transform={`translate(${cx - 4.4} ${cy - 3.4})`}>
-      <rect x="0.4" y="0.4" width="8" height="5" rx="0.8" fill="#fff" stroke="currentColor" strokeWidth="1" />
-      <path d="M0 6.6h8.8l1 1.4H-1l1-1.4Z" fill="currentColor" />
-    </g>
+    <Sprite
+      {...props}
+      blocks={[
+        ...hardHat('#e8a13a', '#b97a1f'),
+        ...face,
+        ...torso('#2b4a7a', [2, 12, 12, 1, '#f0c419']),
+        [11, 9, 4, 2, '#c7ccd1'], // wrench head
+        [13, 11, 2, 4, '#c7ccd1'], // wrench handle
+      ]}
+    />
   );
 }
-export function AvatarDevMale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairShort}{laptopBadge(24, 25)}</Base>;
-}
-export function AvatarDevFemale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairLong}{laptopBadge(24, 25)}</Base>;
+
+/** 👩‍🔧 technician (female) — hard hat + hi-vis teal overalls + wrench */
+export function AvatarTechFemale(props: AvatarIconProps): JSX.Element {
+  return (
+    <Sprite
+      {...props}
+      blocks={[
+        ...hardHat('#e8a13a', '#b97a1f'),
+        [3, 3, 2, 7, '#3b2a1a'], // ponytail spilling from under the hat
+        ...face,
+        ...torso('#1f6e6e', [2, 12, 12, 1, '#f0c419']),
+        [11, 9, 4, 2, '#c7ccd1'],
+        [13, 11, 2, 4, '#c7ccd1'],
+      ]}
+    />
+  );
 }
 
-/** Palette badge — the artist/designer avatar (🧑‍🎨 has no male/female split). */
+/** 👨‍💻 developer (male) — purple hoodie + glowing laptop */
+export function AvatarDevMale(props: AvatarIconProps): JSX.Element {
+  return (
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairShort('#241a12'),
+        ...face,
+        ...torso('#4c3a8a', [4, 12, 8, 2, '#3a2c6e']), // hoodie + pocket
+        [10, 10, 5, 4, '#2b2b2b'], // laptop body
+        [10, 10, 5, 2, '#8fd6ff'], // screen glow
+      ]}
+    />
+  );
+}
+
+/** 👩‍💻 developer (female) — teal hoodie + glowing laptop */
+export function AvatarDevFemale(props: AvatarIconProps): JSX.Element {
+  return (
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairLong('#241a12'),
+        ...face,
+        ...torso('#1f7a6e', [4, 12, 8, 2, '#175f56']),
+        [10, 10, 5, 4, '#2b2b2b'],
+        [10, 10, 5, 2, '#8fd6ff'],
+      ]}
+    />
+  );
+}
+
+/** 🧑‍🎨 artist — beret + teal smock + paint palette */
 export function AvatarArtist(props: AvatarIconProps): JSX.Element {
   return (
-    <Base {...props}>
-      {bust}{hairLong}
-      <g transform="translate(19.8 21.6)">
-        <path d="M4.2 0C1.9 0 0 1.7 0 3.9c0 1.3.9 2 1.9 2 .5 0 .7-.3.7-.7 0-.6.5-1 1.1-1h.8c1.7 0 3.1-1.2 3.1-2.7C7.6 1 6.1 0 4.2 0Z" fill="#fff" stroke="currentColor" strokeWidth="0.9" />
-        <circle cx="1.6" cy="1.7" r="0.55" fill="currentColor" />
-        <circle cx="3.3" cy="0.9" r="0.55" fill="currentColor" />
-      </g>
-    </Base>
+    <Sprite
+      {...props}
+      blocks={[
+        ...beret('#a8324a', '#7a2036'),
+        [3, 3, 1, 5, '#3b2a1a'],
+        [12, 3, 1, 5, '#3b2a1a'],
+        ...face,
+        ...torso('#2c8f6e'),
+        [10, 10, 4, 3, '#c9b28a'], // palette
+        [11, 9, 1, 1, '#c23b3b'],
+        [12, 10, 1, 1, '#3a6fd8'],
+        [11, 11, 1, 1, '#e8c93a'],
+      ]}
+    />
   );
 }
 
-/** Mortarboard badge — teacher roles. */
-function teacherBadge(cx: number, cy: number) {
+/** 👨‍🏫 teacher (male) — maroon cardigan + open book */
+export function AvatarTeacherMale(props: AvatarIconProps): JSX.Element {
   return (
-    <g transform={`translate(${cx - 4.6} ${cy - 3.6})`}>
-      <path d="M4.6 0L9.2 2.3 4.6 4.6 0 2.3 4.6 0Z" fill="#fff" stroke="currentColor" strokeWidth="0.9" strokeLinejoin="round" />
-      <path d="M2.2 3.4v2c0 .7 1.1 1.3 2.4 1.3s2.4-.6 2.4-1.3v-2" stroke="currentColor" strokeWidth="0.9" fill="none" />
-    </g>
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairShort('#5a5a5a'),
+        ...face,
+        ...torso('#7a2e2e', [7, 9, 2, 6, '#d9d0b8']),
+        [10, 11, 5, 3, '#3a5f3a'], // book cover
+        [12, 11, 1, 3, '#eef0e6'], // page edge
+      ]}
+    />
   );
 }
-export function AvatarTeacherMale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairShort}{teacherBadge(24, 25)}</Base>;
-}
+
+/** 👩‍🏫 teacher (female) — maroon cardigan + open book */
 export function AvatarTeacherFemale(props: AvatarIconProps): JSX.Element {
-  return <Base {...props}>{bust}{hairLong}{teacherBadge(24, 25)}</Base>;
+  return (
+    <Sprite
+      {...props}
+      blocks={[
+        ...hairLong('#5a5a5a'),
+        ...face,
+        ...torso('#7a2e2e', [7, 9, 2, 6, '#d9d0b8']),
+        [10, 11, 5, 3, '#3a5f3a'],
+        [12, 11, 1, 3, '#eef0e6'],
+      ]}
+    />
+  );
 }
 
 /**
- * Maps AVAILABLE_AVATARS' emoji strings (usePlayerValidation.ts) to the icon
- * above. player.avatar keeps storing the emoji — this is a display-only
- * lookup, so nothing about validation, persistence, or the picker's
- * equality checks changes.
+ * Maps AVAILABLE_AVATARS' emoji strings (usePlayerValidation.ts) to the
+ * sprite above. player.avatar keeps storing the emoji — this is a
+ * display-only lookup, so nothing about validation, persistence, or the
+ * picker's equality checks changes.
  */
 export const AVATAR_ICON_MAP: Record<string, React.FC<AvatarIconProps>> = {
   '👤': AvatarPerson,

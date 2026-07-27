@@ -155,13 +155,15 @@ describe('ProjectProgress', () => {
       />
     );
 
-    // More specific query for Alice's name within the individual player progress item
-    expect(screen.getByText((content, element) =>
-      element?.tagName.toLowerCase() === 'div' &&
-      element.textContent?.includes('Alice') &&
-      element.textContent?.includes('👤') &&
-      (element as HTMLElement).style.fontWeight === 'bold'
-    )).toBeInTheDocument();
+    // More specific query for Alice's name within the individual player progress item.
+    // Avatar is now a custom SVG icon (AvatarIcons.tsx, via PlayerAvatar's
+    // title={player.name}), not the raw emoji character, so it's located by
+    // that title rather than by matching the '👤' glyph in textContent.
+    const avatarEl = screen.getByTitle('Alice');
+    expect(avatarEl.querySelector('svg')).toBeInTheDocument();
+    const nameContainer = avatarEl.closest('div');
+    expect(nameContainer?.textContent).toContain('Alice');
+    expect((nameContainer as HTMLElement)?.style.fontWeight).toBe('bold');
     expect(screen.getAllByText((content) => content === 'CONSTRUCTION').length).toBeGreaterThanOrEqual(1);
   });
 
