@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.59] - 2026-07-27
+
+### Build: real PixelLab-generated pixel art replaces hand-drawn avatars and logo (maintainer decision)
+The hand-drawn pixel-grid avatars/logo (v3.1.57–58) were a reasonable free fallback, but the maintainer wanted the real thing. Maintainer explicitly declined to rotate the flagged PixelLab.ai key first ("just use the current one") — see TODO.md's updated entry for that decision and what it was used for.
+
+**Cost-checked before committing to the full set:** ran one test generation first ($0.0064 at 64×64), confirmed quality and price with the maintainer, then generated the remaining 9 avatars + 1 logo scene. Total: **~$0.074** for all 11 images. Key was used transiently in shell command environment variables only — never written to any script or tracked file, unlike the original leak.
+
+**Avatars:** `public/images/avatars/*.png` (10 files, one per `AVAILABLE_AVATARS` role) — real 64×64 pixel-art portraits (hard hat + hi-vis for technicians, suit + tie for business, hoodie + glasses for developers, beret + smock for the artist, cardigan + book for teachers). `AvatarIcons.tsx` rewritten to render `<img>` from these files instead of hand-drawn SVG — same `AvatarIcon` component API as the prior two passes, so none of the 7 call sites wired up earlier (`PlayerAvatar`, `SpaceExplorerPanel`, `GameDisplaySettings`, `JoinByCodePanel`, `PlayerMobileView`, `TVDisplay`, `NegotiationModal`) needed to change.
+
+**Logo:** `public/images/logo-pixel.png` — a real generated scene (yarn ball, thread, book) replacing the hand-authored pixel-grid version. `LogoTransform.tsx` simplified to render this image directly; a single generated image can't animate its own thread, so "moving" now comes from the same glow + wobble CSS treatment the original static `logo.png` already had at both call sites (`PlayerSetup.tsx`, `PlayerMobileView.tsx`) — unchanged, the component just renders inside that existing wrapper.
+
+Verified: typecheck clean, production build clean (confirmed all 11 images copy into `dist/images/`), full regression 81/81 tests passing across every touched component. One test line updated (`ProjectProgress.test.tsx`) to check for an `<img>` instead of an `<svg>` avatar element. Live-verified in a real dev-server game: added a player, confirmed the avatar `<img>` loads (`complete: true`, correct 64px natural size) and the logo `<img>` loads (128px), zero console errors.
+
 ## [3.1.58] - 2026-07-26
 
 ### Fix: yarn ball wasn't actually rendering — LogoTransform.tsx bug found while pulling live markup for review
