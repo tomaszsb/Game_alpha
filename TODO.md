@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 27, 2026 — v3.1.52–v3.1.60 shipped this session (fixloop fixes, an interview closing the last card-effect gaps, a glossary-autosync root-cause fix, and a full icon/avatar/logo art pass); see CHANGELOG.
-**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52–v3.1.60 built since, not yet deployed.
-**Current Version:** 3.1.60 (pending deploy)
+**Last Updated:** July 27, 2026 — v3.1.52–v3.1.61 shipped this session (fixloop fixes, an interview closing the last card-effect gaps, a glossary-autosync root-cause fix, and a full icon/avatar/logo art pass, extended to the board + TV scoreboard after live feedback); see CHANGELOG.
+**Status:** Beta — live in production; **v3.1.60 confirmed deployed and live** 2026-07-27 (maintainer-confirmed, commit `93261a`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.61 built since, not yet deployed.
+**Current Version:** 3.1.61 (pending deploy)
 
 ---
 

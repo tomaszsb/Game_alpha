@@ -2,6 +2,11 @@
 
 ---
 
+## v3.1.61 — Your player picture now shows up on the board and the shared TV screen (July 27, 2026)
+
+- **Your avatar picture now shows on the board and the TV scoreboard, not just the setup screen.** Whichever space you're standing on used to show a plain colored dot for each player there — it now shows your actual player picture, so it's easier to tell who's where at a glance. Same change on the shared "who's where" screen used in TV mode.
+- **A few leftover emoji were swapped for the same custom icons as everywhere else** — the floating red bug-report button, the "report a bug" message at the bottom of the screen, and the light/dark mode switch (which now shows a sun or moon icon, not just text).
+
 ## v3.1.52–3.1.60 — Four more cards now do what they say, glossary entries say when they're AI-written, and new artwork for icons and player avatars (July 27, 2026)
 
 - **Four more cards fixed to match their text.** "Press Release," "Expeditor Training," "Expeditor Mentor," "Approved Template," and "Appeal Process" all had wording that promised something the card didn't actually do (or, for Appeal Process, text that cut off mid-sentence with no effect at all). All five now do exactly what they say.
