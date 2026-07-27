@@ -92,12 +92,28 @@ function AdminAuthGate({ onAuthenticated, onClose }: { onAuthenticated: () => vo
   );
 }
 
+// Admin auth gate. This thin wrapper exists ONLY so the gate's early return
+// lives in a component that has exactly one hook, never 28.
+//
+// The gate used to sit at the top of DataEditorContent itself: it ran useState,
+// then returned before the other 27 hooks when unauthenticated. On a fresh
+// (unauthenticated) mount React recorded 1 hook for this component — and the
+// instant the admin logged in, setIsAuthed re-rendered that SAME component,
+// which now ran all 28. React throws "Rendered more hooks than during the
+// previous render" on exactly that transition, so the editor crashed for
+// precisely the people who had to log in. Admins whose session was already
+// authenticated skipped the gate on first render and never saw it, which is how
+// it survived unnoticed. (28 react-hooks/rules-of-hooks errors; DEF-3 in the
+// 2026-06-10 deficiency audit.)
 export function DataEditor({ onClose }: DataEditorProps): JSX.Element {
-  // Admin auth check
   const [isAuthed, setIsAuthed] = useState(() => isAdminAuthenticated());
   if (!isAuthed) {
     return <AdminAuthGate onAuthenticated={() => setIsAuthed(true)} onClose={onClose} />;
   }
+  return <DataEditorContent onClose={onClose} />;
+}
+
+function DataEditorContent({ onClose }: DataEditorProps): JSX.Element {
   const { dataService } = useGameContext();
 
   // Editor state

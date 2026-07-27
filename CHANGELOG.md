@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.65] - 2026-07-27
+
+### Fix: logging into the Data Editor crashed it — a real bug hiding behind 28 lint errors
+First item of the code-health bundle, and it turned out not to be code health at all — it was a live crash on a real path.
+
+`DataEditor` ran `useState` for its auth check, then returned `<AdminAuthGate>` before its other 27 hooks when unauthenticated. React recorded **1** hook on a fresh unauthenticated mount; the instant the admin entered the password, `setIsAuthed(true)` re-rendered that same component and it ran all **28**. React throws `Rendered more hooks than during the previous render.` on exactly that transition — so the editor died for precisely the people who had to log in. An admin whose session was already authenticated skipped the gate on first render and never saw it, which is how this survived since at least the 2026-06-10 audit that flagged it (DEF-3).
+
+Why the test suite never caught it: the only `DataEditor` test mocks `isAdminAuthenticated` to `true`, so it always mounted straight into the authenticated branch and never crossed the boundary where the crash lives. **The bug was in the one state transition the tests were configured to skip.**
+
+Fix: split the gate out. `DataEditor` is now a thin wrapper holding exactly one hook plus the early return, delegating to a new `DataEditorContent` where all 27 hooks are unconditional. No logic changed — purely where the return sits relative to the hooks.
+
+New `DataEditorAuthGate.test.tsx` walks the unauthenticated → authenticated transition and asserts React emits no hook-order complaint. Validated by stashing the fix: against the old code it fails with the literal `Rendered more hooks than during the previous render.` error, and passes with it. This is a demonstrated crash, not an inferred one.
+
+Side effect worth noting: `npx eslint src/components/editor/DataEditor.tsx` drops from **28 errors to 0** real ones. The 3 that remain (`'JSX' is not defined`) are the separate, pre-existing `no-undef`-misconfigured-for-TypeScript problem (DEF-4) — they were simply buried under the rules-of-hooks noise before.
+
+Verified: typecheck clean, production build clean, `tests/components/editor` 50/50 (4 files) and the wider `tests/components` sweep 444/444 across 45 files.
+
 ## [3.1.64] - 2026-07-27
 
 ### Fix: TV mode had no way into the glossary — added it to the player's own phone
