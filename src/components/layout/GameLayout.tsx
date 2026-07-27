@@ -1064,9 +1064,12 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           style={{
             gridColumn: '1 / -1',
             gridRow: '1',
-            background: colors.background.light,
-            border: `3px solid ${colors.primary.main}`,
-            borderRadius: '8px',
+            // No decorative background/border/radius here (fb:2026-07-19) —
+            // PlayerPanelWrapper -> PlayerPanelV2 already render their own
+            // themed card (background + border + radius, light/dark aware
+            // via panelTheme). A second static frame around it just read as
+            // "a box inside a box" plus a blue outline that never matched the
+            // inner panel's mode.
             overflowY: 'hidden',
             overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
@@ -1157,9 +1160,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
               style={{
                 gridColumn: '1',
                 gridRow: '2',
-                background: colors.background.light,
-                border: `3px solid ${colors.primary.main}`,
-                borderRadius: '8px',
+                // No decorative background/border/radius here (fb:2026-07-19)
+                // — see the matching comment on the mobile view's wrapper
+                // above; PlayerPanelV2 already renders its own themed card,
+                // so this outer frame was a redundant box-in-a-box plus a
+                // blue outline that never matched the inner panel's mode.
                 padding: '4px',
                 overflow: 'hidden',
                 position: 'relative',

@@ -1,1 +1,4 @@
-fb:75101be7 — "Can't add player" — fixed v3.1.41 (PlayerSetup.tsx name-collision bug) — flip after deploy confirmed live
+feedback-1784463099950-101702ed — player panel box-in-a-box + blue outline — fixed v3.1.62 — flip after deploy confirmed live
+
+# Cleared 2026-07-27: fb:75101be7 ("Can't add player", fixed v3.1.41) was already
+# absent from the live open-report list, i.e. already flipped resolved. Removed.

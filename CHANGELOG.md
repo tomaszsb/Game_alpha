@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.62] - 2026-07-27
+
+### Fix: player panel was a box inside a box, wrapped in a blue outline that ignored the theme
+Dashboard report from a design-review pass: "the dark and light player panel seem to be within another panel and blue outline. I don't think we need those."
+
+Real, and worse in dark mode. `PlayerPanelV2` has rendered its own complete card for a while now — theme-aware `background`, `border`, and `borderRadius: 18`, all driven by `panelPalettes[mode]` in `panelTheme.ts`. But two wrapper `<div>`s in `GameLayout.tsx` (the mobile/full-screen single-player view at ~:1063 and the desktop left-hand player column at ~:1159) each *also* painted a frame: `background: colors.background.light` (`#f5f5f5`), `border: 3px solid colors.primary.main` (`#007bff`), `borderRadius: 8px`. So every player panel sat inside a second frame — and because that outer frame was hardcoded static, it never followed the panel's own light/dark toggle. In dark mode that meant a light-gray box with a blue outline wrapped around a navy card, which is exactly what the report describes.
+
+Removed only the three decorative properties from both wrappers, keeping every layout-bearing one (`gridColumn`/`gridRow`, the `overflow` rules, `position: relative` for the absolutely-positioned classroom badge, the desktop wrapper's `padding: 4px`). Not a focus-ring issue, so no accessibility trade-off was involved — nothing was scoped away from `:focus-visible`.
+
+Deliberately left alone: the collapsed "mini bar" card for non-active players in local multiplayer (`GameLayout.tsx` ~:1192, `border: 1px solid #e0e0e0`) — a distinct compact variant for *other* players that never nested inside a second frame.
+
+Verified: typecheck clean, production build clean, `playerPanelVisibility.test.ts` (9) + `PlayerPanelV2.test.tsx` (27) = 36/36 passing with no assertion changes needed. Live-verified in a real 2-player game via computed DOM styles in both modes: outer container now `border: 0px none` / `background: transparent` / `borderRadius: 0px`, while the inner card keeps its own `1px solid #d7dde6` on `#ffffff` (light) and `1px solid #334155` on `#0f172a` (dark) at `borderRadius: 18px`. Closes feedback-1784463099950-101702ed.
+
 ## [3.1.61] - 2026-07-27
 
 ### Build: player avatars extended to the board and TV scoreboard; remaining emoji swept for icon consistency (maintainer follow-up on v3.1.60)

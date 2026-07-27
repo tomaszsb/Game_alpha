@@ -66,7 +66,6 @@
 
 **Player-panel pair (filed 19 min apart, 2026-07-19, both v3.1.20 / `47c88a7`):**
 - [ ] **Next-action button highlight disappears** — "I wanted to know what to press next"; the highlight seems to vanish after a while, or possibly when switching the player panel between mobile and PC layouts. Reporter unsure which trigger. <!-- fb:feedback-1784464219688-ae480630 -->
-- [ ] **Player panel is nested inside another panel with a blue outline** — "the dark and light player panel seem to be within another panel and blue outline. I don't think we need those." Cosmetic chrome/nesting cleanup on the V2 panel. <!-- fb:feedback-1784463099950-101702ed -->
 
 **TV-mode pair (2026-07-22, both v3.1.20):**
 - [ ] **No way to reach the glossary in TV mode** — the in-game dictionary/term popup that works on PC has no entry point on the TV display. <!-- fb:feedback-1784739275363-89d83c39 -->
