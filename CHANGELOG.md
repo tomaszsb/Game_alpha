@@ -15,10 +15,18 @@ Deliberately left alone: the collapsed "mini bar" card for non-active players in
 
 Verified: typecheck clean, production build clean, `playerPanelVisibility.test.ts` (9) + `PlayerPanelV2.test.tsx` (27) = 36/36 passing with no assertion changes needed. Live-verified in a real 2-player game via computed DOM styles in both modes: outer container now `border: 0px none` / `background: transparent` / `borderRadius: 0px`, while the inner card keeps its own `1px solid #d7dde6` on `#ffffff` (light) and `1px solid #334155` on `#0f172a` (dark) at `borderRadius: 18px`. Closes feedback-1784463099950-101702ed.
 
-### Ops: glossary auto-sync finally deployed — nightly runs unblocked after ~11 days of silent failure
-Cross-repo, recorded here because TODO.md tracked it. The `dictionary-scraper` model fix (commit `0278955`, written 2026-07-26) had never been copied to Unraid, so every nightly glossary run since ~2026-07-16 was still dying on `claude-3-haiku-20240307` — a model Anthropic retired, returning 404. Note this was a *second* wall: the 2026-07-16 credit top-up genuinely fixed the earlier "credit balance too low" error, which masked the fact that a different failure was waiting behind it.
+### Ops: glossary auto-sync confirmed working — and TODO.md's "not yet live" was stale by a day
+Cross-repo, recorded here because TODO.md tracked it. Timestamped container logs (`docker logs -t`) established the real timeline, which was **not** what TODO.md claimed:
 
-Maintainer pushed `0278955` and deployed it 2026-07-27 (`scp` of `dashboard/backend/main.py` + `src/process.py` → `/mnt/user/appdata/dictionary-scraper/`, then `docker restart dictionary-scraper-backend`; the compose file was deliberately not touched, since the dashboard's compose has drifted from the repo for hardening reasons). Verified live inside the running container: `GLOSSARY_DRAFT_MODEL` now resolves to `claude-haiku-4-5-20251001`, backend restarted clean on uvicorn with no startup errors. The `dictionary-scraper-scheduler` container was intentionally left running — `main.py` is the active nightly path and lives in the backend; `src/process.py` was fixed for consistency only.
+- **2026-07-13 → 07-16:** nightly runs failing on `credit balance too low` (400).
+- **2026-07-16 → 07-26:** credit top-up cleared that, revealing a second wall underneath — `claude-3-haiku-20240307` had been retired by Anthropic, so every run died on a 404. Last failure: 2026-07-26 06:15Z.
+- **2026-07-26 ~22:14 EDT:** the fixed `main.py` was already on the host and the backend restarted, putting `claude-haiku-4-5-20251001` live.
+- **2026-07-26 ~22:20 EDT:** first successful run — **staged 6 terms for review**: Standpipe, Heat Recovery Ventilation, Stormwater Management, Tax Credit, Crowdfunding, Environmental Review. Two later runs correctly reported "no new terms found."
+- **2026-07-27 07:28 EDT:** maintainer re-ran the documented `scp` + `docker restart` — a harmless no-op re-copy of content that was already live.
+
+So the deploy step TODO.md was still asking for had in fact happened the previous night; what was missing was never the deploy, only the verification. The commit (`0278955`) genuinely was unpushed until 2026-07-27, which is probably why the TODO entry read as undeployed — **pushed, deployed, and working are three separate facts, and this item had them conflated.** The lesson for scheduled jobs stands and is now sharper: don't infer health from a fix *or* from a deploy — read the logs for the next actual run, with `-t` so the timeline is checkable.
+
+The `dictionary-scraper-scheduler` container was intentionally left alone — `main.py` in the backend is the active nightly path; `src/process.py` carries the same constant for consistency only.
 
 ## [3.1.61] - 2026-07-27
 
