@@ -1114,6 +1114,11 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
                 }}
                 completedActions={completedActions}
                 tabRequest={tabRequest}
+                // TV mode's phone/controller view has no other glossary entry
+                // point — the desktop toolbar button (ProjectProgress, below)
+                // never renders on this branch. Bug report 2026-07-22: "no
+                // way to access glossary words in tv mode".
+                onOpenGlossary={handleToggleGlossary}
               />
             ) : (
               <div style={{ padding: '20px', textAlign: 'center' }}>

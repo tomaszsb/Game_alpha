@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.64] - 2026-07-27
+
+### Fix: TV mode had no way into the glossary — added it to the player's own phone
+Dashboard report: "There seem so way to access glossary words in tv mode." Correct, and structurally so — the glossary was unreachable from *both* TV-mode surfaces:
+
+- `TVDisplay` is a separate top-level tree rendered from `App.tsx:226`; it never passes through `GameLayout`, so it has no dictionary wiring at all.
+- `handleToggleGlossary` existed at `GameLayout.tsx:815` but was only handed to `ProjectProgress` on the **desktop/PC branch** (`:1149`). The per-player phone branch never received it.
+
+**Maintainer chose the phone as the surface**, not the TV: the phone is already the interactive device in TV mode, looking up a term is individual reading rather than a shared moment, and a TV-side panel would need remote/keyboard navigation built from scratch while covering the shared board. `TVDisplay` is deliberately untouched.
+
+One correction to the obvious assumption along the way: `PlayerMobileView.tsx` is **not** the in-game phone view — it's SETUP-phase only (the "waiting for host" screen, wired at `PlayerSetup.tsx:307`). A phone that joined via `?p=<shortId>` renders through `GameLayout`'s `effectiveViewPlayerId && gamePhase === 'PLAY'` branch (`:1062`) → `PlayerPanelWrapper` → `PlayerPanelV2`. Join links never carry `mode=tv`, so `App.tsx`'s TV branch never intercepts a player's phone; only the TV's own screen reaches `TVDisplay`.
+
+Implementation: a new optional `onOpenGlossary?: () => void` on `PlayerPanelWrapper`, rendering an `IconBookOpen` + "Glossary" button in the toolbar row that already held the light/dark toggle, using that row's existing `toggleBtn` idiom. Wired from `GameLayout.tsx:1117` on the phone branch only — the desktop per-player list deliberately does **not** get it, so that view keeps its single `ProjectProgress` entry point rather than sprouting one button per player card. No new dictionary state: it calls the same `handleToggleGlossary` over the existing `useDictionaryPanel()` context.
+
+`DictionaryPanel` needed no responsive work — `DictionaryPanel.css` already had a `@media (max-width: 480px)` full-width rule, confirmed live at 390px with zero horizontal overflow and all 251 terms readable.
+
+Verified: typecheck clean, production build clean. 4 new tests across `GameLayoutPhoneGlossary.test.tsx` (renders a real `GameLayout` on the phone branch and asserts the click flips the *shared* `DictionaryContext`, via a sibling probe — not a parallel state) and `PlayerPanelWrapper.test.tsx` (button absent without the prop, present and wired with it). Validated as genuine regression cover by stashing the fix: 3 of the 4 fail against the old code, the 4th correctly passes both ways since it asserts an absence. Wider run green at 167/167 across 14 files (`tests/components/layout`, `tests/components/player`, `tests/dictionary`). Live-verified in a real TV-mode game at 390×844: Glossary is the first toolbar button, opens the panel full-width with terms readable, and the desktop host view still shows exactly one Glossary button. Closes feedback-1784739275363-89d83c39.
+
 ## [3.1.63] - 2026-07-27
 
 ### Fix: `updateActionCounts` could skip its notify entirely, silently dropping both the UI refresh and the server sync

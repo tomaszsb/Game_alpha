@@ -1,9 +1,13 @@
-# Empty — nothing awaiting a post-deploy flip.
+feedback-1784739275363-89d83c39 — no glossary entry point in TV mode — fixed v3.1.64 (added to the player's phone view) — flip after deploy confirmed live
+
+# Awaiting your call, not a deploy:
+# feedback-1784735731661-b39ea2bd — yellow banner too big. Measured 2026-07-27 as
+# already resolved by v3.1.22's zoom gate (15.3%->11.9% of viewport, player list
+# 66px->194px). No code change was needed. Recommend flipping resolved, but the
+# measurement was taken in a headless browser with screen.width overridden, not
+# on the real TCL — so it's your call.
 #
-# Cleared 2026-07-27: fb:101702ed (player panel box-in-a-box + blue outline,
-# fixed v3.1.62) flipped resolved once v3.1.62 was confirmed live. Dashboard
-# re-fetched after the v3.1.63 deploy: 9 open, id correctly absent.
-#
-# NOT queued on purpose: fb:ae480630 (next-action highlight). v3.1.63 fixed a
-# real notify gap that is a well-evidenced probable cause, but the symptom was
-# never reproduced — so it stays open until the maintainer confirms it in play.
+# NOT queued on purpose:
+# feedback-1784464219688-ae480630 — next-action highlight. v3.1.63 fixed a real
+# notify gap that is a well-evidenced probable cause, but the symptom was never
+# reproduced, so it stays open until confirmed in play.

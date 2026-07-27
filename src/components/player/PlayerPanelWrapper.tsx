@@ -10,7 +10,7 @@ import React, { useEffect } from 'react';
 import { PlayerPanelV2 } from './PlayerPanelV2';
 import { PlayerPanelProps } from './panelTypes';
 import { usePanelMode } from './panelTheme';
-import { IconMoon, IconSun } from '../icons/SetupIcons';
+import { IconMoon, IconSun, IconBookOpen } from '../icons/SetupIcons';
 
 export interface PlayerPanelWrapperProps extends PlayerPanelProps {
   /** Force mobile view regardless of screen size (for testing) */
@@ -18,6 +18,15 @@ export interface PlayerPanelWrapperProps extends PlayerPanelProps {
 
   /** Force desktop view regardless of screen size (for testing) */
   forceDesktop?: boolean;
+
+  /** Opens the shared glossary panel (GameLayout's handleToggleGlossary).
+   *  Only passed on the per-player phone/controller view (GameLayout's
+   *  effectiveViewPlayerId branch) — TV mode's phone is the only surface
+   *  that had no glossary entry point at all (bug report 2026-07-22,
+   *  "no way to access glossary words in tv mode"). Omitted on the desktop
+   *  player-panel list so that view keeps its single entry point
+   *  (ProjectProgress's toolbar) instead of one button per player card. */
+  onOpenGlossary?: () => void;
 }
 
 export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
@@ -32,6 +41,7 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   onManualEffectResult,
   completedActions,
   tabRequest,
+  onOpenGlossary,
   ...rest
 }) => {
   const [mode, toggleMode] = usePanelMode();
@@ -63,6 +73,20 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
   return (
     <div className="player-panel-wrapper" style={{ position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '4px 6px' }}>
+        {/* Phone/controller glossary entry point ("no way to access
+            glossary words in tv mode", bug report 2026-07-22) — same icon + label as the desktop
+            toolbar's Glossary button (ProjectProgress.tsx), reusing the
+            existing DictionaryPanel/useDictionaryPanel rather than any new
+            state. Only rendered here when GameLayout passes onOpenGlossary,
+            i.e. on this player's own phone view — the desktop panel list
+            already has one Glossary button up in ProjectProgress and doesn't
+            need a second copy per player card. */}
+        {onOpenGlossary && (
+          <button style={toggleBtn} onClick={onOpenGlossary} title="Look up a term">
+            <IconBookOpen size="1em" />
+            Glossary
+          </button>
+        )}
         <button style={toggleBtn} onClick={toggleMode} title="Light / dark mode">
           {mode === 'light' ? <IconMoon size="1em" /> : <IconSun size="1em" />}
           {mode === 'light' ? 'Dark' : 'Light'}
