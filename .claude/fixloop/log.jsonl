@@ -70,3 +70,5 @@
 {"ts":"2026-07-26T19:34:00Z","item":"Wire E036 Press Release high_profile_conditional gate","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":67.41,"commit":"fef5e2a"}
 {"ts":"2026-07-26T19:52:00Z","item":"Label AI-generated glossary entries in dictionary popup","fbId":null,"model":"sonnet","outcome":"fixed","usedPctAfter":68.09,"commit":"57ca2f8"}
 {"ts":"2026-07-27T07:35:00Z","item":"Player panel nested inside another panel with a blue outline","fbId":"feedback-1784463099950-101702ed","model":"sonnet","outcome":"fixed","usedPctAfter":null,"commit":"2f46a15"}
+{"ts":"2026-07-27T08:25:00Z","item":"Next-action highlight stale / updateActionCounts silent notify gap","fbId":"feedback-1784464219688-ae480630","model":"sonnet","outcome":"fixed","note":"probable-cause, not confirmed repro; report left open","commit":"pending"}
+{"ts":"2026-07-27T08:45:00Z","item":"Waiting-for-phones yellow banner oversized on small-resolution TVs","fbId":"feedback-1784735731661-b39ea2bd","model":"sonnet","outcome":"failed","note":"agent terminated by session limit mid-verification; diagnosis preserved in TODO.md, no source changes made","commit":null}
