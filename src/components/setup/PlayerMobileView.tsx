@@ -9,6 +9,7 @@ import { GitHubSyncStatus } from './useGitHubSyncStatus';
 import { styles } from './PlayerSetup.styles';
 import { ShareIcon, useShareGameLink } from './ShareGameButton';
 import { IconCheck, IconWarning, IconBug } from '../icons/SetupIcons';
+import { AvatarIcon } from '../icons/AvatarIcons';
 import { LogoTransform } from '../icons/LogoTransform';
 
 interface PlayerMobileViewProps {
@@ -132,11 +133,11 @@ export function PlayerMobileView({
           {/* Avatar */}
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <div
-              style={{ fontSize: '3.5rem', cursor: 'pointer', userSelect: 'none' }}
+              style={{ fontSize: '3.5rem', cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'center' }}
               onClick={() => onCycleAvatar(player.id)}
               title="Tap to change avatar"
             >
-              {player.avatar}
+              <AvatarIcon avatar={player.avatar} size="1em" />
             </div>
             <div style={{ fontSize: '0.8rem', color: colors.secondary.main, marginTop: '0.25rem' }}>
               Tap to change

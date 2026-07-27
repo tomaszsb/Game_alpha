@@ -5,6 +5,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { colors } from '../../styles/theme';
 import { Player } from '../../types/StateTypes';
 import { getServerURL, getNetworkInfo } from '../../utils/networkDetection';
+import { AvatarIcon } from '../icons/AvatarIcons';
+import { IconCheck } from '../icons/SetupIcons';
 
 interface GameDisplaySettingsProps {
   players: Player[];
@@ -122,11 +124,13 @@ export function GameDisplaySettings({
                         ...styles.playerName,
                         color: player.color || colors.primary.main
                       }}>
-                        {player.avatar} {player.name}
+                        <AvatarIcon avatar={player.avatar} size="1em" /> {player.name}
                       </span>
 
                       {isMobile && (
-                        <span style={styles.connectedBadge}>✅ Connected on mobile</span>
+                        <span style={{ ...styles.connectedBadge, display: 'inline-flex', alignItems: 'center', gap: '0.3em' }}>
+                          <IconCheck size="0.9em" /> Connected on mobile
+                        </span>
                       )}
                       {isDesktop && (
                         <span style={styles.connectedBadge}>✅ Connected on desktop</span>

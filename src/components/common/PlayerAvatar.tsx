@@ -1,14 +1,20 @@
-// PlayerAvatar — an emoji avatar encircled in the player's chosen COLOR.
+// PlayerAvatar — a custom SVG avatar icon encircled in the player's chosen COLOR.
 //
 // Emoji render in each device's native style (Apple on iPhone, Segoe on Windows,
-// Noto on Android), so the SAME player's avatar looks different on a phone vs the
-// shared computer/TV screen (fb:e9852ae6 — "avatars look different on phone vs
-// computer"). Rather than ship an image-based emoji set (a 12-site refactor +
-// asset pipeline), we keep the native emoji but ring it in the player's color —
-// a CSS color is byte-identical on every device, so COLOR becomes the reliable
-// "that's me" signal across screens, with the emoji as flavor on top.
+// Noto on Android), so the SAME player's avatar used to look different on a
+// phone vs the shared computer/TV screen (fb:e9852ae6 — "avatars look
+// different on phone vs computer"). That bug was first fixed by ringing the
+// native emoji in the player's color (a CSS color IS byte-identical on every
+// device, unlike the emoji glyph itself) rather than replacing the emoji —
+// at the time, a full icon set was judged too big a lift for the payoff.
+// 2026-07-26: replaced the emoji itself too, once AvatarIcons.tsx made that
+// cheap — player.avatar still stores the same emoji string (AVAILABLE_AVATARS,
+// usePlayerValidation.ts), this just renders a matching custom icon for it
+// instead of the raw glyph. The color ring stays as the second, independent
+// signal it always was.
 
 import React from 'react';
+import { AvatarIcon } from '../icons/AvatarIcons';
 
 interface PlayerAvatarProps {
   avatar?: string;
@@ -38,9 +44,10 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ avatar, color, size 
         lineHeight: 1,
         flexShrink: 0,
         boxSizing: 'border-box',
+        color: ring,
       }}
     >
-      {avatar}
+      {AvatarIcon({ avatar, size: Math.round(size * 0.62) }) || avatar}
     </span>
   );
 };

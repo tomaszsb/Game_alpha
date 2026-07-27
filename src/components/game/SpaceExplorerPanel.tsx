@@ -6,6 +6,7 @@ import { FormatUtils } from '../../utils/FormatUtils';
 import { openInDictionary } from '../../utils/dictionaryBridge';
 import { TextWithTerms, useDictionaryPanel } from '../../dictionary';
 import { debugWarn } from '../../utils/debugLog';
+import { AvatarIcon } from '../icons/AvatarIcons';
 
 interface SpaceDetails {
   space: Space;
@@ -489,7 +490,9 @@ export function SpaceExplorerPanel({
                           fontWeight: 'bold'
                         }}
                       >
-                        <span>{player.avatar || player.name.charAt(0).toUpperCase()}</span>
+                        <span style={{ display: 'inline-flex' }}>
+                          {AvatarIcon({ avatar: player.avatar, size: '1em' }) || player.name.charAt(0).toUpperCase()}
+                        </span>
                         <div>
                           <div>{player.name}</div>
                           <div style={{ fontSize: '11px', opacity: 0.8 }}>

@@ -7,6 +7,7 @@ import { ModalBase, modalButtonStyles } from './shared/ModalBase';
 import { getCardTypeColors, getCardTypeEmoji } from '../common/CardTypeBadge';
 import { getCardTypeName } from '../../utils/cardTypeNames';
 import { interpolateTemplate } from '../../utils/templateInterpolation';
+import { AvatarIcon } from '../icons/AvatarIcons';
 
 // Types for negotiation state management
 interface NegotiationOffer {
@@ -364,7 +365,7 @@ export function NegotiationModal({ isOpen, onClose }: NegotiationModalProps): JS
                   fontSize: '20px',
                   fontWeight: 'bold'
                 }}>
-                  {partner.avatar || partner.name.charAt(0).toUpperCase()}
+                  {AvatarIcon({ avatar: partner.avatar, size: '1em' }) || partner.name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: colors.text.primary }}>

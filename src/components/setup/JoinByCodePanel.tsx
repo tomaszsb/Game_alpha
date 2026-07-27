@@ -6,6 +6,7 @@ import { getBackendURL } from '../../utils/networkDetection';
 import { isPhoneScreen } from '../../utils/deviceDetection';
 import { styles } from './PlayerSetup.styles';
 import { IconController, IconEye } from '../icons/SetupIcons';
+import { AvatarIcon } from '../icons/AvatarIcons';
 
 interface JoinPickerPlayer {
   id: string;
@@ -233,7 +234,7 @@ export function JoinByCodePanel({ selectedMode }: JoinByCodePanelProps): JSX.Ele
                       display: 'inline-block',
                     }}
                   />
-                  {p.avatar && <span style={{ fontSize: '1.1rem' }}>{p.avatar}</span>}
+                  {p.avatar && <span style={{ display: 'inline-flex' }}><AvatarIcon avatar={p.avatar} size="1.1rem" /></span>}
                   <span>{p.name}</span>
                   {p.connected && (
                     <span

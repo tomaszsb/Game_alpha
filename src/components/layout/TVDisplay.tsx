@@ -15,6 +15,8 @@ import { Player, GamePhase } from '../../types/StateTypes';
 import { getServerURL, getCurrentGameId } from '../../utils/networkDetection';
 import { ClassroomBadge } from '../classroom/ClassroomBadge';
 import { PlayerAvatar } from '../common/PlayerAvatar';
+import { AvatarIcon } from '../icons/AvatarIcons';
+import { IconCheck } from '../icons/SetupIcons';
 import { ShutdownNotice } from '../common/ShutdownNotice';
 
 interface TVDisplayProps {
@@ -363,8 +365,8 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
             <div style={styles.gameOverMessage}>
               {players.length > 0 && (
                 <>
-                  <span style={{ fontSize: '4rem' }}>
-                    {players[0].avatar}
+                  <span style={{ display: 'inline-flex' }}>
+                    <AvatarIcon avatar={players[0].avatar} size="4rem" />
                   </span>
                   <h2 style={styles.winnerText}>
                     {players[0].name} Wins!
@@ -489,10 +491,12 @@ export function TVDisplay({ onShowSetup }: TVDisplayProps): JSX.Element {
                     backgroundColor: isConnected ? '#f0fdf4' : 'white',
                     minWidth: '120px',
                   }}>
-                    <span style={{ fontSize: '1.5rem' }}>{player.avatar}</span>
+                    <span style={{ display: 'inline-flex' }}><AvatarIcon avatar={player.avatar} size="1.5rem" /></span>
                     <span style={{ fontWeight: 700, color: player.color }}>{player.name}</span>
                     {isConnected ? (
-                      <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>✓ Connected</span>
+                      <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25em' }}>
+                        <IconCheck size="0.9em" /> Connected
+                      </span>
                     ) : (
                       <QRCodeSVG value={playerURL} size={100} level="M" includeMargin={false}
                         fgColor={player.color || '#007bff'} />

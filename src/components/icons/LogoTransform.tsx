@@ -1,65 +1,28 @@
 // src/components/icons/LogoTransform.tsx
 //
-// A small looping animation of a loose thread winding itself into a yarn
-// ball — the "Unravel" half of the brand mark (public/images/logo.png, whose
-// own in-code comment already describes it as "the yarn ball unraveling
-// into the 'NYC Codes' book"), brought to life as a real page animation
-// instead of a static image. Pure SVG + CSS, no external assets or
-// generated media — renders identically everywhere the static logo does.
-//
-// How it works: a single spiral path (pre-computed, not path-morphing,
-// which needs matching point counts and gets expensive to keep in sync) is
-// drawn with a dash array equal to its own length, then the dash offset is
-// animated from "fully hidden" to "fully revealed." A stroke revealing
-// itself from the center outward along a spiral reads as thread winding
-// into a ball; run in reverse (or just let the loop restart) it reads as
-// unraveling — either direction matches "Unravel Codes."
+// An animated take on the actual brand mark (public/images/logo.png): a
+// yarn ball connected by a thread to the "NYC Codes" book. The ball and
+// book are drawn as fixed, recognizable shapes — matching the real logo,
+// not an abstraction of it — and only the connecting thread animates, as a
+// continuous "marching" flow between the two, suggesting the thread being
+// wound up (or paid out) between them. Pure SVG + CSS, no external assets.
 
-import React, { useMemo } from 'react';
+import React from 'react';
 
 export interface LogoTransformProps {
   size?: number | string;
   className?: string;
   style?: React.CSSProperties;
-  /** Brand ring/thread color. Defaults to the logo's dark forest green. */
-  threadColor?: string;
-  /** Badge background. Defaults to the logo's cream. */
-  bgColor?: string;
 }
 
-/** Archimedean spiral points, center (100,100), computed once at module load. */
-function buildSpiralPath(): string {
-  const turns = 3.1;
-  const steps = 160;
-  const centerR = 6;
-  const growth = 12.5;
-  const cx = 100;
-  const cy = 100;
-  const points: [number, number][] = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const theta = t * turns * Math.PI * 2;
-    const r = centerR + growth * theta / (Math.PI * 2);
-    points.push([cx + r * Math.cos(theta), cy + r * Math.sin(theta)]);
-  }
-  return points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-}
+const GREEN = '#123020';
+const GREEN_DARK = '#0c2418';
+const CREAM = '#f3ecde';
+const YARN = '#d3ab63';
+const YARN_SHADE = '#b98f45';
+const YARN_HILITE = '#e9cf9c';
 
-const SPIRAL_D = buildSpiralPath();
-
-export function LogoTransform({
-  size = 64,
-  className,
-  style,
-  threadColor = '#1b4332',
-  bgColor = '#f3e9db',
-}: LogoTransformProps): JSX.Element {
-  // Rough path length for an Archimedean spiral of this shape — used as the
-  // dasharray/dashoffset unit. Doesn't need to be exact, just large enough
-  // that "fully hidden" truly hides the whole path and small enough the
-  // animation doesn't sit at "fully revealed" for a visibly long pause.
-  const pathLength = useMemo(() => 620, []);
-
+export function LogoTransform({ size = 64, className, style }: LogoTransformProps): JSX.Element {
   return (
     <svg
       width={size}
@@ -68,38 +31,53 @@ export function LogoTransform({
       className={className}
       style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
       role="img"
-      aria-label="Unravel Codes logo animation: a thread winding into a yarn ball"
+      aria-label="Unravel Codes logo: a yarn ball unraveling into the NYC Codes book"
     >
       <style>{`
-        @keyframes us-logo-wind {
-          0%   { stroke-dashoffset: ${pathLength}; }
-          70%  { stroke-dashoffset: 0; }
-          100% { stroke-dashoffset: 0; }
+        @keyframes us-logo-thread-flow {
+          to { stroke-dashoffset: -24; }
         }
-        @keyframes us-logo-fade-restart {
-          0%, 88% { opacity: 1; }
-          94%     { opacity: 0; }
-          100%    { opacity: 1; }
-        }
-        .us-logo-spiral {
-          stroke-dasharray: ${pathLength};
-          animation: us-logo-wind 4.2s cubic-bezier(0.45, 0, 0.2, 1) infinite,
-                     us-logo-fade-restart 4.2s linear infinite;
+        .us-logo-thread {
+          stroke-dasharray: 5 7;
+          animation: us-logo-thread-flow 1.1s linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
-          .us-logo-spiral { animation: none; stroke-dashoffset: 0; }
+          .us-logo-thread { animation: none; }
         }
       `}</style>
 
-      <circle cx="100" cy="100" r="94" fill={bgColor} stroke={threadColor} strokeWidth="5" />
+      {/* Circular badge, matching the real logo's frame */}
+      <circle cx="100" cy="100" r="94" fill={CREAM} stroke={GREEN} strokeWidth="5" />
+
+      {/* Thread connecting ball to book — the only animated part */}
       <path
-        className="us-logo-spiral"
-        d={SPIRAL_D}
+        className="us-logo-thread"
+        d="M96,118 C88,132 70,138 62,150 C56,159 62,168 74,166"
         fill="none"
-        stroke={threadColor}
-        strokeWidth="6"
+        stroke={GREEN}
+        strokeWidth="4.5"
         strokeLinecap="round"
       />
+
+      {/* Yarn ball */}
+      <g>
+        <circle cx="66" cy="92" r="34" fill={YARN} stroke={YARN_SHADE} strokeWidth="1.5" />
+        {/* wound-yarn ridge lines */}
+        <path d="M36 84c14-14 34-16 50-4" fill="none" stroke={YARN_SHADE} strokeWidth="2" strokeLinecap="round" opacity="0.75" />
+        <path d="M33 98c16-6 36-2 48 10" fill="none" stroke={YARN_SHADE} strokeWidth="2" strokeLinecap="round" opacity="0.75" />
+        <path d="M40 68c10 12 12 30 4 46" fill="none" stroke={YARN_SHADE} strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+        <path d="M60 60c14 6 22 22 18 38" fill="none" stroke={YARN_SHADE} strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+        <ellipse cx="55" cy="80" rx="10" ry="6" fill={YARN_HILITE} opacity="0.55" />
+      </g>
+
+      {/* Book — closed cover with a fanned page edge, tilted to match the
+          real mark's propped-open angle */}
+      <g transform="rotate(8 148 108)">
+        <path d="M126 76h30c5 0 8 3 8 8v56c0 5-3 8-8 8h-30V76Z" fill={GREEN} />
+        <path d="M164 78c5 1 8 4 8 9v54c0 5-3 8-7 9l-1-72Z" fill={GREEN_DARK} />
+        {/* fanned pages peeking from the top */}
+        <path d="M132 76l4-9 4 9M141 76l4-10 4 10M150 76l4-10 4 10" fill="none" stroke={CREAM} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </svg>
   );
 }

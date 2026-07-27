@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.56] - 2026-07-26
+
+### Fix: logo animation didn't match the actual logo; extend the icon set to player avatars (maintainer feedback on v3.1.55)
+Maintainer feedback on the first pass: the animated logo "looks nothing like the logo — where is the book? where is the yarn ball?" — fair. The first `LogoTransform.tsx` built the whole mark out of one animating abstract spiral, which never actually resolved into recognizable shapes. Rebuilt it to draw the yarn ball and the "NYC Codes" book as fixed, recognizable shapes (matching the real `logo.png` — wound-yarn ridge lines on the ball, a tilted closed book with a fanned page edge) and animate ONLY the connecting thread between them (a continuous marching-dash flow), instead of trying to build the whole logo out of motion.
+
+**Player avatars, per maintainer follow-up ("what about player avatars?"):** the 10-option avatar picker (`AVAILABLE_AVATARS` in `usePlayerValidation.ts`) has the identical cross-platform emoji problem, and was flagged once before — `PlayerAvatar.tsx` already carried a comment from an earlier fix (fb:e9852ae6) noting a full icon-set replacement was "a 12-site refactor" and judged not worth it at the time, settling for ringing the native emoji in the player's color instead. Confirmed that estimate was accurate (15 files reference `player.avatar`, split between 6 already routed through `PlayerAvatar` and ~9 rendering the raw emoji directly) — but building `SetupIcons.tsx` this session made a matching avatar set cheap enough to be worth doing now. New `src/components/icons/AvatarIcons.tsx`: a shared silhouette (short/long hair) plus a small role badge (briefcase/wrench/laptop/palette/mortarboard) per avatar, looked up by the same emoji string `AVAILABLE_AVATARS` already uses — `player.avatar` itself is unchanged, still the same stored value, validated and compared exactly as before; this only changes what's drawn for it. Wired into `PlayerAvatar.tsx` (the shared renderer, covering `PlayerList`, `ProjectProgress`, `CardDetailsModal`, `TVDisplay`, `GameLayout`) plus the ~9 direct-render holdouts: `SpaceExplorerPanel.tsx`, `GameDisplaySettings.tsx`, `JoinByCodePanel.tsx`, `PlayerMobileView.tsx`, `TVDisplay.tsx` (2 more spots), and `NegotiationModal.tsx`. Left `PlayerDebug.tsx` alone (dev-only, gated behind a debug flag). Also swapped a couple of stray emoji found along the way in the same files (✅/✓ "Connected" badges) to the existing `IconCheck`.
+
+Verified: typecheck clean, production build clean, all 62 tests across every touched component still pass (including `PlayerAvatar.test.tsx`, which exercises both the icon-mapped and unmapped-emoji-fallback paths). Live-verified in a real dev-server game: cycled a player through all 10 avatars and confirmed every one renders its icon with zero console errors; confirmed the corrected logo animation mounts with the right dimensions and its thread animation is actively running.
+
 ## [3.1.55] - 2026-07-26
 
 ### Build: custom icon set + animated logo replace raw emoji on the setup screen (maintainer request)
