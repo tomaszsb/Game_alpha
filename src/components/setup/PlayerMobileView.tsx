@@ -10,7 +10,6 @@ import { styles } from './PlayerSetup.styles';
 import { ShareIcon, useShareGameLink } from './ShareGameButton';
 import { IconCheck, IconWarning, IconBug } from '../icons/SetupIcons';
 import { AvatarIcon } from '../icons/AvatarIcons';
-import { LogoTransform } from '../icons/LogoTransform';
 
 interface PlayerMobileViewProps {
   /** The player this device is controlling, or undefined if not found yet. */
@@ -79,7 +78,7 @@ export function PlayerMobileView({
         <div style={styles.headerLeft}>
           <div className="us-hero-logo-wrap">
             <div className="us-hero-glow" aria-hidden="true" />
-            <LogoTransform className="us-hero-logo-img" style={styles.logo} />
+            <img src="/images/logo.png" alt="Unravel Codes" className="us-hero-logo-img" style={styles.logo} />
           </div>
           <div>
             <h1 style={styles.title}>Unravel Codes: The Game</h1>

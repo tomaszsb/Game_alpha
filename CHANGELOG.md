@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.60] - 2026-07-27
+
+### Fix: logo was a redrawn riff, not the real logo; avatar set was visually inconsistent (maintainer feedback on v3.1.59)
+Two corrections from maintainer feedback on the real-PixelLab pass:
+
+**Logo — reverted the redraw, restored the real asset.** The maintainer's actual ask was always "animate my logo," not "generate a new scene inspired by it." v3.1.59's `logo-pixel.png` was a PixelLab reinterpretation — different composition, different rendering, not their brand mark. Reverted to the real, untouched `public/images/logo.png` (a plain `<img>`, exactly as it was before this whole thread of work started) and kept the glow + gentle wobble CSS animation that was already built for it (`.us-hero-logo-img`/`.us-hero-glow`, `usHeroWobble` keyframes — predates this session, fb:7dbc2fcc). That combination — the real logo, genuinely moving — is what was asked for from the start. Deleted `LogoTransform.tsx` and `logo-pixel.png` (both fully unused once `PlayerSetup.tsx`/`PlayerMobileView.tsx` pointed back at the plain image).
+
+**Avatars — regenerated all 10 with a locked template.** The first PixelLab batch used a loosely-worded, role-varying prompt per avatar, so each generation was free to pick its own pose/framing/background — the result was an inconsistent set (some three-quarter turned, some front-facing; some with a visible background box behind the circular crop, some without). Rewrote the prompt as one fixed template ("front-facing symmetrical portrait, ID badge photo style, direct eye contact, centered head and shoulders... no border, no frame") with only the role-specific clothing/role clause varying, a stronger negative prompt explicitly ruling out turned/angled poses and borders/frames, and switched to `no_background: true` for a real transparent PNG per avatar (confirmed via corner-pixel alpha = 0 on all 10) — the previous batch's inconsistent opaque background boxes were almost certainly what read as "borders" against the circular crop. Regenerated all 10 rather than patching individual outliers, since true consistency needs one shared template, not a mix of old and new. Cost: ~$0.072 for the 10 regenerations.
+
+Verified: typecheck clean, production build clean, full regression 81/81 tests passing. Live-confirmed in a fresh browser tab (a stale HMR error from deleting `LogoTransform.tsx` mid-session turned out to be tab-console buffering, not a real issue — confirmed clean in a brand-new tab): the real `logo.png` loads at its native 1024px with the `usHeroWobble` animation actively running.
+
 ## [3.1.59] - 2026-07-27
 
 ### Build: real PixelLab-generated pixel art replaces hand-drawn avatars and logo (maintainer decision)

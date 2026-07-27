@@ -26,7 +26,6 @@ import { JoinByCodePanel } from './JoinByCodePanel';
 import { GameSettingsPanel } from './GameSettingsPanel';
 import { AdminToolsPanel } from './AdminToolsPanel';
 import { IconCheck, IconWarning, IconGear, IconPeople, IconPhone, IconPlay, IconClose, IconBug, IconHourglass } from '../icons/SetupIcons';
-import { LogoTransform } from '../icons/LogoTransform';
 
 interface PlayerSetupProps {
   onStartGame?: (players: Player[], settings: GameSettings) => void;
@@ -373,7 +372,9 @@ export function PlayerSetup({
         <div style={styles.headerLeft}>
           <div className="us-hero-logo-wrap">
             <div className="us-hero-glow" aria-hidden="true" />
-            <LogoTransform
+            <img
+              src="/images/logo.png"
+              alt="Unravel Codes"
               className="us-hero-logo-img"
               style={{
                 ...styles.logo,
