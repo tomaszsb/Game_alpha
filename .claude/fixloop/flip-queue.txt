@@ -1,4 +1,9 @@
-feedback-1784463099950-101702ed — player panel box-in-a-box + blue outline — fixed v3.1.62 — flip after deploy confirmed live
-
-# Cleared 2026-07-27: fb:75101be7 ("Can't add player", fixed v3.1.41) was already
-# absent from the live open-report list, i.e. already flipped resolved. Removed.
+# Empty — nothing awaiting a post-deploy flip.
+#
+# Cleared 2026-07-27: fb:101702ed (player panel box-in-a-box + blue outline,
+# fixed v3.1.62) flipped resolved once v3.1.62 was confirmed live. Dashboard
+# re-fetched after the v3.1.63 deploy: 9 open, id correctly absent.
+#
+# NOT queued on purpose: fb:ae480630 (next-action highlight). v3.1.63 fixed a
+# real notify gap that is a well-evidenced probable cause, but the symptom was
+# never reproduced — so it stays open until the maintainer confirms it in play.
