@@ -2,6 +2,13 @@
 
 ---
 
+## v3.1.52–3.1.60 — Four more cards now do what they say, glossary entries say when they're AI-written, and new artwork for icons and player avatars (July 27, 2026)
+
+- **Four more cards fixed to match their text.** "Press Release," "Expeditor Training," "Expeditor Mentor," "Approved Template," and "Appeal Process" all had wording that promised something the card didn't actually do (or, for Appeal Process, text that cut off mid-sentence with no effect at all). All five now do exactly what they say.
+- **Glossary entries drafted by AI now say so.** Some construction-term definitions in the in-game dictionary were written by AI rather than sourced from official material. Those now show a small "AI Generated" label instead of blending in as if a human wrote them.
+- **New icons everywhere the game used to show an emoji.** Emoji look different on every phone, computer, and smart TV — sometimes as the wrong picture entirely. Buttons, the settings gear, mode picker, and player list now use custom-drawn icons instead, so they look identical no matter what device you're on.
+- **New player avatar pictures.** The "pick your look" icons in the player picker are now real drawn portraits (one per role — business, technician, developer, artist, teacher) instead of emoji faces, for the same reason as above.
+
 ## v3.1.41–3.1.51 — Two cards now do what they say, the shared TV can go dark, and a "who's ahead" screen got a cleanup (July 26, 2026)
 
 - **"Add Player" no longer silently fails.** If you removed a player and then added a new one, the new player sometimes wouldn't appear at all — no error, just nothing happening. That's fixed.

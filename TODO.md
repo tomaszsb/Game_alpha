@@ -1,8 +1,8 @@
 # TODO - Game Alpha
 
-**Last Updated:** July 26, 2026 — v3.1.41–v3.1.54 shipped this session (interview-driven decision reconciliation, fixloop fixes, real feature builds, infra fixes, UX redesign); see CHANGELOG.
-**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52–v3.1.54 built same day, not yet deployed.
-**Current Version:** 3.1.54 (pending deploy)
+**Last Updated:** July 27, 2026 — v3.1.52–v3.1.60 shipped this session (fixloop fixes, an interview closing the last card-effect gaps, a glossary-autosync root-cause fix, and a full icon/avatar/logo art pass); see CHANGELOG.
+**Status:** Beta — live in production; **v3.1.51 confirmed deployed and live** 2026-07-26 (bundle content-verified `"3.1.51"`; the `/health` endpoint's own version field is a separate, unreliable, long-standing "dev" placeholder — see Parking lot). v3.1.52–v3.1.60 built since, not yet deployed.
+**Current Version:** 3.1.60 (pending deploy)
 
 ---
 
@@ -17,11 +17,7 @@
 
 ## 🔎 Active — bugs & investigations
 
-*2026-07-11 blind code review: all 10 items fixed — history in CHANGELOG v3.0.112–120. `npm test` "hang" root-caused + fixed v3.1.11.*
-
-## 🐛 **v3.1.20 playtest findings** (2026-07-21, MIXED priority)
-
-*Source: Playwright playtest of game.unravelcodes.com — G508 played solo, G509 played as two players in shared-screen mode. Reproductions noted per item. All 6 card-effect gaps found during this playtest (E034, E036, E037, E020, E040, E044) resolved 2026-07-26 — see CHANGELOG v3.1.45–v3.1.54.*
+*2026-07-11 blind code review: all 10 items fixed — history in CHANGELOG v3.0.112–120. `npm test` "hang" root-caused + fixed v3.1.11. 2026-07-21 playtest findings (6 card-effect gaps): all resolved — see CHANGELOG v3.1.45–v3.1.54.*
 
 ## 🔒 **Security audit follow-ups** (2026-07-21, MIXED priority)
 
@@ -183,7 +179,6 @@
 
 ### Dependency major-version jumps (deferred 2026-05-29; audit clean, minors done)
 - [ ] TypeScript 5.9→6.0 (wait 1–2 months, branch attempt) · jsdom 27→29 (re-test `forksFiles` workarounds) · playwright 1.57→1.60 (alongside Playwright test work).
-- [x] **`npm audit`'s 6 high-severity findings are FIXED (2026-07-26)** — without needing the ESLint 9→10 jump below. All 6 traced to one root cause: `brace-expansion <=5.0.7` (DoS via unbounded expansion) pulled in by an old `minimatch@3.1.5` that both `eslint`'s internals and `eslint-plugin-react` depend on. Two prior attempts (2026-07-25 and the 2026-07-26 scheduled re-check above) only tried the `npm audit fix --force` path, which forces `eslint` itself to 10.8.0 and breaks `eslint-plugin-react` (no ESLint-10 release exists) — correctly identified as a dead end. The actual fix: added `"overrides": { "minimatch": "^10.2.5" }` to package.json, forcing every nested copy of `minimatch` (and its already-patched `brace-expansion`) to the modern version already used elsewhere in the tree, with **zero change to `eslint`'s major version**. Verified: `npm audit` → 0 vulnerabilities; `npm run lint` output byte-for-byte identical (407 pre-existing problems, no crash); build, typecheck, and full test suite all match baseline.
 - [ ] **ESLint 9→10 major-version jump itself is still BLOCKED on `eslint-plugin-react`** (separate from the audit fix above, which no longer depends on this). Confirmed via the npm registry that `eslint-plugin-react` has never released ESLint 10 support — even its latest (7.37.5) declares `peerDependencies: { eslint: "^3 || ... || ^9.7" }`. Forcing eslint to 10.8.0 anyway installs cleanly but crashes every lint run (`TypeError: context.getSourceCode is not a function` — an API ESLint 10 removed that the plugin still calls). Re-attempt only after `eslint-plugin-react` ships real 10.x support (check `npm view eslint-plugin-react peerDependencies` first).
 
 *For full history, see CHANGELOG.md. Un-promoted v3.0.83–90 feedback staging: [.claude/feedback-staged.md](.claude/feedback-staged.md).*
