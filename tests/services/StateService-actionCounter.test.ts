@@ -366,3 +366,131 @@ describe('StateService.updateActionCounts — movementChoiceUnlocked flag', () =
     expect(state.movementChoiceUnlocked).toBe(true);
   });
 });
+
+// Regression for fb:feedback-1784464219688-ae480630 ("Next-action button
+// highlight disappears... maybe when switching the player panel between
+// mobile and PC"). Root cause: updateActionCounts() is the ONLY notify (and
+// thus the only server-sync trigger, via notifyListeners' debouncedSync) for
+// setPlayerHasMoved / setPlayerCompletedManualAction / setPlayerHasRolledDice
+// — none of those call notifyListeners() themselves. It used to return
+// early — skipping notifyListeners() entirely — whenever there was no
+// current player or the data service hadn't finished loading, both of which
+// are reachable mid-game (a turn-transition racing a manual-action
+// completion, a client still mid-load). That silently dropped the UI
+// refresh (the "what to press next" hint staying stuck on stale data) AND
+// the sync to any other screen/device watching the same game. The fix:
+// updateActionCounts() now always calls notifyListeners(), and only SKIPS
+// the requiredActions/movementChoiceUnlocked recompute when there's no
+// valid current player or data isn't loaded yet.
+describe('StateService.updateActionCounts — always notifies (fb:feedback-1784464219688-ae480630)', () => {
+  let stateService: StateService;
+  let dataService: any;
+
+  beforeEach(() => {
+    dataService = {
+      isLoaded: vi.fn().mockReturnValue(true),
+      getGameConfig: vi.fn().mockReturnValue([]),
+      getGameConfigBySpace: vi.fn().mockReturnValue({ requires_dice_roll: false }),
+      getMovement: vi.fn().mockReturnValue(undefined),
+      getSpaceEffects: vi.fn().mockReturnValue([]),
+      getSpaceContent: vi.fn(),
+      getCardsByType: vi.fn().mockReturnValue([]),
+      getDiceOutcome: vi.fn(),
+      getAllDiceOutcomes: vi.fn().mockReturnValue([]),
+      getAllSpaces: vi.fn().mockReturnValue([]),
+    };
+
+    stateService = new StateService(dataService);
+    (stateService as any).gameRulesService = {
+      evaluateCondition: vi.fn().mockReturnValue(true),
+    };
+  });
+
+  it('notifies subscribers even with no currentPlayerId set', () => {
+    stateService.setGameState({
+      ...stateService.getGameState(),
+      currentPlayerId: null,
+      gamePhase: 'PLAY',
+    });
+    const listener = vi.fn();
+    stateService.subscribe(listener);
+
+    stateService.updateActionCounts();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('notifies subscribers when currentPlayerId points at a player not in the players array', () => {
+    stateService.setGameState({
+      ...stateService.getGameState(),
+      players: [],
+      currentPlayerId: 'ghost-player',
+      gamePhase: 'PLAY',
+    });
+    const listener = vi.fn();
+    stateService.subscribe(listener);
+
+    stateService.updateActionCounts();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('notifies subscribers when the data service has not finished loading yet', () => {
+    const player = makePlayer();
+    stateService.setGameState({
+      ...stateService.getGameState(),
+      players: [player],
+      currentPlayerId: player.id,
+      gamePhase: 'PLAY',
+    });
+    dataService.isLoaded.mockReturnValue(false);
+    const listener = vi.fn();
+    stateService.subscribe(listener);
+
+    stateService.updateActionCounts();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('still skips the requiredActions/movementChoiceUnlocked recompute when there is no valid current player', () => {
+    stateService.setGameState({
+      ...stateService.getGameState(),
+      players: [],
+      currentPlayerId: null,
+      gamePhase: 'PLAY',
+      requiredActions: 3,
+      completedActionCount: 1,
+    });
+
+    stateService.updateActionCounts();
+    const state = stateService.getGameState();
+
+    // Unchanged — there's no valid player to recompute counts from, so the
+    // fix only guarantees the NOTIFY still fires, not a (meaningless) recompute.
+    expect(state.requiredActions).toBe(3);
+    expect(state.completedActionCount).toBe(1);
+  });
+
+  it('a manual-action completion (setPlayerCompletedManualAction) still reaches subscribers when currentPlayerId is unset — this is the exact path the reported highlight bug goes through', () => {
+    // setPlayerCompletedManualAction has no notifyListeners() call of its
+    // own — it relies entirely on updateActionCounts() to notify. Before the
+    // fix, an unset currentPlayerId at this exact moment (e.g. a turn
+    // transition racing the async manual-effect completion) meant this
+    // subscriber — and the server sync that keeps other screens/devices in
+    // sync — never fired, so the UI (and any other connected screen) kept
+    // showing stale "things you can do" state instead of picking up the
+    // completed action.
+    stateService.setGameState({
+      ...stateService.getGameState(),
+      currentPlayerId: null,
+      gamePhase: 'PLAY',
+    });
+    const listener = vi.fn();
+    stateService.subscribe(listener);
+
+    stateService.setPlayerCompletedManualAction('cards:draw_e', 'Hire 1 Expeditor');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener.mock.calls[0][0].completedActions.manualActions['cards:draw_e']).toBe('Hire 1 Expeditor');
+  });
+});

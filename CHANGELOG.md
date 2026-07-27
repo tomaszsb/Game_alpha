@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.63] - 2026-07-27
+
+### Fix: `updateActionCounts` could skip its notify entirely, silently dropping both the UI refresh and the server sync
+Investigating the "next-action button highlight disappears" report. **Both of the maintainer's own guesses were disproved live, not just by reading code:**
+- *"It fades after a while"* — no. `.uc-hint-glow`'s keyframes are `animation-iteration-count: infinite`; confirmed on the real glowing button via `getAnimations()` (`iterations: Infinity`, `playState: "running"`), then idled a live game 70+ seconds with a DOM marker planted on that button and watched it stay put.
+- *"It breaks switching the panel between mobile and PC"* — no. Those breakpoints are pure CSS media queries in `GameLayout.tsx`; resizing a live tab desktop → 390×844 → desktop left the marked button untouched. The actual mobile-vs-desktop code branch (`effectiveViewPlayerId`) is decided once from the URL at load and can't be toggled mid-session on one device.
+
+**The real defect** is in `StateService.updateActionCounts()`: it `return`ed early — skipping `notifyListeners()` altogether — whenever `currentPlayerId` was unset or the current player / loaded data couldn't be resolved. Three callers (`setPlayerHasMoved`, `setPlayerCompletedManualAction`, `setPlayerHasRolledDice`) have no notify of their own and depend on that call entirely. And since `notifyListeners()` is also the only trigger for `serverSyncService.debouncedSync()`, a skipped notify silently dropped *both* the local re-render and the push to any other screen or device watching the same game. Those early-return states are genuinely reachable (a turn-transition racing an in-flight manual action; a multiplayer client still mid-load), which matches the intermittent, hard-to-pin, worse-across-devices shape of the report.
+
+Fix: recomputing the counts still requires a valid current player and loaded data, but **every** call now notifies. One change at the source of truth rather than papering over it at the seven call sites that already notify redundantly.
+
+This closes half of the long-standing "Notification storm" item in TODO.md's Parking lot (flagged in the 2026-07-11 review) — the early-return-without-notify half. The other half (double listener sweeps from callers that notify twice, and ~15 components using full-state `subscribe()` instead of `subscribeWithSelector`) is untouched and still parked.
+
+**Honest limitation:** the agent could not force the exact race through scripted UI clicks in the time available, so this is a well-evidenced *probable* cause for `fb:ae480630`, not a confirmed reproduction of it. The report stays open pending the maintainer's own confirmation in real play. What is confirmed is that the notify gap itself is real: 5 new regression tests were written, then validated by `git stash`-ing the fix — 4 of the 5 fail against the old code and all 5 pass with it.
+
+Verified: typecheck clean, production build clean. `tests/services/` 905/905 across 39 files and `tests/components/` 438/438 across 42 files — run wider than usual on purpose, since this touches the notification spine that ~15 components subscribe to. Live-verified in a real 3-player game: the glow renders and clears per-button as each first-visit action completes, and the same player's state reads consistently from both their own per-player view and the shared view.
+
 ## [3.1.62] - 2026-07-27
 
 ### Fix: player panel was a box inside a box, wrapped in a blue outline that ignored the theme

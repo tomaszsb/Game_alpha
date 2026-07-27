@@ -963,22 +963,38 @@ export class StateService implements IStateService {
   }
 
   // Action tracking methods
+  //
+  // IMPORTANT: this is the SOLE notification (and server-sync trigger — see
+  // notifyListeners' debouncedSync call) for several callers (setPlayerHasMoved,
+  // setPlayerCompletedManualAction, setPlayerHasRolledDice — none of them call
+  // notifyListeners() themselves). Earlier versions returned early — skipping
+  // notifyListeners() entirely — whenever there was no current player or the
+  // data service hadn't finished loading. Those are real, reachable states
+  // (e.g. a turn-transition heartbeat racing a manual-action completion, or a
+  // multiplayer client still mid-load), and skipping the notify silently
+  // dropped the UI refresh AND the server sync for whatever just changed —
+  // symptoms only surfacing later as "it caught up eventually" or a stale
+  // view on another device/screen (fb:feedback-1784464219688-ae480630, the
+  // next-action highlight going stale). Recomputing the counts still requires
+  // a valid current player and loaded data, but every call now notifies
+  // regardless, so callers that rely on this as their only notify never go
+  // silent.
   updateActionCounts(): void {
-    if (!this.currentState.currentPlayerId) return;
+    const currentPlayer = this.currentState.currentPlayerId
+      ? this.currentState.players.find(p => p.id === this.currentState.currentPlayerId)
+      : undefined;
 
-    const currentPlayer = this.currentState.players.find(p => p.id === this.currentState.currentPlayerId);
-    if (!currentPlayer || !this.dataService.isLoaded()) return;
+    if (currentPlayer && this.dataService.isLoaded()) {
+      const actionCounts = this.calculateRequiredActions(currentPlayer);
 
-    const actionCounts = this.calculateRequiredActions(currentPlayer);
-
-
-    this.currentState = {
-      ...this.currentState,
-      requiredActions: actionCounts.required,
-      completedActionCount: actionCounts.completed,
-      availableActionTypes: actionCounts.availableTypes,
-      movementChoiceUnlocked: actionCounts.movementChoiceUnlocked
-    };
+      this.currentState = {
+        ...this.currentState,
+        requiredActions: actionCounts.required,
+        completedActionCount: actionCounts.completed,
+        availableActionTypes: actionCounts.availableTypes,
+        movementChoiceUnlocked: actionCounts.movementChoiceUnlocked
+      };
+    }
 
     this.notifyListeners();
   }
