@@ -15,6 +15,7 @@ import React, { useEffect, useState } from 'react';
 import { IServiceContainer } from '../../types/ServiceContracts';
 import { PanelMode, panelPalettes } from './panelTheme';
 import { playerLifecyclePosition } from '../../utils/lifecycleProgress';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 export interface ScoreboardV2Props {
   gameServices: IServiceContainer;
@@ -79,13 +80,6 @@ export const ScoreboardV2: React.FC<ScoreboardV2Props> = ({ gameServices, mode }
     textTransform: 'uppercase',
     margin: '0 0 10px',
   };
-  const dot = (color: string): React.CSSProperties => ({
-    width: 11,
-    height: 11,
-    borderRadius: '50%',
-    background: color,
-    flex: '0 0 auto',
-  });
 
   return (
     <div style={wrap} data-testid="scoreboard-v2">
@@ -123,7 +117,7 @@ export const ScoreboardV2: React.FC<ScoreboardV2Props> = ({ gameServices, mode }
                     title={`${s.player.name} — ${prettyPhase(s.pos.phase)}`}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, maxWidth: '100%' }}
                   >
-                    <span style={dot(s.player.color || p.accent)} />
+                    <PlayerAvatar avatar={s.player.avatar} color={s.player.color || p.accent} size={16} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {s.player.name}
                     </span>
@@ -154,7 +148,7 @@ export const ScoreboardV2: React.FC<ScoreboardV2Props> = ({ gameServices, mode }
                 padding: '8px 11px',
               }}
             >
-              <span style={dot(player.color || p.accent)} />
+              <PlayerAvatar avatar={player.avatar} color={player.color || p.accent} size={22} />
               <span style={{ fontSize: 13, fontWeight: 500, minWidth: 0, flex: '0 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {player.name}
                 {isCurrent && <span style={{ color: p.muted, fontWeight: 400 }}> · their turn</span>}

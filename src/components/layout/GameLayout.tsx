@@ -1,6 +1,7 @@
 // src/components/layout/GameLayout.tsx
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { IconBug } from '../icons/SetupIcons';
 import { colors } from '../../styles/theme';
 import { CardDetailsModal } from '../modals/CardDetailsModal';
 import { ChoiceModal } from '../modals/ChoiceModal';
@@ -1415,7 +1416,7 @@ export function GameLayout({ viewPlayerId, initialPreview, onPreviewConsumed }: 
           borderTop: `1px solid ${colors.primary.main}`,
           flexShrink: 0,
         }}>
-          <strong>Beta</strong> · Bug? Use the 🐞 button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
+          <strong>Beta</strong> · Bug? Use the <IconBug size="0.95em" style={{ margin: '0 0.15em' }} /> button (bottom-right) · <a href="mailto:game@unravelcodes.com" style={{ color: colors.primary.main }}>game@unravelcodes.com</a>
         </div>
       )}
 

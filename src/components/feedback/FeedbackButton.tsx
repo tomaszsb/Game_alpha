@@ -9,6 +9,7 @@ import { ModalBase, modalButtonStyles } from '../modals/shared/ModalBase';
 import { colors } from '../../styles/theme';
 import { getGameStateAPIPath, getCurrentGameId } from '../../utils/networkDetection';
 import { getConsoleLogs } from '../../utils/consoleCapture';
+import { IconBug } from '../icons/SetupIcons';
 
 interface FeedbackForm {
   whatDoing: string;
@@ -370,7 +371,7 @@ export function FeedbackButton(): JSX.Element {
           onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.opacity = '0.6'; }}
           title="Report a Bug"
         >
-          🐛
+          <IconBug size="1.3em" />
         </button>
       )}
 

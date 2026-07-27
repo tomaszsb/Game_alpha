@@ -77,6 +77,7 @@ import { resolveFundingAmountToken } from '../../utils/templateInterpolation';
 // phase/validity/status/player-identity colors are deliberately left fixed —
 // see the theming block inside BoardNode below.
 import { getStoredPanelMode, panelPalettes, type PanelMode } from '../player/panelTheme';
+import { PlayerAvatar } from '../common/PlayerAvatar';
 
 // ===================================================================
 // Custom node — preserves the look of BoardV3 tiles
@@ -90,6 +91,8 @@ interface BoardNodeData {
   isValidMove: boolean;     // current player can move here
   playerCount: number;      // how many players standing here
   playerColors: string[];   // for overlay tokens
+  playerAvatars: string[];  // parallel to playerColors, same order
+  playerNames: string[];    // parallel to playerColors, same order (tooltip)
   isExpanded: boolean;      // expanded card view (click)
   // Action counter — populated only on the current player's tile so
   // playtesters can see "actions left" without opening the side panel.
@@ -323,18 +326,7 @@ function BoardNode({ data }: NodeProps<Node<BoardNodeData>>) {
       {data.playerCount > 0 && (
         <div style={{ display: 'flex', gap: 3, marginTop: 6, flexWrap: 'wrap' }}>
           {data.playerColors.map((color, i) => (
-            <div
-              key={i}
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: '50%',
-                background: color,
-                border: '1.5px solid #fff',
-                boxShadow: '0 0 0 1px #00000022',
-              }}
-              aria-label="player token"
-            />
+            <PlayerAvatar key={i} avatar={data.playerAvatars[i]} color={color} size={16} title={data.playerNames[i]} />
           ))}
         </div>
       )}
@@ -643,6 +635,8 @@ function BoardCanvasInner({
           isValidMove: false,   // populated dynamically below
           playerCount: 0,
           playerColors: [],
+          playerAvatars: [],
+          playerNames: [],
           isExpanded: false,
           story: content?.story,
           actionDescription: content?.action_description,
@@ -821,6 +815,8 @@ function BoardCanvasInner({
           isValidMove: validMoves.includes(n.id),
           playerCount: playersHere.length,
           playerColors: playersHere.map(p => p.color || '#666'),
+          playerAvatars: playersHere.map(p => p.avatar || ''),
+          playerNames: playersHere.map(p => p.name || ''),
           isExpanded: expandedSpace === n.id,
           hoveredSpace,
           isEditMode: isAdmin,

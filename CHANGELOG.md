@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.61] - 2026-07-27
+
+### Build: player avatars extended to the board and TV scoreboard; remaining emoji swept for icon consistency (maintainer follow-up on v3.1.60)
+After deploying v3.1.60 and confirming the new avatar portraits live, maintainer feedback: at the small circular size used in the setup screen's player list, the new art was too subtle to register as different from the old emoji at a glance (fixed by looking closer, but the follow-up ask was to put the avatars somewhere more visible) — plus a request to extend the icon-consistency work to a few remaining spots.
+
+**Avatars now render everywhere a player is otherwise represented only by a color swatch:**
+- **Board tiles** (`BoardCanvas.tsx`) — the small "who's standing here" token row on each space used to be a bare colored circle (`data.playerColors`); now renders the player's actual avatar portrait (via the shared `PlayerAvatar` component) with a hover tooltip naming the player, plumbed through as a new parallel `playerAvatars`/`playerNames` field on `BoardNodeData` alongside the existing `playerColors`.
+- **TV scoreboard** (`ScoreboardV2.tsx`) — both the phase-rail token and the per-player status row used a hand-rolled `dot()` helper (a plain colored `<span>`); both now use `PlayerAvatar`. The now-unused `dot()` helper was deleted.
+
+**Remaining emoji swept for the icon-consistency work started in v3.1.55:**
+- The floating "Report a Bug" button (`FeedbackButton.tsx`, the red circular button visible during actual gameplay, distinct from the setup-screen footer link fixed earlier) — 🐛 → `IconBug`.
+- The in-game footer's "Bug? Use the 🐞 button" message (`GameLayout.tsx`) — a third instance of the same footer pattern already fixed in `PlayerSetup.tsx`/`PlayerMobileView.tsx` that was missed this session; same `IconBug` swap.
+- The personal light/dark mode toggle (`PlayerPanelWrapper.tsx`) — previously plain "Dark"/"Light" text with no icon at all; added a new `IconSun` (pairing the existing `IconMoon`) so the button shows the mode you'd switch *to*, matching common convention.
+
+Verified: typecheck clean, production build clean, existing `BoardCanvas.test.ts` (20/20), `ScoreboardV2.test.tsx` (3/3), and `PlayerAvatar.test.tsx` (2/2) all still pass unchanged. Full fast suite 2479/2483 (3 failures — `E2E-AllPaths`, `E2E-Multiplayer4P` timeout, a tight-timing perf assertion — all 3 re-ran clean in isolation, matching this project's well-documented full-suite resource-contention flake pattern, not a regression; likely worsened by the Vite + Express dev servers running concurrently for the live browser verification below). Live-verified in a real 3-player dev-server game (both Vite + the Express backend running): confirmed 8 real avatar `<img>` elements render across the board tiles and standings row with correct per-player src paths, the bug button and footer message both render an `<svg>` instead of the emoji, and the light/dark toggle shows an icon alongside its "Dark"/"Light" text. Ghost regression gates not re-run this round — these are presentation-only swaps (avatar image instead of color dot, icon instead of emoji glyph) with no game-logic/rule changes; the full ghost suite ran clean at the end of the prior /koniec pass this same session.
+
 ## [3.1.60] - 2026-07-27
 
 ### Fix: logo was a redrawn riff, not the real logo; avatar set was visually inconsistent (maintainer feedback on v3.1.59)

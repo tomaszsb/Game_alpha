@@ -10,6 +10,7 @@ import React, { useEffect } from 'react';
 import { PlayerPanelV2 } from './PlayerPanelV2';
 import { PlayerPanelProps } from './panelTypes';
 import { usePanelMode } from './panelTheme';
+import { IconMoon, IconSun } from '../icons/SetupIcons';
 
 export interface PlayerPanelWrapperProps extends PlayerPanelProps {
   /** Force mobile view regardless of screen size (for testing) */
@@ -54,12 +55,16 @@ export const PlayerPanelWrapper: React.FC<PlayerPanelWrapperProps> = ({
     padding: '2px 8px',
     fontSize: 11,
     cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.3em',
   };
 
   return (
     <div className="player-panel-wrapper" style={{ position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, padding: '4px 6px' }}>
         <button style={toggleBtn} onClick={toggleMode} title="Light / dark mode">
+          {mode === 'light' ? <IconMoon size="1em" /> : <IconSun size="1em" />}
           {mode === 'light' ? 'Dark' : 'Light'}
         </button>
       </div>

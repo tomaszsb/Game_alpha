@@ -94,6 +94,21 @@ export function IconMoon(props: IconProps): JSX.Element {
   );
 }
 
+/** Pairs with IconMoon for a light/dark toggle that shows the mode you'd switch TO */
+export function IconSun(props: IconProps): JSX.Element {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="4.3" fill="currentColor" />
+      <path
+        d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4L5.6 5.6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 /** Replaces 📋 (Rules button) */
 export function IconClipboard(props: IconProps): JSX.Element {
   return (
